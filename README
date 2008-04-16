@@ -1,2 +1,14 @@
 This is the primary development trunk of the OpenMx project.  
 The various parts of the project will go in here in different directories, as things progress.
+
+Files:
+'DESCRIPTION'	-	basic information about the package in a specific format (see 'Writing R Extensions')
+'LICENSE'	-	a copy of the license to the package, e.g. a copy of the GNU public license.
+
+Subdirectories:
+'R'	-	R code files.
+'man'	-	Documentation in .Rd format.
+'src'	-	The sources and headers for compiled code, plus optionally a Makefile.
+'tests'	-	package-specifc test code.
+'demo'	-	R scripts (for running via demo()) that demonstrate some of the functionality of the package.
+'data'	-	data files the package makes available for loading using data().
