@@ -26,15 +26,15 @@ setConstructorS3("MxMatrix", function(parameters, data, modifiable) {
 })
 
 
-setMethodS3("print", "MxMatrix", function(this, ...) {
-   cat(paste("MxMatrix:", data.class(this)), sep="\n")
+setMethodS3("print", "MxMatrix", function(x, ...) {
+   cat(paste("MxMatrix:", data.class(x)), sep="\n")
    cat("Parameters: ", sep="\n")
-   print(this$.parameters)
+   print(x$.parameters)
    cat("Data: ", sep="\n")
-   print(this$.data)
-   cat("Modifiable:", this$.modifiable)
+   print(x$.data)
+   cat("Modifiable:", x$.modifiable)
    cat("\n")
-   invisible(this)
+   invisible(x)
 })
 
 

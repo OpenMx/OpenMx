@@ -11,11 +11,11 @@ setConstructorS3("MxAlgebra", function(formula) {
 
 })
 
-setMethodS3("print", "MxAlgebra", function(this, ...) {
+setMethodS3("print", "MxAlgebra", function(x, ...) {
    cat("Formula: ")
-   print(this$.formula)
+   print(x$.formula)
    cat("Translation: ")
-   print(this$.translation)
-   cat("Dirty:", this$.dirty, "\n")
-   invisible(this)
+   print(x$.translation)
+   cat("Dirty:", x$.dirty, "\n")
+   invisible(x)
 })

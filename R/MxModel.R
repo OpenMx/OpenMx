@@ -22,7 +22,9 @@ setMethodS3("$<-", "MxModel", function(this, name, value) {
   # Michael Spiegel, May 2, 2007
   #
   if (inherits(value,"MxMatrix")) {
-    transformMatrix(value, length(this$.freeVariablesList))
+    if (!exists(name, envir=attr(this, ".env"))) {
+      transformMatrix(value, length(this$.freeVariablesList))
+    }
   }
 
   for (memberAccessor in memberAccessorOrder) {

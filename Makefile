@@ -18,5 +18,6 @@ test: clean
 	rm base
 
 clean:
+	rm -rf base	
 	rm -rf base.Rcheck
 	rm -rf $(RBUILD)/OpenMx*
