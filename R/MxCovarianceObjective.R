@@ -1,7 +1,7 @@
 setConstructorS3("CovarianceObjective", function(expected, observed) {
 
-   if (missing(expected)) row <- NA;
-   if (missing(observed)) col <- NA;
+   if (missing(expected)) expected <- NA;
+   if (missing(observed)) observed <- NA;
 
 
    extend(MxObjective(), "CovarianceObjective",
@@ -11,20 +11,24 @@ setConstructorS3("CovarianceObjective", function(expected, observed) {
 })
 
 
-setMethodS3("createMxJobClosureR", "MxCovarianceObjective", function(objective, job, ...) {
+setMethodS3("createMxJobClosureR", "CovarianceObjective", function(objective, job, ...) {
       
-   model <- job$.model; 
+   model <- job$.model;
+   model$updateFreeVariablesList(); 
 
    function() {
 
-      observedCov <- objective$.observed;
+      observedCov <- objective$.observed; # this is a matrix
+      expectedCov <- objective$.expected; # this is an MxAlgebra statement
       startValues <- model$getFreeVariables();
+      expectedCov$translateAlgebra();
 
       objectiveFunction <- function(par) {
          model$updateMatrices(par);
-         predictedCov <- model$evaluateAlgebra(objective$.expected);
+         expectedCov$setDirtyBit(TRUE);
+         predictedCov <- expectedCov$evalTranslation();
          functionValue <- sum(diag(observedCov %*% solve(predictedCov))) + log(det(predictedCov));
-         functionValue;
+         return(functionValue);
       }
 
    # Optimize

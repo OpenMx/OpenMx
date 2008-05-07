@@ -12,12 +12,13 @@ nothing:
 build: clean
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
-test: clean
+test:
+	rm -rf base
 	ln -s . base
 	$(REXEC) $(RCOMMAND) $(RTEST) base
-	rm base
+	rm -rf base
 
 clean:
-	rm -rf base	
+	rm -rf base
 	rm -rf base.Rcheck
 	rm -rf $(RBUILD)/OpenMx*
