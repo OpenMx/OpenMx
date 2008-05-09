@@ -11,8 +11,10 @@ nothing:
 
 build: build/*
 
-build/*:
+build/*: R/*
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
+
+R/*:
 
 install: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) OpenMx*
