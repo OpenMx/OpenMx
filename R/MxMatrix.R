@@ -1,16 +1,3 @@
-#
-# MxMatrix is the abstract supertype of all matrix types
-#
-# parameters is a matrix of integers: 
-#	0    indicates a fixed value,
-#	> 0  indicates a free parameter,
-# < 0  indicates a definition variable.
-# 
-# values is a matrix of floating-point values
-#
-# modifiable is an integer that returns the number
-# of modifiable elements of this matrix type.
-#
 setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 
   if (missing(parameters)) parameters <- NA;
@@ -18,7 +5,7 @@ setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
   if (missing(modifiable)) modifiable <- NA;
 
   extend(Object(), "MxMatrix",
-    .parameters=parameters,
+    parameters=parameters,
     values=values,
     .modifiable=modifiable
   );
@@ -29,7 +16,7 @@ setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 setMethodS3("print", "MxMatrix", function(x, ...) {
    cat(paste("MxMatrix:", data.class(x)), sep="\n")
    cat("Parameters: ", sep="\n")
-   print(x$.parameters)
+   print(x$parameters)
    cat("Values: ", sep="\n")
    print(x$values)
    cat("Modifiable:", x$.modifiable)
@@ -206,7 +193,7 @@ setMethodS3("setValuesWithList", "DiagMatrix", function(this, valuesList,...) {
 
 
 setMethodS3("setParametersWithList", "DiagMatrix", function(this, parametersList,...) {
-   this$.parameters <- diag(parametersList);
+   this$parameters <- diag(parametersList);
 })
 
 
@@ -272,13 +259,13 @@ setMethodS3("setValuesWithList", "StandMatrix", function(this, valuesList,...) {
 setMethodS3("setParametersWithList", "StandMatrix", function(this, parametersList,...) {
 
    # Set the lower triangular matrix to zero
-   this$.parameters[lower.tri(this$.parameters, diag=TRUE)] <- 0;
+   this$parameters[lower.tri(this$parameters, diag=TRUE)] <- 0;
 
    # And set the remaining elements to valuesList
-   this$.parameters[!lower.tri(this$.parameters, diag=TRUE)] <- parametersList;	
-   this$.parameters <- matrix(this$.parameters, nrow(this$.parameters),
-					ncol(this$.parameters), byrow=TRUE);
-   this$.parameters <- this$.parameters + t(this$.parameters);
+   this$parameters[!lower.tri(this$parameters, diag=TRUE)] <- parametersList;	
+   this$parameters <- matrix(this$parameters, nrow(this$parameters),
+					ncol(this$parameters), byrow=TRUE);
+   this$parameters <- this$parameters + t(this$parameters);
 })
 
 
@@ -332,8 +319,8 @@ setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
 
 setMethodS3("setParametersWithList", "SymmMatrix", function(this, parametersList,...) {
    # Set the lower triangle to parametersList
-   this$.parameters[upper.tri(this$.parameters, diag=TRUE)] <- parametersList;
-   this$.parameters <- this$.parameters + t(this$.parameters) - diag(diag(this$.parameters));   
+   this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;
+   this$parameters <- this$parameters + t(this$parameters) - diag(diag(this$parameters));   
 })
 
 #
@@ -385,9 +372,9 @@ setMethodS3("setValuesWithList", "LowerMatrix", function(this, valuesList,...) {
 
 setMethodS3("setParametersWithList", "LowerMatrix", function(this, parametersList,...) {
    # Set the upper triangle to parametersList
-   this$.parameters[upper.tri(this$.parameters, diag=TRUE)] <- parametersList;	
-   this$.parameters <- t(this$.parameters);
-   this$.parameters[upper.tri(this$.parameters, diag=FALSE)] <- 0;
+   this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;	
+   this$parameters <- t(this$parameters);
+   this$parameters[upper.tri(this$parameters, diag=FALSE)] <- 0;
 })
 
 #
@@ -414,7 +401,7 @@ setMethodS3("setValuesWithList", "FullMatrix", function(this, valuesList,...) {
 })
 
 setMethodS3("setParametersWithList", "FullMatrix", function(this, parametersList,...) {
-   this$.parameters <- t(matrix(parametersList, ncol(this$.parameters), nrow(this$.parameters)));
+   this$parameters <- t(matrix(parametersList, ncol(this$parameters), nrow(this$parameters)));
 })
 
 setMethodS3("checkValidMatrix", "FullMatrix", function(this, aMatrix,...) { TRUE })

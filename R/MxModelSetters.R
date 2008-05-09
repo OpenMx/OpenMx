@@ -1,8 +1,8 @@
 
 setMethodS3("transformMatrix", "MxMatrix", function(this, offset,...) {
-  newFree <- this$.parameters
+  newFree <- this$parameters
   newFree[newFree > 0] <- newFree[newFree > 0] + offset
-  this$.parameters <- newFree
+  this$parameters <- newFree
 })
 
 
@@ -14,7 +14,7 @@ setMethodS3("updateFreeVariablesList", "MxModel", function(this,...) {
   updatedList <- list();
   for (aField in this$getFields()) {
     if (inherits(this[[aField]],"MxMatrix")) {
-      parameters <- this[[aField]]$.parameters;
+      parameters <- this[[aField]]$parameters;
       for(row in 1:dim(parameters)[1]) {
         for(col in 1:dim(parameters)[2]) {
           variableNumber <- parameters[row,col];
@@ -79,11 +79,11 @@ setMethodS3("setParameters", "MxMatrix", function(this, parameters,...) {
       }
       this$setParametersWithList(parameters);
    } else if (is.matrix(parameters)) {
-      if (!all(dim(this$.parameters) == dim(parameters))) {
+      if (!all(dim(this$parameters) == dim(parameters))) {
           error <- paste("Second argument has dimensions",
             	paste(dim(parameters), collapse = " "), "but matrix",
             	"has dimensions",
-            	paste(dim(matrix$.parameters), collapse = " "), ".")
+            	paste(dim(matrix$parameters), collapse = " "), ".")
           throw(error);
       }
       valid <- this$checkValidMatrix(parameters);
@@ -92,7 +92,7 @@ setMethodS3("setParameters", "MxMatrix", function(this, parameters,...) {
             	data.class(this),".");
           throw(error);
       }
-      this$.parameters <- parameters
+      this$parameters <- parameters
    } else {
       throw("Second argument is neither a vector nor a matrix.");
    }
