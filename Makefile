@@ -2,20 +2,25 @@ RDFILES = *.Rd
 REXEC = R
 RCOMMAND = CMD
 RBUILD = build
-RTEST = check
+RINSTALL = install
+RCHECK = check
 
 nothing:
 	@echo \
-	'Please type "make build", "make test", or "make clean"'
+	'Please type "make build", "make install", "make check", or "make clean"'
 
+build: build/*
 
-build: clean
+build/*:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
-test:
+install: build
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) OpenMx*
+
+check:
 	rm -rf base
 	ln -s . base
-	$(REXEC) $(RCOMMAND) $(RTEST) base
+	$(REXEC) $(RCOMMAND) $(RCHECK) base
 	rm -rf base
 
 clean:
