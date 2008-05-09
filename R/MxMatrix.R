@@ -326,15 +326,14 @@ setMethodS3("checkValidSpecification", "SymmMatrix", function(this, aMatrix,...)
 
 setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
    # Set the lower triangle to valuesList
-   this$values[lower.tri(this$values, diag=TRUE)] <- valuesList;	
-   this$values[upper.tri(this$values, diag=FALSE)] <- this$values[lower.tri(this$values, diag=FALSE)];
+   this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
+   this$values <- this$values + t(this$values) - diag(diag(this$values));   
 })
 
 setMethodS3("setParametersWithList", "SymmMatrix", function(this, parametersList,...) {
-
    # Set the lower triangle to parametersList
-   this$.parameters[lower.tri(this$.parameters, diag=TRUE)] <- parametersList;
-   this$.parameters[upper.tri(this$.parameters, diag=FALSE)] <- this$.parameters[lower.tri(this$.parameters, diag=FALSE)];
+   this$.parameters[upper.tri(this$.parameters, diag=TRUE)] <- parametersList;
+   this$.parameters <- this$.parameters + t(this$.parameters) - diag(diag(this$.parameters));   
 })
 
 #
