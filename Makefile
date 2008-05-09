@@ -17,13 +17,8 @@ build/*:
 install: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) OpenMx*
 
-check:
-	rm -rf base
-	ln -s . base
-	$(REXEC) $(RCOMMAND) $(RCHECK) base
-	rm -rf base
+check: build
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) OpenMx*
 
 clean:
-	rm -rf base
-	rm -rf base.Rcheck
 	rm -rf $(RBUILD)/OpenMx*
