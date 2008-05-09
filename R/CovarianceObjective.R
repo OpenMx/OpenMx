@@ -27,7 +27,7 @@ setMethodS3("createMxJobClosureR", "CovarianceObjective", function(objective, jo
          model$updateMatrices(par);
          expectedCov$setDirtyBit(TRUE);
          predictedCov <- expectedCov$evalTranslation();
-         functionValue <- sum(diag(observedCov %*% solve(predictedCov))) + log(det(predictedCov));
+         functionValue <- sum(observedCov * solve(predictedCov)) + log(det(predictedCov));
          return(functionValue);
       }
 

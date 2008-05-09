@@ -2,7 +2,7 @@
    # DO NOT export this method
    # this is a helper function to updateMatrices()
    updateMatrix <- function(reference, row, col, newvalue) {
-      reference$.data[row,col] <- newvalue;
+      reference$values[row,col] <- newvalue;
    };
 
    # DO NOT export this method

@@ -38,7 +38,7 @@ translateAlgebraHelper <- function(formula) {
          return(substitute(x$evalTranslation(), list(x = formula)));
       return();
       } else if (inherits(evalFormula,"MxMatrix")) {
-         return(substitute(x$.data, list(x = formula)));
+         return(substitute(x$values, list(x = formula)));
       }
    }
    return(formula);

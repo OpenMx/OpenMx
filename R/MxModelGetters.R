@@ -5,7 +5,7 @@
       reference <- threeTuple[[1]];
       row <- threeTuple[[2]];
       col <- threeTuple[[3]];
-      return(reference$.data[row,col]);
+      return(reference$values[row,col]);
    }
 
    # DO NOT export this method

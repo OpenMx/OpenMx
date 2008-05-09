@@ -48,11 +48,11 @@ setMethodS3("setValues", "MxMatrix", function(this, values,...) {
       }
       this$setValuesWithList(values);
    } else if (is.matrix(values)) {
-      if (!all(dim(this$.data) == dim(values))) {
+      if (!all(dim(this$values) == dim(values))) {
           error <- paste("Second argument has dimensions",
             	paste(dim(values), collapse = " "), "but matrix",
             	"has dimensions",
-            	paste(dim(matrix@data), collapse = " "), ".");
+            	paste(dim(this$values), collapse = " "), ".");
           throw(error);
       }
       valid <- this$checkValidMatrix(values);
@@ -61,7 +61,7 @@ setMethodS3("setValues", "MxMatrix", function(this, values,...) {
             	data.class(this),".");
           throw(error);
       }
-      this$.data <- values;
+      this$values <- values;
    } else {
       throw("Second argument is neither a vector nor a matrix.");
    }

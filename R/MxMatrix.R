@@ -4,22 +4,22 @@
 # parameters is a matrix of integers: 
 #	0    indicates a fixed value,
 #	> 0  indicates a free parameter,
-#       < 0  indicates FOO.
+# < 0  indicates a definition variable.
 # 
-# data is a matrix of floating-point values
+# values is a matrix of floating-point values
 #
 # modifiable is an integer that returns the number
 # of modifiable elements of this matrix type.
 #
-setConstructorS3("MxMatrix", function(parameters, data, modifiable) {
+setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 
   if (missing(parameters)) parameters <- NA;
-  if (missing(data))  data <- NA;
+  if (missing(values))  values <- NA;
   if (missing(modifiable)) modifiable <- NA;
 
   extend(Object(), "MxMatrix",
     .parameters=parameters,
-    .data=data,
+    values=values,
     .modifiable=modifiable
   );
 
@@ -30,8 +30,8 @@ setMethodS3("print", "MxMatrix", function(x, ...) {
    cat(paste("MxMatrix:", data.class(x)), sep="\n")
    cat("Parameters: ", sep="\n")
    print(x$.parameters)
-   cat("Data: ", sep="\n")
-   print(x$.data)
+   cat("Values: ", sep="\n")
+   print(x$values)
    cat("Modifiable:", x$.modifiable)
    cat("\n")
    invisible(x)
@@ -65,9 +65,9 @@ setConstructorS3("ZeroMatrix", function(row, col, free = FALSE) {
    checkFree(free);
 
    freeParameters <- matrix(0, row, col);
-   dataMatrix <- matrix(0, row, col);
+   valuesMatrix <- matrix(0, row, col);
    modifiable <- 0;
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "ZeroMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "ZeroMatrix");
 
 })
 
@@ -83,9 +83,9 @@ setConstructorS3("UnitMatrix", function(row, col, free = FALSE) {
    checkFree(free);
    
    freeParameters <- matrix(0, row, col);
-   dataMatrix <- matrix(1, row, col);
+   valuesMatrix <- matrix(1, row, col);
    modifiable <- 0;
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "UnitMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "UnitMatrix");
 
 })
 
@@ -102,9 +102,9 @@ setConstructorS3("IdenMatrix", function(row, col, free = FALSE) {
    checkSquare(row,col);
 
    freeParameters <- matrix(0, row, col);
-   dataMatrix <- diag(row);
+   valuesMatrix <- diag(row);
    modifiable <- 0;
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "IdenMatrix");   
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "IdenMatrix");   
 
 })
 
@@ -123,18 +123,18 @@ setConstructorS3("IZeroMatrix", function(row, col, free = FALSE) {
 
    freeParameters <- matrix(0, row, col);
    if (row == col) {
-      dataMatrix <- diag(row);
+      valuesMatrix <- diag(row);
    } else if (row < col) {
       square <- diag(row);
       zeros  <- matrix(0, row, col - row);
-      dataMatrix <- cbind(square, zeros);
+      valuesMatrix <- cbind(square, zeros);
    } else {
       square <- diag(col);
       zeros  <- matrix(0, col, row - col);	
-      dataMatrix <- rbind(square, zeros);
+      valuesMatrix <- rbind(square, zeros);
    }
    modifiable <- 0;
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "IZeroMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "IZeroMatrix");
 
 })
 
@@ -151,18 +151,18 @@ setConstructorS3("ZIdenMatrix", function(row, col, free = FALSE) {
 
    freeParameters <- matrix(0, row, col);
    if (row == col) {
-      dataMatrix <- diag(row);
+      valuesMatrix <- diag(row);
    } else if (row < col) {
       square <- diag(row);
       zeros  <- matrix(0, row, col - row);
-      dataMatrix <- cbind(zeros, square);
+      valuesMatrix <- cbind(zeros, square);
    } else {
       square <- diag(col);
       zeros  <- matrix(0, col, row - col);
-      dataMatrix <- rbind(zeros, square);
+      valuesMatrix <- rbind(zeros, square);
    }
    modifiable <- 0;
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "ZIdenMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "ZIdenMatrix");
 
 })
 
@@ -180,10 +180,10 @@ setConstructorS3("DiagMatrix", function(row, col, free = FALSE) {
   
    freeParameters <- matrix(0, row, col);
    if (free) freeParameters <- diag(row) * 1:row;
-   dataMatrix <- matrix(0, row, col);
+   valuesMatrix <- matrix(0, row, col);
    modifiable <- row;
 
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "DiagMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "DiagMatrix");
 
 })
 
@@ -201,7 +201,7 @@ setMethodS3("checkValidSpecification", "DiagMatrix", function(this, aMatrix,...)
 
 
 setMethodS3("setValuesWithList", "DiagMatrix", function(this, valuesList,...) {
-   this$.data <- diag(valuesList);
+   this$values <- diag(valuesList);
 })
 
 
@@ -228,8 +228,8 @@ setConstructorS3("StandMatrix", function(row, col, free = FALSE) {
    checkMatrix(row,col);
    checkSquare(row,col);   
 
-   dataMatrix <- diag(row);
-   triangle <- lower.tri(dataMatrix, diag = FALSE);
+   valuesMatrix <- diag(row);
+   triangle <- lower.tri(valuesMatrix, diag = FALSE);
    modifiable <- length(triangle[triangle]);
    freeParameters <- matrix(0, row, col);
    if (free) {
@@ -241,7 +241,7 @@ setConstructorS3("StandMatrix", function(row, col, free = FALSE) {
       freeParameters <- ones + t(ones);
    }
 
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "StandMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "StandMatrix");
 
 })
 
@@ -261,12 +261,12 @@ setMethodS3("checkValidSpecification", "StandMatrix", function(this, aMatrix,...
 setMethodS3("setValuesWithList", "StandMatrix", function(this, valuesList,...) {
 
    # Set the lower triangular matrix to zero
-   this$.data[lower.tri(this$.data, diag=TRUE)] <- 0;
+   this$values[lower.tri(this$values, diag=TRUE)] <- 0;
 
    # And set the remaining elements to valuesList
-   this$.data[!lower.tri(this$.data, diag=TRUE)] <- valuesList;
-   this$.data <- matrix(this$.data, nrow(this$.data), ncol(this$.data), byrow=TRUE);
-   this$.data <- this$.data + t(this$.data) + diag(nrow = nrow(this$.data));
+   this$values[!lower.tri(this$values, diag=TRUE)] <- valuesList;
+   this$values <- matrix(this$values, nrow(this$values), ncol(this$values), byrow=TRUE);
+   this$values <- this$values + t(this$values) + diag(nrow = nrow(this$values));
 })
 
 setMethodS3("setParametersWithList", "StandMatrix", function(this, parametersList,...) {
@@ -294,8 +294,8 @@ setConstructorS3("SymmMatrix", function(row, col, free = FALSE) {
    checkMatrix(row,col);
    checkSquare(row,col);
 
-   dataMatrix <- matrix(0, row, col);
-   triangle <- lower.tri(dataMatrix, diag = TRUE);
+   valuesMatrix <- matrix(0, row, col);
+   triangle <- lower.tri(valuesMatrix, diag = TRUE);
    modifiable <- length(triangle[triangle]);
    freeParameters <- matrix(0, row, col);
    if (free) {
@@ -310,7 +310,7 @@ setConstructorS3("SymmMatrix", function(row, col, free = FALSE) {
       freeParameters <- ones + t(ones) + diagonals;
    }
 
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "SymmMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "SymmMatrix");
 
 })
 
@@ -326,8 +326,8 @@ setMethodS3("checkValidSpecification", "SymmMatrix", function(this, aMatrix,...)
 
 setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
    # Set the lower triangle to valuesList
-   this$.data[lower.tri(this$.data, diag=TRUE)] <- valuesList;	
-   this$.data[upper.tri(this$.data, diag=FALSE)] <- this$.data[lower.tri(this$.data, diag=FALSE)];
+   this$values[lower.tri(this$values, diag=TRUE)] <- valuesList;	
+   this$values[upper.tri(this$values, diag=FALSE)] <- this$values[lower.tri(this$values, diag=FALSE)];
 })
 
 setMethodS3("setParametersWithList", "SymmMatrix", function(this, parametersList,...) {
@@ -348,8 +348,8 @@ setConstructorS3("LowerMatrix", function(row, col, free = FALSE) {
    checkMatrix(row,col);
    checkSquare(row,col);
 
-   dataMatrix <- matrix(0, row, col);
-   triangle <- lower.tri(dataMatrix, diag = TRUE);
+   valuesMatrix <- matrix(0, row, col);
+   triangle <- lower.tri(valuesMatrix, diag = TRUE);
    modifiable <- length(triangle[triangle]);
    freeParameters <- matrix(0, row, col);
    if (free) {
@@ -362,7 +362,7 @@ setConstructorS3("LowerMatrix", function(row, col, free = FALSE) {
       freeParameters <- ones;
    }
 
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "LowerMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "LowerMatrix");
    
 })
 
@@ -379,9 +379,9 @@ setMethodS3("checkValidSpecification", "LowerMatrix", function(this, aMatrix,...
 
 setMethodS3("setValuesWithList", "LowerMatrix", function(this, valuesList,...) {
    # Set the upper triangle to valuesList
-   this$.data[upper.tri(this$.data, diag=TRUE)] <- valuesList;
-   this$.data <- t(this$.data);
-   this$.data[upper.tri(this$.data, diag=FALSE)] <- 0;
+   this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
+   this$values <- t(this$values);
+   this$values[upper.tri(this$values, diag=FALSE)] <- 0;
 })
 
 setMethodS3("setParametersWithList", "LowerMatrix", function(this, parametersList,...) {
@@ -401,17 +401,17 @@ setConstructorS3("FullMatrix", function(row, col, free = FALSE) {
 
    checkMatrix(row,col);
 
-   dataMatrix <- matrix(0, row, col);
+   valuesMatrix <- matrix(0, row, col);
    modifiable <- (row * col);
    freeParameters <- matrix(0, row, col);
    if (free) freeParameters <- matrix(1 : (row * col), row, col, byrow=TRUE);
 
-   extend(MxMatrix(freeParameters, dataMatrix, modifiable), "FullMatrix");
+   extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "FullMatrix");
 
 })
 
 setMethodS3("setValuesWithList", "FullMatrix", function(this, valuesList,...) {
-   this$.data <- t(matrix(valuesList, ncol(this$.data), nrow(this$.data)));
+   this$values <- t(matrix(valuesList, ncol(this$values), nrow(this$values)));
 })
 
 setMethodS3("setParametersWithList", "FullMatrix", function(this, parametersList,...) {

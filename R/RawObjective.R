@@ -50,7 +50,7 @@ setMethodS3("createMxJobClosureR", "RawObjective", function(objective, job, ...)
    		hessian=TRUE, 
    		iterlim=1000, 
    		print.level=2,
-   		typsize=abs(startValues) / 10);
+   		typsize=abs(startValues));
 
    }
 
