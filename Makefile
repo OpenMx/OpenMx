@@ -1,11 +1,18 @@
-RDFILES = *.Rd
 REXEC = R
-RSOURCE = R
 RCOMMAND = CMD
 RBUILD = build
 RINSTALL = install
 RCHECK = check
 TARGET = OpenMx_0.1-0.tar.gz
+
+# subdirectories
+RSOURCE = R
+RDOCUMENTS = man
+
+# file types
+RDFILES = *.Rd
+RFILES = *.R
+
 
 nothing:
 	@echo \
@@ -13,12 +20,12 @@ nothing:
 
 build: build/$(TARGET)
 
-build/$(TARGET): R/*.R man/*.Rd
+build/$(TARGET): $(RSOURCE)/$(RFILES) $(RDOCUMENTS)/$(RDFILES)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
-R/*.R:
+$(RSOURCE)/$(RFILES):
 
-man/*.Rd:
+$(RDOCUMENTS)/$(RDFILES):
 
 install: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
