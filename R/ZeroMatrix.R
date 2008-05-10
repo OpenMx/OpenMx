@@ -21,13 +21,12 @@
 #
 #
 #*/###########################################################################
-setConstructorS3("ZeroMatrix", function(row, col, free = FALSE) {
+setConstructorS3("ZeroMatrix", function(row, col) {
 
    if (missing(row)) row <- 0;
    if (missing(col)) col <- 0;
 
    checkMatrix(row,col);
-   checkFree(free);
 
    freeParameters <- matrix(0, row, col);
    valuesMatrix <- matrix(0, row, col);

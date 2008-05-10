@@ -78,9 +78,6 @@ checkMatrix <- function(row,col) {
    if (trunc(col) != col) throw("Col value is not an integer");
 }
 
-checkFree <- function(free) {
-   if (free == TRUE) warning ("Ignoring free elements on a fixed matrix");
-}
 
 checkSquare <- function(row, col) {
    if (row != col) throw("Row and column dimensions do not match");

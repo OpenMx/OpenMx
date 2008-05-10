@@ -21,13 +21,12 @@
 #
 #
 #*/###########################################################################
-setConstructorS3("IdenMatrix", function(row, col, free = FALSE) {
+setConstructorS3("IdenMatrix", function(row, col) {
 
    if (missing(row)) row <- 0;
    if (missing(col)) col <- 0;
 
    checkMatrix(row,col);
-   checkFree(free);
    checkSquare(row,col);
 
    freeParameters <- matrix(0, row, col);
