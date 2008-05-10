@@ -1,3 +1,31 @@
+###########################################################################/**
+# @RdocClass MxMatrix
+#
+# @title "The MxMatrix class"
+#
+# \description{
+#
+#  This is the abstract superclass of all MxMatrix types.
+# 
+#  @classhierarchy
+# }
+# 
+# @synopsis
+#
+# \arguments{
+#   \item{parameters}{A @matrix of parameter strings.}
+#   \item{values}{A @matrix of initial values.}
+#   \item{modifiable}{The number of modifiable elements in this matrix type.}
+# }
+#
+# \section{Fields and Methods}{
+#  @allmethods
+# }
+# 
+# \details{
+# }
+#
+#*/###########################################################################
 setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 
   if (missing(parameters)) parameters <- NA;
@@ -12,7 +40,27 @@ setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 
 })
 
-
+#########################################################################/**
+# @RdocMethod print
+#
+# @title "Print MxMatrix"
+# 
+# \description{
+#   \code{print} prints its matrix and returns
+#      it invisibly (via \code{invisible}(x)).
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{x}{The MxMatrix object.}
+# }
+#
+#
+# \seealso{
+#   @seeclass
+# }
+#*/######################################################################### 
 setMethodS3("print", "MxMatrix", function(x, ...) {
    cat(paste("MxMatrix:", data.class(x)), sep="\n")
    cat("Parameters: ", sep="\n")
@@ -40,9 +88,32 @@ checkSquare <- function(row, col) {
    if (row != col) throw("Row and column dimensions do not match");
 }
 
+###########################################################################/**
+# @RdocClass ZeroMatrix
 #
-# ZeroMatrix is full of zeros
+# @title "The ZeroMatrix class"
 #
+# \description{
+#
+#  Creates a matrix that contains only zero values. This matrix has no
+#  free parameters.
+# 
+#  @classhierarchy
+# }
+# 
+# @synopsis
+#
+# \arguments{
+#   \item{row}{The number of rows this matrix contains.}
+#   \item{col}{The number of columns this matrix contains.}
+# }
+#
+# \section{Fields and Methods}{
+#  @allmethods
+# }
+# 
+#
+#*/###########################################################################
 setConstructorS3("ZeroMatrix", function(row, col, free = FALSE) {
 
    if (missing(row)) row <- 0;
