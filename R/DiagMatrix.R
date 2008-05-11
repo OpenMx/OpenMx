@@ -39,58 +39,22 @@ setConstructorS3("DiagMatrix", function(row, col, free = FALSE) {
 
 })
 
-#########################################################################/**
-# @RdocMethod checkValidMatrix
-#
-# @title "Inspect a Data Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidMatrix}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidMatrix", "DiagMatrix", function(this, aMatrix,...) {
    ltriangle <- all(aMatrix[lower.tri(aMatrix, diag=FALSE)] == 0);
    utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
    return(ltriangle && utriangle);
 })
 
-#########################################################################/**
-# @RdocMethod checkValidSpecification
-#
-# @title "Inspect a Parameter Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidSpecification}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidSpecification", "DiagMatrix", function(this, aMatrix,...) {
    ltriangle <- all(aMatrix[lower.tri(aMatrix, diag=FALSE)] == 0);
    utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
    return(ltriangle && utriangle);
 })
 
-#########################################################################/**
-# @RdocMethod setValuesWithList
-#
-# @title "Set Matrix Values With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setValuesWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setValuesWithList", "DiagMatrix", function(this, valuesList,...) {
    this$values <- diag(valuesList);
 })
 
-#########################################################################/**
-# @RdocMethod setParametersWithList
-#
-# @title "Set Matrix Parameters With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setParametersWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setParametersWithList", "DiagMatrix", function(this, parametersList,...) {
    this$parameters <- diag(parametersList);
 })

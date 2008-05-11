@@ -1,5 +1,23 @@
-
-
+###########################################################################/**
+# @RdocClass MxModel
+#
+# @title "The MxModel class"
+#
+# \description{
+#
+#  Foo.
+# 
+#  @classhierarchy
+# }
+# 
+# @synopsis
+#
+# \section{Fields and Methods}{
+#  @allmethods
+# }
+# 
+#
+#*/###########################################################################
 setConstructorS3("MxModel", function() { 
 
   freeVariablesList <- list();
@@ -126,3 +144,49 @@ setMethodS3("[[<-", "MxModel", function(this, name, value) {
 #   "$<-"(this, name, value);
 }, createGeneric=FALSE) # "[[<-"()
 
+
+###########################################################################/**
+# @RdocFunction updateMatricesHelper
+#
+# @title "UpdateMatricesHelper"
+# \description{
+#   This is a helper function to MxMatrix.updateMatrices.
+# }
+#
+#*/######################################################################### 
+updateMatricesHelper <- function(listTuples, parameter) {
+   lapply(listTuples, function(aTuple) {
+      updateMatrix(aTuple[[1]], aTuple[[2]], aTuple[[3]], parameter)
+   });
+};
+
+
+#########################################################################/**
+# @RdocMethod updateMatrices
+#
+# @title "Update Values In Objective Function"
+# 
+# \description{
+#    Given a vector of new values, update the free parameters of the
+#    model with these values.  The size of the parameters vector must
+#    equal the size of the free parameters list. 
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxModel object.}
+#  \item{parameters}{A vector of new values.}
+#  \item{...}{Unused.}
+# }
+#
+#
+# \seealso{
+#   @seeclass
+# }
+#*/######################################################################### 
+setMethodS3("updateMatrices", "MxModel", function(this, parameters, ...) {
+   returnValue <- mapply(updateMatricesHelper, 
+      this$.freeVariablesList, parameters);
+   invisible(returnValue);
+});

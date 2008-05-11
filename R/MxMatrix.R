@@ -181,3 +181,31 @@ setMethodS3("checkValidMatrix", "MxMatrix",
 #*/######################################################################### 
 setMethodS3("checkValidSpecification", "MxMatrix", 
     function(this, aMatrix,...) { FALSE })
+
+
+    
+###########################################################################/**
+# @RdocMethod updateMatrix
+#
+# @title "Update A Matrix Value"
+# \description{
+#   This is a helper function to updateMatricesHelper.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxMatrix object.}
+#  \item{row}{The row of the values matrix.}
+#  \item{col}{The column of the values matrix.}
+#  \item{newvalue}{The new value to insert.}
+#  \item{...}{unused}
+# }
+#
+# \seealso{
+#   @seeclass
+# }
+#*/######################################################################### 
+setMethodS3("updateMatrix", "MxMatrix", function(this, row, col, newvalue, ...) {
+   this$values[row,col] <- newvalue;
+});    

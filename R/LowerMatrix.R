@@ -48,45 +48,18 @@ setConstructorS3("LowerMatrix", function(row, col, free = FALSE) {
 })
 
 
-#########################################################################/**
-# @RdocMethod checkValidMatrix
-#
-# @title "Inspect a Data Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidMatrix}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidMatrix", "LowerMatrix", function(this, aMatrix,...) {
    utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
    return(utriangle);
 })
 
 
-#########################################################################/**
-# @RdocMethod checkValidSpecification
-#
-# @title "Inspect a Parameter Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidSpecification}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidSpecification", "LowerMatrix", function(this, aMatrix,...) {
    utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
    return(utriangle);
 })
 
 
-#########################################################################/**
-# @RdocMethod setValuesWithList
-#
-# @title "Set Matrix Values With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setValuesWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setValuesWithList", "LowerMatrix", function(this, valuesList,...) {
    # Set the upper triangle to valuesList
    this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
@@ -96,15 +69,6 @@ setMethodS3("setValuesWithList", "LowerMatrix", function(this, valuesList,...) {
 })
 
 
-#########################################################################/**
-# @RdocMethod setParametersWithList
-#
-# @title "Set Matrix Parameters With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setParametersWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setParametersWithList", "LowerMatrix", function(this, parametersList,...) {
    # Set the upper triangle to parametersList
    this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;

@@ -48,15 +48,6 @@ setConstructorS3("StandMatrix", function(row, col, free = FALSE) {
 })
 
 
-#########################################################################/**
-# @RdocMethod checkValidMatrix
-#
-# @title "Inspect a Data Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidMatrix}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidMatrix", "StandMatrix", function(this, aMatrix,...) {
    symmetry <- all(aMatrix == t(aMatrix));
    ones <- all(diag(aMatrix) == 1);
@@ -64,15 +55,6 @@ setMethodS3("checkValidMatrix", "StandMatrix", function(this, aMatrix,...) {
 })
 
 
-#########################################################################/**
-# @RdocMethod checkValidSpecification
-#
-# @title "Inspect a Parameter Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidSpecification}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidSpecification", "StandMatrix", function(this, aMatrix,...) {
    symmetry <- all(aMatrix == t(aMatrix));
    ones <- all(diag(aMatrix) == 0);
@@ -80,15 +62,6 @@ setMethodS3("checkValidSpecification", "StandMatrix", function(this, aMatrix,...
 })
 
 
-#########################################################################/**
-# @RdocMethod setValuesWithList
-#
-# @title "Set Matrix Values With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setValuesWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setValuesWithList", "StandMatrix", function(this, valuesList,...) {
 
    # Set the lower triangular matrix to zero
@@ -101,15 +74,6 @@ setMethodS3("setValuesWithList", "StandMatrix", function(this, valuesList,...) {
 })
 
 
-#########################################################################/**
-# @RdocMethod setParametersWithList
-#
-# @title "Set Matrix Parameters With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setParametersWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setParametersWithList", "StandMatrix", function(this, parametersList,...) {
 
    # Set the lower triangular matrix to zero

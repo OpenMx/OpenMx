@@ -34,6 +34,7 @@ check: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
 
 doc: install
+	rm -rf $(RDOCUMENTS)/$(RDFILES)
 	cd $(RSOURCE); $(REXEC) --vanilla < ../build/document.R
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)

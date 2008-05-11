@@ -49,45 +49,18 @@ setConstructorS3("SymmMatrix", function(row, col, free = FALSE) {
 
 })
 
-#########################################################################/**
-# @RdocMethod checkValidMatrix
-#
-# @title "Inspect a Data Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidMatrix}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidMatrix", "SymmMatrix", function(this, aMatrix,...) {
    symmetry <- all(aMatrix == t(aMatrix));
    return(symmetry);
 })
 
 
-#########################################################################/**
-# @RdocMethod checkValidSpecification
-#
-# @title "Inspect a Parameter Matrix for Validity"
-#
-# \seealso{
-#     \link{MxMatrix.checkValidSpecification}
-# }
-#*/######################################################################### 
 setMethodS3("checkValidSpecification", "SymmMatrix", function(this, aMatrix,...) {
    symmetry <- all(aMatrix == t(aMatrix));
    return(symmetry);
 })
 
 
-#########################################################################/**
-# @RdocMethod setValuesWithList
-#
-# @title "Set Matrix Values With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setValuesWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
    # Set the lower triangle to valuesList
    this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
@@ -95,15 +68,6 @@ setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
 })
 
 
-#########################################################################/**
-# @RdocMethod setParametersWithList
-#
-# @title "Set Matrix Parameters With A List"
-#
-# \seealso{
-#     \link{MxMatrix.setParametersWithList}
-# }
-#*/######################################################################### 
 setMethodS3("setParametersWithList", "SymmMatrix", function(this, parametersList,...) {
    # Set the lower triangle to parametersList
    this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;
