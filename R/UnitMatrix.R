@@ -28,7 +28,7 @@ setConstructorS3("UnitMatrix", function(row, col) {
 
    checkMatrix(row,col);
 
-   freeParameters <- matrix(0, row, col);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
    valuesMatrix <- matrix(1, row, col);
    modifiable <- 0;
    extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "UnitMatrix");

@@ -19,130 +19,15 @@
 #
 #*/###########################################################################
 setConstructorS3("MxModel", function() { 
-
-  freeVariablesList <- list();
   
-  extend(Object(), "MxModel",
-    .freeVariablesList=freeVariablesList
-  );
+  freeParametersList <- list();
+  
+  extend(Object(), "MxModel", 
+      .freeParametersList = freeParametersList);
 
 })
 
 
-
-setMethodS3("$<-", "MxModel", function(this, name, value) {
-  memberAccessorOrder <- attr(this, ".memberAccessorOrder");
-  if (is.null(memberAccessorOrder))
-    memberAccessorOrder <- c(1,2,3,4,5);
-
-  #
-  # This portion of the method is specific to OpenMx
-  # Michael Spiegel, May 2, 2007
-  #
-  if (inherits(value,"MxMatrix")) {
-    if (!exists(name, envir=attr(this, ".env"))) {
-      transformMatrix(value, length(this$.freeVariablesList))
-    }
-  }
-
-  for (memberAccessor in memberAccessorOrder) {
-    if (memberAccessor == 1) {
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # Search for a set<Name>() method
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      if (is.null(attr(this, "disableSetMethods"))) {
-        firstChar <- substr(name, 1,1);
-        # Do not try to access private fields using a set<Name>() method,
-        # because such a functionality means that the user *expects* that
-        # there actually is a field called '.<name>', which he or she
-        # should not do since it is a private field!
-        # Is it a private field?
-        if (!identical(firstChar, ".")) {
-          # Field names can not contain spaces...
-          if (regexpr(" ", name) == -1) {
-            # 1. Is it a set<Name>() method?
-            capitalizedName <- name;
-            substr(capitalizedName,1,1) <- toupper(firstChar);
-            setMethodNames <- paste("set", capitalizedName, ".", class(this), sep="");
-            for (setMethodName in setMethodNames) {
-              if (exists(setMethodName, mode="function")) {
-                ref <- this;
-                attr(ref, "disableSetMethods") <- TRUE;
-                get(setMethodName, mode="function")(ref, value);
-                return(invisible(this));
-              }
-            }
-          } # if ("no space in the name")
-        } # if ("is private field")
-      } # if (is.null(attr(this, "disableSetMethods")))
-    } else if (memberAccessor == 2) {
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # Search for a <name> field
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # 2. If there exists a field, assign the value to that field.
-      envir <- attr(this, ".env");
-      if (exists(name, envir=envir)) {
-        assign(name, value, envir=envir);
-
-        #
-        # This portion of the method is specific to OpenMx
-        # Michael Spiegel, May 2, 2007
-        #
-        if (inherits(value,"MxMatrix")) {
-          this$updateFreeVariablesList();
-        }
-        
-        return(invisible(this));
-      }
-    } else if (memberAccessor == 3) {
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # Search for a <name> attribute.   /Should this be removed?
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # 3. If there exists an attribute field, assign the value to that field.
-      if (is.element(name, names(attributes(this)))) {
-        attr(this, name) <- value;
-        return(invisible(this));
-      }
-    } else if (memberAccessor == 4) {
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # Search for a static <name> field
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # 4. If not, it might be that it is a static field
-      static <- getStaticInstance(get(class(this)[1]));
-      static.envir <- attr(static, ".env");
-      # For static method calls, e.g. Object$load, 'this' has no
-      # environment assigned and therefore, for now, no static
-      # fields.
-      if (!is.null(static.envir) && exists(name, envir=static.envir, inherit=FALSE)) {
-        assign(name, value, envir=static.envir);
-        return(invisible(this));
-      }
-    } else if (memberAccessor == 5) {
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # Create a new field <name>
-      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-      # 5. Otherwise, assign the value to a new field.
-      assign(name, value, envir=envir);
-      
-      #
-      # This portion of the method is specific to OpenMx
-      # Michael Spiegel, May 2, 2007
-      #
-      if (inherits(value,"MxMatrix")) {
-        this$updateFreeVariablesList();
-      }
-            
-      return(invisible(this));
-    }
-  } # for (memberAccessor in memberAccessorOrder)
-
-  invisible(this);
-}, createGeneric=FALSE) # $<-()
-
-setMethodS3("[[<-", "MxModel", function(this, name, value) {
-  UseMethod("$<-");
-#   "$<-"(this, name, value);
-}, createGeneric=FALSE) # "[[<-"()
 
 
 ###########################################################################/**
@@ -150,7 +35,7 @@ setMethodS3("[[<-", "MxModel", function(this, name, value) {
 #
 # @title "UpdateMatricesHelper"
 # \description{
-#   This is a helper function to MxMatrix.updateMatrices.
+#   This is a helper function to MxModel.updateMatrices.
 # }
 #
 #*/######################################################################### 
@@ -187,6 +72,123 @@ updateMatricesHelper <- function(listTuples, parameter) {
 #*/######################################################################### 
 setMethodS3("updateMatrices", "MxModel", function(this, parameters, ...) {
    returnValue <- mapply(updateMatricesHelper, 
-      this$.freeVariablesList, parameters);
+      this$.freeParametersList, parameters);
    invisible(returnValue);
 });
+
+
+# DO NOT export this method
+# this is a helper function to getFreeParameters()
+getFreeParametersMatrix <- function(threeTuple) {
+   reference <- threeTuple[[1]];
+   row <- threeTuple[[2]];
+   col <- threeTuple[[3]];
+   return(reference$.values[row,col]);
+}
+
+# DO NOT export this method
+# this is a helper function to getFreeParameters()
+#
+# Only bother getting the first value,
+# since multiple matrix locations for the same free parameter
+# should have identical values.
+getFreeParametersHelper <- function(listTuples) {
+   return(getFreeParametersMatrix(listTuples[[1]]));
+}
+
+#
+# EXPORT this method
+#
+setMethodS3("getFreeParameters", "MxModel", function(this,...) {
+   return(unlist(lapply(this$.freeParametersList, getFreeParametersHelper)))
+});
+
+
+
+setMethodS3("makeFreeParametersList", "MxModel", function(this,...) {
+  freeParameters <- list();
+  for (aField in this$getFields()) {
+    if (inherits(this[[aField]],"MxMatrix")) {
+      pMatrix <- this[[aField]]$.parameters;
+      for(row in 1:dim(pMatrix)[1]) {
+        for(col in 1:dim(pMatrix)[2]) {
+          parameter <- pMatrix[row,col];
+          if (parameter != MxMatrix$FIXED()) {
+            if (is.null(freeParameters[[parameter]])) {
+              freeParameters[[parameter]] <- list(list(matrix=this[[aField]], row=row, col=col));
+            } else {
+              size <- length(freeParameters[[parameter]]);
+              freeParameters[[parameter]][[size + 1]] <- list(matrix=this[[aField]], row=row, col=col);
+            }
+          }
+        }
+      }
+    }
+  }
+  this$.freeParametersList <- freeParameters;
+  return(freeParameters);
+})
+ 
+
+setMethodS3("setValues", "MxMatrix", function(this, values,...) {
+
+   if (is.vector(values)) {
+      modifiable <- this$.modifiable;
+      if (modifiable != length(values)) {
+         error <- paste("Your values list has", length(values),
+            	"elements but matrix has", modifiable,
+            	"modifiable elements.");
+         throw(error);
+      }
+      this$setValuesWithList(values);
+   } else if (is.matrix(values)) {
+      if (!all(dim(this$.values) == dim(values))) {
+          error <- paste("Second argument has dimensions",
+            	paste(dim(values), collapse = " "), "but matrix",
+            	"has dimensions",
+            	paste(dim(this$.values), collapse = " "), ".");
+          throw(error);
+      }
+      valid <- this$checkValidMatrix(values);
+      if (!valid) {
+          error <- paste("Second argument is not a valid",
+            	data.class(this),".");
+          throw(error);
+      }
+      this$.values <- values;
+   } else {
+      throw("Second argument is neither a vector nor a matrix.");
+   }
+})
+
+setMethodS3("setParameters", "MxMatrix", function(this, parameters,...) {
+
+   if (is.vector(parameters)) {
+      modifiable <- this$.modifiable;
+      if (modifiable != length(parameters)) {
+         error <- paste("Your values list has", length(parameters),
+            	"elements but matrix has", modifiable,
+            	"modifiable elements.");
+         throw(error);
+      }
+      this$setParametersWithList(as.character(parameters));
+   } else if (is.matrix(parameters)) {
+      if (!all(dim(this$.parameters) == dim(parameters))) {
+          error <- paste("Second argument has dimensions",
+            	paste(dim(parameters), collapse = " "), "but matrix",
+            	"has dimensions",
+            	paste(dim(this$.parameters), collapse = " "), ".")
+          throw(error);
+      }
+      valid <- this$checkValidMatrix(parameters);
+      if (!valid) {
+          error <- paste("Second argument is not a valid",
+            	data.class(this),".");
+          throw(error);
+      }
+      this$.parameters <- matrix(as.character(parameters), nrow(parameters), ncol(parameters))
+   } else {
+      throw("Second argument is neither a vector nor a matrix.");
+   }
+
+})

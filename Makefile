@@ -35,9 +35,9 @@ check: build
 
 doc: install
 	rm -rf $(RDOCUMENTS)/$(RDFILES)
-	cd $(RSOURCE); $(REXEC) --vanilla < ../build/document.R
+	cd $(RSOURCE); $(REXEC) --vanilla < ../support/document.R
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
 
 clean:
-	rm -rf $(RBUILD)/$(TARGET)
+	rm -rf $(RBUILD)/*

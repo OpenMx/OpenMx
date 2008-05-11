@@ -30,8 +30,8 @@ setConstructorS3("DiagMatrix", function(row, col, free = FALSE) {
    checkMatrix(row,col);
    checkSquare(row,col);
 
-   freeParameters <- matrix(0, row, col);
-   if (free) freeParameters <- diag(row) * 1:row;
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
+   if (free) diag(freeParameters) <- replicate(row, MxMatrix$createUniqueName());
    valuesMatrix <- matrix(0, row, col);
    modifiable <- row;
 
@@ -46,15 +46,15 @@ setMethodS3("checkValidMatrix", "DiagMatrix", function(this, aMatrix,...) {
 })
 
 setMethodS3("checkValidSpecification", "DiagMatrix", function(this, aMatrix,...) {
-   ltriangle <- all(aMatrix[lower.tri(aMatrix, diag=FALSE)] == 0);
-   utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
+   ltriangle <- all(aMatrix[lower.tri(aMatrix, diag=FALSE)] == MxMatrix$FIXED());
+   utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == MxMatrix$FIXED());
    return(ltriangle && utriangle);
 })
 
 setMethodS3("setValuesWithList", "DiagMatrix", function(this, valuesList,...) {
-   this$values <- diag(valuesList);
+   this$.values <- diag(valuesList);
 })
 
 setMethodS3("setParametersWithList", "DiagMatrix", function(this, parametersList,...) {
-   this$parameters <- diag(parametersList);
+   this$.parameters <- diag(parametersList);
 })

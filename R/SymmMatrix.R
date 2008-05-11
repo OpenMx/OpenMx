@@ -35,14 +35,24 @@ setConstructorS3("SymmMatrix", function(row, col, free = FALSE) {
    freeParameters <- matrix(0, row, col);
    if (free) {
       ones <- matrix(1, row, col);
-      # Set the upper triangular matrix to zero
-      ones[lower.tri(ones, diag=TRUE)] <- 0;
+      # Set the lower triangular matrix to zero
+      ones[lower.tri(ones)] <- 0;
       # And set the remaining elements to 1, 2, ... , n
-      ones[!lower.tri(ones, diag=TRUE)] <- 1:sum(ones);
-      # And now fill in the diagonals
-      biggest <- max(ones);
-      diagonals <- diag(row) * (biggest + 1) : (biggest + row);
-      freeParameters <- ones + t(ones) + diagonals;
+      uniqueNames <- replicate(sum(ones), MxMatrix$createUniqueName());
+      target <- matrix("", row, col); 
+      # Set the upper triangle to uniqueNames
+      target[upper.tri(target, diag=TRUE)] <- uniqueNames;
+      # And now perform a transpose operation
+      target <- t(target);
+   
+      triangle <- matrix("", nrow(target), ncol(target));
+      triangle[lower.tri(triangle)] <- target[lower.tri(target)];
+
+      pasteParameters <- mapply(function(x,y) {paste(x,y,sep="")},
+         target, t(triangle));
+
+      freeParameters <- matrix(pasteParameters, 
+         row, col);
    }
 
    extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "SymmMatrix");
@@ -63,13 +73,25 @@ setMethodS3("checkValidSpecification", "SymmMatrix", function(this, aMatrix,...)
 
 setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
    # Set the lower triangle to valuesList
-   this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
-   this$values <- this$values + t(this$values) - diag(diag(this$values));
+   this$.values[upper.tri(this$.values, diag=TRUE)] <- valuesList;
+   this$.values <- this$.values + t(this$.values) - diag(diag(this$.values));
 })
 
 
 setMethodS3("setParametersWithList", "SymmMatrix", function(this, parametersList,...) {
-   # Set the lower triangle to parametersList
-   this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;
-   this$parameters <- this$parameters + t(this$parameters) - diag(diag(this$parameters));
+   target <- matrix("", nrow(this$.parameters), ncol(this$.parameters)); 
+   # Set the upper triangle to parametersList
+   target[upper.tri(target, diag=TRUE)] <- parametersList;
+   # And now perform a transpose operation
+   target <- t(target);
+   
+   triangle <- matrix("", nrow(target), ncol(target));
+   triangle[lower.tri(triangle)] <- target[lower.tri(target)];
+
+   pasteParameters <- mapply(function(x,y) {paste(x,y,sep="")},
+      target, t(triangle));
+
+   this$.parameters <- matrix(pasteParameters, 
+      nrow(this$.parameters), ncol(this$.parameters));
+
 })

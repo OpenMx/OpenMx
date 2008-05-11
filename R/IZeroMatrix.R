@@ -28,7 +28,7 @@ setConstructorS3("IZeroMatrix", function(row, col) {
 
    checkMatrix(row,col);
 
-   freeParameters <- matrix(0, row, col);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
    if (row == col) {
       valuesMatrix <- diag(row);
    } else if (row < col) {

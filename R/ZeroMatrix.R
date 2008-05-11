@@ -28,7 +28,7 @@ setConstructorS3("ZeroMatrix", function(row, col) {
 
    checkMatrix(row,col);
 
-   freeParameters <- matrix(0, row, col);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
    valuesMatrix <- matrix(0, row, col);
    modifiable <- 0;
    extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "ZeroMatrix");

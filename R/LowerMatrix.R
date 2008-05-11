@@ -32,13 +32,17 @@ setConstructorS3("LowerMatrix", function(row, col, free = FALSE) {
    valuesMatrix <- matrix(0, row, col);
    triangle <- lower.tri(valuesMatrix, diag = TRUE);
    modifiable <- length(triangle[triangle]);
-   freeParameters <- matrix(0, row, col);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
    if (free) {
+      # Lazy trick with sum(ones) in a few lines
       ones <- matrix(1, row, col);
       # Set the upper triangular matrix to zero
       ones[lower.tri(ones)] <- 0;
       # And set the remaining elements to 1, 2, ... , n
-      ones[!lower.tri(ones)] <- 1:sum(ones);
+      ones[!lower.tri(ones)] <- replicate(sum(ones),
+         MxMatrix$createUniqueName());
+      # Now set the zero elements to MxMatrix$FIXED()
+      ones[lower.tri(ones)] <- MxMatrix$FIXED();
       ones <- matrix(ones, row, col, byrow=TRUE);
       freeParameters <- ones;
    }
@@ -55,24 +59,24 @@ setMethodS3("checkValidMatrix", "LowerMatrix", function(this, aMatrix,...) {
 
 
 setMethodS3("checkValidSpecification", "LowerMatrix", function(this, aMatrix,...) {
-   utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == 0);
+   utriangle <- all(aMatrix[upper.tri(aMatrix, diag=FALSE)] == MxMatrix$FIXED());
    return(utriangle);
 })
 
 
 setMethodS3("setValuesWithList", "LowerMatrix", function(this, valuesList,...) {
    # Set the upper triangle to valuesList
-   this$values[upper.tri(this$values, diag=TRUE)] <- valuesList;
+   this$.values[upper.tri(this$.values, diag=TRUE)] <- valuesList;
    # And now perform a transpose operation
-   this$values <- t(this$values);
-   this$values[upper.tri(this$values, diag=FALSE)] <- 0;
+   this$.values <- t(this$.values);
+   this$.values[upper.tri(this$.values, diag=FALSE)] <- 0;
 })
 
 
 setMethodS3("setParametersWithList", "LowerMatrix", function(this, parametersList,...) {
    # Set the upper triangle to parametersList
-   this$parameters[upper.tri(this$parameters, diag=TRUE)] <- parametersList;
+   this$.parameters[upper.tri(this$.parameters, diag=TRUE)] <- parametersList;
    # And now perform a transpose operation
-   this$parameters <- t(this$parameters);
-   this$parameters[upper.tri(this$parameters, diag=FALSE)] <- 0;
+   this$.parameters <- t(this$.parameters);
+   this$.parameters[upper.tri(this$.parameters, diag=FALSE)] <- MxMatrix$FIXED();
 })

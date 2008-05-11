@@ -30,21 +30,22 @@ setConstructorS3("FullMatrix", function(row, col, free = FALSE) {
 
    valuesMatrix <- matrix(0, row, col);
    modifiable <- (row * col);
-   freeParameters <- matrix(0, row, col);
-   if (free) freeParameters <- matrix(1 : (row * col), row, col, byrow=TRUE);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
+   if (free) freeParameters <- matrix(replicate(
+      row * col, MxMatrix$createUniqueName()), row, col, byrow=TRUE);
 
    extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "FullMatrix");
 
 })
 
 setMethodS3("setValuesWithList", "FullMatrix", function(this, valuesList,...) {
-   this$values <- t(matrix(valuesList, ncol(this$values), nrow(this$values)));
+   this$.values <- t(matrix(valuesList, ncol(this$.values), nrow(this$.values)));
 })
 
 setMethodS3("setParametersWithList", "FullMatrix", 
    function(this, parametersList,...) {
-   this$parameters <- t(matrix(parametersList, 
-      ncol(this$parameters), nrow(this$parameters)));
+     newMatrix <- matrix(parametersList, ncol(this$.parameters), nrow(this$.parameters));
+     this$.parameters <- t(newMatrix);
 })
 
 setMethodS3("checkValidMatrix", "FullMatrix", 

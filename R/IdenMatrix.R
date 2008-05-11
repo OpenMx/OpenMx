@@ -29,7 +29,7 @@ setConstructorS3("IdenMatrix", function(row, col) {
    checkMatrix(row,col);
    checkSquare(row,col);
 
-   freeParameters <- matrix(0, row, col);
+   freeParameters <- matrix(MxMatrix$FIXED(), row, col);
    valuesMatrix <- diag(row);
    modifiable <- 0;
    extend(MxMatrix(freeParameters, valuesMatrix, modifiable), "IdenMatrix");

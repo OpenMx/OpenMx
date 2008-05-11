@@ -31,12 +31,30 @@ setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
   if (missing(modifiable)) modifiable <- NA;
 
   extend(Object(), "MxMatrix",
-    parameters=parameters,
-    values=values,
-    .modifiable=modifiable
+    .parameters=parameters,
+    .values=values,
+    .modifiable=modifiable,
+    .uniqueCount=1    
   );
 
-}, abstract=TRUE)
+}, abstract = TRUE);
+
+
+setMethodS3("FIXED", "MxMatrix", function(this, ...) {
+   return("0");
+}, static = TRUE);
+
+setMethodS3("UNIQUE", "MxMatrix", function(this, ...) {
+   return("auto-");
+}, static = TRUE);
+
+
+setMethodS3("createUniqueName", "MxMatrix", function(this, ...) {
+   retval <- paste(MxMatrix$UNIQUE(), MxMatrix$.uniqueCount, sep="");
+   MxMatrix$.uniqueCount <- MxMatrix$.uniqueCount + 1; 
+   return(retval);
+}); 
+
 
 #########################################################################/**
 # @RdocMethod print
@@ -62,9 +80,9 @@ setConstructorS3("MxMatrix", function(parameters, values, modifiable) {
 setMethodS3("print", "MxMatrix", function(x, ...) {
    cat(paste("MxMatrix:", data.class(x)), sep="\n")
    cat("Parameters: ", sep="\n")
-   print(x$parameters)
+   print(x$.parameters)
    cat("Values: ", sep="\n")
-   print(x$values)
+   print(x$.values)
    cat("Modifiable:", x$.modifiable)
    cat("\n")
    invisible(x)
@@ -207,5 +225,15 @@ setMethodS3("checkValidSpecification", "MxMatrix",
 # }
 #*/######################################################################### 
 setMethodS3("updateMatrix", "MxMatrix", function(this, row, col, newvalue, ...) {
-   this$values[row,col] <- newvalue;
-});    
+   this$.values[row,col] <- newvalue;
+});
+
+
+
+setMethodS3("getParameters", "MxMatrix", function(this, ...) {
+   this$.parameters;
+});
+
+setMethodS3("getValues", "MxMatrix", function(this, ...) {
+   this$.values;
+});     

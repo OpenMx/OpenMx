@@ -14,15 +14,14 @@ setConstructorS3("RawObjective", function(expectedMean, expectedCov, observed) {
 setMethodS3("createMxJobClosureR", "RawObjective", function(objective, job, ...) {
 
    model <- job$.model;
-   model$updateFreeVariablesList(); 
+   model$makeFreeParametersList(); 
 
    function() {
 
-      startValues <- model$getFreeVariables();
+      startValues <- model$getFreeParameters();
       expectedMean <- objective$.expectedMean; # this is an MxAlgebra statement
       expectedCov <- objective$.expectedCov;   # this is an MxAlgebra statement
       observed <- objective$.observed;         # this is a matrix
-      startValues <- model$getFreeVariables();
       expectedMean$translateAlgebra();
       expectedCov$translateAlgebra();
 

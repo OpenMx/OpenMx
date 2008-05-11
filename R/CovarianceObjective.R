@@ -14,13 +14,13 @@ setConstructorS3("CovarianceObjective", function(expected, observed) {
 setMethodS3("createMxJobClosureR", "CovarianceObjective", function(objective, job, ...) {
       
    model <- job$.model;
-   model$updateFreeVariablesList(); 
+   model$makeFreeParametersList(); 
 
    function() {
 
       observedCov <- objective$.observed; # this is a matrix
       expectedCov <- objective$.expected; # this is an MxAlgebra statement
-      startValues <- model$getFreeVariables();
+      startValues <- model$getFreeParameters();
       expectedCov$translateAlgebra();
 
       objectiveFunction <- function(par) {

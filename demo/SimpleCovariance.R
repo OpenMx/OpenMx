@@ -11,7 +11,9 @@ setValues(model$S,c(0.8,0,0,0.8))
 setValues(model$F,c(1,0,0,1))
 
 setParameters(model$A, c(0,0,1,0))
-setParameters(model$S, c(2,0,0,3))
+model$S$parameters[1,2] <- model$S$parameters[2,1] <- "0";
+model$S$parameters[1,1] <- "banana";
+model$S$parameters[2,2] <- "apple";
 setParameters(model$F, matrix(0,2,2))
 
 covMatrix <- matrix(c(0.77642931, 0.39590663, 0.39590663, 0.49115615),
