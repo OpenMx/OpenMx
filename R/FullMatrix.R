@@ -37,14 +37,55 @@ setConstructorS3("FullMatrix", function(row, col, free = FALSE) {
 
 })
 
+#########################################################################/**
+# @RdocMethod setValuesWithList
+#
+# @title "Set Matrix Values With A List"
+#
+# \seealso{
+#     \link{MxMatrix.setValuesWithList}
+# }
+#*/######################################################################### 
 setMethodS3("setValuesWithList", "FullMatrix", function(this, valuesList,...) {
    this$values <- t(matrix(valuesList, ncol(this$values), nrow(this$values)));
 })
 
-setMethodS3("setParametersWithList", "FullMatrix", function(this, parametersList,...) {
-   this$parameters <- t(matrix(parametersList, ncol(this$parameters), nrow(this$parameters)));
+#########################################################################/**
+# @RdocMethod setParametersWithList
+#
+# @title "Set Matrix Parameters With A List"
+#
+# \seealso{
+#     \link{MxMatrix.setParametersWithList}
+# }
+#*/######################################################################### 
+setMethodS3("setParametersWithList", "FullMatrix", 
+   function(this, parametersList,...) {
+   this$parameters <- t(matrix(parametersList, 
+      ncol(this$parameters), nrow(this$parameters)));
 })
 
-setMethodS3("checkValidMatrix", "FullMatrix", function(this, aMatrix,...) { TRUE })
+#########################################################################/**
+# @RdocMethod checkValidMatrix
+#
+# @title "Inspect a Data Matrix for Validity"
+#
+# \seealso{
+#     \link{MxMatrix.checkValidMatrix}
+# }
+#*/######################################################################### 
+setMethodS3("checkValidMatrix", "FullMatrix", 
+   function(this, aMatrix,...) { TRUE })
 
-setMethodS3("checkValidSpecification", "FullMatrix", function(this, aMatrix,...) { TRUE })
+
+#########################################################################/**
+# @RdocMethod checkValidSpecification
+#
+# @title "Inspect a Parameter Matrix for Validity"
+#
+# \seealso{
+#     \link{MxMatrix.checkValidSpecification}
+# }
+#*/######################################################################### 
+setMethodS3("checkValidSpecification", "FullMatrix", 
+   function(this, aMatrix,...) { TRUE })

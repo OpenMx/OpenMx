@@ -35,6 +35,7 @@ check: build
 
 doc: install
 	cd $(RSOURCE); $(REXEC) --vanilla < ../build/document.R
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
 
 clean:

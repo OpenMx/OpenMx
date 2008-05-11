@@ -87,3 +87,97 @@ checkSquare <- function(row, col) {
 #TODO IMPLEMENT
 #SDiagMatrix is a subdiagonal matrix (zeros on and above the diagonal)
 #
+
+#########################################################################/**
+# @RdocMethod setValuesWithList
+#
+# @title "Set Matrix Values With A List"
+# 
+# \description{
+#   This abstract method is overwritten by all subclasses
+#   to insert a list of floating-point numbers into the values
+#   of a matrix.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxMatrix object.}
+#  \item{valuesList}{The vector of values to insert.}
+#  \item{...}{unused}
+# }
+#
+#*/######################################################################### 
+setMethodS3("setValuesWithList", "MxMatrix", 
+    function(this, valuesList,...) {})
+
+
+#########################################################################/**
+# @RdocMethod setParametersWithList
+#
+# @title "Set Matrix Parameters With A List"
+# 
+# \description{
+#   This abstract method is overwritten by all subclasses
+#   to insert a list of numbers into the parameters
+#   of a matrix.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxMatrix object.}
+#  \item{parametersList}{The vector of parameters to insert.}
+#  \item{...}{unused}
+# }
+#
+#*/######################################################################### 
+setMethodS3("setParametersWithList", "MxMatrix", 
+    function(this, parametersList,...) {})
+
+
+#########################################################################/**
+# @RdocMethod checkValidMatrix
+#
+# @title "Inspect a Data Matrix for Validity"
+# 
+# \description{
+#   This abstract method is overwritten by all subclasses
+#   to return TRUE or FALSE based on whether a candidate
+#   matrix can be used as a data matrix for this type.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxMatrix object.}
+#  \item{aMatrix}{The candidate data matrix.}
+#  \item{...}{unused}
+# }
+#
+#*/######################################################################### 
+setMethodS3("checkValidMatrix", "MxMatrix", 
+    function(this, aMatrix,...) { FALSE })
+
+#########################################################################/**
+# @RdocMethod checkValidSpecification
+#
+# @title "Inspect a Parameter Matrix for Validity"
+# 
+# \description{
+#   This abstract method is overwritten by all subclasses
+#   to return TRUE or FALSE based on whether a candidate
+#   matrix can be used as a parameter matrix for this type.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxMatrix object.}
+#  \item{aMatrix}{The candidate parameter matrix.}
+#  \item{...}{unused}
+# }
+#
+#*/######################################################################### 
+setMethodS3("checkValidSpecification", "MxMatrix", 
+    function(this, aMatrix,...) { FALSE })
