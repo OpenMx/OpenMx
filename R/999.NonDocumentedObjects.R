@@ -4,6 +4,7 @@
 # % The MxMatrix class
 # @alias FIXED
 # @alias UNIQUE
+# @alias createUniqueName
 # @alias getParameters
 # @alias getValues
 # @alias setParameters
@@ -11,12 +12,26 @@
 # @alias setValues
 # @alias setValuesWithList
 # @alias updateMatrix
+# @alias checkValidMatrix
+# @alias checkValidSpecification
 #
 # % The MxModel class
 # @alias updateMatrices
 # @alias getFreeParameters
 # @alias makeFreeParametersList
 #
+#
+# % The MxAlgebra class
+# @alias translateAlgebra
+# @alias evaluateTranslation
+# @alias setDirtyBit
+#
+# % The MxJob class
+# @alias createMxClosure
+#
+# % The MxObjective class
+# @alias createMxJobClosureR
+# @alias createMxJobClosureC
 #
 # % The FullMatrix class
 # @alias setValuesWithList.FullMatrix
@@ -55,8 +70,8 @@
 #   Almost all of them are \emph{generic} functions that have specific 
 #   document for the corresponding method coupled to a specific class. 
 #   Other functions are re-defined by \code{setMethodS3()} to 
-#   \emph{default} methods. Neither of these two classes are non-documented
-#   in reality.
+#   \emph{default} methods. Neither of these two types of functions
+#   are undocumented in reality.
 #   
 # }
 #

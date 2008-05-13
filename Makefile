@@ -8,6 +8,7 @@ TARGET = OpenMx_0.1-0.tar.gz
 # subdirectories
 RSOURCE = R
 RDOCUMENTS = man
+RDATA = data
 
 # file types
 RDFILES = *.Rd
@@ -36,6 +37,7 @@ check: build
 doc: install
 	rm -rf $(RDOCUMENTS)/$(RDFILES)
 	cd $(RSOURCE); $(REXEC) --vanilla < ../support/document.R
+	cd $(RDATA); $(REXEC) --vanilla < ../support/document.data.R
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
 
