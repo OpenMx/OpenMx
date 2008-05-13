@@ -1,6 +1,23 @@
 ###########################################################################/**
 # @RdocDocumentation "Non-documented objects"
 #
+# % The MxMatrix class
+# @alias FIXED
+# @alias UNIQUE
+# @alias getParameters
+# @alias getValues
+# @alias setParameters
+# @alias setParametersWithList
+# @alias setValues
+# @alias setValuesWithList
+# @alias updateMatrix
+#
+# % The MxModel class
+# @alias updateMatrices
+# @alias getFreeParameters
+# @alias makeFreeParametersList
+#
+#
 # % The FullMatrix class
 # @alias setValuesWithList.FullMatrix
 # @alias setParametersWithList.FullMatrix

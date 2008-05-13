@@ -76,35 +76,104 @@ setMethodS3("updateMatrices", "MxModel", function(this, parameters, ...) {
    invisible(returnValue);
 });
 
-
-# DO NOT export this method
-# this is a helper function to getFreeParameters()
-getFreeParametersMatrix <- function(threeTuple) {
+#########################################################################/**
+# @RdocFunction getFreeParameterValue
+#
+# @title "Helper Function to getFreeParametersHelper"
+# 
+# \description{    
+#    Returns the current value of the free parameter for the 
+#    (MxMatrix, row, col) specification passed an argument.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{threeTuple}{One 3-tuples that consists of(MxMatrix, row, column).}
+# }
+#
+#*/######################################################################### 
+getFreeParameterValue <- function(threeTuple) {
    reference <- threeTuple[[1]];
    row <- threeTuple[[2]];
    col <- threeTuple[[3]];
    return(reference$.values[row,col]);
 }
 
-# DO NOT export this method
-# this is a helper function to getFreeParameters()
+#########################################################################/**
+# @RdocFunction getFreeParametersHelper
 #
-# Only bother getting the first value,
-# since multiple matrix locations for the same free parameter
-# should have identical values.
+# @title "Helper Function to getFreeParameters"
+# 
+# \description{
+#    
+#    Only bother getting the first value,
+#    since multiple matrix locations for the same free parameter
+#    should have identical values.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{listTuples}{A list of 3-tuples (MxMatrix, row, column).}
+# }
+#
+#*/######################################################################### 
 getFreeParametersHelper <- function(listTuples) {
-   return(getFreeParametersMatrix(listTuples[[1]]));
+   return(getFreeParameterValue(listTuples[[1]]));
 }
 
+#########################################################################/**
+# @RdocMethod getFreeParameters
 #
-# EXPORT this method
+# @title "Return a Vector of Free Parameter Values"
+# 
+# \description{
+#    Returns the current values of the model's free parameters.
+#    This function uses the \code{.freeParametersList} field, which
+#    requires that the \link{MxModel.makeFreeParametersList} method
+#    has been called before this method is called.
+# }
 #
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxModel object.}
+#  \item{...}{Unused.}
+# }
+#
+#
+# \seealso{
+#   @seeclass
+# }
+#*/######################################################################### 
 setMethodS3("getFreeParameters", "MxModel", function(this,...) {
    return(unlist(lapply(this$.freeParametersList, getFreeParametersHelper)))
 });
 
 
-
+#########################################################################/**
+# @RdocMethod makeFreeParametersList
+#
+# @title "Make the Free Parameter List"
+# 
+# \description{
+#    Constructs the free parameter list, stores the list in the 
+#    \code{.freeParametersList} field, and returns a copy of this list.
+# }
+#
+# @synopsis
+#
+# \arguments{
+#  \item{this}{The MxModel object.}
+#  \item{...}{Unused.}
+# }
+#
+#
+# \seealso{
+#   @seeclass
+# }
+#*/######################################################################### 
 setMethodS3("makeFreeParametersList", "MxModel", function(this,...) {
   freeParameters <- list();
   for (aField in this$getFields()) {
@@ -130,65 +199,3 @@ setMethodS3("makeFreeParametersList", "MxModel", function(this,...) {
 })
  
 
-setMethodS3("setValues", "MxMatrix", function(this, values,...) {
-
-   if (is.vector(values)) {
-      modifiable <- this$.modifiable;
-      if (modifiable != length(values)) {
-         error <- paste("Your values list has", length(values),
-            	"elements but matrix has", modifiable,
-            	"modifiable elements.");
-         throw(error);
-      }
-      this$setValuesWithList(values);
-   } else if (is.matrix(values)) {
-      if (!all(dim(this$.values) == dim(values))) {
-          error <- paste("Second argument has dimensions",
-            	paste(dim(values), collapse = " "), "but matrix",
-            	"has dimensions",
-            	paste(dim(this$.values), collapse = " "), ".");
-          throw(error);
-      }
-      valid <- this$checkValidMatrix(values);
-      if (!valid) {
-          error <- paste("Second argument is not a valid",
-            	data.class(this),".");
-          throw(error);
-      }
-      this$.values <- values;
-   } else {
-      throw("Second argument is neither a vector nor a matrix.");
-   }
-})
-
-setMethodS3("setParameters", "MxMatrix", function(this, parameters,...) {
-
-   if (is.vector(parameters)) {
-      modifiable <- this$.modifiable;
-      if (modifiable != length(parameters)) {
-         error <- paste("Your values list has", length(parameters),
-            	"elements but matrix has", modifiable,
-            	"modifiable elements.");
-         throw(error);
-      }
-      this$setParametersWithList(as.character(parameters));
-   } else if (is.matrix(parameters)) {
-      if (!all(dim(this$.parameters) == dim(parameters))) {
-          error <- paste("Second argument has dimensions",
-            	paste(dim(parameters), collapse = " "), "but matrix",
-            	"has dimensions",
-            	paste(dim(this$.parameters), collapse = " "), ".")
-          throw(error);
-      }
-      valid <- this$checkValidMatrix(parameters);
-      if (!valid) {
-          error <- paste("Second argument is not a valid",
-            	data.class(this),".");
-          throw(error);
-      }
-      this$.parameters <- matrix(as.character(parameters), nrow(parameters), ncol(parameters))
-   } else {
-      throw("Second argument is neither a vector nor a matrix.");
-   }
-
-})
