@@ -72,6 +72,7 @@ setMethodS3("checkValidSpecification", "SymmMatrix", function(this, aMatrix,...)
 
 
 setMethodS3("setValuesWithList", "SymmMatrix", function(this, valuesList,...) {
+   this$.values <- matrix(0, nrow(this$.values), ncol(this$.values))
    # Set the lower triangle to valuesList
    this$.values[upper.tri(this$.values, diag=TRUE)] <- valuesList;
    this$.values <- this$.values + t(this$.values) - diag(diag(this$.values));

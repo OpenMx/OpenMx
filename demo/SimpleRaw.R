@@ -9,11 +9,11 @@ model$I <- IdenMatrix(3, 3);
 model$M <- FullMatrix(3, 1);
 model$U <- UnitMatrix(1, 1);
 
-setValues(model$S, c(1.0,0.2,0.0,2.0,0.0,1.0));
+setValues(model$S, c(1.0,0.2,2,0,0,1));
 setValues(model$A, c(0.0,0.0,0.0,0.0,0.0,0.0,0.3,0.3,0.0));
 setValues(model$M, c(0.1,0.1,0.1));
 
-setParameters(model$S, c(1,6,0,2,0,4));
+setParameters(model$S, c(1,6,2,0,0,4));
 setParameters(model$A, c(0,0,0,0,0,0,8,9,0));
 setParameters(model$M, c(13,12,14));
 
