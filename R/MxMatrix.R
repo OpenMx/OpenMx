@@ -19,6 +19,17 @@
 # }
 #
 # \section{Fields and Methods}{
+#  \bold{Fields:}
+#  \itemize{
+#     \item \code{parameters} - The parameter specification matrix.
+#     A matrix of strings.
+#     \item \code{data} - This data matrix.  A matrix of numerics.
+#     \item \code{.modifiable} - The number of modifiable elements in
+#     this matrix type.    
+#     \item \code{.uniqueCount} - This is a static field. It is a counter
+#     that is incremented on every call to 
+#     \code{\link[=MxMatrix.createUniqueName]{createUniqueName}}.
+#  }
 #  @allmethods
 # }
 # 

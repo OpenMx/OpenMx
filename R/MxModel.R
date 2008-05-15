@@ -5,7 +5,8 @@
 #
 # \description{
 #
-#  Foo.
+#  An MxModel is a collection of MxMatrix and MxAlgebra objects and
+#  the associated operations that can be performed on these objects.
 # 
 #  @classhierarchy
 # }
@@ -13,6 +14,17 @@
 # @synopsis
 #
 # \section{Fields and Methods}{
+#  \bold{Fields:}
+#  \itemize{
+#     \item \code{.freeParametersList} - This data structure is a list
+#     of list of lists.  The outer list contains one entry per unique
+#     free parameter in this model.  For each free parameter, we store
+#     a list of 3-tuples.  Each 3-tuple is a list that consists of 
+#     (\link{MxMatrix} reference, rol number, column number).\cr \cr
+#     The .freeParametersList is empty by default.  It is only populated
+#     by an explicit call to
+#     \code{\link[=MxModel.makeFreeParametersList]{makeFreeParametersList}}.  
+#  }
 #  @allmethods
 # }
 # 

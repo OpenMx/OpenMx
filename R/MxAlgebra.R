@@ -5,7 +5,8 @@
 #
 # \description{
 #
-#  Foo.
+#  This class stores a matrix algebra expression to be evaluated
+#  at some later point.
 # 
 #  @classhierarchy
 # }
@@ -18,6 +19,22 @@
 # }
 #
 # \section{Fields and Methods}{
+#  \bold{Fields:}
+#  \itemize{
+#     \item \code{.formula} - The untranslated matrix algebra expression.
+#     This expression cannot be evaluated until it has been translated.
+#     \item \code{.translation} - The translated matrix algebra expression.
+#     This field is populated by a call to 
+#     \code{\link[=MxAlgebra.translateAlgebra]{translateAlgebra}}
+#     and it is evaluated by a call to 
+#     \code{\link[=MxAlgebra.evaluateTranslation]{evaluateTranslation}}.
+#     \item \code{.dirty} - If \code{TRUE},
+#     then \code{\link[=MxAlgebra.evaluateTranslation]{evaluateTranslation}}
+#     will used the cached value in \code{.value}. This field must be set
+#     explicitly to \code{TRUE} or \code{FALSE} by a call to
+#     \code{\link[=MxAlgebra.setDirtyBit]{setDirtyBit}}.  
+#     \item \code{.value} - The cached value of the MxAlgebra expression.
+#  }
 #  @allmethods
 # }
 # 
