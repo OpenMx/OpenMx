@@ -12,3 +12,11 @@ Subdirectories:
 'tests'	-	package-specifc test code.
 'demo'	-	R scripts (for running via demo()) that demonstrate some of the functionality of the package.
 'data'	-	data files the package makes available for loading using data().
+
+To install:
+
+1. make build - builds the OpenMx library and placing it in ~/OpenMx/trunk/build/
+2. make install - this creates the OpenMx library and tries to install it as an R library. You may need to be root to run this command.
+3. make check - this creates the OpenMx library and runs the R library checker.
+4. make doc - this creates the OpenMx documentation and installs it as an R library. Currently, this requires root.
+5. make clean - this cleans out the /build subdirectory. Sometimes you may need to run "make clean" if you get error messages with the other make build.
