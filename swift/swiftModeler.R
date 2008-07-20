@@ -1,6 +1,6 @@
-# calls swift to generates all models 
-# for given number of connections
-# and writes them out as mxmodel objects
+# generates all models 
+# write out as mxobjects
+# process all objects
 
 connections <- 4
 numcol      <- noquote(strsplit(allinputs," ")[[1]][2])
