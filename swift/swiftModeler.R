@@ -17,7 +17,7 @@ system("swift -tc.file tc.data -sites.file sites_ncsa modelgen.swift -user=skenn
 
 ### resulting model objects will be in modelObjects subdir
 ### call swift script for processing the model objects
-### with simplecovariane
+### with simplecovariance
 
 system("swift -tc.file tc.data -sites.file sites_ncsa modelproc.swift -user=skenny")
 
