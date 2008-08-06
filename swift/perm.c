@@ -1,15 +1,18 @@
 /*
-perm.c 
+permall.c 
 
-creates all permutations 
+creates all symmetric and 
+asymmetric permutations 
 of the matrix size 'size'
 with 'connections' conn
+
 
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 static int count = 0;
 
@@ -116,36 +119,90 @@ int find_last(int size, int idata[])
   return last;
   }
 
+void Perm(int size, int connections, int idata[], int recentdata[], int rowcol, float weight) {
 
-void Perm(int size, int connections, int idata[], int recentdata[]) {
-  int i,j,c;
+  int i,j,c,m,n,p,q,scount;
+  int k = 0;
+  int symm = 0;
+  int asymm = 0;
   int total = get_total(size, connections);
+  int mxdat[rowcol][rowcol];
   for(i=0; i<total-1; i++)
     {
+      int symm = 0;
+      int asymm = 0;
       insert_zero(find_last(size,idata), size, connections, idata, recentdata);
 
-  /* save current perm to file */
-  FILE *datfile;
-  char fname [10];
-  const char ext[] = ".adat";
-  sprintf(fname, "%d%s", count,ext);
-  datfile = fopen(fname, "wt");
-  int x;
-  for (x=0; x<size; x++){
-    fprintf(datfile, "%i ",idata[x]);
-  }
-  fputc('\n',datfile);
-  fclose(datfile);
-  count++;
+      /* load into grid */
+      /* check for symmetry */
+      while(k<size)
+	{
+	  for(m=0; m<rowcol; m++)
+	    {
+
+	      for(n=0; n<rowcol; n++)
+		{  
+		  mxdat[m][n] = idata[k];
+		  if((m == n) && (mxdat[m][n] == 1))
+		    symm = 1;
+		  if((m != n) && (mxdat[m][n] == 1))
+		    asymm = 1;
+		  k++;
+		}
+	    }
+	}
+      if((symm == 1) && (asymm == 0)){
+	  FILE *datfile;
+	  char fname [10];
+	  const char ext[] = ".sdat";
+	  sprintf(fname, "%d%s", count,ext);
+	  datfile = fopen(fname, "wt");
+	  int x,y;
+	  for (x=0; x<rowcol; x++)
+	    {
+	      for(y=0; y<rowcol; y++)
+		{
+		  fprintf(datfile, "%i ",mxdat[x][y]);
+		}
+	      fputc('\n',datfile);
+	    }
+	  fputc('\n', datfile);
+	  fclose(datfile);
+      }
+      if((symm == 0) && (asymm == 1)){
+	  FILE *datfile;
+	  char fname [10];
+	  const char ext[] = ".adat";
+	  sprintf(fname, "%d%s", count,ext);
+	  datfile = fopen(fname, "wt");
+	  int x,y;
+	  for (x=0; x<rowcol; x++)
+	    {
+	      for(y=0; y<rowcol; y++)
+		{
+		  fprintf(datfile, "%i ",mxdat[x][y]);
+		}
+	      fputc('\n',datfile);
+	    }
+	  fputc('\n', datfile);
+	  fclose(datfile);
+      }
+	  count++;
+	
+	  k=0;
     }
 }
- 
-int run_perm(int *con, int *sz) {
 
+int run_perm(int *con, int *sz, int *nc, float *wt) {
+  int numcol = nc[0];
   int connections = con[0];
   int size = sz[0];
   int idata[size];
+  float weight = wt[0];
   int recentdata[size];
+  /* will use later when symm conn's not 
+     on the diag are permitted */
+  int Ssize = ((size - numcol)/2) - numcol;
 
   int i,j;
   for(i=0; i<size; i++)
@@ -164,7 +221,7 @@ int run_perm(int *con, int *sz) {
   printf("size: %i\n",size);
  
   printf("Permutations of %u items:\n\n", connections);
-  Perm(size, connections, idata, recentdata);
+  Perm(size, connections, idata, recentdata, numcol, weight);
 
   printf("\n%d permutations in all.\n", count);
   FreeData();
