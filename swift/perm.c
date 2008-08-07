@@ -119,7 +119,7 @@ int find_last(int size, int idata[])
   return last;
   }
 
-void Perm(int size, int connections, int idata[], int recentdata[], int rowcol, float weight) {
+void Perm(int size, int connections, int idata[], int recentdata[], int rowcol) {
 
   int i,j,c,m,n,p,q,scount;
   int k = 0;
@@ -193,12 +193,11 @@ void Perm(int size, int connections, int idata[], int recentdata[], int rowcol, 
     }
 }
 
-int run_perm(int *con, int *sz, int *nc, float *wt) {
+int run_perm(int *con, int *sz, int *nc) {
   int numcol = nc[0];
   int connections = con[0];
   int size = sz[0];
   int idata[size];
-  float weight = wt[0];
   int recentdata[size];
   /* will use later when symm conn's not 
      on the diag are permitted */
@@ -221,7 +220,7 @@ int run_perm(int *con, int *sz, int *nc, float *wt) {
   printf("size: %i\n",size);
  
   printf("Permutations of %u items:\n\n", connections);
-  Perm(size, connections, idata, recentdata, numcol, weight);
+  Perm(size, connections, idata, recentdata, numcol);
 
   printf("\n%d permutations in all.\n", count);
   FreeData();
