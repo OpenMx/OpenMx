@@ -2,7 +2,15 @@
 
 import sys
 
-def fact(x): return reduce(lambda x, y: x*y, xrange(2, x+1))
+#def fact(x): return reduce(lambda x, y: x*y, xrange(2, x+1))
+
+
+def fact(x):
+    factorial = 1
+    while(x>0):
+        factorial = factorial*x
+        x -= 1
+    return factorial
 
 conn = 1
 size = 1
