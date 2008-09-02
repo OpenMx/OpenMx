@@ -68,7 +68,6 @@ setMethodS3("createMxJobClosureR", "CovarianceObjective", function(this, job, ..
       expectedCov <- this$.expected; # this is an MxAlgebra statement
       startValues <- model$getFreeParameters();
       expectedCov$translateAlgebra();
-
       objectiveFunction <- function(par) {
          model$updateMatrices(par);
          expectedCov$setDirtyBit(TRUE);
@@ -84,7 +83,7 @@ setMethodS3("createMxJobClosureR", "CovarianceObjective", function(this, job, ..
    		iterlim=1000, 
    		print.level=2,
    		typsize=abs(startValues));
-
+return(outNLM);
    }
 
 })
