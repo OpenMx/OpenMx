@@ -136,8 +136,8 @@ void Perm(int size, int connections, int idata[], int recentdata[], int rowcol, 
    char sname [10], aname [10];
    const char sext[] = ".sdat";
    const char aext[] = ".adat";
-   sprintf(sname, "%d%s", count,sext);
-   sprintf(aname, "%d%s", count,aext);
+   sprintf(sname, "%d%s", permnum,sext);
+   sprintf(aname, "%d%s", permnum,aext);
    sdatfile = fopen(sname, "wt");
    adatfile = fopen(aname, "wt");
    int x,y;
