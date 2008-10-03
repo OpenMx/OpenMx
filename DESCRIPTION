@@ -1,8 +1,8 @@
 Package: OpenMx
-Version: 0.1-0
+Version: 0.1-1
 Title: The OpenMx Structural Equation Modeling Package
 Author: Steven Boker, Michael Neale, Hermine Maes, Paras Metah
-	Timothy Bates, Jeffrey Spies, Timothy Brick, Michael Spiegel
+	Sarah Kenny, Timothy Bates, Jeffrey Spies, Timothy Brick, Michael Spiegel
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
 URL: http://terpsichore.psyc.virginia.edu/wiki
 Description: The OpenMx Project intends to rewrite and extend the
@@ -16,6 +16,6 @@ Description: The OpenMx Project intends to rewrite and extend the
     * increased sophistication in the statistical models used to
  analyze the data. 
 License: TBD
-Depends: R.oo, mnormt
+Depends: Matrix, mnormt
 LazyLoad: yes
 LazyData: yes

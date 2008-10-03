@@ -3,7 +3,7 @@ RCOMMAND = CMD
 RBUILD = build
 RINSTALL = install
 RCHECK = check
-TARGET = OpenMx_0.1-0.tar.gz
+TARGET = OpenMx_0.1-1.tar.gz
 
 # subdirectories
 RSOURCE = R
