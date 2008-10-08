@@ -186,3 +186,49 @@ setReplaceMethod("[", "MxMatrix",
 		return(x)
     }
 )
+
+
+processSparseMatrix <- function(specification, result, matrixNumber, reverse=FALSE) {
+	for(i in 1:length(specification@dataVector)) {
+	    if (reverse == FALSE || specification@rowVector[i] != specification@colVector[i]) {
+		    data <- as.character(specification@dataVector[[i]])
+		    if (reverse) {
+			    col <- specification@rowVector[i]
+			    row <- specification@colVector[i]
+			} else {
+			    row <- specification@rowVector[i]
+			    col <- specification@colVector[i]			
+			}
+			if (is.na(data)) {
+				result[length(result)+1] <-  list(c(matrixNumber, row, col))
+			} else {
+				if (!is.null(result[[data]])) {
+					original <- result[[data]]
+					original[length(original) + 1] <- list(c(matrixNumber, row, col))
+					result[[data]] <- original				
+				} else {
+					result[[data]] <- list(c(matrixNumber, row,col))
+				}
+			}
+		}
+	}
+	return(result)
+}
+
+generateMatrixListHelper <- function(mxMatrix) {
+	values <- mxMatrix@values
+    if(is(values,"MxSymmetricSparse")) {
+		return(Matrix(as.matrix(values)))    
+    } else {
+		return(values)    
+    }
+}
+
+generaterParameterListHelper <- function(mxMatrix, result, matrixNumber) {
+	specification <- mxMatrix@specification
+	result <- processSparseMatrix(specification, result, matrixNumber)
+	if(is(specification,"MxSymmetricSparse")) {
+		result <- processSparseMatrix(specification, result, matrixNumber, TRUE)
+	}
+	return(result)
+}
