@@ -15,10 +15,10 @@ mxCreatePath <- function(from, to, all = FALSE, free = NULL,
 		if (all) {
 			from <- rep(from, each=length(to))	
 		}
-		result <- mapply(mxSinglePath, from, to,
+		result <- suppressWarnings(mapply(mxSinglePath, from, to,
 			free, arrows, startVal, endVal,
 				algebra, name, label, boundMax,
-				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE)
+				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
 		return(result)			
 	}
 }

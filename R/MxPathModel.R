@@ -21,6 +21,9 @@ setMethod("initialize", "MxPathModel",
 setGeneric("mxAddPath", function(.Object, paths) {
 	return(standardGeneric("mxAddPath")) } )
 
+setGeneric("mxRemovePath", function(.Object, paths) {
+	return(standardGeneric("mxRemovePath")) } )	
+	
 setMethod("mxAddPath", "MxPathModel", 
 	function(.Object, paths) {
 		if (length(paths) < 1) {
@@ -29,12 +32,34 @@ setMethod("mxAddPath", "MxPathModel",
 		if (isMxPath(paths)) {
 			paths <- list(paths)
 		}
+		if (!all(sapply(paths, isMxPath))) {
+			stop("Second argument is neither an MxPath nor a list of MxPaths")		
+		}
 		for(i in 1:length(paths)) {
 			.Object <- mxAddSinglePath(.Object, paths[[i]])
 		}
 		return(.Object)
 	}
 )
+
+setMethod("mxRemovePath", "MxPathModel", 
+	function(.Object, paths) {
+		if (length(paths) < 1) {
+			return(.Object)
+		}
+		if (isMxPath(paths)) {
+			paths <- list(paths)
+		}
+		if (!all(sapply(paths, isMxPath))) {
+			stop("Second argument is neither an MxPath nor a list of MxPaths")		
+		}
+		for(i in 1:length(paths)) {
+			.Object <- mxRemoveSinglePath(.Object, paths[[i]])
+		}
+		return(.Object)
+	}
+)
+
 
 mxAddSinglePath <- function(.Object, path) {
 	if (nrow(.Object@paths) > 0) {
@@ -84,24 +109,20 @@ mxAddSinglePath <- function(.Object, path) {
 	return(.Object)
 }
 
-
-mxRemoveSinglePair <- function(.Object, pair) {
-	path <- mxCreatePath(pair[[1]], pair[[2]])
-	return(mxRemoveSinglePath(.Object, path))	
-}
-
 mxRemoveSinglePath <- function(.Object, path) {
 	if (nrow(.Object@paths) > 0) {
 		.Object@paths <- subset(.Object@paths, to != path[['to']] | from != path[['from']])
-		morfExists <- (.Object@paths['from'] == path[['to']])
-		otExists <- (.Object@paths['to'] == path[['from']])
-		oppositeExists <- any(morfExists & otExists)
-		if (oppositeExists) {
-			check1 <- !is.null(path[['arrows']]) && path[['arrows']] == 2
-			check2 <- !is.null(.Object@paths[morfExists & otExists,'arrows']) &&
-						.Object@paths[morfExists & otExists,'arrows'] == 2
-			if (check1 || check2) {
-				.Object@paths <- subset(.Object@paths, to != path[['from']] | from != path[['to']])
+		if (nrow(.Object@paths) > 0) {		
+			morfExists <- (.Object@paths['from'] == path[['to']])
+			otExists <- (.Object@paths['to'] == path[['from']])
+			oppositeExists <- any(morfExists & otExists)
+			if (oppositeExists) {
+				check1 <- !is.null(path[['arrows']]) && path[['arrows']] == 2
+				check2 <- !is.null(.Object@paths[morfExists & otExists,'arrows']) &&
+							.Object@paths[morfExists & otExists,'arrows'] == 2
+				if (check1 || check2) {
+					.Object@paths <- subset(.Object@paths, to != path[['from']] | from != path[['to']])
+				}
 			}
 		}		
 	}		
