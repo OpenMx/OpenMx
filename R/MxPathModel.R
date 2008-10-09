@@ -18,16 +18,21 @@ setMethod("initialize", "MxPathModel",
 	}
 )
 
-setGeneric("mxAddPath", function(.Object, paths) { return(standardGeneric("mxAddPath")) } )
+setGeneric("mxAddPath", function(.Object, paths) {
+	return(standardGeneric("mxAddPath")) } )
 
 setMethod("mxAddPath", "MxPathModel", 
-	function(.Object, paths = list()) {
+	function(.Object, paths) {
+		if (length(paths) < 1) {
+			return(.Object)
+		}
 		if (isMxPath(paths)) {
 			paths <- list(paths)
 		}
 		for(i in 1:length(paths)) {
 			.Object <- mxAddSinglePath(.Object, paths[[i]])
 		}
+		return(.Object)
 	}
 )
 
@@ -42,8 +47,8 @@ mxAddSinglePath <- function(.Object, path) {
 		if (oppositeExists) {
 			newArrow <- !is.null(path[['arrows']])
 			oldArrow <- !is.null(.Object@paths[morfExists & otExists,'arrows'])
-			if (newArrow && oldArrow) {
-				if (.Object@paths[morfExists & otExists,'arrows'] == 2) {
+			if (newArrow) {
+				if (oldArrow && .Object@paths[morfExists & otExists,'arrows'] == 2) {
 					fromTemp <- as.vector(.Object@paths[morfExists & otExists,'from'])
 					toTemp <- as.vector(.Object@paths[morfExists & otExists,'to'])
 					fUnique <- lapply(.Object@paths['from'], paste)[[1]]
@@ -76,6 +81,30 @@ mxAddSinglePath <- function(.Object, path) {
 	} else {
 		.Object@paths <- data.frame(path, stringsAsFactors = FALSE)
 	}
+	return(.Object)
+}
+
+
+mxRemoveSinglePair <- function(.Object, pair) {
+	path <- mxCreatePath(pair[[1]], pair[[2]])
+	return(mxRemoveSinglePath(.Object, path))	
+}
+
+mxRemoveSinglePath <- function(.Object, path) {
+	if (nrow(.Object@paths) > 0) {
+		.Object@paths <- subset(.Object@paths, to != path[['to']] | from != path[['from']])
+		morfExists <- (.Object@paths['from'] == path[['to']])
+		otExists <- (.Object@paths['to'] == path[['from']])
+		oppositeExists <- any(morfExists & otExists)
+		if (oppositeExists) {
+			check1 <- !is.null(path[['arrows']]) && path[['arrows']] == 2
+			check2 <- !is.null(.Object@paths[morfExists & otExists,'arrows']) &&
+						.Object@paths[morfExists & otExists,'arrows'] == 2
+			if (check1 || check2) {
+				.Object@paths <- subset(.Object@paths, to != path[['from']] | from != path[['to']])
+			}
+		}		
+	}		
 	return(.Object)
 }
 
