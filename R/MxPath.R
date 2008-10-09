@@ -47,5 +47,7 @@ mxSinglePath <- function(from, to, free = NULL,
 }
 
 isMxPath <- function(value) {
-	return(is.list(value) && !is.null(value[['from']]) && !is.null(value[['to']]))
+	return(is.list(value) && 
+		!is.null(value[['from']]) &&
+		!is.null(value[['to']]))
 }

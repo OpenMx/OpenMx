@@ -8,7 +8,9 @@ setClass(Class = "MxPathModel",
 setMethod("initialize", "MxPathModel",
 	function(.Object, paths = list(), latentVars = list(),
 		manifestVars = list(), matrices = list()) {
-		.Object <- mxAddPath(.Object, paths)
+		if (length(paths) > 0) {
+			.Object <- mxAddPath(.Object, paths)
+		}
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
 		.Object@matrices <- matrices
