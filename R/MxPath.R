@@ -1,11 +1,11 @@
-MxPath <- function(from, to, all = FALSE, free = NULL, 
+mxCreatePath <- function(from, to, all = FALSE, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
 	boundMax = NULL, boundMin = NULL,
 	ciUpper = NULL, ciLower = NULL) {
 	if(length(from) == 1 && length(to) == 1) {
-		return(MxCreatePath(from, to, free, 
+		return(mxSinglePath(from, to, free, 
 			arrows, startVal, endVal, 
 			algebra, name, label, boundMax, 
 			boundMin, ciUpper, ciLower))
@@ -15,7 +15,7 @@ MxPath <- function(from, to, all = FALSE, free = NULL,
 		if (all) {
 			from <- rep(from, each=length(to))	
 		}
-		result <- mapply(MxCreatePath, from, to,
+		result <- mapply(mxSinglePath, from, to,
 			free, arrows, startVal, endVal,
 				algebra, name, label, boundMax,
 				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE)
@@ -23,18 +23,13 @@ MxPath <- function(from, to, all = FALSE, free = NULL,
 	}
 }
 
-MxCreatePath <- function(from, to, free = NULL, 
+mxSinglePath <- function(from, to, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
 	boundMax = NULL, boundMin = NULL,
 	ciUpper = NULL, ciLower = NULL) {
 	result <- list()
-	if (!is.null(arrows) && (arrows == 2) && (from > to)) {
-		temp <- from
-		from <- to
-		to <- temp	
-	}
 	result[['from']] <- from
 	result[['to']] <- to
 	result[['free']] <- free
