@@ -42,7 +42,7 @@ setMethod("mxAddPath", "MxPathModel",
 		if (!all(sapply(paths, isMxPath))) {
 			stop("Second argument is not a list of MxPaths")
 		}
-		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {		
+		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}
 		for(i in 1:length(paths)) {
@@ -60,7 +60,7 @@ setMethod("mxRemovePath", "MxPathModel",
 		if (!all(sapply(paths, isMxPath))) {
 			stop("Second argument is not a list of MxPaths")
 		}
-		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {		
+		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}		
 		for(i in 1:length(paths)) {
@@ -82,8 +82,7 @@ mxAddSinglePath <- function(.Object, path) {
 		if (oppositeExists) {
 			newArrow <- !is.null(path[['arrows']])
 			oldArrow <- !is.null(.Object@paths[morfExists & otExists,'arrows'])
-			if (newArrow) {
-				if (oldArrow && .Object@paths[morfExists & otExists,'arrows'] == 2) {
+			if (oldArrow && .Object@paths[morfExists & otExists,'arrows'] == 2) {
 					fromTemp <- as.vector(.Object@paths[morfExists & otExists,'from'])
 					toTemp <- as.vector(.Object@paths[morfExists & otExists,'to'])
 					fUnique <- lapply(.Object@paths['from'], paste, collapse='')[[1]]
@@ -93,14 +92,13 @@ mxAddSinglePath <- function(.Object, path) {
 					fromExists <- (.Object@paths['from'] == path[['from']])
 					toExists <- (.Object@paths['to'] == path[['to']])
 					replace <- TRUE
-				} else if (path[['arrows']] == 2) {
+			} else if (newArrow && path[['arrows']] == 2) {
 					tmp <- path[['from']]
 					path[['from']] <- path[['to']]
 					path[['to']] <- tmp
 					fromExists <- (.Object@paths['from'] == path[['from']])
 					toExists <- (.Object@paths['to'] == path[['to']])
 					replace <- TRUE
-				}
 			}
 		}
 		if (replace) {
@@ -116,6 +114,19 @@ mxAddSinglePath <- function(.Object, path) {
 	} else {
 		.Object@paths <- data.frame(path, stringsAsFactors = FALSE)
 	}
+	fromExists <- (.Object@paths['from'] == path[['from']])
+	toExists <- (.Object@paths['to'] == path[['to']])
+	field <- .Object@paths[fromExists & toExists, 'arrows']
+	if (!is.null(field) && !is.na(field)  
+			&& (field == 2) 
+			&& (path[['from']] > path[['to']])) {
+		fromTemp <- as.vector(.Object@paths[morfExists & otExists,'from'])
+		toTemp <- as.vector(.Object@paths[morfExists & otExists,'to'])
+		fUnique <- lapply(.Object@paths['from'], paste, collapse='')[[1]]
+		.Object@paths[morfExists & otExists, 'from'] <- fUnique
+		.Object@paths[.Object@paths['from'] == fUnique, 'to'] <- fromTemp
+		.Object@paths[.Object@paths['from'] == fUnique, 'from'] <- toTemp
+	}	
 	return(.Object)
 }
 
@@ -131,7 +142,8 @@ mxRemoveSinglePath <- function(.Object, path) {
 				check2 <- !is.null(.Object@paths[morfExists & otExists,'arrows']) &&
 							.Object@paths[morfExists & otExists,'arrows'] == 2
 				if (check1 || check2) {
-					.Object@paths <- subset(.Object@paths, to != path[['from']] | from != path[['to']])
+					.Object@paths <- subset(.Object@paths, 
+						to != path[['from']] | from != path[['to']])
 				}
 			}
 		}		
