@@ -32,17 +32,17 @@ mxSinglePath <- function(from, to, free = NULL,
 	result <- list()
 	result[['from']] <- from
 	result[['to']] <- to
-	result[['free']] <- free
-	result[['arrows']] <- arrows
-	result[['startVal']] <- startVal
-	result[['endVal']] <- endVal
-	result[['algebra']] <- algebra
-	result[['name']] <- name
-	result[['label']] <- label		
-	result[['boundMax']] <- boundMax
-	result[['boundMin']] <- boundMin	
-	result[['ciUpper']] <- ciUpper
-	result[['ciLower']] <- ciLower
+	result[['free']] <- free[[1]]
+	result[['arrows']] <- arrows[[1]]
+	result[['startVal']] <- startVal[[1]]
+	result[['endVal']] <- endVal[[1]]
+	result[['algebra']] <- algebra[[1]]
+	result[['name']] <- name[[1]]
+	result[['label']] <- label[[1]]	
+	result[['boundMax']] <- boundMax[[1]]
+	result[['boundMin']] <- boundMin[[1]]
+	result[['ciUpper']] <- ciUpper[[1]]
+	result[['ciLower']] <- ciLower[[1]]
 	return(result)
 }
 
@@ -51,3 +51,19 @@ isMxPath <- function(value) {
 		!is.null(value[['from']]) &&
 		!is.null(value[['to']]))
 }
+
+mappend <- function(...) {
+    args <- list(...)
+	return(mappendHelper(args, list()))
+}
+
+mappendHelper <- function(lst, result) {
+	if (length(lst) == 0) {
+		return(result)
+	} else if (length(lst) == 1) {
+		return(append(result,lst[[1]]))
+	} else {
+		return(mappendHelper(lst[2:length(lst)], append(result, lst[[1]])))
+	}
+}
+
