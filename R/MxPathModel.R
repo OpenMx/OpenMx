@@ -39,11 +39,8 @@ setMethod("mxAddPath", "MxPathModel",
 		if (length(paths) < 1) {
 			return(.Object)
 		}
-		if (isMxPath(paths)) {
-			paths <- list(paths)
-		}
 		if (!all(sapply(paths, isMxPath))) {
-			stop("Second argument is neither an MxPath nor a list of MxPaths")		
+			stop("Second argument is not a list of MxPaths")
 		}
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {		
 			stop("The \'from\' field or the \'to\' field contains an NA")
@@ -60,11 +57,8 @@ setMethod("mxRemovePath", "MxPathModel",
 		if (length(paths) < 1) {
 			return(.Object)
 		}
-		if (isMxPath(paths)) {
-			paths <- list(paths)
-		}
 		if (!all(sapply(paths, isMxPath))) {
-			stop("Second argument is neither an MxPath nor a list of MxPaths")		
+			stop("Second argument is not a list of MxPaths")
 		}
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {		
 			stop("The \'from\' field or the \'to\' field contains an NA")

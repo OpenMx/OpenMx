@@ -1,15 +1,14 @@
-mxCreatePath <- function(from, to, all = FALSE, free = NULL, 
+
+# returns a list of paths
+mxCreatePath <- function(from, to = NULL, all = FALSE, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
 	boundMax = NULL, boundMin = NULL,
 	ciUpper = NULL, ciLower = NULL) {
-	if(length(from) == 1 && length(to) == 1) {
-		return(mxSinglePath(from, to, free, 
-			arrows, startVal, endVal, 
-			algebra, name, label, boundMax, 
-			boundMin, ciUpper, ciLower))
-	} else {
+		if (is.null(to)) {
+			to <- from
+		}
 		from <- as.list(from)
 		to <- as.list(to)
 		if (all) {
@@ -19,8 +18,7 @@ mxCreatePath <- function(from, to, all = FALSE, free = NULL,
 			free, arrows, startVal, endVal,
 				algebra, name, label, boundMax,
 				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
-		return(result)			
-	}
+		return(result)
 }
 
 mxSinglePath <- function(from, to, free = NULL, 
