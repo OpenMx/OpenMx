@@ -42,11 +42,11 @@ setReplaceMethod("[[", "MxModel",
 	}
 )
 
-mxGenerateMatrixList <- function(mxModel) {
+omxGenerateMatrixList <- function(mxModel) {
 	return(lapply(mxModel@matrices, generateMatrixListHelper))
 }
 
-mxGenerateParameterList <- function(mxModel) {
+omxGenerateParameterList <- function(mxModel) {
 	result <- list()
 	for(i in 1:length(mxModel@matrices)) {
 		result <- generaterParameterListHelper(mxModel@matrices[[i]], result, i - 1)

@@ -18,11 +18,11 @@ setMethod("initialize", "MxPathModel",
 	}
 )
 
-setGeneric("mxAddPath", function(.Object, paths) {
-	return(standardGeneric("mxAddPath")) } )
+setGeneric("omxAddPath", function(.Object, paths) {
+	return(standardGeneric("omxAddPath")) } )
 
-setGeneric("mxRemovePath", function(.Object, paths) {
-	return(standardGeneric("mxRemovePath")) } )	
+setGeneric("omxRemovePath", function(.Object, paths) {
+	return(standardGeneric("omxRemovePath")) } )	
 	
 froms <- function(lst) {
   retval <- lapply(lst, function(x) { return(x$from) } )
@@ -34,7 +34,7 @@ tos <- function(lst) {
   return(retval)
 }	
 
-mappend <- function(...) {
+omxMappend <- function(...) {
     args <- list(...)
 	return(mappendHelper(args, list()))
 }
@@ -49,7 +49,7 @@ mappendHelper <- function(lst, result) {
 	}
 }
 
-mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars=NULL) {
+omxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars=NULL) {
 	if(is.null(model)) {
 		model <- new("MxPathModel")	
 	}
@@ -58,7 +58,7 @@ mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars
 		stop("First argument is not an MxPathModel object")
 	}
 	if(remove == TRUE) {
-		model <- mxRemovePath(model, mappendHelper(lst, list()))
+		model <- omxRemovePath(model, mappendHelper(lst, list()))
 		if ( !is.null(manifestVars) ) {
 			model@manifestVars <- setdiff(model@manifestVars, manifestVars)
 		}
@@ -66,7 +66,7 @@ mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars
 			model@latentVars <- setdiff(model@latentVars, latentVars)
 		}				
 	} else {
-		model <- mxAddPath(model, mappendHelper(lst, list()))
+		model <- omxAddPath(model, mappendHelper(lst, list()))
 		if ( !is.null(manifestVars) ) {
 			tmp <- append(model@manifestVars, manifestVars)
 			model@manifestVars <- unique(tmp)
@@ -79,44 +79,44 @@ mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars
 	return(model)
 }
 	
-setMethod("mxAddPath", "MxPathModel", 
+setMethod("omxAddPath", "MxPathModel", 
 	function(.Object, paths) {
 		if (length(paths) < 1) {
 			return(.Object)
 		}
-		if (!all(sapply(paths, isMxPath))) {
+		if (!all(sapply(paths, omxIsPath))) {
 			stop("Second argument is not a list of MxPaths")
 		}
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}
 		for(i in 1:length(paths)) {
-			.Object <- mxAddSinglePath(.Object, paths[[i]])
+			.Object <- omxAddSinglePath(.Object, paths[[i]])
 		}
 		return(.Object)
 	}
 )
 
-setMethod("mxRemovePath", "MxPathModel", 
+setMethod("omxRemovePath", "MxPathModel", 
 	function(.Object, paths) {
 		if (length(paths) < 1) {
 			return(.Object)
 		}
-		if (!all(sapply(paths, isMxPath))) {
+		if (!all(sapply(paths, omxIsPath))) {
 			stop("Second argument is not a list of MxPaths")
 		}
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}		
 		for(i in 1:length(paths)) {
-			.Object <- mxRemoveSinglePath(.Object, paths[[i]])
+			.Object <- omxRemoveSinglePath(.Object, paths[[i]])
 		}
 		return(.Object)
 	}
 )
 
 
-mxAddSinglePath <- function(.Object, path) {
+omxAddSinglePath <- function(.Object, path) {
 	if (nrow(.Object@paths) > 0) {
 		fromExists <- (.Object@paths['from'] == path[['from']])
 		toExists <- (.Object@paths['to'] == path[['to']])
@@ -175,7 +175,7 @@ mxAddSinglePath <- function(.Object, path) {
 	return(.Object)
 }
 
-mxRemoveSinglePath <- function(.Object, path) {
+omxRemoveSinglePath <- function(.Object, path) {
 	if (nrow(.Object@paths) > 0) {
 		.Object@paths <- subset(.Object@paths, to != path[['to']] | from != path[['from']])
 		if (nrow(.Object@paths) > 0) {		
@@ -196,3 +196,5 @@ mxRemoveSinglePath <- function(.Object, path) {
 	return(.Object)
 }
 
+mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars=NULL) {	omxModel(model, ..., remove = remove, manifestVars = manifestVars, latentVars = latentVars)
+}

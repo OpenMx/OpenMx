@@ -1,6 +1,6 @@
 
 # returns a list of paths
-mxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
+omxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
@@ -14,14 +14,14 @@ mxPath <- function(from, to = NULL, all = FALSE, free = NULL,
 		if (all) {
 			from <- rep(from, each=length(to))	
 		}
-		result <- suppressWarnings(mapply(mxSinglePath, from, to,
+		result <- suppressWarnings(mapply(omxSinglePath, from, to,
 			free, arrows, startVal, endVal,
 				algebra, name, label, boundMax,
 				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
 		return(result)
 }
 
-mxSinglePath <- function(from, to, free = NULL, 
+omxSinglePath <- function(from, to, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
@@ -44,8 +44,22 @@ mxSinglePath <- function(from, to, free = NULL,
 	return(result)
 }
 
-isMxPath <- function(value) {
+omxIsPath <- function(value) {
 	return(is.list(value) && 
 		!is.null(value[['from']]) &&
 		!is.null(value[['to']]))
+}
+
+
+mxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
+	arrows = NULL, startVal = NULL, 
+	endVal = NULL, algebra = NULL,
+	name = NULL, label = NULL,
+	boundMax = NULL, boundMin = NULL,
+	ciUpper = NULL, ciLower = NULL) {
+
+	omxPath(from, to, all, free, 
+		arrows, startVal, endVal, 
+		algebra, name, label, boundMax,
+		boundMin, ciUpper, ciLower)
 }
