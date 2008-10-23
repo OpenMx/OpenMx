@@ -1,5 +1,4 @@
 ###  generate openmx models in parallel
-###  by number of connections
 
 type file{}
 
