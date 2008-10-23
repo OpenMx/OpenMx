@@ -33,6 +33,51 @@ tos <- function(lst) {
   retval <- lapply(lst, function(x) { return(x$to) } )
   return(retval)
 }	
+
+mappend <- function(...) {
+    args <- list(...)
+	return(mappendHelper(args, list()))
+}
+
+mappendHelper <- function(lst, result) {
+	if (length(lst) == 0) {
+		return(result)
+	} else if (length(lst) == 1) {
+		return(append(result,lst[[1]]))
+	} else {
+		return(mappendHelper(lst[2:length(lst)], append(result, lst[[1]])))
+	}
+}
+
+mxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars=NULL) {
+	if(is.null(model)) {
+		model <- new("MxPathModel")	
+	}
+	lst <- list(...)
+	if(class(model)[[1]] != "MxPathModel") {
+		stop("First argument is not an MxPathModel object")
+	}
+	if(remove == TRUE) {
+		model <- mxRemovePath(model, mappendHelper(lst, list()))
+		if ( !is.null(manifestVars) ) {
+			model@manifestVars <- setdiff(model@manifestVars, manifestVars)
+		}
+		if ( !is.null(latentVars) ) {
+			model@latentVars <- setdiff(model@latentVars, latentVars)
+		}				
+	} else {
+		model <- mxAddPath(model, mappendHelper(lst, list()))
+		if ( !is.null(manifestVars) ) {
+			tmp <- append(model@manifestVars, manifestVars)
+			model@manifestVars <- unique(tmp)
+		}
+		if ( !is.null(latentVars) ) {
+			tmp <- append(model@latentVars, latentVars)
+			model@latentVars <- unique(tmp)
+		}		
+	}
+	return(model)
+}
 	
 setMethod("mxAddPath", "MxPathModel", 
 	function(.Object, paths) {

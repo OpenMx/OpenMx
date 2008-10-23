@@ -1,6 +1,6 @@
 
 # returns a list of paths
-mxCreatePath <- function(from, to = NULL, all = FALSE, free = NULL, 
+mxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
 	arrows = NULL, startVal = NULL, 
 	endVal = NULL, algebra = NULL,
 	name = NULL, label = NULL,
@@ -49,19 +49,3 @@ isMxPath <- function(value) {
 		!is.null(value[['from']]) &&
 		!is.null(value[['to']]))
 }
-
-mappend <- function(...) {
-    args <- list(...)
-	return(mappendHelper(args, list()))
-}
-
-mappendHelper <- function(lst, result) {
-	if (length(lst) == 0) {
-		return(result)
-	} else if (length(lst) == 1) {
-		return(append(result,lst[[1]]))
-	} else {
-		return(mappendHelper(lst[2:length(lst)], append(result, lst[[1]])))
-	}
-}
-
