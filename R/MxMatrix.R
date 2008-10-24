@@ -89,7 +89,7 @@ setClass(Class = "IdenMatrix",
 	
 setMethod("initialize", "IdenMatrix",
 	function(.Object, nrow = 1) {
-		specification <- new("MxSparseMatrix", 0, nrow, ncol)
+		specification <- new("MxSparseMatrix", 0, nrow, nrow)
 		values <- Matrix(diag(nrow))
 		return(callNextMethod(.Object, specification, values))
 	}
@@ -190,7 +190,7 @@ setReplaceMethod("[", "MxMatrix",
 
 processSparseMatrix <- function(specification, result, matrixNumber, reverse=FALSE) {
 	if (length(specification@dataVector) == 0) {
-		return(list())
+		return(result)
 	}
 	for(i in 1:length(specification@dataVector)) {
 	    if (reverse == FALSE || specification@rowVector[i] != specification@colVector[i]) {
