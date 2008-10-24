@@ -203,11 +203,11 @@ processSparseMatrix <- function(specification, result, matrixNumber, reverse=FAL
 			    col <- specification@colVector[i]			
 			}
 			if (is.na(data)) {
-				result[length(result)+1] <-  list(c(matrixNumber, row, col))
+				result[[length(result)+1]] <-  list(c(matrixNumber, row, col))
 			} else {
 				if (!is.null(result[[data]])) {
 					original <- result[[data]]
-					original[length(original) + 1] <- list(c(matrixNumber, row, col))
+					original[[length(original) + 1]] <- c(matrixNumber, row, col)
 					result[[data]] <- original				
 				} else {
 					result[[data]] <- list(c(matrixNumber, row,col))
