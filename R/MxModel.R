@@ -46,6 +46,11 @@ omxGenerateMatrixList <- function(mxModel) {
 	return(lapply(mxModel@matrices, generateMatrixListHelper))
 }
 
+omxGenerateSimpleMatrixList <- function(mxModel) {
+	retval <- lapply(mxModel@matrices, generateMatrixListHelper)
+	return(lapply(retval, as.matrix))
+}
+
 omxGenerateParameterList <- function(mxModel) {
 	result <- list()
 	for(i in 1:length(mxModel@matrices)) {
