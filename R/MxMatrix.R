@@ -189,6 +189,9 @@ setReplaceMethod("[", "MxMatrix",
 
 
 processSparseMatrix <- function(specification, result, matrixNumber, reverse=FALSE) {
+	if (length(specification@dataVector) == 0) {
+		return(list())
+	}
 	for(i in 1:length(specification@dataVector)) {
 	    if (reverse == FALSE || specification@rowVector[i] != specification@colVector[i]) {
 		    data <- as.character(specification@dataVector[[i]])
