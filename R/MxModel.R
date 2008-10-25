@@ -58,3 +58,30 @@ omxGenerateParameterList <- function(mxModel) {
 	}	
 	return(result)
 }
+
+omxGenerateValueList <- function(mxModel) {
+	mList <- omxGenerateMatrixList(mxModel)
+	pList <- omxGenerateParameterList(mxModel)
+	retval <- vector()
+	for(i in 1:length(pList)) {
+		parameter <- pList[[i]]
+		if (length(parameter) > 1) {
+			values <- sapply(parameter, generateValueHelper, mList)
+			if (!all(values == values[[1]])) {
+				warning(paste('Parameter',i,'has multiple start values.',
+					'Selecting', values[[1]]))
+			}
+			retval[i] <- values[[1]]
+		} else {
+			retval[i] <- generateValueHelper(parameter[[1]], mList)
+		}
+    }
+	return(retval)	
+}
+
+generateValueHelper <- function(triple, mList) {
+	mat <- triple[1] + 1
+	row <- triple[2]
+	col <- triple[3]
+	return(mList[[mat]][row,col])
+}
