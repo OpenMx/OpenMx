@@ -19,3 +19,5 @@ License: TBD
 Depends: Matrix, mnormt
 LazyLoad: yes
 LazyData: yes
+Collate: MxSparseMatrix.R MxSymmetricSparse.R MxMatrix.R MxAlgebra.R MxPath.R MxModel.R MxPathModel.R  MxUnitTesting.R
+
