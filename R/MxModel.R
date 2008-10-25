@@ -85,3 +85,27 @@ generateValueHelper <- function(triple, mList) {
 	col <- triple[3]
 	return(mList[[mat]][row,col])
 }
+
+omxUpdateModelValues <- function(mxModel, values) {
+	pList <- omxGenerateParameterList(mxModel)
+	if(length(pList) != length(values)) {
+		stop(paste("This model has", length(pList), 
+			"parameters, but you have given me", length(values),
+			"values"))
+	}
+	for(i in 1:length(pList)) {
+		mxModel <- updateModelValueHelper(pList[[i]], values[[i]], mxModel)
+    }
+	return(mxModel)
+}
+
+updateModelValueHelper <- function(triples, value, mxModel) {
+	for(i in 1:length(triples)) {
+		triple <- triples[[i]]
+		mat <- triple[1] + 1
+		row <- triple[2]
+		col <- triple[3]
+		mxModel@matrices[[mat]]@values[row,col] <- value			
+	}
+	return(mxModel)
+}
