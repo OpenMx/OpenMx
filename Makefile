@@ -1,7 +1,7 @@
 REXEC = R
 RCOMMAND = CMD
 RBUILD = build
-RINSTALL = install
+RINSTALL = INSTALL
 RCHECK = check
 TARGET = OpenMx_0.1-1.tar.gz
 
