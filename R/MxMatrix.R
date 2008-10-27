@@ -110,7 +110,21 @@ setClass(Class = "DiagMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "DiagMatrix",
-	function(.Object, data = 0, nrow = 1, free = FALSE) {
+	function(.Object, data = NA, nrow = 1, free = FALSE) {
+	    unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
+	    isMatrix <- is.matrix(data) || is(data, "Matrix")
+	    if (isMatrix) {
+		    nrow <- nrow(data)	    
+		    if (!is.null(match.call()$nrow)) {
+		        warning(call. = FALSE, "In DiagMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
+		    }
+		}
+		if (is.vector(data, mode="numeric")) {
+			nrow <- length(data)
+		    if (!is.null(match.call()$nrow)) {
+		        warning(call. = FALSE, "In DiagMatrix constructor: \'nrow\' is disregarded for vector \'data\'")
+		    }			
+		}
 	    if (free) {
 	    	specification <- diag(nrow)
 	    	specification[specification == 1] <- NA
@@ -118,10 +132,15 @@ setMethod("initialize", "DiagMatrix",
 		} else {
 			specification <- new("MxSparseMatrix", 0, nrow, nrow)		
 		}
-		if (length(data) == 1) { values <- Matrix(data, nrow, nrow) }
-   	 	else if (is.vector(data)) { values <- Matrix(data*diag(nrow)) }
+	    if (unspecified) { values <- Matrix(0, nrow, nrow) }
+		else if (is(data, "Matrix")) { values <- data }
+		else if (is.matrix(data)) { values <- Matrix(data) }
+   	 	else if (is.vector(data, mode="numeric")) { values <- Matrix(data*diag(nrow)) }	
+		else if (length(data) == 1) { values <- Matrix(data, nrow, nrow) }
     	else { values <- Matrix(data) }
-		return(callNextMethod(.Object, specification, values))
+		retval <- callNextMethod(.Object, specification, values) 
+		verify(retval)
+		return(retval)
 	}
 )
 
@@ -140,14 +159,54 @@ setClass(Class = "SymmMatrix",
 	contains = "MxSymmetricMatrix")
 	
 setMethod("initialize", "SymmMatrix",
-	function(.Object, data = 0, nrow = 1, ncol = 1, free = FALSE) {
+	function(.Object, data = NA, nrow = 1, ncol = 1, byrow = FALSE, free = FALSE) {
+	    if (byrow) {
+			stop("Byrow is not yet implemented")	    
+	    }
+		unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
+	    isMatrix <- is.matrix(data) || is(data, "Matrix")
+	    if (isMatrix) {
+		    nrow <- nrow(data)
+		    ncol <- ncol(data)
+		    if (!is.null(match.call()$nrow)) {
+		        warning(call. = FALSE, "In SymmMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
+		    }
+		    if (!is.null(match.call()$ncol)) {
+		        warning(call. = FALSE, "In SymmMatrix constructor: \'ncol\' is disregarded for matrix \'data\'")
+		    }
+		} else if (is.vector(data, mode="numeric")) {
+		    if (is.null(match.call()$nrow) && is.null(match.call()$ncol)) {		
+		    	nrow <- length(data)
+		    	ncol <- length(data)
+		    } else if (is.null(match.call()$nrow)) {
+				nrow <- ncol
+		    } else if (is.null(match.call()$ncol)) {
+		    	ncol <- nrow
+		    }
+		    mdata <- matrix(0, nrow, ncol)
+		    mdata[lower.tri(mdata, diag=TRUE)] <- data
+		    mdata <- mdata + t(mdata) - diag(mdata)*diag(nrow)
+		    data <- mdata
+		} else if (unspecified) {
+		    if (is.null(match.call()$nrow) && !is.null(match.call()$ncol)) {		
+		    	nrow <- ncol
+		    } else if (!is.null(match.call()$nrow) && is.null(match.call()$ncol)) {
+		    	ncol <- nrow
+		    }
+		}
 	    if (free) {
 			specification <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
 	    } else {
 			specification <- new("MxSymmetricSparse", 0, nrow, ncol)
 	    }
-	    values <- new("MxSymmetricSparse", matrix(data,nrow = nrow, ncol = ncol))
-		return(callNextMethod(.Object, specification, values))
+	    if (unspecified) {
+	    	values <- new("MxSymmetricSparse", matrix(0, nrow = nrow, ncol = ncol))
+	    } else {
+	    	values <- new("MxSymmetricSparse", matrix(data, nrow = nrow, ncol = ncol))
+	    }
+		retval <- callNextMethod(.Object, specification, values) 
+		verify(retval)
+		return(retval)
 	}
 )
 
@@ -157,14 +216,40 @@ setClass(Class = "FullMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "FullMatrix",
-	function(.Object, data = 0, nrow = 1, ncol = 1, free = FALSE) {
+	function(.Object, data = NA, nrow = 1, ncol = 1, byrow = FALSE, free = FALSE) {
+	    if (byrow) {
+			stop("Byrow is not yet implemented")	    
+	    }
+		unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
+	    isMatrix <- is.matrix(data) || is(data, "Matrix")
+	    if (isMatrix) {
+		    nrow <- nrow(data)
+		    ncol <- ncol(data)
+		    if (!is.null(match.call()$nrow)) {
+		        warning(call. = FALSE, "In FullMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
+		    }
+		    if (!is.null(match.call()$ncol)) {
+		        warning(call. = FALSE, "In FullMatrix constructor: \'ncol\' is disregarded for matrix \'data\'")
+		    }
+		} else if (is.vector(data, mode="numeric")) {
+		    if (is.null(match.call()$nrow)) {
+				stop(call. = FALSE, "In FullMatrix constructor: \'nrow\' is missing.")
+		    }
+		    if (is.null(match.call()$ncol)) {
+				stop(call. = FALSE, "In FullMatrix constructor: \'ncol\' is missing.")
+		    }		    
+		}   	    	
 	    if (free) {
 			specification <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
 	    } else {
 			specification <- new("MxSparseMatrix", 0, nrow, ncol)
 	    }
-		values <- Matrix(data, nrow, ncol)
-		return(callNextMethod(.Object, specification, values))
+	    if (is(data, "Matrix")) { values <- data }
+		else if (is.matrix(data)) { values <- Matrix(data) }
+		else { values <- Matrix(data, nrow, ncol) }
+		retval <- callNextMethod(.Object, specification, values) 
+		verify(retval)
+		return(retval)
 	}
 )
 
