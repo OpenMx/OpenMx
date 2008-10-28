@@ -1,2 +1,4 @@
 SimpleCovariance	A simple example of using a covariance objective function
 SimpleRaw	A simple example of using a raw objective function
+MxPathDemo	Using the OpenMx path interface
+SimpleCovarianceS4	Using the backend to perform covariance optimization	
