@@ -51,6 +51,12 @@ omxGenerateSimpleMatrixList <- function(mxModel) {
 	return(lapply(retval, as.matrix))
 }
 
+omxGenerateAlgebraList <- function(mxModel) {
+    mList <- omxGenerateMatrixList(mxModel)
+    retval <- lapply(mxModel@algebras, generateAlgebraHelper, names(mList))
+    return(retval)
+}
+
 omxGenerateParameterList <- function(mxModel) {
 	result <- list()
 	for(i in 1:length(mxModel@matrices)) {
@@ -77,6 +83,15 @@ omxGenerateValueList <- function(mxModel) {
 		}
     }
 	return(retval)	
+}
+
+generateAlgebraHelper <- function(algebra, lnames) {
+	retval <- algebra@formula
+	numbers <- as.list(as.double(-1 : (-length(lnames))))
+	names(numbers) <- lnames
+	retval <- eval(substitute(substitute(e, numbers), list(e = retval)))
+	print(retval)
+	return(retval)
 }
 
 generateValueHelper <- function(triple, mList) {
