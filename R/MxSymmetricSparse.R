@@ -4,15 +4,17 @@ setClass(Class = "MxSymmetricSparse",
 		colVector = "vector",
 		dataVector = "vector",
 		nrow = "numeric",
-		ncol = "numeric"),
+		ncol = "numeric",
+		dimNames = "list"),
 	prototype = prototype(
 		rowVector = vector(mode="numeric",0),
 		colVector = vector(mode="numeric",0),
 		dataVector = vector(mode="character",0),
+		dimNames = list(),
 		nrow = 1, ncol = 1))
 
 setMethod("initialize", "MxSymmetricSparse",
-	function(.Object, data = NA, nrow = 1, ncol = 1) {
+	function(.Object, data = NA, nrow = 1, ncol = 1, dimnames = NULL) {
 		if (is.matrix(data)) {
 		    test <- all(data == t(data) | is.na(data))
 		    if (is.na(test) || !test) {
@@ -33,6 +35,9 @@ setMethod("initialize", "MxSymmetricSparse",
 		} else {
 			.Object@nrow <- nrow
 			.Object@ncol <- ncol
+	    }
+	    if (!is.null(dimnames)) {
+	    	.Object@dimNames <- dimnames
 	    }
 		return(.Object)
 	}
@@ -85,6 +90,21 @@ setMethod("ncol", "MxSymmetricSparse",
 
 setMethod("[", "MxSymmetricSparse",
 	function(x, i, j, ..., drop = FALSE) {
+       	if (is.character(i)) {
+       		if(length(x@dimNames) == 0) {
+       			stop("no 'dimnames' attribute for array")
+       		} else {
+       			rownames <- x@dimNames[[1]]
+       			i <- match(i, rownames)	
+       		}
+       	}
+       	if (is.character(j)) {
+       		if(length(x@dimNames) == 0) {       				stop("no 'dimnames' attribute for array")
+       		} else {
+       			colnames <- x@dimNames[[2]]
+       			j <- match(j, colnames)	
+       		}
+       	}        							
 	    if (i > x@nrow || j > x@ncol) {
 	        stop("subscript out of bounds")   	
 		} else if (length(x@rowVector) == 0) {
@@ -111,6 +131,21 @@ setMethod("[", "MxSymmetricSparse",
 
 setReplaceMethod("[", "MxSymmetricSparse", 
 	function(x, i, j, value) {
+       	if (is.character(i)) {
+       		if(length(x@dimNames) == 0) {
+       			stop("no 'dimnames' attribute for array")
+       		} else {
+       			rownames <- x@dimNames[[1]]
+       			i <- match(i, rownames)	
+       		}
+       	}
+       	if (is.character(j)) {
+       		if(length(x@dimNames) == 0) {       				stop("no 'dimnames' attribute for array")
+       		} else {
+       			colnames <- x@dimNames[[2]]
+       			j <- match(j, colnames)	
+       		}
+       	}		
 	    if (i > x@nrow || j > x@ncol) {
 	        stop("subscript out of bounds")   	
 	    } else if (i > j) {
@@ -129,7 +164,7 @@ setReplaceMethod("[", "MxSymmetricSparse",
 				index <- findInterval(j, x@colVector[lbound:ubound])
 				offset <- index + lbound - 1
 				if (offset > 0 && x@colVector[offset] == j) {
-				    if (value == 0) {
+				    if (!is.na(value) && value == 0) {
 					   x@rowVector <- x@rowVector[-offset]
 				       x@colVector <- x@colVector[-offset]
 				       x@dataVector <- x@dataVector[-offset]
@@ -138,12 +173,12 @@ setReplaceMethod("[", "MxSymmetricSparse",
 					   x@colVector[offset] <- j
 					   x@dataVector[offset] <- value
 				    }
-				} else if (value != 0) {
+				} else if (is.na(value) || value != 0) {
 					x@rowVector <- append(x@rowVector, i, after = offset)
 					x@colVector <- append(x@colVector, j, after = offset)
 					x@dataVector <- append(x@dataVector, value, after = offset)
 				}
-			} else if (value != 0) {
+			} else if (is.na(value) || value != 0) {
 				x@rowVector <- append(x@rowVector, i, after = ubound)
 				x@colVector <- append(x@colVector, j, after = ubound)
 				x@dataVector <- append(x@dataVector, value, after = ubound)

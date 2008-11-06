@@ -37,3 +37,54 @@ getSpecificationA <- function(apath) {
 		return(0)
 	}	
 }
+
+
+convertModelS <- function(model) {
+	variables <- c(model@manifestVars, model@latentVars)
+	len <- length(variables)
+	names <- list(variables, variables)
+	values <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
+	specification <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
+	npaths <- dim(model@paths)[[1]]
+	for(i in 1:npaths) {
+		apath <- model@paths[i,]
+		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesS(apath)
+		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationS(apath)
+	}
+	retval <- new("SymmMatrix", nrow = len, ncol = len)
+	retval@specification <- specification
+	retval@values <- values
+	return(retval)
+}
+
+getValuesS <- function(apath) {
+	if (apath[['arrows']] == 2) {
+ 		if (is.null(apath[['startVal']])) {
+			startVal <- 1.00
+		} else {
+			startVal <- apath[['startVal']]
+		}
+		return(startVal)
+	} else {
+		return(0.0)
+	}
+}
+
+getSpecificationS <- function(apath) {
+	if ((apath[['arrows']] == 2) && (apath[['free']] == TRUE)) {
+		return(NA)
+	} else {
+		return(0)
+	}	
+}
+
+
+convertModelF <- function(model) {
+	variables <- c(model@manifestVars, model@latentVars)
+	len <- length(variables)
+	names <- list(model@manifestVars, variables)
+	matValues <- diag(nrow = length(model@manifestVars), ncol = len)
+	values <- Matrix(matValues, dimnames = names)
+	retval <- new("FullMatrix", data = values)
+	return(retval)
+}
