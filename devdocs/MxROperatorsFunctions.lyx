@@ -37,6 +37,7 @@
 \tracking_changes false
 \output_changes false
 \author "" 
+\author "" 
 \end_header
 
 \begin_body
@@ -250,7 +251,7 @@ A @ B
 \begin_inset Text
 
 \begin_layout Standard
-A &x& B
+A %x% B
 \end_layout
 
 \end_inset

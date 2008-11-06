@@ -4,15 +4,17 @@ setClass(Class = "MxSparseMatrix",
 		colVector = "vector",
 		dataVector = "vector",
 		nrow = "numeric",
-		ncol = "numeric"),
+		ncol = "numeric",
+		dimNames = "list"),
 	prototype = prototype(
 		rowVector = vector(mode="numeric",0),
 		colVector = vector(mode="numeric",0),
 		dataVector = vector(mode="character",0),
+		dimNames = list(),
 		nrow = 1, ncol = 1))
 
 setMethod("initialize", "MxSparseMatrix",
-	function(.Object, data = NA, nrow = 1, ncol = 1) {
+	function(.Object, data = NA, nrow = 1, ncol = 1, dimnames = NULL) {
 		if (is.matrix(data)) {
 			tdata <- t(data)
 			nonZero <- (data != 0) | is.na(data)
@@ -29,6 +31,9 @@ setMethod("initialize", "MxSparseMatrix",
 			.Object@nrow <- nrow
 			.Object@ncol <- ncol
 	    }
+	    if (!is.null(dimnames)) {
+		    .Object@dimNames <- dimnames
+		}
 		return(.Object)
 	}
 )					
@@ -77,6 +82,21 @@ setMethod("ncol", "MxSparseMatrix",
 
 setMethod("[", "MxSparseMatrix",
 	function(x, i, j, ..., drop = FALSE) {
+       	if (is.character(i)) {
+       		if(length(x@dimNames) == 0) {
+       			stop("no 'dimnames' attribute for array")
+       		} else {
+       			rownames <- x@dimNames[[1]]
+       			i <- match(i, rownames)	
+       		}
+       	}
+       	if (is.character(j)) {
+       		if(length(x@dimNames) == 0) {       				stop("no 'dimnames' attribute for array")
+       		} else {
+       			colnames <- x@dimNames[[2]]
+       			j <- match(j, colnames)	
+       		}
+       	}        			
 	    if (i > x@nrow || j > x@ncol) {
 	        stop("subscript out of bounds")
 	    } else if (length(x@rowVector) == 0) {
@@ -98,8 +118,24 @@ setMethod("[", "MxSparseMatrix",
 
 setReplaceMethod("[", "MxSparseMatrix", 
 	function(x, i, j, value) {
+       	if (is.character(i)) {
+       		if(length(x@dimNames) == 0) {
+       			stop("no 'dimnames' attribute for array")
+       		} else {
+       			rownames <- x@dimNames[[1]]
+       			i <- match(i, rownames)	
+       		}
+       	}
+       	if (is.character(j)) {
+       		if(length(x@dimNames) == 0) {
+       			stop("no 'dimnames' attribute for array")
+       		} else {
+       			colnames <- x@dimNames[[2]]
+       			j <- match(j, colnames)	
+       		}
+       	}		
 	    if (i > x@nrow || j > x@ncol) {
-	        stop("subscript out of bounds")
+	        stop("subscript out of bounds")	     
         } else if (length(x@rowVector) == 0) {
 			x@rowVector <- c(i)
 			x@colVector <- c(j)
@@ -111,7 +147,7 @@ setReplaceMethod("[", "MxSparseMatrix",
 				index <- findInterval(j, x@colVector[lbound:ubound])
 				offset <- index + lbound - 1
 				if (offset > 0 && x@colVector[offset] == j) {
-				    if (value == 0) {
+				    if (!is.na(value) && value == 0) {
 					   x@rowVector <- x@rowVector[-offset]
 				       x@colVector <- x@colVector[-offset]
 				       x@dataVector <- x@dataVector[-offset]
@@ -120,12 +156,12 @@ setReplaceMethod("[", "MxSparseMatrix",
 					   x@colVector[offset] <- j
 					   x@dataVector[offset] <- value
 				    }
-				} else if (value != 0) {
+				} else if (is.na(value) || value != 0) {
 					x@rowVector <- append(x@rowVector, i, after = offset)
 					x@colVector <- append(x@colVector, j, after = offset)
 					x@dataVector <- append(x@dataVector, value, after = offset)
 				}
-			} else if (value != 0) {
+			} else if (is.na(value) || value != 0) {
 				x@rowVector <- append(x@rowVector, i, after = ubound)
 				x@colVector <- append(x@colVector, j, after = ubound)
 				x@dataVector <- append(x@dataVector, value, after = ubound)
