@@ -1,12 +1,14 @@
 setClass(Class = "MxModel",
 	representation = representation(
 		matrices = "list",
-		algebras = "list"))
+		algebras = "list",
+		data = "data.frame"))
 		
 setMethod("initialize", "MxModel",
-	function(.Object, matrices=list(), algebras=list()) {
+	function(.Object, matrices = list(), algebras = list(), data = data.frame()) {
 		.Object@matrices = matrices
 		.Object@algebras = algebras
+		.Object@data = data
 		return(.Object)
 	}
 )
