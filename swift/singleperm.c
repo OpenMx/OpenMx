@@ -164,7 +164,7 @@ void Perm(int size, int connections, int idata[], int recentdata[], int rowcol, 
 	    {
 	      printf("permnum %i PERMCOUNT %i\n",permnum,PERMCOUNT);
 	      FILE *sdatfile, *adatfile;
-	      char sname [10], aname [10];
+	      char sname [50], aname [50];
 	      const char sext[] = ".sdat";
 	      const char aext[] = ".adat";
 	      sprintf(sname, "%d%s", permnum,sext);
