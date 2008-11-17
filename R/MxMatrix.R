@@ -115,7 +115,7 @@ mxMatrix <- function(type = "Full", values = NA,
 		stop("Both nrow and ncol must be specified on a non-square matrix")
 	}
 	if (is.na(name)) {
-		name <- ""
+		name <- paste("untitled", omxUntitledNumber(), sep="")
 	}
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
