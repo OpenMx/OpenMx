@@ -1,10 +1,10 @@
 library(OpenMx)
 
 model <- new("MxModel")
-A <- new("FullMatrix", c(0,0.2,0,0), nrow=2, ncol=2)
-S <- new("FullMatrix", c(0.8,0,0,0.8), nrow=2, ncol=2, free=TRUE)
-F <- new("FullMatrix", c(1,0,0,1), nrow=2, ncol=2)
-I <- new("IdenMatrix", nrow=2)
+A <- mxMatrix("Full", c(0,0.2,0,0), nrow = 2, ncol = 2)
+S <- mxMatrix("Full", c(0.8,0,0,0.8), nrow=2, ncol=2, free=TRUE)
+F <- mxMatrix("Full", c(1,0,0,1), nrow=2, ncol=2)
+I <- mxMatrix("Iden", nrow=2)
 covMatrix <- matrix(c(0.77642931, 0.39590663, 0.39590663, 0.49115615),
 	nrow = 2, ncol = 2, byrow = TRUE)
 

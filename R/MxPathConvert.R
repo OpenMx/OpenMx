@@ -11,9 +11,7 @@ convertModelA <- function(model) {
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesA(apath)
 		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationA(apath)
 	}
-	retval <- new("FullMatrix", nrow = len, ncol = len)
-	retval@specification <- specification
-	retval@values <- values
+	retval <- mxMatrix("Full", values, specification, nrow = len, ncol = len)
 	return(retval)
 }
 
@@ -51,9 +49,7 @@ convertModelS <- function(model) {
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesS(apath)
 		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationS(apath)
 	}
-	retval <- new("SymmMatrix", nrow = len, ncol = len)
-	retval@specification <- specification
-	retval@values <- values
+	retval <- mxMatrix("Symm", values, specification, nrow = len, ncol = len)
 	return(retval)
 }
 
@@ -85,6 +81,6 @@ convertModelF <- function(model) {
 	names <- list(model@manifestVars, variables)
 	matValues <- diag(nrow = length(model@manifestVars), ncol = len)
 	values <- Matrix(matValues, dimnames = names)
-	retval <- new("FullMatrix", data = values)
+	retval <- mxMatrix("Full", values)
 	return(retval)
 }

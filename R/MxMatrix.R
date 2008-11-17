@@ -1,11 +1,21 @@
-verifySquare <- function(.Object) {
-	if (nrow(.Object@specification) != ncol(.Object@specification)) 
-		{ stop("Specification matrix is not square") }
-	if (nrow(.Object@values) != ncol(.Object@values)) 
-		{ stop("Values matrix is not square") }		
+single.na <- function(a) {
+	return((length(a) == 1) && (is.na(a) == TRUE))
 }
 
-setGeneric("verify", function(.Object) { return(standardGeneric("verify")) } )
+is.Matrix <- function(a) {
+	return(is.matrix(a) || is(a, "Matrix"))	
+}
+
+verifySquare <- function(.Object) {
+	if (nrow(.Object@specification) != ncol(.Object@specification)) 
+		{ stop(paste("Specification matrix of", .Object@name, "is not square")) }
+	if (nrow(.Object@values) != ncol(.Object@values)) 
+		{ stop(paste("Values matrix of", .Object@name, "is not square")) }		
+}
+
+setGeneric("verify", function(.Object) { 
+	return(standardGeneric("verify")) 
+} )
 
 #
 # The Matrix package returns a non-symmetric matrix
@@ -15,247 +25,36 @@ setGeneric("verify", function(.Object) { return(standardGeneric("verify")) } )
 setClass(Class = "MxSymmetricMatrix",
 	representation = representation(
 		specification = "MxSymmetricSparse",
-		values = "MxSymmetricSparse", "VIRTUAL"))
+		values = "MxSymmetricSparse", name = "character", "VIRTUAL"))
 
 setClass(Class = "MxNonSymmetricMatrix",
 	representation = representation(
 		specification = "MxSparseMatrix",
-		values = "Matrix", "VIRTUAL"))
+		values = "Matrix", name = "character", "VIRTUAL"))
 		
 setClassUnion("MxMatrix",
     c("MxSymmetricMatrix", "MxNonSymmetricMatrix"))
 		
 		
 setMethod("initialize", "MxMatrix",
-	function(.Object, specification, values) {
+	function(.Object, specification, values, name) {
 		.Object@specification = specification
 		.Object@values = values
+		.Object@name = name
 		return(.Object)
 	}
 )		
 
 setMethod("verify", "MxMatrix",
 	function(.Object) {
-		if (nrow(.Object@specification) != nrow(.Object@values)) 
-			{ stop("Specification and values matrices have different dimensions") }
-		if (ncol(.Object@specification) != ncol(.Object@values)) 
-			{ stop("Specification and values matrices have different dimensions") }		
-	}
-)
-
-setClass(Class = "ZeroMatrix",
-	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
-
-setMethod("initialize", "ZeroMatrix",
-	function(.Object, nrow = 1, ncol = 1) {
-		specification <- new("MxSparseMatrix", 0, nrow, ncol)
-		values <- Matrix(0, nrow, ncol)
-		return(callNextMethod(.Object, specification, values))
-	}
-)
-
-setMethod("verify", "ZeroMatrix",
-	function(.Object) {
-		callNextMethod(.Object)	
-		if(nnzero(.Object@specification) > 0) { stop("Specification matrix is not empty") } 
-		if(nnzero(.Object@values) > 0) { stop("Values matrix is not empty") } 
-	}
-)
-
-setClass(Class = "UnitMatrix",
-	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
-	
-setMethod("initialize", "UnitMatrix",
-	function(.Object, nrow = 1, ncol = 1) {
-		specification <- new("MxSparseMatrix", 0, nrow, ncol)
-		values <- Matrix(1, nrow, ncol)
-		return(callNextMethod(.Object, specification, values))
-	}
-)
-
-setMethod("verify", "UnitMatrix",
-	function(.Object) {
-		callNextMethod(.Object)		
-		if(nnzero(.Object@specification) > 0) { stop("Specification matrix is not empty") } 
-		if(nnzero(.Object@values - 1) > 0) { stop("Values matrix has non unit entries") } 
-	}
-)
-
-setClass(Class = "IdenMatrix",
-	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
-	
-setMethod("initialize", "IdenMatrix",
-	function(.Object, nrow = 1) {
-		specification <- new("MxSparseMatrix", 0, nrow, nrow)
-		values <- Matrix(diag(nrow))
-		return(callNextMethod(.Object, specification, values))
-	}
-)
-
-setMethod("verify", "IdenMatrix",
-	function(.Object) {
-		callNextMethod(.Object)
-		verifySquare(.Object)
-		if(nnzero(.Object@specification) > 0) { stop("Specification matrix is not empty") } 		
-		if(!suppressWarnings(all(.Object@values == diag(nrow(.Object@values))))) 
-			{ stop("Values matrix is not the identity matrix") }
-	}
-)
-
-setClass(Class = "DiagMatrix",
-	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
-
-setMethod("initialize", "DiagMatrix",
-	function(.Object, data = NA, nrow = 1, free = FALSE) {
-	    unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
-	    isMatrix <- is.matrix(data) || is(data, "Matrix")
-	    if (isMatrix) {
-		    nrow <- nrow(data)	    
-		    if (!is.null(match.call()$nrow)) {
-		        warning(call. = FALSE, "In DiagMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
-		    }
+		if (nrow(.Object@specification) != nrow(.Object@values)) {
+			stop(paste("Specification and values matrices of", 
+				.Object@name, "have different dimensions"))
 		}
-		if (is.vector(data, mode="numeric")) {
-			nrow <- length(data)
-		    if (!is.null(match.call()$nrow)) {
-		        warning(call. = FALSE, "In DiagMatrix constructor: \'nrow\' is disregarded for vector \'data\'")
-		    }			
-		}
-	    if (free) {
-	    	specification <- diag(nrow)
-	    	specification[specification == 1] <- NA
-			specification <- new("MxSparseMatrix", specification)
-		} else {
-			specification <- new("MxSparseMatrix", 0, nrow, nrow)		
-		}
-	    if (unspecified) { values <- Matrix(0, nrow, nrow) }
-		else if (is(data, "Matrix")) { values <- data }
-		else if (is.matrix(data)) { values <- Matrix(data) }
-   	 	else if (is.vector(data, mode="numeric")) { values <- Matrix(data*diag(nrow)) }	
-		else if (length(data) == 1) { values <- Matrix(data, nrow, nrow) }
-    	else { values <- Matrix(data) }
-		retval <- callNextMethod(.Object, specification, values) 
-		verify(retval)
-		return(retval)
-	}
-)
-
-setMethod("verify", "DiagMatrix",
-	function(.Object) {
-		callNextMethod(.Object)
-		verifySquare(.Object)
-		values <- .Object@values
-		if(suppressWarnings(nnzero(values - diag(diag(values,nrow=nrow(values),ncol=ncol(values))))) > 0)
-			{ stop("Values matrix is not a diagonal matrix") }
-	}
-)
-
-setClass(Class = "SymmMatrix",
-	representation = representation(),
-	contains = "MxSymmetricMatrix")
-	
-setMethod("initialize", "SymmMatrix",
-	function(.Object, data = NA, nrow = 1, ncol = 1, byrow = FALSE, free = FALSE) {
-	    if (byrow) {
-			stop("Byrow is not yet implemented")	    
-	    }
-		unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
-	    isMatrix <- is.matrix(data) || is(data, "Matrix")
-	    if (isMatrix) {
-		    nrow <- nrow(data)
-		    ncol <- ncol(data)
-		    if (!is.null(match.call()$nrow)) {
-		        warning(call. = FALSE, "In SymmMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
-		    }
-		    if (!is.null(match.call()$ncol)) {
-		        warning(call. = FALSE, "In SymmMatrix constructor: \'ncol\' is disregarded for matrix \'data\'")
-		    }
-		} else if (is.vector(data, mode="numeric")) {
-		    if (is.null(match.call()$nrow) && is.null(match.call()$ncol)) {		
-		    	nrow <- length(data)
-		    	ncol <- length(data)
-		    } else if (is.null(match.call()$nrow)) {
-				nrow <- ncol
-		    } else if (is.null(match.call()$ncol)) {
-		    	ncol <- nrow
-		    }
-		    mdata <- matrix(0, nrow, ncol)
-		    mdata[lower.tri(mdata, diag=TRUE)] <- data
-		    mdata <- mdata + t(mdata) - diag(mdata)*diag(nrow)
-		    data <- mdata
-		} else if (unspecified) {
-		    if (is.null(match.call()$nrow) && !is.null(match.call()$ncol)) {		
-		    	nrow <- ncol
-		    } else if (!is.null(match.call()$nrow) && is.null(match.call()$ncol)) {
-		    	ncol <- nrow
-		    }
-		}
-	    if (free) {
-			specification <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
-	    } else {
-			specification <- new("MxSymmetricSparse", 0, nrow, ncol)
-	    }
-	    if (unspecified) {
-	    	values <- new("MxSymmetricSparse", matrix(0, nrow = nrow, ncol = ncol))
-	    } else {
-	    	values <- new("MxSymmetricSparse", matrix(data, nrow = nrow, ncol = ncol))
-	    }
-		retval <- callNextMethod(.Object, specification, values) 
-		verify(retval)
-		return(retval)
-	}
-)
-
-
-setClass(Class = "FullMatrix",
-	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
-
-setMethod("initialize", "FullMatrix",
-	function(.Object, data = NA, nrow = 1, ncol = 1, byrow = FALSE, free = FALSE) {
-	    if (byrow) {
-			stop("Byrow is not yet implemented")	    
-	    }
-		unspecified <- (length(data) == 1) && (is.na(data) == TRUE)
-	    isMatrix <- is.matrix(data) || is(data, "Matrix")
-	    if (isMatrix) {
-		    nrow <- nrow(data)
-		    ncol <- ncol(data)
-		    if (!is.null(match.call()$nrow)) {
-		        warning(call. = FALSE, "In FullMatrix constructor: \'nrow\' is disregarded for matrix \'data\'")
-		    }
-		    if (!is.null(match.call()$ncol)) {
-		        warning(call. = FALSE, "In FullMatrix constructor: \'ncol\' is disregarded for matrix \'data\'")
-		    }
-		} else if (is.vector(data, mode="numeric")) {
-		    if (is.null(match.call()$nrow)) {
-				stop(call. = FALSE, "In FullMatrix constructor: \'nrow\' is missing.")
-		    }
-		    if (is.null(match.call()$ncol)) {
-				stop(call. = FALSE, "In FullMatrix constructor: \'ncol\' is missing.")
-		    }		    
-		}   	    	
-	    if (free) {
-			specification <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
-	    } else {
-			specification <- new("MxSparseMatrix", 0, nrow, ncol)
-	    }
-	    if (is(data, "Matrix")) { values <- data }
-		else if (is.matrix(data)) { values <- Matrix(data) }
-		else { values <- Matrix(data, nrow, ncol) }
-		retval <- callNextMethod(.Object, specification, values) 
-		verify(retval)
-		return(retval)
-	}
-)
-
-setMethod("verify", "FullMatrix",
-	function(.Object) {
-		callNextMethod(.Object)
+		if (ncol(.Object@specification) != ncol(.Object@values)) {
+			stop(paste("Specification and values matrices of", 
+				.Object@name, "have different dimensions"))
+		}		
 	}
 )
 
@@ -271,6 +70,60 @@ setReplaceMethod("[", "MxMatrix",
 		return(x)
     }
 )
+
+matrixTypes <- c("Diag", "Full", "Iden", "Symm", "Unit", "Zero")
+squareMatrices <- c("Diag", "Iden", "Symm")
+
+
+mxMatrix <- function(type = "Full", values = NA, 
+	specification = NA, name = NA, nrow = NA, ncol = NA,
+	byrow = FALSE, free = FALSE) {
+	if (byrow) {
+		stop("byrow is not yet implemented in mxMatrix constructor.  Sorry!")
+	}
+	if (is.na(match(type, matrixTypes))) {
+		stop(paste("Type must be one of:", paste(matrixTypes, collapse=" ")))
+	}
+	if ((is.Matrix(values) || is.Matrix(specification)) &&
+		(!is.null(match.call()$nrow))) {
+		warning("\'nrow\' is disregarded for mxMatrix constructor")
+	}
+	if ((is.Matrix(values) || is.Matrix(specification)) &&
+		(!is.null(match.call()$ncol))) {
+		warning("\'ncol\' is disregarded for mxMatrix constructor")
+	}
+	if (is.Matrix(values) && is.Matrix(specification) &&
+		!all(dim(values) == dim(specification))) {
+		stop("Values and specification matrices are not of identical dimensions")
+	}
+	if (is.Matrix(values)) {
+		nrow <- nrow(values)
+		ncol <- ncol(values)
+	} else if (is.Matrix(specification)) {
+		nrow <- nrow(specification)
+		ncol <- ncol(specification)
+	}
+	if (!is.na(match(type, squareMatrices))) {
+		if (is.na(nrow) && is.na(ncol)) {
+			stop("Either nrow or ncol must be specified on a square matrix")
+		} else if (is.na(nrow)) {
+			nrow <- ncol
+		} else if (is.na(ncol)) {
+			ncol <- nrow
+		}
+	} else if (is.na(nrow) || is.na(ncol)) {
+		stop("Both nrow and ncol must be specified on a non-square matrix")
+	}
+	if (is.na(name)) {
+		name <- ""
+	}
+	if (!is.character(name)) {
+		stop("\'name\' must be a character vector!")
+	}
+	typeName <- paste(type, "Matrix", sep="")
+	return(new(typeName, name, values, specification, 
+			nrow, ncol, byrow, free))
+}
 
 
 processSparseMatrix <- function(specification, result, matrixNumber, reverse=FALSE) {

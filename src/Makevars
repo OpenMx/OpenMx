@@ -1,1 +1,1 @@
-PKG_LIBS=-lnpsol -L../inst/npsol
+PKG_LIBS=-lgfortran -lnpsol -L../inst/npsol
