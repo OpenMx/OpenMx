@@ -16,9 +16,9 @@ setMethod("initialize", "MxModel",
 		}
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
-		.Object@matrices = matrices
-		.Object@algebras = algebras
-		.Object@data = data
+		.Object@matrices <- matrices
+		.Object@algebras <- algebras
+		.Object@data <- data
 		return(.Object)
 	}
 )

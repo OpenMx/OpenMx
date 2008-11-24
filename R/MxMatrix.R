@@ -1,5 +1,7 @@
 single.na <- function(a) {
-	return((length(a) == 1) && (is.na(a) == TRUE))
+	return((length(a) == 1) && 
+		(is.list(a) || is.vector(a)) && 
+		(is.na(a) == TRUE))
 }
 
 is.Matrix <- function(a) {
