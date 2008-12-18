@@ -34,7 +34,7 @@ missdmnormIn <- function(x,mu,sigma) {
 expectedcov <- rbind(c( 1.0, 0.5, 0.3),
                      c( 0.5, 2.0, 0.2),
                      c( 0.3, 0.2, 3.0))
-expectedmean <- c(0, 0, 0)
+expectedmean <- c(0,0,0)                     
 
 ## simulate some data
 
@@ -53,11 +53,13 @@ x
 ## bingo... -2lnL's
 
 rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE), gcFirst=TRUE)
-optype <- "FIML"
-mxCov <- mxMatrix("Symm", expectedcov, nrow=3, ncol=3)
-class(mxCov)
-objective <- mxObjective("FIML", means=expectedmean, covariance = mxCov)
-cTime <- system.time(NPSOLOutput <- testFit(objective, data=x), gcFirst=TRUE)
+
+model <- mxModel()
+model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance", nrow=3, ncol=3))
+model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3))
+objective <- mxFIMLObjective(model, covariance = "covariance", means = "means")
+mList <- omxGenerateSimpleMatrixList(model)
+cTime <- system.time(NPSOLOutput <- testFit(objective, matList=mList, data=x), gcFirst=TRUE)
 print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum
 print(c(inSum, outSum, inSum - outSum, (inSum - outSum) / inSum))

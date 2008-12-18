@@ -55,8 +55,8 @@ omxMatrix* matrixList;		// Data matrices and their data.
 freeVar* freeVarList;			// List of Free Variables and where they go.
 omxAlgebra* algebraList;		// List of all algebras.
 omxMatrix dataRows;			// All the data, for now.
-omxMatrix cov;				// The Covariance Matrix, probably a link to the matrixList.
-omxMatrix means;			// Vector of means, probably a link to the matrixList.
+omxMatrix *cov;				// The Covariance Matrix, probably a link to the matrixList.
+omxMatrix *means;			// Vector of means, probably a link to the matrixList.
 omxMatrix *Amatrix, *Smatrix, *Fmatrix;
 
 /* Globals for Covariance Evaluation */
@@ -155,15 +155,17 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	/* Determine Type of Optimization, and Set Up Structures */
 	/* This should be done with a hash-table lookup for extensibility. */
 	if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxRAMObjective", 21) == 0) { // Covariance-style optimization.
-		/* In Covariance Optimization, matList contains A, S, F, and the observed Covariance Matrix. */
+		/* In Covariance Optimization, matList contains A, S, and F. */
 		if(DEBUG) { Rprintf("Using RAM objective function.\n"); }
 		funobj = F77_SUB(covObjFun);
 		int *dimList;
+	
+		// Read the observed covariance matrix from the data argument.
+		cov = new omxMatrix();
+		cov->fillFromMatrix(data);
+	
 		SEXP newMatrix;
-		PROTECT(newMatrix = GET_SLOT(objective, install("covariance")));
-		cov.fillFromMxMatrix(newMatrix);
-		UNPROTECT(1);
-		
+	
 		PROTECT(newMatrix = GET_SLOT(objective, install("A")));
 		Amatrix = omxMatrixFromMxMatrixPtr(newMatrix);
 		UNPROTECT(1);
@@ -196,15 +198,18 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		/* In FIML optimization, the FIMLObjective Structure contains means and covariances. */
 		if(DEBUG) {Rprintf("Processing means.\n");}
 		SEXP meanStruct, covStruct;
-		PROTECT(meanStruct = AS_NUMERIC(GET_SLOT(objective, install("means"))));		// TODO: Needs sanity check
-		means.fillFromMatrix(meanStruct);
-		UNPROTECT(1);
-		
+                SEXP newMatrix;
+
+                PROTECT(newMatrix = GET_SLOT(objective, install("means")));
+                means = omxMatrixFromMxMatrixPtr(newMatrix);
+                UNPROTECT(1);
+
 		if(DEBUG) {Rprintf("Processing covariances.\n");}
-		PROTECT(covStruct = GET_SLOT(objective, install("covariance")));	// TODO: Needs sanity check 
-		cov.fillFromMatrix(covStruct);										// Until MxMatrices are processable.
-		UNPROTECT(1);
-		
+
+                PROTECT(newMatrix = GET_SLOT(objective, install("covariance")));
+                cov = omxMatrixFromMxMatrixPtr(newMatrix);
+                UNPROTECT(1);
+
 		/* Process Data Into Data Matrix */
 		dataRows.fillFromMatrix(data);
 		
@@ -216,9 +221,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 			funcon = F77_SUB(noConFun);									// Check for constraint functions once they're implemented.
 
 			if(DEBUG) {Rprintf("Processing Algebras.\n");}
-			PROTECT(covStruct = GET_SLOT(objective, install("covariance")));	// TODO: Needs sanity check 
-			cov.fillFromMatrix(covStruct);										// Until MxMatrices are processable.
-			UNPROTECT(1);
 
 			/* Process Data Into Data Matrix */
 			dataRows.fillFromMatrix(data);
@@ -542,7 +544,7 @@ void F77_SUB(covObjFun)
 	A = &(matrixList[0]);
 	S = &(matrixList[1]);
 	F = &(matrixList[2]);
-	R = &(matrixList[3]);
+	R = cov;
 	
 	A->recompute();
 	S->recompute();
@@ -637,13 +639,13 @@ void F77_SUB(FIMLObjFun)
 
 	handleFreeVarList(x, *n);
 
-	omxMatrix *mainMatrix, *expected, smallRow(1, cov.cols, TRUE), smallCov(cov.rows, cov.cols, TRUE), RCX(1, dataRows.cols, TRUE);
+	omxMatrix *mainMatrix, *expected, smallRow(1, cov->cols, TRUE), smallCov(cov->rows, cov->cols, TRUE), RCX(1, dataRows.cols, TRUE);
 
 	/* These will be filled in somwhere else.  Check to see that we're not breaking stuff here.*/
-	expected = &cov;
+	expected = cov;
 	mainMatrix = &dataRows;
-	
-	smallCov.alias(cov);
+
+	smallCov.alias(*cov);
 
 //	mainDist = mainMatrix->rows;
 
@@ -662,8 +664,8 @@ void F77_SUB(FIMLObjFun)
 				numRemoves++;
 			}
 		}
-		smallRow.resize(1, cov.cols - numRemoves, TRUE);
-		toRemove = (int*)malloc(cov.cols * sizeof(int));
+		smallRow.resize(1, cov->cols - numRemoves, TRUE);
+		toRemove = (int*)malloc(cov->cols * sizeof(int));
 		for(int j = 0; j < mainMatrix->cols; j++) {
 			if(ISNA(mainMatrix->element(row, j))) {
 				toRemove[j] = 1;

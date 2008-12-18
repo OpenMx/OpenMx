@@ -123,7 +123,7 @@ omxMatrix* omxMatrixFromMxMatrixPtr(SEXP matrix) {
 	} else if (value == 0) {			// Pre-existing algebra.  A-ok.
 		output = &(algebraList[spec[count++]]);
 	} else {							// Pre-existing matrix.  A-ok.
-		output = &(matrixList[spec[count++]]);
+		output = &(matrixList[value]);
 	}
 	UNPROTECT(1); // intMatrix
 	return output;
