@@ -1,4 +1,9 @@
-source("TestFit.R")
+library(OpenMx)
+
+testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varList=list(), algList=list(), data=c(), state=c()) {
+	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
+}
+
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name = "A", nrow = 2, ncol = 2))
 model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
@@ -19,8 +24,8 @@ startVals <- omxGenerateValueList(model)
 optype <- "cov"
 mList[[4]] <- covMatrix
 mxCov <- mxMatrix("Symm", covMatrix, nrow=2, ncol=2)
-objective <- mxObjective("covariance", mxCov)
+objective <- mxObjective("RAM", covariance = mxCov)
 class(objective)
-NPSOLOutput <- testFit(objective, startVals, list(), mList, pList)
+NPSOLOutput <- testFit(objective, startVals, matList = mList, varList = pList, data=covMatrix)
 #NPSOLOutput <- .Call("callNPSOL", optype, startVals, list(), mList, pList, NA, NA, NA, new.env())
 print(NPSOLOutput)

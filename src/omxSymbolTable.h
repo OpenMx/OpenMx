@@ -15,9 +15,9 @@ typedef struct {
 	const char rName[250];
 	short int numArgs;
 	void* funWrapper;
-	} omxTableEntry;
+	} omxAlgebraTableEntry;
 	
-const omxTableEntry omxAlgebraSymbolTable[14] = {
+const omxAlgebraTableEntry omxAlgebraSymbolTable[14] = {
 	{0, 	"*SPECIAL*", 				"*NONE*", 	0, 		(void*)NULL},
 	{1, 	"Inversion",				"solve", 	1, 		(void*)&omxMatrixInvert       },
 	{2, 	"Transposition", 			"t",		1, 		(void*)&omxMatrixTranspose    },

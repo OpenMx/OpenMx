@@ -1,9 +1,13 @@
-source("TestFit.R")
 library(mnormt)
 library(MASS)
+library(OpenMx)
 
 # ----------------------------------
 # Define the functions.
+
+testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varList=list(), algList=list(), data=c(), state=c()) {
+	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
+}
 
 dmnorm <- function(x, mean=rep(0,d), varcov, log=FALSE)
 {
@@ -34,7 +38,7 @@ expectedmean <- c(0, 0, 0)
 
 ## simulate some data
 
-x <- (mvrnorm(n=100, rep(0, 3), expectedcov)) 
+x <- (mvrnorm(n=10000, rep(0, 3), expectedcov)) 
 
 # throw in a few missing values 
 
@@ -48,12 +52,13 @@ x
 
 ## bingo... -2lnL's
 
-inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE)
+rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE), gcFirst=TRUE)
 optype <- "FIML"
 mxCov <- mxMatrix("Symm", expectedcov, nrow=3, ncol=3)
 class(mxCov)
 objective <- mxObjective("FIML", means=expectedmean, covariance = mxCov)
-NPSOLOutput <- testFit(objective, c(), c(), c(), list(), x, c())
+cTime <- system.time(NPSOLOutput <- testFit(objective, data=x), gcFirst=TRUE)
 print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum
 print(c(inSum, outSum, inSum - outSum, (inSum - outSum) / inSum))
+print(c(rTime, cTime))

@@ -1,17 +1,17 @@
 /***********************************************************
 * 
-*  omxDataMatrix.cc
+*  omxMatrix.cc
 *
 *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
 *
-*	Contains code for the omxDataMatrix class
+*	Contains code for the omxMatrix class
 *   omxDataMatrices hold necessary information to simplify
 * 	dealings between the OpenMX back end and BLAS.
 *
 **********************************************************/
-#include "omxDataMatrix.h"
+#include "omxMatrix.h"
 
-void omxDataMatrix::print(char* header) {
+void omxMatrix::print(char* header) {
 	int j, k;
 	
 	Rprintf("%s: (%d x %d)\n", header, rows, cols);
@@ -33,11 +33,11 @@ void omxDataMatrix::print(char* header) {
 	}
 }
 
-omxDataMatrix::omxDataMatrix() {
-	omxDataMatrix(0,0,FALSE);
+omxMatrix::omxMatrix() {
+	omxMatrix(0,0,FALSE);
 }
 
-omxDataMatrix::omxDataMatrix(int nrows, int ncols, bool isColMajor) {
+omxMatrix::omxMatrix(int nrows, int ncols, bool isColMajor) {
 	rows = nrows;
 	cols = ncols;
 	colMajor = (isColMajor?1:0);
@@ -57,8 +57,8 @@ omxDataMatrix::omxDataMatrix(int nrows, int ncols, bool isColMajor) {
 	recompute();
 }
 
-omxDataMatrix::omxDataMatrix(const omxDataMatrix &in) {
-	if(OMX_DEBUG) { Rprintf("omxDataMatrix::Copy Constructor Called, this is %d.\n", this);}
+omxMatrix::omxMatrix(const omxMatrix &in) {
+	if(OMX_DEBUG) { Rprintf("omxMatrix::Copy Constructor Called, this is %d.\n", this);}
  
 	rows = in.rows;
 	cols = in.cols;
@@ -74,7 +74,7 @@ omxDataMatrix::omxDataMatrix(const omxDataMatrix &in) {
 	recompute();
 }
 
-void omxDataMatrix::operator=(omxDataMatrix orig) {
+void omxMatrix::operator=(omxMatrix orig) {
 	if(OMX_DEBUG) { Rprintf("Operator =\n"); }
 	freeData();
 
@@ -94,12 +94,12 @@ void omxDataMatrix::operator=(omxDataMatrix orig) {
 	recompute();
 }
 
-void omxDataMatrix::alias(omxDataMatrix dM) {
+void omxMatrix::alias(omxMatrix &dM) {
 	*this = dM;
 	aliasedPtr = dM.data;
 }
 
-void omxDataMatrix::freeData() { 
+void omxMatrix::freeData() { 
 	if(localData) {
 		Free(data);
 	}
@@ -107,11 +107,11 @@ void omxDataMatrix::freeData() {
 
 }
 
-omxDataMatrix::~omxDataMatrix() {
+omxMatrix::~omxMatrix() {
 	freeData();
 }
 
-void omxDataMatrix::resize(int nrows, int ncols, bool keepMemory) {
+void omxMatrix::resize(int nrows, int ncols, bool keepMemory) {
 	if(!keepMemory) { 
 		freeData();
 		data = (double*) Calloc(nrows * ncols, double);
@@ -123,16 +123,18 @@ void omxDataMatrix::resize(int nrows, int ncols, bool keepMemory) {
 	recompute();
 }
 
-void omxDataMatrix::reset() {
+void omxMatrix::reset() {
 	rows = originalRows;
 	cols = originalCols;
 	colMajor = originalColMajor;
 	if(aliasedPtr != NULL) {
+		if(OMX_DEBUG) { print("I am"); for(int i = 0; i < rows*cols; i++) Rprintf("%3.5f ", aliasedPtr[i]); Rprintf("\n");}
 		memcpy(data, aliasedPtr, rows*cols*sizeof(double));
+		if(OMX_DEBUG) { print("I am");}
 	}
 }
 
-void omxDataMatrix::recompute() {
+void omxMatrix::recompute() {
 	if(colMajor) {
 		leading = rows;
 		lagging = cols;
@@ -143,7 +145,7 @@ void omxDataMatrix::recompute() {
 	majority = majorityList[colMajor];
 }
 
-double* omxDataMatrix::locationOfElement(int row, int col) {
+double* omxMatrix::locationOfElement(int row, int col) {
 	int index = 0;
 	if(colMajor) {
 		index = col * rows + row;
@@ -153,7 +155,7 @@ double* omxDataMatrix::locationOfElement(int row, int col) {
 	return data + index;
 }
 
-double omxDataMatrix::element(int row, int col) {
+double omxMatrix::element(int row, int col) {
 	int index = 0;
 	if(colMajor) {
 		index = col * rows + row;
@@ -163,7 +165,7 @@ double omxDataMatrix::element(int row, int col) {
 	return data[index];
 }
 
-void omxDataMatrix::setElement(int row, int col, double value) {
+void omxMatrix::setElement(int row, int col, double value) {
 	int index = 0;
 	if(colMajor) {
 		index = col * rows + row;
@@ -173,8 +175,8 @@ void omxDataMatrix::setElement(int row, int col, double value) {
 	data[index] = value;
 }
 
-void omxDataMatrix::fillFromS3Matrix(SEXP mxMatrix) {
-/* Populates the fields of a omxDataMatrix with details from an mxMatrix. */ 
+void omxMatrix::fillFromS3Matrix(SEXP mxMatrix) {
+/* Populates the fields of a omxMatrix with details from an mxMatrix. */ 
 
 	Rprintf("fillDataMatrixFromS3Matrix() Should never be called.\n");
 
@@ -211,14 +213,14 @@ void omxDataMatrix::fillFromS3Matrix(SEXP mxMatrix) {
 	return;
 }
 
-void omxDataMatrix::fillFromMatrix(SEXP matrix) {
-/* Populates the fields of a omxDataMatrix with details from an R Matrix. */ 
+void omxMatrix::fillFromMatrix(SEXP matrix) {
+/* Populates the fields of a omxMatrix with details from an R Matrix. */ 
 	
 	SEXP className;
 	SEXP matrixDims;
 	int* dimList;
 	
-	if(OMX_DEBUG) { Rprintf("Filling omxDataMatrix from R matrix.\n"); }
+	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
 	
 	/* Sanity Check */
 	if(!isMatrix(matrix) && !isVector(matrix)) {
@@ -228,7 +230,7 @@ void omxDataMatrix::fillFromMatrix(SEXP matrix) {
 		const char *stringName;
 		PROTECT(className = getAttrib(matrix, install("class")));
 		if(strncmp(CHAR(STRING_ELT(className, 0)), "Symm", 2) != 0) { // Should be "Mx"
-			error("omxDataMatrix::fillFromMatrix--Passed Non-vector, non-matrix SEXP.\n");
+			error("omxMatrix::fillFromMatrix--Passed Non-vector, non-matrix SEXP.\n");
 		}
 		stringName = CHAR(STRING_ELT(className, 0));
 		if(strncmp(stringName, "SymmMatrix", 12) == 0) {
@@ -275,7 +277,7 @@ void omxDataMatrix::fillFromMatrix(SEXP matrix) {
 	return;
 }
 
-void omxDataMatrix::removeRowsAndColumns(int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
+void omxMatrix::removeRowsAndColumns(int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
 	if(aliasedPtr == NULL) {  // This is meant only for aliased matrices.  Maybe Need a subclass?
 		error("removeRowsAndColumns intended only for aliased matrices.\n");
@@ -334,8 +336,8 @@ void omxDataMatrix::removeRowsAndColumns(int numRowsRemoved, int numColsRemoved,
 	recompute();
 }
 
-//	omxDataMatrix* censoredMatrix;
-//	censoredMatrix = new omxDataMatrix(rows - numRowsRemoved, cols - numColsRemoved);
+//	omxMatrix* censoredMatrix;
+//	censoredMatrix = new omxMatrix(rows - numRowsRemoved, cols - numColsRemoved);
 //	int numCols;
 //	int nextCol;
 //	int j,k;

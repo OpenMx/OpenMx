@@ -7,28 +7,36 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-#include "omxDataMatrix.h"
+#include "omxMatrix.h"
 #include "omxSymbolTable.h"
 #include "omxAlgebraFunctions.h"
 
-class omxAlgebra: public omxDataMatrix 
+class omxAlgebra: public omxMatrix 
 {
 
 protected:
 	void* funWrapper;
-	omxDataMatrix* args;
+	omxMatrix** args;
 	int numArgs;
-	bool isDirty;
+	
+	omxMatrix* MxAlgebraParseHelper(int* &spec);
 	
 public:
 	/* Constructor */
 	omxAlgebra();
-	omxAlgebra(SEXP alg);
+//	omxAlgebra(SEXP alg);
 	/* Overloads of dataMatrix functions */
 	void compute();
 	void recompute();
 	bool needsUpdate();
 	void fillFromMxAlgebra(SEXP alg);
+	void fillFromTableEntry(const omxAlgebraTableEntry* oate);
+	
+public:
+	/* Factory Method */
+//	static omxMatrix* fillFromMxAlgebra(SEXP alg);
 };
+
+omxMatrix* omxMatrixFromMxMatrixPtr(SEXP s);
 
 #endif
