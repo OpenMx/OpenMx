@@ -31,6 +31,7 @@ extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, i
 						int *inform, int *iter, int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,				
 						double *x, int *iw,	int *leniw, double *w, int *lenw);
 }
+
 /* Objective Function Variants */
 void F77_SUB(callRObjFun)(int* mode, int* n, double* x, double* f, double* g, int* nstate); // Call an R function
 void F77_SUB(covObjFun)(int* mode, int* n, double* x, double* f, double* g, int* nstate);	// Covariance Fit
@@ -57,6 +58,7 @@ omxAlgebra* algebraList;		// List of all algebras.
 omxMatrix dataRows;			// All the data, for now.
 omxMatrix *cov;				// The Covariance Matrix, probably a link to the matrixList.
 omxMatrix *means;			// Vector of means, probably a link to the matrixList.
+omxMatrix* obj;				// Algebra structure
 omxMatrix *Amatrix, *Smatrix, *Fmatrix;
 
 /* Globals for Covariance Evaluation */
@@ -131,7 +133,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	
 	/* Retrieve All Matrices From the MatList */
 	matrixList = (omxMatrix*) R_alloc(sizeof(omxMatrix), length(matList));		// Stores links to data/covariance matrices
-	if(DEBUG) {Rprintf("Processing %d matrices.", length(matList));}
+	if(DEBUG) {Rprintf("Processing %d matrix(ces).", length(matList));}
 	for(k = 0; k < length(matList); k++) {											// Last is Covariance Matrix, not an MxMatrix
 		PROTECT(nextLoc = VECTOR_ELT(matList, k));									// TODO: Find out if even this one duplicates the matrix.
 		matrixList[k].fillFromMatrix(nextLoc);
@@ -214,17 +216,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		dataRows.fillFromMatrix(data);
 		
 	}	else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxAlgebraObjective", 18) == 0) {	
-			if(DEBUG) { Rprintf("Using supplied algebra as objective function.\n"); }
-
-			SEXP covStruct;
+			SEXP algebra;
+			
 			funobj = F77_SUB(AlgObjFun);								// FIML Objective Function
 			funcon = F77_SUB(noConFun);									// Check for constraint functions once they're implemented.
 
-			if(DEBUG) {Rprintf("Processing Algebras.\n");}
+			if(DEBUG) {Rprintf("Processing Objective Algebra.\n");}
+			PROTECT(algebra=GET_SLOT(objective, install("algebra")));
+			obj = omxMatrixFromMxMatrixPtr(algebra);					// Populate objective algebra.  Should be a pointer.
+			UNPROTECT(1);	// algebra.
 
-			/* Process Data Into Data Matrix */
-			dataRows.fillFromMatrix(data);
-
+			/* Process Data Into Data Matrix */							// This should be separated out and handled independent of objective evaluation.
+			if(data != R_NilValue) {
+				dataRows.fillFromMatrix(data);
+			}
 	} else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxRObjective", 12) == 0) {
 		if(DEBUG) { Rprintf("Using supplied R function as objective function.\n"); }
 	/* In R-style optimization, an R function is passed in that evaluates the objective function at each step. */
@@ -247,7 +252,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		
 		UNPROTECT(2);
 	} else {
-		error("Optimization function type %s not implemented on this kernel.", STRING_ELT(nameString, 1));
+		error("Objective function type %s not implemented on this kernel.", STRING_ELT(nameString, 1));
 	}
 	UNPROTECT(1); // nameString
 
@@ -269,9 +274,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 			int theCol = (int)theVarList[2] - 1;		// Column is one-based.
 			freeVarList[k].location[l] = matrixList[theMat].locationOfElement(theRow, theCol);
 			freeVarList[k].matrices[l] = theMat;
-			UNPROTECT(1);
+			UNPROTECT(1); // nextLoc
 		}
-		UNPROTECT(1);
+		UNPROTECT(1); // nextVar
 	}
 
 	if(VERBOSE) { Rprintf("Processed.\n"); }
@@ -369,14 +374,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	
 	*/
 	
-		/* Options That Change The Optimizer */
-		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
-		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Derivative Level 0");
-		F77_CALL(npoptn)(option, strlen(option));	
-		strcpy(option, "Hessian Yes");	
-		F77_CALL(npoptn)(option, strlen(option));
-	
 		/* Output Options */
 		strcpy(option, "Print level 0");  				// 0 = No Output, 20=Verbose
 		F77_CALL(npoptn)(option, strlen(option));
@@ -387,6 +384,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		sprintf(option, "Summary file 0");
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Verify level 3");
+		F77_CALL(npoptn)(option, strlen(option));
+
+		/* Options That Change The Optimizer */
+		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
+		F77_CALL(npoptn)(option, strlen(option));
+		strcpy(option, "Derivative Level 0");
+		F77_CALL(npoptn)(option, strlen(option));	
+		strcpy(option, "Hessian Yes");	
 		F77_CALL(npoptn)(option, strlen(option));
 		
 	/*  F77_CALL(npsol)
@@ -541,9 +546,9 @@ void F77_SUB(covObjFun)
 	handleFreeVarList(x, *n);
 
 	/* Aliases for ease of use and lack of dereference adds */
-	A = &(matrixList[0]);
-	S = &(matrixList[1]);
-	F = &(matrixList[2]);
+	A = Amatrix;
+	S = Smatrix;
+	F = Fmatrix;
 	R = cov;
 	
 	A->recompute();
@@ -581,7 +586,7 @@ void F77_SUB(covObjFun)
 
 	/* C = FZSZ'F' */ // There MUST be an easier way to do this.  I'm thinking matrix class.
 	F77_CALL(dgemm)(&Trans, &Trans, &(Z.cols), &(Z.rows), &(F->cols), &One, Z.data, &(Z.cols), F->data, &(F->cols), &Zero, Y.data, &(Y.cols)); 		// C = ...Z'F'
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(S->cols), &(S->rows), &(Y.rows), &One, S->data, &(S->cols), Y.data, &(Y.cols), &Zero, C.data, &(C.cols)); 	// C = ..SZ'F'
+	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(S->cols), &(S->rows), &(Y.rows), &One, S->data, &(S->cols), Y.data, &(Y.cols), &Zero, C.data, &(C.cols)); // C = ..SZ'F'
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(Z.cols), &(Z.rows), &(C.rows), &One, Z.data, &(Z.cols), C.data, &(C.cols), &Zero, Y.data, &(Y.cols)); 	// C = .ZSZ'F'
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(F->cols), &(F->rows), &(Y.rows), &One, F->data, &(F->cols), Y.data, &(Y.cols), &Zero, C.data, &(C.cols));	// C = FZSZ'F'
 	
@@ -710,7 +715,6 @@ void F77_SUB(AlgObjFun)
 	(int* mode, int* n, double* x, 
 		double* f, double* g, int* nstate )
 {
-	error("Algebra-based objective function not yet implemented.\n");
 	if(DEBUG) { Rprintf("Beginning Algebra Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
@@ -719,10 +723,12 @@ void F77_SUB(AlgObjFun)
 	handleFreeVarList(x, *n);
 
 	/* Do the algebra here. */
-	
-	sum=0;
-	
-	*f = sum;
+	if(obj != NULL) {
+		obj->print("Hello");
+	}
+	obj->recompute();
+
+	*f = obj->element(0,0);
 	return;
 
 }
@@ -793,6 +799,7 @@ void handleFreeVarList(double* x, int n) {
 			Rprintf(" %f", x[k]);
 		}
 		Rprintf("] \n");
+		Rprintf("--------------------------\n");
 	}
 
 	/* Fill in Free Var Estimates */

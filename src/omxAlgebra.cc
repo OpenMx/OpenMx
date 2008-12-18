@@ -21,7 +21,19 @@ omxAlgebra::omxAlgebra() {
 }
 
 void omxAlgebra::compute() {
+	
+	if(funWrapper == NULL) { 			// Handle Algebra-is-just-a-matrix 
+		if(numArgs == 0) {
+			return;
+		} else {
+			args[0]->recompute();
+			(omxMatrix)(*this) = *args[0];
+		}
+	}
+
 	omxMatrix* myData = NULL;
+
+
 	switch(numArgs) {
 		case 0:
 			myData = (*((omxMatrix*(*)(omxMatrix*))funWrapper))((omxMatrix*)this);
@@ -77,9 +89,13 @@ void omxAlgebra::fillFromMxAlgebra(SEXP alg) {
 		error("Redundant algebra detected.  Better to avoid.\n");
 		*this = algebraList[*(current++)];
 	} else {					// This is a matrix.
-		error("Redundant algebra detected.  Better to avoid.\n");
+		/* Redundant algebra.  Should be collapsed. */
 		value = ~value;					// Bitwise reverse of number
-		args[0] = &(matrixList[value]);	// Could be a problematic move.
+		if(OMX_DEBUG) { Rprintf("Matching matrix %d to new algebra.\n", value);}
+		funWrapper = NULL;
+		numArgs=1;
+		args = (omxMatrix**)R_alloc(sizeof(omxMatrix*), numArgs);
+		args[0] = (matrixList + value);	// Could be a problematic move.
 	}
 	
 	return;
@@ -110,20 +126,20 @@ omxMatrix* omxAlgebra::MxAlgebraParseHelper(int* &spec) {
 }
 
 omxMatrix* omxMatrixFromMxMatrixPtr(SEXP matrix) {
-	if(OMX_DEBUG){Rprintf("Attaching pointer to matrix.\n");}
+	if(OMX_DEBUG) { Rprintf("Attaching pointer to matrix."); }
 	SEXP intMatrix;
-	int *spec, value, count=0;
+	int value;
 	PROTECT(intMatrix = AS_INTEGER(matrix));
-	spec = INTEGER(intMatrix);
-	value = spec[count++];
+	value = INTEGER(intMatrix)[0];
 	omxMatrix* output = NULL;
-	if(value > 0) {						// Algebra Specification.  Should never happen.
+	if(OMX_DEBUG) {Rprintf("  Pointer is %d.\n", value);}
+	if(value > 0) {										// Algebra Specification.  Should never happen.
 		output = (omxMatrix*) new omxAlgebra();
 		((omxAlgebra*)output)->fillFromMxAlgebra(matrix);
-	} else if (value == 0) {			// Pre-existing algebra.  A-ok.
-		output = &(algebraList[spec[count++]]);
-	} else {							// Pre-existing matrix.  A-ok.
-		output = &(matrixList[value]);
+	} else if (value == 0) {							// Pre-existing algebra.  A-ok.
+		output = algebraList + value;
+	} else {											// Pre-existing matrix.  A-ok.
+		output = matrixList + (~value);					// Value invert for matrices.
 	}
 	UNPROTECT(1); // intMatrix
 	return output;

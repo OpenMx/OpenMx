@@ -161,9 +161,9 @@ processSparseMatrix <- function(specification, result, matrixNumber, reverse=FAL
 generateMatrixListHelper <- function(mxMatrix) {
 	values <- mxMatrix@values
     if(is(values,"MxSymmetricSparse")) {
-		return(Matrix(as.matrix(values)))    
+		return(as.matrix(values))    #return(Matrix(as.matrix(values)))    
     } else {
-		return(values)    
+		return(as.matrix(values))
     }
 }
 

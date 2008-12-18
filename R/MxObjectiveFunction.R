@@ -46,7 +46,7 @@ setMethod("initialize", "MxAlgebraObjective",
 	}
 )
 
-objectiveTypes <- c("FIML", "RAM", "algebra", "R")
+objectiveTypes <- c("FIML", "RAM", "Algebra", "R")
 
 mxFIMLObjective <- function(model, covariance, means) {
 	if(class(model)[[1]] != "MxModel") {
