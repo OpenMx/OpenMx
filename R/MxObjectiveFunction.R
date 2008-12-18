@@ -58,15 +58,15 @@ mxFIMLObjective <- function(model, covariance, means) {
 	if (typeof(means) != "character") {
 		stop("Third argument is not a string (the name of the expected means matrix)")
 	}
-	covarianceMatrix <- match(covariance, names(model@matrices))
-	meansMatrix <- match(means, names(model@matrices))
-	if (is.na(covarianceMatrix)) {
-		stop(paste("Could not find a matrix with name", covariance, "in the model."))
+	covarianceIndex <- omxLocateIndex(model, covariance)
+	meansIndex <- omxLocateIndex(model, means)
+	if (is.na(covarianceIndex)) {
+		stop(paste("Could not find a matrix/algebra with name", covariance, "in the model."))
 	}
-	if (is.na(meansMatrix)) {
-		stop(paste("Could not find a matrix with name", means, "in the model."))
+	if (is.na(meansIndex)) {
+		stop(paste("Could not find a matrix/algebra with name", means, "in the model."))
 	}
-	return(new("MxFIMLObjective", - covarianceMatrix, - meansMatrix))
+	return(new("MxFIMLObjective", covarianceIndex, meansIndex))
 }
 
 mxRAMObjective <- function(model, aMatrix = "A", sMatrix = "S", fMatrix = "F") {
@@ -82,19 +82,19 @@ mxRAMObjective <- function(model, aMatrix = "A", sMatrix = "S", fMatrix = "F") {
 	if (typeof(fMatrix) != "character") {
 		stop("Fourth argument is not a string (the name of the 'F' matrix)")
 	}
-	A <- match(aMatrix, names(model@matrices))
-	S <- match(sMatrix, names(model@matrices))
-	F <- match(fMatrix, names(model@matrices))	
+	A <- omxLocateIndex(model, aMatrix)
+	S <- omxLocateIndex(model, sMatrix)
+	F <- omxLocateIndex(model, fMatrix)
 	if (is.na(A)) {
-		stop(paste("Could not find a matrix with name", aMatrix, "in the model."))
+		stop(paste("Could not find a matrix/algebra with name", aMatrix, "in the model."))
 	}
 	if (is.na(S)) {
-		stop(paste("Could not find a matrix with name", sMatrix, "in the model."))
+		stop(paste("Could not find a matrix/algebra with name", sMatrix, "in the model."))
 	}
 	if (is.na(F)) {
-		stop(paste("Could not find a matrix with name", fMatrix, "in the model."))
+		stop(paste("Could not find a matrix/algebra with name", fMatrix, "in the model."))
 	}	
-	return(new("MxRAMObjective", - A, - S, - F))
+	return(new("MxRAMObjective", A, S, F))
 }
 
 mxAlgebraObjective <- function(model, algebra) {
@@ -104,9 +104,9 @@ mxAlgebraObjective <- function(model, algebra) {
 	if (typeof(algebra) != "character") {
 		stop("Second argument is not a string (the name of the algebra)")
 	}
-	algMatrix <- match(algebra, names(model@algebras))
-	if (is.na(algMatrix)) {
-		stop(paste("Could not find an algebra with name", algebra, "in the model."))
+	algebraIndex <- omxLocateIndex(model, algebra)
+	if (is.na(algebraIndex)) {
+		stop(paste("Could not find a matrix/algebra with name", algebra, "in the model."))
 	}
-	return(new("MxAlgebraObjective", algMatrix - 1))
+	return(new("MxAlgebraObjective", algebraIndex))
 }

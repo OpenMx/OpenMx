@@ -71,3 +71,15 @@ updateModelValueHelper <- function(triples, value, mxModel) {
 	}
 	return(mxModel)
 }
+
+omxLocateIndex <- function(model, name) {
+	matrixNumber <- match(name, names(model@matrices))
+	algebraNumber <- match(name, names(model@algebras))
+	if (is.na(matrixNumber) && is.na(algebraNumber)) {
+		return(NA)
+	} else if (is.na(algebraNumber)) {
+		return(- matrixNumber)
+	} else {
+		return(algebraNumber - 1)
+	}
+}
