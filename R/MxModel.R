@@ -122,12 +122,15 @@ filterEntries <- function(entries, paths, matrices, algebras) {
 		return(list(paths, matrices, algebras))
 	}
 	head <- entries[[1]]
+	pLength <- length(paths)
+	mLength <- length(matrices)
+	aLength <- length(algebras)	
 	if (is(head, "MxMatrix")) {
-		matrices <- append(matrices, head)
+		matrices[[mLength + 1]] <- head
 	} else if (is(head, "MxAlgebra")) {
-		algebras <- append(algebras, head)
-	} else if (omxIsPath(head)) {
-		paths <- append(paths, head)
+		algebras[[aLength + 1]] <- head
+	} else if (omxIsPath(head)) {		
+		paths[[pLength + 1]] <- head
 	} else {
 		stop(paste("Unkown object:", head))
 	}

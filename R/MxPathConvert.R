@@ -11,7 +11,7 @@ convertModelA <- function(model) {
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesA(apath)
 		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationA(apath)
 	}
-	retval <- mxMatrix("Full", values, specification, nrow = len, ncol = len)
+	retval <- mxMatrix("Full", values, specification)
 	return(retval)
 }
 
@@ -74,7 +74,6 @@ getSpecificationS <- function(apath) {
 	}	
 }
 
-
 convertModelF <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
@@ -83,4 +82,20 @@ convertModelF <- function(model) {
 	values <- Matrix(matValues, dimnames = names)
 	retval <- mxMatrix("Full", values)
 	return(retval)
+}
+
+omxConvertPathModel <- function(model) {
+	if (!is.na(omxLocateIndex(model, "A"))) {
+		warning("Overwriting existing 'A' matrix/algebra while converting RAM-style model")
+	}
+	if (!is.na(omxLocateIndex(model, "S"))) {
+		warning("Overwriting existing 'S' matrix/algebra while converting RAM-style model")
+	}
+	if (!is.na(omxLocateIndex(model, "F"))) {
+		warning("Overwriting existing 'F' matrix/algebra while converting RAM-style model")
+	}
+	model[['A']] <- convertModelA(model)
+	model[['S']] <- convertModelS(model)
+	model[['F']] <- convertModelF(model)
+	return(model)
 }

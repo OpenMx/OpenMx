@@ -23,14 +23,16 @@ ex2Model <- mxModel(ex2Model,
                         arrows=2,
                         free=TRUE, 
                         startVal=1))
-                             
+                        
 ex3Model <- mxModel(ex2Model,
-           mxPath(from=myLatent, all=TRUE, free=FALSE, startVal=0),
+           mxPath(from=myLatent, all=TRUE, free=FALSE, startVal=0), # this line does nothing?
            mxPath(from=myLatent, free=TRUE, startVal=1),
            mxPath(from="G6", to=myLatent, 
-                  all=TRUE, free=TRUE, startVal=.75),
-           mxPath(from="G6", free=FALSE, startVal=1),
+                  all=TRUE, free=TRUE, startVal=.75, arrows=1),
+           mxPath(from="G6", free=FALSE, startVal=1, arrows=2),
            latentVars = "G6")
+
+ex3Model <- omxConvertPathModel(ex3Model)
 
 print(ex3Model)
 

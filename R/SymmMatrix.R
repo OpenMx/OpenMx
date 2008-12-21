@@ -18,15 +18,17 @@ setMethod("initialize", "SymmMatrix",
 		    mspec[lower.tri(mspec, diag = TRUE)] <- specification
 		    mspec <- mspec + t(mspec) - diag(mspec) * diag(nrow)
 		    specification <- mspec
-		}				
-	    if (single.na(specification) && free) {
+		}
+		if (is(specification, "MxSymmetricSparse")) {
+		} else if (single.na(specification) && free) {
 			specification <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
 	    } else if (single.na(specification)){
 			specification <- new("MxSymmetricSparse", 0, nrow, ncol)
 	    } else {
 	    	specification <- new("MxSymmetricSparse", matrix(specification, nrow, ncol))
-	    }	    
-	    if (single.na(values)) {
+	    }
+	    if (is(values, "MxSymmetricSparse")) {
+	    } else if (single.na(values)) {
 	    	values <- new("MxSymmetricSparse", matrix(0, nrow, ncol))
 	    } else {
 	    	values <- new("MxSymmetricSparse", matrix(values, nrow, ncol))
