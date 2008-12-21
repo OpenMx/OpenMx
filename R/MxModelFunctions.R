@@ -8,8 +8,7 @@ omxGenerateSimpleMatrixList <- function(mxModel) {
 }
 
 omxGenerateAlgebraList <- function(mxModel) {
-    mList <- omxGenerateMatrixList(mxModel)
-    retval <- lapply(mxModel@algebras, generateAlgebraHelper, names(mList))
+    retval <- lapply(mxModel@algebras, generateAlgebraHelper, names(mxModel@matrices), names(mxModel@algebras))
     return(retval)
 }
 
