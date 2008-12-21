@@ -1,0 +1,1 @@
+setClassUnion("MxData", c("data.frame", "matrix"))

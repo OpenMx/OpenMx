@@ -15,6 +15,9 @@ omxGenerateAlgebraList <- function(mxModel) {
 
 omxGenerateParameterList <- function(mxModel) {
 	result <- list()
+	if (length(mxModel@matrices) == 0) {
+		return(result)
+	}
 	for(i in 1:length(mxModel@matrices)) {
 		result <- generaterParameterListHelper(mxModel@matrices[[i]], result, i - 1)
 	}	
@@ -25,6 +28,9 @@ omxGenerateValueList <- function(mxModel) {
 	mList <- omxGenerateMatrixList(mxModel)
 	pList <- omxGenerateParameterList(mxModel)
 	retval <- vector()
+	if (length(pList) == 0) {
+		return(retval)
+	}
 	for(i in 1:length(pList)) {
 		parameter <- pList[[i]]
 		if (length(parameter) > 1) {
@@ -54,6 +60,9 @@ omxUpdateModelValues <- function(mxModel, values) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),
 			"values"))
+	}
+	if (length(pList) == 0) {
+		return(mxModel)
 	}
 	for(i in 1:length(pList)) {
 		mxModel <- updateModelValueHelper(pList[[i]], values[[i]], mxModel)

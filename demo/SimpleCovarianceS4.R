@@ -1,9 +1,6 @@
 library(OpenMx)
 
-testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varList=list(), algList=list(), data=c(), state=c()) {
-	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
-}
-
+# Define a model
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name = "A", nrow = 2, ncol = 2))
 model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
@@ -15,11 +12,15 @@ model[["S"]]@specification[1,2] <- 0
 model[["S"]]@specification[1,1] <- "apple"
 model[["S"]]@specification[2,2] <- "banana"
 
-pList <- omxGenerateParameterList(model)
-mList <- omxGenerateSimpleMatrixList(model)
-startVals <- omxGenerateValueList(model)
-covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), nrow = 2, ncol = 2, byrow = TRUE)
+# Define the objective function
 objective <- mxRAMObjective(model)
-NPSOLOutput <- testFit(objective, startVals, matList = mList, varList = pList, data=covMatrix)
-#NPSOLOutput <- .Call("callNPSOL", optype, startVals, list(), mList, pList, NA, NA, NA, new.env())
-print(NPSOLOutput)
+
+# Define the observed covariance matrix
+covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), nrow = 2, ncol = 2, byrow = TRUE)
+
+# Define a job
+job <- mxJob(model, objective, covMatrix)
+
+# Run the job
+result <- mxJobRun(job)
+print(result)

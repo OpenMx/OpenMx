@@ -47,6 +47,7 @@ setReplaceMethod("[[", "MxModel",
 			if (!is.null(x@matrices[[i]])) {
 				stop(paste(i, "is already an MxMatrix object"))
 			}
+			value@name <- i
 			x@algebras[[i]] <- value		
 		} else {
 			stop(paste("Unknown type of value", value))

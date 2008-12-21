@@ -58,8 +58,10 @@ model <- mxModel()
 model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance"))
 model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3))
 objective <- mxFIMLObjective(model, covariance = "covariance", means = "means")
-mList <- omxGenerateSimpleMatrixList(model)
-cTime <- system.time(NPSOLOutput <- testFit(objective, matList=mList, data=x), gcFirst=TRUE)
+
+job <- mxJob(model, objective, x)
+
+cTime <- system.time(NPSOLOutput <- mxJobRun(job), gcFirst=TRUE)
 print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum
 print(c(inSum, outSum, inSum - outSum, (inSum - outSum) / inSum))
