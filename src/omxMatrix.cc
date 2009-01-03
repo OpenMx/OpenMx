@@ -33,77 +33,108 @@ void omxMatrix::print(char* header) {
 	}
 }
 
+void omxMatrix::init() {
+	init(0,0,TRUE);
+}
+
 omxMatrix::omxMatrix() {
-	omxMatrix(0,0,FALSE);
+	init();
 }
 
 omxMatrix::omxMatrix(int nrows, int ncols, bool isColMajor) {
+	init(nrows, ncols, isColMajor);
+}
+
+void omxMatrix::init(int nrows, int ncols, bool isColMajor) {
+	if(OMX_DEBUG) { Rprintf("Initializing 0x%0x to (%d, %d).\n", this, nrows, ncols); }
 	rows = nrows;
 	cols = ncols;
 	colMajor = (isColMajor?1:0);
+	
+	leading = (colMajor?rows:cols);
 	
 	originalRows = rows;
 	originalCols = cols;
 	originalColMajor=colMajor;
 	
-	localData = TRUE;
-	isReused = FALSE;
-	majorityList[0] = 'n';
-	majorityList[1] = 'T';
-	
-	data = (double*) Calloc(nrows * ncols, double);
+	if(rows == 0 || cols == 0) {
+		data = NULL; 
+		localData = FALSE; 
+	} else {
+		data = (double*) Calloc(nrows * ncols, double);
+		localData = TRUE;
+	}
+
 	aliasedPtr = NULL;
+	isAlgebra = false;
 	
-	recompute();
+	compute();
+	
 }
 
 omxMatrix::omxMatrix(const omxMatrix &in) {
-	if(OMX_DEBUG) { Rprintf("omxMatrix::Copy Constructor Called, this is %d.\n", this);}
+	if(OMX_DEBUG) { Rprintf("omxMatrix::Copy Constructor Called, this is 0x%0x, duplicating 0x%0x.\n", this, &in);}
  
 	rows = in.rows;
 	cols = in.cols;
 	colMajor = in.colMajor;
+	leading = in.leading;
 	originalRows = rows;
 	originalCols = cols;
 	originalColMajor = colMajor;
 	
-	data = (double*) Calloc(rows * cols, double);
-	memcpy(data, in.data, rows * cols * sizeof(double));
-	localData = TRUE;
+	if(rows ==0 || cols == 0) {
+		data = NULL;
+		localData = FALSE;
+	} else {
+		data = (double*) Calloc(rows * cols, double);
+		memcpy(data, in.data, rows * cols * sizeof(double));
+		localData = TRUE;
+	}
+	
 	aliasedPtr = NULL;
-	recompute();
+	compute();
 }
 
-void omxMatrix::operator=(omxMatrix orig) {
-	if(OMX_DEBUG) { Rprintf("Operator =\n"); }
+void omxMatrix::operator=(omxMatrix &orig) {
+	if(OMX_DEBUG) { Rprintf("Operator = : this is 0x%0x, duplicating 0x%0x.\n", this, &orig); }
 	freeData();
 
 	rows = orig.rows;
 	cols = orig.cols;
 	colMajor = orig.colMajor;
+	leading = orig.leading;
 	originalRows = rows;
 	originalCols = cols;
 	originalColMajor = colMajor;
-	localData = TRUE;
-	
-	data = (double*) Calloc(rows * cols, double);
-	memcpy(data, orig.data, rows * cols * sizeof(double));
-	
+
+	if(rows == 0 || cols == 0) {
+		data = NULL;
+		localData=FALSE;
+	} else {
+		data = (double*) Calloc(rows * cols, double);
+		memcpy(data, orig.data, rows * cols * sizeof(double));
+		localData = TRUE;
+	}
+
 	aliasedPtr = NULL;
 	
-	recompute();
+	compute();
 }
 
 void omxMatrix::alias(omxMatrix &dM) {
 	*this = dM;
 	aliasedPtr = dM.data;
+	isAlgebra = false;
 }
 
-void omxMatrix::freeData() { 
-	if(localData) {
+void omxMatrix::freeData() {
+ 
+	if(localData && data != NULL) {
+		if(OMX_DEBUG) { Rprintf("Freeing 0x%0x. Localdata = %d.\n", data, localData); }
 		Free(data);
+		localData = FALSE;
 	}
-	localData = FALSE;
 
 }
 
@@ -112,14 +143,20 @@ omxMatrix::~omxMatrix() {
 }
 
 void omxMatrix::resize(int nrows, int ncols, bool keepMemory) {
-	if(!keepMemory) { 
+	if(OMX_DEBUG) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", rows, cols, nrows, ncols, keepMemory); }
+	if(keepMemory == false) { 
+		if(OMX_DEBUG) { Rprintf(" and regenerating memory to do it"); }
 		freeData();
 		data = (double*) Calloc(nrows * ncols, double);
 		localData = TRUE;
-	} 
-	
+	} else if(originalRows * originalCols < nrows * ncols) {
+		error("Cannot yet keep memory smaller than target while resizing omxMatrix.\n"); // TODO: Allow expansion using memcopy?
+	}
+
+	if(OMX_DEBUG) { Rprintf(".\n"); }
 	rows = nrows;
 	cols = ncols;
+	leading = (colMajor?rows:cols);
 	recompute();
 }
 
@@ -127,22 +164,22 @@ void omxMatrix::reset() {
 	rows = originalRows;
 	cols = originalCols;
 	colMajor = originalColMajor;
+	leading = (colMajor?rows:cols);
 	if(aliasedPtr != NULL) {
-		if(OMX_DEBUG) { print("I am"); for(int i = 0; i < rows*cols; i++) Rprintf("%3.5f ", aliasedPtr[i]); Rprintf("\n");}
+		if(OMX_DEBUG) { print("I was"); for(int i = 0; i < rows*cols; i++) Rprintf("%3.5f ", aliasedPtr[i]); Rprintf("\n");}
 		memcpy(data, aliasedPtr, rows*cols*sizeof(double));
 		if(OMX_DEBUG) { print("I am");}
 	}
 }
 
 void omxMatrix::recompute() {
-	if(colMajor) {
-		leading = rows;
-		lagging = cols;
-	} else {
-		leading = cols;
-		lagging = rows;
-	}
-	majority = majorityList[colMajor];
+ 	if(isDirty) omxMatrix::compute(); 
+}
+
+void omxMatrix::compute() {
+	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x (needed: %d).\n", 1,1); }
+	majority = &(majorityList[colMajor]);
+	isDirty = false;
 }
 
 double* omxMatrix::locationOfElement(int row, int col) {
@@ -201,14 +238,15 @@ void omxMatrix::fillFromS3Matrix(SEXP mxMatrix) {
 	cols = dimList[1];
 	localData = FALSE;
 	colMajor = TRUE;
+	leading = (colMajor?rows:cols);
 	originalRows = rows;
 	originalCols = cols;
 	originalColMajor = TRUE;
-	isReused = TRUE;
+	isAlgebra=false;
 
 	UNPROTECT(4);
 	
-	recompute();
+	compute();
 	
 	return;
 }
@@ -269,10 +307,13 @@ void omxMatrix::fillFromMatrix(SEXP matrix) {
 	originalRows = rows;
 	originalCols = cols;
 	originalColMajor = TRUE;
+	leading = (colMajor?rows:cols);
 	aliasedPtr = data;
-	isReused = TRUE;
+	isAlgebra = false;
 	
-	recompute();
+	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
+	compute();
+	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
 	
 	return;
 }
@@ -295,6 +336,7 @@ void omxMatrix::removeRowsAndColumns(int numRowsRemoved, int numColsRemoved, int
 	
 	rows = rows - numRowsRemoved;
 	cols = cols - numColsRemoved;
+	leading = (colMajor?rows:cols);			// Could possibly do this better keeping leading the same. TODO: Improve.
 	
 	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
 	if(colMajor) {
@@ -336,31 +378,4 @@ void omxMatrix::removeRowsAndColumns(int numRowsRemoved, int numColsRemoved, int
 	recompute();
 }
 
-//	omxMatrix* censoredMatrix;
-//	censoredMatrix = new omxMatrix(rows - numRowsRemoved, cols - numColsRemoved);
-//	int numCols;
-//	int nextCol;
-//	int j,k;
-//	
-//	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
-//	numCols = 0;
-//	nextCol = 0;
-//	for(int j = 0; j < cols; j++) {
-//		if(rowsRemoved[j]) {
-//			continue;
-//		} else {
-//			nextRow = 0;
-//			for(int k = 0; k <= j; k++) {
-//				if(colsRemoved[k]) {
-//					continue;
-//				} else {
-//					censoredMatrix->data[nextRow + nextCol*numCols] = data[k + j * expected->cols()];
-//					nextRow++;
-//				}
-//			}
-//			nextCol++;
-//		}
-//	}
-//	if(nextRow != numCols || nextCol != numCols) error("Something failed: Matrices are non-working.");
-//
-//	return censoredDataMatrix;
+const char omxMatrix::majorityList[3] = "Tn";

@@ -10,18 +10,18 @@
 #include "omxMatrix.h"
 
 /* Functional Wrappers */
-omxMatrix* omxMatrixInvert(omxMatrix* inMat);
-omxMatrix* omxMatrixTranspose(omxMatrix* inMat);
-omxMatrix* omxElementPower(omxMatrix* inMat, omxMatrix* power);
-omxMatrix* omxMatrixMult(omxMatrix* preMul, omxMatrix* postMul);
-omxMatrix* omxMatrixDot(omxMatrix* preDot, omxMatrix* postDot);
-omxMatrix* omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul);
-omxMatrix* omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul);
-omxMatrix* omxElementDivide(omxMatrix* inMat, omxMatrix* divisor);
-omxMatrix* omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend);
-omxMatrix* omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend);
-omxMatrix* omxUnaryMinus(omxMatrix* inMat);
-omxMatrix* omxMatrixHorizCat(omxMatrix* matList, double numArgs);
-omxMatrix* omxMatrixVertCat(omxMatrix* matList, double numArgs);
+void omxMatrixInvert(omxMatrix* inMat, omxMatrix* result);
+void omxMatrixTranspose(omxMatrix* inMat, omxMatrix* result);
+void omxElementPower(omxMatrix* inMat, omxMatrix* power, omxMatrix* result);
+void omxMatrixMult(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
+void omxMatrixDot(omxMatrix* preDot, omxMatrix* postDot, omxMatrix* result);
+void omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
+void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
+void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result);
+void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result);
+void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* result);
+void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result);
+void omxMatrixHorizCat(omxMatrix* matList, double numArgs, omxMatrix* result);
+void omxMatrixVertCat(omxMatrix* matList, double numArgs, omxMatrix* result);
 
 #endif

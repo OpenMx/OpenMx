@@ -19,21 +19,24 @@ protected:
 	omxMatrix** args;
 	int numArgs;
 	
-	omxMatrix* MxAlgebraParseHelper(int* &spec);
+	omxMatrix* MxAlgebraParseHelper(SEXP algebraArg);
 	
 public:
-	/* Constructor */
+	/* Constructor & Destructor */
 	omxAlgebra();
+	~omxAlgebra();
+	void init();
 //	omxAlgebra(SEXP alg);
 	/* Overloads of dataMatrix functions */
 	void compute();
 	void recompute();
 	bool needsUpdate();
+	void print(char* d);
 	void fillFromMxAlgebra(SEXP alg);
 	void fillFromTableEntry(const omxAlgebraTableEntry* oate);
 	
 public:
-	/* Factory Method */
+	/* Factory Method? */
 //	static omxMatrix* fillFromMxAlgebra(SEXP alg);
 };
 

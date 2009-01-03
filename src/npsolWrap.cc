@@ -14,8 +14,14 @@
 #define EPSILON 0.00000000001
 #define TRUE 1
 #define FALSE 0
-#define DEBUG 0
+
+#ifdef DEBUGMX
+#define OMX_DEBUG 1
+#define VERBOSE 1
+#else
+#define OMX_DEBUG 0
 #define VERBOSE 0
+#endif /* DEBUGMX */
 
 /* Structure definitions for object evaluation */
 typedef struct {			// Free Variables
@@ -39,9 +45,9 @@ void F77_SUB(FIMLObjFun)(int* mode, int* n, double* x, double* f, double* g, int
 void F77_SUB(AlgObjFun)(int* mode, int* n, double* x, double* f, double* g, int* nstate);	// Algebra Fit
 
 /* Constraint Function Variants */
-void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); // No constraints
-void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); // Call R for constraints
-void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); // Call R for constraints
+void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// No constraints
+void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	// Call R for constraints
+void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// Call R for constraints
 
 /* Helper functions */
 void handleFreeVarList(double* x, int n);						// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
@@ -52,13 +58,14 @@ SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from enviro
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
 SEXP env;						// Environment for evaluation and object hunting
 int ncalls;						// For debugging--how many calls?
-omxMatrix* matrixList;		// Data matrices and their data.
+omxMatrix* matrixList;			// Data matrices and their data.
 freeVar* freeVarList;			// List of Free Variables and where they go.
 omxAlgebra* algebraList;		// List of all algebras.
-omxMatrix dataRows;			// All the data, for now.
-omxMatrix *cov;				// The Covariance Matrix, probably a link to the matrixList.
-omxMatrix *means;			// Vector of means, probably a link to the matrixList.
-omxMatrix* obj;				// Algebra structure
+int numAlgebras, numMatrices;	// Number of algebras/matrices.  Used only to do complete compute.  // TODO: Lazier computation
+omxMatrix dataRows;				// All the data, for now.
+omxMatrix *cov;					// The Covariance Matrix, probably a link to the matrixList.
+omxMatrix *means;				// Vector of means, probably a link to the matrixList.
+omxMatrix* obj;					// Algebra structure
 omxMatrix *Amatrix, *Smatrix, *Fmatrix;
 
 /* Globals for Covariance Evaluation */
@@ -120,7 +127,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	
 	SEXP nextLoc, nextVar;
 	
-	
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these. */
 //	if(!isVector(startVals)) error ("startVals must be a vector");
@@ -132,22 +138,32 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	/* Store Data from MxMatrices */
 	
 	/* Retrieve All Matrices From the MatList */
-	matrixList = (omxMatrix*) R_alloc(sizeof(omxMatrix), length(matList));		// Stores links to data/covariance matrices
-	if(DEBUG) {Rprintf("Processing %d matrix(ces).", length(matList));}
+	matrixList = (omxMatrix*) R_alloc(sizeof(omxMatrix), length(matList));			// Stores links to data/covariance matrices
+	if(OMX_DEBUG) {Rprintf("Processing %d matrix(ces).\n", length(matList));}
+	numMatrices = length(matList);
 	for(k = 0; k < length(matList); k++) {											// Last is Covariance Matrix, not an MxMatrix
 		PROTECT(nextLoc = VECTOR_ELT(matList, k));									// TODO: Find out if even this one duplicates the matrix.
 		matrixList[k].fillFromMatrix(nextLoc);
+		if(OMX_DEBUG) { Rprintf("Matrix initialized at 0x%0xd = 0x%0xd + %d.\n", &(matrixList[k]), matrixList, k);}
 		UNPROTECT(1); // nextLoc
 	}
 
 	/* Process Algebras Here */
-	if(DEBUG) { Rprintf("Processing %d algebras.\n", length(algList)); }
-	algebraList = (omxAlgebra*) R_alloc(sizeof(omxMatrix), length(algList));
+	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", length(algList)); }
+	algebraList = (omxAlgebra*) R_alloc(sizeof(omxAlgebra), length(algList));
+	numAlgebras = length(algList);
 	for(int j = 0; j < length(algList); j++) {
 		PROTECT(nextLoc = VECTOR_ELT(algList, j));
+		if(OMX_DEBUG) { Rprintf("Intializing 0x%0xd.\n", algebraList + j); }
+		algebraList[j].init();
 		algebraList[j].fillFromMxAlgebra(nextLoc);
 		UNPROTECT(1);
 	}
+	
+/*	for(int j = 0; j < length(algList); j++) {
+		if(OMX_DEBUG) { Rprintf("Computing Algebra %d.\n", j); }
+		algebraList[j].compute();
+	} */
 
 	/* Parse Mx Objective Structure. */
 	PROTECT(nameString = getAttrib(objective, install("class")));
@@ -158,7 +174,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	/* This should be done with a hash-table lookup for extensibility. */
 	if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxRAMObjective", 21) == 0) { // Covariance-style optimization.
 		/* In Covariance Optimization, matList contains A, S, and F. */
-		if(DEBUG) { Rprintf("Using RAM objective function.\n"); }
+		if(OMX_DEBUG) { Rprintf("Using RAM objective function.\n"); }
 		funobj = F77_SUB(covObjFun);
 		int *dimList;
 	
@@ -191,47 +207,52 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 				}
 			}
 		}
+		
 	} else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxFIMLObjective", 15) == 0) {
-		if(DEBUG) { Rprintf("Using Full Information Maximum Likelihood as objective function.\n"); }
+		if(OMX_DEBUG) { Rprintf("Using Full Information Maximum Likelihood as objective function.\n"); }
 		
 		funobj = F77_SUB(FIMLObjFun);								// FIML Objective Function
 		funcon = F77_SUB(noConFun);									// Check for constraint functions once they're implemented.
 
 		/* In FIML optimization, the FIMLObjective Structure contains means and covariances. */
-		if(DEBUG) {Rprintf("Processing means.\n");}
+		if(OMX_DEBUG) {Rprintf("Processing means.\n");}
 		SEXP meanStruct, covStruct;
-                SEXP newMatrix;
+		SEXP newMatrix;
 
-                PROTECT(newMatrix = GET_SLOT(objective, install("means")));
-                means = omxMatrixFromMxMatrixPtr(newMatrix);
-                UNPROTECT(1);
+		PROTECT(newMatrix = GET_SLOT(objective, install("means")));
+			means = omxMatrixFromMxMatrixPtr(newMatrix);
+		UNPROTECT(1); // newMatrix
 
-		if(DEBUG) {Rprintf("Processing covariances.\n");}
+		if(OMX_DEBUG) {Rprintf("Processing covariances.\n");}
 
-                PROTECT(newMatrix = GET_SLOT(objective, install("covariance")));
-                cov = omxMatrixFromMxMatrixPtr(newMatrix);
-                UNPROTECT(1);
+		PROTECT(newMatrix = GET_SLOT(objective, install("covariance")));
+			cov = omxMatrixFromMxMatrixPtr(newMatrix);
+		UNPROTECT(1);  // newMatrix
 
 		/* Process Data Into Data Matrix */
 		dataRows.fillFromMatrix(data);
+
+	} else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxAlgebraObjective", 18) == 0) {
 		
-	}	else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxAlgebraObjective", 18) == 0) {	
-			SEXP algebra;
-			
-			funobj = F77_SUB(AlgObjFun);								// FIML Objective Function
-			funcon = F77_SUB(noConFun);									// Check for constraint functions once they're implemented.
+		SEXP algebra;
+		
+		funobj = F77_SUB(AlgObjFun);								// FIML Objective Function
+		funcon = F77_SUB(noConFun);									// Check for constraint functions once they're implemented.
 
-			if(DEBUG) {Rprintf("Processing Objective Algebra.\n");}
-			PROTECT(algebra=GET_SLOT(objective, install("algebra")));
+		if(OMX_DEBUG) { Rprintf("Processing Objective Algebra.\n"); }
+		
+		PROTECT(algebra=GET_SLOT(objective, install("algebra")));
 			obj = omxMatrixFromMxMatrixPtr(algebra);					// Populate objective algebra.  Should be a pointer.
-			UNPROTECT(1);	// algebra.
+		UNPROTECT(1);	// algebra.
 
-			/* Process Data Into Data Matrix */							// This should be separated out and handled independent of objective evaluation.
-			if(data != R_NilValue) {
-				dataRows.fillFromMatrix(data);
-			}
+		/* Process Data Into Data Matrix */							// This should be separated out and handled independent of objective evaluation.
+		if(data != R_NilValue) {
+			dataRows.fillFromMatrix(data);
+		}
+		
 	} else if(strncmp(CHAR(STRING_ELT(nameString, 0)), "MxRObjective", 12) == 0) {
-		if(DEBUG) { Rprintf("Using supplied R function as objective function.\n"); }
+		
+		if(OMX_DEBUG) { Rprintf("Using supplied R function as objective function.\n"); }
 	/* In R-style optimization, an R function is passed in that evaluates the objective function at each step. */
 		SEXP objfun, confun;
 		PROTECT(objfun = GET_SLOT(objective, install("objective")));
@@ -251,9 +272,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		} 											// Someday, we may want to add other options.
 		
 		UNPROTECT(2);
+
 	} else {
 		error("Objective function type %s not implemented on this kernel.", STRING_ELT(nameString, 1));
 	}
+	
 	UNPROTECT(1); // nameString
 
 	/* Process Free Var List */
@@ -265,7 +288,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		freeVarList[k].numLocations = length(nextVar);
 		freeVarList[k].location = (double**) R_alloc(sizeof(double*), length(nextVar));
 		freeVarList[k].matrices = (int*) R_alloc(sizeof(int), length(nextVar));
-		if(DEBUG) { Rprintf("Free parameter %d: %d locations\n", k, length(nextVar)); }
+		if(OMX_DEBUG) { Rprintf("Free parameter %d: %d locations\n", k, length(nextVar)); }
 		for(l = 0; l < freeVarList[k].numLocations; l++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, l));
 			double* theVarList = REAL(nextLoc);			// These come through as doubles.
@@ -288,62 +311,72 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	PROTECT(ans = allocVector(VECSXP, 6));
 	PROTECT(names = allocVector(STRSXP, 6));
 	PROTECT(minimum = NEW_NUMERIC(1));
-	PROTECT(estimate = allocVector(REALSXP, n));
-	PROTECT(gradient = allocVector(REALSXP, n));
-	PROTECT(hessian = allocMatrix(REALSXP, n, n));
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(iterations = NEW_NUMERIC(1));
 	
-	/* Initialize Scalar Variables. */	
-	nclin = 0;						// No constraints.
-	ncnln = 0;						// None.  At all.
-	
-	/* Set boundaries and widths. */
-	if(nclin <= 0) {
-		nlinwid = 1;				// For memory allocation purposes, nlinwid > 0
-	} else {
-		nlinwid = nclin;
-	}
-
-	if(ncnln <= 0) {
-		nlnwid = 1;					// For memory allocation purposes nlnwid > 0
-	} else {
-		nlnwid = ncnln;
-	}
-	
-	nctotl = n + nlinwid + nlnwid;
-	
-	leniw = 3 * n + nclin + 2 * ncnln;
-	lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
-	
-	ldA = nlinwid;  		// nclin;
-	ldJ = nlnwid; 			// ncnln;
-	ldR = n;				// Need to check on size of this one.
-
-/* Allocate arrays */
-	A		= (double*) R_alloc (ldA * n, sizeof ( double )  );
-	bl		= (double*) R_alloc ( nctotl, sizeof ( double ) );
-	bu		= (double*) R_alloc (nctotl, sizeof ( double ) );
-	c		= (double*) R_alloc (nlnwid, sizeof ( double ));
-	cJac	= (double*) R_alloc (ldJ * n, sizeof ( double ) );
-	clambda = (double*) R_alloc (nctotl, sizeof ( double )  );
-	g		= (double*) R_alloc (n, sizeof ( double ) );
-	R		= (double*) R_alloc (ldR * n, sizeof ( double )); 
-	x		= (double*) R_alloc ((n+1), sizeof ( double ));
-	w		= (double*) R_alloc (lenw, sizeof ( double ));	
-	
-	istate	= (int*) R_alloc (nctotl, sizeof ( int ) );
-	iw		= (int*) R_alloc (leniw, sizeof ( int ));
-
 	if(n == 0) {			// Special Case for the evaluation-only condition
-		if(DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
+		
+		if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
 		int mode = 0, nstate = 1;
 		f = 0;
 		double* x = NULL, *g = NULL;
+		
 		funobj(&mode, &n, x, &f, g, &nstate);
 		inform = 0;
 		iter = 0;
+		
+		PROTECT(estimate = allocVector(REALSXP, 1));
+		PROTECT(gradient = allocVector(REALSXP, 1));
+		PROTECT(hessian = allocMatrix(REALSXP, 1, 1));
+		
 	} else {
+		
+		/* N-dependent SEXPs */
+		PROTECT(estimate = allocVector(REALSXP, n));
+		PROTECT(gradient = allocVector(REALSXP, n));
+		PROTECT(hessian = allocMatrix(REALSXP, n, n));
+	
+		/* Initialize Scalar Variables. */	
+		nclin = 0;						// No constraints.
+		ncnln = 0;						// None.  At all.
+		
+		/* Set boundaries and widths. */
+		if(nclin <= 0) {
+			nlinwid = 1;				// For memory allocation purposes, nlinwid > 0
+		} else {
+			nlinwid = nclin;
+		}
+	
+		if(ncnln <= 0) {
+			nlnwid = 1;					// For memory allocation purposes nlnwid > 0
+		} else {
+			nlnwid = ncnln;
+		}
+		
+		nctotl = n + nlinwid + nlnwid;
+		
+		leniw = 3 * n + nclin + 2 * ncnln;
+		lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
+		
+		ldA = nlinwid;  		// nclin;
+		ldJ = nlnwid; 			// ncnln;
+		ldR = n;				// Need to check on size of this one.
+
+	/* Allocate arrays */
+		A		= (double*) R_alloc (ldA * n, sizeof ( double )  );
+		bl		= (double*) R_alloc ( nctotl, sizeof ( double ) );
+		bu		= (double*) R_alloc (nctotl, sizeof ( double ) );
+		c		= (double*) R_alloc (nlnwid, sizeof ( double ));
+		cJac	= (double*) R_alloc (ldJ * n, sizeof ( double ) );
+		clambda = (double*) R_alloc (nctotl, sizeof ( double )  );
+		g		= (double*) R_alloc (n, sizeof ( double ) );
+		R		= (double*) R_alloc (ldR * n, sizeof ( double )); 
+		x		= (double*) R_alloc ((n+1), sizeof ( double ));
+		w		= (double*) R_alloc (lenw, sizeof ( double ));	
+		
+		istate	= (int*) R_alloc (nctotl, sizeof ( int ) );
+		iw		= (int*) R_alloc (leniw, sizeof ( int ));
+
 	/* Set up actual run */
 	
 		/* Set min and max limits */
@@ -354,13 +387,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	
 	
 		/* Initialize Starting Values */
-		Rprintf("--------------------------\n");	
-		Rprintf("Starting Values (%d) are:\n", n);
+		if(VERBOSE) {
+			Rprintf("--------------------------\n");	
+			Rprintf("Starting Values (%d) are:\n", n);
+		}
 		for(k = 0; k < n; k++) {
 			x[k] = REAL(startVals)[k];
-			Rprintf("%d: %f\n", k, x[k]);
+			if(VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
-		if(DEBUG) {
+		if(OMX_DEBUG) {
 			Rprintf("--------------------------\n");	
 			Rprintf("Setting up optimizer...");
 		}
@@ -431,7 +466,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		
 		*/
 	
-		if(DEBUG) {
+		if(OMX_DEBUG) {
 			Rprintf("Set.\n");
 		}
 	
@@ -456,6 +491,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		}
 	}
 	
+	if(n == 0) {  					// else{} clause for the for loop.
+		est[0] = NA_REAL;
+		grad[0] = NA_REAL;
+		hess[0] = NA_REAL;
+	}
+	
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
 	
@@ -474,11 +515,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	SET_VECTOR_ELT(ans, 5, iterations);
 	namesgets(ans, names);
 		
-	Rprintf("Inform Value: %d\n", inform);
+	if(VERBOSE) { 
+		Rprintf("Inform Value: %d\n", inform); 
+		Rprintf("--------------------------\n");
+	}
+	
 
 	UNPROTECT(8);						// Unprotect NPSOL Parameters
-	
-	Rprintf("--------------------------\n");
 	
 	return(ans);
 
@@ -520,7 +563,7 @@ void F77_SUB(callRObjFun)
 		vars[k] = x[k];
 	}
 	SETCADR(theCall, theVars);
-	
+
 	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
 	*f = REAL(AS_NUMERIC(theReturn))[0];
 	UNPROTECT(3);
@@ -551,15 +594,17 @@ void F77_SUB(covObjFun)
 	F = Fmatrix;
 	R = cov;
 	
+/*
 	A->recompute();
 	S->recompute();
 	F->recompute();
 	R->recompute();
+*/
 	
-	if(DEBUG) { Rprintf("A is at %d\n", A->data); A->print("A"); }
-	if(DEBUG) { Rprintf("S is at %d\n", S->data); S->print("S"); }
-	if(DEBUG) { Rprintf("F is at %d\n", F->data); F->print("F"); }
-	if(DEBUG) { Rprintf("R is at %d\n", R->data); R->print("R"); }
+	if(OMX_DEBUG) { Rprintf("A is at %d\n", A->data); A->print("A"); }
+	if(OMX_DEBUG) { Rprintf("S is at %d\n", S->data); S->print("S"); }
+	if(OMX_DEBUG) { Rprintf("F is at %d\n", F->data); F->print("F"); }
+	if(OMX_DEBUG) { Rprintf("R is at %d\n", R->data); R->print("R"); }
 
 
 	// Z will be (I-A)^-1, C will be our running total.
@@ -578,7 +623,7 @@ void F77_SUB(covObjFun)
 	int lwork = 5;
 	
 	/* Z = (I-A)^-1 */
-	if(DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
+	if(OMX_DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
 	
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I.cols), &(I.rows), &(Z.rows), &One, I.data, &(I.cols), I.data, &(I.cols), &MinusOne, Z.data, &(Z.cols));
 	F77_CALL(dgetrf)(&(Z.cols), &(Z.rows), Z.data, &(Z.cols), ipiv, &l);
@@ -595,7 +640,7 @@ void F77_SUB(covObjFun)
 	
 	F77_CALL(dgetrf)(&(C.cols), &(C.rows), C.data, &(C.cols), ipiv, &l);
 
-	if(DEBUG) { Rprintf("Info on Invert: %d\n", l); }
+	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", l); }
 	double det = 1.0;
 	double sum = 0;
 
@@ -603,7 +648,7 @@ void F77_SUB(covObjFun)
 		det *= C.data[k+C.rows*k];  	// Normally, we'd need to worry about transformations made during LU, but
 	}									// we're safe here because the determinant of a covariance matrix > 0.
 
-	if(DEBUG) { Rprintf("Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f\n", det); }
+	if(OMX_DEBUG) { Rprintf("Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f\n", det); }
 	det = log(det);
 	
 	F77_CALL(dgetri)(&(C.rows), C.data, &(C.cols), ipiv, work, &lwork, &l);
@@ -625,7 +670,7 @@ void F77_SUB(FIMLObjFun)
 	(int* mode, int* n, double* x, 
 		double* f, double* g, int* nstate )
 {
-	if(DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
+	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
 	SEXP matrixDims;
@@ -683,11 +728,11 @@ void F77_SUB(FIMLObjFun)
 		}
 		if(numCols==0) continue;
 		smallCov.reset();
-//		if(DEBUG) { Rprintf("Reducing by (%d, %d): %d, %d, %d\n", numRemoves, numRemoves, toRemove[0], toRemove[1], toRemove[2]); smallCov.print("Smallcov reset to"); } 
+//		if(OMX_DEBUG) { Rprintf("Reducing by (%d, %d): %d, %d, %d\n", numRemoves, numRemoves, toRemove[0], toRemove[1], toRemove[2]); smallCov.print("Smallcov reset to"); } 
 		smallCov.removeRowsAndColumns(numRemoves, numRemoves, toRemove, toRemove);
 		/** MISSINGNESS HANDLED **/
 		// Rprintf("Row: %d -- sum is %f, Q is %f, logDet is %f", row, sum, Q, logDet);
-		if(DEBUG) { Rprintf("Beginning Row %d:\n", row); smallRow.print("Next Row:"); smallCov.print("Covariance is:"); }
+		if(OMX_DEBUG) { Rprintf("Beginning Row %d:\n", row); smallRow.print("Next Row:"); smallCov.print("Covariance is:"); }
 
 		F77_CALL(dpotrf)(&u, &(smallCov.rows), smallCov.data, &(smallCov.cols), &info);
 		if(info != 0) error("Covariance Matrix is not positive-definite.");
@@ -702,7 +747,7 @@ void F77_SUB(FIMLObjFun)
 			Q += RCX.data[col] * smallRow.data[col];
 		}
 		sum += logDet + Q + (log(2 * M_PI) * smallRow.cols);
-//		if(DEBUG) { Rprintf("Row %d: Q is %f, logDet is %f, Sum is now %f\n", row+1, Q, logDet, sum); smallCov.print("SmallCov Ended As"); }
+//		if(OMX_DEBUG) { Rprintf("Row %d: Q is %f, logDet is %f, Sum is now %f\n", row+1, Q, logDet, sum); smallCov.print("SmallCov Ended As"); }
 	}
 	
 	*f = sum;
@@ -715,7 +760,7 @@ void F77_SUB(AlgObjFun)
 	(int* mode, int* n, double* x, 
 		double* f, double* g, int* nstate )
 {
-	if(DEBUG) { Rprintf("Beginning Algebra Evaluation.\n");}
+	if(OMX_DEBUG) { Rprintf("Beginning Algebra Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
 	double sum;
@@ -723,10 +768,13 @@ void F77_SUB(AlgObjFun)
 	handleFreeVarList(x, *n);
 
 	/* Do the algebra here. */
-	if(obj != NULL) {
-		obj->print("Hello");
+//	obj->recompute();		// Done in handleFreeVarList()
+
+	if(obj->rows != 1 || obj->cols != 1) {
+		error("Objective function does not evaluate to a (1 x 1) matrix.  Aborting.");
 	}
-	obj->recompute();
+
+	if(OMX_DEBUG) { obj->print("Objective function evaluted to"); }
 
 	*f = obj->element(0,0);
 	return;
@@ -789,7 +837,7 @@ return;
 /* Sub Free Vars Into Appropriate Slots */
 void handleFreeVarList(double* x, int n) {
 	
-	if(DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
+	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
 	ncalls++;
 	if(VERBOSE) {
 		Rprintf("--------------------------\n");
@@ -804,13 +852,23 @@ void handleFreeVarList(double* x, int n) {
 
 	/* Fill in Free Var Estimates */
 	for(int k = 0; k < n; k++) {
-		if(DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
+		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
 		for(int l = 0; l < freeVarList[k].numLocations; l++) {
 			*(freeVarList[k].location[l]) = x[k];
-			if(DEBUG) { Rprintf("Setting location:%ld to value %f for var %d\n", freeVarList[k].location[l], x[k], k); }
+			if(OMX_DEBUG) { Rprintf("Setting location:%ld to value %f for var %d\n", freeVarList[k].location[l], x[k], k); }
 			matrixList[freeVarList[k].matrices[l]].markDirty();
 		}
 	}
+	
+	/* Evalute all matrices and algebras */ // TODO: Simulate Dymanic Dispatch and Farm This Out.
+	for(int j = 0; j < numMatrices; j++) {
+		matrixList[j].recompute();
+	}
+	
+	for(int j = 0; j < numAlgebras; j++) {
+		algebraList[j].recompute();
+	}
+	
 }
 
 /* get the list element named str, or return NULL */ 
