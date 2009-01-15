@@ -75,7 +75,7 @@ void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 
 };
 
-void omxMatrixDot(omxMatrix* preDot, omxMatrix* postDot, omxMatrix* result) {
+void omxMatrixDot(omxMatrix *preDot, omxMatrix *postDot, omxMatrix* result) {
 // Actually, this is element-by-element multiplication.
 	
 	/* Conformability Check! */
