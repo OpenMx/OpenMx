@@ -42,6 +42,7 @@ public:
 	static const char majorityList[3];	// For BLAS
 
 	const char* majority;				// Filled by compute();
+	const char* minority;				// Filled by compute();
 	int leading;						// Leading edge; depends on original majority
 	bool isAlgebra;						// <sigh> True if it's an Algebra.
 	

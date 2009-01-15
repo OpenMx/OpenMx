@@ -179,6 +179,7 @@ void omxMatrix::recompute() {
 void omxMatrix::compute() {
 	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x (needed: %d).\n", 1,1); }
 	majority = &(majorityList[colMajor]);
+	majority = &(majorityList[(colMajor?0:1)]);
 	isDirty = false;
 }
 

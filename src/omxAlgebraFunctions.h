@@ -21,7 +21,7 @@ void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result);
 void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result);
 void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* result);
 void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result);
-void omxMatrixHorizCat(omxMatrix* matList, double numArgs, omxMatrix* result);
-void omxMatrixVertCat(omxMatrix* matList, double numArgs, omxMatrix* result);
+void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result);
 
 #endif
