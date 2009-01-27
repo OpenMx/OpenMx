@@ -12,24 +12,27 @@
 **********************************************************/
 
 #include "omxAlgebraFunctions.h"
+#include "omxMatrix.h"
 
 void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
-	*result = *inMat;
-	result->transpose();
+	omxCopyMatrix(result, inMat);
+	result->colMajor = !result->colMajor;
+	omxMatrixCompute(result);
 }
 
 void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
 {
 	int ipiv[inMat->rows];
 	int l = 0;
-/* TODO: Does this interact with transposition? */
-	*result = *inMat;
+
+	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
+	
 }
 
 void omxElementPower(omxMatrix *inMat, omxMatrix *power, omxMatrix* result)
 {
-	*result = *inMat;
+	omxCopyMatrix(result, inMat);
 	
 	if(power->rows == 1 && power->cols ==1) {
 		for(int j = 0; j < result->cols * result->rows; j++) {
@@ -38,15 +41,16 @@ void omxElementPower(omxMatrix *inMat, omxMatrix *power, omxMatrix* result)
 	} else if(power->rows == inMat->rows && power->cols == inMat->cols) {
 		for(int j = 0; j < result->rows; j++) 
 			for(int k = 0; k < result->cols; k++)
-				result->setElement(j, k, pow(result->element(j,k), power->element(j,k)));
+				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(result, j,k), omxMatrixElement(power, j,k)));
 	} else {
 		error("Non-conformable matrices in elementPower.");
 	}
+	
 };
 
 void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 
-	if(OMX_DEBUG) { Rprintf("Multiplying two matrices.\n"); preMul->print("This one"); postMul->print("by this");}
+	if(OMX_DEBUG) { Rprintf("Multiplying two matrices.\n");}
 	
 	if(preMul == NULL || postMul == NULL) {
 		error("Null matrix pointer detected.\n");
@@ -60,14 +64,13 @@ void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 		error("Non-conformable matrices in Matrix Multiply.");
 		
 	if(result->rows != preMul->rows || result->cols != preMul->cols)
-		result->resize(preMul->rows, postMul->cols);
+		omxResizeMatrix(result, preMul->rows, postMul->cols, FALSE);
 	
 	
 	/* For debugging */
 	if(OMX_DEBUG) {
-		result->print("NewMatrix");
-		Rprintf("DGEMM: %c, %c, %d, %d, %d, %d\n", *(preMul->majority), *(postMul->majority), (preMul->rows), (postMul->cols), preMul->leading, postMul->leading);
-		Rprintf("Note: majorityList is [%c, %c]\n", *(preMul->majorityList), *(preMul->majorityList + 1));
+		omxPrintMatrix(result, "NewMatrix");
+		Rprintf("DGEMM: %c, %c, %d, %d, %d, %f, %0x %d %0x %d %f %0x %d\n", *(preMul->majority), *(postMul->majority), (preMul->rows), (postMul->cols), (preMul->cols), one, (preMul->data), (preMul->leading), (postMul->data), (postMul->leading), zero, (result->data), (result->leading)); 
 	}
 	
 	/* The call itself */
@@ -82,7 +85,7 @@ void omxMatrixDot(omxMatrix *preDot, omxMatrix *postDot, omxMatrix* result) {
 	if(preDot->cols != postDot->cols || preDot->rows != postDot->rows) 
 		error("Non-conformable matrices in Matrix Multiply.");
 		
-	result = postDot;
+	omxCopyMatrix(result, postDot);
 	
 	int max = preDot->cols * preDot->rows;
 	
@@ -100,14 +103,14 @@ void omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) 
 	int cols = preMul->cols * postMul->cols;
 
 	if(result->rows != rows || result->cols != cols)
-		result->resize(rows, cols);
+		omxResizeMatrix(result, rows, cols, FALSE);
 
 	for(int preRow = 0; preRow < preMul->rows; preRow++)
 		for(int postRow = 0; postRow < postMul->rows; postRow++)
 			for(int preCol = 0; preCol < preMul->cols; preCol++)
 				for(int postCol = 0; postCol < postMul->cols; postCol++)
-					result->setElement(preRow*postMul->rows + postRow, preCol*postMul->cols + postCol, preMul->element(preRow, preCol)*postMul->element(postRow, postCol));
-					
+					omxSetMatrixElement(result, preRow*postMul->rows + postRow, preCol*postMul->cols + postCol, omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
+	
 };
 
 void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) {
@@ -120,16 +123,18 @@ void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) 
 	if(preMul->cols != postMul->rows) 
 		error("Non-conformable matrices in Matrix Multiply.");
 		
-	omxMatrix* intermediate = new omxMatrix(preMul->rows, postMul->cols);
+	omxMatrix* intermediate = NULL;
+	omxInitMatrix(intermediate, preMul->rows, postMul->cols, TRUE);
 		
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
-		result->resize(preMul->cols, preMul->cols);
+		omxResizeMatrix(result, preMul->cols, preMul->cols, FALSE);
 	
 	
 	/* The call itself */
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
 	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->cols), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
-	
+
+
 };
 
 void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result) {
@@ -139,7 +144,7 @@ void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result) {
 	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows) 
 		error("Non-conformable matrices in Matrix Multiply.");
 		
-	result = divisor;
+	omxCopyMatrix(result, divisor);
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -155,7 +160,7 @@ void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result) {
 	if(inMat->cols != addend->cols || inMat->rows != addend->rows) 
 		error("Non-conformable matrices in Matrix Multiply.");
 		
-	result = addend;
+	omxCopyMatrix(result, addend);
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -169,7 +174,7 @@ void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* resul
 	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows) 
 		error("Non-conformable matrices in Matrix Multiply.");
 		
-	result = subtrahend;
+	omxCopyMatrix(result, subtrahend);
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -185,7 +190,7 @@ void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result) {
 	
 	int max = inMat->cols * inMat->rows;
 	
-	result = inMat;
+	omxCopyMatrix(result, inMat);
 	
 	for(int j = 0; j < max; j++) {
 		result->data[j] = -result->data[j];
@@ -209,13 +214,13 @@ void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
 	}
 	
 	if(result->rows != totalRows || result->cols != totalCols) {
-		result->resize(totalRows, totalCols);
+		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 	
 	for(int j = 0; j < numArgs; j++) {
 		for(int k = 0; k < matList[j]->cols; j++) {
 			for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
-				result->setElement(l, currentCol, matList[j]->element(l, k));
+				omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
 			}
 			currentCol++;
 		}
@@ -239,13 +244,13 @@ void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
 	}
 	
 	if(result->rows != totalRows || result->cols != totalCols) {
-		result->resize(totalRows, totalCols);
+		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 	
 	for(int j = 0; j < numArgs; j++) {
 		for(int k = 0; k < matList[j]->rows; j++) {
 			for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
-				result->setElement(currentRow, l, matList[j]->element(k, l));
+				omxSetMatrixElement(result, l, currentRow, omxMatrixElement(matList[j], k, l));
 			}
 			currentRow++;
 		}

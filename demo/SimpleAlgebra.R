@@ -6,6 +6,7 @@ modelFit <-function(model, objective) {
 	varList <- omxGenerateParameterList(model)
 	startVals <- c() # omxGenerateValueList(model)
 	print(algList)
+	print(objective)
 	return(testFit(objective, startVals, c(), matList, varList, algList))
 }
 
@@ -13,18 +14,18 @@ testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varLis
 	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
 }
 
-# Test 1: Algebra is just a matrix.
-
-O <- mxMatrix("Full", c(1), nrow=1, ncol=1, name="O")
+O <- mxMatrix("Full", c(3), nrow=1, ncol=1, name="O")
 A <- mxMatrix("Full", c(1, 2), nrow=1, ncol=2, name="A")
 B <- mxMatrix("Full", c(3, 4), ncol=1, nrow=2, name="B")
 AlgA <- mxAlgebra(O, name="AlgA")
 AlgAB <- mxAlgebra(A %*% B, name="AlgAB")
-AlgRecurse <- mxAlgebra(A %*% B %*% O, name="AlgRecurse")
+AlgdoubleMult <- mxAlgebra(A %*% B %*% O, name="AlgdoubleMult")
 
 model <- mxModel()
 model <- mxModel(model, A)
 model <- mxModel(model, O)
+
+# Test 1: Algebra is just a matrix.
 
 model <- mxModel(model, AlgA)
 objectiveA <- mxAlgebraObjective(model, "AlgA")
@@ -35,6 +36,8 @@ valA <- O[1,1]
 diffA <- (valA - outputA$minimum) / valA
 diffA
 
+# Test 2: Algebra is a multiply.
+
 model <- mxModel(model, B)
 model <- mxModel(model, AlgAB)
 objectiveAB <- mxAlgebraObjective(model, "AlgAB")
@@ -44,15 +47,17 @@ AB <- (A@values %*% B@values)[1,1]
 diffAB <- (AB - outputAB$minimum) / AB
 diffAB
 
-model <- mxModel(model, AlgRecurse)
-objectiveRecurse <- mxAlgebraObjective(model, "AlgRecurse")
-outputRecurse <- modelFit(model, objectiveRecurse)
-outputRecurse
-recurse <- ((A@values%*%B@values) %*% O@values)[1,1]
-diffRecurse <- (recurse - outputRecurse$minimum) / recurse
-diffRecurse
+# Test 2: Algebra is two multiplies
+
+model <- mxModel(model, AlgdoubleMult)
+objectivedoubleMult <- mxAlgebraObjective(model, "AlgdoubleMult")
+outputdoubleMult <- modelFit(model, objectivedoubleMult)
+outputdoubleMult
+doubleMult <- ((A@values%*%B@values) %*% O@values)[1,1]
+diffdoubleMult <- (doubleMult - outputdoubleMult$minimum) / doubleMult
+diffdoubleMult
 
 c(valA, outputA$minimum, diffA)
 c(AB, outputAB$minimum,diffAB)
-c(recurse, outputRecurse$minimum,diffRecurse)
+c(doubleMult, outputdoubleMult$minimum,diffdoubleMult)
 
