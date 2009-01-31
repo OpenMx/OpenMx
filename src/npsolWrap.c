@@ -341,10 +341,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		funobj(&mode, &n, x, &f, g, &nstate);
 		inform = 0;
 		iter = 0;
-		
-		PROTECT(estimate = allocVector(REALSXP, 1));
-		PROTECT(gradient = allocVector(REALSXP, 1));
-		PROTECT(hessian = allocMatrix(REALSXP, 1, 1));
+	
+		// Allocate vectors & matrices of length 0,
+		// because the front-end will read these values
+		// and expects 0 elements, not 1 element that is NA.
+		PROTECT(estimate = allocVector(REALSXP, 0));
+		PROTECT(gradient = allocVector(REALSXP, 0));
+		PROTECT(hessian = allocMatrix(REALSXP, 0, 0));
 		
 	} else {
 		
@@ -506,12 +509,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		for(l = 0; l < n; l++) {
 			REAL(hessian)[k*n + l] = R[k*n + l];  // This is ok, because they're both in Col-Major already.
 		}
-	}
-	
-	if(n == 0) {  					// else{} clause for the for loop.
-		est[0] = NA_REAL;
-		grad[0] = NA_REAL;
-		hess[0] = NA_REAL;
 	}
 	
 	/* Recalculate all Algebras As Needed */

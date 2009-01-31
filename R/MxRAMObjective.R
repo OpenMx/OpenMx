@@ -15,7 +15,8 @@ setMethod("initialize", "MxRAMObjective",
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxModel"), function(.Object, model) {
+setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxModel"), 
+	function(.Object, model) {
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S

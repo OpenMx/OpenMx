@@ -14,9 +14,10 @@ setClass(Class = "MxModel",
 ))
 
 setMethod("initialize", "MxModel",
-	function(.Object, name = omxUntitledName(), paths = list(), latentVars = character(),
-		manifestVars = character(), matrices = list(), 
-		algebras = list(), data = data.frame(), submodels = list(), 
+	function(.Object, name = omxUntitledName(), paths = list(), 
+		latentVars = character(), manifestVars = character(), 
+		matrices = list(), algebras = list(), 
+		data = data.frame(), submodels = list(), 
 		objective = mxNullObjective(), independent = FALSE) {
 		if (length(paths) > 0) {
 			.Object <- mxAddPath(.Object, paths)
@@ -107,11 +108,21 @@ mappendHelper <- function(lst, result) {
 		return(result)
 	} else if (length(lst) == 1) {
 		len <- length(result)
-		result[[len + 1]] <- lst[[1]]
+		addition <- lst[[1]]
+		if (is.list(addition)) {
+			result <- append(result, addition)
+		} else {
+			result[[len + 1]] <- addition
+		}
 		return(result)
 	} else {
 		len <- length(result)
-		result[[len + 1]] <- lst[[1]]	
+		addition <- lst[[1]]
+		if (is.list(addition)) {
+			result <- append(result, addition)
+		} else {
+			result[[len + 1]] <- addition
+		}
 		return(mappendHelper(lst[2:length(lst)], result))
 	}
 }
@@ -178,6 +189,8 @@ filterEntries <- function(entries, paths, matrices, algebras, models, objectives
     	objectives[[oLength + 1]] <- head
     } else if (is(head, "MxData")) {
 		data[[dLength + 1]] <- head
+	} else if(omxIsPath(head)) {
+		paths[[pLength + 1]] <- head
 	} else {
 		stop(paste("Unknown object:", head))
 	}
@@ -389,11 +402,16 @@ omxQuotes <- function(name) {
 }
 
 omxDisplayModel <- function(model) {
-	cat("MxModel", omxQuotes(model@name), "\n")
-	cat("@matrices :", sapply(names(model@matrices), omxQuotes), "\n")
-	cat("@algebras :", sapply(names(model@algebras), omxQuotes), "\n")
-	cat("@data :", nrow(model@data), "x", ncol(model@data), "\n")
-	cat("@submodels :", sapply(names(model@submodels), omxQuotes), "\n")
+	cat("MxModel", omxQuotes(model@name), '\n')
+	cat("@matrices :", sapply(names(model@matrices), omxQuotes), '\n')
+	cat("@algebras :", sapply(names(model@algebras), omxQuotes), '\n')
+	if (length(model@paths) > 0) {
+		cat("@latentVars :", model@latentVars, '\n')
+		cat("@manifestVars :", model@manifestVars, '\n')
+		cat("@paths :", nrow(model@paths), "paths", '\n')
+	}
+	cat("@data :", nrow(model@data), "x", ncol(model@data), '\n')
+	cat("@submodels :", sapply(names(model@submodels), omxQuotes), '\n')
 	objective <- model@objective
 	objectiveType <- class(objective)[[1]]	
 	if (is(objective, "MxNullObjective")) { objectiveName <- "" } 

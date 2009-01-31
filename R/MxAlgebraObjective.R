@@ -26,7 +26,7 @@ mxAlgebraObjective <- function(name = omxUntitledName(), algebra) {
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}
-	if (typeof(algebra) != "character") {
+	if (missing(algebra) || typeof(algebra) != "character") {
 		stop("Algebra argument is not a string (the name of the algebra)")
 	}
 	return(new("MxAlgebraObjective", name, algebra))

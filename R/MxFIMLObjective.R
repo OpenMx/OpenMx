@@ -35,10 +35,10 @@ mxFIMLObjective <- function(name = omxUntitledName(), covariance, means) {
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}
-	if (typeof(covariance) != "character") {
+	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
-	if (typeof(means) != "character") {
+	if (missing(means) || typeof(means) != "character") {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
 	return(new("MxFIMLObjective", name, covariance, means))

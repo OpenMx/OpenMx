@@ -9,5 +9,6 @@ mxJobRun <- function(model) {
 	output <- .Call("callNPSOL", objective, startVals, 
 		bounds, mList, pList, aList, model@data, state)
 	model@output <- output
+	model <- omxUpdateModelValues(model, output$estimate)
 	return(model)
 }
