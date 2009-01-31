@@ -57,11 +57,13 @@ rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sig
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance"))
 model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3))
-objective <- mxFIMLObjective(model, covariance = "covariance", means = "means")
+objective <- mxFIMLObjective(name = "objective", covariance = "covariance", means = "means")
 
-job <- mxJob(model, objective, x)
+# Add the objective function and the data to the model
+model <- mxModel(model, objective, x)
 
-cTime <- system.time(NPSOLOutput <- mxJobRun(job), gcFirst=TRUE)
+cTime <- system.time(model <- mxJobRun(model), gcFirst=TRUE)
+NPSOLOutput <- model@output
 print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum
 print(c(inSum, outSum, inSum - outSum, (inSum - outSum) / inSum))

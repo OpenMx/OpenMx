@@ -1,24 +1,36 @@
 setClass(Class = "MxModel",
 	representation = representation(
+		name = "character",
 		matrices = "list",
 		algebras = "list",
 		paths = "data.frame",
 		latentVars = "character",
 		manifestVars = "character",
-		data = "data.frame"))
-		
+		data = "MxData",
+		submodels = "list",
+		objective = "MxObjective",
+		independent = "logical",
+		output = "list"
+))
+
 setMethod("initialize", "MxModel",
-	function(.Object, paths = list(), latentVars = character(),
+	function(.Object, name = omxUntitledName(), paths = list(), latentVars = character(),
 		manifestVars = character(), matrices = list(), 
-		algebras = list(), data = data.frame()) {
+		algebras = list(), data = data.frame(), submodels = list(), 
+		objective = mxNullObjective(), independent = FALSE) {
 		if (length(paths) > 0) {
 			.Object <- mxAddPath(.Object, paths)
 		}
+		.Object@name <- name
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
 		.Object@matrices <- matrices
 		.Object@algebras <- algebras
 		.Object@data <- data
+		.Object@submodels <- submodels
+		.Object@objective <- objective
+		.Object@independent <- independent
+		.Object@output <- list()
 		return(.Object)
 	}
 )
@@ -27,34 +39,47 @@ setMethod("[[", "MxModel",
 	function(x, i, j, ..., drop = FALSE) {
 		first <- x@matrices[[i]]
 		second <- x@algebras[[i]]
-		if (is.null(first)) {
+		third <- x@submodels[[i]]
+		if (i == x@objective@name) {
+			return(x@objective)
+		} else if (is.null(first) && is.null(second)) {
+			return(third)
+		} else if (is.null(first)) {
 			return(second)
 		} else {
 			return(first)
-		}	
+		}
 	}
 )
 
 setReplaceMethod("[[", "MxModel",
 	function(x, i, j, value) {
+		current <- x[[i]]
+		if(!is.null(current) && !omxSameType(current, value)) {
+			stop(paste("There already exists an object", omxQuotes(i), "in this model of different type"))
+		}
+		value@name <- i		
 		if (is(value,"MxMatrix")) {
-			if (!is.null(x@algebras[[i]])) {
-				stop(paste(i, "is already an MxAlgebra object"))
-			}
-			value@name <- i
 			x@matrices[[i]] <- value
 		} else if (is(value,"MxAlgebra")) {
-			if (!is.null(x@matrices[[i]])) {
-				stop(paste(i, "is already an MxMatrix object"))
-			}
-			value@name <- i
 			x@algebras[[i]] <- value		
+		} else if (is(value,"MxModel")) {
+			x@submodels[[i]] <- value			
+		} else if (is(value,"MxObjective")) {
+			x@objective <- value
 		} else {
 			stop(paste("Unknown type of value", value))
 		}
 		return(x)
 	}
 )
+
+omxSameType <- function(a, b) {
+	return( (is(a, "MxModel") && is(b, "MxModel")) ||
+			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||
+			(is(a, "MxAlgebra") && is(b, "MxAlgebra")) ||
+			(is(a, "MxObjective") && is(b, "MxObjective")))
+}
 
 setGeneric("omxAddEntries", function(.Object, entries) {
 	return(standardGeneric("omxAddEntries")) } )
@@ -81,15 +106,22 @@ mappendHelper <- function(lst, result) {
 	if (length(lst) == 0) {
 		return(result)
 	} else if (length(lst) == 1) {
-		return(append(result,lst[[1]]))
+		len <- length(result)
+		result[[len + 1]] <- lst[[1]]
+		return(result)
 	} else {
-		return(mappendHelper(lst[2:length(lst)], append(result, lst[[1]])))
+		len <- length(result)
+		result[[len + 1]] <- lst[[1]]	
+		return(mappendHelper(lst[2:length(lst)], result))
 	}
 }
 
-omxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVars=NULL) {
+omxModel <- function(model = NULL, ..., name = NULL, manifestVars = NULL,
+	latentVars = NULL, remove = FALSE, independent = NULL) {
 	if(is.null(model)) {
 		model <- new("MxModel")	
+	} else if (typeof(model) == "character") {
+		model <- new("MxModel", name = model)
 	}
 	lst <- list(...)
 	if(class(model)[[1]] != "MxModel") {
@@ -114,27 +146,42 @@ omxModel <- function(model=NULL, ..., remove=FALSE, manifestVars=NULL, latentVar
 			model@latentVars <- unique(tmp)
 		}		
 	}
+	if(!is.null(independent)) {
+		model@independent <- independent
+	}
+	if(!is.null(name)) {
+		model@name <- name
+	}			
 	return(model)
 }
 
-filterEntries <- function(entries, paths, matrices, algebras) {
+filterEntries <- function(entries, paths, matrices, algebras, models, objectives, data) {
 	if (length(entries) == 0) {
-		return(list(paths, matrices, algebras))
+		return(list(paths, matrices, algebras, models, objectives, data))
 	}
 	head <- entries[[1]]
-	pLength <- length(paths)
-	mLength <- length(matrices)
-	aLength <- length(algebras)	
+	pLength   <- length(paths)
+	matLength <- length(matrices)
+	aLength   <- length(algebras)	
+	modLength <- length(models)
+	oLength   <- length(objectives)
+	dLength   <- length(data)
 	if (is(head, "MxMatrix")) {
-		matrices[[mLength + 1]] <- head
+		matrices[[matLength + 1]] <- head
 	} else if (is(head, "MxAlgebra")) {
 		algebras[[aLength + 1]] <- head
 	} else if (omxIsPath(head)) {		
 		paths[[pLength + 1]] <- head
+    } else if (is(head, "MxModel")) {
+    	models[[modLength + 1]] <- head
+    } else if (is(head, "MxObjective")) {
+    	objectives[[oLength + 1]] <- head
+    } else if (is(head, "MxData")) {
+		data[[dLength + 1]] <- head
 	} else {
-		stop(paste("Unkown object:", head))
+		stop(paste("Unknown object:", head))
 	}
-	return(filterEntries(entries[-1], paths, matrices, algebras))
+	return(filterEntries(entries[-1], paths, matrices, algebras, models, objectives, data))
 }
 	
 setMethod("omxAddEntries", "MxModel", 
@@ -142,10 +189,13 @@ setMethod("omxAddEntries", "MxModel",
 		if (length(entries) < 1) {
 			return(.Object)
 		}
-		threeTuple <- filterEntries(entries, list(), list(), list())
-		paths <- threeTuple[[1]]
-		matrices <- threeTuple[[2]]
-		algebras <- threeTuple[[3]]
+		tuple <- filterEntries(entries, list(), list(), list(), list(), list(), list())
+		paths      <- tuple[[1]]
+		matrices   <- tuple[[2]]
+		algebras   <- tuple[[3]]
+		models     <- tuple[[4]]
+		objectives <- tuple[[5]]
+		data       <- tuple[[6]]
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}
@@ -158,6 +208,11 @@ setMethod("omxAddEntries", "MxModel",
 		if (length(algebras) > 0) for(i in 1:length(algebras)) {
 			.Object <- omxAddSingleAlgebra(.Object, algebras[[i]])
 		}
+		if (length(models) > 0) for(i in 1:length(models)) {
+			.Object <- omxAddSingleModel(.Object, models[[i]])
+		}
+		if (length(objectives) > 0) .Object <- omxAddObjectives(.Object, objectives)
+		if (length(data) > 0) .Object <- omxAddData(.Object, data)
 		return(.Object)
 	}
 )
@@ -167,10 +222,13 @@ setMethod("omxRemoveEntries", "MxModel",
 		if (length(entries) < 1) {
 			return(.Object)
 		}
-		threeTuple <- filterEntries(entries, list(), list(), list())
-		paths <- threeTuple[[1]]
-		matrices <- threeTuple[[2]]
-		algebras <- threeTuple[[3]]		
+		tuple <- filterEntries(entries, list(), list(), list(), list(), list(), list())
+		paths      <- tuple[[1]]
+		matrices   <- tuple[[2]]
+		algebras   <- tuple[[3]]
+		models     <- tuple[[4]]
+		objectives <- tuple[[5]]
+		data       <- tuple[[6]]
 		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
 			stop("The \'from\' field or the \'to\' field contains an NA")
 		}		
@@ -183,9 +241,25 @@ setMethod("omxRemoveEntries", "MxModel",
 		if (length(algebras) > 0) for(i in 1:length(algebras)) {
 			.Object <- omxRemoveSingleAlgebra(.Object, algebras[[i]])
 		}
+		if (length(models) > 0) for(i in 1:length(models)) {
+			.Object <- omxRemoveSingleModel(.Object, models[[i]])
+		}
+		if (length(objectives) > 0) {
+			stop(paste("The remove operation is not supported on objective functions.",
+			"Instead use add operation with an MxNullObjective to overwrite."))
+		}
+		if (length(data) > 0) {
+			stop(paste("The remove operation is not supported on model data.",
+			"Instead use add operation on a 1x1 matrix to overwrite."))
+		}
 		return(.Object)
 	}
 )
+
+omxAddSingleModel <- function(.Object, model) {
+	.Object[[model@name]] <- model
+	return(.Object)	
+}
 
 omxAddSingleMatrix <- function(.Object, matrix) {
 	.Object[[matrix@name]] <- matrix
@@ -277,6 +351,11 @@ omxRemoveSinglePath <- function(.Object, path) {
 	return(.Object)
 }
 
+omxRemoveSingleModel <- function(.Object, model) {
+	.Object[[model@name]] <- NULL
+	return(.Object)
+}
+
 omxRemoveSingleMatrix <- function(.Object, matrix) {
 	.Object[[matrix@name]] <- NULL
 	return(.Object)
@@ -287,7 +366,49 @@ omxRemoveSingleAlgebra <- function(.Object, algebra) {
 	return(.Object)
 }
 
-mxModel <- function(model = NULL, ..., remove = FALSE, manifestVars = NULL, latentVars = NULL) {
-	omxModel(model, ..., remove = remove, manifestVars = manifestVars, latentVars = latentVars)
+omxAddObjectives <- function(.Object, objectives) {
+	if (length(objectives) > 1) {
+		warning("Multiple objective functions were specified; the first one will be used")
+	}
+	objective <- objectives[[1]]
+	.Object[[objective@name]] <- objective
+	return(.Object)
+}
+
+omxAddData <- function(.Object, dataset) {
+	if (length(dataset) > 1) {
+		warning("Multiple datasets were specified; the first one will be used")
+	}
+	data <- dataset[[1]]
+	.Object@data <- data
+	return(.Object)
+}
+
+omxQuotes <- function(name) {
+	return(paste("'", name, "'", sep = ''))
+}
+
+omxDisplayModel <- function(model) {
+	cat("MxModel", omxQuotes(model@name), "\n")
+	cat("@matrices :", sapply(names(model@matrices), omxQuotes), "\n")
+	cat("@algebras :", sapply(names(model@algebras), omxQuotes), "\n")
+	cat("@data :", nrow(model@data), "x", ncol(model@data), "\n")
+	cat("@submodels :", sapply(names(model@submodels), omxQuotes), "\n")
+	objective <- model@objective
+	objectiveType <- class(objective)[[1]]	
+	if (is(objective, "MxNullObjective")) { objectiveName <- "" } 
+	else { objectiveName <- omxQuotes(objective@name) }
+	cat("@objective :", objectiveType, objectiveName, '\n')
+	cat("@independent :", model@independent, '\n')
+	cat("@output :", length(model@output) > 0)
+}
+
+setMethod("print", "MxModel", function(x,...) { omxDisplayModel(x) })
+setMethod("show", "MxModel", function(object) { omxDisplayModel(object) })
+
+mxModel <- function(model = NULL, ..., name = NULL, manifestVars = NULL,
+	latentVars = NULL, remove = FALSE, independent = NULL) {
+	omxModel(model, ..., name = name, manifestVars = manifestVars, latentVars = latentVars,
+		remove = remove, independent = independent)
 }
 

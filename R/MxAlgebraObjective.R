@@ -1,26 +1,33 @@
 setClass(Class = "MxAlgebraObjective",
 	representation = representation(
-		algebra = "numeric"),
+		algebra = "MxCharOrNumber"),
 	contains = "MxObjective")
 
 setMethod("initialize", "MxAlgebraObjective",
-	function(.Object, algebra) {
+	function(.Object, name, algebra) {
+		.Object@name <- name
 		.Object@algebra <- algebra
 		return(.Object)
 	}
 )
 
+setMethod("omxObjFunConvert", signature("MxAlgebraObjective", "MxModel"), function(.Object, model) {
+		name <- .Object@name
+		algebra <- .Object@algebra
+		algebraIndex <- omxLocateIndex(model, algebra)
+		if (is.na(algebraIndex)) {
+			stop(paste("Could not find a matrix/algebra with name", algebra, "in the model."))
+		}
+		return(new("MxAlgebraObjective", name, algebraIndex))
+})
 
-mxAlgebraObjective <- function(model, algebra) {
-	if(class(model)[[1]] != "MxModel") {
-		stop("First argument is not an MxModel object")
+
+mxAlgebraObjective <- function(name = omxUntitledName(), algebra) {
+	if (typeof(name) != "character") {
+		stop("Name argument is not a string (the name of the objective function)")
 	}
 	if (typeof(algebra) != "character") {
-		stop("Second argument is not a string (the name of the algebra)")
+		stop("Algebra argument is not a string (the name of the algebra)")
 	}
-	algebraIndex <- omxLocateIndex(model, algebra)
-	if (is.na(algebraIndex)) {
-		stop(paste("Could not find a matrix/algebra with name", algebra, "in the model."))
-	}
-	return(new("MxAlgebraObjective", algebraIndex))
+	return(new("MxAlgebraObjective", name, algebra))
 }

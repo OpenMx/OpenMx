@@ -13,14 +13,14 @@ model[["S"]]@specification[1,1] <- "apple"
 model[["S"]]@specification[2,2] <- "banana"
 
 # Define the objective function
-objective <- mxRAMObjective(model)
+objective <- mxRAMObjective("objective")
 
 # Define the observed covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), nrow = 2, ncol = 2, byrow = TRUE)
 
-# Define a job
-job <- mxJob(model, objective, covMatrix)
+# Add the objective function and the data to the model
+model <- mxModel(model, objective, covMatrix)
 
 # Run the job
-result <- mxJobRun(job)
-print(result)
+model <- mxJobRun(model)
+print(model@output)

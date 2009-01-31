@@ -9,7 +9,7 @@ setMethod("initialize", "MxAlgebra",
 	function(.Object, formula = NA, name = NA) {
 		.Object@formula <- sys.call(which=-3)[[3]]
 		if (is.na(name)) {
-			.Object@name <- paste("untitled", omxUntitledNumber(), sep="")
+			.Object@name <- omxUntitledName()
 		} else {
 			.Object@name <- name
 		}

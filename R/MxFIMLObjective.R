@@ -1,34 +1,45 @@
 setClass(Class = "MxFIMLObjective",
 	representation = representation(
-		covariance = "numeric",
-		means = "numeric"),
+		covariance = "MxCharOrNumber",
+		means = "MxCharOrNumber"),
 	contains = "MxObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, covariance, means) {
+	function(.Object, name, covariance, means) {
+		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
 		return(.Object)
 	}
 )
 
-mxFIMLObjective <- function(model, covariance, means) {
-	if(class(model)[[1]] != "MxModel") {
-		stop("First argument is not an MxModel object")
-	}	
+setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxModel"), 
+	function(.Object, model) {
+		name <- .Object@name
+		covariance <- .Object@covariance
+		means <- .Object@means
+		covarianceIndex <- omxLocateIndex(model, covariance)
+		meansIndex <- omxLocateIndex(model, means)
+		if (is.na(covarianceIndex)) {
+			stop(paste("Could not find a matrix/algebra with name", 
+			covariance, "in the model."))
+		}
+		if (is.na(meansIndex)) {
+			stop(paste("Could not find a matrix/algebra with name", 
+			means, "in the model."))
+		}
+		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex))
+})
+
+mxFIMLObjective <- function(name = omxUntitledName(), covariance, means) {
+	if (typeof(name) != "character") {
+		stop("Name argument is not a string (the name of the objective function)")
+	}
 	if (typeof(covariance) != "character") {
-		stop("Second argument is not a string (the name of the expected covariance matrix)")
+		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
 	if (typeof(means) != "character") {
-		stop("Third argument is not a string (the name of the expected means matrix)")
+		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
-	covarianceIndex <- omxLocateIndex(model, covariance)
-	meansIndex <- omxLocateIndex(model, means)
-	if (is.na(covarianceIndex)) {
-		stop(paste("Could not find a matrix/algebra with name", covariance, "in the model."))
-	}
-	if (is.na(meansIndex)) {
-		stop(paste("Could not find a matrix/algebra with name", means, "in the model."))
-	}
-	return(new("MxFIMLObjective", covarianceIndex, meansIndex))
+	return(new("MxFIMLObjective", name, covariance, means))
 }
