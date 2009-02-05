@@ -8,7 +8,8 @@ omxGenerateSimpleMatrixList <- function(mxModel) {
 }
 
 omxGenerateAlgebraList <- function(mxModel) {
-    retval <- lapply(mxModel@algebras, generateAlgebraHelper, names(mxModel@matrices), names(mxModel@algebras))
+    retval <- lapply(mxModel@algebras, generateAlgebraHelper, 
+    	names(mxModel@matrices), names(mxModel@algebras))
     return(retval)
 }
 
@@ -18,7 +19,9 @@ omxGenerateParameterList <- function(mxModel) {
 		return(result)
 	}
 	for(i in 1:length(mxModel@matrices)) {
-		result <- generaterParameterListHelper(mxModel@matrices[[i]], result, i - 1)
+		result <- generaterParameterListHelper(
+			mxModel@matrices[[i]], 
+			result, i - 1)
 	}	
 	return(result)
 }
@@ -53,31 +56,45 @@ generateValueHelper <- function(triple, mList) {
 	return(mList[[mat]][row,col])
 }
 
-omxUpdateModelValues <- function(mxModel, values) {
-	pList <- omxGenerateParameterList(mxModel)
+omxUpdateModelValues <- function(treeModel, flatModel, values) {
+	pList <- omxGenerateParameterList(flatModel)
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),
 			"values"))
 	}
 	if (length(pList) == 0) {
-		return(mxModel)
+		return(treeModel)
 	}
 	for(i in 1:length(pList)) {
-		mxModel <- updateModelValueHelper(pList[[i]], values[[i]], mxModel)
+		treeModel <- updateModelValueHelper(
+			pList[[i]], values[[i]], treeModel, flatModel)
     }
-	return(mxModel)
+	return(treeModel)
 }
 
-updateModelValueHelper <- function(triples, value, mxModel) {
+updateModelValueHelper <- function(triples, value, treeModel, flatModel) {
 	for(i in 1:length(triples)) {
 		triple <- triples[[i]]
 		mat <- triple[1] + 1
 		row <- triple[2]
 		col <- triple[3]
-		mxModel@matrices[[mat]]@values[row,col] <- value			
+		name <- flatModel@matrices[[mat]]@name
+		if(!is.null(treeModel[[name]])) {
+			treeModel[[name]]@values[row,col] <- value
+		}
 	}
-	return(mxModel)
+	treeModel@submodels <- lapply(treeModel@submodels, 
+		function(x) { updateModelValueHelper(
+			triples, value, x, flatModel) })
+	return(treeModel)
+}
+
+omxUpdateModelObjective <- function(model, result) {
+	if(!is.null(model@objective)) {
+		model@objective@result <- Matrix(result)
+	}
+	return(model)
 }
 
 omxLocateIndex <- function(model, name) {

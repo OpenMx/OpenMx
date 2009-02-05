@@ -129,3 +129,41 @@ omxFreezeModel <- function(model) {
 	model@submodels <- lapply(model@submodels, omxFreezeModel)
 	return(model)
 }
+
+omxFlattenModel <- function(model) {
+	res <- omxFlattenModelHelper(model, model)
+	res@submodels <- list()
+	return(res)
+}
+
+omxFlattenModelHelper <- function(model, dest) {
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			submodel <- model@submodels[[i]]
+			dest@matrices <- append(dest@matrices, submodel@matrices)
+			dest@algebras <- append(dest@algebras, submodel@algebras)
+			# TODO: objective functions!
+			dest <- omxFlattenModelHelper(submodel, dest)
+		}
+	}
+	return(dest)
+}
+
+omxReplaceModels <- function(model, replacements) {
+	mnames <- names(model@submodels)
+	rnames <- names(replacements)
+	inames <- intersect(mnames, rnames)
+	if (length(inames) > 0) {
+		for(i in 1:length(inames)) {
+			name <- inames[[i]]
+			model[[name]] <- replacements[[name]]
+		}
+	}
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			model@submodels[[i]] <- 
+				omxReplaceModels(model@submodels[[i]], replacements)
+		}
+	}
+	return(model)
+}
