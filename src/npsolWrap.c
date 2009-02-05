@@ -329,7 +329,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(iterations = NEW_NUMERIC(1));
-	PROTECT(algebras = allocVector(VECSXP, (numAlgs>0?numAlgs:1)));
+	PROTECT(algebras = NEW_LIST(numAlgs));
 	
 	if(n == 0) {			// Special Case for the evaluation-only condition
 		
@@ -511,23 +511,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		}
 	}
 	
-	/* Recalculate all Algebras As Needed */
-	if(numAlgs == 0) {
-		PROTECT(algebra = NEW_NUMERIC(1));
-		REAL(algebra)[0] = NA_REAL;
-		SET_VECTOR_ELT(algebras, 0, algebra);
+	for(k = 0; k < numAlgs; k++) {
+		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
+		omxRecomputeMatrix(algebraList[k]);
+		PROTECT(algebra = allocMatrix(REALSXP, algebraList[k]->rows, algebraList[k]->cols));
+		for(j = 0; j < algebraList[k]->cols; j++) 
+			for(l = 0; l <algebraList[k]->rows; l++)
+				REAL(algebra)[j * algebraList[k]->rows + l] =
+					omxMatrixElement(algebraList[k], j, l);
+		SET_VECTOR_ELT(algebras, k, algebra);
 		UNPROTECT(1);	/* algebra */
-	} else {
-		for(k = 0; k < numAlgs; k++) {
-			if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-			omxRecomputeMatrix(algebraList[k]);
-			PROTECT(algebra = allocMatrix(REALSXP, algebraList[k]->rows, algebraList[k]->cols));
-			for(j = 0; j < algebraList[k]->cols; j++) 
-				for(l = 0; l <algebraList[k]->rows; l++)
-					REAL(algebra)[j * algebraList[k]->rows + l] = omxMatrixElement(algebraList[k], j, l);
-			SET_VECTOR_ELT(algebras, k, algebra);
-			UNPROTECT(1);	/* algebra */
-		}
 	}
 	
 	REAL(code)[0] = inform;
