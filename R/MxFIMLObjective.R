@@ -2,7 +2,7 @@ setClass(Class = "MxFIMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber"),
-	contains = "MxObjective")
+	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
 	function(.Object, name, covariance, means) {

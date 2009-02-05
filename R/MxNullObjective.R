@@ -1,6 +1,6 @@
 setClass(Class = "MxNullObjective",
 	representation = representation(),
-	contains = "MxObjective")
+	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxNullObjective",
 	function(.Object, name) {

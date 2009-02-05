@@ -60,6 +60,18 @@ setMethod("verify", "MxMatrix",
 	}
 )
 
+setMethod("nrow", "MxMatrix",
+	function(x) {
+	    return(nrow(x@specification))
+	}
+)
+
+setMethod("ncol", "MxMatrix",
+	function(x) {
+	    return(ncol(x@specification))
+	}
+)
+
 setMethod("[", "MxMatrix",
 	function(x, i, j, ..., drop = FALSE) {
 		return(x@values[i,j])

@@ -3,7 +3,8 @@ setClassUnion("MxAlgebraFormula", c("call", "name", "logical"))
 setClass(Class = "MxAlgebra",
 	representation = representation(
 		formula = "MxAlgebraFormula",
-		name = "character"))
+		name = "character",
+		result = "Matrix"))
 		
 setMethod("initialize", "MxAlgebra",
 	function(.Object, formula = NA, name = NA) {

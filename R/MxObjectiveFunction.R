@@ -1,9 +1,12 @@
 #
 # Objective Functions are for optimizing!
 #
-setClass(Class = "MxObjective", 
+setClass(Class = "MxBaseObjective", 
 	representation = representation(
-		name = "character", "VIRTUAL"))
+		name = "character",
+		result = "Matrix", "VIRTUAL"))
+
+setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
 setClassUnion("MxCharOrNumber", c("character", "numeric"))
 

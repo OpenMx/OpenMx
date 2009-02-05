@@ -3,7 +3,7 @@ setClass(Class = "MxRAMObjective",
 		A = "MxCharOrNumber",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber"),
-	contains = "MxObjective")
+	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
 	function(.Object, name, A, S, F) {

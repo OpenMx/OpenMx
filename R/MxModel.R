@@ -18,7 +18,7 @@ setMethod("initialize", "MxModel",
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		data = data.frame(), submodels = list(), 
-		objective = mxNullObjective(), independent = FALSE) {
+		objective = NULL, independent = FALSE) {
 		if (length(paths) > 0) {
 			.Object <- mxAddPath(.Object, paths)
 		}
@@ -41,7 +41,7 @@ setMethod("[[", "MxModel",
 		first <- x@matrices[[i]]
 		second <- x@algebras[[i]]
 		third <- x@submodels[[i]]
-		if (i == x@objective@name) {
+		if (!is.null(x@objective) && i == x@objective@name) {
 			return(x@objective)
 		} else if (is.null(first) && is.null(second)) {
 			return(third)
@@ -56,20 +56,35 @@ setMethod("[[", "MxModel",
 setReplaceMethod("[[", "MxModel",
 	function(x, i, j, value) {
 		current <- x[[i]]
-		if(!is.null(current) && !omxSameType(current, value)) {
-			stop(paste("There already exists an object", omxQuotes(i), "in this model of different type"))
+		if (is.null(current) && is.null(value)) {
+			return(x)
 		}
-		value@name <- i		
-		if (is(value,"MxMatrix")) {
+		if(i == x@name) {
+			stop(paste(omxQuotes(i), 
+				"is already used as the name of the model"))
+		}
+		if(!is.null(current) && !is.null(value) && 
+				!omxSameType(current, value)) {
+			stop(paste("There already exists an object", 
+					omxQuotes(i), 
+					"in this model of different type"))
+		}
+		if(!is.null(value)) {
+			value@name <- i
+			test <- value		
+		} else {
+			test <- current
+		}
+		if (is(test,"MxMatrix")) {
 			x@matrices[[i]] <- value
-		} else if (is(value,"MxAlgebra")) {
+		} else if (is(test,"MxAlgebra")) {
 			x@algebras[[i]] <- value		
-		} else if (is(value,"MxModel")) {
+		} else if (is(test,"MxModel")) {
 			x@submodels[[i]] <- value			
-		} else if (is(value,"MxObjective")) {
+		} else if (is(test,"MxObjective")) {
 			x@objective <- value
 		} else {
-			stop(paste("Unknown type of value", value))
+			stop("Unknown type of value", value)
 		}
 		return(x)
 	}
@@ -258,12 +273,11 @@ setMethod("omxRemoveEntries", "MxModel",
 			.Object <- omxRemoveSingleModel(.Object, models[[i]])
 		}
 		if (length(objectives) > 0) {
-			stop(paste("The remove operation is not supported on objective functions.",
-			"Instead use add operation with an MxNullObjective to overwrite."))
+			.Object@objective <- NULL
 		}
 		if (length(data) > 0) {
 			stop(paste("The remove operation is not supported on model data.",
-			"Instead use add operation on a 1x1 matrix to overwrite."))
+			"Instead use add operation on a 0x0 matrix to overwrite."))
 		}
 		return(.Object)
 	}
@@ -398,27 +412,32 @@ omxAddData <- function(.Object, dataset) {
 }
 
 omxQuotes <- function(name) {
-	return(paste("'", name, "'", sep = ''))
+	listTerms <- sapply(name, function(x) {paste("'", x, "'", sep = '')} )
+	return(paste(listTerms, collapse=', '))
 }
 
 omxDisplayModel <- function(model) {
 	cat("MxModel", omxQuotes(model@name), '\n')
-	cat("@matrices :", sapply(names(model@matrices), omxQuotes), '\n')
-	cat("@algebras :", sapply(names(model@algebras), omxQuotes), '\n')
+	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
+	cat("algebras :", omxQuotes(names(model@algebras)), '\n')
 	if (length(model@paths) > 0) {
-		cat("@latentVars :", model@latentVars, '\n')
-		cat("@manifestVars :", model@manifestVars, '\n')
-		cat("@paths :", nrow(model@paths), "paths", '\n')
+		cat("latentVars :", model@latentVars, '\n')
+		cat("manifestVars :", model@manifestVars, '\n')
+		cat("paths :", nrow(model@paths), "paths", '\n')
 	}
-	cat("@data :", nrow(model@data), "x", ncol(model@data), '\n')
-	cat("@submodels :", sapply(names(model@submodels), omxQuotes), '\n')
+	cat("data :", nrow(model@data), "x", ncol(model@data), '\n')
+	cat("submodels :", omxQuotes(names(model@submodels)), '\n')
 	objective <- model@objective
-	objectiveType <- class(objective)[[1]]	
-	if (is(objective, "MxNullObjective")) { objectiveName <- "" } 
-	else { objectiveName <- omxQuotes(objective@name) }
-	cat("@objective :", objectiveType, objectiveName, '\n')
-	cat("@independent :", model@independent, '\n')
-	cat("@output :", length(model@output) > 0)
+	if (is.null(objective)) {
+		objectiveType <- "NULL"
+		objectiveName <- ""
+	} else {
+		objectiveType <- class(objective)[[1]]
+		objectiveName <- omxQuotes(objective@name)
+	}
+	cat("objective :", objectiveType, objectiveName, '\n')
+	cat("independent :", model@independent, '\n')
+	cat("output :", length(model@output) > 0, '\n')
 }
 
 setMethod("print", "MxModel", function(x,...) { omxDisplayModel(x) })

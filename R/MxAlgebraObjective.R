@@ -1,7 +1,7 @@
 setClass(Class = "MxAlgebraObjective",
 	representation = representation(
 		algebra = "MxCharOrNumber"),
-	contains = "MxObjective")
+	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxAlgebraObjective",
 	function(.Object, name, algebra) {
