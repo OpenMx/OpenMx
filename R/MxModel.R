@@ -17,7 +17,7 @@ setMethod("initialize", "MxModel",
 	function(.Object, name = omxUntitledName(), paths = list(), 
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
-		data = data.frame(), submodels = list(), 
+		data = NULL, submodels = list(), 
 		objective = NULL, independent = FALSE) {
 		if (length(paths) > 0) {
 			.Object <- mxAddPath(.Object, paths)
@@ -192,7 +192,8 @@ filterEntries <- function(entries, paths, matrices, algebras, models, objectives
 	modLength <- length(models)
 	oLength   <- length(objectives)
 	dLength   <- length(data)
-	if (is(head, "MxMatrix")) {
+	if (is.null(head)) {
+	} else if (is(head, "MxMatrix")) {
 		matrices[[matLength + 1]] <- head
 	} else if (is(head, "MxAlgebra")) {
 		algebras[[aLength + 1]] <- head
@@ -276,8 +277,7 @@ setMethod("omxRemoveEntries", "MxModel",
 			.Object@objective <- NULL
 		}
 		if (length(data) > 0) {
-			stop(paste("The remove operation is not supported on model data.",
-			"Instead use add operation on a 0x0 matrix to overwrite."))
+			.Object@data <- NULL
 		}
 		return(.Object)
 	}
@@ -425,7 +425,11 @@ omxDisplayModel <- function(model) {
 		cat("manifestVars :", model@manifestVars, '\n')
 		cat("paths :", nrow(model@paths), "paths", '\n')
 	}
-	cat("data :", nrow(model@data), "x", ncol(model@data), '\n')
+	if (is.null(model@data)) {
+		cat("data : NULL\n")
+	} else {
+		cat("data :", nrow(model@data), "x", ncol(model@data), '\n')
+	}
 	cat("submodels :", omxQuotes(names(model@submodels)), '\n')
 	objective <- model@objective
 	if (is.null(objective)) {

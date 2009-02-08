@@ -1,1 +1,1 @@
-setClassUnion("MxData", c("data.frame", "matrix"))
+setClassUnion("MxData", c("data.frame", "matrix", "NULL"))

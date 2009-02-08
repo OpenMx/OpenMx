@@ -58,12 +58,13 @@ omxShareData <- function(model) {
 }
 
 omxShareDataHelper <- function(model, current) {
-	if((length(model@data) == 0) && (model@independent == TRUE)) {
+	if(is.null(model@data) && (model@independent == TRUE)) {
 		model@data <- current
 	} else {
 		current <- model@data
 	}
-	submodels <- lapply(model@submodels, function(x) { omxShareDataHelper(x, current) })
+	submodels <- lapply(model@submodels, function(x)
+		{ omxShareDataHelper(x, current) })
 	model@submodels <- submodels
 	return(model)
 }

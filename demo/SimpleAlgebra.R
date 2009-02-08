@@ -1,19 +1,5 @@
 library(OpenMx)
 
-modelFit <-function(model, objective) {
-	matList <- omxGenerateMatrixList(model)
-	algList <- omxGenerateAlgebraList(model)
-	varList <- omxGenerateParameterList(model)
-	startVals <- c() # omxGenerateValueList(model)
-	print(algList)
-	print(objective)
-	return(testFit(objective, startVals, c(), matList, varList, algList))
-}
-
-testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varList=list(), algList=list(), data=c(), state=c()) {
-	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
-}
-
 O <- mxMatrix("Full", c(3), nrow=1, ncol=1, name="O")
 A <- mxMatrix("Full", c(1, 2), nrow=1, ncol=2, name="A")
 B <- mxMatrix("Full", c(3, 4), ncol=1, nrow=2, name="B")
@@ -28,9 +14,9 @@ model <- mxModel(model, O)
 # Test 1: Algebra is just a matrix.
 
 model <- mxModel(model, AlgA)
-objectiveA <- mxAlgebraObjective(model, "AlgA")
-outputA <- modelFit(model, objectiveA)
-outputA
+model <- mxModel(model, mxAlgebraObjective(algebra = "AlgA"))
+model <- mxJobRun(model)
+outputA <- model@output
 
 valA <- O[1,1]
 diffA <- (valA - outputA$minimum) / valA
@@ -40,9 +26,10 @@ diffA
 
 model <- mxModel(model, B)
 model <- mxModel(model, AlgAB)
-objectiveAB <- mxAlgebraObjective(model, "AlgAB")
-outputAB <- modelFit(model, objectiveAB)
-outputAB
+model <- mxModel(model, mxAlgebraObjective(algebra = "AlgAB"))
+model <- mxJobRun(model)
+outputAB <- model@output
+
 AB <- (A@values %*% B@values)[1,1]
 diffAB <- (AB - outputAB$minimum) / AB
 diffAB
@@ -50,9 +37,9 @@ diffAB
 # Test 2: Algebra is two multiplies
 
 model <- mxModel(model, AlgdoubleMult)
-objectivedoubleMult <- mxAlgebraObjective(model, "AlgdoubleMult")
-outputdoubleMult <- modelFit(model, objectivedoubleMult)
-outputdoubleMult
+model <- mxModel(model, mxAlgebraObjective(algebra = "AlgdoubleMult"))
+model <- mxJobRun(model)
+outputdoubleMult <- model@output
 doubleMult <- ((A@values%*%B@values) %*% O@values)[1,1]
 diffdoubleMult <- (doubleMult - outputdoubleMult$minimum) / doubleMult
 diffdoubleMult

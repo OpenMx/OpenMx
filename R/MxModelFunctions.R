@@ -90,6 +90,34 @@ updateModelValueHelper <- function(triples, value, treeModel, flatModel) {
 	return(treeModel)
 }
 
+omxUpdateModelAlgebras <- function(treeModel, flatModel, values) {
+	aList <- omxGenerateAlgebraList(flatModel)
+	if(length(aList) != length(values)) {
+		stop(paste("This model has", length(aList), 
+			"algebras, but you have given me", length(values),
+			"values"))
+	}
+	if (length(aList) == 0) {
+		return(treeModel)
+	}	
+	treeModel <- updateModelAlgebraHelper(aList, values, treeModel)
+	return(treeModel)
+}
+
+updateModelAlgebraHelper <- function(aList, values, model) {
+	aNames <- names(aList)
+	for(i in 1:length(aList)) {
+		name <- aNames[[i]]
+		candidate <- model[[name]]
+		if (!is.null(candidate) && is(candidate,"MxAlgebra")) {
+			model[[name]]@result <- Matrix(values[[i]])
+		}
+	}
+	model@submodels <- lapply(model@submodels, function(x) {updateModelAlgebraHelper(aList, values, x)})
+	return(model)
+}
+
+
 omxUpdateModelObjective <- function(model, result) {
 	if(!is.null(model@objective)) {
 		model@objective@result <- Matrix(result)

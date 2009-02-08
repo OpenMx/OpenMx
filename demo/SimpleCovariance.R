@@ -1,31 +1,26 @@
+library(OpenMx)
 
-model <- MxModel()
-model$A <- FullMatrix(2, 2, free=TRUE)
-model$S <- FullMatrix(2, 2, free=TRUE)
-model$F <- FullMatrix(2, 2)
-model$I <- IdenMatrix(2, 2)
-model$cov <- MxAlgebra(model$F %&% (solve(model$I - model$A) %&% model$S))
+# Define a model
+model <- mxModel()
+model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name = "A", nrow = 2, ncol = 2))
+model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
+model <- mxModel(model, mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2))
 
-# Three equivalent ways to invoke the same method
-setValues(model$A,c(0,0,0.2,0))
-model$S$values <- c(0.8,0,0,0.8)
-model$F$setValues(c(1,0,0,1))
+model[["A"]]@specification[2,1] <- NA
+model[["S"]]@specification[2,1] <- 0
+model[["S"]]@specification[1,2] <- 0
+model[["S"]]@specification[1,1] <- "apple"
+model[["S"]]@specification[2,2] <- "banana"
 
-# It is possible to set elements using a vector, or
-# a matrix, or element-by-element.
-model$A$parameters <- c(0,0,1,0)
-model$S$parameters[1,2] <- model$S$parameters[2,1] <- "0";
-model$S$parameters[1,1] <- "banana";
-model$S$parameters[2,2] <- "apple";
-model$F$parameters <- matrix(0,2,2)
+# Define the objective function
+objective <- mxRAMObjective("objective")
 
-covMatrix <- matrix(c(0.77642931, 0.39590663, 0.39590663, 0.49115615),
-	nrow = 2, ncol = 2, byrow = TRUE)
+# Define the observed covariance matrix
+covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), nrow = 2, ncol = 2, byrow = TRUE)
 
-objective <- CovarianceObjective(model$cov, covMatrix)
+# Add the objective function and the data to the model
+model <- mxModel(model, objective, covMatrix)
 
-job <- MxJob(model, objective)
-
-jobClosure <- createMxClosure(job, use_R=TRUE)
-
-jobClosure()
+# Run the job
+model <- mxJobRun(model)
+print(model@output)

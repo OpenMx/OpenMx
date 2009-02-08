@@ -1,5 +1,5 @@
-SimpleCovariance	A simple example of using a covariance objective function
-SimpleRaw	A simple example of using a raw objective function
 MxPathDemo	Using the OpenMx path interface
 SEM2002paper	A simple example path model (Figure 3) from 2002 SEM paper.
-SimpleCovarianceS4	Using the backend to perform covariance optimization	
+SimpleCovariance	Using the backend to perform covariance optimization	
+SimpleFIML	Using the backend to perform FIML optimization
+SimpleAlgebra	A simple example of using algebra statements
