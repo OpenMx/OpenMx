@@ -430,6 +430,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	*/
 	
 		/* Output Options */
+		strcpy(option, "Nolist"); 						// Suppress that annoying output file
+		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Print level 0");  				// 0 = No Output, 20=Verbose
 		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Minor print level 0");			// 0 = No Output, 20=Verbose
@@ -444,10 +446,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		/* Options That Change The Optimizer */
 		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
 		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Derivative Level 0");
+		strcpy(option, "Derivative Level 0");			// Always estimate gradient and hessian
 		F77_CALL(npoptn)(option, strlen(option));	
-		strcpy(option, "Hessian Yes");	
+		strcpy(option, "Hessian Yes");					// Evaluate Hessian
 		F77_CALL(npoptn)(option, strlen(option));
+														// Iteration limit is max(50, 3(numFreeParams + numLinearConstraints) + 10numNonlinear)
 		
 	/*  F77_CALL(npsol)
 		(	int *n,					-- Number of variables
@@ -670,15 +673,20 @@ void F77_SUB(RAMObjFun)
 	double One = 1.0;
 	double Two = 2.0;
 	int ipiv[I->rows];
-	double work[5];
-	int lwork = 5;
+	double *work;
+	int lwork;
 	
 	/* Z = (I-A)^-1 */
 	if(OMX_DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
 	
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
 	F77_CALL(dgetrf)(&(Z->cols), &(Z->rows), Z->data, &(Z->cols), ipiv, &l);
+	lwork = (Z->rows);
+	lwork = (lwork >= 1?lwork:1);
+	/* TODO: Work should be declared statically to save memory thrashing. */
+	work = (double*)malloc(lwork * sizeof(double));
 	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->cols), ipiv, work, &lwork, &l);
+	free(work);
 
 	/* C = FZSZ'F' */ // There MUST be an easier way to do this.  I'm thinking matrix class->
 	F77_CALL(dgemm)(&Trans, &Trans, &(Z->cols), &(Z->rows), &(F->cols), &One, Z->data, &(Z->cols), F->data, &(F->cols), &Zero, Y->data, &(Y->cols)); 		// C = ...Z'F'

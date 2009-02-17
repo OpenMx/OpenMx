@@ -89,7 +89,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 	}
 	omxMatrixCompute(oa->myMatrix);
 	
-	omxAlgebraPrint(oa, "Result is:");
+	if(OMX_DEBUG) { omxAlgebraPrint(oa, "Result is"); }
 
 	oa->myMatrix->isDirty = FALSE;
 }
