@@ -25,7 +25,7 @@ ex2Model <- mxModel(ex2Model,
                         startVal=1))
                         
 ex3Model <- mxModel(ex2Model,
-           mxPath(from=myLatent, all=TRUE, free=FALSE, startVal=0), # this line does nothing?
+           mxPath(from=myLatent, all=TRUE, free=FALSE, startVal=0), # Remove free covariances between latents
            mxPath(from=myLatent, free=TRUE, startVal=1),
            mxPath(from="G6", to=myLatent, 
                   all=TRUE, free=TRUE, startVal=.75, arrows=1),
