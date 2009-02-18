@@ -1,25 +1,28 @@
 setClass(Class = "MxFIMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
-		means = "MxCharOrNumber"),
+		means = "MxCharOrNumber",
+		data = "numeric"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, name, covariance, means) {
+	function(.Object, name, covariance, means, data = NA_real_) {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
+		.Object@data <- data
 		return(.Object)
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxModel"), 
+setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"), 
 	function(.Object, model) {
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
-		covarianceIndex <- omxLocateIndex(model, covariance)
-		meansIndex <- omxLocateIndex(model, means)
+		covarianceIndex <- omxLocateIndex(model, covariance, name)
+		meansIndex <- omxLocateIndex(model, means, name)
+		dIndex <- match(.Object@name, names(model@datasets)) - 1
 		if (is.na(covarianceIndex)) {
 			stop(paste("Could not find a matrix/algebra with name", 
 			covariance, "in the model."))
@@ -28,7 +31,11 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxModel"),
 			stop(paste("Could not find a matrix/algebra with name", 
 			means, "in the model."))
 		}
-		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex))
+		if (is.na(dIndex)) {
+			stop(paste("Could not find a data set for objective", 
+			.Object@name, "in the model."))
+		}
+		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex))
 })
 
 mxFIMLObjective <- function(name = omxUntitledName(), covariance, means) {

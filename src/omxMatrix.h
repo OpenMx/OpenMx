@@ -21,6 +21,7 @@
 #include <R_ext/Lapack.h> 
 
 #include "omxAlgebra.h"
+#include "omxObjective.h"
 
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
@@ -52,8 +53,9 @@ struct omxMatrix {						// A matrix
 	const char* minority;				// Filled by compute(), included for speed
 	int leading;						// Leading edge; depends on original majority
 
-/* For Algebra Functions */
+/* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
+	omxObjective* objective;			// If it's not an objective function, this is NULL.
 
 };
 

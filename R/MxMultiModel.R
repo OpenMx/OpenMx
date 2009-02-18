@@ -21,25 +21,23 @@ omxNameAlignment <- function(lst1, lst2) {
 		"do not match their designations"))
 }
 
+omxCheckNamedEntity <- function(model, slotname, nlist) {
+	entity <- slot(model, slotname)
+	omxNameAlignment(names(entity), omxGetNames(entity))
+	entityIntersect <- intersect(names(entity), nlist)
+	if (length(entityIntersect) > 0) {
+		stop(omxNamespaceErrorMessage(entityIntersect), call.=FALSE)
+	}
+	nlist <- append(nlist, names(entity))
+	return(nlist)
+}
+
 omxCheckNamespaceHelper <- function(model, nlist) {
-	omxNameAlignment(names(model@matrices), omxGetNames(model@matrices))
-	matrixIntersect <- intersect(names(model@matrices), nlist)
-	if (length(matrixIntersect) > 0) {
-		stop(omxNamespaceErrorMessage(matrixIntersect), call.=FALSE)
-	}
-	nlist <- append(nlist, names(model@matrices))
-	omxNameAlignment(names(model@algebras), omxGetNames(model@algebras))
-	algebraIntersect <- intersect(names(model@algebras), nlist)
-	if (length(algebraIntersect) > 0) {
-		stop(omxNamespaceErrorMessage(algebraIntersect), call.=FALSE)
-	}
-	nlist <- append(nlist, names(model@algebras))
-	omxNameAlignment(names(model@submodels), omxGetNames(model@submodels))
-	modelIntersect <- intersect(names(model@submodels), nlist)
-	if (length(modelIntersect) > 0) {
-		stop(omxNamespaceErrorMessage(modelIntersect), call.=FALSE)
-	}
-	nlist <- append(nlist, names(model@submodels))
+	nlist <- omxCheckNamedEntity(model, "matrices", nlist)
+	nlist <- omxCheckNamedEntity(model, "algebras", nlist)
+	nlist <- omxCheckNamedEntity(model, "submodels", nlist)
+	nlist <- omxCheckNamedEntity(model, "constraints", nlist)
+	nlist <- omxCheckNamedEntity(model, "bounds", nlist)
 	if (!is.null(model@objective) && (model@objective@name %in% nlist)) {
 		stop(omxNamespaceErrorMessage(model@objective@name), call.=FALSE)
 	} else if(!is.null(model@objective)) {
@@ -58,7 +56,7 @@ omxShareData <- function(model) {
 }
 
 omxShareDataHelper <- function(model, current) {
-	if(is.null(model@data) && (model@independent == TRUE)) {
+	if(is.null(model@data)) {
 		model@data <- current
 	} else {
 		current <- model@data
@@ -132,18 +130,26 @@ omxFreezeModel <- function(model) {
 }
 
 omxFlattenModel <- function(model) {
-	res <- omxFlattenModelHelper(model, model)
+	res <- new("MxFlatModel", model, list(), list())
+	res <- omxFlattenModelHelper(model, res)
 	res@submodels <- list()
 	return(res)
 }
 
 omxFlattenModelHelper <- function(model, dest) {
+	if (!is.null(model@objective)) {
+		name <- model@objective@name
+		dest@objectives[[name]] <- model@objective
+		dest@datasets[[name]] <- model@data
+	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			submodel <- model@submodels[[i]]
-			dest@matrices <- append(dest@matrices, submodel@matrices)
-			dest@algebras <- append(dest@algebras, submodel@algebras)
-			# TODO: objective functions!
+			dest@matrices    <- append(dest@matrices, submodel@matrices)
+			dest@algebras    <- append(dest@algebras, submodel@algebras)
+			dest@constraints <- append(dest@constraints, 
+				submodel@constraints) 
+			dest@bounds      <- append(dest@bounds, submodel@bounds)
 			dest <- omxFlattenModelHelper(submodel, dest)
 		}
 	}

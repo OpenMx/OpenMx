@@ -24,12 +24,47 @@ mxAlgebra <- function(expression, name = NA) {
 	return(retval)	
 }
 
+defStringsAsFactors <- getOption('stringsAsFactors')
 options(stringsAsFactors = FALSE)
 data(omxSymbolTable)
-options(stringsAsFactors = TRUE)
+options(stringsAsFactors = defStringsAsFactors)
+
+
+omxFormulaList <- function(x) {
+	retval <- as.list(x)
+	retval <- lapply(retval, function(x) {
+		if(is.call(x)) {omxFormulaList(x)} else {x}
+	})
+	return(retval)
+}
+
+omxNumericCheck <- function(formula, name) {
+	formula <- unlist(omxFormulaList(formula))
+	test <- sapply(formula, is.numeric)
+	if(any(test)) {
+		msg <- paste("There is a numeric operand in",
+			"the algebra named", omxQuotes(name))
+		stop(msg, call. = FALSE)
+	}
+}
+
+omxSymbolCheck <- function(formula, name) {
+	formula <- unlist(omxFormulaList(formula))
+	test <- sapply(formula, function(x) {!is.numeric(x)})
+	if(length(formula[test]) == 1) {
+		msg <- paste("The reference", omxQuotes(formula[test]),
+			"is unknown in the algebra named", omxQuotes(name))
+		stop(msg, call. = FALSE)
+	} else if (length(formula[test]) > 1) {
+		msg <- paste("The references", omxQuotes(formula[test]),
+			"are unknown in the algebra named", omxQuotes(name))
+		stop(msg, call. = FALSE)		
+	}
+}
 
 generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- algebra@formula
+	omxNumericCheck(retval, algebra@name)
 	matrixNumbers <- as.list(as.double(-1 : (-length(matrixNames))))
 	algebraNumbers <- as.list(as.double(0 : (length(algebraNames) - 1)))
 	names(matrixNumbers) <- matrixNames
@@ -37,6 +72,7 @@ generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- eval(substitute(substitute(e, matrixNumbers), list(e = retval)))
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval))
+	omxSymbolCheck(retval, algebra@name)
 	return(retval)
 }
 

@@ -85,13 +85,16 @@ convertModelF <- function(model) {
 }
 
 omxConvertPathModel <- function(model) {
-	if (!is.na(omxLocateIndex(model, "A"))) {
+	if(inherits(try(omxLocateIndex(model, "A", model@name), 
+		silent = TRUE), "try-error")) {
 		warning("Overwriting existing 'A' matrix/algebra while converting RAM-style model")
 	}
-	if (!is.na(omxLocateIndex(model, "S"))) {
+	if(inherits(try(omxLocateIndex(model, "S", model@name),
+		silent = TRUE), "try-error")) {
 		warning("Overwriting existing 'S' matrix/algebra while converting RAM-style model")
 	}
-	if (!is.na(omxLocateIndex(model, "F"))) {
+	if(inherits(try(omxLocateIndex(model, "F", model@name),
+		silent = TRUE), "try-error")) {
 		warning("Overwriting existing 'F' matrix/algebra while converting RAM-style model")
 	}
 	model[['A']] <- convertModelA(model)

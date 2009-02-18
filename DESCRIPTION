@@ -19,6 +19,4 @@ License: TBD
 Depends: Matrix, mnormt
 LazyLoad: yes
 LazyData: yes
-Collate: MxData.R MxSparseMatrix.R MxSymmetricSparse.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUntitled.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxRAMObjective.R MxJob.R zzz.R MxSwift.R
-
-
+Collate: MxData.R MxCharOrNumber.R MxSparseMatrix.R MxSymmetricSparse.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxModel.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUntitled.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxRAMObjective.R MxJob.R MxSwift.R zzz.R

@@ -11,12 +11,13 @@ setMethod("initialize", "MxAlgebraObjective",
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxAlgebraObjective", "MxModel"), function(.Object, model) {
+setMethod("omxObjFunConvert", signature("MxAlgebraObjective", "MxFlatModel"), function(.Object, model) {
 		name <- .Object@name
 		algebra <- .Object@algebra
-		algebraIndex <- omxLocateIndex(model, algebra)
+		algebraIndex <- omxLocateIndex(model, algebra, name)
 		if (is.na(algebraIndex)) {
-			stop(paste("Could not find a matrix/algebra with name", algebra, "in the model."))
+			stop(paste("Could not find a matrix/algebra with name", 
+				algebra, "in the model."))
 		}
 		return(new("MxAlgebraObjective", name, algebraIndex))
 })

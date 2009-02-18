@@ -58,6 +58,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
+	om->objective = NULL;
 	
 	omxMatrixCompute(om);
 	
@@ -103,6 +104,7 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 	omxCopyMatrix(dest, src);
 	dest->aliasedPtr = src->data;						// Interesting Aside: back matrix can change without alias
 	dest->algebra = NULL;
+	dest->objective = NULL;
 }
 
 void omxFreeMatrixData(omxMatrix * om) {
@@ -130,6 +132,11 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 		omxFreeAlgebraArgs(om->algebra);
 		om->algebra = NULL;
 	}
+	
+	if(om->objective != NULL) {
+		omxFreeObjectiveArgs(om->objective);
+		om->objective = NULL;
+	}
 
 }
 
@@ -147,6 +154,11 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 	if(OMX_DEBUG) { Rprintf(".\n"); }
 	om->rows = nrows;
 	om->cols = ncols;
+	if(keepMemory == FALSE) {
+		om->originalRows = om->rows;
+		om->originalCols = om->cols;
+	}
+	
 	omxMatrixCompute(om);
 }
 
@@ -217,12 +229,15 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	
 	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
 	
+	if(matrix == NULL) error("Null Matrix detected.\n");
+	
 	/* Sanity Check */
 	if(!isMatrix(matrix) && !isVector(matrix)) {
 		SEXP values;
 		int *rowVec, *colVec;
 		double  *dataVec;
 		const char *stringName;
+		if(OMX_DEBUG) {Rprintf("R Matrix is an object of some sort.\n");}
 		PROTECT(className = getAttrib(matrix, install("class")));
 		if(strncmp(CHAR(STRING_ELT(className, 0)), "Symm", 2) != 0) { // Should be "Mx"
 			error("omxMatrix::fillFromMatrix--Passed Non-vector, non-matrix SEXP.\n");
@@ -271,6 +286,7 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	om->originalColMajor = TRUE;
 	om->aliasedPtr = om->data;
 	om->algebra = NULL;
+	om->objective = NULL;
 	
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
 	omxMatrixCompute(om);
@@ -343,23 +359,26 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 /* Function wrappers that switch based on inclusion of algebras */
 void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
-	if(source->algebra == NULL) omxMatrixPrint(source, d);
-	else omxAlgebraPrint(source->algebra, d); 
+	if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
+	else if(source->objective != NULL) omxObjectivePrint(source->objective, d);
+	else omxMatrixPrint(source, d);
 }
 
 unsigned short inline omxNeedsUpdate(omxMatrix *matrix) {
-	if(matrix->algebra == NULL) omxMatrixNeedsUpdate(matrix);
-	else omxAlgebraNeedsUpdate(matrix->algebra); 
+	if(matrix->algebra != NULL) omxAlgebraNeedsUpdate(matrix->algebra); 
+	else if(matrix->objective != NULL) omxObjectiveNeedsUpdate(matrix->objective);
+	else omxMatrixNeedsUpdate(matrix);
 }
 
 void inline omxRecomputeMatrix(omxMatrix *matrix) {
 	if(!omxNeedsUpdate(matrix)) return;
-	if(matrix->algebra == NULL) omxMatrixCompute(matrix); 
-	else omxAlgebraCompute(matrix->algebra); 
+	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
+	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
+	else omxMatrixCompute(matrix);
 }
 
-
 void inline omxComputeMatrix(omxMatrix *matrix) {
-	if(matrix->algebra == NULL) omxMatrixCompute(matrix); 
-	else omxAlgebraCompute(matrix->algebra);
+	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
+	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
+	else omxMatrixCompute(matrix);
 }

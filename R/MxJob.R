@@ -11,14 +11,16 @@ mxJobRun <- function(model) {
 	mList <- omxGenerateSimpleMatrixList(flatModel)
 	aList <- omxGenerateAlgebraList(flatModel)
 	startVals <- omxGenerateValueList(flatModel)
+	oList <- omxConvertObjectives(flatModel)
+	aList <- append(aList, oList)
 	bounds <- c()
 	state <- c()
-	objective <- omxObjFunConvert(flatModel@objective, model)
+	objective <- omxObjectiveIndex(flatModel)
+	data <- flatModel@datasets
 	output <- .Call("callNPSOL", objective, startVals, 
-		bounds, mList, pList, aList, model@data, state)
+		bounds, mList, pList, aList, data, state)
 	model@output <- output
 	model <- omxUpdateModelValues(model, flatModel, output$estimate)
-	model <- omxUpdateModelObjective(model, output$minimum)
 	model <- omxUpdateModelAlgebras(model, flatModel, output$algebras)
 	return(model)
 }

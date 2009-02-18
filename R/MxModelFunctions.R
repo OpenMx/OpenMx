@@ -7,9 +7,13 @@ omxGenerateSimpleMatrixList <- function(mxModel) {
 	return(lapply(retval, as.matrix))
 }
 
+
 omxGenerateAlgebraList <- function(mxModel) {
+	mNames <- names(mxModel@matrices)
+	aNames <- names(mxModel@algebras)
+	oNames <- names(mxModel@objectives)
     retval <- lapply(mxModel@algebras, generateAlgebraHelper, 
-    	names(mxModel@matrices), names(mxModel@algebras))
+    	mNames, append(aNames, oNames))
     return(retval)
 }
 
@@ -56,6 +60,22 @@ generateValueHelper <- function(triple, mList) {
 	return(mList[[mat]][row,col])
 }
 
+omxConvertObjectives <- function(flatModel) {
+	retval <- lapply(flatModel@objectives, function(x) {
+		omxObjFunConvert(x, flatModel)
+	})
+	return(retval)
+}
+
+omxObjectiveIndex <- function(flatModel) {
+	objective <- flatModel@objective
+	if(is.null(objective)) {
+		return(NULL)
+	} else {
+		return(omxLocateIndex(flatModel, objective@name, flatModel@name))
+	}
+}
+
 omxUpdateModelValues <- function(treeModel, flatModel, values) {
 	pList <- omxGenerateParameterList(flatModel)
 	if(length(pList) != length(values)) {
@@ -91,7 +111,9 @@ updateModelValueHelper <- function(triples, value, treeModel, flatModel) {
 }
 
 omxUpdateModelAlgebras <- function(treeModel, flatModel, values) {
-	aList <- omxGenerateAlgebraList(flatModel)
+	aNames <- names(flatModel@algebras)
+	oNames <- names(flatModel@objectives)
+	aList <- append(aNames, oNames)
 	if(length(aList) != length(values)) {
 		stop(paste("This model has", length(aList), 
 			"algebras, but you have given me", length(values),
@@ -105,31 +127,30 @@ omxUpdateModelAlgebras <- function(treeModel, flatModel, values) {
 }
 
 updateModelAlgebraHelper <- function(aList, values, model) {
-	aNames <- names(aList)
 	for(i in 1:length(aList)) {
-		name <- aNames[[i]]
+		name <- aList[[i]]
 		candidate <- model[[name]]
-		if (!is.null(candidate) && is(candidate,"MxAlgebra")) {
+		if (!is.null(candidate) && 
+			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
 			model[[name]]@result <- Matrix(values[[i]])
 		}
 	}
-	model@submodels <- lapply(model@submodels, function(x) {updateModelAlgebraHelper(aList, values, x)})
+	model@submodels <- lapply(model@submodels, function(x) {
+		updateModelAlgebraHelper(aList, values, x)})
 	return(model)
 }
 
-
-omxUpdateModelObjective <- function(model, result) {
-	if(!is.null(model@objective)) {
-		model@objective@result <- Matrix(result)
-	}
-	return(model)
-}
-
-omxLocateIndex <- function(model, name) {
-	matrixNumber <- match(name, names(model@matrices))
-	algebraNumber <- match(name, names(model@algebras))
+omxLocateIndex <- function(model, name, referant) {
+	mNames <- names(model@matrices)
+	aNames <- names(model@algebras)
+	oNames <- names(model@objectives)		
+	matrixNumber <- match(name, mNames)
+	algebraNumber <- match(name, append(aNames, oNames))
 	if (is.na(matrixNumber) && is.na(algebraNumber)) {
-		return(NA)
+		msg <- paste("The reference", omxQuotes(name),
+			"does not exist.  It is used by the named entity",
+			omxQuotes(referant),".")
+		stop(msg, call.=FALSE)
 	} else if (is.na(algebraNumber)) {
 		return(- matrixNumber)
 	} else {

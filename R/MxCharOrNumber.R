@@ -1,0 +1,1 @@
+setClassUnion("MxCharOrNumber", c("character", "numeric"))
