@@ -16,8 +16,8 @@ model <- mxModel(model, O)
 model <- mxModel(model, AlgA)
 model <- mxModel(model, mxAlgebraObjective(algebra = "AlgA"))
 model <- mxJobRun(model)
-outputA <- model@output
 
+outputA <- model@output
 valA <- O[1,1]
 diffA <- (valA - outputA$minimum) / valA
 diffA
@@ -28,8 +28,8 @@ model <- mxModel(model, B)
 model <- mxModel(model, AlgAB)
 model <- mxModel(model, mxAlgebraObjective(algebra = "AlgAB"))
 model <- mxJobRun(model)
-outputAB <- model@output
 
+outputAB <- model@output
 AB <- (A@values %*% B@values)[1,1]
 diffAB <- (AB - outputAB$minimum) / AB
 diffAB
@@ -39,6 +39,7 @@ diffAB
 model <- mxModel(model, AlgdoubleMult)
 model <- mxModel(model, mxAlgebraObjective(algebra = "AlgdoubleMult"))
 model <- mxJobRun(model)
+
 outputdoubleMult <- model@output
 doubleMult <- ((A@values%*%B@values) %*% O@values)[1,1]
 diffdoubleMult <- (doubleMult - outputdoubleMult$minimum) / doubleMult
