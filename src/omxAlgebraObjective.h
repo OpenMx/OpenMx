@@ -26,6 +26,10 @@ void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give
 
 }
 
+unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
+	return omxMatrixNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
+}
+
 void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	SEXP newptr;
@@ -34,6 +38,8 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxNewMatrixFromMxMatrixPtr(newptr);
 	UNPROTECT(1);
+	
+	oo->needsUpdateFun = omxNeedsUpdateAlgebraObjective;
 	
 	oo->argStruct = (void*) newObj;
 }

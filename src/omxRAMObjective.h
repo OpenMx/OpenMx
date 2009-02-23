@@ -100,6 +100,15 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 }
 
+unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
+	
+	return(omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->A)
+	 	|| omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->S)
+	 	|| omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->F));
+	
+	// Note: cov is data, and should never need updating.
+}
+
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	int l, k;
@@ -152,6 +161,8 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->C = omxInitMatrix(NULL, k, k, TRUE);
 	newObj->lwork = k;
 	newObj->work = (double*)R_alloc(sizeof(double), newObj->lwork);
+	
+	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	
 	oo->argStruct = (void*) newObj;
 }

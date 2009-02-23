@@ -140,13 +140,13 @@ mxMatrix <- function(type = "Full", values = NA,
 }
 
 
-processSparseMatrix <- function(specification, result, matrixNumber, reverse=FALSE) {
+processSparseMatrix <- function(specification, bounds, result, matrixNumber, reverse=FALSE) {
 	if (length(specification@dataVector) == 0) {
 		return(result)
 	}
 	for(i in 1:length(specification@dataVector)) {
 	    if (reverse == FALSE || specification@rowVector[i] != specification@colVector[i]) {
-		    data <- as.character(specification@dataVector[[i]])
+		    parameterName <- as.character(specification@dataVector[[i]])
 		    if (reverse) {
 			    col <- specification@rowVector[i]
 			    row <- specification@colVector[i]
@@ -154,15 +154,20 @@ processSparseMatrix <- function(specification, result, matrixNumber, reverse=FAL
 			    row <- specification@rowVector[i]
 			    col <- specification@colVector[i]			
 			}
-			if (is.na(data)) {
-				result[[length(result)+1]] <-  list(c(matrixNumber, row, col))
+			boundsLookup <- omxLocateBounds(bounds, parameterName)
+			minBounds <- boundsLookup[[1]]
+			maxBounds <- boundsLookup[[2]]
+			if (is.na(parameterName)) {
+				result[[length(result)+1]] <-  list(minBounds, maxBounds, 
+					c(matrixNumber, row, col))
 			} else {
-				if (!is.null(result[[data]])) {
-					original <- result[[data]]
+				if (!is.null(result[[parameterName]])) {
+					original <- result[[parameterName]]
 					original[[length(original) + 1]] <- c(matrixNumber, row, col)
-					result[[data]] <- original				
+					result[[parameterName]] <- original
 				} else {
-					result[[data]] <- list(c(matrixNumber, row,col))
+					result[[parameterName]] <- list(minBounds, maxBounds, 
+						c(matrixNumber, row,col))
 				}
 			}
 		}
@@ -179,11 +184,14 @@ generateMatrixListHelper <- function(mxMatrix) {
     }
 }
 
-generaterParameterListHelper <- function(mxMatrix, result, matrixNumber) {
+omxGenerateParameterListHelper <- function(mxMatrix, bounds,
+	result, matrixNumber) {
 	specification <- mxMatrix@specification
-	result <- processSparseMatrix(specification, result, matrixNumber)
+	result <- processSparseMatrix(specification, bounds,
+		result, matrixNumber)
 	if(is(specification,"MxSymmetricSparse")) {
-		result <- processSparseMatrix(specification, result, matrixNumber, TRUE)
+		result <- processSparseMatrix(specification, bounds, 
+			result, matrixNumber, TRUE)
 	}
 	return(result)
 }

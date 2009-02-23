@@ -3,4 +3,5 @@
 .First.lib <- function(libname, pkgname) {
    library.dynam("OpenMx") 
    untitledNumber <<- 0
+   omxConstraintRelations <<- c("<", "=", ">")   
 }

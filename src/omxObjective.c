@@ -34,11 +34,16 @@ void omxObjectiveCompute(omxObjective *oo) {
 
 	oo->objectiveFun(oo);
 
+	oo->myMatrix->isDirty = FALSE;
+
 }
 
 unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 {
-	/* Should we let objective functions calculate this for themselves?  Might be complicated. */
+	if(!(oo->needsUpdateFun == NULL)) {
+		return oo->needsUpdateFun(oo);
+	}
+	
 	return 1;
 
 }
@@ -54,6 +59,9 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 	obj->myMatrix = om;
 	omxResizeMatrix(om, 1, 1, FALSE);					// Objective matrices MUST be 1x1.
 	om->objective = obj;
+	
+	/* Default NeedsUpdate is NULL */
+	obj->needsUpdateFun = NULL;
 	
 	/* Get Objective Type */
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
@@ -83,9 +91,16 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 	}
 
 	obj->initFun(obj, rObj, dataList);
+	
+	obj->myMatrix->isDirty = TRUE;
 
 	UNPROTECT(1);	/* objectiveClass */
 
+}
+
+void omxObjectiveGradient(omxObjective* oo, double* gradient) {
+	if(!(oo->gradientFun == NULL)) { oo->gradientFun(oo, gradient); }
+	return;
 }
 
 void omxObjectivePrint(omxObjective* oo, char* d) {

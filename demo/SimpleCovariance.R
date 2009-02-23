@@ -5,6 +5,7 @@ model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name = "A", nrow = 2, ncol = 2))
 model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2))
+model <- mxModel(model, mxBounds("Variance", 0, NA, c("apple", "banana")))
 
 model[["A"]]@specification[2,1] <- NA
 model[["S"]]@specification[2,1] <- 0
@@ -23,4 +24,5 @@ model <- mxModel(model, objective, covMatrix)
 
 # Run the job
 model <- mxJobRun(model)
+
 print(model@output)

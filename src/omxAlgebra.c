@@ -224,3 +224,19 @@ omxMatrix* omxNewMatrixFromMxMatrixPtr(SEXP matrix) {
 	UNPROTECT(1); // intMatrix
 	return output;
 }
+
+omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2) {
+	/* For now, we'll be content with 2 args. */
+	
+	omxMatrix *om;
+	omxAlgebra *oa = (omxAlgebra*) R_alloc(sizeof(omxAlgebra), 1);
+	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
+	
+	om = omxInitAlgebra(oa);
+	omxFillAlgebraFromTableEntry(oa, entry);
+	oa->args[0] = arg1;
+	oa->args[2] = arg2;
+	
+	return om;
+	
+}

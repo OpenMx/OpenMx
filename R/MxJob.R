@@ -7,20 +7,23 @@ mxJobRun <- function(model) {
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(dshare, independents)
 	flatModel <- omxFlattenModel(depModel)
-	pList <- omxGenerateParameterList(flatModel)
-	mList <- omxGenerateSimpleMatrixList(flatModel)
-	aList <- omxGenerateAlgebraList(flatModel)
+	parameters <- omxGenerateParameterList(flatModel)
+	matrices <- omxGenerateSimpleMatrixList(flatModel)
+	algebras <- omxGenerateAlgebraList(flatModel)
 	startVals <- omxGenerateValueList(flatModel)
-	oList <- omxConvertObjectives(flatModel)
-	aList <- append(aList, oList)
-	bounds <- c()
+	objectives <- omxConvertObjectives(flatModel)
+	algebras <- append(algebras, objectives)
+	constraints <- omxConvertConstraints(flatModel)
 	state <- c()
 	objective <- omxObjectiveIndex(flatModel)
 	data <- flatModel@datasets
 	output <- .Call("callNPSOL", objective, startVals, 
-		bounds, mList, pList, aList, data, state)
+		constraints, matrices, parameters, 
+		algebras, data, state)
 	model@output <- output
-	model <- omxUpdateModelValues(model, flatModel, output$estimate)
-	model <- omxUpdateModelAlgebras(model, flatModel, output$algebras)
+	model <- omxUpdateModelValues(model, 
+		flatModel, output$estimate)
+	model <- omxUpdateModelAlgebras(model, 
+		flatModel, output$algebras)
 	return(model)
 }

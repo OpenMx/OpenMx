@@ -12,7 +12,7 @@
 //#include "omxSymbolTable.h"
 
 #define M(y,z) m[z][y]
-#define EPSILON 0.00000000001
+#define EPSILON 1e-16
 #define TRUE 1
 #define FALSE 0
 
@@ -25,11 +25,19 @@
 #endif /* DEBUGMX */
 
 /* Structure definitions for object evaluation */
-typedef struct {			// Free Variables
-	int numLocations;		
+typedef struct omxFreeVar {			// Free Variables
+	double lbound, ubound;	// Bounds
+	int numLocations;
 	double** location;		// And where they go.
 	int* matrices;			// Matrix numbers for dirtying.
-} freeVar;
+} omxFreeVar;
+
+typedef struct omxConstraint {			// Free Variables
+	int size;
+	int opCode;
+	omxMatrix* result;
+} omxConstraint;
+
 
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
@@ -46,9 +54,15 @@ void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, d
 void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// Call R for constraints
 
 /* Helper functions */
-void handleFreeVarList(double* x, int n);						// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
+void handleFreeVarList(double* x, int numVars);					// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
+
+/* NPSOL-specific globals */
+const double NPSOL_BIGBND = 1e20;
+const double NEG_INF = -2e20;
+const double INF = 2e20;
+
 
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
@@ -56,11 +70,21 @@ SEXP env;						// Environment for evaluation and object hunting
 int ncalls;						// For debugging--how many calls?
 omxMatrix** matrixList;			// Data matrices and their data.
 omxMatrix** algebraList;		// List of the matrices of all algebras.
-freeVar* freeVarList;			// List of Free Variables and where they go.
+omxConstraint* conList;			// List of constraints
+omxFreeVar* freeVarList;			// List of Free Variables and where they go.
 omxMatrix *objMatrix;			// Objective Function Matrix
 
+/* Made global for objective functions that want them */
+int n, nclin, ncnln;			// Number of Free Params, linear, and nonlinear constraints
+int numCons;					// Number of constraint algebras
+double f;						// Objective Function
+double *g;						// Gradient Pointer
+double *R, *cJac;				// Hessian (Approx) and Jacobian
+int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
+
+
 /* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state);  // Calls NPSOL.  Duh.
+SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state);  // Calls NPSOL.  Duh.
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = { 
@@ -85,22 +109,22 @@ R_unload_mylib(DllInfo *info)
 
 
 /* Main functions */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state) {
+SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state) {
 	// For now, assume no constraints.
 	
 	ncalls = 0;
 	
-	int n, N;
+	int N; // n, 
 	SEXP nameString;
 
 	/* NPSOL Arguments */
 	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
 	
-	int nclin, ncnln, ldA, ldJ, ldR, inform, iter, leniw, lenw;
-	int *istate, *iw;
+	int ldA, ldJ, ldR, inform, iter, leniw, lenw; // nclin, ncnln, 
+	int *iw; // , istate;
 	
-	double f;
-	double *A, *bl, *bu, *c, *cJac, *clambda, *g, *R, *x, *w;
+//	double f;
+	double *A, *bl, *bu, *c, *clambda, *x, *w; //  *g, *R, *cJac,
 	double *est, *grad, *hess;
 	
 	/* Helpful variables */
@@ -176,15 +200,30 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	/* Process Free Var List */
 	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	omxMatrix dm;
-	freeVarList = (freeVar*) R_alloc (sizeof ( freeVar ), n);				// Data for replacement of free vars
+	freeVarList = (omxFreeVar*) R_alloc (sizeof ( omxFreeVar ), n);				// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
-		freeVarList[k].numLocations = length(nextVar);
-		freeVarList[k].location = (double**) R_alloc(sizeof(double*), length(nextVar));
-		freeVarList[k].matrices = (int*) R_alloc(sizeof(int), length(nextVar));
-		if(OMX_DEBUG) { Rprintf("Free parameter %d: %d locations\n", k, length(nextVar)); }
+		int numLocs = length(nextVar) - 2;
+		freeVarList[k].numLocations = numLocs;
+		freeVarList[k].location = (double**) R_alloc(sizeof(double*), numLocs);
+		freeVarList[k].matrices = (int*) R_alloc(sizeof(int), numLocs);
+		
+		/* Lower Bound */
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
+		freeVarList[k].lbound = REAL(nextLoc)[0];
+		if(ISNA(freeVarList[k].lbound)) freeVarList[k].lbound = NEG_INF;
+		if(freeVarList[k].lbound == 0.0) freeVarList[k].lbound = EPSILON;
+		UNPROTECT(1); // NextLoc
+		/* Upper Bound */
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
+		freeVarList[k].ubound = REAL(nextLoc)[0];
+		if(ISNA(freeVarList[k].ubound)) freeVarList[k].ubound = INF;
+		if(freeVarList[k].ubound == 0.0) freeVarList[k].ubound = -EPSILON;
+		UNPROTECT(1); // NextLoc
+		
+		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, freeVarList[k].lbound, freeVarList[k].ubound, numLocs); }
 		for(l = 0; l < freeVarList[k].numLocations; l++) {
-			PROTECT(nextLoc = VECTOR_ELT(nextVar, l));
+			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
 			double* theVarList = REAL(nextLoc);			// These come through as doubles.
 			int theMat = (int)theVarList[0];			// Matrix is zero-based indexed.
 			int theRow = (int)theVarList[1] - 1;		// Row is one-based.
@@ -196,6 +235,29 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		UNPROTECT(1); // nextVar
 	}
 
+	if(VERBOSE) { Rprintf("Processed.\n"); }
+	
+	/* Processing Constraints */
+	if(VERBOSE) { Rprintf("Processing Constraints.\n");}
+	omxMatrix *arg1, *arg2;
+	numCons = length(constraints);
+	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", numCons); }
+	conList = (omxConstraint*) R_alloc(sizeof(omxConstraint), numCons);
+	ncnln = 0;
+	for(k = 0; k < numCons; k++) {
+		PROTECT(nextVar = VECTOR_ELT(constraints, k));
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, k));
+		arg1 = omxNewMatrixFromMxMatrixPtr(nextLoc);
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, k));
+		arg2 = omxNewMatrixFromMxMatrixPtr(nextLoc);
+		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, k)));
+		conList[k].opCode = INTEGER(nextLoc)[0];
+		UNPROTECT(4);
+		conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2); // 10 = binary subtract
+		omxRecomputeMatrix(conList[k].result);
+		conList[k].size = conList[k].result->rows * conList[k].result->cols;
+		ncnln += conList[k].size;
+	}
 	if(VERBOSE) { Rprintf("Processed.\n"); }
 	
 	/* Set up Optimization Memory Allocations */
@@ -238,8 +300,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 		PROTECT(hessian = allocMatrix(REALSXP, n, n));
 	
 		/* Initialize Scalar Variables. */	
-		nclin = 0;						// No constraints.
-		ncnln = 0;						// None.  At all.
+		nclin = 0;						// No linear constraints.
 		
 		/* Set boundaries and widths. */
 		if(nclin <= 0) {
@@ -281,9 +342,43 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP bounds, SEXP matList, SEXP v
 	/* Set up actual run */
 	
 		/* Set min and max limits */
-		for(k = 0; k < nctotl; k++) {
-			bl[k] = EPSILON; 				// No negative covariances.  -Infinity'd be -10^20.
-			bu[k] = 2;						// Infinity would be at 10^20.
+		for(k = 0; k < n; k++) {
+			bl[k] = freeVarList[k].lbound; 				// No negative covariances.  -Infinity'd be -10^20.
+			bu[k] = freeVarList[k].ubound;				// Infinity would be at 10^20.
+		}
+		
+		for(; k < n+nclin; k++) {
+			bl[k] = NEG_INF; 							// Linear constraints have no bounds.
+			bu[k] = INF;								// Because there are no linear constraints.
+		}
+		
+		for(l = 0; l < numCons; l++) {						// Nonlinear constraints:
+			switch(conList[l].opCode) {
+				case 0:									// Less than: Must be strictly less than 0.
+					for(m = 0; m < conList[l].size; m++) {
+						bl[m] = NEG_INF;
+						bu[m] = -EPSILON;
+					}
+					break;
+				case 1:									// Equal: Must be roughly equal to 0.
+					for(m = 0; m < conList[l].size; m++) {
+						bl[k] = -EPSILON;
+						bu[k] = EPSILON;
+					}
+					break;
+				case 2:									// Greater than: Must be strictly greater than 0.
+					for(m = 0; m < conList[l].size; m++) {
+						bl[k] = EPSILON;
+						bu[k] = INF;
+					}
+					break;
+				default:
+					for(m = 0; m < conList[l].size; m++) {
+						bl[k] = NEG_INF;
+						bu[k] = INF;
+					}
+					break;
+			}
 		}
 	
 	
@@ -462,6 +557,9 @@ void F77_SUB(objectiveFunction)
 		double* f, double* g, int* nstate )
 {
 
+	/* Interruptible? */
+	R_CheckUserInterrupt();
+
 	handleFreeVarList(x, *n);
 	
 	omxRecomputeMatrix(objMatrix);
@@ -476,6 +574,26 @@ void F77_SUB(objectiveFunction)
 }
 
 /* (Non)Linear Constraint Functions */
+void F77_SUB(oldMxConFun)
+	(	int *mode, int *ncnln, int *n, 
+		int *ldJ, int *needc, double *x,
+		double *c, double *cJac, int *nstate)
+{
+
+	int j, k, l = 0, size;
+
+	for(j = 0; j < numCons; j++) {
+		omxRecomputeMatrix(conList[j].result);
+		size = conList[j].result->rows * conList[j].result->cols;
+		for(k = 0; k < conList[j].size; k++){
+			c[l++] = conList[j].result->data[k];
+		}
+	}
+
+return;
+
+}
+
 
 void F77_SUB(noConFun)
 	(	int *mode, int *ncnln, int *n, 
@@ -519,7 +637,7 @@ void F77_SUB(AlgConFun)
 {
 
 	Rprintf("-=========================================-\n");
-	Rprintf("Algebraic constraint fucntion called.\n");
+	Rprintf("Algebraic constraint function called.\n");
 	Rprintf("Constraint functions not yet implemented.\n");
 	Rprintf("-=========================================-\n");	
 /* Defines the nonlinear constraints for the run of npsol. */
@@ -530,7 +648,7 @@ return;
 
 /****** HELPER FUNCTIONS ******* (put in separate file) */
 /* Sub Free Vars Into Appropriate Slots */
-void handleFreeVarList(double* x, int n) {
+void handleFreeVarList(double* x, int numVars) {
 	
 	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
 	ncalls++;
@@ -538,7 +656,7 @@ void handleFreeVarList(double* x, int n) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d\n", ncalls);
 		Rprintf("Estimates: [");
-		for(int k = 0; k < n; k++) {
+		for(int k = 0; k < numVars; k++) {
 			Rprintf(" %f", x[k]);
 		}
 		Rprintf("] \n");
@@ -546,7 +664,7 @@ void handleFreeVarList(double* x, int n) {
 	}
 
 	/* Fill in Free Var Estimates */
-	for(int k = 0; k < n; k++) {
+	for(int k = 0; k < numVars; k++) {
 		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
 		for(int l = 0; l < freeVarList[k].numLocations; l++) {
 			*(freeVarList[k].location[l]) = x[k];

@@ -23,9 +23,9 @@ omxGenerateParameterList <- function(mxModel) {
 		return(result)
 	}
 	for(i in 1:length(mxModel@matrices)) {
-		result <- generaterParameterListHelper(
+		result <- omxGenerateParameterListHelper(
 			mxModel@matrices[[i]], 
-			result, i - 1)
+			mxModel@bounds, result, i - 1)
 	}	
 	return(result)
 }
@@ -39,6 +39,7 @@ omxGenerateValueList <- function(mxModel) {
 	}
 	for(i in 1:length(pList)) {
 		parameter <- pList[[i]]
+		parameter <- parameter[3:length(parameter)] # Remove (min, max) bounds
 		if (length(parameter) > 1) {
 			values <- sapply(parameter, generateValueHelper, mList)
 			if (!all(values == values[[1]])) {
@@ -87,8 +88,10 @@ omxUpdateModelValues <- function(treeModel, flatModel, values) {
 		return(treeModel)
 	}
 	for(i in 1:length(pList)) {
+		parameters <- pList[[i]]
+		parameters <- parameters[3:length(parameters)] # Remove (min, max) bounds
 		treeModel <- updateModelValueHelper(
-			pList[[i]], values[[i]], treeModel, flatModel)
+			parameters, values[[i]], treeModel, flatModel)
     }
 	return(treeModel)
 }

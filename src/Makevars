@@ -1,12 +1,15 @@
-# default to osx 
+# default to osx using precompiled libnpsol.a
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L../inst/npsol/osx
-PKG_CFLAGS=-DDEBUGMX
+#PKG_CFLAGS=-DDEBUGMX
 
 ### compiling for Linux
 
-# PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -fPIC -lnpsol_f77 -lnlssol_f77 -lblas_f77 -llssol_f77 -L../inst/npsol/linux -L../inst/npsol/linux -L../inst/npsol/linux
+#PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -fPIC -lnpsol -lnlssol -lblas -llssol -L../inst/npsol/linux -L../inst/npsol/linux -L../inst/npsol/linux
 
+# should include location of f2c.h
+
+#PKG_CFLAGS=-fPIC -I/share/home/00043/tg457040/soft/include
 
 
 

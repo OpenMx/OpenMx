@@ -365,9 +365,10 @@ void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small)
 }
 
 unsigned short inline omxNeedsUpdate(omxMatrix *matrix) {
-	if(matrix->algebra != NULL) omxAlgebraNeedsUpdate(matrix->algebra); 
-	else if(matrix->objective != NULL) omxObjectiveNeedsUpdate(matrix->objective);
-	else omxMatrixNeedsUpdate(matrix);
+	if(matrix->isDirty) return 1;
+	if(matrix->algebra != NULL) return omxAlgebraNeedsUpdate(matrix->algebra); 
+	else if(matrix->objective != NULL) return omxObjectiveNeedsUpdate(matrix->objective);
+	else return omxMatrixNeedsUpdate(matrix);
 }
 
 void inline omxRecomputeMatrix(omxMatrix *matrix) {

@@ -63,6 +63,7 @@ objective <- mxFIMLObjective(name = "objective", covariance = "covariance", mean
 model <- mxModel(model, objective, x)
 
 cTime <- system.time(model <- mxJobRun(model), gcFirst=TRUE)
+
 NPSOLOutput <- model@output
 print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum

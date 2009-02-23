@@ -37,6 +37,8 @@ struct omxObjective {					// An objective
 	void (*initFun)(omxObjective *oo, SEXP rObj, SEXP dataList);			// Wrapper for initialization function (probably not needed)
 	void (*destructFun)(omxObjective* oo);									// Wrapper for the destructor object
 	void (*objectiveFun)(omxObjective* oo);									// Wrapper for the objective function itself
+	unsigned short int (*needsUpdateFun)(omxObjective* oo);					// To calculate recomputation
+	void (*gradientFun)(omxObjective* oo, double* grad);					// To calculate gradient
 
 	void* argStruct;														// Arguments to the above function
 	char objType[250];														// Type of Objective Function
@@ -53,6 +55,7 @@ struct omxObjective {					// An objective
 	void omxObjectiveRecompute(omxObjective *oo);
 	void omxObjectiveCompute(omxObjective *oo);
 	unsigned short int omxObjectiveNeedsUpdate(omxObjective *oo);
+	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.
 
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
 

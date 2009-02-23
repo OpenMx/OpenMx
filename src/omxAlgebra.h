@@ -44,12 +44,12 @@ struct omxAlgebra {						// A matrix
 
 /* Initialize and Destroy */
 	omxMatrix* omxInitAlgebra(omxAlgebra *oa);							// Constructor 
-	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);	// Constructor (with matrix)
+	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
 	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat); 					// Create an Algebra from an R mxMatrix
-	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat); 	// Populate an Algebra from an R mxMatrix
-	omxMatrix* omxNewMatrixFromMxMatrixPtr(SEXP matrix);			// Create a matrix/algebra from a matrix pointer
-
+	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat);			// Populate an Algebra from an R mxMatrix
+	omxMatrix* omxNewMatrixFromMxMatrixPtr(SEXP matrix);				// Create a matrix/algebra from a matrix pointer
+	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2); // For constraints.
 
 /* Other Functions */
 	void omxFillAlgebraFromTableEntry(omxAlgebra *algebra, const omxAlgebraTableEntry* oate);

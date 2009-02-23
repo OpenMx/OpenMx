@@ -112,6 +112,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 }
 
+unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
+	return omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->cov)
+		|| omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->means);
+}
+
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	SEXP nextMatrix;
@@ -139,6 +144,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
 	
+	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->argStruct = (void*) newObj;
 	
 }
