@@ -5,7 +5,7 @@ mxJobRun <- function(model) {
 	independents <- omxGetIndependents(dshare)
 	independents <- lapply(independents, mxJobRun)
 	independents <- lapply(independents, omxFreezeModel)
-	depModel <- omxReplaceModels(dshare, independents)
+	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel)
 	parameters <- omxGenerateParameterList(flatModel)
 	matrices <- omxGenerateSimpleMatrixList(flatModel)
@@ -16,7 +16,7 @@ mxJobRun <- function(model) {
 	constraints <- omxConvertConstraints(flatModel)
 	state <- c()
 	objective <- omxObjectiveIndex(flatModel)
-	data <- flatModel@datasets
+	data <- omxRemoveDataAliases(flatModel@datasets)
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, state)

@@ -22,7 +22,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		means <- .Object@means
 		covarianceIndex <- omxLocateIndex(model, covariance, name)
 		meansIndex <- omxLocateIndex(model, means, name)
-		dIndex <- match(.Object@name, names(model@datasets)) - 1
+		dIndex <- omxDataIndex(.Object@name, model@datasets)
 		if (is.na(covarianceIndex)) {
 			stop(paste("Could not find a matrix/algebra with name", 
 			covariance, "in the model."))

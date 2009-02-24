@@ -56,9 +56,9 @@ omxShareData <- function(model) {
 }
 
 omxShareDataHelper <- function(model, current) {
-	if(is.null(model@data)) {
+	if(is.null(model@data) && (model@independent == TRUE)) {
 		model@data <- current
-	} else {
+	} else if (!is.null(model@data)) {
 		current <- model@data
 	}
 	submodels <- lapply(model@submodels, function(x)
@@ -131,16 +131,34 @@ omxFreezeModel <- function(model) {
 
 omxFlattenModel <- function(model) {
 	res <- new("MxFlatModel", model, list(), list())
-	res <- omxFlattenModelHelper(model, res)
+	if (!is.null(model@objective)) {
+		defaultData <- model@objective@name
+	} else {
+		defaultData <- model@name
+		res@datasets[[defaultData]] <- model@data
+	}
+	res <- omxFlattenModelHelper(model, res, defaultData)
 	res@submodels <- list()
 	return(res)
 }
 
-omxFlattenModelHelper <- function(model, dest) {
+omxFlattenModelHelper <- function(model, dest, defaultData) {
 	if (!is.null(model@objective)) {
 		name <- model@objective@name
 		dest@objectives[[name]] <- model@objective
-		dest@datasets[[name]] <- model@data
+		if(is.null(model@data)) {
+			dest@datasets[[name]] <- defaultData
+		} else {
+			dest@datasets[[name]] <- model@data
+		}
+	}
+	if (is.null(dest@datasets[[defaultData]]) && !is.null(model@data)) {
+		if (!is.null(model@objective)) {
+			defaultData <- model@objective@name
+		} else {
+			defaultData <- model@name
+			dest@datasets[[defaultData]] <- model@data
+		}
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
@@ -150,7 +168,7 @@ omxFlattenModelHelper <- function(model, dest) {
 			dest@constraints <- append(dest@constraints, 
 				submodel@constraints) 
 			dest@bounds      <- append(dest@bounds, submodel@bounds)
-			dest <- omxFlattenModelHelper(submodel, dest)
+			dest <- omxFlattenModelHelper(submodel, dest, defaultData)
 		}
 	}
 	return(dest)

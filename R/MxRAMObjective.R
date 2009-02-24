@@ -26,7 +26,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		A <- omxLocateIndex(model, aMatrix, name)
 		S <- omxLocateIndex(model, sMatrix, name)
 		F <- omxLocateIndex(model, fMatrix, name)
-		dIndex <- match(.Object@name, names(model@datasets)) - 1
+		dIndex <- omxDataIndex(.Object@name, model@datasets)
 		if (is.na(dIndex)) {
 			msg <- paste("Could not find a data set for objective", 
 				.Object@name, "in the model.")
