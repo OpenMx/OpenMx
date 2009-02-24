@@ -21,34 +21,47 @@ omxNameAlignment <- function(lst1, lst2) {
 		"do not match their designations"))
 }
 
-omxCheckNamedEntity <- function(model, slotname, nlist) {
+omxCheckNamedEntity <- function(model, slotname, nameList) {
 	entity <- slot(model, slotname)
-	omxNameAlignment(names(entity), omxGetNames(entity))
-	entityIntersect <- intersect(names(entity), nlist)
+	entityNames <- names(entity)
+	omxNameAlignment(entityNames, omxGetNames(entity))
+	entityIntersect <- intersect(entityNames, nameList)
 	if (length(entityIntersect) > 0) {
 		stop(omxNamespaceErrorMessage(entityIntersect), call.=FALSE)
 	}
-	nlist <- append(nlist, names(entity))
-	return(nlist)
+	nameList <- append(nameList, entityNames)
+	return(nameList)
 }
 
-omxCheckNamespaceHelper <- function(model, nlist) {
-	nlist <- omxCheckNamedEntity(model, "matrices", nlist)
-	nlist <- omxCheckNamedEntity(model, "algebras", nlist)
-	nlist <- omxCheckNamedEntity(model, "submodels", nlist)
-	nlist <- omxCheckNamedEntity(model, "constraints", nlist)
-	nlist <- omxCheckNamedEntity(model, "bounds", nlist)
-	if (!is.null(model@objective) && (model@objective@name %in% nlist)) {
+omxCheckDataColumns <- function(dataset, nameList) {
+	columnNames <- names(dataset)
+	nameIntersect <- intersect(columnNames, nameList)
+	if (length(nameIntersect) > 0) {
+		stop(omxNamespaceErrorMessage(nameIntersect), call.=FALSE)
+	}
+	nameList <- append(nameList, columnNames)	
+	return(nameList)
+}
+
+
+omxCheckNamespaceHelper <- function(model, nameList) {
+	nameList <- omxCheckNamedEntity(model, "matrices", nameList)
+	nameList <- omxCheckNamedEntity(model, "algebras", nameList)
+	nameList <- omxCheckNamedEntity(model, "submodels", nameList)
+	nameList <- omxCheckNamedEntity(model, "constraints", nameList)
+	nameList <- omxCheckNamedEntity(model, "bounds", nameList)
+	nameList <- omxCheckDataColumns(model@data, nameList)
+	if (!is.null(model@objective) && (model@objective@name %in% nameList)) {
 		stop(omxNamespaceErrorMessage(model@objective@name), call.=FALSE)
 	} else if(!is.null(model@objective)) {
-		nlist <- append(nlist, model@objective@name)
+		nameList <- append(nameList, model@objective@name)
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
-			nlist <- omxCheckNamespaceHelper(model@submodels[[i]], nlist)
+			nameList <- omxCheckNamespaceHelper(model@submodels[[i]], nameList)
 		}
 	}
-	return(nlist)
+	return(nameList)
 }
 
 omxShareData <- function(model) {
