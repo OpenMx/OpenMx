@@ -1,7 +1,7 @@
 # default to osx 
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L../inst/npsol/osx
-PKG_CFLAGS=-DDEBUGMX
+# PKG_CFLAGS=-DDEBUGMX
 
 ### compiling for Linux
 
