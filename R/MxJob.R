@@ -3,7 +3,7 @@ mxJobRun <- function(model) {
 	omxCheckNamespace(model)
 	dshare <- omxShareData(model)
 	independents <- omxGetIndependents(dshare)
-	independents <- lapply(independents, mxJobRun)
+	independents <- sfLapply(independents, mxJobRun)
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel)

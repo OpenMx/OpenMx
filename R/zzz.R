@@ -4,4 +4,5 @@
    library.dynam("OpenMx") 
    untitledNumber <<- 0
    omxConstraintRelations <<- c("<", "=", ">")   
+   sfInit(parallel = FALSE)
 }
