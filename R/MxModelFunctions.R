@@ -130,10 +130,12 @@ omxUpdateModelAlgebras <- function(treeModel, flatModel, values) {
 }
 
 updateModelAlgebraHelper <- function(aList, values, model) {
+	print(length(aList))
+	print(values)
 	for(i in 1:length(aList)) {
 		name <- aList[[i]]
 		candidate <- model[[name]]
-		if (!is.null(candidate) && 
+		if (!is.null(candidate) && !is.nan(values[[i]]) && 
 			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
 			model[[name]]@result <- Matrix(values[[i]])
 		}
