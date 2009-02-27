@@ -38,12 +38,32 @@ setMethod("initialize", "MxSparseMatrix",
 	}
 )					
 
-setMethod("show", "MxSparseMatrix",
-	function(object) {
-	    cat(paste(nrow(object), "x", ncol(object), "MxSparseMatrix matrix \n"))
-		print(as.matrix(object))
-	}
-)
+setMethod("print", "MxSparseMatrix", function(x,...) { 
+  args <- list(...)
+  use.quotes <- args[['use.quotes']]
+  if (is.null(use.quotes)) {
+    use.quotes <- FALSE
+  }
+  omxDisplayMxSparseMatrix(x, use.quotes) 
+})
+
+setMethod("show", "MxSparseMatrix", function(object) { 
+  omxDisplayMxSparseMatrix(object, FALSE) 
+})
+
+omxDisplayMxSparseMatrix <- function(mxMatrix, use.quotes) {
+   matrix <- as.matrix(mxMatrix)
+   if (use.quotes) {
+      matrix <- apply(matrix, c(1,2), function(x) {
+    if(is.na(x)) {return('NA')}
+	else if(x == '0') {return('0')}
+        else {return(omxQuotes(x))}
+      })
+      print(matrix, quote = FALSE)
+   } else {
+      print(matrix)
+   }
+} 
 
 setMethod("t", "MxSparseMatrix",		
 	function(x) {

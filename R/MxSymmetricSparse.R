@@ -41,16 +41,34 @@ setMethod("initialize", "MxSymmetricSparse",
 	    }
 		return(.Object)
 	}
-)					
-
-
-setMethod("show", "MxSymmetricSparse",
-	function(object) {
-	    cat(paste(nrow(object), "x", ncol(object), "MxSymmetricSparse matrix \n"))
-		print(as.matrix(object))
-	}
 )
 
+setMethod("print", "MxSymmetricSparse", function(x,...) { 
+  args <- list(...)
+  use.quotes <- args[['use.quotes']]
+  if (is.null(use.quotes)) {
+    use.quotes <- FALSE
+  }
+  omxDisplayMxSymmetricSparse(x, use.quotes) 
+})
+
+setMethod("show", "MxSymmetricSparse", function(object) { 
+  omxDisplayMxSymmetricSparse(object, FALSE) 
+})
+
+omxDisplayMxSymmetricSparse <- function(mxMatrix, use.quotes) {
+   matrix <- as.matrix(mxMatrix)
+   if (use.quotes) {
+      matrix <- apply(matrix, c(1,2), function(x) {
+    if(is.na(x)) {return('NA')}
+	else if(x == '0') {return('0')}
+        else {return(omxQuotes(x))}
+      })
+      print(matrix, quote = FALSE)
+   } else {
+      print(matrix)
+   }
+} 
 
 setMethod("t",  "MxSymmetricSparse",		
 	function(x) {

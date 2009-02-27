@@ -195,3 +195,24 @@ omxGenerateParameterListHelper <- function(mxMatrix, bounds,
 	}
 	return(result)
 }
+
+omxDisplayMatrix <- function(mxMatrix) {
+   cat("MxMatrix", omxQuotes(mxMatrix@name), '\n')
+   cat("\n")
+   cat("Specification matrix:\n")
+   print(mxMatrix@specification, use.quotes = TRUE)
+   cat("\n")
+   cat("Values matrix:\n")
+   values <- mxMatrix@values
+   if(is(values, "sparseMatrix")) {
+      print(as(values, 'matrix'))
+   } else if(is(values, "MxSymmetricSparse")) {
+      print(values, use.quotes = FALSE)
+   } else {
+      print(values)
+   }
+   cat("\n")
+}
+
+setMethod("print", "MxMatrix", function(x,...) { omxDisplayMatrix(x) })
+setMethod("show", "MxMatrix", function(object) { omxDisplayMatrix(object) })
