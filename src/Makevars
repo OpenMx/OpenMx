@@ -1,13 +1,22 @@
+
+NPSOL_TRUNK=../inst/npsol
+
 # default to osx 
+NPSOL_DIR=$(NPSOL_TRUNK)/osx
 
-PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L../inst/npsol/osx
+# linux 32bit gcc 3.9
+# NPSOL_DIR=$(NPSOL_TRUNK)/linux/x86/gcc3.9
+
+# linux 32bit gcc 4.1
+# NPSOL_DIR=$(NPSOL_TRUNK)/linux/x86/gcc4.1
+
+# linux 32bit gcc 4.3
+# NPSOL_DIR=$(NPSOL_TRUNK)/linux/x86/gcc4.3
+
+# linux 64bit gcc 3.9
+# NPSOL_DIR=$(NPSOL_TRUNK)/linux/x86_64/gcc3.9
+
+PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR)
+
+# Uncomment the next line to turn on all debugging output in the backend
 # PKG_CFLAGS=-DDEBUGMX
-
-### compiling for Linux
-
-# PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -fPIC -lnpsol_f77 -lnlssol_f77 -lblas_f77 -llssol_f77 -L../inst/npsol/linux -L../inst/npsol/linux -L../inst/npsol/linux
-
-
-
-
-
