@@ -11,8 +11,8 @@ model[["O"]]@specification[1,1] <- "orange"
 # Test 1: Algebra is just a matrix.
 
 model <- mxModel(model, AlgA)
-model <- mxModel(model, mxAlgebraObjective(algebra = "AlgA"))
-model <- mxModel(model, mxConstraint("OBound", "AlgA", "A", ">"))
+model <- mxModel(model, mxAlgebraObjective("AlgA"))
+model <- mxModel(model, mxConstraint("AlgA", "A", ">"))
 model <- mxJobRun(model)
 
 model@output

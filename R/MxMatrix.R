@@ -90,8 +90,8 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 
 
 mxMatrix <- function(type = "Full", values = NA, 
-	specification = NA, name = NA, nrow = NA, ncol = NA,
-	byrow = FALSE, free = FALSE) {
+	specification = NA, nrow = NA, ncol = NA,
+	byrow = FALSE, free = FALSE, name = NA) {
 	if (byrow) {
 		stop("byrow is not yet implemented in mxMatrix constructor.  Sorry!")
 	}

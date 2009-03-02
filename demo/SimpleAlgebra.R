@@ -3,9 +3,9 @@ library(OpenMx)
 O <- mxMatrix("Full", c(3), nrow=1, ncol=1, name="O")
 A <- mxMatrix("Full", c(1, 2), nrow=1, ncol=2, name="A")
 B <- mxMatrix("Full", c(3, 4), ncol=1, nrow=2, name="B")
-AlgA <- mxAlgebra(O, name="AlgA")
-AlgAB <- mxAlgebra(A %*% B, name="AlgAB")
-AlgdoubleMult <- mxAlgebra(A %*% B %*% O, name="AlgdoubleMult")
+AlgA <- mxAlgebra(O, "AlgA")
+AlgAB <- mxAlgebra(A %*% B, "AlgAB")
+AlgdoubleMult <- mxAlgebra(A %*% B %*% O, "AlgdoubleMult")
 
 model <- mxModel()
 model <- mxModel(model, A)
@@ -14,7 +14,7 @@ model <- mxModel(model, O)
 # Test 1: Algebra is just a matrix.
 
 model <- mxModel(model, AlgA)
-model <- mxModel(model, mxAlgebraObjective(algebra = "AlgA"))
+model <- mxModel(model, mxAlgebraObjective("AlgA"))
 model <- mxJobRun(model)
 
 outputA <- model[["AlgA"]]@result
@@ -26,7 +26,7 @@ diffA
 
 model <- mxModel(model, B)
 model <- mxModel(model, AlgAB)
-model <- mxModel(model, mxAlgebraObjective(algebra = "AlgAB"))
+model <- mxModel(model, mxAlgebraObjective("AlgAB"))
 model <- mxJobRun(model)
 
 outputAB <- model[["AlgAB"]]@result
@@ -37,7 +37,7 @@ diffAB
 # Test 2: Algebra is two multiplies
 
 model <- mxModel(model, AlgdoubleMult)
-model <- mxModel(model, mxAlgebraObjective(algebra = "AlgdoubleMult"))
+model <- mxModel(model, mxAlgebraObjective("AlgdoubleMult"))
 model <- mxJobRun(model)
 
 outputdoubleMult <- model[["AlgdoubleMult"]]@result

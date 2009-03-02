@@ -56,7 +56,7 @@ model[["F"]]@values[3,3] <- 1
 model[["F"]]@values[4,4] <- 1
 
 # Define the objective function
-objective <- mxRAMObjective("objective")
+objective <- mxRAMObjective("A", "S", "F", "objective")
 
 # Define the observed covariance matrix
 covMatrix <- wisc.cov

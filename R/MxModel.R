@@ -161,12 +161,17 @@ mappendHelper <- function(lst, result) {
 
 omxModel <- function(model = NULL, ..., name = NULL, manifestVars = NULL,
 	latentVars = NULL, remove = FALSE, independent = NULL) {
+    first <- NULL
 	if(is.null(model)) {
 		model <- new("MxModel")	
 	} else if (typeof(model) == "character") {
 		model <- new("MxModel", name = model)
+	} else if(!is(model, "MxModel")) {
+ 		first <- model
+	    model <- new("MxModel")
 	}
 	lst <- list(...)
+    lst <- append(lst, first)
 	if(class(model)[[1]] != "MxModel") {
 		stop("First argument is not an MxModel object")
 	}
@@ -426,9 +431,9 @@ omxDisplayModel <- function(model) {
 setMethod("print", "MxModel", function(x,...) { omxDisplayModel(x) })
 setMethod("show", "MxModel", function(object) { omxDisplayModel(object) })
 
-mxModel <- function(model = NULL, ..., name = NULL, 
+mxModel <- function(model = NULL, ..., 
 	manifestVars = NULL,latentVars = NULL, 
-	remove = FALSE, independent = NULL) {
+	remove = FALSE, independent = NULL, name = NULL) {
 		omxModel(model, ..., name = name, 
 		manifestVars = manifestVars, 
 		latentVars = latentVars,

@@ -16,8 +16,8 @@ setMethod("initialize", "MxBounds",
 	}
 )
 
-mxBounds <- function(name = omxUntitledName(),
-	min = NA, max = NA, parameters) {
+mxBounds <- function(parameters, min = NA, max = NA,
+	name = omxUntitledName()) {
 	if(is.na(min)) min <- NA_real_
 	if(is.na(max)) max <- NA_real_
 	if (typeof(name) != "character") {

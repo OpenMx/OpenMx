@@ -17,7 +17,7 @@ RFILES = *.R
 
 nothing:
 	@echo \
-	'Please type make [build | install | check | doc | clean]'
+	'Please type make [build | install | check | doc | clean | veryclean]'
 
 build: build/$(TARGET)
 
@@ -43,3 +43,6 @@ doc: install
 
 clean:
 	rm -rf $(RBUILD)/*
+
+veryclean: clean
+	find . -name "*~" -exec rm -rf '{}' \;

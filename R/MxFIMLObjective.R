@@ -38,7 +38,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex))
 })
 
-mxFIMLObjective <- function(name = omxUntitledName(), covariance, means) {
+mxFIMLObjective <- function(covariance, means, name = omxUntitledName()) {
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}
