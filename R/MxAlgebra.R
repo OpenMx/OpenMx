@@ -7,18 +7,14 @@ setClass(Class = "MxAlgebra",
 		result = "Matrix"))
 		
 setMethod("initialize", "MxAlgebra",
-	function(.Object, formula = NA, name = NA) {
+	function(.Object, formula, name) {
 		.Object@formula <- sys.call(which=-3)[[3]]
-		if (is.na(name)) {
-			.Object@name <- omxUntitledName()
-		} else {
-			.Object@name <- name
-		}
+		.Object@name <- name
 		return(.Object)
 	}
 )
 
-mxAlgebra <- function(expression, name = NA) {
+mxAlgebra <- function(expression, name = omxUntitledName()) {
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
 	return(retval)	

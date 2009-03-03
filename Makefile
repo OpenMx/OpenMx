@@ -17,7 +17,7 @@ RFILES = *.R
 
 nothing:
 	@echo \
-	'Please type make [build | install | check | doc | clean | veryclean]'
+	'Please type make [build | install | check | clean | veryclean]'
 
 build: build/$(TARGET)
 
@@ -33,13 +33,6 @@ install: build
 
 check: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
-
-doc: install
-	rm -rf $(RDOCUMENTS)/$(RDFILES)
-	cd $(RSOURCE); $(REXEC) --vanilla < ../support/document.R
-	cd $(RDATA); $(REXEC) --vanilla < ../support/document.data.R
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
 
 clean:
 	rm -rf $(RBUILD)/*

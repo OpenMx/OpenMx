@@ -3,3 +3,4 @@ SEM2002paper	A simple example path model (Figure 3) from 2002 SEM paper.
 SimpleCovariance	Using the backend to perform covariance optimization	
 SimpleFIML	Using the backend to perform FIML optimization
 SimpleAlgebra	A simple example of using algebra statements
+SimpleConstraint	A simple example of using constraints

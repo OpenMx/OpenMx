@@ -68,7 +68,6 @@ omxDisplayMxSparseMatrix <- function(mxMatrix, use.quotes) {
 setMethod("t", "MxSparseMatrix",		
 	function(x) {
 	    return(new("MxSparseMatrix", data=t(as.matrix(x))))
-		return(result)
 	}
 )
 
