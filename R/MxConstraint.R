@@ -67,3 +67,5 @@ omxConvertSingleConstraint <- function(constraint, flatModel) {
 	}
 	return(list(index1,index2,index3 - 1))
 }
+
+omxConstraintRelations <- c("<", "=", ">")   

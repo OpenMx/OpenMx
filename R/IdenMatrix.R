@@ -22,7 +22,7 @@ setMethod("initialize", "IdenMatrix",
 	}
 )
 
-setMethod("verify", "IdenMatrix",
+setMethod("omxVerifyMatrix", "IdenMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		verifySquare(.Object)

@@ -19,10 +19,16 @@ setMethod("initialize", "UnitMatrix",
 	}
 )
 
-setMethod("verify", "UnitMatrix",
+setMethod("omxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
-		if(nnzero(.Object@specification) > 0) { stop("Specification matrix is not empty") } 
-		if(nnzero(.Object@values - 1) > 0) { stop("Values matrix has non unit entries") } 
+		if(nnzero(.Object@specification) > 0) { 
+			stop(paste("Specification matrix of unit matrix", 
+				omxQuotes(.Object@name), "is not empty"), call.=FALSE)
+		} 
+		if(nnzero(.Object@values - 1) > 0) { 
+			stop(paste("Values matrix of unit matrix",
+				omxQuotes(.Object@name), "has non unit entries"), call.=FALSE)
+		} 
 	}
 )

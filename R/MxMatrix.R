@@ -9,14 +9,18 @@ is.Matrix <- function(a) {
 }
 
 verifySquare <- function(.Object) {
-	if (nrow(.Object@specification) != ncol(.Object@specification)) 
-		{ stop(paste("Specification matrix of", .Object@name, "is not square")) }
-	if (nrow(.Object@values) != ncol(.Object@values)) 
-		{ stop(paste("Values matrix of", .Object@name, "is not square")) }		
+	if (nrow(.Object@specification) != ncol(.Object@specification)) { 
+		stop(paste("Specification matrix of MxMatrix", 
+				omxQuotes(.Object@name), "is not square"), call.=FALSE)
+	}
+	if (nrow(.Object@values) != ncol(.Object@values)) {
+		stop(paste("Values matrix of MxMatrix", 
+				omxQuotes(.Object@name), "is not square"), call.=FALSE)
+	}		
 }
 
-setGeneric("verify", function(.Object) { 
-	return(standardGeneric("verify")) 
+setGeneric("omxVerifyMatrix", function(.Object) { 
+	return(standardGeneric("omxVerifyMatrix")) 
 } )
 
 #
@@ -47,15 +51,15 @@ setMethod("initialize", "MxMatrix",
 	}
 )		
 
-setMethod("verify", "MxMatrix",
+setMethod("omxVerifyMatrix", "MxMatrix",
 	function(.Object) {
 		if (nrow(.Object@specification) != nrow(.Object@values)) {
 			stop(paste("Specification and values matrices of", 
-				.Object@name, "have different dimensions"))
+				omxQuotes(.Object@name), "have different dimensions"), call.=FALSE)
 		}
 		if (ncol(.Object@specification) != ncol(.Object@values)) {
 			stop(paste("Specification and values matrices of", 
-				.Object@name, "have different dimensions"))
+				omxQuotes(.Object@name), "have different dimensions"), call.=FALSE)
 		}		
 	}
 )
@@ -92,9 +96,6 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 mxMatrix <- function(type = "Full", values = NA, 
 	specification = NA, nrow = NA, ncol = NA,
 	byrow = FALSE, free = FALSE, name = NA) {
-	if (byrow) {
-		stop("byrow is not yet implemented in mxMatrix constructor.  Sorry!")
-	}
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", paste(matrixTypes, collapse=" ")))
 	}
@@ -117,7 +118,7 @@ mxMatrix <- function(type = "Full", values = NA,
 		nrow <- nrow(specification)
 		ncol <- ncol(specification)
 	}
-	if (!is.na(match(type, squareMatrices))) {
+	if (type %in% squareMatrices) {
 		if (is.na(nrow) && is.na(ncol)) {
 			stop("Either nrow or ncol must be specified on a square matrix")
 		} else if (is.na(nrow)) {
@@ -127,6 +128,10 @@ mxMatrix <- function(type = "Full", values = NA,
 		}
 	} else if (is.na(nrow) || is.na(ncol)) {
 		stop("Both nrow and ncol must be specified on a non-square matrix")
+	}
+	if (byrow) {
+		values <- omxCreateByRow(values, nrow, ncol, type)
+		specification <- omxCreateByRow(specification, nrow, ncol, type)
 	}
 	if (is.na(name)) {
 		name <- omxUntitledName()
@@ -139,6 +144,13 @@ mxMatrix <- function(type = "Full", values = NA,
 			nrow, ncol, byrow, free))
 }
 
+omxCreateByRow <- function(source, nrow, ncol, type) {
+	if (!is.na(source) && is.vector(source) && !(type %in% squareMatrices)) {
+		return(matrix(source, nrow, ncol, TRUE))
+	} else {
+		return(source)
+	}
+}
 
 processSparseMatrix <- function(specification, bounds, result, matrixNumber, reverse=FALSE) {
 	if (length(specification@dataVector) == 0) {

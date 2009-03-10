@@ -1,6 +1,7 @@
 mxJobRun <- function(model) {
 	cat("Running", model@name, "\n")
 	omxCheckNamespace(model)
+	omxCheckMatrices(model)
 	dshare <- omxShareData(model)
 	independents <- omxGetIndependents(dshare)
 	independents <- sfLapply(independents, mxJobRun)

@@ -1,10 +1,12 @@
 
 omxUntitledNumber <- function() {
-	untitledNumber <<- untitledNumber + 1
-	return(untitledNumber)	
+	omxUntitledCounter <<- omxUntitledCounter + 1
+	return(omxUntitledCounter)	
 }
 
 omxUntitledName <- function() {
 	name <- paste("untitled", omxUntitledNumber(), sep="")
 	return(name)
 }
+
+omxUntitledCounter <- 0

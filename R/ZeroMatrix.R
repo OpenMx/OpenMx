@@ -19,10 +19,16 @@ setMethod("initialize", "ZeroMatrix",
 	}
 )
 
-setMethod("verify", "ZeroMatrix",
+setMethod("omxVerifyMatrix", "ZeroMatrix",
 	function(.Object) {
 		callNextMethod(.Object)	
-		if(nnzero(.Object@specification) > 0) { stop("Specification matrix is not empty") } 
-		if(nnzero(.Object@values) > 0) { stop("Values matrix is not empty") } 
+		if(nnzero(.Object@specification) > 0) { 
+			stop(paste("Specification matrix of zero matrix",
+				omxQuotes(.Object@name), "is not empty."), call. = FALSE) 
+		} 
+		if(nnzero(.Object@values) > 0) { 
+			stop(paste("Values matrix of zero matrix",
+				omxQuotes(.Object@name), "is not empty"), call. = FALSE)
+		} 
 	}
 )

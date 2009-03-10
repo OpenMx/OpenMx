@@ -13,7 +13,9 @@ setMethod("initialize", "DiagMatrix",
 			specification <- new("MxSparseMatrix", specification)
 		} else if (single.na(specification)) {
 			specification <- new("MxSparseMatrix", 0, nrow, ncol)
-		} else if (is.Matrix(specification)) {
+ 		} else if (is(specification, "Matrix")) {
+			specification <- new("MxSparseMatrix", as.matrix(specification))
+		} else if (is.matrix(specification)) {
 			specification <- new("MxSparseMatrix", specification)
 		} else if (is.vector(specification)) {
 			specification <- new("MxSparseMatrix", specification*diag(nrow))
@@ -34,7 +36,7 @@ setMethod("initialize", "DiagMatrix",
 	}
 )
 
-setMethod("verify", "DiagMatrix",
+setMethod("omxVerifyMatrix", "DiagMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		verifySquare(.Object)

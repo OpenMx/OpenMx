@@ -12,7 +12,9 @@ setMethod("initialize", "FullMatrix",
 	    } else {
 	    	specification <- new("MxSparseMatrix", specification, nrow, ncol)
 	    }
-	    if (is.Matrix(values)) {
+		if (is(values, "Matrix")) {
+		} else if (is.matrix(values)) {
+			values <- Matrix(values)
 	    } else if (single.na(values)) {
 	    	values <- Matrix(0, nrow, ncol)
 	    } else {
@@ -23,7 +25,7 @@ setMethod("initialize", "FullMatrix",
 	}
 )
 
-setMethod("verify", "FullMatrix",
+setMethod("omxVerifyMatrix", "FullMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 	}
