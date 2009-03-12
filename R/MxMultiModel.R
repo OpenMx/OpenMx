@@ -69,9 +69,9 @@ omxShareData <- function(model) {
 }
 
 omxShareDataHelper <- function(model, current) {
-	if(is.null(model@data) && (model@independent == TRUE)) {
+	if((length(model@data) == 0) && (model@independent == TRUE)) {
 		model@data <- current
-	} else if (!is.null(model@data)) {
+	} else if (length(model@data) != 0) {
 		current <- model@data
 	}
 	submodels <- lapply(model@submodels, function(x)
@@ -148,7 +148,9 @@ omxFlattenModel <- function(model) {
 		defaultData <- model@objective@name
 	} else {
 		defaultData <- model@name
-		res@datasets[[defaultData]] <- model@data
+		if (length(model@data) > 0) {
+			res@datasets[[defaultData]] <- model@data
+		}
 	}
 	res <- omxFlattenModelHelper(model, res, defaultData)
 	res@submodels <- list()
@@ -159,13 +161,13 @@ omxFlattenModelHelper <- function(model, dest, defaultData) {
 	if (!is.null(model@objective)) {
 		name <- model@objective@name
 		dest@objectives[[name]] <- model@objective
-		if(is.null(model@data)) {
+		if(length(model@data) == 0) {
 			dest@datasets[[name]] <- defaultData
 		} else {
 			dest@datasets[[name]] <- model@data
 		}
 	}
-	if (is.null(dest@datasets[[defaultData]]) && !is.null(model@data)) {
+	if (is.null(dest@datasets[[defaultData]]) && (length(model@data) > 0)) {
 		if (!is.null(model@objective)) {
 			defaultData <- model@objective@name
 		} else {

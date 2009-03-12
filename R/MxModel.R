@@ -20,7 +20,7 @@ setMethod("initialize", "MxModel",
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), bounds = list(),
-		data = NULL, submodels = list(), 
+		data = matrix(0, 0, 0), submodels = list(), 
 		objective = NULL, independent = FALSE) {
 		if (length(paths) > 0) {
 			.Object <- mxAddPath(.Object, paths)

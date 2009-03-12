@@ -13,15 +13,15 @@
   The MxModel class has the following slots:
   \tabular{rcl}{
 	name \tab - \tab The name of the object \cr
-	matrices \tab - \tab A list of MxMatrix objects \cr
-    algebras \tab - \tab A list of MxAlgebra objects \cr
+	matrices \tab - \tab A list of \link{MxMatrix} objects \cr
+    algebras \tab - \tab A list of \link{MxAlgebra} objects \cr
     submodels \tab - \tab A list of MxModel objects \cr
     constraints \tab - \tab A list of MxConstraint objects \cr
     bounds \tab - \tab A list of MxBounds objects \cr
     paths \tab - \tab A data frame of paths \cr
     latentVars \tab - \tab A list of latent variables \cr
     manifestVars \tab - \tab A list of manifest variables \cr
-    data \tab - \tab A MxData object \cr
+    data \tab - \tab A \link{MxData} object \cr
     objective \tab - \tab Either NULL or a MxObjective object \cr
     independent \tab - \tab TRUE if-and-only-if the model is independent \cr
 	output \tab - \tab A list with optimization results

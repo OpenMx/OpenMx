@@ -22,8 +22,8 @@
 }
 
 \details{
-   All of the arguments after the "..." must be used as named arguments (i.e. foo=bar).
-   Otherwise they will be interpreted as elements of the "..." list.
+   All of the arguments after the ellipsis ("...") must be named arguments (i.e. foo=bar).
+   Otherwise they will be interpreted as elements of the ellipsis list.
 }
 
 \value{

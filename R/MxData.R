@@ -1,4 +1,4 @@
-setClassUnion("MxData", c("data.frame", "matrix", "NULL"))
+setClassUnion("MxData", c("data.frame", "matrix"))
 
 omxRemoveDataAliases <- function(datalist) {
 	predicate <- sapply(datalist, function(x) {
