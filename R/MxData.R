@@ -4,7 +4,11 @@ omxRemoveDataAliases <- function(datalist) {
 	predicate <- sapply(datalist, function(x) {
 		is(x, "MxData")	
 	})
-	return(datalist[predicate])
+	if (length(predicate) > 0) {
+		return(datalist[predicate])
+	} else {
+		return(list())
+	}
 }
 
 omxDataIndex <- function(name, datalist) {

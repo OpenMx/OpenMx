@@ -184,7 +184,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	}
 	
 	/* Process Objective Function */
-	if(R_FINITE(REAL(AS_NUMERIC(objective))[0])) {
+	if(!isNull(objective)) {
 		objMatrix = omxNewMatrixFromMxMatrixPtr(objective);
 	} else {
 		objMatrix = NULL;
