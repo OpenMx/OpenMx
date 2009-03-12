@@ -40,11 +40,15 @@ void omxObjectiveCompute(omxObjective *oo) {
 
 unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 {
+	if(OMX_DEBUG) {Rprintf("omxObjectiveNeedsUpdate:");}
+	unsigned short needsIt = TRUE;
 	if(!(oo->needsUpdateFun == NULL)) {
-		return oo->needsUpdateFun(oo);
+		needsIt = oo->needsUpdateFun(oo);
 	}
 	
-	return 1;
+	if(OMX_DEBUG) {Rprintf("%s\n", (needsIt?"Yes":"No"));}
+	
+	return needsIt;
 
 }
 

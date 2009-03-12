@@ -13,7 +13,7 @@ typedef struct {
 
 	omxMatrix *cov, *I;
 	omxMatrix *A, *S, *F;
-	omxMatrix *C, *Y, *Z;
+	omxMatrix *C, *X, *Y, *Z;
 	
 	double* work;
 	int lwork;
@@ -33,6 +33,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *S = ((omxRAMObjective*)oo->argStruct)->S;
 	omxMatrix *F = ((omxRAMObjective*)oo->argStruct)->F;
 	omxMatrix *C = ((omxRAMObjective*)oo->argStruct)->C;
+	omxMatrix *X = ((omxRAMObjective*)oo->argStruct)->X;
 	omxMatrix *Y = ((omxRAMObjective*)oo->argStruct)->Y;
 	omxMatrix *Z = ((omxRAMObjective*)oo->argStruct)->Z;
 	double* work = ((omxRAMObjective*)oo->argStruct)->work;
@@ -42,10 +43,14 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxRecomputeMatrix(A);
 	omxRecomputeMatrix(S);
 	omxRecomputeMatrix(F);
-
+	
+	if(OMX_DEBUG) {
+		omxPrintMatrix(A, "A");
+		omxPrintMatrix(S, "S");
+		omxPrintMatrix(F, "F");
+	}
+	
 	omxCopyMatrix(Z, A);
-	omxCopyMatrix(Y, I);
-	omxCopyMatrix(C, I);
 
 	const char NoTrans = 'n';
 	const char Trans = 'T';
@@ -59,15 +64,24 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	if(OMX_DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
 	
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
-	F77_CALL(dgetrf)(&(Z->cols), &(Z->rows), Z->data, &(Z->cols), ipiv, &k);
-	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->cols), ipiv, work, lwork, &k);
-
-	/* C = FZSZ'F' */ // There MUST be an easier way to do this.  I'm thinking matrix class->
-	F77_CALL(dgemm)(&Trans, &Trans, &(Z->cols), &(Z->rows), &(F->cols), &One, Z->data, &(Z->cols), F->data, &(F->cols), &Zero, Y->data, &(Y->cols)); 		// C = ...Z'F'
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(S->cols), &(S->rows), &(Y->rows), &One, S->data, &(S->cols), Y->data, &(Y->cols), &Zero, C->data, &(C->cols)); // C = ..SZ'F'
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(Z->cols), &(Z->rows), &(C->rows), &One, Z->data, &(Z->cols), C->data, &(C->cols), &Zero, Y->data, &(Y->cols)); 	// C = .ZSZ'F'
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(F->cols), &(F->rows), &(Y->rows), &One, F->data, &(F->cols), Y->data, &(Y->cols), &Zero, C->data, &(C->cols));	// C = FZSZ'F'
+//	omxPrintMatrix(Z, "Z");
+	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
+	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
+	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
+//	omxPrintMatrix(Z, "Z^-1");
 	
+	/* C = FZSZ'F' */ // There MUST be an easier way to do this.  I'm thinking matrix class->
+//	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", Trans, Trans, (Z->cols), (F->rows), (F->cols), One, Z->data, (Z->leading), F->data, (F->leading), Zero, Y->data, (Y->leading));}
+	F77_CALL(dgemm)(&Trans, &Trans, &(Z->cols), &(F->rows), &(F->cols), &One, Z->data, &(Z->leading), F->data, &(F->leading), &Zero, Y->data, &(Y->leading)); 	// Y = ...Z'F'
+
+//	omxPrintMatrix(Y, "Y");
+	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(S->rows), &(Y->cols),  &(Y->rows), &One, S->data, &(S->leading), Y->data, &(Y->leading), &Zero, X->data, &(X->leading)); // X = ..SZ'F'
+//	omxPrintMatrix(X, "X");
+	F77_CALL(dgemm)(&NoTrans, &NoTrans,&(Z->rows),  &(X->cols), &(X->rows), &One, Z->data, &(Z->leading), X->data, &(X->leading), &Zero, Y->data, &(Y->leading)); 	// Y = .ZSZ'F'
+//	omxPrintMatrix(Y, "Y");
+	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(F->rows), &(Y->cols), &(Y->rows), &One, F->data, &(F->leading), Y->data, &(Y->leading), &Zero, C->data, &(C->leading));	// C = FZSZ'F'
+//	omxPrintMatrix(C, "C");
 	/* Val = sum(diag(tempCov %*% solve(PredictedCov))) + log(det(PredictedCov)) */
 	/* Alternately, Val = sum (tempCov .* PredictedCov^-1) + log(det(PredictedCov)) */	
 	
@@ -91,8 +105,8 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		sum += C->data[k] * cov->data[k];
 	}
 
-	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
-	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
+//	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
+//	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
 
 	oo->myMatrix->data[0] = (sum + det);
 
@@ -131,14 +145,17 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("A")));
 	newObj->A = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	omxRecomputeMatrix(newObj->A);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("S")));
 	newObj->S = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	omxRecomputeMatrix(newObj->S);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("F")));
 	newObj->F = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	omxRecomputeMatrix(newObj->F);
 	UNPROTECT(1);
 	
 	/* Identity Matrix, Size Of A */
@@ -153,12 +170,16 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 			}
 		}
 	}
+	omxRecomputeMatrix(newObj->I);
 	
+	l = newObj->F->rows;
 	k = newObj->A->rows;
+	
 
 	newObj->Z = omxInitMatrix(NULL, k, k, TRUE);
-	newObj->Y = omxInitMatrix(NULL, k, k, TRUE);
-	newObj->C = omxInitMatrix(NULL, k, k, TRUE);
+	newObj->Y = omxInitMatrix(NULL, k, l, TRUE);
+	newObj->X = omxInitMatrix(NULL, k, l, TRUE);
+	newObj->C = omxInitMatrix(NULL, l, l, TRUE);
 	newObj->lwork = k;
 	newObj->work = (double*)R_alloc(sizeof(double), newObj->lwork);
 	

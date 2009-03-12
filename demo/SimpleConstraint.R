@@ -1,4 +1,4 @@
-library(OpenMx)
+require(OpenMx)
 
 O <- mxMatrix("Full", c(3), nrow=1, ncol=1, name="O")
 A <- mxMatrix("Full", c(1), nrow=1, ncol=1, name="A")
@@ -17,7 +17,7 @@ model <- mxJobRun(model)
 
 model@output
 outputA <- model[["AlgA"]]@result
-valA <- O[1,1]
+valA <- A[1,1]
 diffA <- (valA - outputA[1,1]) / valA
 diffA
 

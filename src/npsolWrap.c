@@ -51,7 +51,9 @@ void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, doubl
 /* Constraint Function Variants */
 void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// No constraints
 void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	// Call R for constraints
-void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// Call R for constraints
+void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// Algebra constraints
+void F77_SUB(oldMxConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	
+// Constraints in the style of old Mx
 
 /* Helper functions */
 void handleFreeVarList(double* x, int numVars);					// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
@@ -67,11 +69,11 @@ const double INF = 2e20;
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
 SEXP env;						// Environment for evaluation and object hunting
-int ncalls;						// For debugging--how many calls?
+int ncalls, nminor;				// For debugging--how many calls?
 omxMatrix** matrixList;			// Data matrices and their data.
 omxMatrix** algebraList;		// List of the matrices of all algebras.
 omxConstraint* conList;			// List of constraints
-omxFreeVar* freeVarList;			// List of Free Variables and where they go.
+omxFreeVar* freeVarList;		// List of Free Variables and where they go.
 omxMatrix *objMatrix;			// Objective Function Matrix
 
 /* Made global for objective functions that want them */
@@ -174,7 +176,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	for(int j = 0; j < numAlgs; j++) {
 		PROTECT(nextLoc = VECTOR_ELT(algList, j));
-		if(OMX_DEBUG) { Rprintf("Intializing 0x%0xd.\n", algebraList + j); }
+		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, algebraList + j); }
 		if(IS_S4_OBJECT(nextLoc)) {											// This is an objective object.
 			omxFillMatrixFromMxObjective(algebraList[j], nextLoc, data);
 		} else {															// This is an algebra spec.
@@ -190,7 +192,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		objMatrix = NULL;
 		n = 0;
 	}
-	funcon = F77_SUB(noConFun);
 	
 /*	for(int j = 0; j < length(algList); j++) {
 		if(OMX_DEBUG) { Rprintf("Computing Algebra %d.\n", j); }
@@ -246,11 +247,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	ncnln = 0;
 	for(k = 0; k < numCons; k++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, k));
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, k));
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
 		arg1 = omxNewMatrixFromMxMatrixPtr(nextLoc);
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, k));
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
 		arg2 = omxNewMatrixFromMxMatrixPtr(nextLoc);
-		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, k)));
+		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
 		conList[k].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
 		conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2); // 10 = binary subtract
@@ -259,6 +260,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		ncnln += conList[k].size;
 	}
 	if(VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
+	funcon = F77_SUB(oldMxConFun);
 	
 	/* Set up Optimization Memory Allocations */
 	
@@ -356,8 +359,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			switch(conList[l].opCode) {
 				case 0:									// Less than: Must be strictly less than 0.
 					for(m = 0; m < conList[l].size; m++) {
-						bl[m] = NEG_INF;
-						bu[m] = -EPSILON;
+						bl[k] = NEG_INF;
+						bu[k] = EPSILON;
 					}
 					break;
 				case 1:									// Equal: Must be roughly equal to 0.
@@ -368,7 +371,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 					break;
 				case 2:									// Greater than: Must be strictly greater than 0.
 					for(m = 0; m < conList[l].size; m++) {
-						bl[k] = EPSILON;
+						bl[k] = -EPSILON;
 						bu[k] = INF;
 					}
 					break;
@@ -379,6 +382,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 					}
 					break;
 			}
+			k++;
 		}
 	
 	
@@ -389,6 +393,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		}
 		for(k = 0; k < n; k++) {
 			x[k] = REAL(startVals)[k];
+			if(x[k] == 0.0) {
+				x[k] += .1;
+			}
 			if(VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
 		if(OMX_DEBUG) {
@@ -416,10 +423,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Summary file 0");
 		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Verify level 3");
-		F77_CALL(npoptn)(option, strlen(option));
 
 		/* Options That Change The Optimizer */
+		sprintf(option, "Function Precision 1e-14");		// Set epsilon
+		F77_CALL(npoptn)(option, strlen(option));
+		sprintf(option, "Verify level 3");
+		F77_CALL(npoptn)(option, strlen(option));
+		strcpy(option, "Line search tolerance .2");		// Set accuracy to Merit Function
+		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
 		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Derivative Level 0");			// Always estimate gradient and hessian
@@ -487,11 +498,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	for(k = 0; k < n; k++) {		// Do these with memcpy instead, probably.
 		est[k] = x[k];
-		if(OMX_DEBUG) {Rprintf("Populating estimate for free parameter %d with %f.\n", k, x[k]);}
 		grad[k] = g[k];
 		for(l = 0; l < n; l++) {
 			hess[k*n + l] = R[k*n + l];  // This is ok, because they're both in Col-Major already.
-			if(OMX_DEBUG) { Rprintf("Populating hessian value at (%d, %d) with %f.\n", k, l, R[k*n + l] );}
 		}
 	}
 	
@@ -580,11 +589,18 @@ void F77_SUB(oldMxConFun)
 		double *c, double *cJac, int *nstate)
 {
 
+	if(OMX_DEBUG) {Rprintf("Constraint function called.\n");}
+
+	ncalls--;
+	nminor++;
 	int j, k, l = 0, size;
+	
+	handleFreeVarList(x, *n);
 
 	for(j = 0; j < numCons; j++) {
 		omxRecomputeMatrix(conList[j].result);
 		size = conList[j].result->rows * conList[j].result->cols;
+		if(VERBOSE) { omxPrintMatrix(conList[j].result, "Constraint evaluates as:"); }
 		for(k = 0; k < conList[j].size; k++){
 			c[l++] = conList[j].result->data[k];
 		}
@@ -654,7 +670,7 @@ void handleFreeVarList(double* x, int numVars) {
 	ncalls++;
 	if(VERBOSE) {
 		Rprintf("--------------------------\n");
-		Rprintf("Call: %d\n", ncalls);
+		Rprintf("Call: %d (Minor Calls: %d)\n", ncalls, nminor);
 		Rprintf("Estimates: [");
 		for(int k = 0; k < numVars; k++) {
 			Rprintf(" %f", x[k]);

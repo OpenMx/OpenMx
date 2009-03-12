@@ -2,6 +2,8 @@
 #Needs mean structure components
 #Returning Error on mxJob: details below (R. Estabrook, 09Feb26)
 
+require(OpenMx)
+
 # Data
 wisc.cov<-matrix(c(33.73019, 25.46499, 30.88961, 40.51781,
 	25.46499, 37.28895, 33.82058, 47.40553,

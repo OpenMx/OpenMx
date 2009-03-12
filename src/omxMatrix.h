@@ -38,7 +38,6 @@ struct omxMatrix {						// A matrix
 	double* aliasedPtr;					// For now, assumes outside data if aliased.
 	unsigned short colMajor;			// and column-majority.
 	unsigned short isDirty;				// True if free params have been updated.
-	unsigned short containsDefinitions;	// True if it must be recomputed at each row.
 
 /* For Memory Administrivia */
 	unsigned short localData;			// If data has been malloc'd, and must be freed.
@@ -52,6 +51,7 @@ struct omxMatrix {						// A matrix
 	const char* majority;				// Filled by compute(), included for speed
 	const char* minority;				// Filled by compute(), included for speed
 	int leading;						// Leading edge; depends on original majority
+	int lagging;						// Non-leading edge.
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
@@ -60,7 +60,7 @@ struct omxMatrix {						// A matrix
 };
 
 /* Initialize and Destroy */
-	omxMatrix* omxInitMatrix(omxMatrix* om, int ncols, int nrows, unsigned short colMajor);				// Set up matrix
+	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor);	// Set up matrix
 	void omxFreeMatrixData(omxMatrix* om);							// Release any held data.
 	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
 

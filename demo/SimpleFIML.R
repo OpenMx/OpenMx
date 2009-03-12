@@ -1,6 +1,6 @@
-library(mnormt)
-library(MASS)
-library(OpenMx)
+require(mnormt)
+require(MASS)
+require(OpenMx)
 
 # ----------------------------------
 # Define the functions.

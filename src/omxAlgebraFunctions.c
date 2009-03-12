@@ -172,18 +172,23 @@ void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result) {
 
 void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* result) {	/* Conformability Check! */
 	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
+		error("Non-conformable matrices in Matrix Subtract.");
 		
-	omxCopyMatrix(result, subtrahend);
+	omxCopyMatrix(result, inMat);
 	
 	int max = inMat->cols * inMat->rows;
 	
 	//F77_CALL(dgemm)((inMat->majority), (result->majority), &(inMat->rows), &(result->cols), &(inMat->cols), &zero, inMat->data, &(inMat->leading), result->data, &(result->leading), &one, result->data, &(result->leading));   // TODO: Compare performance on BLAS vs for.
-	
-	for(int j = 0; j < max; j++) {
-		result->data[j] = inMat->data[j] - subtrahend->data[j];
+	if(OMX_DEBUG) {
+		omxPrintMatrix(subtrahend, "Subtracting");
+		omxPrintMatrix(inMat, "From");
 	}
-
+	for(int j = 0; j < max; j++) {
+		result->data[j] -= subtrahend->data[j];
+	}
+	if(OMX_DEBUG) {
+		omxPrintMatrix(inMat, "And Got");
+	}
 };
 
 void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result) {

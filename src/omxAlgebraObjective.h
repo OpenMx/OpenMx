@@ -21,13 +21,15 @@ void omxDestroyAlgebraObjective(omxObjective *oo) {
 
 void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	omxRecomputeMatrix(((omxAlgebraObjective*)oo->argStruct)->algebra);
-	oo->myMatrix->data[0] = ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0];
-
+	omxRecomputeMatrix(((omxAlgebraObjective*)(oo->argStruct))->algebra);
+	oo->myMatrix->data[0] = ((omxAlgebraObjective*)(oo->argStruct))->algebra->data[0];
+	
 }
 
 unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
-	return omxMatrixNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
+
+	if(oo->myMatrix->data[0] != ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0]) return TRUE;
+	return omxNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
 }
 
 void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
@@ -37,6 +39,7 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(sizeof(omxAlgebraObjective), 1);
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxNewMatrixFromMxMatrixPtr(newptr);
+	if(OMX_DEBUG) {Rprintf("Algebra Objective Bound to Algebra %d", newObj->algebra);}
 	UNPROTECT(1);
 	
 	oo->needsUpdateFun = omxNeedsUpdateAlgebraObjective;

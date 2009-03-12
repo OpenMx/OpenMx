@@ -17,6 +17,7 @@ void omxMatrixPrint(omxMatrix *source, char* header) {
 	int j, k;
 	
 	Rprintf("%s: (%d x %d)\n", header, source->rows, source->cols);
+	if(OMX_DEBUG) {Rprintf("Matrix Printing is at %0x\n", source);}
 	
 	if(source->colMajor) {
 		for(j = 0; j < source->rows; j++) {
@@ -71,12 +72,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	
 	if(OMX_DEBUG) { Rprintf("omxCopyMatrix"); }
 	
-	if(dest == NULL) {
-		dest = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-		omxInitMatrix(dest, 0, 0, TRUE);
-	} else {
-		omxFreeMatrixData(dest);
-	}
+	omxFreeMatrixData(dest);
 
 	dest->rows = orig->rows;
 	dest->cols = orig->cols;
@@ -180,6 +176,7 @@ void omxMatrixCompute(omxMatrix *om) {
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
 	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
 	om->leading = (om->colMajor?om->rows:om->cols);
+	om->lagging = (om->colMajor?om->cols:om->rows);
 	om->isDirty = FALSE;
 }
 
@@ -365,7 +362,8 @@ void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small)
 }
 
 unsigned short inline omxNeedsUpdate(omxMatrix *matrix) {
-	if(matrix->isDirty) return 1;
+	if(OMX_DEBUG) {Rprintf("MatrixNeedsUpdate?");}
+	if(matrix->isDirty) return TRUE;
 	if(matrix->algebra != NULL) return omxAlgebraNeedsUpdate(matrix->algebra); 
 	else if(matrix->objective != NULL) return omxObjectiveNeedsUpdate(matrix->objective);
 	else return omxMatrixNeedsUpdate(matrix);

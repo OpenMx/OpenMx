@@ -96,13 +96,17 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 
 unsigned short omxAlgebraNeedsUpdate(omxAlgebra *oa)
 {
-	if(oa->myMatrix->isDirty) return oa->myMatrix->isDirty;  	// No need to check args if oa's dirty.
-	for(int j = 0; j > fabs(oa->numArgs); j--) {
+	if(OMX_DEBUG) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numArgs);}
+	if(oa->myMatrix->isDirty) return TRUE;  	// No need to check args if oa's dirty.
+	for(int j = 0; j < fabs(oa->numArgs); j++) {
 		if(omxNeedsUpdate(oa->args[j])) {
+			if(OMX_DEBUG) {Rprintf("Arg Needs Update.");}
 			oa->myMatrix->isDirty = TRUE;
 			break;
 		}
 	}
+
+	if(OMX_DEBUG) {Rprintf("Arg:%d, me:%d", oa->args[0]->isDirty, oa->myMatrix->isDirty);}
 	
 	return oa->myMatrix->isDirty;
 }
@@ -123,6 +127,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP alg) {
 	SEXP algebraOperator, algebraArg, algebraElt;
 	PROTECT(algebraOperator = AS_INTEGER(VECTOR_ELT(alg, 0)));
 	value = INTEGER(algebraOperator)[0];
+
+	if(OMX_DEBUG) {Rprintf("Creating Algebra from Sexp.\n");}
 
 	if(value > 0) { 			// This is an operator.
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
@@ -168,6 +174,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP alg) {
 	UNPROTECT(1);	/* algebraOperator */
 
 	omxAlgebraCompute(oa);
+	
+	omxMatrixCompute(om);
 
 }
 
@@ -235,7 +243,9 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatr
 	om = omxInitAlgebra(oa);
 	omxFillAlgebraFromTableEntry(oa, entry);
 	oa->args[0] = arg1;
-	oa->args[2] = arg2;
+	oa->args[1] = arg2;
+	
+	omxMarkDirty(om);
 	
 	return om;
 	
