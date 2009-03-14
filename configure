@@ -2867,7 +2867,7 @@ done
    major_release=`echo "$GCC_VERSION" | $AWK -F '.' '{print $1 "." $2}'`
    npsol_library="${npsol_library}/linux/${omx_arch}/gcc${major_release}"
 ;;
-darwin)
+osx)
    npsol_library="${npsol_library}/osx"
 ;;
 *)
