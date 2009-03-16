@@ -16,8 +16,10 @@ setMethod("initialize", "MxConstraint",
 	}
 )
 
-mxConstraint <- function(alg1, relation, alg2,
-	name = omxUntitledName()) {
+mxConstraint <- function(alg1, relation, alg2, name = NA) {
+	if (is.na(name)) {
+		name <- omxUntitledName()
+	}
 	if (typeof(name) != "character") {
 		stop(paste("Name argument is not a string",
 		"(the name of the objective function)"))

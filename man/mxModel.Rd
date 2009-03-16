@@ -1,10 +1,16 @@
 \name{mxModel}
 \alias{mxModel}
 
-\title{Create MxModel Object}
+\title{Function To Create MxModel Object}
 
 \description{
    This function creates a new \link{MxModel} object.
+}
+
+\usage{
+	mxModel(model = NA, ..., manifestVars = NA, 
+		latentVars = NA, remove = FALSE, 
+		independent = NA, name = NA)
 }
 
 \arguments{
@@ -17,7 +23,7 @@
    \item{manifestVars}{A list of manifest variables}
    \item{latentVars}{A list of latent variables}
    \item{remove}{Logical. If TRUE then remove elements from the model. Defaults to FALSE.}
-   \item{independent}{Logical. If TRUE then the model is independent. Defaults to FALSE.}
+   \item{independent}{Logical. If TRUE then the model is independent.}
    \item{name}{A character string indicating the name of the object. Optional.}
 }
 

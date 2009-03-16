@@ -14,7 +14,10 @@ setMethod("initialize", "MxAlgebra",
 	}
 )
 
-mxAlgebra <- function(expression, name = omxUntitledName()) {
+mxAlgebra <- function(expression, name = NA) {
+	if (is.na(name)) {
+		name <- omxUntitledName()
+	}
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
 	return(retval)	

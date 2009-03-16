@@ -1,10 +1,16 @@
 \name{mxMatrix}
 \alias{mxMatrix}
 
-\title{Create MxMatrix Object}
+\title{Function To Create MxMatrix Object}
 
 \description{
    This function creates a new \link{MxMatrix} object.
+}
+
+\usage{
+	mxMatrix(type = "Full", values = NA, specification = NA,
+		nrow = NA, ncol = NA, byrow = FALSE, 
+		free = FALSE, name = NA)
 }
 
 \arguments{

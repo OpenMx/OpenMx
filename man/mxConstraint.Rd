@@ -1,11 +1,16 @@
 \name{mxConstraint}
 \alias{mxConstraint}
 
-\title{Create MxConstraint Object}
+\title{Function To Create MxConstraint Object}
 
 \description{
    This function creates a new \link{MxConstraint} object.
 }
+
+\usage{
+	mxConstraint(alg1, relation, alg2, name = NA)
+}
+
 
 \arguments{
    \item{alg1}{A character string indicating the 

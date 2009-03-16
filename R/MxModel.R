@@ -159,45 +159,45 @@ mappendHelper <- function(lst, result) {
 	}
 }
 
-omxModel <- function(model = NULL, ..., name = NULL, manifestVars = NULL,
-	latentVars = NULL, remove = FALSE, independent = NULL) {
+omxModel <- function(model = NA, ..., name = NA, manifestVars = NA,
+	latentVars = NA, remove = FALSE, independent = NA) {
     first <- NULL
-	if(is.null(model)) {
+	if(typeof(model) != "S4" && is.na(model)) {
 		model <- new("MxModel")	
 	} else if (typeof(model) == "character") {
 		model <- new("MxModel", name = model)
 	} else if(!is(model, "MxModel")) {
  		first <- model
-	    model <- new("MxModel")
+		model <- new("MxModel")
 	}
 	lst <- list(...)
-    lst <- append(lst, first)
+	lst <- append(lst, first)
 	if(class(model)[[1]] != "MxModel") {
 		stop("First argument is not an MxModel object")
 	}
 	if(remove == TRUE) {
 		model <- omxRemoveEntries(model, mappendHelper(lst, list()))
-		if ( !is.null(manifestVars) ) {
+		if ( length(manifestVars) > 1 || !is.na(manifestVars) ) {
 			model@manifestVars <- setdiff(model@manifestVars, manifestVars)
 		}
-		if ( !is.null(latentVars) ) {
+		if ( length(latentVars) > 1 || !is.na(latentVars) ) {
 			model@latentVars <- setdiff(model@latentVars, latentVars)
 		}				
 	} else {
 		model <- omxAddEntries(model, mappendHelper(lst, list()))
-		if ( !is.null(manifestVars) ) {
+		if ( length(manifestVars) > 1 || !is.na(manifestVars) ) {
 			tmp <- append(model@manifestVars, manifestVars)
 			model@manifestVars <- unique(tmp)
 		}
-		if ( !is.null(latentVars) ) {
+		if (length(latentVars) > 1 || !is.na(latentVars)) {
 			tmp <- append(model@latentVars, latentVars)
 			model@latentVars <- unique(tmp)
 		}		
 	}
-	if(!is.null(independent)) {
+	if(!is.na(independent)) {
 		model@independent <- independent
 	}
-	if(!is.null(name)) {
+	if(!is.na(name)) {
 		model@name <- name
 	}			
 	return(model)
@@ -431,9 +431,9 @@ omxDisplayModel <- function(model) {
 setMethod("print", "MxModel", function(x,...) { omxDisplayModel(x) })
 setMethod("show", "MxModel", function(object) { omxDisplayModel(object) })
 
-mxModel <- function(model = NULL, ..., 
-	manifestVars = NULL,latentVars = NULL, 
-	remove = FALSE, independent = NULL, name = NULL) {
+mxModel <- function(model = NA, ..., 
+	manifestVars = NA, latentVars = NA, 
+	remove = FALSE, independent = NA, name = NA) {
 		omxModel(model, ..., name = name, 
 		manifestVars = manifestVars, 
 		latentVars = latentVars,

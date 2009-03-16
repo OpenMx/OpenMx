@@ -1,10 +1,14 @@
 \name{mxAlgebra}
 \alias{mxAlgebra}
 
-\title{Create MxAlgebra Object}
+\title{Function To Create MxAlgebra Object}
 
 \description{
    This function creates a new \link{MxAlgebra} object.
+}
+
+\usage{
+	mxAlgebra(expression, name = NA)
 }
 
 \arguments{

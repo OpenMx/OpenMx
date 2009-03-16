@@ -1,5 +1,4 @@
 \name{MxData-class}
-\alias{MxData-class}
 \alias{MxData}
 
 \title{MxData Class}

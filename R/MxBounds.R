@@ -16,10 +16,10 @@ setMethod("initialize", "MxBounds",
 	}
 )
 
-mxBounds <- function(parameters, min = NA, max = NA,
-	name = omxUntitledName()) {
+mxBounds <- function(parameters, min = NA, max = NA, name = NA) {
 	if(is.na(min)) min <- NA_real_
 	if(is.na(max)) max <- NA_real_
+	if(is.na(name)) name <- omxUntitledName()
 	if (typeof(name) != "character") {
 		stop(paste("Name argument is not a string",
 		"(the name of the objective function)"))
