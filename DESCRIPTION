@@ -15,7 +15,7 @@ Description: The OpenMx Project intends to rewrite and extend the
  time-dependent patterning, and
     * increased sophistication in the statistical models used to
  analyze the data. 
-License: TBD
+License: Apache License 2.0 | file LICENSE
 Depends: methods, Matrix, mnormt, snowfall
 LazyLoad: yes
 LazyData: yes

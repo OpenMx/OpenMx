@@ -19,7 +19,7 @@ setMethod("initialize", "MxFIMLObjective",
 )
 
 setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"), 
-	function(.Object, model) {
+	function(.Object, model, definitions) {
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
@@ -38,7 +38,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 			stop(paste("Could not find a data set for objective", 
 			.Object@name, "in the model."))
 		}
-		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex))
+		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex, definitions))
 })
 
 mxFIMLObjective <- function(covariance, means, name = omxUntitledName()) {

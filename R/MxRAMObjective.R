@@ -18,7 +18,7 @@ setMethod("initialize", "MxRAMObjective",
 )
 
 setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
-	function(.Object, model) {
+	function(.Object, model, definitions) {
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S

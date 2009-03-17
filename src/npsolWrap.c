@@ -227,8 +227,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
 			double* theVarList = REAL(nextLoc);			// These come through as doubles.
 			int theMat = (int)theVarList[0];			// Matrix is zero-based indexed.
-			int theRow = (int)theVarList[1] - 1;		// Row is one-based.
-			int theCol = (int)theVarList[2] - 1;		// Column is one-based.
+			int theRow = (int)theVarList[1];			// Row is zero-based.
+			int theCol = (int)theVarList[2];			// Column is zero-based.
 			freeVarList[k].location[l] = omxLocationOfMatrixElement(matrixList[theMat], theRow, theCol);
 			freeVarList[k].matrices[l] = theMat;
 			UNPROTECT(1); // nextLoc

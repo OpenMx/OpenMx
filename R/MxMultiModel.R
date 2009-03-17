@@ -34,7 +34,7 @@ omxCheckNamedEntity <- function(model, slotname, nameList) {
 }
 
 omxCheckDataColumns <- function(dataset, nameList) {
-	columnNames <- names(dataset)
+	columnNames <- dimnames(dataset)[[2]]
 	nameIntersect <- intersect(columnNames, nameList)
 	if (length(nameIntersect) > 0) {
 		stop(omxNamespaceErrorMessage(nameIntersect), call.=FALSE)

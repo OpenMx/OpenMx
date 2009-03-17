@@ -8,6 +8,7 @@ setClass(Class = "MxBaseObjective",
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
-setGeneric("omxObjFunConvert", function(.Object, model) {
+setGeneric("omxObjFunConvert", 
+	function(.Object, model, definitions) {
 	return(standardGeneric("omxObjFunConvert"))	
 })

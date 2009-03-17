@@ -7,7 +7,6 @@ omxGenerateSimpleMatrixList <- function(mxModel) {
 	return(lapply(retval, as.matrix))
 }
 
-
 omxGenerateAlgebraList <- function(mxModel) {
 	mNames <- names(mxModel@matrices)
 	aNames <- names(mxModel@algebras)
@@ -17,7 +16,7 @@ omxGenerateAlgebraList <- function(mxModel) {
     return(retval)
 }
 
-omxGenerateParameterList <- function(mxModel) {
+omxGenerateParameterList <- function(mxModel, defLocations) {
 	result <- list()
 	if (length(mxModel@matrices) == 0) {
 		return(result)
@@ -25,14 +24,27 @@ omxGenerateParameterList <- function(mxModel) {
 	for(i in 1:length(mxModel@matrices)) {
 		result <- omxGenerateParameterListHelper(
 			mxModel@matrices[[i]], 
-			mxModel@bounds, result, i - 1)
+			mxModel@bounds, result, names(defLocations), i - 1)
 	}	
 	return(result)
 }
 
-omxGenerateValueList <- function(mxModel) {
+omxGenerateDefinitionList <- function(mxModel, defLocations) {
+	result <- list()
+	if (length(mxModel@matrices) == 0) {
+		return(result)
+	}
+	for(i in 1:length(mxModel@matrices)) {
+		result <- omxGenerateDefinitionListHelper(
+			mxModel@matrices[[i]], 
+			mxModel@bounds, result, defLocations, i - 1)
+	}	
+	return(result)
+}
+
+omxGenerateValueList <- function(mxModel, defLocations) {
 	mList <- omxGenerateMatrixList(mxModel)
-	pList <- omxGenerateParameterList(mxModel)
+	pList <- omxGenerateParameterList(mxModel, defLocations)
 	retval <- vector()
 	if (length(pList) == 0) {
 		return(retval)
@@ -56,14 +68,14 @@ omxGenerateValueList <- function(mxModel) {
 
 generateValueHelper <- function(triple, mList) {
 	mat <- triple[1] + 1
-	row <- triple[2]
-	col <- triple[3]
+	row <- triple[2] + 1
+	col <- triple[3] + 1
 	return(mList[[mat]][row,col])
 }
 
-omxConvertObjectives <- function(flatModel) {
+omxConvertObjectives <- function(flatModel, definitions) {
 	retval <- lapply(flatModel@objectives, function(x) {
-		omxObjFunConvert(x, flatModel)
+		omxObjFunConvert(x, flatModel, definitions)
 	})
 	return(retval)
 }
@@ -77,8 +89,7 @@ omxObjectiveIndex <- function(flatModel) {
 	}
 }
 
-omxUpdateModelValues <- function(treeModel, flatModel, values) {
-	pList <- omxGenerateParameterList(flatModel)
+omxUpdateModelValues <- function(treeModel, flatModel, pList, values) {
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),
@@ -100,8 +111,8 @@ updateModelValueHelper <- function(triples, value, treeModel, flatModel) {
 	for(i in 1:length(triples)) {
 		triple <- triples[[i]]
 		mat <- triple[1] + 1
-		row <- triple[2]
-		col <- triple[3]
+		row <- triple[2] + 1
+		col <- triple[3] + 1
 		name <- flatModel@matrices[[mat]]@name
 		if(!is.null(treeModel[[name]])) {
 			treeModel[[name]]@values[row,col] <- value

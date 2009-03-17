@@ -152,19 +152,21 @@ omxCreateByRow <- function(source, nrow, ncol, type) {
 	}
 }
 
-processSparseMatrix <- function(specification, bounds, result, matrixNumber, reverse=FALSE) {
+omxSparseMatrixParameters <- function(specification, bounds, result, 
+	defNames, matrixNumber, reverse=FALSE) {
 	if (length(specification@dataVector) == 0) {
 		return(result)
 	}
 	for(i in 1:length(specification@dataVector)) {
-	    if (reverse == FALSE || specification@rowVector[i] != specification@colVector[i]) {
+	    if (reverse == FALSE || specification@rowVector[i] != 
+	    	specification@colVector[i]) {
 		    parameterName <- as.character(specification@dataVector[[i]])
 		    if (reverse) {
-			    col <- specification@rowVector[i]
-			    row <- specification@colVector[i]
+			    col <- specification@rowVector[i] - 1
+			    row <- specification@colVector[i] - 1
 			} else {
-			    row <- specification@rowVector[i]
-			    col <- specification@colVector[i]			
+			    row <- specification@rowVector[i] - 1
+			    col <- specification@colVector[i] - 1			
 			}
 			boundsLookup <- omxLocateBounds(bounds, parameterName)
 			minBounds <- boundsLookup[[1]]
@@ -172,13 +174,48 @@ processSparseMatrix <- function(specification, bounds, result, matrixNumber, rev
 			if (is.na(parameterName)) {
 				result[[length(result)+1]] <-  list(minBounds, maxBounds, 
 					c(matrixNumber, row, col))
-			} else {
+			} else if (!(parameterName %in% defNames)) {
 				if (!is.null(result[[parameterName]])) {
 					original <- result[[parameterName]]
 					original[[length(original) + 1]] <- c(matrixNumber, row, col)
 					result[[parameterName]] <- original
 				} else {
 					result[[parameterName]] <- list(minBounds, maxBounds, 
+						c(matrixNumber, row,col))
+				}
+			}
+		}
+	}
+	return(result)
+}
+
+omxSparseMatrixDefinitions <- function(specification, bounds, result, 
+	defLocations, matrixNumber, reverse=FALSE) {
+	if (length(specification@dataVector) == 0) {
+		return(result)
+	}
+	defNames <- names(defLocations)
+	for(i in 1:length(specification@dataVector)) {
+	    if (reverse == FALSE || specification@rowVector[i] != 
+	    	specification@colVector[i]) {
+		    parameterName <- as.character(specification@dataVector[[i]])
+		    if (reverse) {
+			    col <- specification@rowVector[i] - 1
+			    row <- specification@colVector[i] - 1
+			} else {
+			    row <- specification@rowVector[i] - 1
+			    col <- specification@colVector[i] - 1			
+			}
+			if (parameterName %in% defNames) {
+				if (!is.null(result[[parameterName]])) {
+					original <- result[[parameterName]]
+					dataNumber <- 
+					original[[length(original) + 1]] <- c(matrixNumber, row, col)
+					result[[parameterName]] <- original
+				} else {
+					dataNumber <- defLocations[[parameterName]][[1]]
+					columnNumber <- defLocations[[parameterName]][[2]]
+					result[[parameterName]] <- list(dataNumber, columnNumber, 
 						c(matrixNumber, row,col))
 				}
 			}
@@ -197,13 +234,25 @@ generateMatrixListHelper <- function(mxMatrix) {
 }
 
 omxGenerateParameterListHelper <- function(mxMatrix, bounds,
-	result, matrixNumber) {
+	result, defNames, matrixNumber) {
 	specification <- mxMatrix@specification
-	result <- processSparseMatrix(specification, bounds,
-		result, matrixNumber)
+	result <- omxSparseMatrixParameters(specification, bounds,
+		result, defNames, matrixNumber)
 	if(is(specification,"MxSymmetricSparse")) {
-		result <- processSparseMatrix(specification, bounds, 
-			result, matrixNumber, TRUE)
+		result <- omxSparseMatrixParameters(specification, bounds, 
+			result, defNames, matrixNumber, TRUE)
+	}
+	return(result)
+}
+
+omxGenerateDefinitionListHelper <- function(mxMatrix, bounds,
+	result, defLocations, matrixNumber) {
+	specification <- mxMatrix@specification
+	result <- omxSparseMatrixDefinitions(specification, bounds,
+		result, defLocations, matrixNumber)
+	if(is(specification,"MxSymmetricSparse")) {
+		result <- omxSparseMatrixDefinitions(specification, bounds, 
+			result, defLocations, matrixNumber, TRUE)
 	}
 	return(result)
 }
