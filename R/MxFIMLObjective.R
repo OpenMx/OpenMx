@@ -2,15 +2,18 @@ setClass(Class = "MxFIMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
-		data = "numeric"),
+		data = "numeric",
+		definitionVars = "list"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, name, covariance, means, data = NA_real_) {
+	function(.Object, name, covariance, means, 
+				data = NA_real_, definitionVars = list()) {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
 		.Object@data <- data
+		.Object@definitionVars <- definitionVars
 		return(.Object)
 	}
 )
