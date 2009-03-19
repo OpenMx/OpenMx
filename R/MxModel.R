@@ -41,69 +41,89 @@ setMethod("initialize", "MxModel",
 	}
 )
 
+omxExtractMethod <- function(model, index) {
+	first <- model@matrices[[index]]
+	second <- model@algebras[[index]]
+	third <- model@submodels[[index]]
+	fourth <- model@constraints[[index]]
+	fifth <- model@bounds[[index]]
+	if (!is.null(model@objective) && index == model@objective@name) {
+		return(model@objective)
+	} else if (!is.null(first)) {
+		return(first)
+	} else if (!is.null(second)) {
+		return(second)
+	} else if (!is.null(third)) {
+		return(third)
+	} else if (!is.null(fourth)) {
+		return(fourth)
+	} else {
+		return(fifth)
+	}	
+}
+
+omxReplaceMethod <- function(model, index, value) {
+	current <- model[[index]]
+	if (is.null(current) && is.null(value)) {
+		return(model)
+	}
+	if(index == model@name) {
+		stop(paste(omxQuotes(index), 
+			"is already used as the name of the model"))
+	}
+	if(!is.null(current) && !is.null(value) && 
+			!omxSameType(current, value)) {
+		stop(paste("There already exists an object", 
+				omxQuotes(index), 
+				"in this model of different type"))
+	}
+	if(!is.null(value)) {
+		value@name <- index
+		test <- value		
+	} else {
+		test <- current
+	}
+	if (is(test,"MxMatrix")) {
+		model@matrices[[index]] <- value
+	} else if (is(test,"MxAlgebra")) {
+		model@algebras[[index]] <- value
+	} else if (is(test,"MxModel")) {
+		model@submodels[[index]] <- value	
+	} else if (is(test,"MxObjective")) {
+		model@objective <- value
+	} else if (is(test,"MxConstraint")) {
+		model@constraints[[index]] <- value
+	} else if (is(test,"MxBounds")) {
+		model@bounds[[index]] <- value
+	} else {
+		stop("Unknown type of value", value)
+	}
+	return(model)
+}
+
 setMethod("[[", "MxModel",
 	function(x, i, j, ..., drop = FALSE) {
-		first <- x@matrices[[i]]
-		second <- x@algebras[[i]]
-		third <- x@submodels[[i]]
-		fourth <- x@constraints[[i]]
-		fifth <- x@bounds[[i]]
-		if (!is.null(x@objective) && i == x@objective@name) {
-			return(x@objective)
-		} else if (!is.null(first)) {
-			return(first)
-		} else if (!is.null(second)) {
-			return(second)
-		} else if (!is.null(third)) {
-			return(third)
-		} else if (!is.null(fourth)) {
-			return(fourth)
-		} else {
-			return(fifth)
-		}
+		return(omxExtractMethod(x, i))
 	}
 )
 
 setReplaceMethod("[[", "MxModel",
 	function(x, i, j, value) {
-		current <- x[[i]]
-		if (is.null(current) && is.null(value)) {
-			return(x)
-		}
-		if(i == x@name) {
-			stop(paste(omxQuotes(i), 
-				"is already used as the name of the model"))
-		}
-		if(!is.null(current) && !is.null(value) && 
-				!omxSameType(current, value)) {
-			stop(paste("There already exists an object", 
-					omxQuotes(i), 
-					"in this model of different type"))
-		}
-		if(!is.null(value)) {
-			value@name <- i
-			test <- value		
-		} else {
-			test <- current
-		}
-		if (is(test,"MxMatrix")) {
-			x@matrices[[i]] <- value
-		} else if (is(test,"MxAlgebra")) {
-			x@algebras[[i]] <- value		
-		} else if (is(test,"MxModel")) {
-			x@submodels[[i]] <- value			
-		} else if (is(test,"MxObjective")) {
-			x@objective <- value
-		} else if (is(test,"MxConstraint")) {
-			x@constraints[[i]] <- value
-		} else if (is(test,"MxBounds")) {
-			x@bounds[[i]] <- value
-		} else {
-			stop("Unknown type of value", value)
-		}
-		return(x)
+		return(omxReplaceMethod(x, i, value))
 	}
 )
+
+#setMethod("$", "MxModel",
+#	function(x, name) {
+#		return(omxExtractMethod(x, name))
+#	}
+#)
+#
+#setReplaceMethod("$", "MxModel",
+#	function(x, name, value) {
+#		return(omxReplaceMethod(x, name, value))
+#	}
+#)
 
 omxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
