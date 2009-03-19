@@ -145,8 +145,15 @@ mxMatrix <- function(type = "Full", values = NA,
 }
 
 omxCreateByRow <- function(source, nrow, ncol, type) {
-	if (!is.na(source) && is.vector(source) && !(type %in% squareMatrices)) {
-		return(matrix(source, nrow, ncol, TRUE))
+	if (!is.na(source) && is.vector(source)) {
+		if (type %in% squareMatrices) {
+			res <- matrix(0, nrow, ncol)
+			res[upper.tri(res, diag=TRUE)] <- source
+			res[lower.tri(res)] <- res[upper.tri(res)]
+			return(res)
+		} else {
+			return(matrix(source, nrow, ncol, TRUE))
+		}
 	} else {
 		return(source)
 	}
