@@ -9,7 +9,18 @@
 #ifndef _OMX_FIML_OBJECTIVE_
 #define _OMX_FIML_OBJECTIVE_ TRUE
 
-typedef struct {
+extern omxMatrix** matrixList;
+
+typedef struct omxDefinitionVar {		 	// Definition Var
+
+	int data, column;	 	// Where it comes from
+	int numLocations;	 	// Num locations
+	double** location;	 	// And where it goes
+	int* matrices;		 	// Matrix numbers for dirtying
+
+} omxDefinitionVar;
+
+typedef struct omxFIMLObjective {
 
 	omxMatrix* cov;
 	omxMatrix* means;
@@ -17,6 +28,7 @@ typedef struct {
 	omxMatrix* smallRow;
 	omxMatrix* smallCov;
 	omxMatrix* RCX;
+	omxDefinitionVar* defVars;
 
 } omxFIMLObjective;
 
@@ -119,8 +131,9 @@ unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
-	SEXP nextMatrix;
-	int index;
+	SEXP nextMatrix, itemList, nextItem;
+	int nextDef, index, data, column;
+	int *items;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(sizeof(omxFIMLObjective), 1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
@@ -137,6 +150,25 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix);
 	UNPROTECT(2);
 	
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
+	newObj->defVars = (omxDefinitionVar *) R_alloc(sizeof(omxDefinitionVar), length(nextMatrix));
+	for(nextDef = 0; nextDef < length(nextMatrix); nextDef++) {
+		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 1));
+		newObj->defVars[nextDef].data = REAL(nextItem)[0];
+		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 2));
+		newObj->defVars[nextDef].column = REAL(nextItem)[0];
+		UNPROTECT(2);
+		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(sizeof(int), length(itemList) - 2);
+		for(index = 3; index < length(itemList); index++) {
+			PROTECT(nextItem = VECTOR_ELT(nextMatrix, index));
+			items = INTEGER(nextItem);
+			newObj->defVars[nextDef].location[index-3] = omxLocationOfMatrixElement(matrixList[items[0]], items[1], items[2]);
+			newObj->defVars[nextDef].matrices[index-3] = items[0];
+			UNPROTECT(1);
+		}
+	}
+
 	/* Temporary storage for calculation */
 	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE);
 	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE);
@@ -148,6 +180,5 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	oo->argStruct = (void*) newObj;
 	
 }
-
 
 #endif /* _OMX_FIML_OBJECTIVE_ */

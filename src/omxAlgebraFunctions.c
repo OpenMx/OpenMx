@@ -22,11 +22,14 @@ void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
 
 void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
 {
-	int ipiv[inMat->rows];
+	int ipiv[inMat->rows], lwork;
+	lwork = 4 * inMat->rows * inMat->cols;
+	double work[lwork];
 	int l = 0;
 
 	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
+	F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 	
 }
 

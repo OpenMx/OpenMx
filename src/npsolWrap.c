@@ -19,9 +19,11 @@
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
 #define VERBOSE 1
+#define OMX_DEBUG_ALL 1
 #else
 #define OMX_DEBUG 0
 #define VERBOSE 0
+#define OMX_DEBUG_ALL 1
 #endif /* DEBUGMX */
 
 /* Structure definitions for object evaluation */
@@ -213,22 +215,24 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
 		freeVarList[k].lbound = REAL(nextLoc)[0];
 		if(ISNA(freeVarList[k].lbound)) freeVarList[k].lbound = NEG_INF;
-		if(freeVarList[k].lbound == 0.0) freeVarList[k].lbound = EPSILON;
+		if(freeVarList[k].lbound == 0.0) freeVarList[k].lbound = 0.0;
 		UNPROTECT(1); // NextLoc
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
 		freeVarList[k].ubound = REAL(nextLoc)[0];
 		if(ISNA(freeVarList[k].ubound)) freeVarList[k].ubound = INF;
-		if(freeVarList[k].ubound == 0.0) freeVarList[k].ubound = -EPSILON;
+		if(freeVarList[k].ubound == 0.0) freeVarList[k].ubound = -0.0;
 		UNPROTECT(1); // NextLoc
 		
 		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, freeVarList[k].lbound, freeVarList[k].ubound, numLocs); }
 		for(l = 0; l < freeVarList[k].numLocations; l++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
 			double* theVarList = REAL(nextLoc);			// These come through as doubles.
+
 			int theMat = (int)theVarList[0];			// Matrix is zero-based indexed.
 			int theRow = (int)theVarList[1];			// Row is zero-based.
 			int theCol = (int)theVarList[2];			// Column is zero-based.
+
 			freeVarList[k].location[l] = omxLocationOfMatrixElement(matrixList[theMat], theRow, theCol);
 			freeVarList[k].matrices[l] = theMat;
 			UNPROTECT(1); // nextLoc
@@ -356,26 +360,31 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		}
 		
 		for(l = 0; l < numCons; l++) {						// Nonlinear constraints:
+			if(OMX_DEBUG) { Rprintf("Constraint %d: ", l);}
 			switch(conList[l].opCode) {
 				case 0:									// Less than: Must be strictly less than 0.
+					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
 					for(m = 0; m < conList[l].size; m++) {
 						bl[k] = NEG_INF;
-						bu[k] = EPSILON;
+						bu[k] = -0.0;
 					}
 					break;
 				case 1:									// Equal: Must be roughly equal to 0.
+					if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
 					for(m = 0; m < conList[l].size; m++) {
-						bl[k] = -EPSILON;
-						bu[k] = EPSILON;
+						bl[k] = -0.0;
+						bu[k] = 0.0;
 					}
 					break;
 				case 2:									// Greater than: Must be strictly greater than 0.
+					if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
 					for(m = 0; m < conList[l].size; m++) {
-						bl[k] = -EPSILON;
+						bl[k] = 0.0;
 						bu[k] = INF;
 					}
 					break;
 				default:
+					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
 					for(m = 0; m < conList[l].size; m++) {
 						bl[k] = NEG_INF;
 						bu[k] = INF;
@@ -413,26 +422,45 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	*/
 	
 		/* Output Options */
-		strcpy(option, "Nolist"); 						// Suppress that annoying output file
-		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Print level 0");  				// 0 = No Output, 20=Verbose
-		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Minor print level 0");			// 0 = No Output, 20=Verbose
-		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Print file 0");
-		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Summary file 0");
-		F77_CALL(npoptn)(option, strlen(option));
+		if(OMX_DEBUG_ALL) {
+			strcpy(option, "Print level 20");  				// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(option, strlen(option));
+			strcpy(option, "Minor print level 20");			// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(option, strlen(option));
+			sprintf(option, "Print file 7");
+			F77_CALL(npoptn)(option, strlen(option));
+			sprintf(option, "Summary file 7");
+			F77_CALL(npoptn)(option, strlen(option));
+		} else {
+			strcpy(option, "Nolist"); 						// Suppress that annoying output file
+			F77_CALL(npoptn)(option, strlen(option));
+			strcpy(option, "Print level 0");  				// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(option, strlen(option));
+			strcpy(option, "Minor print level 0");			// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(option, strlen(option));
+			sprintf(option, "Print file 0");
+			F77_CALL(npoptn)(option, strlen(option));
+			sprintf(option, "Summary file 0");
+			F77_CALL(npoptn)(option, strlen(option));
+		}
 
 		/* Options That Change The Optimizer */
-		sprintf(option, "Function Precision 1e-14");		// Set epsilon
+		sprintf(option, "Function Precision 1e-9");		// Set epsilon
+		F77_CALL(npoptn)(option, strlen(option));
+		sprintf(option, "Infinite Bound Size 1.0e+15");
+		F77_CALL(npoptn)(option, strlen(option));
+		sprintf(option, "Feasibility tolerance 1.0e-05");
+		F77_CALL(npoptn)(option, strlen(option));
+		sprintf(option, "Major iterations 1000");
+		F77_CALL(npoptn)(option, strlen(option));
+		sprintf(option, "Difference interval ");
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Verify level 3");
 		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Line search tolerance .2");		// Set accuracy to Merit Function
+		strcpy(option, "Linesearch tolerance .3");		// Set accuracy to Merit Function
 		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
-		F77_CALL(npoptn)(option, strlen(option));
+//		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
+//		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Derivative Level 0");			// Always estimate gradient and hessian
 		F77_CALL(npoptn)(option, strlen(option));	
 		strcpy(option, "Hessian Yes");					// Evaluate Hessian
@@ -482,7 +510,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 						(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac, clambda, &f, g, R,
 						x, iw, &leniw, w, &lenw);
-		if(OMX_DEBUG) {Rprintf("Objective Value is: %f.\n", f); }
+		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
+		handleFreeVarList(x, n);
 	}
 	
 	/* Store outputs for return */
@@ -580,6 +609,8 @@ void F77_SUB(objectiveFunction)
 		Rprintf("Objective Value is: %f.\n", objMatrix->data[0]);
 	}
 
+	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
+
 }
 
 /* (Non)Linear Constraint Functions */
@@ -589,14 +620,22 @@ void F77_SUB(oldMxConFun)
 		double *c, double *cJac, int *nstate)
 {
 
-	if(OMX_DEBUG) {Rprintf("Constraint function called.\n");}
+	if(OMX_DEBUG) { Rprintf("Constraint function called.\n");}
+
+	if(*mode==1) {
+		if(OMX_DEBUG) {
+			Rprintf("But only gradients requested.  Returning.\n");
+			Rprintf("-=====================================================-\n");
+		}
+		return;
+	}
 
 	ncalls--;
 	nminor++;
 	int j, k, l = 0, size;
 	
 	handleFreeVarList(x, *n);
-
+	
 	for(j = 0; j < numCons; j++) {
 		omxRecomputeMatrix(conList[j].result);
 		size = conList[j].result->rows * conList[j].result->cols;
@@ -605,6 +644,8 @@ void F77_SUB(oldMxConFun)
 			c[l++] = conList[j].result->data[k];
 		}
 	}
+
+	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
 
 return;
 

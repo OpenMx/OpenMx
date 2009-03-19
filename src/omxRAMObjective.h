@@ -92,11 +92,12 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	double sum = 0;
 
 	for(k = 0; k < C->cols; k++) { 		// |A| is the sum of the diagonal elements of U from the LU factorization.
-		det *= C->data[k+C->rows*k];  	// Normally, we'd need to worry about transformations made during LU, but
+		det *= C->data[k+C->rows*k];	// Normally, we'd need to worry about transformations made during LU, but
 	}									// we're safe here because the determinant of a covariance matrix > 0.
 
 	if(OMX_DEBUG) { Rprintf("Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f\n", det); }
-	det = log(det);
+	det = log(fabs(det));
+	if(OMX_DEBUG) { Rprintf("Log of Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f\n", det); }
 	
 	F77_CALL(dgetri)(&(C->rows), C->data, &(C->cols), ipiv, work, lwork, &k);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
@@ -105,8 +106,8 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		sum += C->data[k] * cov->data[k];
 	}
 
-//	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
-//	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
+	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
+	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
 
 	oo->myMatrix->data[0] = (sum + det);
 
