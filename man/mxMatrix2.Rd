@@ -1,5 +1,5 @@
-\name{mxMatrix}
-\alias{mxMatrix}
+\name{mxMatrix2}
+\alias{mxMatrix2}
 
 \title{Function To Create MxMatrix Object}
 
@@ -10,7 +10,7 @@
 \usage{
   mxMatrix(type = "Full", values = NA, specification = NA,
   nrow = NA, ncol = NA, byrow = FALSE,
-  free = FALSE, name = NA}
+  free = FALSE, name = NA)
 }
 
 \arguments{
@@ -25,21 +25,21 @@
 }
 
 \details{
-(needs work) MxMatrix objects consist of a pair of matrices and a 'type' argument. The 'values' matrix is made up of numeric elements whose usage and capabilities in other functions are defined by the 'specification' matrix. If an element is specified as a fixed parameter in the 'specification' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in a \link{mxJob} function. If an element is specified as a free parameter in the 'specification' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in a \link{mxJob} function.
+(needs work) MxMatrix objects consist of a pair of matrices and a 'type' argument. The 'values' matrix is made up of numeric elements whose usage and capabilities in other functions are defined by the 'specification' matrix. If an element is specified as a fixed parameter in the 'specification' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in a (mxJob) function. If an element is specified as a free parameter in the 'specification' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in a (mxJob) function.
 
 Objects created by the mxMatrix function require the 'type' argument, which specifies the number and location of free parameters in the 'specification' matrix and the possible values in the 'value' matrix. Six types of matrices are supported:
 
-\item{'Diag'} matrices must be square, and only elements on the principle diagonal may be specified as free parameters or take non-zero values. All other elements are required to be fixed parameters with a value of 0.
-
-\item{'Full'} matrices may be either rectangular or square, and all elements in the matrix may be freely estimated. This type is the default for the mxMatrix() function.
-
-\item{'Iden'} matrices must be square, and consist of no free parameters. Matrices of this type have a value of 1 for all entries on the principle diagonal and the value 0 in all off-diagonal entries.
-
-\item{'Symm'} matrices must be square, and elements in the principle diagonal and lower triangular portion of the matrix may be free parameters of any value. Elements in the upper triangular portion of the matrix are constrained to be equal to those in the lower triangular portion, such that the value and parameter specificiation of the element in row i and column j is identical to to the value and specification of the element in row j and column i. Values and parameters specified in one element of the matrix are automatically applied to equivalent elements.
-
-\item{'Unit'} matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 1 for all elements.
-
-\item{'Zero'} matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 0 for all elements.
+\item{'Diag'}{matrices must be square, and only elements on the principle diagonal may be specified as free parameters or take non-zero values. All other elements are required to be fixed parameters with a value of 0.}
+             
+\item{'Full'}{matrices may be either rectangular or square, and all elements in the matrix may be freely estimated. This type is the default for the mxMatrix() function.}
+             
+\item{'Iden'}{matrices must be square, and consist of no free parameters. Matrices of this type have a value of 1 for all entries on the principle diagonal and the value 0 in all off-diagonal entries.}
+             
+\item{'Symm'}{matrices must be square, and elements in the principle diagonal and lower triangular portion of the matrix may be free parameters of any value. Elements in the upper triangular portion of the matrix are constrained to be equal to those in the lower triangular portion, such that the value and parameter specification of the element in row i and column j is identical to to the value and specification of the element in row j and column i. Values and parameters specified in one element of the matrix are automatically applied to equivalent elements.}
+             
+\item{'Unit'}{matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 1 for all elements.}
+             
+\item{'Zero'}{matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 0 for all elements.}
 
 For more information about these matrix types, see Chapter 4 of the Mx manual, which can be found at http://www.vcu.edu/mx/documentation.html.
 
