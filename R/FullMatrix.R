@@ -9,6 +9,12 @@ setMethod("initialize", "FullMatrix",
 			specification <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
 	    } else if (single.na(specification)) {
 			specification <- new("MxSparseMatrix", 0, nrow, ncol)
+	    } else if (is(specification, "Matrix")) {
+	    	specification <- new("MxSparseMatrix", as.matrix(specification))
+	    } else if (is.matrix(specification)) {
+	    	specification <- new("MxSparseMatrix", specification)
+	    } else if(is.vector(specification)) {
+	    	specification <- new("MxSparseMatrix", matrix(specification, nrow, ncol))
 	    } else {
 	    	specification <- new("MxSparseMatrix", specification, nrow, ncol)
 	    }
