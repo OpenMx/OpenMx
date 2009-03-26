@@ -39,7 +39,8 @@ setMethod("omxObjFunConvert", signature("MxAlgebraObjective", "MxFlatModel"), fu
 })
 
 
-mxAlgebraObjective <- function(algebra, name = omxUntitledName()) {
+mxAlgebraObjective <- function(algebra, name = NA) {
+	if(is.na(name)) name <- omxUntitledName()
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}

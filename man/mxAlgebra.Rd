@@ -8,7 +8,7 @@
 }
 
 \usage{
-	mxAlgebra(expression, name = NA)
+mxAlgebra(expression, name = NA)
 }
 
 \arguments{

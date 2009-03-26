@@ -8,7 +8,7 @@
 }
 
 \usage{
-	mxBounds(parameters, min = NA, max = NA, name = NA)
+mxBounds(parameters, min = NA, max = NA, name = NA)
 }
 
 \arguments{

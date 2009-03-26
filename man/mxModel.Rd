@@ -8,9 +8,8 @@
 }
 
 \usage{
-	mxModel(model = NA, ..., manifestVars = NA, 
-		latentVars = NA, remove = FALSE, 
-		independent = NA, name = NA)
+mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
+        remove = FALSE, independent = NA, name = NA)
 }
 
 \arguments{

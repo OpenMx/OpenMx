@@ -8,7 +8,7 @@
 }
 
 \usage{
-	mxConstraint(alg1, relation, alg2, name = NA)
+mxConstraint(alg1, relation, alg2, name = NA)
 }
 
 

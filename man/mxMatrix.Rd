@@ -8,9 +8,9 @@
 }
 
 \usage{
-	mxMatrix(type = "Full", values = NA, specification = NA,
-		nrow = NA, ncol = NA, byrow = FALSE, 
-		free = FALSE, name = NA)
+mxMatrix(type = "Full", values = NA, specification = NA,
+         nrow = NA, ncol = NA, byrow = FALSE, 
+         free = FALSE, name = NA)
 }
 
 \arguments{
