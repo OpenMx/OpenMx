@@ -7,9 +7,9 @@
  *
  *       http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
@@ -31,8 +31,12 @@
 #include "omxMatrix.h"
 
 void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
+	
 	omxCopyMatrix(result, inMat);
 	result->colMajor = !result->colMajor;
+	int rowtemp = result->rows;
+	result->rows = result->cols;
+	result->cols = rowtemp;
 	omxMatrixCompute(result);
 }
 
@@ -102,7 +106,7 @@ void omxMatrixDot(omxMatrix *preDot, omxMatrix *postDot, omxMatrix* result) {
 	
 	/* Conformability Check! */
 	if(preDot->cols != postDot->cols || preDot->rows != postDot->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
+		error("Non-conformable matrices in Matrix Dot Product.");
 		
 	omxCopyMatrix(result, postDot);
 	
@@ -140,7 +144,7 @@ void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) 
 	
 	/* Conformability Check! */
 	if(preMul->cols != postMul->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
+		error("Non-conformable matrices in Matrix Quadratic Product.");
 		
 	omxMatrix* intermediate = NULL;
 	omxInitMatrix(intermediate, preMul->rows, postMul->cols, TRUE);
@@ -161,7 +165,7 @@ void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result) {
 	
 	/* Conformability Check! */
 	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
+		error("Non-conformable matrices in Element Division.");
 		
 	omxCopyMatrix(result, divisor);
 	
@@ -177,7 +181,7 @@ void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result) {
 	
 	/* Conformability Check! */
 	if(inMat->cols != addend->cols || inMat->rows != addend->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
+		error("Non-conformable matrices in Matrix Addition.");
 		
 	omxCopyMatrix(result, addend);
 	
