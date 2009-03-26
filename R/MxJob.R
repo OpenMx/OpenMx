@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -39,10 +39,19 @@ mxJobRun <- function(model) {
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, state)
-	model@output <- output
 	model <- omxUpdateModelValues(model, 
 		flatModel, parameters, output$estimate)
 	model <- omxUpdateModelAlgebras(model, 
 		flatModel, output$algebras)
+	model@output <- omxComputeOptimizationStatistics(flatModel, parameters, output)
 	return(model)
+}
+
+omxComputeOptimizationStatistics <- function(flatModel, parameters, output) {
+	objective <- flatModel@objective
+	if(!(is.null(objective) || is(objective,"MxAlgebraObjective"))) {
+		output[['AIC']] <- output$minimum + 2 * length(parameters)
+#		output[['BIC']] <- output$minimum + length(parameters) * log()
+	}
+	return(output)
 }
