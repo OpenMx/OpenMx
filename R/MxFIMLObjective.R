@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -40,32 +40,37 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		covariance <- .Object@covariance
 		means <- .Object@means
 		covarianceIndex <- omxLocateIndex(model, covariance, name)
-		meansIndex <- omxLocateIndex(model, means, name)
+		if(!is.na(means)) {
+			meansIndex <- omxLocateIndex(model, means, name)
+		} else {
+			meansIndex <- means
+		}
 		dIndex <- omxDataIndex(.Object@name, model@datasets)
 		if (is.na(covarianceIndex)) {
 			stop(paste("Could not find a matrix/algebra with name", 
-			covariance, "in the model."))
+			omxQuotes(covariance), "in the model."))
 		}
-		if (is.na(meansIndex)) {
+		if (!is.na(means) && is.na(meansIndex)) {
 			stop(paste("Could not find a matrix/algebra with name", 
-			means, "in the model."))
+			omxQuotes(means), "in the model."))
 		}
 		if (is.na(dIndex)) {
 			stop(paste("Could not find a data set for objective", 
-			.Object@name, "in the model."))
+			omxQuotes(.Object@name), "in the model."))
 		}
 		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex, definitions))
 })
 
-mxFIMLObjective <- function(covariance, means, name = omxUntitledName()) {
+mxFIMLObjective <- function(covariance, means = NA, name = omxUntitledName()) {
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
-	if (missing(means) || typeof(means) != "character") {
+	if (!(is.na(means) || typeof(means) == "character")) {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
+	if(is.na(means)) means <- NA_real_
 	return(new("MxFIMLObjective", name, covariance, means))
 }

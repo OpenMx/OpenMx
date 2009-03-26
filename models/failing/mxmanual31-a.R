@@ -7,8 +7,11 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 	specification = c(0, NA), nrow = 2, free = TRUE, 
 	name = "D")
 
-algebra <- mxAlgebra(A %*% t(A) + D, "algebra")
+expectedCov <- mxAlgebra(A %*% t(A) + D, "expectedCov")
 
-objective <- mxAlgebraObjective("algebra", "objective")
+observedCov <- matrix(c(1.2, 0.8, 0.8, 1.3))
 
-model <- mxModel(A, D, algebra, objective)
+objective <- mxFIMLObjective(covariance = "expectedCov",
+	name = "objective")
+
+model <- mxModel(A, D, expectedCov, objective, observedCov)
