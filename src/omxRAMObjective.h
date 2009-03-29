@@ -37,8 +37,12 @@ typedef struct {
 } omxRAMObjective;
 
 void omxDestroyRAMObjective(omxObjective *oo) {
-
-
+	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
+	omxFreeMatrixData(argStruct->I);
+	omxFreeMatrixData(argStruct->C);
+	omxFreeMatrixData(argStruct->X);
+	omxFreeMatrixData(argStruct->Y);
+	omxFreeMatrixData(argStruct->Z);
 }
 
 void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
