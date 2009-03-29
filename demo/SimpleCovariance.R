@@ -20,7 +20,7 @@ model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2))
 model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2))
-model <- mxModel(model, mxBounds(c("apple", "banana"), 0, NA))
+model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
 
 model[["A"]]@specification[2,1] <- NA
 model[["S"]]@specification[2,1] <- 0
@@ -38,7 +38,20 @@ data <- mxData(covMatrix, 'cov', numObs = 100, name = 'covariance matrix')
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, data)
 
-# Run the job
-model <- mxJobRun(model)
+model[["A"]]
+model[["S"]]
+model[["F"]]
+model@data
+model@objective
 
-print(model@output)
+
+# Run the job
+modelOut <- mxJobRun(model)
+
+print(modelOut@output)
+
+modelOut[["A"]]
+modelOut[["S"]]
+modelOut[["F"]]
+modelOut@data
+modelOut@objective
