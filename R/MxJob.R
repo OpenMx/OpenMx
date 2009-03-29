@@ -24,7 +24,7 @@ mxJobRun <- function(model) {
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel)
-	data <- omxRemoveDataAliases(flatModel@datasets)
+	data <- flatModel@datasets
 	defNames <- omxGenerateDefinitionNames(data)
 	parameters <- omxGenerateParameterList(flatModel, defNames)
 	definitions <- omxGenerateDefinitionList(flatModel, defNames)

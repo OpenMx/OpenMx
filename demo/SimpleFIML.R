@@ -57,10 +57,11 @@ rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sig
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance"))
 model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3))
+data <- mxData(x, 'raw')
 objective <- mxFIMLObjective(covariance = "covariance", means = "means")
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, x)
+model <- mxModel(model, objective, data)
 
 cTime <- system.time(model <- mxJobRun(model), gcFirst=TRUE)
 

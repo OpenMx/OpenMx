@@ -16,6 +16,6 @@
 
 	The following S4 classes are named entities in the OpenMx library:
 	\link{MxAlgebra}, \link{MxBounds}, \link{MxConstraint}, 
-	\link{MxMatrix}, \link{MxModel}, and MxObjective.
+	\link{MxMatrix}, \link{MxModel}, \link{MxData}, and MxObjective.
 
 }

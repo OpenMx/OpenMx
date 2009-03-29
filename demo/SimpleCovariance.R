@@ -33,9 +33,10 @@ objective <- mxRAMObjective("A", "S", "F", "objective")
 
 # Define the observed covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), nrow = 2, ncol = 2, byrow = TRUE)
+data <- mxData(covMatrix, 'cov', numObs = 100, name = 'covariance matrix')
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, covMatrix)
+model <- mxModel(model, objective, data)
 
 # Run the job
 model <- mxJobRun(model)

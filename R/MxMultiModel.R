@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -72,6 +72,11 @@ omxCheckNamespaceHelper <- function(model, nameList) {
 	} else if(!is.null(model@objective)) {
 		nameList <- append(nameList, model@objective@name)
 	}
+	if (!is.null(model@data) && (model@data@name %in% nameList)) {
+		stop(omxNamespaceErrorMessage(model@data@name), call.=FALSE)
+	} else if(!is.null(model@data)) {
+		nameList <- append(nameList, model@data@name)
+	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			nameList <- omxCheckNamespaceHelper(model@submodels[[i]], nameList)
@@ -85,9 +90,9 @@ omxShareData <- function(model) {
 }
 
 omxShareDataHelper <- function(model, current) {
-	if((length(model@data) == 0) && (model@independent == TRUE)) {
+	if((is.null(model@data)) && (model@independent == TRUE)) {
 		model@data <- current
-	} else if (length(model@data) != 0) {
+	} else if (!is.null(model@data)) {
 		current <- model@data
 	}
 	submodels <- lapply(model@submodels, function(x)
@@ -160,14 +165,7 @@ omxFreezeModel <- function(model) {
 
 omxFlattenModel <- function(model) {
 	res <- new("MxFlatModel", model, list(), list())
-	if (!is.null(model@objective)) {
-		defaultData <- model@objective@name
-	} else {
-		defaultData <- model@name
-		if (length(model@data) > 0) {
-			res@datasets[[defaultData]] <- model@data
-		}
-	}
+	defaultData <- model@data
 	res <- omxFlattenModelHelper(model, res, defaultData)
 	res@submodels <- list()
 	return(res)
@@ -175,21 +173,18 @@ omxFlattenModel <- function(model) {
 
 omxFlattenModelHelper <- function(model, dest, defaultData) {
 	if (!is.null(model@objective)) {
-		name <- model@objective@name
-		dest@objectives[[name]] <- model@objective
-		if(length(model@data) == 0) {
-			dest@datasets[[name]] <- defaultData
-		} else {
-			dest@datasets[[name]] <- model@data
+		if(is.null(model@data) && !is.null(defaultData)) {
+			model@objective@data <- defaultData@name			
+		} else if (!is.null(model@data)) {
+			model@objective@data <- model@data@name
 		}
+		dest@objectives[[model@objective@name]] <- model@objective
 	}
-	if (is.null(dest@datasets[[defaultData]]) && (length(model@data) > 0)) {
-		if (!is.null(model@objective)) {
-			defaultData <- model@objective@name
-		} else {
-			defaultData <- model@name
-			dest@datasets[[defaultData]] <- model@data
-		}
+	if (!is.null(model@data)) {
+		dest@datasets[[model@data@name]] <- model@data
+	}
+	if (is.null(defaultData)) {
+		defaultData <- model@data
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {

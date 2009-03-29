@@ -18,8 +18,7 @@ setClass(Class = "MxRAMObjective",
 	representation = representation(
 		A = "MxCharOrNumber",
 		S = "MxCharOrNumber",
-		F = "MxCharOrNumber",
-		data = "numeric"),
+		F = "MxCharOrNumber"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
@@ -39,15 +38,11 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
 		fMatrix <- .Object@F
+		data <- .Object@data
 		A <- omxLocateIndex(model, aMatrix, name)
 		S <- omxLocateIndex(model, sMatrix, name)
 		F <- omxLocateIndex(model, fMatrix, name)
-		dIndex <- omxDataIndex(.Object@name, model@datasets)
-		if (is.na(dIndex)) {
-			msg <- paste("Could not find a data set for objective", 
-				omxQuotes(.Object@name), "in the model.")
-			stop(msg)
-		}
+		dIndex <- omxLocateIndex(model, data, name)
 		return(new("MxRAMObjective", name, A, S, F, dIndex))
 })
 

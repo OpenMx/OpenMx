@@ -7,9 +7,9 @@
  *
  *       http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
@@ -155,10 +155,12 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("data")));
 	index = round(REAL(newMatrix)[0]);
-	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
 	Rprintf("%d.\n", index);
+	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
+	PROTECT(newMatrix = GET_SLOT(newMatrix, install("matrix")));
+
 	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix); 	// Covariance matrix is the data arg.
-	UNPROTECT(2);
+	UNPROTECT(3);
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("A")));
 	newObj->A = omxNewMatrixFromMxMatrixPtr(newMatrix);

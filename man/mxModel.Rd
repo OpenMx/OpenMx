@@ -17,8 +17,10 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 		If 'model' is an MxModel object, then we ether add or remove from
  		this model.  If 'model' is a string, then create a new model with
 		the string as its name.}
-   \item{...}{An arbitrary number of named entities, data sources, or MxPath objects.
-		These will all be added or removed from the model, based on the 'remove' argument.}
+   \item{...}{If remove = FALSE, then this argument is an arbitrary number of 
+		\link[=Named-entity]{named entities} or MxPath objects. 
+		If remove = TRUE, then this argument is	an arbitrary number of names
+		(character strings) or MxPath objects.}
    \item{manifestVars}{A list of manifest variables}
    \item{latentVars}{A list of latent variables}
    \item{remove}{Logical. If TRUE then remove elements from the model. Defaults to FALSE.}
@@ -40,11 +42,14 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 	# Create an anonymous model
 	model <- mxModel()
 
-	# Create a model named 'foo' with one matrix
-	model <- mxModel('foo', mxMatrix('Full', nrow = 2, 
+	# Create a model named "foo" with one matrix named "A"
+	model <- mxModel("foo", mxMatrix("Full", nrow = 2, 
 		ncol = 3, name = "A")) 
 
- 	# Add another matrix to model 'foo'
-	model <- mxModel(model, mxMatrix('Iden', nrow = 3, name = "I")) 
+ 	# Add matrix "I" to model "foo"
+	model <- mxModel(model, mxMatrix("Iden", nrow = 3, name = "I")) 
+
+	# Remove matrix "A" from the model
+	model <- mxModel(model, "A", remove = TRUE)
 
 }

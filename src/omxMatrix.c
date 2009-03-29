@@ -304,6 +304,10 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
 	omxMatrixCompute(om);
 	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
+
+	if(OMX_DEBUG) {
+		omxMatrixPrint(om, "Finished importing matrix");
+	}
 	
 	return om;
 }

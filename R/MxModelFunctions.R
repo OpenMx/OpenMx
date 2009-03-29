@@ -175,16 +175,20 @@ updateModelAlgebraHelper <- function(aList, values, model) {
 omxLocateIndex <- function(model, name, referant) {
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
-	oNames <- names(model@objectives)		
+	oNames <- names(model@objectives)
+	dNames <- names(model@datasets)		
 	matrixNumber <- match(name, mNames)
 	algebraNumber <- match(name, append(aNames, oNames))
-	if (is.na(matrixNumber) && is.na(algebraNumber)) {
+	dataNumber <- match(name, dNames)
+	if (is.na(matrixNumber) && is.na(algebraNumber) && is.na(dataNumber)) {
 		msg <- paste("The reference", omxQuotes(name),
 			"does not exist.  It is used by the named entity",
 			omxQuotes(referant),".")
 		stop(msg, call.=FALSE)
-	} else if (is.na(algebraNumber)) {
+	} else if (!is.na(matrixNumber)) {
 		return(- matrixNumber)
+	} else if (!is.na(dataNumber)) {
+		return(dataNumber - 1)
 	} else {
 		return(algebraNumber - 1)
 	}

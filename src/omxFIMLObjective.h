@@ -163,8 +163,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
 	index = round(REAL(nextMatrix)[0]);
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
+	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("matrix")));
 	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix);
-	UNPROTECT(2);
+	UNPROTECT(3);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->defVars = (omxDefinitionVar *) R_alloc(sizeof(omxDefinitionVar), length(nextMatrix));
@@ -184,6 +185,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 			UNPROTECT(1);
 		}
 	}
+	UNPROTECT(1);
 
 	/* Temporary storage for calculation */
 	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE);
