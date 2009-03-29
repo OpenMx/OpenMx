@@ -49,6 +49,9 @@ void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
 
 	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
+	if(l != 0) {
+		error("Attempted to invert non-invertable matrix.");
+	}
 	F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 	
 }

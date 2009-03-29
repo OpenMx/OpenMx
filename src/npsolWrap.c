@@ -67,11 +67,10 @@ extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, i
 void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );
 
 /* Constraint Function Variants */
-void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// No constraints
+void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 			// No constraints
 void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	// Call R for constraints
-void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 		// Algebra constraints
-void F77_SUB(oldMxConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	
-// Constraints in the style of old Mx
+void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 			// Algebra constraints
+void F77_SUB(oldMxConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
 
 /* Helper functions */
 void handleFreeVarList(double* x, int numVars);					// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
@@ -285,12 +284,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	/* Set up Optimization Memory Allocations */
 	
-	SEXP minimum, estimate, gradient, hessian, code, iterations, ans, names, algebras, algebra;
+	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra;
 	
 	PROTECT(ans = allocVector(VECSXP, 7));
 	PROTECT(names = allocVector(STRSXP, 7));
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
+	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
 	PROTECT(algebras = NEW_LIST(numAlgs));
 	
@@ -366,7 +366,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 		/* Set min and max limits */
 		for(k = 0; k < n; k++) {
-			bl[k] = freeVarList[k].lbound; 				// No negative covariances.  -Infinity'd be -10^20.
+			bl[k] = freeVarList[k].lbound;				// -Infinity'd be -10^20.
 			bu[k] = freeVarList[k].ubound;				// Infinity would be at 10^20.
 		}
 		
@@ -375,7 +375,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			bu[k] = INF;								// Because there are no linear constraints.
 		}
 		
-		for(l = 0; l < numCons; l++) {						// Nonlinear constraints:
+		for(l = 0; l < numCons; l++) {					// Nonlinear constraints:
 			if(OMX_DEBUG) { Rprintf("Constraint %d: ", l);}
 			switch(conList[l].opCode) {
 				case 0:									// Less than: Must be strictly less than 0.
@@ -564,11 +564,19 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
 	
+	/* Fill Status code. Right now, it fills with nothing, since there's no error system implemented. */
+	SET_VECTOR_ELT(status, 0, code);
+	PROTECT(code = NEW_NUMERIC(1));		// For now, fill the rest with NAs.
+	REAL(code)[0] = NA_REAL;			// It's reserved for future use.
+	SET_VECTOR_ELT(status, 1, code);
+	SET_VECTOR_ELT(status, 2, code);		
+
+
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	SET_STRING_ELT(names, 2, mkChar("gradient"));
 	SET_STRING_ELT(names, 3, mkChar("hessian"));
-	SET_STRING_ELT(names, 4, mkChar("code"));
+	SET_STRING_ELT(names, 4, mkChar("status"));
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("algebras"));
 	
@@ -576,7 +584,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	SET_VECTOR_ELT(ans, 1, estimate);
 	SET_VECTOR_ELT(ans, 2, gradient);
 	SET_VECTOR_ELT(ans, 3, hessian);
-	SET_VECTOR_ELT(ans, 4, code);
+	SET_VECTOR_ELT(ans, 4, status);
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, algebras);
 	namesgets(ans, names);
@@ -598,7 +606,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		omxFreeAllMatrixData(matrixList[k]);
 	}
 	
-	UNPROTECT(9);						// Unprotect NPSOL Parameters
+	UNPROTECT(11);						// Unprotect NPSOL Parameters
 	
 	return(ans);
 

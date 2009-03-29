@@ -87,6 +87,9 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 //	omxPrintMatrix(Z, "Z");
 	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+	if(k > 0) {
+		error("(I-A) is exactly singular.  Aborting.\n");
+	}
 	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
 //	omxPrintMatrix(Z, "Z^-1");
@@ -108,6 +111,9 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	F77_CALL(dgetrf)(&(C->cols), &(C->rows), C->data, &(C->cols), ipiv, &k);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+	if(k > 0) {
+		error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
+	}
 	double det = 1.0;
 	double sum = 0;
 

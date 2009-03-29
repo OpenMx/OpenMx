@@ -153,6 +153,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(sizeof(omxFIMLObjective), 1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
+//	if(ISNA(nextMatrix)) {
+//		error("NO FIML MEANS PROVIDED.");
+//	}
 	newObj->means = omxNewMatrixFromMxMatrixPtr(nextMatrix);
 	UNPROTECT(1);
 	
