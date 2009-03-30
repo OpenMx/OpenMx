@@ -1,5 +1,6 @@
 \name{Named-entity}
-\alias{Named-entity}
+\alias{named-entity}
+\alias{named-entities}
 
 \title{Named Entities}
 
@@ -8,7 +9,7 @@
 }
 
 \details{
-	Every named entity is gaurunteed to have a slot 'name'. Within a model,
+	Every named entity is guarunteed to have a slot 'name'. Within a model,
 	the named entities of that model can be accessed using the model[['name']]
 	notation. Access is limited to one nesting depth, such that if 'bar' is a submodel
 	of 'foo', and 'baz' is a matrix of 'bar', then 'baz' must be accessed using
