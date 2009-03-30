@@ -8,3 +8,4 @@ M <- mxMatrix("Full", nrow = 3, ncol = 3, name = "M",
 D <- mxAlgebra(solve(W) %*% M %*% solve(H), name = "D")
 model <- mxModel(W, H, M, D)
 model <- mxJobRun(model)
+print(model)
