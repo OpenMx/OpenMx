@@ -39,7 +39,7 @@
 #else
 #define OMX_DEBUG 0
 #define VERBOSE 0
-#define OMX_DEBUG_ALL 1
+#define OMX_DEBUG_ALL 0
 #endif /* DEBUGMX */
 
 /* Structure definitions for object evaluation */

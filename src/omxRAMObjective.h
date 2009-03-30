@@ -165,7 +165,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("data")));
 	index = round(REAL(newMatrix)[0]);
-	Rprintf("%d.\n", index);
+	if(OMX_DEBUG) { Rprintf("%d.\n", index); }
 	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(newMatrix = GET_SLOT(newMatrix, install("matrix")));
 

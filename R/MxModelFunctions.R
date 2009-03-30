@@ -157,8 +157,6 @@ omxUpdateModelAlgebras <- function(treeModel, flatModel, values) {
 }
 
 updateModelAlgebraHelper <- function(aList, values, model) {
-	print(length(aList))
-	print(values)
 	for(i in 1:length(aList)) {
 		name <- aList[[i]]
 		candidate <- model[[name]]

@@ -64,24 +64,12 @@ theBounds1 <- mxBounds(c("apple", "banana"), 0.001, NA, name="theBounds1")
 modelAlt <- mxModel(theAMatrix, theSMatrix, theFMatrix, theBounds1,
                     mxRAMObjective(name="ramObjective"), theData)
 
-modelAlt[["A"]]
-modelAlt[["S"]]
-modelAlt[["F"]]
-modelAlt[["theBounds1"]]
-modelAlt@data
-modelAlt@objective
+print(modelAlt)
 
 ############################################################
 # Run the job
 
 modelAltOut <- mxJobRun(modelAlt)
 
-print(modelAltOut@output)
-
-modelAltOut[["A"]]
-modelAltOut[["S"]]
-modelAltOut[["F"]]
-modelAltOut@data
-modelAltOut@objective
-
+print(modelAltOut)
 

@@ -410,52 +410,6 @@ omxRemoveSingleNamedEntity <- function(.Object, name) {
 	return(.Object)
 }
 
-omxQuotes <- function(name) {
-	listTerms <- sapply(name, function(x) {paste("'", x, "'", sep = '')} )
-	return(paste(listTerms, collapse=', '))
-}
-
-omxDisplayModel <- function(model) {
-	cat("MxModel", omxQuotes(model@name), '\n')
-	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
-	cat("algebras :", omxQuotes(names(model@algebras)), '\n')
-	cat("constraints :", omxQuotes(names(model@constraints)), '\n')
-	cat("bounds :", omxQuotes(names(model@bounds)), '\n')
-	if (length(model@paths) > 0) {
-		cat("latentVars :", model@latentVars, '\n')
-		cat("manifestVars :", model@manifestVars, '\n')
-		cat("paths :", nrow(model@paths), "paths", '\n')
-	}
-	data <- model@data
-	if (is.null(data)) {
-		cat("data : NULL\n")
-	} else {
-		cat("data :", omxQuotes(data@name), 
-			"matrix has dim ", nrow(data@matrix), 
-			"x", ncol(data@matrix))
-		if(is.na(data@vector)) {
-			cat("; vector is NA")
-		} else {
-			cat("; vector has length ", length(data@vector))
-		}
-		cat("; data type is", data@type, '\n')
-	}
-	cat("submodels :", omxQuotes(names(model@submodels)), '\n')
-	objective <- model@objective
-	if (is.null(objective)) {
-		objectiveType <- "NULL"
-		objectiveName <- ""
-	} else {
-		objectiveType <- class(objective)[[1]]
-		objectiveName <- omxQuotes(objective@name)
-	}
-	cat("objective :", objectiveType, objectiveName, '\n')
-	cat("independent :", model@independent, '\n')
-	cat("output :", length(model@output) > 0, '\n')
-}
-
-setMethod("print", "MxModel", function(x,...) { omxDisplayModel(x) })
-setMethod("show", "MxModel", function(object) { omxDisplayModel(object) })
 
 mxModel <- function(model = NA, ..., 
 	manifestVars = NA, latentVars = NA, 
@@ -466,4 +420,3 @@ mxModel <- function(model = NA, ...,
 		remove = remove, 
 		independent = independent)
 }
-

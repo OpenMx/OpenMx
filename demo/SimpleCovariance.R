@@ -38,20 +38,9 @@ data <- mxData(covMatrix, 'cov', numObs = 100, name = 'covariance matrix')
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, data)
 
-model[["A"]]
-model[["S"]]
-model[["F"]]
-model@data
-model@objective
-
+print(model)
 
 # Run the job
 modelOut <- mxJobRun(model)
 
-print(modelOut@output)
-
-modelOut[["A"]]
-modelOut[["S"]]
-modelOut[["F"]]
-modelOut@data
-modelOut@objective
+print(modelOut)
