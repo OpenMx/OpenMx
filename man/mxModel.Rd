@@ -13,7 +13,7 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 }
  	
 \arguments{
-  \item{model}{This argument is either an MxModel object or a string. If 'model' is an MxModel object, then all elements of that model are placed in the resulting MxModel object. If 'model' is a string, then a new model is created with the string as its name.}
+  \item{model}{This argument is either an \link{MxModel} object or a string. If 'model' is an MxModel object, then all elements of that model are placed in the resulting MxModel object. If 'model' is a string, then a new model is created with the string as its name. If 'model' is not specified, a }
  	\item{...}{An arbitrary number of named entities, data sources, or MxPath objects. These will all be added or removed from the model as specified in the 'model' argument, based on the 'remove' argument.}
  	\item{manifestVars}{A list of manifest variables to be included in the model.}
  	\item{latentVars}{A list of latent variables to be included in the model.}
@@ -23,38 +23,39 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 }
  	
 \details{
-  The mxModel function is used to create new \link{MxModel} objects. 
+  The mxModel function is used to create \link{MxModel} objects. Objects created by this function may be new, or may be modified versions of existing \link{MxModel} objects. To create a new \link{MxModel} object, omit or specify a character string in the 'model' argument. To create a modified version of an existing \link{MxModel} object, include this model in the 'model' argument.
 
-  All mxModel functions must begin with a 'model' argument. If a character string is given, then the \link{MxModel} object created contains only the named entities listed in the function. If an \link{MxModel} object is given for the 'model' argument, then all elements of that object are placed in the output
-  
-  The 'model' argument need not be explicitly referenced, but must be used before all other arguments in this function.
 
-  Discussion of the ellipsis. Don't forget that models may contain other models.
 
-  All of the arguments after the ellipsis ("...") must be named arguments (i.e. foo=bar).
- 	   Otherwise they will be interpreted as elements of the ellipsis list.
- 	   
- 	Manifest and latent variable lists.
+All other arguments must be named arguments (i.e. latentVars=names), else they will be interpreted as elements of the ellipsis list. The 'manifestVars' and 'latentVars' arguments specify the names of the manifest and latent variables, respectively, for use with the \link{mxPath} function.
  	
- 	Independence
+Model independence may be specified with the 'independent' argument. If a model is independent (independent=TRUE), then the parameters of this model are not shared with any other model. An independent model may be estimated with no dependency on any other model. If a model is not independent (independent=FALSE), then this model shares parameters with one or more other models such that these models must be jointly estimated. These dependent models must be entered as arguments in another model, so that they are simultaneously optimized.
  	
- 	Relation to other functions, specifically mxJobRun
+To be estimated, \link{MxModel} objects must be paired with objective functions (e.g. \link{mxFIMLObjective} or \link{mxRAMObjective}) and executed using the \link{mxJobRun} function. When \link{MxData} objects are included in models, the 
+
+Individual components of \link{MxModel} objects may be viewed and referenced by name using double brackets.
 }
  	
 \value{
         Returns a new \link{MxModel} object.
 }
+
+#\references{
+#The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
+#}
  	
 \examples{
-  # Create an empy model, and place it in an object.
-  model <- mxModel()
+# Create an empy model, and place it in an object.
+model <- mxModel()
  	
-  # Create a model named 'first' with one matrix
-  model <- mxModel('first', mxMatrix('Full', nrow = 2,
+# Create a model named 'first' with one matrix
+model <- mxModel('first', mxMatrix('Full', nrow = 2,
                     ncol = 3, name = "A"))
  	
-  # Add another matrix to model 'first', and rename that model 'second'
-  model <- mxModel(model, mxMatrix('Iden', nrow = 3, name = "I")
+# Add another matrix to model 'first', and rename that model 'second'
+model <- mxModel(model, mxMatrix('Iden', nrow = 3, name = "I")
                    name= "second")
+
+# Create a multiple-group model by 
  	
  	}
