@@ -9,9 +9,13 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 
 expectedCov <- mxAlgebra(A %*% t(A) + D, "expectedCov")
 
-observedCov <- matrix(c(1.2, 0.8, 0.8, 1.3))
+observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3)), 'cov', numObs = 150, name = 'observedCov')
 
-objective <- mxFIMLObjective(covariance = "expectedCov",
+objective <- mxMLObjective(covariance = "expectedCov",
 	name = "objective")
 
 model <- mxModel(A, D, expectedCov, objective, observedCov)
+
+model <- mxJobRun(model)
+
+print(model)

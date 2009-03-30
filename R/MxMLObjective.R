@@ -14,14 +14,14 @@
 #   limitations under the License.
 
 
-setClass(Class = "MxFIMLObjective",
+setClass(Class = "MxMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
 		definitionVars = "list"),
 	contains = "MxBaseObjective")
 
-setMethod("initialize", "MxFIMLObjective",
+setMethod("initialize", "MxMLObjective",
 	function(.Object, name, covariance, means, 
 				data = NA_real_, definitionVars = list()) {
 		.Object@name <- name
@@ -33,7 +33,7 @@ setMethod("initialize", "MxFIMLObjective",
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"), 
+setMethod("omxObjFunConvert", signature("MxMLObjective", "MxFlatModel"), 
 	function(.Object, model, definitions) {
 		name <- .Object@name
 		covariance <- .Object@covariance
@@ -41,15 +41,9 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		data <- .Object@data
 		covarianceIndex <- omxLocateIndex(model, covariance, name)
 		if(is.na(data)) {
-			msg <- paste("The MxFIMLObjective", omxQuotes(name),
+			msg <- paste("The MxMLObjective", omxQuotes(name),
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
-			stop(msg, call.=FALSE)
-		}
-		if(model@datasets[[data]]@type != 'raw') {
-			msg <- paste("The dataset associated with MxFIMLObjective", 
-				omxQuotes(name), "in model", 
-				omxQuotes(model@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
 		if(!is.na(means)) {
@@ -58,10 +52,10 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 			meansIndex <- means
 		}
 		dIndex <- omxLocateIndex(model, data, name)
-		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex, definitions))
+		return(new("MxMLObjective", name, covarianceIndex, meansIndex, dIndex, definitions))
 })
 
-mxFIMLObjective <- function(covariance, means = NA, name = NA) {
+mxMLObjective <- function(covariance, means = NA, name = NA) {
 	if (is.na(name)) name <- omxUntitledName()
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
@@ -73,5 +67,5 @@ mxFIMLObjective <- function(covariance, means = NA, name = NA) {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
 	if(is.na(means)) means <- NA_real_
-	return(new("MxFIMLObjective", name, covariance, means))
+	return(new("MxMLObjective", name, covariance, means))
 }
