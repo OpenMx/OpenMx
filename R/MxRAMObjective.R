@@ -39,6 +39,12 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		sMatrix <- .Object@S
 		fMatrix <- .Object@F
 		data <- .Object@data
+		if(is.na(data)) {
+			msg <- paste("The MxRAMObjective", omxQuotes(name),
+				"does not have a dataset associated with it in model",
+				omxQuotes(model@name))
+			stop(msg, call.=FALSE)
+		}
 		A <- omxLocateIndex(model, aMatrix, name)
 		S <- omxLocateIndex(model, sMatrix, name)
 		F <- omxLocateIndex(model, fMatrix, name)

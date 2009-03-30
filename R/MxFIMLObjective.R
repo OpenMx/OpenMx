@@ -40,6 +40,12 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		means <- .Object@means
 		data <- .Object@data
 		covarianceIndex <- omxLocateIndex(model, covariance, name)
+		if(is.na(data)) {
+			msg <- paste("The MxFIMLObjective", omxQuotes(name),
+				"does not have a dataset associated with it in model",
+				omxQuotes(model@name))
+			stop(msg, call.=FALSE)
+		}
 		if(!is.na(means)) {
 			meansIndex <- omxLocateIndex(model, means, name)
 		} else {
