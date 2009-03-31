@@ -32,7 +32,7 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 	specification = c(0, NA), nrow = 2, free = TRUE, 
 	name = "D")
 
-expectedCov <- mxAlgebra(A %*% t(A) + D, "expectedCov")
+expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
 
 objective <- mxFIMLObjective("expectedCov")
 

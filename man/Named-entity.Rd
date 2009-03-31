@@ -1,5 +1,6 @@
 \name{Named-entity}
 \alias{Named-entity}
+\alias{Named-entities}
 \alias{named-entity}
 \alias{named-entities}
 
