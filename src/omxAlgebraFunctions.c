@@ -101,6 +101,8 @@ void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 	
 	/* The call itself */
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
+	result->colMajor = TRUE;
+	omxMatrixCompute(result);
 
 };
 

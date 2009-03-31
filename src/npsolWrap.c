@@ -553,11 +553,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
 		omxRecomputeMatrix(algebraList[k]);
 		PROTECT(algebra = allocMatrix(REALSXP, algebraList[k]->rows, algebraList[k]->cols));
-		for(j = 0; j < algebraList[k]->cols; j++) 
-			for(l = 0; l <algebraList[k]->rows; l++)
+		for(l = 0; l < algebraList[k]->rows; l++)
+			for(j = 0; j < algebraList[k]->cols; j++)
 				REAL(algebra)[j * algebraList[k]->rows + l] =
-					omxMatrixElement(algebraList[k], j, l);
+					omxMatrixElement(algebraList[k], l, j);
 		SET_VECTOR_ELT(algebras, k, algebra);
+		
+		if(OMX_DEBUG) {
+			Rprintf("Populating Matrix:\n");
+			for(j = 0; j < (algebraList[k]->cols * algebraList[k]->rows); j++) 
+				Rprintf("\t%3.5f", REAL(algebra)[j]);
+			Rprintf("\n");
+			omxPrintMatrix(algebraList[k], "From Matrix:");
+		}
+		
 		UNPROTECT(1);	/* algebra */
 	}
 	
