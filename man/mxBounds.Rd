@@ -1,7 +1,7 @@
 \name{mxBounds}
 \alias{mxBounds}
 
-\title{Function To Create an \link{MxBounds} Object}
+\title{Function To Create an mxBounds Object}
 
 \description{
 This function creates a new \link{MxBounds} object.

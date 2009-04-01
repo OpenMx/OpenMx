@@ -33,13 +33,13 @@ Model independence may be specified with the 'independent' argument. If a model 
  	
 To be estimated, \link{MxModel} objects must include objective functions as arguments
 %(\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
-and executed using the \link{mxJobRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
+and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
 
 A \link{Named-entity} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Objects central to estimation (i.e., data, objective, output) may be referenced with the @ symbol (model@data). See the documentation for \link{Extract} and the examples in this document for more information.
 }
  	
 \value{
-Returns a new \link{MxModel} object. \link{MxModel} objects must include an objective function to be used as arguments in \link{mxJobRun} functions.
+Returns a new \link{MxModel} object. \link{MxModel} objects must include an objective function to be used as arguments in \link{mxRun} functions.
 }
 
 \references{
