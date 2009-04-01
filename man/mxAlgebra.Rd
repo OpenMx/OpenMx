@@ -17,49 +17,52 @@ mxAlgebra(expression, name = NA)
 }
 
 \details{
-The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \link{MxMatrix} objects and the \link{MxAlgebraObjective} function. The \link{MxAlgebraObjective} function must reference the \link{MxAlgebra} object to be evaluated by name.
+The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \link{MxMatrix} objects and the \link{mxAlgebraObjective} function. The \link{mxAlgebraObjective} function must reference the \link{MxAlgebra} object to be evaluated by name.
 
 The following operations are supported in mxAlgebra:
-\item{solve()} Inversion
-\item{t()} Transposition
-\item{+} Addition
-\item{-} Subtraction
-\item{/%*/%} Matrix Multiplication
-\item{*} Element or dot product
-\item{/} Element division
-\item{/%x/%} Kronecker product
-\item{/%&/%} Quadratic product
-\item{cbind()} Horizontal adhesion
-\item{rbind()} Vertical adhesion
+\itemize{
+\item{\code{solve()}}{Inversion}
+\item{\code{t()}}{Transposition}
+\item{\code{+}}{Addition}
+\item{\code{-}}{Subtraction}
+\item{\code{\%*\%}}{Matrix Multiplication}
+\item{\code{*}}{Element or dot product}
+\item{\code{/}}{Element division}
+\item{\code{\%x\%}}{Kronecker product}
+\item{\code{\%&\%}}{Quadratic product}
+\item{\code{cbind()}}{Horizontal adhesion}
+\item{\code{rbind()}}{Vertical adhesion}
+}
 
 The following functions are supported in mxAlgebra:
-\item{sum(diag())} Trace
-\item{det()} Determinant
-\item{sum()} Sum
-\item{max()} Maximum
-\item{min()} Min
-\item{abs()} Absolute value
-\item{sin()} Sine
-\item{sinh()} Hyperbolic sine
-\item{cos()} Cosine
-\item{cosh()} Hyperbolic cosine
-\item{tan()} Tangent
-\item{tanh()} Hyperbolic tangent
-\item{exp()} Exponent
-\item{log()} Natural Logarithm
-\item{sqrt()} Square root
-\item{diag()} Diagonal to vector or vector to diagonal, depending on input
-\item{c(t()} Matrix to vector (by row; returns vector)
-\item{c()} Matrix to vector (by column)
-\item{vech()} Lower triangular matrix to vector (requires MCMCpack package)
-\item{cov2cor()} Standardize matrix
-\item{Re(eigen(A, only.values=TRUE)$values)} Real eigenvalues (for matrix A)
-\item{Re(eigen(A, )$values)} Real eigenvectors (for matrix A)
-\item{Im(eigen(A, only.values=TRUE)$values)} Imanginary eigenvalues (for matrix A)
-\item{Im(eigen(A, )$values)} Imanginary eigenvectors (for matrix A)
-\item{colMeans()} Mean of columns
-\item{var()} Covariance of columns
-}
+\itemize{
+\item{\code{sum(diag())}}{Trace}
+\item{\code{det()}}{Determinant}
+\item{\code{sum()}}{Sum}
+\item{\code{max()}}{Maximum}
+\item{\code{min()}}{Min}
+\item{\code{abs()}}{Absolute value}
+\item{\code{sin()}}{Sine}
+\item{\code{sinh()}}{Hyperbolic sine}
+\item{\code{cos()}}{Cosine}
+\item{\code{cosh()}}{Hyperbolic cosine}
+\item{\code{tan()}}{Tangent}
+\item{\code{tanh()}}{Hyperbolic tangent}
+\item{\code{exp()}}{Exponent}
+\item{\code{log()}}{Natural Logarithm}
+\item{\code{sqrt()}}{Square root}
+\item{\code{diag()}}{Diagonal to vector or vector to diagonal, depending on input}
+\item{\code{c(t()}}{Matrix to vector (by row; returns vector)}
+\item{\code{c()}}{Matrix to vector (by column)}
+\item{\code{vech()}}{Lower triangular matrix to vector (requires MCMCpack package)}
+\item{\code{cov2cor()}}{Standardize matrix}
+\item{\code{Re(eigen(A, only.values=TRUE)$values)}}{Real eigenvalues (for matrix A)}
+\item{\code{Re(eigen(A, )$values)}}{Real eigenvectors (for matrix A)}
+\item{\code{Im(eigen(A, only.values=TRUE)$values)}}{Imanginary eigenvalues (for matrix A)}
+\item{\code{Im(eigen(A, )$values)}}{Imanginary eigenvectors (for matrix A)}
+\item{\code{colMeans()}}{Mean of columns}
+\item{\code{var()}}{Covariance of columns}
+}}
 
 \value{
 	Returns a new \link{MxAlgebra} object.
