@@ -8,7 +8,7 @@
 }
 
 \details{
-
+Details coming soon.
 }
 
 \references{

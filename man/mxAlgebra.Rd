@@ -17,7 +17,7 @@ mxAlgebra(expression, name = NA)
 }
 
 \details{
-The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \link{MxMatrix} objects and the \link{mxAlgebraObjective} function. The \link{mxAlgebraObjective} function must reference the \link{MxAlgebra} object to be evaluated by name.
+The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxAlgebraObjective} function. The \code{mxAlgebraObjective} function must reference the \code{MxAlgebra} object to be evaluated by name.
 
 The following operations are supported in mxAlgebra:
 \itemize{

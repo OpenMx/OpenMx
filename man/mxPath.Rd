@@ -2,7 +2,7 @@
 \alias{mxPath}
 \alias{MxPath}
 
-\title{Function To Create List of Paths}
+\title{Not Supported:Function To Create List of Paths}
 
 \description{
    This function creates a list of paths.
@@ -32,6 +32,10 @@ mxPath(from, to = NULL, all = FALSE, free = NULL,
    \item{boundMin}{numeric. TODO what does this do?}
    \item{ciUpper}{numeric. TODO what does this do?}
    \item{ciLower}{numeric. TODO what does this do?}
+}
+
+\details{
+Not supported. mxPath is currently functional, but does not currently work with the mxRAMObjective function. Models are estimated, but mxPath objects are not turned into free parameters, and the resulting output includes only numeric(0) for parameter estimates.
 }
 
 \value{
