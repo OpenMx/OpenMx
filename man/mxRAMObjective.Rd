@@ -40,6 +40,10 @@ To evaluate, place MxRAMObjective objects, the \link{mxData} object for which th
 	Returns a new MxRAMObjective object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
+\references{
+The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
+}
+
 \examples{
    
    A <- mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2)

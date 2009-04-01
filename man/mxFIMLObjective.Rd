@@ -31,6 +31,10 @@ To evaluate, place MxFIMLObjective objects, the \link{mxData} object for which t
 Returns a new MxFIMLObjective object. MxFIMLObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
+\references{
+The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
+}
+
 \examples{
 
 A <- mxMatrix(values = 0.5, nrow = 2, ncol = 1, 
