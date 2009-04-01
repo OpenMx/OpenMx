@@ -42,12 +42,18 @@ mxPath(from, to = NULL, all = FALSE, free = NULL,
 
 myManifest <- sprintf("\%02d", c(1:100))
 myLatent <- c("G1", "G2", "G3", "G4", "G5")
+model <- mxModel()
 
-singles <- mxPath(from=myLatent[i], to=myManifest[(j-19):j], 
-    arrows=1, free=c(FALSE,rep(TRUE, 19)), 
-    startVal=c(1,rep(0.75,19)))
+for (i in 1:5) {
+    j <- i*20
+	singles <- mxPath(from=myLatent[i], to=myManifest[(j-19):j], 
+    	arrows=1, free=c(FALSE,rep(TRUE, 19)), 
+    	startVal=c(1,rep(0.75,19)))
+	model <- mxModel(model, singles)
+}
 
 doubles <- mxPath(from=myLatent, all=TRUE, arrows=2,
     free=TRUE, startVal=1)
 
+model <- mxModel(model, doubles)
 }

@@ -31,7 +31,7 @@ All other arguments must be named arguments (i.e. latentVars=names), else they w
  	
 Model independence may be specified with the 'independent' argument. If a model is independent (independent=TRUE), then the parameters of this model are not shared with any other model. An independent model may be estimated with no dependency on any other model. If a model is not independent (independent=FALSE), then this model shares parameters with one or more other models such that these models must be jointly estimated. These dependent models must be entered as arguments in another model, so that they are simultaneously optimized.
  	
-To be estimated, \link{MxModel} objects must be paired with objective functions (e.g. \link{mxFIMLObjective} or \link{mxRAMObjective}) and executed using the \link{mxJobRun} function. When \link{MxData} objects are included in models, the 
+To be estimated, \link{MxModel} objects must be paired with objective functions (e.g. \link{mxFIMLObjective} or \link{mxRAMObjective}) and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 
 
 A \link{Named-entity} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Objects central to estimation (i.e., data, objective, output) may be referenced with the @ symbol (model@data). See the documentation for \link{Extract} and the examples in this document for more information.
 }
@@ -59,7 +59,8 @@ model <- mxModel(model,
                  name= "finaldraft")
 
 # Add data to the model from an existing data frame in object 'data'
-model <- mxModel(model, mxData(data, type=raw)
+data <- matrix(1:10, nrow = 5, ncol = 2)
+model <- mxModel(model, mxData(data, type='raw'))
 
 #View the matrix named "A" in MxModel object 'model'
 model[["A"]]

@@ -1,5 +1,5 @@
-\name{mxJobRun}
-\alias{mxJobRun}
+\name{mxRun}
+\alias{mxRun}
 
 \title{Send a Model to the Optimizer}
 
@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxJobRun(model)
+mxRun(model)
 }
 
 \arguments{
@@ -25,6 +25,6 @@ mxJobRun(model)
 
    model <- mxModel()
 
-   model <- mxJobRun(model)
+   model <- mxRun(model)
 
 }

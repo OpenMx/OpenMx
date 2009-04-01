@@ -16,6 +16,6 @@ objective <- mxMLObjective(covariance = "expectedCov",
 
 model <- mxModel(A, D, expectedCov, objective, observedCov)
 
-model <- mxJobRun(model)
+model <- mxRun(model)
 
 print(model)

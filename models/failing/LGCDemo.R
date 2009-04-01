@@ -1,6 +1,6 @@
 #Latent Growth Curve - Matrix Specification
 #Needs mean structure components
-#Returning Error on mxJob: details below (R. Estabrook, 09Feb26)
+#Returning Error on mxRun: details below (R. Estabrook, 09Feb26)
 
 require(OpenMx)
 
@@ -68,7 +68,7 @@ model <- mxModel(model, objective, covMatrix)
 
 # Run the job
 # Currently returns "Error in if (uni) "U" else "N" : missing value where TRUE/FALSE needed"
-model <- mxJobRun(model)
+model <- mxRun(model)
 print(model@output)
 
 # Expected Results

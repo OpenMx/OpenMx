@@ -69,7 +69,7 @@ print(modelAlt)
 ############################################################
 # Run the job
 
-modelAltOut <- mxJobRun(modelAlt)
+modelAltOut <- mxRun(modelAlt)
 
 print(modelAltOut)
 

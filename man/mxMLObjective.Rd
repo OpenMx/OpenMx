@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxFIMLObjective(covariance, means = NA, name = NA)
+mxMLObjective(covariance, means = NA, name = NA)
 }
 
 
@@ -32,7 +32,7 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 	specification = c(0, NA), nrow = 2, free = TRUE, 
 	name = "D")
 
-expectedCov <- mxAlgebra(A %*% t(A) + D, "expectedCov")
+expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
 
 observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3)), 
 	'cov', numObs = 150, name = 'observedCov')

@@ -6,6 +6,6 @@ library(R.oo)
 model = mxModel()
 model = load(model_obj)
 model = saveLoadReference
-model = mxJobRun(model)
+model = mxRun(model)
 print(model_obj)
 save.Object(model,file=paste("results/",model_obj,sep=""))

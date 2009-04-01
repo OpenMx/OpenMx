@@ -4,5 +4,5 @@ A <- mxMatrix("Symm",
 	nrow = 3, ncol = 3, name = "A")
 B <- mxAlgebra(solve(A), name = "B")
 model <- mxModel(A, B)
-model <- mxJobRun(model)
+model <- mxRun(model)
 print(model)

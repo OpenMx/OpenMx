@@ -14,13 +14,13 @@
 #   limitations under the License.
 
 
-mxJobRun <- function(model) {
+mxRun <- function(model) {
 	cat("Running", model@name, "\n")
 	omxCheckNamespace(model)
 	omxCheckMatrices(model)
 	dshare <- omxShareData(model)
 	independents <- omxGetIndependents(dshare)
-	independents <- sfLapply(independents, mxJobRun)
+	independents <- sfLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel)

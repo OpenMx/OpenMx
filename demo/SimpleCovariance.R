@@ -41,6 +41,6 @@ model <- mxModel(model, objective, data)
 print(model)
 
 # Run the job
-modelOut <- mxJobRun(model)
+modelOut <- mxRun(model)
 
 print(modelOut)

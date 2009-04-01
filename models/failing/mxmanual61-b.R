@@ -7,5 +7,5 @@ M <- mxMatrix("Full", nrow = 3, ncol = 3, name = "M",
 	values = c(0.4, 0.05, 0.22, 0.1, 0.3, 0.11, 0.2, 0.12, 0.5))
 D <- mxAlgebra(solve(W) %*% M %*% solve(H), name = "D")
 model <- mxModel(W, H, M, D)
-model <- mxJobRun(model)
+model <- mxRun(model)
 print(model)

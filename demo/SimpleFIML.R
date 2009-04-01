@@ -63,7 +63,7 @@ objective <- mxFIMLObjective(covariance = "covariance", means = "means")
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, data)
 
-cTime <- system.time(model <- mxJobRun(model), gcFirst=TRUE)
+cTime <- system.time(model <- mxRun(model), gcFirst=TRUE)
 
 NPSOLOutput <- model@output
 print(NPSOLOutput)
