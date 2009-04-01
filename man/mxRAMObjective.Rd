@@ -16,12 +16,28 @@ mxRAMObjective(aMatrix = "A", sMatrix = "S", fMatrix = "F", name = NA)
    \item{aMatrix}{A character string indicating the name of the 'A' matrix.}
    \item{sMatrix}{A character string indicating the name of the 'S' matrix.}
    \item{fMatrix}{A character string indicating the name of the 'F' matrix.}
-   \item{name}{A character string indicating the
-   		name of this object. Optional.}
+   \item{name}{An optional character string indicating the
+   		name of this object.}
+}
+
+\details{
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'aMatrix', 'sMatrix', and 'fMatrix' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
+
+The 'aMatrix' argument refers to the A or asymmetric matrix in the RAM approach. This matrix consists of all of the asymmetric paths (one-headed arrows) in the model. A free parameter in any row and column describes a regression of the variable represented by that row regressed on the variable represented in that column. 
+
+The 'sMatrix' argument refers to the S or symmetric matrix in the RAM approach, and as such must be square. This matrix consists of all of the symmetric paths (two-headed arrows) in the model. A free parameter in any row and column describes a covariance between the variable represented by that row and the variable represented by that column. Variances are covariances between any variable at itself, which occur on the diagonal of the specified matrix.
+
+The 'fMatrix' argument refers to the F or filter matrix in the RAM approach. If no latent variables are included in the model (i.e., the A and S matrices are of both of the same dimension as the data matrix), then the 'fMatrix' should refer to an identity matrix. If latent variables are included (i.e., the A and S matrices are not of the same dimension as the data matrix), then the 'fMatrix' argument should consist of a horizontal adhesion of an identity matrix and a matrix of zeros. 
+
+The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxRAMObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
+
+mxRAMObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxRAMObjective function, but must be included in the \link{MxModel} object. mxRAMObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov', 'cor' or 'sscp'.
+
+To evaluate, place MxRAMObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be referenced using the \link{Extract} functionality.
 }
 
 \value{
-	Returns a new MxRAMObjective object.
+	Returns a new MxRAMObjective object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \examples{
