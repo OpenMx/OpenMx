@@ -72,6 +72,10 @@ The following functions are supported in mxAlgebra:
 Algebra operations and discussion of supported functions may be found in Chapter 4 of the Mx manual, which can be found at http://www.vcu.edu/mx/documentation.html.
 }
 
+\seealso{
+\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'expression' argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \examples{
 
 # the algebra B evaluates to the matrix A

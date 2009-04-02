@@ -41,6 +41,8 @@ To evaluate, place MxRAMObjective objects, the \link{mxData} object for which th
 }
 
 \references{
+McArdle, J. J. and MacDonald, R. P. (1984). Some algebraic properties of the Reticular Action Model for moment structures. \emph{British Journal of Mathematical and Statistical Psychology, 37,} 234-251.
+
 The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
 }
 

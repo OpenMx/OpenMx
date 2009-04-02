@@ -32,6 +32,10 @@ Returns a new \link{MxBounds} object. If used as an argument in an \link{MxModel
 More information about Mx may be found at http://www.vcu.edu/mx/documentation.html
 }
 
+\seealso{
+\link{MxBounds} for the S4 class created by mxBounds. \link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \examples{
 #Create lower and upper bounds for parameters 'A' and 'B'
 bounds <- mxBounds(c('A', 'B'), 3, 5, name = 'ABbounds')

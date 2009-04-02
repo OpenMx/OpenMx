@@ -20,8 +20,8 @@ mxData(matrix, type, vector = NA, numObs = NA, name = NA)
 }
 
 \details{
-The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects. The 'matrix' argument may take either a data.frame or a matrix, which is then described with the 'type' argument. Data types describe compatibility and usage with objective functions in MxModel objects. Four different data types are supported:
-
+The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects. The 'matrix' argument may take either a data frame or a matrix, which is then described with the 'type' argument. Data types describe compatibility and usage with objective functions in MxModel objects. Four different data types are supported:
+\itemize{
 \item{raw}{The contents of the 'matrix' argument are treated as raw data. Missing values are permitted and must be designated as the system missing value. The 'vector' and 'numObs' arguments cannot be specified, as the 'vector' argument is not relevant and the 'numObs' argument is automatically populated with the number of rows in the data. Data of this type must use the \link{mxFIMLObjective} function as its objective function in MxModel objects, which deals with covariance estimation under full-information maximum likelihood.}
 
 \item{cov}{The contents of the 'matrix' argument are treated as a covariance matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
@@ -29,6 +29,7 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 \item{cor}{The contents of the 'matrix' argument are treated as a correlation matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
 
 \item{sscp}{The contents of the 'matrix' argument are treated as a sums-of-squares and cross-products matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
+}
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxAlgebraObjective} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
 
@@ -39,6 +40,14 @@ The mxData function does not currently place restrictions on the size, shape, or
 
 \value{
 	Returns a new \link{MxData} object.
+}
+
+\references{
+The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+}
+
+\seealso{
+\link{MxData} for the S4 class created by mxData. \link{matrix} and \link{data.frame} for objects which may be entered as arguments in the 'matrix' slot. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{	

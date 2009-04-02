@@ -29,7 +29,11 @@ Returns an \link{MxConstraint} object. If used as an argument in an \link{MxMode
 }
 
 \references{
-More information about Mx may be found at http://www.vcu.edu/mx/documentation.html
+The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+}
+
+\seealso{
+\link{MxConstraint} for the S4 class created by mxConstraint. \link{MxAlgebra} and \link{MxMatrix} for objects which may be entered as arguments in the 'alg' and 'alg2' arguments, and \link{mxAlgebra} and \link{mxMatrix} for the functions that create them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{

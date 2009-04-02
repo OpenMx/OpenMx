@@ -35,7 +35,7 @@ To be estimated, \link{MxModel} objects must include objective functions as argu
 %(\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
 and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
 
-A \link{Named-entity} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Objects central to estimation (i.e., data, objective, output) may be referenced with the @ symbol (model@data). See the documentation for \link{Extract} and the examples in this document for more information.
+\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Slots may be referenced with the @ symbol (model@data). See the documentation for \link{Extract} and the examples in this document for more information.
 }
  	
 \value{
@@ -45,7 +45,11 @@ Returns a new \link{MxModel} object. \link{MxModel} objects must include an obje
 \references{
 The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
 }
- 	
+
+\seealso{
+\link{MxModel} for the S4 class created by mxMatrix. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+	
 \examples{
 # Create an empy model, and place it in an object.
 model <- mxModel()

@@ -10,7 +10,7 @@
 }
 
 \details{
-  The MxConstraint class has the following slots:
+The MxConstraint class has the following slots:
 
   \tabular{rcl}{
 	\tab \tab \cr
@@ -19,4 +19,18 @@
 	relation \tab - \tab A character string, either '<', '=', or '>' \cr
 	alg2 \tab - \tab The name of an \link{MxAlgebra} or \link{MxMatrix} object \cr     
   }
+  
+The 'name' slot is the name of the MxConstraint object. %Use of MxConstraint objects in other functions in the \link{OpenMx} library may require reference by name.
+
+The 'alg1' and 'alg2' slots hold \link{MxAlgebra} or \link{MxMatrix} objects whose relationship is constrained or defined by the contents of the 'relation' slot. To affect an estimation or optimization, an MxConstraint object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+
+Slots may be referenced with the @ symbol. See the documentation for \link{Extract} and the examples in the \link{mxConstraint} document for more information.
+}
+
+\references{
+The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+}
+
+\seealso{
+\link{mxConstraint} for the function that creates MxConstraint objects. \link{MxAlgebra} and \link{MxMatrix} for objects which may be entered as arguments in the 'alg' and 'alg2' arguments, and \link{mxAlgebra} and \link{mxMatrix} for the functions that create them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }

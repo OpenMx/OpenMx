@@ -25,7 +25,7 @@ mxMatrix(type = "Full", values = NA, specification = NA,
 }
 
 \details{
-\link{MxMatrix} objects consist of a pair of matrices and a 'type' argument. The 'values' matrix is made up of numeric elements whose usage and capabilities in other functions are defined by the 'specification' matrix. If an element is specified as a fixed parameter in the 'specification' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \link{mxRun} function. If an element is specified as a free parameter in the 'specification' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \link{mxRun} function. Free parameters are specified with a character string or non-zero numeric value; fixed parameters are specified with a numeric zero.
+The mxMatrix function creates \link{MxMatrix} objects, which consist of a pair of matrices and a 'type' argument. The 'values' matrix is made up of numeric elements whose usage and capabilities in other functions are defined by the 'specification' matrix. If an element is specified as a fixed parameter in the 'specification' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \link{mxRun} function. If an element is specified as a free parameter in the 'specification' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \link{mxRun} function. Free parameters are specified with a character string, non-zero numeric value, or 'NA'; fixed parameters are specified with a numeric zero.
 
 Objects created by the mxMatrix function are of a specific 'type', which specifies the number and location of parameters in the 'specification' matrix and the possible values in the 'value' matrix. Input 'value' and 'specification' matrices must be of appropriate shape and have appropriate values for the matrix type requested. Six types of matrices are supported:
 
@@ -49,6 +49,10 @@ Objects created by the mxMatrix function are of a specific 'type', which specifi
 
 \references{
 More information about these matrix types can be found in Chapter 4 of the Mx manual, which can be found at http://www.vcu.edu/mx/documentation.html.
+}
+
+\seealso{
+\link{MxMatrix} for the S4 class created by mxMatrix. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{
