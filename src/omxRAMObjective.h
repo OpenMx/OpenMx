@@ -210,7 +210,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->X = omxInitMatrix(NULL, k, l, TRUE);
 	newObj->C = omxInitMatrix(NULL, l, l, TRUE);
 	newObj->lwork = k;
-	newObj->work = (double*)R_alloc(sizeof(double), newObj->lwork);
+	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
 	
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	

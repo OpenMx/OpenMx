@@ -37,8 +37,16 @@ void omxDestroyAlgebraObjective(omxObjective *oo) {
 
 void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	omxRecomputeMatrix(((omxAlgebraObjective*)(oo->argStruct))->algebra);
-	oo->myMatrix->data[0] = ((omxAlgebraObjective*)(oo->argStruct))->algebra->data[0];
+	omxMatrix* algebra = ((omxAlgebraObjective*)(oo->argStruct))->algebra;
+
+	omxRecomputeMatrix(algebra);
+	
+	// This should really be checked elsewhere.
+	if(algebra->rows != 1 || algebra->cols != 1) {
+		error("MxAlgebraObjective's objective algebra does not evaluate to a 1x1 matrix.");
+	}
+	
+	oo->myMatrix->data[0] = algebra->data[0];
 	
 }
 

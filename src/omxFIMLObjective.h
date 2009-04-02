@@ -45,8 +45,25 @@ typedef struct omxFIMLObjective {
 	omxMatrix* smallCov;
 	omxMatrix* RCX;
 	omxDefinitionVar* defVars;
+	int numDefs;
 
 } omxFIMLObjective;
+
+void handleDefinitionVarList(omxMatrix* dataRow, omxDefinitionVar* defVars, int numDefs) {
+	
+	if(OMX_DEBUG) { Rprintf("Processing Definition Vars.\n"); }
+
+	/* Fill in Free Var Estimates */
+	for(int k = 0; k < numDefs; k++) {
+		for(int l = 0; l < defVars[k].numLocations; l++) {
+			*(defVars[k].location[l]) = omxMatrixElement(dataRow, 0, k);
+			omxMarkDirty(matrixList[defVars[k].matrices[l]]);
+			if(ISNA(omxMatrixElement(dataRow, 0, k))) {
+				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
+			}
+		}
+	}
+}
 
 void omxDestroyFIMLObjective(omxObjective *oo) {
 
@@ -68,9 +85,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int mainDist = 0;
 	double Q = 0.0;
 	double logDet = 0;
+	int numDefs;
 	int nextRow, nextCol, numCols, numRemoves;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataRows;
+	omxDefinitionVar* defVars;
 
 	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;			// Locals, for readability.  Compiler should cut through this.
 	means		= ((omxFIMLObjective*)oo->argStruct)->means;
@@ -78,9 +97,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
 	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
 	dataRows	= ((omxFIMLObjective*)oo->argStruct)->data;
+	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
+	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
 	
-	omxRecomputeMatrix(cov);							// We assume data won't need to be recomputed.
-
+	if(numDefs == 0) {
+		omxRecomputeMatrix(cov);			// Only recompute this here if there are no definition vars
+	}
+	
 	int toRemove[cov->cols];
 
 	sum = 0.0;
@@ -88,9 +111,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	for(int row = 0; row < dataRows->rows; row++) {
 		logDet = 0.0;
 		Q = 0.0;
-
-		/** HANDLE MISSINGNESS HERE **/
-		// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
+		
+		// Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
 		numCols = 0;
 		numRemoves = 0;
 
@@ -103,17 +125,27 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				toRemove[j] = 1;
 			} else {
 				toRemove[j] = 0;
+			}
+			omxSetMatrixElement(smallRow, 1, j, omxMatrixElement(dataRows, row, j));
+		}
+		
+		if(cov->cols <= numRemoves) continue;
+		
+		// Handle Definition Variables.
+		if(numDefs == 0) {
+			if(OMX_DEBUG) {Rprintf("Handling Definition Vars.\n"); } // :::REMOVE:::
+			handleDefinitionVarList(smallRow, defVars, numDefs);
+		}
 
+		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
+
+		if(means != NULL) {
+			for(int j = 0; j < dataRows->cols; j++) {
+				if(!toRemove[j]) {
+					omxSetMatrixElement(smallRow, 0, numCols++, omxMatrixElement(dataRows, row, j) - omxMatrixElement(means, 0, j));
+				}
 			}
 		}
-		
-		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
-		
-		for(int j = 0; j < dataRows->cols; j++) {
-			if(!toRemove[j])
-				omxSetMatrixElement(smallRow, 0, numCols++, omxMatrixElement(dataRows, row, j));
-		}
-		if(numCols==0) continue;
 
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
@@ -171,8 +203,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(3);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
-	newObj->defVars = (omxDefinitionVar *) R_alloc(sizeof(omxDefinitionVar), length(nextMatrix));
-	for(nextDef = 0; nextDef < length(nextMatrix); nextDef++) {
+	newObj->numDefs = length(nextMatrix);
+	newObj->defVars = (omxDefinitionVar *) R_alloc(sizeof(omxDefinitionVar), newObj->numDefs);
+	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 1));
 		newObj->defVars[nextDef].data = REAL(nextItem)[0];
 		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 2));

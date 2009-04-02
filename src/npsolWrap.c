@@ -559,14 +559,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 					omxMatrixElement(algebraList[k], l, j);
 		SET_VECTOR_ELT(algebras, k, algebra);
 		
-		if(OMX_DEBUG) {
-			Rprintf("Populating Matrix:\n");
-			for(j = 0; j < (algebraList[k]->cols * algebraList[k]->rows); j++) 
-				Rprintf("\t%3.5f", REAL(algebra)[j]);
-			Rprintf("\n");
-			omxPrintMatrix(algebraList[k], "From Matrix:");
-		}
-		
 		UNPROTECT(1);	/* algebra */
 	}
 	

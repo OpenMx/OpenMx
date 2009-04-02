@@ -32,7 +32,7 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxMatrixPrint(omxMatrix *source, char* header) {
 	int j, k;
 	
-	Rprintf("%s: (%d x %d)\n", header, source->rows, source->cols);
+	Rprintf("%s: (%d x %d) [%s-major]\n", header, source->rows, source->cols, (source->colMajor?"col":"row"));
 	if(OMX_DEBUG) {Rprintf("Matrix Printing is at %0x\n", source);}
 	
 	if(source->colMajor) {
@@ -341,7 +341,6 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 			} else {
 				nextRow = 0;
 				for(int k = 0; k <= oldRows; k++) {
-					if(OMX_DEBUG) { Rprintf("Examining (%d, %d).\n", j, k, om);}
 					if(rowsRemoved[k]) {
 						continue;
 					} else {

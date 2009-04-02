@@ -29,9 +29,10 @@
 #include "omxMatrix.h"
 #include "omxObjective.h"
 #include "omxRObjective.h"
+#include "omxMLObjective.h"
 #include "omxRAMObjective.h"
 #include "omxFIMLObjective.h"
-#include "omxAlgebraObjective.h"\
+#include "omxAlgebraObjective.h"
 
 /* Need a better way to deal with these. */
 extern omxMatrix** algebraList;
@@ -106,6 +107,10 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 		obj->initFun = omxInitRObjective;
 		obj->objectiveFun = omxCallRObjective;
 		obj->destructFun = omxDestroyRObjective;
+	} else if(strncmp(objType, "MxMLObjective", 12) == 0) {
+		obj->initFun = omxInitMLObjective;
+		obj->objectiveFun = omxCallMLObjective;
+		obj->destructFun = omxDestroyMLObjective;
 	} else {
 		error("Objective function type %s not implemented on this kernel.", objType);
 	}
