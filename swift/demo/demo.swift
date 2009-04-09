@@ -9,22 +9,19 @@ string best;
 }
 # -------------- atomic procedures -------------- #
 
-(file matrix) runQuery (dbConnect dbconn, string query, Rscript calcCov){
-app{
+app (file matrix) runQuery (dbConnect dbconn, string query, Rscript calcCov){
+{
 mysqlPythonDBI query @calcCov @dbconn;
 }
-}
 
-(external inserted) insertMxResult (dbConnect dbconn, string query, file datafile){
-app{
+app (external inserted) insertMxResult (dbConnect dbconn, string query, file datafile){
+{
 mysqlPythonDBI query @dbconn stdout=@filename(inserted) @datafile;
 }
-}
 
-(file min) mxModelProcessor ( file cov, Rscript mxModProc, int modnum, float weight, string cond, int net){
-app{
+app (file min) mxModelProcessor ( file cov, Rscript mxModProc, int modnum, float weight, string cond, int net){
+{
 RInvoke @mxModProc @filename(cov) modnum weight cond net;
-}
 }
 
 # ------------ SEM user-defined procedures --------------- #
@@ -77,7 +74,7 @@ plotfile = runQuery(dbconn, argList, rplot);
 }# ----------------------- Main ------------------------ #
 
 
-string condition = "gestspeech";
+string condition = "emblemwithspeech";
 string networks[] = ["42, 34, 33, 60", "42, 15, 60, 80", "33, 34, 23, 80"];
 dbConnect emblemdb <single_file_mapper; file="./user.config">;
 dbConnect semdb <single_file_mapper; file="./user2.config">;
