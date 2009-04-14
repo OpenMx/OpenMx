@@ -19,7 +19,7 @@ mxBounds(parameters, min = NA, max = NA, name = NA)
 }
 
 \details{
-Creates a set of boundaries or limits for a parameter or set of parameters. Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'specification' matrix of an \code{MxMatrix} object.
+Creates a set of boundaries or limits for a parameter or set of parameters. Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'spec' matrix of an \code{MxMatrix} object.
 
 Minima and maxima may be specified as scalar numeric values. If a vector of values is input, only the first value is used.
 }

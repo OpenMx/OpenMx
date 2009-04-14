@@ -60,6 +60,6 @@ covMatrix <- matrix( c(0.77642931, 0.39590663,
 data <- mxData(covMatrix, 'cov', numObs = 100, 
     name = 'covmatrix')
 
-model <- mxModel(model, data) 
+model <- mxModel(data) 
 
 }

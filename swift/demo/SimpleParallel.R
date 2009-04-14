@@ -54,12 +54,12 @@ for(permnum in modnums)
 	 for(y in yindex)
 	 {
 			if (sbits[x,y] == 1){
-	        	model[["S"]]@specification[x,y] = parcnt
+	        	model[["S"]]@spec[x,y] = parcnt
 			model[["S"]]@values[x,y] = initweight
 			parcnt = parcnt + 1
 			}
 		else if (abits[x,y] == 1){
-			model[["A"]]@specification[x,y] = parcnt
+			model[["A"]]@spec[x,y] = parcnt
 			model[["A"]]@values[x,y] = initweight
 			parcnt = parcnt + 1
 			}

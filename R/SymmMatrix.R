@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -19,7 +19,7 @@ setClass(Class = "SymmMatrix",
 	contains = "MxSymmetricMatrix")
 	
 setMethod("initialize", "SymmMatrix",
-	function(.Object, name, values, specification, nrow, ncol, byrow, free) {
+	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for SymmMatrix constructor")
 		}
@@ -35,27 +35,27 @@ setMethod("initialize", "SymmMatrix",
 				stop("Invalid length of values matrix for SymmMatrix constructor")
 			}
 		}
-		if (!single.na(specification) && is.vector(specification)) {
-			if (length(specification) == (nrow * (nrow + 1) / 2)) {
+		if (!single.na(spec) && is.vector(spec)) {
+			if (length(spec) == (nrow * (nrow + 1) / 2)) {
 			    mspec <- matrix(0, nrow, ncol)
-			    mspec[lower.tri(mspec, diag = TRUE)] <- specification
+			    mspec[lower.tri(mspec, diag = TRUE)] <- spec
 			    mspec <- mspec + t(mspec) - diag(mspec) * diag(nrow)
-			    specification <- mspec
-			} else if (length(specification) == (nrow * ncol)) {
-				specification <- matrix(specification, nrow, ncol)
+			    spec <- mspec
+			} else if (length(spec) == (nrow * ncol)) {
+				spec <- matrix(spec, nrow, ncol)
 			} else {
 				stop("Invalid length of specification matrix for SymmMatrix constructor")
 			}
 		}
-		if (is(specification, "MxSymmetricSparse")) {
-		} else if (single.na(specification) && free) {
-			specification <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
-	    } else if (single.na(specification)){
-			specification <- new("MxSymmetricSparse", 0, nrow, ncol)
-		} else if (is(specification, "Matrix")) {
-			specification <- new("MxSymmetricSparse", as.matrix(specification))
+		if (is(spec, "MxSymmetricSparse")) {
+		} else if (single.na(spec) && free) {
+			spec <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
+	    } else if (single.na(spec)){
+			spec <- new("MxSymmetricSparse", 0, nrow, ncol)
+		} else if (is(spec, "Matrix")) {
+			spec <- new("MxSymmetricSparse", as.matrix(spec))
 	    } else {
-	    	specification <- new("MxSymmetricSparse", matrix(specification, nrow, ncol))
+	    	spec <- new("MxSymmetricSparse", matrix(spec, nrow, ncol))
 	    }
 	    if (is(values, "MxSymmetricSparse")) {
 	    } else if (single.na(values)) {
@@ -65,7 +65,7 @@ setMethod("initialize", "SymmMatrix",
 		} else {
 	    	values <- new("MxSymmetricSparse", matrix(values, nrow, ncol))
 	    }
-		retval <- callNextMethod(.Object, specification, values, name)
+		retval <- callNextMethod(.Object, spec, values, name)
 		return(retval)
 	}
 )

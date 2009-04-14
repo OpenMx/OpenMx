@@ -18,26 +18,26 @@ setClass(Class = "DiagMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "DiagMatrix",
-	function(.Object, name, values, specification, nrow, ncol, byrow, free) {
+	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for DiagMatrix constructor")
 		}
-	    if (single.na(specification) && free) {
-	    	specification <- diag(nrow)
-	    	specification[specification == 1] <- NA
-			specification <- new("MxSparseMatrix", specification)
-		} else if (single.na(specification)) {
-			specification <- new("MxSparseMatrix", 0, nrow, ncol)
- 		} else if (is(specification, "Matrix")) {
-			specification <- new("MxSparseMatrix", as.matrix(specification))
-		} else if (is.matrix(specification)) {
-			specification <- new("MxSparseMatrix", specification)
-		} else if (is.vector(specification)) {
+	    if (single.na(spec) && free) {
+	    	spec <- diag(nrow)
+	    	spec[spec == 1] <- NA
+			spec <- new("MxSparseMatrix", spec)
+		} else if (single.na(spec)) {
+			spec <- new("MxSparseMatrix", 0, nrow, ncol)
+ 		} else if (is(spec, "Matrix")) {
+			spec <- new("MxSparseMatrix", as.matrix(spec))
+		} else if (is.matrix(spec)) {
+			spec <- new("MxSparseMatrix", spec)
+		} else if (is.vector(spec)) {
 			tmp <- matrix(0, nrow, nrow)
-			diag(tmp) <- specification
-			specification <- new("MxSparseMatrix", tmp)
+			diag(tmp) <- spec
+			spec <- new("MxSparseMatrix", tmp)
 		} else {
-			specification <- new("MxSparseMatrix", specification)
+			spec <- new("MxSparseMatrix", spec)
 		}
 		if (single.na(values)) {
 			values <- Matrix(0, nrow, ncol)
@@ -48,7 +48,7 @@ setMethod("initialize", "DiagMatrix",
 		} else {
 			values <- Matrix(values)
 		}
-		retval <- callNextMethod(.Object, specification, values, name) 
+		retval <- callNextMethod(.Object, spec, values, name) 
 		return(retval)
 	}
 )

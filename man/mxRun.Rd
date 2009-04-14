@@ -31,14 +31,15 @@ If a model is dependent on or shares parameters with another model, both models 
 
 \examples{
 #Create a model that includes data, matrices A, S and F, and an objective function
-data<-mxData(mydata, type="cov")
-objective<-mxRAMObjective(name="objective")
-model <- mxModel("mymodel",A,S,F,data,objective)
+\dontrun{
+data<-mxData(mydata, type="cov", numObs = 100)
+objective<-mxRAMObjective(name = "objective")
+model <- mxModel("mymodel", A, S, F, data, objective)
 
 #Use mxRun to optimize the free parameters in the matrices A and S
 model <- mxRun(model)
 
 #print the output
 model@output
-
+}
 }

@@ -21,7 +21,7 @@ mxConstraint(alg1, relation, alg2, name = NA)
 \details{
 The mxConstraint function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The relationships "<", "=" and ">" are supported. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
-The mxConstraint function may not be used to constrain free parameters, either by name or by their position in an \link{MxMatrix} or \link{MxAlgebra} object. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'specification' matrices.
+The mxConstraint function may not be used to constrain free parameters, either by name or by their position in an \link{MxMatrix} or \link{MxAlgebra} object. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'spec' matrices.
 }
 
 \value{

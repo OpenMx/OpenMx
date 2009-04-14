@@ -25,7 +25,7 @@ is.Matrix <- function(a) {
 }
 
 verifySquare <- function(.Object) {
-	if (nrow(.Object@specification) != ncol(.Object@specification)) { 
+	if (nrow(.Object@spec) != ncol(.Object@spec)) { 
 		stop(paste("Specification matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
@@ -46,12 +46,12 @@ setGeneric("omxVerifyMatrix", function(.Object) {
 #
 setClass(Class = "MxSymmetricMatrix",
 	representation = representation(
-		specification = "MxSymmetricSparse",
+		spec = "MxSymmetricSparse",
 		values = "MxSymmetricSparse", name = "character", "VIRTUAL"))
 
 setClass(Class = "MxNonSymmetricMatrix",
 	representation = representation(
-		specification = "MxSparseMatrix",
+		spec = "MxSparseMatrix",
 		values = "Matrix", name = "character", "VIRTUAL"))
 		
 setClassUnion("MxMatrix",
@@ -59,8 +59,8 @@ setClassUnion("MxMatrix",
 		
 		
 setMethod("initialize", "MxMatrix",
-	function(.Object, specification, values, name) {
-		.Object@specification = specification
+	function(.Object, spec, values, name) {
+		.Object@spec = spec
 		.Object@values = values
 		.Object@name = name
 		return(.Object)
@@ -69,11 +69,11 @@ setMethod("initialize", "MxMatrix",
 
 setMethod("omxVerifyMatrix", "MxMatrix",
 	function(.Object) {
-		if (nrow(.Object@specification) != nrow(.Object@values)) {
+		if (nrow(.Object@spec) != nrow(.Object@values)) {
 			stop(paste("Specification and values matrices of", 
 				omxQuotes(.Object@name), "have different dimensions"), call.=FALSE)
 		}
-		if (ncol(.Object@specification) != ncol(.Object@values)) {
+		if (ncol(.Object@spec) != ncol(.Object@values)) {
 			stop(paste("Specification and values matrices of", 
 				omxQuotes(.Object@name), "have different dimensions"), call.=FALSE)
 		}		
@@ -82,13 +82,13 @@ setMethod("omxVerifyMatrix", "MxMatrix",
 
 setMethod("nrow", "MxMatrix",
 	function(x) {
-	    return(nrow(x@specification))
+	    return(nrow(x@spec))
 	}
 )
 
 setMethod("ncol", "MxMatrix",
 	function(x) {
-	    return(ncol(x@specification))
+	    return(ncol(x@spec))
 	}
 )
 
@@ -110,29 +110,29 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 
 
 mxMatrix <- function(type = "Full", values = NA, 
-	specification = NA, nrow = NA, ncol = NA,
-	byrow = FALSE, free = FALSE, name = NA) {
+	spec = NA, nrow = NA, ncol = NA, byrow = FALSE, 
+	free = FALSE, name = NA) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", paste(matrixTypes, collapse=" ")))
 	}
-	if ((is.Matrix(values) || is.Matrix(specification)) &&
+	if ((is.Matrix(values) || is.Matrix(spec)) &&
 		(!is.null(match.call()$nrow))) {
 		warning("\'nrow\' is disregarded for mxMatrix constructor")
 	}
-	if ((is.Matrix(values) || is.Matrix(specification)) &&
+	if ((is.Matrix(values) || is.Matrix(spec)) &&
 		(!is.null(match.call()$ncol))) {
 		warning("\'ncol\' is disregarded for mxMatrix constructor")
 	}
-	if (is.Matrix(values) && is.Matrix(specification) &&
-		!all(dim(values) == dim(specification))) {
+	if (is.Matrix(values) && is.Matrix(spec) &&
+		!all(dim(values) == dim(spec))) {
 		stop("Values and specification matrices are not of identical dimensions")
 	}
 	if (is.Matrix(values)) {
 		nrow <- nrow(values)
 		ncol <- ncol(values)
-	} else if (is.Matrix(specification)) {
-		nrow <- nrow(specification)
-		ncol <- ncol(specification)
+	} else if (is.Matrix(spec)) {
+		nrow <- nrow(spec)
+		ncol <- ncol(spec)
 	}
 	if (type %in% squareMatrices) {
 		if (is.na(nrow) && is.na(ncol)) {
@@ -147,7 +147,7 @@ mxMatrix <- function(type = "Full", values = NA,
 	}
 	if (byrow) {
 		values <- omxCreateByRow(values, nrow, ncol, type)
-		specification <- omxCreateByRow(specification, nrow, ncol, type)
+		spec <- omxCreateByRow(spec, nrow, ncol, type)
 	}
 	if (is.na(name)) {
 		name <- omxUntitledName()
@@ -156,7 +156,7 @@ mxMatrix <- function(type = "Full", values = NA,
 		stop("\'name\' must be a character vector!")
 	}
 	typeName <- paste(type, "Matrix", sep="")
-	return(new(typeName, name, values, specification, 
+	return(new(typeName, name, values, spec, 
 			nrow, ncol, byrow, free))
 }
 
@@ -175,21 +175,21 @@ omxCreateByRow <- function(source, nrow, ncol, type) {
 	}
 }
 
-omxSparseMatrixParameters <- function(specification, bounds, result, 
+omxSparseMatrixParameters <- function(spec, bounds, result, 
 	defNames, matrixNumber, reverse=FALSE) {
-	if (length(specification@dataVector) == 0) {
+	if (length(spec@dataVector) == 0) {
 		return(result)
 	}
-	for(i in 1:length(specification@dataVector)) {
-	    if (reverse == FALSE || specification@rowVector[i] != 
-	    	specification@colVector[i]) {
-		    parameterName <- as.character(specification@dataVector[[i]])
+	for(i in 1:length(spec@dataVector)) {
+	    if (reverse == FALSE || spec@rowVector[i] != 
+	    	spec@colVector[i]) {
+		    parameterName <- as.character(spec@dataVector[[i]])
 		    if (reverse) {
-			    col <- specification@rowVector[i] - 1
-			    row <- specification@colVector[i] - 1
+			    col <- spec@rowVector[i] - 1
+			    row <- spec@colVector[i] - 1
 			} else {
-			    row <- specification@rowVector[i] - 1
-			    col <- specification@colVector[i] - 1			
+			    row <- spec@rowVector[i] - 1
+			    col <- spec@colVector[i] - 1			
 			}
 			boundsLookup <- omxLocateBounds(bounds, parameterName)
 			minBounds <- boundsLookup[[1]]
@@ -212,22 +212,22 @@ omxSparseMatrixParameters <- function(specification, bounds, result,
 	return(result)
 }
 
-omxSparseMatrixDefinitions <- function(specification, bounds, result, 
+omxSparseMatrixDefinitions <- function(spec, bounds, result, 
 	defLocations, matrixNumber, reverse=FALSE) {
-	if (length(specification@dataVector) == 0) {
+	if (length(spec@dataVector) == 0) {
 		return(result)
 	}
 	defNames <- names(defLocations)
-	for(i in 1:length(specification@dataVector)) {
-	    if (reverse == FALSE || specification@rowVector[i] != 
-	    	specification@colVector[i]) {
-		    parameterName <- as.character(specification@dataVector[[i]])
+	for(i in 1:length(spec@dataVector)) {
+	    if (reverse == FALSE || spec@rowVector[i] != 
+	    	spec@colVector[i]) {
+		    parameterName <- as.character(spec@dataVector[[i]])
 		    if (reverse) {
-			    col <- specification@rowVector[i] - 1
-			    row <- specification@colVector[i] - 1
+			    col <- spec@rowVector[i] - 1
+			    row <- spec@colVector[i] - 1
 			} else {
-			    row <- specification@rowVector[i] - 1
-			    col <- specification@colVector[i] - 1			
+			    row <- spec@rowVector[i] - 1
+			    col <- spec@colVector[i] - 1			
 			}
 			if (parameterName %in% defNames) {
 				if (!is.null(result[[parameterName]])) {
@@ -258,11 +258,11 @@ generateMatrixListHelper <- function(mxMatrix) {
 
 omxGenerateParameterListHelper <- function(mxMatrix, bounds,
 	result, defNames, matrixNumber) {
-	specification <- mxMatrix@specification
-	result <- omxSparseMatrixParameters(specification, bounds,
+	spec <- mxMatrix@spec
+	result <- omxSparseMatrixParameters(spec, bounds,
 		result, defNames, matrixNumber)
-	if(is(specification,"MxSymmetricSparse")) {
-		result <- omxSparseMatrixParameters(specification, bounds, 
+	if(is(spec,"MxSymmetricSparse")) {
+		result <- omxSparseMatrixParameters(spec, bounds, 
 			result, defNames, matrixNumber, TRUE)
 	}
 	return(result)
@@ -270,11 +270,11 @@ omxGenerateParameterListHelper <- function(mxMatrix, bounds,
 
 omxGenerateDefinitionListHelper <- function(mxMatrix, bounds,
 	result, defLocations, matrixNumber) {
-	specification <- mxMatrix@specification
-	result <- omxSparseMatrixDefinitions(specification, bounds,
+	spec <- mxMatrix@spec
+	result <- omxSparseMatrixDefinitions(spec, bounds,
 		result, defLocations, matrixNumber)
-	if(is(specification,"MxSymmetricSparse")) {
-		result <- omxSparseMatrixDefinitions(specification, bounds, 
+	if(is(spec,"MxSymmetricSparse")) {
+		result <- omxSparseMatrixDefinitions(spec, bounds, 
 			result, defLocations, matrixNumber, TRUE)
 	}
 	return(result)
@@ -284,7 +284,7 @@ omxDisplayMatrix <- function(mxMatrix) {
    cat("MxMatrix", omxQuotes(mxMatrix@name), '\n')
    cat("\n")
    cat("Specification matrix:\n")
-   print(mxMatrix@specification, use.quotes = TRUE)
+   print(mxMatrix@spec, use.quotes = TRUE)
    cat("\n")
    cat("Values matrix:\n")
    values <- mxMatrix@values

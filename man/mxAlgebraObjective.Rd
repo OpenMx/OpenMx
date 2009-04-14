@@ -36,7 +36,7 @@ The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
 
 \examples{
 #Create a matrix 'A' with no free parameters
-A <- mxMatrix('Full', nrow = 3, ncol = 3, values = 1:9, name = 'A')
+A <- mxMatrix('Full', nrow = 1, ncol = 1, values = c(0), name = 'A')
 
 #Create an algebra 'B', which defines the expression A+A
 B <- mxAlgebra(A + A, name = 'B')

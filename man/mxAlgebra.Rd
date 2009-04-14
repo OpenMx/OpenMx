@@ -85,10 +85,13 @@ B <- mxAlgebra(A, name = "B")
 # the algebra C is A + B
 C <- mxAlgebra(A + B, name = "C")
 
+\dontrun{ % not all functions have been implemented yet
 # the algebra D is sin(C)
 D <- mxAlgebra(sin(C), name = "D")
 
 # Evaluate the mxAlgebra object 'D'
-modelD<-model(model="AlgebraExample", A, B, C, D, mxAlgebraObjective("D"))
-modelD<-mxJobRun(modelD)
+modelD <- mxModel(model="AlgebraExample", A, B, C, D, mxAlgebraObjective("D"))
+modelD <- mxRun(modelD)
+}
+
 }

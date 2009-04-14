@@ -7,7 +7,7 @@ AlgA <- mxAlgebra(O, name="AlgA")
 model <- mxModel()
 model <- mxModel(model, O)
 model <- mxModel(model, A)
-model[["O"]]@specification[1,1] <- "orange"
+model[["O"]]@spec[1,1] <- "orange"
 # Test 1: Algebra is just a matrix.
 
 model <- mxModel(model, AlgA)

@@ -22,11 +22,11 @@ model <- mxModel(model, mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=
 model <- mxModel(model, mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2))
 model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
 
-model[["A"]]@specification[2,1] <- NA
-model[["S"]]@specification[2,1] <- 0
-model[["S"]]@specification[1,2] <- 0
-model[["S"]]@specification[1,1] <- "apple"
-model[["S"]]@specification[2,2] <- "banana"
+model[["A"]]@spec[2,1] <- NA
+model[["S"]]@spec[2,1] <- 0
+model[["S"]]@spec[1,2] <- 0
+model[["S"]]@spec[1,1] <- "apple"
+model[["S"]]@spec[2,2] <- "banana"
 
 # Define the objective function
 objective <- mxRAMObjective("A", "S", "F", "objective")

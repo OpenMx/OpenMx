@@ -37,7 +37,7 @@ AVal  <- matrix(c(0.0, 0.0,
 ASpec <- matrix(c(  0,   0,
                    NA,   0), 
                 nrow=2, ncol=2, byrow=T)
-theAMatrix <- mxMatrix(values=AVal, specification=ASpec, name="A")
+theAMatrix <- mxMatrix(values = AVal, spec = ASpec, name = "A")
 
 # Next, define the symmetric paths and starting values, the S matrix
 
@@ -47,7 +47,7 @@ SVal  <- matrix(c(0.8, 0.0,
 SSpec <- matrix(c("apple",   0,
                     0,   "banana"), 
                 nrow=2, ncol=2, byrow=T)
-theSMatrix <- mxMatrix(values=SVal, specification=SSpec, name="S")
+theSMatrix <- mxMatrix(values = SVal, spec = SSpec, name = "S")
 
 # Finally, define the filter matrix as a 2x2 identity matrix
 

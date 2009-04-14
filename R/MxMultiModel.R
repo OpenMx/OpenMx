@@ -122,11 +122,11 @@ omxGetIndependentsHelper <- function(model, lst) {
 omxFreezeMatrix <- function(mxMatrix) {
 	rows <- nrow(mxMatrix)
 	cols <- ncol(mxMatrix)
-	if (is(mxMatrix@specification, "MxSymmetricSparse")) {
-		mxMatrix@specification <- new("MxSymmetricSparse", 
+	if (is(mxMatrix@spec, "MxSymmetricSparse")) {
+		mxMatrix@spec <- new("MxSymmetricSparse", 
 			nrow = rows, ncol = cols)
 	} else {
-		mxMatrix@specification <- new("MxSparseMatrix", 
+		mxMatrix@spec <- new("MxSparseMatrix", 
 			nrow = rows, ncol = cols)
 	}
 	return(mxMatrix)

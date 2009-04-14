@@ -18,8 +18,8 @@ model <- mxModel(model, mxMatrix("Symm", name = "S", nrow = 6, ncol = 6))
 model <- mxModel(model, mxMatrix("Full", name = "F", nrow = 4, ncol = 6))
 
 # Specify "A" Matrix
-model[["A"]]@specification[6,2] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
-model[["A"]]@specification[6,3] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
+model[["A"]]@spec[6,2] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
+model[["A"]]@spec[6,3] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
 
 # Values for "A" Matrix
 model[["A"]]@values[5,1] <- 1 #Intercept Loading
@@ -32,13 +32,13 @@ model[["A"]]@values[6,2] <- .2 #Latent Basis Slope Loading (Free)
 model[["A"]]@values[6,3] <- .6 #Latent Basis Slope Loading (Free)
 
 # Specify "S" Matrix
-model[["S"]]@specification[1,1] <- "Manifest Residual"
-model[["S"]]@specification[2,2] <- "Manifest Residual"
-model[["S"]]@specification[3,3] <- "Manifest Residual"
-model[["S"]]@specification[4,4] <- "Manifest Residual"
-model[["S"]]@specification[5,5] <- "Latent Intercept Variance"
-model[["S"]]@specification[6,6] <- "Latent Slope Variance"
-model[["S"]]@specification[5,6] <- "Latent Covariance"
+model[["S"]]@spec[1,1] <- "Manifest Residual"
+model[["S"]]@spec[2,2] <- "Manifest Residual"
+model[["S"]]@spec[3,3] <- "Manifest Residual"
+model[["S"]]@spec[4,4] <- "Manifest Residual"
+model[["S"]]@spec[5,5] <- "Latent Intercept Variance"
+model[["S"]]@spec[6,6] <- "Latent Slope Variance"
+model[["S"]]@spec[5,6] <- "Latent Covariance"
 
 # Values for "S" Matrix
 model[["S"]]@values[1,1] <- 11

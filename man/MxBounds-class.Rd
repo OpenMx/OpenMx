@@ -24,7 +24,7 @@ The 'name' slot is the name of the MxBounds object. %Use of MxBounds objects in 
 
 The 'min' and 'max' slots hold scalar numeric values for the lower and upper bounds on the list of parameters, respectively. If a vector of values is input, only the first value is used.
 
-Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'specification' matrix of an \code{MxMatrix} object. To affect an estimation or optimization, an MxBounds object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'spec' matrix of an \code{MxMatrix} object. To affect an estimation or optimization, an MxBounds object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
 Slots may be referenced with the @ symbol. See the documentation for \link{Extract} and the examples in the \link{mxBounds} document for more information.
 }

@@ -65,7 +65,8 @@ model <- mxModel(model,
                  name= "finaldraft")
 
 # Add data to the model from an existing data frame in object 'data'
-model <- mxModel(model, mxData(data, type=raw))
+data <- data.frame()
+model <- mxModel(model, mxData(data, type='raw'))
 
 #View the matrix named "A" in MxModel object 'model'
 model[["A"]]

@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -19,26 +19,26 @@ setClass(Class = "UnitMatrix",
 	contains = "MxNonSymmetricMatrix")
 	
 setMethod("initialize", "UnitMatrix",
-	function(.Object, name, values, specification, nrow, ncol, byrow, free) {
+	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for UnitMatrix construction")
 		}
-		if (!single.na(specification)) {
+		if (!single.na(spec)) {
 			warning("Ignoring specification matrix for UnitMatrix construction")
 		}
 		if (free) {
 			warning("Ignoring \'free\' parameter for UnitMatrix construction")
 		}
-		specification <- new("MxSparseMatrix", 0, nrow, ncol)
+		spec <- new("MxSparseMatrix", 0, nrow, ncol)
 		values <- Matrix(1, nrow, ncol)
-		return(callNextMethod(.Object, specification, values, name))
+		return(callNextMethod(.Object, spec, values, name))
 	}
 )
 
 setMethod("omxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
-		if(nnzero(.Object@specification) > 0) { 
+		if(nnzero(.Object@spec) > 0) { 
 			stop(paste("Specification matrix of unit matrix", 
 				omxQuotes(.Object@name), "is not empty"), call.=FALSE)
 		} 

@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -19,15 +19,15 @@ convertModelA <- function(model) {
 	len <- length(variables)
 	names <- list(variables, variables)
 	values <- Matrix(0, nrow = len, ncol = len, dimnames = names)
-	specification <- new("MxSparseMatrix", 
-		nrow = len, ncol = len, dimnames = names)
+	spec <- new("MxSparseMatrix", nrow = len, ncol = len, 
+		dimnames = names)
 	npaths <- dim(model@paths)[[1]]
 	for(i in 1:npaths) {
 		apath <- model@paths[i,]
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesA(apath)
-		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationA(apath)
+		spec[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationA(apath)
 	}
-	retval <- mxMatrix("Full", values, specification)
+	retval <- mxMatrix("Full", values, spec)
 	return(retval)
 }
 
@@ -58,14 +58,14 @@ convertModelS <- function(model) {
 	len <- length(variables)
 	names <- list(variables, variables)
 	values <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
-	specification <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
+	spec <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
 	npaths <- dim(model@paths)[[1]]
 	for(i in 1:npaths) {
 		apath <- model@paths[i,]
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesS(apath)
-		specification[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationS(apath)
+		spec[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationS(apath)
 	}
-	retval <- mxMatrix("Symm", values, specification, nrow = len, ncol = len)
+	retval <- mxMatrix("Symm", values, spec, nrow = len, ncol = len)
 	return(retval)
 }
 

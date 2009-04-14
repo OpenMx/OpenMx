@@ -19,20 +19,20 @@ setClass(Class = "FullMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "FullMatrix",
-	function(.Object, name, values, specification, nrow, ncol, byrow, free) {
-		if (is(specification, "MxSparseMatrix")) {
-		} else if (single.na(specification) && free) {
-			specification <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
-	    } else if (single.na(specification)) {
-			specification <- new("MxSparseMatrix", 0, nrow, ncol)
-	    } else if (is(specification, "Matrix")) {
-	    	specification <- new("MxSparseMatrix", as.matrix(specification))
-	    } else if (is.matrix(specification)) {
-	    	specification <- new("MxSparseMatrix", specification)
-	    } else if(is.vector(specification)) {
-	    	specification <- new("MxSparseMatrix", matrix(specification, nrow, ncol))
+	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
+		if (is(spec, "MxSparseMatrix")) {
+		} else if (single.na(spec) && free) {
+			spec <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
+	    } else if (single.na(spec)) {
+			spec <- new("MxSparseMatrix", 0, nrow, ncol)
+	    } else if (is(spec, "Matrix")) {
+	    	spec <- new("MxSparseMatrix", as.matrix(spec))
+	    } else if (is.matrix(spec)) {
+	    	spec <- new("MxSparseMatrix", spec)
+	    } else if(is.vector(spec)) {
+	    	spec <- new("MxSparseMatrix", matrix(spec, nrow, ncol))
 	    } else {
-	    	specification <- new("MxSparseMatrix", specification, nrow, ncol)
+	    	spec <- new("MxSparseMatrix", spec, nrow, ncol)
 	    }
 		if (is(values, "Matrix")) {
 		} else if (is.matrix(values)) {
@@ -42,7 +42,7 @@ setMethod("initialize", "FullMatrix",
 	    } else {
 	    	values <- Matrix(values, nrow, ncol)
 	    } 
-		retval <- callNextMethod(.Object, specification, values, name) 
+		retval <- callNextMethod(.Object, spec, values, name) 
 		return(retval)
 	}
 )
