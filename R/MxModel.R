@@ -208,7 +208,11 @@ omxModel <- function(model = NA, ..., name = NA, manifestVars = NA,
 	} else if (typeof(model) == "character") {
 		model <- new("MxModel", name = model)
 	} else if(!is(model, "MxModel")) {
- 		first <- model
+		if(isS4(model)) {
+	 		first <- model
+		} else {
+			first <- list(model)
+		}
 		model <- new("MxModel")
 	}
 	lst <- list(...)

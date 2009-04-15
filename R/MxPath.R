@@ -14,13 +14,10 @@
 #   limitations under the License.
 
 # returns a list of paths
-omxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
-	arrows = NULL, startVal = NULL, 
-	endVal = NULL, algebra = NULL,
-	name = NULL, label = NULL,
-	boundMax = NULL, boundMin = NULL,
-	ciUpper = NULL, ciLower = NULL) {
-		if (is.null(to)) {
+omxPath <- function(from, to, all, free, 
+	arrows, start, end, algebra, name, label,
+	boundMax, boundMin, ciUpper, ciLower) {
+		if (length(to) == 1 && is.na(to)) {
 			to <- from
 		}
 		from <- as.list(from)
@@ -29,25 +26,23 @@ omxPath <- function(from, to = NULL, all = FALSE, free = NULL,
 			from <- rep(from, each=length(to))	
 		}
 		result <- suppressWarnings(mapply(omxSinglePath, from, to,
-			free, arrows, startVal, endVal,
-				algebra, name, label, boundMax,
-				boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
+					free, arrows, start, end,
+					algebra, name, label, boundMax,
+					boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
 		return(result)
 }
 
-omxSinglePath <- function(from, to, free = NULL, 
-	arrows = NULL, startVal = NULL, 
-	endVal = NULL, algebra = NULL,
-	name = NULL, label = NULL,
-	boundMax = NULL, boundMin = NULL,
-	ciUpper = NULL, ciLower = NULL) {
+omxSinglePath <- function(from, to, free, 
+	arrows, start, end, algebra,
+	name, label, boundMax, boundMin,
+	ciUpper, ciLower) {
 	result <- list()
 	result[['from']] <- from
 	result[['to']] <- to
 	result[['free']] <- free[[1]]
 	result[['arrows']] <- arrows[[1]]
-	result[['startVal']] <- startVal[[1]]
-	result[['endVal']] <- endVal[[1]]
+	result[['start']] <- start[[1]]
+	result[['end']] <- end[[1]]
 	result[['algebra']] <- algebra[[1]]
 	result[['name']] <- name[[1]]
 	result[['label']] <- label[[1]]	
@@ -65,15 +60,21 @@ omxIsPath <- function(value) {
 }
 
 
-mxPath <- function(from, to = NULL, all = FALSE, free = NULL, 
-	arrows = NULL, startVal = NULL, 
-	endVal = NULL, algebra = NULL,
-	name = NULL, label = NULL,
-	boundMax = NULL, boundMin = NULL,
-	ciUpper = NULL, ciLower = NULL) {
-
+mxPath <- function(from, to = NA, all = FALSE, free = TRUE, 
+	arrows = 1, start = NA, end = NA, algebra = NA,
+	name = NA, label = NA, boundMax = NA, boundMin = NA,
+	ciUpper = NA, ciLower = NA) {
+	if (length(start) == 1 && is.na(start)) start <- NULL
+	if (length(end) == 1 && is.na(end)) end <- NULL
+	if (length(algebra) == 1 && is.na(algebra)) algebra <- NULL
+	if (length(name) == 1 && is.na(name)) name <- NULL
+	if (length(label) == 1 && is.na(label)) label <- NULL
+	if (length(boundMax) == 1 && is.na(boundMax)) boundMax <- NULL
+	if (length(boundMin) == 1 && is.na(boundMin)) boundMin <- NULL
+	if (length(ciUpper) == 1 && is.na(ciUpper)) ciUpper <- NULL
+	if (length(ciLower) == 1 && is.na(ciLower)) ciLower <- NULL
 	omxPath(from, to, all, free, 
-		arrows, startVal, endVal, 
-		algebra, name, label, boundMax,
+		arrows, start, end, algebra, 
+		name, label, boundMax,
 		boundMin, ciUpper, ciLower)
 }

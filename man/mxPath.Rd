@@ -9,12 +9,10 @@
 }
 
 \usage{
-mxPath(from, to = NULL, all = FALSE, free = NULL, 
-	arrows = NULL, startVal = NULL, 
-	endVal = NULL, algebra = NULL,
-	name = NULL, label = NULL,
-	boundMax = NULL, boundMin = NULL,
-	ciUpper = NULL, ciLower = NULL)
+mxPath(from, to = NA, all = FALSE, free = TRUE, 
+	arrows = 1, start = NA, end = NA, algebra = NA,
+	name = NA, label = NA, boundMax = NA, boundMin = NA,
+	ciUpper = NA, ciLower = NA)
 }
 
 \arguments{
