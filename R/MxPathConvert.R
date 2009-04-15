@@ -33,12 +33,12 @@ convertModelA <- function(model) {
 
 getValuesA <- function(apath) {
 	if (apath[['arrows']] == 1) {
- 		if (is.null(apath[['startVal']])) {
-			startVal <- 1.00
+ 		if (is.null(apath[['start']])) {
+			start <- 1.00
 		} else {
-			startVal <- apath[['startVal']]
+			start <- apath[['start']]
 		}
-		return(startVal)
+		return(start)
 	} else {
 		return(0.0)
 	}
@@ -71,12 +71,12 @@ convertModelS <- function(model) {
 
 getValuesS <- function(apath) {
 	if (apath[['arrows']] == 2) {
- 		if (is.null(apath[['startVal']])) {
-			startVal <- 1.00
+ 		if (is.null(apath[['start']])) {
+			start <- 1.00
 		} else {
-			startVal <- apath[['startVal']]
+			start <- apath[['start']]
 		}
-		return(startVal)
+		return(start)
 	} else {
 		return(0.0)
 	}
