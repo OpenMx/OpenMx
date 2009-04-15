@@ -21,8 +21,8 @@ mxPath(from, to = NA, all = FALSE, free = TRUE,
    \item{all}{boolean. If TRUE, then connect all sources to all sinks.}
    \item{free}{boolean. Indicates whether paths are free or fixed.}
    \item{arrows}{numeric. Must be either 1 for single-headed or 2 for double-headed arrows.}
-   \item{startVal}{numeric. The starting values of the parameters.}
-   \item{endVal}{numeric. TODO what does this do?}
+   \item{start}{numeric. The starting values of the parameters.}
+   \item{end}{numeric. TODO what does this do?}
    \item{algebra}{character vector. The names of algebras associated with the paths.}
    \item{name}{character vector. The names of the paths.}
    \item{label}{character vector. Descriptive labels for the paths.}
@@ -41,7 +41,7 @@ The 'free' argument specifies whether the paths created by the mxPath function a
 
 The 'arrows' argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the 'to' variable on the 'from' variable, such that the arrow points to the 'to' variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the 'arrows' argument may take a vector of 1s and 2s to be applied to the set of created paths.
 
-The 'startVal' and 'endVal' are numeric values of the created paths. The 'startVal' gives a starting value for estimation. The 'endVal' may hold a value assigned after estimation. This functionality is not currently used, as \link{MxPath} objects are transformed using the \link{omxConvertPathModel} function prior to estimation, which removes the paths and creates \link{MxMatrix} objects.
+The 'start' and 'end' are numeric values of the created paths. The 'start' gives a starting value for estimation. The 'end' may hold a value assigned after estimation. This functionality is not currently used, as \link{MxPath} objects are transformed using the \link{omxConvertPathModel} function prior to estimation, which removes the paths and creates \link{MxMatrix} objects.
 
 The 'algebra' argument specifies optional \link{MxAlgebra} objects associated with the created paths.
 
@@ -70,12 +70,12 @@ for (i in 1:5) {
     j <- i*20
 	singles <- mxPath(from=myLatent[i], to=myManifest[(j-19):j], 
     	arrows=1, free=c(FALSE,rep(TRUE, 19)), 
-    	startVal=c(1,rep(0.75,19)))
+    	start=c(1,rep(0.75,19)))
 	model <- mxModel(model, singles)
 }
 
 doubles <- mxPath(from=myLatent, all=TRUE, arrows=2,
-    free=TRUE, startVal=1)
+    free=TRUE, start=1)
 
 model <- mxModel(model, doubles)
 }
