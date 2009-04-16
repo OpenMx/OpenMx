@@ -27,7 +27,7 @@ build/$(TARGET): $(RSOURCE)/$(RFILES) $(RDOCUMENTS)/$(RDFILES)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
 doc:
-	rm -rf $(DOCFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(DOCFILE) $(RDOCUMENTS)/$(RDFILES)
+	rm -rf $(DOCFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(DOCFILE) .
 
 $(RSOURCE)/$(RFILES):
 
