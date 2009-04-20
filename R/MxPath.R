@@ -15,7 +15,7 @@
 
 # returns a list of paths
 omxPath <- function(from, to, all, free, 
-	arrows, start, end, algebra, name, label,
+	arrows, start, end, algebra, name, description,
 	boundMax, boundMin, ciUpper, ciLower) {
 		if (length(to) == 1 && is.na(to)) {
 			to <- from
@@ -27,14 +27,14 @@ omxPath <- function(from, to, all, free,
 		}
 		result <- suppressWarnings(mapply(omxSinglePath, from, to,
 					free, arrows, start, end,
-					algebra, name, label, boundMax,
+					algebra, name, description, boundMax,
 					boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
 		return(result)
 }
 
 omxSinglePath <- function(from, to, free, 
 	arrows, start, end, algebra,
-	name, label, boundMax, boundMin,
+	name, description, boundMax, boundMin,
 	ciUpper, ciLower) {
 	result <- list()
 	result[['from']] <- from
@@ -45,7 +45,7 @@ omxSinglePath <- function(from, to, free,
 	result[['end']] <- end[[1]]
 	result[['algebra']] <- algebra[[1]]
 	result[['name']] <- name[[1]]
-	result[['label']] <- label[[1]]	
+	result[['description']] <- description[[1]]	
 	result[['boundMax']] <- boundMax[[1]]
 	result[['boundMin']] <- boundMin[[1]]
 	result[['ciUpper']] <- ciUpper[[1]]
@@ -62,19 +62,19 @@ omxIsPath <- function(value) {
 
 mxPath <- function(from, to = NA, all = FALSE, free = TRUE, 
 	arrows = 1, start = NA, end = NA, algebra = NA,
-	name = NA, label = NA, boundMax = NA, boundMin = NA,
+	name = NA, description = NA, boundMax = NA, boundMin = NA,
 	ciUpper = NA, ciLower = NA) {
 	if (length(start) == 1 && is.na(start)) start <- NULL
 	if (length(end) == 1 && is.na(end)) end <- NULL
 	if (length(algebra) == 1 && is.na(algebra)) algebra <- NULL
 	if (length(name) == 1 && is.na(name)) name <- NULL
-	if (length(label) == 1 && is.na(label)) label <- NULL
+	if (length(description) == 1 && is.na(description)) description <- NULL
 	if (length(boundMax) == 1 && is.na(boundMax)) boundMax <- NULL
 	if (length(boundMin) == 1 && is.na(boundMin)) boundMin <- NULL
 	if (length(ciUpper) == 1 && is.na(ciUpper)) ciUpper <- NULL
 	if (length(ciLower) == 1 && is.na(ciLower)) ciLower <- NULL
 	omxPath(from, to, all, free, 
 		arrows, start, end, algebra, 
-		name, label, boundMax,
+		name, description, boundMax,
 		boundMin, ciUpper, ciLower)
 }

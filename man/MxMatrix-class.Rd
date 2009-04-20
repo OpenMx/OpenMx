@@ -12,17 +12,20 @@
 	\details{
 The MxMatrix class has the following slots:
 	  \tabular{rcl}{
-	        \tab \tab \cr
-	        name \tab - \tab The name of the object \cr
-	        spec \tab - \tab  The specification matrix, \cr
-	        values \tab - \tab The values matrix
+	        name \tab - \tab the name of the object \cr
+	        free \tab - \tab  the free matrix \cr
+	        values \tab - \tab the values matrix \cr
+	        labels \tab - \tab  the labels matrix \cr
 	  }
 	  
 The 'name' slot is the name of the MxMatrix object. Use of MxMatrix objects in an \link{mxAlgebra} or \link{mxConstraint} function requires reference by name.
 
-The 'spec' slot takes a matrix which describes the location of free and fixed parameters. Fixed parameters are specified with numeric zeros, while free parameters may be specified with character strings, non-zero numeric values, and 'NA's. Free parameters are elements of an MxMatrix object whose values may be changed by an objective function when that MxMatrix object is included in an \link{MxModel} object and evaluated using the \link{mxRun} function.
+The 'free' slot takes a matrix which describes the location of free and fixed parameters. A variable is a free parameter if-and-only-if the corresponding value in the 'free' matrix is 'TRUE'. Free parameters are elements of an MxMatrix object whose values may be changed by an objective function when that MxMatrix object is included in an \link{MxModel} object and evaluated using the \link{mxRun} function.
 
-The 'values' slot takes a matrix of numeric values. If an element is specified as a fixed parameter in the 'spec' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \link{mxRun} function. If an element is specified as a free parameter in the 'spec' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \link{mxRun} function. 
+The 'values' slot takes a matrix of numeric values. If an element is specified as a fixed parameter in the 'free' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \link{mxRun} function. If an element is specified as a free parameter in the 'free' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \link{mxRun} function. 
+
+The 'labels' slot takes a matrix which describes the labels of free and fixed parameters. Fixed parameters with identical labels must have identical values.  Free parameters with identical labels impose an equality constraint. The same label cannot be applied to a free parameter and a fixed parameter. A free parameter with the label 'NA' implies a unique free parameter, that cannot be constrained to equal any other free parameter.
+
 }
 
 \references{

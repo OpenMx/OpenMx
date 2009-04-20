@@ -120,16 +120,11 @@ omxGetIndependentsHelper <- function(model, lst) {
 }
 
 omxFreezeMatrix <- function(mxMatrix) {
+	type <- class(mxMatrix)[[1]]
 	rows <- nrow(mxMatrix)
-	cols <- ncol(mxMatrix)
-	if (is(mxMatrix@spec, "MxSymmetricSparse")) {
-		mxMatrix@spec <- new("MxSymmetricSparse", 
-			nrow = rows, ncol = cols)
-	} else {
-		mxMatrix@spec <- new("MxSparseMatrix", 
-			nrow = rows, ncol = cols)
-	}
-	return(mxMatrix)
+	cols <- ncol(mxMatrix)	
+	return(new(type, mxMatrix@name, mxMatrix@values, 
+		FALSE, mxMatrix@labels, rows, cols))
 }
 
 omxFreezeAlgebra <- function(mxAlgebra) {

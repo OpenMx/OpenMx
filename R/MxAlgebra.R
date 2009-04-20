@@ -20,12 +20,14 @@ setClass(Class = "MxAlgebra",
 	representation = representation(
 		formula = "MxAlgebraFormula",
 		name = "character",
-		result = "Matrix"))
+		dirty = "logical",
+		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
 	function(.Object, formula, name) {
 		.Object@formula <- sys.call(which=-3)[[3]]
 		.Object@name <- name
+		.Object@dirty <- FALSE
 		return(.Object)
 	}
 )

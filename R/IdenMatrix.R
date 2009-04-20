@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -19,22 +19,23 @@ setClass(Class = "IdenMatrix",
 	contains = "MxNonSymmetricMatrix")
 	
 setMethod("initialize", "IdenMatrix",
-	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
+	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for IdenMatrix construction")
+			warning("Ignoring values matrix for IdenMatrix construction", call. = FALSE)
 		}
-		if (!single.na(spec)) {
-			warning("Ignoring specification matrix for IdenMatrix construction")
+		if (!single.na(labels)) {
+			warning("Ignoring labels matrix for IdenMatrix construction", call. = FALSE)
 		}
-		if (free) {
-			warning("Ignoring \'free\' parameter for IdenMatrix construction")
+		if (!(length(free) == 1 && free == FALSE)) {
+			warning("Ignoring free matrix for IdenMatrix construction", call. = FALSE)
 		}		
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for IdenMatrix constructor")
+			stop("Non-square matrix attempted for IdenMatrix constructor", call. = FALSE)
 		}
-		spec <- new("MxSparseMatrix", 0, nrow, ncol)
-		values <- Matrix(diag(nrow))
-		return(callNextMethod(.Object, spec, values, name))
+		labels <- matrix("", nrow, ncol)
+		values <- matrix(diag(nrow = nrow), nrow, ncol)
+		free <- matrix(FALSE, nrow, ncol)
+		return(callNextMethod(.Object, labels, values, free, name))
 	}
 )
 
@@ -42,8 +43,13 @@ setMethod("omxVerifyMatrix", "IdenMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		verifySquare(.Object)
-		if(nnzero(.Object@spec) > 0) { stop("Specification matrix is not empty") } 
-		if(!suppressWarnings(all(.Object@values == diag(nrow(.Object@values))))) 
-			{ stop("Values matrix is not the identity matrix") }
+		if(!all(.Object@free == FALSE)) {
+			stop(paste("Free matrix of iden matrix", 
+				omxQuotes(.Object@name), "has a free parameter"), call.=FALSE)
+		} 
+		if(!suppressWarnings(all(.Object@values == diag(nrow(.Object@values))))) {
+			stop(paste("Values matrix of iden matrix",
+				omxQuotes(.Object@name), "is not the identity matrix"), call.=FALSE)
+		}
 	}
 )

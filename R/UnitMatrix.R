@@ -19,28 +19,29 @@ setClass(Class = "UnitMatrix",
 	contains = "MxNonSymmetricMatrix")
 	
 setMethod("initialize", "UnitMatrix",
-	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
+	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for UnitMatrix construction")
+			warning("Ignoring values matrix for UnitMatrix construction", call. = FALSE)
 		}
-		if (!single.na(spec)) {
-			warning("Ignoring specification matrix for UnitMatrix construction")
+		if (!single.na(labels)) {
+			warning("Ignoring labels matrix for UnitMatrix construction", call. = FALSE)
 		}
-		if (free) {
-			warning("Ignoring \'free\' parameter for UnitMatrix construction")
+		if (!(length(free) == 1 && free == FALSE)) {
+			warning("Ignoring free matrix for UnitMatrix construction", call. = FALSE)
 		}
-		spec <- new("MxSparseMatrix", 0, nrow, ncol)
-		values <- Matrix(1, nrow, ncol)
-		return(callNextMethod(.Object, spec, values, name))
+		labels <- matrix("", nrow, ncol)
+		values <- matrix(1, nrow, ncol)
+		free <- matrix(FALSE, nrow, ncol)
+		return(callNextMethod(.Object, labels, values, free, name))
 	}
 )
 
 setMethod("omxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
-		if(nnzero(.Object@spec) > 0) { 
-			stop(paste("Specification matrix of unit matrix", 
-				omxQuotes(.Object@name), "is not empty"), call.=FALSE)
+		if(!all(.Object@free == FALSE)) { 
+			stop(paste("Free matrix of unit matrix", 
+				omxQuotes(.Object@name), "has a free parameter"), call.=FALSE)
 		} 
 		if(nnzero(.Object@values - 1) > 0) { 
 			stop(paste("Values matrix of unit matrix",

@@ -18,16 +18,17 @@ convertModelA <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
-	values <- Matrix(0, nrow = len, ncol = len, dimnames = names)
-	spec <- new("MxSparseMatrix", nrow = len, ncol = len, 
-		dimnames = names)
+	values <- matrix(0, len, len, dimnames = names)
+	free <- matrix(FALSE, len, len, dimnames = names)
+	labels <- matrix(as.character(NA), len, len, dimnames = names)
 	npaths <- dim(model@paths)[[1]]
 	for(i in 1:npaths) {
 		apath <- model@paths[i,]
 		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesA(apath)
-		spec[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationA(apath)
+		free[apath['to'][[1]], apath['from'][[1]]] <- getFreeA(apath)
+		labels[apath['to'][[1]], apath['from'][[1]]] <- getLabelsA(apath)
 	}
-	retval <- mxMatrix("Full", values, spec)
+	retval <- mxMatrix("Full", values, free, labels, name ="A")
 	return(retval)
 }
 
@@ -44,12 +45,24 @@ getValuesA <- function(apath) {
 	}
 }
 
-getSpecificationA <- function(apath) {
+getFreeA <- function(apath) {
 	if ((apath[['arrows']] == 1) && (apath[['free']] == TRUE)) {
-		return(NA)
+		return(TRUE)
 	} else {
-		return(0)
+		return(FALSE)
 	}	
+}
+
+getLabelsA <- function(apath) {
+	if ((apath[['arrows']] == 1) && (apath[['free']] == TRUE)) {
+		if (is.null(apath[['name']])) {
+			return(as.character(NA))
+		} else {
+			return(apath[['name']])
+		}
+	} else {
+		return(as.character(NA))
+	}
 }
 
 
@@ -57,15 +70,23 @@ convertModelS <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
-	values <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
-	spec <- new("MxSymmetricSparse", nrow = len, ncol = len, dimnames = names)
+	values <- matrix(0, len, len, dimnames = names)	
+	free <- matrix(FALSE, len, len, dimnames = names)
+	labels <- matrix(as.character(NA), len, len, dimnames = names)
 	npaths <- dim(model@paths)[[1]]
 	for(i in 1:npaths) {
 		apath <- model@paths[i,]
-		values[apath['to'][[1]], apath['from'][[1]]] <- getValuesS(apath)
-		spec[apath['to'][[1]], apath['from'][[1]]] <- getSpecificationS(apath)
+		pathValue <- getValuesS(apath)
+		pathFree <- getFreeS(apath)
+		pathLabel <- getLabelsS(apath)
+		values[apath['to'][[1]], apath['from'][[1]]] <- pathValue
+		values[apath['from'][[1]], apath['to'][[1]]] <- pathValue
+		free[apath['to'][[1]], apath['from'][[1]]] <- pathFree
+		free[apath['from'][[1]], apath['to'][[1]]] <- pathFree
+		labels[apath['to'][[1]], apath['from'][[1]]] <- pathLabel
+		labels[apath['from'][[1]], apath['to'][[1]]] <- pathLabel
 	}
-	retval <- mxMatrix("Symm", values, spec, nrow = len, ncol = len)
+	retval <- mxMatrix("Symm", values, free, labels, name = "S")
 	return(retval)
 }
 
@@ -82,21 +103,34 @@ getValuesS <- function(apath) {
 	}
 }
 
-getSpecificationS <- function(apath) {
+getFreeS <- function(apath) {
 	if ((apath[['arrows']] == 2) && (apath[['free']] == TRUE)) {
-		return(NA)
+		return(TRUE)
 	} else {
-		return(0)
+		return(FALSE)
 	}	
 }
+
+getLabelsS <- function(apath) {
+	if ((apath[['arrows']] == 2) && (apath[['free']] == TRUE)) {
+		if (is.null(apath[['name']])) {
+			return(as.character(NA))
+		} else {
+			return(apath[['name']])
+		}
+	} else {
+		return(as.character(NA))
+	}	
+}
+
 
 convertModelF <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(model@manifestVars, variables)
-	matValues <- diag(nrow = length(model@manifestVars), ncol = len)
-	values <- Matrix(matValues, dimnames = names)
-	retval <- mxMatrix("Full", values)
+	values <- diag(nrow = length(model@manifestVars), ncol = len)
+	dimnames(values) <- names
+	retval <- mxMatrix("Full", values, name = "F")
 	return(retval)
 }
 

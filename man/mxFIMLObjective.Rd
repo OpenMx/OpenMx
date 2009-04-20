@@ -41,8 +41,7 @@ A <- mxMatrix(values = 0.5, nrow = 2, ncol = 1,
 	free = TRUE, name = "A")
 
 D <- mxMatrix(type = "Diag", values = c(0, 0.5), 
-	spec = c(0, NA), nrow = 2, free = TRUE, 
-	name = "D")
+	free = c(FALSE, TRUE), nrow = 2, name = "D")
 
 expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
 

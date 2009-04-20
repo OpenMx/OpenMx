@@ -52,6 +52,72 @@ omxGenerateDefinitionNames <- function(datasets) {
 	return(result)
 }
 
+omxCheckFreeVariables <- function(model, defLocations) {
+	if(length(model@matrices) > 0) {
+		startVals <- list()
+		freeVars <- list()
+		fixedVars <- list()
+		defNames <- names(defLocations)
+		for(i in 1:length(model@matrices)) {
+			result <- omxCheckFreeVariablesHelper(model@matrices[[i]], startVals, 
+				freeVars, fixedVars, defNames)
+			startVals <- result[[1]]
+			freeVars <- result[[2]]
+			fixedVars <- result[[3]]
+		}
+	}
+}
+
+omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
+		fixedVars, defNames) {
+	labels <- matrix@labels
+	free <- matrix@free
+	values <- matrix@values
+	labels <- labels[!is.na(labels)]
+	free <- free[!is.na(labels)]
+	values <- values[!is.na(labels)]
+	if(length(labels) > 0) {
+		for(i in 1:length(labels)) {
+			label <- labels[[i]]
+			isFree <- free[[i]]
+			value <- values[[i]]
+			if (label %in% defNames) {
+			} else if (isFree) {
+				if (label == "") {
+					stop(paste("The empty string is not a valid name",
+						"for a free parameter. Use NA instead"), call. = FALSE)
+				}
+				if (label %in% fixedVars) {
+					stop(paste("The label", omxQuotes(label),
+						"has been assigned to a free parameter",
+						"and a fixed value!"), call. = FALSE)
+				} else if (label %in% freeVars && startVals[[label]] != value) {
+					stop(paste("The free parameter", omxQuotes(label),
+						"has been assigned multiple starting values!"),
+						 call. = FALSE)
+				} else {
+					startVals[[label]] <- value
+					freeVars <- append(freeVars, label)
+				}
+			} else {
+				if (label == "") {
+				} else if (label %in% freeVars) {
+					stop(paste("The label", omxQuotes(label),
+						"has been assigned to a free parameter",
+						"and a fixed value!"), call. = FALSE)
+				} else if (label %in% fixedVars && startVals[[label]] != value) {
+					stop(paste("The fixed variable", omxQuotes(label),
+						"has been assigned multiple starting values!"),
+						 call. = FALSE)
+				} else {
+					startVals[[label]] <- value
+					fixedVars <- append(fixedVars, label)
+				}
+			}
+		}
+	}
+	return(list(startVals, freeVars, fixedVars))
+}
 
 setMethod("print", "MxFlatModel", function(x,...) {
 	callNextMethod()

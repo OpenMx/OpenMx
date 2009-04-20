@@ -11,7 +11,7 @@
 \usage{
 mxPath(from, to = NA, all = FALSE, free = TRUE, 
 	arrows = 1, start = NA, end = NA, algebra = NA,
-	name = NA, label = NA, boundMax = NA, boundMin = NA,
+	name = NA, description = NA, boundMax = NA, boundMin = NA,
 	ciUpper = NA, ciLower = NA)
 }
 
@@ -25,7 +25,7 @@ mxPath(from, to = NA, all = FALSE, free = TRUE,
    \item{end}{numeric. TODO what does this do?}
    \item{algebra}{character vector. The names of algebras associated with the paths.}
    \item{name}{character vector. The names of the paths.}
-   \item{label}{character vector. Descriptive labels for the paths.}
+   \item{description}{character vector. Description of the paths.}
    \item{boundMax}{numeric. TODO what does this do?}
    \item{boundMin}{numeric. TODO what does this do?}
    \item{ciUpper}{numeric. TODO what does this do?}
@@ -45,7 +45,7 @@ The 'start' and 'end' are numeric values of the created paths. The 'start' gives
 
 The 'algebra' argument specifies optional \link{MxAlgebra} objects associated with the created paths.
 
-The 'name' argument specifies a name of the resulting \link{MxPath} object. This differs from the 'label' argument in that labels refer to the individual paths, while names refer to the \link{MxPath} object as a whole, which may contain multiple paths. 
+The 'name' argument specifies a name of the resulting \link{MxPath} object. This differs from the 'description' argument in that labels refer to the individual paths, while names refer to the \link{MxPath} object as a whole, which may contain multiple paths. 
 
 The 'boundMin' and 'boundMax' arguments specify lower and upper bounds for the created paths.
 }

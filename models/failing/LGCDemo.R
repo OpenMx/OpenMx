@@ -14,12 +14,14 @@ wisc.cov<-matrix(c(33.73019, 25.46499, 30.88961, 40.51781,
 # Define the model
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", name = "A", nrow = 6, ncol = 6))
-model <- mxModel(model, mxMatrix("Symm", name = "S", nrow = 6, ncol = 6))
-model <- mxModel(model, mxMatrix("Full", name = "F", nrow = 4, ncol = 6))
+model <- mxModel(model, mxMatrix("Full", name = "S", nrow = 6, ncol = 6))
+model <- mxModel(model, mxMatrix("Iden", name = "F", nrow = 4, ncol = 6))
 
 # Specify "A" Matrix
-model[["A"]]@spec[6,2] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
-model[["A"]]@spec[6,3] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
+model[["A"]]@labels[6,2] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
+model[["A"]]@labels[6,3] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
+model[["A"]]@free[6,2] <- TRUE 
+model[["A"]]@free[6,3] <- TRUE
 
 # Values for "A" Matrix
 model[["A"]]@values[5,1] <- 1 #Intercept Loading
@@ -32,13 +34,21 @@ model[["A"]]@values[6,2] <- .2 #Latent Basis Slope Loading (Free)
 model[["A"]]@values[6,3] <- .6 #Latent Basis Slope Loading (Free)
 
 # Specify "S" Matrix
-model[["S"]]@spec[1,1] <- "Manifest Residual"
-model[["S"]]@spec[2,2] <- "Manifest Residual"
-model[["S"]]@spec[3,3] <- "Manifest Residual"
-model[["S"]]@spec[4,4] <- "Manifest Residual"
-model[["S"]]@spec[5,5] <- "Latent Intercept Variance"
-model[["S"]]@spec[6,6] <- "Latent Slope Variance"
-model[["S"]]@spec[5,6] <- "Latent Covariance"
+model[["S"]]@labels[1,1] <- "Manifest Residual"
+model[["S"]]@labels[2,2] <- "Manifest Residual"
+model[["S"]]@labels[3,3] <- "Manifest Residual"
+model[["S"]]@labels[4,4] <- "Manifest Residual"
+model[["S"]]@labels[5,5] <- "Latent Intercept Variance"
+model[["S"]]@labels[6,6] <- "Latent Slope Variance"
+model[["S"]]@labels[5,6] <- "Latent Covariance"
+
+model[["S"]]@free[1,1] <- TRUE
+model[["S"]]@free[2,2] <- TRUE
+model[["S"]]@free[3,3] <- TRUE
+model[["S"]]@free[4,4] <- TRUE
+model[["S"]]@free[5,5] <- TRUE
+model[["S"]]@free[6,6] <- TRUE
+model[["S"]]@free[5,6] <- TRUE
 
 # Values for "S" Matrix
 model[["S"]]@values[1,1] <- 11
@@ -48,14 +58,6 @@ model[["S"]]@values[4,4] <- 11
 model[["S"]]@values[5,5] <- 20
 model[["S"]]@values[6,6] <- 24
 model[["S"]]@values[5,6] <- 14
-
-# Specify "F" Matrix
-
-# Values for "F" Matrix
-model[["F"]]@values[1,1] <- 1
-model[["F"]]@values[2,2] <- 1
-model[["F"]]@values[3,3] <- 1
-model[["F"]]@values[4,4] <- 1
 
 # Define the objective function
 objective <- mxRAMObjective("A", "S", "F", "objective")

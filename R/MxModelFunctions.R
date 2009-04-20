@@ -162,7 +162,7 @@ updateModelAlgebraHelper <- function(aList, values, model) {
 		candidate <- model[[name]]
 		if (!is.null(candidate) && !is.nan(values[[i]]) && 
 			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
-			model[[name]]@result <- Matrix(values[[i]])
+			model[[name]]@result <- matrix(values[[i]])
 		}
 	}
 	model@submodels <- lapply(model@submodels, function(x) {

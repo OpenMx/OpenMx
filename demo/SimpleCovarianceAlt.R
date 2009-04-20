@@ -34,20 +34,23 @@ theData <- mxData(covMatrix, 'cov', numObs = 100, name = 'covariance matrix')
 AVal  <- matrix(c(0.0, 0.0,
                   0.2, 0.0), 
                 nrow=2, ncol=2, byrow=T)
-ASpec <- matrix(c(  0,   0,
-                   NA,   0), 
+AFree <- matrix(c( FALSE, FALSE,
+                   TRUE,  FALSE), 
                 nrow=2, ncol=2, byrow=T)
-theAMatrix <- mxMatrix(values = AVal, spec = ASpec, name = "A")
+theAMatrix <- mxMatrix(values = AVal, free = AFree, name = "A")
 
 # Next, define the symmetric paths and starting values, the S matrix
 
 SVal  <- matrix(c(0.8, 0.0,
                   0.0, 0.8), 
                 nrow=2, ncol=2, byrow=T)
-SSpec <- matrix(c("apple",   0,
-                    0,   "banana"), 
+SFree <- matrix(c( TRUE,  FALSE,
+                   FALSE, TRUE), 
                 nrow=2, ncol=2, byrow=T)
-theSMatrix <- mxMatrix(values = SVal, spec = SSpec, name = "S")
+SLabels <- matrix(c("apple", NA,
+                    NA, "banana"), 
+                nrow=2, ncol=2, byrow=T)
+theSMatrix <- mxMatrix(values = SVal, free = SFree, labels = SLabels, name = "S")
 
 # Finally, define the filter matrix as a 2x2 identity matrix
 

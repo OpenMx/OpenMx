@@ -133,18 +133,6 @@ setReplaceMethod("[[", "MxModel",
 	}
 )
 
-#setMethod("$", "MxModel",
-#	function(x, name) {
-#		return(omxExtractMethod(x, name))
-#	}
-#)
-#
-#setReplaceMethod("$", "MxModel",
-#	function(x, name, value) {
-#		return(omxReplaceMethod(x, name, value))
-#	}
-#)
-
 omxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
 			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||

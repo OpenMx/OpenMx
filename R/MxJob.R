@@ -26,6 +26,7 @@ mxRun <- function(model) {
 	flatModel <- omxFlattenModel(depModel)
 	data <- flatModel@datasets
 	defNames <- omxGenerateDefinitionNames(data)
+	omxCheckFreeVariables(flatModel, defNames)
 	parameters <- omxGenerateParameterList(flatModel, defNames)
 	definitions <- omxGenerateDefinitionList(flatModel, defNames)
 	matrices <- omxGenerateSimpleMatrixList(flatModel)

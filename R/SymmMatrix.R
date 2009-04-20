@@ -19,53 +19,83 @@ setClass(Class = "SymmMatrix",
 	contains = "MxSymmetricMatrix")
 	
 setMethod("initialize", "SymmMatrix",
-	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
+	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for SymmMatrix constructor")
+			stop("Non-square matrix attempted for SymmMatrix constructor", call. = FALSE)
 		}
-		if (!single.na(values) && is.vector(values)) {
-			if (length(values) == (nrow * (nrow + 1) / 2)) {
-			    mvalues <- matrix(0, nrow, ncol)
-			    mvalues[lower.tri(mvalues, diag = TRUE)] <- values
-			    mvalues <- mvalues + t(mvalues) - diag(mvalues) * diag(nrow)
-			    values <- mvalues
-			} else if (length(values) == (nrow * ncol)) {
-				values <- matrix(values, nrow, ncol)
+		if (single.na(values)) {
+			values <- 0
+		}
+		if (is.vector(values)) {
+			len <- length(values)
+			if (len == nrow * ncol || len == 1) {
+				values <- matrix(values, nrow, ncol, byrow)
+			} else if (len == nrow * (ncol + 1) / 2) {
+				if(byrow) {
+					tmp <- matrix(0, nrow, ncol)
+					tmp[upper.tri(tmp, TRUE)] <- values
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					values <- tmp
+				} else {
+					tmp <- matrix(0, nrow, ncol)
+					tmp[lower.tri(tmp, TRUE)] <- values
+					tmp[upper.tri(tmp)] <- tmp[lower.tri(tmp)]
+					values <- tmp
+				}				
 			} else {
-				stop("Invalid length of values matrix for SymmMatrix constructor")
+				stop(paste(
+					"Illegal number of elements (", len,
+					") for values matrix of SymmMatrix constructor", sep=""),
+					call. = FALSE)
 			}
 		}
-		if (!single.na(spec) && is.vector(spec)) {
-			if (length(spec) == (nrow * (nrow + 1) / 2)) {
-			    mspec <- matrix(0, nrow, ncol)
-			    mspec[lower.tri(mspec, diag = TRUE)] <- spec
-			    mspec <- mspec + t(mspec) - diag(mspec) * diag(nrow)
-			    spec <- mspec
-			} else if (length(spec) == (nrow * ncol)) {
-				spec <- matrix(spec, nrow, ncol)
+		if (is.vector(labels)) {
+			len <- length(labels)
+			if (len == nrow * ncol || len == 1) {
+				labels <- matrix(labels, nrow, ncol, byrow)
+			} else if (len == nrow * (ncol + 1) / 2) {
+				if(byrow) {
+					labels <- matrix("", nrow, ncol)
+					tmp[upper.tri(tmp, TRUE)] <- labels
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					labels <- tmp
+				} else {
+					tmp <- matrix("", nrow, ncol)
+					tmp[lower.tri(tmp, TRUE)] <- labels
+					tmp[upper.tri(tmp)] <- tmp[lower.tri(tmp)]
+					labels <- tmp
+				}				
 			} else {
-				stop("Invalid length of specification matrix for SymmMatrix constructor")
+				stop(paste(
+					"Illegal number of elements (", len,
+					") for labels matrix of SymmMatrix constructor", sep=""),
+					call. = FALSE)
 			}
 		}
-		if (is(spec, "MxSymmetricSparse")) {
-		} else if (single.na(spec) && free) {
-			spec <- new("MxSymmetricSparse", matrix(NA, nrow, ncol))
-	    } else if (single.na(spec)){
-			spec <- new("MxSymmetricSparse", 0, nrow, ncol)
-		} else if (is(spec, "Matrix")) {
-			spec <- new("MxSymmetricSparse", as.matrix(spec))
-	    } else {
-	    	spec <- new("MxSymmetricSparse", matrix(spec, nrow, ncol))
-	    }
-	    if (is(values, "MxSymmetricSparse")) {
-	    } else if (single.na(values)) {
-	    	values <- new("MxSymmetricSparse", matrix(0, nrow, ncol))
-	    } else if (is(values, "Matrix")) {
-			values <- new("MxSymmetricSparse", as.matrix(values))
-		} else {
-	    	values <- new("MxSymmetricSparse", matrix(values, nrow, ncol))
-	    }
-		retval <- callNextMethod(.Object, spec, values, name)
+		if (is.vector(free)) {
+			len <- length(free)
+			if (len == nrow * ncol || len == 1) {
+				free <- matrix(free, nrow, ncol, byrow)
+			} else if (len == nrow * (ncol + 1) / 2) {
+				if(byrow) {
+					free <- matrix(FALSE, nrow, ncol)
+					tmp[upper.tri(tmp, TRUE)] <- free
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					free <- tmp
+				} else {
+					free <- matrix(FALSE, nrow, ncol)
+					tmp[lower.tri(tmp, TRUE)] <- free
+					tmp[upper.tri(tmp)] <- tmp[lower.tri(tmp)]
+					free <- tmp
+				}				
+			} else {
+				stop(paste(
+					"Illegal number of elements (", len,
+					") for free matrix of SymmMatrix constructor", sep=""),
+					call. = FALSE)
+			}
+		}
+		retval <- callNextMethod(.Object, labels, values, free, name)
 		return(retval)
 	}
 )
@@ -74,10 +104,20 @@ setMethod("omxVerifyMatrix", "SymmMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		verifySquare(.Object)
-		values <- as.matrix(.Object@values)
+		values <- .Object@values
+		free <- .Object@free
+		labels <- .Object@labels
 		if (!all(values == t(values))) {
-			stop(paste("Symmetric matrix",omxQuotes(.Object@name),"is not symmetric!"), 
-				call.=FALSE)
+			stop(paste("Values matrix of symmetric matrix", omxQuotes(.Object@name), 
+				"is not symmetric!"), call. = FALSE)
+		}
+		if (!all(free == t(free))) {
+			stop(paste("Free matrix of symmetric matrix", omxQuotes(.Object@name), 
+				"is not symmetric!"), call. = FALSE)
+		}
+		if (!all(labels == t(labels), na.rm = TRUE) && all(is.na(labels) == is.na(t(labels)))) {
+			stop(paste("Labels matrix of symmetric matrix", omxQuotes(.Object@name), 
+				"is not symmetric!"), call. = FALSE)
 		}
 	}
 )

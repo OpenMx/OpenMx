@@ -11,7 +11,7 @@ Description: The OpenMx Project intends to rewrite and extend the
  - which generate extremely large amounts of data often with complex
  time-dependent patterning; and increased sophistication in the statistical models used to analyze the data. 
 License: Apache License 2.0
-Depends: methods, Matrix, mnormt, snowfall
+Depends: methods, mnormt, snowfall
 LazyLoad: yes
 LazyData: yes
-Collate: MxData.R MxCharOrNumber.R MxSparseMatrix.R MxSymmetricSparse.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUntitled.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxJob.R MxSwift.R zzz.R
+Collate: MxData.R MxCharOrNumber.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUntitled.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxJob.R MxSwift.R zzz.R

@@ -18,37 +18,29 @@ setClass(Class = "DiagMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "DiagMatrix",
-	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
+	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for DiagMatrix constructor")
-		}
-	    if (single.na(spec) && free) {
-	    	spec <- diag(nrow)
-	    	spec[spec == 1] <- NA
-			spec <- new("MxSparseMatrix", spec)
-		} else if (single.na(spec)) {
-			spec <- new("MxSparseMatrix", 0, nrow, ncol)
- 		} else if (is(spec, "Matrix")) {
-			spec <- new("MxSparseMatrix", as.matrix(spec))
-		} else if (is.matrix(spec)) {
-			spec <- new("MxSparseMatrix", spec)
-		} else if (is.vector(spec)) {
-			tmp <- matrix(0, nrow, nrow)
-			diag(tmp) <- spec
-			spec <- new("MxSparseMatrix", tmp)
-		} else {
-			spec <- new("MxSparseMatrix", spec)
+			stop("Non-square matrix attempted for DiagMatrix constructor", call. = FALSE)
 		}
 		if (single.na(values)) {
-			values <- Matrix(0, nrow, ncol)
-		} else if (is.matrix(values)) { 
-			values <- Matrix(values)
-		} else if (is.vector(values)) {
-			values <- Matrix(values * diag(nrow))
-		} else {
-			values <- Matrix(values)
+			values <- 0
 		}
-		retval <- callNextMethod(.Object, spec, values, name) 
+		if (is.vector(values)) {
+			tmp <- matrix(0, nrow, ncol)
+			diag(tmp) <- values
+			values <- tmp
+		}
+		if (is.vector(labels)) {
+			tmp <- matrix("", nrow, ncol)
+			diag(tmp) <- labels
+			labels <- tmp
+		}
+		if (is.vector(free)) {
+			tmp <- matrix(FALSE, nrow, ncol)
+			diag(tmp) <- free
+			free <- tmp
+		}
+		retval <- callNextMethod(.Object, labels, values, free, name)
 		return(retval)
 	}
 )
@@ -58,8 +50,12 @@ setMethod("omxVerifyMatrix", "DiagMatrix",
 		callNextMethod(.Object)
 		verifySquare(.Object)
 		values <- .Object@values
+		free <- .Object@free
 		if(suppressWarnings(nnzero(values - diag(diag(values,
 			nrow = nrow(values), ncol = ncol(values))))) > 0)
-			{ stop(paste("Values matrix of", .Object@name, "is not a diagonal matrix")) }
+			{ stop(paste("Values matrix of", .Object@name, "is not a diagonal matrix.")) }
+		if(any(free[row(free) != col(free)])) {
+			{ stop(paste("Free matrix of", .Object@name, "has TRUE on non-diagonal.")) }
+		}		
 	}
 )

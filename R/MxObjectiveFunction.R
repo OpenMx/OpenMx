@@ -21,7 +21,7 @@ setClass(Class = "MxBaseObjective",
 	representation = representation(
 		name = "character",
 		data = "MxCharOrNumber",
-		result = "Matrix", "VIRTUAL"))
+		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 

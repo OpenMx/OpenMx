@@ -7,9 +7,9 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
@@ -19,30 +19,20 @@ setClass(Class = "FullMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "FullMatrix",
-	function(.Object, name, values, spec, nrow, ncol, byrow, free) {
-		if (is(spec, "MxSparseMatrix")) {
-		} else if (single.na(spec) && free) {
-			spec <- new("MxSparseMatrix", matrix(NA, nrow, ncol))
-	    } else if (single.na(spec)) {
-			spec <- new("MxSparseMatrix", 0, nrow, ncol)
-	    } else if (is(spec, "Matrix")) {
-	    	spec <- new("MxSparseMatrix", as.matrix(spec))
-	    } else if (is.matrix(spec)) {
-	    	spec <- new("MxSparseMatrix", spec)
-	    } else if(is.vector(spec)) {
-	    	spec <- new("MxSparseMatrix", matrix(spec, nrow, ncol))
-	    } else {
-	    	spec <- new("MxSparseMatrix", spec, nrow, ncol)
-	    }
-		if (is(values, "Matrix")) {
-		} else if (is.matrix(values)) {
-			values <- Matrix(values)
-	    } else if (single.na(values)) {
-	    	values <- Matrix(0, nrow, ncol)
-	    } else {
-	    	values <- Matrix(values, nrow, ncol)
-	    } 
-		retval <- callNextMethod(.Object, spec, values, name) 
+	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
+		if (single.na(values)) {
+			values <- 0
+		}
+		if (is.vector(values)) {
+			values <- matrix(values, nrow, ncol, byrow = byrow)
+		}
+		if (is.vector(labels)) {
+			labels <- matrix(labels, nrow, ncol, byrow = byrow)
+		}
+		if (is.vector(free)) {
+			free <- matrix(free, nrow, ncol, byrow = byrow)
+		}
+		retval <- callNextMethod(.Object, labels, values, free, name) 
 		return(retval)
 	}
 )
