@@ -126,7 +126,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			} else {
 				toRemove[j] = 0;
 			}
-			omxSetMatrixElement(smallRow, 1, j, omxMatrixElement(dataRows, row, j));
+			omxSetMatrixElement(smallRow, 0, j, omxMatrixElement(dataRows, row, j));
 		}
 		
 		if(cov->cols <= numRemoves) continue;

@@ -340,7 +340,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 				continue;
 			} else {
 				nextRow = 0;
-				for(int k = 0; k <= oldRows; k++) {
+				for(int k = 0; k < oldRows; k++) {
 					if(rowsRemoved[k]) {
 						continue;
 					} else {
@@ -357,7 +357,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 				continue;
 			} else {
 				nextCol = 0;
-				for(int k = 0; k <= oldCols; k++) {
+				for(int k = 0; k < oldCols; k++) {
 					if(colsRemoved[k]) {
 						continue;
 					} else {
