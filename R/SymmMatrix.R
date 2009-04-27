@@ -55,12 +55,12 @@ setMethod("initialize", "SymmMatrix",
 				labels <- matrix(labels, nrow, ncol, byrow)
 			} else if (len == nrow * (ncol + 1) / 2) {
 				if(byrow) {
-					labels <- matrix("", nrow, ncol)
+					labels <- matrix(as.character(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- labels
 					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
 					labels <- tmp
 				} else {
-					tmp <- matrix("", nrow, ncol)
+					tmp <- matrix(as.character(NA), nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- labels
 					tmp[upper.tri(tmp)] <- tmp[lower.tri(tmp)]
 					labels <- tmp

@@ -83,10 +83,6 @@ omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
 			value <- values[[i]]
 			if (label %in% defNames) {
 			} else if (isFree) {
-				if (label == "") {
-					stop(paste("The empty string is not a valid name",
-						"for a free parameter. Use NA instead"), call. = FALSE)
-				}
 				if (label %in% fixedVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
@@ -100,8 +96,7 @@ omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
 					freeVars <- append(freeVars, label)
 				}
 			} else {
-				if (label == "") {
-				} else if (label %in% freeVars) {
+				if (label %in% freeVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
 						"and a fixed value!"), call. = FALSE)

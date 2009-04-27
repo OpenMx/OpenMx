@@ -29,7 +29,7 @@ setMethod("initialize", "UnitMatrix",
 		if (!(length(free) == 1 && free == FALSE)) {
 			warning("Ignoring free matrix for UnitMatrix construction", call. = FALSE)
 		}
-		labels <- matrix("", nrow, ncol)
+		labels <- matrix(as.character(NA), nrow, ncol)
 		values <- matrix(1, nrow, ncol)
 		free <- matrix(FALSE, nrow, ncol)
 		return(callNextMethod(.Object, labels, values, free, name))

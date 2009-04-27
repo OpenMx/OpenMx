@@ -31,7 +31,7 @@ setMethod("initialize", "DiagMatrix",
 			values <- tmp
 		}
 		if (is.vector(labels)) {
-			tmp <- matrix("", nrow, ncol)
+			tmp <- matrix(as.character(NA), nrow, ncol)
 			diag(tmp) <- labels
 			labels <- tmp
 		}

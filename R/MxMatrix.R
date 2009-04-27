@@ -261,7 +261,7 @@ omxMatrixParameters <- function(free, labels, bounds,
 
 omxMatrixDefinitions <- function(free, labels, bounds, result, 
 	defLocations, matrixNumber) {
-	select <- !(labels == "" | is.na(labels))
+	select <- !is.na(labels)
 	if (all(select == FALSE)) {
 		return(result)
 	}
@@ -316,8 +316,8 @@ omxDisplayMatrix <- function(mxMatrix) {
 	type <- class(mxMatrix)[[1]]
 	cat(type, omxQuotes(mxMatrix@name), '\n')
 	cat("\n")
-	nolabels <- all(mxMatrix@labels == "") || all(is.na(mxMatrix@labels))
-	if(is.na(nolabels) || nolabels == FALSE) {
+	nolabels <- all(is.na(mxMatrix@labels))
+	if(nolabels == FALSE) {
 		cat("Labels matrix:\n")
 		print(mxMatrix@labels)
 		cat("\n")

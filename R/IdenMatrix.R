@@ -32,7 +32,7 @@ setMethod("initialize", "IdenMatrix",
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for IdenMatrix constructor", call. = FALSE)
 		}
-		labels <- matrix("", nrow, ncol)
+		labels <- matrix(as.character(NA), nrow, ncol)
 		values <- matrix(diag(nrow = nrow), nrow, ncol)
 		free <- matrix(FALSE, nrow, ncol)
 		return(callNextMethod(.Object, labels, values, free, name))
