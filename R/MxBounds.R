@@ -7,24 +7,22 @@
 # 
 #        http://www.apache.org/licenses/LICENSE-2.0
 # 
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
 
 setClass(Class = "MxBounds",
 	representation = representation(
-		name = "character",
 		min = "numeric",
 		max = "numeric",
 		parameters = "character"
 	))
 	
 setMethod("initialize", "MxBounds",
-	function(.Object, name, min, max, parameters) {
-		.Object@name <- name
+	function(.Object, min, max, parameters) {
 		.Object@min <- min
 		.Object@max <- max
 		.Object@parameters <- parameters
@@ -32,14 +30,15 @@ setMethod("initialize", "MxBounds",
 	}
 )
 
-mxBounds <- function(parameters, min = NA, max = NA, name = NA) {
+mxBounds <- function(parameters, min = NA, max = NA) {
+	if (length(min) > 1) {
+		stop("Only a single min value may be specified")
+	}
+	if (length(max) > 1) {
+		stop("Only a single max value may be specified")
+	}
 	if(is.na(min)) min <- NA_real_
 	if(is.na(max)) max <- NA_real_
-	if(is.na(name)) name <- omxUntitledName()
-	if (typeof(name) != "character") {
-		stop(paste("Name argument is not a string",
-		"(the name of the objective function)"))
-	}
 	if (missing(min) || !is.numeric(min)) {
 		stop(paste("Min argument is not a numeric",
 		"(the value of the lower bound)"))		
@@ -58,23 +57,52 @@ mxBounds <- function(parameters, min = NA, max = NA, name = NA) {
 			"max argument")
 		stop(msg)
 	}
-	return(new("MxBounds", name, min, max, parameters))
+	return(new("MxBounds", min, max, parameters))
 }
 
-omxLocateBounds <- function(bounds, parameterName) {
-	filter <- lapply(bounds, function(x) {
-		if (parameterName %in% x@parameters) {
-			return(c(x@min, x@max))
-		} else {return(NA)}
-	})
-	filter <- filter[!is.na(filter)]
-	if (length(filter) == 0) {
-		return(c(NA_real_,NA_real_))
-	} else if (length(filter) == 1) {
-		return(filter[[1]])
-	} else {
-		msg <- paste("The parameter", omxQuotes(parameterName),
-			"has multiple specifications of bounds in the model")
-		stop(msg, call.=FALSE)
+omxAddBounds <- function(model, bounds) {
+	if (length(bounds) == 0) {
+		return(model)
 	}
+	if (length(model@matrices) > 0) {
+		for(i in 1:length(bounds)) {
+			for(j in 1:length(model@matrices)) {
+				matrix <- model@matrices[[j]]
+				matches <- matrix@labels %in% bounds[[i]]@parameters
+				matrix@lbound[matches] <- bounds[[i]]@min
+				matrix@ubound[matches] <- bounds[[i]]@max
+				model@matrices[[j]] <- matrix
+			}
+		}
+	}
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			model@submodels[[i]] <- omxAddBounds(model@submodels[[i]], bounds)
+		}
+	}
+	return(model)
 }
+
+omxRemoveBounds <- function(model, bounds) {
+	if (length(bounds) == 0) {
+		return(model)
+	}
+	if (length(model@matrices) > 0) {
+		for(i in 1:length(bounds)) {
+			for(j in 1:length(model@matrices)) {
+				matrix <- model@matrices[[j]]
+				matches <- matrix@labels %in% bounds[[i]]@parameters
+				matrix@lbound[matches] <- as.numeric(NA)
+				matrix@ubound[matches] <- as.numeric(NA)
+				model@matrices[[j]] <- matrix
+			}
+		}
+	}
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			model@submodels[[i]] <- omxRemoveBounds(model@submodels[[i]], bounds)
+		}
+	}
+	return(model)
+}
+

@@ -57,30 +57,38 @@ omxCheckFreeVariables <- function(model, defLocations) {
 		startVals <- list()
 		freeVars <- list()
 		fixedVars <- list()
+		bounds <- list()
 		defNames <- names(defLocations)
 		for(i in 1:length(model@matrices)) {
 			result <- omxCheckFreeVariablesHelper(model@matrices[[i]], startVals, 
-				freeVars, fixedVars, defNames)
+				freeVars, fixedVars, bounds, defNames)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
+			bounds <- result[[4]]
 		}
 	}
 }
 
 omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
-		fixedVars, defNames) {
+		fixedVars, bounds, defNames) {
 	labels <- matrix@labels
 	free <- matrix@free
 	values <- matrix@values
-	labels <- labels[!is.na(labels)]
+	lbounds <- matrix@lbound
+	ubounds <- matrix@ubound
 	free <- free[!is.na(labels)]
 	values <- values[!is.na(labels)]
+	lbounds <- lbounds[!is.na(labels)]
+	ubounds <- ubounds[!is.na(labels)]
+	labels <- labels[!is.na(labels)]
 	if(length(labels) > 0) {
 		for(i in 1:length(labels)) {
 			label <- labels[[i]]
 			isFree <- free[[i]]
 			value <- values[[i]]
+			lbound <- lbounds[[i]]
+			ubound <- ubounds[[i]]
 			if (label %in% defNames) {
 			} else if (isFree) {
 				if (label %in% fixedVars) {
@@ -91,15 +99,24 @@ omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
 					stop(paste("The free parameter", omxQuotes(label),
 						"has been assigned multiple starting values!"),
 						 call. = FALSE)
+				} else if (label %in% freeVars && !identical(lbound, bounds[[label]][[1]])) {
+					stop(paste("The free parameter", omxQuotes(label),
+						"has been assigned multiple lower bounds!"),
+						 call. = FALSE)
+				} else if (label %in% freeVars && !identical(ubound, bounds[[label]][[2]])) {
+					stop(paste("The free parameter", omxQuotes(label),
+						"has been assigned multiple upper bounds!"),
+						 call. = FALSE)
 				} else {
 					startVals[[label]] <- value
 					freeVars <- append(freeVars, label)
+					bounds[[label]] <- c(lbound, ubound)
 				}
 			} else {
 				if (label %in% freeVars) {
 					stop(paste("The label", omxQuotes(label),
-						"has been assigned to a free parameter",
-						"and a fixed value!"), call. = FALSE)
+						"has been assigned to a fixed value",
+						"and a free parameter!"), call. = FALSE)
 				} else if (label %in% fixedVars && startVals[[label]] != value) {
 					stop(paste("The fixed variable", omxQuotes(label),
 						"has been assigned multiple starting values!"),
@@ -111,7 +128,7 @@ omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
 			}
 		}
 	}
-	return(list(startVals, freeVars, fixedVars))
+	return(list(startVals, freeVars, fixedVars, bounds))
 }
 
 setMethod("print", "MxFlatModel", function(x,...) {

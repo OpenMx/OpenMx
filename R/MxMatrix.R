@@ -51,23 +51,27 @@ setGeneric("omxVerifyMatrix", function(.Object) {
 setClass(Class = "MxSymmetricMatrix",
 	representation = representation(
 		labels = "matrix", values = "matrix", 
-		free = "matrix", name = "character", "VIRTUAL"))
+		free = "matrix", name = "character", 
+		lbound = "matrix", ubound = "matrix", "VIRTUAL"))
 
 setClass(Class = "MxNonSymmetricMatrix",
 	representation = representation(
 		labels = "matrix", values = "matrix", 
-		free = "matrix", name = "character", "VIRTUAL"))
+		free = "matrix", name = "character", 
+		lbound = "matrix", ubound = "matrix", "VIRTUAL"))
 		
 setClassUnion("MxMatrix",
     c("MxSymmetricMatrix", "MxNonSymmetricMatrix"))
 		
 		
 setMethod("initialize", "MxMatrix",
-	function(.Object, labels, values, free, name) {
+	function(.Object, labels, values, free, lbound, ubound, name) {
 		.Object@labels = labels
 		.Object@values = values
 		.Object@free = free
 		.Object@name = name
+		.Object@lbound = lbound
+		.Object@ubound = ubound
 		return(.Object)
 	}
 )		
@@ -128,8 +132,9 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 
 
 mxMatrix <- function(type = "Full", values = NA, free = FALSE, 
-	labels = NA, nrow = NA, ncol = NA, byrow = FALSE, name = NA) {
-	omxMatrixCheckErrors(type, values, free, labels, nrow, ncol)
+	labels = NA, lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
+	byrow = FALSE, name = NA) {
+	omxMatrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	if (is.matrix(values)) {
 		nrow <- nrow(values)
 		ncol <- ncol(values)
@@ -139,6 +144,12 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 	} else if (is.matrix(free)) {
 		nrow <- nrow(free)
 		ncol <- ncol(free)	
+	} else if (is.matrix(lbound)) {
+		nrow <- nrow(lbound)
+		ncol <- ncol(lbound)
+	} else if (is.matrix(ubound)) {
+		nrow <- nrow(ubound)
+		ncol <- ncol(ubound)
 	}
 	if (type %in% squareMatrices) {
 		if (is.na(nrow) && is.na(ncol)) {
@@ -157,43 +168,43 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
 	}
-	threeMatrices <- omxConvertVFN(values, free, labels, nrow, ncol)
-	values <- threeMatrices[[1]]
-	free <- threeMatrices[[2]]
-	labels <- threeMatrices[[3]]
+	fiveMatrices <- omxConvertVFN(values, free, labels, lbound, ubound, nrow, ncol)
+	values <- fiveMatrices[[1]]
+	free <- fiveMatrices[[2]]
+	labels <- fiveMatrices[[3]]
+	lbound <- fiveMatrices[[4]]
+	ubound <- fiveMatrices[[5]]
 	typeName <- paste(type, "Matrix", sep="")
 	return(new(typeName, name, values, free, labels, 
-			nrow, ncol, byrow))
+			lbound, ubound, nrow, ncol, byrow))
 }
 
-omxMatrixCheckErrors <- function(type, values, free, labels, nrow, ncol) {
+omxMatrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" ")), call. = FALSE)
 	}
-	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels)) &&
+	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels) 
+		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(nrow))) {
 		warning("\'nrow\' is disregarded for mxMatrix constructor")
 	}
-	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels)) &&
+	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels)
+		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(ncol))) {
 		warning("\'ncol\' is disregarded for mxMatrix constructor")
 	}
-	if (is.matrix(values) && is.matrix(free) &&
-		!all(dim(values) == dim(free))) {
-		stop("Values and free matrices are not of identical dimensions", call. = FALSE)
+	dimensions <- sapply(list(values, free, labels, lbound, ubound), dim)
+	dimensions <- dimensions[!sapply(dimensions, is.null)]
+	if (length(dimensions) > 1) {
+		allEqual <- sapply(dimensions, function(x) { x == dimensions[[1]] })
+		if(!all(allEqual)) {
+			stop("Two matrices provided to the call are not of identical dimensions.", call. = FALSE)
+		}
 	}
-	if (is.matrix(values) && is.matrix(labels) &&
-		!all(dim(values) == dim(labels))) {
-		stop("Values and labels matrices are not of identical dimensions", call. = FALSE)
-	}
-	if (is.matrix(labels) && is.matrix(free) &&
-		!all(dim(labels) == dim(free))) {
-		stop("Labels and free matrices are not of identical dimensions", call. = FALSE)
-	}	
 }
 
-omxConvertVFN <- function(values, free, labels, nrow, ncol) {
+omxConvertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.matrix(values)) {
 		values <- matrix(as.numeric(values), nrow, ncol)
 	} else if (is.vector(values)) {
@@ -217,17 +228,31 @@ omxConvertVFN <- function(values, free, labels, nrow, ncol) {
 	} else {
 		stop("\'labels\' must be either a vector or a matrix", call. = FALSE)
 	}
+	if (is.matrix(lbound)) {
+		lbound <- matrix(as.numeric(lbound), nrow, ncol)
+	} else if (is.vector(lbound)) {
+		lbound <- as.numeric(lbound)
+	} else {
+		stop("\'lbound\' must be either a vector or a matrix", call. = FALSE)
+	}
+	if (is.matrix(ubound)) {
+		ubound <- matrix(as.numeric(ubound), nrow, ncol)
+	} else if (is.vector(ubound)) {
+		ubound <- as.numeric(ubound)
+	} else {
+		stop("\'ubound\' must be either a vector or a matrix", call. = FALSE)
+	}
 	if(length(values) > 1 && any(is.na(values))) {
 		stop("\'values\' cannot contain an NA", call. = FALSE)
 	}
 	if(any(is.na(free))) {
 		stop("\'free\' cannot contain an NA", call. = FALSE)
 	}
-	return(list(values, free, labels))	
+	return(list(values, free, labels, lbound, ubound))	
 }
 
 
-omxMatrixParameters <- function(free, labels, bounds, 
+omxMatrixParameters <- function(free, labels, lbound, ubound, 
 	result, defNames, matrixNumber) {
 	if (all(free == FALSE)) {
 		return(result)
@@ -235,13 +260,14 @@ omxMatrixParameters <- function(free, labels, bounds,
 	parameterNames <- labels[free]
 	rows <- row(labels)[free]
 	cols <- col(labels)[free]
+	lbound <- lbound[free]
+	ubound <- ubound[free]
 	for(i in 1:length(parameterNames)) {
 		parameterName <- parameterNames[i]
 		row <- rows[i] - 1
 		col <- cols[i] - 1
-		boundsLookup <- omxLocateBounds(bounds, parameterName)
-		minBounds <- boundsLookup[[1]]
-		maxBounds <- boundsLookup[[2]]
+		minBounds <- lbound[i]
+		maxBounds <- ubound[i]
 		if (is.na(parameterName)) {
 			result[[length(result)+1]] <-  list(minBounds, maxBounds, 
 				c(matrixNumber, row, col))
@@ -259,8 +285,7 @@ omxMatrixParameters <- function(free, labels, bounds,
 	return(result)
 }
 
-omxMatrixDefinitions <- function(free, labels, bounds, result, 
-	defLocations, matrixNumber) {
+omxMatrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) {
 	select <- !is.na(labels)
 	if (all(select == FALSE)) {
 		return(result)
@@ -294,20 +319,22 @@ generateMatrixListHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
 }
 
-omxGenerateParameterListHelper <- function(mxMatrix, bounds,
+omxGenerateParameterListHelper <- function(mxMatrix,
 	result, defNames, matrixNumber) {
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
-	result <- omxMatrixParameters(free, labels, bounds,
-		result, defNames, matrixNumber)
+	lbound <- mxMatrix@lbound
+	ubound <- mxMatrix@ubound
+	result <- omxMatrixParameters(free, labels, lbound,
+		ubound, result, defNames, matrixNumber)
 	return(result)
 }
 
-omxGenerateDefinitionListHelper <- function(mxMatrix, bounds,
+omxGenerateDefinitionListHelper <- function(mxMatrix,
 	result, defLocations, matrixNumber) {
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
-	result <- omxMatrixDefinitions(free, labels, bounds,
+	result <- omxMatrixDefinitions(free, labels,
 		result, defLocations, matrixNumber)
 	return(result)
 }
@@ -333,7 +360,21 @@ omxDisplayMatrix <- function(mxMatrix) {
 		print(mxMatrix@free)
 		cat("\n")
 	} else {
-		cat("Free matrix: No free parameters.\n")
+		cat("Free matrix: No free parameters.\n\n")
+	}
+	if(!all(is.na(mxMatrix@lbound))) {
+		cat("Lbound matrix:\n")
+		print(mxMatrix@lbound)
+		cat("\n")
+	} else {
+		cat("Lbound matrix: No lower bounds assigned.\n\n")
+	}
+	if(!all(is.na(mxMatrix@ubound))) {
+		cat("Ubound matrix:\n")
+		print(mxMatrix@ubound)
+		cat("\n")
+	} else {
+		cat("Ubound matrix: No upper bounds assigned.\n\n")
 	}
 }
 

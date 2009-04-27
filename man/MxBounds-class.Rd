@@ -14,14 +14,11 @@
 
   \tabular{rcl}{
 	\tab \tab \cr
-	name \tab - \tab The name of the object \cr
 	min \tab - \tab The lower bound \cr 
 	max \tab - \tab The upper bound \cr
 	parameters \tab - \tab The vector of parameter names \cr     
   }
   
-The 'name' slot is the name of the MxBounds object. %Use of MxBounds objects in other functions in the \link{OpenMx} library may require reference by name.
-
 The 'min' and 'max' slots hold scalar numeric values for the lower and upper bounds on the list of parameters, respectively. If a vector of values is input, only the first value is used.
 
 Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'spec' matrix of an \code{MxMatrix} object. To affect an estimation or optimization, an MxBounds object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.

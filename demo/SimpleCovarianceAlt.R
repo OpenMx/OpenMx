@@ -57,14 +57,14 @@ theSMatrix <- mxMatrix(values = SVal, free = SFree, labels = SLabels, name = "S"
 theFMatrix <- mxMatrix("Iden", name="F", nrow=2, ncol=2)
 
 ############################################################
-# Define the bounds
+# Bounds must be added after all free parameters are specified
 
-theBounds1 <- mxBounds(c("apple", "banana"), 0.001, NA, name="theBounds1")
+theBounds <- mxBounds(c("apple", "banana"), 0.001, NA)
 
 ############################################################
 # Define the model
 
-modelAlt <- mxModel(theAMatrix, theSMatrix, theFMatrix, theBounds1,
+modelAlt <- mxModel(theAMatrix, theSMatrix, theFMatrix, theBounds,
                     mxRAMObjective(name="ramObjective"), theData)
 
 print(modelAlt)

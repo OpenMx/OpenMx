@@ -9,14 +9,17 @@
 
 \usage{
 mxMatrix(type = "Full", values = NA, free = FALSE, labels = NA,
-	nrow = NA, ncol = NA, byrow = FALSE, name = NA)
+	lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
+	byrow = FALSE, name = NA)
 }
 
 \arguments{
   \item{type}{a character string indicating the matrix type, where type indicates the range of values and equalities in the matrix. Must be one of:  'Diag', 'Full', 'Iden', 'Symm', 'Unit', or 'Zero'.}
   \item{values}{a vector or matrix of numeric starting values. By default, all values are set to zero.}
   \item{free}{a vector or matrix of logicals for free parameter specification. A single 'TRUE' or 'FALSE' will set all allowable variables to free or fixed, respectively.}
-  \item{labels}{a vector or matrix of characters for variable label specification.}  
+  \item{labels}{a vector or matrix of characters for variable label specification.} 
+  \item{lbound}{a vector or matrix of numeric lower bounds. Default bounds are specified with an NA.}
+  \item{ubound}{a vector or matrix of numeric upper bounds. Default bounds are specified with an NA.}  
   \item{nrow}{the desired number of rows. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{ncol}{the desired number of columns. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{byrow}{logical. If 'FALSE' (default), the 'values', 'free', and 'labels' matrices are populated by column rather than by row. }

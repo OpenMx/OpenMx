@@ -20,13 +20,15 @@ model <- mxModel()
 model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2))
 model <- mxModel(model, mxMatrix("Symm", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Iden", name="F", nrow=2, ncol=2))
-model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
 
 model[["A"]]@free[2,1] <- TRUE
 model[["S"]]@free[2,1] <- FALSE
 model[["S"]]@free[1,2] <- FALSE
 model[["S"]]@labels[1,1] <- "apple"
 model[["S"]]@labels[2,2] <- "banana"
+
+# Bounds must be added after all the free parameters are specified
+model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
 
 # Define the objective function
 objective <- mxRAMObjective("A", "S", "F", "objective")

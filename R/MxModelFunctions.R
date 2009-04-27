@@ -39,8 +39,7 @@ omxGenerateParameterList <- function(mxModel, defLocations) {
 	}
 	for(i in 1:length(mxModel@matrices)) {
 		result <- omxGenerateParameterListHelper(
-			mxModel@matrices[[i]], 
-			mxModel@bounds, result, names(defLocations), i - 1)
+			mxModel@matrices[[i]], result, names(defLocations), i - 1)
 	}	
 	return(result)
 }
@@ -53,7 +52,7 @@ omxGenerateDefinitionList <- function(mxModel, defLocations) {
 	for(i in 1:length(mxModel@matrices)) {
 		result <- omxGenerateDefinitionListHelper(
 			mxModel@matrices[[i]], 
-			mxModel@bounds, result, defLocations, i - 1)
+			result, defLocations, i - 1)
 	}	
 	return(result)
 }

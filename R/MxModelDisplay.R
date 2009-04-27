@@ -24,7 +24,6 @@ omxDisplayModel <- function(model, expand = FALSE) {
 	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
 	cat("algebras :", omxQuotes(names(model@algebras)), '\n')
 	cat("constraints :", omxQuotes(names(model@constraints)), '\n')
-	cat("bounds :", omxQuotes(names(model@bounds)), '\n')
 	if (length(model@paths) > 0) {
 		cat("latentVars :", model@latentVars, '\n')
 		cat("manifestVars :", model@manifestVars, '\n')
@@ -68,10 +67,6 @@ omxDisplayModel <- function(model, expand = FALSE) {
 		if(length(model@constraints) > 0) {
 			cat("\n--------CONSTRAINTS--------\n")
 			lapply(model@constraints, print)
-		}
-		if(length(model@bounds) > 0) {
-			cat("\n--------BOUNDS--------\n")
-			lapply(model@bounds, print)
 		}
 		if(!is.null(model@data) > 0) {
 			cat("\n--------DATA--------\n")

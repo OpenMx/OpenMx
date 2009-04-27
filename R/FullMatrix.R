@@ -19,7 +19,7 @@ setClass(Class = "FullMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "FullMatrix",
-	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
+	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (single.na(values)) {
 			values <- 0
 		}
@@ -32,7 +32,13 @@ setMethod("initialize", "FullMatrix",
 		if (is.vector(free)) {
 			free <- matrix(free, nrow, ncol, byrow = byrow)
 		}
-		retval <- callNextMethod(.Object, labels, values, free, name) 
+		if (is.vector(lbound)) {
+			lbound <- matrix(lbound, nrow, ncol, byrow = byrow)
+		}
+		if (is.vector(ubound)) {
+			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
+		}
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name) 
 		return(retval)
 	}
 )

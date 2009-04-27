@@ -19,7 +19,7 @@ setClass(Class = "ZeroMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "ZeroMatrix",
-	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
+	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for ZeroMatrix construction", call. = FALSE)
 		}
@@ -29,10 +29,18 @@ setMethod("initialize", "ZeroMatrix",
 		if (!(length(free) == 1 && free == FALSE)) {
 			warning("Ignoring free matrix for ZeroMatrix construction", call. = FALSE)
 		}
+		if (!single.na(lbound)) {
+			warning("Ignoring lbound matrix for UnitMatrix construction", call. = FALSE)
+		}
+		if (!single.na(ubound)) {
+			warning("Ignoring ubound matrix for UnitMatrix construction", call. = FALSE)
+		}
 		labels <- matrix(as.character(NA), nrow, ncol)
 		values <- matrix(0, nrow, ncol)
 		free <- matrix(FALSE, nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, name))
+		lbound <- matrix(as.numeric(NA), nrow, ncol)
+		ubound <- matrix(as.numeric(NA), nrow, ncol)
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, name))
 	}
 )
 

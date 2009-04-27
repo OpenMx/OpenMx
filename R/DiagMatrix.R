@@ -18,7 +18,7 @@ setClass(Class = "DiagMatrix",
 	contains = "MxNonSymmetricMatrix")
 
 setMethod("initialize", "DiagMatrix",
-	function(.Object, name, values, free, labels, nrow, ncol, byrow) {
+	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for DiagMatrix constructor", call. = FALSE)
 		}
@@ -40,7 +40,17 @@ setMethod("initialize", "DiagMatrix",
 			diag(tmp) <- free
 			free <- tmp
 		}
-		retval <- callNextMethod(.Object, labels, values, free, name)
+		if (is.vector(lbound)) {
+			tmp <- matrix(as.numeric(NA), nrow, ncol)
+			diag(tmp) <- lbound
+			lbound <- tmp
+		}
+		if (is.vector(ubound)) {
+			tmp <- matrix(as.numeric(NA), nrow, ncol)
+			diag(tmp) <- ubound
+			ubound <- tmp
+		}
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
 		return(retval)
 	}
 )

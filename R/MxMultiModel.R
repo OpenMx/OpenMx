@@ -65,7 +65,6 @@ omxCheckNamespaceHelper <- function(model, nameList) {
 	nameList <- omxCheckNamedEntity(model, "algebras", nameList)
 	nameList <- omxCheckNamedEntity(model, "submodels", nameList)
 	nameList <- omxCheckNamedEntity(model, "constraints", nameList)
-	nameList <- omxCheckNamedEntity(model, "bounds", nameList)
 	nameList <- omxCheckDataColumns(model@data, nameList)
 	if (!is.null(model@objective) && (model@objective@name %in% nameList)) {
 		stop(omxNamespaceErrorMessage(model@objective@name), call.=FALSE)
@@ -188,7 +187,6 @@ omxFlattenModelHelper <- function(model, dest, defaultData) {
 			dest@algebras    <- append(dest@algebras, submodel@algebras)
 			dest@constraints <- append(dest@constraints, 
 				submodel@constraints) 
-			dest@bounds      <- append(dest@bounds, submodel@bounds)
 			dest <- omxFlattenModelHelper(submodel, dest, defaultData)
 		}
 	}
