@@ -28,6 +28,7 @@ The mxMatrix function creates \link{MxMatrix} objects, which consist of a pair o
 
 Objects created by the mxMatrix function are of a specific 'type', which specifies the number and location of parameters in the 'spec' matrix and the possible values in the 'value' matrix. Input 'value', 'free', and 'label' matrices must be of appropriate shape and have appropriate values for the matrix type requested. Six types of matrices are supported:
 
+\itemize{
 \item{'Diag'}{matrices must be square, and only elements on the principle diagonal may be specified as free parameters or take non-zero values. All other elements are required to be fixed parameters with a value of 0.}
 
 \item{'Full'}{matrices may be either rectangular or square, and all elements in the matrix may be freely estimated. This type is the default for the mxMatrix() function.}
@@ -39,6 +40,7 @@ Objects created by the mxMatrix function are of a specific 'type', which specifi
 \item{'Unit'}{matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 1 for all elements.}
 
 \item{'Zero'}{matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 0 for all elements.}
+}
 
 }
 

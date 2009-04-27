@@ -14,4 +14,4 @@ License: Apache License 2.0
 Depends: methods, mnormt, snowfall
 LazyLoad: yes
 LazyData: yes
-Collate: MxData.R MxCharOrNumber.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUntitled.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxJob.R MxSwift.R zzz.R
+Collate: MxData.R MxUntitled.R MxCharOrNumber.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxAlgebra.R MxPath.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxPathConvert.R MxUnitTesting.R MxAlgebraObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxJob.R MxSwift.R zzz.R

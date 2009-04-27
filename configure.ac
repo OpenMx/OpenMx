@@ -1,6 +1,6 @@
 AC_INIT("OpenMx", "0.1")
 AC_PREREQ([2.61])
-AC_CONFIG_AUX_DIR("build-aux")
+AC_CONFIG_AUX_DIR("inst/tools")
 
 npsol_library='inst/npsol'
 
