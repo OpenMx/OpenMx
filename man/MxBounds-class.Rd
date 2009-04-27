@@ -4,8 +4,7 @@
 \title{MxBounds Class}
 
 \description{
-   MxBounds is an S4 class. An MxBounds object 
-   is a \link[=Named-entity]{named entity}. New instances of this class can
+   MxBounds is an S4 class. New instances of this class can
    be created using the function \link{mxBounds}.
 }
 
@@ -19,7 +18,7 @@
 	parameters \tab - \tab The vector of parameter names \cr     
   }
   
-The 'min' and 'max' slots hold scalar numeric values for the lower and upper bounds on the list of parameters, respectively. If a vector of values is input, only the first value is used.
+The 'min' and 'max' slots hold scalar numeric values for the lower and upper bounds on the list of parameters, respectively.
 
 Parameters may be any free parameter or parameters from an \link{MxMatrix} object. Parameters may be referenced either by name or by referring to their position in the 'spec' matrix of an \code{MxMatrix} object. To affect an estimation or optimization, an MxBounds object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
