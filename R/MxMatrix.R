@@ -315,7 +315,7 @@ omxMatrixDefinitions <- function(free, labels, result, defLocations, matrixNumbe
 	return(result)
 }
 
-generateMatrixListHelper <- function(mxMatrix) {
+omxGenerateMatrixValuesHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
 }
 

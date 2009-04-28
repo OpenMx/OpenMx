@@ -195,7 +195,7 @@ omxModel <- function(model = NA, ..., name = NA, manifestVars = NA,
 		model <- new("MxModel")
 	}
 	lst <- list(...)
-	lst <- append(lst, first)
+	lst <- c(first, lst)
 	if(remove == TRUE) {
 		model <- omxRemoveEntries(model, mappendHelper(lst, list()))
 		if ( length(manifestVars) > 1 || !is.na(manifestVars) ) {

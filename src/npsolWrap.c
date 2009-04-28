@@ -156,7 +156,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	int numAlgs, numMats, numObjMats;// Number of algebras/matrices.  Used for memory management.
 	
-	SEXP nextLoc, nextVar;
+	SEXP nextLoc, nextMat, nextAlg, nextVar;
 	
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these. */
@@ -175,10 +175,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	matrixList = (omxMatrix**) R_alloc(sizeof(omxMatrix*), length(matList));
 	
 	for(k = 0; k < length(matList); k++) {
-		PROTECT(nextLoc = VECTOR_ELT(matList, k));				// TODO: Find out if this duplicates the matrix.
-		matrixList[k] = omxNewMatrixFromMxMatrix(nextLoc);
-		if(OMX_DEBUG) { Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n", matrixList[k], matrixList[k]->rows, matrixList[k]->cols); }
-		UNPROTECT(1); // nextLoc
+		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// TODO: Find out if this duplicates the matrix.
+		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
+		matrixList[k] = omxNewMatrixFromMxMatrix(nextMat);
+		if(OMX_DEBUG) { 
+			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n", 
+				matrixList[k], matrixList[k]->rows, matrixList[k]->cols);
+		}
+		UNPROTECT(2); // nextLoc and nextMat
 	}
 
 	/* Process Algebras Here */
@@ -193,13 +197,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	for(int j = 0; j < numAlgs; j++) {
 		PROTECT(nextLoc = VECTOR_ELT(algList, j));
+		PROTECT(nextAlg = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the algebra/objective
 		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, algebraList + j); }
-		if(IS_S4_OBJECT(nextLoc)) {											// This is an objective object.
-			omxFillMatrixFromMxObjective(algebraList[j], nextLoc, data);
+		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
+			omxFillMatrixFromMxObjective(algebraList[j], nextAlg, data);
 		} else {															// This is an algebra spec.
-			omxFillMatrixFromMxAlgebra(algebraList[j], nextLoc);
+			omxFillMatrixFromMxAlgebra(algebraList[j], nextAlg);
 		}
-		UNPROTECT(1);	// nextLoc
+		UNPROTECT(2);	// nextLoc and nextAlg
 	}
 	
 	/* Process Objective Function */

@@ -15,20 +15,26 @@
 
 
 omxGenerateMatrixList <- function(mxModel) {
-	return(lapply(mxModel@matrices, generateMatrixListHelper))
+	matvalues <- lapply(mxModel@matrices, omxGenerateMatrixValuesHelper)
+	matnames  <- names(mxModel@matrices)
+	names(matvalues) <- matnames
+	references <- omxGenerateMatrixReferences(mxModel)
+	retval <- mapply(function(x,y) { c(list(x), y) }, matvalues, references, SIMPLIFY = FALSE)
+	return(retval)
 }
 
 omxGenerateSimpleMatrixList <- function(mxModel) {
-	retval <- lapply(mxModel@matrices, generateMatrixListHelper)
-	return(lapply(retval, as.matrix))
+	retval <- omxGenerateMatrixList(mxModel)
+	retval <- lapply(retval, function(x) { c(list(as.matrix(x[[1]])), x[-1]) }) 
+	return(retval)
 }
 
 omxGenerateAlgebraList <- function(mxModel) {
 	mNames <- names(mxModel@matrices)
 	aNames <- names(mxModel@algebras)
 	oNames <- names(mxModel@objectives)
-    retval <- lapply(mxModel@algebras, generateAlgebraHelper, 
-    	mNames, append(aNames, oNames))
+	retval <- lapply(mxModel@algebras, generateAlgebraHelper, 
+		mNames, append(aNames, oNames))
     return(retval)
 }
 
@@ -57,8 +63,8 @@ omxGenerateDefinitionList <- function(mxModel, defLocations) {
 	return(result)
 }
 
-omxGenerateValueList <- function(mxModel, defLocations) {
-	mList <- omxGenerateMatrixList(mxModel)
+omxGenerateValueList <- function(mxModel, mList, defLocations) {
+	mList <- lapply(mList, function(x) { x[[1]] })
 	pList <- omxGenerateParameterList(mxModel, defLocations)
 	retval <- vector()
 	if (length(pList) == 0) {
