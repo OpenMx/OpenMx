@@ -1,15 +1,16 @@
-#This one has comments!
+#Amended version of MultipleGroupRAMconstraint.R, with constraint on free parameters
 #Author: Ryne Estabrook
 #Created: 30 Apr 2009
 
+#Goal: Constrain the single parameter in each group to be equal
 
 #Data: 1x1 "covariance" matrices (Ok, variance matrices)
 data1<-mxData(matrix(1), type="cov", numObs=100, name="data1")
 data2<-mxData(matrix(2), type="cov", numObs=100, name="data2")
 
-#S Matrices: 1 x 1 with a free parameter
-mat1<-mxMatrix("Full",1.1,free=TRUE, nrow=1, ncol=1, name="mat1")
-mat2<-mxMatrix("Full",2.1,free=TRUE, nrow=1, ncol=1, name="mat2")
+#S Matrices: 1 x 1 with a free parameter (must have the same value in multiple group estimation)
+mat1<-mxMatrix("Full",1.5,free=TRUE, nrow=1, ncol=1, labels="m1", name="mat1")
+mat2<-mxMatrix("Full",1.5,free=TRUE, nrow=1, ncol=1, labels="m1", name="mat2")
 
 #A Matrix, 1 x 1 Zero Matrix
 #If the same A matrix is used in both groups, mxRun throws and error.
@@ -54,7 +55,7 @@ output1@output$estimate
 #Model 2: This should have a value of 2
 output2@output$estimate
 
-#"Super" Model: This should have values of 1 and 2, in order.
+#"Super" Model: This should have a value of 1.5
 output@output$estimate
 
 
@@ -65,4 +66,4 @@ output@output$estimate
 
 #Related scripts:
 #  MultipleGroupML.R is failing, due to mxMLObjective problems.
-#  MultipleGroupRAMconstraint.R constrains the two parameters in these models to be equal
+#  MultipleGroupRAM.R works, withing precision of mxRAMObjective
