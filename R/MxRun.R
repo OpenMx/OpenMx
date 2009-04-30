@@ -49,6 +49,7 @@ mxRun <- function(model) {
 }
 
 omxComputeOptimizationStatistics <- function(flatModel, parameters, output) {
+	names(output$estimate) <- names(parameters)
 	objective <- flatModel@objective
 	if(!(is.null(objective) || is(objective,"MxAlgebraObjective"))) {
 		output[['AIC']] <- output$minimum + 2 * length(parameters)

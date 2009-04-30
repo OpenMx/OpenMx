@@ -271,6 +271,7 @@ omxMatrixParameters <- function(free, labels, lbound, ubound,
 		if (is.na(parameterName)) {
 			result[[length(result)+1]] <-  list(minBounds, maxBounds, 
 				c(matrixNumber, row, col))
+			names(result)[[length(result)]] <- as.character(NA)
 		} else if (!(parameterName %in% defNames)) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
