@@ -20,7 +20,6 @@ setClass(Class = "MxModel",
 		matrices = "list",
 		algebras = "list",
 		constraints = "list",
-		paths = "data.frame",
 		latentVars = "character",
 		manifestVars = "character",
 		data = "MxData",
@@ -30,15 +29,14 @@ setClass(Class = "MxModel",
 		output = "list"
 ))
 
+omxModelTypes[['raw']] <- "MxModel"
+
 setMethod("initialize", "MxModel",
-	function(.Object, name = omxUntitledName(), paths = list(), 
+	function(.Object, name = omxUntitledName(),  
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), data = NULL, submodels = list(), 
 		objective = NULL, independent = FALSE) {
-		if (length(paths) > 0) {
-			.Object <- mxAddPath(.Object, paths)
-		}
 		.Object@name <- name
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
@@ -50,7 +48,35 @@ setMethod("initialize", "MxModel",
 		.Object@objective <- objective
 		.Object@independent <- independent
 		.Object@output <- list()
+		.Object <- omxInitModel(.Object)
 		return(.Object)
+	}
+)
+
+# Begin declaration of generics
+
+setGeneric("omxInitModel", function(model) {
+	return(standardGeneric("omxInitModel")) } )
+
+setGeneric("omxModelBuilder", function(model, lst, name, 
+	manifestVars, latentVars, remove, independent) {
+	return(standardGeneric("omxModelBuilder")) } )
+
+setGeneric("omxTypeName", function(model) { 
+	return(standardGeneric("omxTypeName")) 
+})
+
+# End declaration of generics
+
+setMethod("[[", "MxModel",
+	function(x, i, j, ..., drop = FALSE) {
+		return(omxExtractMethod(x, i))
+	}
+)
+
+setReplaceMethod("[[", "MxModel",
+	function(x, i, j, value) {
+		return(omxReplaceMethod(x, i, value))
 	}
 )
 
@@ -81,13 +107,13 @@ omxReplaceMethod <- function(model, index, value) {
 	}
 	if(index == model@name) {
 		stop(paste(omxQuotes(index), 
-			"is already used as the name of the model"))
+			"is already used as the name of the model"), call. = FALSE)
 	}
 	if(!is.null(current) && !is.null(value) && 
 			!omxSameType(current, value)) {
 		stop(paste("There already exists an object", 
 				omxQuotes(index), 
-				"in this model of different type"))
+				"in this model of different type"), call. = FALSE)
 	}
 	if(!is.null(value)) {
 		value@name <- index
@@ -108,22 +134,11 @@ omxReplaceMethod <- function(model, index, value) {
 	} else if (is(test,"MxConstraint")) {
 		model@constraints[[index]] <- value
 	} else {
-		stop("Unknown type of value", value)
+		stop(paste(test, "is of unknown value for replacement using name",
+			index, "in model", model@name), call. = FALSE)
 	}
 	return(model)
 }
-
-setMethod("[[", "MxModel",
-	function(x, i, j, ..., drop = FALSE) {
-		return(omxExtractMethod(x, i))
-	}
-)
-
-setReplaceMethod("[[", "MxModel",
-	function(x, i, j, value) {
-		return(omxReplaceMethod(x, i, value))
-	}
-)
 
 omxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
@@ -134,25 +149,173 @@ omxSameType <- function(a, b) {
 			(is(a, "MxData") && is(b, "MxData")))
 }
 
-setGeneric("omxAddEntries", function(.Object, entries) {
-	return(standardGeneric("omxAddEntries")) } )
+mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
+	remove = FALSE, independent = NA, type = NA, name = NA) {
+	retval <- firstArgument(model)
+	first <- retval[[1]]
+	model <- retval[[2]]
+	model <- typeArgument(model, type)
+	lst <- c(first, list(...))
+	lst <- mappendHelper(lst, list())
+	model <- omxModelBuilder(model, lst, name, manifestVars,
+		latentVars, remove, independent)
+	return(model)
+}
+firstArgument <- function(model) {
+	first <- NULL
+	defaultType <- omxModelTypes[[getOption("mxDefaultType")]]
+	if (typeof(model) != "S4" && is.na(model)) {
+		model <- new(defaultType)	
+	} else if (typeof(model) == "character") {
+		model <- new(defaultType, name = model)
+	} else if(!is(model, "MxModel")) {
+		if(isS4(model)) {
+	 		first <- model
+		} else {
+			first <- list(model)
+		}
+		model <- new(defaultType)
+	}
+	return(list(first, model))
+}
 
-setGeneric("omxRemoveEntries", function(.Object, entries) {
-	return(standardGeneric("omxRemoveEntries")) } )	
+typeArgument <- function(model, type) {
+	if (!is.na(type)) {
+		if (is.null(omxModelTypes[[type]])) {
+			stop(paste("The model type", omxQuotes(type), 
+				"is not in the the list of acceptable types:",
+				omxQuotes(names(omxModelTypes))), call. = FALSE)
+		}
+		typename <- omxModelTypes[[type]]
+		class(model) <- typename
+		model <- omxInitModel(model)
+	}
+	return(model)
+}
+
+omxGenericModelBuilder <- function(model, lst, name, 
+	manifestVars, latentVars, remove, independent) {
+	model <- variablesArgument(model, manifestVars, latentVars, remove)
+	model <- listArgument(model, lst, remove)
+	model <- independentArgument(model, independent)
+	model <- nameArgument(model, name)
+	return(model)
+}
+
+variablesArgument <- function(model, manifestVars, latentVars, remove) {
+	if (single.na(manifestVars)) {
+		manifestVars <- character()
+	}
+	if (single.na(latentVars)) {
+		latentVars <- character()
+	}
+	if (remove == TRUE) {
+
+	} else if (length(manifestVars) + length(latentVars) > 0) {
+		latentVars <- as.character(latentVars)
+		manifestVars <- as.character(manifestVars)
+		omxCheckVariables(model, latentVars, manifestVars)
+		model <- omxAddVariables(model, latentVars, manifestVars)
+	}
+	return(model)
+}
+
+listArgument <- function(model, lst, remove) {
+	if(remove == TRUE) {
+		model <- omxRemoveEntries(model, lst)
+	} else {
+		model <- omxAddEntries(model, lst)
+	}
+	return(model)
+}
+
+independentArgument <- function(model, independent) {
+	if(!is.na(independent)) {
+		model@independent <- independent
+	}
+	return(model)
+}
+
+nameArgument <- function(model, name) {
+	if(!is.na(name)) {
+		model@name <- name
+	}
+	return(model)
+}
+
+omxCheckVariables <- function(model, latentVars, manifestVars) {
+	common <- intersect(latentVars, manifestVars)
+	if (length(common) > 0) {
+		stop(paste("The following variables cannot",
+			"be both latent and manifest:",
+			omxQuotes(common)), call. = FALSE)
+	}
+	common <- intersect(model@latentVars, manifestVars)
+	if (length(common) > 0) {
+		stop(paste("The following variables cannot",
+			"be both latent and manifest:",
+			omxQuotes(common)), call. = FALSE)
+	}
+	common <- intersect(model@manifestVars, latentVars)
+	if (length(common) > 0) {
+		stop(paste("The following variables cannot",
+			"be both latent and manifest",
+			omxQuotes(common)), call. = FALSE)
+	}
+	if (any(is.na(latentVars))) {
+		stop("NA is not allowed as a latent variable", call. = FALSE)
+	}
+	if (any(is.na(manifestVars))) {
+		stop("NA is not allowed as a manifest variable", call. = FALSE)
+	}
+}
+
+# Begin implementation of generics
+
+setMethod("omxModelBuilder", "MxModel", omxGenericModelBuilder)
+
+setMethod("omxInitModel", "MxModel", function(model) { 
+	return(model)
+})
+
+setMethod("omxTypeName", "MxModel", function(model) { 
+	return("unspecified")
+})
+
+# End implementation of generics
+
+omxAddVariables <- function(model, latent, manifest) {
+	model@latentVars   <- union(model@latentVars, latent)
+	model@manifestVars <- union(model@manifestVars, manifest)
+	return(model)
+}
 	
-froms <- function(lst) {
-  retval <- lapply(lst, function(x) { return(x$from) } )
-  return(retval)
-}	
+omxAddEntries <- function(model, entries) {
+	if (length(entries) == 0) {
+		return(model)
+	}
+	tuple <- omxModelAddFilter(model, entries, list(), list())
+	namedEntities <- tuple[[1]]
+	bounds        <- tuple[[2]]
+	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
+		model <- omxAddSingleNamedEntity(model, namedEntities[[i]])
+	}
+	model <- omxAddBounds(model, bounds)
+	return(model)
+}
 
-tos <- function(lst) {
-  retval <- lapply(lst, function(x) { return(x$to) } )
-  return(retval)
-}	
-
-omxMappend <- function(...) {
-    args <- list(...)
-	return(mappendHelper(args, list()))
+omxRemoveEntries <- function(model, entries) {
+	if (length(entries) == 0) {
+		return(model)
+	}
+	tuple <- omxModelRemoveFilter(model, entries, list(), list())
+	namedEntities <- tuple[[1]]
+	bounds        <- tuple[[2]]
+	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
+		model <- omxRemoveSingleNamedEntity(model, namedEntities[[i]])
+	}
+	model <- omxRemoveBounds(model, bounds)
+	return(model)
 }
 
 mappendHelper <- function(lst, result) {
@@ -179,237 +342,58 @@ mappendHelper <- function(lst, result) {
 	}
 }
 
-omxModel <- function(model = NA, ..., name = NA, manifestVars = NA,
-	latentVars = NA, remove = FALSE, independent = NA) {
-    first <- NULL
-	if(typeof(model) != "S4" && is.na(model)) {
-		model <- new("MxModel")	
-	} else if (typeof(model) == "character") {
-		model <- new("MxModel", name = model)
-	} else if(!is(model, "MxModel")) {
-		if(isS4(model)) {
-	 		first <- model
-		} else {
-			first <- list(model)
-		}
-		model <- new("MxModel")
-	}
-	lst <- list(...)
-	lst <- c(first, lst)
-	if(remove == TRUE) {
-		model <- omxRemoveEntries(model, mappendHelper(lst, list()))
-		if ( length(manifestVars) > 1 || !is.na(manifestVars) ) {
-			model@manifestVars <- setdiff(model@manifestVars, manifestVars)
-		}
-		if ( length(latentVars) > 1 || !is.na(latentVars) ) {
-			model@latentVars <- setdiff(model@latentVars, latentVars)
-		}				
-	} else {
-		if ( length(manifestVars) > 1 || !is.na(manifestVars) ) {
-			tmp <- append(model@manifestVars, manifestVars)
-			model@manifestVars <- unique(tmp)
-		}
-		if (length(latentVars) > 1 || !is.na(latentVars)) {
-			tmp <- append(model@latentVars, latentVars)
-			model@latentVars <- unique(tmp)
-		}
-		model <- omxAddEntries(model, mappendHelper(lst, list()))
-	}
-	if(!is.na(independent)) {
-		model@independent <- independent
-	}
-	if(!is.na(name)) {
-		model@name <- name
-	}			
-	return(model)
-}
-
-omxAddFilter <- function(entries, paths, namedEntities, bounds) {
+omxModelAddFilter <- function(model, entries, namedEntities, bounds) {
 	if (length(entries) == 0) {
-		return(list(paths, namedEntities, bounds))
+		return(list(namedEntities, bounds))
 	}
 	head <- entries[[1]]
-	pLength <- length(paths)
 	nLength <- length(namedEntities)
 	bLength <- length(bounds)
 	if (is.null(head)) {
-	} else if(omxIsPath(head)) {
-		paths[[pLength + 1]] <- head
 	} else if(isS4(head) && ("name" %in% slotNames(head))) {
 		namedEntities[[nLength + 1]] <- head
 	} else if(is(head, "MxBounds")) {
 		bounds[[bLength + 1]] <- head
+	} else if(omxIsPath(head)) {
+		stop(paste("The model type of model",
+			omxQuotes(model@name), "does not recognize paths."),
+			call. = FALSE)
 	} else {
-		stop("Add method accepts only paths, bounds, or named entities")
+		stop(paste("Cannot add the following item into the model:", 
+			head), call. = FALSE)
 	}
-	return(omxAddFilter(entries[-1], paths, namedEntities, bounds))
+	return(omxModelAddFilter(model, entries[-1], namedEntities, bounds))
 }
 
-omxRemoveFilter <- function(entries, paths, names, bounds) {
+omxModelRemoveFilter <- function(model, entries, names, bounds) {
 	if (length(entries) == 0) {
-		return(list(paths, names, bounds))
+		return(list(names, bounds))
 	}
 	head <- entries[[1]]
-	pLength <- length(paths)
 	nLength <- length(names)
 	bLength <- length(bounds)
 	if (is.null(head)) {
-	} else if(omxIsPath(head)) {
-		paths[[pLength + 1]] <- head
 	} else if(is.character(head) && (length(head) == 1)) {
 		names[[nLength + 1]] <- head
 	} else if(is(head, "MxBounds")) {
 		bounds[[bLength + 1]] <- head
+	} else if(omxIsPath(head)) {
+		stop(paste("The model type of model",
+			omxQuotes(model@name), "does not recognize paths."),
+			call. = FALSE)
 	} else {
-		stop("Remove method accepts only paths, bounds, or named entities")
+		stop(paste("Cannot remove the following item from the model:", 
+			head), call. = FALSE)
 	}
-	return(omxRemoveFilter(entries[-1], paths, names, bounds))
-}
-	
-setMethod("omxAddEntries", "MxModel", 
-	function(.Object, entries) {
-		if (length(entries) < 1) {
-			return(.Object)
-		}
-		tuple <- omxAddFilter(entries, list(), list(), list())
-		paths         <- tuple[[1]]
-		namedEntities <- tuple[[2]]
-		bounds        <- tuple[[3]]
-		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
-			stop("The \'from\' field or the \'to\' field contains an NA")
-		}
-		if (length(paths) > 0) for(i in 1:length(paths)) {
-			.Object <- omxAddSinglePath(.Object, paths[[i]])
-		}
-		if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
-			.Object <- omxAddSingleNamedEntity(.Object, namedEntities[[i]])
-		}
-		.Object <- omxAddBounds(.Object, bounds)
-		return(.Object)
-	}
-)
-
-setMethod("omxRemoveEntries", "MxModel", 
-	function(.Object, entries) {
-		if (length(entries) < 1) {
-			return(.Object)
-		}
-		tuple <- omxRemoveFilter(entries, list(), list(), list())
-		paths         <- tuple[[1]]
-		namedEntities <- tuple[[2]]
-		bounds        <- tuple[[3]]
-		if (any(is.na(froms(paths))) || any(is.na(tos(paths)))) {
-			stop("The \'from\' field or the \'to\' field contains an NA")
-		}		
-		if (length(paths) > 0) for(i in 1:length(paths)) {
-			.Object <- omxRemoveSinglePath(.Object, paths[[i]])
-		}
-		if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
-			.Object <- omxRemoveSingleNamedEntity(.Object, namedEntities[[i]])
-		}
-		.Object <- omxRemoveBounds(.Object, bounds)
-		return(.Object)
-	}
-)
-
-omxAddSingleNamedEntity <- function(.Object, entity) {
-	.Object[[entity@name]] <- entity
-	return(.Object)
+	return(omxModelRemoveFilter(model, entries[-1], names, bounds))
 }
 
-
-omxAddSinglePath <- function(.Object, path) {
-	if (nrow(.Object@paths) > 0) {
-		fromExists <- (.Object@paths['from'] == path[['from']])
-		toExists <- (.Object@paths['to'] == path[['to']])
-		replace <- any(fromExists & toExists, na.rm=TRUE)
-		morfExists <- (.Object@paths['from'] == path[['to']])
-		otExists <- (.Object@paths['to'] == path[['from']])
-		oppositeExists <- any(morfExists & otExists, na.rm=TRUE)
-		if (oppositeExists) {
-			newArrow <- !is.null(path[['arrows']])
-			oldArrow <- !is.null(.Object@paths[morfExists & otExists,'arrows'])
-			if (oldArrow && .Object@paths[morfExists & otExists,'arrows'] == 2) {
-					fromTemp <- as.vector(.Object@paths[morfExists & otExists,'from'])
-					toTemp <- as.vector(.Object@paths[morfExists & otExists,'to'])
-					fUnique <- lapply(.Object@paths['from'], paste, collapse='')[[1]]
-					.Object@paths[morfExists & otExists, 'from'] <- fUnique
-					.Object@paths[.Object@paths['from'] == fUnique, 'to'] <- fromTemp
-					.Object@paths[.Object@paths['from'] == fUnique, 'from'] <- toTemp
-					fromExists <- (.Object@paths['from'] == path[['from']])
-					toExists <- (.Object@paths['to'] == path[['to']])
-					replace <- TRUE
-			} else if (newArrow && path[['arrows']] == 2) {
-					tmp <- path[['from']]
-					path[['from']] <- path[['to']]
-					path[['to']] <- tmp
-					fromExists <- (.Object@paths['from'] == path[['from']])
-					toExists <- (.Object@paths['to'] == path[['to']])
-					replace <- TRUE
-			}
-		}
-		if (replace) {
-			ids <- names(path)			
-			for(i in 1:length(path)) {
-				id <- ids[[i]]
-				.Object@paths[fromExists & toExists,id] <- path[[id]]
-			}
-		} else {
-			.Object@paths <- merge(.Object@paths, 
-				data.frame(path, stringsAsFactors = FALSE), all=TRUE)
-		}
-	} else {
-		.Object@paths <- data.frame(path, stringsAsFactors = FALSE)
-	}
-	fromExists <- (.Object@paths['from'] == path[['from']])
-	toExists <- (.Object@paths['to'] == path[['to']])
-	field <- .Object@paths[fromExists & toExists, 'arrows']
-	if (!is.null(field) && !is.na(field)  
-			&& (field == 2) 
-			&& (path[['from']] > path[['to']])) {
-		fromTemp <- as.vector(.Object@paths[morfExists & otExists,'from'])
-		toTemp <- as.vector(.Object@paths[morfExists & otExists,'to'])
-		fUnique <- lapply(.Object@paths['from'], paste, collapse='')[[1]]
-		.Object@paths[morfExists & otExists, 'from'] <- fUnique
-		.Object@paths[.Object@paths['from'] == fUnique, 'to'] <- fromTemp
-		.Object@paths[.Object@paths['from'] == fUnique, 'from'] <- toTemp
-	}	
-	return(.Object)
+omxAddSingleNamedEntity <- function(model, entity) {
+	model[[entity@name]] <- entity
+	return(model)
 }
 
-omxRemoveSinglePath <- function(.Object, path) {
-	if (nrow(.Object@paths) > 0) {
-		.Object@paths <- subset(.Object@paths, to != path[['to']] | from != path[['from']])
-		if (nrow(.Object@paths) > 0) {		
-			morfExists <- (.Object@paths['from'] == path[['to']])
-			otExists <- (.Object@paths['to'] == path[['from']])
-			oppositeExists <- any(morfExists & otExists, na.rm=TRUE)
-			if (oppositeExists) {
-				check1 <- !is.null(path[['arrows']]) && path[['arrows']] == 2
-				check2 <- !is.null(.Object@paths[morfExists & otExists,'arrows']) &&
-							.Object@paths[morfExists & otExists,'arrows'] == 2
-				if (check1 || check2) {
-					.Object@paths <- subset(.Object@paths, 
-						to != path[['from']] | from != path[['to']])
-				}
-			}
-		}		
-	}		
-	return(.Object)
-}
-
-omxRemoveSingleNamedEntity <- function(.Object, name) {
-	.Object[[name]] <- NULL
-	return(.Object)
-}
-
-
-mxModel <- function(model = NA, ..., 
-	manifestVars = NA, latentVars = NA, 
-	remove = FALSE, independent = NA, name = NA) {
-		omxModel(model, ..., name = name, 
-		manifestVars = manifestVars, 
-		latentVars = latentVars,
-		remove = remove, 
-		independent = independent)
+omxRemoveSingleNamedEntity <- function(model, name) {
+	model[[name]] <- NULL
+	return(model)
 }

@@ -21,13 +21,19 @@ omxQuotes <- function(name) {
 
 omxDisplayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
+	cat("type :", omxTypeName(model), '\n')
 	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
 	cat("algebras :", omxQuotes(names(model@algebras)), '\n')
 	cat("constraints :", omxQuotes(names(model@constraints)), '\n')
-	if (length(model@paths) > 0) {
-		cat("latentVars :", model@latentVars, '\n')
-		cat("manifestVars :", model@manifestVars, '\n')
-		cat("paths :", nrow(model@paths), "paths", '\n')
+	if (length(model@latentVars) == 0) {
+		cat("latentVars : none\n")
+	} else {
+		cat("latentVars :", omxQuotes(model@latentVars), '\n')
+	}
+	if (length(model@manifestVars) == 0) {
+		cat("manifestVars : none\n")
+	} else {
+		cat("manifestVars :", omxQuotes(model@manifestVars), '\n')
 	}
 	data <- model@data
 	if (is.null(data)) {
@@ -95,3 +101,4 @@ setMethod("print", "MxModel", function(x,...) {
 setMethod("show", "MxModel", function(object) { 
 	omxDisplayModel(object) 
 })
+

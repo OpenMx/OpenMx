@@ -206,21 +206,21 @@ omxMatrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nro
 
 omxConvertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.matrix(values)) {
-		values <- matrix(as.numeric(values), nrow, ncol)
+		values <- matrix(as.numeric(values), nrow, ncol, dimnames = dimnames(values))
 	} else if (is.vector(values)) {
 		values <- as.numeric(values)
 	} else {
 		stop("\'values\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(free)) {
-		free <- matrix(as.logical(free), nrow, ncol)
+		free <- matrix(as.logical(free), nrow, ncol, dimnames = dimnames(free))
 	} else if (is.vector(free)) {
 		free <- as.logical(free)
 	} else {
 		stop("\'free\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(labels)) {
-		labels <- matrix(as.character(labels), nrow, ncol)
+		labels <- matrix(as.character(labels), nrow, ncol, dimnames = dimnames(labels))
 	} else if (single.na(labels)) {
 		labels <- as.character(NA)
 	} else if (is.vector(labels)) {
@@ -229,14 +229,14 @@ omxConvertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 		stop("\'labels\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(lbound)) {
-		lbound <- matrix(as.numeric(lbound), nrow, ncol)
+		lbound <- matrix(as.numeric(lbound), nrow, ncol, dimnames = dimnames(lbound))
 	} else if (is.vector(lbound)) {
 		lbound <- as.numeric(lbound)
 	} else {
 		stop("\'lbound\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(ubound)) {
-		ubound <- matrix(as.numeric(ubound), nrow, ncol)
+		ubound <- matrix(as.numeric(ubound), nrow, ncol, dimnames = dimnames(ubound))
 	} else if (is.vector(ubound)) {
 		ubound <- as.numeric(ubound)
 	} else {

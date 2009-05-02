@@ -13,12 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+omxModelTypes <- list()
 
-
-#TODO: replace with .onLoad once namespaces are implemented
-.First.lib <- function(libname, pkgname) {
-   library.dynam("OpenMx") 
-   sfStop()
-   sfInit(parallel = FALSE)
-   options('mxDefaultType' = 'raw', 'mxRAMDefaultSingle' = 1.00, 'mxRAMDefaultDouble' = 1.00)
+mxTypes <- function() {
+	return(names(omxModelTypes))
 }

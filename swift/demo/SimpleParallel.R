@@ -81,7 +81,7 @@ system("rm *adat *sdat")
 
 # call swift to run on models dir
 
-mxGenSwift("./tc.data", "./sites.xml", "./optim.swift")
+omxGenSwift("./tc.data", "./sites.xml", "./optim.swift")
 
 
 

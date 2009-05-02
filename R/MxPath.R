@@ -15,9 +15,9 @@
 
 # returns a list of paths
 omxPath <- function(from, to, all, free, 
-	arrows, start, end, algebra, name, description,
+	arrows, start, name, description,
 	boundMax, boundMin, ciUpper, ciLower) {
-		if (length(to) == 1 && is.na(to)) {
+		if (single.na(to)) {
 			to <- from
 		}
 		from <- as.list(from)
@@ -26,15 +26,15 @@ omxPath <- function(from, to, all, free,
 			from <- rep(from, each=length(to))	
 		}
 		result <- suppressWarnings(mapply(omxSinglePath, from, to,
-					free, arrows, start, end,
-					algebra, name, description, boundMax,
-					boundMin, ciUpper, ciLower, SIMPLIFY=FALSE))
+					free, arrows, start, 
+					name, description, boundMax,
+					boundMin, ciUpper, ciLower, SIMPLIFY = FALSE))
 		return(result)
 }
 
 omxSinglePath <- function(from, to, free, 
-	arrows, start, end, algebra,
-	name, description, boundMax, boundMin,
+	arrows, start, name, description, 
+	boundMax, boundMin,
 	ciUpper, ciLower) {
 	result <- list()
 	result[['from']] <- from
@@ -42,8 +42,6 @@ omxSinglePath <- function(from, to, free,
 	result[['free']] <- free[[1]]
 	result[['arrows']] <- arrows[[1]]
 	result[['start']] <- start[[1]]
-	result[['end']] <- end[[1]]
-	result[['algebra']] <- algebra[[1]]
 	result[['name']] <- name[[1]]
 	result[['description']] <- description[[1]]	
 	result[['boundMax']] <- boundMax[[1]]
@@ -61,12 +59,10 @@ omxIsPath <- function(value) {
 
 
 mxPath <- function(from, to = NA, all = FALSE, free = TRUE, 
-	arrows = 1, start = NA, end = NA, algebra = NA,
-	name = NA, description = NA, boundMax = NA, boundMin = NA,
+	arrows = 1, start = NA, name = NA, description = NA, 
+	boundMax = NA, boundMin = NA,
 	ciUpper = NA, ciLower = NA) {
 	if (length(start) == 1 && is.na(start)) start <- NULL
-	if (length(end) == 1 && is.na(end)) end <- NULL
-	if (length(algebra) == 1 && is.na(algebra)) algebra <- NULL
 	if (length(name) == 1 && is.na(name)) name <- NULL
 	if (length(description) == 1 && is.na(description)) description <- NULL
 	if (length(boundMax) == 1 && is.na(boundMax)) boundMax <- NULL
@@ -74,7 +70,7 @@ mxPath <- function(from, to = NA, all = FALSE, free = TRUE,
 	if (length(ciUpper) == 1 && is.na(ciUpper)) ciUpper <- NULL
 	if (length(ciLower) == 1 && is.na(ciLower)) ciLower <- NULL
 	omxPath(from, to, all, free, 
-		arrows, start, end, algebra, 
-		name, description, boundMax,
+		arrows, start, name, 
+		description, boundMax,
 		boundMin, ciUpper, ciLower)
 }
