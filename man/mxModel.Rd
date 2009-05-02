@@ -13,8 +13,8 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 }
  	
 \arguments{
-  \item{model}{This argument is either an \link{MxModel} object or a string. If 'model' is an MxModel object, then all elements of that model are placed in the resulting MxModel object. If 'model' is a string, then a new model is created with the string as its name. If 'model' is either unspecified or 'model' is a named entity, data source, model type, or MxPath object, then a new model is created.}
- 	\item{...}{An arbitrary number of named entities, data sources, model types, or MxPath objects. These will all be added or removed from the model as specified in the 'model' argument, based on the 'remove' argument.}
+  \item{model}{This argument is either an \link{MxModel} object or a string. If 'model' is an MxModel object, then all elements of that model are placed in the resulting MxModel object. If 'model' is a string, then a new model is created with the string as its name. If 'model' is either unspecified or 'model' is a named entity, data source, or MxPath object, then a new model is created.}
+ 	\item{...}{An arbitrary number of named entities, data sources, or MxPath objects. These will all be added or removed from the model as specified in the 'model' argument, based on the 'remove' argument.}
  	\item{manifestVars}{A list of manifest variables to be included in the model.}
  	\item{latentVars}{A list of latent variables to be included in the model.}
  	\item{remove}{logical. If TRUE, elements listed in this statement are added to the original model. If FALSE, elements listed in this statement are removed from the original model.}
