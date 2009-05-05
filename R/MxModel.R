@@ -80,64 +80,19 @@ setReplaceMethod("[[", "MxModel",
 	}
 )
 
+
 omxExtractMethod <- function(model, index) {
-	first <- model@matrices[[index]]
-	second <- model@algebras[[index]]
-	third <- model@submodels[[index]]
-	fourth <- model@constraints[[index]]
-	if (!is.null(model@objective) && index == model@objective@name) {
-		return(model@objective)
-	} else if (!is.null(model@data) && index == model@data@name) {
-		return(model@data)
-	} else if (!is.null(first)) {
-		return(first)
-	} else if (!is.null(second)) {
-		return(second)
-	} else if (!is.null(third)) {
-		return(third)
-	} else {
-		return(fourth)
-	}
+	pair <- omxReverseIdentifier(model, index)
+	namespace <- pair[[1]]
+	name <- pair[[2]]
+	return(namespaceSearch(model, namespace, name))
 }
 
 omxReplaceMethod <- function(model, index, value) {
-	current <- model[[index]]
-	if (is.null(current) && is.null(value)) {
-		return(model)
-	}
-	if(index == model@name) {
-		stop(paste(omxQuotes(index), 
-			"is already used as the name of the model"), call. = FALSE)
-	}
-	if(!is.null(current) && !is.null(value) && 
-			!omxSameType(current, value)) {
-		stop(paste("There already exists an object", 
-				omxQuotes(index), 
-				"in this model of different type"), call. = FALSE)
-	}
-	if(!is.null(value)) {
-		value@name <- index
-		test <- value
-	} else {
-		test <- current
-	}
-	if (is(test,"MxMatrix")) {
-		model@matrices[[index]] <- value
-	} else if (is(test,"MxAlgebra")) {
-		model@algebras[[index]] <- value
-	} else if (is(test,"MxModel")) {
-		model@submodels[[index]] <- value	
-	} else if (is(test,"MxObjective")) {
-		model@objective <- value
-	} else if (is(test,"MxData")) {
-		model@data <- value
-	} else if (is(test,"MxConstraint")) {
-		model@constraints[[index]] <- value
-	} else {
-		stop(paste(test, "is of unknown value for replacement using name",
-			index, "in model", model@name), call. = FALSE)
-	}
-	return(model)
+	pair <- omxReverseIdentifier(model, index)
+	namespace <- pair[[1]]
+	name <- pair[[2]]
+	return(namespaceSearchReplace(model, namespace, name, value))
 }
 
 omxSameType <- function(a, b) {
