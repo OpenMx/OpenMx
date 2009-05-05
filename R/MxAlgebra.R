@@ -36,6 +36,7 @@ mxAlgebra <- function(expression, name = NA) {
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
+	omxVerifyName(name)
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
 	return(retval)	

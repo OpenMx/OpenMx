@@ -41,6 +41,7 @@ omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 mxData <- function(matrix, type, vector = NA, numObs = NA, name = NA) {
 	if(is.na(name)) name <- omxUntitledName()
+	omxVerifyName(name)
 	if(is.na(vector)) vector <- NA_real_
 	if(missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
 		stop("Matrix argument is neither a data frame nor a matrix")

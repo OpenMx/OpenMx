@@ -54,6 +54,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 
 mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F", name = NA) {
 	if(is.na(name)) name <- omxUntitledName()
+	omxVerifyName(name)
 	if (typeof(name) != "character") {
 		msg <- paste("Name argument is not a string",
 			"(the name of the objective function)")

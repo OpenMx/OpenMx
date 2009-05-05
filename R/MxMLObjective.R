@@ -57,6 +57,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective", "MxFlatModel"),
 
 mxMLObjective <- function(covariance, means = NA, name = NA) {
 	if (is.na(name)) name <- omxUntitledName()
+	omxVerifyName(name)
 	if (typeof(name) != "character") {
 		stop("Name argument is not a string (the name of the objective function)")
 	}

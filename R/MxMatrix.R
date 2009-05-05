@@ -165,6 +165,7 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
+	omxVerifyName(name)
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
 	}

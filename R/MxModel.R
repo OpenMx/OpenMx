@@ -32,7 +32,7 @@ setClass(Class = "MxModel",
 omxModelTypes[['raw']] <- "MxModel"
 
 setMethod("initialize", "MxModel",
-	function(.Object, name = omxUntitledName(),  
+	function(.Object, name,
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), data = NULL, submodels = list(), 
@@ -151,9 +151,10 @@ omxSameType <- function(a, b) {
 
 mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	remove = FALSE, independent = NA, type = NA, name = NA) {
-	retval <- firstArgument(model)
+	retval <- firstArgument(model, name)
 	first <- retval[[1]]
 	model <- retval[[2]]
+	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
 	lst <- mappendHelper(lst, list())
@@ -161,22 +162,27 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 		latentVars, remove, independent)
 	return(model)
 }
-firstArgument <- function(model) {
+
+firstArgument <- function(model, name) {
 	first <- NULL
 	defaultType <- omxModelTypes[[getOption("mxDefaultType")]]
-	if (typeof(model) != "S4" && is.na(model)) {
-		model <- new(defaultType)	
-	} else if (typeof(model) == "character") {
-		model <- new(defaultType, name = model)
-	} else if(!is(model, "MxModel")) {
-		if(isS4(model)) {
-	 		first <- model
+	if (is(model, "MxModel")) {
+	} else {
+		if (single.na(model)) {
+		} else if (typeof(model) == "character") {
+			name <- model
+		} else if (isS4(model)) {
+			first <- model
 		} else {
 			first <- list(model)
 		}
-		model <- new(defaultType)
+		if (is.na(name)) {
+			name <- omxUntitledName()
+		}
+		omxVerifyName(name)
+		model <- new(defaultType, name = name)
 	}
-	return(list(first, model))
+	return(list(first, model, name))
 }
 
 typeArgument <- function(model, type) {
