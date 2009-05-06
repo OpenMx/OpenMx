@@ -32,7 +32,7 @@ setClass(Class = "MxModel",
 omxModelTypes[['raw']] <- "MxModel"
 
 setMethod("initialize", "MxModel",
-	function(.Object, name,
+	function(.Object, name = character(),
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), data = NULL, submodels = list(), 
