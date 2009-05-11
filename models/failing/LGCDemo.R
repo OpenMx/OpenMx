@@ -70,7 +70,7 @@ model[["F"]]@values[4,4] <- 1
 
 
 # Define the objective function
-objective <- mxRAMObjective("A", "S", "F", "objective")
+objective <- mxRAMObjective("A", "S", "F")
 
 # Define the observed covariance matrix
 covMatrix <- mxData(wisc.cov, type='cov', numObs = 100)

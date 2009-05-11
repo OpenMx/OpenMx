@@ -8,12 +8,11 @@
 }
 
 \usage{
-mxAlgebraObjective(algebra, name = NA)
+mxAlgebraObjective(algebra)
 }
 
 \arguments{
    \item{algebra}{A character string indicating the name of an \link{MxAlgebra} or \link{MxMatrix} object to use for optimization.}
-   \item{name}{An optional character string indicating the name of this object.}
 }
 
 \details{
@@ -38,7 +37,7 @@ The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
 #Create a matrix 'A' with no free parameters
 A <- mxMatrix('Full', nrow = 1, ncol = 1, values = c(0), name = 'A')
 
-#Create an algebra 'B', which defines the expression A+A
+#Create an algebra 'B', which defines the expression A + A
 B <- mxAlgebra(A + A, name = 'B')
 
 #Define the objective function for algebra 'B'

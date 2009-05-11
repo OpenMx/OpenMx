@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-omxGenerateMatrixReferences <- function(model) {
+generateMatrixReferences <- function(model) {
 	matnames  <- names(model@matrices)
 	retval <- replicate(length(matnames), list())
 	names(retval) <- matnames
@@ -43,14 +43,15 @@ omxGenerateMatrixReferences <- function(model) {
 	return(retval)
 }
 
-omxGenerateAlgebraReferences <- function(model, algebras, objectives) {
+generateAlgebraReferences <- function(model, algebras, objectives) {
 	values <- c(algebras, objectives)
-	references <- omxGenerateAlgebraReferencesHelper(model)
-	retval <- mapply(function(x,y) { c(list(x), y) }, values, references, SIMPLIFY = FALSE)
+	references <- generateAlgebraReferencesHelper(model)
+	retval <- mapply(function(x,y) { c(list(x), y) }, 
+		values, references, SIMPLIFY = FALSE)
 	return(retval)
 }
 
-omxGenerateAlgebraReferencesHelper <- function(model) {
+generateAlgebraReferencesHelper <- function(model) {
 	matnames  <- names(model@matrices)
 	algnames  <- c(names(model@algebras), names(model@objectives)) 
 	retval <- replicate(length(algnames), list())

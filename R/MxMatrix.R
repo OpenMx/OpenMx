@@ -134,7 +134,7 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 mxMatrix <- function(type = "Full", values = NA, free = FALSE, 
 	labels = NA, lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
 	byrow = FALSE, name = NA) {
-	omxMatrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
+	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	if (is.matrix(values)) {
 		nrow <- nrow(values)
 		ncol <- ncol(values)
@@ -169,7 +169,7 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
 	}
-	fiveMatrices <- omxConvertVFN(values, free, labels, lbound, ubound, nrow, ncol)
+	fiveMatrices <- convertVFN(values, free, labels, lbound, ubound, nrow, ncol)
 	values <- fiveMatrices[[1]]
 	free <- fiveMatrices[[2]]
 	labels <- fiveMatrices[[3]]
@@ -180,7 +180,7 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 			lbound, ubound, nrow, ncol, byrow))
 }
 
-omxMatrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
+matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" ")), call. = FALSE)
@@ -205,7 +205,7 @@ omxMatrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nro
 	}
 }
 
-omxConvertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
+convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.matrix(values)) {
 		values <- matrix(as.numeric(values), nrow, ncol, dimnames = dimnames(values))
 	} else if (is.vector(values)) {
@@ -253,8 +253,8 @@ omxConvertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 }
 
 
-omxMatrixParameters <- function(free, labels, lbound, ubound, 
-	result, defNames, matrixNumber) {
+matrixParameters <- function(free, labels, lbound, ubound, 
+	result, matrixNumber) {
 	if (all(free == FALSE)) {
 		return(result)
 	}
@@ -273,7 +273,7 @@ omxMatrixParameters <- function(free, labels, lbound, ubound,
 			result[[length(result)+1]] <-  list(minBounds, maxBounds, 
 				c(matrixNumber, row, col))
 			names(result)[[length(result)]] <- as.character(NA)
-		} else if (!(parameterName %in% defNames)) {
+		} else if (length(grep(omxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
@@ -287,7 +287,7 @@ omxMatrixParameters <- function(free, labels, lbound, ubound,
 	return(result)
 }
 
-omxMatrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) {
+matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) {
 	select <- !is.na(labels)
 	if (all(select == FALSE)) {
 		return(result)
@@ -317,26 +317,26 @@ omxMatrixDefinitions <- function(free, labels, result, defLocations, matrixNumbe
 	return(result)
 }
 
-omxGenerateMatrixValuesHelper <- function(mxMatrix) {
+generateMatrixValuesHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
 }
 
-omxGenerateParameterListHelper <- function(mxMatrix,
-	result, defNames, matrixNumber) {
+generateParameterListHelper <- function(mxMatrix,
+	result, matrixNumber) {
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
 	lbound <- mxMatrix@lbound
 	ubound <- mxMatrix@ubound
-	result <- omxMatrixParameters(free, labels, lbound,
-		ubound, result, defNames, matrixNumber)
+	result <- matrixParameters(free, labels, lbound,
+		ubound, result, matrixNumber)
 	return(result)
 }
 
-omxGenerateDefinitionListHelper <- function(mxMatrix,
+generateDefinitionListHelper <- function(mxMatrix,
 	result, defLocations, matrixNumber) {
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
-	result <- omxMatrixDefinitions(free, labels,
+	result <- matrixDefinitions(free, labels,
 		result, defLocations, matrixNumber)
 	return(result)
 }

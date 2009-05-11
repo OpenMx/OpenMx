@@ -13,98 +13,31 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-omxCheckNamespace <- function(model) {
-	omxCheckNamespaceHelper(model, c(model@name))
+shareData <- function(model) {
+	return(shareDataHelper(model, model@data))
 }
 
-omxNamespaceErrorMessage <- function(rlist) {
-	if (length(rlist) == 1) {
-		return(paste("The name", omxQuotes(rlist), 
-		"appears more than once in the model\n"))
-	} else {
-		return(paste("The names", omxQuotes(rlist), 
-		"appear more than once in the model\n"))
-	}
-}
-
-omxGetNames <- function(lst) {
-	lapply(lst, function(x) { x@name } )	
-}
-
-omxNameAlignment <- function(lst1, lst2) {
-	return(paste("The names", omxQuotes(lst1[lst1 != lst2]),
-		"do not match their designations"))
-}
-
-omxCheckNamedEntity <- function(model, slotname, nameList) {
-	entity <- slot(model, slotname)
-	entityNames <- names(entity)
-	omxNameAlignment(entityNames, omxGetNames(entity))
-	entityIntersect <- intersect(entityNames, nameList)
-	if (length(entityIntersect) > 0) {
-		stop(omxNamespaceErrorMessage(entityIntersect), call.=FALSE)
-	}
-	nameList <- append(nameList, entityNames)
-	return(nameList)
-}
-
-omxCheckDataColumns <- function(dataset, nameList) {
-	columnNames <- dimnames(dataset)[[2]]
-	nameIntersect <- intersect(columnNames, nameList)
-	if (length(nameIntersect) > 0) {
-		stop(omxNamespaceErrorMessage(nameIntersect), call.=FALSE)
-	}
-	nameList <- append(nameList, columnNames)	
-	return(nameList)
-}
-
-
-omxCheckNamespaceHelper <- function(model, nameList) {
-	nameList <- omxCheckNamedEntity(model, "matrices", nameList)
-	nameList <- omxCheckNamedEntity(model, "algebras", nameList)
-	nameList <- omxCheckNamedEntity(model, "submodels", nameList)
-	nameList <- omxCheckNamedEntity(model, "constraints", nameList)
-	nameList <- omxCheckDataColumns(model@data, nameList)
-	if (!is.null(model@objective) && (model@objective@name %in% nameList)) {
-		stop(omxNamespaceErrorMessage(model@objective@name), call.=FALSE)
-	} else if(!is.null(model@objective)) {
-		nameList <- append(nameList, model@objective@name)
-	}
-	if (!is.null(model@data) && (model@data@name %in% nameList)) {
-		stop(omxNamespaceErrorMessage(model@data@name), call.=FALSE)
-	} else if(!is.null(model@data)) {
-		nameList <- append(nameList, model@data@name)
-	}
-	if (length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			nameList <- omxCheckNamespaceHelper(model@submodels[[i]], nameList)
-		}
-	}
-	return(nameList)
-}
-
-omxShareData <- function(model) {
-	return(omxShareDataHelper(model, model@data))
-}
-
-omxShareDataHelper <- function(model, current) {
+# If we reach an independent model and this model
+# does not have any data, then give the current "default"
+# data to this model. As we move down the true, update
+# the current "defult" data.
+shareDataHelper <- function(model, default) {
 	if((is.null(model@data)) && (model@independent == TRUE)) {
-		model@data <- current
+		model@data <- default
 	} else if (!is.null(model@data)) {
-		current <- model@data
+		default <- model@data
 	}
 	submodels <- lapply(model@submodels, function(x)
-		{ omxShareDataHelper(x, current) })
+		{ shareDataHelper(x, default) })
 	model@submodels <- submodels
 	return(model)
 }
 
 omxGetIndependents <- function(model) {
-	return(omxGetIndependentsHelper(model, list()))
+	return(getIndependentsHelper(model, list()))
 }
 
-omxGetIndependentsHelper <- function(model, lst) {
+getIndependentsHelper <- function(model, lst) {
 	indep <- lapply(model@submodels, function(x) {
 		if(x@independent == TRUE) {x}
 		else {NULL}
@@ -112,13 +45,13 @@ omxGetIndependentsHelper <- function(model, lst) {
 	res <- append(lst, indep[!sapply(indep, is.null)])
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
-			res <- omxGetIndependentsHelper(model@submodels[[i]], res)
+			res <- getIndependentsHelper(model@submodels[[i]], res)
 		}
 	}
 	return(res)
 }
 
-omxFreezeMatrix <- function(mxMatrix) {
+freezeMatrix <- function(mxMatrix) {
 	type <- class(mxMatrix)[[1]]
 	rows <- nrow(mxMatrix)
 	cols <- ncol(mxMatrix)	
@@ -126,14 +59,14 @@ omxFreezeMatrix <- function(mxMatrix) {
 		FALSE, mxMatrix@labels, rows, cols))
 }
 
-omxFreezeAlgebra <- function(mxAlgebra) {
+freezeAlgebra <- function(mxAlgebra) {
 	if(is.null(mxAlgebra@result)) return(NULL)
 	res <- mxMatrix(values = mxAlgebra@result, 
 		name = mxAlgebra@name)
 	return(res)
 }
 
-omxFreezeObjective <- function(model) {
+freezeObjective <- function(model) {
 	objective <- model@objective
 	if (!is.null(objective)) {
 		model[[objective@name]] <- NULL
@@ -147,9 +80,9 @@ omxFreezeObjective <- function(model) {
 }
 
 omxFreezeModel <- function(model) {
-	model <- omxFreezeObjective(model)
-	model@matrices <- lapply(model@matrices, omxFreezeMatrix)
-	algebras <- lapply(model@algebras, omxFreezeAlgebra)
+	model <- freezeObjective(model)
+	model@matrices <- lapply(model@matrices, freezeMatrix)
+	algebras <- lapply(model@algebras, freezeAlgebra)
 	algebras <- algebras[!sapply(algebras, is.null)]
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
@@ -157,25 +90,39 @@ omxFreezeModel <- function(model) {
 	return(model)
 }
 
-omxFlattenModel <- function(model) {
-	res <- new("MxFlatModel", model, list(), list())
+omxFlattenModel <- function(model, namespace) {
+	flatModel <- new("MxFlatModel", model, list(), list())
+	name <- model@name
+	model@objective <- namespaceConvertObjective(model@objective, name, namespace)
+	model@data <- namespaceConvertData(model@data, name)
+	flatModel@objective <- model@objective
 	defaultData <- model@data
-	res <- omxFlattenModelHelper(model, res, defaultData)
-	res@submodels <- list()
-	return(res)
+	flatModel@data <- defaultData
+	flatModel@matrices <- lapply(model@matrices, 
+		function(x) { namespaceConvertMatrix(x, name, defaultData@name, namespace) })
+	flatModel@algebras <- lapply(model@algebras, 
+		function(x) { namespaceConvertAlgebra(x, name, namespace) })
+	flatModel@constraints <- lapply(model@constraints,
+		function(x) { namespaceConvertConstraint(x, name, namespace) })
+	names(flatModel@matrices) <- entityExtractNames(flatModel@matrices)
+	names(flatModel@algebras) <- entityExtractNames(flatModel@algebras)
+	names(flatModel@constraints) <- entityExtractNames(flatModel@constraints)
+	flatModel <- flattenModelHelper(model, flatModel, defaultData, namespace)
+	flatModel@submodels <- list()
+	return(flatModel)
 }
 
-omxFlattenModelHelper <- function(model, dest, defaultData) {
+flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 	if (!is.null(model@objective)) {
-		if(is.null(model@data) && !is.null(defaultData)) {
-			model@objective@data <- defaultData@name			
-		} else if (!is.null(model@data)) {
+		if(is.na(model@objective@data) && is.null(model@data) && !is.null(defaultData)) {
+			model@objective@data <- defaultData@name
+		} else if (is.na(model@objective@data) && !is.null(model@data)) {
 			model@objective@data <- model@data@name
 		}
-		dest@objectives[[model@objective@name]] <- model@objective
+		flatModel@objectives[[model@objective@name]] <- model@objective
 	}
 	if (!is.null(model@data)) {
-		dest@datasets[[model@data@name]] <- model@data
+		flatModel@datasets[[model@data@name]] <- model@data
 	}
 	if (is.null(defaultData)) {
 		defaultData <- model@data
@@ -183,14 +130,33 @@ omxFlattenModelHelper <- function(model, dest, defaultData) {
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			submodel <- model@submodels[[i]]
-			dest@matrices    <- append(dest@matrices, submodel@matrices)
-			dest@algebras    <- append(dest@algebras, submodel@algebras)
-			dest@constraints <- append(dest@constraints, 
+			name <- submodel@name
+			submodel@data <- namespaceConvertData(submodel@data, name)
+			submodel@objective <- namespaceConvertObjective(submodel@objective, name, namespace)
+			if (is.null(submodel@data)) {
+				submodel@matrices <- lapply(submodel@matrices, 
+					function(x) { 
+						namespaceConvertMatrix(x, name, defaultData@name, namespace) })
+			} else {
+				submodel@matrices <- lapply(submodel@matrices, 
+					function(x) { 
+						namespaceConvertMatrix(x, name, submodel@data@name, namespace) })
+			}
+			submodel@algebras <- lapply(submodel@algebras, 
+				function(x) { namespaceConvertAlgebra(x, name, namespace) })
+			submodel@constraints <- lapply(submodel@constraints, 
+				function(x) { namespaceConvertConstraint(x, name, namespace) })
+			names(submodel@matrices) <- entityExtractNames(submodel@matrices)
+			names(submodel@algebras) <- entityExtractNames(submodel@algebras)
+			names(submodel@constraints) <- entityExtractNames(submodel@constraints)
+			flatModel@matrices    <- append(flatModel@matrices, submodel@matrices)
+			flatModel@algebras    <- append(flatModel@algebras, submodel@algebras)
+			flatModel@constraints <- append(flatModel@constraints, 
 				submodel@constraints) 
-			dest <- omxFlattenModelHelper(submodel, dest, defaultData)
+			flatModel <- flattenModelHelper(submodel, flatModel, defaultData)
 		}
 	}
-	return(dest)
+	return(flatModel)
 }
 
 omxReplaceModels <- function(model, replacements) {

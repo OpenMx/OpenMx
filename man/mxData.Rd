@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxData(matrix, type, vector = NA, numObs = NA, name = NA)
+mxData(matrix, type, vector = NA, numObs = NA)
 }
 
 \arguments{
@@ -16,7 +16,6 @@ mxData(matrix, type, vector = NA, numObs = NA, name = NA)
    \item{type}{A character string defining the type of data in the 'matrix' argument. Must be one of 'raw', 'cov', 'cor', or 'sscp'.}
    \item{vector}{An optional vector of means for use when 'type' is 'cov', 'cor' or 'sscp'.}
    \item{numObs}{The number of observations in the data supplied in the 'matrix' argument. Required unless 'type' equals 'raw'.}
-   \item{name}{An optional character string indicating the name of the resulting MxData object.}
 }
 
 \details{
@@ -57,8 +56,7 @@ covMatrix <- matrix( c(0.77642931, 0.39590663,
     nrow = 2, ncol = 2, byrow = TRUE)
 
 #Create an MxData object including that covariance matrix
-data <- mxData(covMatrix, 'cov', numObs = 100, 
-    name = 'covmatrix')
+data <- mxData(covMatrix, 'cov', numObs = 100)
 
 model <- mxModel(data) 
 

@@ -28,12 +28,12 @@ setMethod("omxTypeName", "MxRAMModel",
 setMethod("omxInitModel", "MxRAMModel", 
 	function(model) {
 		if (is.null(model[['A']])) {
-			model[['A']] <- omxCreateMatrixA(model)
+			model[['A']] <- createMatrixA(model)
 		}
 		if (is.null(model[['S']])) {
-			model[['S']] <- omxCreateMatrixS(model)
+			model[['S']] <- createMatrixS(model)
 		}
-		model[['F']] <- omxCreateMatrixF(model)
+		model[['F']] <- createMatrixF(model)
 		return(model)
 	}
 )
@@ -75,18 +75,18 @@ addVariablesRAM <- function(model, latent, manifest) {
 	model@latentVars <- c(model@latentVars, newLatent)
 	model@manifestVars <- c(model@manifestVars, newManifest)
 	if (is.null(model[['A']])) {
-		model[['A']] <- omxCreateMatrixA(model)
+		model[['A']] <- createMatrixA(model)
 	} else {
 		model[['A']] <- addVariablesAS(model[['A']], 
 			model, newLatent, newManifest)
 	}
 	if (is.null(model[['S']])) {
-		model[['S']] <- omxCreateMatrixS(model)
+		model[['S']] <- createMatrixS(model)
 	} else {
 		model[['S']] <- addVariablesAS(model[['S']], 
 			model, newLatent, newManifest)
 	}
-	model[['F']] <- omxCreateMatrixF(model)
+	model[['F']] <- createMatrixF(model)
 	return(model)
 }
 
@@ -166,9 +166,9 @@ insertPathRAM <- function(model, path) {
 	arrows <- path$arrows
 	default1 <- getOption('mxRAMDefaultSingle')
 	default2 <- getOption('mxRAMDefaultDouble')
-	if (is.null(model[['A']])) { model[['A']] <- omxCreateMatrixA(model) }
-	if (is.null(model[['S']])) { model[['S']] <- omxCreateMatrixS(model) }
-	if (is.null(model[['F']])) { model[['F']] <- omxCreateMatrixF(model) }
+	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
+	if (is.null(model[['S']])) { model[['S']] <- createMatrixS(model) }
+	if (is.null(model[['F']])) { model[['F']] <- createMatrixF(model) }
 	if (arrows == 1) {
 		model[['A']] <- omxSetPath(model[['A']], from, to, path, default1)
 		model[['S']] <- omxClearPath(model[['S']], from, to)
@@ -191,9 +191,9 @@ removePathRAM <- function(model, path) {
 	from <- path$from
 	to <- path$to
 	arrows <- path$arrows
-	if (is.null(model[['A']])) { model[['A']] <- omxCreateMatrixA(model) }
-	if (is.null(model[['S']])) { model[['S']] <- omxCreateMatrixS(model) }
-	if (is.null(model[['F']])) { model[['F']] <- omxCreateMatrixF(model) }
+	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
+	if (is.null(model[['S']])) { model[['S']] <- createMatrixS(model) }
+	if (is.null(model[['F']])) { model[['F']] <- createMatrixF(model) }
 	if (arrows == 1) {
 		model[['A']] <- omxClearPath(model[['A']], from, to)
 	} else if (arrows == 2) {
@@ -233,7 +233,7 @@ omxClearPath <- function(mxMatrix, from, to) {
 	return(mxMatrix)
 }
 
-omxCreateMatrixA <- function(model) {
+createMatrixA <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
@@ -244,7 +244,7 @@ omxCreateMatrixA <- function(model) {
 	return(retval)
 }
 
-omxCreateMatrixS <- function(model) {
+createMatrixS <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
@@ -255,7 +255,7 @@ omxCreateMatrixS <- function(model) {
 	return(retval)
 }
 
-omxCreateMatrixF <- function(model) {
+createMatrixF <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(model@manifestVars, variables)

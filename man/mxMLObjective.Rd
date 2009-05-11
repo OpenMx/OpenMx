@@ -8,15 +8,13 @@
 }
 
 \usage{
-mxMLObjective(covariance, means = NA, name = NA)
+mxMLObjective(covariance, means = NA)
 }
 
 
 \arguments{
    \item{covariance}{A character string indicating the name of the expected covariance algebra.}
    \item{means}{An optional character string indicating the name of expected means algebra.}
-   \item{name}{An optional character string indicating the
-   		name of this object.}
 }
 
 \details{
@@ -46,10 +44,9 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
 
 observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3)), 
-	'cov', numObs = 150, name = 'observedCov')
+	'cov', numObs = 150)
 
-objective <- mxMLObjective(covariance = "expectedCov",
-	name = "objective")
+objective <- mxMLObjective(covariance = "expectedCov")
 
 model <- mxModel(A, D, expectedCov, objective, observedCov)
 }

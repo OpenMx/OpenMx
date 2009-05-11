@@ -27,7 +27,7 @@ setClass(Class = "MxNonNullData",
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
 
 setMethod("initialize", "MxNonNullData",
-	function(.Object, matrix, vector, type, numObs, name) {
+	function(.Object, matrix, vector, type, numObs, name = "data") {
 		.Object@matrix <- matrix
 		.Object@vector <- vector
 		.Object@type <- type
@@ -39,28 +39,24 @@ setMethod("initialize", "MxNonNullData",
 
 omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
-mxData <- function(matrix, type, vector = NA, numObs = NA, name = NA) {
-	if(is.na(name)) name <- omxUntitledName()
-	omxVerifyName(name)
+mxData <- function(matrix, type, vector = NA, numObs = NA) {
 	if(is.na(vector)) vector <- NA_real_
 	if(missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
 		stop("Matrix argument is neither a data frame nor a matrix")
-    }
-    if(missing(type) || (!is.character(type)) || (length(type) > 1) || 
+	}
+	if(missing(type) || (!is.character(type)) || (length(type) > 1) || 
 		is.na(match(type, omxDataTypes))) {
 		stop(paste("Type must be one of:", paste(omxDataTypes, collapse=" ")))
-    }
+	}
 	if(!is.vector(vector) || !is.numeric(vector)) {
 		stop("Vector argument must be of numeric vector type")
-    }
+	}
 	if(type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data")
-    }
+	}
 	if(type == "raw") {
 		numObs <- nrow(matrix)
-    }
-	if (typeof(name) != "character") {
-		stop("Name argument is not a string (the name of the objective function)")
 	}
-	return(new("MxNonNullData", matrix, vector, type, numObs, name))
+	lapply(dimnames(matrix)[[2]], omxVerifyName)
+	return(new("MxNonNullData", matrix, vector, type, numObs))
 }

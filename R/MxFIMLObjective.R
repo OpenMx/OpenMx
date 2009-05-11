@@ -22,8 +22,8 @@ setClass(Class = "MxFIMLObjective",
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, name, covariance, means, 
-				data = NA_real_, definitionVars = list()) {
+	function(.Object, covariance, means, data = as.numeric(NA),
+		definitionVars = list(), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
@@ -32,6 +32,19 @@ setMethod("initialize", "MxFIMLObjective",
 		return(.Object)
 	}
 )
+
+setMethod("omxObjFunNamespace", signature("MxFIMLObjective"), 
+	function(.Object, modelname, namespace) {
+		.Object@name <- omxIdentifier(modelname, .Object@name)
+		.Object@covariance <- omxConvertIdentifier(.Object@covariance, 
+			modelname, namespace)
+		.Object@means <- omxConvertIdentifier(.Object@means, 
+			modelname, namespace)
+		.Object@data <- omxConvertIdentifier(.Object@data, 
+			modelname, namespace)
+		return(.Object)
+})
+
 
 setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"), 
 	function(.Object, model, definitions) {
@@ -58,21 +71,19 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 			meansIndex <- means
 		}
 		dIndex <- omxLocateIndex(model, data, name)
-		return(new("MxFIMLObjective", name, covarianceIndex, meansIndex, dIndex, definitions))
+		.Object@covariance <- covarianceIndex
+		.Object@means <- meansIndex
+		.Object@data <- dIndex
+		return(.Object)
 })
 
-mxFIMLObjective <- function(covariance, means = NA, name = NA) {
-	if (is.na(name)) name <- omxUntitledName()
-	omxVerifyName(name)
-	if (typeof(name) != "character") {
-		stop("Name argument is not a string (the name of the objective function)")
-	}
+mxFIMLObjective <- function(covariance, means = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
 	if (!(is.na(means) || typeof(means) == "character")) {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
-	if(is.na(means)) means <- NA_real_
-	return(new("MxFIMLObjective", name, covariance, means))
+	if (is.na(means)) means <- as.numeric(NA)
+	return(new("MxFIMLObjective", covariance, means))
 }

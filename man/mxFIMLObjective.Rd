@@ -8,15 +8,13 @@
 }
 
 \usage{
-mxFIMLObjective(covariance, means = NA, name = NA)
+mxFIMLObjective(covariance, means = NA)
 }
 
 
 \arguments{
    \item{covariance}{A character string indicating the name of the expected covariance algebra.}
    \item{means}{An optional character string indicating the name of expected means algebra.}
-   \item{name}{An optional character string indicating the
-   		name of this object.}
 }
 
 \details{

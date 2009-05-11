@@ -24,7 +24,7 @@ library(OpenMx)
 covMatrix <- matrix( c(0.77642931, 0.39590663, 
                        0.39590663, 0.49115615), 
                     nrow = 2, ncol = 2, byrow = TRUE)
-theData <- mxData(covMatrix, 'cov', numObs = 100, name = 'covariance matrix')
+theData <- mxData(covMatrix, 'cov', numObs = 100)
 
 ############################################################
 # Define the model matrices
@@ -65,7 +65,7 @@ theBounds <- mxBounds(c("apple", "banana"), 0.001, NA)
 # Define the model
 
 modelAlt <- mxModel(theAMatrix, theSMatrix, theFMatrix, theBounds,
-                    mxRAMObjective(name="ramObjective"), theData)
+                    mxRAMObjective(), theData)
 
 print(modelAlt)
 

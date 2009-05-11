@@ -63,13 +63,13 @@ mxConstraint <- function(alg1, relation, alg2, name = NA) {
 	return(new("MxConstraint", name, alg1, alg2, relation))
 }
 
-omxConvertConstraints <- function(flatModel) {
+convertConstraints <- function(flatModel) {
 	return(lapply(flatModel@constraints, function(x) {
-		omxConvertSingleConstraint(x, flatModel)}))
+		convertSingleConstraint(x, flatModel)}))
 }
 
 
-omxConvertSingleConstraint <- function(constraint, flatModel) {
+convertSingleConstraint <- function(constraint, flatModel) {
 	index1 <- omxLocateIndex(flatModel, constraint@alg1,
 		constraint@name)
 	index2 <- omxLocateIndex(flatModel, constraint@alg2,

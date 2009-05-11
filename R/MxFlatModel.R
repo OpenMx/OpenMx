@@ -32,9 +32,30 @@ setMethod("initialize", "MxFlatModel",
 		.Object@datasets <- datasets
 		return(.Object)
 	}
-)	
+)
 
-omxGenerateDefinitionNames <- function(datasets) {
+setMethod("[[", "MxFlatModel",
+	function(x, i, j, ..., drop = FALSE) {
+		return(flatExtractMethod(x, i))
+	}
+)
+
+setReplaceMethod("[[", "MxFlatModel",
+	function(x, i, j, value) {
+		return(flatReplaceMethod(x, i, value))
+	}
+)
+
+flatExtractMethod <- function(model, index) {
+	return(namespaceSearch(model, model@name, index))
+}
+
+flatReplaceMethod <- function(model, index, value) {
+	return(namespaceSearchReplace(model, model@name, index, value))
+}
+
+
+generateDefinitionLocations <- function(datasets) {
 	nameList <- lapply(datasets, 
 		function(x) { dimnames(x@matrix)[[2]] })
 	result <- list()
@@ -42,8 +63,9 @@ omxGenerateDefinitionNames <- function(datasets) {
 		for(i in 1:length(nameList)) {
 			colNames <- nameList[[i]]
 			if(length(colNames) > 0) {
+				dataName <- datasets[[i]]@name
 				for(j in 1:length(colNames)) {
-					name <- colNames[[j]]
+					name <- omxIdentifier(dataName, colNames[[j]])
 					result[[name]] <- c(i - 1, j - 1)
 				}
 			}	
@@ -52,16 +74,15 @@ omxGenerateDefinitionNames <- function(datasets) {
 	return(result)
 }
 
-omxCheckFreeVariables <- function(model, defLocations) {
-	if(length(model@matrices) > 0) {
+omxCheckFreeVariables <- function(flatModel, namespace) {
+	if(length(flatModel@matrices) > 0) {
 		startVals <- list()
 		freeVars <- list()
 		fixedVars <- list()
 		bounds <- list()
-		defNames <- names(defLocations)
-		for(i in 1:length(model@matrices)) {
-			result <- omxCheckFreeVariablesHelper(model@matrices[[i]], startVals, 
-				freeVars, fixedVars, bounds, defNames)
+		for(i in 1:length(flatModel@matrices)) {
+			result <- checkFreeVariablesHelper(flatModel@matrices[[i]], startVals, 
+				freeVars, fixedVars, bounds)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
@@ -70,8 +91,8 @@ omxCheckFreeVariables <- function(model, defLocations) {
 	}
 }
 
-omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
-		fixedVars, bounds, defNames) {
+checkFreeVariablesHelper <- function(matrix, startVals, freeVars,
+		fixedVars, bounds) {
 	labels <- matrix@labels
 	free <- matrix@free
 	values <- matrix@values
@@ -89,7 +110,7 @@ omxCheckFreeVariablesHelper <- function(matrix, startVals, freeVars,
 			value <- values[[i]]
 			lbound <- lbounds[[i]]
 			ubound <- ubounds[[i]]
-			if (label %in% defNames) {
+			if (omxIsDefinitionVariable(label)) {
 			} else if (isFree) {
 				if (label %in% fixedVars) {
 					stop(paste("The label", omxQuotes(label),

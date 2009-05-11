@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxRAMObjective(aMatrix = "A", sMatrix = "S", fMatrix = "F", name = NA)
+mxRAMObjective(aMatrix = "A", sMatrix = "S", fMatrix = "F")
 }
 
 
@@ -16,8 +16,6 @@ mxRAMObjective(aMatrix = "A", sMatrix = "S", fMatrix = "F", name = NA)
    \item{aMatrix}{A character string indicating the name of the 'A' matrix.}
    \item{sMatrix}{A character string indicating the name of the 'S' matrix.}
    \item{fMatrix}{A character string indicating the name of the 'F' matrix.}
-   \item{name}{An optional character string indicating the
-   		name of this object.}
 }
 
 \details{
@@ -53,7 +51,7 @@ The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
    F <- mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2)
 
    # Create a RAM objective with default A, S, F matrix names
-   objective <- mxRAMObjective(name = "objective")
+   objective <- mxRAMObjective()
    
    model <- mxModel(A, S, F, objective)
 

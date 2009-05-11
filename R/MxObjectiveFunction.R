@@ -15,7 +15,7 @@
 
 
 #
-# Objective Functions are for optimizing!
+# The virtual base class for all objective functions
 #
 setClass(Class = "MxBaseObjective", 
 	representation = representation(
@@ -24,6 +24,11 @@ setClass(Class = "MxBaseObjective",
 		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
+
+setGeneric("omxObjFunNamespace", 
+	function(.Object, modelname, namespace) {
+	return(standardGeneric("omxObjFunNamespace"))
+})
 
 setGeneric("omxObjFunConvert", 
 	function(.Object, model, definitions) {

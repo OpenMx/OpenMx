@@ -16,42 +16,40 @@
 
 mxRun <- function(model) {
 	cat("Running", model@name, "\n")
-	omxCheckNamespace(model)
+	namespace <- omxGenerateNamespace(model)
+	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
-	dshare <- omxShareData(model)
+	dshare <- shareData(model)
 	independents <- omxGetIndependents(dshare)
 	independents <- sfLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(model, independents)
-	flatModel <- omxFlattenModel(depModel)
+	flatModel <- omxFlattenModel(depModel, namespace)
 	data <- flatModel@datasets
-	defNames <- omxGenerateDefinitionNames(data)
-	omxCheckFreeVariables(flatModel, defNames)
-	parameters <- omxGenerateParameterList(flatModel, defNames)
-	definitions <- omxGenerateDefinitionList(flatModel, defNames)
-	matrices <- omxGenerateSimpleMatrixList(flatModel)
-	algebras <- omxGenerateAlgebraList(flatModel)
-	startVals <- omxGenerateValueList(flatModel, matrices, defNames)
-	objectives <- omxConvertObjectives(flatModel, definitions)
-	algebras <- omxGenerateAlgebraReferences(flatModel, algebras, objectives)
-	constraints <- omxConvertConstraints(flatModel)
+	omxCheckFreeVariables(flatModel, namespace)
+	parameters <- generateParameterList(flatModel)
+	definitions <- generateDefinitionList(flatModel)
+	matrices <- generateSimpleMatrixList(flatModel)
+	algebras <- generateAlgebraList(flatModel)
+	startVals <- generateValueList(flatModel, matrices, parameters)
+	objectives <- convertObjectives(flatModel, definitions)
+	algebras <- generateAlgebraReferences(flatModel, algebras, objectives)
+	constraints <- convertConstraints(flatModel)
 	state <- c()
-	objective <- omxObjectiveIndex(flatModel)
+	objective <- getObjectiveIndex(flatModel)
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
-		algebras, data, state, PACKAGE="OpenMx")
-	model <- omxUpdateModelValues(model, 
-		flatModel, parameters, output$estimate)
-	model <- omxUpdateModelAlgebras(model, 
-		flatModel, output$algebras)
-	model@output <- omxComputeOptimizationStatistics(flatModel, parameters, output)
+		algebras, data, state, PACKAGE = "OpenMx")
+	model <- updateModelValues(model, flatModel, parameters, output$estimate)
+	model <- updateModelAlgebras(model, flatModel, output$algebras)
+	model@output <- computeOptimizationStatistics(flatModel, parameters, output)
 	return(model)
 }
 
-omxComputeOptimizationStatistics <- function(flatModel, parameters, output) {
+computeOptimizationStatistics <- function(flatModel, parameters, output) {
 	names(output$estimate) <- names(parameters)
 	objective <- flatModel@objective
-	if(!(is.null(objective) || is(objective,"MxAlgebraObjective"))) {
+	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
 		output[['AIC']] <- output$minimum + 2 * length(parameters)
 #		output[['BIC']] <- output$minimum + length(parameters) * log()
 	}
