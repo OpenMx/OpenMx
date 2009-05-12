@@ -254,7 +254,7 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatr
 	/* For now, we'll be content with 2 args. */
 	
 	omxMatrix *om;
-	omxAlgebra *oa = (omxAlgebra*) R_alloc(sizeof(omxAlgebra), 1);
+	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
 	
 	om = omxInitAlgebra(oa);

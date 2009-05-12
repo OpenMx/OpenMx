@@ -74,6 +74,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"),
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex
+		.Object@definitionVars <- definitions
 		return(.Object)
 })
 

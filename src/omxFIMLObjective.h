@@ -179,10 +179,9 @@ unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
-	SEXP nextMatrix, itemList, nextItem;
+	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
 	int nextDef, index, data, column;
-	int *items;
-	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(sizeof(omxFIMLObjective), 1);
+	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 //	if(ISNA(nextMatrix)) {
@@ -195,33 +194,42 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->cov = omxNewMatrixFromMxMatrixPtr(nextMatrix);
 	UNPROTECT(1);
 	
+	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
-	index = round(REAL(nextMatrix)[0]);
+	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("matrix")));
 	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix);
 	UNPROTECT(3);
 	
+	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
-	newObj->defVars = (omxDefinitionVar *) R_alloc(sizeof(omxDefinitionVar), newObj->numDefs);
+	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
+	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
-		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 1));
-		newObj->defVars[nextDef].data = REAL(nextItem)[0];
-		PROTECT(nextItem = VECTOR_ELT(nextMatrix, 2));
-		newObj->defVars[nextDef].column = REAL(nextItem)[0];
-		UNPROTECT(2);
+		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
+		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
+		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", (int) REAL(dataSource)[0]); }
+		newObj->defVars[nextDef].data = (int) REAL(dataSource)[0];
+		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
+		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", (int) REAL(columnSource)[0]); }
+		newObj->defVars[nextDef].column = (int) REAL(columnSource)[0];
+		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
-		newObj->defVars[nextDef].matrices = (int *) R_alloc(sizeof(int), length(itemList) - 2);
-		for(index = 3; index < length(itemList); index++) {
-			PROTECT(nextItem = VECTOR_ELT(nextMatrix, index));
-			items = INTEGER(nextItem);
-			newObj->defVars[nextDef].location[index-3] = omxLocationOfMatrixElement(matrixList[items[0]], items[1], items[2]);
-			newObj->defVars[nextDef].matrices[index-3] = items[0];
-			UNPROTECT(1);
+		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		for(index = 2; index < length(itemList); index++) {
+			PROTECT(nextItem = VECTOR_ELT(itemList, index));
+			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
+				matrixList[(int) REAL(nextItem)[0]], 
+				(int) REAL(nextItem)[1], (int) REAL(nextItem)[2]);
+			newObj->defVars[nextDef].matrices[index-2] = (int) REAL(nextItem)[0];
+			UNPROTECT(1); // unprotect nextItem
 		}
+		UNPROTECT(1); // unprotect itemList
 	}
-	UNPROTECT(1);
+	UNPROTECT(1); // unprotect nextMatrix
 
 	/* Temporary storage for calculation */
 	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE);
@@ -232,7 +240,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->argStruct = (void*) newObj;
-	
+	if(OMX_DEBUG) {Rprintf("Finished import of FIML objective function.\n"); }	
 }
 
 #endif /* _OMX_FIML_OBJECTIVE_ */

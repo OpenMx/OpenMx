@@ -24,7 +24,7 @@ y2<-rnorm(50)
 x<-c(x1,x2)
 y<-c(y1,y2)
 def<-rep(c(1,0),each=50)
-data<-mxData(data.frame(x,y,def), type="raw")
+data<-mxData(as.matrix(data.frame(x,y,def)), type="raw")
 
 #define the model: we'll just use an S matrix and let A and F drop out
 #as currently specified, this would fit a zero df model to a 2x2 covariance matrix
@@ -33,9 +33,10 @@ S<-mxMatrix("Symm", values=c(1,.5,1), free=TRUE, nrow=2, ncol=2, name="S")
 #define the model, including a FIML objective function, which will optimize the matrix S
 model<-mxModel("model", mxFIMLObjective("S"), data, S)
 
-#specify a definition variable
-#as.list function is required
-model@objective@definitionVars<-as.list("def")
+#This doesn't work, but would specifying the covariance between x and y to be equal to def look
+#something like this?
+model[["S"]]@labels[2,1]<-"data.def"
+model[["S"]]@labels[1,2]<-"data.def"
 
 #run the model, which does not include the definition variable
 #(presumably, specifying "def" as a definition variable removes it from the covariance algebra)
@@ -44,15 +45,6 @@ run<-mxRun(model)
 #REAL() can only be applied to a 'numeric', not a 'list'
 #Error in args(REAL) : no function to return from, jumping to top level
 
-
-#This doesn't work, but would specifying the covariance between x and y to be equal to def look
-#something like this?
-model[["S"]]@values[2,1]<-model@data$def
-model[["S"]]@values[1,2]<-model@data$def
-
-#or, with the new namespace ideas
-model[["S"]]@values[2,1]<-model.data.def
-model[["S"]]@values[1,2]<-model.data.def
 
 #Questions:
 #1. Does specifying the variable "def" in the "definitionVars" slot define a definition variable,

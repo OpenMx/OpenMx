@@ -39,7 +39,6 @@ omxDisplayModel <- function(model, expand = FALSE) {
 	if (is.null(data)) {
 		cat("data : NULL\n")
 	} else {
-		cat("data :", omxQuotes(data@name), "\n")
 		cat("data matrix :", nrow(data@matrix), 
 			"x", ncol(data@matrix), "\n")
 		if(is.na(data@vector)) {

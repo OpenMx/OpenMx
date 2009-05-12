@@ -60,7 +60,7 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	SEXP newptr;
 	
-	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(sizeof(omxAlgebraObjective), 1);
+	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(1, sizeof(omxAlgebraObjective));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxNewMatrixFromMxMatrixPtr(newptr);
 	if(OMX_DEBUG) {Rprintf("Algebra Objective Bound to Algebra %d", newObj->algebra);}

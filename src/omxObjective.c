@@ -74,7 +74,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 
 	const char *objType;
 	SEXP objectiveClass;
-	omxObjective *obj = (omxObjective*) R_alloc(sizeof(omxObjective), 1);
+	omxObjective *obj = (omxObjective*) R_alloc(1, sizeof(omxObjective));
 
 	/* Register Objective and Matrix with each other */
 	obj->myMatrix = om;

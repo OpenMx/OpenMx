@@ -59,7 +59,7 @@ void omxCallRObjective(omxObjective *oo) {	// TODO: Figure out how to give acces
 
 void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
-	omxRObjective *newObj = (omxRObjective*) R_alloc(sizeof(omxRObjective), 1);
+	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
 	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objective")));
 	PROTECT(newObj->env = GET_SLOT(rObj, install("env")));
 	

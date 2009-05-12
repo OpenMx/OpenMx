@@ -172,7 +172,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
 	numMats = length(matList);
-	matrixList = (omxMatrix**) R_alloc(sizeof(omxMatrix*), length(matList));
+	matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 	
 	for(k = 0; k < length(matList); k++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// TODO: Find out if this duplicates the matrix.
@@ -189,7 +189,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	numAlgs = length(algList);
 	l = 1;
 	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", numAlgs, length(algList)); }
-	algebraList = (omxMatrix**) R_alloc(sizeof(omxMatrix*), numAlgs);
+	algebraList = (omxMatrix**) R_alloc(numAlgs, sizeof(omxMatrix*));
 
 	for(int j = 0; j < numAlgs; j++) {
 		algebraList[j] = omxInitMatrix(NULL, 0,0, TRUE);
@@ -223,13 +223,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	/* Process Free Var List */
 	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	omxMatrix dm;
-	freeVarList = (omxFreeVar*) R_alloc (sizeof ( omxFreeVar ), n);				// Data for replacement of free vars
+	freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
 		int numLocs = length(nextVar) - 2;
 		freeVarList[k].numLocations = numLocs;
-		freeVarList[k].location = (double**) R_alloc(sizeof(double*), numLocs);
-		freeVarList[k].matrices = (int*) R_alloc(sizeof(int), numLocs);
+		freeVarList[k].location = (double**) R_alloc(numLocs, sizeof(double*));
+		freeVarList[k].matrices = (int*) R_alloc(numLocs, sizeof(int));
 		
 		/* Lower Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
@@ -267,7 +267,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	omxMatrix *arg1, *arg2;
 	numCons = length(constraints);
 	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", numCons); }
-	conList = (omxConstraint*) R_alloc(sizeof(omxConstraint), numCons);
+	conList = (omxConstraint*) R_alloc(numCons, sizeof(omxConstraint));
 	ncnln = 0;
 	for(k = 0; k < numCons; k++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, k));

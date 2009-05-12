@@ -151,7 +151,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	int nextDef, index, data, column;
 	int *items, info=0;
 	double det=1.0;
-	omxMLObjective *newObj = (omxMLObjective*) R_alloc(sizeof(omxMLObjective), 1);
+	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	if(!R_FINITE(REAL(nextMatrix)[0])) {
@@ -169,7 +169,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
-	index = round(REAL(nextMatrix)[0]);
+	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("matrix")));
 	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt);

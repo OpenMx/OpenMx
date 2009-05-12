@@ -154,7 +154,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	int l, k;
 	
-	omxRAMObjective *newObj = (omxRAMObjective*) R_alloc(sizeof(omxRAMObjective), 1);
+	omxRAMObjective *newObj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	
 	if(OMX_DEBUG) { Rprintf("Using RAM objective function.\n"); }
 
@@ -164,7 +164,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	int index;
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("data")));
-	index = round(REAL(newMatrix)[0]);
+	index = (int) REAL(newMatrix)[0];
 	if(OMX_DEBUG) { Rprintf("%d.\n", index); }
 	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(newMatrix = GET_SLOT(newMatrix, install("matrix")));
