@@ -56,7 +56,7 @@ void omxDestroyMLObjective(omxObjective *oo) {
 
 void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
+	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
 	SEXP matrixDims;
@@ -74,7 +74,9 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd;
 
-	scov 		= ((omxMLObjective*)oo->argStruct)->observedCov;			// Locals, for readability.  Compiler should cut through this.
+
+    /* Locals for readability.  Compiler should cut through this. */
+	scov 		= ((omxMLObjective*)oo->argStruct)->observedCov;
 	smeans		= ((omxMLObjective*)oo->argStruct)->observedMeans;
 	cov			= ((omxMLObjective*)oo->argStruct)->expectedCov;
 	means 		= ((omxMLObjective*)oo->argStruct)->expectedMeans;
@@ -85,6 +87,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	int* lwork = &(((omxMLObjective*)oo->argStruct)->lwork);
 	int ipiv[scov->rows];
 
+    /* Recompute and recopy */
 	omxRecomputeMatrix(cov);							// We assume data won't need to be recomputed
 	omxCopyMatrix(localCov, cov);						// But expected cov is destroyed in inversion
 	
@@ -93,33 +96,41 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		omxPrintMatrix(localCov, "Implied Covariance Is");
 	}
 	
+	/* Calculate |expected| */
+	
 	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info > 0) {
-		error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
+	//	error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
 	}
 
-	for(info = 0; info < localCov->cols; info++) { 		// |cov| is the product of the diagonal elements of U from the LU factorization.
+	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the product of the diagonal elements of U from the LU factorization.
 		det *= localCov->data[info+localCov->rows*info];	// Normally, we'd need to worry about transformations made during LU, but
-	}									// we're safe here because the determinant of a covariance matrix > 0.	// TODO: Prove this for negative estimated variances.
-
+	}														// we're safe here because the determinant of a covariance matrix > 0.	
+															// TODO: Prove this for negative estimated variances.
+	if(det <= 0) error("Non-positive-definite.\n");
 	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 	
+	/* Calculate Expected^(-1) */
 	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
 	
 	if(OMX_DEBUG) {omxPrintMatrix(cov, "Expected Covariance Matrix:");}
 	if(OMX_DEBUG) {omxPrintMatrix(localCov, "Inverted Matrix:");}
 	
+	/* Calculate Observed * expected */
+	
 	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", *(scov->majority), *(localCov->majority), (scov->rows), (localCov->cols), (scov->cols), oned, scov->data, (localCov->leading), localCov->data, (localCov->leading), zerod, localCov->data, (localCov->leading));}
 	
 	F77_CALL(dgemm)((scov->majority), (localCov->majority), &(scov->rows), &(localCov->cols), &(scov->cols), &oned, scov->data, &(localCov->leading), localCov->data, &(localCov->leading), &zerod, localProd->data, &(localCov->leading));
 
+    /* And get the trace of the result */
+
 	for(info = 0; info < localCov->cols; info++) {
-		sum += localProd->data[info*localProd->cols + info];
+		sum += localProd->data[info*localCov->cols + info];
 	}
 	
 //	for(info = 0; info < (localCov->cols * localCov->rows); info++) {
@@ -131,7 +142,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) {omxPrintMatrix(localProd, "Product Matrix:");}
 	if(OMX_DEBUG) {Rprintf("k is %d and Q is %f.\n", scov->rows, Q);}
 	
-	oo->myMatrix->data[0] = -(sum + det - scov->rows - Q);
+    oo->myMatrix->data[0] = fabs(sum + det - scov->rows - Q);
 
 	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (was: %f).\n", oo->myMatrix->data[0], (sum + det)); }
 
@@ -205,7 +216,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	for(info = 0; info < newObj->localCov->cols; info++) { 
 		det *= newObj->localCov->data[info+newObj->localCov->rows*info];
-	}									
+	}
 
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
 	newObj->logDetObserved = log(fabs(det));
