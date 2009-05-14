@@ -61,8 +61,7 @@ setMethod("omxVerifyMatrix", "DiagMatrix",
 		verifySquare(.Object)
 		values <- .Object@values
 		free <- .Object@free
-		if(suppressWarnings(nnzero(values - diag(diag(values,
-			nrow = nrow(values), ncol = ncol(values))))) > 0)
+		if(nnzero(values[row(values) != col(values)]) > 0)
 			{ stop(paste("Values matrix of", .Object@name, "is not a diagonal matrix.")) }
 		if(any(free[row(free) != col(free)])) {
 			{ stop(paste("Free matrix of", .Object@name, "has TRUE on non-diagonal.")) }
