@@ -144,10 +144,20 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	
 	/* Calculate Observed * expected */
 	
-	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", *(scov->majority), *(localCov->majority), (scov->rows), (localCov->cols), (scov->cols), oned, scov->data, (localCov->leading), localCov->data, (localCov->leading), zerod, localCov->data, (localCov->leading));}
+	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", *(scov->majority), 
+						   *(localCov->majority), (scov->rows), (localCov->cols),
+						   (scov->cols), oned, scov->data, (localCov->leading), 
+						   localCov->data, (localCov->leading), zerod, localCov->data, (localCov->leading));}
+
+
+	// Stop gcc from issuing a warning
+	int majority = *(localCov->majority) == 'n' ? scov->rows : scov->cols;
 	
 	/*  TODO:  Make sure leading edges are being appropriately calculated, and sub them back into this */
-	F77_CALL(dgemm)((scov->majority), (localCov->majority), &(scov->rows), &(localCov->cols), &(scov->cols), &oned, scov->data, &(*(localCov->majority)=='n'?scov->rows:scov->cols), localCov->data, &(*(localCov->majority)=='n'?scov->rows:scov->cols), &zerod, localProd->data, &(localProd->leading));
+	F77_CALL(dgemm)((scov->majority), (localCov->majority), &(scov->rows), &(localCov->cols), 
+					&(scov->cols), &oned, scov->data, &(majority), 
+					localCov->data, &(majority),
+					&zerod, localProd->data, &(localProd->leading));
 
     /* And get the trace of the result */
 

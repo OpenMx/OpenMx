@@ -4,6 +4,12 @@ AC_CONFIG_AUX_DIR("inst/tools")
 
 npsol_library='inst/npsol'
 
+: ${R_HOME=‘R RHOME‘} 
+if test -z "${R_HOME}"; then 
+echo "could not determine R_HOME" 
+exit 1 
+fi 
+
 # check for gcc compiler
 AC_PROG_CC
 AC_MSG_CHECKING(whether gcc is installed)
@@ -49,4 +55,7 @@ AC_CHECK_FILE([${npsol_file}],,[AC_MSG_ERROR([npsol library not found])])
 npsol_dir="../${npsol_library}"
 AC_SUBST(npsol_dir)
 AC_CONFIG_FILES([src/Makevars])
+
+AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h])
+AC_CONFIG_COMMANDS([src/omxSymbolTable.c],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c])
 AC_OUTPUT
