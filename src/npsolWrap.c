@@ -183,6 +183,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 				matrixList[k], matrixList[k]->rows, matrixList[k]->cols);
 		}
 		UNPROTECT(2); // nextLoc and nextMat
+		//TODO: The remaining elements the nextLoc list are (row, column, matrix/algebra pointer) tuples
 	}
 
 	/* Process Algebras Here */
@@ -196,15 +197,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	}
 	
 	for(int j = 0; j < numAlgs; j++) {
-		PROTECT(nextLoc = VECTOR_ELT(algList, j));
-		PROTECT(nextAlg = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the algebra/objective
+		PROTECT(nextAlg = VECTOR_ELT(algList, j));		// The next algebra or objective to process
 		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, algebraList + j); }
 		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
 			omxFillMatrixFromMxObjective(algebraList[j], nextAlg, data);
 		} else {															// This is an algebra spec.
 			omxFillMatrixFromMxAlgebra(algebraList[j], nextAlg);
 		}
-		UNPROTECT(2);	// nextLoc and nextAlg
+		UNPROTECT(1);	// nextAlg
 	}
 	
 	/* Process Objective Function */

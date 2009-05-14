@@ -33,7 +33,7 @@ mxRun <- function(model) {
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(flatModel, matrices, parameters)
 	objectives <- convertObjectives(flatModel, definitions)
-	algebras <- generateAlgebraReferences(flatModel, algebras, objectives)
+	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
@@ -48,6 +48,11 @@ mxRun <- function(model) {
 
 computeOptimizationStatistics <- function(flatModel, parameters, output) {
 	names(output$estimate) <- names(parameters)
+	if(output$status[[1]] != 0) {
+		warning(paste("Optimizer did not coverge.",
+				"Returned a status of:", 
+				output$status[[1]]), call. = FALSE)
+	}
 	objective <- flatModel@objective
 	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
 		output[['AIC']] <- output$minimum + 2 * length(parameters)

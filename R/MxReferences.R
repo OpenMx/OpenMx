@@ -14,7 +14,8 @@
 #   limitations under the License.
 
 generateMatrixReferences <- function(model) {
-	matnames  <- names(model@matrices)
+	matnames <- names(model@matrices)
+	algnames  <- c(names(model@algebras), names(model@objectives)) 
 	retval <- replicate(length(matnames), list())
 	names(retval) <- matnames
 	if (length(model@matrices) == 0) {
@@ -28,53 +29,16 @@ generateMatrixReferences <- function(model) {
 		if (any(select == TRUE)) {
 			parameterNames <- labels[select]
 			rows <- row(labels)[select]
-			cols <- col(labels)[select]			
+			cols <- col(labels)[select]
 			for (j in 1:length(parameterNames)) {
-				parameterName <- parameterNames[j]
-				row <- rows[j] - 1
-				col <- cols[j] - 1
-				if (parameterName %in% matnames) {
-					len <- length(retval[[parameterName]])
-					retval[[parameterName]][[len + 1]] <- c(i - 1, row, col)
-				}
-			}
-		}
-	}
-	return(retval)
-}
-
-generateAlgebraReferences <- function(model, algebras, objectives) {
-	values <- c(algebras, objectives)
-	references <- generateAlgebraReferencesHelper(model)
-	retval <- mapply(function(x,y) { c(list(x), y) }, 
-		values, references, SIMPLIFY = FALSE)
-	return(retval)
-}
-
-generateAlgebraReferencesHelper <- function(model) {
-	matnames  <- names(model@matrices)
-	algnames  <- c(names(model@algebras), names(model@objectives)) 
-	retval <- replicate(length(algnames), list())
-	names(retval) <- algnames
-	if (length(model@matrices) == 0) {
-		return(retval)
-	}
-	for (i in 1:length(model@matrices)) {
-		matrix <- model@matrices[[i]]
-		name <- matrix@name
-		labels <- matrix@labels
-		select <- !is.na(labels)
-		if (any(select == TRUE)) {
-			parameterNames <- labels[select]
-			rows <- row(labels)[select]
-			cols <- col(labels)[select]			
-			for (j in 1:length(parameterNames)) {
-				parameterName <- parameterNames[j]
-				row <- rows[j] - 1
-				col <- cols[j] - 1
-				if (parameterName %in% algnames) {
-					len <- length(retval[[parameterName]])
-					retval[[parameterName]][[len + 1]] <- c(i - 1, row, col)
+				parameterName <- parameterNames[[j]]
+				if ((parameterName %in% matnames) ||
+					(parameterName %in% algnames)) {
+					row <- rows[j] - 1
+					col <- cols[j] - 1
+					index <- omxLocateIndex(model, parameterName, name)
+					len <- length(retval[[name]])
+					retval[[name]][[len + 1]] <- c(row, col, index)
 				}
 			}
 		}
