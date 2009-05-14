@@ -4,7 +4,7 @@ AC_CONFIG_AUX_DIR("inst/tools")
 
 npsol_library='inst/npsol'
 
-: ${R_HOME=‘R RHOME‘} 
+: ${R_HOME=`R RHOME`} 
 if test -z "${R_HOME}"; then 
 echo "could not determine R_HOME" 
 exit 1 
