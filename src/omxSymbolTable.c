@@ -21,8 +21,9 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxSymbolTable.h"
+#include "omxAlgebraFunctions.h"
 	
-const omxAlgebraTableEntry omxAlgebraSymbolTable[14] = {
+const omxAlgebraTableEntry omxAlgebraSymbolTable[omxSymbolTableLength] = {
 	{0, 	"*SPECIAL*", 				"*NONE*", 	0, 		(void*)NULL},
 	{1, 	"Inversion",				"solve", 	1, 		(void*)&omxMatrixInvert       },
 	{2, 	"Transposition", 			"t",		1, 		(void*)&omxMatrixTranspose    },

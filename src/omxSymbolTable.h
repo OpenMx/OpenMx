@@ -14,16 +14,15 @@
  *  limitations under the License.
  */
 
+#ifndef _OMX_SYMBOL_TABLE_
+#define _OMX_SYMBOL_TABLE_ TRUE
+
 #include <R.h> 
 #include <Rinternals.h> 
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-#include "omxAlgebraFunctions.h"
-
-#ifndef _OMX_SYMBOL_TABLE_
-#define _OMX_SYMBOL_TABLE_ TRUE
 
 typedef struct {
 
@@ -35,7 +34,9 @@ typedef struct {
 
 } omxAlgebraTableEntry;
 
-const omxAlgebraTableEntry omxAlgebraSymbolTable[14];
+#define omxSymbolTableLength 14
+
+const omxAlgebraTableEntry omxAlgebraSymbolTable[omxSymbolTableLength];
 
 
 #endif
