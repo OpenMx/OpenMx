@@ -52,12 +52,10 @@ omxDisplayModel <- function(model, expand = FALSE) {
 	objective <- model@objective
 	if (is.null(objective)) {
 		objectiveType <- "NULL"
-		objectiveName <- ""
 	} else {
 		objectiveType <- class(objective)[[1]]
-		objectiveName <- omxQuotes(objective@name)
 	}
-	cat("objective :", objectiveType, objectiveName, '\n')
+	cat("objective :", objectiveType, '\n')
 	cat("independent :", model@independent, '\n')
 	cat("output :", length(model@output) > 0, '\n')
 	if(expand) {

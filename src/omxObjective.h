@@ -52,6 +52,7 @@ struct omxObjective {					// An objective
 	/* Fields unique to Objective Functions */
 	void (*initFun)(omxObjective *oo, SEXP rObj, SEXP dataList);			// Wrapper for initialization function (probably not needed)
 	void (*destructFun)(omxObjective* oo);									// Wrapper for the destructor object
+	void (*repopulateFun)(omxObjective* oo, double* x, int n);				// To repopulate any data stored in the objective function
 	void (*objectiveFun)(omxObjective* oo);									// Wrapper for the objective function itself
 	unsigned short int (*needsUpdateFun)(omxObjective* oo);					// To calculate recomputation
 	void (*gradientFun)(omxObjective* oo, double* grad);					// To calculate gradient

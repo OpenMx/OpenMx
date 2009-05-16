@@ -31,6 +31,6 @@ setGeneric("omxObjFunNamespace",
 })
 
 setGeneric("omxObjFunConvert", 
-	function(.Object, model, definitions) {
+	function(.Object, flatModel, model) {
 	return(standardGeneric("omxObjFunConvert"))	
 })

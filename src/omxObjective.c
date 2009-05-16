@@ -95,22 +95,27 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 		obj->initFun = omxInitRAMObjective;
 		obj->objectiveFun = omxCallRAMObjective;
 		obj->destructFun = omxDestroyRAMObjective;
+		obj->repopulateFun = NULL;
 	} else if(strncmp(objType, "MxFIMLObjective", 15) == 0) {
 		obj->initFun = omxInitFIMLObjective;
 		obj->objectiveFun = omxCallFIMLObjective;
 		obj->destructFun = omxDestroyFIMLObjective;
+		obj->repopulateFun = NULL;
 	} else if(strncmp(objType, "MxAlgebraObjective", 18) == 0) {
 		obj->initFun = omxInitAlgebraObjective;
 		obj->objectiveFun = omxCallAlgebraObjective;
 		obj->destructFun = omxDestroyAlgebraObjective;
+		obj->repopulateFun = NULL;
 	} else if(strncmp(objType, "MxRObjective", 12) == 0) {
 		obj->initFun = omxInitRObjective;
 		obj->objectiveFun = omxCallRObjective;
 		obj->destructFun = omxDestroyRObjective;
+		obj->repopulateFun = omxRepopulateRObjective;
 	} else if(strncmp(objType, "MxMLObjective", 12) == 0) {
 		obj->initFun = omxInitMLObjective;
 		obj->objectiveFun = omxCallMLObjective;
 		obj->destructFun = omxDestroyMLObjective;
+		obj->repopulateFun = NULL;
 	} else {
 		error("Objective function type %s not implemented on this kernel.", objType);
 	}

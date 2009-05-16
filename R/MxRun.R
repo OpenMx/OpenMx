@@ -32,7 +32,7 @@ mxRun <- function(model) {
 	matrices <- generateSimpleMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(flatModel, matrices, parameters)
-	objectives <- convertObjectives(flatModel, definitions)
+	objectives <- convertObjectives(flatModel, model)
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	state <- c()

@@ -5,3 +5,4 @@ SimpleCovarianceAlt	An alternative method of writing the SimpleCovariance demo
 SimpleFIML	Using the backend to perform FIML optimization
 SimpleAlgebra	A simple example of using algebra statements
 SimpleConstraint	A simple example of using constraints
+SimpleRObjective	A simple example of using the R objective function

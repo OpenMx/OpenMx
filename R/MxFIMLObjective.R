@@ -46,35 +46,35 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 })
 
 
-setMethod("omxObjFunConvert", signature("MxFIMLObjective", "MxFlatModel"), 
-	function(.Object, model, definitions) {
+setMethod("omxObjFunConvert", signature("MxFIMLObjective"), 
+	function(.Object, flatModel, model) {
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
 		data <- .Object@data
-		covarianceIndex <- omxLocateIndex(model, covariance, name)
+		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
 			msg <- paste("The MxFIMLObjective", omxQuotes(name),
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(flatModel@name))
 			stop(msg, call.=FALSE)
 		}
-		if(model@datasets[[data]]@type != 'raw') {
+		if(flatModel@datasets[[data]]@type != 'raw') {
 			msg <- paste("The dataset associated with MxFIMLObjective", 
 				omxQuotes(name), "in model", 
-				omxQuotes(model@name), "is not raw data.")
+				omxQuotes(flatModel@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
 		if(!is.na(means)) {
-			meansIndex <- omxLocateIndex(model, means, name)
+			meansIndex <- omxLocateIndex(flatModel, means, name)
 		} else {
 			meansIndex <- means
 		}
-		dIndex <- omxLocateIndex(model, data, name)
+		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex
-		.Object@definitionVars <- definitions
+		.Object@definitionVars <- generateDefinitionList(flatModel)
 		return(.Object)
 })
 

@@ -14,45 +14,47 @@
 #   limitations under the License.
 
 
-setClass(Class = "MxAlgebraObjective",
+setClass(Class = "MxRObjective",
 	representation = representation(
-		algebra = "MxCharOrNumber"),
+		objfun = "function",
+		model = "MxModel",
+		flatModel = "MxFlatModel",
+		parameters = "list",
+		env = "environment"),
 	contains = "MxBaseObjective")
 
-setMethod("initialize", "MxAlgebraObjective",
-	function(.Object, algebra, 
-		data = as.numeric(NA), name = 'objective') {
+setMethod("initialize", "MxRObjective",
+	function(.Object, objfun, data = as.numeric(NA), 
+		name = 'objective') {
+		.Object@objfun <- objfun
 		.Object@name <- name
-		.Object@algebra <- algebra
 		.Object@data <- data
 		return(.Object)
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxAlgebraObjective"), 
+setMethod("omxObjFunConvert", signature("MxRObjective"), 
 	function(.Object, flatModel, model) {
-		name <- .Object@name
-		algebra <- .Object@algebra
-		algebraIndex <- omxLocateIndex(flatModel, algebra, name)
-		if (is.na(algebraIndex)) {
-			stop(paste("Could not find a matrix/algebra with name", 
-				algebra, "in the model."))
-		}
-		.Object@algebra <- algebraIndex
+		.Object@model <- model
+		.Object@flatModel <- flatModel
+		.Object@parameters <- generateParameterList(flatModel)
+		.Object@env <- .GlobalEnv
 		return(.Object)
 })
 
-setMethod("omxObjFunNamespace", signature("MxAlgebraObjective"), 
+setMethod("omxObjFunNamespace", signature("MxRObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@algebra <- omxConvertIdentifier(.Object@algebra, modelname, namespace)
 		return(.Object)
 })
 
 
-mxAlgebraObjective <- function(algebra) {
-	if (missing(algebra) || typeof(algebra) != "character") {
-		stop("Algebra argument is not a string (the name of the algebra)")
+mxRObjective <- function(objfun) {
+	if (!is.function(objfun)) {
+		stop("First argument 'objfun' must be of type function")
 	}
-	return(new("MxAlgebraObjective", algebra))
+	if (length(formals(objfun)) != 2) {
+		stop("The objective function must take exactly two arguments: a model and a persistant state")
+	}
+	return(new("MxRObjective", objfun))
 }

@@ -44,7 +44,7 @@ setMethod("omxObjFunNamespace", signature("MxRAMObjective"),
 })
 
 setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
-	function(.Object, model, definitions) {
+	function(.Object, flatModel, model) {
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
@@ -53,13 +53,13 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		if(is.na(data)) {
 			msg <- paste("The MxRAMObjective", omxQuotes(name),
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(flatModel@name))
 			stop(msg, call. = FALSE)
 		}
-		.Object@A <- omxLocateIndex(model, aMatrix, name)
-		.Object@S <- omxLocateIndex(model, sMatrix, name)
-		.Object@F <- omxLocateIndex(model, fMatrix, name)
-		.Object@data <- omxLocateIndex(model, data, name)
+		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
+		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
+		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
+		.Object@data <- omxLocateIndex(flatModel, data, name)
 		return(.Object)
 })
 

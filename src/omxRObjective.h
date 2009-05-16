@@ -28,41 +28,80 @@
 typedef struct {
 
 	SEXP objfun;
+	SEXP model;
+	PROTECT_INDEX modelIndex;
+	SEXP flatModel;
+	SEXP parameters;
 	SEXP env;
+	SEXP state;
+	PROTECT_INDEX stateIndex;
 
 } omxRObjective;
 
 void omxDestroyRObjective(omxObjective *oo) {
 	
-	UNPROTECT(2); 			// objfun and env
+	UNPROTECT(6); 			// objfun, model, flatModel, parameters, env, and state
 }
 
-void omxCallRObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallRObjective(omxObjective *oo) {
 
-	SEXP theCall, theVars, theReturn;
-	PROTECT(theCall = allocList(2));
-//	PROTECT(theVars = allocVector(REALSXP, *n));
-//	vars = REAL(theVars);
-	SET_TYPEOF(theCall, LANGSXP);
-	SETCAR(theCall, ((omxRObjective*)oo->argStruct)->objfun);
+	omxRObjective* rObjective = (omxRObjective*)oo->argStruct; 
+	SEXP theCall, theReturn;
+	PROTECT(theCall = allocVector(LANGSXP, 3));
+	SETCAR(theCall, rObjective->objfun);
+	SETCADR(theCall, rObjective->model);
+	SETCADDR(theCall, rObjective->state);
 
-//	for(k = 0; k < *n; k++) {
-//		vars[k] = x[k];
-//	}
-//	SETCADR(theCall, theVars);
-	SETCADR(theCall, NULL);
-
-	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
+	PROTECT(theReturn = eval(theCall, rObjective->env));
 	oo->myMatrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
-	UNPROTECT(2);
+	if (LENGTH(theReturn) > 1) {
+		REPROTECT(rObjective->state = CADR(theReturn), rObjective->stateIndex);
+	}
+
+	UNPROTECT(2); // theCall and theReturn
+
+
 }
 
-void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+// I have no idea what I'm supposed to do here...
+unsigned short int omxNeedsUpdateRObjective(omxObjective* oo) {
+	return(TRUE);
+}
+
+void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
+	omxRObjective* rObjective = (omxRObjective*)oo->argStruct; 
+
+	SEXP theCall, theReturn, estimate;
+
+	PROTECT(estimate = allocVector(REALSXP, n));
+	double *est = REAL(estimate);
+	for(int i = 0; i < n ; i++) {
+		est[i] = x[i];
+	}
+
+	PROTECT(theCall = allocVector(LANGSXP, 5));
 	
+	SETCAR(theCall, install("updateModelValues"));
+	SETCADR(theCall, rObjective->model);
+	SETCADDR(theCall, rObjective->flatModel);
+	SETCADDDR(theCall, rObjective->parameters);
+	SETCAD4R(theCall, estimate);
+
+	REPROTECT(rObjective->model = eval(theCall, rObjective->env), rObjective->modelIndex);
+
+	UNPROTECT(2); // theCall, estimate
+}
+
+void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {	
 	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
-	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objective")));
-	PROTECT(newObj->env = GET_SLOT(rObj, install("env")));
-	
+	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));
+	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
+	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
+	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));
+	PROTECT(newObj->env = GET_SLOT(rObj, install("env")));	
+	PROTECT_WITH_INDEX(newObj->state = NEW_NUMERIC(1), &(newObj->stateIndex));
+	REAL(newObj->state)[0] = NA_REAL;
+	oo->needsUpdateFun = omxNeedsUpdateRObjective;
 	oo->argStruct = (void*) newObj;
 }
 

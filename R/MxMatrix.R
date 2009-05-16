@@ -279,7 +279,7 @@ matrixParameters <- function(free, labels, lbound, ubound,
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
 					result[[parameterName]] <- original
 			} else {
-				result[[parameterName]] <- list(minBounds, maxBounds, 
+				result[[parameterName]] <- list('min' = minBounds, 'max' = maxBounds, 
 					c(matrixNumber, row,col))
 			}
 		}

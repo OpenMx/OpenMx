@@ -529,8 +529,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		}
 	
 		F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-						(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac, clambda, &f, g, R,
-						x, iw, &leniw, w, &lenw);
+						(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
+						clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
 		handleFreeVarList(x, n);
 	}
@@ -628,7 +628,12 @@ void F77_SUB(objectiveFunction)
 	/* Interruptible? */
 	R_CheckUserInterrupt();
 
-	handleFreeVarList(x, *n);
+	if ((objMatrix->objective != NULL) &&
+		(objMatrix->objective->repopulateFun != NULL)) {
+		objMatrix->objective->repopulateFun(objMatrix->objective, x, *n);
+	} else {
+		handleFreeVarList(x, *n);
+	}
 	
 	omxRecomputeMatrix(objMatrix);
 	

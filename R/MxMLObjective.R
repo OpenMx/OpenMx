@@ -45,28 +45,29 @@ setMethod("omxObjFunNamespace", signature("MxMLObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjFunConvert", signature("MxMLObjective", "MxFlatModel"), 
-	function(.Object, model, definitions) {
+setMethod("omxObjFunConvert", signature("MxMLObjective"), 
+	function(.Object, flatModel, model) {
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
 		data <- .Object@data
-		covarianceIndex <- omxLocateIndex(model, covariance, name)
+		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
 			msg <- paste("The MxMLObjective", omxQuotes(name),
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(flatModel@name))
 			stop(msg, call.=FALSE)
 		}
 		if(!is.na(means)) {
-			meansIndex <- omxLocateIndex(model, means, name)
+			meansIndex <- omxLocateIndex(flatModel, means, name)
 		} else {
 			meansIndex <- means
 		}
-		dIndex <- omxLocateIndex(model, data, name)
+		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex
+		.Object@definitionVars <- generateDefinitionList(flatModel)
 		return(.Object)
 })
 
