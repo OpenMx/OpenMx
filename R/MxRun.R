@@ -48,15 +48,37 @@ mxRun <- function(model) {
 
 computeOptimizationStatistics <- function(flatModel, parameters, output) {
 	names(output$estimate) <- names(parameters)
-	if(output$status[[1]] != 0) {
-		warning(paste("Optimizer did not coverge.",
-				"Returned a status of:", 
-				output$status[[1]]), call. = FALSE)
-	}
+	npsolWarnings(flatModel@name, output$status[[1]])
 	objective <- flatModel@objective
 	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
 		output[['AIC']] <- output$minimum + 2 * length(parameters)
 #		output[['BIC']] <- output$minimum + length(parameters) * log()
 	}
 	return(output)
+}
+
+npsolMessages <- list('1' = paste('The final iterate x satisfies',
+		'the optimality conditions to the accuracy requested,',
+		'but the sequence of iterates has not yet converged.',
+		'NPSOL was terminated because no further improvement',
+		'could be made in the merit function.'),
+		'2' = paste('The linear constraints and bounds could not be satisfied.',
+		'The problem has no feasible solution.'),
+		'3' = paste('The nonlinear constraints and bonuds could not be satisfied.',
+		'The problem may have no feasible solution.'),
+		'4' = 'The Major iteration limit was reached.',
+		'6' = paste('x does not satisfy the first-order optimality conditions',
+		'to the required accuracy, and no improved point for the',
+		'merit function could be found during the final linesearch'),
+		'7' = paste('The function derivates returned by funcon or funobj',
+		'appear to be incorrect.'),
+		'9' = 'An input parameter was invalid')
+
+npsolWarnings <- function(name, status) {
+	message <- npsolMessages[[as.character(status)]]
+	if(!is.null(message)) {
+		warning(paste("In model", omxQuotes(name), 
+			"NPSOL returned a non-zero status code", 
+			paste(status, '.', sep = ''), message), call. = FALSE)
+	}
 }
