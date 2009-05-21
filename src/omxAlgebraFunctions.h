@@ -39,5 +39,20 @@ void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* resul
 void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result);
 void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result);
 void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixDeterminant(omxMatrix* inMat, omxMatrix* result);
+void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result);
+void omxMatrixTotalSum(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixTotalProduct(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixMaximum(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixMinimum(omxMatrix** matList, double numArgs, omxMatrix* result);
+void omxMatrixAbsolute(omxMatrix* inMat, omxMatrix* result);
+void omxElementCosine(omxMatrix* inMat, omxMatrix* result);
+void omxElementCosh(omxMatrix* inMat, omxMatrix* result);
+void omxElementSine(omxMatrix* inMat, omxMatrix* result);
+void omxElementSinh(omxMatrix* inMat, omxMatrix* result);
+void omxElementTangent(omxMatrix* inMat, omxMatrix* result);
+void omxElementTanh(omxMatrix* inMat, omxMatrix* result);
+void omxElementExponent(omxMatrix* inMat, omxMatrix* result);
+void omxElementNaturalLog(omxMatrix* inMat, omxMatrix* result);
 
 #endif

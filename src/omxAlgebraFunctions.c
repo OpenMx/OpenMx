@@ -16,7 +16,7 @@
 
 /***********************************************************
 * 
-*  omxAlgebraFunctions.h
+*  omxAlgebraFunctions.c
 *
 *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
 *
@@ -289,4 +289,234 @@ void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
 		}
 	}
 
+};
+
+void omxMatrixDeterminant(omxMatrix* inMat, omxMatrix* result) {
+		error("NYI: Not yet Implemented.\n");
+	};
+
+void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result) {
+		/* Consistency check: */
+		if(result->rows != 1 || result->cols != 1) {
+			omxResizeMatrix(result, 1, 1, FALSE);
+		}
+
+		if(inMat->rows != inMat->cols) {
+			error("Non-square matrix in Trace().\n");
+		}
+		
+		double trace = 0.0;
+
+		/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
+		for(int j = 0; j < inMat->rows; j++) {
+			trace += omxGetMatrixElement(inMat, j, j);
+		}
+
+		omxSetMatrixElement(result, 0, 0, trace);
+	};
+
+void omxMatrixTotalSum(omxMatrix** matList, double numArgs, omxMatrix* result) {
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+	
+	double sum = 0.0;
+	
+	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
+	for(int j = 0; j < numArgs; j++) {
+		for(int k = 0; k < matList[j]->rows * matList[j]->cols; k++) {
+			sum += matList[j]->data[k];
+		}
+	}
+	
+	omxSetMatrixElement(result, 0, 0, sum);	
+};
+
+void omxMatrixTotalProduct(omxMatrix** matList, double numArgs, omxMatrix* result) {
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+	
+	double product = 0.0;
+	
+	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
+	for(int j = 0; j < numArgs; j++) {
+		for(int k = 0; k < matList[j]->rows * matList[j]->cols; k++) {
+			product += matList[j]->data[k];
+		}
+	}
+	
+	omxSetMatrixElement(result, 0, 0, product);	
+};
+
+void omxMatrixMaximum(omxMatrix** matList, double numArgs, omxMatrix* result){
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+	
+	double min = DBL_MAX; // DBL_MAX is the maximum possible DOUBLE value, usually 10e37.  
+						  // We could change this to use NPSOL's INFINITY, but why bother?
+	
+	for(int j = 0; j < numArgs; j++) {
+		for(int k = 0; k < matList[j]->rows * matList[j]->cols; k++) {
+			if(matList[j]->data[k] < min) min = matList[j]->data[k];
+		}
+	}
+	
+	omxSetMatrixElement(result, 0, 0, min);	
+};
+
+void omxMatrixMinimum(omxMatrix** matList, double numArgs, omxMatrix* result){
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+	
+	double max = -DBL_MAX;
+	
+	for(int j = 0; j < numArgs; j++) {
+		for(int k = 0; k < matList[j]->rows * matList[j]->cols; k++) {
+			if(matList[j]->data[k] > max) max = matList[j]->data[k];
+		}
+	}
+	
+	omxSetMatrixElement(result, 0, 0, max);	
+};
+
+void omxMatrixAbsolute(omxMatrix* inMat, omxMatrix* result){
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = fabs(inMat->data[j]);
+	}
+	
+};
+
+void omxElementCosine(omxMatrix* inMat, omxMatrix* result){
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = cos(inMat->data[j]);
+	}
+	
+};
+
+void omxElementCosh(omxMatrix* inMat, omxMatrix* result){
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = cosh(inMat->data[j]);
+	}
+	
+};
+
+void omxElementSine(omxMatrix* inMat, omxMatrix* result){
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = sin(inMat->data[j]);
+	}
+	
+};
+
+void omxElementSinh(omxMatrix* inMat, omxMatrix* result){
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = sinh(inMat->data[j]);
+	}
+	
+};
+
+void omxElementTangent(omxMatrix* inMat, omxMatrix* result) {
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = tan(inMat->data[j]);
+	}
+	
+};
+
+void omxElementTanh(omxMatrix* inMat, omxMatrix* result) {
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = tanh(inMat->data[j]);
+	}
+	
+};
+
+void omxElementExponent(omxMatrix* inMat, omxMatrix* result) {
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = exp(inMat->data[j]);
+	}
+	
+};
+
+void omxElementNaturalLog(omxMatrix* inMat, omxMatrix* result) {
+	
+	int max = inMat->cols * inMat->rows;
+	
+	/* Consistency Check */
+	if(result->cols != inMat->cols || result->rows != inMat->rows){
+		omxCopyMatrix(result, inMat);
+	}
+	
+	for(int j = 0; j < max; j++) {
+		result->data[j] = log(inMat->data[j]);
+	}
+	
 };
