@@ -19,3 +19,6 @@ objResult <- modelOut[["objective"]]@result
 original <- (model[['A']]@values %*% model[['B']]@values - model[['O']]@values) ^ 2
 new <- (modelOut[['A']]@values %*% modelOut[['B']]@values - modelOut[['O']]@values) ^ 2
 c(objResult, original, new)
+
+omxCheckCloseEnough(modelOut[['B']]@values[1,1], 
+	-5, epsilon = 10 ^ -4)

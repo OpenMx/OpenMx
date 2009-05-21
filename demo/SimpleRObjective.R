@@ -13,3 +13,4 @@ model <- mxModel('model', A, objective)
 
 modelOut <- mxRun(model)
 
+omxCheckCloseEnough(modelOut[['A']]@values, c(4, 2, 3, 1), epsilon = 0.001)

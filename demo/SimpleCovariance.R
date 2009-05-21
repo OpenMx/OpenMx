@@ -47,4 +47,10 @@ print(model)
 # Run the job
 modelOut <- mxRun(model)
 
+expectedParameters <- c(0.5099, 0.7764, 0.2892)
+
+omxCheckCloseEnough(expectedParameters, 
+	modelOut@output$estimate, 
+	epsilon = 10 ^ -4)
+
 print(modelOut)

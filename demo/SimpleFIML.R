@@ -66,7 +66,10 @@ model <- mxModel(model, objective, data)
 cTime <- system.time(model <- mxRun(model), gcFirst=TRUE)
 
 NPSOLOutput <- model@output
-print(NPSOLOutput)
 outSum <- NPSOLOutput$minimum
+
+omxCheckCloseEnough(inSum, outSum, epsilon = 10 ^ -4)
+
+print(NPSOLOutput)
 print(c(inSum, outSum, inSum - outSum, (inSum - outSum) / inSum))
 print(c(rTime, cTime))

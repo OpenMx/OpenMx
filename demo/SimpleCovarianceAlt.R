@@ -74,5 +74,11 @@ print(modelAlt)
 
 modelAltOut <- mxRun(modelAlt)
 
+expectedParameters <- c(0.5099, 0.7764, 0.2892)
+
+omxCheckCloseEnough(expectedParameters, 
+	modelAltOut@output$estimate, 
+	epsilon = 10 ^ -4)
+
 print(modelAltOut)
 

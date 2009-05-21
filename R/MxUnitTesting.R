@@ -21,19 +21,35 @@ omxCheckEquals <- function(a, b) {
 }
 
 omxCheckTrue <- function(a) {	
-	if(!a) {
+	if (!a) {
 		stop(paste("Error", match.call()$a, "is not true"))
 	}
 }
 
-omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {	
-	if(abs(a - b) > epsilon) {
-		stop(paste("Error:", a, "and", b, "are equal to within", epsilon))
+
+
+omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
+	check <- any(mapply(function(x,y) {
+			abs(x - y) > epsilon }, 
+			as.vector(a), as.vector(b)))
+	if (check) {
+		stop(paste("Error:", 
+			omxQuotes(paste(a, collapse = ' ')), 
+			"and", 
+			omxQuotes(paste(b, collapse = ' ')), 
+			"are not equal to within", epsilon))
 	}
 }
 
-omxCheckWithinPercentError <- function(a, b, epsilon=10^(-15)) {	
-	if(abs((a - b)/a*100) > epsilon) {
-		stop(paste("Error: ", b, "does not estimate", a, "within", epsilon, "percent error"))
+omxCheckWithinPercentError <- function(a, b, epsilon=10^(-15)) {
+	check <- any(mapply(function(x,y) {
+			(abs(x - y)/x * 100) > epsilon }, 
+			as.vector(a), as.vector(b)))	
+	if (check) {
+		stop(paste("Error:", 
+			omxQuotes(paste(a, collapse = ' ')), 
+			"does not estimate", 
+			omxQuotes(paste(b, collapse = ' ')), 
+			"within", epsilon, "percent"))
 	}
 }
