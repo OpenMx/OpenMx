@@ -309,7 +309,7 @@ void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result) {
 
 		/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 		for(int j = 0; j < inMat->rows; j++) {
-			trace += omxGetMatrixElement(inMat, j, j);
+			trace += omxMatrixElement(inMat, j, j);
 		}
 
 		omxSetMatrixElement(result, 0, 0, trace);
