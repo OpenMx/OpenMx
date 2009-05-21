@@ -60,3 +60,26 @@ mxData <- function(matrix, type, vector = NA, numObs = NA) {
 	lapply(dimnames(matrix)[[2]], omxVerifyName)
 	return(new("MxNonNullData", matrix, vector, type, numObs))
 }
+
+displayMxData <- function(object) {
+	cat("MxData", omxQuotes(object@name), '\n')
+	cat("type :", omxQuotes(object@type), '\n')
+	cat("numObs :", omxQuotes(object@numObs), '\n')
+	cat("Matrix : \n") 
+	print(object@matrix)
+	if (is.na(object@vector)) {
+		cat("Vector : NA \n")
+	} else {
+		cat("Vector : \n") 
+		print(object@vector)		
+	}
+	invisible(object)
+}
+
+setMethod("print", "MxNonNullData", function(x,...) { 
+	displayMxData(x) 
+})
+
+setMethod("show", "MxNonNullData", function(object) { 
+	displayMxData(object) 
+})

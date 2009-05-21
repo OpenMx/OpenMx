@@ -19,7 +19,7 @@ omxQuotes <- function(name) {
 	return(paste(listTerms, collapse=', '))
 }
 
-omxDisplayModel <- function(model, expand = FALSE) {
+displayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
 	cat("type :", omxTypeName(model), '\n')
 	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
@@ -92,10 +92,10 @@ omxDisplayModel <- function(model, expand = FALSE) {
 }
 
 setMethod("print", "MxModel", function(x,...) { 
-	omxDisplayModel(x, TRUE) 
+	displayModel(x, TRUE) 
 })
 
 setMethod("show", "MxModel", function(object) { 
-	omxDisplayModel(object) 
+	displayModel(object) 
 })
 

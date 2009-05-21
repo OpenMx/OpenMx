@@ -87,4 +87,22 @@ convertSingleConstraint <- function(constraint, flatModel) {
 	return(list(index1,index2,index3 - 1))
 }
 
-omxConstraintRelations <- c("<", "=", ">")   
+omxConstraintRelations <- c("<", "=", ">")
+
+
+
+displayMxConstraint <- function(object) {
+	cat("MxConstraint", omxQuotes(object@name), '\n')
+	cat("alg1 :", omxQuotes(object@alg1), '\n')
+	cat("relation :", omxQuotes(object@relation), '\n')
+	cat("alg2 :", omxQuotes(object@alg2), '\n')	
+	invisible(object)
+}
+
+setMethod("print", "MxConstraint", function(x,...) { 
+	displayMxConstraint(x) 
+})
+
+setMethod("show", "MxConstraint", function(object) { 
+	displayMxConstraint(object) 
+})

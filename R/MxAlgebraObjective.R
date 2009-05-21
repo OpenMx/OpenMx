@@ -56,3 +56,23 @@ mxAlgebraObjective <- function(algebra) {
 	}
 	return(new("MxAlgebraObjective", algebra))
 }
+
+displayAlgebraObjective <- function(objective) {
+	cat("MxAlgebraObjective", omxQuotes(objective@name), '\n')
+	cat("algebra :", omxQuotes(objective@algebra), '\n')
+	if (length(objective@result) == 0) {
+		cat("Result : empty\n")
+	} else {
+		cat("Result : \n") 
+		print(objective@result)
+	}
+	invisible(objective)
+}
+
+setMethod("print", "MxAlgebraObjective", function(x,...) { 
+	displayAlgebraObjective(x) 
+})
+
+setMethod("show", "MxAlgebraObjective", function(object) { 
+	displayAlgebraObjective(object) 
+})

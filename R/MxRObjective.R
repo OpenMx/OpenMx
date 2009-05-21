@@ -58,3 +58,25 @@ mxRObjective <- function(objfun) {
 	}
 	return(new("MxRObjective", objfun))
 }
+
+displayRObjective <- function(objective) {
+	cat("MxRObjective", omxQuotes(objective@name), '\n')
+	cat("Objective function : \n")
+	print(objective@objfun)
+	if (length(objective@result) == 0) {
+		cat("Result : empty\n")
+	} else {
+		cat("Result : \n") 
+		print(objective@result)
+	}
+	invisible(objective)
+}
+
+
+setMethod("print", "MxRObjective", function(x,...) { 
+	displayRObjective(x) 
+})
+
+setMethod("show", "MxRObjective", function(object) { 
+	displayRObjective(object) 
+})

@@ -81,3 +81,26 @@ mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F") {
 	}
 	return(new("MxRAMObjective", aMatrix, sMatrix, fMatrix))
 }
+
+displayRAMObjective <- function(objective) {
+	cat("MxRAMObjective", omxQuotes(objective@name), '\n')
+	cat("A matrix :", omxQuotes(objective@A), '\n')
+	cat("S matrix :", omxQuotes(objective@S), '\n')
+	cat("F matrix :", omxQuotes(objective@F), '\n')
+	if (length(objective@result) == 0) {
+		cat("Result : empty\n")
+	} else {
+		cat("Result : \n") 
+		print(objective@result)
+	}
+	invisible(objective)
+}
+
+setMethod("print", "MxRAMObjective", function(x,...) { 
+	displayRAMObjective(x) 
+})
+
+setMethod("show", "MxRAMObjective", function(object) { 
+	displayRAMObjective(object) 
+})
+
