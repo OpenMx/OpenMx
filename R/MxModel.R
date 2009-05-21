@@ -176,16 +176,16 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 		latentVars <- as.character(latentVars)
 		manifestVars <- as.character(manifestVars)
 		omxCheckVariables(model, latentVars, manifestVars)
-		model <- omxAddVariables(model, latentVars, manifestVars)
+		model <- modelAddVariables(model, latentVars, manifestVars)
 	}
 	return(model)
 }
 
 listArgument <- function(model, lst, remove) {
 	if(remove == TRUE) {
-		model <- omxRemoveEntries(model, lst)
+		model <- modelRemoveEntries(model, lst)
 	} else {
-		model <- omxAddEntries(model, lst)
+		model <- modelAddEntries(model, lst)
 	}
 	return(model)
 }
@@ -245,37 +245,37 @@ setMethod("omxTypeName", "MxModel", function(model) {
 
 # End implementation of generics
 
-omxAddVariables <- function(model, latent, manifest) {
+modelAddVariables <- function(model, latent, manifest) {
 	model@latentVars   <- union(model@latentVars, latent)
 	model@manifestVars <- union(model@manifestVars, manifest)
 	return(model)
 }
 	
-omxAddEntries <- function(model, entries) {
+modelAddEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- omxModelAddFilter(model, entries, list(), list())
+	tuple <- modelAddFilter(model, entries, list(), list())
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
-		model <- omxAddSingleNamedEntity(model, namedEntities[[i]])
+		model <- addSingleNamedEntity(model, namedEntities[[i]])
 	}
-	model <- omxAddBounds(model, bounds)
+	model <- modelAddBounds(model, bounds)
 	return(model)
 }
 
-omxRemoveEntries <- function(model, entries) {
+modelRemoveEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- omxModelRemoveFilter(model, entries, list(), list())
+	tuple <- modelRemoveFilter(model, entries, list(), list())
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
-		model <- omxRemoveSingleNamedEntity(model, namedEntities[[i]])
+		model <- removeSingleNamedEntity(model, namedEntities[[i]])
 	}
-	model <- omxRemoveBounds(model, bounds)
+	model <- modelRemoveBounds(model, bounds)
 	return(model)
 }
 
@@ -303,7 +303,7 @@ mappendHelper <- function(lst, result) {
 	}
 }
 
-omxModelAddFilter <- function(model, entries, namedEntities, bounds) {
+modelAddFilter <- function(model, entries, namedEntities, bounds) {
 	if (length(entries) == 0) {
 		return(list(namedEntities, bounds))
 	}
@@ -323,10 +323,10 @@ omxModelAddFilter <- function(model, entries, namedEntities, bounds) {
 		stop(paste("Cannot add the following item into the model:", 
 			head), call. = FALSE)
 	}
-	return(omxModelAddFilter(model, entries[-1], namedEntities, bounds))
+	return(modelAddFilter(model, entries[-1], namedEntities, bounds))
 }
 
-omxModelRemoveFilter <- function(model, entries, names, bounds) {
+modelRemoveFilter <- function(model, entries, names, bounds) {
 	if (length(entries) == 0) {
 		return(list(names, bounds))
 	}
@@ -346,15 +346,15 @@ omxModelRemoveFilter <- function(model, entries, names, bounds) {
 		stop(paste("Cannot remove the following item from the model:", 
 			head), call. = FALSE)
 	}
-	return(omxModelRemoveFilter(model, entries[-1], names, bounds))
+	return(modelRemoveFilter(model, entries[-1], names, bounds))
 }
 
-omxAddSingleNamedEntity <- function(model, entity) {
+addSingleNamedEntity <- function(model, entity) {
 	model[[entity@name]] <- entity
 	return(model)
 }
 
-omxRemoveSingleNamedEntity <- function(model, name) {
+removeSingleNamedEntity <- function(model, name) {
 	model[[name]] <- NULL
 	return(model)
 }

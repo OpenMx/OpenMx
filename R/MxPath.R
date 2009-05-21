@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 # returns a list of paths
-omxPath <- function(from, to, all, free, 
+generatePath <- function(from, to, all, free, 
 	arrows, start, name, description,
 	boundMax, boundMin, ciUpper, ciLower) {
 		if (single.na(to)) {
@@ -25,14 +25,14 @@ omxPath <- function(from, to, all, free,
 		if (all) {
 			from <- rep(from, each=length(to))	
 		}
-		result <- suppressWarnings(mapply(omxSinglePath, from, to,
+		result <- suppressWarnings(mapply(generateSinglePath, from, to,
 					free, arrows, start, 
 					name, description, boundMax,
 					boundMin, ciUpper, ciLower, SIMPLIFY = FALSE))
 		return(result)
 }
 
-omxSinglePath <- function(from, to, free, 
+generateSinglePath <- function(from, to, free, 
 	arrows, start, name, description, 
 	boundMax, boundMin,
 	ciUpper, ciLower) {
@@ -69,7 +69,7 @@ mxPath <- function(from, to = NA, all = FALSE, free = TRUE,
 	if (length(boundMin) == 1 && is.na(boundMin)) boundMin <- NULL
 	if (length(ciUpper) == 1 && is.na(ciUpper)) ciUpper <- NULL
 	if (length(ciLower) == 1 && is.na(ciLower)) ciLower <- NULL
-	omxPath(from, to, all, free, 
+	generatePath(from, to, all, free, 
 		arrows, start, name, 
 		description, boundMax,
 		boundMin, ciUpper, ciLower)

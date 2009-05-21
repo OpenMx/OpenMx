@@ -60,7 +60,7 @@ mxBounds <- function(parameters, min = NA, max = NA) {
 	return(new("MxBounds", min, max, parameters))
 }
 
-omxAddBounds <- function(model, bounds) {
+modelAddBounds <- function(model, bounds) {
 	if (length(bounds) == 0) {
 		return(model)
 	}
@@ -77,13 +77,13 @@ omxAddBounds <- function(model, bounds) {
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
-			model@submodels[[i]] <- omxAddBounds(model@submodels[[i]], bounds)
+			model@submodels[[i]] <- modelAddBounds(model@submodels[[i]], bounds)
 		}
 	}
 	return(model)
 }
 
-omxRemoveBounds <- function(model, bounds) {
+modelRemoveBounds <- function(model, bounds) {
 	if (length(bounds) == 0) {
 		return(model)
 	}
@@ -100,7 +100,7 @@ omxRemoveBounds <- function(model, bounds) {
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
-			model@submodels[[i]] <- omxRemoveBounds(model@submodels[[i]], bounds)
+			model@submodels[[i]] <- modelRemoveBounds(model@submodels[[i]], bounds)
 		}
 	}
 	return(model)

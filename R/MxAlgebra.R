@@ -48,16 +48,16 @@ data(omxSymbolTable)
 options(stringsAsFactors = defStringsAsFactors)
 
 
-omxFormulaList <- function(x) {
+formulaList <- function(x) {
 	retval <- as.list(x)
 	retval <- lapply(retval, function(x) {
-		if(is.call(x)) {omxFormulaList(x)} else {x}
+		if(is.call(x)) {formulaList(x)} else {x}
 	})
 	return(retval)
 }
 
-omxNumericCheck <- function(formula, name) {
-	formula <- unlist(omxFormulaList(formula))
+algebraNumericCheck <- function(formula, name) {
+	formula <- unlist(formulaList(formula))
 	test <- sapply(formula, is.numeric)
 	if(any(test)) {
 		msg <- paste("There is a numeric operand in",
@@ -66,8 +66,8 @@ omxNumericCheck <- function(formula, name) {
 	}
 }
 
-omxSymbolCheck <- function(formula, name) {
-	formula <- unlist(omxFormulaList(formula))
+algebraSymbolCheck <- function(formula, name) {
+	formula <- unlist(formulaList(formula))
 	test <- sapply(formula, function(x) {!is.numeric(x)})
 	if(length(formula[test]) == 1) {
 		msg <- paste("The reference", omxQuotes(formula[test]),
@@ -82,7 +82,7 @@ omxSymbolCheck <- function(formula, name) {
 
 generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- algebra@formula
-	omxNumericCheck(retval, algebra@name)
+	algebraNumericCheck(retval, algebra@name)
 	matrixNumbers <- as.list(as.double(-1 : (-length(matrixNames))))
 	algebraNumbers <- as.list(as.double(0 : (length(algebraNames) - 1)))
 	names(matrixNumbers) <- matrixNames
@@ -90,7 +90,7 @@ generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- eval(substitute(substitute(e, matrixNumbers), list(e = retval)))
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval))
-	omxSymbolCheck(retval, algebra@name)
+	algebraSymbolCheck(retval, algebra@name)
 	return(retval)
 }
 
