@@ -221,6 +221,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	} */
 
 	/* Process Free Var List */
+	/*
+	 varList is a list().  Each element of this list corresponds to one free parameter.
+	 Each free parameter is a list.  The first element of this list is the lower bound.
+	 The second element of the list is the upper bound.  The remaining elements of this
+	 list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
+    */	
 	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	omxMatrix dm;
 	freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
@@ -439,7 +445,25 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 		String is of the form:
 			'Option = Value'
-	
+
+        NB Mx 1.0 by default sets parameters as follows:
+        
+         Parameters
+ ----------
+
+ Linear constraints.....         0       Linear feasibility.....  1.49E-08       cold start.............
+ Variables..............         1       Infinite bound size....  1.00E+15       Crash tolerance........  1.00E-02
+ Step limit.............  2.00E+00       Infinite step size.....  1.00E+20
+
+ Nonlinear constraints..         0       Optimality tolerance...  5.36E-12       Function precision.....  8.16E-15
+ Nonlinear Jacobian vars         1       Nonlinear feasibility..  6.83E-06       eps (machine precision)  2.22E-16
+ Nonlinear objectiv vars         1       Linesearch tolerance...  9.00E-01       Print file.............         7
+ Derivative level.......         0       Verify level...........         3       Summary file...........         0
+
+ Major iterations limit.      1000       Major print level......        20
+ Minor iterations limit.        50       Minor print level......         0
+ RUN loaded from file...         0       RUN to be saved on file         0       Save frequency.........      1001
+
 	*/
 	
 		/* Output Options */
@@ -466,7 +490,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		}
 
 		/* Options That Change The Optimizer */
-		sprintf(option, "Function Precision 1e-9");		// Set epsilon
+		sprintf(option, "Function Precision 1e-14");		// Set epsilon
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Infinite Bound Size 1.0e+15");
 		F77_CALL(npoptn)(option, strlen(option));
@@ -474,8 +498,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Major iterations 1000");
 		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Difference interval ");
-		F77_CALL(npoptn)(option, strlen(option));
+//		sprintf(option, "Difference interval ");
+//		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Verify level 3");
 		F77_CALL(npoptn)(option, strlen(option));
 		strcpy(option, "Linesearch tolerance .3");		// Set accuracy to Merit Function
@@ -628,8 +652,10 @@ void F77_SUB(objectiveFunction)
 	/* Interruptible? */
 	R_CheckUserInterrupt();
 
-	if ((objMatrix->objective != NULL) &&
-		(objMatrix->objective->repopulateFun != NULL)) {
+    /* This allows for abitrary repopulation of the free parameters.
+     * Typically, the default is for repopulateFun to be NULL,
+     * and then handleFreeVarList is invoked */
+	if (objMatrix->objective->repopulateFun != NULL) {
 		objMatrix->objective->repopulateFun(objMatrix->objective, x, *n);
 	} else {
 		handleFreeVarList(x, *n);

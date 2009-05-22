@@ -113,6 +113,9 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 
 unsigned short omxAlgebraNeedsUpdate(omxAlgebra *oa)
 {
+/* Permanently dirty quick fix */
+    return TRUE;  
+
 	if(OMX_DEBUG) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numArgs);}
 	if(oa->myMatrix->isDirty) return TRUE;  	// No need to check args if oa's dirty.
 	for(int j = 0; j < fabs(oa->numArgs); j++) {

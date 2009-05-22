@@ -107,19 +107,12 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	
 	/* Calculate |expected| */
 	
-	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
-
+//	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
+	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
+	
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info > 0) {
-	//	error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
-	}
-
-	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the product of the diagonal elements of U from the LU factorization.
-		det *= localCov->data[info+localCov->rows*info];	// Normally, we'd need to worry about transformations made during LU, but
-	}														// we're safe here because the determinant of a covariance matrix > 0.	
-															// TODO: Prove this for negative estimated variances.
-	if(det <= 0) {
-		/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
+			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
 		char errstr[50+10*n];
 		char shortstr[30];
 		sprintf(errstr, "Non-positive-definite at free parameters:");
@@ -129,14 +122,21 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		}
 		strncat(errstr, "\n", 1);
 		error(errstr);
+	//	error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
 	}
+
+	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the product of the diagonal elements of U from the LU factorization.
+		det *= localCov->data[info+localCov->rows*info];	// Normally, we'd need to worry about transformations made during LU, but
+	}														// we're safe here because the determinant of a covariance matrix > 0.	
+															// TODO: Prove this for negative estimated variances.
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 	
 	/* Calculate Expected^(-1) */
-	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
+//	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
+	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
 	
 	if(OMX_DEBUG) {omxPrintMatrix(cov, "Expected Covariance Matrix:");}
@@ -172,7 +172,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) {omxPrintMatrix(scov, "Observed Covariance Matrix:");}
 	if(OMX_DEBUG) {omxPrintMatrix(localCov, "Inverse Matrix:");}
 	if(OMX_DEBUG) {omxPrintMatrix(localProd, "Product Matrix:");}
-	if(OMX_DEBUG) {Rprintf("k is %d and Q is %f.\n", scov->rows, Q);}
+	if(OMX_DEBUG) {Rprintf("trace is %f and log(det(observed)) is %f.\n", sum, Q);}
 	
     oo->myMatrix->data[0] = fabs(sum + det - scov->rows - Q);
 

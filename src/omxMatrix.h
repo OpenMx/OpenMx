@@ -93,7 +93,7 @@ struct omxMatrix {						// A matrix
 	void omxMatrixPrint(omxMatrix *source, char* d);					// Pretty-print a (small) matrix
 	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix); 					// Populate an omxMatrix from an R MxMatrix 
 //	omxMatrix* omxMatrixFromMxMatrixPtr(SEXP s);						// Fills either a matrix or a 
-	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);				// Copy across another element.  
+	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);				// Copy across another matrix.  
 
 /* Will eventually be needed for evaluation optimization. */
 	void omxMatrixCompute(omxMatrix *matrix);
