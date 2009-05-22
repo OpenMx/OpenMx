@@ -28,27 +28,17 @@ data<-mxData(as.matrix(data.frame(x,y,def)), type="raw")
 
 #define the model: we'll just use an S matrix and let A and F drop out
 #as currently specified, this would fit a zero df model to a 2x2 covariance matrix
-S<-mxMatrix("Symm", values=c(1,.5,1), free=TRUE, nrow=2, ncol=2, name="S")
+S <- mxMatrix("Symm", values=c(1,.5,1), free=TRUE, nrow=2, ncol=2, name="S")
+
+M <- mxMatrix("Zero", nrow = 1, ncol = 2, name = "M") 
 
 #define the model, including a FIML objective function, which will optimize the matrix S
-model<-mxModel("model", mxFIMLObjective("S"), data, S)
+model<-mxModel("model", mxFIMLObjective("S", "M"), data, S, M)
 
-#This doesn't work, but would specifying the covariance between x and y to be equal to def look
-#something like this?
+#include the definition variables
 model[["S"]]@labels[2,1]<-"data.def"
 model[["S"]]@labels[1,2]<-"data.def"
 
-#run the model, which does not include the definition variable
-#(presumably, specifying "def" as a definition variable removes it from the covariance algebra)
+#run the model
 run<-mxRun(model)
-#Error in mxRun(model) :
-#REAL() can only be applied to a 'numeric', not a 'list'
-#Error in args(REAL) : no function to return from, jumping to top level
 
-
-#Questions:
-#1. Does specifying the variable "def" in the "definitionVars" slot define a definition variable,
-#    and remove it entirely from covariance algebra?
-#2. Are the @ symbols the best way to access this slot?
-#3. Despite the specification of type="Symm", the values matrix requires that both off-diagional positions
-#    on the S matrix be changed. Is this right?

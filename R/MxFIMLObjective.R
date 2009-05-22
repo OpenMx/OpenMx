@@ -70,14 +70,13 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		return(.Object)
 })
 
-mxFIMLObjective <- function(covariance, means = NA) {
+mxFIMLObjective <- function(covariance, means) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
-	if (!(is.na(means) || typeof(means) == "character")) {
-		stop("Means argument is not a string (the name of the expected means matrix)")
+	if (missing(means) || typeof(means) != "character") {
+		stop("Means argument is not a string (the name of the expected means vector)")
 	}
-	if (is.na(means)) means <- as.numeric(NA)
 	return(new("MxFIMLObjective", covariance, means))
 }
 
