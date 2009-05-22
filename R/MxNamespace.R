@@ -88,22 +88,26 @@ omxGenerateNamespace <- function(model) {
 	if (length(results) > 0) {
 		for (i in 1:length(results)) {
 			submodel <- model@submodels[[i]]
-			if (!is.null(entities[[submodel@name]])) {
-				stop(namespaceErrorMessage(submodel@name), call. = FALSE)
+			subentities <- results[[i]][['entities']]
+			subnames <- names(subentities)
+			for (j in 1:length(subentities)) {
+				if (!is.null(entities[[subnames[[j]]]])) {
+					stop(namespaceErrorMessage(subnames[[j]]), call. = FALSE)
+				}
+				entities[[subnames[[j]]]] <- subentities[[j]]
 			}
-			entities[[submodel@name]] <- results[[i]][[1]]
-			parameters <- union(parameters, results[[i]][[2]])
+			parameters <- union(parameters, results[[i]][['parameters']])
 		}
 	}
 	return(list('entities' = entities, 'parameters' = parameters))
 }
 
 omxGetEntities <- function(namespace) {
-	return(namespace[[1]])	
+	return(namespace[['entities']])	
 }
 
 omxGetParameters <- function(namespace) {
-	return(namespace[[2]])	
+	return(namespace[['parameters']])	
 }
 
 generateLocalNamespace <- function(model) {
@@ -125,7 +129,7 @@ generateLocalNamespace <- function(model) {
 		thisEntities <- c(thisEntities, data@name)
 	}
 	thisParameters <- namespaceGetParameters(model, thisEntities)
-	return(list(thisEntities, thisParameters))
+	return(list('entities' = thisEntities, 'parameters' = thisParameters))
 }
 
 namespaceGetParameters <- function(model, thisEntities) {

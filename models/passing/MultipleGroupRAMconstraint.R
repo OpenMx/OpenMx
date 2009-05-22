@@ -20,6 +20,8 @@
 
 #Goal: Constrain the single parameter in each group to be equal
 
+require(OpenMx)
+
 #Data: 1x1 "covariance" matrices (Ok, variance matrices)
 data1 <- mxData(matrix(1), type="cov", numObs=100)
 data2 <- mxData(matrix(2), type="cov", numObs=100)

@@ -18,6 +18,7 @@
 #Author: Ryne Estabrook
 #Created: 30 Apr 2009
 
+require(OpenMx)
 
 #Data: 1x1 "covariance" matrices (Ok, variance matrices)
 data1 <- mxData(matrix(1), type="cov", numObs=100)

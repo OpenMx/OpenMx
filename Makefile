@@ -6,6 +6,7 @@ RCHECK = check
 RPDF = Rd2dvi
 TARGET = OpenMx_0.1-1.tar.gz
 DOCFILE = $(RBUILD)/OpenMx.pdf
+TESTFILE = inst/tools/testModels.R
 
 # subdirectories
 RSOURCE = R
@@ -38,6 +39,9 @@ install: build
 
 check: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
+
+test:
+	$(REXEC) --vanilla --slave < $(TESTFILE)
 
 clean:
 	rm -rf $(RBUILD)/*

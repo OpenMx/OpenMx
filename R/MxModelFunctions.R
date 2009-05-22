@@ -164,7 +164,7 @@ updateModelAlgebrasHelper <- function(aList, values, model) {
 		candidate <- model[[name]]
 		if (!is.null(candidate) && !is.nan(values[[i]]) && 
 			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
-			model[[name]]@result <- matrix(values[[i]])
+			model[[name]]@result <- as.matrix(values[[i]])
 		}
 	}
 	return(model)

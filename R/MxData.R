@@ -40,22 +40,24 @@ setMethod("initialize", "MxNonNullData",
 omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 mxData <- function(matrix, type, vector = NA, numObs = NA) {
-	if(is.na(vector)) vector <- NA_real_
-	if(missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
+	if (is.na(vector)) vector <- NA_real_
+	if (missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
 		stop("Matrix argument is neither a data frame nor a matrix")
 	}
-	if(missing(type) || (!is.character(type)) || (length(type) > 1) || 
+	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
 		is.na(match(type, omxDataTypes))) {
 		stop(paste("Type must be one of:", paste(omxDataTypes, collapse=" ")))
 	}
-	if(!is.vector(vector) || !is.numeric(vector)) {
+	if (!is.vector(vector) || !is.numeric(vector)) {
 		stop("Vector argument must be of numeric vector type")
 	}
-	if(type != "raw" && is.na(numObs)) {
+	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data")
 	}
-	if(type == "raw") {
+	if (type == "raw") {
 		numObs <- nrow(matrix)
+	} else if (type == 'cov' && (nrow(matrix) != ncol(matrix))) {
+		stop("Matrix argument must be a square matrix for 'cov' data type")
 	}
 	lapply(dimnames(matrix)[[2]], omxVerifyName)
 	return(new("MxNonNullData", matrix, vector, type, numObs))

@@ -1,4 +1,4 @@
-library(OpenMx)
+require(OpenMx)
 W <- mxMatrix("Symm", nrow = 3, ncol = 3, name = "W",
 	values = c(1.0, 0.4, 0.3, 0.9, 0.5, 1.1))
 H <- mxMatrix("Symm", nrow = 3, ncol = 3, name = "H",

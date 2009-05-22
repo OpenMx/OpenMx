@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxFIMLObjective(covariance, means = NA)
+mxFIMLObjective(covariance, means)
 }
 
 

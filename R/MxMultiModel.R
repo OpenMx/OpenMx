@@ -153,7 +153,7 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 			flatModel@algebras    <- append(flatModel@algebras, submodel@algebras)
 			flatModel@constraints <- append(flatModel@constraints, 
 				submodel@constraints) 
-			flatModel <- flattenModelHelper(submodel, flatModel, defaultData)
+			flatModel <- flattenModelHelper(submodel, flatModel, defaultData, namespace)
 		}
 	}
 	return(flatModel)
