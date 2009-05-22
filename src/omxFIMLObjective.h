@@ -119,6 +119,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		omxResizeMatrix(smallRow, 1, cov->cols, FALSE); // Reset Row size //TODO: Test to see if aliasing is faster.
 
 		// Determine how many rows/cols to remove.
+		if(OMX_DEBUG) {
+			Rprintf("covariance columns is %d, and data columns is %d.\n", cov->cols, dataRows->cols);
+		}
 		for(int j = 0; j < dataRows->cols; j++) {
 			if(ISNA(omxMatrixElement(dataRows, row, j))) {
 				numRemoves++;
