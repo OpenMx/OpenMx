@@ -69,10 +69,7 @@ print(output2@output$estimate)
 #"Super" Model: This should have values of 1 and 2, in order.
 print(output@output$estimate)
 
+omxCheckCloseEnough(output1@output$estimate, c(1), 0.001)
+omxCheckCloseEnough(output2@output$estimate, c(2), 0.001)
+omxCheckCloseEnough(output@output$estimate, c(1, 2), 0.001)
 
-#Notes:
-#  mxFIMLObjective is not as precise as it needs to be
-
-#Related scripts:
-#  MultipleGroupML.R is failing, due to mxMLObjective problems.
-#  MultipleGroupRAMconstraint.R constrains the two parameters in these models to be equal

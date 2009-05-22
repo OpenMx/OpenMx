@@ -71,10 +71,8 @@ print(output2@output$estimate)
 #"Super" Model: This should have a value of 1.5
 print(output@output$estimate)
 
+omxCheckCloseEnough(output1@output$estimate, c(1), 0.001)
+omxCheckCloseEnough(output2@output$estimate, c(2), 0.001)
+omxCheckCloseEnough(output@output$estimate, c(1.5), 0.001)
 
-#Notes:
-#  mxFIMLObjective is not as precise as it needs to be
 
-#Related scripts:
-#  MultipleGroupML.R is failing, due to mxMLObjective problems.
-#  MultipleGroupRAM.R works, withing precision of mxRAMObjective

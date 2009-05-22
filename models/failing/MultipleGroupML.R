@@ -1,23 +1,40 @@
-data1<-mxData(matrix(1), type="cov", numObs=100)
-data2<-mxData(matrix(2), type="cov", numObs=100)
+#
+#   Copyright 2007-2009 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 
-mat1<-mxMatrix("Full",1.1,free=TRUE, nrow=1, ncol=1, name="mat1")
-mat2<-mxMatrix("Full",1.9,free=TRUE, nrow=1, ncol=1, name="mat2")
+require(OpenMx)
 
-obj1<-mxMLObjective("mat1")
-obj2<-mxMLObjective("mat2")
+data1 <- mxData(matrix(1), type="cov", numObs=100)
+data2 <- mxData(matrix(2), type="cov", numObs=100)
 
-model1<-mxModel("first", data1, mat1, obj1)
-model2<-mxModel("second", data2, mat2, obj2)
+mat1 <- mxMatrix("Full",1.1,free=TRUE, nrow=1, ncol=1, name="mat1")
+mat2 <- mxMatrix("Full",1.9,free=TRUE, nrow=1, ncol=1, name="mat2")
 
-output1<-mxRun(model1)
-output2<-mxRun(model2)
+obj1 <- mxMLObjective("mat1")
+obj2 <- mxMLObjective("mat2")
+
+model1 <- mxModel("model1", data1, mat1, obj1)
+model2 <- mxModel("model2", data2, mat2, obj2)
+
+output1 <- mxRun(model1)
+output2 <- mxRun(model2)
 
 output1@output
 output2@output
 
-alg<-mxAlgebra(model1.objective + model2.objective, name="alg")
-obj<-mxAlgebraObjective("alg")
+alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
+obj <- mxAlgebraObjective("alg")
 
-model<-mxModel("both", alg, obj, model1, model2)
-output<-mxRun(model)
+model <- mxModel("both", alg, obj, model1, model2)
+output <- mxRun(model)
