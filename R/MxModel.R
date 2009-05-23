@@ -80,6 +80,18 @@ setReplaceMethod("[[", "MxModel",
 	}
 )
 
+setMethod("$", "MxModel",
+	function(x, name) {
+		return(omxExtractMethod(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxModel",
+	function(x, name, value) {
+		return(omxReplaceMethod(x, name, value))
+	}
+)
+
 
 omxExtractMethod <- function(model, index) {
 	pair <- omxReverseIdentifier(model, index)

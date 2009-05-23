@@ -23,7 +23,7 @@ sink(null, type = 'output')
 sink(null, type = 'message')
 
 
-files <- list.files(directories, pattern = '.+[.]R',
+files <- list.files(directories, pattern = '^.+[.]R$',
 	full.names = TRUE, recursive = TRUE)
 	
 errors <- list()
