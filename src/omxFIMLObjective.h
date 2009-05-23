@@ -53,10 +53,13 @@ void handleDefinitionVarList(omxMatrix* dataRow, omxDefinitionVar* defVars, int 
 	
 	if(OMX_DEBUG) { Rprintf("Processing Definition Vars.\n"); }
 
-	/* Fill in Free Var Estimates */
+	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
 		for(int l = 0; l < defVars[k].numLocations; l++) {
-			*(defVars[k].location[l]) = omxMatrixElement(dataRow, 0, k);
+			if(OMX_DEBUG) {
+				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(dataRow, 0, defVars[k].column), defVars[k].matrices[l]);
+			}
+			*(defVars[k].location[l]) = omxMatrixElement(dataRow, 0, defVars[k].column);
 			omxMarkDirty(matrixList[defVars[k].matrices[l]]);
 			if(ISNA(omxMatrixElement(dataRow, 0, k))) {
 				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
@@ -73,6 +76,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
 	// Requires: Data, means, covariances.
+	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
 	SEXP matrixDims;
 	int *dimList;
@@ -105,6 +109,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	}
 	
 	int toRemove[cov->cols];
+	int ipiv[cov->rows];
+	int lwork = 2*cov->rows;
+	double work[lwork];
 
 	sum = 0.0;
 
@@ -122,7 +129,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) {
 			Rprintf("covariance columns is %d, and data columns is %d.\n", cov->cols, dataRows->cols);
 		}
-		for(int j = 0; j < dataRows->cols; j++) {
+		for(int j = 0; j < cov->cols; j++) {   // Quick fix: assume the first several columns are the ones included in the covariance calculation.  Others are assumed to be definition variables ONLY.  // TODO: Implement filter matrices.
 			if(ISNA(omxMatrixElement(dataRows, row, j))) {
 				numRemoves++;
 				toRemove[j] = 1;
@@ -135,9 +142,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(cov->cols <= numRemoves) continue;
 		
 		// Handle Definition Variables.
-		if(numDefs == 0) {
-			if(OMX_DEBUG) {Rprintf("Handling Definition Vars.\n"); } // :::REMOVE:::
+		if(numDefs != 0) {
+			if(OMX_DEBUG) { Rprintf("Handling Definition Vars.\n"); } // :::REMOVE:::
 			handleDefinitionVarList(smallRow, defVars, numDefs);
+			omxRecomputeMatrix(cov);
 		}
 
 		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
@@ -149,26 +157,30 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				}
 			}
 		}
+		
+		if(OMX_DEBUG) { omxPrintMatrix(smallRow, "Data Row Is"); }
 
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
-
 		/* The Calculation */
+		if(OMX_DEBUG) {omxPrintMatrix(smallCov, "Covariance Matrix is:");}
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-		if(info != 0) error("Covariance Matrix is not positive-definite.");
+//		F77_CALL(dgetrf)(&(smallCov->rows), &(smallCov->cols), smallCov->data, &(smallCov->cols), ipiv, &info);
+		if(info != 0) error("Covariance Matrix is not positive-definite. Error %d.", info);
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
 			logDet += log(fabs(smallCov->data[diag + (diag * smallCov->rows)]));
 		}
 		logDet *= 2.0;
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+//		F77_CALL(dgetri)(&(smallCov->rows), smallCov->data, &(smallCov->cols), ipiv, work, &lwork, &info);
 		if(info != 0) error("Cannot invert covariance matrix.");
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		for(int col = 0; col < smallRow->cols; col++) {
 			Q += RCX->data[col] * smallRow->data[col];
 		}
 		sum += logDet + Q + (log(2 * M_PI) * smallRow->cols);
-	
+		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}	
 	}
 	
 	oo->myMatrix->data[0] = sum;
