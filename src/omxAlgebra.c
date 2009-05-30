@@ -104,7 +104,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 			break;
 		}
 	}
-	omxMatrixCompute(oa->myMatrix);
+	omxComputeMatrixHelper(oa->myMatrix);
 	
 	if(OMX_DEBUG) { omxAlgebraPrint(oa, "Result is"); }
 
@@ -195,7 +195,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP alg) {
 
 	omxAlgebraCompute(oa);
 	
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 
 }
 
@@ -221,7 +221,7 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg) {
 		if(OMX_DEBUG) { Rprintf("Helper detected list element.  Recursing.\n"); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg);
 	} else {
-		newMat = omxNewMatrixFromMxMatrixPtr(algebraArg);
+		newMat = omxNewMatrixFromMxIndex(algebraArg);
 	}
 	
 	return(newMat);
@@ -229,11 +229,11 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg) {
 
 void omxAlgebraPrint(omxAlgebra* oa, char* d) {
 	Rprintf("(Algebra) ");
-	omxMatrixPrint(oa->myMatrix, d);
+	omxPrintMatrixHelper(oa->myMatrix, d);
 	Rprintf("has %d args.\n", oa->numArgs);
 }
 
-omxMatrix* omxNewMatrixFromMxMatrixPtr(SEXP matrix) {
+omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix) {
 	if(OMX_DEBUG) { Rprintf("Attaching pointer to matrix."); }
 	SEXP intMatrix;
 	int value = 0;

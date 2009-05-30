@@ -64,7 +64,7 @@ struct omxAlgebra {						// A matrix
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
 	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat); 					// Create an Algebra from an R mxMatrix
 	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat);			// Populate an Algebra from an R mxMatrix
-	omxMatrix* omxNewMatrixFromMxMatrixPtr(SEXP matrix);				// Create a matrix/algebra from a matrix pointer
+	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix);				// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2); // For constraints.
 
 /* Other Functions */

@@ -14,13 +14,8 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
-#include <Rinternals.h> 
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
+#include "omxObjectiveTable.h"
 
 #ifndef _OMX_ALGEBRA_OBJECTIVE_
 #define _OMX_ALGEBRA_OBJECTIVE_ TRUE
@@ -58,15 +53,20 @@ unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
 
 void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
+	if(OMX_DEBUG) { Rprintf("Initializing Algebra objective function.\n"); }
+	
 	SEXP newptr;
 	
 	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(1, sizeof(omxAlgebraObjective));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
-	newObj->algebra = omxNewMatrixFromMxMatrixPtr(newptr);
+	newObj->algebra = omxNewMatrixFromMxIndex(newptr);
 	if(OMX_DEBUG) {Rprintf("Algebra Objective Bound to Algebra %d", newObj->algebra);}
 	UNPROTECT(1);
 	
+	oo->objectiveFun = omxCallAlgebraObjective;
 	oo->needsUpdateFun = omxNeedsUpdateAlgebraObjective;
+	oo->destructFun = omxDestroyAlgebraObjective;
+	oo->repopulateFun = NULL;
 	
 	oo->argStruct = (void*) newObj;
 }

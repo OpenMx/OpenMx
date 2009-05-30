@@ -50,7 +50,7 @@ typedef struct omxFreeVar {			// Free Variables
 	int* matrices;			// Matrix numbers for dirtying.
 } omxFreeVar;
 
-typedef struct omxConstraint {			// Free Variables
+typedef struct omxConstraint {			// Free Variable Constraints
 	int size;
 	int opCode;
 	omxMatrix* result;
@@ -60,7 +60,7 @@ typedef struct omxConstraint {			// Free Variables
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
 extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,	double *bl,	double *bu, void* funcon, void* funobj, 
-						int *inform, int *iter, int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,				
+						int *inform, int *iter, int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
 						double *x, int *iw,	int *leniw, double *w, int *lenw);
 
 /* Objective Function */
@@ -209,7 +209,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	/* Process Objective Function */
 	if(!isNull(objective)) {
-		objMatrix = omxNewMatrixFromMxMatrixPtr(objective);
+		if(OMX_DEBUG) { Rprintf("Processing objective function.\n", numAlgs, length(algList)); }
+		objMatrix = omxNewMatrixFromMxIndex(objective);
 	} else {
 		objMatrix = NULL;
 		n = 0;
@@ -278,9 +279,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	for(k = 0; k < numCons; k++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, k));
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxNewMatrixFromMxMatrixPtr(nextLoc);
+		arg1 = omxNewMatrixFromMxIndex(nextLoc);
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxNewMatrixFromMxMatrixPtr(nextLoc);
+		arg2 = omxNewMatrixFromMxIndex(nextLoc);
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
 		conList[k].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
@@ -498,6 +499,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Major iterations 1000");
 		F77_CALL(npoptn)(option, strlen(option));
+//		sprintf(option, "Optimality Tolerance 1.0e-12");
+//		F77_CALL(npoptn)(option, strlen(option));
 //		sprintf(option, "Difference interval ");
 //		F77_CALL(npoptn)(option, strlen(option));
 		sprintf(option, "Verify level 3");
@@ -664,6 +667,13 @@ void F77_SUB(objectiveFunction)
 	omxRecomputeMatrix(objMatrix);
 	
 	/* Derivative Calculation Goes Here. */
+	
+	if(isnan(objMatrix->data[0]) || isinf(objMatrix->data[0])) {
+		if(OMX_DEBUG) {
+			Rprintf("Objective Value is incorrect.\n", objMatrix->data[0]);
+		}
+		*mode = -1;
+	}
 	
 	*f = objMatrix->data[0];
 	if(VERBOSE) {

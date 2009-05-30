@@ -29,7 +29,7 @@
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
-void omxMatrixPrint(omxMatrix *source, char* header) {
+void omxPrintMatrixHelper(omxMatrix *source, char* header) {
 	int j, k;
 	
 	Rprintf("%s: (%d x %d) [%s-major]\n", header, source->rows, source->cols, (source->colMajor?"col":"row"));
@@ -77,7 +77,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->algebra = NULL;
 	om->objective = NULL;
 	
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 	
 	return om;
 	
@@ -108,15 +108,15 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 	dest->aliasedPtr = NULL;
 
-	omxMatrixCompute(dest);
+	omxComputeMatrixHelper(dest);
 	
 }
 
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 	omxCopyMatrix(dest, src);
-	dest->aliasedPtr = src->data;						// Interesting Aside: back matrix can change without alias
-	dest->algebra = NULL;
-	dest->objective = NULL;
+	dest->aliasedPtr = src->data;			// Interesting Aside: back matrix can change without alias
+	dest->algebra = NULL;					// Have to look at how this effect interacts with populating
+	dest->objective = NULL;					//  matrix values to other locations.
 }
 
 void omxFreeMatrixData(omxMatrix * om) {
@@ -171,7 +171,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		om->originalCols = om->cols;
 	}
 	
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 }
 
 void omxResetAliasedMatrix(omxMatrix *om) {
@@ -179,14 +179,14 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 	om->cols = om->originalCols;
 	om->colMajor = om->originalColMajor;
 	if(om->aliasedPtr != NULL) {
-		if(OMX_DEBUG) { omxPrintMatrix(om, "I was");}
+//		if(OMX_DEBUG) { omxPrintMatrix(om, "I was");}
 		memcpy(om->data, om->aliasedPtr, om->rows*om->cols*sizeof(double));
-		if(OMX_DEBUG) { omxPrintMatrix(om, "I am");}
+//		if(OMX_DEBUG) { omxPrintMatrix(om, "I am");}
 	}
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 }
 
-void omxMatrixCompute(omxMatrix *om) {
+void omxComputeMatrixHelper(omxMatrix *om) {
 	
 	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x.\n", om); }
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
@@ -302,11 +302,11 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	om->objective = NULL;
 	
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
 
 	if(OMX_DEBUG) {
-		omxMatrixPrint(om, "Finished importing matrix");
+		omxPrintMatrixHelper(om, "Finished importing matrix");
 	}
 	
 	return om;
@@ -370,14 +370,14 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		}
 	}
 
-	omxMatrixCompute(om);
+	omxComputeMatrixHelper(om);
 }
 
 /* Function wrappers that switch based on inclusion of algebras */
 void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
 	if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
 	else if(source->objective != NULL) omxObjectivePrint(source->objective, d);
-	else omxMatrixPrint(source, d);
+	else omxPrintMatrixHelper(source, d);
 }
 
 unsigned short inline omxNeedsUpdate(omxMatrix *matrix) {
@@ -392,11 +392,11 @@ void inline omxRecomputeMatrix(omxMatrix *matrix) {
 	if(!omxNeedsUpdate(matrix)) return;
 	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
+	else omxComputeMatrixHelper(matrix);
 }
 
 void inline omxComputeMatrix(omxMatrix *matrix) {
 	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
+	else omxComputeMatrixHelper(matrix);
 }

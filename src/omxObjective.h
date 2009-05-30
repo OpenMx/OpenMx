@@ -38,7 +38,10 @@
 
 typedef struct omxObjective omxObjective;
 
+#include "omxMatrix.h"
 #include "omxAlgebra.h"
+#include "omxAlgebraFunctions.h"
+#include "omxObjectiveTable.h"
 
 
 #ifdef DEBUGMX
@@ -50,21 +53,22 @@ typedef struct omxObjective omxObjective;
 struct omxObjective {					// An objective
 
 	/* Fields unique to Objective Functions */
-	void (*initFun)(omxObjective *oo, SEXP rObj, SEXP dataList);			// Wrapper for initialization function (probably not needed)
-	void (*destructFun)(omxObjective* oo);									// Wrapper for the destructor object
-	void (*repopulateFun)(omxObjective* oo, double* x, int n);				// To repopulate any data stored in the objective function
-	void (*objectiveFun)(omxObjective* oo);									// Wrapper for the objective function itself
-	unsigned short int (*needsUpdateFun)(omxObjective* oo);					// To calculate recomputation
-	void (*gradientFun)(omxObjective* oo, double* grad);					// To calculate gradient
+	void (*initFun)(omxObjective *oo, SEXP rObj, SEXP dataList);				// Wrapper for initialization function (probably not needed)
+	void (*destructFun)(omxObjective* oo);										// Wrapper for the destructor object
+	void (*repopulateFun)(omxObjective* oo, double* x, int n);					// To repopulate any data stored in the objective function
+	void (*objectiveFun)(omxObjective* oo);										// Wrapper for the objective function itself
+	unsigned short int (*needsUpdateFun)(omxObjective* oo);						// To calculate recomputation
+	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 
-	void* argStruct;														// Arguments to the above function
-	char objType[250];														// Type of Objective Function
+	void* argStruct;															// Arguments needed for objective function
+	char objType[250];															// Type of Objective Function
 
-	omxMatrix* myMatrix;													// The (1x1) matrix populated by this objective function
+	omxMatrix* myMatrix;														// The (1x1) matrix populated by this objective function
 
 };
 
 /* Initialize and Destroy */
+	void omxInitEmptyObjective(omxObjective *oo);
 	void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP mxobj, SEXP dataList); // Create an objective function from an R MxObjective object
 	void omxFreeObjectiveArgs(omxObjective* objective);						// Frees all args
 

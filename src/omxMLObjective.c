@@ -190,6 +190,8 @@ unsigned short int omxNeedsUpdateMLObjective(omxObjective* oo) {
 
 void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
+	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
+	
 	SEXP nextMatrix, itemList, nextItem, dataElt;
 	int nextDef, index, data, column;
 	int *items, info=0;
@@ -203,12 +205,12 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 		newObj->expectedMeans = NULL;
 	} else {
-		newObj->expectedMeans = omxNewMatrixFromMxMatrixPtr(nextMatrix);
+		newObj->expectedMeans = omxNewMatrixFromMxIndex(nextMatrix);
 	}
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->expectedCov = omxNewMatrixFromMxMatrixPtr(nextMatrix);
+	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
@@ -223,7 +225,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 		newObj->observedMeans = NULL;
 	} else {
-		newObj->observedMeans = omxNewMatrixFromMxMatrixPtr(nextMatrix);
+		newObj->observedMeans = omxNewMatrixFromMxIndex(nextMatrix);
 	}
 
 	UNPROTECT(4);
@@ -256,7 +258,10 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
 	
+	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
+	oo->destructFun = omxDestroyMLObjective;
+	oo->repopulateFun = NULL;
 	oo->argStruct = (void*) newObj;
 	
 }

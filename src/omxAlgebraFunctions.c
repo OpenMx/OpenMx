@@ -37,7 +37,7 @@ void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
-	omxMatrixCompute(result);
+	omxComputeMatrixHelper(result);
 }
 
 void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
@@ -102,7 +102,7 @@ void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 	/* The call itself */
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
-	omxMatrixCompute(result);
+	omxComputeMatrixHelper(result);
 
 };
 

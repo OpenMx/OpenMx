@@ -92,7 +92,8 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	UNPROTECT(2); // theCall, estimate
 }
 
-void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {	
+void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+	if(OMX_DEBUG) { Rprintf("Initializing R objective function.\n"); }
 	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
 	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));
 	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
@@ -101,7 +102,11 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(newObj->env = GET_SLOT(rObj, install("env")));	
 	PROTECT_WITH_INDEX(newObj->state = NEW_NUMERIC(1), &(newObj->stateIndex));
 	REAL(newObj->state)[0] = NA_REAL;
+	
+	oo->objectiveFun = omxCallRObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRObjective;
+	oo->destructFun = omxDestroyRObjective;
+	oo->repopulateFun = omxRepopulateRObjective;
 	oo->argStruct = (void*) newObj;
 }
 

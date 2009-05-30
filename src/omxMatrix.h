@@ -12,19 +12,20 @@
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 /***********************************************************
-* 
-*  omxMatrix.h
-*
-*  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
-*
-*	Contains header information for the omxMatrix class
-*   omxDataMatrices hold necessary information to simplify
-* 	dealings between the OpenMX back end and BLAS.
-*
-**********************************************************/
+ * 
+ *  omxMatrix.h
+ *
+ *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
+ *
+ *	Contains header information for the omxMatrix class
+ *   omxDataMatrices hold necessary information to simplify
+ * 	dealings between the OpenMX back end and BLAS.
+ *
+ **********************************************************/
 
 #ifndef _OMXMATRIX_H_
 #define _OMXMATRIX_H_
@@ -72,6 +73,11 @@ struct omxMatrix {						// A matrix
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxObjective* objective;			// If it's not an objective function, this is NULL.
+	
+/* For inclusion in(or of) other matrices */
+	int populateLocations;
+	omxMatrix** populateFrom;
+	double** populateTo;
 
 };
 
@@ -87,23 +93,24 @@ struct omxMatrix {						// A matrix
 	void omxMarkDirty(omxMatrix *om);
 
 /* Other Functions */
-	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 	 						unsigned short keepMemory);					// Resize, with or without re-initialization
-	void omxMatrixPrint(omxMatrix *source, char* d);					// Pretty-print a (small) matrix
 	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix); 					// Populate an omxMatrix from an R MxMatrix 
-//	omxMatrix* omxMatrixFromMxMatrixPtr(SEXP s);						// Fills either a matrix or a 
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);				// Copy across another matrix.  
-
-/* Will eventually be needed for evaluation optimization. */
-	void omxMatrixCompute(omxMatrix *matrix);
-	unsigned short omxMatrixNeedsUpdate(omxMatrix *matrix);
-	void omxResetAliasedMatrix(omxMatrix *matrix);				// Reset to the original majority and realias, if needed.
+	
+/* Aliased Matrix Functions */
+	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.
+	void omxResetAliasedMatrix(omxMatrix *matrix);						// Reset to the original majority and realias, if needed.
 	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
+
+/* Matrix-Internal Helper functions */
+	void omxComputeMatrixHelper(omxMatrix *matrix);
+	void omxPrintMatrixHelper(omxMatrix *source, char* d);				// Pretty-print a (small) matrix
+	unsigned short omxMatrixNeedsUpdate(omxMatrix *matrix);
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrintMatrix(omxMatrix *source, char* d); 					// Pretty-print a (small) matrix
-	unsigned short omxNeedsUpdate(omxMatrix *matrix);
+	unsigned short omxNeedsUpdate(omxMatrix *matrix);					
 	void omxRecomputeMatrix(omxMatrix *matrix);
 	void omxComputeMatrix(omxMatrix *matrix);
 

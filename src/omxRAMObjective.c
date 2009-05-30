@@ -14,12 +14,7 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
-#include <Rinternals.h> 
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
+#include "omxObjectiveTable.h"
 #include "omxAlgebraFunctions.h"
 
 #ifndef _OMX_RAM_OBJECTIVE_
@@ -156,7 +151,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	omxRAMObjective *newObj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	
-	if(OMX_DEBUG) { Rprintf("Using RAM objective function.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function.\n"); }
 
 	// Read the observed covariance matrix from the data argument.
 	
@@ -173,17 +168,17 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(3);
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("A")));
-	newObj->A = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	newObj->A = omxNewMatrixFromMxIndex(newMatrix);
 	omxRecomputeMatrix(newObj->A);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("S")));
-	newObj->S = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	newObj->S = omxNewMatrixFromMxIndex(newMatrix);
 	omxRecomputeMatrix(newObj->S);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("F")));
-	newObj->F = omxNewMatrixFromMxMatrixPtr(newMatrix);
+	newObj->F = omxNewMatrixFromMxIndex(newMatrix);
 	omxRecomputeMatrix(newObj->F);
 	UNPROTECT(1);
 	
@@ -212,9 +207,13 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->lwork = k;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
 	
+	oo->objectiveFun = omxCallRAMObjective;
+	oo->destructFun = omxDestroyRAMObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
+	oo->repopulateFun = NULL;
 	
 	oo->argStruct = (void*) newObj;
+
 }
 
 

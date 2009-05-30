@@ -194,6 +194,8 @@ unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
+	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
+	
 	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
 	int nextDef, index, data, column;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
@@ -202,11 +204,11 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 //	if(ISNA(nextMatrix)) {
 //		error("NO FIML MEANS PROVIDED.");
 //	}
-	newObj->means = omxNewMatrixFromMxMatrixPtr(nextMatrix);
+	newObj->means = omxNewMatrixFromMxIndex(nextMatrix);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->cov = omxNewMatrixFromMxMatrixPtr(nextMatrix);
+	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix);
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
@@ -253,7 +255,11 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
 	
+	oo->objectiveFun = omxCallFIMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
+	oo->destructFun = omxDestroyFIMLObjective;
+	oo->repopulateFun = NULL;
+
 	oo->argStruct = (void*) newObj;
 	if(OMX_DEBUG) {Rprintf("Finished import of FIML objective function.\n"); }	
 }
