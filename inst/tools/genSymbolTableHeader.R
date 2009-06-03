@@ -2,6 +2,16 @@ table <- read.table('data/omxSymbolTable.tab', header = TRUE)
 
 numEntries <- dim(table)[[1]]
 
+declares <- apply(table, 1, function(x) {		# This should maybe go in its own header file.
+	if(x[[5]] != 'NULL') {
+		paste('void ', x[[5]], '(omxMatrix** args, int numArgs, omxMatrix* result);', sep="")
+	} else {
+		''
+	}
+})
+
+declares <- paste(declares, collapse = '\n')
+
 output <- paste(
 "#ifndef _OMX_SYMBOL_TABLE_",
 "#define _OMX_SYMBOL_TABLE_ TRUE",
@@ -12,8 +22,10 @@ output <- paste(
 "#include <R_ext/Rdynload.h>",
 "#include <R_ext/BLAS.h>",
 "#include <R_ext/Lapack.h>",
+"typedef struct omxAlgebraTableEntry omxAlgebraTableEntry;",
+"#include \"omxMatrix.h\"",
 
-"typedef struct {",
+"struct omxAlgebraTableEntry {",
 
 "	unsigned int number;",
 "	const char opName[250];",
@@ -21,7 +33,9 @@ output <- paste(
 "	short int numArgs;",
 "	void* funWrapper;",
 
-"} omxAlgebraTableEntry;",
+"};",
+
+# declares,   # Uncomment to automatically declare functions in this header file
 
 paste("#define omxSymbolTableLength", numEntries),
 

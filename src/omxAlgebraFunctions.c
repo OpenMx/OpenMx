@@ -30,7 +30,9 @@
 #include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 
-void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
+void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	omxMatrix* inMat = matList[0];
 	
 	omxCopyMatrix(result, inMat);
 	result->colMajor = !result->colMajor;
@@ -40,8 +42,10 @@ void omxMatrixTranspose(omxMatrix *inMat, omxMatrix* result) {
 	omxComputeMatrixHelper(result);
 }
 
-void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
+void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	omxMatrix* inMat = matList[0];
+	
 	int ipiv[inMat->rows], lwork;
 	lwork = 4 * inMat->rows * inMat->cols;
 	double work[lwork];
@@ -56,9 +60,10 @@ void omxMatrixInvert(omxMatrix *inMat, omxMatrix* result)
 	
 }
 
-void omxElementPower(omxMatrix *inMat, omxMatrix *power, omxMatrix* result)
+void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxCopyMatrix(result, inMat);
+	omxMatrix* inMat = matList[0];
+	omxMatrix* power = matList[1];
 	
 	if(power->rows == 1 && power->cols ==1) {
 		for(int j = 0; j < result->cols * result->rows; j++) {
@@ -74,7 +79,10 @@ void omxElementPower(omxMatrix *inMat, omxMatrix *power, omxMatrix* result)
 	
 };
 
-void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
+void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* preMul = matList[0];
+	omxMatrix* postMul = matList[1];
 
 	if(OMX_DEBUG) { Rprintf("Multiplying two matrices.\n");}
 	
@@ -106,7 +114,10 @@ void omxMatrixMult(omxMatrix *preMul, omxMatrix *postMul, omxMatrix* result) {
 
 };
 
-void omxMatrixDot(omxMatrix *preDot, omxMatrix *postDot, omxMatrix* result) {
+void omxMatrixDot(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* preDot = matList[0];
+	omxMatrix* postDot = matList[1];
 // Actually, this is element-by-element multiplication.
 	
 	/* Conformability Check! */
@@ -125,8 +136,11 @@ void omxMatrixDot(omxMatrix *preDot, omxMatrix *postDot, omxMatrix* result) {
 
 
 };
-void omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) {
-
+void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* preMul = matList[0];
+	omxMatrix* postMul = matList[1];
+	
 	int rows = preMul->rows * postMul->rows;
 	int cols = preMul->cols * postMul->cols;
 
@@ -141,7 +155,10 @@ void omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) 
 	
 };
 
-void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) {
+void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* preMul = matList[0];
+	omxMatrix* postMul = matList[1];
 	/* A %&% B = ABA' */
 
 	static double zero = 0.0;
@@ -165,8 +182,10 @@ void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result) 
 
 };
 
-void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result) {
-	
+void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxMatrix* divisor = matList[1];
 	
 	/* Conformability Check! */
 	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows) 
@@ -182,7 +201,10 @@ void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result) {
 	
 };
 
-void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result) {
+void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxMatrix* addend = matList[1];
 	
 	/* Conformability Check! */
 	if(inMat->cols != addend->cols || inMat->rows != addend->rows) 
@@ -198,7 +220,11 @@ void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result) {
 
 };
 
-void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* result) {	/* Conformability Check! */
+void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxMatrix* subtrahend = matList[1];
+	
 	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows) 
 		error("Non-conformable matrices in Matrix Subtract.");
 		
@@ -219,7 +245,9 @@ void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* resul
 	}
 };
 
-void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result) {
+void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -231,7 +259,7 @@ void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result) {
 	
 };
 
-void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
+void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	int totalRows = 0, totalCols = 0, currentCol=0;
 	
@@ -261,7 +289,7 @@ void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
 
 };
 
-void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
+void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
 	int totalRows = 0, totalCols = 0, currentRow=0;
 	
@@ -291,11 +319,16 @@ void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result) {
 
 };
 
-void omxMatrixDeterminant(omxMatrix* inMat, omxMatrix* result) {
+void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 		error("NYI: Not yet Implemented.\n");
 	};
 
-void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result) {
+void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
+	{
+		omxMatrix* inMat = matList[0];
+
 		/* Consistency check: */
 		if(result->rows != 1 || result->cols != 1) {
 			omxResizeMatrix(result, 1, 1, FALSE);
@@ -315,7 +348,7 @@ void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result) {
 		omxSetMatrixElement(result, 0, 0, trace);
 	};
 
-void omxMatrixTotalSum(omxMatrix** matList, double numArgs, omxMatrix* result) {
+void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -333,7 +366,7 @@ void omxMatrixTotalSum(omxMatrix** matList, double numArgs, omxMatrix* result) {
 	omxSetMatrixElement(result, 0, 0, sum);	
 };
 
-void omxMatrixTotalProduct(omxMatrix** matList, double numArgs, omxMatrix* result) {
+void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -351,7 +384,7 @@ void omxMatrixTotalProduct(omxMatrix** matList, double numArgs, omxMatrix* resul
 	omxSetMatrixElement(result, 0, 0, product);	
 };
 
-void omxMatrixMaximum(omxMatrix** matList, double numArgs, omxMatrix* result){
+void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -369,7 +402,7 @@ void omxMatrixMaximum(omxMatrix** matList, double numArgs, omxMatrix* result){
 	omxSetMatrixElement(result, 0, 0, min);	
 };
 
-void omxMatrixMinimum(omxMatrix** matList, double numArgs, omxMatrix* result){
+void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -386,7 +419,9 @@ void omxMatrixMinimum(omxMatrix** matList, double numArgs, omxMatrix* result){
 	omxSetMatrixElement(result, 0, 0, max);	
 };
 
-void omxMatrixAbsolute(omxMatrix* inMat, omxMatrix* result){
+void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -401,7 +436,9 @@ void omxMatrixAbsolute(omxMatrix* inMat, omxMatrix* result){
 	
 };
 
-void omxElementCosine(omxMatrix* inMat, omxMatrix* result){
+void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -416,7 +453,9 @@ void omxElementCosine(omxMatrix* inMat, omxMatrix* result){
 	
 };
 
-void omxElementCosh(omxMatrix* inMat, omxMatrix* result){
+void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -431,8 +470,10 @@ void omxElementCosh(omxMatrix* inMat, omxMatrix* result){
 	
 };
 
-void omxElementSine(omxMatrix* inMat, omxMatrix* result){
-	
+void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+
 	int max = inMat->cols * inMat->rows;
 	
 	/* Consistency Check */
@@ -446,7 +487,10 @@ void omxElementSine(omxMatrix* inMat, omxMatrix* result){
 	
 };
 
-void omxElementSinh(omxMatrix* inMat, omxMatrix* result){
+void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -461,7 +505,9 @@ void omxElementSinh(omxMatrix* inMat, omxMatrix* result){
 	
 };
 
-void omxElementTangent(omxMatrix* inMat, omxMatrix* result) {
+void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -476,7 +522,9 @@ void omxElementTangent(omxMatrix* inMat, omxMatrix* result) {
 	
 };
 
-void omxElementTanh(omxMatrix* inMat, omxMatrix* result) {
+void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -491,7 +539,9 @@ void omxElementTanh(omxMatrix* inMat, omxMatrix* result) {
 	
 };
 
-void omxElementExponent(omxMatrix* inMat, omxMatrix* result) {
+void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -506,7 +556,9 @@ void omxElementExponent(omxMatrix* inMat, omxMatrix* result) {
 	
 };
 
-void omxElementNaturalLog(omxMatrix* inMat, omxMatrix* result) {
+void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
 	

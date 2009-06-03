@@ -18,4 +18,4 @@ model <- mxModel(A,B,C,D,E,F,G,H,I,J,K,L,M)
 
 model <- mxRun(model)
 
-omxCheckCloseEnough(model[['C']]@result, sum(A@values, B@values), 0.001)
+omxCheckCloseEnough(model[['C']]@result[,1], sum(A@values, B@values), 0.001)

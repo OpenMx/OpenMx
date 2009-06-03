@@ -87,22 +87,8 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}
 	} else {
-		if(OMX_DEBUG) { Rprintf("Activating function with %d: (0x%0x=0x%0x).\n", oa->numArgs, oa->funWrapper, omxAlgebraSymbolTable[4].funWrapper); }
-	
-		switch(oa->numArgs) {
-			case 0:
-				(*((void(*)(omxMatrix*))oa->funWrapper))(oa->myMatrix);
-				break;
-			case 1:
-				(*((void(*)(omxMatrix*, omxMatrix*))oa->funWrapper))(oa->args[0], oa->myMatrix);
-				break;
-			case 2:
-				(*((void(*)(omxMatrix*, omxMatrix*, omxMatrix*))oa->funWrapper))(oa->args[0], oa->args[1], oa->myMatrix);
-				break;
-			default:
-				(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, -(oa->numArgs), oa->myMatrix);
-			break;
-		}
+		if(OMX_DEBUG) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->myMatrix);
 	}
 	omxComputeMatrixHelper(oa->myMatrix);
 	
@@ -157,10 +143,14 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP alg) {
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
 		if(OMX_DEBUG) {Rprintf("Table Entry %d (at 0x%0x) is %s.\n", value, entry, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry);
+		if(oa->numArgs < 0) {	// Special Case: open-ended operator.  Might want to move this section to omxFillAlgebraFromTableEntry
+			oa->numArgs = length(alg) - 1;  // Has as many arguments as there are elements after the operator
+			oa->args = (omxMatrix**)R_alloc(oa->numArgs, sizeof(omxMatrix*));
+		}
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(alg, j+1));
 				oa->args[j] = omxAlgebraParseHelper(algebraArg);
-				if(OMX_DEBUG) {Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j);}
+				if(OMX_DEBUG) { Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j); }
 			UNPROTECT(1); /* algebraArg */
 		}
 	} else if(value == 0) {		// This is an algebra pointer, and we're a No-op algebra.
@@ -206,7 +196,9 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	if(OMX_DEBUG) { Rprintf("Filling from table entry %d (%s)....", oate->number, oate->rName); }
 	oa->funWrapper = oate->funWrapper;
 	oa->numArgs = oate->numArgs;
-	oa->args = (omxMatrix**)R_alloc(oa->numArgs, sizeof(omxMatrix*));
+	if(oa->numArgs >= 0) {
+		oa->args = (omxMatrix**)R_alloc(oa->numArgs, sizeof(omxMatrix*));
+	}
 	if(OMX_DEBUG) { Rprintf("Table Entry processed.\n"); }
 }
 

@@ -26,33 +26,33 @@
 #include "omxMatrix.h"
 
 /* Functional Wrappers */
-void omxMatrixInvert(omxMatrix* inMat, omxMatrix* result);
-void omxMatrixTranspose(omxMatrix* inMat, omxMatrix* result);
-void omxElementPower(omxMatrix* inMat, omxMatrix* power, omxMatrix* result);
-void omxMatrixMult(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
-void omxMatrixDot(omxMatrix* preDot, omxMatrix* postDot, omxMatrix* result);
-void omxKroneckerProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
-void omxQuadraticProd(omxMatrix* preMul, omxMatrix* postMul, omxMatrix* result);
-void omxElementDivide(omxMatrix* inMat, omxMatrix* divisor, omxMatrix* result);
-void omxMatrixAdd(omxMatrix* inMat, omxMatrix* addend, omxMatrix* result);
-void omxMatrixSubtract(omxMatrix* inMat, omxMatrix* subtrahend, omxMatrix* result);
-void omxUnaryMinus(omxMatrix* inMat, omxMatrix* result);
-void omxMatrixHorizCat(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixVertCat(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixDeterminant(omxMatrix* inMat, omxMatrix* result);
-void omxMatrixTrace(omxMatrix* inMat, omxMatrix* result);
-void omxMatrixTotalSum(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixTotalProduct(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixMaximum(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixMinimum(omxMatrix** matList, double numArgs, omxMatrix* result);
-void omxMatrixAbsolute(omxMatrix* inMat, omxMatrix* result);
-void omxElementCosine(omxMatrix* inMat, omxMatrix* result);
-void omxElementCosh(omxMatrix* inMat, omxMatrix* result);
-void omxElementSine(omxMatrix* inMat, omxMatrix* result);
-void omxElementSinh(omxMatrix* inMat, omxMatrix* result);
-void omxElementTangent(omxMatrix* inMat, omxMatrix* result);
-void omxElementTanh(omxMatrix* inMat, omxMatrix* result);
-void omxElementExponent(omxMatrix* inMat, omxMatrix* result);
-void omxElementNaturalLog(omxMatrix* inMat, omxMatrix* result);
+void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixDot(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif
