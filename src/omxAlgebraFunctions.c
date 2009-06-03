@@ -372,19 +372,19 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) 
 		omxResizeMatrix(result, 1, 1, FALSE);
 	}
 	
-	double product = 0.0;
+	double product = 1.0;
 	
 	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 	for(int j = 0; j < numArgs; j++) {
 		for(int k = 0; k < matList[j]->rows * matList[j]->cols; k++) {
-			product += matList[j]->data[k];
+			product *= matList[j]->data[k];
 		}
 	}
 	
 	omxSetMatrixElement(result, 0, 0, product);	
 };
 
-void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
+void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -402,7 +402,7 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	omxSetMatrixElement(result, 0, 0, min);	
 };
 
-void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
+void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);

@@ -15,14 +15,14 @@
 
 
 checkEqualDimensions <- function(a, b) {
-	if((is.vector(a) && !is.vector(b)) || 
-		(is.vector(b) && !is.vector(a))) {
+	if((is.vector(a) && length(a) > 1 && !is.vector(b)) || 
+		(is.vector(b) && length(b) > 1 && !is.vector(a))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not both vectors")) 	
 	}
-	if((is.matrix(a) && !is.matrix(b)) || 
-		(is.matrix(b) && !is.matrix(a))) {
+	if((is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && !is.matrix(b)) || 
+		(is.matrix(b) && (nrow(b) > 1 || ncol(b) > 1) && !is.matrix(a))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not both matrices")) 	
@@ -33,7 +33,7 @@ checkEqualDimensions <- function(a, b) {
 			"do not have equal length :",
 			length(a), 'and', length(b)))
 	}
-	if (is.matrix(a) && any(dim(a) != dim(b))) {
+	if (is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && any(dim(a) != dim(b))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not of equal dimension :", 
