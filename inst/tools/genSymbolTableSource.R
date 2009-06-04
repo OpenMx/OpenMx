@@ -6,7 +6,7 @@ header <- paste(
 	"#include <R_ext/BLAS.h>",
 	"#include <R_ext/Lapack.h>",
 	"#include \"omxSymbolTable.h\"",
-	"#include \"omxAlgebraFunctions.h\"",
+#	"#include \"omxAlgebraFunctions.h\"",
 
 	"const omxAlgebraTableEntry omxAlgebraSymbolTable[omxSymbolTableLength] = {", 
 	sep = "\n"

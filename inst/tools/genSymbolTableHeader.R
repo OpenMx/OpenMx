@@ -2,7 +2,7 @@ table <- read.table('data/omxSymbolTable.tab', header = TRUE)
 
 numEntries <- dim(table)[[1]]
 
-declares <- apply(table, 1, function(x) {		# This should maybe go in its own header file.
+declares <- apply(table, 1, function(x) {		# Generates a declaration line for each of the functions in the table.
 	if(x[[5]] != 'NULL') {
 		paste('void ', x[[5]], '(omxMatrix** args, int numArgs, omxMatrix* result);', sep="")
 	} else {
@@ -35,7 +35,7 @@ output <- paste(
 
 "};",
 
-# declares,   # Uncomment to automatically declare functions in this header file
+declares,
 
 paste("#define omxSymbolTableLength", numEntries),
 
