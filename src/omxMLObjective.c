@@ -72,6 +72,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	int *dimList;
 	double sum = 0.0, det = 1.0;
 	char u = 'U';
+	char r = 'R';
 	int info = 0;
 	double oned = 1.0;
 	double zerod = 0.0;
@@ -107,8 +108,8 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	
 	/* Calculate |expected| */
 	
-	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
-//	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
+//	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
+	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 	
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
 	omxPrintMatrix(localCov, "After Decomp:");}
@@ -126,18 +127,19 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	//	error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
 	}
 
-	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the product of the diagonal elements of U from the LU factorization.
-		det *= localCov->data[info+localCov->rows*info];	// Normally, we'd need to worry about transformations made during LU, but
-	}														// we're safe here because the determinant of a covariance matrix > 0.	
-															// TODO: Prove this for negative estimated variances.
+	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the square of the product of the diagonal elements of U from the LU factorization.
+		det *= localCov->data[info+localCov->rows*info];
+	}	
+	det *= det;
+	// TODO: Prove this will still work for negative estimated variances (Heywood cases).
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 	
 	/* Calculate Expected^(-1) */
-	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
-//	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
+//	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
+	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
 	
 	if(OMX_DEBUG) {omxPrintMatrix(cov, "Expected Covariance Matrix:");}
@@ -145,19 +147,18 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	
 	/* Calculate Observed * expected */
 	
-	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", *(scov->majority), 
-						   *(localCov->majority), (scov->rows), (localCov->cols),
-						   (scov->cols), oned, scov->data, (localCov->leading), 
+	if(OMX_DEBUG) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",  (scov->rows), (localCov->cols),
+						    oned, scov->data, (localCov->leading), 
 						   localCov->data, (localCov->leading), zerod, localCov->data, (localCov->leading));}
 
 
 	// Stop gcc from issuing a warning
-	int majority = *(localCov->majority) == 'n' ? scov->rows : scov->cols;
+	int majority = *(scov->majority) == 'n' ? scov->rows : scov->cols;
 	
 	/*  TODO:  Make sure leading edges are being appropriately calculated, and sub them back into this */
-	F77_CALL(dgemm)((scov->majority), (localCov->majority), &(scov->rows), &(localCov->cols), 
-					&(scov->cols), &oned, scov->data, &(majority), 
-					localCov->data, &(majority),
+	F77_CALL(dsymm)(&r, &u, &(localCov->rows), &(scov->cols), 
+					&oned, localCov->data, &(majority), 
+ 					scov->data, &(majority),
 					&zerod, localProd->data, &(localProd->leading));
 
     /* And get the trace of the result */
