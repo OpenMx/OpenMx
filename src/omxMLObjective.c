@@ -107,10 +107,11 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	
 	/* Calculate |expected| */
 	
-//	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
-	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
+	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
+//	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 	
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
+	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
+	omxPrintMatrix(localCov, "After Decomp:");}
 	if(info > 0) {
 			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
 		char errstr[50+10*n];
@@ -135,8 +136,8 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 	
 	/* Calculate Expected^(-1) */
-//	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
-	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
+	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
+//	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
 	
 	if(OMX_DEBUG) {omxPrintMatrix(cov, "Expected Covariance Matrix:");}
@@ -174,7 +175,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) {omxPrintMatrix(localProd, "Product Matrix:");}
 	if(OMX_DEBUG) {Rprintf("trace is %f and log(det(observed)) is %f.\n", sum, Q);}
 	
-    oo->myMatrix->data[0] = fabs(sum + det - scov->rows - Q);
+    oo->myMatrix->data[0] = sum + det - scov->rows - Q;
 
 	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (was: %f).\n", oo->myMatrix->data[0], (sum + det)); }
 
