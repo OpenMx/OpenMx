@@ -22,7 +22,7 @@
 # ----------------------------------
 # Define 100 indicators and five first level latent variables.
 
-myManifest <- sprintf("%02d", c(1:100))
+myManifest <- sprintf("%02d", c(1:50))
 myLatent <- c("G1", "G2", "G3", "G4", "G5")
 
 ex2Model <- mxModel(type = "RAM", latentVars = myLatent, manifestVars = myManifest)
@@ -31,12 +31,12 @@ ex2Model <- mxModel(type = "RAM", latentVars = myLatent, manifestVars = myManife
 # Attach five latent variables to the 100 indicators in simple factor structure.
 paths <- list()
 for (i in 1:5) {
-    j <- i*20
+    j <- i*10
     paths <- c(paths, mxPath(from = myLatent[i], 
-                            to = myManifest[(j - 19) : j], 
+                            to = myManifest[(j - 9) : j], 
                             arrows = 1,
-                            free = c(FALSE, rep(TRUE, 19)), 
-                            start = c(1, rep(0.75, 19))))
+                            free = c(FALSE, rep(TRUE, 9)), 
+                            start = c(1, rep(0.75, 9))))
 }
 ex2Model <- mxModel(ex2Model, paths)
 
