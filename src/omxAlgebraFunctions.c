@@ -169,7 +169,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		error("Non-conformable matrices in Matrix Quadratic Product.");
 		
 	omxMatrix* intermediate = NULL;
-	omxInitMatrix(intermediate, preMul->rows, postMul->cols, TRUE);
+	omxInitMatrix(intermediate, preMul->rows, postMul->cols, TRUE, preMul->currentState);
 		
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->cols, preMul->cols, FALSE);

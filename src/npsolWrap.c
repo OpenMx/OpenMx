@@ -22,6 +22,7 @@
 #include <R_ext/Lapack.h> 
 
 #include <stdio.h>
+#include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxObjective.h"
@@ -35,27 +36,16 @@
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
 #define VERBOSE 1
-#define OMX_DEBUG_ALL 1
 #else
 #define OMX_DEBUG 0
 #define VERBOSE 0
-#define OMX_DEBUG_ALL 0
 #endif /* DEBUGMX */
 
-/* Structure definitions for object evaluation */
-typedef struct omxFreeVar {			// Free Variables
-	double lbound, ubound;	// Bounds
-	int numLocations;
-	double** location;		// And where they go.
-	int* matrices;			// Matrix numbers for dirtying.
-} omxFreeVar;
-
-typedef struct omxConstraint {			// Free Variable Constraints
-	int size;
-	int opCode;
-	omxMatrix* result;
-} omxConstraint;
-
+#ifdef DEBUGNPSOL
+#define OMX_DEBUG_OPTIMIZER 1
+#else
+#define OMX_DEBUG_OPTIMIZER 0
+#endif
 
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
@@ -73,7 +63,7 @@ void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, dou
 void F77_SUB(oldMxConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
 
 /* Helper functions */
-void handleFreeVarList(double* x, int numVars);					// Locates and inserts elements from the optimizer.  Should handle Algebras, as well.
+void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
 
@@ -86,20 +76,15 @@ const double INF = 2e20;
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
 SEXP env;						// Environment for evaluation and object hunting
-int ncalls, nminor;				// For debugging--how many calls?
-omxMatrix** matrixList;			// Data matrices and their data.
-omxMatrix** algebraList;		// List of the matrices of all algebras.
-omxConstraint* conList;			// List of constraints
-omxFreeVar* freeVarList;		// List of Free Variables and where they go.
-omxMatrix *objMatrix;			// Objective Function Matrix
 
 /* Made global for objective functions that want them */
 int n, nclin, ncnln;			// Number of Free Params, linear, and nonlinear constraints
-int numCons;					// Number of constraint algebras
-double f;						// Objective Function
+double f;						// Objective Function Value
 double *g;						// Gradient Pointer
 double *R, *cJac;				// Hessian (Approx) and Jacobian
 int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
+
+omxState* currentState;			// Current State of optimization
 
 
 /* Functions for Export */
@@ -131,8 +116,6 @@ R_unload_mylib(DllInfo *info)
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state) {
 	// For now, assume no constraints.
 	
-	ncalls = 0;
-	
 	int N; // n, 
 	SEXP nameString;
 
@@ -152,9 +135,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	int j, k, l, m;					// Index Vars
 	
-	int nctotl, nlinwid, nlnwid;	// Helpful side variables
-	
-	int numAlgs, numMats, numObjMats;// Number of algebras/matrices.  Used for memory management.
+	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 	
 	SEXP nextLoc, nextMat, nextAlg, nextVar;
 	
@@ -164,61 +145,79 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
 
-	n = length(startVals);	
+	n = length(startVals);
+	
+	/* Create new omxState for current state storage and initialize it. */
+	currentState = (omxState*) R_alloc(1, sizeof(omxState));
+	omxInitState(currentState);
+	currentState->numFreeParams = n;
+	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 	
 	/* Store Data from MxMatrices */
 	
 	/* Retrieve All Matrices From the MatList */
 
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
-	numMats = length(matList);
-	matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
+	currentState->numMats = length(matList);
+	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 	
 	for(k = 0; k < length(matList); k++) {
-		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// TODO: Find out if this duplicates the matrix.
+		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		matrixList[k] = omxNewMatrixFromMxMatrix(nextMat);
+		currentState->matrixList[k] = omxNewMatrixFromMxMatrix(nextMat, currentState);
 		if(OMX_DEBUG) { 
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n", 
-				matrixList[k], matrixList[k]->rows, matrixList[k]->cols);
+				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
 		}
 		UNPROTECT(2); // nextLoc and nextMat
-		//TODO: The remaining elements the nextLoc list are (row, column, matrix/algebra pointer) tuples
 	}
 
 	/* Process Algebras Here */
-	numAlgs = length(algList);
+	currentState->numAlgs = length(algList);
 	l = 1;
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", numAlgs, length(algList)); }
-	algebraList = (omxMatrix**) R_alloc(numAlgs, sizeof(omxMatrix*));
+	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", currentState->numAlgs, length(algList)); }
+	currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
 
-	for(int j = 0; j < numAlgs; j++) {
-		algebraList[j] = omxInitMatrix(NULL, 0,0, TRUE);
+	for(int j = 0; j < currentState->numAlgs; j++) {
+		currentState->algebraList[j] = omxInitMatrix(NULL, 0,0, TRUE, currentState);
 	}
 	
-	for(int j = 0; j < numAlgs; j++) {
+	for(int j = 0; j < currentState->numAlgs; j++) {
 		PROTECT(nextAlg = VECTOR_ELT(algList, j));		// The next algebra or objective to process
-		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, algebraList + j); }
+		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
 		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
-			omxFillMatrixFromMxObjective(algebraList[j], nextAlg, data);
+			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlg, data);
 		} else {															// This is an algebra spec.
-			omxFillMatrixFromMxAlgebra(algebraList[j], nextAlg);
+			omxFillMatrixFromMxAlgebra(currentState->algebraList[j], nextAlg);
 		}
 		UNPROTECT(1);	// nextAlg
 	}
 	
 	/* Process Objective Function */
 	if(!isNull(objective)) {
-		if(OMX_DEBUG) { Rprintf("Processing objective function.\n", numAlgs, length(algList)); }
-		objMatrix = omxNewMatrixFromMxIndex(objective);
+		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
+		currentState->objective = omxNewMatrixFromMxIndex(objective, currentState);
 	} else {
-		objMatrix = NULL;
+		currentState->objective = NULL;
 		n = 0;
+		currentState->numFreeParams = n;
 	}
 	
-/*	for(int j = 0; j < length(algList); j++) {
+	/* Process Matrix and Algebra Population Function */
+	/*
+	 Each matrix is a list containing a matrix and the other matrices/algebras that are
+	 populated into it at each iteration.  The first element is already processed, above.
+	 The rest of the list will be processed here.
+	*/
+	for(int j = 0; j < currentState->numMats; j++) {
+		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+		omxProcessMatrixPopulationList(currentState->matrixList[j], nextLoc);
+		UNPROTECT(1);
+	}
+/*
+	for(int j = 0; j < length(algList); j++) {
 		if(OMX_DEBUG) { Rprintf("Computing Algebra %d.\n", j); }
-		algebraList[j].compute();
+		currentState->algebraList[j].compute();
 	} */
 
 	/* Process Free Var List */
@@ -230,29 +229,29 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
     */	
 	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	omxMatrix dm;
-	freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
+	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
 		int numLocs = length(nextVar) - 2;
-		freeVarList[k].numLocations = numLocs;
-		freeVarList[k].location = (double**) R_alloc(numLocs, sizeof(double*));
-		freeVarList[k].matrices = (int*) R_alloc(numLocs, sizeof(int));
+		currentState->freeVarList[k].numLocations = numLocs;
+		currentState->freeVarList[k].location = (double**) R_alloc(numLocs, sizeof(double*));
+		currentState->freeVarList[k].matrices = (int*) R_alloc(numLocs, sizeof(int));
 		
 		/* Lower Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
-		freeVarList[k].lbound = REAL(nextLoc)[0];
-		if(ISNA(freeVarList[k].lbound)) freeVarList[k].lbound = NEG_INF;
-		if(freeVarList[k].lbound == 0.0) freeVarList[k].lbound = 0.0;
+		currentState->freeVarList[k].lbound = REAL(nextLoc)[0];
+		if(ISNA(currentState->freeVarList[k].lbound)) currentState->freeVarList[k].lbound = NEG_INF;
+		if(currentState->freeVarList[k].lbound == 0.0) currentState->freeVarList[k].lbound = 0.0;
 		UNPROTECT(1); // NextLoc
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
-		freeVarList[k].ubound = REAL(nextLoc)[0];
-		if(ISNA(freeVarList[k].ubound)) freeVarList[k].ubound = INF;
-		if(freeVarList[k].ubound == 0.0) freeVarList[k].ubound = -0.0;
+		currentState->freeVarList[k].ubound = REAL(nextLoc)[0];
+		if(ISNA(currentState->freeVarList[k].ubound)) currentState->freeVarList[k].ubound = INF;
+		if(currentState->freeVarList[k].ubound == 0.0) currentState->freeVarList[k].ubound = -0.0;
 		UNPROTECT(1); // NextLoc
 		
-		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, freeVarList[k].lbound, freeVarList[k].ubound, numLocs); }
-		for(l = 0; l < freeVarList[k].numLocations; l++) {
+		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, currentState->freeVarList[k].lbound, currentState->freeVarList[k].ubound, numLocs); }
+		for(l = 0; l < currentState->freeVarList[k].numLocations; l++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
 			double* theVarList = REAL(nextLoc);			// These come through as doubles.
 
@@ -260,8 +259,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			int theRow = (int)theVarList[1];			// Row is zero-based.
 			int theCol = (int)theVarList[2];			// Column is zero-based.
 
-			freeVarList[k].location[l] = omxLocationOfMatrixElement(matrixList[theMat], theRow, theCol);
-			freeVarList[k].matrices[l] = theMat;
+			currentState->freeVarList[k].location[l] = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
+			currentState->freeVarList[k].matrices[l] = theMat;
 			UNPROTECT(1); // nextLoc
 		}
 		UNPROTECT(1); // nextVar
@@ -272,23 +271,23 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	/* Processing Constraints */
 	if(VERBOSE) { Rprintf("Processing Constraints.\n");}
 	omxMatrix *arg1, *arg2;
-	numCons = length(constraints);
-	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", numCons); }
-	conList = (omxConstraint*) R_alloc(numCons, sizeof(omxConstraint));
+	currentState->numConstraints = length(constraints);
+	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numConstraints); }
+	currentState->conList = (omxConstraint*) R_alloc(currentState->numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
-	for(k = 0; k < numCons; k++) {
+	for(k = 0; k < currentState->numConstraints; k++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, k));
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxNewMatrixFromMxIndex(nextLoc);
+		arg1 = omxNewMatrixFromMxIndex(nextLoc, currentState);
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxNewMatrixFromMxIndex(nextLoc);
+		arg2 = omxNewMatrixFromMxIndex(nextLoc, currentState);
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
-		conList[k].opCode = INTEGER(nextLoc)[0];
+		currentState->conList[k].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
-		conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2); // 10 = binary subtract
-		omxRecomputeMatrix(conList[k].result);
-		conList[k].size = conList[k].result->rows * conList[k].result->cols;
-		ncnln += conList[k].size;
+		currentState->conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2, currentState); // 10 = binary subtract
+		omxRecomputeMatrix(currentState->conList[k].result);
+		currentState->conList[k].size = currentState->conList[k].result->rows * currentState->conList[k].result->cols;
+		ncnln += currentState->conList[k].size;
 	}
 	if(VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
@@ -296,15 +295,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	/* Set up Optimization Memory Allocations */
 	
-	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra;
+	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices;
 	
-	PROTECT(ans = allocVector(VECSXP, 7));
-	PROTECT(names = allocVector(STRSXP, 7));
+	PROTECT(ans = allocVector(VECSXP, 8));
+	PROTECT(names = allocVector(STRSXP, 8));
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
-	PROTECT(algebras = NEW_LIST(numAlgs));
+	PROTECT(matrices = NEW_LIST(currentState->numMats));
+	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
 	
 	if(n == 0) {			// Special Case for the evaluation-only condition
 		
@@ -313,7 +313,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		f = 0;
 		double* x = NULL, *g = NULL;
 		
-		if(objMatrix != NULL) {
+		if(currentState->objective != NULL) {
 			F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
 		};
 		
@@ -326,6 +326,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		PROTECT(estimate = allocVector(REALSXP, 0));
 		PROTECT(gradient = allocVector(REALSXP, 0));
 		PROTECT(hessian = allocMatrix(REALSXP, 0, 0));
+		
+		omxStateNextEvaluation(currentState);	// Advance for a final evaluation.
 		
 	} else {
 		
@@ -378,8 +380,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 		/* Set min and max limits */
 		for(k = 0; k < n; k++) {
-			bl[k] = freeVarList[k].lbound;				// -Infinity'd be -10^20.
-			bu[k] = freeVarList[k].ubound;				// Infinity would be at 10^20.
+			bl[k] = currentState->freeVarList[k].lbound;				// -Infinity'd be -10^20.
+			bu[k] = currentState->freeVarList[k].ubound;				// Infinity would be at 10^20.
 		}
 		
 		for(; k < n+nclin; k++) {
@@ -387,35 +389,40 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			bu[k] = INF;								// Because there are no linear constraints.
 		}
 		
-		for(l = 0; l < numCons; l++) {					// Nonlinear constraints:
+		for(l = 0; l < currentState->numConstraints; l++) {					// Nonlinear constraints:
 			if(OMX_DEBUG) { Rprintf("Constraint %d: ", l);}
-			switch(conList[l].opCode) {
+			switch(currentState->conList[l].opCode) {
 				case 0:									// Less than: Must be strictly less than 0.
 					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
-					for(m = 0; m < conList[l].size; m++) {
+					for(m = 0; m < currentState->conList[l].size; m++) {
 						bl[k] = NEG_INF;
 						bu[k] = -0.0;
+						k++;
 					}
 					break;
 				case 1:									// Equal: Must be roughly equal to 0.
 					if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
-					for(m = 0; m < conList[l].size; m++) {
+					for(m = 0; m < currentState->conList[l].size; m++) {
 						bl[k] = -0.0;
 						bu[k] = 0.0;
+						k++;
 					}
 					break;
 				case 2:									// Greater than: Must be strictly greater than 0.
 					if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
-					for(m = 0; m < conList[l].size; m++) {
+					for(m = 0; m < currentState->conList[l].size; m++) {
+						if(OMX_DEBUG) { Rprintf("\tBounds set for constraint %d.%d.\n", l, m);}
 						bl[k] = 0.0;
 						bu[k] = INF;
+						k++;
 					}
 					break;
 				default:
 					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
-					for(m = 0; m < conList[l].size; m++) {
+					for(m = 0; m < currentState->conList[l].size; m++) {
 						bl[k] = NEG_INF;
 						bu[k] = INF;
+						k++;
 					}
 					break;
 			}
@@ -468,7 +475,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	*/
 	
 		/* Output Options */
-		if(OMX_DEBUG_ALL) {
+		if(OMX_DEBUG_OPTIMIZER) {
 			strcpy(option, "Print level 20");  				// 0 = No Output, 20=Verbose
 			F77_CALL(npoptn)(option, strlen(option));
 			strcpy(option, "Minor print level 20");			// 0 = No Output, 20=Verbose
@@ -559,7 +566,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 						(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
 						clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
-		handleFreeVarList(x, n);
+		handleFreeVarList(currentState, x, n);
 	}
 	
 	/* Store outputs for return */
@@ -580,15 +587,28 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 			hess[k*n + l] = R[k*n + l];  // This is ok, because they're both in Col-Major already.
 		}
 	}
+
+	for(k = 0; k < currentState->numMats; k++) {
+		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
+		omxRecomputeMatrix(currentState->matrixList[k]);
+		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows, currentState->matrixList[k]->cols));
+		for(l = 0; l < currentState->matrixList[k]->rows; l++)
+			for(j = 0; j < currentState->matrixList[k]->cols; j++)
+				REAL(nextMat)[j * currentState->matrixList[k]->rows + l] =
+					omxMatrixElement(currentState->matrixList[k], l, j);
+		SET_VECTOR_ELT(matrices, k, nextMat);
+		
+		UNPROTECT(1);	/* nextMat */
+	}
 	
-	for(k = 0; k < numAlgs; k++) {
+	for(k = 0; k < currentState->numAlgs; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-		omxRecomputeMatrix(algebraList[k]);
-		PROTECT(algebra = allocMatrix(REALSXP, algebraList[k]->rows, algebraList[k]->cols));
-		for(l = 0; l < algebraList[k]->rows; l++)
-			for(j = 0; j < algebraList[k]->cols; j++)
-				REAL(algebra)[j * algebraList[k]->rows + l] =
-					omxMatrixElement(algebraList[k], l, j);
+		omxRecomputeMatrix(currentState->algebraList[k]);
+		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, currentState->algebraList[k]->cols));
+		for(l = 0; l < currentState->algebraList[k]->rows; l++)
+			for(j = 0; j < currentState->algebraList[k]->cols; j++)
+				REAL(algebra)[j * currentState->algebraList[k]->rows + l] =
+					omxMatrixElement(currentState->algebraList[k], l, j);
 		SET_VECTOR_ELT(algebras, k, algebra);
 		
 		UNPROTECT(1);	/* algebra */
@@ -611,7 +631,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	SET_STRING_ELT(names, 3, mkChar("hessian"));
 	SET_STRING_ELT(names, 4, mkChar("status"));
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
-	SET_STRING_ELT(names, 6, mkChar("algebras"));
+	SET_STRING_ELT(names, 6, mkChar("matrices"));
+	SET_STRING_ELT(names, 7, mkChar("algebras"));
 	
 	SET_VECTOR_ELT(ans, 0, minimum);
 	SET_VECTOR_ELT(ans, 1, estimate);
@@ -619,7 +640,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	SET_VECTOR_ELT(ans, 3, hessian);
 	SET_VECTOR_ELT(ans, 4, status);
 	SET_VECTOR_ELT(ans, 5, iterations);
-	SET_VECTOR_ELT(ans, 6, algebras);
+	SET_VECTOR_ELT(ans, 6, matrices);
+	SET_VECTOR_ELT(ans, 7, algebras);
 	namesgets(ans, names);
 		
 	if(VERBOSE) { 
@@ -628,18 +650,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	}
 
 	/* Free data memory */
-	if(OMX_DEBUG) { Rprintf("Freeing Algebras.\n");}
-	for(k = 0; k < numAlgs; k++) {
-		if(OMX_DEBUG) { Rprintf("Freeing Algebra %d.\n", k); }
-		omxFreeAllMatrixData(algebraList[k]);
-	}
+	omxFreeState(currentState);
 	
-	if(OMX_DEBUG) { Rprintf("Freeing Matrices.\n");}
-	for(k = 0; k < numMats; k++) {
-		omxFreeAllMatrixData(matrixList[k]);
-	}
-	
-	UNPROTECT(11);						// Unprotect NPSOL Parameters
+	UNPROTECT(12);						// Unprotect NPSOL Parameters
 	
 	return(ans);
 
@@ -658,26 +671,26 @@ void F77_SUB(objectiveFunction)
     /* This allows for abitrary repopulation of the free parameters.
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
-	if (objMatrix->objective->repopulateFun != NULL) {
-		objMatrix->objective->repopulateFun(objMatrix->objective, x, *n);
+	if (currentState->objective->objective->repopulateFun != NULL) {
+		currentState->objective->objective->repopulateFun(currentState->objective->objective, x, *n);
 	} else {
-		handleFreeVarList(x, *n);
+		handleFreeVarList(currentState, x, *n);
 	}
 	
-	omxRecomputeMatrix(objMatrix);
+	omxRecomputeMatrix(currentState->objective);
 	
 	/* Derivative Calculation Goes Here. */
 	
-	if(isnan(objMatrix->data[0]) || isinf(objMatrix->data[0])) {
+	if(isnan(currentState->objective->data[0]) || isinf(currentState->objective->data[0])) {
 		if(OMX_DEBUG) {
-			Rprintf("Objective Value is incorrect.\n", objMatrix->data[0]);
+			Rprintf("Objective Value is incorrect.\n", currentState->objective->data[0]);
 		}
 		*mode = -1;
 	}
 	
-	*f = objMatrix->data[0];
+	*f = currentState->objective->data[0];
 	if(VERBOSE) {
-		Rprintf("Objective Value is: %f.\n", objMatrix->data[0]);
+		Rprintf("Objective Value is: %f.\n", currentState->objective->data[0]);
 	}
 
 	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
@@ -701,18 +714,16 @@ void F77_SUB(oldMxConFun)
 		return;
 	}
 
-	ncalls--;
-	nminor++;
 	int j, k, l = 0, size;
 	
-	handleFreeVarList(x, *n);
+	handleFreeVarList(currentState, x, *n);
 	
-	for(j = 0; j < numCons; j++) {
-		omxRecomputeMatrix(conList[j].result);
-		size = conList[j].result->rows * conList[j].result->cols;
-		if(VERBOSE) { omxPrintMatrix(conList[j].result, "Constraint evaluates as:"); }
-		for(k = 0; k < conList[j].size; k++){
-			c[l++] = conList[j].result->data[k];
+	for(j = 0; j < currentState->numConstraints; j++) {
+		omxRecomputeMatrix(currentState->conList[j].result);
+		size = currentState->conList[j].result->rows * currentState->conList[j].result->cols;
+		if(VERBOSE) { omxPrintMatrix(currentState->conList[j].result, "Constraint evaluates as:"); }
+		for(k = 0; k < currentState->conList[j].size; k++){
+			c[l++] = currentState->conList[j].result->data[k];
 		}
 	}
 
@@ -774,17 +785,17 @@ return;
 
 }
 
-/****** HELPER FUNCTIONS ******* (put in separate file) */
+/****** HELPER FUNCTIONS ******* (integrate into omxOptimizer) */
 /* Sub Free Vars Into Appropriate Slots */
-void handleFreeVarList(double* x, int numVars) {
+void handleFreeVarList(omxState* os, double* x, int numVars) {
 	
 	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
-	ncalls++;
+	os->computeCount++;
 	if(VERBOSE) {
 		Rprintf("--------------------------\n");
-		Rprintf("Call: %d (Minor Calls: %d)\n", ncalls, nminor);
+		Rprintf("Call: %d\n", os->computeCount);
 		Rprintf("Estimates: [");
-		for(int k = 0; k < numVars; k++) {
+		for(int k = 0; k < os->numFreeParams; k++) {
 			Rprintf(" %f", x[k]);
 		}
 		Rprintf("] \n");
@@ -792,12 +803,12 @@ void handleFreeVarList(double* x, int numVars) {
 	}
 
 	/* Fill in Free Var Estimates */
-	for(int k = 0; k < numVars; k++) {
-		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
-		for(int l = 0; l < freeVarList[k].numLocations; l++) {
-			*(freeVarList[k].location[l]) = x[k];
-			if(OMX_DEBUG) { Rprintf("Setting location:%ld to value %f for var %d\n", freeVarList[k].location[l], x[k], k); }
-			omxMarkDirty(matrixList[freeVarList[k].matrices[l]]);
+	for(int k = 0; k < os->numFreeParams; k++) {
+		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], os->freeVarList[k].numLocations); }
+		for(int l = 0; l < os->freeVarList[k].numLocations; l++) {
+			*(os->freeVarList[k].location[l]) = x[k];
+			if(OMX_DEBUG) { Rprintf("Setting location:%ld to value %f for var %d\n", os->freeVarList[k].location[l], x[k], k); }
+			omxMarkDirty(currentState->matrixList[os->freeVarList[k].matrices[l]]);
 		}
 	}
 }

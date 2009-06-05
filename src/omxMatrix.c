@@ -52,7 +52,7 @@ void omxPrintMatrixHelper(omxMatrix *source, char* header) {
 	}
 }
 
-omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor) {
+omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 	
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
 	if(OMX_DEBUG) { Rprintf("Initializing 0x%0x to (%d, %d).\n", om, nrows, ncols); }
@@ -73,9 +73,18 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 		om->localData = TRUE;
 	}
 
+	om->populateFrom = NULL;
+	om->populateToCol = NULL;
+	om->populateToRow = NULL;
+	om->numPopulateLocations = 0;
+
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
 	om->objective = NULL;
+	
+	om->currentState = os;
+	om->lastCompute = -1;
+	om->lastRow = -1;
 	
 	omxComputeMatrixHelper(om);
 	
@@ -96,6 +105,9 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
 	dest->originalColMajor = dest->colMajor;
+	dest->currentState = orig->currentState;
+	dest->lastCompute = orig->lastCompute;
+	dest->lastRow = orig->lastRow;
 
 	if(dest->rows == 0 || dest->cols == 0) {
 		dest->data = NULL;
@@ -153,6 +165,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 }
 
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
+	// Always Recompute() before you Resize().
 	if(OMX_DEBUG) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }
 	if(keepMemory == FALSE) { 
 		if(OMX_DEBUG) { Rprintf(" and regenerating memory to do it"); }
@@ -188,12 +201,21 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 
 void omxComputeMatrixHelper(omxMatrix *om) {
 	
-	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x.\n", om); }
+	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
 	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
 	om->leading = (om->colMajor?om->rows:om->cols);
 	om->lagging = (om->colMajor?om->cols:om->rows);
+	
+	for(int i = 0; i < om->numPopulateLocations; i++) {
+		omxRecomputeMatrix(om->populateFrom[i]);				// Make sure it's up to date
+		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], om->populateFrom[i]->data[0]);	
+		// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
+	}
+	
 	om->isDirty = FALSE;
+	om->lastCompute = om->currentState->computeCount;
+	om->lastRow = om->currentState->currentRow;
 }
 
 double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
@@ -228,9 +250,15 @@ void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
 
-unsigned short omxMatrixNeedsUpdate(omxMatrix *matrix) { return matrix->isDirty; };
+unsigned short omxMatrixNeedsUpdate(omxMatrix *om) { 
 
-omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
+	for(int i = 0; i < om->numPopulateLocations; i++) {
+		if(omxNeedsUpdate(om->populateFrom[i])) return TRUE;	// Make sure it's up to date
+	}
+	
+};
+
+omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState* state) {
 /* Populates the fields of a omxMatrix with details from an R Matrix. */ 
 	
 	SEXP className;
@@ -238,11 +266,9 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	int* dimList;
 	
 	omxMatrix *om = NULL;
-	om = omxInitMatrix(NULL, 0, 0, FALSE);
+	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	
 	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
-	
-	if(matrix == NULL) error("Null Matrix detected.\n");
 	
 	/* Sanity Check */
 	if(!isMatrix(matrix) && !isVector(matrix)) {
@@ -284,7 +310,7 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 			om->rows = dimList[0];
 			om->cols = dimList[1];
 			UNPROTECT(1);	// MatrixDims
-		} else if (isVector(matrix)) {			// If it's a vector, assume it's a row vector. BLAS doesn't care.
+		} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 			if(OMX_DEBUG) { Rprintf("Vector discovered.  Assuming rowity.\n"); }
 			om->rows = 1;
 			om->cols = length(matrix);
@@ -300,6 +326,9 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	om->aliasedPtr = om->data;
 	om->algebra = NULL;
 	om->objective = NULL;
+	om->currentState = state;
+	om->lastCompute = -1;
+	om->lastRow = -1;
 	
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
 	omxComputeMatrixHelper(om);
@@ -308,8 +337,41 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix) {
 	if(OMX_DEBUG) {
 		omxPrintMatrixHelper(om, "Finished importing matrix");
 	}
-	
+
 	return om;
+}
+
+void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
+	
+	if(OMX_DEBUG) { Rprintf("Processing Population List: %d elements.\n", length(matStruct) - 1); }
+	SEXP subList;
+	SEXP matLoc, xLoc, yLoc;
+	
+	if(length(matStruct) > 1) {
+		int numPopLocs = length(matStruct) - 1;
+		matrix->numPopulateLocations = numPopLocs;
+		matrix->populateFrom = (omxMatrix**)R_alloc(numPopLocs, sizeof(omxMatrix*));
+		matrix->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
+		matrix->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
+	}
+	
+	for(int i = 0; i < length(matStruct)-1; i++) {
+		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
+		
+		int* locations = INTEGER(subList);
+		int loc = locations[2];
+		Rprintf("."); //:::
+		if(loc < 0) {			// NOTE: This duplicates some of the functionality of NewMatrixFromMxIndex
+			matrix->populateFrom[i] = matrix->currentState->matrixList[(~loc)];
+		} else {
+			matrix->populateFrom[i] = matrix->currentState->algebraList[(loc)];
+		}
+		
+		matrix->populateToRow[i] = locations[0];
+		matrix->populateToCol[i] = locations[1];
+		
+		UNPROTECT(1); // subList
+	}
 }
 
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
@@ -380,12 +442,17 @@ void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrixHelper(source, d);
 }
 
-unsigned short inline omxNeedsUpdate(omxMatrix *matrix) {
+unsigned short omxNeedsUpdate(omxMatrix *matrix) {
+	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
 	if(OMX_DEBUG) {Rprintf("MatrixNeedsUpdate?");}
 	if(matrix->isDirty) return TRUE;
+	if(matrix->lastCompute < matrix->currentState->computeCount) return TRUE;  	// No need to check args if oa's dirty.
+	if(matrix->lastRow < matrix->currentState->currentRow) return TRUE;			// Ditto.
+	
 	if(matrix->algebra != NULL) return omxAlgebraNeedsUpdate(matrix->algebra); 
 	else if(matrix->objective != NULL) return omxObjectiveNeedsUpdate(matrix->objective);
 	else return omxMatrixNeedsUpdate(matrix);
+
 }
 
 void inline omxRecomputeMatrix(omxMatrix *matrix) {

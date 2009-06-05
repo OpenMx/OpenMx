@@ -41,13 +41,13 @@ void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give
 		error("MxAlgebraObjective's objective algebra does not evaluate to a 1x1 matrix.");
 	}
 	
-	oo->myMatrix->data[0] = algebra->data[0];
+	oo->matrix->data[0] = algebra->data[0];
 	
 }
 
 unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
 
-	if(oo->myMatrix->data[0] != ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0]) return TRUE;
+	if(oo->matrix->data[0] != ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0]) return TRUE;
 	return omxNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
 }
 
@@ -59,7 +59,7 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(1, sizeof(omxAlgebraObjective));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
-	newObj->algebra = omxNewMatrixFromMxIndex(newptr);
+	newObj->algebra = omxNewMatrixFromMxIndex(newptr, oo->matrix->currentState);
 	if(OMX_DEBUG) {Rprintf("Algebra Objective Bound to Algebra %d", newObj->algebra);}
 	UNPROTECT(1);
 	

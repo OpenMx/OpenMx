@@ -60,7 +60,7 @@ void handleDefinitionVarList(omxMatrix* dataRow, omxDefinitionVar* defVars, int 
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(dataRow, 0, defVars[k].column), defVars[k].matrices[l]);
 			}
 			*(defVars[k].location[l]) = omxMatrixElement(dataRow, 0, defVars[k].column);
-			omxMarkDirty(matrixList[defVars[k].matrices[l]]);
+			omxMarkDirty(dataRow->currentState->matrixList[defVars[k].matrices[l]]);
 			if(ISNA(omxMatrixElement(dataRow, 0, k))) {
 				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
 			}
@@ -116,6 +116,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	sum = 0.0;
 
 	for(int row = 0; row < dataRows->rows; row++) {
+		oo->matrix->currentState->currentRow = row;		// Set to a new row.
 		logDet = 0.0;
 		Q = 0.0;
 		
@@ -183,7 +184,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}	
 	}
 	
-	oo->myMatrix->data[0] = sum;
+	oo->matrix->data[0] = sum;
 
 }
 
@@ -204,11 +205,11 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 //	if(ISNA(nextMatrix)) {
 //		error("NO FIML MEANS PROVIDED.");
 //	}
-	newObj->means = omxNewMatrixFromMxIndex(nextMatrix);
+	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix);
+	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
@@ -216,7 +217,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("matrix")));
-	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix);
+	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(3);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
@@ -239,7 +240,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
 			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
-				matrixList[(int) REAL(nextItem)[0]], 
+				oo->matrix->currentState->matrixList[(int) REAL(nextItem)[0]], 
 				(int) REAL(nextItem)[1], (int) REAL(nextItem)[2]);
 			newObj->defVars[nextDef].matrices[index-2] = (int) REAL(nextItem)[0];
 			UNPROTECT(1); // unprotect nextItem
@@ -249,9 +250,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(1); // unprotect nextMatrix
 
 	/* Temporary storage for calculation */
-	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE);
-	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE);
-	newObj->RCX = omxInitMatrix(NULL, 1, newObj->data->cols, TRUE);
+	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
+	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE, oo->matrix->currentState);
+	newObj->RCX = omxInitMatrix(NULL, 1, newObj->data->cols, TRUE, oo->matrix->currentState);
 	
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
 	

@@ -130,9 +130,9 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
 	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
 
-	oo->myMatrix->data[0] = (sum + det);
+	oo->matrix->data[0] = (sum + det);
 
-	if(OMX_DEBUG) { Rprintf("RAMObjective value comes to: %f (was: %f).\n", oo->myMatrix->data[0], (sum + det)); }
+	if(OMX_DEBUG) { Rprintf("RAMObjective value comes to: %f (was: %f).\n", oo->matrix->data[0], (sum + det)); }
 
 }
 
@@ -164,27 +164,27 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(newMatrix = GET_SLOT(newMatrix, install("matrix")));
 
-	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix); 	// Covariance matrix is the data arg.
+	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix, oo->matrix->currentState); 	// Covariance matrix is the data arg.
 	UNPROTECT(3);
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("A")));
-	newObj->A = omxNewMatrixFromMxIndex(newMatrix);
+	newObj->A = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecomputeMatrix(newObj->A);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("S")));
-	newObj->S = omxNewMatrixFromMxIndex(newMatrix);
+	newObj->S = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecomputeMatrix(newObj->S);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("F")));
-	newObj->F = omxNewMatrixFromMxIndex(newMatrix);
+	newObj->F = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecomputeMatrix(newObj->F);
 	UNPROTECT(1);
 	
 	/* Identity Matrix, Size Of A */
 	newObj->I = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-	omxInitMatrix(newObj->I, newObj->A->rows, newObj->A->cols, FALSE);
+	omxInitMatrix(newObj->I, newObj->A->rows, newObj->A->cols, FALSE, oo->matrix->currentState);
 	for(k =0; k < newObj->I->rows; k++) {
 		for(l = 0; l < newObj->I->cols; l++) {
 			if(l == k) {
@@ -200,10 +200,10 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	k = newObj->A->rows;
 	
 
-	newObj->Z = omxInitMatrix(NULL, k, k, TRUE);
-	newObj->Y = omxInitMatrix(NULL, k, l, TRUE);
-	newObj->X = omxInitMatrix(NULL, k, l, TRUE);
-	newObj->C = omxInitMatrix(NULL, l, l, TRUE);
+	newObj->Z = omxInitMatrix(NULL, k, k, TRUE, oo->matrix->currentState);
+	newObj->Y = omxInitMatrix(NULL, k, l, TRUE, oo->matrix->currentState);
+	newObj->X = omxInitMatrix(NULL, k, l, TRUE, oo->matrix->currentState);
+	newObj->C = omxInitMatrix(NULL, l, l, TRUE, oo->matrix->currentState);
 	newObj->lwork = k;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
 	

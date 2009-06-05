@@ -37,8 +37,11 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h> 
 
+typedef struct omxMatrix omxMatrix;
+
 #include "omxAlgebra.h"
 #include "omxObjective.h"
+#include "omxState.h"
 
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
@@ -54,7 +57,6 @@ struct omxMatrix {						// A matrix
 	double* data;						// Actual Data Pointer
 	double* aliasedPtr;					// For now, assumes outside data if aliased.
 	unsigned short colMajor;			// and column-majority.
-	unsigned short isDirty;				// True if free params have been updated.
 
 /* For Memory Administrivia */
 	unsigned short localData;			// If data has been malloc'd, and must be freed.
@@ -70,19 +72,25 @@ struct omxMatrix {						// A matrix
 	int leading;						// Leading edge; depends on original majority
 	int lagging;						// Non-leading edge.
 
+/* Curent State */
+	omxState* currentState;				// Optimizer State
+	unsigned short isDirty;				// Retained, for historical purposes.
+	int lastCompute;					// Compute Count Number at last computation
+	int lastRow;						// Compute Count Number at last row update (Used for row-by-row computation only)
+
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxObjective* objective;			// If it's not an objective function, this is NULL.
-	
+
 /* For inclusion in(or of) other matrices */
-	int populateLocations;
+	int numPopulateLocations;
 	omxMatrix** populateFrom;
-	double** populateTo;
+	int *populateToRow, *populateToCol;
 
 };
 
 /* Initialize and Destroy */
-	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor);	// Set up matrix
+	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);	// Set up matrix
 	void omxFreeMatrixData(omxMatrix* om);							// Release any held data.
 	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
 
@@ -95,7 +103,8 @@ struct omxMatrix {						// A matrix
 /* Other Functions */
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 	 						unsigned short keepMemory);					// Resize, with or without re-initialization
-	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix); 					// Populate an omxMatrix from an R MxMatrix 
+	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix 
+	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);				// Copy across another matrix.  
 	
 /* Aliased Matrix Functions */
@@ -106,11 +115,11 @@ struct omxMatrix {						// A matrix
 /* Matrix-Internal Helper functions */
 	void omxComputeMatrixHelper(omxMatrix *matrix);
 	void omxPrintMatrixHelper(omxMatrix *source, char* d);				// Pretty-print a (small) matrix
-	unsigned short omxMatrixNeedsUpdate(omxMatrix *matrix);
+	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrintMatrix(omxMatrix *source, char* d); 					// Pretty-print a (small) matrix
-	unsigned short omxNeedsUpdate(omxMatrix *matrix);					
+	unsigned short int omxNeedsUpdate(omxMatrix *matrix);					
 	void omxRecomputeMatrix(omxMatrix *matrix);
 	void omxComputeMatrix(omxMatrix *matrix);
 

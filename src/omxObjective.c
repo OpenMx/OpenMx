@@ -30,11 +30,6 @@
 
 #include "omxObjective.h"
 
-
-/* Need a better way to deal with these. */
-extern omxMatrix** algebraList;
-extern omxMatrix** matrixList;
-
 void omxInitEmptyObjective(omxObjective *oo) {
 	/* Sets everything to NULL to avoid bad pointer calls */
 	
@@ -46,7 +41,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->gradientFun = NULL;
 	oo->argStruct = NULL;
 	strncpy(oo->objType, "\0", 1);
-	oo->myMatrix = NULL;
+	oo->matrix = NULL;
 	
 }
 
@@ -54,16 +49,16 @@ void omxFreeObjectiveArgs(omxObjective *oo) {
 	/* Completely destroy the objective function tree */
 
 	oo->destructFun(oo);
-	oo->myMatrix = NULL;
+	oo->matrix = NULL;
 	
 }
 
 void omxObjectiveCompute(omxObjective *oo) {
-	if(OMX_DEBUG) { Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->myMatrix->isDirty?"Yes":"No"));}
+	if(OMX_DEBUG) { Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->matrix->isDirty?"Yes":"No"));}
 
 	oo->objectiveFun(oo);
 
-	oo->myMatrix->isDirty = FALSE;
+	oo->matrix->isDirty = FALSE;
 
 }
 
@@ -92,7 +87,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 	omxInitEmptyObjective(obj);
 
 	/* Register Objective and Matrix with each other */
-	obj->myMatrix = om;
+	obj->matrix = om;
 	omxResizeMatrix(om, 1, 1, FALSE);					// Objective matrices MUST be 1x1.
 	om->objective = obj;
 	
@@ -124,7 +119,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 		error("Could not initialize objective function %s.  Error: %s\n", obj->objType, errorCode);
 	}
 	
-	obj->myMatrix->isDirty = TRUE;
+	obj->matrix->isDirty = TRUE;
 
 	UNPROTECT(1);	/* objectiveClass */
 
@@ -137,5 +132,5 @@ void omxObjectiveGradient(omxObjective* oo, double* gradient) {
 
 void omxObjectivePrint(omxObjective* oo, char* d) {
 	Rprintf("(Objective, type %s) ", oo->objType);
-	omxPrintMatrixHelper(oo->myMatrix, d);
+	omxPrintMatrixHelper(oo->matrix, d);
 }

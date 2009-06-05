@@ -43,9 +43,9 @@
 #endif /* DEBUGMX */
 
 typedef struct omxAlgebra omxAlgebra;
-typedef struct omxMatrix omxMatrix;
 
 #include "omxSymbolTable.h"
+#include "omxState.h"
 
 struct omxAlgebra {						// A matrix
 										//TODO: Improve encapsulation
@@ -54,30 +54,30 @@ struct omxAlgebra {						// A matrix
 	omxMatrix** args;					// Arguments to the above function
 	int numArgs;						// Length of args
 
-	omxMatrix* myMatrix;				// The matrix populated by this algebra
+	omxMatrix* matrix;				// The matrix populated by this algebra
 
 };
 
 /* Initialize and Destroy */
-	omxMatrix* omxInitAlgebra(omxAlgebra *oa);							// Constructor 
+	omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os);			// Constructor 
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
-	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat); 					// Create an Algebra from an R mxMatrix
+	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat, omxState* os);		// Create an Algebra from an R mxMatrix
 	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat);			// Populate an Algebra from an R mxMatrix
-	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix);				// Create a matrix/algebra from a matrix pointer
-	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2); // For constraints.
+	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
+	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2, omxState* os); // For constraints.
 
 /* Other Functions */
 	void omxFillAlgebraFromTableEntry(omxAlgebra *algebra, const omxAlgebraTableEntry* oate);
 	 																	// Adjust an algebra for a table entry
 	void omxAlgebraCopyAlgebra(omxAlgebra *dest, omxAlgebra *src);		// Copy across another element.  
 																		// NOTE: Duplicates.
-	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg);
+	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os);
 
 /* Algebra-specific implementations of matrix functions */
 	void omxAlgebraRecompute(omxAlgebra *oa);
 	void omxAlgebraCompute(omxAlgebra *oa);
-	unsigned short int omxAlgebraNeedsUpdate(omxAlgebra *oa);
+	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
 
 	void omxAlgebraPrint(omxAlgebra *source, char* d);					// Pretty-print a (small) matrix
 

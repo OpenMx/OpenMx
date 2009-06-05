@@ -63,7 +63,7 @@ struct omxObjective {					// An objective
 	void* argStruct;															// Arguments needed for objective function
 	char objType[250];															// Type of Objective Function
 
-	omxMatrix* myMatrix;														// The (1x1) matrix populated by this objective function
+	omxMatrix* matrix;														// The (1x1) matrix populated by this objective function
 
 };
 

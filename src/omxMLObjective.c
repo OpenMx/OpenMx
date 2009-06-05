@@ -25,17 +25,6 @@
 #ifndef _OMX_ML_OBJECTIVE_
 #define _OMX_ML_OBJECTIVE_ TRUE
 
-/* Need to wrap this into an optimizer structure object. */
-typedef struct omxFreeVar {			// Free Variables
-	double lbound, ubound;	// Bounds
-	int numLocations;
-	double** location;		// And where they go.
-	int* matrices;			// Matrix numbers for dirtying.
-} omxFreeVar;
-extern omxMatrix** matrixList;
-extern omxFreeVar* freeVarList;
-extern int n;
-
 typedef struct omxMLObjective {
 
 	omxMatrix* observedCov;
@@ -114,12 +103,13 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
 	omxPrintMatrix(localCov, "After Decomp:");}
 	if(info > 0) {
+		int n = oo->matrix->currentState->numFreeParams;
 			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
 		char errstr[50+10*n];
 		char shortstr[30];
 		sprintf(errstr, "Non-positive-definite at free parameters:");
 		for(int i = 0; i < n; i++) {
-			sprintf(shortstr, "\t%3.3f", *(freeVarList[i].location[0]));
+			sprintf(shortstr, "\t%3.3f", *(oo->matrix->currentState->freeVarList[i].location[0]));
 			strncat(errstr, shortstr, 10);
 		}
 		strncat(errstr, "\n", 1);
@@ -176,9 +166,9 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) {omxPrintMatrix(localProd, "Product Matrix:");}
 	if(OMX_DEBUG) {Rprintf("trace is %f and log(det(observed)) is %f.\n", sum, Q);}
 	
-    oo->myMatrix->data[0] = sum + det - scov->rows - Q;
+    oo->matrix->data[0] = sum + det - scov->rows - Q;
 
-	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (was: %f).\n", oo->myMatrix->data[0], (sum + det)); }
+	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (was: %f).\n", oo->matrix->data[0], (sum + det)); }
 
 }
 
@@ -207,19 +197,19 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 		newObj->expectedMeans = NULL;
 	} else {
-		newObj->expectedMeans = omxNewMatrixFromMxIndex(nextMatrix);
+		newObj->expectedMeans = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	}
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix);
+	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
 	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("matrix")));
-	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt);
+	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("vector")));
 	if(!R_FINITE(REAL(dataElt)[0])) {
 		if(OMX_DEBUG) {
@@ -227,14 +217,14 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 		newObj->observedMeans = NULL;
 	} else {
-		newObj->observedMeans = omxNewMatrixFromMxIndex(nextMatrix);
+		newObj->observedMeans = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	}
 
 	UNPROTECT(4);
 	
 	/* Temporary storage for calculation */
-	newObj->localCov = omxInitMatrix(NULL, newObj->observedCov->rows, newObj->observedCov->cols, TRUE);
-	newObj->localProd = omxInitMatrix(NULL, newObj->observedCov->rows, newObj->observedCov->cols, TRUE);
+	newObj->localCov = omxInitMatrix(NULL, newObj->observedCov->rows, newObj->observedCov->cols, TRUE, oo->matrix->currentState);
+	newObj->localProd = omxInitMatrix(NULL, newObj->observedCov->rows, newObj->observedCov->cols, TRUE, oo->matrix->currentState);
 	
 	int ipiv[newObj->observedCov->rows];
 	
