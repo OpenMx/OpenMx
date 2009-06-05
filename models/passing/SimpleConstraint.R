@@ -14,11 +14,5 @@ model <- mxModel(model, mxAlgebraObjective("algebra"))
 model <- mxModel(model, mxConstraint("B", ">", "A"))
 model <- mxRun(model)
 
-model@output
-outputA <- model[["objective"]]@result
-valA <- A[1,1]
-diffA <- (valA - outputA[1,1]) / valA
-diffA
-
-
+omxCheckCloseEnough(model$A[1,1], model$B[1,1], 0.00001)
 
