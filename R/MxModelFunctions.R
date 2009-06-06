@@ -145,7 +145,7 @@ updateModelValuesHelper <- function(triples, value, flatModel, model) {
 updateModelMatrices <- function(model, flatModel, values) {
 	mList <- names(flatModel@matrices)
 	if (length(mList) != length(values)) {
-		stop(paste("This model has", length(aList), 
+		stop(paste("This model has", length(mList), 
 			"matrices, but you have given me", length(values),
 			"values"))
 	}

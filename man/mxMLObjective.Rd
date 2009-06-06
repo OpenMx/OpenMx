@@ -43,7 +43,7 @@ D <- mxMatrix(type = "Diag", values = c(0, 0.5),
 
 expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
 
-observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3)), 
+observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3), nrow = 2, ncol = 2), 
 	'cov', numObs = 150)
 
 objective <- mxMLObjective(covariance = "expectedCov")

@@ -1,13 +1,8 @@
-require(mnormt)
 require(MASS)
 require(OpenMx)
 
 # ----------------------------------
 # Define the functions.
-
-testFit <- function(objective, startVals=c(), bounds=c(), matList=list(), varList=list(), algList=list(), data=c(), state=c()) {
-	return(.Call("callNPSOL", objective, startVals, bounds, matList, varList, algList, data, state));
-}
 
 dmnorm <- function(x, mean=rep(0,d), varcov, log=FALSE)
 {
