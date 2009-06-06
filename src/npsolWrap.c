@@ -790,9 +790,13 @@ return;
 /****** HELPER FUNCTIONS ******* (integrate into omxOptimizer) */
 /* Sub Free Vars Into Appropriate Slots */
 void handleFreeVarList(omxState* os, double* x, int numVars) {
+
+	omxFreeVar* freeVarList = os->freeVarList;
+	omxMatrix** matrixList = os->matrixList;	
 	
 	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
 	os->computeCount++;
+
 	if(VERBOSE) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d\n", os->computeCount);
@@ -806,11 +810,14 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 
 	/* Fill in Free Var Estimates */
 	for(int k = 0; k < os->numFreeParams; k++) {
-		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], os->freeVarList[k].numLocations); }
-		for(int l = 0; l < os->freeVarList[k].numLocations; l++) {
-			*(os->freeVarList[k].location[l]) = x[k];
-			if(OMX_DEBUG) { Rprintf("Setting location:%ld to value %f for var %d\n", os->freeVarList[k].location[l], x[k], k); }
-			omxMarkDirty(currentState->matrixList[os->freeVarList[k].matrices[l]]);
+		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
+		for(int l = 0; l < freeVarList[k].numLocations; l++) {
+			*(freeVarList[k].location[l]) = x[k];
+			if(OMX_DEBUG) { 
+				Rprintf("Setting location:%ld to value %f for var %d\n", 
+					freeVarList[k].location[l], x[k], k); 
+			}
+			omxMarkDirty(matrixList[freeVarList[k].matrices[l]]);
 		}
 	}
 }
