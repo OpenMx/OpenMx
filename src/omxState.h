@@ -76,7 +76,7 @@ struct omxState {													// The Current State of Optimization
 	int numMats, numAlgs;											// Number of matrices and algebras
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
-	omxMatrix* objective;											// Objective Algebra
+	omxMatrix* objectiveMatrix;										// Objective Algebra
 
 	/* May want to farm these out to the omxObjective object. */
 	int numConstraints;

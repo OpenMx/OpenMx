@@ -32,7 +32,7 @@
 		state->numAlgs = 0;
 		state->matrixList = NULL;	
 		state->algebraList = NULL;
-		state->objective = NULL;
+		state->objectiveMatrix = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
 		state->optimizerState;			

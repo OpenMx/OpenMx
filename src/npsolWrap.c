@@ -196,9 +196,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	/* Process Objective Function */
 	if(!isNull(objective)) {
 		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
-		currentState->objective = omxNewMatrixFromMxIndex(objective, currentState);
+		currentState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, currentState);
 	} else {
-		currentState->objective = NULL;
+		currentState->objectiveMatrix = NULL;
 		n = 0;
 		currentState->numFreeParams = n;
 	}
@@ -313,7 +313,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 		f = 0;
 		double* x = NULL, *g = NULL;
 		
-		if(currentState->objective != NULL) {
+		if(currentState->objectiveMatrix != NULL) {
 			F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
 		};
 		
@@ -665,32 +665,34 @@ void F77_SUB(objectiveFunction)
 		double* f, double* g, int* nstate )
 {
 
+	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
+
 	/* Interruptible? */
 	R_CheckUserInterrupt();
 
     /* This allows for abitrary repopulation of the free parameters.
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
-	if (currentState->objective->objective->repopulateFun != NULL) {
-		currentState->objective->objective->repopulateFun(currentState->objective->objective, x, *n);
+	if (objectiveMatrix->objective->repopulateFun != NULL) {
+		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, x, *n);
 	} else {
 		handleFreeVarList(currentState, x, *n);
 	}
 	
-	omxRecomputeMatrix(currentState->objective);
+	omxRecomputeMatrix(objectiveMatrix);
 	
 	/* Derivative Calculation Goes Here. */
 	
-	if(isnan(currentState->objective->data[0]) || isinf(currentState->objective->data[0])) {
+	if(isnan(objectiveMatrix->data[0]) || isinf(objectiveMatrix->data[0])) {
 		if(OMX_DEBUG) {
-			Rprintf("Objective Value is incorrect.\n", currentState->objective->data[0]);
+			Rprintf("Objective Value is incorrect.\n", objectiveMatrix->data[0]);
 		}
 		*mode = -1;
 	}
 	
-	*f = currentState->objective->data[0];
+	*f = objectiveMatrix->data[0];
 	if(VERBOSE) {
-		Rprintf("Objective Value is: %f.\n", currentState->objective->data[0]);
+		Rprintf("Objective Value is: %f.\n", objectiveMatrix->data[0]);
 	}
 
 	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
