@@ -142,6 +142,21 @@ updateModelValuesHelper <- function(triples, value, flatModel, model) {
 	return(model)
 }
 
+updateModelMatrices <- function(model, flatModel, values) {
+	mList <- names(flatModel@matrices)
+	if (length(mList) != length(values)) {
+		stop(paste("This model has", length(aList), 
+			"matrices, but you have given me", length(values),
+			"values"))
+	}
+	if (length(mList) == 0) {
+		return(model)
+	}	
+	model <- updateModelMatricesHelper(mList, values, model)
+	return(model)
+}
+
+
 updateModelAlgebras <- function(model, flatModel, values) {
 	aNames <- names(flatModel@algebras)
 	oNames <- names(flatModel@objectives)
@@ -155,6 +170,14 @@ updateModelAlgebras <- function(model, flatModel, values) {
 		return(model)
 	}	
 	model <- updateModelAlgebrasHelper(aList, values, model)
+	return(model)
+}
+
+updateModelMatricesHelper <- function(mList, values, model) {
+	for(i in 1:length(mList)) {
+		name <- mList[[i]]
+		model[[name]]@values <- values[[i]]
+	}
 	return(model)
 }
 

@@ -360,7 +360,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		
 		int* locations = INTEGER(subList);
 		int loc = locations[2];
-		Rprintf("."); //:::
+		if(OMX_DEBUG) { Rprintf("."); } //:::
 		if(loc < 0) {			// NOTE: This duplicates some of the functionality of NewMatrixFromMxIndex
 			matrix->populateFrom[i] = matrix->currentState->matrixList[(~loc)];
 		} else {
