@@ -11,6 +11,8 @@ Subdirectories:
 'src'	-	The sources and headers for compiled code, plus optionally a Makefile.
 'tests'	-	package-specifc test code.
 'demo'	-	R scripts (for running via demo()) that demonstrate some of the functionality of the package.
+'models/passing' - OpenMx models that are currently executing sucessfully
+'models/failing' - OpenMx models that are currently not executing succesfully
 'data'	-	data files the package makes available for loading using data().
 
 To install:
@@ -20,3 +22,5 @@ To install:
 3. make check - this creates the OpenMx library and runs the R library checker.
 4. make clean - this cleans out the /build subdirectory. Sometimes you may need to run "make clean" if you get error messages with the other make build.
 5. make veryclean - runs "make clean" and then deletes any files ending with a '~' character.
+6. make test - runs all the models in the 'demo' and 'models/passing' directory to see if any errors are reported.
+7. make doc - generate documentation in PDF format in the build directory.
