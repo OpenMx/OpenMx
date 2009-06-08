@@ -37,4 +37,5 @@ model <- mxModel("model", data, s, c,
 	constraint, bounds, mxMLObjective("s"))
 	
 run <- mxRun(model)
-#Error in mxRun(model) : Non-positive-definite.
+
+omxCheckCloseEnough(run[["s"]]@values, run[["data"]]@matrix, .001)
