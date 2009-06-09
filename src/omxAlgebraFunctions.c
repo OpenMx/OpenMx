@@ -210,12 +210,12 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(inMat->cols != addend->cols || inMat->rows != addend->rows) 
 		error("Non-conformable matrices in Matrix Addition.");
 		
-	omxCopyMatrix(result, addend);
+	omxCopyMatrix(result, inMat);
 	
 	int max = inMat->cols * inMat->rows;
 	
 	for(int j = 0; j < max; j++) {
-		result->data[j] = inMat->data[j] + addend->data[j];
+		result->data[j] += addend->data[j];
 	}
 
 };
