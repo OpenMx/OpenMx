@@ -183,7 +183,7 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 		latentVars <- character()
 	}
 	if (remove == TRUE) {
-
+		model <- modelRemoveVariables(model, latentVars, manifestVars)
 	} else if (length(manifestVars) + length(latentVars) > 0) {
 		latentVars <- as.character(latentVars)
 		manifestVars <- as.character(manifestVars)
@@ -268,6 +268,12 @@ setMethod("omxTypeName", "MxModel", function(model) {
 modelAddVariables <- function(model, latent, manifest) {
 	model@latentVars   <- union(model@latentVars, latent)
 	model@manifestVars <- union(model@manifestVars, manifest)
+	return(model)
+}
+
+modelRemoveVariables <- function(model, latent, manifest) {
+	model@latentVars <- setdiff(model@latentVars, latent)
+	model@manifestVars <- setdiff(model@manifestVars, manifest)
 	return(model)
 }
 	
