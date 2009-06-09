@@ -2,7 +2,7 @@
 0		"*SPECIAL*"				"*NONE*"	0						"NULL"
 1		"Inversion" 			"solve" 	1 						"omxMatrixInvert"
 2		"Transposition" 		"t"			1 						"omxMatrixTranspose"
-3		"Element powering"		"%^%" 		2 						"omxElementPower"
+3		"Element powering"		"^" 		2 						"omxElementPower"
 4		"Multiplication" 		"%*%" 		2 						"omxMatrixMult"
 5		"Dot product" 			"*" 		2 						"omxMatrixDot"
 6		"Kronecker product"		"%x%"		2						"omxKroneckerProd"

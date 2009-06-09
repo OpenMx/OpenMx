@@ -15,6 +15,13 @@
 
 
 checkEqualDimensions <- function(a, b) {
+	if(length(a) == 0 && length(b) == 0) {
+		
+	} else if (!(length(a) > 0 && length(b) > 0)) {
+		stop(paste("One of these is a 0x0 matrix:",
+			omxQuotes(paste(a, collapse = ' ')), 
+			"and", omxQuotes(paste(b, collapse = ' ')))) 	
+	}
 	if((is.vector(a) && length(a) > 1 && !is.vector(b)) || 
 		(is.vector(b) && length(b) > 1 && !is.vector(a))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
