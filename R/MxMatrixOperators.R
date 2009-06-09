@@ -15,10 +15,10 @@
 
 
 tr <- function(A) {
-	if(length(A) == 1) {
-		return(A[[1]])
-	} else {
+	if (is.matrix(A)) {
 		return(sum(diag(A)))
+	} else {
+		return(NA)
 	}
 }
 
