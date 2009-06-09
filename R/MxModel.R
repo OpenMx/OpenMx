@@ -187,7 +187,7 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	} else if (length(manifestVars) + length(latentVars) > 0) {
 		latentVars <- as.character(latentVars)
 		manifestVars <- as.character(manifestVars)
-		omxCheckVariables(model, latentVars, manifestVars)
+		checkVariables(model, latentVars, manifestVars)
 		model <- modelAddVariables(model, latentVars, manifestVars)
 	}
 	return(model)
@@ -216,7 +216,7 @@ nameArgument <- function(model, name) {
 	return(model)
 }
 
-omxCheckVariables <- function(model, latentVars, manifestVars) {
+checkVariables <- function(model, latentVars, manifestVars) {
 	common <- intersect(latentVars, manifestVars)
 	if (length(common) > 0) {
 		stop(paste("The following variables cannot",
@@ -240,6 +240,14 @@ omxCheckVariables <- function(model, latentVars, manifestVars) {
 	}
 	if (any(is.na(manifestVars))) {
 		stop("NA is not allowed as a manifest variable", call. = FALSE)
+	}
+	if (length(unique(latentVars)) != length(latentVars)) {
+		stop("The latent variables list contains duplicate elements",
+			call. = FALSE)
+	}
+	if (length(unique(manifestVars)) != length(manifestVars)) {
+		stop("The manifest variables list contains duplicate elements",
+			call. = FALSE)
 	}
 }
 

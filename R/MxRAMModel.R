@@ -59,13 +59,43 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, remove) {
 		latentVars <- character()
 	}
 	if (remove == TRUE) {
-
+		if (length(latentVars) + length(manifestVars) > 0) {
+			model <- removeVariablesRAM(model, latentVars, manifestVars)
+		}
 	} else if (length(manifestVars) + length(latentVars) > 0) {
 		latentVars <- as.character(latentVars)
 		manifestVars <- as.character(manifestVars)
-		omxCheckVariables(model, latentVars, manifestVars)
+		checkVariables(model, latentVars, manifestVars)
 		model <- addVariablesRAM(model, latentVars, manifestVars)
 	}
+	return(model)
+}
+
+removeVariablesRAM <- function(model, latent, manifest) {
+	missingLatent <- setdiff(latent, model@latentVars)
+	missingManifest <- setdiff(manifest, model@manifestVars)
+	if (length(missingLatent) > 0) {
+		stop(paste("The latent variable(s)", omxQuotes(missingLatent),
+			"are not present in the model.",
+			"They cannot be deleted"), call. = FALSE)
+	} else if (length(missingManifest) > 0) {
+		stop(paste("The manifest variable(s)", omxQuotes(missingManifest),
+			"are not present in the model.",
+			"They cannot be deleted"), call. = FALSE)
+	} else if (length(unique(latent)) != length(latent)) {
+		stop("The latent variables list contains duplicate elements",
+			call. = FALSE)
+	} else if (length(unique(manifest)) != length(manifest)) {
+		stop("The manifest variables list contains duplicate elements",
+			call. = FALSE)
+	}
+	model@latentVars <- setdiff(model@latentVars, latent)
+	model@manifestVars <- setdiff(model@manifestVars, manifest)
+	model[['A']] <- removeVariablesAS(model[['A']], latent)
+	model[['A']] <- removeVariablesAS(model[['A']], manifest)
+	model[['S']] <- removeVariablesAS(model[['S']], latent)
+	model[['S']] <- removeVariablesAS(model[['S']], manifest)
+	model[['F']] <- createMatrixF(model)
 	return(model)
 }
 
@@ -278,6 +308,19 @@ addVariablesAS <- function(oldmatrix, model, newLatent, newManifest) {
 		model, newLatent, newManifest)
 	return(oldmatrix)
 }
+
+removeVariablesAS <- function(oldmatrix, variables) {	
+	if (length(variables) > 0) {
+		for (i in 1:length(variables)) {
+			index <- match(variables[[i]], dimnames(oldmatrix@values)[[1]])
+			oldmatrix@values <- oldmatrix@values[-index, -index]
+			oldmatrix@free <- oldmatrix@free[-index, -index]
+			oldmatrix@labels <- oldmatrix@labels[-index, -index]
+		}
+	}
+	return(oldmatrix)
+}
+
 
 addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) {
 	currentManifest <- length(model@manifestVars) - newManifest
