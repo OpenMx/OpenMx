@@ -14,14 +14,19 @@
 #   limitations under the License.
 
 
-checkEqualDimensions <- function(a, b) {
-	if(length(a) == 0 && length(b) == 0) {
-		
-	} else if (!(length(a) > 0 && length(b) > 0)) {
-		stop(paste("One of these is a 0x0 matrix:",
-			omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')))) 	
+checkZeroDimensions <- function(a, b) {
+	if ((length(a) == 0 && length(b) > 0) ||
+		(length(a) > 0 && length(b) == 0)) {
+			stop(paste("One of these has zero length:",
+				omxQuotes(paste(a, collapse = ' ')), 
+				"and", omxQuotes(paste(b, collapse = ' ')))) 	
+	} else if (length(a) == 0 && length(b) == 0) {
+		warning("Both values have zero length.  That's weird.")
 	}
+}
+
+checkEqualDimensions <- function(a, b) {
+	checkZeroDimensions(a, b)
 	if((is.vector(a) && length(a) > 1 && !is.vector(b)) || 
 		(is.vector(b) && length(b) > 1 && !is.vector(a))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
