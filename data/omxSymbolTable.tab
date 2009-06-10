@@ -26,5 +26,6 @@
 24		"Hyperbolic sine"		"sinh"		1						"omxElementSinh"
 25		"Tangent"				"tan"		1						"omxElementTangent"
 26		"Hyperbolic tangent"	"tanh"		1						"omxElementTanh"
-27		"Element Exponent"		"exp"		2						"omxElementExponent"
-28		"Element Natural Log"	"ln"		2						"omxElementNaturalLog"
+27		"Element Exponent"		"exp"		1						"omxElementExponent"
+28		"Element Natural Log"	"log"		1						"omxElementNaturalLog"
+29		"Element Square Root"	"sqrt"		1						"omxElementSquareRoot"

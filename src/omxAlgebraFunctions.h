@@ -54,5 +54,6 @@ void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif
