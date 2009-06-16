@@ -17,7 +17,9 @@ library(OpenMx)
 
 directories <- c('demo', 'models/passing')
 
-null <- file('/dev/null', 'w')
+null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
+	error = function(e) { file('nul', 'w') } )
+
 
 sink(null, type = 'output')	
 sink(null, type = 'message')
