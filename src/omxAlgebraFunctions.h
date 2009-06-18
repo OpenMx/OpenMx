@@ -30,7 +30,7 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result);
-void omxMatrixDot(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result);

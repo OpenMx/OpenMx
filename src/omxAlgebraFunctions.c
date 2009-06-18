@@ -65,18 +65,24 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* inMat = matList[0];
 	omxMatrix* power = matList[1];
 	
-	if(power->rows == 1 && power->cols ==1) {
-		for(int j = 0; j < result->cols * result->rows; j++) {
-			result->data[j] = pow(result->data[j], power->data[0]);
-		}
-	} else if(power->rows == inMat->rows && power->cols == inMat->cols) {
-		for(int j = 0; j < result->rows; j++) 
-			for(int k = 0; k < result->cols; k++)
-				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(result, j,k), omxMatrixElement(power, j,k)));
-	} else {
-		error("Non-conformable matrices in elementPower.");
-	}
+	/* Conformability Check! */
+	if(inMat->cols != power->cols || inMat->rows != power->rows) 
+		error("Non-conformable matrices in Element Division.");	
+
+	int rows = inMat->rows;
+	int cols = inMat->cols;
 	
+	if(result->rows != rows || result->cols != cols)
+		omxResizeMatrix(result, rows, cols, FALSE);	
+
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < cols; j++) {
+			omxSetMatrixElement(result, i, j, 
+								pow(omxMatrixElement(inMat, i, j), 
+									omxMatrixElement(power, i, j)));
+		}
+	}
+		
 }
 
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -114,27 +120,26 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixDot(omxMatrix** matList, int numArgs, omxMatrix* result)
+void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* preDot = matList[0];
-	omxMatrix* postDot = matList[1];
-// Actually, this is element-by-element multiplication.
+	omxMatrix* first = matList[0];
+	omxMatrix* second = matList[1];
 	
 	/* Conformability Check! */
-	if(preDot->cols != postDot->cols || preDot->rows != postDot->rows) 
-		error("Non-conformable matrices in Matrix Dot Product.");
-		
-	omxCopyMatrix(result, preDot);
+	if(first->cols != second->cols || first->rows != second->rows) 
+		error("Non-conformable matrices in Element Multiplication.");
 	
-	int max = preDot->cols * preDot->rows;
-
-	double* resultData = result->data;
-	double* postDotData = postDot->data;
+	omxCopyMatrix(result, first);
 	
-	/* The call itself */
-	//F77_CALL(dgemm)((preDot->majority), (result->majority), &(preDot->rows), &(result->cols), &(preDot->cols), &zero, preDot->data, &(preDot->leading), result->data, &(result->leading), &one, result->data, &(result->leading));
-	for(int j = 0; j < max; j++) {
-		resultData[j] = resultData[j] * postDotData[j];
+	int rows = first->rows;
+	int cols = first->cols;
+	
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < cols; j++) {
+			omxSetMatrixElement(result, i, j, 
+								omxMatrixElement(result, i, j) * 
+								omxMatrixElement(second, i, j));
+		}
 	}
 
 
@@ -154,7 +159,9 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		for(int postRow = 0; postRow < postMul->rows; postRow++)
 			for(int preCol = 0; preCol < preMul->cols; preCol++)
 				for(int postCol = 0; postCol < postMul->cols; postCol++)
-					omxSetMatrixElement(result, preRow*postMul->rows + postRow, preCol*postMul->cols + postCol, omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
+					omxSetMatrixElement(result, preRow*postMul->rows + postRow, 
+										preCol*postMul->cols + postCol, 
+										omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
 	
 }
 
@@ -196,15 +203,16 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 		
 	omxCopyMatrix(result, inMat);
 	
-	int max = inMat->cols * inMat->rows;
-
-	double* resultData = result->data;
-	double* divisorData = divisor->data;
+	int rows = inMat->rows;
+	int cols = inMat->cols;
 	
-	for(int j = 0; j < max; j++) {
-		resultData[j] = resultData[j] / divisorData[j];
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < cols; j++) {
+			omxSetMatrixElement(result, i, j, 
+								omxMatrixElement(result, i, j) / 
+								omxMatrixElement(divisor, i, j));
+		}
 	}
-	
 }
 
 void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -218,15 +226,16 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		
 	omxCopyMatrix(result, inMat);
 	
-	int max = inMat->cols * inMat->rows;
-
-	double* resultData = result->data;
-	double* addendData = addend->data;
+	int rows = inMat->rows;
+	int cols = inMat->cols;
 	
-	for(int j = 0; j < max; j++) {
-		resultData[j] += addendData[j];
-	}
-
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < cols; j++) {
+			omxSetMatrixElement(result, i, j, 
+								omxMatrixElement(result, i, j) +  
+								omxMatrixElement(addend, i, j));
+		}
+	}	
 }
 
 void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -247,11 +256,15 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxPrintMatrix(inMat, "From");
 	}
 
-	double* resultData = result->data;
-	double* subtrahendData = subtrahend->data;
-
-	for(int j = 0; j < max; j++) {
-		resultData[j] -= subtrahendData[j];
+	int rows = inMat->rows;
+	int cols = inMat->cols;
+	
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < cols; j++) {
+			omxSetMatrixElement(result, i, j, 
+								omxMatrixElement(result, i, j) -  
+								omxMatrixElement(subtrahend, i, j));
+		}
 	}
 
 	if(OMX_DEBUG) {

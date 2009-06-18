@@ -4,7 +4,7 @@
 2		"Transposition" 		"t"			1 						"omxMatrixTranspose"
 3		"Element powering"		"^" 		2 						"omxElementPower"
 4		"Multiplication" 		"%*%" 		2 						"omxMatrixMult"
-5		"Dot product" 			"*" 		2 						"omxMatrixDot"
+5		"Dot product" 			"*" 		2 						"omxMatrixElementMult"
 6		"Kronecker product"		"%x%"		2						"omxKroneckerProd"
 7		"Quadratic product"		"%&%"		2						"omxQuadraticProd"
 8		"Element division"		"/"			2						"omxElementDivide"
