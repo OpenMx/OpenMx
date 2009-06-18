@@ -78,8 +78,8 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < cols; j++) {
 			omxSetMatrixElement(result, i, j, 
-								pow(omxMatrixElement(inMat, i, j), 
-									omxMatrixElement(power, i, j)));
+				pow(omxMatrixElement(inMat, i, j), 
+					omxMatrixElement(power, i, j)));
 		}
 	}
 		
@@ -137,8 +137,8 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < cols; j++) {
 			omxSetMatrixElement(result, i, j, 
-								omxMatrixElement(result, i, j) * 
-								omxMatrixElement(second, i, j));
+				omxMatrixElement(result, i, j) * 
+				omxMatrixElement(second, i, j));
 		}
 	}
 
@@ -160,8 +160,8 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 			for(int preCol = 0; preCol < preMul->cols; preCol++)
 				for(int postCol = 0; postCol < postMul->cols; postCol++)
 					omxSetMatrixElement(result, preRow*postMul->rows + postRow, 
-										preCol*postMul->cols + postCol, 
-										omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
+						preCol*postMul->cols + postCol, 
+						omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
 	
 }
 
@@ -209,8 +209,8 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < cols; j++) {
 			omxSetMatrixElement(result, i, j, 
-								omxMatrixElement(result, i, j) / 
-								omxMatrixElement(divisor, i, j));
+				omxMatrixElement(result, i, j) / 
+				omxMatrixElement(divisor, i, j));
 		}
 	}
 }
@@ -232,8 +232,8 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < cols; j++) {
 			omxSetMatrixElement(result, i, j, 
-								omxMatrixElement(result, i, j) +  
-								omxMatrixElement(addend, i, j));
+				omxMatrixElement(result, i, j) +  
+				omxMatrixElement(addend, i, j));
 		}
 	}	
 }
@@ -262,8 +262,8 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < cols; j++) {
 			omxSetMatrixElement(result, i, j, 
-								omxMatrixElement(result, i, j) -  
-								omxMatrixElement(subtrahend, i, j));
+				omxMatrixElement(result, i, j) -  
+				omxMatrixElement(subtrahend, i, j));
 		}
 	}
 
