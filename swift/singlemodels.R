@@ -177,9 +177,11 @@ return(alldata[[1]])
 library(OpenMx)
 library(R.oo)
 
-# get parameters from environment: this allows
-# variables to be easily passed by swift and/or
+# get parameters from environment variable R_SWIFT_ARGS: 
+# this allows variables to be easily passed by swift and/or
 # other R wrappers
+# example R_SWIFT_ARGS:
+# 	R_SWIFT_ARGS="net1_gesture.cov 57134 .5 gesture 1 8"
 
 allinputs <- Sys.getenv("R_SWIFT_ARGS")
 covfile <- noquote(strsplit(allinputs," ")[[1]][1])
@@ -187,6 +189,7 @@ perm <- as.numeric(noquote(strsplit(allinputs," ")[[1]][2]))
 initweight <- as.numeric(noquote(strsplit(allinputs," ")[[1]][3]))
 cond <- noquote(strsplit(allinputs," ")[[1]][4])
 net <- noquote(strsplit(allinputs," ")[[1]][5])
+num_obs <- as.numeric(noquote(strsplit(allinputs," ")[[1]][6]))
 covMatrix = as.matrix(read.table(covfile))
 rowcol = dim(covMatrix)[[1]]
 
@@ -198,10 +201,11 @@ if(perm <= 2^(rowcol*rowcol))
 permutation = mxGetPerm(rowcol,perm)
 pmatrix = matrix(c(permutation),nrow=rowcol)
 
-model <- mxModel()
-model <- mxModel(model, mxMatrix("Full", values = NA, name="A", nrow = rowcol, ncol = rowcol))
-model <- mxModel(model, mxMatrix("Full", values = NA, name="S", nrow=rowcol, ncol=rowcol, free=TRUE))
-model <- mxModel(model, mxMatrix("Iden", values = NA, name="F", nrow=rowcol, ncol=rowcol))
+model <- mxModel(name = paste("perm",perm, sep=""), type = "RAM", independent = TRUE)
+model <- mxModel(model, mxMatrix("Full", values = NA, name="A", nrow = rowcol, ncol = rowcol, lbound = NA, ubound = NA))
+model <- mxModel(model, mxMatrix("Symm", values = NA, name="S", nrow=rowcol, ncol=rowcol, free=TRUE, lbound = NA, ubound = NA))
+model <- mxModel(model, mxMatrix("Iden", values = NA, name="F", nrow=rowcol, ncol=rowcol, free=FALSE))
+
 
 parcnt = 1
 for(x in 1:rowcol)
@@ -209,39 +213,46 @@ for(x in 1:rowcol)
   for(y in 1:rowcol)
    {
  # initialize 0 matrix
-    model[["S"]]@specification[x,y] = "0"
+    model[["S"]]@free[x,y] = FALSE
+    model[["S"]]@labels[x,y] = 0
     model[["S"]]@values[x,y] = 0
-    model[["A"]]@specification[x,y] = "0"
+    model[["A"]]@free[x,y] = FALSE
     model[["A"]]@values[x,y] = 0
+    model[["A"]]@labels[x,y] = 0
 
     if(pmatrix[x,y] == 1 && x == y){
-    model[["S"]]@specification[x,y] = parcnt
+    model[["S"]]@labels[x,y] = parcnt
     model[["S"]]@values[x,y] = initweight
+    model[["S"]]@free[x,y] = TRUE
     parcnt = parcnt + 1
     }
     else if (pmatrix[x,y] == 1){
-    model[["A"]]@specification[x,y] = parcnt
+    model[["A"]]@labels[x,y] = parcnt
     model[["A"]]@values[x,y] = initweight
+    model[["A"]]@free[x,y] = TRUE
     parcnt = parcnt + 1
     }
 
    }
 }
 
+model@manifestVars = "fMRI"
+
+# run model
+
+freeparams = c(model[["A"]]@labels,model[["S"]]@labels)
+data <- mxData(covMatrix, 'cov', numObs = num_obs)
+objective <- mxRAMObjective("A", "S", "F")
+model <- mxModel(model, objective, data)
+model <- mxRun(model)
+
 # print degrees of freedom along with fit statistic
 # for given model so results can be summarized
 
-	deg_of_freedom = (rowcol*(rowcol+1)/2)-parcnt
-	objective <- mxRAMObjective("objective")
-	model <- mxModel(model, objective, covMatrix)
-	model@independent = TRUE
-	print(model@matrices)
-	model <- mxJobRun(model)
-
+deg_of_freedom = (rowcol*(rowcol+1)/2)-parcnt
 
 perm = formatC(perm, format="f", digits=0)
-
- if(is.na(model@output[[1]]) || model@output[[1]] == -Inf){
+if(is.na(model@output[[1]]) || model@output[[1]] == -Inf){
 		system(paste("touch results/",net,"_",cond,"_",perm,".stat", sep=""))
 				     } else {
 write(paste(deg_of_freedom,model@output[[1]],sep="\t"), file=paste("results/",net,"_",cond,"_",perm,".stat", sep=""))
@@ -249,4 +260,5 @@ write(paste(deg_of_freedom,model@output[[1]],sep="\t"), file=paste("results/",ne
 	print(model@output)
 }else {
 	system(paste("touch results/",net,"_",cond,"_",perm,".stat", sep=""))
-     }
+      }
+
