@@ -37,9 +37,10 @@ mxRun <- function(model) {
 	constraints <- convertConstraints(flatModel)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
+	options <- generateOptionsList(model@options)
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
-		algebras, data, state, PACKAGE = "OpenMx")
+		algebras, data, options, state, PACKAGE = "OpenMx")
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model@output <- computeOptimizationStatistics(flatModel, parameters, output)

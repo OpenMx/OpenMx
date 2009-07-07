@@ -88,7 +88,9 @@ omxState* currentState;			// Current State of optimization
 
 
 /* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state);  // Calls NPSOL.  Duh.
+SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, 
+	SEXP matList, SEXP varList, SEXP algList, 
+	SEXP data, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = { 
@@ -113,7 +115,9 @@ R_unload_mylib(DllInfo *info)
 
 
 /* Main functions */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, SEXP varList, SEXP algList, SEXP data, SEXP state) {
+SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, 
+	SEXP matList, SEXP varList, SEXP algList, 
+	SEXP data, SEXP options, SEXP state) {
 	// For now, assume no constraints.
 	
 	int N; // n, 
@@ -131,7 +135,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 	/* Helpful variables */
 	
-	char option[250] = "";			// For setting options
+	char optionCharArray[250] = "";			// For setting options
 	
 	int j, k, l, m;					// Index Vars
 	
@@ -476,51 +480,38 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints, SEXP matList, S
 	
 		/* Output Options */
 		if(OMX_DEBUG_OPTIMIZER) {
-			strcpy(option, "Print level 20");  				// 0 = No Output, 20=Verbose
-			F77_CALL(npoptn)(option, strlen(option));
-			strcpy(option, "Minor print level 20");			// 0 = No Output, 20=Verbose
-			F77_CALL(npoptn)(option, strlen(option));
-			sprintf(option, "Print file 7");
-			F77_CALL(npoptn)(option, strlen(option));
-			sprintf(option, "Summary file 7");
-			F77_CALL(npoptn)(option, strlen(option));
+			strcpy(optionCharArray, "Print level 20");  				// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			strcpy(optionCharArray, "Minor print level 20");			// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			sprintf(optionCharArray, "Print file 7");
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			sprintf(optionCharArray, "Summary file 7");
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
 		} else {
-			strcpy(option, "Nolist"); 						// Suppress that annoying output file
-			F77_CALL(npoptn)(option, strlen(option));
-			strcpy(option, "Print level 0");  				// 0 = No Output, 20=Verbose
-			F77_CALL(npoptn)(option, strlen(option));
-			strcpy(option, "Minor print level 0");			// 0 = No Output, 20=Verbose
-			F77_CALL(npoptn)(option, strlen(option));
-			sprintf(option, "Print file 0");
-			F77_CALL(npoptn)(option, strlen(option));
-			sprintf(option, "Summary file 0");
-			F77_CALL(npoptn)(option, strlen(option));
+			strcpy(optionCharArray, "Nolist"); 						// Suppress that annoying output file
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			strcpy(optionCharArray, "Print level 0");  				// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			strcpy(optionCharArray, "Minor print level 0");			// 0 = No Output, 20=Verbose
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			sprintf(optionCharArray, "Print file 0");
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			sprintf(optionCharArray, "Summary file 0");
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
 		}
 
 		/* Options That Change The Optimizer */
-		sprintf(option, "Function Precision 1e-14");		// Set epsilon
-		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Infinite Bound Size 1.0e+15");
-		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Feasibility tolerance 1.0e-05");
-		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Major iterations 1000");
-		F77_CALL(npoptn)(option, strlen(option));
-//		sprintf(option, "Optimality Tolerance 1.0e-12");
-//		F77_CALL(npoptn)(option, strlen(option));
-//		sprintf(option, "Difference interval ");
-//		F77_CALL(npoptn)(option, strlen(option));
-		sprintf(option, "Verify level 3");
-		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Linesearch tolerance .3");		// Set accuracy to Merit Function
-		F77_CALL(npoptn)(option, strlen(option));
-//		strcpy(option, "Step Limit 0");					// At 0, defaults to 2.0
-//		F77_CALL(npoptn)(option, strlen(option));
-		strcpy(option, "Derivative Level 0");			// Always estimate gradient and hessian
-		F77_CALL(npoptn)(option, strlen(option));	
-		strcpy(option, "Hessian Yes");					// Evaluate Hessian
-		F77_CALL(npoptn)(option, strlen(option));
-														// Iteration limit is max(50, 3(numFreeParams + numLinearConstraints) + 10numNonlinear)
+		int numOptions = length(options);
+		SEXP optionNames;
+		PROTECT(optionNames = GET_NAMES(options));
+		for(int i = 0; i < numOptions; i++) {
+			sprintf(optionCharArray, "%s %s", CHAR(STRING_ELT(optionNames, i)), STRING_VALUE(VECTOR_ELT(options, i)));
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
+		}
+		UNPROTECT(1); // optionNames
+		
 	/*  F77_CALL(npsol)
 		(	int *n,					-- Number of variables
 			int *nclin,				-- Number of linear constraints

@@ -26,6 +26,7 @@ setClass(Class = "MxModel",
 		submodels = "list",
 		objective = "MxObjective",
 		independent = "logical",
+		options = "list",
 		output = "list"
 ))
 
@@ -36,7 +37,7 @@ setMethod("initialize", "MxModel",
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), data = NULL, submodels = list(), 
-		objective = NULL, independent = FALSE) {
+		options = list(), objective = NULL, independent = FALSE) {
 		.Object@name <- name
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
@@ -47,6 +48,7 @@ setMethod("initialize", "MxModel",
 		.Object@submodels <- submodels
 		.Object@objective <- objective
 		.Object@independent <- independent
+		.Object@options <- options 
 		.Object@output <- list()
 		.Object <- omxInitModel(.Object)
 		return(.Object)

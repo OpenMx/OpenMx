@@ -57,6 +57,7 @@ displayModel <- function(model, expand = FALSE) {
 	}
 	cat("objective :", objectiveType, '\n')
 	cat("independent :", model@independent, '\n')
+	cat("options :", omxQuotes(names(model@options)), '\n')
 	cat("output :", length(model@output) > 0, '\n')
 	if(expand) {
 		if(length(model@matrices) > 0) {
@@ -78,7 +79,7 @@ displayModel <- function(model, expand = FALSE) {
 		if(!is.null(model@objective) > 0) {
 			cat("\n--------OBJECTIVE FUNCTION--------\n")
 			print(model@objective)
-		}
+		}		
 		if(length(model@output) > 0) {
 			cat("\n--------OUTPUT--------\n")
 			print(model@output)
@@ -86,6 +87,10 @@ displayModel <- function(model, expand = FALSE) {
 		if(length(model@submodels) > 0) {
 			cat("\n--------SUBMODELS--------\n")
 			lapply(model@submodels, print)
+		}
+		if(length(model@options) > 0) {
+			cat("\n--------OPTIONS--------\n")
+			print(model@options)
 		}
 	}
 	invisible(model)
