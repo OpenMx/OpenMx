@@ -43,7 +43,7 @@ processOptionsList <- function(input) {
 # and then add the model-specific options.
 generateOptionsList <- function(input) {
 	modified <- processOptionsList(input)
-	options <- npsolOptions
+	options <- getOption('mxOptimizerOptions')
 	options[names(modified)] <- modified
 	return(options)
 }

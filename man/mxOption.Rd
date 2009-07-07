@@ -18,7 +18,7 @@ mxOption(model, key, value)
 }
 
 \details{
-Sets an option that is specific to the particular optimizer used in the back-end. The name of the option is the \sQuote{key} argument. Use value = NULL to remove an existing option. Before the model is submitted to the back-end, all keys and values are converted into strings using the \link{as.character} function.
+Sets an option that is specific to the particular optimizer used in the back-end. The name of the option is the \sQuote{key} argument. Use value = NULL to remove an existing option. Before the model is submitted to the back-end, all keys and values are converted into strings using the \link{as.character} function. Use \code{getOption('mxOptimizerOptions')} to see the default optimizer options.
 }
 	
 \value{
