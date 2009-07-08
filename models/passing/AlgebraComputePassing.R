@@ -37,7 +37,7 @@ model <- mxModel(model, mxAlgebra(A * t(B), name = 'test5b'))
 model <- mxModel(model, mxAlgebra(A %x% B, name = 'test6'))
 model <- mxModel(model, mxAlgebra(t(A) %x% B, name = 'test6a'))
 model <- mxModel(model, mxAlgebra(A %x% t(B), name = 'test6b'))
-# test7 is failing
+model <- mxModel(model, mxAlgebra(A %&% B, name = 'test7'))
 model <- mxModel(model, mxAlgebra(A / B, name = 'test8'))
 model <- mxModel(model, mxAlgebra(t(A) / B, name = 'test8a'))
 model <- mxModel(model, mxAlgebra(A / t(B), name = 'test8b'))
@@ -50,8 +50,8 @@ model <- mxModel(model, mxAlgebra(A - t(B), name = 'test10b'))
 model <- mxModel(model, mxAlgebra(-A, name = 'test11'))
 model <- mxModel(model, mxAlgebra(-t(A), name = 'test11a'))
 model <- mxModel(model, mxAlgebra(t(-A), name = 'test11b'))
-# test12 is failing
-# test13 is failing
+model <- mxModel(model, mxAlgebra(cbind(A,B), name = 'test12'))
+model <- mxModel(model, mxAlgebra(rbind(A,B), name = 'test13'))
 # test14 is failing
 model <- mxModel(model, mxAlgebra(tr(A), name = 'test15'))
 model <- mxModel(model, mxAlgebra(sum(A,B), name = 'test16'))
@@ -87,7 +87,7 @@ omxCheckCloseEnough(model[['test5b']]@result, A@values * t(B@values), 0.001)
 omxCheckCloseEnough(model[['test6']]@result, A@values %x% B@values, 0.001)
 omxCheckCloseEnough(model[['test6a']]@result, t(A@values) %x% B@values, 0.001)
 omxCheckCloseEnough(model[['test6b']]@result, A@values %x% t(B@values), 0.001)
-# test7 is failing
+omxCheckCloseEnough(model[['test7']]@result, A@values %&% B@values, 0.001)
 omxCheckCloseEnough(model[['test8']]@result, A@values / B@values, 0.001)
 omxCheckCloseEnough(model[['test8a']]@result, t(A@values) / B@values, 0.001)
 omxCheckCloseEnough(model[['test8b']]@result, A@values / t(B@values), 0.001)
@@ -100,8 +100,8 @@ omxCheckCloseEnough(model[['test10b']]@result, A@values - t(B@values), 0.001)
 omxCheckCloseEnough(model[['test11']]@result, -A@values, 0.001)
 omxCheckCloseEnough(model[['test11a']]@result, -t(A@values), 0.001)
 omxCheckCloseEnough(model[['test11b']]@result, t(-A@values), 0.001)
-# test12 is failing
-# test13 is failing
+omxCheckCloseEnough(model[['test12']]@result, cbind(A@values, B@values), 0.001)
+omxCheckCloseEnough(model[['test13']]@result, rbind(A@values, B@values), 0.001)
 # test14 is failing
 omxCheckCloseEnough(model[['test15']]@result, tr(A@values), 0.001)
 omxCheckCloseEnough(model[['test16']]@result, sum(A@values, B@values), 0.001)

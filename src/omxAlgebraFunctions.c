@@ -32,6 +32,8 @@
 
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Transpose.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	omxCopyMatrix(result, inMat);
@@ -44,6 +46,9 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Invert.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int ipiv[inMat->rows], lwork;
@@ -62,35 +67,40 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Powering.\n");}
+
 	omxMatrix* inMat = matList[0];
 	omxMatrix* power = matList[1];
 	
-	/* Conformability Check! */
-	if(inMat->cols != power->cols || inMat->rows != power->rows) 
-		error("Non-conformable matrices in Element Division.");	
-
 	int rows = inMat->rows;
 	int cols = inMat->cols;
-	
-	if(result->rows != rows || result->cols != cols)
-		omxResizeMatrix(result, rows, cols, FALSE);	
 
-	for(int i = 0; i < rows; i++) {
-		for(int j = 0; j < cols; j++) {
-			omxSetMatrixElement(result, i, j, 
-				pow(omxMatrixElement(inMat, i, j), 
-					omxMatrixElement(power, i, j)));
-		}
+	if(result->cols != cols || result->rows != rows)
+		omxResizeMatrix(result, rows, cols, FALSE);
+
+	if(power->rows == 1 && power->cols == 1) {
+		double exponent = power->data[0];
+		for(int j = 0; j < inMat->rows; j++)
+			for(int k = 0; k < inMat->cols; k++)
+				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), exponent));
+	} else if(power->rows == rows && power->cols == cols) {
+		for(int j = 0; j < inMat->rows; j++)
+			for(int k = 0; k < inMat->cols; k++)
+				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), omxMatrixElement(power, j,k)));
+	} else {
+		error("Non-conformable matrices in elementPower.");
 	}
-		
+
 }
 
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Multiply.\n");}
+	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
-
-	if(OMX_DEBUG) { Rprintf("Multiplying two matrices.\n");}
 	
 	if(preMul == NULL || postMul == NULL) {
 		error("Null matrix pointer detected.\n");
@@ -146,6 +156,9 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 }
 void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Kronecker Product.\n");}
+	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
 	
@@ -167,6 +180,9 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product.\n");}
+	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
 	/* A %&% B = ABA' */
@@ -179,21 +195,37 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		error("Non-conformable matrices in Matrix Quadratic Product.");
 		
 	omxMatrix* intermediate = NULL;
-	omxInitMatrix(intermediate, preMul->rows, postMul->cols, TRUE, preMul->currentState);
-		
+	intermediate = omxInitMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState); // Leaks Memory!
+	
+	if(OMX_DEBUG) { Rprintf("Quadratic: os = 0x%x, step = %d.\n", result->currentState, intermediate->currentState->computeCount);}
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->objective);}
+	
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->cols, preMul->cols, FALSE);
 	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
 	
-	/* The call itself */
-	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
-	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->cols), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
+	omxComputeMatrix(intermediate);
 
+	/* The call itself */
+	if(OMX_DEBUG) { Rprintf("Quadratic: premul.\n");}
+	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
+	omxComputeMatrix(intermediate);
+	if(OMX_DEBUG) { Rprintf("Quadratic: postmul.\n");}
+	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
+	if(OMX_DEBUG) { Rprintf("Quadratic: clear.\n");}
+
+	omxFreeMatrixData(intermediate);
+//	Free(intermediate);
 
 }
 
 void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Division.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* divisor = matList[1];
 	
@@ -217,6 +249,9 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Addition.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* addend = matList[1];
 	
@@ -240,6 +275,9 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Subtraction.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* subtrahend = matList[1];
 	
@@ -274,6 +312,9 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Unary Minus.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -289,6 +330,8 @@ void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Horizontal Matrix Concatenation.\n");}
+
 	int totalRows = 0, totalCols = 0, currentCol=0;
 	
 	if(numArgs == 0) return;
@@ -303,11 +346,12 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 	
 	if(result->rows != totalRows || result->cols != totalCols) {
+		if(OMX_DEBUG) { Rprintf("ALGEBRA: HorizCat: resizing result.\n");}
 		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 	
 	for(int j = 0; j < numArgs; j++) {
-		for(int k = 0; k < matList[j]->cols; j++) {
+		for(int k = 0; k < matList[j]->cols; k++) {
 			for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
 				omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
 			}
@@ -318,7 +362,9 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	
+
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Vertical Matrix Concatenation.\n");}
+
 	int totalRows = 0, totalCols = 0, currentRow=0;
 	
 	if(numArgs == 0) return;
@@ -327,7 +373,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalCols != matList[j]->cols) {
-			error("Non-conformable matrices in horizontal concatenation.");
+			error("Non-conformable matrices in vertical concatenation.");
 		}
 		totalRows += matList[j]->rows;
 	}
@@ -337,9 +383,9 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 	
 	for(int j = 0; j < numArgs; j++) {
-		for(int k = 0; k < matList[j]->rows; j++) {
+		for(int k = 0; k < matList[j]->rows; k++) {
 			for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
-				omxSetMatrixElement(result, l, currentRow, omxMatrixElement(matList[j], k, l));
+				omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
 			}
 			currentRow++;
 		}
@@ -349,34 +395,44 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Determinant.\n");}
+	
 	omxMatrix* inMat = matList[0];
-		error("NYI: Not yet Implemented.\n");
-	}
+	
+	
+}
 
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
-	{
-		omxMatrix* inMat = matList[0];
+{
 
-		/* Consistency check: */
-		if(result->rows != 1 || result->cols != 1) {
-			omxResizeMatrix(result, 1, 1, FALSE);
-		}
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Trace.\n");}
+	
+	omxMatrix* inMat = matList[0];
 
-		if(inMat->rows != inMat->cols) {
-			error("Non-square matrix in Trace().\n");
-		}
-		
-		double trace = 0.0;
-
-		/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
-		for(int j = 0; j < inMat->rows; j++) {
-			trace += omxMatrixElement(inMat, j, j);
-		}
-
-		omxSetMatrixElement(result, 0, 0, trace);
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
 	}
 
+	if(inMat->rows != inMat->cols) {
+		error("Non-square matrix in Trace().\n");
+	}
+	
+	double trace = 0.0;
+
+	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
+	for(int j = 0; j < inMat->rows; j++) {
+		trace += omxMatrixElement(inMat, j, j);
+	}
+
+	omxSetMatrixElement(result, 0, 0, trace);
+};
+
 void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Total Sum.\n");}
+	
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -397,6 +453,9 @@ void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Total Product.\n");}
+
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -417,6 +476,9 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) 
 }
 
 void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Minimum Element.\n");}
+	
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -437,6 +499,9 @@ void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
 }
 
 void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
+
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Maximum Element.\n");}
+
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -457,6 +522,9 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 
 void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Absolute Value.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -472,6 +540,9 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Cosine.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -487,6 +558,9 @@ void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Cosine.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -502,6 +576,9 @@ void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Sine.\n");}
+	
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -517,8 +594,10 @@ void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Sine.\n");}
+	
 	omxMatrix* inMat = matList[0];
-
 	
 	int max = inMat->cols * inMat->rows;
 	
@@ -533,6 +612,9 @@ void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Tangent.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -548,6 +630,9 @@ void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Tangent.\n");}
+
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -563,6 +648,9 @@ void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Exponent.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
@@ -578,6 +666,9 @@ void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	
+	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Natural Log.\n");}
+	
 	omxMatrix* inMat = matList[0];
 	
 	int max = inMat->cols * inMat->rows;
