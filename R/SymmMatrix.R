@@ -121,7 +121,7 @@ setMethod("initialize", "SymmMatrix",
 		if (is.vector(ubound)) {
 			len <- length(ubound)
 			if (len == nrow * ncol || len == 1) {
-				ubound <- matrix(lbound, nrow, ncol, byrow)
+				ubound <- matrix(ubound, nrow, ncol, byrow)
 			} else if (len == nrow * (ncol + 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)

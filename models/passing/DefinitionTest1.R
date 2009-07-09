@@ -29,11 +29,9 @@ require(OpenMx)
 
 
 #make some data!
-#two groups; in group 1, x and y are perfectly correlated
 x1<-rnorm(50)
 y1<-x1+rnorm(50, sd=1)
 
-#in group 0, x and y have no relationship
 x2<-rnorm(50)
 y2<-rnorm(50)+rnorm(50, sd=1)
 
@@ -45,20 +43,13 @@ data<-mxData(as.matrix(data.frame(x,y,def)), type="raw")
 
 #define the model: we'll just use an S matrix and let A and F drop out
 #as currently specified, this would fit a zero df model to a 2x2 covariance matrix
-S <- mxMatrix("Symm", values=c(2,.5,3), free=TRUE, nrow=2, ncol=2, name="S")
+S <- mxMatrix("Symm", values=c(2, 0.5, 3), labels=c(NA, "data.def", NA),
+	lbound=c(0.001, NA, 0.001), free=TRUE, nrow=2, ncol=2, name="S")
 
 M <- mxMatrix("Zero", nrow = 1, ncol = 2, name = "M") 
 
 #define the model, including a FIML objective function, which will optimize the matrix S
 model<-mxModel("model", mxFIMLObjective("S", "M"), data, S, M)
-
-#include the definition variables
-model[["S"]]@labels[2,1]<-"data.def"
-model[["S"]]@labels[1,2]<-"data.def"
-
-#set the lower bound of the free parameters
-model[['S']]@lbound[1,1]<-0.001
-model[['S']]@lbound[2,2]<-0.001
 
 #run the model
 run<-mxRun(model)
