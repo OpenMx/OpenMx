@@ -22,7 +22,7 @@ nothing:
 	@echo \
 	'Please type make [build | install | doc | check | clean | veryclean]'
 
-build: build/$(TARGET)
+internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RSOURCE)/$(RFILES) $(RDOCUMENTS)/$(RDFILES)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
@@ -34,10 +34,13 @@ $(RSOURCE)/$(RFILES):
 
 $(RDOCUMENTS)/$(RDFILES):
 
-install: clean build
+build: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
-check: build
+install: clean internal-build
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
+
+check: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
 
 test:
