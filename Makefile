@@ -35,7 +35,7 @@ $(RSOURCE)/$(RFILES):
 $(RDOCUMENTS)/$(RDFILES):
 
 install: clean build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
 check: build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
