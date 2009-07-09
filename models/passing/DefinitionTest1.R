@@ -31,21 +31,21 @@ require(OpenMx)
 #make some data!
 #two groups; in group 1, x and y are perfectly correlated
 x1<-rnorm(50)
-y1<-x1
+y1<-x1+rnorm(50, sd=1)
 
 #in group 0, x and y have no relationship
 x2<-rnorm(50)
-y2<-rnorm(50)
+y2<-rnorm(50)+rnorm(50, sd=1)
 
 #put them both together, add a definition variable, and make an MxData object
 x<-c(x1,x2)
 y<-c(y1,y2)
-def<-rep(c(1,0),each=50)
+def<-rep(c(.88,0),each=50)
 data<-mxData(as.matrix(data.frame(x,y,def)), type="raw")
 
 #define the model: we'll just use an S matrix and let A and F drop out
 #as currently specified, this would fit a zero df model to a 2x2 covariance matrix
-S <- mxMatrix("Symm", values=c(1,.5,1), free=TRUE, nrow=2, ncol=2, name="S")
+S <- mxMatrix("Symm", values=c(2,.5,3), free=TRUE, nrow=2, ncol=2, name="S")
 
 M <- mxMatrix("Zero", nrow = 1, ncol = 2, name = "M") 
 
@@ -56,6 +56,16 @@ model<-mxModel("model", mxFIMLObjective("S", "M"), data, S, M)
 model[["S"]]@labels[2,1]<-"data.def"
 model[["S"]]@labels[1,2]<-"data.def"
 
+#set the lower bound of the free parameters
+model[['S']]@lbound[1,1]<-0.001
+model[['S']]@lbound[2,2]<-0.001
+
 #run the model
 run<-mxRun(model)
+
+observed <- diag(cov(cbind(x,y)))
+computed <- c(run@output$estimate)
+
+omxCheckCloseEnough(observed, computed, 0.1)
+
 
