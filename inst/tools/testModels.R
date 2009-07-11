@@ -15,6 +15,8 @@
 
 library(OpenMx)
 
+options('mxPrintUnitTests' = FALSE)
+
 directories <- c('demo', 'models/passing')
 
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
@@ -29,10 +31,6 @@ files <- list.files(directories, pattern = '^.+[.]R$',
 	full.names = TRUE, recursive = TRUE)
 	
 errors <- list()
-
-handleError <- function(error) {
-	
-}
 	
 errorRecover <- function(script, index) {
 	sink(type = 'output')

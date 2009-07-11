@@ -58,19 +58,30 @@ omxCheckEquals <- function(a, b) {
 	checkEqualDimensions(a, b)	
 	if (any(a != b)) {
 		stop(paste(a, "and", b, "are not equal"))
-	}	
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), "and", 
+			deparse(match.call()$b),
+			"are equal.\n"))	
+	}
 }
 
 omxCheckSetEquals <- function(a, b) {
 	checkEqualDimensions(a, b)	
 	if (!setequal(a, b)) {
 		stop(paste(a, "and", b, "do not contain the same elements"))
-	}	
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), "and", 
+			deparse(match.call()$b),
+			"contain the same elements.\n"))
+	}
 }
 
 omxCheckTrue <- function(a) {	
 	if (any(!a)) {
 		stop(paste(match.call()$a, "is not true"))
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), 
+			"is true.", '\n'))
 	}
 }
 
@@ -84,6 +95,10 @@ omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not equal to within", epsilon))
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), "and", 
+			deparse(match.call()$b),
+			"are equal to within", epsilon, ".\n"))
 	}
 }
 
@@ -97,5 +112,9 @@ omxCheckWithinPercentError <- function(a, b, epsilon=10^(-15)) {
 			"does not estimate", 
 			omxQuotes(paste(b, collapse = ' ')), 
 			"within", epsilon, "percent"))
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), "and", 
+			deparse(match.call()$b),
+			"are equal to within", epsilon, "percent.\n"))
 	}
 }

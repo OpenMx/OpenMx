@@ -20,5 +20,9 @@
    library.dynam("OpenMx") 
    sfStop()
    sfInit(parallel = FALSE)
-   options('mxDefaultType' = 'raw', 'mxOptimizerOptions' = npsolOptions, 'mxRAMDefaultSingle' = 1.00, 'mxRAMDefaultDouble' = 1.00)
+   options('mxDefaultType' = 'raw', 
+   	'mxOptimizerOptions' = npsolOptions, 
+   	'mxRAMDefaultSingle' = 1.00, 
+   	'mxRAMDefaultDouble' = 1.00,
+   	'mxPrintUnitTests' = TRUE)
 }
