@@ -196,7 +196,8 @@ checkNamespaceIdentifier <- function(identifier, model, namespace) {
 		 !(omxIsDefinitionVariable(name)) &&
 		 !(name %in% parameters) &&
 		 !(name %in% names(omxReservedNames))) {
-		stop(paste("Unknown reference: ", omxQuotes(identifier)), call. = FALSE)
+		stop(paste("Unknown reference: ", 
+			omxQuotes(omxIdentifier(space, name))), call. = FALSE)
 	}
 }
 
