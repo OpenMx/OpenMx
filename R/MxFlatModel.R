@@ -46,6 +46,19 @@ setReplaceMethod("[[", "MxFlatModel",
 	}
 )
 
+setMethod("$", "MxFlatModel",
+	function(x, name) {
+		return(flatExtractMethod(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxFlatModel",
+	function(x, name, value) {
+		return(flatReplaceMethod(x, name, value))
+	}
+)
+
+
 flatExtractMethod <- function(model, index) {
 	return(namespaceSearch(model, model@name, index))
 }
