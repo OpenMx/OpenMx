@@ -98,7 +98,7 @@ omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),
-			"are equal to within", epsilon, ".\n"))
+			"are equal to within", paste(epsilon, ".\n", sep = '')))
 	}
 }
 
