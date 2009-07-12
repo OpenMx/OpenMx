@@ -19,10 +19,10 @@ hAC <- mxAlgebra(share.h %x% share.A + share.C, name = "hAC")
 sharedModel <- mxModel("share", X, Y, Z, h, A, C, E, AC, ACE, hAC)
 
 cMZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
-	labels = (c('share.ACE', 'share.AC', 'share.ACE')), name = 'cMZ')
+	labels = c('share.ACE', 'share.AC', 'share.ACE'), name = 'cMZ')
 
 cDZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
-	labels = (c('share.ACE', 'share.hAC', 'share.ACE')), name = 'cDZ')
+	labels = c('share.ACE', 'share.hAC', 'share.ACE'), name = 'cDZ')
 
 objMZ <- mxMLObjective(covariance = "cMZ")
 objDZ <- mxMLObjective(covariance = "cDZ")
