@@ -19,11 +19,17 @@ name="cDZ")
 objMZ <- mxMLObjective("cMZ")
 objDZ <- mxMLObjective("cDZ")
 
-modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,h,A,C,E,cMZ, objMZ)
+modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,A,C,E,cMZ, objMZ)
 modelDZ <- mxModel("modelDZ", dataDZ, X,Y,Z,h,A,C,E,cDZ, objDZ)
 
 twin <- mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin")
 obj <- mxAlgebraObjective("twin")
 
 model <- mxModel("both", twin, obj, modelMZ, modelDZ)
-model <- mxRun(model)
+modelOut <- mxRun(model)
+
+expectedACE <- c(.6, .2, .2)
+observedACE <- c(modelOut$modelMZ.A@result, 
+	modelOut$modelMZ.C@result, modelOut$modelMZ.E@result)
+
+omxCheckCloseEnough(expectedACE, observedACE, epsilon = 10 ^ -4)

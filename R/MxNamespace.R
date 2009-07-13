@@ -253,8 +253,18 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 
 namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
 	matrix@name <- omxIdentifier(modelname, matrix@name)
-	matrix@labels <- apply(matrix@labels, c(1,2), function(x) {
-		omxConvertLabel(x, modelname, dataname, namespace)})
+	free <- matrix@free
+	select <- free == FALSE
+	if (any(select)) {
+		rows <- row(free)[select]
+		cols <- col(free)[select]
+		refNames <- matrix@labels[select]
+		for(j in 1:length(refNames)) {
+			row <- rows[j]
+			col <- cols[j]
+			matrix@labels[row,col] <- omxConvertLabel(refNames[j], modelname, dataname, namespace)
+		}
+	}
 	return(matrix)
 }
 

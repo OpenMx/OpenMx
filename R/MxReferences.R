@@ -32,7 +32,8 @@ generateMatrixReferences <- function(model) {
 			cols <- col(labels)[select]
 			for (j in 1:length(parameterNames)) {
 				parameterName <- parameterNames[[j]]
-				if ((parameterName %in% matnames) ||
+				free <- matrix@free[rows[j], cols[j]]
+				if (!free && (parameterName %in% matnames) ||
 					(parameterName %in% algnames)) {
 					row <- rows[j] - 1
 					col <- cols[j] - 1
