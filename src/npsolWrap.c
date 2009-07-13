@@ -610,10 +610,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	
 	/* Fill Status code. Right now, it fills with nothing, since there's no error system implemented. */
 	SET_VECTOR_ELT(status, 0, code);
-	PROTECT(code = NEW_NUMERIC(1));		// For now, fill the rest with NAs.
-	REAL(code)[0] = NA_REAL;			// It's reserved for future use.
+	PROTECT(code = NEW_NUMERIC(1));
+	REAL(code)[0] = currentState->statusCode;
 	SET_VECTOR_ELT(status, 1, code);
-	SET_VECTOR_ELT(status, 2, code);		
+	SET_VECTOR_ELT(status, 2, mkChar(currentState->statusMsg));
 
 
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
@@ -657,6 +657,8 @@ void F77_SUB(objectiveFunction)
 {
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
+	strncpy(currentState->statusMsg, "", 1);	// No Message
+	currentState->statusCode = 0;					// Status clear
 
 	/* Interruptible? */
 	R_CheckUserInterrupt();
@@ -678,6 +680,10 @@ void F77_SUB(objectiveFunction)
 		if(OMX_DEBUG) {
 			Rprintf("Objective Value is incorrect.\n", objectiveMatrix->data[0]);
 		}
+		*mode = -1;
+	}
+	
+	if(currentState->statusCode == -1) {		// At some point, we'll add others
 		*mode = -1;
 	}
 	

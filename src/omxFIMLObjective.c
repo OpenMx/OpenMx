@@ -168,14 +168,26 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) {omxPrint(smallCov, "Covariance Matrix is:");}
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 //		F77_CALL(dgetrf)(&(smallCov->rows), &(smallCov->cols), smallCov->data, &(smallCov->cols), ipiv, &info);
-		if(info != 0) error("Covariance Matrix is not positive-definite. Error %d.", info);
+		if(info != 0) {
+			char errstr[250];
+			sprintf(errstr, "Covariance Matrix is not positive-definite. Error %d.", info);
+			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
+			oo->matrix->currentState->statusCode = -1;
+			return;
+		}
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
 			logDet += log(fabs(smallCov->data[diag + (diag * smallCov->rows)]));
 		}
 		logDet *= 2.0;
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 //		F77_CALL(dgetri)(&(smallCov->rows), smallCov->data, &(smallCov->cols), ipiv, work, &lwork, &info);
-		if(info != 0) error("Cannot invert covariance matrix.");
+		if(info != 0) {
+			char errstr[250];
+			sprintf(errstr, "Cannot invert covariance matrix. Error %d.", info);
+			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
+			oo->matrix->currentState->statusCode = -1;
+			return;
+		}
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		for(int col = 0; col < smallRow->cols; col++) {
 			Q += RCX->data[col] * smallRow->data[col];

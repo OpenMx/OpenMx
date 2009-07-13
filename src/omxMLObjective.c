@@ -105,6 +105,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(info > 0) {
 		int n = oo->matrix->currentState->numFreeParams;
 			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
+		int errlen = 50+10*n;
 		char errstr[50+10*n];
 		char shortstr[30];
 		sprintf(errstr, "Non-positive-definite at free parameters:");
@@ -113,7 +114,11 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 			strncat(errstr, shortstr, 10);
 		}
 		strncat(errstr, "\n", 1);
-		error(errstr);
+		if(errlen > 250) errlen = 250;
+		strncpy(oo->matrix->currentState->statusMsg, errstr, errlen);				// Set message
+		oo->matrix->currentState->statusCode = -1;									// Raise error
+		return;																		// Leave output untouched
+	//	error(errstr);
 	//	error("Expected Covariance Matrix is exactly singular.  Maybe a variance estimate has dropped to zero?\n");
 	}
 
