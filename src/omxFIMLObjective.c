@@ -172,6 +172,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			char errstr[250];
 			sprintf(errstr, "Covariance Matrix is not positive-definite. Error %d.", info);
 			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
+			warning(errstr);
 			oo->matrix->currentState->statusCode = -1;
 			return;
 		}
