@@ -289,7 +289,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		currentState->conList[k].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
 		currentState->conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2, currentState); // 10 = binary subtract
-		omxRecomputeMatrix(currentState->conList[k].result);
+		omxRecompute(currentState->conList[k].result);
 		currentState->conList[k].size = currentState->conList[k].result->rows * currentState->conList[k].result->cols;
 		ncnln += currentState->conList[k].size;
 	}
@@ -581,7 +581,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	for(k = 0; k < currentState->numMats; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
-		omxRecomputeMatrix(currentState->matrixList[k]);
+		omxRecompute(currentState->matrixList[k]);
 		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows, currentState->matrixList[k]->cols));
 		for(l = 0; l < currentState->matrixList[k]->rows; l++)
 			for(j = 0; j < currentState->matrixList[k]->cols; j++)
@@ -594,7 +594,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	
 	for(k = 0; k < currentState->numAlgs; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-		omxRecomputeMatrix(currentState->algebraList[k]);
+		omxRecompute(currentState->algebraList[k]);
 		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, currentState->algebraList[k]->cols));
 		for(l = 0; l < currentState->algebraList[k]->rows; l++)
 			for(j = 0; j < currentState->algebraList[k]->cols; j++)
@@ -670,7 +670,7 @@ void F77_SUB(objectiveFunction)
 		handleFreeVarList(currentState, x, *n);
 	}
 	
-	omxRecomputeMatrix(objectiveMatrix);
+	omxRecompute(objectiveMatrix);
 	
 	/* Derivative Calculation Goes Here. */
 	
@@ -712,9 +712,9 @@ void F77_SUB(oldMxConFun)
 	handleFreeVarList(currentState, x, *n);
 	
 	for(j = 0; j < currentState->numConstraints; j++) {
-		omxRecomputeMatrix(currentState->conList[j].result);
+		omxRecompute(currentState->conList[j].result);
 		size = currentState->conList[j].result->rows * currentState->conList[j].result->cols;
-		if(VERBOSE) { omxPrintMatrix(currentState->conList[j].result, "Constraint evaluates as:"); }
+		if(VERBOSE) { omxPrint(currentState->conList[j].result, "Constraint evaluates as:"); }
 		for(k = 0; k < currentState->conList[j].size; k++){
 			c[l++] = currentState->conList[j].result->data[k];
 		}

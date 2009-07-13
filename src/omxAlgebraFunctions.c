@@ -41,7 +41,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
-	omxComputeMatrixHelper(result);
+	omxComputeMatrix(result);
 }
 
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -119,14 +119,14 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	
 	/* For debugging */
 	if(OMX_DEBUG) {
-		omxPrintMatrix(result, "NewMatrix");
+		omxPrint(result, "NewMatrix");
 		Rprintf("DGEMM: %c, %c, %d, %d, %d, %f, %0x %d %0x %d %f %0x %d\n", *(preMul->majority), *(postMul->majority), (preMul->rows), (postMul->cols), (preMul->cols), one, (preMul->data), (preMul->leading), (postMul->data), (postMul->leading), zero, (result->data), (result->leading)); 
 	}
 	
 	/* The call itself */
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
-	omxComputeMatrixHelper(result);
+	omxComputeMatrix(result);
 
 }
 
@@ -290,8 +290,8 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	
 	//F77_CALL(dgemm)((inMat->majority), (result->majority), &(inMat->rows), &(result->cols), &(inMat->cols), &zero, inMat->data, &(inMat->leading), result->data, &(result->leading), &one, result->data, &(result->leading));   // TODO: Compare performance on BLAS vs for.
 	if(OMX_DEBUG) {
-		omxPrintMatrix(subtrahend, "Subtracting");
-		omxPrintMatrix(inMat, "From");
+		omxPrint(subtrahend, "Subtracting");
+		omxPrint(inMat, "From");
 	}
 
 	int rows = inMat->rows;
@@ -306,7 +306,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(OMX_DEBUG) {
-		omxPrintMatrix(inMat, "And Got");
+		omxPrint(inMat, "And Got");
 	}
 }
 
@@ -399,8 +399,45 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Determinant.\n");}
 	
 	omxMatrix* inMat = matList[0];
+	omxMatrix* calcMat;					// This should be preallocated.
 	
+	int rows = inMat->rows;
+	int cols = inMat->cols;
+	double det = 1;
+	int info;
 	
+	if(rows != cols) { error("Determinant of non-square matrix cannot be found.\n"); }
+	
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+	
+	calcMat = omxInitMatrix(NULL, rows, cols, TRUE, inMat->currentState);
+	omxCopyMatrix(calcMat, inMat);
+	
+	int ipiv[rows];
+	
+	F77_CALL(dgetrf)(&(calcMat->rows), &(calcMat->cols), calcMat->data, &(calcMat->cols), ipiv, &info);
+	
+	if(info != 0) {
+		error("Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.");  // UPDATE!
+	}
+	
+	if(OMX_DEBUG) {
+		omxPrint(calcMat, "LU Decomp");
+		Rprintf("info is %d.\n", info);
+	}
+	
+	for(int i = 0; i < rows; i++) {
+		det *= omxMatrixElement(calcMat, i, i);
+		if(ipiv[i] != (i+1)) det *= -1;
+	}
+
+	if(OMX_DEBUG) {
+		Rprintf("det is %d.\n", det);
+	}
+
+	omxSetMatrixElement(result, 0, 0, det);
 }
 
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)

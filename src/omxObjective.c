@@ -132,5 +132,5 @@ void omxObjectiveGradient(omxObjective* oo, double* gradient) {
 
 void omxObjectivePrint(omxObjective* oo, char* d) {
 	Rprintf("(Objective, type %s) ", oo->objType);
-	omxPrintMatrixHelper(oo->matrix, d);
+	omxPrintMatrix(oo->matrix, d);
 }

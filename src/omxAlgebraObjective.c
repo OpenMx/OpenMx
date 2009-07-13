@@ -34,7 +34,7 @@ void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give
 
 	omxMatrix* algebra = ((omxAlgebraObjective*)(oo->argStruct))->algebra;
 
-	omxRecomputeMatrix(algebra);
+	omxRecompute(algebra);
 	
 	// This should really be checked elsewhere.
 	if(algebra->rows != 1 || algebra->cols != 1) {

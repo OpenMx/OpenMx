@@ -58,7 +58,7 @@ model <- mxModel(model, mxAlgebra(cbind(A,t(B)), name = 'test12b'))
 model <- mxModel(model, mxAlgebra(rbind(A,B), name = 'test13'))
 model <- mxModel(model, mxAlgebra(rbind(t(A),B), name = 'test13a'))
 model <- mxModel(model, mxAlgebra(rbind(A,t(B)), name = 'test13b'))
-# test14 is failing
+model <- mxModel(model, mxAlgebra(det(A), name = 'test14'))
 model <- mxModel(model, mxAlgebra(tr(A), name = 'test15'))
 model <- mxModel(model, mxAlgebra(sum(A,B), name = 'test16'))
 model <- mxModel(model, mxAlgebra(prod(A,B), name = 'test17'))
@@ -114,7 +114,7 @@ omxCheckCloseEnough(model[['test12b']]@result, cbind(A@values, t(B@values)), 0.0
 omxCheckCloseEnough(model[['test13']]@result, rbind(A@values, B@values), 0.001)
 omxCheckCloseEnough(model[['test13a']]@result, rbind(t(A@values), B@values), 0.001)
 omxCheckCloseEnough(model[['test13b']]@result, rbind(A@values, t(B@values)), 0.001)
-# test14 is failing
+omxCheckCloseEnough(model[['test14']]@result, det(A@values), 0.001)
 omxCheckCloseEnough(model[['test15']]@result, tr(A@values), 0.001)
 omxCheckCloseEnough(model[['test16']]@result, sum(A@values, B@values), 0.001)
 omxCheckCloseEnough(model[['test17']]@result, prod(A@values, B@values), 0.001)

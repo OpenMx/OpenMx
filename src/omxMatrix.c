@@ -29,7 +29,7 @@
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
-void omxPrintMatrixHelper(omxMatrix *source, char* header) {
+void omxPrintMatrix(omxMatrix *source, char* header) {
 	int j, k;
 	
 	Rprintf("%s: (%d x %d) [%s-major]\n", header, source->rows, source->cols, (source->colMajor?"col":"row"));
@@ -86,7 +86,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->lastCompute = -1;
 	om->lastRow = -1;
 	
-	omxComputeMatrixHelper(om);
+	omxComputeMatrix(om);
 	
 	return om;
 	
@@ -120,7 +120,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 	dest->aliasedPtr = NULL;
 
-	omxComputeMatrixHelper(dest);
+	omxComputeMatrix(dest);
 	
 }
 
@@ -184,7 +184,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		om->originalCols = om->cols;
 	}
 	
-	omxComputeMatrixHelper(om);
+	omxComputeMatrix(om);
 }
 
 void omxResetAliasedMatrix(omxMatrix *om) {
@@ -192,14 +192,14 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 	om->cols = om->originalCols;
 	om->colMajor = om->originalColMajor;
 	if(om->aliasedPtr != NULL) {
-//		if(OMX_DEBUG) { omxPrintMatrix(om, "I was");}
+//		if(OMX_DEBUG) { omxPrint(om, "I was");}
 		memcpy(om->data, om->aliasedPtr, om->rows*om->cols*sizeof(double));
-//		if(OMX_DEBUG) { omxPrintMatrix(om, "I am");}
+//		if(OMX_DEBUG) { omxPrint(om, "I am");}
 	}
-	omxComputeMatrixHelper(om);
+	omxComputeMatrix(om);
 }
 
-void omxComputeMatrixHelper(omxMatrix *om) {
+void omxComputeMatrix(omxMatrix *om) {
 	
 	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
@@ -208,11 +208,11 @@ void omxComputeMatrixHelper(omxMatrix *om) {
 	om->lagging = (om->colMajor?om->cols:om->rows);
 	
 	for(int i = 0; i < om->numPopulateLocations; i++) {
-		omxRecomputeMatrix(om->populateFrom[i]);				// Make sure it's up to date
+		omxRecompute(om->populateFrom[i]);				// Make sure it's up to date
 		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], om->populateFrom[i]->data[0]);	
 		// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
 	}
-	
+
 	om->isDirty = FALSE;
 	om->lastCompute = om->currentState->computeCount;
 	om->lastRow = om->currentState->currentRow;
@@ -331,11 +331,11 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState* state) {
 	om->lastRow = -1;
 	
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
-	omxComputeMatrixHelper(om);
+	omxComputeMatrix(om);
 	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
 
 	if(OMX_DEBUG) {
-		omxPrintMatrixHelper(om, "Finished importing matrix");
+		omxPrintMatrix(om, "Finished importing matrix");
 	}
 
 	return om;
@@ -432,14 +432,14 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		}
 	}
 
-	omxComputeMatrixHelper(om);
+	omxComputeMatrix(om);
 }
 
 /* Function wrappers that switch based on inclusion of algebras */
-void omxPrintMatrix(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
+void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
 	if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
 	else if(source->objective != NULL) omxObjectivePrint(source->objective, d);
-	else omxPrintMatrixHelper(source, d);
+	else omxPrintMatrix(source, d);
 }
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
@@ -455,15 +455,15 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 
 }
 
-void inline omxRecomputeMatrix(omxMatrix *matrix) {
+void inline omxRecompute(omxMatrix *matrix) {
 	if(!omxNeedsUpdate(matrix)) return;
 	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxComputeMatrixHelper(matrix);
+	else omxComputeMatrix(matrix);
 }
 
-void inline omxComputeMatrix(omxMatrix *matrix) {
+void inline omxCompute(omxMatrix *matrix) {
 	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxComputeMatrixHelper(matrix);
+	else omxComputeMatrix(matrix);
 }

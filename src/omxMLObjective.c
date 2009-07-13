@@ -87,12 +87,12 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	int ipiv[scov->rows];
 
     /* Recompute and recopy */
-	omxRecomputeMatrix(cov);							// We assume data won't need to be recomputed
+	omxRecompute(cov);							// We assume data won't need to be recomputed
 	omxCopyMatrix(localCov, cov);						// But expected cov is destroyed in inversion
 	
 	if(OMX_DEBUG) {
-		omxPrintMatrix(scov, "Observed Covariance is");
-		omxPrintMatrix(localCov, "Implied Covariance Is");
+		omxPrint(scov, "Observed Covariance is");
+		omxPrint(localCov, "Implied Covariance Is");
 	}
 	
 	/* Calculate |expected| */
@@ -101,7 +101,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 	
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
-	omxPrintMatrix(localCov, "After Decomp:");}
+	omxPrint(localCov, "After Decomp:");}
 	if(info > 0) {
 		int n = oo->matrix->currentState->numFreeParams;
 			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
@@ -132,8 +132,8 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
 	
-	if(OMX_DEBUG) {omxPrintMatrix(cov, "Expected Covariance Matrix:");}
-	if(OMX_DEBUG) {omxPrintMatrix(localCov, "Inverted Matrix:");}
+	if(OMX_DEBUG) {omxPrint(cov, "Expected Covariance Matrix:");}
+	if(OMX_DEBUG) {omxPrint(localCov, "Inverted Matrix:");}
 	
 	/* Calculate Observed * expected */
 	
@@ -161,9 +161,9 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 //		sum += localCov->data[info] * scov->data[info];
 //	}
 	
-	if(OMX_DEBUG) {omxPrintMatrix(scov, "Observed Covariance Matrix:");}
-	if(OMX_DEBUG) {omxPrintMatrix(localCov, "Inverse Matrix:");}
-	if(OMX_DEBUG) {omxPrintMatrix(localProd, "Product Matrix:");}
+	if(OMX_DEBUG) {omxPrint(scov, "Observed Covariance Matrix:");}
+	if(OMX_DEBUG) {omxPrint(localCov, "Inverse Matrix:");}
+	if(OMX_DEBUG) {omxPrint(localProd, "Product Matrix:");}
 	if(OMX_DEBUG) {Rprintf("trace is %f and log(det(observed)) is %f.\n", sum, Q);}
 	
     oo->matrix->data[0] = sum + det - scov->rows - Q;

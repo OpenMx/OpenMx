@@ -113,14 +113,14 @@ struct omxMatrix {						// A matrix
 	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
-	void omxComputeMatrixHelper(omxMatrix *matrix);
-	void omxPrintMatrixHelper(omxMatrix *source, char* d);				// Pretty-print a (small) matrix
+	void omxComputeMatrix(omxMatrix *matrix);
+	void omxPrintMatrix(omxMatrix *source, char* d);				// Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 
 /* Function wrappers that switch based on inclusion of algebras */
-	void omxPrintMatrix(omxMatrix *source, char* d); 					// Pretty-print a (small) matrix
+	void omxPrint(omxMatrix *source, char* d); 					// Pretty-print a (small) matrix
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);					
-	void omxRecomputeMatrix(omxMatrix *matrix);
-	void omxComputeMatrix(omxMatrix *matrix);
+	void omxRecompute(omxMatrix *matrix);
+	void omxCompute(omxMatrix *matrix);
 
 #endif /* _OMXMATRIX_H_ */

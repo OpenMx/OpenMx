@@ -22,10 +22,8 @@ B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
 model <- mxModel(A, B)
 
 # Insert failing tests
-model <- mxModel(model, mxAlgebra(det(A), name = 'test14'))
 
 model <- mxRun(model)
 
 # Check failing tests
-omxCheckCloseEnough(model[['test14']]@result, det(A@values), 0.001)
 

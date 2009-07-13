@@ -105,7 +105,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
 	
 	if(numDefs == 0) {
-		omxRecomputeMatrix(cov);			// Only recompute this here if there are no definition vars
+		omxRecompute(cov);			// Only recompute this here if there are no definition vars
 	}
 	
 	int toRemove[cov->cols];
@@ -146,7 +146,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(numDefs != 0) {
 			if(OMX_DEBUG) { Rprintf("Handling Definition Vars.\n"); } // :::REMOVE:::
 			handleDefinitionVarList(smallRow, defVars, numDefs);
-			omxRecomputeMatrix(cov);
+			omxRecompute(cov);
 		}
 
 		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
@@ -159,13 +159,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 		}
 		
-		if(OMX_DEBUG) { omxPrintMatrix(smallRow, "Data Row Is"); }
+		if(OMX_DEBUG) { omxPrint(smallRow, "Data Row Is"); }
 
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
 		/* The Calculation */
-		if(OMX_DEBUG) {omxPrintMatrix(smallCov, "Covariance Matrix is:");}
+		if(OMX_DEBUG) {omxPrint(smallCov, "Covariance Matrix is:");}
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 //		F77_CALL(dgetrf)(&(smallCov->rows), &(smallCov->cols), smallCov->data, &(smallCov->cols), ipiv, &info);
 		if(info != 0) error("Covariance Matrix is not positive-definite. Error %d.", info);

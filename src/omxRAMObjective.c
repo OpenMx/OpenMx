@@ -55,14 +55,14 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	int* lwork = &(((omxRAMObjective*)oo->argStruct)->lwork);
 
 	/* Since we're not using AlgebraFunctions, we need to recompute these by hand. */
-	omxRecomputeMatrix(A);
-	omxRecomputeMatrix(S);
-	omxRecomputeMatrix(F);
+	omxRecompute(A);
+	omxRecompute(S);
+	omxRecompute(F);
 	
 	if(OMX_DEBUG) {
-		omxPrintMatrix(A, "A");
-		omxPrintMatrix(S, "S");
-		omxPrintMatrix(F, "F");
+		omxPrint(A, "A");
+		omxPrint(S, "S");
+		omxPrint(F, "F");
 	}
 	
 	omxCopyMatrix(Z, A);
@@ -79,7 +79,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	if(OMX_DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
 	
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
-//	omxPrintMatrix(Z, "Z");
+//	omxPrint(Z, "Z");
 	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
 	if(k > 0) {
@@ -87,19 +87,19 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	}
 	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
-//	omxPrintMatrix(Z, "Z^-1");
+//	omxPrint(Z, "Z^-1");
 	
 	/* C = FZSZ'F' */ // There MUST be an easier way to do this.  I'm thinking matrix class->
 //	if(OMX_DEBUG) {Rprintf("Call is: DGEMM(%c, %c, %d, %d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)", Trans, Trans, (Z->cols), (F->rows), (F->cols), One, Z->data, (Z->leading), F->data, (F->leading), Zero, Y->data, (Y->leading));}
 	F77_CALL(dgemm)(&Trans, &Trans, &(Z->cols), &(F->rows), &(F->cols), &One, Z->data, &(Z->leading), F->data, &(F->leading), &Zero, Y->data, &(Y->leading)); 	// Y = ...Z'F'
 
-//	omxPrintMatrix(Y, "Y");
+//	omxPrint(Y, "Y");
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(S->rows), &(Y->cols),  &(Y->rows), &One, S->data, &(S->leading), Y->data, &(Y->leading), &Zero, X->data, &(X->leading)); // X = ..SZ'F'
-//	omxPrintMatrix(X, "X");
+//	omxPrint(X, "X");
 	F77_CALL(dgemm)(&NoTrans, &NoTrans,&(Z->rows),  &(X->cols), &(X->rows), &One, Z->data, &(Z->leading), X->data, &(X->leading), &Zero, Y->data, &(Y->leading)); 	// Y = .ZSZ'F'
-//	omxPrintMatrix(Y, "Y");
+//	omxPrint(Y, "Y");
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(F->rows), &(Y->cols), &(Y->rows), &One, F->data, &(F->leading), Y->data, &(Y->leading), &Zero, C->data, &(C->leading));	// C = FZSZ'F'
-//	omxPrintMatrix(C, "C");
+//	omxPrint(C, "C");
 	/* Val = sum(diag(tempCov %*% solve(PredictedCov))) + log(det(PredictedCov)) */
 	/* Alternately, Val = sum (tempCov .* PredictedCov^-1) + log(det(PredictedCov)) */	
 	
@@ -127,8 +127,8 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		sum += C->data[k] * cov->data[k];
 	}
 
-	if(OMX_DEBUG) {omxPrintMatrix(C, "Inverted Matrix:");}
-	if(OMX_DEBUG) {omxPrintMatrix(cov, "Covariance Matrix:");}
+	if(OMX_DEBUG) {omxPrint(C, "Inverted Matrix:");}
+	if(OMX_DEBUG) {omxPrint(cov, "Covariance Matrix:");}
 
 	oo->matrix->data[0] = (sum + det);
 
@@ -169,17 +169,17 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("A")));
 	newObj->A = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
-	omxRecomputeMatrix(newObj->A);
+	omxRecompute(newObj->A);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("S")));
 	newObj->S = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
-	omxRecomputeMatrix(newObj->S);
+	omxRecompute(newObj->S);
 	UNPROTECT(1);
 	
 	PROTECT(newMatrix = GET_SLOT(rObj, install("F")));
 	newObj->F = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
-	omxRecomputeMatrix(newObj->F);
+	omxRecompute(newObj->F);
 	UNPROTECT(1);
 	
 	/* Identity Matrix, Size Of A */
@@ -194,7 +194,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 			}
 		}
 	}
-	omxRecomputeMatrix(newObj->I);
+	omxRecompute(newObj->I);
 	
 	l = newObj->F->rows;
 	k = newObj->A->rows;
