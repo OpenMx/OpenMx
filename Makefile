@@ -5,7 +5,7 @@ RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2dvi
 TARGET = OpenMx_0.1-1.tar.gz
-DOCFILE = $(RBUILD)/OpenMx.pdf
+PDFFILE = $(RBUILD)/OpenMx.pdf
 TESTFILE = inst/tools/testModels.R
 
 # subdirectories
@@ -14,25 +14,37 @@ RDOCUMENTS = man
 RDATA = data
 
 # file types
-RDFILES = *.Rd
-RFILES = *.R
+RDFILES =$(wildcard man/*.Rd)
+RFILES = $(wildcard R/*.R)
 
-
-nothing:
-	@echo \
-	'Please type make [build | install | doc | check | clean | veryclean]'
+help:
+	@echo "Please use \`make <target>' where <target> is one of"
+	@echo "  build     create an OpenMx binary (in build) that can be exported"
+	@echo "  install   build and install OpenMx on this machine"
+	@echo "  pdf       create a pdf file (in build) of the OpenMx R documentation"
+	@echo "  html      create html files (in build/html) of the OpenMx R documentation"
+	@echo "  docs      create Sphinx documentation (in docs/build/html) in html format"
+	@echo "  test      run the OpenMx test suite"
+	@echo "  check     run the R package checking system on the OpenMx package"
+	@echo "  clean     remove all files from the build directory"
+	@echo "  veryclean remove all files from the build directory and all *~ files"
 
 internal-build: build/$(TARGET)
 
-build/$(TARGET): $(RSOURCE)/$(RFILES) $(RDOCUMENTS)/$(RDFILES)
+build/$(TARGET): $(RFILES) $(RDFILES)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
-doc:
-	rm -rf $(DOCFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(DOCFILE) .
+pdf:
+	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 
-$(RSOURCE)/$(RFILES):
+html: build
+	rm -f build/$(TARGET)
+	cd $(RBUILD); gunzip *.gz; tar -xf *.tar
+	mv build/OpenMx/html build/html
+	cp build/html/* docs/source/static/Rdoc
 
-$(RDOCUMENTS)/$(RDFILES):
+docs: html
+	cd docs; make clean; make html
 
 build: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)

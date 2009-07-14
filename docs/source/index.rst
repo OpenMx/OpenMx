@@ -16,6 +16,7 @@ Contents:
 Indices and tables
 ==================
 
+* `OpenMx R documentation <_static/Rdoc/00Index.html>`_
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
