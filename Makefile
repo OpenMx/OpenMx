@@ -22,8 +22,7 @@ help:
 	@echo "  build     create an OpenMx binary (in build) that can be exported"
 	@echo "  install   build and install OpenMx on this machine"
 	@echo "  pdf       create a pdf file (in build) of the OpenMx R documentation"
-	@echo "  html      create html files (in build/html) of the OpenMx R documentation"
-	@echo "  docs      create Sphinx documentation (in docs/build/html) in html format"
+	@echo "  html      create Sphinx documentation (in docs/build/html) in html format"
 	@echo "  test      run the OpenMx test suite"
 	@echo "  check     run the R package checking system on the OpenMx package"
 	@echo "  clean     remove all files from the build directory"
@@ -42,8 +41,6 @@ html: build
 	cd $(RBUILD); gunzip *.gz; tar -xf *.tar
 	mv build/OpenMx/html build/html
 	cp build/html/* docs/source/static/Rdoc
-
-docs: html
 	cd docs; make clean; make html
 
 build: clean internal-build
