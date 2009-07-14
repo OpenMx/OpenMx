@@ -152,7 +152,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
 
 		if(means != NULL) {
-			for(int j = 0; j < dataRows->cols; j++) {
+			for(int j = 0; j < cov->cols; j++) {
 				if(!toRemove[j]) {
 					omxSetMatrixElement(smallRow, 0, numCols++, omxMatrixElement(dataRows, row, j) - omxMatrixElement(means, 0, j));
 				}
