@@ -98,6 +98,9 @@ substituteOperators <- function(algebra) {
 	if ((length(algebra) == 1) && (is.list(algebra))) {
 		algebra <- list(0, algebra[[1]])
 	} else if ((length(algebra) > 1) && (!is.numeric(algebra[[1]]))) {
+		if (as.character(algebra[[1]]) == '(') {
+			return(substituteOperators(as.list(algebra[[2]])))
+		}
 		names <- omxSymbolTable["R.name"] == as.character(algebra[[1]])
         variableSymbols <- omxSymbolTable["Number.of.arguments"] == -1
 		result <- omxSymbolTable[names & variableSymbols, "Num"]

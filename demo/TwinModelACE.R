@@ -36,6 +36,6 @@ sharedModel <- mxModel(sharedModel, twin, obj, modelMZ, modelDZ)
 sharedModelOut <- mxRun(sharedModel)
 
 expectedACE <- c(.6, .2, .2)
-observedACE <- c(sharedModelOut$A@result, sharedModelOut$C@result, sharedModelOut$E@result)
+observedACE <- mxEvaluate(c(A, C, E), sharedModelOut)
 
 omxCheckCloseEnough(expectedACE, observedACE, epsilon = 10 ^ -4)
