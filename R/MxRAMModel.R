@@ -327,11 +327,12 @@ createMatrixM <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, NULL)
-	values <- matrix(0, len, 1, dimnames = names)
-	labels <- matrix(as.character(NA), len, 1, dimnames = names)
+	values <- matrix(0, len, 1)
+	labels <- matrix(as.character(NA), len, 1)
 	free <- matrix(c(rep.int(TRUE, length(model@manifestVars)),
-		rep.int(FALSE, length(model@latentVars))), len, 1, dimnames = names)
+		rep.int(FALSE, length(model@latentVars))), len, 1)
 	retval <- mxMatrix("Full", values, free, labels, name = "M")
+	dimnames(retval) <- names
 	return(retval)
 }
 
@@ -339,10 +340,11 @@ createMatrixA <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
-	values <- matrix(0, len, len, dimnames = names)
-	free <- matrix(FALSE, len, len, dimnames = names)
-	labels <- matrix(as.character(NA), len, len, dimnames = names)
+	values <- matrix(0, len, len)
+	free <- matrix(FALSE, len, len)
+	labels <- matrix(as.character(NA), len, len)
 	retval <- mxMatrix("Full", values, free, labels, name = "A")
+	dimnames(retval) <- names
 	return(retval)
 }
 
@@ -350,10 +352,11 @@ createMatrixS <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(variables, variables)
-	values <- matrix(0, len, len, dimnames = names)	
-	free <- matrix(FALSE, len, len, dimnames = names)
-	labels <- matrix(as.character(NA), len, len, dimnames = names)
+	values <- matrix(0, len, len)
+	free <- matrix(FALSE, len, len)
+	labels <- matrix(as.character(NA), len, len)
 	retval <- mxMatrix("Symm", values, free, labels, name = "S")
+	dimnames(retval) <- names
 	return(retval)
 }
 
@@ -362,10 +365,10 @@ createMatrixF <- function(model) {
 	len <- length(variables)
 	names <- list(model@manifestVars, variables)
 	values <- diag(nrow = length(model@manifestVars), ncol = len)
-	free <- matrix(FALSE, length(model@manifestVars), len, dimnames = names)
-	labels <- matrix(as.character(NA), length(model@manifestVars), len, dimnames = names)
-	dimnames(values) <- names
+	free <- matrix(FALSE, length(model@manifestVars), len)
+	labels <- matrix(as.character(NA), length(model@manifestVars), len)
 	retval <- mxMatrix("Full", values, free, labels, name = "F")
+	dimnames(retval) <- names
 	return(retval)
 }
 
@@ -378,23 +381,35 @@ addVariablesAS <- function(oldmatrix, model, newLatent, newManifest) {
 		model, newLatent, newManifest)
 	oldmatrix@labels <- addVariablesMatrix(oldmatrix@labels, as.character(NA), 
 		model, newLatent, newManifest)
+	oldmatrix@lbound <- addVariablesMatrix(oldmatrix@lbound, NA, 
+		model, newLatent, newManifest)
+	oldmatrix@ubound <- addVariablesMatrix(oldmatrix@ubound, NA, 
+		model, newLatent, newManifest)		
+	variables <- c(model@manifestVars, model@latentVars)
+	dimnames(oldmatrix) <- list(variables, variables)
 	return(oldmatrix)
 }
 
 addVariablesM <- function(oldmatrix, model, newLatent, newManifest) {
 	oldmatrix@values <- addVariablesMatrixM(oldmatrix@values, 0, 0, model, newLatent, newManifest)
 	oldmatrix@free   <- addVariablesMatrixM(oldmatrix@free, FALSE, TRUE, model, newLatent, newManifest)
-	oldmatrix@labels <- addVariablesMatrixM(oldmatrix@labels, NA, NA, model, newLatent, newManifest) 
+	oldmatrix@labels <- addVariablesMatrixM(oldmatrix@labels, as.character(NA), as.character(NA),
+		model, newLatent, newManifest) 
+	oldmatrix@lbound <- addVariablesMatrixM(oldmatrix@lbound, NA, NA, model, newLatent, newManifest)
+	oldmatrix@ubound <- addVariablesMatrixM(oldmatrix@ubound, NA, NA, model, newLatent, newManifest)
+	dimnames(oldmatrix) <- list(c(model@manifestVars, model@latentVars), NULL)
 	return(oldmatrix)
 }
 
 removeVariablesAS <- function(oldmatrix, variables) {
 	if (length(variables) > 0) {
 		for (i in 1:length(variables)) {
-			index <- match(variables[[i]], dimnames(oldmatrix@values)[[1]])
+			index <- match(variables[[i]], dimnames(oldmatrix)[[1]])
 			oldmatrix@values <- oldmatrix@values[-index, -index]
 			oldmatrix@free <- oldmatrix@free[-index, -index]
 			oldmatrix@labels <- oldmatrix@labels[-index, -index]
+			oldmatrix@lbound <- oldmatrix@lbound[-index, -index]
+			oldmatrix@ubound <- oldmatrix@ubound[-index, -index]
 		}
 	}
 	return(oldmatrix)
@@ -428,8 +443,6 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
 					latentXlatent, matrix(value, currentLatent, newLatent)) 
 	newbottom <- rbind(newbottom, matrix(value, newLatent, newSize))
 	newmatrix <- rbind(newtop, newbottom)
-	variables <- c(model@manifestVars, model@latentVars)
-	dimnames(newmatrix) <- list(variables, variables)
 	return(newmatrix)
 }
 
@@ -443,7 +456,6 @@ addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, mod
 		oldmatrix[(currentManifest + 1) : (currentLatent + currentManifest), 1],
 		rep.int(newLatentValue, newLatent))
 	newmatrix <- matrix(values, length(model@manifestVars) + length(model@latentVars), 1)
-	dimnames(newmatrix) <- list(c(model@manifestVars, model@latentVars), NULL)
 	return(newmatrix)
 }
 

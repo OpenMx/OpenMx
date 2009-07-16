@@ -125,7 +125,20 @@ setReplaceMethod("[", "MxMatrix",
 	}
 )
 
+setMethod("dimnames", "MxMatrix",
+	function(x) { return(dimnames(x@values)) }
+)
 
+setReplaceMethod("dimnames", "MxMatrix",
+	function(x, value) {
+		dimnames(x@values) <- value
+		dimnames(x@free) <- value
+		dimnames(x@labels) <- value
+		dimnames(x@lbound) <- value
+		dimnames(x@ubound) <- value
+		return(x)
+	}
+)
 
 matrixTypes <- c("Diag", "Full", "Iden", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Symm")
@@ -207,21 +220,21 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 
 convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.matrix(values)) {
-		values <- matrix(as.numeric(values), nrow, ncol, dimnames = dimnames(values))
+		values <- matrix(as.numeric(values), nrow, ncol)
 	} else if (is.vector(values)) {
 		values <- as.numeric(values)
 	} else {
 		stop("\'values\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(free)) {
-		free <- matrix(as.logical(free), nrow, ncol, dimnames = dimnames(free))
+		free <- matrix(as.logical(free), nrow, ncol)
 	} else if (is.vector(free)) {
 		free <- as.logical(free)
 	} else {
 		stop("\'free\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(labels)) {
-		labels <- matrix(as.character(labels), nrow, ncol, dimnames = dimnames(labels))
+		labels <- matrix(as.character(labels), nrow, ncol)
 	} else if (single.na(labels)) {
 		labels <- as.character(NA)
 	} else if (is.vector(labels)) {
@@ -230,14 +243,14 @@ convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 		stop("\'labels\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(lbound)) {
-		lbound <- matrix(as.numeric(lbound), nrow, ncol, dimnames = dimnames(lbound))
+		lbound <- matrix(as.numeric(lbound), nrow, ncol)
 	} else if (is.vector(lbound)) {
 		lbound <- as.numeric(lbound)
 	} else {
 		stop("\'lbound\' must be either a vector or a matrix", call. = FALSE)
 	}
 	if (is.matrix(ubound)) {
-		ubound <- matrix(as.numeric(ubound), nrow, ncol, dimnames = dimnames(ubound))
+		ubound <- matrix(as.numeric(ubound), nrow, ncol)
 	} else if (is.vector(ubound)) {
 		ubound <- as.numeric(ubound)
 	} else {
