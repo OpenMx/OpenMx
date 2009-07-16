@@ -41,7 +41,7 @@ displayModel <- function(model, expand = FALSE) {
 	} else {
 		cat("data matrix :", nrow(data@matrix), 
 			"x", ncol(data@matrix), "\n")
-		if(is.na(data@means)) {
+		if(length(data@means) == 1 && is.na(data@means)) {
 			cat("data means : NA\n")
 		} else {
 			cat("data means : 1 x", length(data@means), "\n")

@@ -40,7 +40,7 @@ setMethod("initialize", "MxNonNullData",
 omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 mxData <- function(matrix, type, means = NA, numObs = NA) {
-	if (is.na(means)) means <- NA_real_
+	if (length(means) == 1 && is.na(means)) means <- NA_real_
 	if (missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
 		stop("Matrix argument is neither a data frame nor a matrix")
 	}
