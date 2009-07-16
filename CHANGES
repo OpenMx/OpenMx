@@ -1,0 +1,2 @@
+July 15, 2009:
+	renamed 'vector' argument of mxData() to 'means'
