@@ -6,6 +6,8 @@ July 16, 2009:
 	eliminated 'ciLower' argument of mxPath()
 	eliminated 'ciUpper' argument of mxPath()
 	eliminated 'description' argument of mxPath()
+	implemented dimnames(x) for MxMatrix objects
+	implemented dimnames(x) <- value for MxMatrix objects
 
 July 15, 2009:
 	renamed 'vector' argument of mxData() to 'means'
