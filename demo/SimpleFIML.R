@@ -39,6 +39,8 @@ x <- (mvrnorm(n=10000, rep(0, 3), expectedcov))
 
 x[x>1]<-NA 
 x[4,1]<-NA 
+
+dimnames(x) <- list(NULL, c('a','b','c'))
 x
 
 ## Now apply the missdmnorm function to the data frame with missing values in it...
@@ -50,8 +52,10 @@ x
 rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE), gcFirst=TRUE)
 
 model <- mxModel()
-model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance"))
-model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3))
+model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance",
+	dimnames = list(c('a','b','c'), c('a','b','c'))))
+model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3,
+	dimnames = list(NULL, c('a','b','c'))))
 data <- mxData(x, 'raw')
 objective <- mxFIMLObjective(covariance = "covariance", means = "means")
 

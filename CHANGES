@@ -12,5 +12,7 @@ July 16, 2009:
 	implemented dimnames(x) for MxAlgebra objects
 	implemented dimnames(x) <- value for MxAlgebra objects
 
+(mxMatrix) added 'dimnames' argument to mxMatrix()
+
 July 15, 2009:
 (mxData) renamed 'vector' argument of mxData() to 'means'

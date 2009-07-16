@@ -97,9 +97,9 @@ generateValueHelper <- function(triple, mList) {
 	return(mList[[mat]][row,col])
 }
 
-convertObjectives <- function(flatModel, definitions) {
+convertObjectives <- function(flatModel, model) {
 	retval <- lapply(flatModel@objectives, function(x) {
-		omxObjFunConvert(x, flatModel, definitions)
+		omxObjFunConvert(x, flatModel, model)
 	})
 	return(retval)
 }

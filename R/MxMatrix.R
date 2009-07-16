@@ -146,7 +146,7 @@ squareMatrices <- c("Diag", "Iden", "Symm")
 
 mxMatrix <- function(type = "Full", values = NA, free = FALSE, 
 	labels = NA, lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
-	byrow = FALSE, name = NA) {
+	byrow = FALSE, dimnames = NA, name = NA) {
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	if (is.matrix(values)) {
 		nrow <- nrow(values)
@@ -189,8 +189,13 @@ mxMatrix <- function(type = "Full", values = NA, free = FALSE,
 	lbound <- fiveMatrices[[4]]
 	ubound <- fiveMatrices[[5]]
 	typeName <- paste(type, "Matrix", sep="")
-	return(new(typeName, name, values, free, labels, 
-			lbound, ubound, nrow, ncol, byrow))
+	newMatrix <- new(typeName, name, values, free, labels, 
+			lbound, ubound, nrow, ncol, byrow)
+	if(length(dimnames) == 1 && is.na(dimnames)) {
+	} else {
+		dimnames(newMatrix) <- dimnames
+	}
+	return(newMatrix)
 }
 
 matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {

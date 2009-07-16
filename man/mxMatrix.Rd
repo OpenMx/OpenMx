@@ -10,7 +10,7 @@
 \usage{
 mxMatrix(type = "Full", values = NA, free = FALSE, labels = NA,
 	lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
-	byrow = FALSE, name = NA)
+	byrow = FALSE, dimnames = NA, name = NA)
 }
 
 \arguments{
@@ -23,6 +23,7 @@ mxMatrix(type = "Full", values = NA, free = FALSE, labels = NA,
   \item{nrow}{the desired number of rows. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{ncol}{the desired number of columns. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{byrow}{logical. If 'FALSE' (default), the 'values', 'free', and 'labels' matrices are populated by column rather than by row. }
+  \item{dimnames}{list. The dimnames attribute for the matrix: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.}
   \item{name}{an optional character string indicating the name of the MxMatrix object created by the mxModel function.}
 }
 
