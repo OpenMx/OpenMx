@@ -18,16 +18,18 @@ setClass(Class = "MxRAMObjective",
 	representation = representation(
 		A = "MxCharOrNumber",
 		S = "MxCharOrNumber",
-		F = "MxCharOrNumber"),
+		F = "MxCharOrNumber",
+		M = "MxCharOrNumber"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
-	function(.Object, A, S, F, 
+	function(.Object, A, S, F, M,  
 		data = as.numeric(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
 		.Object@F <- F
+		.Object@M <- M
 		.Object@data <- data
 		return(.Object)
 	}
@@ -39,6 +41,7 @@ setMethod("omxObjFunNamespace", signature("MxRAMObjective"),
 		.Object@A <- omxConvertIdentifier(.Object@A, modelname, namespace)
 		.Object@S <- omxConvertIdentifier(.Object@S, modelname, namespace)
 		.Object@F <- omxConvertIdentifier(.Object@F, modelname, namespace)
+		.Object@M <- omxConvertIdentifier(.Object@M, modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, modelname, namespace)
 		return(.Object)
 })
@@ -49,6 +52,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
 		fMatrix <- .Object@F
+		mMatrix <- .Object@M
 		data <- .Object@data
 		if(is.na(data)) {
 			msg <- paste("The MxRAMObjective", omxQuotes(name),
@@ -59,11 +63,16 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
+		if (is.na(.Object@M)) {
+			.Object@M <- as.numeric(NA)
+		} else {
+			.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
+		}
 		.Object@data <- omxLocateIndex(flatModel, data, name)
 		return(.Object)
 })
 
-mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F") {
+mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F", mMatrix = NA) {
 	if (typeof(aMatrix) != "character") {
 		msg <- paste("aMatrix argument is not a string",
 			"(the name of the 'A' matrix)")
@@ -79,7 +88,13 @@ mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F") {
 			"(the name of the 'F' matrix)")
 		stop(msg)
 	}
-	return(new("MxRAMObjective", aMatrix, sMatrix, fMatrix))
+	if (is.na(mMatrix)) mMatrix <- as.character(NA)
+	if (typeof(mMatrix) != "character") {
+		msg <- paste("mMatrix argument is not a string",
+			"(the name of the 'M' matrix)")
+		stop(msg)
+	}	
+	return(new("MxRAMObjective", aMatrix, sMatrix, fMatrix, mMatrix))
 }
 
 displayRAMObjective <- function(objective) {
@@ -87,6 +102,11 @@ displayRAMObjective <- function(objective) {
 	cat("A matrix :", omxQuotes(objective@A), '\n')
 	cat("S matrix :", omxQuotes(objective@S), '\n')
 	cat("F matrix :", omxQuotes(objective@F), '\n')
+	if (is.na(objective@M)) {
+		cat("M matrix :", objective@M, '\n')
+	} else {
+		cat("M matrix :", omxQuotes(objective@M), '\n')
+	}
 	if (length(objective@result) == 0) {
 		cat("Result : empty\n")
 	} else {

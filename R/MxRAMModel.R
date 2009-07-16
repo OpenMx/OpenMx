@@ -33,6 +33,9 @@ setMethod("omxInitModel", "MxRAMModel",
 		if (is.null(model[['S']])) {
 			model[['S']] <- createMatrixS(model)
 		}
+		if (is.null(model[['objective']])) {
+			model[['objective']] <- mxRAMObjective()
+		}
 		model[['F']] <- createMatrixF(model)
 		return(model)
 	}
@@ -43,9 +46,22 @@ setMethod("omxModelBuilder", "MxRAMModel",
 		manifestVars, latentVars, remove, independent) {
 		model <- variablesArgumentRAM(model, manifestVars, latentVars, remove)
 		model <- listArgumentRAM(model, lst, remove)
-		notpaths <- getNotPathsRAM(lst)
-		callNextMethod(model, notpaths, name, character(), 
+		notPathOrData <- getNotPathsOrData(lst)
+		callNextMethod(model, notPathOrData, name, character(), 
 			character(), remove, independent)
+	}
+)
+
+
+setReplaceMethod("[[", "MxRAMModel",
+	function(x, i, j, value) {
+		return(replaceMethodRAM(x, i, value))
+	}
+)
+
+setReplaceMethod("$", "MxRAMModel",
+	function(x, name, value) {
+		return(replaceMethodRAM(x, name, value))
 	}
 )
 
@@ -116,6 +132,10 @@ addVariablesRAM <- function(model, latent, manifest) {
 		model[['S']] <- addVariablesAS(model[['S']], 
 			model, newLatent, newManifest)
 	}
+	if (!is.null(model[['M']])) {
+		model[['M']] <- addVariablesM(model[['M']], 
+			model, newLatent, newManifest)
+	}
 	model[['F']] <- createMatrixF(model)
 	return(model)
 }
@@ -134,13 +154,28 @@ addEntriesRAM <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	filter   <- sapply(entries, omxIsPath)
-	paths    <- entries[filter]
+	filter <- sapply(entries, omxIsPath)
+	paths <- entries[filter]
 	checkPaths(model, paths)
 	if (length(paths) > 0) for(i in 1:length(paths)) {
 		model <- insertPathRAM(model, paths[[i]])
 	}
+	filter <- sapply(entries, function(x) { is(x, "MxData") })
+	data <- entries[filter]
+	if (length(data) > 0) {
+		if (length(data) > 1) {
+			warning("Multiple data sources specified.  Only one will be chosen.")
+		}
+		data <- data[[1]]
+		model$data <- data
+	}
 	return(model)
+}
+
+useMeansVector <- function(data) {
+	return(!is.null(data) && ((data@type == 'raw') ||
+		((data@type == 'cov' || data@type == 'cor') &&
+		 !(length(data@means) == 1 && is.na(data@means)))))
 }
 
 removeEntriesRAM <- function(model, entries) {
@@ -156,8 +191,9 @@ removeEntriesRAM <- function(model, entries) {
 	return(model)
 }
 
-getNotPathsRAM <- function(lst) {
-	filter <- sapply(lst, omxIsPath)
+getNotPathsOrData <- function(lst) {
+	filter <- sapply(lst, function(x) {
+		omxIsPath(x) || is(x, "MxData")})
 	notpaths <- lst[!filter]
 	return(notpaths)
 }
@@ -179,6 +215,7 @@ checkPaths <- function(model, paths) {
 	}
 	missingSource <- setdiff(pathSelectFrom(paths), variables)
 	missingSink   <- setdiff(pathSelectTo(paths), variables)
+	missingSource <- setdiff(missingSource, "one")
 	if(length(missingSource) > 0) {
 		stop(paste("The following are neither manifest nor latent variables:",
 			omxQuotes(missingSource)), call. = FALSE)
@@ -189,11 +226,14 @@ checkPaths <- function(model, paths) {
 	}
 }
 
-
 insertPathRAM <- function(model, path) {
 	from <- path$from
 	to <- path$to
 	arrows <- path$arrows
+	if (from == "one") {
+		model <- insertMeansPathRAM(model, path)
+		return(model)
+	}
 	default1 <- getOption('mxRAMDefaultSingle')
 	default2 <- getOption('mxRAMDefaultDouble')
 	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
@@ -214,6 +254,18 @@ insertPathRAM <- function(model, path) {
 				"and sink", omxQuotes(to)),
 				call. = FALSE)
 	}
+	return(model)
+}
+
+insertMeansPathRAM <- function(model, path) {
+	to <- path$to
+	arrows <- path$arrows
+	if (arrows != 1) {
+		stop(paste('The means path to variable', omxQuotes(to),
+			'does not contain a single-headed arrow.'), call. = FALSE)
+	}
+	if (is.null(model[['M']])) { model[['M']] <- createMatrixM(model) }
+	model[['M']] <- matrixSetPath(model[['M']], 1, to, path, 0)
 	return(model)
 }
 
@@ -243,7 +295,7 @@ matrixSetPath <- function(mxMatrix, from, to, path, default) {
 	value <- path$start
 	free <- path$free
 	if (is.null(value)) {
-		mxMatrix@values[to, from] <- default		
+		mxMatrix@values[to, from] <- default
 	} else {
 		mxMatrix@values[to, from] <- value
 	}
@@ -261,6 +313,18 @@ matrixClearPath <- function(mxMatrix, from, to) {
 	mxMatrix@labels[to, from] <- NA
 	mxMatrix@free[to, from] <- FALSE
 	return(mxMatrix)
+}
+
+createMatrixM <- function(model) {
+	variables <- c(model@manifestVars, model@latentVars)
+	len <- length(variables)
+	names <- list(variables, NULL)
+	values <- matrix(0, len, 1, dimnames = names)
+	labels <- matrix(as.character(NA), len, 1, dimnames = names)
+	free <- matrix(c(rep.int(TRUE, length(model@manifestVars)),
+		rep.int(FALSE, length(model@latentVars))), len, 1, dimnames = names)
+	retval <- mxMatrix("Full", values, free, labels, name = "M")
+	return(retval)
 }
 
 createMatrixA <- function(model) {
@@ -309,7 +373,14 @@ addVariablesAS <- function(oldmatrix, model, newLatent, newManifest) {
 	return(oldmatrix)
 }
 
-removeVariablesAS <- function(oldmatrix, variables) {	
+addVariablesM <- function(oldmatrix, model, newLatent, newManifest) {
+	oldmatrix@values <- addVariablesMatrixM(oldmatrix@values, 0, 0, model, newLatent, newManifest)
+	oldmatrix@free   <- addVariablesMatrixM(oldmatrix@free, FALSE, TRUE, model, newLatent, newManifest)
+	oldmatrix@labels <- addVariablesMatrixM(oldmatrix@labels, NA, NA, model, newLatent, newManifest) 
+	return(oldmatrix)
+}
+
+removeVariablesAS <- function(oldmatrix, variables) {
 	if (length(variables) > 0) {
 		for (i in 1:length(variables)) {
 			index <- match(variables[[i]], dimnames(oldmatrix@values)[[1]])
@@ -354,3 +425,41 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
 	return(newmatrix)
 }
 
+addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, model, newLatent, newManifest) {
+	newManifest <- length(newManifest)
+	newLatent <- length(newLatent)
+	currentManifest <- length(model@manifestVars) - newManifest
+	currentLatent <- length(model@latentVars) - newLatent
+	values <- c(oldmatrix[1:currentManifest, 1], 
+		rep.int(newManifestValue, newManifest),
+		oldmatrix[(currentManifest + 1) : (currentLatent + currentManifest), 1],
+		rep.int(newLatentValue, newLatent))
+	newmatrix <- matrix(values, length(model@manifestVars) + length(model@latentVars), 1)
+	dimnames(newmatrix) <- list(c(model@manifestVars, model@latentVars), NULL)
+	return(newmatrix)
+}
+
+replaceMethodRAM <- function(model, index, value) {
+	pair <- omxReverseIdentifier(model, index)
+	namespace <- pair[[1]]
+	name <- pair[[2]]
+	if (namespace == model@name && name == "data") {
+		model@data <- value
+		if (!useMeansVector(value)) {
+			model[['M']] <- NULL
+			if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
+				!is.na(model@objective@M)) {
+					model@objective@M <- as.character(NA)
+			}
+		} else if (is.null(model[['M']])) {
+			model[['M']] <- createMatrixM(model)
+			if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
+				is.na(model@objective@M)) {
+					model@objective@M <- "M"
+			}
+		}
+	} else {
+		model <- omxReplaceMethod(model, index, value)
+	}
+	return(model)
+}
