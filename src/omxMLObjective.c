@@ -215,7 +215,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("matrix")));
 	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("vector")));
+	PROTECT(dataElt = GET_SLOT(nextMatrix, install("means")));
 	if(!R_FINITE(REAL(dataElt)[0])) {
 		if(OMX_DEBUG) {
 			Rprintf("ML: No Observed Means.\n");

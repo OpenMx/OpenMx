@@ -19,7 +19,7 @@ setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 setClass(Class = "MxNonNullData",
 	representation = representation(
 		matrix = "MxDataFrameOrMatrix",
-		vector = "numeric",
+		means  = "numeric",
 		type   = "character",
 		numObs = "numeric",
 		name   = "character"))
@@ -27,9 +27,9 @@ setClass(Class = "MxNonNullData",
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
 
 setMethod("initialize", "MxNonNullData",
-	function(.Object, matrix, vector, type, numObs, name = "data") {
+	function(.Object, matrix, means, type, numObs, name = "data") {
 		.Object@matrix <- matrix
-		.Object@vector <- vector
+		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
 		.Object@name <- name
@@ -39,8 +39,8 @@ setMethod("initialize", "MxNonNullData",
 
 omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
-mxData <- function(matrix, type, vector = NA, numObs = NA) {
-	if (is.na(vector)) vector <- NA_real_
+mxData <- function(matrix, type, means = NA, numObs = NA) {
+	if (is.na(means)) means <- NA_real_
 	if (missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
 		stop("Matrix argument is neither a data frame nor a matrix")
 	}
@@ -48,8 +48,8 @@ mxData <- function(matrix, type, vector = NA, numObs = NA) {
 		is.na(match(type, omxDataTypes))) {
 		stop(paste("Type must be one of:", paste(omxDataTypes, collapse=" ")))
 	}
-	if (!is.vector(vector) || !is.numeric(vector)) {
-		stop("Vector argument must be of numeric vector type")
+	if (!is.vector(means) || !is.numeric(means)) {
+		stop("Means argument must be of numeric vector type")
 	}
 	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data")
@@ -60,7 +60,7 @@ mxData <- function(matrix, type, vector = NA, numObs = NA) {
 		stop("Matrix argument must be a square matrix for 'cov' data type")
 	}
 	lapply(dimnames(matrix)[[2]], omxVerifyName)
-	return(new("MxNonNullData", matrix, vector, type, numObs))
+	return(new("MxNonNullData", matrix, means, type, numObs))
 }
 
 displayMxData <- function(object) {
@@ -69,11 +69,11 @@ displayMxData <- function(object) {
 	cat("numObs :", omxQuotes(object@numObs), '\n')
 	cat("Matrix : \n") 
 	print(object@matrix)
-	if (is.na(object@vector)) {
-		cat("Vector : NA \n")
+	if (is.na(object@means)) {
+		cat("Means : NA \n")
 	} else {
-		cat("Vector : \n") 
-		print(object@vector)		
+		cat("Means : \n") 
+		print(object@means)		
 	}
 	invisible(object)
 }
