@@ -354,7 +354,7 @@ generateDefinitionListHelper <- function(mxMatrix,
 	return(result)
 }
 
-omxDisplayMatrix <- function(mxMatrix) {
+displayMatrix <- function(mxMatrix) {
 	type <- class(mxMatrix)[[1]]
 	cat(type, omxQuotes(mxMatrix@name), '\n')
 	cat("\n")
@@ -393,5 +393,5 @@ omxDisplayMatrix <- function(mxMatrix) {
 	}
 }
 
-setMethod("print", "MxMatrix", function(x,...) { omxDisplayMatrix(x) })
-setMethod("show", "MxMatrix", function(object) { omxDisplayMatrix(object) })
+setMethod("print", "MxMatrix", function(x,...) { displayMatrix(x) })
+setMethod("show", "MxMatrix", function(object) { displayMatrix(object) })

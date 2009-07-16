@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+setClassUnion("MxListOrNull", c("list", "NULL"))
 setClassUnion("MxAlgebraFormula", c("call", "name", "logical"))
 
 setClass(Class = "MxAlgebra",
@@ -21,6 +21,7 @@ setClass(Class = "MxAlgebra",
 		formula = "MxAlgebraFormula",
 		name = "character",
 		dirty = "logical",
+		.dimnames = "MxListOrNull",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
@@ -28,7 +29,25 @@ setMethod("initialize", "MxAlgebra",
 		.Object@formula <- sys.call(which=-3)[[3]]
 		.Object@name <- name
 		.Object@dirty <- FALSE
+		.Object@.dimnames <- NULL
 		return(.Object)
+	}
+)
+
+setMethod("dimnames", "MxAlgebra",
+	function(x) { x@.dimnames }
+)
+
+setReplaceMethod("dimnames", "MxAlgebra",
+	function(x, value) {
+		if (is.null(value)) {
+		} else if (!is.list(value)) {
+			stop("dimnames of MxAlgebra object must be either NULL or list of length 2")
+		} else if (length(value) != 2) {
+			stop("dimnames of MxAlgebra object must be either NULL or list of length 2")
+		}
+		x@.dimnames <- value
+		return(x)
 	}
 )
 
@@ -131,3 +150,17 @@ substituteOperators <- function(algebra) {
 	}
 	return(algebra)
 }
+
+displayAlgebra <- function(mxAlgebra) {
+	cat("mxAlgebra", omxQuotes(mxAlgebra@name), '\n')
+	cat("formula: ", deparse(mxAlgebra@formula, width.cutoff=500L), '\n')
+	if (is.null(dimnames(mxAlgebra))) {
+			cat("dimnames: NULL\n")
+	} else {
+		cat("dimnames:\n")
+		print(dimnames(mxAlgebra))
+	}
+}
+
+setMethod("print", "MxAlgebra", function(x,...) { displayAlgebra(x) })
+setMethod("show", "MxAlgebra", function(object) { displayAlgebra(object) })
