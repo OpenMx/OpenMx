@@ -13,36 +13,45 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxEvaluate <- function(expression, model) {
+mxEvaluate <- function(expression, model, show = FALSE) {
 	formula <- match.call()$expression
-	formula <- evaluateTranslation(formula, model)
+	modelVariable <- match.call()$model
+	formula <- evaluateTranslation(formula, model, modelVariable)
+	if (show) {
+		cat(deparse(formula, width.cutoff = 500L), '\n')
+	}
 	return(eval(formula))
 }
 
-evaluateTranslation <- function(formula, model) {
+evaluateTranslation <- function(formula, model, modelVariable) {
 	len <- length(formula)
 	if (len == 0) {
-		error("mxEvaluate has reached an invalid state")
+		stop("mxEvaluate has reached an invalid state")
 	} else if (len == 1) {
-		formula <- translateSymbol(formula, model)
+		formula <- translateSymbol(formula, model, modelVariable)
 	} else {
 		formula[-1] <- lapply(formula[-1], 
-			evaluateTranslation, model)
+			evaluateTranslation, model, modelVariable)
 	}
 	return(formula)
 }
 
-translateSymbol <- function(symbol, model) {
+translateSymbol <- function(symbol, model, modelVariable) {
 	key <- deparse(symbol)
 	lookup <- model[[key]]
 	if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
-		return(lookup@values)
+		return(substitute(modelName[[x]]@values,
+			list(modelName = modelVariable, x = key)))
 	} else if (is(lookup, "MxAlgebra")) {
-		return(lookup@result)
+		return(substitute(modelName[[x]]@result,
+			list(modelName = modelVariable, x = key)))
+	} else if (is(lookup, "MxObjective")) {
+		return(substitute(modelName[[x]]@result,
+			list(modelName = modelVariable, x = key)))
 	} else {
-		error(paste("Cannot evaluate the object",
+		stop(paste("Cannot evaluate the object",
 			omxQuotes(key), "in the model",
 			omxQuotes(model@name)))
 	}

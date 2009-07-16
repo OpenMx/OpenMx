@@ -15,10 +15,9 @@ model <- mxModel(model, mxAlgebraObjective("algebraSquared"))
 
 modelOut <- mxRun(model)
 
-objResult <- modelOut[["objective"]]@result
-original <- (model[['A']]@values %*% model[['B']]@values - model[['O']]@values) ^ 2
-new <- (modelOut[['A']]@values %*% modelOut[['B']]@values - modelOut[['O']]@values) ^ 2
+objResult <- mxEvaluate(objective, modelOut)
+original <- mxEvaluate((A %*% B - O) ^ 2, model)
+new <- mxEvaluate((A %*% B - O) ^ 2, modelOut)
 c(objResult, original, new)
 
-omxCheckCloseEnough(modelOut[['B']]@values[1,1], 
-	-5, epsilon = 10 ^ -4)
+omxCheckCloseEnough(mxEvaluate(B[1,1], modelOut), -5, epsilon = 10 ^ -4)

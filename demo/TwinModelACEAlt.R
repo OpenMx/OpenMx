@@ -1,34 +1,37 @@
 # This demo is a variant of TwinModelACE that
 # takes advantage of algebraic substitution
+# Algebraic substitution only works on 1x1 algebras
 
 dataMZ <- mxData(matrix(c(1,.8,.8,1), nrow = 2, ncol=2), type="cov", numObs=100)
 dataDZ <- mxData(matrix(c(1,.5,.5,1), nrow = 2, ncol=2), type="cov", numObs=100)
 
-X <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="X")
-Y <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="Y")
-Z <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="Z")
-h <- mxMatrix("Full",.5,free=FALSE, nrow=1, ncol=1, name="h")
-A <- mxAlgebra(X * t(X), name="A")
-C <- mxAlgebra(Y * t(Y), name="C")
-E <- mxAlgebra(Z * t(Z), name="E")
-AC <- mxAlgebra(share.A + share.C, name = "AC")
-ACE <- mxAlgebra(share.A + share.C + share.E, name = "ACE")
-hAC <- mxAlgebra(share.h %x% share.A + share.C, name = "hAC")
+matrixX <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="X")
+matrixY <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="Y")
+matrixZ <- mxMatrix("Full",.6,free=TRUE, nrow=1, ncol=1, name="Z")
+matrixh <- mxMatrix("Full",.5,free=FALSE, nrow=1, ncol=1, name="h")
+algebraA <- mxAlgebra(X * t(X), name="A")
+algebraC <- mxAlgebra(Y * t(Y), name="C")
+algebraE <- mxAlgebra(Z * t(Z), name="E")
+algebraAC <- mxAlgebra(A + C, name = "AC")
+algebraACE <- mxAlgebra(A + C + E, name = "ACE")
+algebrahAC <- mxAlgebra(h %x% A + C, name = "hAC")
 
 # Add the shared matrices and algebras to the shared model
-sharedModel <- mxModel("share", X, Y, Z, h, A, C, E, AC, ACE, hAC)
+sharedModel <- mxModel("share", matrixX, matrixY, matrixZ,
+	matrixh, algebraA, algebraC, algebraE,
+	algebraAC, algebraACE, algebrahAC)
 
-cMZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
+covarianceMZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
 	labels = c('share.ACE', 'share.AC', 'share.ACE'), name = 'cMZ')
 
-cDZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
+covarianceDZ <- mxMatrix("Symm", free = FALSE, nrow = 2, ncol = 2,
 	labels = c('share.ACE', 'share.hAC', 'share.ACE'), name = 'cDZ')
 
 objMZ <- mxMLObjective(covariance = "cMZ")
 objDZ <- mxMLObjective(covariance = "cDZ")
 
-modelMZ <- mxModel("modelMZ", dataMZ, cMZ, objMZ)
-modelDZ <- mxModel("modelDZ", dataDZ, cDZ, objDZ)
+modelMZ <- mxModel("modelMZ", dataMZ, covarianceMZ, objMZ)
+modelDZ <- mxModel("modelDZ", dataDZ, covarianceDZ, objDZ)
 
 twin <- mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin")
 obj <- mxAlgebraObjective("twin")
@@ -40,6 +43,6 @@ sharedModel <- mxModel(sharedModel, twin, obj, modelMZ, modelDZ)
 sharedModelOut <- mxRun(sharedModel)
 
 expectedACE <- c(.6, .2, .2)
-observedACE <- c(sharedModelOut$A@result, sharedModelOut$C@result, sharedModelOut$E@result)
+observedACE <- mxEvaluate(c(A, C, E), sharedModelOut)
 
 omxCheckCloseEnough(expectedACE, observedACE, epsilon = 10 ^ -4)
