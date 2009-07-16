@@ -36,7 +36,7 @@ for (i in 1:5) {
                             to = myManifest[(j - 9) : j], 
                             arrows = 1,
                             free = c(FALSE, rep(TRUE, 9)), 
-                            start = c(1, rep(0.75, 9))))
+                            values = c(1, rep(0.75, 9))))
 }
 ex2Model <- mxModel(ex2Model, paths)
 
@@ -48,7 +48,7 @@ ex2Model <- mxModel(ex2Model,
                  		all = TRUE,
                         arrows = 2,
                         free = TRUE, 
-                        start = 1))
+                        values = 1))
                         
 # ----------------------------------
 
@@ -59,11 +59,11 @@ print(ex2Model)
 # Remove the free factor covariances and create a second order common factor.
 
 ex3Model <- mxModel(ex2Model, latentVars = "G6",
-			mxPath(from=myLatent, all=TRUE, free=FALSE, start=0), # Remove free covs
-			mxPath(from=myLatent, free=TRUE, start=1), # Add back in free vars
+			mxPath(from=myLatent, all=TRUE, free=FALSE, values=0), # Remove free covs
+			mxPath(from=myLatent, free=TRUE, values=1), # Add back in free vars
 			mxPath(from="G6", to=myLatent, 
-				all=TRUE, free=TRUE, start=.75, arrows=1), # Add 2nd order factor
-			mxPath(from="G6", free=FALSE, start=1, arrows=2) # Add free var
+				all=TRUE, free=TRUE, values=.75, arrows=1), # Add 2nd order factor
+			mxPath(from="G6", free=FALSE, values=1, arrows=2) # Add free var
            )
 
 # ----------------------------------

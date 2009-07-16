@@ -1,2 +1,11 @@
+July 16, 2009:
+	renamed 'start' argument of mxPath() to 'values'
+	renamed 'name' argument of mxPath() to 'labels'
+	renamed 'boundMin' argument of mxPath() to 'lbound'
+	renamed 'boundMax' argument of mxPath() to 'ubound'
+	eliminated 'ciLower' argument of mxPath()
+	eliminated 'ciUpper' argument of mxPath()
+	eliminated 'description' argument of mxPath()
+
 July 15, 2009:
 	renamed 'vector' argument of mxData() to 'means'

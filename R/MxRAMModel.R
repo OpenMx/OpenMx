@@ -291,18 +291,26 @@ removePathRAM <- function(model, path) {
 }
 
 matrixSetPath <- function(mxMatrix, from, to, path, default) {
-	name <- path$name
-	value <- path$start
+	labels <- path$labels
+	value <- path$values
 	free <- path$free
+	ubound <- path$ubound
+	lbound <- path$lbound
 	if (is.null(value)) {
 		mxMatrix@values[to, from] <- default
 	} else {
 		mxMatrix@values[to, from] <- value
 	}
-	if (is.null(name)) {
+	if (is.null(labels)) {
 		mxMatrix@labels[to, from] <- NA
 	} else {
-		mxMatrix@labels[to, from] <- name
+		mxMatrix@labels[to, from] <- labels
+	}
+	if (!is.null(ubound)) {
+		mxMatrix@ubound[to, from] <- ubound
+	}
+	if (!is.null(lbound)) {
+		mxMatrix@lbound[to, from] <- lbound
 	}
 	mxMatrix@free[to, from] <- free
 	return(mxMatrix)

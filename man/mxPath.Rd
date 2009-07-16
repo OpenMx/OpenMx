@@ -9,25 +9,21 @@
 }
 
 \usage{
-mxPath(from, to = NA, all = FALSE, free = TRUE, 
-	arrows = 1, start = NA, name = NA, description = NA, 
-	boundMax = NA, boundMin = NA,
-	ciUpper = NA, ciLower = NA)
+mxPath(from, to = NA, all = FALSE, arrows = 1,
+	values = NA, free = TRUE, labels = NA, 
+	lbound = NA, ubound = NA)
 }
 
 \arguments{
    \item{from}{character vector. these are the sources of the new paths.}
    \item{to}{character vector. these are the sinks of the new paths.}
-   \item{all}{boolean. If TRUE, then connect all sources to all sinks.}
-   \item{free}{boolean. Indicates whether paths are free or fixed.}
-   \item{arrows}{numeric. Must be either 1 for single-headed or 2 for double-headed arrows.}
-   \item{start}{numeric. The starting values of the parameters.}
-   \item{name}{character vector. The names of the paths.}
-   \item{description}{character vector. Description of the paths.}
-   \item{boundMax}{numeric. TODO what does this do?}
-   \item{boundMin}{numeric. TODO what does this do?}
-   \item{ciUpper}{numeric. TODO what does this do?}
-   \item{ciLower}{numeric. TODO what does this do?}
+   \item{all}{boolean value. If TRUE, then connect all sources to all sinks.}
+   \item{arrows}{numeric value. Must be either 1 for single-headed or 2 for double-headed arrows.}
+   \item{values}{numeric vector. The starting values of the parameters.}
+   \item{free}{boolean vector. Indicates whether paths are free or fixed.}
+   \item{labels}{character vector. The names of the paths.}
+   \item{lbound}{numeric vector. The lower bounds of free parameters.}
+   \item{ubound}{numeric vector. The upper bounds of free parameters.}   
 }
 
 \details{
@@ -39,11 +35,7 @@ The 'free' argument specifies whether the paths created by the mxPath function a
 
 The 'arrows' argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the 'to' variable on the 'from' variable, such that the arrow points to the 'to' variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the 'arrows' argument may take a vector of 1s and 2s to be applied to the set of created paths.
 
-The 'start' is a numeric value of the created paths. The 'start' gives a starting value for estimation.
-
-The 'name' argument specifies a name of the resulting \link{MxPath} object. This differs from the 'description' argument in that labels refer to the individual paths, while names refer to the \link{MxPath} object as a whole, which may contain multiple paths. 
-
-The 'boundMin' and 'boundMax' arguments specify lower and upper bounds for the created paths.
+The 'values' is a numeric vectors containing the starting values of the created paths. 'values' gives a starting value for estimation. The 'labels' argument specifies the names of the resulting \link{MxPath} object.  The 'lbound' and 'ubound' arguments specify lower and upper bounds for the created paths.
 }
 
 \value{
@@ -69,12 +61,12 @@ for (i in 1:5) {
                             to = myManifest[(j - 19) : j], 
                             arrows = 1,
                             free = c(FALSE, rep(TRUE, 19)), 
-                            start = c(1, rep(0.75, 19))))
+                            values = c(1, rep(0.75, 19))))
 }
 model <- mxModel(model, singles)
 
 doubles <- mxPath(from = myLatent, all = TRUE, arrows = 2,
-    free = TRUE, start = 1)
+    free = TRUE, values = 1)
 
 model <- mxModel(model, doubles)
 }
