@@ -265,7 +265,7 @@ insertMeansPathRAM <- function(model, path) {
 			'does not contain a single-headed arrow.'), call. = FALSE)
 	}
 	if (is.null(model[['M']])) { model[['M']] <- createMatrixM(model) }
-	model[['M']] <- matrixSetPath(model[['M']], 1, to, path, 0)
+	model[['M']] <- matrixSetPath(model[['M']], to, 1, path, 0)
 	return(model)
 }
 
@@ -326,11 +326,11 @@ matrixClearPath <- function(mxMatrix, from, to) {
 createMatrixM <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
-	names <- list(variables, NULL)
-	values <- matrix(0, len, 1)
-	labels <- matrix(as.character(NA), len, 1)
+	names <- list(NULL, variables)
+	values <- matrix(0, 1, len)
+	labels <- matrix(as.character(NA), 1, len)
 	free <- matrix(c(rep.int(TRUE, length(model@manifestVars)),
-		rep.int(FALSE, length(model@latentVars))), len, 1)
+		rep.int(FALSE, length(model@latentVars))), 1, len)
 	retval <- mxMatrix("Full", values, free, labels, name = "M")
 	dimnames(retval) <- names
 	return(retval)
@@ -397,7 +397,7 @@ addVariablesM <- function(oldmatrix, model, newLatent, newManifest) {
 		model, newLatent, newManifest) 
 	oldmatrix@lbound <- addVariablesMatrixM(oldmatrix@lbound, NA, NA, model, newLatent, newManifest)
 	oldmatrix@ubound <- addVariablesMatrixM(oldmatrix@ubound, NA, NA, model, newLatent, newManifest)
-	dimnames(oldmatrix) <- list(c(model@manifestVars, model@latentVars), NULL)
+	dimnames(oldmatrix) <- list(NULL, c(model@manifestVars, model@latentVars))
 	return(oldmatrix)
 }
 
@@ -455,7 +455,7 @@ addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, mod
 		rep.int(newManifestValue, newManifest),
 		oldmatrix[(currentManifest + 1) : (currentLatent + currentManifest), 1],
 		rep.int(newLatentValue, newLatent))
-	newmatrix <- matrix(values, length(model@manifestVars) + length(model@latentVars), 1)
+	newmatrix <- matrix(values, 1, length(model@manifestVars) + length(model@latentVars))
 	return(newmatrix)
 }
 

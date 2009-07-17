@@ -28,7 +28,7 @@ The 'sMatrix' argument refers to the S or symmetric matrix in the RAM approach, 
 
 The 'fMatrix' argument refers to the F or filter matrix in the RAM approach. If no latent variables are included in the model (i.e., the A and S matrices are of both of the same dimension as the data matrix), then the 'fMatrix' should refer to an identity matrix. If latent variables are included (i.e., the A and S matrices are not of the same dimension as the data matrix), then the 'fMatrix' argument should consist of a horizontal adhesion of an identity matrix and a matrix of zeros. 
 
-The 'mMatrix' argument refers to the M or means matrix in the RAM approach.  It is an n x 1 matrix, where n is the number of manifest variables + the number of latent variables. The M matrix must be specified if either the mxData type is \dQuote{cov} or \dQuote{cor} and a means vector is provided, or if the mxData type is \dQuote{raw}.  Otherwise the M matrix is ignored.
+The 'mMatrix' argument refers to the M or means matrix in the RAM approach.  It is a 1 x n matrix, where n is the number of manifest variables + the number of latent variables. The M matrix must be specified if either the mxData type is \dQuote{cov} or \dQuote{cor} and a means vector is provided, or if the mxData type is \dQuote{raw}.  Otherwise the M matrix is ignored.
 
 The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxRAMObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
 
