@@ -15,18 +15,10 @@
 
 mxOption <- function(model, key, value, reset = FALSE) {
 	if (reset) {
-		model@options <- list()
-		model@unsetoptions <- list()
+		model@options <- getOption('mxOptimizerOptions')
 		return(model)
 	}
 	model@options[[key]] <- value
-	if (key %in% model@unsetoptions && !is.null(value)) {
-		model@unsetoptions <- setdiff(model@unsetoptions, key)
-	}
-	if (is.null(value) && 
-		key %in% names(getOption('mxOptimizerOptions'))) {
-		model@unsetoptions <- union(model@unsetoptions, key)
-	}
 	return(model)
 }
 
@@ -48,21 +40,11 @@ npsolOptions <- list(
 )
 
 # Convert the keys and values into strings
-processOptionsList <- function(input) {
+generateOptionsList <- function(input) {
 	keys <- sapply(names(input), as.character)
 	values <- sapply(input, as.character)
 	options <- list()
 	options[keys] <- values
-	return(options)
-}
-
-# Begin with the default NPSOL options,
-# and then add the model-specific options.
-generateOptionsList <- function(input, unset) {
-	modified <- processOptionsList(input)
-	options <- getOption('mxOptimizerOptions')
-	options[as.character(unset)] <- NULL
-	options[names(modified)] <- modified
 	return(options)
 }
 

@@ -19,6 +19,43 @@ omxQuotes <- function(name) {
 	return(paste(listTerms, collapse=', '))
 }
 
+printOptions <- function(options) {
+	retval <- ""
+	select <- list()
+	if (length(options) > 0) {
+		for(i in 1:length(options)) {
+			key <- names(options)[[i]] 
+			if(!(key %in% names(getOption('mxOptimizerOptions')))) {
+				select[[key]] <- options[[key]]
+			} else if (options[[key]] != getOption('mxOptimizerOptions')[[key]]) {
+				select[[key]] <- options[[key]]
+			}
+		}
+	}	
+	
+	missingKeys <- setdiff(names(getOption('mxOptimizerOptions')), names(options))
+	if (length(missingKeys) > 0) {
+		for(i in 1:length(missingKeys)) {
+			key <- missingKeys[[i]]
+			select[[key]] <- "NULL"
+		}
+	}
+	
+	if (length(select) == 0) {
+		return(retval)
+	}
+	for(i in 1:length(select)) {
+		key <- names(select)[[i]]
+		value <- select[[i]]
+		retval <- paste(retval, omxQuotes(key), '=',
+				omxQuotes(value))
+		if (i < length(select)) {
+			retval <- paste(retval, ',', sep='')
+		}
+	}
+	return(retval)
+}
+
 displayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
 	cat("type :", omxTypeName(model), '\n')
@@ -57,14 +94,7 @@ displayModel <- function(model, expand = FALSE) {
 	}
 	cat("objective :", objectiveType, '\n')
 	cat("independent :", model@independent, '\n')
-	cat("options :", omxQuotes(names(model@options)))
-	cat(' ')
-	if(length(model@unsetoptions) > 0) {
-		for(i in 1:length(model@unsetoptions)) {
-			cat(omxQuotes(paste(model@unsetoptions[[i]],"(NULL)",sep='')), ' ')
-		}
-	}
-	cat('\n')
+	cat("options :", printOptions(model@options), '\n')
 	cat("output :", length(model@output) > 0, '\n')
 	if(expand) {
 		if(length(model@matrices) > 0) {
@@ -98,10 +128,6 @@ displayModel <- function(model, expand = FALSE) {
 		if(length(model@options) > 0) {
 			cat("\n--------OPTIONS--------\n")
 			print(model@options)
-		}
-		if(length(model@unsetoptions) > 0) {
-			cat("\n--------UNSET OPTIONS--------\n")
-			print(model@unsetoptions)
 		}
 	}
 	invisible(model)

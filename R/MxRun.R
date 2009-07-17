@@ -37,7 +37,7 @@ mxRun <- function(model) {
 	constraints <- convertConstraints(flatModel)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
-	options <- generateOptionsList(model@options, model@unsetoptions)
+	options <- generateOptionsList(model@options)
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, options, state, PACKAGE = "OpenMx")

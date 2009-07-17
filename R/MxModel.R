@@ -27,7 +27,6 @@ setClass(Class = "MxModel",
 		objective = "MxObjective",
 		independent = "logical",
 		options = "list",
-		unsetoptions = "list",
 		output = "list"
 ))
 
@@ -38,7 +37,7 @@ setMethod("initialize", "MxModel",
 		latentVars = character(), manifestVars = character(), 
 		matrices = list(), algebras = list(), 
 		constraints = list(), data = NULL, submodels = list(), 
-		options = list(), objective = NULL, independent = FALSE) {
+		objective = NULL, independent = FALSE) {
 		.Object@name <- name
 		.Object@latentVars <- latentVars
 		.Object@manifestVars <- manifestVars
@@ -49,8 +48,7 @@ setMethod("initialize", "MxModel",
 		.Object@submodels <- submodels
 		.Object@objective <- objective
 		.Object@independent <- independent
-		.Object@options <- options 
-		.Object@unsetoptions <- list()
+		.Object@options <- list()
 		.Object@output <- list()
 		.Object <- omxInitModel(.Object)
 		return(.Object)
@@ -131,6 +129,7 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	lst <- mappendHelper(lst, list())
 	model <- omxModelBuilder(model, lst, name, manifestVars,
 		latentVars, remove, independent)
+	model@options <- getOption('mxOptimizerOptions')
 	return(model)
 }
 
