@@ -1,18 +1,19 @@
-July 16, 2009:
-(mxPath) renamed 'start' argument of mxPath() to 'values'
-	renamed 'name' argument of mxPath() to 'labels'
-	renamed 'boundMin' argument of mxPath() to 'lbound'
-	renamed 'boundMax' argument of mxPath() to 'ubound'
-	eliminated 'ciLower' argument of mxPath()
-	eliminated 'ciUpper' argument of mxPath()
-	eliminated 'description' argument of mxPath()
+Release 0.1 (August 3, 2009)
+============================
 
-(dimnames) implemented dimnames(x) for MxMatrix objects
-	implemented dimnames(x) <- value for MxMatrix objects
-	implemented dimnames(x) for MxAlgebra objects
-	implemented dimnames(x) <- value for MxAlgebra objects
+* (mxPath) renamed 'start' argument of mxPath() to 'values'
+    - renamed 'name' argument of mxPath() to 'labels'
+    - renamed 'boundMin' argument of mxPath() to 'lbound'
+    - renamed 'boundMax' argument of mxPath() to 'ubound'
+    - eliminated 'ciLower' argument of mxPath()
+    - eliminated 'ciUpper' argument of mxPath()
+    - eliminated 'description' argument of mxPath()
 
-(mxMatrix) added 'dimnames' argument to mxMatrix()
+* (dimnames) implemented dimnames(x) for MxMatrix objects
+    - implemented dimnames(x) <- value for MxMatrix objects
+    - implemented dimnames(x) for MxAlgebra objects
+    - implemented dimnames(x) <- value for MxAlgebra objects
 
-July 15, 2009:
-(mxData) renamed 'vector' argument of mxData() to 'means'
+* (mxMatrix) added 'dimnames' argument to mxMatrix()
+
+* (mxData) renamed 'vector' argument of mxData() to 'means'
