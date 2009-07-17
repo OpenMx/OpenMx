@@ -5,9 +5,9 @@ numObs=100)
 dataDZ <- mxData(matrix(c(1,.5,.5,1), nrow = 2, ncol=2), type="cov",
 numObs=100)
 
-X <- mxMatrix("Full",.6,free=TRUE, labels='X', nrow=1, ncol=1, name="X")
-Y <- mxMatrix("Full",.6,free=TRUE, labels='Y', nrow=1, ncol=1, name="Y")
-Z <- mxMatrix("Full",.6,free=TRUE, labels='Z', nrow=1, ncol=1, name="Z")
+X <- mxMatrix("Full",.6,free=TRUE, labels='param1', nrow=1, ncol=1, name="X")
+Y <- mxMatrix("Full",.6,free=TRUE, labels='param2', nrow=1, ncol=1, name="Y")
+Z <- mxMatrix("Full",.6,free=TRUE, labels='param3', nrow=1, ncol=1, name="Z")
 h <- mxMatrix("Full",.5,free=FALSE, nrow=1, ncol=1, name="h")
 A <- mxAlgebra(X * t(X), name="A")
 C <- mxAlgebra(Y * t(Y), name="C")
