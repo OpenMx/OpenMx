@@ -45,6 +45,43 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 		return(.Object)
 })
 
+verifyDimensions <- function(covName, meansName, flatModel) {
+	if (is.na(meansName)) {
+		means <- NA
+	} else {
+		means <- flatModel[[meansName]]
+	}
+	covariance <- flatModel[[covName]]
+	if (ncol(covariance) != ncol(covariance)) {
+		msg <- paste("The expected covariance matrix associated",
+			"with the MxFIMLObjective in model", 
+			omxQuotes(flatModel@name),
+			"is not a square matrix.")
+			stop(msg, call.=FALSE)			
+	}
+	if(any(covariance@values != t(covariance@values))) {
+		msg <- paste("The expected covariance matrix associated",
+			"with the MxFIMLObjective in model", 
+			omxQuotes(flatModel@name), "is not symmetric.")
+			stop(msg, call.=FALSE)		
+	}
+	if (is.na(means)) return()
+	if (nrow(means) != 1) {
+		msg <- paste("The expected means matrix associated",
+			"with the MxFIMLObjective in model", 
+			omxQuotes(flatModel@name), "is not a 1 x N matrix.")
+			stop(msg, call.=FALSE)		
+	}
+	if (ncol(means) != ncol(covariance)) {
+		msg <- paste("The expected means matrix associated",
+			"with the MxFIMLObjective in model", 
+			omxQuotes(flatModel@name),
+			"does not have the same length as",
+			"the expected covariance matrix.")
+			stop(msg, call.=FALSE)			
+	}
+}
+
 verifyExpectedNames <- function(covName, meansName, flatModel) {
 	if (is.na(meansName)) {
 		means <- NA
@@ -70,7 +107,7 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 	}
 	if (is.na(means)) return()
 	means <- dimnames(means)
-	if (is.null(covariance)) {
+	if (is.null(means)) {
 			msg <- paste("The expected means matrix associated",
 				"with the MxFIMLObjective in model", 
 				omxQuotes(flatModel@name), "does not contain dimnames.")
@@ -116,6 +153,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		}
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
+		verifyDimensions(covName, meansName, flatModel)
 		verifyExpectedNames(covName, meansName, flatModel)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		return(.Object)
