@@ -1,6 +1,8 @@
 Release 0.1 (August 3, 2009)
 ============================
 
+* (mxOptions) added 'reset' argument to mxOptions()
+
 * (mxPath) renamed 'start' argument of mxPath() to 'values'
     - renamed 'name' argument of mxPath() to 'labels'
     - renamed 'boundMin' argument of mxPath() to 'lbound'
