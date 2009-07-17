@@ -43,18 +43,19 @@ mxRun <- function(model) {
 		algebras, data, options, state, PACKAGE = "OpenMx")
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
-	model@output <- computeOptimizationStatistics(flatModel, parameters, output)
+	model@output <- processOptimizerOutput(flatModel, names(matrices),
+		names(algebras), names(parameters), output)
 	return(model)
 }
 
-computeOptimizationStatistics <- function(flatModel, parameters, output) {
-	names(output$estimate) <- names(parameters)
+processOptimizerOutput <- function(flatModel, matrixNames, 
+		algebraNames, parameterNames, output) {
+	names(output$estimate) <- parameterNames
+	names(output$gradient) <- parameterNames
+	dimnames(output$hessian) <- list(parameterNames, parameterNames)
+	names(output$matrices) <- matrixNames
+	names(output$algebras) <- algebraNames
 	npsolWarnings(flatModel@name, output$status[[1]])
-	objective <- flatModel@objective
-	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
-		output[['AIC']] <- output$minimum + 2 * length(parameters)
-#		output[['BIC']] <- output$minimum + length(parameters) * log()
-	}
 	return(output)
 }
 
