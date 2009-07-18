@@ -297,20 +297,20 @@ matrixSetPath <- function(mxMatrix, from, to, path, default) {
 	ubound <- path$ubound
 	lbound <- path$lbound
 	if (is.null(value)) {
-		mxMatrix@values[to, from] <- default
+		mxMatrix@values[to, from] <- as.numeric(default)
 	} else {
-		mxMatrix@values[to, from] <- value
+		mxMatrix@values[to, from] <- as.numeric(value)
 	}
 	if (is.null(labels)) {
-		mxMatrix@labels[to, from] <- NA
+		mxMatrix@labels[to, from] <- as.character(NA)
 	} else {
-		mxMatrix@labels[to, from] <- labels
+		mxMatrix@labels[to, from] <- as.character(labels)
 	}
 	if (!is.null(ubound)) {
-		mxMatrix@ubound[to, from] <- ubound
+		mxMatrix@ubound[to, from] <- as.numeric(ubound)
 	}
 	if (!is.null(lbound)) {
-		mxMatrix@lbound[to, from] <- lbound
+		mxMatrix@lbound[to, from] <- as.numeric(lbound)
 	}
 	mxMatrix@free[to, from] <- free
 	return(mxMatrix)
@@ -318,7 +318,7 @@ matrixSetPath <- function(mxMatrix, from, to, path, default) {
 
 matrixClearPath <- function(mxMatrix, from, to) {
 	mxMatrix@values[to, from] <- 0
-	mxMatrix@labels[to, from] <- NA
+	mxMatrix@labels[to, from] <- as.character(NA)
 	mxMatrix@free[to, from] <- FALSE
 	return(mxMatrix)
 }
@@ -381,9 +381,9 @@ addVariablesAS <- function(oldmatrix, model, newLatent, newManifest) {
 		model, newLatent, newManifest)
 	oldmatrix@labels <- addVariablesMatrix(oldmatrix@labels, as.character(NA), 
 		model, newLatent, newManifest)
-	oldmatrix@lbound <- addVariablesMatrix(oldmatrix@lbound, NA, 
+	oldmatrix@lbound <- addVariablesMatrix(oldmatrix@lbound, as.numeric(NA), 
 		model, newLatent, newManifest)
-	oldmatrix@ubound <- addVariablesMatrix(oldmatrix@ubound, NA, 
+	oldmatrix@ubound <- addVariablesMatrix(oldmatrix@ubound, as.numeric(NA), 
 		model, newLatent, newManifest)		
 	variables <- c(model@manifestVars, model@latentVars)
 	dimnames(oldmatrix) <- list(variables, variables)
@@ -395,8 +395,10 @@ addVariablesM <- function(oldmatrix, model, newLatent, newManifest) {
 	oldmatrix@free   <- addVariablesMatrixM(oldmatrix@free, FALSE, TRUE, model, newLatent, newManifest)
 	oldmatrix@labels <- addVariablesMatrixM(oldmatrix@labels, as.character(NA), as.character(NA),
 		model, newLatent, newManifest) 
-	oldmatrix@lbound <- addVariablesMatrixM(oldmatrix@lbound, NA, NA, model, newLatent, newManifest)
-	oldmatrix@ubound <- addVariablesMatrixM(oldmatrix@ubound, NA, NA, model, newLatent, newManifest)
+	oldmatrix@lbound <- addVariablesMatrixM(oldmatrix@lbound, as.numeric(NA), as.numeric(NA), 
+		model, newLatent, newManifest)
+	oldmatrix@ubound <- addVariablesMatrixM(oldmatrix@ubound, as.numeric(NA), as.numeric(NA), 
+		model, newLatent, newManifest)
 	dimnames(oldmatrix) <- list(NULL, c(model@manifestVars, model@latentVars))
 	return(oldmatrix)
 }

@@ -123,8 +123,7 @@ checkFreeVariablesHelper <- function(matrix, startVals, freeVars,
 			value <- values[[i]]
 			lbound <- lbounds[[i]]
 			ubound <- ubounds[[i]]
-			if (omxIsDefinitionVariable(label)) {
-			} else if (isFree) {
+			if (omxIsDefinitionVariable(label)) {			} else if (isFree) {
 				if (label %in% fixedVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
@@ -133,11 +132,13 @@ checkFreeVariablesHelper <- function(matrix, startVals, freeVars,
 					stop(paste("The free parameter", omxQuotes(label),
 						"has been assigned multiple starting values!"),
 						 call. = FALSE)
-				} else if (label %in% freeVars && !identical(lbound, bounds[[label]][[1]])) {
+				} else if (label %in% freeVars && !identicalNA(lbound, bounds[[label]][[1]])) {
 					stop(paste("The free parameter", omxQuotes(label),
 						"has been assigned multiple lower bounds!"),
 						 call. = FALSE)
-				} else if (label %in% freeVars && !identical(ubound, bounds[[label]][[2]])) {
+				} else if (label %in% freeVars && !identicalNA(ubound, bounds[[label]][[2]])) {
+					print(typeof(ubound))
+					print(typeof(bounds[[label]][[2]]))
 					stop(paste("The free parameter", omxQuotes(label),
 						"has been assigned multiple upper bounds!"),
 						 call. = FALSE)
@@ -163,6 +164,10 @@ checkFreeVariablesHelper <- function(matrix, startVals, freeVars,
 		}
 	}
 	return(list(startVals, freeVars, fixedVars, bounds))
+}
+
+identicalNA <- function(x, y) {
+	return((is.na(x) && is.na(y)) || (identical(x,y)))
 }
 
 setMethod("print", "MxFlatModel", function(x,...) {
