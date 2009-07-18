@@ -72,6 +72,52 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		return(.Object)
 })
 
+setMethod("omxObjModelConvert", "MxRAMObjective",
+	function(.Object, model) {
+		if (is.null(model[['data']])) {
+			return(NA)
+		} else if (model[['data']]@type != 'raw') {
+			return(NA)
+		} else if (is.na(.Object@M)) {
+			return(NA)
+		}
+		if (is.null(model[['I']])) {
+			iName <- 'I'
+		} else {
+			iName <- omxUntitledName()
+		}
+		model <- mxModel(model, mxMatrix(type="Iden", 
+			nrow=nrow(model[[.Object@A]]), name = iName))
+		if (is.null(model[['Z']])) {
+			zName <- 'Z'
+		} else {
+			zName <- omxUntitledName()
+		}
+		zFormula <- substitute(solve(I - A),
+			list(I = as.symbol(iName), A = as.symbol(.Object@A)))
+		algebra <- eval(substitute(mxAlgebra(x, y),
+			list(x = zFormula, y = zName)))
+		model <- mxModel(model, algebra)
+		if (is.null(model[['covariance']])) {
+			covName <- 'covariance'
+		} else {
+			covName <- omxUntitledName()
+		}
+		covFormula <- substitute(F %*% Z %*% S %*% t(Z) %*% t(F),
+			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
+				S = as.symbol(.Object@S)))
+		algebra <- eval(substitute(mxAlgebra(x, y),
+			list(x = covFormula, y = covName)))
+		manifestVars <- dimnames(model[['F']])[[1]]
+		dimnames(algebra) <- list(manifestVars, manifestVars)
+		model <- mxModel(model, algebra)	
+		objective <- eval(substitute(mxFIMLObjective(x, y),
+			list(x = covName, y = .Object@M)))
+		model@objective <- objective
+		return(model)
+	}
+)
+
 mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F", mMatrix = NA) {
 	if (typeof(aMatrix) != "character") {
 		msg <- paste("aMatrix argument is not a string",

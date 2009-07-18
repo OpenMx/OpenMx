@@ -34,3 +34,14 @@ setGeneric("omxObjFunConvert",
 	function(.Object, flatModel, model) {
 	return(standardGeneric("omxObjFunConvert"))	
 })
+
+setGeneric("omxObjModelConvert",
+	function(.Object, model) {
+	return(standardGeneric("omxObjModelConvert"))
+})
+
+# NA indicates don't make any changes to the model
+setMethod("omxObjModelConvert", "MxBaseObjective",
+	function(.Object, model) {
+		return(NA)
+})

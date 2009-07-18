@@ -76,49 +76,11 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		}
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
-		verifyDimensions(covName, meansName, flatModel)
 		verifyExpectedNames(covName, meansName, flatModel)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataRow <- generateDataRow(flatModel, covName, dataName)
 		return(.Object)
 })
-
-verifyDimensions <- function(covName, meansName, flatModel) {
-	if (is.na(meansName)) {
-		means <- NA
-	} else {
-		means <- flatModel[[meansName]]
-	}
-	covariance <- flatModel[[covName]]
-	if (ncol(covariance) != ncol(covariance)) {
-		msg <- paste("The expected covariance matrix associated",
-			"with the FIML objective in model", 
-			omxQuotes(flatModel@name),
-			"is not a square matrix.")
-			stop(msg, call.=FALSE)			
-	}
-	if(any(covariance@values != t(covariance@values))) {
-		msg <- paste("The expected covariance matrix associated",
-			"with the FIML objective in model", 
-			omxQuotes(flatModel@name), "is not symmetric.")
-			stop(msg, call.=FALSE)		
-	}
-	if (!isS4(means) && is.na(means)) return()
-	if (nrow(means) != 1) {
-		msg <- paste("The expected means matrix associated",
-			"with the FIML objective in model", 
-			omxQuotes(flatModel@name), "is not a 1 x N matrix.")
-			stop(msg, call.=FALSE)		
-	}
-	if (ncol(means) != ncol(covariance)) {
-		msg <- paste("The expected means matrix associated",
-			"with the FIML objective in model", 
-			omxQuotes(flatModel@name),
-			"does not have the same length as",
-			"the expected covariance matrix.")
-			stop(msg, call.=FALSE)			
-	}
-}
 
 verifyExpectedNames <- function(covName, meansName, flatModel) {
 	if (is.na(meansName)) {
@@ -135,8 +97,9 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 			stop(msg, call.=FALSE)	
 	}
 	covRows <- covariance[[1]]
-	covCols <- covariance[[2]]
-	if ((length(covRows) != length(covCols)) || !all(covRows == covCols)) {
+	covCols <- covariance[[2]]	
+	if (is.null(covRows) || is.null(covCols) ||
+		(length(covRows) != length(covCols)) || !all(covRows == covCols)) {
 			msg <- paste("The expected covariance matrix associated",
 				"with the FIML objective in model", 
 				omxQuotes(flatModel@name), "does not contain identical",
@@ -151,7 +114,14 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 				omxQuotes(flatModel@name), "does not contain dimnames.")
 			stop(msg, call.=FALSE)	
 	}
+	meanRows <- means[[1]]
 	meanCols <- means[[2]]
+	if (!is.null(meanRows) && length(meanRows) > 1) {
+		msg <- paste("The expected means matrix associated",
+			"with the FIML objective in model", 
+			omxQuotes(flatModel@name), "is not a 1 x N matrix.")
+			stop(msg, call.=FALSE)
+	}
 	if ((length(covCols) != length(meanCols)) || !all(covCols == meanCols)) {
 			msg <- paste("The expected covariance and expected",
 				"means matrices associated",

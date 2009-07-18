@@ -16,9 +16,19 @@
 
 mxRun <- function(model) {
 	cat("Running", model@name, "\n")
+	return(doRun(model))
+}
+
+doRun <- function(model) {
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
+	if (!is.null(model@objective)) {
+		convert <- omxObjModelConvert(model@objective, model)
+		if (is(convert, "MxModel")) {
+			return(doRun(convert))
+		}
+	}
 	dshare <- shareData(model)
 	independents <- omxGetIndependents(dshare)
 	independents <- sfLapply(independents, mxRun)
@@ -45,7 +55,7 @@ mxRun <- function(model) {
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
-	return(model)
+	return(model)	
 }
 
 processOptimizerOutput <- function(flatModel, matrixNames, 
