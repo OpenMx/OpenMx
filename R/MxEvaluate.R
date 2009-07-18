@@ -16,28 +16,40 @@
 mxEvaluate <- function(expression, model, show = FALSE) {
 	formula <- match.call()$expression
 	modelVariable <- match.call()$model
-	formula <- evaluateTranslation(formula, model, modelVariable)
+	labelsData <- omxGenerateLabels(model)
+	formula <- evaluateTranslation(formula, model, modelVariable, labelsData)
 	if (show) {
 		cat(deparse(formula, width.cutoff = 500L), '\n')
 	}
 	return(eval(formula))
 }
 
-evaluateTranslation <- function(formula, model, modelVariable) {
+evaluateTranslation <- function(formula, model, modelVariable, labelsData) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEvaluate has reached an invalid state")
 	} else if (len == 1) {
-		formula <- translateSymbol(formula, model, modelVariable)
+		formula <- translateSymbol(formula, model, modelVariable, labelsData)
 	} else {
 		formula[-1] <- lapply(formula[-1], 
-			evaluateTranslation, model, modelVariable)
+			evaluateTranslation, model, modelVariable, labelsData)
 	}
 	return(formula)
 }
 
-translateSymbol <- function(symbol, model, modelVariable) {
+translateSymbol <- function(symbol, model, modelVariable, labelsData) {
 	key <- deparse(symbol)
+	index <- match(key, dimnames(labelsData)[[1]])
+	if (!is.na(index)) {
+		labelModel <- labelsData[[index,"model"]]
+		labelMatrix <- labelsData[[index,"matrix"]]
+		labelRow <- labelsData[[index,"row"]]
+		labelCol <- labelsData[[index,"col"]]
+		return(substitute(modelName[[x]]@values[[y,z]],
+			list(modelName = modelVariable,
+				x = omxIdentifier(labelModel, labelMatrix),
+				y = labelRow, z = labelCol)))
+	}
 	lookup <- model[[key]]
 	if (is.null(lookup)) {
 		return(symbol)
@@ -55,4 +67,40 @@ translateSymbol <- function(symbol, model, modelVariable) {
 			omxQuotes(key), "in the model",
 			omxQuotes(model@name)))
 	}
+}
+
+omxGenerateLabels <- function(model) {
+	return(generateLabelsHelper(model, data.frame()))
+}
+
+generateLabelsHelper <- function(model, labelsData) {
+	if (length(model@matrices) > 0) {
+		for(i in 1:length(model@matrices)) {
+			labelsData <- generateLabelsMatrix(model@name, model@matrices[[i]], labelsData)
+		}
+	}
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			labelsData <- generateLabelsHelper(model@submodels[[i]], labelsData)
+		}
+	}
+	return(labelsData)
+}
+
+generateLabelsMatrix <- function(modelName, matrix, labelsData) {
+	labels <- matrix@labels
+	select <- labels[!is.na(labels)]
+	rows <- row(labels)[!is.na(labels)]
+	cols <- col(labels)[!is.na(labels)]
+	if (length(select) > 0) {
+		for(i in 1:length(select)) {
+			if(!omxIsDefinitionVariable(select[[i]])) {
+				labelsData[select[[i]], "model"] <- modelName
+				labelsData[select[[i]], "matrix"] <- matrix@name
+				labelsData[select[[i]], "row"] <- rows[[i]]
+				labelsData[select[[i]], "col"] <- cols[[i]]
+			}
+		}
+	}
+	return(labelsData)
 }

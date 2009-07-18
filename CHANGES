@@ -1,5 +1,6 @@
 Release 0.1 (August 3, 2009)
 ============================
+* (mxEvaluate) mxEvaluate translates MxMatrix references, MxAlgebra references,  MxObjectiveFunction references, and label references.
 
 * (mxOptions) added 'reset' argument to mxOptions()
 
