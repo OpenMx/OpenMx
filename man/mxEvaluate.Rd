@@ -4,7 +4,7 @@
 \title{Function To Evaluate MxModel Values}
 
 \description{
-   This function can be used to evaluate an arbitrary R expression that includes named entities from a \link{MxModel} object.
+   This function can be used to evaluate an arbitrary R expression that includes named entities from a \link{MxModel} object, or labels from a \link{MxMatrix} object.
 }
 
 \usage{
@@ -18,7 +18,7 @@ mxEvaluate(expression, model, show = FALSE)
 }
 
 \details{
-The argument \sQuote{expression} is an arbitrary R expression.  Any named entities that are used within the R expression are translated into their current value from the model. Finally the expression is evaluated and the result is returned.  To enable debugging, the \sQuote{show} argument has been provided.  The most common mistake when using this function is to include named entities in the model that are identical to R function names.  For example, if a model contains a named entity named \sQuote{c}, then the following mxEvaluate call will return an error: \code{mxEvaluate(c(A, B, C), model)}.}
+The argument \sQuote{expression} is an arbitrary R expression.  Any named entities that are used within the R expression are translated into their current value from the model. Any labels from the matrices within the model are translated into their current value from the model. Finally the expression is evaluated and the result is returned.  To enable debugging, the \sQuote{show} argument has been provided.  The most common mistake when using this function is to include named entities in the model that are identical to R function names.  For example, if a model contains a named entity named \sQuote{c}, then the following mxEvaluate call will return an error: \code{mxEvaluate(c(A, B, C), model)}.}
 
 \examples{
 
