@@ -42,3 +42,17 @@ multSatRawMatModel <- mxModel("multSatRawMat",
 multSatRawMatFit <- mxRun(multSatRawMatModel)
 print(multSatRawMatFit[['expCov']]@values); print(multSatRawMatFit[['expMean']]@values)
 print(multSatRawMatFit@objective)
+
+# Testing the last model, now with explicit parameter names on symmetric matrix
+multSatRawMatModel2 <- mxModel("multSatRawMat2",
+	mxMatrix("Symm", nrow=2, ncol=2, free=T, values=c(1,.2,.2,1), name="expCov", 
+		labels = c('covXX', 'covXY', 'covYY'), 
+		dimnames = list(manifestVars, manifestVars)),
+	mxMatrix("Full", nrow=1, ncol=2, free=T, values=c(0,0), name="expMean",
+		labels = c('meanX', 'meanY'),
+		dimnames = list(NULL, manifestVars)),
+	mxFIMLObjective("expCov", "expMean"), mxData(testData, type="raw"))
+multSatRawMatFit2 <- mxRun(multSatRawMatModel2)
+print(multSatRawMatFit2[['expCov']]@values); print(multSatRawMatFit2[['expMean']]@values)
+print(multSatRawMatFit2@objective)
+

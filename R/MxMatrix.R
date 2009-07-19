@@ -43,6 +43,10 @@ setGeneric("omxVerifyMatrix", function(.Object) {
 	return(standardGeneric("omxVerifyMatrix")) 
 } )
 
+setGeneric("omxSymmetricMatrix", function(.Object) {
+	return(standardGeneric("omxSymmetricMatrix"))
+})
+
 #
 # The Matrix package returns a non-symmetric matrix
 # when you modify a symmetric matrix.
@@ -89,6 +93,10 @@ setMethod("omxVerifyMatrix", "MxMatrix",
 				"have different dimensions"), call.=FALSE)
 		}
 	}
+)
+
+setMethod("omxSymmetricMatrix", "MxMatrix",
+	function(.Object) { return(FALSE) }
 )
 
 setMethod("nrow", "MxMatrix",
@@ -272,15 +280,21 @@ convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 
 
 matrixParameters <- function(free, labels, lbound, ubound, 
-	result, matrixNumber) {
+	result, matrixNumber, isSymmetric) {
 	if (all(free == FALSE)) {
 		return(result)
 	}
-	parameterNames <- labels[free]
-	rows <- row(labels)[free]
-	cols <- col(labels)[free]
-	lbound <- lbound[free]
-	ubound <- ubound[free]
+	if (isSymmetric) {
+		triangle <- upper.tri(free, diag=TRUE)
+		select <- free & triangle
+	} else {
+		select <- free
+	}
+	parameterNames <- labels[select]
+	rows <- row(labels)[select]
+	cols <- col(labels)[select]
+	lbound <- lbound[select]
+	ubound <- ubound[select]
 	for(i in 1:length(parameterNames)) {
 		parameterName <- parameterNames[i]
 		row <- rows[i] - 1
@@ -290,15 +304,28 @@ matrixParameters <- function(free, labels, lbound, ubound,
 		if (is.na(parameterName)) {
 			result[[length(result)+1]] <-  list(minBounds, maxBounds, 
 				c(matrixNumber, row, col))
+			if (isSymmetric && row != col) {
+				original <- result[[length(result)]]
+				original[[length(original) + 1]] <- c(matrixNumber, col, row)
+				result[[length(result)]] <- original
+			}
 			names(result)[[length(result)]] <- as.character(NA)
 		} else if (length(grep(omxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
-					result[[parameterName]] <- original
+				if (isSymmetric && row != col) {
+					original[[length(original) + 1]] <- c(matrixNumber, col, row)
+				}
+				result[[parameterName]] <- original
 			} else {
 				result[[parameterName]] <- list('min' = minBounds, 'max' = maxBounds, 
-					c(matrixNumber, row,col))
+					c(matrixNumber, row, col))
+				if (isSymmetric && row != col) {
+					original <- result[[parameterName]]
+					original[[length(original) + 1]] <- c(matrixNumber, col, row)
+					result[[parameterName]] <- original
+				}
 			}
 		}
 	}
@@ -345,8 +372,9 @@ generateParameterListHelper <- function(mxMatrix,
 	labels <- mxMatrix@labels
 	lbound <- mxMatrix@lbound
 	ubound <- mxMatrix@ubound
+	isSymmetric <- omxSymmetricMatrix(mxMatrix)
 	result <- matrixParameters(free, labels, lbound,
-		ubound, result, matrixNumber)
+		ubound, result, matrixNumber, isSymmetric)
 	return(result)
 }
 
