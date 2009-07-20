@@ -34,7 +34,7 @@ setMethod("omxInitModel", "MxRAMModel",
 			model[['S']] <- createMatrixS(model)
 		}
 		if (is.null(model[['objective']])) {
-			model[['objective']] <- mxRAMObjective()
+			model[['objective']] <- mxRAMObjective('A', 'S', 'F')
 		}
 		model[['F']] <- createMatrixF(model)
 		return(model)

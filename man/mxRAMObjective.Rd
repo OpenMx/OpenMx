@@ -8,27 +8,27 @@
 }
 
 \usage{
-mxRAMObjective(aMatrix = "A", sMatrix = "S", fMatrix = "F", mMatrix = NA)
+mxRAMObjective(A, S, F, M = NA)
 }
 
 
 \arguments{
-   \item{aMatrix}{A character string indicating the name of the 'A' matrix.}
-   \item{sMatrix}{A character string indicating the name of the 'S' matrix.}
-   \item{fMatrix}{A character string indicating the name of the 'F' matrix.}
-   \item{mMatrix}{A character string indicating the name of the 'M' matrix. Optional.}
+   \item{A}{A character string indicating the name of the 'A' matrix.}
+   \item{S}{A character string indicating the name of the 'S' matrix.}
+   \item{F}{A character string indicating the name of the 'F' matrix.}
+   \item{M}{A character string indicating the name of the 'M' matrix. Optional.}
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'aMatrix', 'sMatrix', and 'fMatrix' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
 
-The 'aMatrix' argument refers to the A or asymmetric matrix in the RAM approach. This matrix consists of all of the asymmetric paths (one-headed arrows) in the model. A free parameter in any row and column describes a regression of the variable represented by that row regressed on the variable represented in that column. 
+The 'A' argument refers to the A or asymmetric matrix in the RAM approach. This matrix consists of all of the asymmetric paths (one-headed arrows) in the model. A free parameter in any row and column describes a regression of the variable represented by that row regressed on the variable represented in that column. 
 
-The 'sMatrix' argument refers to the S or symmetric matrix in the RAM approach, and as such must be square. This matrix consists of all of the symmetric paths (two-headed arrows) in the model. A free parameter in any row and column describes a covariance between the variable represented by that row and the variable represented by that column. Variances are covariances between any variable at itself, which occur on the diagonal of the specified matrix.
+The 'S' argument refers to the S or symmetric matrix in the RAM approach, and as such must be square. This matrix consists of all of the symmetric paths (two-headed arrows) in the model. A free parameter in any row and column describes a covariance between the variable represented by that row and the variable represented by that column. Variances are covariances between any variable at itself, which occur on the diagonal of the specified matrix.
 
-The 'fMatrix' argument refers to the F or filter matrix in the RAM approach. If no latent variables are included in the model (i.e., the A and S matrices are of both of the same dimension as the data matrix), then the 'fMatrix' should refer to an identity matrix. If latent variables are included (i.e., the A and S matrices are not of the same dimension as the data matrix), then the 'fMatrix' argument should consist of a horizontal adhesion of an identity matrix and a matrix of zeros. 
+The 'F' argument refers to the F or filter matrix in the RAM approach. If no latent variables are included in the model (i.e., the A and S matrices are of both of the same dimension as the data matrix), then the 'F' should refer to an identity matrix. If latent variables are included (i.e., the A and S matrices are not of the same dimension as the data matrix), then the 'F' argument should consist of a horizontal adhesion of an identity matrix and a matrix of zeros. 
 
-The 'mMatrix' argument refers to the M or means matrix in the RAM approach.  It is a 1 x n matrix, where n is the number of manifest variables + the number of latent variables. The M matrix must be specified if either the mxData type is \dQuote{cov} or \dQuote{cor} and a means vector is provided, or if the mxData type is \dQuote{raw}.  Otherwise the M matrix is ignored.
+The 'M' argument refers to the M or means matrix in the RAM approach.  It is a 1 x n matrix, where n is the number of manifest variables + the number of latent variables. The M matrix must be specified if either the mxData type is \dQuote{cov} or \dQuote{cor} and a means vector is provided, or if the mxData type is \dQuote{raw}.  Otherwise the M matrix is ignored.
 
 The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxRAMObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
 
@@ -49,13 +49,13 @@ The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
 
 \examples{
    
-   A <- mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2)
-   S <- mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE)
-   F <- mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2)
+   matrixA <- mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2)
+   matrixS <- mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE)
+   matrixF <- mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2)
 
    # Create a RAM objective with default A, S, F matrix names
-   objective <- mxRAMObjective()
+   objective <- mxRAMObjective("A", "S", "F")
    
-   model <- mxModel(A, S, F, objective)
+   model <- mxModel(matrixA, matrixS, matrixF, objective)
 
 }

@@ -118,29 +118,29 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 	}
 )
 
-mxRAMObjective <- function(aMatrix = "A", sMatrix = "S", fMatrix = "F", mMatrix = NA) {
-	if (typeof(aMatrix) != "character") {
-		msg <- paste("aMatrix argument is not a string",
+mxRAMObjective <- function(A, S, F, M = NA) {
+	if (missing(A) || typeof(A) != "character") {
+		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
 		stop(msg)
 	}	
-	if (typeof(sMatrix) != "character") {
-		msg <- paste("sMatrix argument is not a string",
+	if (missing(S) || typeof(S) != "character") {
+		msg <- paste("argument 'S' is not a string",
 			"(the name of the 'S' matrix)")
 		stop(msg)
 	}
-	if (typeof(fMatrix) != "character") {
-		msg <- paste("fMatrix argument is not a string",
+	if (missing(F) || typeof(F) != "character") {
+		msg <- paste("argument 'F' is not a string",
 			"(the name of the 'F' matrix)")
 		stop(msg)
 	}
-	if (is.na(mMatrix)) mMatrix <- as.character(NA)
-	if (typeof(mMatrix) != "character") {
-		msg <- paste("mMatrix argument is not a string",
+	if (is.na(M)) M <- as.character(NA)
+	if (typeof(M) != "character") {
+		msg <- paste("argument M is not a string",
 			"(the name of the 'M' matrix)")
 		stop(msg)
 	}	
-	return(new("MxRAMObjective", aMatrix, sMatrix, fMatrix, mMatrix))
+	return(new("MxRAMObjective", A, S, F, M))
 }
 
 displayRAMObjective <- function(objective) {

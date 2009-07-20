@@ -65,7 +65,7 @@ theBounds <- mxBounds(c("apple", "banana"), 0.001, NA)
 # Define the model
 
 modelAlt <- mxModel(theAMatrix, theSMatrix, theFMatrix, theBounds,
-                    mxRAMObjective(), theData)
+                    mxRAMObjective('A', 'S', 'F'), theData)
 
 print(modelAlt)
 
