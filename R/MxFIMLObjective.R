@@ -46,6 +46,23 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 		return(.Object)
 })
 
+setMethod("omxObjModelConvert", "MxFIMLObjective",
+	function(.Object, model) {
+		if (is.null(model@data)) {
+			return(NA)
+		}
+		data <- model@data@matrix
+		if (is.data.frame(data)) {
+			warning(paste("Converting data frame to numeric matrix",
+				"in model", omxQuotes(model@name)), call. = FALSE)
+			model@data@matrix <- data.matrix(data)
+			return(model)
+		} else {
+			return(NA)
+		}
+	}
+)
+
 setMethod("omxObjFunConvert", signature("MxFIMLObjective"), 
 	function(.Object, flatModel, model) {
 		name <- .Object@name
