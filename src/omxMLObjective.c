@@ -196,7 +196,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	if(!R_FINITE(REAL(nextMatrix)[0])) {
+	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
 		if(OMX_DEBUG) {
 			Rprintf("ML: No Expected Means.\n");
 		}

@@ -61,7 +61,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		if(!(length(means) == 1 && is.na(means))) {
 			meansIndex <- omxLocateIndex(flatModel, means, name)
 		} else {
-			meansIndex <- as.numeric(NA)
+			meansIndex <- as.integer(NA)
 		}
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
@@ -78,7 +78,7 @@ mxMLObjective <- function(covariance, means = NA) {
 	if (!(is.na(means) || typeof(means) == "character")) {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
-	if (is.na(means)) means <- as.numeric(NA)
+	if (is.na(means)) means <- as.integer(NA)
 	return(new("MxMLObjective", covariance, means))
 }
 
