@@ -69,7 +69,7 @@ displayMxData <- function(object) {
 	cat("numObs :", omxQuotes(object@numObs), '\n')
 	cat("Matrix : \n") 
 	print(object@matrix)
-	if (is.na(object@means)) {
+	if (length(object@means) == 1 && is.na(object@means)) {
 		cat("Means : NA \n")
 	} else {
 		cat("Means : \n") 

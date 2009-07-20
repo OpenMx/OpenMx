@@ -23,11 +23,11 @@ multSatRawPatModel <- mxModel("multSatRawPat",
 multSatRawPatFit <- mxRun(multSatRawPatModel)
 print(multSatRawPatFit[['S']]@values); print(multSatRawPatFit@objective)
 
-# Crashes omxRAMObjective.c
 #multSatCovMatModel <- mxModel("multSatCovMat",
 #	mxMatrix("Symm", nrow=2, ncol=2, free=T, values=c(1,.2,.2,1), name="expCov"),
-#	mxRAMObjective(),
-#	data = mxData(cov(testData), type="cov", numObs=1000, means=colMeans(testData)), type="RAM")
+#   mxMatrix("Full", nrow=1, ncol=2, free=T, values=c(0,0), name="expMean"), 
+#	mxMLObjective("expCov", "expMean"),
+#	data = mxData(cov(testData), type="cov", numObs=1000, means=colMeans(testData)))
 #print(multSatCovMatModel@matrices)
 #multSatCovMatFit <- mxRun(multSatCovMatModel)
 #multSatCovMatFit[['expCov']]@values
