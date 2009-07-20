@@ -55,7 +55,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		mMatrix <- .Object@M
 		data <- .Object@data
 		if(is.na(data)) {
-			msg <- paste("The MxRAMObjective", omxQuotes(name),
+			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(flatModel@name))
 			stop(msg, call. = FALSE)

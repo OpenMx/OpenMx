@@ -52,6 +52,19 @@ setMethod("omxModelBuilder", "MxRAMModel",
 	}
 )
 
+setMethod("omxVerifyModel", "MxRAMModel",
+    function(model) {
+        if ((length(model$A) == 0) ||
+             (length(model$S) == 0) ||
+             (length(model$F) == 0)) {
+			msg <- paste("The RAM model", omxQuotes(model@name),
+                "does not contain any paths.")
+			stop(msg, call. = FALSE)
+        }
+        return(TRUE)
+    }
+)
+
 
 setReplaceMethod("[[", "MxRAMModel",
 	function(x, i, j, value) {

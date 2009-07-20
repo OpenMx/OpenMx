@@ -23,6 +23,7 @@ doRun <- function(model) {
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
+	omxVerifyModel(model)
 	if (!is.null(model@objective)) {
 		convert <- omxObjModelConvert(model@objective, model)
 		if (is(convert, "MxModel")) {

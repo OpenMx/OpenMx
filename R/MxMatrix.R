@@ -111,6 +111,12 @@ setMethod("ncol", "MxMatrix",
 	}
 )
 
+setMethod("length", "MxMatrix",
+	function(x) {
+	    return(nrow(x) * ncol(x))
+	}
+)
+
 setMethod("[", "MxMatrix",
 	function(x, i, j, ..., drop = FALSE) {
 		return(x@values[i,j])

@@ -68,6 +68,10 @@ setGeneric("omxTypeName", function(model) {
 	return(standardGeneric("omxTypeName")) 
 })
 
+setGeneric("omxVerifyModel", function(model) {
+    return(standardGeneric("omxVerifyModel"))
+})
+
 # End declaration of generics
 
 setMethod("[[", "MxModel",
@@ -264,6 +268,10 @@ setMethod("omxInitModel", "MxModel", function(model) {
 
 setMethod("omxTypeName", "MxModel", function(model) { 
 	return("unspecified")
+})
+
+setMethod("omxVerifyModel", "MxModel", function(model) {
+    return(TRUE)
 })
 
 # End implementation of generics
