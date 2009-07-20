@@ -61,7 +61,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		if(!(length(means) == 1 && is.na(means))) {
 			meansIndex <- omxLocateIndex(flatModel, means, name)
 		} else {
-			meansIndex <- as.integer(NA)
+			meansIndex <- as.numeric(NA)
 		}
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
