@@ -33,7 +33,7 @@ expectedmean <- c(0,0,0)
 
 ## simulate some data
 
-x <- (mvrnorm(n=10000, rep(0, 3), expectedcov)) 
+x <- (mvrnorm(n=1000, rep(0, 3), expectedcov)) 
 dimnames(x) <- list(NULL, c('a','b','c'))
 
 # throw in a few missing values 
