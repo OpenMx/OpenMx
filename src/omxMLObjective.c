@@ -222,7 +222,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 		newObj->observedMeans = NULL;
 	} else {
-		newObj->observedMeans = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		newObj->observedMeans = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
 	}
 
 	UNPROTECT(4);
