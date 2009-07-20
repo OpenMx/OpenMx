@@ -51,13 +51,16 @@ setReplaceMethod("dimnames", "MxAlgebra",
 	}
 )
 
-mxAlgebra <- function(expression, name = NA) {
+mxAlgebra <- function(expression, name = NA, dimnames = NA) {
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
 	omxVerifyName(name)
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
+	if(!(length(dimnames) == 1 && is.na(dimnames))) {
+		dimnames(retval) <- dimnames
+	}
 	return(retval)	
 }
 
