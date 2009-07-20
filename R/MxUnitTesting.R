@@ -88,6 +88,11 @@ omxCheckTrue <- function(a) {
 
 omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
 	checkEqualDimensions(a, b)
+	if(any(mapply(function(x,y) {
+			is.na(a) || is.na(b) },
+			as.vector(a), as.vector(b)))) {
+		stop("omxCheckCloseEnough does not support NA values")
+	}
 	check <- any(mapply(function(x,y) {
 			abs(x - y) > epsilon }, 
 			as.vector(a), as.vector(b)))
