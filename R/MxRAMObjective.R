@@ -73,21 +73,24 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 })
 
 setMethod("omxObjModelConvert", "MxRAMObjective",
-	function(.Object, model) {
-		if (is.null(model[['data']])) {
-			return(NA)
-		} else if (model[['data']]@type != 'raw') {
-			return(NA)
-		} else if (is.na(.Object@M)) {
-			return(NA)
-		}
+	function(.Object, flatModel, model) {
+		if(is.na(.Object@data)) {
+			msg <- paste("The RAM objective",
+				"does not have a dataset associated with it in model",
+				omxQuotes(model@name))
+			stop(msg, call.=FALSE)
+		}		
+		if (flatModel@datasets[[.Object@data]]@type != 'raw' || 
+			is.na(.Object@M)) {
+			return(model)
+		}	
 		if (is.null(model[['I']])) {
 			iName <- 'I'
 		} else {
 			iName <- omxUntitledName()
 		}
 		model <- mxModel(model, mxMatrix(type="Iden", 
-			nrow=nrow(model[[.Object@A]]), name = iName))
+			nrow=nrow(flatModel[[.Object@A]]), name = iName))
 		if (is.null(model[['Z']])) {
 			zName <- 'Z'
 		} else {
@@ -108,9 +111,9 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 				S = as.symbol(.Object@S)))
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = covFormula, y = covName)))
-		manifestVars <- dimnames(model[['F']])[[1]]
+		manifestVars <- dimnames(flatModel[[.Object@F]])[[1]]
 		dimnames(algebra) <- list(manifestVars, manifestVars)
-		model <- mxModel(model, algebra)	
+		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(x, y),
 			list(x = covName, y = .Object@M)))
 		model@objective <- objective

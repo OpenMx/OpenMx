@@ -16,23 +16,15 @@
 
 mxRun <- function(model) {
 	cat("Running", model@name, "\n")
-	return(doRun(model))
-}
-
-doRun <- function(model) {
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
 	omxVerifyModel(model)
 	# remove next line when data.frames are implemented in the back-end
 	model <- convertDataFrames(model)
-
-	if (!is.null(model@objective)) {
-		convert <- omxObjModelConvert(model@objective, model)
-		if (is(convert, "MxModel")) {
-			return(doRun(convert))
-		}
-	}
+	model <- translateObjectives(model, namespace)
+	# Regenerate the namespace
+	namespace <- omxGenerateNamespace(model)
 	dshare <- shareData(model)
 	independents <- omxGetIndependents(dshare)
 	independents <- sfLapply(independents, mxRun)

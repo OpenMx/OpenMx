@@ -36,12 +36,31 @@ setGeneric("omxObjFunConvert",
 })
 
 setGeneric("omxObjModelConvert",
-	function(.Object, model) {
+	function(.Object, flatModel, model) {
 	return(standardGeneric("omxObjModelConvert"))
 })
 
-# NA indicates don't make any changes to the model
 setMethod("omxObjModelConvert", "MxBaseObjective",
-	function(.Object, model) {
-		return(NA)
+	function(.Object, flatModel, model) {
+		return(model)
 })
+
+setMethod("omxObjModelConvert", "NULL",
+	function(.Object, flatModel, model) {
+		return(model)
+})
+
+translateObjectives <- function(model, namespace) {
+	flatModel <- omxFlattenModel(model, namespace)
+	flatObjective <- flatModel@objectives[[omxIdentifier(model@name, 'objective')]]
+	model <- omxObjModelConvert(flatObjective, flatModel, model)
+	if (length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			submodel <- model@submodels[[i]]
+			if (submodel@independent == FALSE) {
+				model@submodels[[i]] <- translateObjectives(submodel, namespace)
+			}
+		}
+	}
+	return(model)
+}
