@@ -7,4 +7,4 @@ SimpleAlgebra	A simple example of using algebra statements
 SimpleConstraint	A simple example of using constraints
 SimpleRObjective	A simple example of using the R objective function
 TwinModelACE	Twin model using ACE formulation
-TwinModelACE	Twin model using ACE formulation and algebraic substitution
+TwinModelACEAlt	Twin model using ACE formulation and algebraic substitution

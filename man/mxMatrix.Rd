@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
+mxMatrix(type = "Full", nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, lbound = NA, 
 	ubound = NA, byrow = FALSE, dimnames = NA, name = NA)
 }
