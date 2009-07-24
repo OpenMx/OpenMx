@@ -1,3 +1,4 @@
+require(OpenMx)
 myRegDataCov<-read.table("myRegData.txt",header=TRUE)
 	
 model<-mxModel("Multivariate Regression (Path Analysis)- Path", 
