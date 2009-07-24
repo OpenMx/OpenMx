@@ -1,3 +1,4 @@
+require(OpenMx)
 myLongitudinalData<-read.table("myLongitudinalData.txt",header=T)
 
 model<-mxModel("Linear Growth Curve Model, Path Specification", 

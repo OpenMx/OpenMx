@@ -1,3 +1,4 @@
+require(OpenMx)
 myRegDataCov<-matrix(
 	c(1.116, 0.539, 0.289, 
 	  0.539, 0.933, 0.312,

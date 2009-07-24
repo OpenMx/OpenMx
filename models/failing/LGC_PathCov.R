@@ -1,3 +1,4 @@
+require(OpenMx)
 myLongitudinalDataCov<-matrix(
 	c(6.362, 4.344, 4.915,  5.045,  5.966,
 	  4.344, 7.241, 5.825,  6.181,  7.252,

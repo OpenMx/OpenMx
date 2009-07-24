@@ -1,3 +1,4 @@
+require(OpenMx)
 myDataRaw<-read.table("myData.txt",header=T)
 
 model<-mxModel("Autoregressive Model, Matrix Specification, Raw Data",

@@ -1,3 +1,4 @@
+require(OpenMx)
 myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
 
 myRegDataRaw<-myRegDataRaw[,c("x","y")]

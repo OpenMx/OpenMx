@@ -1,3 +1,4 @@
+require(OpenMx)
 myDataRaw<-read.table("myAutoregressiveData.txt",header=T)
 
 model<-mxModel("Autoregressive Model - Path", 
