@@ -18,7 +18,7 @@ setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
 setClass(Class = "MxNonNullData",
 	representation = representation(
-		matrix = "MxDataFrameOrMatrix",
+		data = "MxDataFrameOrMatrix",
 		means  = "numeric",
 		type   = "character",
 		numObs = "numeric",
@@ -27,8 +27,8 @@ setClass(Class = "MxNonNullData",
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
 
 setMethod("initialize", "MxNonNullData",
-	function(.Object, matrix, means, type, numObs, name = "data") {
-		.Object@matrix <- matrix
+	function(.Object, data, means, type, numObs, name = "data") {
+		.Object@data <- data
 		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
@@ -39,10 +39,10 @@ setMethod("initialize", "MxNonNullData",
 
 omxDataTypes <- c("raw", "cov", "cor", "sscp")
 
-mxData <- function(matrix, type, means = NA, numObs = NA) {
+mxData <- function(data, type, means = NA, numObs = NA) {
 	if (length(means) == 1 && is.na(means)) means <- NA_real_
-	if (missing(matrix) || !is(matrix, "MxDataFrameOrMatrix")) {
-		stop("Matrix argument is neither a data frame nor a matrix")
+	if (missing(data) || !is(data, "MxDataFrameOrMatrix")) {
+		stop("Data argument is neither a data frame nor a matrix")
 	}
 	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
 		is.na(match(type, omxDataTypes))) {
@@ -55,21 +55,21 @@ mxData <- function(matrix, type, means = NA, numObs = NA) {
 		stop("Number of observations must be specified for non-raw data")
 	}
 	if (type == "raw") {
-		numObs <- nrow(matrix)
-	} else if (type == 'cov' && (nrow(matrix) != ncol(matrix))) {
-		stop("Matrix argument must be a square matrix for 'cov' data type")
+		numObs <- nrow(data)
+	} else if (type == 'cov' && (nrow(data) != ncol(data))) {
+		stop("Data argument must be a square matrix for 'cov' data type")
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(matrix)[[2]], omxVerifyName)
-	return(new("MxNonNullData", matrix, means, type, numObs))
+	return(new("MxNonNullData", data, means, type, numObs))
 }
 
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')
 	cat("numObs :", omxQuotes(object@numObs), '\n')
-	cat("Matrix : \n") 
-	print(object@matrix)
+	cat("Data : \n") 
+	print(object@data)
 	if (length(object@means) == 1 && is.na(object@means)) {
 		cat("Means : NA \n")
 	} else {

@@ -8,20 +8,20 @@
 }
 
 \usage{
-mxMatrix(type = "Full", values = NA, free = FALSE, labels = NA,
-	lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
-	byrow = FALSE, dimnames = NA, name = NA)
+mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
+	free = FALSE, values = NA, labels = NA, lbound = NA, 
+	ubound = NA, byrow = FALSE, dimnames = NA, name = NA)
 }
 
 \arguments{
   \item{type}{a character string indicating the matrix type, where type indicates the range of values and equalities in the matrix. Must be one of:  'Diag', 'Full', 'Iden', 'Symm', 'Unit', or 'Zero'.}
-  \item{values}{a vector or matrix of numeric starting values. By default, all values are set to zero.}
+  \item{nrow}{the desired number of rows. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
+  \item{ncol}{the desired number of columns. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{free}{a vector or matrix of logicals for free parameter specification. A single 'TRUE' or 'FALSE' will set all allowable variables to free or fixed, respectively.}
+  \item{values}{a vector or matrix of numeric starting values. By default, all values are set to zero.}
   \item{labels}{a vector or matrix of characters for variable label specification.} 
   \item{lbound}{a vector or matrix of numeric lower bounds. Default bounds are specified with an NA.}
   \item{ubound}{a vector or matrix of numeric upper bounds. Default bounds are specified with an NA.}  
-  \item{nrow}{the desired number of rows. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
-  \item{ncol}{the desired number of columns. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{byrow}{logical. If 'FALSE' (default), the 'values', 'free', and 'labels' matrices are populated by column rather than by row. }
   \item{dimnames}{list. The dimnames attribute for the matrix: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.}
   \item{name}{an optional character string indicating the name of the MxMatrix object created by the mxModel function.}
@@ -62,17 +62,17 @@ More information about these matrix types can be found in Chapter 4 of the Mx ma
 
 \examples{
 #Create a 3x3 identity matrix
-i <- mxMatrix(type="Iden", nrow=3, ncol=3)
+i <- mxMatrix(type="Iden", 3, 3)
 
 #Create a full 4x2 matrix from existing value and specification matrices with all free parameters
 value <- matrix(c(1,2,3,4,5,6,7,8), nrow=4)
 f <- mxMatrix(value=value, free = TRUE)
 
 #Create a 3x3 symmetric matrix with free off-diagonal parameters and starting values
-s <- mxMatrix(type="Symm", 
-	c(1, .8, .8, .8, 1, .8, .8, .8, 1),
+s <- mxMatrix(type="Symm", 3, 3,
 	c(FALSE, TRUE, TRUE, TRUE, FALSE, 
-	TRUE, TRUE, TRUE, FALSE), 
+	TRUE, TRUE, TRUE, FALSE),
+	c(1, .8, .8, .8, 1, .8, .8, .8, 1),
 	c(NA, "free1", "free2", "free1", NA, 
-	"free3", "free2", "free3", NA), nrow=3)
+	"free3", "free2", "free3", NA))
 }

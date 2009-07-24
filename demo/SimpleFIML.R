@@ -52,7 +52,7 @@ x
 rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE), gcFirst=TRUE)
 
 model <- mxModel()
-model <- mxModel(model, mxMatrix("Symm", expectedcov, name = "covariance",
+model <- mxModel(model, mxMatrix("Symm", values = expectedcov, name = "covariance",
 	dimnames = list(c('a','b','c'), c('a','b','c'))))
 model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3,
 	dimnames = list(NULL, c('a','b','c'))))

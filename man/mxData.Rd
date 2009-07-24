@@ -8,11 +8,11 @@
 }
 
 \usage{
-mxData(matrix, type, means = NA, numObs = NA)
+mxData(data, type, means = NA, numObs = NA)
 }
 
 \arguments{
-   \item{matrix}{A matrix or data.frame which provides data to the MxData object.}
+   \item{data}{A matrix or data.frame which provides data to the MxData object.}
    \item{type}{A character string defining the type of data in the \sQuote{matrix} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, or \dQuote{sscp}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{matrix} argument. Required unless \sQuote{type} equals \dQuote{raw}.}

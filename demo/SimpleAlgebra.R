@@ -1,8 +1,8 @@
 library(OpenMx)
 
-O <- mxMatrix("Full", c(3), nrow=1, ncol=1, name="O")
-A <- mxMatrix("Full", c(1, 2), nrow=1, ncol=2, name="A")
-B <- mxMatrix("Full", c(3, 4), ncol=1, nrow=2, free = c(TRUE, FALSE), name="B")
+O <- mxMatrix("Full", 1, 1, values = 3, name="O")
+A <- mxMatrix("Full", 1, 2, values = c(1, 2), name="A")
+B <- mxMatrix("Full", 2, 1, values = c(3, 4), free = c(TRUE, FALSE), name="B")
 algebra <- mxAlgebra(A %*% B - O, "algebra")
 algSquared <- mxAlgebra(algebra %*% algebra, "algebraSquared")
 

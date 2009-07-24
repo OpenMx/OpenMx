@@ -60,7 +60,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 				"in model", omxQuotes(flatModel@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
-		dataNames <- dimnames(flatModel@datasets[[.Object@data]]@matrix)
+		dataNames <- dimnames(flatModel@datasets[[.Object@data]]@data)
 		if (is.null(dataNames)) {
 			msg <- paste("The dataset associated with the FIML objective", 
 				"in model", omxQuotes(flatModel@name), 
@@ -134,7 +134,7 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 
 generateDataRow <- function(flatModel, covName, dataName) {
 	retval <- c()
-	definitionNames <- dimnames(flatModel@datasets[[dataName]]@matrix)[[2]]
+	definitionNames <- dimnames(flatModel@datasets[[dataName]]@data)[[2]]
 	covariance <- flatModel[[covName]]
 	covNames <- dimnames(covariance)[[2]]
 	for(i in 1:length(covNames)) {

@@ -53,8 +53,8 @@ omxIsPath <- function(value) {
 }
 
 
-mxPath <- function(from, to = NA, all = FALSE, arrows = 1, values = NA,
-	free = TRUE, labels = NA, lbound = NA, ubound = NA) {
+mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
+	values = NA, labels = NA, lbound = NA, ubound = NA) {
 	if (length(values) == 1 && is.na(values)) values <- NULL
 	if (length(labels) == 1 && is.na(labels)) labels <- NULL
 	if (length(lbound) == 1 && is.na(lbound)) lbound <- NULL

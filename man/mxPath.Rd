@@ -10,7 +10,7 @@
 
 \usage{
 mxPath(from, to = NA, all = FALSE, arrows = 1,
-	values = NA, free = TRUE, labels = NA, 
+	free = TRUE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA)
 }
 
@@ -19,8 +19,8 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
    \item{to}{character vector. these are the sinks of the new paths.}
    \item{all}{boolean value. If TRUE, then connect all sources to all sinks.}
    \item{arrows}{numeric value. Must be either 1 for single-headed or 2 for double-headed arrows.}
-   \item{values}{numeric vector. The starting values of the parameters.}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
+   \item{values}{numeric vector. The starting values of the parameters.}
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
    \item{ubound}{numeric vector. The upper bounds of free parameters.}   

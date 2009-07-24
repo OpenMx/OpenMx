@@ -213,7 +213,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
 	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("matrix")));
+	PROTECT(dataElt = GET_SLOT(nextMatrix, install("data")));
 	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("means")));
 	if(!R_FINITE(REAL(dataElt)[0])) {

@@ -158,9 +158,10 @@ matrixTypes <- c("Diag", "Full", "Iden", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Symm")
 
 
-mxMatrix <- function(type = "Full", values = NA, free = FALSE, 
-	labels = NA, lbound = NA, ubound = NA, nrow = NA, ncol = NA, 
-	byrow = FALSE, dimnames = NA, name = NA) {
+mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
+	free = FALSE, values = NA, labels = NA, 
+	lbound = NA, ubound = NA, byrow = FALSE, 
+	dimnames = NA, name = NA) {
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	if (is.matrix(values)) {
 		nrow <- nrow(values)

@@ -38,4 +38,4 @@ model <- mxModel("model", data, s, c,
 	
 run <- mxRun(model)
 
-omxCheckCloseEnough(run[["s"]]@values, run[["data"]]@matrix, .001)
+omxCheckCloseEnough(mxEvaluate(s, run), run$data@data, .001)

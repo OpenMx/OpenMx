@@ -162,7 +162,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	index = (int) REAL(newMatrix)[0];
 	if(OMX_DEBUG) { Rprintf("%d.\n", index); }
 	PROTECT(newMatrix = VECTOR_ELT(dataList, index));
-	PROTECT(newMatrix = GET_SLOT(newMatrix, install("matrix")));
+	PROTECT(newMatrix = GET_SLOT(newMatrix, install("data")));
 
 	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix, oo->matrix->currentState); 	// Covariance matrix is the data arg.
 	UNPROTECT(3);
