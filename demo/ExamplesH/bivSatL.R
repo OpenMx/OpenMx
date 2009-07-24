@@ -1,6 +1,5 @@
 require(OpenMx)
 require(MASS)
-setwd('/Users/hermine/Applications/bin/OpenMx/trunk/demo')
 set.seed(200); rs=.5; xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy; selVars <- c('X','Y'); dimnames(testData) <- list(NULL, selVars)
 summary(testData); cov(testData)
@@ -22,7 +21,7 @@ multSatModel2 <- mxModel("multSat2",
 	mxPath(from=c("X", "Y"), arrows=2, free=T, values=1, lbound=.01, labels=c("varX","varY")),
 	mxData(testData, type="raw"),type="RAM")
 multSatFit2 <- mxRun(multSatModel2)
-EM2 <- multSatFit2[['M']]@values; EC2 <- multSatFit2[['S']]@values; LL2 <- mxEvaluate(objective,multSatFit2);
+EM2 <- mxEvaluate(M, multSatFit2); EC2 <- mxEvaluate(S, multSatFit2); LL2 <- mxEvaluate(objective, multSatFit2);
 
 #example 3: Saturated Model with Cov Matrices and Matrices Input
 multSatModel3 <- mxModel("multSat3",
@@ -31,7 +30,7 @@ multSatModel3 <- mxModel("multSat3",
  	mxData(cov(testData), type="cov", numObs=1000),
  	mxMLObjective("expCov"))
 multSatFit3 <- mxRun(multSatModel3)
-EC3 <- multSatFit3[['expCov']]@values; LL3 <- mxEvaluate(objective,multSatFit3);
+EC3 <- mxEvaluate(expCov, multSatFit3); LL3 <- mxEvaluate(objective,multSatFit3);
 
 #examples 4: Saturated Model with RawData and Matrices Input
 multSatModel4 <- mxModel("multSat4",
@@ -41,12 +40,12 @@ multSatModel4 <- mxModel("multSat4",
  	mxData(testData, type="raw"),
  	mxFIMLObjective("expCov", "expMean"))
 multSatFit4 <- mxRun(multSatModel4)
-EM4 <- multSatFit4[['expMean']]@values; EC4 <- multSatFit4[['expCov']]@values; LL4 <- mxEvaluate(objective,multSatFit4);
+EM4 <- mxEvaluate(expMean, multSatFit4); EC4 <- mxEvaluate(expCov, multSatFit4); LL4 <- mxEvaluate(objective, multSatFit4);
 
 cov <- rbind(cbind(EC1,EC2),cbind(EC3,EC4)); mean <- rbind(EM2,EM4); like <- rbind(cbind(LL1,LL2),cbind(LL3,LL4))
 cov; mean; like
 
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR") 
+setwd("../MxR") 
 cat("*\n",file='star')
 write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F); system("cat star cov > testData.cov")
 write.table(colMeans(testData),file="mea",row.names=F,quote=F,col.names=F); system("cat star mea > testData.mea")

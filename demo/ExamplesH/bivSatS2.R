@@ -1,6 +1,5 @@
 require(OpenMx)
 require(MASS)
-setwd('/Users/hermine/Applications/bin/OpenMx/trunk/demo')
 set.seed(200); rs=.5; xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy; selVars <- c('X','Y'); dimnames(testData) <- list(NULL, selVars)
 summary(testData); cov(testData)
@@ -44,7 +43,7 @@ EM4 <- multSatFit4[['expMean']]@values; EC4 <- multSatFit4[['expCov']]@values; L
 cov <- rbind(cbind(EC1,EC2),cbind(EC3,EC4)); mean <- rbind(EM2,EM4); like <- rbind(cbind(LL1,LL2),cbind(LL3,LL4))
 cov; mean; like
 
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR")
+setwd("../MxR")
 cat("*\n",file='star')
 write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F); system("cat star cov > testData.cov")
 write.table(colMeans(testData),file="mea",row.names=F,quote=F,col.names=F); system("cat star mea > testData.mea")
