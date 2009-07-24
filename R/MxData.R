@@ -59,6 +59,7 @@ mxData <- function(matrix, type, means = NA, numObs = NA) {
 	} else if (type == 'cov' && (nrow(matrix) != ncol(matrix))) {
 		stop("Matrix argument must be a square matrix for 'cov' data type")
 	}
+	numObs <- as.numeric(numObs)
 	lapply(dimnames(matrix)[[2]], omxVerifyName)
 	return(new("MxNonNullData", matrix, means, type, numObs))
 }
