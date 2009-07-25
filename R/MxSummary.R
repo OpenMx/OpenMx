@@ -37,7 +37,26 @@ computeOptimizationStatistics <- function(model) {
 setMethod("summary", "MxModel",
 	function(object, ...) {	
 		retval <- computeOptimizationStatistics(object)
-		return(retval)
+		if (!is.null(object$data)) {
+			print(summary(object$data@data))
+			cat('\n')
+		}
+		if (length(object@output) > 0) {
+			message <- npsolMessages[[as.character(object@output$status[[1]])]]
+			if (!is.null(message)) {
+				cat(message,'\n','\n')
+			}
+		}
+		if (!is.null(retval$parameters)) {
+			print(retval$parameters)
+			cat('\n')
+		}
+		cat("AIC: ", '\n')
+		cat("BIC: ", '\n')
+		cat("adjusted BIC:", '\n')
+		cat("RMSEA: ", '\n')
+		cat('\n')		
+		invisible(retval)
 	}
 )
 
