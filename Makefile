@@ -57,6 +57,8 @@ test:
 
 clean:
 	rm -rf $(RBUILD)/*
+	rm -rf models/passing/temp-files/*
+	rm -rf models/failing/temp-files/*
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
