@@ -45,7 +45,7 @@ errorRecover <- function(script, index) {
 	sink(null, type = 'output')	
 	sink(null, type = 'message')
 	setwd(dirs)			
-	tryCatch(source(filename), error = function(x) {
+	tryCatch(local(source(filename)), error = function(x) {
 		errors[[script]] <<- x
 	})
 	setwd(currentDir)
