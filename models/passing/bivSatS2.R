@@ -58,7 +58,9 @@ LL4 <- mxEvaluate(objective,multSatFit4)
 cov <- rbind(cbind(EC1,EC2),cbind(EC3,EC4)); mean <- rbind(EM2,EM4); like <- rbind(cbind(LL1,LL2),cbind(LL3,LL4))
 cov; mean; like
 
-setwd("../MxR")
+original.directory <- getwd()
+setwd('temp-files')
+
 cat("*\n",file='star')
 write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F)
 system("cat star cov > testData.cov")
@@ -69,9 +71,10 @@ system("cat star mea > testData.mea")
 testDataDF<-as.data.frame(testData)
 write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
 
-source("runmx.R")
+setwd(original.directory)
+
 #Mx file includes 3 Saturated Model jobs: 1: Cov Matrices, 2: Cov Matrices + Means, 3: Raw Data 
-mymatrices <- runmx(mx.script="bivSatR.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices <- omxOriginalMx(mx.filename="mx-scripts/bivSatR.mx", output.directory="temp-files")
 attach(mymatrices) #matrixName groupNumber . jobNumber
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <-X3.1; Mx.LL1 <- F3.1;

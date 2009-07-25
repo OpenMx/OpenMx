@@ -1,6 +1,5 @@
 require(OpenMx)
 require(MASS)
-setwd('/Users/hermine/Applications/bin/OpenMx/trunk/demo')
 set.seed(200); rs=.5; xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy; selVars <- c('X','Y'); dimnames(testData) <- list(NULL, selVars)
 summary(testData); cov(testData)
@@ -13,7 +12,7 @@ multSatModel1 <- mxModel("multSat1",
 	mxData(cov(testData), type="cov", numObs=1000), type="RAM")
 #	mxData(cov(testData), type="cov", numObs=1000, means=colMeans(testData)), type="RAM")
 multSatFit1 <- mxRun(multSatModel1)
-EC1 <- multSatFit1[['S']]@values; LL1 <- mxEvaluate(objective,multSatFit1);
+EC1 <- mxEvaluate(S, multSatFit1); LL1 <- mxEvaluate(objective,multSatFit1);
 
 #examples 2: Saturated Model with RawData and Paths Input
 multSatModel2 <- mxModel("multSat2",
@@ -22,7 +21,7 @@ multSatModel2 <- mxModel("multSat2",
 	mxPath(from=c("X", "Y"), arrows=2, free=T, values=1, lbound=.01, labels=c("varX","varY")),
 	mxData(testData, type="raw"),type="RAM")
 multSatFit2 <- mxRun(multSatModel2)
-EM2 <- multSatFit2[['M']]@values; EC2 <- multSatFit2[['S']]@values; LL2 <- mxEvaluate(objective,multSatFit2);
+EM2 <- mxEvaluate(M, multSatFit2); EC2 <- mxEvaluate(S, multSatFit2); LL2 <- mxEvaluate(objective,multSatFit2);
 
 #example 3: Saturated Model with Cov Matrices and Matrices Input
 multSatModel3 <- mxModel("multSat3",
@@ -31,7 +30,7 @@ multSatModel3 <- mxModel("multSat3",
  	mxData(cov(testData), type="cov", numObs=1000),
  	mxMLObjective("expCov"))
 multSatFit3 <- mxRun(multSatModel3)
-EC3 <- multSatFit3[['expCov']]@values; LL3 <- mxEvaluate(objective,multSatFit3);
+EC3 <- mxEvaluate(expCov, multSatFit3); LL3 <- mxEvaluate(objective,multSatFit3);
 
 #examples 4: Saturated Model with RawData and Matrices Input
 multSatModel4 <- mxModel("multSat4",
@@ -41,29 +40,33 @@ multSatModel4 <- mxModel("multSat4",
  	mxData(testData, type="raw"),
  	mxFIMLObjective("expCov", "expMean"))
 multSatFit4 <- mxRun(multSatModel4)
-EM4 <- multSatFit4[['expMean']]@values; EC4 <- multSatFit4[['expCov']]@values; LL4 <- mxEvaluate(objective,multSatFit4);
+EM4 <- mxEvaluate(expMean, multSatFit4); EC4 <- mxEvaluate(expCov, multSatFit4); LL4 <- mxEvaluate(objective,multSatFit4);
 
 #Run same scripts with old Mx
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR") 
+
+currentDirectory <- getwd()
+setwd('temp-files')
+
 cat("*\n",file='star')
 write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F); system("cat star cov > testData.cov")
 write.table(colMeans(testData),file="mea",row.names=F,quote=F,col.names=F); system("cat star mea > testData.mea")
 testDataDF<-as.data.frame(testData)
 write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
 
-source("runmx.R")
+setwd(currentDirectory)
+
 #Mx file includes 3 Saturated Model jobs: 1: Cov Matrices, 2: Cov Matrices + Means, 3: Raw Data 
-mymatrices1 <- runmx(mx.script="bivSatRl1.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices1 <- omxOriginalMx("mx-scripts/bivSatRl1.mx", "temp-files")
 attach(mymatrices1) #matrixName groupNumber . jobNumber
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <-X3.1; Mx.LL1 <- F3.1;
 
-mymatrices2 <- runmx(mx.script="bivSatRl1m.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices2 <- omxOriginalMx("mx-scripts/bivSatRl1m.mx", "temp-files")
 attach(mymatrices2) #matrixName groupNumber . jobNumber
 #example Mx..1m: Saturated Model with Cov Matrices & Means
 Mx.EM1m <-M3.1; Mx.EC1m <-X3.1; Mx.LL1m <- F3.1;
 
-mymatrices3 <- runmx(mx.script="bivSatRl2.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices3 <- omxOriginalMx("mx-scripts/bivSatRl2.mx", "temp-files")
 attach(mymatrices3) #matrixName groupNumber . jobNumber
 #example Mx..2: Saturated Model with Raw Data
 Mx.EM2 <-M3.1; Mx.EC2 <-X3.1; Mx.LL2 <- F3.1;

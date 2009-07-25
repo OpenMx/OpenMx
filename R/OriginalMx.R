@@ -20,7 +20,7 @@
 # 5/30/2007
 
 
-omxOriginalMx <- function(mx.filename) {
+omxOriginalMx <- function(mx.filename, output.directory) {
   
 #example:  
 #runmx(mx.filename="MyScript.mx",mx.location="/usr/local/bin/mxt161i")
@@ -30,39 +30,43 @@ mx.location <- "mx"
 ############ 
 #Grab the mx.filename, place "!@front" at the top, and write it back out to the working directory
 mx.bottom <- suppressWarnings(readLines(mx.filename))
+paths <- strsplit(mx.filename, '[/\\]')[[1]]
+mx.filename <- paths[[length(paths)]]
 mx.tot <- c("!@front",mx.bottom)
-mxfile <- paste(mx.filename,"R",sep="")
+mxfile <- paste(output.directory, "/", mx.filename, sep="")
 write(mx.tot,file=mxfile)
-mxofile <- paste(gsub(".mx","",mx.filename),".mxo",sep="") 
+mxo.filename <- paste(gsub(".mx","",mx.filename),".mxo",sep="") 
 ############ 
 
-
+original.directory <- getwd()
+setwd(output.directory)
 
 ############ 
 #Run MX file
-if (.Platform$OS.type=="windows"){
-cat(paste("system('",mx.location," ",mxfile," ",mxofile," ')",sep="") ,file="temp")
-eval(parse(file="temp"))}
+if (.Platform$OS.type == "windows") {
+	command <- substitute(system(paste("mx", x, y)), list(x = mx.filename, y = mxo.filename))
+	eval(command)
+}
 
-if (.Platform$OS.type=="unix"){
-cat(paste("system('",mx.location," < ",mxfile," > ",mxofile," ')",sep="") ,file="temp")
-eval(parse(file="temp"))}
+if (.Platform$OS.type == "unix") {
+	command <- substitute(system(paste("mx < ", x, "> ", y)), list(x = mx.filename, y = mxo.filename))
+	eval(command)
+}
 ############ 
-
 
 
 ############ 
 #Read in the MXO file
-mxo <- suppressWarnings(readLines(mxofile))
+mxo <- suppressWarnings(readLines(mxo.filename))
 
 #Check for Mx Errors
 if (length(grep("Error: file not found",mxo)) != 0){
-  stop("It appears that Mx cannot find the datafile it needs.
-        Make sure the datafile(s) are placed in your working directory")}
+  stop(paste("It appears that Mx cannot find the datafile it needs.",
+        "Make sure the datafile(s) are placed in your working directory"))}
 
 if (length(grep("!@error",mxo)) != 0){
-  stop("Your Mx script did not complete running for some reason. Check over
-        your *.mxo file to diagnose the problem and try, try again.")}
+  stop(paste("Your Mx script did not complete running for some reason. Check over",
+        "your *.mxo file to diagnose the problem and try, try again."))}
 
 #Find the start of the fit functions
 {if (length(grep("!@machine; GROUP_FIT",mxo)) != 0){  #grepping for how windows seems to write the .mxo file
@@ -238,6 +242,8 @@ x <- x[-removes]
 
   }
 }
+
+setwd(original.directory)
 
 return(matrices)}
 
