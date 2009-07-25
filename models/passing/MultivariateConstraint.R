@@ -20,7 +20,7 @@ data <- mxData(matrix(c(3.6,2.2,0.5,2.2,3.2,2,0.5,2,3.9), nrow = 3),
 
 s <- mxMatrix("Symm", free = TRUE, 
 	values = matrix(c(10,9,9,9,10,9,9,9,10), nrow = 3),
-	matrix(c("v1", "c12", "c13", 
+	labels = matrix(c("v1", "c12", "c13", 
 		"c12", "v2", "c23", 
 		"c13", "c23", "v3"), nrow = 3),
 	name = "s")
