@@ -7,6 +7,7 @@ RPDF = Rd2dvi
 TARGET = OpenMx_0.1-1.tar.gz
 PDFFILE = $(RBUILD)/OpenMx.pdf
 TESTFILE = inst/tools/testModels.R
+FAILTESTFILE = inst/tools/failTestModels.R
 
 # subdirectories
 RSOURCE = R
@@ -24,6 +25,7 @@ help:
 	@echo "  pdf       create a pdf file (in build) of the OpenMx R documentation"
 	@echo "  html      create Sphinx documentation (in docs/build/html) in html format"
 	@echo "  test      run the OpenMx test suite"
+	@echo "  failtest  run the OpenMx failing test suite"
 	@echo "  check     run the R package checking system on the OpenMx package"
 	@echo "  clean     remove all files from the build directory"
 	@echo "  veryclean remove all files from the build directory and all *~ files"
@@ -54,6 +56,10 @@ check: internal-build
 
 test:
 	$(REXEC) --vanilla --slave < $(TESTFILE)
+
+failtest:
+	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
+
 
 clean:
 	rm -rf $(RBUILD)/*

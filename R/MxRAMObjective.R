@@ -112,10 +112,23 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = covFormula, y = covName)))
 		manifestVars <- dimnames(flatModel[[.Object@F]])[[1]]
+		manifestLatentVars <- dimnames(flatModel[[.Object@F]])[[2]]
 		dimnames(algebra) <- list(manifestVars, manifestVars)
 		model <- mxModel(model, algebra)
+		meansFormula <- substitute(F %*% Z %*% t(M),
+			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
+				M = as.symbol(.Object@M)))
+		if (is.null(model[['means']])) {
+			meansName <- 'means'
+		} else {
+			meansName <- omxUntitledName()
+		}
+		algebra <- eval(substitute(mxAlgebra(x, y),
+			list(x = meansFormula, y = meansName)))
+		dimnames(algebra) <- list(NULL, manifestLatentVars)
+		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(x, y),
-			list(x = covName, y = .Object@M)))
+			list(x = covName, y = meansName)))
 		model@objective <- objective
 		return(model)
 	}
