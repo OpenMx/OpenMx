@@ -63,10 +63,17 @@
 		
 	}
 	
+	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {
+		oo->statusCode = errorCode;
+		strncpy(oo->statusMsg, errorMsg, 249);
+		oo->statusMsg[249] = '\0';
+	}
+	
 	void omxStateNextRow(omxState *oo) { 
 		oo->currentRow++; 
 	};
 	void omxStateNextEvaluation(omxState *oo) { 
+		oo->currentRow = 0;
 		oo->computeCount++; 
 	};
 	

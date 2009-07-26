@@ -51,17 +51,16 @@ typedef struct omxMatrix omxMatrix;
 
 struct omxMatrix {						// A matrix
 										//TODO: Improve encapsulation
-
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
 	double* data;						// Actual Data Pointer
-	double* aliasedPtr;					// For now, assumes outside data if aliased.
 	unsigned short colMajor;			// and column-majority.
 
 /* For Memory Administrivia */
 	unsigned short localData;			// If data has been malloc'd, and must be freed.
 
 /* For aliased matrices */	// Maybe this should be a subclass, as well.
+	omxMatrix* aliasedPtr;				// For now, assumes outside data if aliased.
 	unsigned short originalColMajor;	// Saved for reset of aliased matrix.
 	unsigned short originalRows;		// Saved for reset of aliased matrix.
 	unsigned short originalCols;		// Saved for reset of aliased matrix.

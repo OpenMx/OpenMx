@@ -655,14 +655,16 @@ void F77_SUB(objectiveFunction)
 	(	int* mode, int* n, double* x,
 		double* f, double* g, int* nstate )
 {
+	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
-	strncpy(currentState->statusMsg, "", 1);	// No Message
-	currentState->statusCode = 0;					// Status clear
-
+	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
+	char errMsg[5] = "";
+	omxRaiseError(currentState, 0, errMsg);						//Clear Error State
+	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 	/* Interruptible? */
 	R_CheckUserInterrupt();
-
+	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
     /* This allows for abitrary repopulation of the free parameters.
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
@@ -671,6 +673,7 @@ void F77_SUB(objectiveFunction)
 	} else {
 		handleFreeVarList(currentState, x, *n);
 	}
+	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 
 	omxRecompute(objectiveMatrix);
 
@@ -692,7 +695,7 @@ void F77_SUB(objectiveFunction)
 		Rprintf("Objective Value is: %f.\n", objectiveMatrix->data[0]);
 	}
 
-	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
+	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
 
 }
 
@@ -726,7 +729,7 @@ void F77_SUB(oldMxConFun)
 		}
 	}
 
-	if(OMX_DEBUG) { Rprintf("-=====================================================-\n"); }
+	if(OMX_DEBUG) { Rprintf("-=======================================================-\n"); }
 
 return;
 

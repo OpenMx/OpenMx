@@ -126,9 +126,9 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 	omxCopyMatrix(dest, src);
-	dest->aliasedPtr = src->data;			// Interesting Aside: back matrix can change without alias
+	dest->aliasedPtr = src;					// Alias now follows back matrix precisely.
 	dest->algebra = NULL;					// Have to look at how this effect interacts with populating
-	dest->objective = NULL;					//  matrix values to other locations.
+	dest->objective = NULL;					// 		matrix values to other locations.
 }
 
 void omxFreeMatrixData(omxMatrix * om) {
@@ -190,12 +190,10 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 void omxResetAliasedMatrix(omxMatrix *om) {
 	om->rows = om->originalRows;
 	om->cols = om->originalCols;
-	om->colMajor = om->originalColMajor;
 	if(om->aliasedPtr != NULL) {
-//		if(OMX_DEBUG) { omxPrint(om, "I was");}
-		memcpy(om->data, om->aliasedPtr, om->rows*om->cols*sizeof(double));
-//		if(OMX_DEBUG) { omxPrint(om, "I am");}
+		memcpy(om->data, om->aliasedPtr->data, om->rows*om->cols*sizeof(double));
 	}
+	om->colMajor = om->aliasedPtr->colMajor;
 	omxComputeMatrix(om);
 }
 
@@ -258,12 +256,14 @@ unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
 	
 };
 
-omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState* state) {
+omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
 /* Populates the fields of a omxMatrix with details from an R Matrix. */ 
 	
 	SEXP className;
 	SEXP matrixDims;
+	SEXP matrix = mxMatrix;
 	int* dimList;
+	unsigned short int isMxMatrix = FALSE;
 	
 	omxMatrix *om = NULL;
 	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
@@ -271,59 +271,39 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState* state) {
 	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
 	
 	/* Sanity Check */
-	if(!isMatrix(matrix) && !isVector(matrix)) {
-		SEXP values;
-		int *rowVec, *colVec;
-		double  *dataVec;
-		const char *stringName;
-		if(OMX_DEBUG) {Rprintf("R Matrix is an object of some sort.\n");}
-		PROTECT(className = getAttrib(matrix, install("class")));
-		if(strncmp(CHAR(STRING_ELT(className, 0)), "Symm", 2) != 0) { // Should be "Mx"
-			error("omxMatrix::fillFromMatrix--Passed Non-vector, non-matrix SEXP.\n");
+	if(!isMatrix(mxMatrix) && !isVector(mxMatrix)) {
+		if(inherits(mxMatrix, "MxMatrix")) {
+			//if(OMX_DEBUG) { 
+				Rprintf("R matrix is Mx Matrix.  Processing.\n"); //}
+			PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
+			isMxMatrix = TRUE; // So we remember to unprotect.
+		} else {
+			error("Recieved unknown matrix type.");
 		}
-		stringName = CHAR(STRING_ELT(className, 0));
-		if(strncmp(stringName, "SymmMatrix", 12) == 0) {
-			if(OMX_DEBUG) { Rprintf("R matrix is SymmMatrix.  Processing.\n"); }
-			PROTECT(values = GET_SLOT(matrix, install("values")));
-			om->rows = INTEGER(GET_SLOT(values, install("nrow")))[0];
-			om->cols = INTEGER(GET_SLOT(values, install("ncol")))[0];
-			
-			om->data = (double*) S_alloc(om->rows * om->cols, sizeof(double));		// We can afford to keep through the whole call
-			rowVec = INTEGER(GET_SLOT(values, install("rowVector")));
-			colVec = INTEGER(GET_SLOT(values, install("colVector")));
-			dataVec = REAL(GET_SLOT(values, install("dataVector")));
-			for(int j = 0; j < length(GET_SLOT(values, install("dataVector"))); j++) {
-				om->data[(rowVec[j]-1) + (colVec[j]-1) * om->rows] = dataVec[j];
-				om->data[(rowVec[j]-1) * om->cols + (colVec[j]-1)] = dataVec[j];  // Symmetric, after all.
-			}
-			UNPROTECT(1); // values
-		}
-		UNPROTECT(1); // className
-	} else {
-		if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
+	}
 		
-		om->data = REAL(matrix);	// TODO: Class-check first?
-		
-		if(isMatrix(matrix)) {
-			PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
-			dimList = INTEGER(matrixDims);
-			om->rows = dimList[0];
-			om->cols = dimList[1];
-			UNPROTECT(1);	// MatrixDims
-		} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
-			if(OMX_DEBUG) { Rprintf("Vector discovered.  Assuming rowity.\n"); }
-			om->rows = 1;
-			om->cols = length(matrix);
-		}
-		if(OMX_DEBUG) { Rprintf("Data connected to (%d, %d) matrix.\n", om->rows, om->cols); }
-	}	
+	om->data = REAL(matrix);	// TODO: Class-check first?
+	
+	if(isMatrix(matrix)) {
+		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
+		dimList = INTEGER(matrixDims);
+		om->rows = dimList[0];
+		om->cols = dimList[1];
+		UNPROTECT(1);	// MatrixDims
+	} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
+		if(OMX_DEBUG) { Rprintf("Vector discovered.  Assuming rowity.\n"); }
+		om->rows = 1;
+		om->cols = length(matrix);
+	}
+	if(OMX_DEBUG) { Rprintf("Data connected to (%d, %d) matrix.\n", om->rows, om->cols); }
+	
 	
 	om->localData = FALSE;
 	om->colMajor = TRUE;
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
 	om->originalColMajor = TRUE;
-	om->aliasedPtr = om->data;
+	om->aliasedPtr = NULL;
 	om->algebra = NULL;
 	om->objective = NULL;
 	om->currentState = state;
@@ -336,6 +316,10 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState* state) {
 
 	if(OMX_DEBUG) {
 		omxPrintMatrix(om, "Finished importing matrix");
+	}
+	
+	if(isMxMatrix) {
+		UNPROTECT(1); // matrix
 	}
 
 	return om;
@@ -382,53 +366,43 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		error("removeRowsAndColumns intended only for aliased matrices.\n");
 	}
 	
-	if(numRowsRemoved < 1 || numColsRemoved < 1) { return; }
+	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
 		
 	int numCols = 0;
 	int nextCol = 0;
 	int nextRow = 0;
-	int oldRows = om->rows;
-	int oldCols = om->cols;
+	int oldRows = om->aliasedPtr->rows;
+	int oldCols = om->aliasedPtr->cols;
 	int j,k;
+
+	om->rows = oldRows - numRowsRemoved;
+	om->cols = oldCols - numColsRemoved;
 	
-	om->rows = om->rows - numRowsRemoved;
-	om->cols = om->cols - numColsRemoved;
-	
+	if(om->rows > om->originalRows || om->cols > om->originalCols) {	// sanity check.
+		error("Aliased Matrix is too small for alias.");
+	}
+
 	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
-	if(om->colMajor) {
-		for(int j = 0; j < oldCols; j++) {
-			if(OMX_DEBUG) { Rprintf("Handling %d rows.\n", j);}
-			if(colsRemoved[j]) {
-				continue;
-			} else {
-				nextRow = 0;
-				for(int k = 0; k < oldRows; k++) {
-					if(rowsRemoved[k]) {
-						continue;
-					} else {
-						omxSetMatrixElement(om, nextRow, nextCol, om->aliasedPtr[k + j * oldRows]);
-						nextRow++;
-					}
+	for(int j = 0; j < oldCols; j++) {
+		if(OMX_DEBUG) { Rprintf("Handling column %d/%d...", j, oldCols);}
+		if(colsRemoved[j]) {
+			if(OMX_DEBUG) { Rprintf("Removed.\n");}
+			continue;
+		} else {
+			nextRow = 0;
+			if(OMX_DEBUG) { Rprintf("Rows (max %d): ", oldRows);}
+			for(int k = 0; k < oldRows; k++) {
+				if(rowsRemoved[k]) {
+					if(OMX_DEBUG) { Rprintf("%d removed....", k);}
+					continue;
+				} else {
+					if(OMX_DEBUG) { Rprintf("%d kept....", k);}
+					omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
+					nextRow++;
 				}
-				nextCol++;
 			}
-		}
-	} else {
-		for(int j = 0; j < oldRows; j++) {
-			if(rowsRemoved[j]) {
-				continue;
-			} else {
-				nextCol = 0;
-				for(int k = 0; k < oldCols; k++) {
-					if(colsRemoved[k]) {
-						continue;
-					} else {
-						omxSetMatrixElement(om, nextRow, nextCol, om->aliasedPtr[k + j * oldCols]);
-						nextCol++;
-					}
-				}
-				nextRow++;
-			}
+			if(OMX_DEBUG) { Rprintf("\n");}
+			nextCol++;
 		}
 	}
 

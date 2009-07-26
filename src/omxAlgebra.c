@@ -220,6 +220,10 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 	
 	PROTECT(intMatrix = AS_INTEGER(matrix));
 	value = INTEGER(intMatrix)[0];
+	if(value == NA_INTEGER) {
+		UNPROTECT(1);
+		return NULL;
+	}
 	
 	if(OMX_DEBUG) {Rprintf("  Pointer is %d.\n", value);}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.

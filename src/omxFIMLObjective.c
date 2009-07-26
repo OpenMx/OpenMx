@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include <R.h>
+#include <R.h> 
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -29,10 +29,10 @@ extern omxMatrix** matrixList;
 
 typedef struct omxDefinitionVar {		 	// Definition Var
 
-	int data, column;	 	// Where it comes from
-	int numLocations;	 	// Num locations
-	double** location;	 	// And where it goes
-	int* matrices;		 	// Matrix numbers for dirtying
+	int data, column;		// Where it comes from
+	int numLocations;		// Num locations
+	double** location;		// And where it goes
+	omxMatrix** matrices;	// Matrix numbers for dirtying
 
 } omxDefinitionVar;
 
@@ -41,15 +41,17 @@ typedef struct omxFIMLObjective {
 	omxMatrix* cov;
 	omxMatrix* means;
 	omxMatrix* data;
+	omxMatrix* dataRow;
 	omxMatrix* smallRow;
 	omxMatrix* smallCov;
 	omxMatrix* RCX;
+//	double* zeros;
 	omxDefinitionVar* defVars;
 	int numDefs;
 
 } omxFIMLObjective;
 
-void handleDefinitionVarList(omxMatrix* dataRow, omxDefinitionVar* defVars, int numDefs) {
+void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars, int numDefs) {
 
 	if(OMX_DEBUG) { Rprintf("Processing Definition Vars.\n"); }
 
@@ -57,11 +59,11 @@ void handleDefinitionVarList(omxMatrix* dataRow, omxDefinitionVar* defVars, int 
 	for(int k = 0; k < numDefs; k++) {
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG) {
-				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(dataRow, 0, defVars[k].column), defVars[k].matrices[l]);
+				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(data, row, defVars[k].column), defVars[k].matrices[l]);
 			}
-			*(defVars[k].location[l]) = omxMatrixElement(dataRow, 0, defVars[k].column);
-			omxMarkDirty(dataRow->currentState->matrixList[defVars[k].matrices[l]]);
-			if(ISNA(omxMatrixElement(dataRow, 0, k))) {
+			*(defVars[k].location[l]) = omxMatrixElement(data, row, defVars[k].column);
+			omxMarkDirty(defVars[k].matrices[l]);
+			if(ISNA(omxMatrixElement(data, row, defVars[k].column))) {
 				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
 			}
 		}
@@ -92,15 +94,16 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int numDefs;
 	int nextRow, nextCol, numCols, numRemoves;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataRows;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *data, *dataRow;
 	omxDefinitionVar* defVars;
 
-	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;			// Locals, for readability.  Compiler should cut through this.
+	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;		// Locals, for readability.  Should compile out.
 	means		= ((omxFIMLObjective*)oo->argStruct)->means;
 	smallRow 	= ((omxFIMLObjective*)oo->argStruct)->smallRow;
 	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
 	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
-	dataRows	= ((omxFIMLObjective*)oo->argStruct)->data;
+	data		= ((omxFIMLObjective*)oo->argStruct)->data;
+	dataRow		= ((omxFIMLObjective*)oo->argStruct)->dataRow;
 	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
 	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
 
@@ -112,10 +115,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int ipiv[cov->rows];
 	int lwork = 2*cov->rows;
 	double work[lwork];
+	int zeros[cov->cols];
 
 	sum = 0.0;
 
-	for(int row = 0; row < dataRows->rows; row++) {
+	for(int row = 0; row < data->rows; row++) {
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
 		logDet = 0.0;
 		Q = 0.0;
@@ -124,58 +128,46 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		numCols = 0;
 		numRemoves = 0;
 
-		omxResizeMatrix(smallRow, 1, cov->cols, FALSE); // Reset Row size //TODO: Test to see if aliasing is faster.
-
+		omxResetAliasedMatrix(smallRow); 										// Reset Row size
+		
 		// Determine how many rows/cols to remove.
-		if(OMX_DEBUG) {
-			Rprintf("covariance columns is %d, and data columns is %d.\n", cov->cols, dataRows->cols);
-		}
-		for(int j = 0; j < cov->cols; j++) {   // Quick fix: assume the first several columns are the ones included in the covariance calculation.  Others are assumed to be definition variables ONLY.  // TODO: Implement filter matrices.
-			if(ISNA(omxMatrixElement(dataRows, row, j))) {
+		for(int j = 0; j < dataRow->cols; j++) {
+			int value = (int) omxMatrixElement(dataRow, 0, j);
+			double dataValue = omxMatrixElement(data, row, j);
+			if(isnan(dataValue) || dataValue == NA_REAL) {
 				numRemoves++;
 				toRemove[j] = 1;
 			} else {
+				if(means != NULL) {
+					omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxMatrixElement(means, 0, numCols)));
+				} else {
+					omxSetMatrixElement(smallRow, 0, j, dataValue);
+				}
+				numCols++;
 				toRemove[j] = 0;
 			}
-			omxSetMatrixElement(smallRow, 0, j, omxMatrixElement(dataRows, row, j));
+			zeros[j] = 0;
 		}
-
-		if(cov->cols <= numRemoves) continue;
-
+		
 		// Handle Definition Variables.
 		if(numDefs != 0) {
-			if(OMX_DEBUG) { Rprintf("Handling Definition Vars.\n"); } // :::REMOVE:::
-			handleDefinitionVarList(smallRow, defVars, numDefs);
+			handleDefinitionVarList(data, row, defVars, numDefs);
+			omxStateNextRow(oo->matrix->currentState);							// Advance Row
 			omxRecompute(cov);
 		}
-
-		omxResizeMatrix(smallRow, 1, cov->cols - numRemoves, TRUE);	// Subsample this Row
-
-		if(means != NULL) {
-			for(int j = 0; j < cov->cols; j++) {
-				if(!toRemove[j]) {
-					omxSetMatrixElement(smallRow, 0, numCols++, omxMatrixElement(dataRows, row, j) - omxMatrixElement(means, 0, j));
-				}
-			}
-		}
-
-		if(OMX_DEBUG) { omxPrint(smallRow, "Data Row Is"); }
-
+				
+		if(dataRow->cols <= numRemoves) continue;
+		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
+		
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
 		/* The Calculation */
-		if(OMX_DEBUG) {omxPrint(smallCov, "Covariance Matrix is:");}
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-//		F77_CALL(dgetrf)(&(smallCov->rows), &(smallCov->cols), smallCov->data, &(smallCov->cols), ipiv, &info);
 		if(info != 0) {
-			char errstr[250];
-			sprintf(errstr, "Backing out of parameter space region where covariance matrix is not positive-definite.");
-			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
-			if (OMX_DEBUG) {
-				warning(errstr);
-			}
-			oo->matrix->currentState->statusCode = -1;
+			char errStr[250];
+			sprintf(errStr, "Backing out of parameter space region where covariance matrix is not positive-definite.");
+			omxRaiseError(oo->matrix->currentState, -1, errStr);
 			return;
 		}
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
@@ -183,12 +175,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 		logDet *= 2.0;
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-//		F77_CALL(dgetri)(&(smallCov->rows), smallCov->data, &(smallCov->cols), ipiv, work, &lwork, &info);
 		if(info != 0) {
 			char errstr[250];
 			sprintf(errstr, "Cannot invert covariance matrix. Error %d.", info);
-			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
-			oo->matrix->currentState->statusCode = -1;
+			omxRaiseError(oo->matrix->currentState, -1, errstr);
 			return;
 		}
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
@@ -234,7 +224,12 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("data")));
 	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(3);
-
+	
+	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataRow")));
+	newObj->dataRow = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);
+	
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
@@ -251,13 +246,13 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
 		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
-		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		newObj->defVars[nextDef].matrices = (omxMatrix **) R_alloc(length(itemList) - 2, sizeof(omxMatrix*));
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
 			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
 				oo->matrix->currentState->matrixList[(int) REAL(nextItem)[0]],
 				(int) REAL(nextItem)[1], (int) REAL(nextItem)[2]);
-			newObj->defVars[nextDef].matrices[index-2] = (int) REAL(nextItem)[0];
+			newObj->defVars[nextDef].matrices[index-2] = oo->matrix->currentState->matrixList[(int) REAL(nextItem)[0]];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList
@@ -268,9 +263,13 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE, oo->matrix->currentState);
 	newObj->RCX = omxInitMatrix(NULL, 1, newObj->data->cols, TRUE, oo->matrix->currentState);
+//	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
-
+	// We can alias smallrow to itself because: 1) it has local data 2) we populate it explicitly in FIML.
+	// TODO: do this more cleanly.
+	omxAliasMatrix(newObj->smallRow, newObj->smallRow);
+	
 	oo->objectiveFun = omxCallFIMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;

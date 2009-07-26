@@ -113,6 +113,9 @@ struct omxState {													// The Current State of Optimization
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxMatrix* objective); 
 	void omxFreeState(omxState *oo);									// Destructor
 	
+	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error 
+																		// TODO: Move RaiseError to omxOptimizer.
+	
 /* Advance a step */
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
