@@ -277,7 +277,13 @@ insertMeansPathRAM <- function(model, path) {
 		stop(paste('The means path to variable', omxQuotes(to),
 			'does not contain a single-headed arrow.'), call. = FALSE)
 	}
-	if (is.null(model[['M']])) { model[['M']] <- createMatrixM(model) }
+	if (is.null(model[['M']])) { 
+		if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
+			is.na(model@objective@M)) {
+				model@objective@M <- "M"
+		}
+		model[['M']] <- createMatrixM(model)
+	}
 	model[['M']] <- matrixSetPath(model[['M']], to, 1, path, 0)
 	return(model)
 }
