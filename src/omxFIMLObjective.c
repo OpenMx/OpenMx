@@ -172,7 +172,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			char errstr[250];
 			sprintf(errstr, "Backing out of parameter space region where covariance matrix is not positive-definite.");
 			strncpy(oo->matrix->currentState->statusMsg, errstr, 250);
-			warning(errstr);
+			if (OMX_DEBUG) {
+				warning(errstr);
+			}
 			oo->matrix->currentState->statusCode = -1;
 			return;
 		}
