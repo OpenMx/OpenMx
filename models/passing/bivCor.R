@@ -1,6 +1,5 @@
 require(OpenMx)
 require(MASS)
-setwd('/Users/hermine/Applications/bin/OpenMx/trunk/demo')
 
 #Simulate Data
 set.seed(200)
@@ -43,8 +42,8 @@ bivCorModel <- mxModel(
 		"expMean"))
 
 bivCorFit <- mxRun(bivCorModel)
-EM <- bivCorFit4[['expMean']]@values
-EC <- bivCorFit4[['expCov']]@values
+EM <- mxEvaluate(expMean, bivCorFit)
+EC <- mxEvaluate(expCov, bivCorFit)
 LL <- mxEvaluate(objective,bivCorFit);
 
 
@@ -60,20 +59,23 @@ bivCorModelSub <-mxModel(bivCorModel,
 		dimnames=list(selVars, selVars))
 )
 bivCorFitSub <- mxRun(bivCorModelSub)
-EMs <- bivCorFitSub[['expMean']]@values
-ECs <- bivCorFitSub[['expCov']]@values
-LLs <- mxEvaluate(objective,bivCorFitSub);
+EMs <- mxEvaluate(expMean, bivCorFitSub)
+ECs <- mxEvaluate(expCov, bivCorFitSub)
+LLs <- mxEvaluate(objective, bivCorFitSub);
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR") 
+original.directory <- getwd()
+setwd('temp-files')
+
 #Save Data in Mx Format
 testDataDF<-as.data.frame(testData)
 write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
 
+setwd(original.directory)
+
 #Run Mx
-source("runmx.R")
-mymatrices <- runmx(mx.script="bivCor.mx",mx.location="/usr/local/bin/mxt")
+mymatrices <- omxOriginalMx("mx-scripts/bivCor.mx", "temp-files")
 attach(mymatrices) #matrixName groupNumber . jobNumber
 Mx.EM <-M3.1; Mx.EC <-X3.1; Mx.LL <- F3.1;
 

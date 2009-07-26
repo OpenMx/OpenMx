@@ -1,5 +1,4 @@
 require(OpenMx)
-setwd('/Users/hermine/Applications/bin/OpenMx/trunk/demo')
 set.seed(100); x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x); selVars <- c("X"); dimnames(testData) <- list(NULL, selVars)
 summary(testData); mean(testData); var(testData)
@@ -55,26 +54,29 @@ univSatModel4 <- mxModel("univSat4",
 univSatFit4 <- mxRun(univSatModel4)
 EC4 <- univSatFit4[['expCov']]@values; EM4 <- univSatFit4[['expMean']]@values; LL4 <- mxEvaluate(objective,univSatFit4);
 
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR")
-cat("*\n",file='star')
-write.table(var(testData),file="cov",row.names=F,quote=F,col.names=F); system("cat star cov > testData.cov")
-write.table(mean(testData),file="mea",row.names=F,quote=F,col.names=F); system("cat star mea > testData.mea")
-testDataDF<-as.data.frame(testData)
-write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
+original.directory <- getwd()
+setwd('temp-files')
 
-source("runmx.R")
+cat("*\n",file='star')
+write.table(var(testData), file="cov", row.names=FALSE, quote=FALSE, col.names=FALSE); system("cat star cov > testData.cov")
+write.table(mean(testData), file="mea", row.names=FALSE, quote=FALSE, col.names=FALSE); system("cat star mea > testData.mea")
+testDataDF<-as.data.frame(testData)
+write.table(testDataDF,file="testData.rec",row.names=FALSE,na=".",quote=FALSE,col.names=FALSE)
+
+setwd(original.directory)
+
 #Mx file includes 3 Saturated Model jobs: 1: Cov Matrices, 2: Cov Matrices + Means, 3: Raw Data 
-mymatrices1 <- runmx(mx.script="univSatR1.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices1 <- omxOriginalMx("mx-scripts/univSatR1.mx", "temp-files")
 attach(mymatrices1) #matrixName groupNumber . jobNumber
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <-X3.1; Mx.LL1 <- F3.1;
 
-mymatrices2 <- runmx(mx.script="univSatR1m.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices2 <- omxOriginalMx("mx-scripts/univSatR1m.mx", "temp-files")
 attach(mymatrices2) #matrixName groupNumber . jobNumber
 #example Mx..1m: Saturated Model with Cov Matrices & Means
 Mx.EM1m <-M3.1; Mx.EC1m <-X3.1; Mx.LL1m <- F3.1;
 
-mymatrices3 <- runmx(mx.script="univSatR2.mx",mx.location="/usr/local/bin/mxt.169")
+mymatrices3 <- omxOriginalMx("mx-scripts/univSatR2.mx", "temp-files")
 attach(mymatrices3) #matrixName groupNumber . jobNumber
 #example Mx..2: Saturated Model with Raw Data
 Mx.EM2 <-M3.1; Mx.EC2 <-X3.1; Mx.LL2 <- F3.1;
