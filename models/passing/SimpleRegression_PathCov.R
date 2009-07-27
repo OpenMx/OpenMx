@@ -6,7 +6,7 @@ myRegDataCov <- matrix(
 	
 myRegDataMeans<-c(0.05416, 2.57393)
 
-# Some comment for making the 
+# Create an MxModel object
 uniRegModel <- mxModel("Simple Regression -- Path Specification", 
     type="RAM",
     mxData(
@@ -49,3 +49,9 @@ uniRegFit <- mxRun(uniRegModel)
 # summary(uniRegFit)
 
 uniRegFit@output
+
+omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.54776, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.48312, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.672, 0.01)
+omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.05412, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.11654, 0.001)
