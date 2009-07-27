@@ -48,8 +48,21 @@ currentDirectory <- getwd()
 setwd('temp-files')
 
 cat("*\n",file='star')
-write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F); system("cat star cov > testData.cov")
-write.table(colMeans(testData),file="mea",row.names=F,quote=F,col.names=F); system("cat star mea > testData.mea")
+write.table(cov(testData),file="cov",row.names=F,quote=F,col.names=F)
+if (.Platform$OS.type == "windows") {
+	system("cmd /c cat star cov > testData.cov")
+} else {
+	system("cat star cov > testData.cov")
+}
+
+write.table(colMeans(testData),file="mea",row.names=F,quote=F,col.names=F)
+
+if (.Platform$OS.type == "windows") {
+	system("cmd /c cat star mea > testData.mea")
+} else {
+	system("cat star mea > testData.mea")
+}
+
 testDataDF<-as.data.frame(testData)
 write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
 
