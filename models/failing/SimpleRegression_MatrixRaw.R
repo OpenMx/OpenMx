@@ -1,3 +1,36 @@
+<<<<<<< .mine
+require(OpenMx)
+myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+
+myRegDataRaw<-myRegDataRaw[,c("x","y")]
+
+uniRegModel<-mxModel("Simple Regression - Matrix Specification", 
+    mxData(
+        data=myRegDataRaw,
+        type="raw"),
+    mxMatrix(
+        type="Full", nrow=2, ncol=2,
+        values=c(0, 0,
+                 1, 0),
+        free=c(F, F,
+               T, F),
+        labels=c(NA,      NA,
+                 "beta1", NA),
+        byrow=TRUE,
+        name="A"),
+    mxMatrix("Symm", nrow=2, ncol=2, 
+        values=c(1, 0,
+                 0, 1),
+        free=c(T, F,
+               T, F),
+        labels=c("varx", NA,
+                  NA,    "residual"),
+        byrow=TRUE,
+        name="S"),
+    mxMatrix("Iden",  nrow=2, ncol=2,
+        dimnames=list(
+      			c("x","y"),
+=======
 require(OpenMx)
 myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
 
@@ -26,6 +59,7 @@ model<-mxModel("Simple Regression - Matrix Specification",
       mxMatrix("Iden",  nrow=2, ncol=2,
       		dimnames=list(
       			c("x","y"),
+>>>>>>> .r559
       			c("x","y")),
             name="F"),
       mxMatrix("Full", nrow=1, ncol=2,
@@ -37,6 +71,19 @@ model<-mxModel("Simple Regression - Matrix Specification",
       			c("x","y")),
             name="M"),
       mxRAMObjective("A","S","F","M")
+<<<<<<< .mine
+      )
+      
+uniRegOutput<-mxRun(uniRegOutput)
+
+uniRegOutput@output
+
+omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.54776, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.48312, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.672, 0.01)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.05412, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.11654, 0.001)
+=======
       )
       
 regressionMatrixRaw<-mxRun(model)
@@ -49,4 +96,4 @@ omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["beta1"]], 0.48312, 0.0
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["residual"]], 0.672, 0.001)
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["meanx"]], 0.05412, 0.001)
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["varx"]], 1.11654, 0.001)
-# All pass except varx: varx = 1.1053196
+# All pass except varx: varx = 1.1053196>>>>>>> .r559
