@@ -1,0 +1,41 @@
+Our next example will show how simple regression can be carried out from a structural modeling perspective. This example will extend the framework of the previous examples, and use both matrix and path-centric specification for both raw and covariance data. These four versions of this example are available in the following files:
+
+SimpleRegression_MatrixCov.R
+SimpleRegression_MatrixRaw.R
+SimpleRegression_PathCov.R
+SimpleRegression_PathRaw.R
+
+We begin with a single dependent variable (y) and a single independent variable (x). The relationship between these variables takes the following form:
+
+\begin{eqnarray*} 
+y &=& \beta_0 + \beta_1 * x + \epsilon
+\end{eqnarray*}
+
+In this model, the mean of y is dependent on both regression coefficients (and by extension, the mean of x). The variance of y depends on both the residual variance and the product of the regression slope and the variance of x. While other perspectives will treat this problem as though it has either two ($\beta_0$ and $\beta_1$) or three ($\beta_0$, $\beta_1$ and $\sigma^2_{\epsilon}$) parameters, this model contains five parameters from a structural modeling perspective ($\beta_0$, $\beta_1$, $\sigma^2_{\epsilon}$, and the mean and variance of x). We are modeling a covariance matrix with three degrees of freedom (two variances and one variance) and a means vector with two degrees of freedom (two means). Because the model has as many parameters (5) as the data have degrees of freedom, this model is fully saturated, and will provide perfect fit to the data.
+
+Data
+
+Our first step to running this model is to put include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the read.table function. The data provided has a header row, indicating the names of the variables.
+
+myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+
+The names fo the variables provided by the header row can be displayed with the names() function.
+
+> names(myRegDataRaw)
+[1] "w" "x" "y" "z"
+
+As you can see, our data has four variables in it. However, our model only contains two variables, x and y. To use only them, we'll select only the variables we want and place them back into our data object. We can refer to individual rows and columns of a data frame or matrix using square brackets, with selected rows referenced first and selected columns referenced second, separated by a comma. In the code below, we select all rows (there is no selection operator before the comma) and only columns x and y. As we are selecting multiple columns, we use the c() function to concatonate or connect those two names into one object.
+
+myRegDataRaw<-myRegDataRaw[,c("x","y")]
+
+For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can also include a covariance matrix. This requires the matrix() function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we'll include a vector of means in a separate object.
+
+myRegDataCov <- matrix(
+	c(1.116, 0.539,
+	  0.539, 0.933),
+	nrow=2,
+	dimnames=list(c("x", "y"), c("x", "y")))
+	
+myRegDataMeans<-c(0.05416, 2.57393)
+
+
