@@ -13,6 +13,7 @@ Contents:
    
    intro2
    changes
+   RegDemo
 
 Reference
 =========
