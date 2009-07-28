@@ -11,13 +11,17 @@ Contents:
 .. toctree::
    :maxdepth: 2
    
-   intro
+   intro2
    changes
+
+Reference
+=========
+
+* `OpenMx R documentation <_static/Rdoc/00Index.html>`_
 
 Indices and tables
 ==================
 
-* `OpenMx R documentation <_static/Rdoc/00Index.html>`_
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
