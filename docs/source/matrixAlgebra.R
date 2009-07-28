@@ -11,4 +11,4 @@ algebraExercises <- mxModel(
 
 answers <- mxRun(algebraExercises)
 answers@algebras
-result <- MxEvaluate(list(q1,q2,q3,q4),answers)
+result <- mxEvaluate(list(q1,q2,q3,q4),answers)
