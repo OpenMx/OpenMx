@@ -21,6 +21,13 @@
 
 
 omxOriginalMx <- function(mx.filename, output.directory) {
+	original.directory <- getwd()
+	result <- tryCatch(originalMxHelper(mx.filename, output.directory),
+		finally=setwd(original.directory))
+	return(result)
+}
+
+originalMxHelper <- function(mx.filename, output.directory) {
   
 	if (is.na(file.info(mx.filename)$size)) {
 		stop(paste("Cannot find the file named", mx.filename))
@@ -37,7 +44,6 @@ omxOriginalMx <- function(mx.filename, output.directory) {
 	mxo.filename <- paste(gsub(".mx","",mx.filename),".mxo",sep="") 
 	############ 
 
-	original.directory <- getwd()
 	setwd(output.directory)
 
 	############ 
@@ -260,8 +266,6 @@ omxOriginalMx <- function(mx.filename, output.directory) {
 ############ 
 		} # Inner loop - matrices
 	} # Outer loop - jobs
-
-	setwd(original.directory)
 
 	return(matrices)
 }
