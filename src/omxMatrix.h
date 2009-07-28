@@ -95,6 +95,7 @@ struct omxMatrix {						// A matrix
 
 /* Getters 'n Setters */
 	double omxMatrixElement(omxMatrix *om, int row, int col);
+	double omxVectorElement(omxMatrix *om, int index);
 	void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
 	void omxMarkDirty(omxMatrix *om);

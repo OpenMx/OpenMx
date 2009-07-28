@@ -311,19 +311,18 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	int ipiv[newObj->C->cols];
 	omxCopyMatrix(newObj->C, newObj->cov);
 
-	F77_CALL(dgetrf)(&(newObj->C->rows), &(newObj->C->cols), newObj->C->data, &(newObj->C->leading), ipiv, &info);
-//	F77_CALL(dpotrf)(&u, &(newObj->C->cols), newObj->C->data, &(newObj->C->cols), &info);
+//	F77_CALL(dgetrf)(&(newObj->C->rows), &(newObj->C->cols), newObj->C->data, &(newObj->C->leading), ipiv, &info);
+	F77_CALL(dpotrf)(&u, &(newObj->C->cols), newObj->C->data, &(newObj->C->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info > 0) {
 		error("Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
 	}
 	for(info = 0; info < newObj->C->cols; info++) { 
 		det *= omxMatrixElement(newObj->C, info, info);			// Determinant
-		sum += omxMatrixElement(newObj->cov, info, info);		// Trace
 	}
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
-	newObj->logDetObserved = log(fabs(det)) + sum;
+	newObj->logDetObserved = log(det * det) + newObj->cov->rows;
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
 
 	oo->objectiveFun = omxCallRAMObjective;

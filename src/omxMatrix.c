@@ -199,7 +199,7 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 
 void omxComputeMatrix(omxMatrix *om) {
 	
-	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
+//	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
 	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
 	om->leading = (om->colMajor?om->rows:om->cols);
@@ -224,6 +224,12 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 		index = row * om->cols + col;
 	}
 	return om->data + index;
+}
+
+double omxVectorElement(omxMatrix *om, int index) {
+	if(index < om->rows * om->cols) {
+		return om->data[index];
+	}
 }
 
 double omxMatrixElement(omxMatrix *om, int row, int col) {
@@ -360,7 +366,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
-	if(OMX_DEBUG) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
+//	if(OMX_DEBUG) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
 	
 	if(om->aliasedPtr == NULL) {  // This is meant only for aliased matrices.  Maybe Need a subclass?
 		error("removeRowsAndColumns intended only for aliased matrices.\n");

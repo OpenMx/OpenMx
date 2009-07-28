@@ -109,7 +109,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	if(numDefs == 0) {
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
+		omxRecompute(means);
 	}
+	
+	if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 
 	int toRemove[cov->cols];
 	int ipiv[cov->rows];
@@ -121,7 +124,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	for(int row = 0; row < data->rows; row++) {
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		logDet = 0.0;
+		logDet = 1.0;
 		Q = 0.0;
 
 		// Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
@@ -129,6 +132,14 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		numRemoves = 0;
 
 		omxResetAliasedMatrix(smallRow); 										// Reset Row size
+		
+		// Handle Definition Variables.
+		if(numDefs != 0) {
+			handleDefinitionVarList(data, row, defVars, numDefs);
+			omxStateNextRow(oo->matrix->currentState);							// Advance Row
+			omxRecompute(cov);
+			omxRecompute(means);
+		}
 		
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataRow->cols; j++) {
@@ -139,7 +150,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				toRemove[j] = 1;
 			} else {
 				if(means != NULL) {
-					omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxMatrixElement(means, 0, numCols)));
+					omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
 				} else {
 					omxSetMatrixElement(smallRow, 0, j, dataValue);
 				}
@@ -149,13 +160,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			zeros[j] = 0;
 		}
 		
-		// Handle Definition Variables.
-		if(numDefs != 0) {
-			handleDefinitionVarList(data, row, defVars, numDefs);
-			omxStateNextRow(oo->matrix->currentState);							// Advance Row
-			omxRecompute(cov);
-		}
-				
 		if(dataRow->cols <= numRemoves) continue;
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 		
@@ -171,9 +175,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			return;
 		}
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
-			logDet += log(fabs(smallCov->data[diag + (diag * smallCov->rows)]));
+			logDet *= omxMatrixElement(smallCov, diag, diag);
 		}
-		logDet *= 2.0;
+		logDet = log(logDet * logDet);
+		
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			char errstr[250];
@@ -182,13 +187,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			return;
 		}
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
-		for(int col = 0; col < smallRow->cols; col++) {
-			Q += RCX->data[col] * smallRow->data[col];
-		}
+		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);;
+//		for(int col = 0; col < smallRow->cols; col++) {
+//			Q += RCX->data[col] * smallRow->data[col];
+//		}
 		sum += logDet + Q + (log(2 * M_PI) * smallRow->cols);
-		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}
+//		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}
 	}
 
+	if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}
 	oo->matrix->data[0] = sum;
 
 }
@@ -207,10 +214,8 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-//	if(ISNA(nextMatrix)) {
-//		error("NO FIML MEANS PROVIDED.");
-//	}
 	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	if(newObj->means == NULL) { error("No means in FIML evaluation.");}
 	UNPROTECT(1);
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
@@ -218,7 +223,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(1);
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
 	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("data")));

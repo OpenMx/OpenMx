@@ -175,8 +175,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) {omxPrint(scov, "Observed Covariance Matrix:");}
 	if(OMX_DEBUG) {omxPrint(localCov, "Inverse Matrix:");}
 	if(OMX_DEBUG) {omxPrint(localProd, "Product Matrix:");}
-	if(OMX_DEBUG) {Rprintf("trace is %f and log(det(observed)) is %f.\n", sum, Q);}
-	
+		
 	if(means != NULL) {
 		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
 		omxRecompute(smeans);
@@ -196,9 +195,9 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		if(fmean < 0.0) fmean = 0.0;
 	}
 	
-    oo->matrix->data[0] = sum + det - scov->rows - Q + fmean;
+	oo->matrix->data[0] = sum + det + fmean;
 
-	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (was: %f).\n", oo->matrix->data[0], (sum + det)); }
+	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
 
 }
 
@@ -218,6 +217,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	int nextDef, index, data, column;
 	int *items, info=0;
 	double det=1.0;
+	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
@@ -271,14 +271,13 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	for(int i = 0; i < rows; i++) omxSetMatrixElement(newObj->I, i, i, 1.0);
 	
-	int ipiv[newObj->observedCov->rows];
-	
 	omxCopyMatrix(newObj->localCov, newObj->observedCov);
 	
 	newObj->lwork = newObj->expectedCov->rows;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
 	
-	F77_CALL(dgetrf)(&(newObj->localCov->cols), &(newObj->localCov->rows), newObj->localCov->data, &(newObj->localCov->cols), ipiv, &info);
+	
+	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info > 0) {
@@ -286,12 +285,12 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	}
 
 	for(info = 0; info < newObj->localCov->cols; info++) { 
-		det *= newObj->localCov->data[info+newObj->localCov->rows*info];
+		det *= omxMatrixElement(newObj->localCov, info, info);
 	}
 	det *= det;					// Product of squares.
 
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
-	newObj->logDetObserved = log(fabs(det));
+	newObj->logDetObserved = log(det);
 	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
 	
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
