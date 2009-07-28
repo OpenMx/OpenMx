@@ -66,7 +66,7 @@ if (length(errors) > 0) {
 	fileName <- names(errors)
 	for (i in 1:length(errors)) {
 		cat("From model", fileName[[i]], ':\n')
-		print(errors[[i]])
+		print(errors[[i]]$message)
 		cat('\n')
 	}
 }

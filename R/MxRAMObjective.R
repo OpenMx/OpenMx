@@ -83,7 +83,13 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		if (flatModel@datasets[[.Object@data]]@type != 'raw' || 
 			is.na(.Object@M)) {
 			return(model)
-		}	
+		}
+		if (is.null(dimnames(flatModel[[.Object@F]]))) {
+			msg <- paste("The F matrix in model",
+				omxQuotes(model@name),
+				"does not have row and column names.")
+			stop(msg, call.=FALSE)
+		}
 		if (is.null(model[['I']])) {
 			iName <- 'I'
 		} else {

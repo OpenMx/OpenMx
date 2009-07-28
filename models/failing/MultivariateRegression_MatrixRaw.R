@@ -1,5 +1,5 @@
 require(OpenMx)
-myRegDataCov<-read.table("myRegData.txt",header=TRUE)
+myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
 	
 model<-mxModel("Multiple Regression - Matrix Specification", 
       mxData(myRegDataRaw,type="raw"),
