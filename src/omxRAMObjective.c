@@ -33,8 +33,21 @@ typedef struct {
 
 } omxRAMObjective;
 
+omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) Calloc(1, omxRListElement);
+	retVal->numValues = 1;
+	retVal->values = (double*) Calloc(1, double);
+	strncpy(retVal->label, "Saturated", 10);
+	*(retVal->values) = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
+	return retVal;
+}
+
 void omxDestroyRAMObjective(omxObjective *oo) {
 	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
+	
+	oo->matrix->currentState->saturatedModel = argStruct->logDetObserved;
+	
 	omxFreeMatrixData(argStruct->I);
 	omxFreeMatrixData(argStruct->C);
 	omxFreeMatrixData(argStruct->X);
@@ -327,6 +340,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	oo->objectiveFun = omxCallRAMObjective;
 	oo->destructFun = omxDestroyRAMObjective;
+	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	oo->repopulateFun = NULL;
 	

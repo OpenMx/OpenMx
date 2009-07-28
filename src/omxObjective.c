@@ -38,6 +38,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->repopulateFun = NULL;
 	oo->objectiveFun = NULL;
 	oo->needsUpdateFun = NULL;
+	oo->setFinalReturns = NULL;
 	oo->gradientFun = NULL;
 	oo->argStruct = NULL;
 	strncpy(oo->objType, "\0", 1);

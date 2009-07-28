@@ -50,7 +50,7 @@ multipleRegMatrixCov<-mxRun(model)
 
 multipleRegMatrixCov@output
 
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["beta0"]], 1.6331, 0.001)
+omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["beta0"]], 1.6331, 0.001) # <-- Are we sure about this?
 omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["betax"]], 0.4246, 0.001)
 omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["betaz"]], 0.2260, 0.001)
 omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["residual"]], 0.646, 0.001)

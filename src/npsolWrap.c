@@ -299,17 +299,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Set up Optimization Memory Allocations */
 
-	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices;
-
-	PROTECT(ans = allocVector(VECSXP, 8));
-	PROTECT(names = allocVector(STRSXP, 8));
-	PROTECT(minimum = NEW_NUMERIC(1));
-	PROTECT(code = NEW_NUMERIC(1));
-	PROTECT(status = allocVector(VECSXP, 3));
-	PROTECT(iterations = NEW_NUMERIC(1));
-	PROTECT(matrices = NEW_LIST(currentState->numMats));
-	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
-
 	if(n == 0) {			// Special Case for the evaluation-only condition
 
 		if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
@@ -324,22 +313,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		inform = 0;
 		iter = 0;
 
-		// Allocate vectors & matrices of length 0,
-		// because the front-end will read these values
-		// and expects 0 elements, not 1 element that is NA.
-		PROTECT(estimate = allocVector(REALSXP, 0));
-		PROTECT(gradient = allocVector(REALSXP, 0));
-		PROTECT(hessian = allocMatrix(REALSXP, 0, 0));
-
 		omxStateNextEvaluation(currentState);	// Advance for a final evaluation.
 
 	} else {
-
-		/* N-dependent SEXPs */
-		PROTECT(estimate = allocVector(REALSXP, n));
-		PROTECT(gradient = allocVector(REALSXP, n));
-		PROTECT(hessian = allocMatrix(REALSXP, n, n));
-
 		/* Initialize Scalar Variables. */
 		nclin = 0;						// No linear constraints.
 
@@ -560,6 +536,22 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
+	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices, other;
+
+	PROTECT(ans = allocVector(VECSXP, 9));
+	PROTECT(names = allocVector(STRSXP, 9));
+	PROTECT(minimum = NEW_NUMERIC(1));
+	PROTECT(code = NEW_NUMERIC(1));
+	PROTECT(status = allocVector(VECSXP, 3));
+	PROTECT(iterations = NEW_NUMERIC(1));
+	PROTECT(matrices = NEW_LIST(currentState->numMats));
+	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
+
+	/* N-dependent SEXPs */
+	PROTECT(estimate = allocVector(REALSXP, n));
+	PROTECT(gradient = allocVector(REALSXP, n));
+	PROTECT(hessian = allocMatrix(REALSXP, n, n));
+
 	/* Store outputs for return */
 	if(objective != NULL) {
 		REAL(minimum)[0] = f;
@@ -604,17 +596,50 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 		UNPROTECT(1);	/* algebra */
 	}
+	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n", k); }
+	
+	other = NULL;
+	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n", k); }
+	omxMatrix* om = currentState->objectiveMatrix;
+	if(om != NULL) {					// In the event of a no-objective run.
+		omxObjective* oo = om->objective;
+		if(OMX_DEBUG) { Rprintf("Checking for additional objective info.\n"); }
+		if(oo != NULL && oo->setFinalReturns != NULL) {
+			if(OMX_DEBUG) { Rprintf("Expecting objective Info....");}
+			int numEls;
+			SEXP oNames, oElement;
+			omxRListElement* orle = oo->setFinalReturns(oo, &numEls);
+			if(numEls != 0) {
+				if(OMX_DEBUG) { Rprintf("Adding additional objective Info....");}
+				PROTECT(other = allocVector(VECSXP, numEls));
+				PROTECT(oNames = allocVector(STRSXP, numEls));
+				for(int i =0; i < numEls; i++) {
+					PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
+					for(int j = 0; j < orle[i].numValues; j++)
+						REAL(oElement)[j] = orle[i].values[j];
+					SET_STRING_ELT(oNames, i, mkChar(orle[i].label));
+					SET_VECTOR_ELT(other, i, oElement);
+					UNPROTECT(1); // oElement
+				}
+				namesgets(other, oNames);
+				UNPROTECT(1); // oNames
+			}
+		}
+	}
+	
+	if(other == NULL) {
+		PROTECT(other = allocVector(VECSXP, 0));
+	}
 
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
 
-	/* Fill Status code. Right now, it fills with nothing, since there's no error system implemented. */
+	/* Fill Status code. */
 	SET_VECTOR_ELT(status, 0, code);
 	PROTECT(code = NEW_NUMERIC(1));
 	REAL(code)[0] = currentState->statusCode;
 	SET_VECTOR_ELT(status, 1, code);
 	SET_VECTOR_ELT(status, 2, mkChar(currentState->statusMsg));
-
 
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
@@ -624,6 +649,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("matrices"));
 	SET_STRING_ELT(names, 7, mkChar("algebras"));
+	SET_STRING_ELT(names, 8, mkChar("other"));
 
 	SET_VECTOR_ELT(ans, 0, minimum);
 	SET_VECTOR_ELT(ans, 1, estimate);
@@ -633,6 +659,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, matrices);
 	SET_VECTOR_ELT(ans, 7, algebras);
+	SET_VECTOR_ELT(ans, 8, other);
 	namesgets(ans, names);
 
 	if(VERBOSE) {
@@ -643,7 +670,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(currentState);
 
-	UNPROTECT(12);						// Unprotect NPSOL Parameters
+	UNPROTECT(13);						// Unprotect Output Parameters
 
 	return(ans);
 

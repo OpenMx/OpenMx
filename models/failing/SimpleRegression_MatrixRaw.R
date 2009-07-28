@@ -46,6 +46,7 @@ regressionMatrixRaw@output
 
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["beta0"]], 2.54776, 0.001)
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["beta1"]], 0.48312, 0.001)
-omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["residual"]], 0.672, 0.01)
+omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["residual"]], 0.672, 0.001)
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["meanx"]], 0.05412, 0.001)
 omxCheckCloseEnough(regressionMatrixRaw@output$estimate[["varx"]], 1.11654, 0.001)
+# All pass except varx: varx = 1.1053196

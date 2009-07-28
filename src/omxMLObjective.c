@@ -45,15 +45,24 @@ typedef struct omxMLObjective {
 } omxMLObjective;
 
 void omxDestroyMLObjective(omxObjective *oo) {
-	
-	omxMLObjective* omlo = (omxMLObjective*)oo;
-/*
-	omxFreeMatrixData(omlo->observedCov);
-	omxFreeMatrixData(omlo->observedMeans);
-	omxFreeMatrixData(omlo->expectedCov);
-	omxFreeMatrixData(omlo->expectedMeans);
+
+	omxMLObjective* omlo = ((omxMLObjective*)oo->argStruct);
+
 	omxFreeMatrixData(omlo->localCov);
-	*/
+	omxFreeMatrixData(omlo->localProd);
+	omxFreeMatrixData(omlo->P);
+	omxFreeMatrixData(omlo->C);
+	omxFreeMatrixData(omlo->I);
+}
+
+omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) Calloc(1, omxRListElement);
+	retVal->numValues = 1;
+	retVal->values = (double*) Calloc(1, double);
+	strncpy(retVal->label, "Saturated", 10);
+	*(retVal->values) = ((omxMLObjective*)oo->argStruct)->logDetObserved;
+	return retVal;
 }
 
 void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -298,6 +307,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
 	oo->repopulateFun = NULL;
 	oo->argStruct = (void*) newObj;
 	

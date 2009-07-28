@@ -94,7 +94,7 @@ struct omxState {													// The Current State of Optimization
 		If Shortcut evaluation is enabled, any matrix/algebra with a lastCompute of 0 will not check to see 
 		if it needs updating, ever.  Any matrix/algebra with a lastRow of 0 will not check row-by-row to see
 		if it need re-evaluation.  This can be disabled in cases where the dependency tree might change during
-		optimization. */
+		optimization.  NOT YET IMPLEMENTED. */
 
 /* Current Optimization State (optimizer-specific) */
 	void* optimizerState;											// Optimizer specific state storage
@@ -105,6 +105,7 @@ struct omxState {													// The Current State of Optimization
 	
 	int statusCode;													// Status code, if appropriate
 	char statusMsg[250];											// Status/Error message to report
+	double saturatedModel;											// Saturated model likelihood, where applicable
 
 };
 

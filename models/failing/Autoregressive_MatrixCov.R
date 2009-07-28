@@ -70,17 +70,17 @@ autoregressiveMatrixCov<-mxRun(model)
 autoregressiveMatrixCov@output
 
 #Comparing to Mplus values
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.427, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["varx"]], 0.665, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e2"]], 1.142, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e3"]], 1.038, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e4"]], 0.791, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e5"]], 0.818, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["mean1"]], 3.054, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int2"]], 0.082, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int3"]], 0.089, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int4"]], -0.036, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int5"]], -0.135, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.427, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["varx"]], 0.665, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e2"]], 1.142, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e3"]], 1.038, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e4"]], 0.791, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e5"]], 0.818, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["mean1"]], 3.054, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int2"]], 0.082, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int3"]], 0.089, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int4"]], -0.036, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int5"]], -0.135, 0.001)
 
 #Comparing to Raw Data values
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.37298, 0.001)
