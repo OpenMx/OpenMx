@@ -42,7 +42,6 @@ mxRun <- function(model) {
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	state <- c()
-	print(objectives)
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
 	output <- .Call("callNPSOL", objective, startVals, 
