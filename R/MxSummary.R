@@ -13,6 +13,30 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+observedStatistics <- function(model) {
+	data <- model@data
+	if (is.null(data)) {
+		return(0)
+	}
+	if (data@type == 'cov' || data@type == 'sscp') {
+		n <- nrow(data@data)
+		dof <- n * (n + 1) / 2
+		if (!is.na(data@means)) {
+			dof <- dof + length(data@means)
+		}
+		return(dof)
+	} else if (data@type == 'cor') {
+		n <- nrow(data@data)
+		dof <- n * (n - 1) / 2
+		if (!is.na(data@means)) {
+			dof <- dof + length(data@means)
+		}
+		return(dof)
+	} else {
+		return(length(data@data))
+	}
+}
+
 computeOptimizationStatistics <- function(model) {
 	retval <- list()
 	if(length(model@output) == 0) { return(retval) }
@@ -31,6 +55,9 @@ computeOptimizationStatistics <- function(model) {
 		}
 		retval[['parameters']] <- ptable
 	}
+	retval[['estimatedParameters']] <- length(parameters)
+	retval[['observedStatistics']] <- observedStatistics(model)
+	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
 	return(retval)
 }
 
@@ -51,6 +78,9 @@ setMethod("summary", "MxModel",
 			print(retval$parameters)
 			cat('\n')
 		}
+		cat("Observed statistics: ", retval$observedStatistics, '\n')
+		cat("Estimated parameters: ", retval$estimatedParameters, '\n')
+		cat("Degrees of freedom: ", retval$degreesOfFreedom, '\n')
 		cat("AIC: ", '\n')
 		cat("BIC: ", '\n')
 		cat("adjusted BIC:", '\n')
