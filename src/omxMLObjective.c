@@ -194,11 +194,10 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		if(OMX_DEBUG) {omxPrint(smeans, "smeans");}
 		F77_CALL(dgemm)(I->majority, smeans->majority, &(smeans->rows), &(smeans->cols), &(smeans->rows), &minusoned, I->data, &(I->leading), smeans->data, &(smeans->leading), &oned, P->data, &(P->leading));
 		// C = P * Cov
-		if(OMX_DEBUG) {omxPrint(P, "means - smeans");}
-		F77_CALL(dgemm)(P->majority, localCov->majority, &(P->rows), &(P->cols), &(localCov->cols), &oned, P->data, &(P->leading), localCov->data, &(localCov->leading), &zerod, C->data, &(C->leading));
-		if(OMX_DEBUG) {omxPrint(C, "P*Cov");}
+		F77_CALL(dsymv)(&u, &(localCov->rows), &oned, localCov->data, &(localCov->leading), P->data, &onei, &zerod, C->data, &onei);
 		// P = C * P'
-		F77_CALL(dgemm)(C->majority, P->minority, &onei, &(C->cols), &onei, &oned, C->data, &(C->leading), P->data, &(P->lagging), &zerod, &fmean, &onei);
+		fmean = F77_CALL(ddot)(&(C->cols), P->data, &onei, C->data, &onei);
+
 		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); } 
 		fmean = fmean * n;
 		if(fmean < 0.0) fmean = 0.0;
