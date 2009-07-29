@@ -12,7 +12,7 @@ uniRegModel<-mxModel("Simple Regression - Matrix Specification",
         nrow=2, 
         ncol=2,
         free=c(F, F,
-               F, F),
+               T, F),
         values=c(0, 0,
                  1, 0),
         labels=c(NA,     NA,
@@ -52,7 +52,7 @@ uniRegModel<-mxModel("Simple Regression - Matrix Specification",
     mxRAMObjective("A", "S", "F", "M")
 )
       
-uniRegOutput<-mxRun(uniRegOutput)
+uniRegOutput<-mxRun(uniRegModel)
 
 uniRegOutput@output
 
