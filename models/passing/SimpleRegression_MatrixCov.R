@@ -1,26 +1,34 @@
 require(OpenMx)
 myRegDataCov <- matrix(
-    c(1.116, 0.539,
-      0.539, 0.933),
-    nrow=2,
-    dimnames=list(c("x","y"),c("x","y"))
+    c(0.808,-0.110, 0.089, 0.361,
+     -0.110, 1.116, 0.539, 0.289,
+      0.089, 0.539, 0.933, 0.312,
+      0.361, 0.289, 0.312, 0.836),
+    nrow=4,
+    dimnames=list(
+        c("w","x","y","z"),
+        c("w","x","y","z"))
 )
-	
-myRegDataMeans <- c(0.05416, 2.57393)
+ 
+SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
+ 
+myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
+SimpleDataMeans <- myRegDataMeans[c(2,3)]
+	
 uniRegModel <- mxModel("Simple Regression - Matrix Specification", 
     mxData(
-      data=myRegDataCov, 
+      data=SimpleDataCov, 
       type="cov", 
       numObs=100,
-      means=myRegDataMeans
+      means=SimpleDataMeans
     ),
     mxMatrix(
         type="Full", 
         nrow=2, 
         ncol=2,
-        free=c(FALSE, FALSE,
-               TRUE,  FALSE),
+        free=c(F, F,
+               T, F),
         values=c(0, 0,
                  1, 0),
         labels=c(NA,     NA,
@@ -34,8 +42,8 @@ uniRegModel <- mxModel("Simple Regression - Matrix Specification",
         ncol=2, 
         values=c(1, 0,
                  0, 1),
-        free=c(TRUE,  FALSE,
-               FALSE, TRUE),
+        free=c(T, F,
+               F, T),
         labels=c("varx", NA,
                   NA,    "residual"),
         byrow=TRUE,
@@ -45,15 +53,17 @@ uniRegModel <- mxModel("Simple Regression - Matrix Specification",
         type="Iden",  
         nrow=2, 
         ncol=2,
+        dimnames=list(c("x","y"),c("x","y")),
         name="F"
     ),
     mxMatrix(
         type="Full", 
         nrow=1, 
         ncol=2,
-        free=c(TRUE, TRUE),
+        free=c(T, T),
         values=c(0, 0),
         labels=c("meanx", "beta0"),
+        dimnames=list(NULL,c("x","y")),
         name="M"),
     mxRAMObjective("A", "S", "F", "M")
 )
