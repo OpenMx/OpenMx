@@ -131,7 +131,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		}
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = meansFormula, y = meansName)))
-		dimnames(algebra) <- list(NULL, manifestLatentVars)
+		dimnames(algebra) <- list(NULL, manifestVars)
 		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(x, y),
 			list(x = covName, y = meansName)))
