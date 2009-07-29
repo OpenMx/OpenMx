@@ -22,16 +22,11 @@ directories <- c('models/failing')
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
 	error = function(e) { file('nul', 'w') } )
 
-
 sink(null, type = 'output')	
 sink(null, type = 'message')
 
-
 files <- list.files(directories, pattern = '^.+[.]R$',
 	full.names = TRUE, recursive = TRUE)
-
-onlynames <- list.files(directories, pattern = '^.+[.]R$',
-	full.names = FALSE, recursive = TRUE)
 	
 errors <- list()
 	
@@ -46,7 +41,9 @@ errorRecover <- function(script, index) {
 		error = function(x) {
 			errors[[script]] <<- x
 		})
-	rm(list=setdiff(ls(), c('error', 'errorRecover', 'onlynames', 'files', 'directories')))
+	rm(envir=globalenv(), 
+		list=setdiff(ls(envir=globalenv()), 
+			c('errors', 'errorRecover', 'null', 'files', 'directories')))
 }
 
 if (length(files) > 0) {
@@ -59,7 +56,7 @@ sink(type = 'output')
 sink(type = 'message')	
 close(null)
 
-noerrors <- setdiff(onlynames, names(errors))
+noerrors <- setdiff(files, names(errors))
 if (length(noerrors) > 0) {
 	for (i in 1:length(noerrors)) {
 		cat("No error in file", noerrors[[i]], '\n')

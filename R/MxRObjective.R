@@ -19,8 +19,7 @@ setClass(Class = "MxRObjective",
 		objfun = "function",
 		model = "MxModel",
 		flatModel = "MxFlatModel",
-		parameters = "list",
-		env = "environment"),
+		parameters = "list"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRObjective",
@@ -34,11 +33,10 @@ setMethod("initialize", "MxRObjective",
 )
 
 setMethod("omxObjFunConvert", signature("MxRObjective"), 
-	function(.Object, flatModel, model, env) {
+	function(.Object, flatModel, model) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
 		.Object@parameters <- generateParameterList(flatModel)
-		.Object@env <- globalenv()
 		return(.Object)
 })
 

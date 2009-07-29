@@ -43,7 +43,9 @@ errorRecover <- function(script, index) {
 		error = function(x) {
 			errors[[script]] <<- x
 		})
-	rm(list=setdiff(ls(), c('error', 'errorRecover', 'files', 'directories')))
+	rm(envir=globalenv(), 
+		list=setdiff(ls(envir=globalenv()), 
+			c('errors', 'errorRecover', 'null', 'files', 'directories')))
 }
 
 if (length(files) > 0) {

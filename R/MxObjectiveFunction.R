@@ -31,7 +31,7 @@ setGeneric("omxObjFunNamespace",
 })
 
 setGeneric("omxObjFunConvert", 
-	function(.Object, flatModel, model, env) {
+	function(.Object, flatModel, model) {
 	return(standardGeneric("omxObjFunConvert"))	
 })
 
@@ -50,9 +50,9 @@ setMethod("omxObjModelConvert", "NULL",
 		return(model)
 })
 
-convertObjectives <- function(flatModel, model, env) {
+convertObjectives <- function(flatModel, model) {
 	retval <- lapply(flatModel@objectives, function(x) {
-		omxObjFunConvert(x, flatModel, model, env)
+		omxObjFunConvert(x, flatModel, model)
 	})
 	return(retval)
 }

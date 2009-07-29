@@ -47,7 +47,7 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 })
 
 setMethod("omxObjFunConvert", signature("MxFIMLObjective"), 
-	function(.Object, flatModel, model, env) {
+	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if(is.na(.Object@data)) {
 			msg <- paste("The FIML objective",

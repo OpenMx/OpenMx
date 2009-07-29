@@ -46,7 +46,7 @@ setMethod("omxObjFunNamespace", signature("MxMLObjective"),
 })
 
 setMethod("omxObjFunConvert", signature("MxMLObjective"), 
-	function(.Object, flatModel, model, env) {
+	function(.Object, flatModel, model) {
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means

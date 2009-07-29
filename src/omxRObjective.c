@@ -32,7 +32,6 @@ typedef struct {
 	PROTECT_INDEX modelIndex;
 	SEXP flatModel;
 	SEXP parameters;
-	SEXP env;
 	SEXP state;
 	PROTECT_INDEX stateIndex;
 
@@ -40,7 +39,7 @@ typedef struct {
 
 void omxDestroyRObjective(omxObjective *oo) {
 	
-	UNPROTECT(6); 			// objfun, model, flatModel, parameters, env, and state
+	UNPROTECT(5); 			// objfun, model, flatModel, parameters, and state
 }
 
 void omxCallRObjective(omxObjective *oo) {
@@ -51,7 +50,7 @@ void omxCallRObjective(omxObjective *oo) {
 	SETCAR(theCall, rObjective->objfun);
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->state);
-	PROTECT(theReturn = eval(theCall, rObjective->env));
+	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
 	oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
 	if (LENGTH(theReturn) > 1) {
 		REPROTECT(rObjective->state = CADR(theReturn), rObjective->stateIndex);
@@ -86,7 +85,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	SETCADDDR(theCall, rObjective->parameters);
 	SETCAD4R(theCall, estimate);
 
-	REPROTECT(rObjective->model = eval(theCall, rObjective->env), rObjective->modelIndex);
+	REPROTECT(rObjective->model = eval(theCall, R_GlobalEnv), rObjective->modelIndex);
 
 	UNPROTECT(2); // theCall, estimate
 }
@@ -98,7 +97,6 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
 	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
 	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));
-	PROTECT(newObj->env = GET_SLOT(rObj, install("env")));	
 	PROTECT_WITH_INDEX(newObj->state = NEW_NUMERIC(1), &(newObj->stateIndex));
 	REAL(newObj->state)[0] = NA_REAL;
 	
