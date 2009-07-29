@@ -157,6 +157,8 @@ substituteOperators <- function(algebra) {
 displayAlgebra <- function(mxAlgebra) {
 	cat("mxAlgebra", omxQuotes(mxAlgebra@name), '\n')
 	cat("formula: ", deparse(mxAlgebra@formula, width.cutoff=500L), '\n')
+	cat("result: \n")
+	print(mxAlgebra@result)
 	if (is.null(dimnames(mxAlgebra))) {
 			cat("dimnames: NULL\n")
 	} else {
