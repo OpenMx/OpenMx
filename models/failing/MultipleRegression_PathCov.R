@@ -36,7 +36,7 @@ multiRegModel <- mxModel("Multiple Regression -- Path Specification",
       # covariance of x and z
       mxPath(
           from="x",
-          to="y",
+          to="z",
           arrows=2,
           free=TRUE,
           values=0.5,
@@ -70,7 +70,8 @@ omxCheckCloseEnough(multipleRegPathCov@output$estimate[["beta0"]], 1.6331, 0.001
 omxCheckCloseEnough(multipleRegPathCov@output$estimate[["betax"]], 0.4246, 0.001)
 omxCheckCloseEnough(multipleRegPathCov@output$estimate[["betaz"]], 0.2260, 0.001)
 omxCheckCloseEnough(multipleRegPathCov@output$estimate[["residual"]], 0.646, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varx"]], 1.116, 0.001) multipleRegPathRaw omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varz"]], 0.836, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["cov"]], 0.289, 0.001)
+omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varx"]], 1.116, 0.001)
+omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varz"]], 0.836, 0.001)
+omxCheckCloseEnough(multipleRegPathCov@output$estimate[["covxz"]], 0.289, 0.001)
 omxCheckCloseEnough(multipleRegPathCov@output$estimate[["meanx"]], 0.054, 0.001)
 omxCheckCloseEnough(multipleRegPathRaw@output$estimate[["meanz"]], 4.061, 0.001)

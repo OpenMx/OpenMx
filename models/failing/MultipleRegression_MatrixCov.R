@@ -52,7 +52,7 @@ model<-mxModel("Multiple Regression - Matrix Specification",
       mxRAMObjective("A","S","F","M")
       )
       
-multipleRegMatrixCov<-mxRun(model)
+multipleRegMatrixCov <- mxRun(model)
 
 multipleRegMatrixCov@output
 
