@@ -218,6 +218,21 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" ")), call. = FALSE)
 	}
+	if (is.list(values)) {
+		stop("'Values' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	}
+	if (is.list(free)) {
+		stop("'Free' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	}
+	if (is.list(labels)) {
+		stop("'Labels' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	}
+	if (is.list(lbound)) {
+		stop("'Lbound' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	}
+	if (is.list(ubound)) {
+		stop("'Ubound' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	}
 	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels) 
 		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(nrow))) {
