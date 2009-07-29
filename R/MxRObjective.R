@@ -38,7 +38,7 @@ setMethod("omxObjFunConvert", signature("MxRObjective"),
 		.Object@model <- model
 		.Object@flatModel <- flatModel
 		.Object@parameters <- generateParameterList(flatModel)
-		.Object@env <- env
+		.Object@env <- globalenv()
 		return(.Object)
 })
 

@@ -42,10 +42,11 @@ errorRecover <- function(script, index) {
 		length(files), script, "...\n"))
 	sink(null, type = 'output')	
 	sink(null, type = 'message')
-	tryCatch(local(source(script, local=TRUE, chdir = TRUE)), 
+	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
 			errors[[script]] <<- x
 		})
+	rm(list=setdiff(ls(), c('error', 'errorRecover', 'onlynames', 'files', 'directories')))
 }
 
 if (length(files) > 0) {
