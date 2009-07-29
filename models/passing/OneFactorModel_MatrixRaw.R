@@ -62,9 +62,9 @@ oneFactorModel<-mxModel("Common Factor Model - Matrix Specification",
                      0,0,0,0,1,0,0,
                      0,0,0,0,0,1,0),
             byrow=TRUE,
-            #dimnames=list(
-            #	c("x1","x2","x3","x4","x5","x6"),
-            #	c("x1","x2","x3","x4","x5","x6",NA)),
+            dimnames=list(
+            	c("x1","x2","x3","x4","x5","x6"),
+            	c("x1","x2","x3","x4","x5","x6","F1")),
             name="F"),
       mxMatrix("Full", nrow=1, ncol=7,
             values=c(1,1,1,1,1,1,0),
@@ -72,9 +72,9 @@ oneFactorModel<-mxModel("Common Factor Model - Matrix Specification",
             labels=c("meanx1","meanx2","meanx3",
                      "meanx4","meanx5","meanx6",
                      NA),
-            #dimnames=list(
-            #	NULL,
-            #	c("x1","x2","x3","x4","x5","x6",NA)),
+            dimnames=list(
+            	NULL,
+            	c("x1","x2","x3","x4","x5","x6","F1")),
             name="M"),
       mxRAMObjective("A","S","F","M")
       )
