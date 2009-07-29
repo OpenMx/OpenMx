@@ -34,11 +34,11 @@ setMethod("initialize", "MxRObjective",
 )
 
 setMethod("omxObjFunConvert", signature("MxRObjective"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, env) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
 		.Object@parameters <- generateParameterList(flatModel)
-		.Object@env <- .GlobalEnv
+		.Object@env <- env
 		return(.Object)
 })
 

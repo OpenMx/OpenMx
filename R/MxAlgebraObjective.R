@@ -30,7 +30,7 @@ setMethod("initialize", "MxAlgebraObjective",
 )
 
 setMethod("omxObjFunConvert", signature("MxAlgebraObjective"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, env) {
 		name <- .Object@name
 		algebra <- .Object@algebra
 		algebraIndex <- omxLocateIndex(flatModel, algebra, name)

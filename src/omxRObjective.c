@@ -51,7 +51,6 @@ void omxCallRObjective(omxObjective *oo) {
 	SETCAR(theCall, rObjective->objfun);
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->state);
-
 	PROTECT(theReturn = eval(theCall, rObjective->env));
 	oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
 	if (LENGTH(theReturn) > 1) {

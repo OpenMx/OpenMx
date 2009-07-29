@@ -94,7 +94,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = {
-{"callNPSOL", (void*(*)())&callNPSOL, 8},
+{"callNPSOL", (void*(*)())&callNPSOL, 9},
 {NULL, NULL, 0}
 };
 

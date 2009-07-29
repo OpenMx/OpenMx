@@ -29,17 +29,17 @@ S1 <- mxMatrix("Full", 1.1,free=TRUE, nrow=1, ncol=1, name="S")
 S2 <- mxMatrix("Full", 2.1,free=TRUE, nrow=1, ncol=1, name="S")
 
 #A Matrix, 1 x 1 Zero Matrix
-A <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
+matrixA <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
 
 #F Matrix, 1 x 1 Identity Matrix
-F <- mxMatrix("Iden", nrow=1, name="F")
+matrixF <- mxMatrix("Iden", nrow=1, name="F")
 
 #Lets make some objective functions!
 objective <- mxRAMObjective("A", "S", "F")
 
 #Models
-model1<-mxModel("first", A, S1, F, objective, data1)
-model2<-mxModel("second", A, S2, F, objective, data2)
+model1<-mxModel("first", matrixA, S1, matrixF, objective, data1)
+model2<-mxModel("second", matrixA, S2, matrixF, objective, data2)
 
 #Run them
 output1<-mxRun(model1)

@@ -37,18 +37,12 @@ errorRecover <- function(script, index) {
 	sink(type = 'message')	
 	cat(paste("Running model", index, "of",
 		length(files), script, "...\n"))
-	currentDir <- getwd()
-	paths <- strsplit(script, '[/\\]')[[1]]
-	dirs <- paths[-length(paths)]
-	dirs <- paste(dirs, collapse='/')
-	filename <- paths[[length(paths)]]
 	sink(null, type = 'output')	
 	sink(null, type = 'message')
-	setwd(dirs)			
-	tryCatch(local(source(filename)), error = function(x) {
-		errors[[script]] <<- x
-	})
-	setwd(currentDir)
+	tryCatch(local(source(script, local=TRUE, chdir = TRUE)), 
+		error = function(x) {
+			errors[[script]] <<- x
+		})
 }
 
 if (length(files) > 0) {

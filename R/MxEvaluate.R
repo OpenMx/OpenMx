@@ -17,29 +17,31 @@ mxEvaluate <- function(expression, model, show = FALSE) {
 	formula <- match.call()$expression
 	modelVariable <- match.call()$model
 	labelsData <- omxGenerateLabels(model)
-	formula <- evaluateTranslation(formula, model, modelVariable, labelsData)
+	formula <- evaluateTranslation(formula, model, modelVariable, labelsData, FALSE)
 	if (show) {
-		cat(deparse(formula, width.cutoff = 500L), '\n')
+		showFormula <- evaluateTranslation(formula, model, modelVariable, labelsData, TRUE)
+		cat(deparse(showFormula, width.cutoff = 500L), '\n')
 	}
 	return(eval(formula))
 }
 
-evaluateTranslation <- function(formula, model, modelVariable, labelsData) {
+evaluateTranslation <- function(formula, model, modelVariable, labelsData, show) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEvaluate has reached an invalid state")
 	} else if (len == 1) {
-		formula <- translateSymbol(formula, model, modelVariable, labelsData)
+		formula <- translateSymbol(formula, model, modelVariable, labelsData, show)
 	} else {
 		formula[-1] <- lapply(formula[-1], 
-			evaluateTranslation, model, modelVariable, labelsData)
+			evaluateTranslation, model, modelVariable, labelsData, show)
 	}
 	return(formula)
 }
 
-translateSymbol <- function(symbol, model, modelVariable, labelsData) {
+translateSymbol <- function(symbol, model, modelVariable, labelsData, show) {
 	key <- deparse(symbol)
 	index <- match(key, dimnames(labelsData)[[1]])
+	if (!show) modelVariable <- as.symbol('model')
 	if (!is.na(index)) {
 		labelModel <- labelsData[[index,"model"]]
 		labelMatrix <- labelsData[[index,"matrix"]]
