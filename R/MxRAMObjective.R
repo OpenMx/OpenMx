@@ -72,6 +72,23 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		return(.Object)
 })
 
+fMatrixTranslateNames <- function(fMatrix, modelName) {
+	retval <- character()
+	colNames <- dimnames(fMatrix)[[2]]
+	for(i in 1:nrow(fMatrix)) {
+		irow <- fMatrix[i,]
+		matches <- which(irow == 1)
+		if (length(matches) != 1) {
+			err <- paste("The model",
+				omxQuotes(modelName), "does not contain",
+				"a valid F matrix")
+			stop(err, call. = FALSE)
+		}
+		retval[[i]] <- colNames[[matches[[1]]]]
+	}
+	return(retval)
+}
+
 setMethod("omxObjModelConvert", "MxRAMObjective",
 	function(.Object, flatModel, model) {
 		if(is.na(.Object@data)) {
@@ -84,10 +101,11 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 			is.na(.Object@M)) {
 			return(model)
 		}
-		if (is.null(dimnames(flatModel[[.Object@F]]))) {
+		dims <- dimnames(flatModel[[.Object@F]])
+		if (is.null(dims) || is.null(dims[[2]])) {
 			msg <- paste("The F matrix in model",
 				omxQuotes(model@name),
-				"does not have row and column names.")
+				"does not have column names.")
 			stop(msg, call.=FALSE)
 		}
 		if (is.null(model[['I']])) {
@@ -117,9 +135,8 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 				S = as.symbol(.Object@S)))
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = covFormula, y = covName)))
-		manifestVars <- dimnames(flatModel[[.Object@F]])[[1]]
-		manifestLatentVars <- dimnames(flatModel[[.Object@F]])[[2]]
-		dimnames(algebra) <- list(manifestVars, manifestVars)
+		translatedNames <- fMatrixTranslateNames(flatModel[[.Object@F]], model@name)
+		dimnames(algebra) <- list(translatedNames, translatedNames)
 		model <- mxModel(model, algebra)
 		meansFormula <- substitute(F %*% Z %*% t(M),
 			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
@@ -131,7 +148,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		}
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = meansFormula, y = meansName)))
-		dimnames(algebra) <- list(NULL, manifestVars)
+		dimnames(algebra) <- list(NULL, translatedNames)
 		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(x, y),
 			list(x = covName, y = meansName)))
