@@ -1,4 +1,3 @@
-setwd("~/Applications/bin/OpenMx/trunk/demo/ExamplesH/")
 require(OpenMx)
 
 #Simulate Data
@@ -16,7 +15,7 @@ univSatFit3 <- mxRun(univSatModel3)
 EC3 <- univSatFit3[['expCov']]@values
 LL3 <- mxEvaluate(objective,univSatFit3);
 SL3 <- univSatFit3@output$other$Saturated
-Chi3 <- LL3-SL3
+Chi3 <- LL3 - SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrices input
 univSatModel3m <- mxModel("univSat3m",
@@ -29,7 +28,7 @@ EM3m <- univSatFit3m[['expMean']]@values
 EC3m <- univSatFit3m[['expCov']]@values
 LL3m <- mxEvaluate(objective,univSatFit3m);
 SL3m <- univSatFit3m@output$other$Saturated
-Chi3m <- LL3m-SL3m
+Chi3m <- LL3m - SL3m
 
 #Mx answers hard-coded
 #example Mx..1: Saturated Model with Cov Matrices

@@ -1,4 +1,3 @@
-setwd("~/Applications/bin/OpenMx/trunk/demo/ExamplesH/")
 require(OpenMx)
 
 #Simulate Data
