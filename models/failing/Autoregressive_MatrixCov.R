@@ -58,7 +58,7 @@ model<-mxModel("Autoregressive Model, Matrix Specification, Covariance Data",
       mxMatrix("Full", nrow=1, ncol=5,
             values=c(1,1,1,1,1),
             free=c(T, T, T, T, T),
-            labels=c("mean1","int2","in3","int4","int5"),
+            labels=c("mean1","int2","int3","int4","int5"),
             dimnames=list(
 				NULL, c("x1","x2","x3","x4","x5")),
             name="M"),
