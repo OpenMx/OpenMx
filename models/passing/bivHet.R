@@ -1,4 +1,3 @@
-setwd("~/Applications/bin/OpenMx/trunk/demo/ExamplesH")
 require(OpenMx)
 
 #Simulate Data
@@ -73,24 +72,24 @@ bivHetModel <- mxModel("bivHet",
 	mxAlgebraObjective("h12"))
 	
 bivHetFit <- mxRun(bivHetModel)
-EM1 <- bivHetFit[['EM1']]@values
-EM2 <- bivHetFit[['EM2']]@values
-EC1 <- mxEvaluate(Chol1 %*% t(Chol1),bivHetFit)
-EC2 <- mxEvaluate(Chol2 %*% t(Chol2),bivHetFit)
-LLHet <- mxEvaluate(objective,bivHetFit);
+EM1 <- mxEvaluate(group1.EM1, bivHetFit)
+EM2 <- mxEvaluate(group2.EM2, bivHetFit)
+EC1 <- mxEvaluate(group1.Chol1 %*% t(group1.Chol1),bivHetFit)
+EC2 <- mxEvaluate(group2.Chol2 %*% t(group2.Chol2),bivHetFit)
+LLHet <- mxEvaluate(objective, bivHetFit);
 
-bivHomModel <- bivHetModel
-bivHomModel[['group2.EC2']]@labels <- bivHomModel[['group1.EC1']]@labels
+bivHomModel <- mxModel(bivHetModel, name="bivHom")
+bivHomModel[['group2.EC2']] <- mxAlgebra(group1.EC1, dimnames=list(selVars, selVars))
 bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
 
 bivHomFit <- mxRun(bivHomModel)
-EM1 <- bivHomFit[['EM1']]@values
-EM2 <- bivHomFit[['EM2']]@values
-EC1 <- mxEvaluate(Chol1 %*% t(Chol1),bivHomFit)
-EC2 <- mxEvaluate(Chol2 %*% t(Chol2),bivHomFit)
-LLHom <- mxEvaluate(objective,bivHomFit);
+EM1 <- mxEvaluate(group1.EM1, bivHomFit)
+EM2 <- mxEvaluate(group2.EM2, bivHomFit)
+EC1 <- mxEvaluate(group1.Chol1 %*% t(group1.Chol1), bivHomFit)
+EC2 <- mxEvaluate(group2.Chol2 %*% t(group2.Chol2), bivHomFit)
+LLHom <- mxEvaluate(objective, bivHomFit);
 
-Chi= LLhet-LLhom;
-LRT= rbind(LLhet,LLhom,Chi); LRT
+Chi <- LLHet - LLHom;
+LRT <- rbind(LLHet, LLHom, Chi); LRT
 
 
