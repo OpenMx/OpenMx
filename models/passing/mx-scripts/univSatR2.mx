@@ -13,7 +13,7 @@ G1
 End
 
 G2
- Data NInputvars=2
+ Data NInputvars=1
  Rectangular File= testData.rec
  Begin Matrices;  = Group 1
  Means M;
