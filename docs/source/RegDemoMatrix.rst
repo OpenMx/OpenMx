@@ -255,11 +255,11 @@ We've created an ``MxModel`` object, and placed it into an object or variable na
 
   uniRegFit@output
 
-The ``output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``mxSummary`` function, as shown here.
+The ``output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``summary`` function, as shown here.
 
 .. code-block:: r
 
-  mxSummary(uniRegFit)
+  summary(uniRegFit)
 
 Multiple Regression
 -------------------
@@ -360,7 +360,7 @@ The A matrix now contains two free parameters, representing the regressions of t
       
 We've made a similar changes in the other matrices. The S matrix includes not only a variance term for the z variable, but also a covariance between the two independent variables. The F matrix still does not contain free parameters, but has expanded in size and made parallel changes in the ``dimnames`` arguments. The M matrix includes an additional free parameter for the mean of z.
 
-The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``mxSummary`` function to run, view and summarize the completed model.
+The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary`` function to run, view and summarize the completed model.
 
 Multivariate Regression
 -----------------------
@@ -448,6 +448,6 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
       mxRAMObjective("A","S","F","M")
   )
 
-The only additional components to our ``mxMatrix`` functions are the inclusion of the "w" variable, which becomes the first row and column of all matrices. The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``mxSummary`` function to run, view and summarize the completed model.
+The only additional components to our ``mxMatrix`` functions are the inclusion of the "w" variable, which becomes the first row and column of all matrices. The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary`` function to run, view and summarize the completed model.
 
 These models may also be specified using paths instead of matrices. See link for matrix specification of these models.

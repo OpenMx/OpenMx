@@ -197,11 +197,11 @@ We've created an ``MxModel`` object, and placed it into an object or variable na
 
   uniRegFit@output
 
-The ``output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``mxSummary`` function, as shown here.
+The ``output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``summary`` function, as shown here.
 
 .. code-block:: r
 
-  mxSummary(uniRegFit)
+  summary(uniRegFit)
 
 Multiple Regression
 -------------------
@@ -283,7 +283,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 
   multiRegFit@output
   
-  mxSummary(multiRegFit)
+  summary(multiRegFit)
 
 The first bit of our code should look very familiar. ``require(OpenMx)`` makes sure the OpenMx library is loaded into R. This only needs to be done at the first model of any R session. The ``type="RAM"`` argument is identical. The ``mxData`` function references our multiple regression data, which contains one more variable than our simple regression data. Similarly, our ``manifestVars`` list contains an extra label, ``"z"``.
 
@@ -304,7 +304,7 @@ Our second ``mxPath`` function specifies a two-headed arrow (covariance) between
 
 The third and fourth ``mxPath`` functions mirror the second and third ``mxPath`` functions from our simple regression, defining the regressions of y on both x and z as well as the means and intercepts of our model.
 
-The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``mxSummary`` function to run, view and summarize the completed model.
+The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary`` function to run, view and summarize the completed model.
 
 Multivariate Regression
 -----------------------
@@ -404,7 +404,7 @@ Our code should look very similar to our previous two models. It includes the sa
 
   multivariateRegFit@output
   
-  mxSummary(multivariateRegFit)  
+  summary(multivariateRegFit)  
   
 The only additional components to our ``mxPath`` functions are the inclusion of the "w" variable and the additional set of regression coefficients for "w". Running the model and viewing output works exactly as before.
 

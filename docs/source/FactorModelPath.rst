@@ -38,7 +38,7 @@ Our first step to running this model is to put include the data to be analyzed. 
   > names(myFADataRaw)
   [1] "x1" "x2" "x3" "x4" "x5" "x6" "y1" "y2" "y3"
 
-  oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6"]
+  oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
 
   myFADataCov <- matrix(
       c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
@@ -130,15 +130,71 @@ can be replaced with a covariance matrix and means, like so:
           numObs=500,
           means=oneFactorMeans)
           
-The first departure from our previous examples can be found in the addition of the ``latentVars`` argument after the ``manifestVars`` argument.
+The first departure from our previous examples can be found in the addition of the ``latentVars`` argument after the ``manifestVars`` argument. The ``manifestVars`` argument includes the six variables in our observed data. The ``latentVars`` argument provides a name for the latent variable, so that it may be referenced in ``mxPath`` functions.
 
+.. code-block:: r
 
+  manifestVars=c("x1","x2","x3","x4","x5","x6"),
+  latentVars="F1"
 
+Our model is defined by four ``mxPath`` functions. The first defines the residual variance terms for our six observed variables. The ``to`` argument is not required, as we are specifiying two headed arrows both from and to the same variables, as specified in the ``from`` argument. These six variances are all freely estimated, have starting values of 1, and are labeled ``e1`` through ``e6``.
 
+.. code-block:: r
 
+  mxPath(from=c("x1","x2","x3","x4","x5","x6"),
+      arrows=2,
+      free=TRUE,
+      values=c(1,1,1,1,1,1),
+      labels=c("e1","e2","e3","e4","e5","e6")
+  )
+      
+We also must specify the variance of our latent variable. This code is identical to our residual variance code above, with the latent variable ``"F1"`` replacing our six manifest variables. 
+      
+.. code-block:: r
 
+  mxPath(from="F1",
+      arrows=2,
+      free=TRUE,
+      values=1,
+      labels ="varF1"
+  )
+          
+Next come the factor loadings. These are specified as assymetric paths (regressions) of the manifest variables on the latent variable ``"F1"``. As we have to scale the latent variable, the first factor loading has been given a fixed value of one by setting the first elements of the ``free`` and ``values`` arguments to ``FALSE`` and ``1``, respectively. Alternatively, the latent variable could have been scaled by fixing the factor variance to 1 in the previous ``mxPath`` function and freely estimating all factor loadings. The five factor loadings that are freely estimated are all given starting values of 1 and labels ``l2`` through ``l6``.   
+          
+.. code-block:: r
 
+  mxPath(from="F1",
+      to=c("x1","x2","x3","x4","x5","x6"),
+      arrows=1,
+      free=c(FALSE,TRUE,TRUE,TRUE,TRUE,TRUE),
+      values=c(1,1,1,1,1,1),
+      labels =c("l1","l2","l3","l4","l5","l6")
+  )
 
+Lastly, we must specify the mean structure for this model. As there are a total of seven variables in this model (six manifest and one latent), we have the potential for seven means. However, we must constrain at least one mean to a constant value, as there is not sufficient information to yield seven mean and intercept estimates from the six observed means. The six observed variables receive freely estimated intercepts, while the factor mean is fixed to a value of zero in the code below.
+     
+.. code-block:: r
+
+  mxPath(from="one",
+      to=c("x1","x2","x3","x4","x5","x6","F1"),
+      arrows=1,
+      free=c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE),
+      values=c(1,1,1,1,1,1,0),
+      labels =c("meanx1","meanx2","meanx3",
+          "meanx4","meanx5","meanx6",
+          NA)
+  )
+
+The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
+A summary of the output can be reached using ``summary()``.
+
+.. code-block:: r
+
+  oneFactorFit <- mxRun(oneFactorModel)
+
+  oneFactorFit@output
+
+  summary(oneFactorFit)
 
 Two Factor Model
 -------------------
@@ -153,4 +209,95 @@ The common factor model can be extended to include multiple latent variables. Th
    y_{ij} = \mu_{j} + \lambda_{j} * \eta_{2i} + \epsilon_{ij}
    \end{eqnarray*}
 
-.. image:: Factor1.png
+.. image:: Factor2.png
+
+Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we'll constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
+
+The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we'll select three x variables (``x1-x3``) and three y variables (``y1-y3```).
+
+.. code-block:: r
+
+  twoFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "y1", "y2", "y3")]
+
+  twoFactorCov <- myFADataCov[c("x1", "x2", "x3", "y1", "y2", "y3"),c("x1", "x2", "x3", "y1", "y2", "y3")]
+  
+  twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
+  
+Specifying the two factor model is virtually identical to the single factor case. The last three variables of our ``manifestVars`` argument have changed from ``"x4","x5","x6"`` to "y1","y2","y3", which is carried through references to the variables in later ``mxPath`` functions.
+ 
+.. code-block:: r 
+  
+  twofactorModel<-mxModel("Two Factor Model - Path", 
+      type="RAM",
+      mxData(
+          data=twoFactorRaw, 
+          type="raw"
+          ),
+      manifestVars=c("x1","x2","x3","y1","y2","y3"),
+      latentVars=c("F1","F2"),
+      # residual variances
+      mxPath(from=c("x1","x2","x3","y1","y2","y3"),
+          arrows=2,
+          free=TRUE,
+          values=c(1,1,1,1,1,1),
+          labels=c("e1","e2","e3","e4","e5","e6")
+          ),
+      # latent variances and covariance
+      mxPath(from=c("F1","F2"),
+          arrows=2,
+          all=2,
+          free=TRUE,
+          values=c(1, .5,
+                  .5, 1),
+          labels=c("varF1","cov","cov","varF2")
+          ),
+      # factor loadings for x variables
+      mxPath(from="F1",
+          to=c("x1","x2","x3"),
+          arrows=1,
+          free=c(FALSE,TRUE,TRUE),
+          values=c(1,1,1),
+          labels=c("l1","l2","l3")
+          ),
+      #factor loadings for y variables
+      mxPath(from="F2",
+          to=c("y1","y2","y3"),
+          arrows=1,
+          free=c(FALSE,TRUE,TRUE),
+          values=c(1,1,1),
+          labels=c("l4","l5","l6")
+          ),
+      #means
+      mxPath(from="one",
+          to=c("x1","x2","x3","y1","y2","y3","F1","F2"),
+          arrows=1,
+          free=c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,FALSE),
+          values=c(1,1,1,1,1,1,0,0),
+          labels=c("meanx1","meanx2","meanx3",
+                   "meany1","meany2","meany3",
+                    NA,NA)
+      )
+  )
+  
+We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` and ``latentVars`` arguments previously, so now we'll focus on the changes this model makes to the ``mxPath`` functions. The first and last ``mxPath`` functions, which detail residual variances and intercepts, accomodate the changes in manifest and latent variables but carry out identical functions to the common factor model.
+
+.. code-block:: r 
+
+  # residual variances
+  mxPath(from=c("x1","x2","x3","y1","y2","y3"),
+      arrows=2,
+      free=TRUE,
+      values=c(1,1,1,1,1,1),
+      labels=c("e1","e2","e3","e4","e5","e6")
+      ),
+  #means
+  mxPath(from="one",
+      to=c("x1","x2","x3","y1","y2","y3","F1","F2"),
+      arrows=1,
+      free=c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,FALSE),
+      values=c(1,1,1,1,1,1,0,0),
+      labels=c("meanx1", "meanx2", "meanx3", "meany1","meany2","meany3",
+                    NA,NA)
+  )
+  
+The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function
