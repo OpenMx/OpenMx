@@ -61,7 +61,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal->numValues = 1;
 	retVal->values = (double*) Calloc(1, double);
 	strncpy(retVal->label, "Saturated", 10);
-	*(retVal->values) = ((omxMLObjective*)oo->argStruct)->logDetObserved;
+	*(retVal->values) = ((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols;
 	return retVal;
 }
 
