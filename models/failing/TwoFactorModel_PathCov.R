@@ -60,3 +60,23 @@ model<-mxModel("Two Factor Model - Path",
       
  
 twoFactorPathCov<-mxRun(model)
+
+
+omxCheckCloseEnough(oneFactorFit@output$estimate[["l2"]], 0.999, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["l3"]], 0.959, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["l4"]], 1.028, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["l5"]], 1.008, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["l6"]], 1.021, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["varF1"]], 0.645, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e1"]], 0.350, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e2"]], 0.379, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e3"]], 0.389, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e4"]], 0.320, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e5"]], 0.370, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["e6"]], 0.346, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx1"]], 2.988, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx2"]], 3.011, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx3"]], 2.986, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx4"]], 3.053, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx5"]], 3.016, 0.01)
+omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx6"]], 3.010, 0.01)

@@ -1,7 +1,7 @@
 Regression, Path Specification
 =====================================
 
-Our next example will show how regression can be carried out from a path-centric structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one with raw data, and one where the data is supplied as a covariance matrix and vector of means. These examples are availabe in the following files:
+Our next example will show how regression can be carried out from a path-centric structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one with raw data, and one where the data is supplied as a covariance matrix and vector of means. These examples are available in the following files:
 
 * SimpleRegression_PathCov.R
 * SimpleRegression_PathRaw.R
@@ -9,6 +9,8 @@ Our next example will show how regression can be carried out from a path-centric
 * MultipleRegression_PathRaw.R
 * MultivariateRegression_PathCov.R
 * MultivariateRegression_PathRaw.R
+
+A parallel version of this example, using matrix specification of models rather than paths, can be found here link.
 
 Simple Regression
 -----------------
@@ -31,7 +33,7 @@ Our first step to running this model is to put include the data to be analyzed. 
 
 .. code-block:: r
 
-  myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+  myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
 
 The names fo the variables provided by the header row can be displayed with the names() function.
 
