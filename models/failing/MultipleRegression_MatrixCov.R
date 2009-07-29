@@ -1,17 +1,23 @@
 require(OpenMx)
-myRegDataCov<-matrix(
-	c(1.116, 0.539, 0.289, 
-	  0.539, 0.933, 0.312,
-	  0.289, 0.313, 0.836),
-	nrow=3,
-	dimnames=list(
-	c("x","y","z"),c("x","y","z"))
-	)
 
-myRegDataMeans<-c(0.054, 0.574, 4.061)
+myRegDataCov <- matrix(
+    c(0.808,-0.110, 0.089, 0.361,
+     -0.110, 1.116, 0.539, 0.289,
+      0.089, 0.539, 0.933, 0.312,
+      0.361, 0.289, 0.312, 0.836),
+    nrow=4,
+    dimnames=list(
+      c("w","x","y","z"),
+      c("w","x","y","z"))
+)
+ 
+myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+
+MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
+MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 model<-mxModel("Multiple Regression - Matrix Specification", 
-      mxData(myRegDataCov, type="cov", mean=myRegDataMeans, numObs=100),
+      mxData(MultipleDataCov, type="cov", numObs=100, mean=MultipleDataMeans),
       mxMatrix("Full", nrow=3, ncol=3,
             values=c(0,0,0,
                      1,0,1,

@@ -3,36 +3,51 @@ myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
 
 myRegDataRaw<-myRegDataRaw[,c("x","y","z")]
 
-model<-mxModel("Multiple Regression - Path", 
+multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
       type="RAM",
-      mxData(myRegDataRaw,type="raw"),
-      manifestVars=c("x","y","z"),
-      mxPath(from="y", 
-            arrows=2,
-            free=TRUE, 
-            values = 1,
-            labels=c("residual")), # residual variances
-      mxPath(from=c("x","z"), 
-            arrows=2,
-            free=TRUE, 
-            all=TRUE,
-            values = c(1,.5,.5,1),
-            labels=c("varx","covxz","covxz","varz")), # exogenous covariance matrix
-      mxPath(from=c("x","z"),
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            label=c("betax","betaz")), # regression weights
-      mxPath(from="one",
-            to=c("x","y","z"),
-            arrows=1,
-            free=TRUE,
-            values=c(1,1,1),
-            labels=c("meanx","beta0","meanz")) # means
-      ) # close model
+      mxData(
+          data=MultipleDataRaw, 
+          type="raw"
+      ),
+      manifestVars=c("x", "y", "z"),
+      # variance paths
+      mxPath(
+          from=c("x", "y", "z"), 
+          arrows=2,
+          free=TRUE, 
+          values = c(1, 1, 1),
+          labels=c("varx", "residual", "varz")
+      ),
+      # covariance of x and z
+      mxPath(
+          from="x",
+          to="y",
+          arrows=2,
+          free=TRUE,
+          values=0.5,
+          labels="covxz"
+      ), 
+      # regression weights
+      mxPath(
+          from=c("x","z"),
+          to="y",
+          arrows=1,
+          free=TRUE,
+          values=1,
+          labels=c("betax","betaz")
+      ), 
+      # means and intercepts
+      mxPath(
+          from="one",
+          to=c("x", "y", "z"),
+          arrows=1,
+          free=TRUE,
+          values=c(1, 1),
+          labels=c("meanx", "beta0", "meanz")
+      )
+  ) # close model
       
-multipleRegPathRaw<-mxRun(model)
+multipleRegPathRaw<-mxRun(multiRegModel)
 
 multipleRegPathRaw@output
 

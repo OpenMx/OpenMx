@@ -10,7 +10,7 @@ myRegDataCov<-matrix(
 		c("w","x","y","z"))
 	)
 	
-myRegDataMeans<-c(2.582, 0.054, 2.574. 4.061)
+myRegDataMeans<-c(2.582, 0.054, 2.574, 4.061)
 	
 model<-mxModel("Multiple Regression - Matrix Specification", 
       mxData(myRegDataCov,type="cov", mean=myRegDataMeans, numObs=100),

@@ -1,45 +1,65 @@
 require(OpenMx)
-myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
-	
-model<-mxModel("Multivariate Regression (Path Analysis)- Path", 
-      type="RAM",
-      mxData(myRegDataRaw,type="raw"),
-      manifestVars=c("w","x","y","z"),
-      mxPath(from=c("w","y"), 
-            arrows=2,
-            free=TRUE, 
-            all=FALSE,
-            values = c(1,1),
-            labels=c("residualw","residualy")), # residual variances
-      mxPath(from=c("x","z"), 
-            arrows=2,
-            free=TRUE, 
-            all=TRUE,
-            values = c(1,.5,.5,1),
-            labels=c("varx","cov","cov","varz")), # exogenous covariance matrix
-      mxPath(from=c("x","z"),
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            label=c("betayx","betayz")), # regression weights y
-      mxPath(from=c("x","z"),
-            to="w",
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            label=c("betawx","betawz")), # regression weights w
-      mxPath(from="one",
-            to=c("w","x","y","z"),
-            arrows=1,
-            free=TRUE,
-            values=c(1,1,1,1),
-            labels=c("betaw","meanx","betay","meanz")) # means
-      ) # close model
-      
-multiRegPathRaw<-mxRun(model)
 
-multiRegPathRaw@output
+myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
+
+multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
+    type="RAM",
+    mxData(
+        data=myRegDataRaw, 
+        type="raw"
+    ),
+    manifestVars=c("w", "x", "y", "z"),
+    # variance paths
+    mxPath(
+        from=c("w", "x", "y", "z"), 
+        arrows=2,
+        free=TRUE, 
+        values = c(1, 1, 1),
+        labels=c("residualw", "varx", "residualy", "varz")
+    ),
+    # covariance of x and z
+    mxPath(
+        from="x",
+        to="y",
+        arrows=2,
+        free=TRUE,
+        values=0.5,
+        labels="covxz"
+    ), 
+    # regression weights for y
+    mxPath(
+        from=c("x","z"),
+        to="y",
+        arrows=1,
+        free=TRUE,
+        values=1,
+        labels=c("betayx","betayz")
+    ), 
+    # regression weights for w
+    mxPath(
+        from=c("x","z"),
+        to="w",
+        arrows=1,
+        free=TRUE,
+        values=1,
+        labels=c("betawx","betawz")
+    ), 
+    # means and intercepts
+    mxPath(
+        from="one",
+        to=c("w", "x", "y", "z"),
+        arrows=1,
+        free=TRUE,
+        values=c(1, 1),
+        labels=c("betaw", "meanx", "betay", "meanz")
+    )
+) # close model
+  
+multivariateRegFit <- mxRun(multivariateRegModel)
+
+multivariateRegFit@output
+  
+mxSummary(multivariateRegFit)  
 
 omxCheckCloseEnough(multiRegPathRaw@output$estimate[["betay"]], 1.6331, 0.001)
 omxCheckCloseEnough(multiRegPathRaw@output$estimate[["betayx"]], 0.4246, 0.001)

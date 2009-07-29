@@ -1,45 +1,68 @@
 require(OpenMx)
-myRegDataCov<-matrix(
-	c(1.116, 0.539, 0.289, 
-	  0.539, 0.933, 0.312,
-	  0.289, 0.313, 0.836),
-	nrow=3,
-	dimnames=list(
-	c("x","y","z"),c("x","y","z"))
-	)
 
-myRegDataMeans<-c(0.054, 0.574, 4.061)
+myRegDataCov <- matrix(
+    c(0.808,-0.110, 0.089, 0.361,
+     -0.110, 1.116, 0.539, 0.289,
+      0.089, 0.539, 0.933, 0.312,
+      0.361, 0.289, 0.312, 0.836),
+    nrow=4,
+    dimnames=list(
+      c("w","x","y","z"),
+      c("w","x","y","z"))
+)
+ 
+myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
-model<-mxModel("Multiple Regression - Path", 
+MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
+MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
+
+multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
       type="RAM",
-      mxData(myRegDataCov, type="cov", mean=myRegDataMeans, numObs=100),
-      manifestVars=c("x","y","z"),
-      mxPath(from="y", 
-            arrows=2,
-            free=TRUE, 
-            values = 1,
-            labels=c("residual")), # residual variances
-      mxPath(from=c("x","z"), 
-            arrows=2,
-            free=TRUE, 
-            all=TRUE,
-            values = c(1,.5,.5,1),
-            labels=c("varx","covxz","covxz","varz")), # exogenous covariance matrix
-      mxPath(from=c("x","z"),
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            label=c("betax","betaz")), # regression weights
-      mxPath(from="one",
-            to=c("x","y","z"),
-            arrows=1,
-            free=TRUE,
-            values=c(1,1,1),
-            labels=c("meanx","beta0","meanz")) # means
-      ) # close model
+      mxData(
+          data=MultipleDataCov, 
+          type="cov",
+          numObs=100,
+          means=MultipleDataMeans
+      ),
+      manifestVars=c("x", "y", "z"),
+      # variance paths
+      mxPath(
+          from=c("x", "y", "z"), 
+          arrows=2,
+          free=TRUE, 
+          values = c(1, 1, 1),
+          labels=c("varx", "residual", "varz")
+      ),
+      # covariance of x and z
+      mxPath(
+          from="x",
+          to="y",
+          arrows=2,
+          free=TRUE,
+          values=0.5,
+          labels="covxz"
+      ), 
+      # regression weights
+      mxPath(
+          from=c("x","z"),
+          to="y",
+          arrows=1,
+          free=TRUE,
+          values=1,
+          labels=c("betax","betaz")
+      ), 
+      # means and intercepts
+      mxPath(
+          from="one",
+          to=c("x", "y", "z"),
+          arrows=1,
+          free=TRUE,
+          values=c(1, 1),
+          labels=c("meanx", "beta0", "meanz")
+      )
+  ) # close model
       
-multipleRegPathCov<-mxRun(model)
+multipleRegPathCov<-mxRun(multiRegModel)
 
 multipleRegPathCov@output
 

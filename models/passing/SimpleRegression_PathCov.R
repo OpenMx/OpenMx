@@ -1,22 +1,34 @@
+require(OpenMx)
+
 myRegDataCov <- matrix(
-	c(1.116, 0.539,
-	  0.539, 0.933),
-	nrow=2,
-	dimnames=list(c("x", "y"), c("x", "y")))
+    c(0.808,-0.110, 0.089, 0.361,
+     -0.110, 1.116, 0.539, 0.289,
+      0.089, 0.539, 0.933, 0.312,
+      0.361, 0.289, 0.312, 0.836),
+    nrow=4,
+    dimnames=list(
+      c("w","x","y","z"),
+      c("w","x","y","z"))
+)
+ 
+ myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+
+SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
+SimpleDataMeans <- myRegDataMeans[c(2,3)]
 	
 myRegDataMeans<-c(0.05416, 2.57393)
 
 # Create an MxModel object
-uniRegModel <- mxModel("Simple Regression -- Path Specification", 
+ uniRegModel <- mxModel("Simple Regression -- Path Specification", 
     type="RAM",
     mxData(
-        data=myRegDataCov, 
+        data=SimpleDataCov, 
         type="cov", 
         numObs=100,
-        means=myRegDataMeans 
+        means=SimpleDataMeans 
     ),
     manifestVars=c("x", "y"),
-    # variances paths
+    # variance paths
     mxPath(
         from=c("x", "y"), 
         arrows=2,
@@ -24,6 +36,7 @@ uniRegModel <- mxModel("Simple Regression -- Path Specification",
         values = c(1, 1),
         labels=c("varx", "residual")
     ),
+    # regression weights
     mxPath(
         from="x",
         to="y",
@@ -31,7 +44,8 @@ uniRegModel <- mxModel("Simple Regression -- Path Specification",
         free=TRUE,
         values=1,
         labels="beta1"
-    ), # regression weight
+    ), 
+    # means and intercepts
     mxPath(
         from="one",
         to=c("x", "y"),
@@ -39,7 +53,7 @@ uniRegModel <- mxModel("Simple Regression -- Path Specification",
         free=TRUE,
         values=c(1, 1),
         labels=c("meanx", "beta0")
-    ) # means
+    )
 ) # close model
 
       
