@@ -300,4 +300,49 @@ We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` an
                     NA,NA)
   )
   
-The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function
+The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function specifies the variances and covariance of the two latent variables. Like previous examples, we've omitted the ``to`` argument for this set of two-headed paths. Unlike previous examples, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from F1 to F2 (the variance of F1), from F1 to F2 (the covariance of the latent variables), from F2 to F1 (again, the covariance), and from F2 to F2 (the variance of F2). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
+
+.. code-block:: r 
+
+  mxPath(from=c("F1","F2"),
+      arrows=2,
+      all=2,
+      free=TRUE,
+      values=c(1, .5,
+              .5, 1),
+      labels=c("varF1","cov","cov","varF2")
+  )
+  
+The third and fourth ``mxPath`` functions define the factor loadings for each of the latent variables. We've split these loadings into two functions, one for each latent variable. The first loading for each latent variable is fixed to a value of one, just as in the previous example.
+
+.. code-block:: r 
+
+  # factor loadings for x variables
+  mxPath(from="F1",
+      to=c("x1","x2","x3"),
+      arrows=1,
+      free=c(FALSE,TRUE,TRUE),
+      values=c(1,1,1),
+      labels=c("l1","l2","l3")
+  )
+  #factor loadings for y variables
+  mxPath(from="F2",
+      to=c("y1","y2","y3"),
+      arrows=1,
+      free=c(FALSE,TRUE,TRUE),
+      values=c(1,1,1),
+      labels=c("l4","l5","l6")
+  )
+  
+The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
+A summary of the output can be reached using ``summary()``.
+
+.. code-block:: r
+
+  oneFactorFit <- mxRun(oneFactorModel)
+
+  oneFactorFit@output
+
+  summary(oneFactorFit)
+  
+These models may also be specified using matrices instead of paths. See link for matrix specification of these models.
