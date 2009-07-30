@@ -1,11 +1,11 @@
 Means and Covariances
 =====================
 
-Our first example is fitting a simple model to one variable to estimate it's mean and variance.  If you have read the tutorial, you are aware that there are two main approaches to specifying models: (i) paths specification and (ii) matrix specification.  We will go through all the examples in both approaches, so you can choose which fits your style better, or check them both out to get a sense of their advantage/disadvantages.
+Our first example is fitting a simple model to one variable to estimate its mean and variance.  If you have read the tutorial, you are aware that there are two main approaches to specifying models: (i) paths specification and (ii) matrix specification.  We will go through all the examples in both approaches, so you can choose which fits your style better, or check them both out to get a sense of their advantage/disadvantages.
 
 For each of the two approaches, the data may come in summary format, i.e. covariance matrices and possibly means, or in raw data format.  We will illustrate both, as arguments of functions may differ.
 
-To avoid reading in data from an external file, we simulate a simple dataset directly in R, and use some of its great capabilities.  As this is not a R manual, we just provide the code here with minimal explanation.
+To avoid reading in data from an external file, we simulate a simple dataset directly in R, and use some of its great capabilities.  As this is not an R manual, we just provide the code here with minimal explanation.
 
 .. code-block:: r
 
@@ -22,20 +22,20 @@ To avoid reading in data from an external file, we simulate a simple dataset dir
 The first line is a comment (starting with a #).  We set a seed for the simulation so that we generate the same data each time and get a reproducible answer.  We then create a variable **x** for 1000 subjects, with mean of 0 and a variance of 1, using the normal distribution function.  We read the data in as a matrix into an object 'testData' and give the variable a name "X" using the 'dimnames' command.  We can easily produce some descriptive statistics in R using built-in functions 'summary', 'mean' and 'var', just to make sure the data look like what we expect.
 
 
-Covariance Matrices and Paths Input
------------------------------------
+Covariance Matrices and Path-style Input
+----------------------------------------
 
-We call this model saturated as we have saturated it with free parameters.  With one variable, we can estimate one variance.  We use the ``mxModel`` command to specify the model.  Its first argument is a name.  All arguments are separated by comma's.
-
-.. code-block:: r
-
-    univSatModel1 <- mxModel("univSat1", ....
-
-When using the path specification, it is easiest to have a matching path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see refs), we have a box for the observed/manifest variable **x**, specified with the ``manifestVars`` argument, and one double arrow on the box to represent its variance, specified with the ``mxPath`` command.  The ``mxPath`` command indicates where the path originates: ``from=`` and where it ends: ``to``.  If the ``to=`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguished with one-head arrows (if arrows=1) or two-headed arrows (if arrows=2).  The ``free`` command is used to specify which elements are free or fixed with a 'TRUE' or 'FALSE' option.  If the ``mxPath`` command creates more than one path, a single 'T' implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.
+We call this model saturated because there is a free parameter corresponding to each and every observed statistic.  Here we have covariance matrix input only, so we can estimate one variance.  We use the ``mxModel`` command to specify the model.  Its first argument is a name.  All arguments are separated by commas.
 
 .. code-block:: r
 
-    	manifestVars= selVars
+    univSatModel1 <- mxModel("univSat1", 
+
+When using the path specification, it is easiest to have a matching path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see refs*), we have a box for the observed/manifest variable **x**, specified with the ``manifestVars`` argument, and one double arrow on the box to represent its variance, specified with the ``mxPath`` command.  The ``mxPath`` command indicates where the path originates: ``from=`` and where it ends: ``to``.  If the ``to=`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguished with one-head arrows (if arrows=1) or two-headed arrows (if arrows=2).  The ``free`` command is used to specify which elements are free or fixed with a 'TRUE' or 'FALSE' option.  If the ``mxPath`` command creates more than one path, a single 'T' implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.
+
+.. code-block:: r
+
+    	manifestVars=selVars ,
     	
     	mxPath(
     	    from=c("X"), 
@@ -44,7 +44,7 @@ When using the path specification, it is easiest to have a matching path diagram
     	    values=1, 
     	    lbound=.01, 
     	    labels="vX"
-    	)
+    	),
     	
 We specify which data the model is fitted to with the ``mxData`` command.  Its first argument, ``matrix????``, reads in the data from an R matrix or data.frame, with the ``type`` given in the second argument.  Given we read a covariance matrix here, we use the 'var' function (as there is no covariance for a single variable).  When summary statistics are used as input, the number of observations (``numObs``) needs to be supplied.
 
@@ -54,7 +54,7 @@ We specify which data the model is fitted to with the ``mxData`` command.  Its f
     	    observed=var(testData), 
     	    type="cov", 
     	    numObs=1000
-    	)
+    	),
 
 With the path specification, the 'RAM' objective function is used by default, as indicated by the ``type`` argument.  Internally, OpenMx translates the paths into RAM notation in the form of the matrices A, S, and F [see ?]
 
@@ -109,7 +109,7 @@ In addition to providing a covariance matrix as input data, we could use add a m
     	    labels="mX"
     	)
 
-The other required change is in the ``mxData`` command, which nows takes a fourth argument ``means`` for the vector of observed means from the data calculated using the R 'mean' command.
+The other required change is in the ``mxData`` command, which now takes a fourth argument ``means`` for the vector of observed means from the data calculated using the R 'mean' command.
 
 .. code-block:: r
 
@@ -127,10 +127,12 @@ When a mean vector is supplied and a parameter added for the estimated mean, the
         EM1m <- mxEvaluate(M, univSatFit1m) 
 
 
-Raw Data and Paths Input
-------------------------
+Raw Data and Path-style Input
+-----------------------------
 
-Instead of fitting models to summary statistics, it is now common to fit models directly to the raw data and using full information maximum likelihood (FIML), which requires specifying a model for the covariances and for the means.  As the defaults is to have a model for the means, the additional ``mxPath`` for the means is automatically assumed [not intuitive].  The main change is in the ``mxData`` command, which now takes the R matrix or data.frame with the observed data as first argument, and the ``type="raw"`` as the second argument.
+Instead of fitting models to summary statistics, it is now popular to fit models directly to the raw data and using full information maximum likelihood (FIML).  Doing so requires specifying not only a model for the covariances, but also one for the means, just as in the case of fitting to covariance matrices and mean vectors, described above.  
+#With RAM path specification, and raw data input, OpenMx has a default model for the means, in which every observed variable has a free parameter for its mean [NB this should change in future versions to require means model].  
+The only change required is in the ``mxData`` command, which now takes either an R matrix or a data.frame with the observed data as first argument, and the ``type="raw"`` as the second argument.
 
 .. code-block:: r
 
@@ -139,7 +141,22 @@ Instead of fitting models to summary statistics, it is now common to fit models 
     	    type="raw"
     	)
 
-The output generated from this model now includes the expected mean, the expected covariance matrix and the -2 times the log-likelihood of the data.
+A nice feature of OpenMx is that an existing model can be modified in any respect.  So to change the above 'univSatModel1' can be effected this way:
+
+.. code-block:: r
+
+univRawModel1 <- mxModel(univSatModel1,mxData(
+    	    observed=testData, 
+    	    type="raw"
+    	))
+
+This model can be run as usual with an ``mxRun`` command:
+.. code-block:: r
+
+    univRawFit1 <- mxRun(univSatModel1)
+
+Note 
+The output generated from this model now includes the expected mean, the expected covariance matrix and  -2 times the log-likelihood of the data.
 
 .. code-block:: r
 
@@ -154,8 +171,8 @@ The output generated from this model now includes the expected mean, the expecte
         [1,] 2897.135
 
 
-Covariance Matrices and Matrices Input
---------------------------------------
+Covariance Matrices and Matrix-style Input
+------------------------------------------
 
 We now specify essentially the same models with matrices.  Starting with the model fitted to the summary covariance matrix, we need a specify one matrix for the expected covariance matrix.  We use the ``mxMatrix`` command for this.  The first argument is its type, which is symmetric for a covariance matrix.  The second and third arguments are the number of rows (``nrow``) and columns (``ncol``).  The ``free`` and ``values`` command work in the same way as in the path specification.  If only one element is given, it is applied to all the elements in the matrix.  Alternatively, each element can be assigned its free/fixed status and starting value with a list command.  Note that in the current example, the matrix is a simple 1x1 matrix, but that will change rapidly in the following examples.  The code to specify the model includes four commands, (i) ``mxModel``, (ii) ``mxMatrix``, (iii) ``mxData`` and (iv) ``mxMLObjective.  The ``mxData`` is the same for paths and matrices specifications.  A different objective function is used, namely the ``mxMLObjective`` command which takes one argument, the expression/name of the expected covariance matrix, which we specified in the ``mxMatrix`` command.
 
@@ -207,8 +224,8 @@ A means vector can also be added here as part of the input summary statistics (a
      	)
 
 
-Raw Data and Matrices Input
----------------------------
+Raw Data and Matrix-style Input
+-------------------------------
 
 Finally, if we want to use the matrix specification with raw data, we again specify two matrices using the ``mxMatrix`` command, one for the expected covariance matrix and one for the expected mean vector, in the same way as before.  The ``mxData`` command directly read the raw data from a matrix or data.frame and the ``mxFIMLObjective`` command is used to evaluate the likelihood of the data using FIML.  This function also takes two arguments, one for the expected covariance matrix and one for the expected mean.
 
