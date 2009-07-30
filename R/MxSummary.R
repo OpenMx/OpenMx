@@ -21,14 +21,14 @@ observedStatistics <- function(model) {
 	if (data@type == 'cov' || data@type == 'sscp') {
 		n <- nrow(data@observed)
 		dof <- n * (n + 1) / 2
-		if (!is.na(data@means)) {
+		if (!single.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
 	} else if (data@type == 'cor') {
 		n <- nrow(data@observed)
 		dof <- n * (n - 1) / 2
-		if (!is.na(data@means)) {
+		if (!single.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
@@ -58,6 +58,7 @@ computeOptimizationStatistics <- function(model) {
 	retval[['estimatedParameters']] <- length(parameters)
 	retval[['observedStatistics']] <- observedStatistics(model)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
+	retval <- append(retval, model@output$misc)
 	return(retval)
 }
 

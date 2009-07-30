@@ -536,7 +536,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices, other;
+	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices, misc;
 
 	PROTECT(ans = allocVector(VECSXP, 9));
 	PROTECT(names = allocVector(STRSXP, 9));
@@ -598,7 +598,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n", k); }
 	
-	other = NULL;
+	misc = NULL;
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n", k); }
 	omxMatrix* om = currentState->objectiveMatrix;
 	if(om != NULL) {					// In the event of a no-objective run.
@@ -611,24 +611,24 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			omxRListElement* orle = oo->setFinalReturns(oo, &numEls);
 			if(numEls != 0) {
 				if(OMX_DEBUG) { Rprintf("Adding additional objective Info....");}
-				PROTECT(other = allocVector(VECSXP, numEls));
+				PROTECT(misc = allocVector(VECSXP, numEls));
 				PROTECT(oNames = allocVector(STRSXP, numEls));
 				for(int i =0; i < numEls; i++) {
 					PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
 					for(int j = 0; j < orle[i].numValues; j++)
 						REAL(oElement)[j] = orle[i].values[j];
 					SET_STRING_ELT(oNames, i, mkChar(orle[i].label));
-					SET_VECTOR_ELT(other, i, oElement);
+					SET_VECTOR_ELT(misc, i, oElement);
 					UNPROTECT(1); // oElement
 				}
-				namesgets(other, oNames);
+				namesgets(misc, oNames);
 				UNPROTECT(1); // oNames
 			}
 		}
 	}
 	
-	if(other == NULL) {
-		PROTECT(other = allocVector(VECSXP, 0));
+	if(misc == NULL) {
+		PROTECT(misc = allocVector(VECSXP, 0));
 	}
 
 	REAL(code)[0] = inform;
@@ -649,7 +649,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("matrices"));
 	SET_STRING_ELT(names, 7, mkChar("algebras"));
-	SET_STRING_ELT(names, 8, mkChar("other"));
+	SET_STRING_ELT(names, 8, mkChar("misc"));
 
 	SET_VECTOR_ELT(ans, 0, minimum);
 	SET_VECTOR_ELT(ans, 1, estimate);
@@ -659,7 +659,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, matrices);
 	SET_VECTOR_ELT(ans, 7, algebras);
-	SET_VECTOR_ELT(ans, 8, other);
+	SET_VECTOR_ELT(ans, 8, misc);
 	namesgets(ans, names);
 
 	if(VERBOSE) {

@@ -60,7 +60,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	omxRListElement* retVal = (omxRListElement*) Calloc(1, omxRListElement);
 	retVal->numValues = 1;
 	retVal->values = (double*) Calloc(1, double);
-	strncpy(retVal->label, "Saturated", 10);
+	strncpy(retVal->label, "SaturatedLikelihood", 20);
 	*(retVal->values) = ((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols;
 	return retVal;
 }

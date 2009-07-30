@@ -38,7 +38,7 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 	omxRListElement* retVal = (omxRListElement*) Calloc(1, omxRListElement);
 	retVal->numValues = 1;
 	retVal->values = (double*) Calloc(1, double);
-	strncpy(retVal->label, "Saturated", 10);
+	strncpy(retVal->label, "SaturatedLikelihood", 20);
 	*(retVal->values) = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
 	return retVal;
 }
