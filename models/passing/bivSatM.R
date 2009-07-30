@@ -108,7 +108,7 @@ bivSatModel2 <- mxModel("bivSat2",
         labels="covXY"
     ),
     mxData(
-        observed=cov(testData), 
+        observed=testData, 
         type="raw", 
     ),
     type="RAM"
@@ -116,9 +116,9 @@ bivSatModel2 <- mxModel("bivSat2",
 bivSatFit2 <- mxRun(bivSatModel2)
 EM2 <- mxEvaluate(M, bivSatFit2)
 EC2 <- mxEvaluate(S, bivSatFit2)
-LL1 <- mxEvaluate(objective, bivSatFit1)
-SL1 <- bivSatFit1@output$other$Saturated
-Chi1 <- LL1-SL1
+LL2 <- mxEvaluate(objective, bivSatFit2)
+SL2 <- bivSatFit1@output$other$Saturated
+Chi2 <- LL2-SL2
 
 
 #example 2s: Saturated Model with Raw Data and Path input built upon Cov/Means version
