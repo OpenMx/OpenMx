@@ -86,7 +86,7 @@ The following code contains all of the components of our model. Before running a
   uniRegModel <- mxModel("Simple Regression -- Path Specification", 
       type="RAM",
       mxData(
-          data=SimpleDataRaw, 
+          observed=SimpleDataRaw, 
           type="raw"
       ),
       manifestVars=c("x", "y"),
@@ -127,7 +127,7 @@ The third component of our code creates an ``MxData`` object. The example above,
 .. code-block:: r
 
   mxData(
-      data=SimpleDataRaw, 
+      observed=SimpleDataRaw, 
       type="raw"
   )
   
@@ -136,7 +136,7 @@ If we were to use a covariance matrix and vector of means as data, we would repl
 .. code-block:: r
 
   mxData(
-      data=SimpleDataCov, 
+      observed=SimpleDataCov, 
       type="cov",
       numObs=100,
       means=SimpleRegMeans
@@ -238,7 +238,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
   multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
       type="RAM",
       mxData(
-          data=MultipleDataRaw, 
+          observed=MultipleDataRaw, 
           type="raw"
       ),
       manifestVars=c("x", "y", "z"),
@@ -350,7 +350,7 @@ Our code should look very similar to our previous two models. It includes the sa
   multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
       type="RAM",
       mxData(
-          data=myRegDataRaw, 
+          observed=myRegDataRaw, 
           type="raw"
       ),
       manifestVars=c("w", "x", "y", "z"),

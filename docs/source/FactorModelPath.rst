@@ -74,7 +74,7 @@ Creating a path-centric factor model will use many of the same functions and arg
   oneFactorModel<-mxModel("Common Factor Model - Path", 
       type="RAM",
       mxData(
-          data=oneFactorRaw,
+          observed=oneFactorRaw,
           type="raw"),
       manifestVars=c("x1","x2","x3","x4","x5","x6"),
       latentVars="F1",
@@ -117,7 +117,7 @@ As with previous examples, this model begins with a name for the model and a ``t
 .. code-block:: r
 
       mxData(
-          data=oneFactorRaw,
+          observed=oneFactorRaw,
           type="raw")
           
 can be replaced with a covariance matrix and means, like so:
@@ -127,7 +127,7 @@ can be replaced with a covariance matrix and means, like so:
   oneFactorModel<-mxModel("Common Factor Model - Path", 
       type="RAM",
       mxData(
-          data=oneFactorCov,
+          observed=oneFactorCov,
           type="cov",
           numObs=500,
           means=oneFactorMeans)
@@ -232,7 +232,7 @@ Specifying the two factor model is virtually identical to the single factor case
   twofactorModel<-mxModel("Two Factor Model - Path", 
       type="RAM",
       mxData(
-          data=twoFactorRaw, 
+          observed=twoFactorRaw, 
           type="raw"
           ),
       manifestVars=c("x1","x2","x3","y1","y2","y3"),

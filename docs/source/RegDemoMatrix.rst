@@ -84,7 +84,7 @@ The following code contains all of the components of our model. Before running a
 
   uniRegModel <- mxModel("Simple Regression - Matrix Specification", 
       mxData(
-        data=SimpleRegRaw, 
+        observed=SimpleRegRaw, 
         type="raw"
       ),
       mxMatrix(
@@ -137,7 +137,7 @@ The second component of our code creates an ``MxData`` object. The example above
 .. code-block:: r
 
   mxData(
-      data=SimpleDataRaw, 
+      observed=SimpleDataRaw, 
       type="raw"
   )
   
@@ -146,7 +146,7 @@ If we were to use a covariance matrix and vector of means as data, we would repl
 .. code-block:: r
 
   mxData(
-      data=SimpleDataCov, 
+      observed=SimpleDataCov, 
       type="cov",
       numObs=100,
       means=SimpleRegMeans

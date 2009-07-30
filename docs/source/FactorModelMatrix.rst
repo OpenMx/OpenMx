@@ -163,7 +163,7 @@ The second component of our code creates an ``MxData`` object. The example above
 .. code-block:: r
 
   mxData(
-      data=oneFactorRaw, 
+      observed=oneFactorRaw, 
       type="raw"
   )
   
@@ -172,7 +172,7 @@ If we were to use a covariance matrix and vector of means as data, we would repl
 .. code-block:: r
 
   mxData(
-      data=oneFactorCov, 
+      observed=oneFactorCov, 
       type="cov",
       numObs=500,
       means=oneFactorMeans
@@ -358,7 +358,7 @@ Specifying the two factor model is virtually identical to the single factor case
   twoFactorModel <- mxModel("Two Factor Model - Matrix", 
       type="RAM",
       mxData(
-          data=twoFactorRaw, 
+          observed=twoFactorRaw, 
           type="raw",
           ),
       mxMatrix(
