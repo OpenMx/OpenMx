@@ -60,14 +60,13 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 				"in model", omxQuotes(flatModel@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
-		dataNames <- dimnames(flatModel@datasets[[.Object@data]]@data)
-		if (is.null(dataNames)) {
+		dataNames <- dimnames(flatModel@datasets[[.Object@data]]@observed)
+		if (is.null(dataNames) || is.null(dataNames[[2]])) {
 			msg <- paste("The dataset associated with the FIML objective", 
 				"in model", omxQuotes(flatModel@name), 
 				"does not contain column names (use dimnames).")
 			stop(msg, call.=FALSE)
 		}
-		columnNames <- dataNames[[2]]
 		meansName <- .Object@means
 		covName <- .Object@covariance
 		dataName <- .Object@data
@@ -134,7 +133,7 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 
 generateDataRow <- function(flatModel, covName, dataName) {
 	retval <- c()
-	definitionNames <- dimnames(flatModel@datasets[[dataName]]@data)[[2]]
+	definitionNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
 	covariance <- flatModel[[covName]]
 	covNames <- dimnames(covariance)[[2]]
 	for(i in 1:length(covNames)) {

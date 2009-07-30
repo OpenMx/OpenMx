@@ -5,7 +5,7 @@ SimpleDataRaw<-myRegDataRaw[,c("x","y")]
 
 uniRegModel<-mxModel("Simple Regression - Matrix Specification", 
     mxData(
-        data=SimpleDataRaw,
+        observed=SimpleDataRaw,
         type="raw"),
     mxMatrix(
         type="Full", 

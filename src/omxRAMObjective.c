@@ -246,7 +246,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", index); }
 	PROTECT(dataObj = VECTOR_ELT(dataList, index));
-	PROTECT(newMatrix = GET_SLOT(dataObj, install("data")));
+	PROTECT(newMatrix = GET_SLOT(dataObj, install("observed")));
 	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix, oo->matrix->currentState);
 	UNPROTECT(1); // newMatrix
 	if(newObj->cov->rows != newObj->cov->cols) {

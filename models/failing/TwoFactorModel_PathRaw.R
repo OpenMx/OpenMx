@@ -7,7 +7,7 @@ twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 twoFactorModel <- mxModel("Two Factor Model - Path", 
     type="RAM",
     mxData(
-        data=twoFactorRaw, 
+        observed=twoFactorRaw, 
         type="raw",
         ),
     manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),

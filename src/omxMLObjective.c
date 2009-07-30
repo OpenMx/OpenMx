@@ -249,7 +249,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
 	index = (int) REAL(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("data")));
+	PROTECT(dataElt = GET_SLOT(nextMatrix, install("observed")));
 	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
 	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
 	PROTECT(dataElt = GET_SLOT(nextMatrix, install("means")));

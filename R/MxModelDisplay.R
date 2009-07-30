@@ -76,8 +76,8 @@ displayModel <- function(model, expand = FALSE) {
 	if (is.null(data)) {
 		cat("data : NULL\n")
 	} else {
-		cat("data matrix :", nrow(data@data), 
-			"x", ncol(data@data), "\n")
+		cat("data matrix :", nrow(data@observed), 
+			"x", ncol(data@observed), "\n")
 		if(length(data@means) == 1 && is.na(data@means)) {
 			cat("data means : NA\n")
 		} else {

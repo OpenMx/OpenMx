@@ -6,7 +6,7 @@ myRegDataRaw<-myRegDataRaw[,c("x","y","z")]
 multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
       type="RAM",
       mxData(
-          data=myRegDataRaw, 
+          observed=myRegDataRaw, 
           type="raw"
       ),
       manifestVars=c("x", "y", "z"),

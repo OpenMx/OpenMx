@@ -5,7 +5,7 @@ myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
 multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
     type="RAM",
     mxData(
-        data=myRegDataRaw, 
+        observed=myRegDataRaw, 
         type="raw"
     ),
     manifestVars=c("w", "x", "y", "z"),

@@ -19,7 +19,7 @@ MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
       type="RAM",
       mxData(
-          data=MultipleDataCov, 
+          observed=MultipleDataCov, 
           type="cov",
           numObs=100,
           means=MultipleDataMeans

@@ -7,7 +7,7 @@ twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 twoFactorModel <- mxModel("Two Factor Model - Matrix", 
     type="RAM",
     mxData(
-        data=twoFactorRaw, 
+        observed=twoFactorRaw, 
         type="raw",
         ),
     mxMatrix("Full", nrow=8, ncol=8,

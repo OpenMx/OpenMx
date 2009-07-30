@@ -22,7 +22,7 @@ myRegDataMeans<-c(0.05416, 2.57393)
  uniRegModel <- mxModel("Simple Regression -- Path Specification", 
     type="RAM",
     mxData(
-        data=SimpleDataCov, 
+        observed=SimpleDataCov, 
         type="cov", 
         numObs=100,
         means=SimpleDataMeans 

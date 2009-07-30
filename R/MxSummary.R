@@ -19,21 +19,21 @@ observedStatistics <- function(model) {
 		return(0)
 	}
 	if (data@type == 'cov' || data@type == 'sscp') {
-		n <- nrow(data@data)
+		n <- nrow(data@observed)
 		dof <- n * (n + 1) / 2
 		if (!is.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
 	} else if (data@type == 'cor') {
-		n <- nrow(data@data)
+		n <- nrow(data@observed)
 		dof <- n * (n - 1) / 2
 		if (!is.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
 	} else {
-		return(length(data@data))
+		return(length(data@observed))
 	}
 }
 
@@ -64,8 +64,8 @@ computeOptimizationStatistics <- function(model) {
 setMethod("summary", "MxModel",
 	function(object, ...) {	
 		retval <- computeOptimizationStatistics(object)
-		if (!is.null(object$data)) {
-			print(summary(object$data@data))
+		if (!is.null(object@data)) {
+			print(summary(object@data@observed))
 			cat('\n')
 		}
 		if (length(object@output) > 0) {

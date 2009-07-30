@@ -15,7 +15,7 @@ myRegDataMeans<-c(2.582, 0.054, 2.574. 4.061)
 multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
     type="RAM",
     mxData(
-        data=myRegDataCov, 
+        observed=myRegDataCov, 
         type="raw",
         numObs=100,
         means=myRegDataMeans

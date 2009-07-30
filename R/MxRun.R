@@ -56,11 +56,11 @@ mxRun <- function(model) {
 
 convertDataFrames <- function(model) {
 	if(!is.null(model@data)) {
-		data <- model@data@data
+		data <- model@data@observed
 		if (is.data.frame(data)) {
 			warning(paste("Converting data frame to numeric matrix",
 				"in model", omxQuotes(model@name)), call. = FALSE)
-			model@data@data <- data.matrix(data)
+			model@data@observed <- data.matrix(data)
 		}
 	}
 	if(length(model@submodels) > 0) {
