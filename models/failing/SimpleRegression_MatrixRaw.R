@@ -56,9 +56,15 @@ uniRegOutput<-mxRun(uniRegModel)
 
 uniRegOutput@output
 
-omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.54776, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.48312, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.672, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.05412, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.11654, 0.001)
-# All pass except varx: varx = 1.1053196
+# Old Mx Output
+omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.5478, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.4831, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.6652, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.1053, 0.001)
+
+# omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.54776, 0.001)
+# omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.48312, 0.001)
+# omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.672, 0.001)
+# omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.05412, 0.001)
+# omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.11654, 0.001)

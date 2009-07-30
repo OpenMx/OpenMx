@@ -1,0 +1,41 @@
+#NGroups 1 
+#define latent 0
+#define infile 4
+#define meas 2
+#define m 2
+Title Multiple Regression
+Data NObservations=100 NInput=infile
+Rectangular File=myRegData.txt
+Labels w x y z
+Select x y ;
+
+ Begin Matrices; 
+  A Full m m        ! RAM specification matrices
+  S Symm m m        ! 
+  F Full meas m     ! 
+  I Iden m m        ! Identity Matrix
+  M Full 1 m        ! Means matrix
+ End Matrices; 
+
+ Specify A
+  0 0
+  1 0
+ Matrix A
+  0  0
+  1  0
+ Specify S
+  2
+  0  3
+ Matrix S
+  1
+  0  1
+ Matrix F
+  1 0
+  0 1
+ Specify M
+    4 5
+
+ Covariance F & ((I-A)~ & S) ;  ! RAM formula
+ Means (I-A)~ * M';             ! Means
+ Options Rsiduals
+End
