@@ -44,9 +44,10 @@ data<-mxData(as.matrix(data.frame(x,y,def)), type="raw")
 #define the model: we'll just use an S matrix and let A and F drop out
 #as currently specified, this would fit a zero df model to a 2x2 covariance matrix
 S <- mxMatrix("Symm", values=c(2, 0.5, 3), labels=c(NA, "data.def", NA),
-	lbound=c(0.001, NA, 0.001), free=TRUE, nrow=2, ncol=2, name="S")
+	lbound=c(0.001, NA, 0.001), free=TRUE, nrow=2, ncol=2, name="S",
+	dimnames = list(c('x','y'), c('x','y')))
 
-M <- mxMatrix("Zero", nrow = 1, ncol = 2, name = "M") 
+M <- mxMatrix("Zero", nrow = 1, ncol = 2, name = "M", dimnames = list(NULL, c('x','y'))) 
 
 #define the model, including a FIML objective function, which will optimize the matrix S
 model<-mxModel("model", mxFIMLObjective("S", "M"), data, S, M)
