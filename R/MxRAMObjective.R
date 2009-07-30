@@ -135,7 +135,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 				S = as.symbol(.Object@S)))
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = covFormula, y = covName)))
-		translatedNames <- fMatrixTranslateNames(flatModel[[.Object@F]], model@name)
+		translatedNames <- fMatrixTranslateNames(flatModel[[.Object@F]]@values, model@name)
 		dimnames(algebra) <- list(translatedNames, translatedNames)
 		model <- mxModel(model, algebra)
 		meansFormula <- substitute(F %*% Z %*% t(M),
