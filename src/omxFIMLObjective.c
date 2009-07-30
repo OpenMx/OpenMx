@@ -165,6 +165,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
+		
+//		if(OMX_DEBUG) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
@@ -186,16 +188,14 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			omxRaiseError(oo->matrix->currentState, -1, errstr);
 			return;
 		}
-		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
-		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);;
-//		for(int col = 0; col < smallRow->cols; col++) {
-//			Q += RCX->data[col] * smallRow->data[col];
-//		}
+//		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
+		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
+
 		sum += logDet + Q + (log(2 * M_PI) * smallRow->cols);
-//		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}
+		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", logDet, Q, (log(2 * M_PI) * smallRow->cols), logDet + Q + (log(2 * M_PI) * smallRow->cols), sum);}
 	}
 
-	if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f, total Likelihood is %3.3f\n", sum, logDet + Q + (log(2 * M_PI) * smallRow->cols));}
+	if(OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
 	oo->matrix->data[0] = sum;
 
 }
