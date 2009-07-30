@@ -1,8 +1,7 @@
-setwd("~/Applications/bin/OpenMx/trunk/demo/ExamplesH")
 require(OpenMx)
 
 #Prepare Data
-twinData <- read.table("ozbmi.data", header=T)
+twinData <- read.table("ozbmi.data", header=T, na.strings = ".")
 twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
 #dimnames(twinData) <- list(NULL, twinVars)
 summary(twinData)
@@ -24,15 +23,19 @@ twinACEModel <- mxModel("twinACE",
     mxAlgebra(Y * t(Y), name="C"),
     mxAlgebra(Z * t(Z), name="E"), 
     mxAlgebra(rbind (cbind(A + C + E, A + C),
-                     cbind(A + C    , A + C + E)), name="aceCovMZ"),
+                     cbind(A + C    , A + C + E)), 
+                     dimnames = list(selVars, selVars), 
+                     name="aceCovMZ"),
     mxAlgebra(rbind (cbind(A + C + E  , h %x% A + C),
-                     cbind(h %x% A + C, A + C + E)), name="aceCovDZ"),
+                     cbind(h %x% A + C, A + C + E)), 
+                     dimnames = list(selVars, selVars),
+                     name="aceCovDZ"),
     mxModel("MZ",
         mxData(mzfData, type="raw"), 
-        mxFIMLObjective("aceCovDZ", "expMeanMZ")),
+        mxFIMLObjective("twinACE.aceCovMZ", "twinACE.expMeanMZ")),
     mxModel("DZ", 
         mxData(dzfData, type="raw"), 
-        mxFIMLObjective("aceCovDZ", "expMeanDZ")),
+        mxFIMLObjective("twinACE.aceCovDZ", "twinACE.expMeanDZ")),
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
     mxAlgebraObjective("twin"))
 
