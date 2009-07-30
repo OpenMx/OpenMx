@@ -11,15 +11,16 @@ Contents:
 .. toctree::
    :maxdepth: 2
    
-   intro2
+   tutorial
    changes
+   example1
    RegDemoPath
-   FactorModelPath
-   LGCPath
    RegDemoMatrix
+   FactorModelPath
    FactorModelMatrix
+   LGCPath
    LGCMatrix
-   
+
 
 Reference
 =========
