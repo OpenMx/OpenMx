@@ -13,7 +13,13 @@ Contents:
    
    intro2
    changes
-   RegDemo
+   RegDemoPath
+   FactorModelPath
+   LGCPath
+   RegDemoMatrix
+   FactorModelMatrix
+   LGCMatrix
+   
 
 Reference
 =========

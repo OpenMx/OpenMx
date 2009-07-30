@@ -1,4 +1,5 @@
 require(OpenMx)
+
 myLongitudinalDataCov<-matrix(
 	c(6.362, 4.344, 4.915,  5.045,  5.966,
 	  4.344, 7.241, 5.825,  6.181,  7.252,
@@ -12,48 +13,59 @@ myLongitudinalDataCov<-matrix(
 
 myLongitudinalDataMean<-c(9.864, 11.812, 13.612, 15.317, 17.178)
 
-model<-mxModel("Linear Growth Curve Model, Path Specification", 
-      type="RAM",
-      mxData(myLongitudinalDataCov, type="cov", mean=myLongitudinalDataMean, numObs=500),
-      manifestVars=c("x1","x2","x3","x4","x5"),
-      latentVars=c("intercept","slope"),
-      mxPath(from=c("x1","x2","x3","x4","x5"), 
-            arrows=2,
-            free=TRUE, 
-            labels=c("residual","residual","residual","residual","residual"),
-            values = c(1,1,1,1,1)), # constant residual variances
-      mxPath(from=c("intercept","slope"), 
-            arrows=2,
-            free=TRUE, 
-            labels=c("vari","vars"),
-            values=c(1,1)), # latent variances
-      mxPath(from="intercept", 
-            to="slope", 
-            arrows=2,
-            free=TRUE, 
-            labels="covis",
-            values=.5), # latent covariance
-      mxPath(from="intercept",
-            to=c("x1","x2","x3","x4","x5"),
-            arrows=1,
-            free=FALSE,
-            values=c(1,1,1,1,1)), # intercept loadings
-      mxPath(from="slope",
-            to=c("x1","x2","x3","x4","x5"),
-            arrows=1,
-            free=FALSE,
-            values=c(0,1,2,3,4)), # slope loadings
-      mxPath(from="one",
-            to=c("x1","x2","x3","x4","x5"),
-            arrows=1,
-            free=FALSE,
-            values=c(0,0,0,0,0)), # manifest means
-      mxPath(from="one",
-            to=c("intercept","slope"),
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            labels=c("meani","means")) # latent means
-      ) # close model
+growthCurveModel <- mxModel("Linear Growth Curve Model, Path Specification", 
+    type="RAM",
+    mxData(myLongitudinalDataCov, 
+        type="cov", 
+        numObs=500,
+        means=myLongitudinalDataMean),
+    manifestVars=c("x1","x2","x3","x4","x5"),
+    latentVars=c("intercept","slope"),
+    # residual variances
+    mxPath(from=c("x1","x2","x3","x4","x5"), 
+        arrows=2,
+        free=TRUE, 
+        values = c(1, 1, 1, 1, 1),
+        labels=c("residual","residual","residual","residual","residual")),
+    # latent variances and covariance
+    mxPath(from=c("intercept","slope"), 
+        arrows=2,
+        all=TRUE,
+        free=TRUE, 
+        values=c(1, 1, 1, 1),
+        labels=c("vari", "cov", "cov", "vars")),
+    # intercept loadings
+    mxPath(from="intercept",
+        to=c("x1","x2","x3","x4","x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(1, 1, 1, 1, 1)),
+    # slope loadings
+    mxPath(from="slope",
+        to=c("x1","x2","x3","x4","x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(0, 1, 2, 3, 4)),
+    # manifest means
+    mxPath(from="one",
+        to=c("x1", "x2", "x3", "x4", "x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(0, 0, 0, 0, 0)),
+    # latent means
+    mxPath(from="one",
+        to=c("intercept", "slope"),
+        arrows=1,
+        free=TRUE,
+        values=c(1, 1),
+        labels=c("meani", "means"))
+    ) # close model
       
-growthPathCov<-mxRun(model)
+growthCurveFit<-mxRun(growthCurveModel)
+
+omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
+omxCheckCloseEnough(growthCurveFit@output$estimate[["means"]], 1.813, 0.01)
+omxCheckCloseEnough(growthCurveFit@output$estimate[["vari"]], 3.878, 0.01)
+omxCheckCloseEnough(growthCurveFit@output$estimate[["vars"]], 0.258, 0.01)
+omxCheckCloseEnough(growthCurveFit@output$estimate[["cov"]], 0.460, 0.01)
+omxCheckCloseEnough(growthCurveFit@output$estimate[["residual"]], 2.316, 0.01)
