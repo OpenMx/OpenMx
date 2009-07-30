@@ -19,8 +19,8 @@ model<-mxModel("Autoregressive Model - Path",
       type="RAM",
       mxData(myDataCov,type="cov", means=myDataMeans, numObs=100),
       manifestVars=c("x1","x2","x3","x4","x5"),
-      mxPath(from=c("x2","x3","x4","x5"),
-            to=c("x1","x2","x3","x4"),
+      mxPath(from=c("x1","x2","x3","x4"),
+            to=c("x2","x3","x4","x5"),
             arrows=1,
             free=TRUE,
             values=c(1,1,1,1),
@@ -37,10 +37,36 @@ model<-mxModel("Autoregressive Model - Path",
             arrows=1,
             free=TRUE,
             values=c(1,1,1,1,1),
-            labels=c("mean1","mean2","mean.","mean4","mean5")
+            labels=c("mean1","mean2","mean3","mean4","mean5")
             )
       ) # close model
        
 autoregressivePathCov<-mxRun(model)
 
 autoregressivePathCov@output
+
+# Comparing to old Mx Output
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["beta"]], 0.4268, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["varx1"]], 0.6720, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e2"]], 1.1535, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e3"]], 1.0485, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e4"]], 0.7986, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e5"]], 0.8262, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean1"]], 3.054, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean2"]], 0.0816, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean3"]], 0.0889, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean4"]], -0.036, 0.001)
+omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean5"]], -0.135, 0.001)
+
+# Comparing to Mplus values
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["beta"]], 0.427, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["varx1"]], 0.665, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e2"]], 1.142, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e3"]], 1.038, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e4"]], 0.791, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["e5"]], 0.818, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean1"]], 3.054, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean2"]], 0.082, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean3"]], 0.089, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean4"]], -0.036, 0.001)
+# omxCheckCloseEnough(autoregressivePathCov@output$estimate[["mean5"]], -0.135, 0.001)

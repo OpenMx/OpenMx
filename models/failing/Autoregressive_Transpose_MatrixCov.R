@@ -16,21 +16,21 @@ myDataMeans<-c(3.054, 1.385, 0.680, 0.254, -0.027)
 model<-mxModel("Autoregressive Model, Matrix Specification, Covariance Data",
       mxData(myDataCov,type="cov", means=myDataMeans, numObs=100),
       mxMatrix("Full", nrow=5, ncol=5,
-            values=c(0,0,0,0,0,
-                     1,0,0,0,0,
-                     0,1,0,0,0,
+            values=c(0,1,0,0,0,
                      0,0,1,0,0,
-                     0,0,0,1,0),
-            free=c(F, F, F, F, F,
-                   T, F, F, F, F,
-                   F, T, F, F, F,
+                     0,0,0,1,0,
+                     0,0,0,0,1,
+                     0,0,0,0,0),
+            free=c(F, T, F, F, F,
                    F, F, T, F, F,
-                   F, F, F, T, F),
-            labels=c(NA,     NA,     NA,     NA,     NA,
-                     "beta", NA,     NA,     NA,     NA,
-                     NA,     "beta", NA,     NA,     NA,
+                   F, F, F, T, F,
+                   F, F, F, F, T,
+                   F, F, F, F, F),
+            labels=c(NA,     "beta", NA,     NA,     NA,
                      NA,     NA,     "beta", NA,     NA,
-                     NA,     NA,     NA,     "beta", NA),
+                     NA,     NA,     NA,     "beta", NA,
+                     NA,     NA,     NA,     NA,     "beta",
+                     NA,     NA,     NA,     NA,     NA),
             byrow=TRUE,
             name="A"),
       mxMatrix("Symm", nrow=5, ncol=5, 
@@ -70,17 +70,17 @@ autoregressiveMatrixCov<-mxRun(model)
 autoregressiveMatrixCov@output
 
 # Comparing to old Mx Output
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.4268, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["varx"]], 0.6720, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e2"]], 1.1535, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e3"]], 1.0485, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e4"]], 0.7986, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e5"]], 0.8262, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["mean1"]], 3.054, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int2"]], 0.0816, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int3"]], 0.0889, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int4"]], -0.036, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int5"]], -0.135, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.3729, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["varx"]], 0.6179, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e2"]], 1.1445, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e3"]], .9020, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e4"]], 0.8633, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["e5"]], 1.031, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["mean1"]], 2.5375, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int2"]], 1.1314, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int3"]], 0.5853, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int4"]], 0.2641, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int5"]], -0.0270, 0.001)
 
 
 # Comparing to Mplus values

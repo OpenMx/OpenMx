@@ -1,0 +1,45 @@
+#NGroups 1 
+#define latent 0
+#define meas 5
+#define m 5
+Title RAM Autoregressive Test
+Data NObservations=100 NInput=meas 
+Rectangular File=myAutoregressiveData.txt
+
+
+! Calculation
+ Begin Matrices; 
+  A Full m m        ! RAM specification matrices
+  S Symm m m        ! 
+  F Full meas m     ! 
+  I Iden m m        ! Identity Matrix
+  M Full 1 m        ! Means matrix
+ End Matrices; 
+
+ Specify A
+  0 0 0 0 0
+  1 0 0 0 0
+  0 1 0 0 0
+  0 0 1 0 0
+  0 0 0 1 0
+ Specify S
+  2
+  0 3
+  0 0 4
+  0 0 0 5
+  0 0 0 0 6
+ Matrix F
+  1 0 0 0 0
+  0 1 0 0 0
+  0 0 1 0 0
+  0 0 0 1 0
+  0 0 0 0 1
+ Specify M
+    7 8 9 10 11
+    
+ Start 1.0 All
+
+ Covariance F & ((I-A)~ & S) ;  ! RAM formula
+ Means (I-A)~ * M';             ! Means
+ Options Rsiduals
+End
