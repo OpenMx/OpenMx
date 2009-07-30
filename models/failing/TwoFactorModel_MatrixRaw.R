@@ -4,7 +4,7 @@ myFADataRaw <- read.table("myFAData.txt", header=T)
 
 twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 
-twoFactorModel <- mxModel("Two Factor Model - Path", 
+twoFactorModel <- mxModel("Two Factor Model - Matrix", 
     type="RAM",
     mxData(
         data=twoFactorRaw, 

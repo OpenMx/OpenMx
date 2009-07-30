@@ -69,6 +69,8 @@ Creating a path-centric factor model will use many of the same functions and arg
 
 .. code-block:: r
 
+  require(OpenMx)
+
   oneFactorModel<-mxModel("Common Factor Model - Path", 
       type="RAM",
       mxData(
