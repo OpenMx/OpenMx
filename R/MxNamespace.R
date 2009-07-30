@@ -15,6 +15,28 @@
 
 omxSeparatorChar <- '.'
 
+omxVerifyReference <- function(reference) {
+	if (!is.na(reference) && substring(reference, nchar(reference), 
+				nchar(reference)) == omxSeparatorChar) {
+			stop(paste("The reference", omxQuotes(reference),
+				"is illegal because it contains a",
+				omxQuotes(omxSeparatorChar), 
+				"with either a missing prefix or suffix."),
+			call. = FALSE)
+	}
+	components <- unlist(strsplit(reference, omxSeparatorChar, fixed = TRUE))
+	for(i in 1:length(components)) {
+		component <- components[[i]]
+		if (nchar(component) == 0) {
+			stop(paste("The reference", omxQuotes(reference),
+				"is illegal because it contains a",
+				omxQuotes(omxSeparatorChar), 
+				"with either a missing prefix or suffix."),
+			call. = FALSE)
+		}
+	}
+}
+
 omxVerifyName <- function(name) {
 	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {

@@ -277,6 +277,7 @@ convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
 	} else {
 		stop("\'labels\' must be either a vector or a matrix", call. = FALSE)
 	}
+	lapply(labels, omxVerifyReference)
 	if (is.matrix(lbound)) {
 		lbound <- matrix(as.numeric(lbound), nrow, ncol)
 	} else if (is.vector(lbound)) {

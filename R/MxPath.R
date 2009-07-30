@@ -25,6 +25,9 @@ generatePath <- function(from, to,
 		if (all) {
 			from <- rep(from, each=length(to))	
 		}
+		if(!is.null(labels)) { 
+			lapply(labels, omxVerifyReference)
+		}
 		result <- suppressWarnings(mapply(generateSinglePath, from, to, 
 		arrows, values, free,
 		labels, lbound, ubound, SIMPLIFY = FALSE))
