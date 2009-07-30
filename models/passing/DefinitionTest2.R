@@ -29,13 +29,14 @@ require(OpenMx)
 #The group with a definition value of 0 has no relationship between x and y (beyond chance)
 #The definition variable is then used to define the covariance between x and y
 
-
 #make some data!
+set.seed(200)
 x1<-rnorm(500)
 y1<-x1+rnorm(500, sd=1)
 
 x2<-rnorm(500)
 y2<-rnorm(500)+rnorm(500, sd=1)
+n = 500
 
 #put them both together, add a definition variable, and make an MxData object
 x<-c(x1,x2)
@@ -50,32 +51,37 @@ selvars<-c("x","y")
 #   and "beta" for estimating difference between groups' covariances
 # One common mean vector, "M"
 
+#define the model, including a FIML objective function, which will optimize the matrix S
 model<-mxModel("model", mxFIMLObjective("S", "M"), 
-				mxData(as.matrix(data.frame(x,y,def)), type="raw"),
+				mxData((data.frame(x,y,def)), type="raw"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=FALSE, values=c(0, 0, 0), labels=c(NA, "data.def", NA),
 					dimnames=list(selvars,selvars), name="def"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=c(FALSE,TRUE,TRUE,FALSE), values=c(0, 0.0001, .0001, 0),
-#					lbound=c(NA, -1, -1, NA), ubound=c(NA, 1, 1, NA),
 					dimnames=list(selvars,selvars), name="beta"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1),
 					lbound=c(0.001, NA, 0.001), dimnames=list(selvars,selvars), name="cov"),
 				mxMatrix("Full", nrow = 1, ncol = 2, free=TRUE, dimnames=list(NULL,selvars), name = "M"),
 				mxAlgebra(cov+beta*def, name="S", dimnames=list(selvars,selvars))
 			)
-#define the model, including a FIML objective function, which will optimize the matrix S
 
 #run the model
 run<-mxRun(model)
 
-#check results
-ObsCov1<-(cov(cbind(x1,y1)))
-ObsCov2<-(cov(cbind(x2,y2)))
 
-#Note: this check may fail because due to laziness we use variance of group 2 only 
-#      whereas variances estimated by the model are for the common group only
-observed <- c(cov(x1,y1),ObsCov2[lower.tri(ObsCov2,diag=TRUE)],mean(x),mean(y))
-estimated <- c(run@output$estimate)
+#Compare OpenMx results to hard-coded Mx 1.0 results 
 
-omxCheckCloseEnough(observed, estimated, 0.1)
+omxCheckCloseEnough(1.011952,run@matrices$beta[1,2],.001)
+omxCheckCloseEnough(as.vector(c(0.982984089,0.004713885,0.004713885,2.052462084)),as.vector(run@matrices$cov[]),.001)
+omxCheckCloseEnough(0.02570572,run@matrices$M[1,1],.001)
+omxCheckCloseEnough(0.01611651,run@matrices$M[1,2],.001)
+
+#
+# note, for some strange reason, the M matrices cannot be compared en masse.  Perhaps because they are vectors to start with?
+#> omxCheckCloseEnough(mymatrices$M1.1,run@matrices$M[],.001)
+#Error in checkEqualDimensions(a, b) : 
+#  '-0.0396069199457990 -0.0447777202334477' and '-0.03960673699307 -0.0447776175646715' are not both vectors
+#omxCheckCloseEnough(as.matrix(mymatrices$M1.1),run@matrices$M[],.001)
+#
+
 
 
