@@ -75,13 +75,5 @@ omxCheckCloseEnough(as.vector(c(0.982984089,0.004713885,0.004713885,2.052462084)
 omxCheckCloseEnough(0.02570572,run@matrices$M[1,1],.001)
 omxCheckCloseEnough(0.01611651,run@matrices$M[1,2],.001)
 
-#
-# note, for some strange reason, the M matrices cannot be compared en masse.  Perhaps because they are vectors to start with?
-#> omxCheckCloseEnough(mymatrices$M1.1,run@matrices$M[],.001)
-#Error in checkEqualDimensions(a, b) : 
-#  '-0.0396069199457990 -0.0447777202334477' and '-0.03960673699307 -0.0447776175646715' are not both vectors
-#omxCheckCloseEnough(as.matrix(mymatrices$M1.1),run@matrices$M[],.001)
-#
-
 
 
