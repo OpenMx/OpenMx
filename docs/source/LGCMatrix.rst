@@ -1,5 +1,5 @@
 Growth Curve Models, Matrix Specification
-=====================================
+=========================================
 
 This example will demonstrate a growth curve model using RAM specified matrices. As with previous examples, this application is split into two files, one each raw and covariance data. These examples can be found in the following files:
 
