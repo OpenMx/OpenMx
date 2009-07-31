@@ -9,9 +9,9 @@ Title G1: Model Parameters
  Calculation
  Begin Matrices;
   X Lower nvar nvar Free  ! additive genetic path, a
-  Y Lower nvar nvar       ! common environmental path, c
+  Y Lower nvar nvar Free      ! common environmental path, c
   Z Lower nvar nvar Free  ! specific environmental path, e
-  W Lower nvar nvar Free  ! dominance genetic path, d
+  W Lower nvar nvar !Free  ! dominance genetic path, d
   H Full 1 1              ! scalar, 0.5
   Q Full 1 1              ! scalar, 0.25
  End Matrices;
@@ -35,6 +35,8 @@ Title G2: MZ data
  Select bmi1 bmi2 ;
  Begin Matrices = Group 1;
   M Full 1 nvar2 Free
+ End Matrices;
+  Specify M 10 10
  Means M;
  Covariance 
     A+C+E+D | A+C+D   _  
@@ -49,6 +51,7 @@ Title G3: DZ data
  Begin Matrices = Group 1;
   M Full 1 nvar2 Free
  End Matrices;
+  Specify M 10 10
  Means M;
  Covariance
     A+C+E+D   | H@A+C+Q@D _
