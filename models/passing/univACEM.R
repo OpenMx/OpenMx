@@ -71,9 +71,9 @@ Mx.LL_ACE <- 4067.663
 
 #Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
 omxCheckCloseEnough(LL_ACE,Mx.LL_ACE,.001)
-omxCheckCloseEnough(a,Mx.a,.001)
-omxCheckCloseEnough(c,Mx.c,.001)
-omxCheckCloseEnough(e,Mx.e,.001)
+omxCheckCloseEnough(A,Mx.A,.001)
+omxCheckCloseEnough(C,Mx.C,.001)
+omxCheckCloseEnough(E,Mx.E,.001)
 omxCheckCloseEnough(M,Mx.M,.001)
 
 
@@ -88,14 +88,14 @@ DZc <- mxEvaluate(expCovDZ, twinAEFit)
 A <- mxEvaluate(A, twinAEFit)
 C <- mxEvaluate(C, twinAEFit)
 E <- mxEvaluate(E, twinAEFit)
-V <- (A+C+E)
-a2 <- A/V
-c2 <- C/V
-e2 <- E/V
-AEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+V <- (A + C + E)
+a2 <- A / V
+c2 <- C / V
+e2 <- E / V
+AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
 LL_AE <- mxEvaluate(objective, twinAEFit)
 
-LRT_ACE_AE <- LL_AE-LL_ACE
+LRT_ACE_AE <- LL_AE - LL_ACE
 
 #Print relevant output
 ACEest
