@@ -56,6 +56,8 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
                  0,0,1,0,0,0,0,
                  0,0,0,1,0,0,0,
                  0,0,0,0,1,0,0),
+        dimnames=list(c("x1","x2","x3","x4","x5"),
+            c("x1","x2","x3","x4","x5","int","slope"))
         byrow=T,
         name="F"),
     mxMatrix("Full",  nrow=1, ncol=7,
