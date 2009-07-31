@@ -1,5 +1,5 @@
 Growth Curve Models, Path Specification
-=====================================
+=======================================
 
 This example will demonstrate a growth curve model using path-centric specification. As with previous examples, this application is split into two files, one each raw and covariance data. These examples can be found in the following files:
 
@@ -10,7 +10,7 @@ A parallel version of this example, using matrix-centric specification of models
 
 Growth Curve Model
 -------------------
-The latent growth curve model is a variation of the factor model for repeated measurements. For a set of manifest variables :math:`x_{i1}'-:math:`x_{i5}' measured at five discrete times for people indexed by the letter *i*, the growth curve model can be expressed both algebraically and via a path diagram as shown here:
+The latent growth curve model is a variation of the factor model for repeated measurements. For a set of manifest variables :math:`x_{i1}` - :math:`x_{i5}` measured at five discrete times for people indexed by the letter *i*, the growth curve model can be expressed both algebraically and via a path diagram as shown here:
 
 . math::
    :nowrap:
@@ -29,6 +29,8 @@ Data
 ----
 
 The first step to running our model is to import data. The code below is used to import both raw data and a covariance matrix and means vector, either of which can be used for our growth curve model. This data contains five variables, which are repeated measurements of the same variable ``"x"``. As growth curve models make specific hypotheses about the variances of the manifest variables, correlation matrices generally aren't used as data for this model.
+
+.. code-block:: r
 
   myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
 

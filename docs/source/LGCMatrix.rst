@@ -1,4 +1,4 @@
-Growth Curve Models, Path Specification
+Growth Curve Models, Matrix Specification
 =====================================
 
 This example will demonstrate a growth curve model using RAM specified matrices. As with previous examples, this application is split into two files, one each raw and covariance data. These examples can be found in the following files:
@@ -10,7 +10,7 @@ A parallel version of this example, using path-centric specification of models r
 
 Growth Curve Model
 -------------------
-The latent growth curve model is a variation of the factor model for repeated measurements. For a set of manifest variables :math:`x_{i1}'-:math:`x_{i5}' measured at five discrete times for people indexed by the letter *i*, the growth curve model can be expressed both algebraically and via a path diagram as shown here:
+The latent growth curve model is a variation of the factor model for repeated measurements. For a set of manifest variables :math:`x_{i1}` - :math:`x_{i5}` measured at five discrete times for people indexed by the letter *i*, the growth curve model can be expressed both algebraically and via a path diagram as shown here:
 
 . math::
    :nowrap:
@@ -28,7 +28,9 @@ Our model for any number of variables contains 6 free parameters; two factor mea
 Data
 ----
 
-The first step to running our model is to import data. The code below is used to import both raw data and a covariance matrix and means vector, either of which can be used for our growth curve model. This data contains five variables, which are repeated measurements of the same variable ``"x"``. As growth curve models make specific hypotheses about the variances of the manifest variables, correlation matrices generally aren't used as data for this model.
+The first step to running our model is to import data. The code below is used to import both raw data and a covariance matrix and means vector, either of which can be used for our growth curve model. This data contains five variables, which are repeated measurements of the same variable. As growth curve models make specific hypotheses about the variances of the manifest variables, correlation matrices generally aren't used as data for this model.
+
+.. code-block:: r
 
   myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
 

@@ -1,4 +1,4 @@
-Regression, Path Specification
+Regression, Matrix Specification
 =====================================
 
 Our next example will show how regression can be carried out from structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one with raw data, and one where the data is supplied as a covariance matrix and vector of means. These examples are available in the following files:

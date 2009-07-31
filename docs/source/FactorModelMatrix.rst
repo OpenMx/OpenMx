@@ -1,5 +1,5 @@
 Factor Models, Matrix Specification
-=====================================
+===================================
 
 This example will demonstrate latent variable modeling via the common factor model using RAM matrices for model specification. We'll walk through two applications of this approach: one with a single latent variable, and one with two latent variables. As with previous examples, these two applications are split into four files, with each application represented separately with raw and covariance data. These examples can be found in the following files:
 
@@ -12,7 +12,7 @@ A parallel version of this example, using path-centric specification of models r
 
 Common Factor Model
 -------------------
-The common factor model is a method for modeling the relationships between observed variables believed to measure or indicate the same latent variable. While there are a number of exploratory approaches to extracting latent factor(s), this example uses structural modeling to fit confirmatory factor models. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}'-:math:`x_{6}' are given below.
+The common factor model is a method for modeling the relationships between observed variables believed to measure or indicate the same latent variable. While there are a number of exploratory approaches to extracting latent factor(s), this example uses structural modeling to fit confirmatory factor models. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}` - :math:`x_{6}` are given below.
 
 .. math::
    :nowrap:
@@ -327,7 +327,7 @@ A summary of the output can be reached using ``summary()``.
 Two Factor Model
 -------------------
 
-The common factor model can be extended to include multiple latent variables. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}'-:math:`x_{3}' and :math:`y_{1}'-:math:`y_{3}' are given below.
+The common factor model can be extended to include multiple latent variables. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}` - :math:`x_{3}` and :math:`y_{1}` - :math:`y_{3}` are given below.
 
 .. math::
    :nowrap:
