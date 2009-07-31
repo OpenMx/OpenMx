@@ -1,9 +1,10 @@
-setwd("~/Applications/bin/OpenMx/trunk/demo/ExamplesH")
+setwd("~/mx/openmx/OpenMx/trunk/demo/ExamplesH")
 require(OpenMx)
 
 #Prepare Data
 twinData <- read.table("ozbmi.data", header=T, na.strings=".")
 twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
+
 #dimnames(twinData) <- list(NULL, twinVars)
 summary(twinData)
 selVars <- c('bmi1','bmi2')
@@ -29,7 +30,7 @@ twinACEModel <- mxModel("twinACE",
                      cbind(h %x% A + C, A + C + E)), dimnames = list(selVars, selVars), name="expCovDZ"),
     mxModel("MZ",
         mxData(mzfData, type="raw"), 
-        mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMeanMZ")),
+        mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMeanMZ")),
     mxModel("DZ", 
         mxData(dzfData, type="raw"), 
         mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMeanDZ")),
