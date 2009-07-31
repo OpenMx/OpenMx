@@ -56,11 +56,8 @@ extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, i
 /* Objective Function */
 void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );
 
-/* Constraint Function Variants */
-void F77_SUB(noConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 			// No constraints
-void F77_SUB(callRConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 	// Call R for constraints
-void F77_SUB(AlgConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate); 			// Algebra constraints
-void F77_SUB(oldMxConFun)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
+/* Constraint Function */
+void F77_SUB(constraintFunction)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
 
 /* Helper functions */
 void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
@@ -144,7 +141,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP nextLoc, nextMat, nextAlg, nextVar;
 
 	/* Sanity Check and Parse Inputs */
-	/* TODO: Need to find a way to account for nullness in these. */
+	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
 //	if(!isVector(startVals)) error ("startVals must be a vector");
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
@@ -218,11 +215,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		omxProcessMatrixPopulationList(currentState->matrixList[j], nextLoc);
 		UNPROTECT(1);
 	}
-/*
-	for(int j = 0; j < length(algList); j++) {
-		if(OMX_DEBUG) { Rprintf("Computing Algebra %d.\n", j); }
-		currentState->algebraList[j].compute();
-	} */
 
 	/* Process Free Var List */
 	/*
@@ -295,7 +287,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 	if(VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
-	funcon = F77_SUB(oldMxConFun);
+	funcon = F77_SUB(constraintFunction);
 
 	/* Set up Optimization Memory Allocations */
 
@@ -427,56 +419,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			Rprintf("Setting up optimizer...");
 		}
 
-	/* 	Set NPSOL options  (Maybe separate this into a different function?)
-
-		F77_CALL(npoptn)(char* string, int *length)
-
-		String is of the form:
-			'Option = Value'
-
-        NB Mx 1.0 by default sets parameters as follows:
-
-         Parameters
- ----------
-
- Linear constraints.....         0       Linear feasibility.....  1.49E-08       cold start.............
- Variables..............         1       Infinite bound size....  1.00E+15       Crash tolerance........  1.00E-02
- Step limit.............  2.00E+00       Infinite step size.....  1.00E+20
-
- Nonlinear constraints..         0       Optimality tolerance...  5.36E-12       Function precision.....  8.16E-15
- Nonlinear Jacobian vars         1       Nonlinear feasibility..  6.83E-06       eps (machine precision)  2.22E-16
- Nonlinear objectiv vars         1       Linesearch tolerance...  9.00E-01       Print file.............         7
- Derivative level.......         0       Verify level...........         3       Summary file...........         0
-
- Major iterations limit.      1000       Major print level......        20
- Minor iterations limit.        50       Minor print level......         0
- RUN loaded from file...         0       RUN to be saved on file         0       Save frequency.........      1001
-
-	*/
-
-		/* Output Options */
-//		if(OMX_DEBUG_OPTIMIZER) {
-//			strcpy(optionCharArray, "Print level 20");  				// 0 = No Output, 20=Verbose
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			strcpy(optionCharArray, "Minor print level 20");			// 0 = No Output, 20=Verbose
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			sprintf(optionCharArray, "Print file 7");
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			sprintf(optionCharArray, "Summary file 7");
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//		} else {
-//			strcpy(optionCharArray, "Nolist"); 						// Suppress that annoying output file
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			strcpy(optionCharArray, "Print level 0");  				// 0 = No Output, 20=Verbose
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			strcpy(optionCharArray, "Minor print level 0");			// 0 = No Output, 20=Verbose
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			sprintf(optionCharArray, "Print file 0");
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//			sprintf(optionCharArray, "Summary file 0");
-//			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-//		}
-
+		/* 	Set NPSOL options  (Maybe separate this into a different function?) */
 		/* Options That Change The Optimizer */
 		int numOptions = length(options);
 		SEXP optionNames;
@@ -722,7 +665,7 @@ void F77_SUB(objectiveFunction)
 }
 
 /* (Non)Linear Constraint Functions */
-void F77_SUB(oldMxConFun)
+void F77_SUB(constraintFunction)
 	(	int *mode, int *ncnln, int *n,
 		int *ldJ, int *needc, double *x,
 		double *c, double *cJac, int *nstate)
@@ -752,58 +695,6 @@ void F77_SUB(oldMxConFun)
 	}
 
 	if(OMX_DEBUG) { Rprintf("-=======================================================-\n"); }
-
-return;
-
-}
-
-
-void F77_SUB(noConFun)
-	(	int *mode, int *ncnln, int *n,
-		int *ldJ, int *needc, double *x,
-		double *c, double *cJac, int *nstate)
-{
-
-	Rprintf("-=====================-\n");
-	Rprintf("Funcon called.\n");
-	Rprintf("Constraint functions not yet implemented.\n");
-	Rprintf("-=====================-\n");
-/* Defines the nonlinear constraints for the run of npsol. */
-
-return;
-
-}
-
-void F77_SUB(callRConFun)
-/* Calls R to determine constraints.  Not yet functional. */
-	(	int *mode, int *ncnln, int *n,
-		int *ldJ, int *needc, double *x,
-		double *c, double *cJac, int *nstate)
-{
-
-	Rprintf("-=====================================================-\n");
-	Rprintf("Funcon called.\n");
-	Rprintf("R should be called next.  But won't be.\n");
-	Rprintf("Constraint function implementation will follow shortly.\n");
-	Rprintf("-=====================================================-\n");
-/* Defines the nonlinear constraints for the run of npsol. */
-
-return;
-
-}
-
-void F77_SUB(AlgConFun)
-/* Constraints based on algebra statements */
-	(	int *mode, int *ncnln, int *n,
-		int *ldJ, int *needc, double *x,
-		double *c, double *cJac, int *nstate)
-{
-
-	Rprintf("-=========================================-\n");
-	Rprintf("Algebraic constraint function called.\n");
-	Rprintf("Constraint functions not yet implemented.\n");
-	Rprintf("-=========================================-\n");
-/* Defines the nonlinear constraints for the run of npsol. */
 
 return;
 

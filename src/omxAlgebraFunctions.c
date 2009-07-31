@@ -30,6 +30,8 @@
 #include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 
+// TODO: Implement wrappers for BLAS functions used here.
+
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
 	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Transpose.\n");}
@@ -288,7 +290,6 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	
 	int max = inMat->cols * inMat->rows;
 	
-	//F77_CALL(dgemm)((inMat->majority), (result->majority), &(inMat->rows), &(result->cols), &(inMat->cols), &zero, inMat->data, &(inMat->leading), result->data, &(result->leading), &one, result->data, &(result->leading));   // TODO: Compare performance on BLAS vs for.
 	if(OMX_DEBUG) {
 		omxPrint(subtrahend, "Subtracting");
 		omxPrint(inMat, "From");
