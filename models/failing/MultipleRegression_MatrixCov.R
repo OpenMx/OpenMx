@@ -16,7 +16,7 @@ myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
 MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
-model<-mxModel("Multiple Regression - Matrix Specification", 
+multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
       mxData(MultipleDataCov, type="cov", numObs=100, mean=MultipleDataMeans),
       mxMatrix("Full", nrow=3, ncol=3,
             values=c(0,0,0,
@@ -52,20 +52,20 @@ model<-mxModel("Multiple Regression - Matrix Specification",
       mxRAMObjective("A","S","F","M")
       )
       
-multipleRegMatrixCov <- mxRun(model)
+multiRegFit <- mxRun(multiRegModel)
 
-multipleRegMatrixCov@output
+multiRegFit@output
 
 # Old Mx Output
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["beta0"]], 1.6312, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["betax"]], 0.4243, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["betaz"]], 0.2265, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["residual"]], 0.6336, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["varx"]], 1.1160, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["varz"]], 0.8360, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["covxz"]], 0.2890, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["meanx"]], 0.0540, 0.001)
-omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["meanz"]], 4.0610, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6312, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4243, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2265, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["residual"]], 0.6336, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["varx"]], 1.1160, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8360, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
 
 
 # omxCheckCloseEnough(multipleRegMatrixCov@output$estimate[["beta0"]], 1.6331, 0.001)

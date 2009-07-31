@@ -62,20 +62,20 @@ multiRegModel <- mxModel("Multiple Regression -- Path Specification",
       )
   ) # close model
       
-multipleRegPathCov<-mxRun(multiRegModel)
+multiRegFit<-mxRun(multiRegModel)
 
-multipleRegPathCov@output
+multiRegFit@output
 
 # Old Mx Output
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["beta0"]], 1.6312, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["betax"]], 0.4243, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["betaz"]], 0.2265, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["residual"]], 0.6336, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varx"]], 1.1160, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["varz"]], 0.8360, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["covxz"]], 0.2890, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["meanx"]], 0.0540, 0.001)
-omxCheckCloseEnough(multipleRegPathCov@output$estimate[["meanz"]], 4.0610, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6312, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4243, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2265, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["residual"]], 0.6336, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["varx"]], 1.1160, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8360, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
+omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
 
 # omxCheckCloseEnough(multipleRegPathCov@output$estimate[["beta0"]], 1.6331, 0.001)
 # omxCheckCloseEnough(multipleRegPathCov@output$estimate[["betax"]], 0.4246, 0.001)

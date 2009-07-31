@@ -47,9 +47,9 @@ multiRegModel <- mxModel("Multiple Regression -- Path Specification",
       )
   ) # close model
       
-multipleRegPathRaw<-mxRun(multiRegModel)
+multiRegFit<-mxRun(multiRegModel)
 
-multipleRegPathRaw@output
+multiRegFit@output
 
 # Old Mx Output
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6332, 0.001)
