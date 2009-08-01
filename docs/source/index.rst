@@ -20,7 +20,8 @@ Contents:
    FactorModelMatrix
    LGCPath
    LGCMatrix
-
+   example5
+   example6
 
 Reference
 =========
