@@ -1,5 +1,5 @@
 require(OpenMx)
-myFADataRaw<-read.table("myFAData.txt", header=T)
+myFADataRaw<-data("myFAData.txt")
 
 myFADataRaw<-myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
 

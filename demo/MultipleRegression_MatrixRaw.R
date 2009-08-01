@@ -1,5 +1,5 @@
 require(OpenMx)
-myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+myRegDataRaw<-data("myRegData.txt")
 
 MultipleDataRaw<-myRegDataRaw[,c("x","y","z")]
 

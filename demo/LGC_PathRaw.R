@@ -1,6 +1,6 @@
 require(OpenMx)
 
-myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
+myLongitudinalData <- data("myLongitudinalData.txt")
 
 growthCurveModel <- mxModel("Linear Growth Curve Model, Path Specification", 
     type="RAM",
