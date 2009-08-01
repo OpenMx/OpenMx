@@ -8,3 +8,25 @@ SimpleConstraint	A simple example of using constraints
 SimpleRObjective	A simple example of using the R objective function
 TwinModelACE	Twin model using ACE formulation
 TwinModelACEAlt	Twin model using ACE formulation and algebraic substitution
+SimpleRegression_PathRaw Simple regression using path-centric specification and raw data
+SimpleRegression_PathCov Simple regression using path-centric specification and covariance data
+SimpleRegression_MatrixRaw Simple regression using matrix (RAM) specification and raw data
+SimpleRegression_MatrixCov Simple regression using matrix (RAM) specification and covariance data
+MultipleRegression_PathRaw Multiple regression using path-centric specification and raw data
+MultipleRegression_PathCov Multiple regression using path-centric specification and covariance data
+MultipleRegression_MatrixRaw Multiple regression using matrix (RAM) specification and raw data
+MultipleRegression_MatrixCov Multiple regression using matrix (RAM) specification and covariance data
+MultivariateRegression_PathRaw Multivariate regression using path-centric specification and raw data
+MultivariateRegression_PathCov Multivariate regression using path-centric specification and covariance data
+MultivariateRegression_MatrixRaw Multivariate regression using matrix (RAM) specification and raw data
+MultivariateRegression_MatrixCov Multivariate regression using matrix (RAM) specification and covariance data
+OneFactorModel_PathRaw Common factor model using path-centric specification and raw data
+OneFactorModelRegression_PathCov Common factor model using path-centric specification and covariance data
+OneFactorModelRegression_MatrixRaw Common factor model using matrix (RAM) specification and raw data
+OneFactorModelRegression_MatrixCov Common factor model using matrix (RAM) specification and covariance data
+TwoFactorModel_PathRaw Two factor model using path-centric specification and raw data
+TwoFactorModelRegression_PathCov Two factor model using path-centric specification and covariance data
+TwoFactorModelRegression_MatrixRaw Two factor model using matrix (RAM) specification and raw data
+TwoFactorModelRegression_MatrixCov Two factor model using matrix (RAM) specification and covariance data
+LGC_PathRaw.R Latent growth curve model using path-centric specification and raw data
+LGC_MatrixRaw.R Latent growth curve model using matrix (RAM) specification and raw data
