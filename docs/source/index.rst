@@ -18,7 +18,8 @@ Contents:
    RegDemoPath
    FactorModelPath
    LGCPath
-   example6
+   example5p
+   example6p
 
    RegDemoMatrix
    FactorModelMatrix
