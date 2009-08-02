@@ -14,11 +14,14 @@ Contents:
    tutorial
    changes
    example1
+   
    RegDemoPath
-   RegDemoMatrix
    FactorModelPath
-   FactorModelMatrix
    LGCPath
+   example6
+
+   RegDemoMatrix
+   FactorModelMatrix
    LGCMatrix
    example5
    example6
