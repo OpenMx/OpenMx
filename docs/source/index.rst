@@ -11,21 +11,23 @@ Contents:
 .. toctree::
    :maxdepth: 2
    
-   tutorial
    changes
-   example1
-   
-   RegDemoPath
-   FactorModelPath
-   LGCPath
-   example5p
-   example6p
 
-   RegDemoMatrix
-   FactorModelMatrix
-   LGCMatrix
-   example5
-   example6
+   OpenMxTutorial
+   MeansCovariances
+   
+   Regression_Path
+   FactorAnalysis_Path
+   TimeSeries_Path
+   MultipleGroups_Path
+   GeneticEpi_Path  
+
+   Regression_Matrix
+   FactorAnalysis_Matrix
+   TimeSeries_Matrix
+   MultipleGroups_Matrix
+   GeneticEpi_Matrix
+
 
 Reference
 =========
