@@ -1,5 +1,6 @@
 require(OpenMx)
-myRegDataRaw<-data("myRegData.txt")
+
+data(myRegDataRaw)
 
 names(myRegDataRaw)
 

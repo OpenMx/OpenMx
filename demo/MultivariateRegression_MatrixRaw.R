@@ -1,5 +1,6 @@
 require(OpenMx)
-myRegDataRaw<-data("myRegData.txt")
+
+data(myRegDataRaw)
 	
 multivariateRegModel<-mxModel("Multiple Regression - Matrix Specification", 
     mxData(myRegDataRaw,type="raw"),

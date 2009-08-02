@@ -1,6 +1,6 @@
 require(OpenMx)
 
-myFADataRaw <- data("myFAData.txt")
+data(myFADataRaw)
 
 twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 manifest <- names(twoFactorRaw)

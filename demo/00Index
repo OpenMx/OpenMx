@@ -30,3 +30,4 @@ TwoFactorModelRegression_MatrixRaw Two factor model using matrix (RAM) specifica
 TwoFactorModelRegression_MatrixCov Two factor model using matrix (RAM) specification and covariance data
 LGC_PathRaw.R Latent growth curve model using path-centric specification and raw data
 LGC_MatrixRaw.R Latent growth curve model using matrix (RAM) specification and raw data
+

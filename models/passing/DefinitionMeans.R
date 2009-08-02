@@ -40,7 +40,7 @@ dimnames(y)[2]<-list(c("x","y"))
 def<-rep(c(1,0),each=n)
 selvars<-c("x","y")
 #write data to a file for the mx script to read (not necessary for running in R)
-write.table(cbind(y,def),file="xydefmeans.rec",col.names=F,row.names=F)
+write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
 
 # Three covariance model matrices: 
 #  "cov" for the zero relationship group
@@ -75,9 +75,9 @@ run@algebras
 # data, so as to estimate variance of combined sample without the mean correction.
 
 # First we compute some summary statistics from the data
-ObsCovs<-cov(rbind(group1-rep(c(1,2),each=n),group2))
-ObsMeansGroup1<-c(mean(group1[,1],mean(group1[,2]))
-ObsMeansGroup2<-c(mean(group2[,1],mean(group2[,2]))
+ObsCovs <- cov(rbind(group1 - rep(c(1,2), each=n), group2))
+ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
+ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
 # Second we extract the parameter estimates and matrix algebra results from the model
 Sigma<-run@matrices$Sigma@values

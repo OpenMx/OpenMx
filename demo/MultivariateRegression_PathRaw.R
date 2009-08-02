@@ -1,6 +1,6 @@
 require(OpenMx)
 
-myRegDataRaw <- data("myRegData.txt")
+data(myRegDataRaw)
 
 multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
     type="RAM",
