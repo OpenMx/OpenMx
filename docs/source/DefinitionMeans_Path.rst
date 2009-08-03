@@ -9,7 +9,7 @@ The scripts are presented here
 * DefinitionMeans_PathRaw.mx
 
 Statistical Model
------------------
+^^^^^^^^^^^^^^^^^
 
 Algebraically, we are going to fit the following model to the observed x and y variables:
 
@@ -21,8 +21,12 @@ Algebraically, we are going to fit the following model to the observed x and y v
    y_{i} = \mu_{y} + \beta_y * def + \epsilon_{yi}
    \end{eqnarray*}
 
-where the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\rho`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having def set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`) which we will call :math:`\Sigma` or simply "S" in the R script.
+where the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\rho`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having def set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`).
 
+Our task is to implement the model shown in the Figure below:
+
+.. image:: DefinitionMeans_Path.png
+ 
 Data Simulation
 ^^^^^^^^^^^^^^^
 
@@ -55,10 +59,11 @@ The objects y and def might be combined in a data frame.  However, in this case 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, and an objective function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
+
+Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, and an objective function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
 
 .. code-block:: r
-
+    require(OpenMx)
     defmeansmodel<-mxModel("Definition Means via Paths", 
         type="RAM",
 
@@ -99,14 +104,14 @@ Model specification is carried out using two lists of variables, ``manifestVars`
         free=c(TRUE,TRUE,FALSE),
         values=c(1,1,1),
         labels =c("meanx","meany","data.def")
-    ),
+    ), # means
     mxPath(from="DefDummy",
         to=c("x","y"),
         arrows=1,
         free=c(TRUE,TRUE),
         values=c(1,1),
         labels =c("beta_1","beta_2")
-    )
+    ) # moderator paths
 )
 
 We can then run the model and examine the output with a few simple commands.
