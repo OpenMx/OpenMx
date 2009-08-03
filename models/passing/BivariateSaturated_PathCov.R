@@ -1,0 +1,109 @@
+require(OpenMx)
+
+#Simulate Data
+require(MASS)
+set.seed(200)
+rs=.5
+xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+testData <- xy
+selVars <- c('X','Y')
+dimnames(testData) <- list(NULL, selVars)
+summary(testData)
+cov(testData)
+
+#example 1: Saturated Model with Cov Matrices and Path-Style Input
+bivSatModel1 <- mxModel("bivSat1",
+    manifestVars= selVars,
+    mxPath(
+        from=c("X", "Y"), 
+        arrows=2, 
+        free=T, 
+        values=1, 
+        lbound=.01, 
+        labels=c("varX","varY")
+    ),
+    mxPath(
+        from="X", 
+        to="Y", 
+        arrows=2, 
+        free=T, 
+        values=.2, 
+        lbound=.01, 
+        labels="covXY"
+    ),
+    mxData(
+        observed=cov(testData), 
+        type="cov", 
+        numObs=1000 
+    ),
+    type="RAM"
+    )
+bivSatFit1 <- mxRun(bivSatModel1)
+EC1 <- mxEvaluate(S, bivSatFit1)
+LL1 <- mxEvaluate(objective, bivSatFit1)
+SL1 <- summary(bivSatFit1)$SaturatedLikelihood
+Chi1 <- LL1-SL1
+
+#example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
+bivSatModel1m <- mxModel("bivSat1m",
+    manifestVars= selVars,
+    mxPath(
+        from=c("X", "Y"), 
+        arrows=2, 
+        free=T, 
+        values=1, 
+        lbound=.01, 
+        labels=c("varX","varY")
+    ),
+    mxPath(
+        from="X", 
+        to="Y", 
+        arrows=2, 
+        free=T, 
+        values=.2, 
+        lbound=.01, 
+        labels="covXY"
+    ),
+    mxPath(
+        from="one", 
+        to=c("X", "Y"), 
+        arrows=1, 
+        free=T, 
+        values=.01, 
+        labels=c("meanX","meanY")
+    ),
+    mxData(
+        observed=cov(testData), 
+        type="cov", 
+        numObs=1000, 
+        means=colMeans(testData)
+    ),
+    type="RAM"
+    )
+bivSatFit1m <- mxRun(bivSatModel1m)
+EM1m <- mxEvaluate(M, bivSatFit1m)
+EC1m <- mxEvaluate(S, bivSatFit1m)
+LL1m <- mxEvaluate(objective, bivSatFit1m)
+SL1m <- summary(bivSatFit1m)$SaturatedLikelihood
+Chi1m <- LL1m-SL1m
+
+
+#Mx answers hard-coded
+#example Mx..1: Saturated Model with Cov Matrices
+Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
+Mx.LL1 <- -2.258885e-13
+
+#example Mx..1m: Saturated Model with Cov Matrices & Means
+Mx.EM1m <- matrix(c(0.03211648, -0.004883811),1,2)
+Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
+Mx.LL1m <- -5.828112e-14
+
+
+#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#1:CovPat
+omxCheckCloseEnough(Chi1,Mx.LL1,.001)
+omxCheckCloseEnough(EC1,Mx.EC1,.001)
+#1m:CovMPat 
+omxCheckCloseEnough(Chi1m,Mx.LL1m,.001)
+omxCheckCloseEnough(EC1m,Mx.EC1m,.001)
+omxCheckCloseEnough(EM1m,Mx.EM1m,.001)

@@ -3,6 +3,12 @@ Multiple Groups, Path Specification
 
 An important aspect of structural equation modeling is the use of multiple groups to compare means and covariances structures between any two (or more) data groups, for example males and females, different ethnic groups, ages etc.  Other examples include groups which have different expected covariances matrices as a function of parameters in the model, and need to be evaluated together to estimated together for the parameters to be identified.
 
+The example includes the heterogeneity model as well as its submodel, the homogeneity model, and is available in the following file:
+
+* BivariateHeterogeneity_PathRaw.R
+
+A parallel version of this example, using matrix specification of models rather than paths, can be found here link.
+
 Heterogeneity Model
 -------------------
 

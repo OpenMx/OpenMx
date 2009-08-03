@@ -3,6 +3,12 @@ Genetic Epidemiology, Matrix Specification
 
 Mx is probably most popular in the behavior genetics field, as it was conceived with genetic models in mind, which rely heavily on multiple groups.  We introduce here an OpenMx script for the basic genetic model in genetic epidemiologic research, the ACE model.  This model assumes that the variability in a phenotype, or observed variable, of interest can be explained by differences in genetic and environmental factors, with A representing additive genetic factors, C shared/common environmental factors and E unique/specific environmental factors (see Neale & Cardon 1992, for a detailed treatment).  To estimate these three sources of variance, data have to be collected on relatives with different levels of genetic and environmental similarity to provide sufficient information to identify the parameters.  One such design is the classical twin study, which compares the similarity of identical (monozygotic, MZ) and fraternal (dizygotic, DZ) twins to infer the role of **A**, **C** and **E**.
 
+The example starts with the ACE model and includes one submodel, the AE model. It is available in the following file:
+
+* UnivariateTwinAnalysis_MatrixRaw.R
+
+A parallel version of this example, using path specification of models rather than matrices, can be found here link.
+
 ACE Model: a Twin Analysis
 --------------------------
 

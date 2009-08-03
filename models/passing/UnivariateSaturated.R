@@ -10,7 +10,7 @@ summary(testData)
 mean(testData)
 var(testData)
 
-#example 1: Saturated Model with Cov Matrices and Paths input
+#example 1: Saturated Model with Cov Matrices and Path-Style Input
 univSatModel1 <- mxModel("univSat1",
     manifestVars= selVars,
     mxPath(
@@ -34,7 +34,7 @@ LL1 <- mxEvaluate(objective, univSatFit1)
 SL1 <- univSatFit1@output$other$Saturated
 Chi1 <- LL1-SL1
 
-#example 1m: Saturated Model with Cov Matrices & Means and Paths input
+#example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
 univSatModel1m <- mxModel("univSat1m",
     manifestVars= selVars,
     mxPath(
@@ -104,7 +104,7 @@ EC2s <- mxEvaluate(S, univSatFit2s)
 LL2s <- mxEvaluate(objective,univSatFit2s);
 
 
-#example 3: Saturated Model with Cov Matrices and Matrices input
+#example 3: Saturated Model with Cov Matrices and Matrix-Style Input
 univSatModel3 <- mxModel("univSat3",
     mxMatrix(
         type="Symm", 
@@ -130,7 +130,7 @@ LL3 <- mxEvaluate(objective, univSatFit3)
 SL3 <- univSatFit3@output$other$Saturated
 Chi3 <- LL3-SL3
 
-#example 3m: Saturated Model with Cov Matrices & Means and Matrices input
+#example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
 univSatModel3m <- mxModel("univSat3m",
     mxMatrix(
         type="Symm", 
@@ -168,7 +168,7 @@ LL3m <- mxEvaluate(objective, univSatFit3m);
 SL3m <- univSatFit3m@output$other$Saturated
 Chi3m <- LL3m-SL3m
 
-#examples 4: Saturated Model with Raw Data and Matrices input
+#examples 4: Saturated Model with Raw Data and Matrix-Style Input
 univSatModel4 <- mxModel("univSat4",
     mxMatrix(
         type="Symm", 

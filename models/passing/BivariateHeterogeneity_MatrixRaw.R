@@ -161,4 +161,3 @@ omxCheckCloseEnough(EM1Hom,Mx.EM1Hom,.001)
 omxCheckCloseEnough(EC2Hom,Mx.EC2Hom,.001)
 omxCheckCloseEnough(EM2Hom,Mx.EM2Hom,.001)
 
-

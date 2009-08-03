@@ -20,13 +20,15 @@ Contents:
    FactorAnalysis_Path
    TimeSeries_Path
    MultipleGroups_Path
-   GeneticEpi_Path  
+   GeneticEpi_Path
+   DefinitionMeans_Path
 
    Regression_Matrix
    FactorAnalysis_Matrix
    TimeSeries_Matrix
    MultipleGroups_Matrix
    GeneticEpi_Matrix
+   DefinitionMeans_Matrix
 
 
 Reference

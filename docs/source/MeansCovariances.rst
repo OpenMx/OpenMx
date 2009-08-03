@@ -7,7 +7,25 @@ Univariate Saturated Model
 
 Our first example is fitting a simple model to one variable to estimate its mean and variance.  If you have read the tutorial, you are aware that there are two main approaches to specifying models: (i) paths specification and (ii) matrix specification.  We will go through all the examples in both approaches, so you can choose which fits your style better, or check them both out to get a sense of their advantage/disadvantages.
 
-For each of the two approaches, the data may come in summary format, i.e. covariance matrices and possibly means, or in raw data format.  We will illustrate both, as arguments of functions may differ.
+For each of the two approaches, the data may come in summary format, i.e. covariance matrices and possibly means, or in raw data format.  We will illustrate both, as arguments of functions may differ.  Thus there are four versions of each example. The univariate examples are available in the following files:
+
+* UnivariateSaturated_PathCov.R
+* UnivariateSaturated_PathRaw.R
+* UnivariateSaturated_MatrixCov.R
+* UnivariateSaturated_MatrixRaw.R
+* UnivariateSaturated.R
+
+The last file includes all four example in one.  The bivariate examples are available in the following files:
+
+* BivariateSaturated_PathCov.R
+* BivariateSaturated_PathRaw.R
+* BivariateSaturated_MatrixCov.R
+* BivariateSaturated_MatrixRaw.R
+* BivariateSaturated_MatrixCovCholesky.R
+* BivariateSaturated_MatrixRawCholesky.R
+* BivariateSaturated.R
+
+Note that we have additional version of the matrix-style examples which use a Cholesky decomposition to estimate the expected covariance matrices, which is preferred to directly estimation the symmetric matrices.
 
 Data
 ^^^^
