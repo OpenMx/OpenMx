@@ -17,7 +17,7 @@ Algebraically, we are going to fit the following model to the observed x and y v
    :nowrap:
    
    \begin{eqnarray*} 
-   x_{i} = \mu_{x} + \beta_x * def + \epsilon_{xi}
+   x_{i} = \mu_{x} + \beta_x * def + \epsilon_{xi}\\
    y_{i} = \mu_{y} + \beta_y * def + \epsilon_{yi}
    \end{eqnarray*}
 
