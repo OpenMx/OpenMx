@@ -21,13 +21,13 @@ MultivariateRegression_PathCov Multivariate regression using path-centric specif
 MultivariateRegression_MatrixRaw Multivariate regression using matrix (RAM) specification and raw data
 MultivariateRegression_MatrixCov Multivariate regression using matrix (RAM) specification and covariance data
 OneFactorModel_PathRaw Common factor model using path-centric specification and raw data
-OneFactorModelRegression_PathCov Common factor model using path-centric specification and covariance data
-OneFactorModelRegression_MatrixRaw Common factor model using matrix (RAM) specification and raw data
-OneFactorModelRegression_MatrixCov Common factor model using matrix (RAM) specification and covariance data
+OneFactorModel_PathCov Common factor model using path-centric specification and covariance data
+OneFactorModel_MatrixRaw Common factor model using matrix (RAM) specification and raw data
+OneFactorModel_MatrixCov Common factor model using matrix (RAM) specification and covariance data
 TwoFactorModel_PathRaw Two factor model using path-centric specification and raw data
-TwoFactorModelRegression_PathCov Two factor model using path-centric specification and covariance data
-TwoFactorModelRegression_MatrixRaw Two factor model using matrix (RAM) specification and raw data
-TwoFactorModelRegression_MatrixCov Two factor model using matrix (RAM) specification and covariance data
-LGC_PathRaw.R Latent growth curve model using path-centric specification and raw data
-LGC_MatrixRaw.R Latent growth curve model using matrix (RAM) specification and raw data
+TwoFactorModel_PathCov Two factor model using path-centric specification and covariance data
+TwoFactorModel_MatrixRaw Two factor model using matrix (RAM) specification and raw data
+TwoFactorModel_MatrixCov Two factor model using matrix (RAM) specification and covariance data
+LGC_PathRaw Latent growth curve model using path-centric specification and raw data
+LGC_MatrixRaw Latent growth curve model using matrix (RAM) specification and raw data
 
