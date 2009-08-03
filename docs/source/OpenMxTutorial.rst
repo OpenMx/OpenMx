@@ -32,58 +32,93 @@ we use the ``mxMatrix`` command, and define the type of the matrix, number of ro
 
 .. code-block:: r
 
-	mxMatrix(
-		type="Full", 
-		nrow=3, 
-		ncol=1, 
-		values=c(1,2,3), 
-		name='A'
-	)
-	mxMatrix(
-		type="Full", 
-		nrow=3, 
-		ncol=1, 
-		values=c(1,2,3), 
-		name='A'
-	)
+    mxMatrix(
+        type="Full", 
+        nrow=3, 
+        ncol=1, 
+        values=c(1,2,3), 
+        name='A'
+    )
+    mxMatrix(
+        type="Full", 
+        nrow=3, 
+        ncol=1, 
+        values=c(1,2,3), 
+        name='A'
+    )
 
 Assume we want to calculate	the (1) outer and (2) inner products of the matrix **A**, using regular matrix multiplication, an (3) element by element multiplication (Dot product) and (4) the sum of the matrices **A** and **B**, i.e.:
 
 .. math::
    :nowrap:
 
-	\begin{eqnarray}
-	q1 & = & A * t(A) \\
-	q2 & = & t(A) * A \\
-	q3 & = & A . A \\
-	q4 & = & A + B
-	\end{eqnarray}
+    \begin{eqnarray}
+    q1 & = & A * t(A) \\
+    q2 & = & t(A) * A \\
+    q3 & = & A . A \\
+    q4 & = & A + B
+    \end{eqnarray}
 
 we invoke the ``mxAlgebra`` command which takes an algebra operation between previously defined matrices.  Note that in R, regular matrix multiplication is represented by ``\%*\%`` and dot multiplication as ``*``. We also assign the algebras a name to refer back to them later:
 
 .. code-block:: r
 
-	mxAlgebra(
-		A %*% t(A), 
-		name='q1')
-	mxAlgebra(
-		t(A) %*% A, 
-		name='q2')
-	mxAlgebra(
-		A * A, 
-		name='q3')
-	mxAlgebra(
-		A + B, 
-		name='q4')
+    mxAlgebra(
+        A %*% t(A), 
+        name='q1')
+    mxAlgebra(
+        t(A) %*% A, 
+        name='q2')
+    mxAlgebra(
+        A * A, 
+        name='q3')
+    mxAlgebra(
+        A + B, 
+        name='q4')
 
 For the algebras to be evaluated, they become arguments of the ``mxModel`` command, as do the defined matrices, separated by comma's.  The model, which is here given the name 'algebraExercises', is then executed by the ``mxRun`` command, as shown in the full code below:
-	
-.. literalinclude:: matrixAlgebra.R
-   :language: r
-	
+
+.. code-block:: r
+
+    require(OpenMx)
+
+    algebraExercises <- mxModel(
+        mxMatrix(type="Full", values=c(1,2,3), nrow=3, ncol=1, name='A'),
+        mxMatrix(type="Full", values=c(1,2,3), nrow=3, ncol=1, name='B'),
+        mxAlgebra(A%*%t(A), name='q1'),
+        mxAlgebra(t(A)%*%A, name='q2'),
+        mxAlgebra(A*A, name='q3'),
+        mxAlgebra(A+B, name='q4'))
+
+    answers <- mxRun(algebraExercises)
+    answers@algebras
+    result <- mxEvaluate(list(q1,q2,q3,q4),answers)	
+
 As you notice, we added some lines at the end to generate the desired output.  The resulting matrices and algebras are stored in ``answers``; we can refer back to them by specifying ``answers@matrices`` or ``answers@algebras``.  We can also calculate any additional quantities or perform extra matrix operations on the results using the ``mxEvaluate`` command.  For example, if we want to see all the answers to the questions in matrixAlgebra.R, the results would look like this:
 
-.. literalinclude:: matrixAlgebra.Ro
+.. code-block:: r
+
+    [[1]]
+         [,1] [,2] [,3]
+    [1,]    1    2    3
+    [2,]    2    4    6
+    [3,]    3    6    9
+
+    [[2]]
+         [,1]
+    [1,]   14
+
+    [[3]]
+         [,1]
+    [1,]    1
+    [2,]    4
+    [3,]    9
+
+    [[4]]
+         [,1]
+    [1,]    2
+    [2,]    4
+    [3,]    6
 
 So far, we have introduced five new commands: ``mxMatrix``, ``mxAlgebra``, ``mxModel``, ``mxRun`` and ``mxEvaluate``.  These commands allow us to run a wide range of jobs, from simple matrix algebra to rather complicated SEM models.  Let's move to a simple example involving optimizing the likelihood of observed data.
 
@@ -99,47 +134,47 @@ To evaluate the likelihood of the data, we estimate a saturated model with free 
 
 .. code-block:: r
 
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=2, 
-		free=True, 
-		values=c(0,0), 
-		dimnames=list(NULL, selVars), 
-		name="expMean"), 
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=2, 
+        free=True, 
+        values=c(0,0), 
+        dimnames=list(NULL, selVars), 
+        name="expMean"), 
 
 Next, we need to specify the expected covariance matrix.  As this matrix is symmetric, we could estimate it directly as a symmetric matrix.  However, to avoid solutions that are not positive definite, we will use a Cholesky decomposition.  Thus, we specify a lower triangular matrix (matrix with free elements on the diagonal and below the diagonal, and zero's above the diagonal), and multiply it with its transpose to generate a symmetric matrix.  We will use a ``mxMatrix`` command to specify the lower triangular matrix and a ``mxAlgebra`` command to set up the symmetric matrix.  (PS a lower triangular matrix doesn't exist yet so we specify it explicitly.)  The matrix is a 2x2 free lower matrix with  ``c('X','Y')`` as dimnames for the rows and columns, and the name "Chol".  We can now refer back to this matrix by its name in the ``mxAlgebra`` statement.  We use a regular multiplication of ``Chol`` with its transpose ``t(Chol)``, and name this as "expCov".
 
 .. code-block:: r
 
-	mxMatrix(
-		type="Full", 
-		nrow=2, 
-		ncol=2, 
-		free=c(T,T,F,T), 
-		values=c(1,.2,0,1), 
-		dimnames=list(selVars, selVars), 
-		name="Chol"), 
-	mxAlgebra(
-		Chol %*% t(Chol), 
-		name="expCov", 
-		dimnames=list(selVars, selVars)), 
+    mxMatrix(
+        type="Full", 
+        nrow=2, 
+        ncol=2, 
+        free=c(T,T,F,T), 
+        values=c(1,.2,0,1), 
+        dimnames=list(selVars, selVars), 
+        name="Chol"), 
+    mxAlgebra(
+        Chol %*% t(Chol), 
+        name="expCov", 
+        dimnames=list(selVars, selVars)), 
 
 Now that we have specified our 'model', we need to supply the data.  This is done with the ``mxData`` command.  The first argument includes the actual data, in the type given by the second argument.  Type can be a covariance matrix (cov), a correlation matrix (cor), a matrix of cross-products (sscp) or raw data (raw).  We will use the latter option and read in the raw data directly from the simulated dataset ``testData``.
 
 .. code-block:: r
 
-	mxData(
-		testData, 
-		type="raw"), 
+    mxData(
+        testData, 
+        type="raw"), 
 
 Next, we specify which objective function we wish to use to obtain the likelihood of the data.  Given we fit to the raw data, we use the full information maximum likelihood (FIML) objective function ``mxFIMLObjective``.  Its arguments are the expected covariance matrix, generated using the ``mxMatrix`` and ``mxAlgebra`` commands as "expCov", and the expected means vectors, generated using the ``mxMatrix`` command as "expMeans".
 
 .. code-block:: r
 
-	mxFIMLObjective(
-		"expCov", 
-		"expMean"))
+    mxFIMLObjective(
+        covariance="expCov", 
+        means="expMean"))
 
 All these elements become arguments of the ``mxModel`` command, seperated by comma's.  The first argument can be a name, as in this case "bivCor" or another model (see below).  The model is then saved in an object 'bivCorModel' which becomes the argument of the ``mxRun`` command, which evaluates the model and provides output - if the model ran successfully. using the following command.
 
@@ -162,27 +197,27 @@ If we want to test whether the covariance/correlation is significantly different
 
 .. code-block:: r
 
-	#Test for Covariance=Zero
-	bivCorModelSub <-mxModel(bivCorModel,
-	 	mxMatrix(
-			"Full", 
-			nrow=2, 
-			ncol=2, 
-			free=c(T,F,F,T), 
-			values=c(1,0,0,1), 
-			dimnames=list(selVars, selVars),
-			name="Chol")
+    #Test for Covariance=Zero
+    bivCorModelSub <-mxModel(bivCorModel,
+        mxMatrix(
+            "Full", 
+            nrow=2, 
+            ncol=2, 
+            free=c(T,F,F,T), 
+            values=c(1,0,0,1), 
+            dimnames=list(selVars, selVars),
+            name="Chol")
 
 We can output the same information as for the saturated job, namely the expected means and covariance matrix and the likelihood, and then use R to calculate other statistics, such as the Chi-square goodness-of-fit.
 
 .. code-block:: r
 
-	bivCorFitSub <- mxRun(bivCorModelSub)
-	EMs <- bivCorFitSub[['expMean']]@values
-	ECs <- bivCorFitSub[['expCov']]@values
-	LLs <- mxEvaluate(objective,bivCorFitSub);
-	Chi= LLs-LL;
-	LRT= rbind(LL,LLs,Chi); LRT
+    bivCorFitSub <- mxRun(bivCorModelSub)
+    EMs <- bivCorFitSub[['expMean']]@values
+    ECs <- bivCorFitSub[['expCov']]@values
+    LLs <- mxEvaluate(objective,bivCorFitSub);
+    Chi= LLs-LL;
+    LRT= rbind(LL,LLs,Chi); LRT
 
 
 More in-depth Example
@@ -261,9 +296,9 @@ Before we move on to fit the ACE model to the same data, we may want to test som
 
     twinSatModelSub1 <- mxModel(twinSatModel,
         mxModel("MZ",
-            mxMatrix("Full", 1, 2, T, c(0,0), labels= c("mMZ", "mMZ"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mMZ", dimnames=list(NULL, selVars), name="expMeanMZ"), 
         mxModel("DZ", 
-            mxMatrix("Full", 1, 2, T, c(0,0), labels= c("mDZ", "mDZ"), dimnames=list(NULL, selVars), name="expMeanDZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mDZ", dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
 
@@ -273,11 +308,13 @@ If we want to test if we can equate both means and variances across twin order a
 
     twinSatModelSub2 <- mxModel(twinSatModelSub1,
         mxModel("MZ",
-            mxMatrix("Full", 1, 2, T, c(0,0), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
-            mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","MZcov","var"), dimnames=list(NULL, selVars), name="CholMZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
+            mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","MZcov","var"), 
+                dimnames=list(NULL, selVars), name="CholMZ"), 
         mxModel("DZ", 
-            mxMatrix("Full", 1, 2, T, c(0,0), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanDZ"), 
-            mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","DZcov","var"), dimnames=list(NULL, selVars), name="CholDZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
+            mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","DZcov","var"), 
+                dimnames=list(NULL, selVars), name="CholDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
 
