@@ -1,9 +1,9 @@
 require(OpenMx)
 
-myLongitudinalDataRaw<-read.table("myLongitudinalData.txt",header=T)
+data(myLongitudinalData)
 
 growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification", 
-    mxData(myLongitudinalDataRaw, 
+    mxData(myLongitudinalData, 
         type="raw"),
     mxMatrix(
         type="Full",
