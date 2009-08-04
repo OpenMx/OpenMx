@@ -46,9 +46,9 @@ bivCorModel <- mxModel("bivCor",
     )
 
 bivCorFit <- mxRun(bivCorModel)
-EM <- bivCorFit4[['expMean']]@values
-EC <- bivCorFit4[['expCov']]@values
-LL <- mxEvaluate(objective,bivCorFit);
+EM <- mxEvaluate(expMean, bivCorFit)
+EC <- mxEvaluate(expCov, bivCorFit)
+LL <- mxEvaluate(objective, bivCorFit)
 
 
 #Test for Covariance=Zero
@@ -64,22 +64,16 @@ bivCorModelSub <-mxModel(bivCorModel,
     )
 )
 bivCorFitSub <- mxRun(bivCorModelSub)
-EMs <- bivCorFitSub[['expMean']]@values
-ECs <- bivCorFitSub[['expCov']]@values
-LLs <- mxEvaluate(objective,bivCorFitSub);
+EMs <- mxEvaluate(expMean, bivCorFitSub)
+ECs <- mxEvaluate(expCov, bivCorFitSub)
+LLs <- mxEvaluate(objective, bivCorFitSub)
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 
-setwd("/Users/hermine/Applications/bin/OpenMx/trunk/demo/MxR") 
-#Save Data in Mx Format
-testDataDF<-as.data.frame(testData)
-write.table(testDataDF,file="testData.rec",row.names=F,na=".",quote=F,col.names=F)
-
-#Run Mx
-source("runmx.R")
-mymatrices <- runmx(mx.script="bivCor.mx",mx.location="/usr/local/bin/mxt")
-attach(mymatrices) #matrixName groupNumber . jobNumber
-Mx.EM <-M3.1; Mx.EC <-X3.1; Mx.LL <- F3.1;
+# Mx answers hard-coded
+Mx.EM <- matrix(c(0.03211656, -0.004883885), 1, 2)
+Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), 2, 2)
+Mx.LL <- 5415.772
 
 #Compare OpenMx results to Mx results 
 #LL: likelihood; EC: expected covariance, EM: expected means

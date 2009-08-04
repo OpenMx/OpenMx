@@ -67,15 +67,15 @@ omxCheckCloseEnough(LL_ACE,Mx.LL_ACE,.001)
 omxCheckCloseEnough(A,Mx.A,.001)
 omxCheckCloseEnough(C,Mx.C,.001)
 omxCheckCloseEnough(E,Mx.E,.001)
-omxCheckCloseEnough(M,Mx.M,.001)
+omxCheckCloseEnough(M,t(Mx.M),.001)
 
 
 #Run AE model
 twinAEModel <- mxModel(twinACEModel, type="RAM",
     manifestVars=selVars,
     latentVars=aceVars,
-    mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")),
-    mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e"))
+    mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","cfixed","e")),
+    mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","cfixed","e"))
     )
 twinAEFit <- mxRun(twinAEModel)
 

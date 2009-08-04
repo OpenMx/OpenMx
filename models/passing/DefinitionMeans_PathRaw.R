@@ -83,9 +83,9 @@ ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
 ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
 # Second we extract the parameter estimates and matrix algebra results from the model
-Sigma<-defmeansresult@matrices$S@values[1:2,1:2]
-Mu<-defmeansresult@matrices$M@values[1:2]
-beta<-defmeansresult@matrices$A@values[1:2,3]
+Sigma <- mxEvaluate(S[1:2,1:2], defMeansFit)
+Mu <- mxEvaluate(M[1:2], defMeansFit)
+beta <- mxEvaluate(A[1:2,3], defMeansFit)
 
 # Third, we check to see if things are more or less equal
 omxCheckCloseEnough(ObsCovs,Sigma,.01)
