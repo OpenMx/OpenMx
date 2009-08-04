@@ -28,8 +28,8 @@ where the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilo
 
 Our task is to implement the model shown in the Figure below:
 
-.. image:: DefinitionMeans_Path.png
-    :height: 280
+.. image:: def.png
+    :height: 400
 
 Data Simulation
 ^^^^^^^^^^^^^^^

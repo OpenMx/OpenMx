@@ -9,26 +9,15 @@ Welcome to OpenMx's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
-   
+   :maxdepth: 3
+
+   Introduction
+
+   Examples_Path
+
+   Examples_Matrix
+
    changes
-
-   OpenMxTutorial
-   MeansCovariances
-   
-   Regression_Path
-   FactorAnalysis_Path
-   TimeSeries_Path
-   MultipleGroups_Path
-   GeneticEpi_Path
-   DefinitionMeans_Path
-
-   Regression_Matrix
-   FactorAnalysis_Matrix
-   TimeSeries_Matrix
-   MultipleGroups_Matrix
-   GeneticEpi_Matrix
-   DefinitionMeans_Matrix
 
 
 Reference

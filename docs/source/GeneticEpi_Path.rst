@@ -182,7 +182,7 @@ Alternative Models: an AE Model
 
 To evaluate the significance of each of the model parameters, nested submodels are fit in which these parameters are fixed to zero.  If the likelihood ratio test between the two models is significant, the parameter that is dropped from the model significantly contributes to the phenotype in question.  Here we show how we can fit the AE model as a submodel with a change in two ``mxPath`` commands.  First, we call up the previous 'full' model and save it as a new model 'twinAEModel'.  Next we re-specify the path from **C1** to **bmi1** to be fixed to zero, and do the same for the path from **C2** to **bmi2**.  We can run this model in the same way as before and generate similar summaries of the results.
 
-    .. code-block:: r
+.. code-block:: r
 
     #Run AE model
     twinAEModel <- mxModel(twinACEModel, 
@@ -223,7 +223,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
 
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models) to determine the best fitting model, and print relevant output.
 
-    .. code-block:: r
+.. code-block:: r
 
     LRT_ACE_AE <- LL_AE - LL_ACE
 

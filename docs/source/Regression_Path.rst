@@ -215,10 +215,9 @@ In the next part of this demonstration, we move to multiple regression. The regr
    \begin{eqnarray*} 
    y = \beta_{0} + \beta_{x} * x + \beta_{z} * z + \epsilon
    \end{eqnarray*}
-   
-   
+
 .. image:: path2.png
-    :height: 428000
+    :height: 280
    
 Our dependent variable y is now predicted from two independent variables, x and z. Our model includes 3 regression parameters (:math:`\beta_{0}`, :math:`\beta_{x}`, :math:`\beta_{z}`), a residual variance (:math:`\sigma^{2}_{\epsilon}) and the observed means, variances and covariance of x and z, for a total of 9 parameters. Just as with our simple regression, this model is fully saturated.
 

@@ -10,7 +10,7 @@ The example includes the heterogeneity model as well as its submodel, the homoge
 A parallel version of this example, using paths specification of models rather than matrices, can be found here link.
 
 Heterogeneity Model
-___________________
+-------------------
 
 We will start with a basic example here, building on modeling means and variances in a saturated model.  Assume we have two groups and we want to test whether they have the same mean and covariance structure.  
 

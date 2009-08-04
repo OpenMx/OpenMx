@@ -23,10 +23,10 @@ Say, we want to create two matrices, **A** and **B**, each of them a 'Full' matr
 .. math::
    :nowrap:
 
-	\begin{eqnarray*}
+   \begin{eqnarray*}
    A = \left[ \begin{array}{r} 1 \\ 2 \\ 3 \\ \end{array} \right]
    & B = \left[ \begin{array}{r} 1 \\ 2 \\ 3 \\ \end{array} \right]
-	\end{eqnarray*}
+   \end{eqnarray*}
 
 we use the ``mxMatrix`` command, and define the type of the matrix, number of rows and columns, its specifications and values, <optionally labels, upper and lower bounds>,  and a name.  The matrix **A** will be stored as the object 'A'.
 
@@ -65,16 +65,20 @@ we invoke the ``mxAlgebra`` command which takes an algebra operation between pre
 
     mxAlgebra(
         A %*% t(A), 
-        name='q1')
+        name='q1'
+    )
     mxAlgebra(
         t(A) %*% A, 
-        name='q2')
+        name='q2'
+    )
     mxAlgebra(
         A * A, 
-        name='q3')
+        name='q3'
+    )
     mxAlgebra(
         A + B, 
-        name='q4')
+        name='q4'
+    )
 
 For the algebras to be evaluated, they become arguments of the ``mxModel`` command, as do the defined matrices, separated by comma's.  The model, which is here given the name 'algebraExercises', is then executed by the ``mxRun`` command, as shown in the full code below:
 
@@ -142,7 +146,8 @@ To evaluate the likelihood of the data, we estimate a saturated model with free 
             free=True, 
             values=c(0,0), 
             dimnames=list(NULL, selVars), 
-            name="expMean"), 
+            name="expMean"
+        ), 
 
 Next, we need to specify the expected covariance matrix.  As this matrix is symmetric, we could estimate it directly as a symmetric matrix.  However, to avoid solutions that are not positive definite, we will use a Cholesky decomposition.  Thus, we specify a lower triangular matrix (matrix with free elements on the diagonal and below the diagonal, and zero's above the diagonal), and multiply it with its transpose to generate a symmetric matrix.  We will use a ``mxMatrix`` command to specify the lower triangular matrix and a ``mxAlgebra`` command to set up the symmetric matrix.  (PS a lower triangular matrix doesn't exist yet so we specify it explicitly.)  The matrix is a 2x2 free lower matrix with  ``c('X','Y')`` as dimnames for the rows and columns, and the name "Chol".  We can now refer back to this matrix by its name in the ``mxAlgebra`` statement.  We use a regular multiplication of ``Chol`` with its transpose ``t(Chol)``, and name this as "expCov".
 
@@ -155,11 +160,13 @@ Next, we need to specify the expected covariance matrix.  As this matrix is symm
             free=c(T,T,F,T), 
             values=c(1,.2,0,1), 
             dimnames=list(selVars, selVars), 
-            name="Chol"), 
+            name="Chol"
+        ), 
         mxAlgebra(
             expression=Chol %*% t(Chol), 
             name="expCov", 
-            dimnames=list(selVars, selVars)), 
+            dimnames=list(selVars, selVars)
+        ), 
 
 Now that we have specified our 'model', we need to supply the data.  This is done with the ``mxData`` command.  The first argument includes the actual data, in the type given by the second argument.  Type can be a covariance matrix (cov), a correlation matrix (cor), a matrix of cross-products (sscp) or raw data (raw).  We will use the latter option and read in the raw data directly from the simulated dataset ``testData``.
 
@@ -167,7 +174,8 @@ Now that we have specified our 'model', we need to supply the data.  This is don
 
         mxData(
             observed=testData, 
-            type="raw"), 
+            type="raw"
+        ), 
 
 Next, we specify which objective function we wish to use to obtain the likelihood of the data.  Given we fit to the raw data, we use the full information maximum likelihood (FIML) objective function ``mxFIMLObjective``.  Its arguments are the expected covariance matrix, generated using the ``mxMatrix`` and ``mxAlgebra`` commands as "expCov", and the expected means vectors, generated using the ``mxMatrix`` command as "expMeans".
 
@@ -175,7 +183,8 @@ Next, we specify which objective function we wish to use to obtain the likelihoo
 
         mxFIMLObjective(
             covariance="expCov", 
-            means="expMean"))
+            means="expMean")
+        )
 
 All these elements become arguments of the ``mxModel`` command, seperated by comma's.  The first argument can be a name, as in this case "bivCor" or another model (see below).  The model is then saved in an object 'bivCorModel' which becomes the argument of the ``mxRun`` command, which evaluates the model and provides output - if the model ran successfully. using the following command.
 
@@ -204,7 +213,8 @@ If we want to test whether the covariance/correlation is significantly different
             free=c(T,F,F,T), 
             values=c(1,0,0,1), 
             dimnames=list(selVars, selVars),
-            name="Chol")
+            name="Chol"
+        )
 
 We can output the same information as for the saturated job, namely the expected means and covariance matrix and the likelihood, and then use R to calculate other statistics, such as the Chi-square goodness-of-fit.
 
@@ -231,6 +241,17 @@ It has been standard in twin modeling to fit models to the raw data, as often da
 
 Let us start by fitting a saturated model, estimating means, variances and covariances separately order of the twins (twin 1 vs twin 2) and by zygosity (MZ vs DZ pairs).  This is essentially similar to the optimization script discussed above, except that we now have two variables (same variable for twin 1 and twin 2) and two groups (MZ and DZ).  Before we get to the OpenMx code, let us organize the data in R.
 
+.. code-block:: r
+
+    require(OpenMx)
+
+    #Prepare Data
+    twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+    twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
+    summary(twinData)
+    selVars <- c('bmi1','bmi2')
+    mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
+    dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
 
 
 The saturated model will have two matrices for the expected means of MZs and DZs, and two for the expected covariances, generated from multiplying a lower triangular matrix with its transpose.  The raw data are read in using the ``mxData`` command, and the corresponding objective funtion ``mxFIMLObjective`` applied.  

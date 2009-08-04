@@ -1,13 +1,19 @@
-Means and Covariances
-=====================
+Two Model Styles - Two Data Styles
+==================================
 
+In this first detailed example, we introduce the different styles available to specify models and data.  There are two main approaches to specifying models: (i) paths specification and (ii) matrix specification.  We will go through all the examples in both approaches, so you can choose which fits your style better, or check them both out to get a sense of their advantage/disadvantages.  The 'path specification' model style translates path diagrams into OpenMx code; the 'matrix specification' model style relies on matrices and matrix algebra to produce OpenMx code.  For each of the two approaches, the data may come in (a) summary format, i.e. covariance matrices and possibly means, or (b) raw data format.  We will illustrate both, as arguments of functions may differ.  Thus, we will here describe the same example four different ways:
+
+* i.a Path Specification - Covariance Matrices
+* i.b Path Specification - Raw Data
+* ii.a Matrix Specification - Covariance Matrices
+* ii.b Matrix Specification - Raw Data
+
+Our first example is fitting a simple model to one variable to estimate its mean and variance.  This is also referred to as fitting a saturated model.  We start with a univariate example, and also work through a bivariate example which differs in minor ways from the univariate one, as it forms the basis for later examples.
 
 Univariate Saturated Model
 --------------------------
-
-Our first example is fitting a simple model to one variable to estimate its mean and variance.  If you have read the tutorial, you are aware that there are two main approaches to specifying models: (i) paths specification and (ii) matrix specification.  We will go through all the examples in both approaches, so you can choose which fits your style better, or check them both out to get a sense of their advantage/disadvantages.
-
-For each of the two approaches, the data may come in summary format, i.e. covariance matrices and possibly means, or in raw data format.  We will illustrate both, as arguments of functions may differ.  Thus there are four versions of each example. The univariate examples are available in the following files:
+    
+The four versions of univariate example are available in the following files:
 
 * UnivariateSaturated_PathCov.R
 * UnivariateSaturated_PathRaw.R
