@@ -134,56 +134,54 @@ To evaluate the likelihood of the data, we estimate a saturated model with free 
 
 .. code-block:: r
 
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=True, 
-        values=c(0,0), 
-        dimnames=list(NULL, selVars), 
-        name="expMean"), 
+    bivCorModel <- mxModel("bivCor",
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=2, 
+            free=True, 
+            values=c(0,0), 
+            dimnames=list(NULL, selVars), 
+            name="expMean"), 
 
 Next, we need to specify the expected covariance matrix.  As this matrix is symmetric, we could estimate it directly as a symmetric matrix.  However, to avoid solutions that are not positive definite, we will use a Cholesky decomposition.  Thus, we specify a lower triangular matrix (matrix with free elements on the diagonal and below the diagonal, and zero's above the diagonal), and multiply it with its transpose to generate a symmetric matrix.  We will use a ``mxMatrix`` command to specify the lower triangular matrix and a ``mxAlgebra`` command to set up the symmetric matrix.  (PS a lower triangular matrix doesn't exist yet so we specify it explicitly.)  The matrix is a 2x2 free lower matrix with  ``c('X','Y')`` as dimnames for the rows and columns, and the name "Chol".  We can now refer back to this matrix by its name in the ``mxAlgebra`` statement.  We use a regular multiplication of ``Chol`` with its transpose ``t(Chol)``, and name this as "expCov".
 
 .. code-block:: r
 
-    mxMatrix(
-        type="Full", 
-        nrow=2, 
-        ncol=2, 
-        free=c(T,T,F,T), 
-        values=c(1,.2,0,1), 
-        dimnames=list(selVars, selVars), 
-        name="Chol"), 
-    mxAlgebra(
-        Chol %*% t(Chol), 
-        name="expCov", 
-        dimnames=list(selVars, selVars)), 
+        mxMatrix(
+            type="Full", 
+            nrow=2, 
+            ncol=2, 
+            free=c(T,T,F,T), 
+            values=c(1,.2,0,1), 
+            dimnames=list(selVars, selVars), 
+            name="Chol"), 
+        mxAlgebra(
+            expression=Chol %*% t(Chol), 
+            name="expCov", 
+            dimnames=list(selVars, selVars)), 
 
 Now that we have specified our 'model', we need to supply the data.  This is done with the ``mxData`` command.  The first argument includes the actual data, in the type given by the second argument.  Type can be a covariance matrix (cov), a correlation matrix (cor), a matrix of cross-products (sscp) or raw data (raw).  We will use the latter option and read in the raw data directly from the simulated dataset ``testData``.
 
 .. code-block:: r
 
-    mxData(
-        testData, 
-        type="raw"), 
+        mxData(
+            observed=testData, 
+            type="raw"), 
 
 Next, we specify which objective function we wish to use to obtain the likelihood of the data.  Given we fit to the raw data, we use the full information maximum likelihood (FIML) objective function ``mxFIMLObjective``.  Its arguments are the expected covariance matrix, generated using the ``mxMatrix`` and ``mxAlgebra`` commands as "expCov", and the expected means vectors, generated using the ``mxMatrix`` command as "expMeans".
 
 .. code-block:: r
 
-    mxFIMLObjective(
-        covariance="expCov", 
-        means="expMean"))
+        mxFIMLObjective(
+            covariance="expCov", 
+            means="expMean"))
 
 All these elements become arguments of the ``mxModel`` command, seperated by comma's.  The first argument can be a name, as in this case "bivCor" or another model (see below).  The model is then saved in an object 'bivCorModel' which becomes the argument of the ``mxRun`` command, which evaluates the model and provides output - if the model ran successfully. using the following command.
 
 .. code-block:: r
 
-    bivCorFit <- mxRun(bivCorModel)
-
-.. literalinclude:: bivCor.R
-       :language: r
+        bivCorFit <- mxRun(bivCorModel)
 
 We can then request various parts of the output to inspect by referring to them by the name of the object resulting from the ``mxRun`` command, followed by the name of the objects corresponding to the expected mean vector and covariance matrix, in quotes and double square brackets, followed by ``@values``.  The command ``mxEvaluate`` can also be used to extract relevant information, such as the likelihood, where the first argument of the command is the object of interest and the second the object obtaining the results.
 
@@ -200,7 +198,7 @@ If we want to test whether the covariance/correlation is significantly different
     #Test for Covariance=Zero
     bivCorModelSub <-mxModel(bivCorModel,
         mxMatrix(
-            "Full", 
+            type="Full", 
             nrow=2, 
             ncol=2, 
             free=c(T,F,F,T), 
