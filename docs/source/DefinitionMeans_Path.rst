@@ -67,6 +67,7 @@ Model Specification
 Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, and an objective function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
 
 .. code-block:: r
+
     require(OpenMx)
     defmeansmodel<-mxModel("Definition Means via Paths", 
         type="RAM",

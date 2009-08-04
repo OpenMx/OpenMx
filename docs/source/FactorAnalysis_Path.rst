@@ -202,7 +202,7 @@ A summary of the output can be reached using ``summary()``.
 Two Factor Model
 -------------------
 
-The common factor model can be extended to include multiple latent variables. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}'-:math:`x_{3}' and :math:`y_{1}'-:math:`y_{3}' are given below.
+The common factor model can be extended to include multiple latent variables. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}'-:math:`x_{3}` and :math:`y_{1}'-:math:`y_{3}` are given below.
 
 .. math::
    :nowrap:
