@@ -58,7 +58,7 @@ The \sQuote{output} slot contains a list of output added to the model by the \li
 }
 
 \references{
-The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{

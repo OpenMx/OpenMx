@@ -29,6 +29,10 @@ If a model is dependent on or shares parameters with another model, both models 
    optimization.
 }
 
+\references{
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+}
+
 \examples{
 #Create a model that includes data, matrices A, S and F, and an objective function
 \dontrun{

@@ -28,8 +28,7 @@ Slots may be referenced with the @ symbol. See the documentation for \link{Extra
 }
 
 \references{
-The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
-}
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.}
 
 \seealso{
 \link{mxAlgebra} for creating MxAlgebra objects. \link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'formula' slot and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 

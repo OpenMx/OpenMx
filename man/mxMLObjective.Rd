@@ -30,7 +30,7 @@ To evaluate, place MxMLObjective objects, the \link{mxData} object for which the
 }
 
 \references{
-The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \examples{

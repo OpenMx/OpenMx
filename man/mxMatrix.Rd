@@ -53,7 +53,7 @@ Objects created by the mxMatrix function are of a specific 'type', which specifi
 }
 
 \references{
-More information about these matrix types can be found in Chapter 4 of the Mx manual, which can be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{

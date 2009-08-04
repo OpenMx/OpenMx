@@ -26,7 +26,7 @@ Slots may be referenced with the @ symbol. See the documentation for \link{Extra
 }
 
 \references{
-More information about Mx may be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{

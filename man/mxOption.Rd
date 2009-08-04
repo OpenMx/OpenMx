@@ -32,7 +32,7 @@ Returns the model with the optimizer option either set or cleared.
 }
 
 \references{
-More information about Mx may be found at http://www.vcu.edu/mx/documentation.html
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 

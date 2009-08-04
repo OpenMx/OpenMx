@@ -28,8 +28,7 @@ Returns a new \link{MxBounds} object. If used as an argument in an \link{MxModel
 }
 
 \references{
-More information about Mx may be found at http://www.vcu.edu/mx/documentation.html
-}
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.}
 
 \seealso{
 \link{MxBounds} for the S4 class created by mxBounds. \link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 

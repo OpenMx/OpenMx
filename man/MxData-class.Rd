@@ -49,7 +49,7 @@ The mxData function does not currently place restrictions on the size, shape, or
 }
 
 \references{
-The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{

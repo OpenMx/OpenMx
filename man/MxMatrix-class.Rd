@@ -29,7 +29,7 @@ The 'labels' slot takes a matrix which describes the labels of free and fixed pa
 }
 
 \references{
-The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{

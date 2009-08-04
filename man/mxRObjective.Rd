@@ -35,7 +35,7 @@ Returns a new MxRObjective object.
 }
 
 \references{
-The Mx manual can be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \examples{

@@ -29,7 +29,7 @@ Returns an \link{MxConstraint} object. If used as an argument in an \link{MxMode
 }
 
 \references{
-The Mx manual may be found at http://www.vcu.edu/mx/documentation.html.
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
 \seealso{
