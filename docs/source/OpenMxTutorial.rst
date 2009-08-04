@@ -294,7 +294,7 @@ Note that the ``mxModel`` statement for the DZ twins is almost identical to that
         mxData(DataDZ, type="raw"), 
         mxFIMLObjective("expCovDZ", "expMeanDZ")),
 
-The two models are then combined in a 'super'model which includes them as arguments.  Additional arguments are an ``mxAlgebra`` statement to add the objective funtions/likelihood of the two submodels.  To evaluate them simultaneously, we use the ``mxAlgebraObjective`` with the previous algebra as its argument.
+The two models are then combined in a 'super'model which includes them as arguments.  Additional arguments are an ``mxAlgebra`` statement to add the objective funtions/likelihood of the two submodels.  To evaluate them simultaneously, we use the ``mxAlgebraObjective`` with the previous algebra as its argument.  The ``mxRun`` command is used to start optimization.
 
 .. code-block:: r 
 
@@ -303,11 +303,17 @@ The two models are then combined in a 'super'model which includes them as argume
         mxModel("DZ", .... ),
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
+    twinSatFit <- mxModel(twinSatModel)
 
 It is always helpful/advised to check the model specifications before interpreting the output.  Here we are interested in the values for the expected mean vectors and covariance matrices, and the goodness-of-fit statistics, including the likelihood, degrees of freedom, and any other derived indices.
 
 .. code-block:: r
 
+    ExpMeanMZ <- mxEvaluate(MZ.expMeanMZ, twinSatFit)
+    ExpCovMZ <- mxEvaluate(MZ.expCovMZ, twinSatFit)
+    ExpMeanDZ <- mxEvaluate(DZ.expMeanDZ, twinSatFit)
+    ExpCovDZ <- mxEvaluate(DZ.expCovDZ, twinSatFit)
+    LL_Sat <- mxEvaluate(objective, twinSatFit)
 
 Before we move on to fit the ACE model to the same data, we may want to test some of the assumptions of the twin model, i.e. that the means and variances are the same for twin 1 and twin 2, and that they are the same for MZ and DZ twins.  This can be done as an omnibus test, or stepwise.  Let us start by equating the means for both twins, separately in the two groups.  As the majority of the previous script stays the same, we start by copying the old model into a new one.  We then include the arguments of the model that require a change.
 
@@ -320,6 +326,7 @@ Before we move on to fit the ACE model to the same data, we may want to test som
             mxMatrix("Full", 1, 2, T, 0, "mDZ", dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
+    twinSatFitSub1 <- mxModel(twinSatModelSub1)
 
 If we want to test if we can equate both means and variances across twin order and zygosity at once, we will end up with the following specification.  Note that we use the same label for elements that need to be equated.
 
@@ -336,14 +343,21 @@ If we want to test if we can equate both means and variances across twin order a
                 dimnames=list(NULL, selVars), name="CholDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
+    twinSatFitSub2 <- mxModel(twinSatModelSub2)
 
-We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using ``mxCompare``....
+We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using the results from ``mxEvaluate`` commands with regular R algebra.  A summary of the model parameters, estimates and goodness-of-fit statistics can also be obtained using ``summary(twinSatFit)``.  Further development is required.
 
+.. code-block:: r 
+
+    LL_Sat <- mxEvaluate(objective, twinSatFit)
+    LL_Sub <- mxEvaluate(objective, twinSatFitSub1);
+    LRT= LL_Sub - LL_Sat;
 
 Now, we are ready to specify the ACE model to test which sources of variance significantly contribute to the phenotype and estimate their best value.  The structure of this script is going to mimic that of the saturated model.  The main difference is that we no longer estimate the variance-covariance matrix directly, but express it as a function of the three sources of variance, **A**, **C** and **E**.  As the same sources are used for the MZ and the DZ group, the matrices which will represent them are part of the 'super'model.  As these sources are variances, which need to be positive, we typically use a Cholesky decomposition of the standard deviations (and effectively estimate **a** rather then **a^2**, see later for more in depth coverage).  Thus, we specify three separate matrices for the three sources of variance using the ``mxMatrix`` command and 'calculate' the variance components with the ``mxAlgebra`` command.  Note that there are a variety of ways to specify this model, we have picked one that corresponds well to previous Mx code, and has some intuitive appeal.
 
 .. code-block:: r
 
+    #Specify ACE Model
     twinACEModel <- mxModel("twinACE", 
         mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
         mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
@@ -366,14 +380,7 @@ Now, we are ready to specify the ACE model to test which sources of variance sig
             mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMeanDZ")),
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
-
-#Finally the ACE model can be run
-
-.. code-block:: r
-
+    #Run ACE model can be run
     twinACEFit <- mxRun(twinACEModel)
 
-
-
-
-
+Relevant output can be generate with ``print`` or ``summary`` statements or specific output can be requested using the ``mxEvaluate`` command.  Typically we would compare this model back to the saturated model to interpret its goodness-of-fit.  Parameter estimates are obtained and can easily be standardized.  We discuss a twin analysis example in more detail in the example code.
