@@ -253,7 +253,6 @@ Let us start by fitting a saturated model, estimating means, variances and covar
     mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
     dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
 
-
 The saturated model will have two matrices for the expected means of MZs and DZs, and two for the expected covariances, generated from multiplying a lower triangular matrix with its transpose.  The raw data are read in using the ``mxData`` command, and the corresponding objective funtion ``mxFIMLObjective`` applied.  
 
 .. code-block:: r
@@ -347,7 +346,7 @@ If we want to test if we can equate both means and variances across twin order a
 
 We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using the results from ``mxEvaluate`` commands with regular R algebra.  A summary of the model parameters, estimates and goodness-of-fit statistics can also be obtained using ``summary(twinSatFit)``.  Further development is required.
 
-.. code-block:: r 
+.. code-block:: r
 
     LL_Sat <- mxEvaluate(objective, twinSatFit)
     LL_Sub <- mxEvaluate(objective, twinSatFitSub1);
