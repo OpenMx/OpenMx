@@ -36,8 +36,10 @@ Model Specification
 There are different ways to draw a path diagram of the ACE model.  The most commonly used approach is with the three latent variables in circles at the top, separately for twin 1 and twin 2 respectively called **A1**, **C1**, **E1** and **A2**, **C2**, **E2**.  The latent variables are connected to the observed variables (in boxes) ***bmi1*** and ***bmi2*** at the bottom by single-headed arrows from the latent to the manifest variables.  Path coefficients **a**, **c** and **e** are estimated but constrained to be the same for twin 1 and twin 2, as well as for MZ and DZ twins.  As MZ twins share all their genotypes, the double-headed path connecting **A1** and **A2** is fixed to one.  DZ twins share on average half their genes, as a result the corresponding path is fixed to 0.5 in the DZ diagram.  As environmental factors that are shared between twins are assumed to increase similarity between twin to the same extent in MZ and DZ twins (equal environments assumption), the double-headed path connecting **C1** and **C2** is fixed to one in both diagrams.  The unique environmental factors are by definition uncorrelated between twins.
 
 .. image:: aceMZ.png
+    :height: 280
+    
 .. image:: aceDZ.png
-
+    :height: 280
 
 Let's go through each of the paths specification step by step.  They will all form arguments of the ``mxModel``, specified as follows.  Given the diagrams for the MZ and the DZ group look rather similar, we start by specifying all the common elements which will then be shared with the two submodels for each of the twin types.  Thus we call the first model 'share'.
 
@@ -46,7 +48,7 @@ Let's go through each of the paths specification step by step.  They will all fo
     #Fit ACE Model with RawData and Path-style Input
     share <- mxModel("share", 
         type="RAM",
-        
+
 Models specifying paths are translated into 'RAM' specifications for optimization, indicated by using the ``type='RAM'``.  For further details on RAM, see ref.  Note that we left the comma's at the end of the lines which are necessary when all the arguments are combined prior to running the model.  Each line can be pasted into R, and then evaluated together once the whole model is specified.  We start the path diagram specification by providing the names for the manifest variables in ``manifestVars`` and the latent varibles in ``latentVars``.  We use here the 'selVars' and 'aceVars' objects that we created before when preparing the data.
 
 .. code-block:: r

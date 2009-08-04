@@ -23,6 +23,7 @@ The common factor model is a method for modeling the relationships between obser
    \end{eqnarray*}
 
 .. image:: Factor1.png
+    :height: 280
 
 While 19 parameters are displayed in the equation and path diagram above (6 manifest variances, six manifest means, six factor loadings and one factor variance), we must constrain either the factor variance or one factor loading to a constant to identify the model and scale the latent variable. As such, this model contains 18 parameters. Unlike the manifest variable examples we've run up until now, this model is not fully saturated. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 9 degrees of freedom. 
 
@@ -212,6 +213,7 @@ The common factor model can be extended to include multiple latent variables. Th
    \end{eqnarray*}
 
 .. image:: Factor2.png
+    :height: 280
 
 Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we'll constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
 

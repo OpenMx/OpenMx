@@ -1,7 +1,10 @@
-Definition Variables, Mean Differences, Path Specification
-==========================================================
+Definition Variables, Path Specification
+========================================
 
 This example will demonstrate the use of OpenMx definition variables with the analysis of a simple two group dataset.  What are definition variables?  Essentially, definition variables can be thought of as observed variables that are used to change the statistical model on an individual case basis.  In essence, it is as though one or more variables in the raw data vectors are used to specify the statistical model for that individual.  Many different types of statistical model can be specified in this fashion; some  are readily specified in standard fashion, and some cannot.  To illustrate, we implement a two-group model.  The groups differ in their means but not in their variances and covariances.  This situation could easily be modeled in a regular multiple group fashion - it is only implemented using definition variables to illustrate their use.  The results are verified using summary statistics and an Mx 1.0 script for comparison is also available.
+
+Mean Differences
+----------------
 
 The scripts are presented here
 
@@ -26,7 +29,8 @@ where the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilo
 Our task is to implement the model shown in the Figure below:
 
 .. image:: DefinitionMeans_Path.png
- 
+    :height: 280
+
 Data Simulation
 ^^^^^^^^^^^^^^^
 
