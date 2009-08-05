@@ -188,7 +188,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		omxRecompute(M);
 		omxCopyMatrix(P, means);
 //		if(OMX_DEBUG) {omxPrint(P, "means");}
-//		if(OMX_DEBUG) {omxPrint(Z, "Z");}
+//		if(OMX_DEBUG) {omxPrint(Y, "Y");}
 //		if(OMX_DEBUG) {omxPrint(mCov, "mCov");}
 		// P = means - F*(I-A)^(-1) * M
 //		if(OMX_DEBUG) {omxPrint(M, "M");}
@@ -203,8 +203,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &OneI, V->data, &OneI);
 //		if(OMX_DEBUG) { omxPrint(P, "P*Cov*P'"); }
 //		if(OMX_DEBUG) { omxPrint(V, "P*Cov*P'"); }
-		fmean = fmean * n;
-		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row, total %f.\n", fmean/n, fmean); } 
+		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row, total %f.\n", fmean, fmean/n); } 
 		if(fmean < 0.0) fmean = 0.0;
 	}
 
@@ -212,7 +211,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	
 	if(OMX_DEBUG) { Rprintf("RAMObjective value: %f + %f - %f= %f.\n", (sum + det), fmean, Q, (sum + det) + fmean - Q); }
 
-	oo->matrix->data[0] = (sum + det) + fmean;
+	oo->matrix->data[0] = ((sum + det) + fmean) * n;
 
 	if(OMX_DEBUG) { Rprintf("RAMObjective value comes to: %f (was: %f).\n", oo->matrix->data[0], (sum + det)); }
 
@@ -335,7 +334,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	}
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
-	newObj->logDetObserved = log(det * det) + newObj->cov->rows;
+	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * newObj->n;
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
 
 	oo->objectiveFun = omxCallRAMObjective;

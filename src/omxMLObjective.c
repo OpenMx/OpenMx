@@ -61,7 +61,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal->numValues = 1;
 	retVal->values = (double*) Calloc(1, double);
 	strncpy(retVal->label, "SaturatedLikelihood", 20);
-	*(retVal->values) = ((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols;
+	*(retVal->values) = (((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols) * ((omxMLObjective*)oo->argStruct)->n;
 	return retVal;
 }
 
@@ -199,11 +199,10 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &onei, C->data, &onei);
 
 		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); } 
-		fmean = fmean * n;
 		if(fmean < 0.0) fmean = 0.0;
 	}
 	
-	oo->matrix->data[0] = sum + det + fmean;
+	oo->matrix->data[0] = (sum + det + fmean) * n;
 
 	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
 
