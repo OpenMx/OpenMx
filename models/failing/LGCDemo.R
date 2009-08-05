@@ -94,9 +94,15 @@ covMatrix <- mxData(wisc.cov, type='cov', numObs = 100)
 model <- mxModel(model, objective, covMatrix)
 
 # Run the job
-# Currently returns "Error in if (uni) "U" else "N" : missing value where TRUE/FALSE needed"
 model <- mxRun(model)
-print(model@output)
+
+estimates <- model@output$estimate
+omxCheckCloseEnough(estimates[['Basis Loading V2']], 0.234, 0.01)
+omxCheckCloseEnough(estimates[['Basis Loading V4']], 0.527, 0.01)
+omxCheckCloseEnough(estimates[['Manifest Residual']], 11.005, 0.01)
+omxCheckCloseEnough(estimates[['Latent Intercept Variance']], 19.713, 0.01)
+omxCheckCloseEnough(estimates[['Latent Covariance']], 14.004, 0.01)
+omxCheckCloseEnough(estimates[['Latent Slope Variance']], 24.140, 0.01)
 
 # Expected Results
 	# Manifest Residual			11.005 (0.771)
