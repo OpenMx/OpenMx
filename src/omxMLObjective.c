@@ -61,7 +61,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal->numValues = 1;
 	retVal->values = (double*) Calloc(1, double);
 	strncpy(retVal->label, "SaturatedLikelihood", 20);
-	*(retVal->values) = (((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols) * ((omxMLObjective*)oo->argStruct)->n;
+	*(retVal->values) = (((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols) * (((omxMLObjective*)oo->argStruct)->n - 1);
 	return retVal;
 }
 
@@ -202,7 +202,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		if(fmean < 0.0) fmean = 0.0;
 	}
 	
-	oo->matrix->data[0] = (sum + det + fmean) * n;
+	oo->matrix->data[0] = (sum + det) * (n - 1) + fmean * (n);
 
 	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
 

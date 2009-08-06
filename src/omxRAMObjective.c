@@ -211,7 +211,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	
 	if(OMX_DEBUG) { Rprintf("RAMObjective value: %f + %f - %f= %f.\n", (sum + det), fmean, Q, (sum + det) + fmean - Q); }
 
-	oo->matrix->data[0] = ((sum + det) + fmean) * n;
+	oo->matrix->data[0] = ((sum + det) * (n-1) + fmean * n);
 
 	if(OMX_DEBUG) { Rprintf("RAMObjective value comes to: %f (was: %f).\n", oo->matrix->data[0], (sum + det)); }
 
@@ -334,7 +334,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	}
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
-	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * newObj->n;
+	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * (newObj->n - 1);
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
 
 	oo->objectiveFun = omxCallRAMObjective;
