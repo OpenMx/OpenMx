@@ -210,6 +210,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	} else {
 		dimnames(newMatrix) <- dimnames
 	}
+	omxVerifyMatrix(newMatrix)
 	return(newMatrix)
 }
 
