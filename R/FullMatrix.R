@@ -16,7 +16,7 @@
 
 setClass(Class = "FullMatrix",
 	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
+	contains = "MxMatrix")
 
 setMethod("initialize", "FullMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {

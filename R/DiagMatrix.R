@@ -15,7 +15,7 @@
 
 setClass(Class = "DiagMatrix",
 	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
+	contains = "MxMatrix")
 
 setMethod("initialize", "DiagMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {

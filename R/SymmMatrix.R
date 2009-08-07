@@ -16,7 +16,7 @@
 
 setClass(Class = "SymmMatrix",
 	representation = representation(),
-	contains = "MxSymmetricMatrix")
+	contains = "MxMatrix")
 
 setMethod("omxSymmetricMatrix", "SymmMatrix",
 	function(.Object) { return(TRUE) }

@@ -52,21 +52,11 @@ setGeneric("omxSymmetricMatrix", function(.Object) {
 # when you modify a symmetric matrix.
 # This prevents us from using symmetric matrices from the package.
 #
-setClass(Class = "MxSymmetricMatrix",
+setClass(Class = "MxMatrix",
 	representation = representation(
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
-		lbound = "matrix", ubound = "matrix", "VIRTUAL"))
-
-setClass(Class = "MxNonSymmetricMatrix",
-	representation = representation(
-		labels = "matrix", values = "matrix", 
-		free = "matrix", name = "character", 
-		lbound = "matrix", ubound = "matrix", "VIRTUAL"))
-		
-setClassUnion("MxMatrix",
-    c("MxSymmetricMatrix", "MxNonSymmetricMatrix"))
-		
+		lbound = "matrix", ubound = "matrix", "VIRTUAL"))		
 		
 setMethod("initialize", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, name) {

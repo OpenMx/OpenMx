@@ -16,7 +16,7 @@
 
 setClass(Class = "UnitMatrix",
 	representation = representation(),
-	contains = "MxNonSymmetricMatrix")
+	contains = "MxMatrix")
 	
 setMethod("initialize", "UnitMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
