@@ -9,8 +9,10 @@ selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
 mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
 dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-cov(mzfData)
-cov(dzfData)
+colMeans(mzfData,na.rm=TRUE)
+colMeans(dzfData,na.rm=TRUE)
+cov(mzfData,use="complete")
+cov(dzfData,use="complete")
 
 #Fit ACE Model with RawData and Path-Style Input
 share <- mxModel("share", 

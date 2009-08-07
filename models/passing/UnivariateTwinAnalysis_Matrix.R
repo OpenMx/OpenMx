@@ -8,24 +8,26 @@ summary(twinData)
 selVars <- c('bmi1','bmi2')
 mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
 dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-cov(mzfData)
-cov(dzfData)
+colMeans(mzfData,na.rm=TRUE)
+colMeans(dzfData,na.rm=TRUE)
+cov(mzfData,use="complete")
+cov(dzfData,use="complete")
 
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("twinACE", 
-    mxMatrix("Full", 1, 2, T, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
-    mxMatrix("Full", 1, 2, T, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanDZ"), 
+    mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
+    mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e", name="Z"),
     mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5, name="h"),
-    mxAlgebra(X * t(X), name="A"),
-    mxAlgebra(Y * t(Y), name="C"),
-    mxAlgebra(Z * t(Z), name="E"), 
-    mxAlgebra(rbind (cbind(A + C + E, A + C),
-                     cbind(A + C    , A + C + E)), dimnames = list(selVars, selVars), name="expCovMZ"),
-    mxAlgebra(rbind (cbind(A + C + E  , h %x% A + C),
-                     cbind(h %x% A + C, A + C + E)), dimnames = list(selVars, selVars), name="expCovDZ"),
+    mxAlgebra(X %*% t(X), name="A"),
+    mxAlgebra(Y %*% t(Y), name="C"),
+    mxAlgebra(Z %*% t(Z), name="E"), 
+    mxAlgebra(rbind (cbind(A+C+E  , A+C),
+                     cbind(A+C    , A+C+E)), dimnames = list(selVars, selVars), name="expCovMZ"),
+    mxAlgebra(rbind (cbind(A+C+E  , h%x%A+C),
+                     cbind(h%x%A+C, A+C+E)), dimnames = list(selVars, selVars), name="expCovDZ"),
     mxModel("MZ",
         mxData(mzfData, type="raw"), 
         mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMeanMZ")),
