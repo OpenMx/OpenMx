@@ -24,8 +24,9 @@ y<-rbind(group1,group2)
 dimnames(y)[2]<-list(c("x","y"))
 def<-rep(c(1,0),each=n)
 selvars<-c("x","y")
-#write data to a file for the mx script to read (not necessary for running in R)
-write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
+
+# write data to a file for the mx script to read (not necessary for running in R)
+# write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
 
 # Three covariance model matrices: 
 #  "cov" for the zero relationship group
@@ -105,7 +106,7 @@ M <- mxEvaluate(M, defMeansFit)
 beta <- mxEvaluate(beta, defMeansFit)
 
 # Third, we check to see if things are more or less equal
-omxCheckCloseEnough(ObsCovs,Sigma,.01)
-omxCheckCloseEnough(ObsMeansGroup1,as.vector(M+beta),.001)
-omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
+omxCheckCloseEnough(ObsCovs, Sigma, .01)
+omxCheckCloseEnough(ObsMeansGroup1, as.vector(M+beta), .001)
+omxCheckCloseEnough(ObsMeansGroup2, as.vector(Mu), .001)
 

@@ -1,7 +1,7 @@
 require(OpenMx)
 
 #Prepare Data
-twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+data(twinData)
 twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
 #dimnames(twinData) <- list(NULL, twinVars)
 summary(twinData)
