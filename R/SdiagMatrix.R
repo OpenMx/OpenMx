@@ -163,23 +163,23 @@ setMethod("omxVerifyMatrix", "SdiagMatrix",
 		lbound <- .Object@lbound
 		ubound <- .Object@ubound
 		if (!all(values[upper.tri(values, TRUE)]  == 0)) {
-			stop(paste("Upper triangle of values matrix in subdiagonal matrix", omxQuotes(.Object@name), 
+			stop(paste("Upper triangle or diagonal of values matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all zeros!"), call. = FALSE)
 		}
 		if (!all(free[upper.tri(free, TRUE)] == FALSE)) {
-			stop(paste("Upper triangle of free matrix in subdiagonal matrix", omxQuotes(.Object@name), 
+			stop(paste("Upper triangle or diagonal of free matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all fixed!"), call. = FALSE)
 		}
 		if (!all(is.na(labels[upper.tri(labels, TRUE)]))) {
-			stop(paste("Upper triangle of labels matrix in subdiagonal matrix", omxQuotes(.Object@name), 
+			stop(paste("Upper triangle or diagonal of labels matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
 		if (!all(is.na(lbound[upper.tri(labels, TRUE)]))) {
-			stop(paste("Upper triangle of lbound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
+			stop(paste("Upper triangle or diagonal of lbound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
 		if (!all(is.na(ubound[upper.tri(labels, TRUE)]))) {
-			stop(paste("Upper triangle of ubound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
+			stop(paste("Upper triangle or diagonal of ubound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
 	}
