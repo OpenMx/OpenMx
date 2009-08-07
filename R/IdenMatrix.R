@@ -17,26 +17,30 @@
 setClass(Class = "IdenMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
-	
+
+setMethod("omxSquareMatrix", "IdenMatrix",
+	function(.Object) { return(TRUE) }
+)	
+
 setMethod("initialize", "IdenMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for IdenMatrix construction", call. = FALSE)
+			warning("Ignoring values matrix for identity matrix construction", call. = FALSE)
 		}
 		if (!single.na(labels)) {
-			warning("Ignoring labels matrix for IdenMatrix construction", call. = FALSE)
+			warning("Ignoring labels matrix for identity matrix construction", call. = FALSE)
 		}
 		if (!(length(free) == 1 && free == FALSE)) {
-			warning("Ignoring free matrix for IdenMatrix construction", call. = FALSE)
+			warning("Ignoring free matrix for identity matrix construction", call. = FALSE)
 		}
 		if (!single.na(lbound)) {
-			warning("Ignoring lbound matrix for IdenMatrix construction", call. = FALSE)
+			warning("Ignoring lbound matrix for identity matrix construction", call. = FALSE)
 		}
 		if (!single.na(ubound)) {
-			warning("Ignoring ubound matrix for IdenMatrix construction", call. = FALSE)
+			warning("Ignoring ubound matrix for identity matrix construction", call. = FALSE)
 		}
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for IdenMatrix constructor", call. = FALSE)
+			stop("Non-square matrix attempted for identity matrix constructor", call. = FALSE)
 		}
 		labels <- matrix(as.character(NA), nrow, ncol)
 		values <- matrix(diag(nrow = nrow), nrow, ncol)
@@ -50,13 +54,12 @@ setMethod("initialize", "IdenMatrix",
 setMethod("omxVerifyMatrix", "IdenMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
-		verifySquare(.Object)
 		if(!all(.Object@free == FALSE)) {
-			stop(paste("Free matrix of iden matrix", 
+			stop(paste("Free matrix of identity matrix", 
 				omxQuotes(.Object@name), "has a free parameter"), call.=FALSE)
 		}
 		if(!suppressWarnings(all(.Object@values == diag(nrow(.Object@values))))) {
-			stop(paste("Values matrix of iden matrix",
+			stop(paste("Values matrix of identity matrix",
 				omxQuotes(.Object@name), "is not the identity matrix"), call.=FALSE)
 		}
 	}

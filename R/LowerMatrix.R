@@ -14,22 +14,22 @@
 #   limitations under the License.
 
 
-setClass(Class = "SymmMatrix",
+setClass(Class = "LowerMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "SymmMatrix",
-	function(.Object) { return(TRUE) }
+setMethod("omxSymmetricMatrix", "LowerMatrix",
+	function(.Object) { return(FALSE) }
 )
 
-setMethod("omxSquareMatrix", "SymmMatrix",
+setMethod("omxSquareMatrix", "LowerMatrix",
 	function(.Object) { return(TRUE) }
 )
 	
-setMethod("initialize", "SymmMatrix",
+setMethod("initialize", "LowerMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for symmmetric matrix constructor", call. = FALSE)
+			stop("Non-square matrix attempted for lower matrix constructor", call. = FALSE)
 		}
 		if (single.na(values)) {
 			values <- 0
@@ -42,18 +42,18 @@ setMethod("initialize", "SymmMatrix",
 				if(byrow) {
 					tmp <- matrix(0, nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- values
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					tmp[upper.tri(tmp)] <- 0
 					values <- tmp
 				} else {
 					tmp <- matrix(0, nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- values
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
 					values <- tmp
-				}				
+				}			
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for values matrix in symmmetric matrix constructor", sep=""),
+					") for values matrix of lower matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -65,18 +65,18 @@ setMethod("initialize", "SymmMatrix",
 				if(byrow) {
 					tmp <- matrix(as.character(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- labels
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					tmp[upper.tri(tmp)] <- as.character(NA)
 					labels <- tmp
 				} else {
 					tmp <- matrix(as.character(NA), nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- labels
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
 					labels <- tmp
 				}				
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for labels matrix in symmmetric matrix constructor", sep=""),
+					") for labels matrix of lower matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -88,18 +88,18 @@ setMethod("initialize", "SymmMatrix",
 				if(byrow) {
 					tmp <- matrix(FALSE, nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- free
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					tmp[upper.tri(tmp)] <- FALSE
 					free <- tmp
 				} else {
 					tmp <- matrix(FALSE, nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- free
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
 					free <- tmp
-				}				
+				}
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for free matrix in symmmetric matrix constructor", sep=""),
+					") for free matrix of lower matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -111,18 +111,18 @@ setMethod("initialize", "SymmMatrix",
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- lbound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					tmp[upper.tri(tmp)] <- as.numeric(NA)
 					lbound <- tmp
 				} else {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- lbound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
 					lbound <- tmp
 				}				
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for lbound matrix in symmmetric matrix constructor", sep=""),
+					") for lbound matrix of lower matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -134,18 +134,18 @@ setMethod("initialize", "SymmMatrix",
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- ubound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+					tmp[lower.tri(tmp)] <- tmp[upper.tri(tmp)]
+					tmp[upper.tri(tmp)] <- as.numeric(NA)
 					ubound <- tmp
 				} else {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[lower.tri(tmp, TRUE)] <- ubound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
 					ubound <- tmp
-				}				
+				}
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for ubound matrix in symmmetric matrix constructor", sep=""),
+					") for ubound matrix of lower matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -154,7 +154,7 @@ setMethod("initialize", "SymmMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "SymmMatrix",
+setMethod("omxVerifyMatrix", "LowerMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values
@@ -162,25 +162,25 @@ setMethod("omxVerifyMatrix", "SymmMatrix",
 		labels <- .Object@labels
 		lbound <- .Object@lbound
 		ubound <- .Object@ubound
-		if (!all(values == t(values))) {
-			stop(paste("Values matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), call. = FALSE)
+		if (!all(values[upper.tri(values)]  == 0)) {
+			stop(paste("Upper triangle of values matrix in lower matrix", omxQuotes(.Object@name), 
+				"is not all zeros!"), call. = FALSE)
 		}
-		if (!all(free == t(free))) {
-			stop(paste("Free matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), call. = FALSE)
+		if (!all(free[upper.tri(free)] == FALSE)) {
+			stop(paste("Upper triangle of free matrix in lower matrix", omxQuotes(.Object@name), 
+				"is not all fixed!"), call. = FALSE)
 		}
-		if (!all(labels == t(labels), na.rm = TRUE) && all(is.na(labels) == is.na(t(labels)))) {
-			stop(paste("Labels matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), call. = FALSE)
+		if (!all(is.na(labels[upper.tri(labels)]))) {
+			stop(paste("Upper triangle of labels matrix in lower matrix", omxQuotes(.Object@name), 
+				"is not all NAs!"), call. = FALSE)
 		}
-		if (!all(lbound == t(lbound), na.rm = TRUE) && all(is.na(lbound) == is.na(t(lbound)))) {
-			stop(paste("Lbound matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), call. = FALSE)
+		if (!all(is.na(lbound[upper.tri(labels)]))) {
+			stop(paste("Upper triangle of lbound matrix in lower matrix", omxQuotes(.Object@name), 
+				"is not all NAs!"), call. = FALSE)
 		}
-		if (!all(ubound == t(ubound), na.rm = TRUE) && all(is.na(ubound) == is.na(t(ubound)))) {
-			stop(paste("Ubound matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), call. = FALSE)
+		if (!all(is.na(ubound[upper.tri(labels)]))) {
+			stop(paste("Upper triangle of ubound matrix in lower matrix", omxQuotes(.Object@name), 
+				"is not all NAs!"), call. = FALSE)
 		}
 	}
 )

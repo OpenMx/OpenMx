@@ -21,19 +21,19 @@ setClass(Class = "UnitMatrix",
 setMethod("initialize", "UnitMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for UnitMatrix construction", call. = FALSE)
+			warning("Ignoring values matrix for unit matrix constructor", call. = FALSE)
 		}
 		if (!single.na(labels)) {
-			warning("Ignoring labels matrix for UnitMatrix construction", call. = FALSE)
+			warning("Ignoring labels matrix for unit matrix constructor", call. = FALSE)
 		}
 		if (!(length(free) == 1 && free == FALSE)) {
-			warning("Ignoring free matrix for UnitMatrix construction", call. = FALSE)
+			warning("Ignoring free matrix for unit matrix constructor", call. = FALSE)
 		}
 		if (!single.na(lbound)) {
-			warning("Ignoring lbound matrix for UnitMatrix construction", call. = FALSE)
+			warning("Ignoring lbound matrix for unit matrix constructor", call. = FALSE)
 		}
 		if (!single.na(ubound)) {
-			warning("Ignoring ubound matrix for UnitMatrix construction", call. = FALSE)
+			warning("Ignoring ubound matrix for unit matrix constructor", call. = FALSE)
 		}
 		labels <- matrix(as.character(NA), nrow, ncol)
 		values <- matrix(1, nrow, ncol)

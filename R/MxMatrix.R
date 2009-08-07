@@ -47,6 +47,10 @@ setGeneric("omxSymmetricMatrix", function(.Object) {
 	return(standardGeneric("omxSymmetricMatrix"))
 })
 
+setGeneric("omxSquareMatrix", function(.Object) {
+	return(standardGeneric("omxSquareMatrix"))
+})
+
 #
 # The Matrix package returns a non-symmetric matrix
 # when you modify a symmetric matrix.
@@ -72,20 +76,27 @@ setMethod("initialize", "MxMatrix",
 
 setMethod("omxVerifyMatrix", "MxMatrix",
 	function(.Object) {
-		if(!all(dim(.Object@labels) == dim(.Object@values))) {
+		if (!all(dim(.Object@labels) == dim(.Object@values))) {
 			stop(paste("Labels and values matrices of", 
 				omxQuotes(.Object@name), 
 				"have different dimensions"), call.=FALSE)
 		}
-		if(!all(dim(.Object@labels) == dim(.Object@free))) {
+		if (!all(dim(.Object@labels) == dim(.Object@free))) {
 			stop(paste("Labels and free matrices of", 
 				omxQuotes(.Object@name), 
 				"have different dimensions"), call.=FALSE)
+		}
+		if (omxSquareMatrix(.Object)) {
+			verifySquare(.Object)
 		}
 	}
 )
 
 setMethod("omxSymmetricMatrix", "MxMatrix",
+	function(.Object) { return(FALSE) }
+)
+
+setMethod("omxSquareMatrix", "MxMatrix",
 	function(.Object) { return(FALSE) }
 )
 
@@ -144,8 +155,8 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
-matrixTypes <- c("Diag", "Full", "Iden", "Symm", "Unit", "Zero")
-squareMatrices <- c("Diag", "Iden", "Symm")
+matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Symm", "Unit", "Zero")
+squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Symm")
 
 
 mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
