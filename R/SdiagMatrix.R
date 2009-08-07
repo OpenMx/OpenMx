@@ -14,22 +14,22 @@
 #   limitations under the License.
 
 
-setClass(Class = "LowerMatrix",
+setClass(Class = "SdiagMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "LowerMatrix",
+setMethod("omxSymmetricMatrix", "SdiagMatrix",
 	function(.Object) { return(FALSE) }
 )
 
-setMethod("omxSquareMatrix", "LowerMatrix",
+setMethod("omxSquareMatrix", "SdiagMatrix",
 	function(.Object) { return(TRUE) }
 )
 	
-setMethod("initialize", "LowerMatrix",
+setMethod("initialize", "SdiagMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for lower matrix constructor", call. = FALSE)
+			stop("Non-square matrix attempted for subdiagonal matrix constructor", call. = FALSE)
 		}
 		if (single.na(values)) {
 			values <- 0
@@ -38,22 +38,22 @@ setMethod("initialize", "LowerMatrix",
 			len <- length(values)
 			if (len == nrow * ncol || len == 1) {
 				values <- matrix(values, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol - 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(0, nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- values
+					tmp[upper.tri(tmp)] <- values
 					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp)] <- 0
+					tmp[upper.tri(tmp, TRUE)] <- 0
 					values <- tmp
 				} else {
 					tmp <- matrix(0, nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- values
+					tmp[lower.tri(tmp)] <- values
 					values <- tmp
 				}			
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for values matrix of lower matrix constructor", sep=""),
+					") for values matrix of subdiagonal matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -61,22 +61,22 @@ setMethod("initialize", "LowerMatrix",
 			len <- length(labels)
 			if (len == nrow * ncol || len == 1) {
 				labels <- matrix(labels, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol - 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- labels
+					tmp[upper.tri(tmp)] <- labels
 					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp)] <- as.character(NA)
+					tmp[upper.tri(tmp, TRUE)] <- as.character(NA)
 					labels <- tmp
 				} else {
 					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- labels
+					tmp[lower.tri(tmp)] <- labels
 					labels <- tmp
 				}				
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for labels matrix of lower matrix constructor", sep=""),
+					") for labels matrix of subdiagonal matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -84,22 +84,22 @@ setMethod("initialize", "LowerMatrix",
 			len <- length(free)
 			if (len == nrow * ncol || len == 1) {
 				free <- matrix(free, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol - 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- free
+					tmp[upper.tri(tmp)] <- free
 					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp)] <- FALSE
+					tmp[upper.tri(tmp, TRUE)] <- FALSE
 					free <- tmp
 				} else {
 					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- free
+					tmp[lower.tri(tmp)] <- free
 					free <- tmp
 				}
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for free matrix of lower matrix constructor", sep=""),
+					") for free matrix of subdiagonal matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -107,22 +107,22 @@ setMethod("initialize", "LowerMatrix",
 			len <- length(lbound)
 			if (len == nrow * ncol || len == 1) {
 				lbound <- matrix(lbound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol - 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- lbound
+					tmp[upper.tri(tmp)] <- lbound
 					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp)] <- as.numeric(NA)
+					tmp[upper.tri(tmp, TRUE)] <- as.numeric(NA)
 					lbound <- tmp
 				} else {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- lbound
+					tmp[lower.tri(tmp)] <- lbound
 					lbound <- tmp
 				}				
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for lbound matrix of lower matrix constructor", sep=""),
+					") for lbound matrix of subdiagonal matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -130,22 +130,22 @@ setMethod("initialize", "LowerMatrix",
 			len <- length(ubound)
 			if (len == nrow * ncol || len == 1) {
 				ubound <- matrix(ubound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol - 1) / 2) {
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- ubound
+					tmp[upper.tri(tmp)] <- ubound
 					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp)] <- as.numeric(NA)
+					tmp[upper.tri(tmp, TRUE)] <- as.numeric(NA)
 					ubound <- tmp
 				} else {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- ubound
+					tmp[lower.tri(tmp)] <- ubound
 					ubound <- tmp
 				}
 			} else {
 				stop(paste(
 					"Illegal number of elements (", len,
-					") for ubound matrix of lower matrix constructor", sep=""),
+					") for ubound matrix of subdiagonal matrix constructor", sep=""),
 					call. = FALSE)
 			}
 		}
@@ -154,7 +154,7 @@ setMethod("initialize", "LowerMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "LowerMatrix",
+setMethod("omxVerifyMatrix", "SdiagMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values
@@ -162,24 +162,24 @@ setMethod("omxVerifyMatrix", "LowerMatrix",
 		labels <- .Object@labels
 		lbound <- .Object@lbound
 		ubound <- .Object@ubound
-		if (!all(values[upper.tri(values)]  == 0)) {
-			stop(paste("Upper triangle or diagonal of values matrix in lower matrix", omxQuotes(.Object@name), 
+		if (!all(values[upper.tri(values, TRUE)]  == 0)) {
+			stop(paste("Upper triangle of values matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all zeros!"), call. = FALSE)
 		}
-		if (!all(free[upper.tri(free)] == FALSE)) {
-			stop(paste("Upper triangle or diagonal of free matrix in lower matrix", omxQuotes(.Object@name), 
+		if (!all(free[upper.tri(free, TRUE)] == FALSE)) {
+			stop(paste("Upper triangle of free matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all fixed!"), call. = FALSE)
 		}
-		if (!all(is.na(labels[upper.tri(labels)]))) {
-			stop(paste("Upper triangle or diagonal of labels matrix in lower matrix", omxQuotes(.Object@name), 
+		if (!all(is.na(labels[upper.tri(labels, TRUE)]))) {
+			stop(paste("Upper triangle of labels matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
-		if (!all(is.na(lbound[upper.tri(labels)]))) {
-			stop(paste("Upper triangle or diagonal of lbound matrix in lower matrix", omxQuotes(.Object@name), 
+		if (!all(is.na(lbound[upper.tri(labels, TRUE)]))) {
+			stop(paste("Upper triangle of lbound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
-		if (!all(is.na(ubound[upper.tri(labels)]))) {
-			stop(paste("Upper triangle or diagonal of ubound matrix in lower matrix", omxQuotes(.Object@name), 
+		if (!all(is.na(ubound[upper.tri(labels, TRUE)]))) {
+			stop(paste("Upper triangle of ubound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
 				"is not all NAs!"), call. = FALSE)
 		}
 	}

@@ -155,8 +155,8 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
-matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Symm", "Unit", "Zero")
-squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Symm")
+matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Unit", "Zero")
+squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 
 
 mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 

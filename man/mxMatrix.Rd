@@ -14,7 +14,7 @@ mxMatrix(type = "Full", nrow = NA, ncol = NA,
 }
 
 \arguments{
-  \item{type}{a character string indicating the matrix type, where type indicates the range of values and equalities in the matrix. Must be one of:  'Diag', 'Full', 'Iden', 'Lower', 'Stand', 'Symm', 'Unit', or 'Zero'.}
+  \item{type}{a character string indicating the matrix type, where type indicates the range of values and equalities in the matrix. Must be one of:  \sQuote{Diag}, \sQuote{Full}, \sQuote{Iden}, \sQuote{Lower}, \sQuote{Sdiag}, \sQuote{Stand}, \sQuote{Symm}, \sQuote{Unit}, or \sQuote{Zero}.}
   \item{nrow}{the desired number of rows. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{ncol}{the desired number of columns. One of 'nrow' and 'ncol' is required when 'values', 'free', and 'labels' arguments are not matrices.}
   \item{free}{a vector or matrix of logicals for free parameter specification. A single 'TRUE' or 'FALSE' will set all allowable variables to free or fixed, respectively.}
@@ -40,6 +40,8 @@ Objects created by the mxMatrix function are of a specific 'type', which specifi
 \item{'Iden'}{matrices must be square, and consist of no free parameters. Matrices of this type have a value of 1 for all entries on the principle diagonal and the value 0 in all off-diagonal entries.}
 
 \item{'Lower'}{matrices must be square, with a value of 0 for all entries in the upper triangle and no free parameters in the upper triangle.}
+
+\item{'Sdiag'}{matrices must be square, with a value of 0 for all entries in the upper triangle and along the diagonal. No free parameters in the upper triangle or along the diagonal.}
 
 \item{'Symm'}{matrices must be square, and elements in the principle diagonal and lower triangular portion of the matrix may be free parameters of any value. Elements in the upper triangular portion of the matrix are constrained to be equal to those in the lower triangular portion, such that the value and parameter specificiation of the element in row i and column j is identical to to the value and specification of the element in row j and column i. Values and parameters specified in one element of the matrix are automatically applied to equivalent elements.}
 
