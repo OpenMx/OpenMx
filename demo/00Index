@@ -20,3 +20,21 @@ TwoFactorModel_MatrixRaw	Two factor model using matrix (RAM) specification and r
 TwoFactorModel_MatrixCov	Two factor model using matrix (RAM) specification and covariance data
 LGC_PathRaw	Latent growth curve model using path-centric specification and raw data
 LGC_MatrixRaw	Latent growth curve model using matrix (RAM) specification and raw data
+UnivariateSaturated_PathCov	Univariate saturated model using path-centric specification and covariance data
+UnivariateSaturated_PathRaw	Univariate saturated model using path-centric specification and raw data
+UnivariateSaturated_MatrixCov	Univariate saturated model using matrix specification and covariance data
+UnivariateSaturated_MatrixRaw	Univariate saturated model using matrix specification and raw data
+UnivariateSaturated	Univariate saturated model using path-centric/matrix specification and covariance/raw data
+BivariateSaturated_PathCov	Bivariate saturated model using path-centric specification and covariance data
+BivariateSaturated_PathRaw	Bivariate saturated model using path-centric specification and raw data
+BivariateSaturated_MatrixCov	Bivariate saturated model using matrix specification and covariance data
+BivariateSaturated_MatrixRaw	Bivariate saturated model using matrix specification and raw data
+BivariateSaturated_MatrixCovCholesky	Bivariate saturated model using matrix specification and covariance data with Cholesky
+BivariateSaturated_MatrixRawCholesky	Bivariate saturated model using matrix specification and raw data with Cholesky
+BivariateSaturated	Bivariate saturated model using path-centric/matrix specification and covariance/raw data
+BivariateCorrelation	Bivariate saturated model testing significance of correlation using matrix specification and raw data
+BivariateHeterogeneity_PathRaw	Bivariate hetero/homogeneity model using path-centric specification and raw data
+BivariateHeterogeneity_MatrixRaw	Bivariate hetero/homogeneity model using matrix specification and raw data
+UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specification and raw data
+UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
+
