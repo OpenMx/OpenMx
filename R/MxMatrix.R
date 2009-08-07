@@ -235,6 +235,12 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	if (is.list(ubound)) {
 		stop("'Ubound' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
 	}
+	if (!(is.na(nrow) || (is.numeric(nrow) && length(nrow) == 1))) {
+		stop("'nrow' argument to mxMatrix must be either NA or a single value.", call. = FALSE)
+	}
+	if (!(is.na(ncol) || (is.numeric(ncol) && length(ncol) == 1))) {
+		stop("'ncol' argument to mxMatrix must be either NA or a single value.", call. = FALSE)
+	}
 	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels) 
 		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(nrow))) {
