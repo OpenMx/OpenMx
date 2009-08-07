@@ -1,0 +1,47 @@
+require(OpenMx)
+
+#Simulate Data
+set.seed(100)
+x <- rnorm (1000, 0, 1)
+testData <- as.matrix(x)
+selVars <- c("X")
+dimnames(testData) <- list(NULL, selVars)
+summary(testData)
+mean(testData)
+var(testData)
+
+#example 2: Saturated Model with Raw Data and Path-Style Input
+univSatModel2 <- mxModel("univSat2",
+    manifestVars= selVars,
+    mxPath(
+        from=c("X"), 
+        arrows=2, 
+        free=T, 
+        values=1, 
+        lbound=.01, 
+        labels="vX"
+    ),
+    mxData(
+        observed=testData, 
+        type="raw", 
+    ),
+    type="RAM"
+    )
+univSatFit2 <- mxRun(univSatModel2)
+EM2 <- mxEvaluate(M, univSatFit2)
+EC2 <- mxEvaluate(S, univSatFit2)
+LL2 <- mxEvaluate(objective,univSatFit2);
+
+
+#Mx answers hard-coded
+#example Mx..2: Saturated Model with Raw Data
+Mx.EM2 <- 0.01680516
+Mx.EC2 <- 1.061050
+Mx.LL2 <- 2897.135
+
+
+#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#2:RawPat 
+omxCheckCloseEnough(LL2,Mx.LL2,.001)
+omxCheckCloseEnough(EC2,Mx.EC2,.001)
+omxCheckCloseEnough(EM2,Mx.EM2,.001)
