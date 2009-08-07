@@ -36,9 +36,9 @@ setMethod("initialize", "LowerMatrix",
 		}
 		if (is.vector(values)) {
 			len <- length(values)
-			if (len == nrow * ncol || len == 1) {
+			if (len == nrow * ncol) {
 				values <- matrix(values, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol + 1) / 2 || len == 1) {
 				if(byrow) {
 					tmp <- matrix(0, nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- values
@@ -59,9 +59,9 @@ setMethod("initialize", "LowerMatrix",
 		}
 		if (is.vector(labels)) {
 			len <- length(labels)
-			if (len == nrow * ncol || len == 1) {
+			if (len == nrow * ncol) {
 				labels <- matrix(labels, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol + 1) / 2 || len == 1) {
 				if(byrow) {
 					tmp <- matrix(as.character(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- labels
@@ -82,9 +82,9 @@ setMethod("initialize", "LowerMatrix",
 		}
 		if (is.vector(free)) {
 			len <- length(free)
-			if (len == nrow * ncol || len == 1) {
+			if (len == nrow * ncol) {
 				free <- matrix(free, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol + 1) / 2  || len == 1) {
 				if(byrow) {
 					tmp <- matrix(FALSE, nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- free
@@ -105,9 +105,9 @@ setMethod("initialize", "LowerMatrix",
 		}
 		if (is.vector(lbound)) {
 			len <- length(lbound)
-			if (len == nrow * ncol || len == 1) {
+			if (len == nrow * ncol) {
 				lbound <- matrix(lbound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol + 1) / 2 || len == 1) {
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- lbound
@@ -128,9 +128,9 @@ setMethod("initialize", "LowerMatrix",
 		}
 		if (is.vector(ubound)) {
 			len <- length(ubound)
-			if (len == nrow * ncol || len == 1) {
+			if (len == nrow * ncol) {
 				ubound <- matrix(ubound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
+			} else if (len == nrow * (ncol + 1) / 2 || len == 1) {
 				if(byrow) {
 					tmp <- matrix(as.numeric(NA), nrow, ncol)
 					tmp[upper.tri(tmp, TRUE)] <- ubound
