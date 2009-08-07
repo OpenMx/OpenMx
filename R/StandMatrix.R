@@ -37,7 +37,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(values)) {
 			len <- length(values)
 			if (len == 1) {
-				tmp <- diag(1, nrow, ncol)
+				tmp <- matrix(1, nrow, ncol)
 				tmp[row(tmp) != col(tmp)] <- values
 				values <- tmp
 			} else if (len == nrow * ncol) {
@@ -64,7 +64,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(labels)) {
 			len <- length(labels)
 			if (len == 1) {
-				tmp <- diag(as.character(NA), nrow, ncol)
+				tmp <- matrix(as.character(NA), nrow, ncol)
 				tmp[row(tmp) != col(tmp)] <- labels
 				labels <- tmp
 			} else if (len == nrow * ncol) {
@@ -91,7 +91,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(free)) {
 			len <- length(free)
 			if (len == 1) {
-				tmp <- diag(FALSE, nrow, ncol)
+				tmp <- matrix(FALSE, nrow, ncol)
 				tmp[row(tmp) != col(tmp)] <- free
 				free <- tmp
 			} else if (len == nrow * ncol) {
@@ -118,7 +118,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(lbound)) {
 			len <- length(lbound)
 			if (len == 1) {
-				tmp <- diag(as.numeric(NA), nrow, ncol)
+				tmp <- matrix(as.numeric(NA), nrow, ncol)
 				tmp[row(tmp) != col(tmp)] <- lbound
 				lbound <- tmp
 			} else if (len == nrow * ncol) {
@@ -145,7 +145,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(ubound)) {
 			len <- length(ubound)
 			if (len == 1) {
-				tmp <- diag(as.numeric(NA), nrow, ncol)
+				tmp <- matrix(as.numeric(NA), nrow, ncol)
 				tmp[row(tmp) != col(tmp)] <- ubound
 				ubound <- tmp
 			} else if (len == nrow * ncol) {
