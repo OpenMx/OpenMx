@@ -25,6 +25,32 @@ setMethod("omxSymmetricMatrix", "StandMatrix",
 setMethod("omxSquareMatrix", "StandMatrix",
 	function(.Object) { return(TRUE) }
 )
+
+populateStandTriangle <- function(input, n, default, byrow, strname) {
+	len <- length(input)
+	if (len == 1) {
+		output <- matrix(default, n, n)
+		output[row(output) != col(output)] <- input
+	} else if (len == n * n) {
+		output <- matrix(input, n, n, byrow)
+	} else if (len == n * (n - 1) / 2) {
+		if(byrow) {
+			output <- matrix(default, n, n)
+			output[upper.tri(output)] <- input
+			output[lower.tri(output)] <- t(output)[lower.tri(output)]
+		} else {
+			output <- matrix(default, n, n)
+			output[lower.tri(output)] <- input
+			output[upper.tri(output)] <- t(output)[upper.tri(output)]
+		}				
+	} else {
+		stop(paste(
+			"Illegal number of elements (", len,
+			") for ", strname, " matrix in standardized matrix constructor", sep=""),
+			call. = FALSE)
+	}
+	return(output)
+}
 	
 setMethod("initialize", "StandMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
@@ -35,139 +61,19 @@ setMethod("initialize", "StandMatrix",
 			values <- 0
 		}
 		if (is.vector(values)) {
-			len <- length(values)
-			if (len == 1) {
-				tmp <- matrix(1, nrow, ncol)
-				tmp[row(tmp) != col(tmp)] <- values
-				values <- tmp
-			} else if (len == nrow * ncol) {
-				values <- matrix(values, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(1, nrow, ncol)
-					tmp[upper.tri(tmp)] <- values
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					values <- tmp
-				} else {
-					tmp <- matrix(1, nrow, ncol)
-					tmp[lower.tri(tmp)] <- values
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					values <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for values matrix in standardized matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			values <- populateStandTriangle(values, nrow, 1, byrow, 'values') 
 		}
 		if (is.vector(labels)) {
-			len <- length(labels)
-			if (len == 1) {
-				tmp <- matrix(as.character(NA), nrow, ncol)
-				tmp[row(tmp) != col(tmp)] <- labels
-				labels <- tmp
-			} else if (len == nrow * ncol) {
-				labels <- matrix(labels, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- labels
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					labels <- tmp
-				} else {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- labels
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					labels <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for labels matrix in standardized matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			labels <- populateStandTriangle(labels, nrow, as.character(NA), byrow, 'labels')
 		}
 		if (is.vector(free)) {
-			len <- length(free)
-			if (len == 1) {
-				tmp <- matrix(FALSE, nrow, ncol)
-				tmp[row(tmp) != col(tmp)] <- free
-				free <- tmp
-			} else if (len == nrow * ncol) {
-				free <- matrix(free, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[upper.tri(tmp)] <- free
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					free <- tmp
-				} else {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[lower.tri(tmp)] <- free
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					free <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for free matrix in standardized matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			free <- populateStandTriangle(free, nrow, FALSE, byrow, 'free')
 		}
 		if (is.vector(lbound)) {
-			len <- length(lbound)
-			if (len == 1) {
-				tmp <- matrix(as.numeric(NA), nrow, ncol)
-				tmp[row(tmp) != col(tmp)] <- lbound
-				lbound <- tmp
-			} else if (len == nrow * ncol) {
-				lbound <- matrix(lbound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- lbound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					lbound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- lbound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					lbound <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for lbound matrix in standardized matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			lbound <- populateStandTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}
 		if (is.vector(ubound)) {
-			len <- length(ubound)
-			if (len == 1) {
-				tmp <- matrix(as.numeric(NA), nrow, ncol)
-				tmp[row(tmp) != col(tmp)] <- ubound
-				ubound <- tmp
-			} else if (len == nrow * ncol) {
-				ubound <- matrix(ubound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- ubound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					ubound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- ubound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					ubound <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for ubound matrix in standardized matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			ubound <- populateStandTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
 		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
 		return(retval)

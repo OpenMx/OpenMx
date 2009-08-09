@@ -25,6 +25,29 @@ setMethod("omxSymmetricMatrix", "SdiagMatrix",
 setMethod("omxSquareMatrix", "SdiagMatrix",
 	function(.Object) { return(TRUE) }
 )
+
+populateSdiagTriangle <- function(input, n, default, byrow, strname) {
+	len <- length(input)
+	if (len == n * n) {
+		values <- matrix(input, n, n, byrow)
+	} else if (len == n * (n - 1) / 2 || len == 1) {
+		if(byrow) {
+			output <- matrix(default, n, n)
+			output[upper.tri(output)] <- input
+			output[lower.tri(output)] <- t(output)[lower.tri(output)]
+			output[upper.tri(output, TRUE)] <- default
+		} else {
+			output <- matrix(default, n, n)
+			output[lower.tri(output)] <- input
+		}
+	} else {
+		stop(paste(
+			"Illegal number of elements (", len,
+			") for ", strname, " matrix of subdiagonal matrix constructor", sep=""),
+			call. = FALSE)
+	}
+	return(output)
+}
 	
 setMethod("initialize", "SdiagMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
@@ -35,119 +58,19 @@ setMethod("initialize", "SdiagMatrix",
 			values <- 0
 		}
 		if (is.vector(values)) {
-			len <- length(values)
-			if (len == nrow * ncol) {
-				values <- matrix(values, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2 || len == 1) {
-				if(byrow) {
-					tmp <- matrix(0, nrow, ncol)
-					tmp[upper.tri(tmp)] <- values
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp, TRUE)] <- 0
-					values <- tmp
-				} else {
-					tmp <- matrix(0, nrow, ncol)
-					tmp[lower.tri(tmp)] <- values
-					values <- tmp
-				}			
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for values matrix of subdiagonal matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			values <- populateSdiagTriangle(values, nrow, 0, byrow, 'values')
 		}
 		if (is.vector(labels)) {
-			len <- length(labels)
-			if (len == nrow * ncol) {
-				labels <- matrix(labels, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2 || len == 1) {
-				if(byrow) {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- labels
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp, TRUE)] <- as.character(NA)
-					labels <- tmp
-				} else {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- labels
-					labels <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for labels matrix of subdiagonal matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			labels <- populateSdiagTriangle(labels, nrow, as.character(NA), byrow, 'labels')
 		}
 		if (is.vector(free)) {
-			len <- length(free)
-			if (len == nrow * ncol) {
-				free <- matrix(free, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2 || len == 1) {
-				if(byrow) {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[upper.tri(tmp)] <- free
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp, TRUE)] <- FALSE
-					free <- tmp
-				} else {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[lower.tri(tmp)] <- free
-					free <- tmp
-				}
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for free matrix of subdiagonal matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			free <- populateSdiagTriangle(free, nrow, FALSE, byrow, 'free')
 		}
 		if (is.vector(lbound)) {
-			len <- length(lbound)
-			if (len == nrow * ncol) {
-				lbound <- matrix(lbound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2 || len == 1) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- lbound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp, TRUE)] <- as.numeric(NA)
-					lbound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- lbound
-					lbound <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for lbound matrix of subdiagonal matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			lbound <- populateSdiagTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}
 		if (is.vector(ubound)) {
-			len <- length(ubound)
-			if (len == nrow * ncol) {
-				ubound <- matrix(ubound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol - 1) / 2 || len == 1) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp)] <- ubound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					tmp[upper.tri(tmp, TRUE)] <- as.numeric(NA)
-					ubound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp)] <- ubound
-					ubound <- tmp
-				}
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for ubound matrix of subdiagonal matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			ubound <- populateSdiagTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
 		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
 		return(retval)

@@ -25,6 +25,30 @@ setMethod("omxSymmetricMatrix", "SymmMatrix",
 setMethod("omxSquareMatrix", "SymmMatrix",
 	function(.Object) { return(TRUE) }
 )
+
+populateSymmTriangle <- function(input, n, default, byrow, strname) {	
+	len <- length(input)
+	if (len == n * n || len == 1) {
+		output <- matrix(input, n, n, byrow)
+	} else if (len == n * (n + 1) / 2) {
+		if(byrow) {
+			output <- matrix(default, n, n)
+			output[upper.tri(output, TRUE)] <- input
+			output[lower.tri(output)] <- t(output)[lower.tri(output)]
+		} else {
+			output <- matrix(default, n, n)
+			output[lower.tri(output, TRUE)] <- input
+			output[upper.tri(output)] <- t(output)[upper.tri(output)]
+		}				
+	} else {
+		stop(paste(
+			"Illegal number of elements (", len,
+			") for ", strname, " matrix in symmmetric matrix constructor", sep=""),
+			call. = FALSE)
+	}
+	return(output)
+}
+	
 	
 setMethod("initialize", "SymmMatrix",
 	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
@@ -35,119 +59,19 @@ setMethod("initialize", "SymmMatrix",
 			values <- 0
 		}
 		if (is.vector(values)) {
-			len <- length(values)
-			if (len == nrow * ncol || len == 1) {
-				values <- matrix(values, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(0, nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- values
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					values <- tmp
-				} else {
-					tmp <- matrix(0, nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- values
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					values <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for values matrix in symmmetric matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			values <- populateSymmTriangle(values, nrow, 0, byrow, 'values')
 		}
 		if (is.vector(labels)) {
-			len <- length(labels)
-			if (len == nrow * ncol || len == 1) {
-				labels <- matrix(labels, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- labels
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					labels <- tmp
-				} else {
-					tmp <- matrix(as.character(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- labels
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					labels <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for labels matrix in symmmetric matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			labels <- populateSymmTriangle(labels, nrow, as.character(NA), byrow, 'labels')
 		}
 		if (is.vector(free)) {
-			len <- length(free)
-			if (len == nrow * ncol || len == 1) {
-				free <- matrix(free, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- free
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					free <- tmp
-				} else {
-					tmp <- matrix(FALSE, nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- free
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					free <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for free matrix in symmmetric matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			free <- populateSymmTriangle(free, nrow, FALSE, byrow, 'free')
 		}
 		if (is.vector(lbound)) {
-			len <- length(lbound)
-			if (len == nrow * ncol || len == 1) {
-				lbound <- matrix(lbound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- lbound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					lbound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- lbound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					lbound <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for lbound matrix in symmmetric matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			lbound <- populateSymmTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}
 		if (is.vector(ubound)) {
-			len <- length(ubound)
-			if (len == nrow * ncol || len == 1) {
-				ubound <- matrix(ubound, nrow, ncol, byrow)
-			} else if (len == nrow * (ncol + 1) / 2) {
-				if(byrow) {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[upper.tri(tmp, TRUE)] <- ubound
-					tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-					ubound <- tmp
-				} else {
-					tmp <- matrix(as.numeric(NA), nrow, ncol)
-					tmp[lower.tri(tmp, TRUE)] <- ubound
-					tmp[upper.tri(tmp)] <- t(tmp)[upper.tri(tmp)]
-					ubound <- tmp
-				}				
-			} else {
-				stop(paste(
-					"Illegal number of elements (", len,
-					") for ubound matrix in symmmetric matrix constructor", sep=""),
-					call. = FALSE)
-			}
+			ubound <- populateSymmTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
 		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
 		return(retval)
