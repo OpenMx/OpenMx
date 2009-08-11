@@ -37,25 +37,33 @@ observedStatistics <- function(model) {
 	}
 }
 
-computeOptimizationStatistics <- function(model) {
+computeOptimizationStatistics <- function(model, matrices, parameters) {
 	retval <- list()
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
 	objective <- model@objective
-	parameters <- model@output$estimate
+	estimates <- model@output$estimate
 	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
 		retval[['AIC']] <- model@output$minimum + 
-			2 * length(parameters)
+			2 * length(estimates)
 	}
-	if (length(parameters) > 0) {
-		for(i in 1:length(parameters)) {
-			ptable[i, 'name'] <- names(parameters)[[i]]
-			ptable[i, 'parameter estimate'] <- parameters[[i]]
-			ptable[i, 'error estimate'] <- model@output$hessian[i, i]			
+	if (length(estimates) > 0) {
+		matrixNames <- names(matrices)
+		for(i in 1:length(estimates)) {
+			mLocation <- parameters[[i]][[3]][[1]] + 1
+			mRow <- parameters[[i]][[3]][[2]] + 1
+			mCol <- parameters[[i]][[3]][[3]] + 1
+			ptable[i, 'name'] <- names(estimates)[[i]]
+			ptable[i, 'matrix'] <- simplifyName(matrixNames[[mLocation]], model@name)
+			ptable[i, 'row'] <- mRow
+			ptable[i, 'col'] <- mCol
+			ptable[i, 'parameter estimate'] <- estimates[[i]]
+			ptable[i, 'error estimate'] <- model@output$hessian[i, i]
+
 		}
 		retval[['parameters']] <- ptable
 	}
-	retval[['estimatedParameters']] <- length(parameters)
+	retval[['estimatedParameters']] <- length(estimates)
 	retval[['observedStatistics']] <- observedStatistics(model)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
 	retval <- append(retval, model@output$misc)
@@ -64,7 +72,11 @@ computeOptimizationStatistics <- function(model) {
 
 setMethod("summary", "MxModel",
 	function(object, ...) {	
-		retval <- computeOptimizationStatistics(object)
+		namespace <- omxGenerateNamespace(object)
+		flatModel <- omxFlattenModel(object, namespace)
+		matrices <- generateSimpleMatrixList(flatModel)
+		parameters <- generateParameterList(flatModel)
+		retval <- computeOptimizationStatistics(object, matrices, parameters)
 		if (!is.null(object@data)) {
 			print(summary(object@data@observed))
 			cat('\n')

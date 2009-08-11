@@ -74,6 +74,15 @@ omxIdentifier <- function(namespace, name) {
 	return(paste(namespace, name, sep = omxSeparatorChar))
 }
 
+simplifyName <- function(flatName, modelName) {
+	components <- unlist(strsplit(flatName, omxSeparatorChar, fixed = TRUE))
+	if (length(components) == 2 && components[[1]] == modelName) {
+		return(components[[2]])
+	} else {
+		return(flatName)
+	}
+}
+
 omxReverseIdentifier <- function(model, name) {
 	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
 	if(length(components) == 1) {
