@@ -14,15 +14,13 @@
 # ---------------------------------------------------------------------
 
 require(OpenMx)
-demoData <- data("demoOneFactor.csv", header=T)
-manifests <- names(demoData)
-latents <- c("G")
+data(demoOneFactor)
 factorModel <- mxModel("One Factor",
     mxMatrix("Full", 5, 1, values=0.2, free=T, name="A"),
     mxMatrix("Symm", 1, 1, values=1, free=F, name="L"),
     mxMatrix("Diag", 5, 5, values=1, free=T, name="U"),
     mxAlgebra(A %*% L %*% t(A) + U, name="R"),
     mxMLObjective("R"),
-    mxData(cov(demoData), type="cov", numObs=500))
+    mxData(cov(demoOneFactor), type="cov", numObs=500))
 summary(mxRun(factorModel))
 
