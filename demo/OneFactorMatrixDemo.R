@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------
 
 require(OpenMx)
-demoData <- read.csv("demoOneFactor.csv", header=T)
+demoData <- data("demoOneFactor.csv", header=T)
 manifests <- names(demoData)
 latents <- c("G")
 factorModel <- mxModel("One Factor",
