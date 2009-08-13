@@ -144,6 +144,10 @@ setMethod("dimnames", "MxMatrix",
 	function(x) { return(dimnames(x@values)) }
 )
 
+setMethod("diag", "MxMatrix",
+	function(x) { return(diag(x@values)) }
+)
+
 setReplaceMethod("dimnames", "MxMatrix",
 	function(x, value) {
 		dimnames(x@values) <- value

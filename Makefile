@@ -37,6 +37,7 @@ build/$(TARGET): $(RFILES) $(RDFILES)
 
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
+	cd docs; make latex; cd build/latex; make all-pdf
 
 html: build
 	rm -f build/$(TARGET)
