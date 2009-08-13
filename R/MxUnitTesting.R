@@ -57,7 +57,9 @@ checkEqualDimensions <- function(a, b) {
 omxCheckEquals <- function(a, b) {
 	checkEqualDimensions(a, b)	
 	if (any(a != b)) {
-		stop(paste(a, "and", b, "are not equal"))
+		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
+			"and", omxQuotes(paste(b, collapse = ' ')), 
+			"are not equal"))
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),
@@ -66,9 +68,10 @@ omxCheckEquals <- function(a, b) {
 }
 
 omxCheckSetEquals <- function(a, b) {
-	checkEqualDimensions(a, b)	
 	if (!setequal(a, b)) {
-		stop(paste(a, "and", b, "do not contain the same elements"))
+		stop(paste(omxQuotes(paste(b, collapse = ' ')), 
+			"and", omxQuotes(paste(b, collapse = ' ')), 
+			"do not contain the same elements"))
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),
@@ -86,7 +89,7 @@ omxCheckTrue <- function(a) {
 }
 
 
-omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
+omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
 	checkEqualDimensions(a, b)
 	if(any(mapply(function(x,y) {
 			is.na(a) || is.na(b) },
@@ -107,19 +110,19 @@ omxCheckCloseEnough <- function(a, b, epsilon=10^(-15)) {
 	}
 }
 
-omxCheckWithinPercentError <- function(a, b, epsilon=10^(-15)) {
+omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
 	checkEqualDimensions(a, b)	
 	check <- any(mapply(function(x,y) {
-			(abs(x - y)/x * 100) > epsilon }, 
+			(abs(x - y)/x * 100) > percent }, 
 			as.vector(a), as.vector(b)))	
 	if (check) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"does not estimate", 
 			omxQuotes(paste(b, collapse = ' ')), 
-			"within", epsilon, "percent"))
+			"within", percent, "percent"))
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),
-			"are equal to within", epsilon, "percent.\n"))
+			"are equal to within", percent, "percent.\n"))
 	}
 }
