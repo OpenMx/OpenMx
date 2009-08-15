@@ -1,6 +1,9 @@
+TRUNK
+=============
+* mxEvaluate() function renamed to mxEval().  mxEval() was chosen to suggest similarity with the eval() function.
+
 Release 0.1.2-708
 =============
-
 * Added R help documentation for omxCheckCloseEnough(), omxCheckWithinPercentError(), 
 	omxCheckTrue(), omxCheckEquals(), and omxCheckSetEquals()
 
@@ -9,7 +12,7 @@ Release 0.1.2-708
 
 Release 0.1 (August 3, 2009)
 ============================
-* (mxEval) mxEval translates MxMatrix references, MxAlgebra references,  MxObjectiveFunction references, and label references.
+* (mxEvaluate) mxEvaluate translates MxMatrix references, MxAlgebra references,  MxObjectiveFunction references, and label references.
 
 * (mxOptions) added 'reset' argument to mxOptions()
 
