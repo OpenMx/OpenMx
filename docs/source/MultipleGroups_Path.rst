@@ -172,15 +172,15 @@ The ``mxRun`` command is required to actually evaluate the model.  Note that we 
 
     bivHetFit <- mxRun(bivHetModel)
 
-A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specificiation, respectively in the matrices M and S for the two groups.  OpenMx also puts the values for the expected means and covariances in 'means' and 'covariance' objects.  We also print the likelihood of data given the model.  The ``mxEvaluate`` command takes any R expression, followed by the fitted model name.  Given that the model 'bivHetFit' included two models (group1 and group2), we need to use the two level names, i.e. 'group1.means' to refer to the objects in the correct model.
+A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specificiation, respectively in the matrices M and S for the two groups.  OpenMx also puts the values for the expected means and covariances in 'means' and 'covariance' objects.  We also print the likelihood of data given the model.  The ``mxEval`` command takes any R expression, followed by the fitted model name.  Given that the model 'bivHetFit' included two models (group1 and group2), we need to use the two level names, i.e. 'group1.means' to refer to the objects in the correct model.
 
 .. code-block:: r
     
-        EM1Het <- mxEvaluate(group1.means, bivHetFit)
-        EM2Het <- mxEvaluate(group2.means, bivHetFit)
-        EC1Het <- mxEvaluate(group1.covariance, bivHetFit)
-        EC2Het <- mxEvaluate(group2.covariance, bivHetFit)
-        LLHet <- mxEvaluate(objective, bivHetFit)
+        EM1Het <- mxEval(group1.means, bivHetFit)
+        EM2Het <- mxEval(group2.means, bivHetFit)
+        EC1Het <- mxEval(group1.covariance, bivHetFit)
+        EC2Het <- mxEval(group2.covariance, bivHetFit)
+        LLHet <- mxEval(objective, bivHetFit)
 
 
 Homogeneity Model: a Submodel
@@ -237,11 +237,11 @@ We can produce similar output for the submodel, i.e. expected means and covarian
 .. code-block:: r
 
     bivHomFit <- mxRun(bivHomModel)
-        EM1Hom <- mxEvaluate(group1.means, bivHomFit)
-        EM2Hom <- mxEvaluate(group2.means, bivHomFit)
-        EC1Hom <- mxEvaluate(group1.covariance, bivHomFit)
-        EC2Hom <- mxEvaluate(group2.covariance, bivHomFit)
-        LLHom <- mxEvaluate(objective, bivHomFit)
+        EM1Hom <- mxEval(group1.means, bivHomFit)
+        EM2Hom <- mxEval(group2.means, bivHomFit)
+        EC1Hom <- mxEval(group1.covariance, bivHomFit)
+        EC2Hom <- mxEval(group2.covariance, bivHomFit)
+        LLHom <- mxEval(objective, bivHomFit)
         
 
 Finally, to evaluate which model fits the data best, we generate a likelihood ratio test as the difference between -2 times the log-likelihood of the homogeneity model and -2 times the log-likelihood of the heterogeneity model.  This statistic is asymptotically distributed as a Chi-square, which can be interpreted with the difference in degrees of freedom of the two models.

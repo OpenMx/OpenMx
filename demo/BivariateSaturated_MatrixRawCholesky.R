@@ -45,9 +45,9 @@ bivSatModel6 <- mxModel("bivSat6",
     )
     )
 bivSatFit6 <- mxRun(bivSatModel6)
-EM6 <- mxEvaluate(expMean, bivSatFit6)
-EC6 <- mxEvaluate(expCov, bivSatFit6)
-LL6 <- mxEvaluate(objective,bivSatFit6)
+EM6 <- mxEval(expMean, bivSatFit6)
+EC6 <- mxEval(expCov, bivSatFit6)
+LL6 <- mxEval(objective,bivSatFit6)
 
 
 #Mx answers hard-coded

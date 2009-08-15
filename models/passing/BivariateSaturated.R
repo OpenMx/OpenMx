@@ -39,8 +39,8 @@ bivSatModel1 <- mxModel("bivSat1",
     type="RAM"
     )
 bivSatFit1 <- mxRun(bivSatModel1)
-EC1 <- mxEvaluate(S, bivSatFit1)
-LL1 <- mxEvaluate(objective, bivSatFit1)
+EC1 <- mxEval(S, bivSatFit1)
+LL1 <- mxEval(objective, bivSatFit1)
 SL1 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi1 <- LL1-SL1
 
@@ -81,9 +81,9 @@ bivSatModel1m <- mxModel("bivSat1m",
     type="RAM"
     )
 bivSatFit1m <- mxRun(bivSatModel1m)
-EM1m <- mxEvaluate(M, bivSatFit1m)
-EC1m <- mxEvaluate(S, bivSatFit1m)
-LL1m <- mxEvaluate(objective, bivSatFit1m)
+EM1m <- mxEval(M, bivSatFit1m)
+EC1m <- mxEval(S, bivSatFit1m)
+LL1m <- mxEval(objective, bivSatFit1m)
 SL1m <- summary(bivSatFit1m)$SaturatedLikelihood
 Chi1m <- LL1m-SL1m
 
@@ -114,9 +114,9 @@ bivSatModel2 <- mxModel("bivSat2",
     type="RAM"
     )
 bivSatFit2 <- mxRun(bivSatModel2)
-EM2 <- mxEvaluate(M, bivSatFit2)
-EC2 <- mxEvaluate(S, bivSatFit2)
-LL2 <- mxEvaluate(objective, bivSatFit2)
+EM2 <- mxEval(M, bivSatFit2)
+EC2 <- mxEval(S, bivSatFit2)
+LL2 <- mxEval(objective, bivSatFit2)
 SL2 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi2 <- LL2-SL2
 
@@ -130,9 +130,9 @@ bivSatModel2s <- mxModel(bivSatModel1,
     type="RAM"
     )
 bivSatFit2s <- mxRun(bivSatModel2s)
-EM2s <- mxEvaluate(M, bivSatFit2s)
-EC2s <- mxEvaluate(S, bivSatFit2s)
-LL2s <- mxEvaluate(objective, bivSatFit2s)
+EM2s <- mxEval(M, bivSatFit2s)
+EC2s <- mxEval(S, bivSatFit2s)
+LL2s <- mxEval(objective, bivSatFit2s)
 
 #example 3: Saturated Model with Cov Matrices and Matrix-Style Input
 bivSatModel3 <- mxModel("bivSat3",
@@ -155,8 +155,8 @@ bivSatModel3 <- mxModel("bivSat3",
     )
     )
 bivSatFit3 <- mxRun(bivSatModel3)
-EC3 <- mxEvaluate(expCov, bivSatFit3)
-LL3 <- mxEvaluate(objective,bivSatFit3)
+EC3 <- mxEval(expCov, bivSatFit3)
+LL3 <- mxEval(objective,bivSatFit3)
 SL3 <- summary(bivSatFit3)$SaturatedLikelihood
 Chi3 <- LL3-SL3
 
@@ -192,9 +192,9 @@ bivSatModel3m <- mxModel("bivSat3m",
     )
     )
 bivSatFit3m <- mxRun(bivSatModel3m)
-EM3m <- mxEvaluate(expMean, bivSatFit3m)
-EC3m <- mxEvaluate(expCov, bivSatFit3m)
-LL3m <- mxEvaluate(objective,bivSatFit3m)
+EM3m <- mxEval(expMean, bivSatFit3m)
+EC3m <- mxEval(expCov, bivSatFit3m)
+LL3m <- mxEval(objective,bivSatFit3m)
 SL3m <- summary(bivSatFit3m)$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 
@@ -228,9 +228,9 @@ mxFIMLObjective(
 )
 )
 bivSatFit4 <- mxRun(bivSatModel4)
-EM4 <- mxEvaluate(expMean, bivSatFit4)
-EC4 <- mxEvaluate(expCov, bivSatFit4)
-LL4 <- mxEvaluate(objective,bivSatFit4)
+EM4 <- mxEval(expMean, bivSatFit4)
+EC4 <- mxEval(expCov, bivSatFit4)
+LL4 <- mxEval(objective,bivSatFit4)
 
 #example 5: Saturated Model with Cov Matrices and Matrix-Style Input
 bivSatModel5 <- mxModel("bivSat5",
@@ -266,8 +266,8 @@ bivSatModel5 <- mxModel("bivSat5",
     )
     )
 bivSatFit5 <- mxRun(bivSatModel5)
-EC5 <- mxEvaluate(expCov, bivSatFit5)
-LL5 <- mxEvaluate(objective,bivSatFit5)
+EC5 <- mxEval(expCov, bivSatFit5)
+LL5 <- mxEval(objective,bivSatFit5)
 SL5 <- summary(bivSatFit5)$SaturatedLikelihood
 Chi5 <- LL5-SL5
 
@@ -307,9 +307,9 @@ bivSatModel5m <- mxModel("bivSat5m",
     )
     )
 bivSatFit5m <- mxRun(bivSatModel5m)
-EM5m <- mxEvaluate(expMean, bivSatFit5m)
-EC5m <- mxEvaluate(expCov, bivSatFit5m)
-LL5m <- mxEvaluate(objective,bivSatFit5m);
+EM5m <- mxEval(expMean, bivSatFit5m)
+EC5m <- mxEval(expCov, bivSatFit5m)
+LL5m <- mxEval(objective,bivSatFit5m);
 SL5m <- summary(bivSatFit5m)$SaturatedLikelihood
 Chi5m <- LL5m-SL5m
 
@@ -347,9 +347,9 @@ bivSatModel6 <- mxModel("bivSat6",
     )
     )
 bivSatFit6 <- mxRun(bivSatModel6)
-EM6 <- mxEvaluate(expMean, bivSatFit6)
-EC6 <- mxEvaluate(expCov, bivSatFit6)
-LL6 <- mxEvaluate(objective,bivSatFit6)
+EM6 <- mxEval(expMean, bivSatFit6)
+EC6 <- mxEval(expCov, bivSatFit6)
+LL6 <- mxEval(objective,bivSatFit6)
 
 
 #Mx answers hard-coded

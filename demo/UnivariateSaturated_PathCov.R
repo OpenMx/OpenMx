@@ -29,8 +29,8 @@ univSatModel1 <- mxModel("univSat1",
     type="RAM"
     )
 univSatFit1 <- mxRun(univSatModel1)
-EC1 <- mxEvaluate(S, univSatFit1)
-LL1 <- mxEvaluate(objective, univSatFit1)
+EC1 <- mxEval(S, univSatFit1)
+LL1 <- mxEval(objective, univSatFit1)
 SL1 <- summary(univSatFit1)$SaturatedLikelihood
 Chi1 <- LL1 - SL1
 
@@ -62,9 +62,9 @@ univSatModel1m <- mxModel("univSat1m",
     type="RAM"
     )
 univSatFit1m <- mxRun(univSatModel1m)
-EM1m <- mxEvaluate(M, univSatFit1m)
-EC1m <- mxEvaluate(S, univSatFit1m)
-LL1m <- mxEvaluate(objective,univSatFit1m);
+EM1m <- mxEval(M, univSatFit1m)
+EC1m <- mxEval(S, univSatFit1m)
+LL1m <- mxEval(objective,univSatFit1m);
 SL1m <- summary(univSatFit1m)$SaturatedLikelihood
 Chi1m <- LL1m-SL1m
 

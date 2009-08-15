@@ -96,9 +96,9 @@ For the algebras to be evaluated, they become arguments of the ``mxModel`` comma
 
     answers <- mxRun(algebraExercises)
     answers@algebras
-    result <- mxEvaluate(list(q1,q2,q3,q4),answers)	
+    result <- mxEval(list(q1,q2,q3,q4),answers)	
 
-As you notice, we added some lines at the end to generate the desired output.  The resulting matrices and algebras are stored in ``answers``; we can refer back to them by specifying ``answers@matrices`` or ``answers@algebras``.  We can also calculate any additional quantities or perform extra matrix operations on the results using the ``mxEvaluate`` command.  For example, if we want to see all the answers to the questions in matrixAlgebra.R, the results would look like this:
+As you notice, we added some lines at the end to generate the desired output.  The resulting matrices and algebras are stored in ``answers``; we can refer back to them by specifying ``answers@matrices`` or ``answers@algebras``.  We can also calculate any additional quantities or perform extra matrix operations on the results using the ``mxEval`` command.  For example, if we want to see all the answers to the questions in matrixAlgebra.R, the results would look like this:
 
 .. code-block:: r
 
@@ -124,7 +124,7 @@ As you notice, we added some lines at the end to generate the desired output.  T
     [2,]    4
     [3,]    6
 
-So far, we have introduced five new commands: ``mxMatrix``, ``mxAlgebra``, ``mxModel``, ``mxRun`` and ``mxEvaluate``.  These commands allow us to run a wide range of jobs, from simple matrix algebra to rather complicated SEM models.  Let's move to a simple example involving optimizing the likelihood of observed data.
+So far, we have introduced five new commands: ``mxMatrix``, ``mxAlgebra``, ``mxModel``, ``mxRun`` and ``mxEval``.  These commands allow us to run a wide range of jobs, from simple matrix algebra to rather complicated SEM models.  Let's move to a simple example involving optimizing the likelihood of observed data.
 
 
 Optimization Script
@@ -192,13 +192,13 @@ All these elements become arguments of the ``mxModel`` command, seperated by com
 
         bivCorFit <- mxRun(bivCorModel)
 
-We can then request various parts of the output to inspect by referring to them by the name of the object resulting from the ``mxRun`` command, followed by the name of the objects corresponding to the expected mean vector and covariance matrix, in quotes and double square brackets, followed by ``@values``.  The command ``mxEvaluate`` can also be used to extract relevant information, such as the likelihood, where the first argument of the command is the object of interest and the second the object obtaining the results.
+We can then request various parts of the output to inspect by referring to them by the name of the object resulting from the ``mxRun`` command, followed by the name of the objects corresponding to the expected mean vector and covariance matrix, in quotes and double square brackets, followed by ``@values``.  The command ``mxEval`` can also be used to extract relevant information, such as the likelihood, where the first argument of the command is the object of interest and the second the object obtaining the results.
 
 .. code-block:: r
 
     EM <- bivCorFit[['expMean']]@values
     EC <- bivCorFit[['expCov']]@values
-    LL <- mxEvaluate(objective,bivCorFit);
+    LL <- mxEval(objective,bivCorFit);
 
 If we want to test whether the covariance/correlation is significantly different from zero, we could fit a submodel and compare it with the saturated model.  Given that this model is essentially the same as the original, except for the covariance, we create a new mxModel (named 'bivCorModelSub) with as first argument the old model (named 'bivCorModel).  Then we only have to specify the matrix that needs to be changed, in this case the lower triangular matrix becomes essentially a diagonal matrix, obtained by fixing the off-diagonal elements to zero in the ``free`` and ``values`` arguments
 
@@ -223,7 +223,7 @@ We can output the same information as for the saturated job, namely the expected
     bivCorFitSub <- mxRun(bivCorModelSub)
     EMs <- bivCorFitSub[['expMean']]@values
     ECs <- bivCorFitSub[['expCov']]@values
-    LLs <- mxEvaluate(objective,bivCorFitSub);
+    LLs <- mxEval(objective,bivCorFitSub);
     Chi= LLs-LL;
     LRT= rbind(LL,LLs,Chi); LRT
 
@@ -308,11 +308,11 @@ It is always helpful/advised to check the model specifications before interpreti
 
 .. code-block:: r
 
-    ExpMeanMZ <- mxEvaluate(MZ.expMeanMZ, twinSatFit)
-    ExpCovMZ <- mxEvaluate(MZ.expCovMZ, twinSatFit)
-    ExpMeanDZ <- mxEvaluate(DZ.expMeanDZ, twinSatFit)
-    ExpCovDZ <- mxEvaluate(DZ.expCovDZ, twinSatFit)
-    LL_Sat <- mxEvaluate(objective, twinSatFit)
+    ExpMeanMZ <- mxEval(MZ.expMeanMZ, twinSatFit)
+    ExpCovMZ <- mxEval(MZ.expCovMZ, twinSatFit)
+    ExpMeanDZ <- mxEval(DZ.expMeanDZ, twinSatFit)
+    ExpCovDZ <- mxEval(DZ.expCovDZ, twinSatFit)
+    LL_Sat <- mxEval(objective, twinSatFit)
 
 Before we move on to fit the ACE model to the same data, we may want to test some of the assumptions of the twin model, i.e. that the means and variances are the same for twin 1 and twin 2, and that they are the same for MZ and DZ twins.  This can be done as an omnibus test, or stepwise.  Let us start by equating the means for both twins, separately in the two groups.  As the majority of the previous script stays the same, we start by copying the old model into a new one.  We then include the arguments of the model that require a change.
 
@@ -344,12 +344,12 @@ If we want to test if we can equate both means and variances across twin order a
         mxAlgebraObjective("twin"))
     twinSatFitSub2 <- mxModel(twinSatModelSub2)
 
-We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using the results from ``mxEvaluate`` commands with regular R algebra.  A summary of the model parameters, estimates and goodness-of-fit statistics can also be obtained using ``summary(twinSatFit)``.  Further development is required.
+We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using the results from ``mxEval`` commands with regular R algebra.  A summary of the model parameters, estimates and goodness-of-fit statistics can also be obtained using ``summary(twinSatFit)``.  Further development is required.
 
 .. code-block:: r
 
-    LL_Sat <- mxEvaluate(objective, twinSatFit)
-    LL_Sub <- mxEvaluate(objective, twinSatFitSub1);
+    LL_Sat <- mxEval(objective, twinSatFit)
+    LL_Sub <- mxEval(objective, twinSatFitSub1);
     LRT= LL_Sub - LL_Sat;
 
 Now, we are ready to specify the ACE model to test which sources of variance significantly contribute to the phenotype and estimate their best value.  The structure of this script is going to mimic that of the saturated model.  The main difference is that we no longer estimate the variance-covariance matrix directly, but express it as a function of the three sources of variance, **A**, **C** and **E**.  As the same sources are used for the MZ and the DZ group, the matrices which will represent them are part of the 'super'model.  As these sources are variances, which need to be positive, we typically use a Cholesky decomposition of the standard deviations (and effectively estimate **a** rather then **a^2**, see later for more in depth coverage).  Thus, we specify three separate matrices for the three sources of variance using the ``mxMatrix`` command and 'calculate' the variance components with the ``mxAlgebra`` command.  Note that there are a variety of ways to specify this model, we have picked one that corresponds well to previous Mx code, and has some intuitive appeal.
@@ -382,4 +382,4 @@ Now, we are ready to specify the ACE model to test which sources of variance sig
     #Run ACE model can be run
     twinACEFit <- mxRun(twinACEModel)
 
-Relevant output can be generate with ``print`` or ``summary`` statements or specific output can be requested using the ``mxEvaluate`` command.  Typically we would compare this model back to the saturated model to interpret its goodness-of-fit.  Parameter estimates are obtained and can easily be standardized.  We discuss a twin analysis example in more detail in the example code.
+Relevant output can be generate with ``print`` or ``summary`` statements or specific output can be requested using the ``mxEval`` command.  Typically we would compare this model back to the saturated model to interpret its goodness-of-fit.  Parameter estimates are obtained and can easily be standardized.  We discuss a twin analysis example in more detail in the example code.

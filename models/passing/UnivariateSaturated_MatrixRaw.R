@@ -40,9 +40,9 @@ univSatModel4 <- mxModel("univSat4",
     )
     )
 univSatFit4 <- mxRun(univSatModel4)
-EM4 <- mxEvaluate(expMean, univSatFit4)
-EC4 <- mxEvaluate(expCov, univSatFit4)
-LL4 <- mxEvaluate(objective, univSatFit4);
+EM4 <- mxEval(expMean, univSatFit4)
+EC4 <- mxEval(expCov, univSatFit4)
+LL4 <- mxEval(objective, univSatFit4);
 
 
 #Mx answers hard-coded

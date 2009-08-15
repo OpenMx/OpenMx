@@ -106,13 +106,13 @@ So far, we have specified the model, but nothing has been evaluated.  We have 's
 
     univSatFit1 <- mxRun(univSatModel1)
 
-There are a variety of ways to generate output.  We will promote the use of the ``mxEvaluate`` command, which takes two arguments: an ``expression`` and a ``model`` name.  The ``expression`` can be a matrix or algebra name defined in the model, new calculations using any of these matrices/algebras, the objective function, etc.  We can then use any regular R function to generate derived fit statistics, some of which will be built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.
-[How do we specify other$Saturated in mxEvaluate?]
+There are a variety of ways to generate output.  We will promote the use of the ``mxEval`` command, which takes two arguments: an ``expression`` and a ``model`` name.  The ``expression`` can be a matrix or algebra name defined in the model, new calculations using any of these matrices/algebras, the objective function, etc.  We can then use any regular R function to generate derived fit statistics, some of which will be built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.
+[How do we specify other$Saturated in mxEval?]
 
 .. code-block:: r
 
-    EC1 <- mxEvaluate(S, univSatFit1)   #univSatFit1[['S']]@values
-    LL1 <- mxEvaluate(objective, univSatFit1)
+    EC1 <- mxEval(S, univSatFit1)   #univSatFit1[['S']]@values
+    LL1 <- mxEval(objective, univSatFit1)
     SL1 <- univSatFit1@output$other$Saturated
     Chi1 <- LL1-SL1
 
@@ -161,7 +161,7 @@ When a mean vector is supplied and a parameter added for the estimated mean, the
 
 .. code-block:: r
 
-        EM1m <- mxEvaluate(M, univSatFit1m) 
+        EM1m <- mxEval(M, univSatFit1m) 
 
 
 Raw Data and Path-style Input

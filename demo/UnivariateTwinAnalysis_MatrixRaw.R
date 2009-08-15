@@ -40,18 +40,18 @@ twinACEModel <- mxModel("twinACE",
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
 
-MZc <- mxEvaluate(expCovMZ, twinACEFit)
-DZc <- mxEvaluate(expCovDZ, twinACEFit)
-M <- mxEvaluate(expMeanMZ, twinACEFit)
-A <- mxEvaluate(A, twinACEFit)
-C <- mxEvaluate(C, twinACEFit)
-E <- mxEvaluate(E, twinACEFit)
+MZc <- mxEval(expCovMZ, twinACEFit)
+DZc <- mxEval(expCovDZ, twinACEFit)
+M <- mxEval(expMeanMZ, twinACEFit)
+A <- mxEval(A, twinACEFit)
+C <- mxEval(C, twinACEFit)
+E <- mxEval(E, twinACEFit)
 V <- (A+C+E)
 a2 <- A/V
 c2 <- C/V
 e2 <- E/V
 ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-LL_ACE <- mxEvaluate(objective, twinACEFit)
+LL_ACE <- mxEval(objective, twinACEFit)
 
 
 #Run Mx scripts
@@ -85,17 +85,17 @@ twinAEModel <- mxModel(twinACEModel,
     )
 twinAEFit <- mxRun(twinAEModel)
 
-MZc <- mxEvaluate(expCovMZ, twinAEFit)
-DZc <- mxEvaluate(expCovDZ, twinAEFit)
-A <- mxEvaluate(A, twinAEFit)
-C <- mxEvaluate(C, twinAEFit)
-E <- mxEvaluate(E, twinAEFit)
+MZc <- mxEval(expCovMZ, twinAEFit)
+DZc <- mxEval(expCovDZ, twinAEFit)
+A <- mxEval(A, twinAEFit)
+C <- mxEval(C, twinAEFit)
+E <- mxEval(E, twinAEFit)
 V <- (A + C + E)
 a2 <- A / V
 c2 <- C / V
 e2 <- E / V
 AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
-LL_AE <- mxEvaluate(objective, twinAEFit)
+LL_AE <- mxEval(objective, twinAEFit)
 
 LRT_ACE_AE <- LL_AE - LL_ACE
 

@@ -28,9 +28,9 @@ univSatModel2 <- mxModel("univSat2",
     type="RAM"
     )
 univSatFit2 <- mxRun(univSatModel2)
-EM2 <- mxEvaluate(M, univSatFit2)
-EC2 <- mxEvaluate(S, univSatFit2)
-LL2 <- mxEvaluate(objective,univSatFit2);
+EM2 <- mxEval(M, univSatFit2)
+EC2 <- mxEval(S, univSatFit2)
+LL2 <- mxEval(objective,univSatFit2);
 
 
 #Mx answers hard-coded

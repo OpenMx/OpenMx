@@ -41,9 +41,9 @@ mxFIMLObjective(
 )
 )
 bivSatFit4 <- mxRun(bivSatModel4)
-EM4 <- mxEvaluate(expMean, bivSatFit4)
-EC4 <- mxEvaluate(expCov, bivSatFit4)
-LL4 <- mxEvaluate(objective,bivSatFit4)
+EM4 <- mxEval(expMean, bivSatFit4)
+EC4 <- mxEval(expCov, bivSatFit4)
+LL4 <- mxEval(objective,bivSatFit4)
 
 
 #Mx answers hard-coded

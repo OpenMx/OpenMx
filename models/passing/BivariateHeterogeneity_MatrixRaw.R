@@ -97,22 +97,22 @@ bivHetModel <- mxModel("bivHet",
     mxAlgebraObjective("h12")
     )
 bivHetFit <- mxRun(bivHetModel)
-    EM1Het <- mxEvaluate(group1.EM1, bivHetFit)
-    EM2Het <- mxEvaluate(group2.EM2, bivHetFit)
-    EC1Het <- mxEvaluate(group1.EC1, bivHetFit)
-    EC2Het <- mxEvaluate(group2.EC2, bivHetFit)
-    LLHet <- mxEvaluate(objective, bivHetFit)
+    EM1Het <- mxEval(group1.EM1, bivHetFit)
+    EM2Het <- mxEval(group2.EM2, bivHetFit)
+    EC1Het <- mxEval(group1.EC1, bivHetFit)
+    EC2Het <- mxEval(group2.EC2, bivHetFit)
+    LLHet <- mxEval(objective, bivHetFit)
 
 #Fit Homnogeneity Model
 bivHomModel <- bivHetModel
     bivHomModel[['group2.Chol2']]@labels <- bivHomModel[['group1.Chol1']]@labels
     bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
 bivHomFit <- mxRun(bivHomModel)
-    EM1Hom <- mxEvaluate(group1.EM1, bivHomFit)
-    EM2Hom <- mxEvaluate(group2.EM2, bivHomFit)
-    EC1Hom <- mxEvaluate(group1.EC1, bivHomFit)
-    EC2Hom <- mxEvaluate(group2.EC2, bivHomFit)
-    LLHom <- mxEvaluate(objective, bivHomFit)
+    EM1Hom <- mxEval(group1.EM1, bivHomFit)
+    EM2Hom <- mxEval(group2.EM2, bivHomFit)
+    EC1Hom <- mxEval(group1.EC1, bivHomFit)
+    EC2Hom <- mxEval(group2.EC2, bivHomFit)
+    LLHom <- mxEval(objective, bivHomFit)
 
     Chi= LLHom-LLHet
     LRT= rbind(LLHet,LLHom,Chi)

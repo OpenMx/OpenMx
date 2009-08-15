@@ -46,9 +46,9 @@ bivCorModel <- mxModel("bivCor",
     )
 
 bivCorFit <- mxRun(bivCorModel)
-EM <- mxEvaluate(expMean, bivCorFit)
-EC <- mxEvaluate(expCov, bivCorFit)
-LL <- mxEvaluate(objective, bivCorFit)
+EM <- mxEval(expMean, bivCorFit)
+EC <- mxEval(expCov, bivCorFit)
+LL <- mxEval(objective, bivCorFit)
 
 
 #Test for Covariance=Zero
@@ -64,9 +64,9 @@ bivCorModelSub <-mxModel(bivCorModel,
     )
 )
 bivCorFitSub <- mxRun(bivCorModelSub)
-EMs <- mxEvaluate(expMean, bivCorFitSub)
-ECs <- mxEvaluate(expCov, bivCorFitSub)
-LLs <- mxEvaluate(objective, bivCorFitSub)
+EMs <- mxEval(expMean, bivCorFitSub)
+ECs <- mxEval(expCov, bivCorFitSub)
+LLs <- mxEval(objective, bivCorFitSub)
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 

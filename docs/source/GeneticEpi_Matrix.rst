@@ -193,22 +193,22 @@ We need to invoke the ``mxRun`` command to start the model evaluation and optimi
     #Run ACE model
     twinACEFit <- mxRun(twinACEModel)
 
-Often, however, one is interested in specific parts of the output.  In the case of twin modeling, we typically will inspect the expected covariance matrices and mean vectors, the parameter estimates, and possibly some derived quantities, such as the standardized variance components, obtained by dividing each of the components by the total variance.  Note in the code below that the ``mxEvaluate`` command allows easy extraction of the values in the various matrices/algebras which form the first argument, with the model name as second argument.  Once these values have been put in new objects, we can use and regular R expression to derive further quantities or organize them in a convenient format for including in tables.  Note that helper functions could (and will likely) easily be written for standard models to produce 'standard' output. 
+Often, however, one is interested in specific parts of the output.  In the case of twin modeling, we typically will inspect the expected covariance matrices and mean vectors, the parameter estimates, and possibly some derived quantities, such as the standardized variance components, obtained by dividing each of the components by the total variance.  Note in the code below that the ``mxEval`` command allows easy extraction of the values in the various matrices/algebras which form the first argument, with the model name as second argument.  Once these values have been put in new objects, we can use and regular R expression to derive further quantities or organize them in a convenient format for including in tables.  Note that helper functions could (and will likely) easily be written for standard models to produce 'standard' output. 
 
 .. code-block:: r
 
-    MZc <- mxEvaluate(expCovMZ, twinACEFit)
-    DZc <- mxEvaluate(expCovDZ, twinACEFit)
-    M <- mxEvaluate(expMeanMZ, twinACEFit)
-    A <- mxEvaluate(A, twinACEFit)
-    C <- mxEvaluate(C, twinACEFit)
-    E <- mxEvaluate(E, twinACEFit)
+    MZc <- mxEval(expCovMZ, twinACEFit)
+    DZc <- mxEval(expCovDZ, twinACEFit)
+    M <- mxEval(expMeanMZ, twinACEFit)
+    A <- mxEval(A, twinACEFit)
+    C <- mxEval(C, twinACEFit)
+    E <- mxEval(E, twinACEFit)
     V <- (A+C+E)
     a2 <- A/V
     c2 <- C/V
     e2 <- E/V
     ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-    LL_ACE <- mxEvaluate(objective, twinACEFit)
+    LL_ACE <- mxEval(objective, twinACEFit)
     
 Alternative Models: an AE Model
 -------------------------------
@@ -231,17 +231,17 @@ To evaluate the significance of each of the model parameters, nested submodels a
         )
     twinAEFit <- mxRun(twinAEModel)
 
-    MZc <- mxEvaluate(expCovMZ, twinAEFit)
-    DZc <- mxEvaluate(expCovDZ, twinAEFit)
-    A <- mxEvaluate(A, twinAEFit)
-    C <- mxEvaluate(C, twinAEFit)
-    E <- mxEvaluate(E, twinAEFit)
+    MZc <- mxEval(expCovMZ, twinAEFit)
+    DZc <- mxEval(expCovDZ, twinAEFit)
+    A <- mxEval(A, twinAEFit)
+    C <- mxEval(C, twinAEFit)
+    E <- mxEval(E, twinAEFit)
     V <- (A+C+E)
     a2 <- A/V
     c2 <- C/V
     e2 <- E/V
     AEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-    LL_AE <- mxEvaluate(objective, twinAEFit)
+    LL_AE <- mxEval(objective, twinAEFit)
 
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models) to determine the best fitting model, and print relevant output.
 

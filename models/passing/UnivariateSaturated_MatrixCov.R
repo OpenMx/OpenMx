@@ -31,8 +31,8 @@ univSatModel3 <- mxModel("univSat3",
     )
     )
 univSatFit3 <- mxRun(univSatModel3)
-EC3 <- mxEvaluate(expCov, univSatFit3)
-LL3 <- mxEvaluate(objective, univSatFit3)
+EC3 <- mxEval(expCov, univSatFit3)
+LL3 <- mxEval(objective, univSatFit3)
 SL3 <- univSatFit3@output$misc$SaturatedLikelihood
 Chi3 <- LL3-SL3
 
@@ -68,9 +68,9 @@ univSatModel3m <- mxModel("univSat3m",
     )
     )
 univSatFit3m <- mxRun(univSatModel3m)
-EM3m <- mxEvaluate(expMean, univSatFit3m)
-EC3m <- mxEvaluate(expCov, univSatFit3m)
-LL3m <- mxEvaluate(objective, univSatFit3m);
+EM3m <- mxEval(expMean, univSatFit3m)
+EC3m <- mxEval(expCov, univSatFit3m)
+LL3m <- mxEval(objective, univSatFit3m);
 SL3m <- univSatFit3m@output$misc$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 

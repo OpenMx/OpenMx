@@ -38,9 +38,9 @@ bivSatModel2 <- mxModel("bivSat2",
     type="RAM"
     )
 bivSatFit2 <- mxRun(bivSatModel2)
-EM2 <- mxEvaluate(M, bivSatFit2)
-EC2 <- mxEvaluate(S, bivSatFit2)
-LL2 <- mxEvaluate(objective, bivSatFit2)
+EM2 <- mxEval(M, bivSatFit2)
+EC2 <- mxEval(S, bivSatFit2)
+LL2 <- mxEval(objective, bivSatFit2)
 SL2 <- summary(bivSatFit2)$SaturatedLikelihood
 Chi2 <- LL2-SL2
 

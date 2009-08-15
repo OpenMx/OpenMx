@@ -45,8 +45,8 @@ bivSatModel5 <- mxModel("bivSat5",
     )
     )
 bivSatFit5 <- mxRun(bivSatModel5)
-EC5 <- mxEvaluate(expCov, bivSatFit5)
-LL5 <- mxEvaluate(objective,bivSatFit5)
+EC5 <- mxEval(expCov, bivSatFit5)
+LL5 <- mxEval(objective,bivSatFit5)
 SL5 <- summary(bivSatFit5)$SaturatedLikelihood
 Chi5 <- LL5-SL5
 
@@ -86,9 +86,9 @@ bivSatModel5m <- mxModel("bivSat5m",
     )
     )
 bivSatFit5m <- mxRun(bivSatModel5m)
-EM5m <- mxEvaluate(expMean, bivSatFit5m)
-EC5m <- mxEvaluate(expCov, bivSatFit5m)
-LL5m <- mxEvaluate(objective,bivSatFit5m);
+EM5m <- mxEval(expMean, bivSatFit5m)
+EC5m <- mxEval(expCov, bivSatFit5m)
+LL5m <- mxEval(objective,bivSatFit5m);
 SL5m <- summary(bivSatFit5m)$SaturatedLikelihood
 Chi5m <- LL5m-SL5m
 

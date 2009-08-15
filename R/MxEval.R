@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxEvaluate <- function(expression, model, show = FALSE) {
+mxEval <- function(expression, model, show = FALSE) {
 	formula <- match.call()$expression
 	modelVariable <- match.call()$model
 	labelsData <- omxGenerateLabels(model)
@@ -28,7 +28,7 @@ mxEvaluate <- function(expression, model, show = FALSE) {
 evaluateTranslation <- function(formula, model, modelVariable, labelsData, show) {
 	len <- length(formula)
 	if (len == 0) {
-		stop("mxEvaluate has reached an invalid state")
+		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
 		formula <- translateSymbol(formula, model, modelVariable, labelsData, show)
 	} else {

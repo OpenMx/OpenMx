@@ -39,18 +39,18 @@ twinACEModel <- mxModel("twinACE",
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
 
-MZc <- mxEvaluate(MZ.covariance, twinACEFit)
-DZc <- mxEvaluate(DZ.covariance, twinACEFit)
-M <- mxEvaluate(MZ.means, twinACEFit)
-A <- mxEvaluate(a*a, twinACEFit)
-C <- mxEvaluate(c*c, twinACEFit)
-E <- mxEvaluate(e*e, twinACEFit)
+MZc <- mxEval(MZ.covariance, twinACEFit)
+DZc <- mxEval(DZ.covariance, twinACEFit)
+M <- mxEval(MZ.means, twinACEFit)
+A <- mxEval(a*a, twinACEFit)
+C <- mxEval(c*c, twinACEFit)
+E <- mxEval(e*e, twinACEFit)
 V <- (A+C+E)
 a2 <- A/V
 c2 <- C/V
 e2 <- E/V
 ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-LL_ACE <- mxEvaluate(objective, twinACEFit)
+LL_ACE <- mxEval(objective, twinACEFit)
 
 
 #Mx answers hard-coded
@@ -79,18 +79,18 @@ twinAEModel <- mxModel(twinACEModel, type="RAM",
     )
 twinAEFit <- mxRun(twinAEModel)
 
-MZc <- mxEvaluate(MZ.covariance, twinAEFit)
-DZc <- mxEvaluate(DZ.covariance, twinAEFit)
-M <- mxEvaluate(MZ.means, twinAEFit)
-A <- mxEvaluate(a*a, twinAEFit)
-C <- mxEvaluate(c*c, twinAEFit)
-E <- mxEvaluate(e*e, twinAEFit)
+MZc <- mxEval(MZ.covariance, twinAEFit)
+DZc <- mxEval(DZ.covariance, twinAEFit)
+M <- mxEval(MZ.means, twinAEFit)
+A <- mxEval(a*a, twinAEFit)
+C <- mxEval(c*c, twinAEFit)
+E <- mxEval(e*e, twinAEFit)
 V <- (A + C + E)
 a2 <- A / V
 c2 <- C / V
 e2 <- E / V
 AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
-LL_AE <- mxEvaluate(objective, twinAEFit)
+LL_AE <- mxEval(objective, twinAEFit)
 
 LRT_ACE_AE <- LL_AE - LL_ACE
 
