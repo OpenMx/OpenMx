@@ -59,43 +59,43 @@ printOptions <- function(options) {
 displayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
 	cat("type :", omxTypeName(model), '\n')
-	cat("matrices :", omxQuotes(names(model@matrices)), '\n')
-	cat("algebras :", omxQuotes(names(model@algebras)), '\n')
-	cat("constraints :", omxQuotes(names(model@constraints)), '\n')
+	cat("@matrices :", omxQuotes(names(model@matrices)), '\n')
+	cat("@algebras :", omxQuotes(names(model@algebras)), '\n')
+	cat("@constraints :", omxQuotes(names(model@constraints)), '\n')
 	if (length(model@latentVars) == 0) {
-		cat("latentVars : none\n")
+		cat("@latentVars : none\n")
 	} else {
-		cat("latentVars :", omxQuotes(model@latentVars), '\n')
+		cat("@latentVars :", omxQuotes(model@latentVars), '\n')
 	}
 	if (length(model@manifestVars) == 0) {
-		cat("manifestVars : none\n")
+		cat("@manifestVars : none\n")
 	} else {
-		cat("manifestVars :", omxQuotes(model@manifestVars), '\n')
+		cat("@manifestVars :", omxQuotes(model@manifestVars), '\n')
 	}
 	data <- model@data
 	if (is.null(data)) {
-		cat("data : NULL\n")
+		cat("@data : NULL\n")
 	} else {
-		cat("data matrix :", nrow(data@observed), 
+		cat("@data :", nrow(data@observed), 
 			"x", ncol(data@observed), "\n")
 		if(length(data@means) == 1 && is.na(data@means)) {
-			cat("data means : NA\n")
+			cat("@data means : NA\n")
 		} else {
-			cat("data means : 1 x", length(data@means), "\n")
+			cat("@data means : 1 x", length(data@means), "\n")
 		}
-		cat("data type:", omxQuotes(data@type), '\n')
+		cat("@data type:", omxQuotes(data@type), '\n')
 	}
-	cat("submodels :", omxQuotes(names(model@submodels)), '\n')
+	cat("@submodels :", omxQuotes(names(model@submodels)), '\n')
 	objective <- model@objective
 	if (is.null(objective)) {
 		objectiveType <- "NULL"
 	} else {
 		objectiveType <- class(objective)[[1]]
 	}
-	cat("objective :", objectiveType, '\n')
-	cat("independent :", model@independent, '\n')
-	cat("options :", printOptions(model@options), '\n')
-	cat("output :", length(model@output) > 0, '\n')
+	cat("@objective :", objectiveType, '\n')
+	cat("@independent :", model@independent, '\n')
+	cat("@options :", printOptions(model@options), '\n')
+	cat("@output :", length(model@output) > 0, '\n')
 	if(expand) {
 		if(length(model@matrices) > 0) {
 			cat("\n--------MATRICES--------\n")

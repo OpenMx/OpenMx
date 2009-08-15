@@ -84,12 +84,12 @@ mxMLObjective <- function(covariance, means = NA) {
 
 displayMLObjective <- function(objective) {
 	cat("MxMLObjective", omxQuotes(objective@name), '\n')
-	cat("covariance :", omxQuotes(objective@covariance), '\n')
-	cat("means :", omxQuotes(objective@means), '\n')
+	cat("@covariance :", omxQuotes(objective@covariance), '\n')
+	cat("@means :", omxQuotes(objective@means), '\n')
 	if (length(objective@result) == 0) {
-		cat("Result : empty\n")
+		cat("@result : empty\n")
 	} else {
-		cat("Result : \n") 
+		cat("@result\n") 
 		print(objective@result)
 	}
 	invisible(objective)

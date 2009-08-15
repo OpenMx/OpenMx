@@ -59,11 +59,11 @@ mxAlgebraObjective <- function(algebra) {
 
 displayAlgebraObjective <- function(objective) {
 	cat("MxAlgebraObjective", omxQuotes(objective@name), '\n')
-	cat("algebra :", omxQuotes(objective@algebra), '\n')
+	cat("@algebra\n", omxQuotes(objective@algebra), '\n')
 	if (length(objective@result) == 0) {
-		cat("Result : empty\n")
+		cat("@result : empty\n")
 	} else {
-		cat("Result : \n") 
+		cat("@result\n") 
 		print(objective@result)
 	}
 	invisible(objective)

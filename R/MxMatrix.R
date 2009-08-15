@@ -425,36 +425,36 @@ displayMatrix <- function(mxMatrix) {
 	cat("\n")
 	nolabels <- all(is.na(mxMatrix@labels))
 	if(nolabels == FALSE) {
-		cat("Labels matrix:\n")
+		cat("@labels\n")
 		print(mxMatrix@labels)
 		cat("\n")
 	} else {
-		cat("Labels matrix: No labels assigned.\n\n")
+		cat("@labels: No labels assigned.\n\n")
 	}
-	cat("Values matrix:\n")
+	cat("@values\n")
 	print(mxMatrix@values)
 	cat("\n")
 	noFree <- all(mxMatrix@free == FALSE)
 	if(noFree == FALSE) {
-		cat("Free matrix:\n")
+		cat("@free\n")
 		print(mxMatrix@free)
 		cat("\n")
 	} else {
-		cat("Free matrix: No free parameters.\n\n")
+		cat("@free: No free parameters.\n\n")
 	}
 	if(!all(is.na(mxMatrix@lbound))) {
-		cat("Lbound matrix:\n")
+		cat("@lbound\n")
 		print(mxMatrix@lbound)
 		cat("\n")
 	} else {
-		cat("Lbound matrix: No lower bounds assigned.\n\n")
+		cat("@lbound: No lower bounds assigned.\n\n")
 	}
 	if(!all(is.na(mxMatrix@ubound))) {
-		cat("Ubound matrix:\n")
+		cat("@ubound\n")
 		print(mxMatrix@ubound)
 		cat("\n")
 	} else {
-		cat("Ubound matrix: No upper bounds assigned.\n\n")
+		cat("@ubound: No upper bounds assigned.\n\n")
 	}
 }
 

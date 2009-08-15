@@ -184,18 +184,18 @@ mxRAMObjective <- function(A, S, F, M = NA) {
 
 displayRAMObjective <- function(objective) {
 	cat("MxRAMObjective", omxQuotes(objective@name), '\n')
-	cat("A matrix :", omxQuotes(objective@A), '\n')
-	cat("S matrix :", omxQuotes(objective@S), '\n')
-	cat("F matrix :", omxQuotes(objective@F), '\n')
+	cat("@A :", omxQuotes(objective@A), '\n')
+	cat("@S :", omxQuotes(objective@S), '\n')
+	cat("@F :", omxQuotes(objective@F), '\n')
 	if (is.na(objective@M)) {
-		cat("M matrix :", objective@M, '\n')
+		cat("@M :", objective@M, '\n')
 	} else {
-		cat("M matrix :", omxQuotes(objective@M), '\n')
+		cat("@M :", omxQuotes(objective@M), '\n')
 	}
 	if (length(objective@result) == 0) {
-		cat("Result : empty\n")
+		cat("@result : empty\n")
 	} else {
-		cat("Result : \n") 
+		cat("@result\n") 
 		print(objective@result)
 	}
 	invisible(objective)

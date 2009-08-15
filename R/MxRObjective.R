@@ -59,12 +59,12 @@ mxRObjective <- function(objfun) {
 
 displayRObjective <- function(objective) {
 	cat("MxRObjective", omxQuotes(objective@name), '\n')
-	cat("Objective function : \n")
+	cat("@objfun (objective function) \n")
 	print(objective@objfun)
 	if (length(objective@result) == 0) {
-		cat("Result : empty\n")
+		cat("@result : empty\n")
 	} else {
-		cat("Result : \n") 
+		cat("@result\n") 
 		print(objective@result)
 	}
 	invisible(objective)
