@@ -1,5 +1,7 @@
 TRUNK
 =============
+* Added mxVersion() function to return the version number (as a string).
+
 * mxEvaluate() function renamed to mxEval().  mxEval() was chosen to suggest similarity with the eval() function.
 
 Release 0.1.2-708
