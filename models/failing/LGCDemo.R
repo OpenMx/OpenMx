@@ -20,11 +20,11 @@ require(OpenMx)
 #Returning Error on mxRun: details below (R. Estabrook, 09Feb26)
 
 # Data
-wisc.cov<-matrix(c(33.73019, 25.46499, 30.88961, 40.51781,
-	25.46499, 37.28895, 33.82058, 47.40553,
-	30.88961, 33.82058, 53.57812, 62.25334,
-	40.51781, 47.40553, 62.25334, 113.74121),
-	nrow=4, ncol=4, byrow=TRUE)
+wisc.cov<-matrix(c( 33.73019, 25.46499, 30.88961, 40.51781,
+	                25.46499, 37.28895, 33.82058, 47.40553,
+	                30.88961, 33.82058, 53.57812, 62.25334,
+	                40.51781, 47.40553, 62.25334, 113.74121),
+	                nrow=4, ncol=4, byrow=TRUE)
 
 # Define the model
 model <- mxModel()
@@ -33,20 +33,20 @@ model <- mxModel(model, mxMatrix("Symm", name = "S", nrow = 6, ncol = 6))
 model <- mxModel(model, mxMatrix("Full", name = "F", nrow = 4, ncol = 6))
 
 # Specify "A" Matrix
-model[["A"]]@labels[6,2] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
-model[["A"]]@labels[6,3] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
-model[["A"]]@free[6,2] <- TRUE 
-model[["A"]]@free[6,3] <- TRUE
+model[["A"]]@labels[2,6] <- "Basis Loading V2" #Latent Basis Slope Loading (Free)
+model[["A"]]@labels[3,6] <- "Basis Loading V4" #Latent Basis Slope Loading (Free)
+model[["A"]]@free[2,6] <- TRUE 
+model[["A"]]@free[3,6] <- TRUE
 
 # Values for "A" Matrix
-model[["A"]]@values[5,1] <- 1 #Intercept Loading
-model[["A"]]@values[5,2] <- 1 #Intercept Loading
-model[["A"]]@values[5,3] <- 1 #Intercept Loading
-model[["A"]]@values[5,4] <- 1 #Intercept Loading
-model[["A"]]@values[6,4] <- 1 #Latent Basis Slope Loading (Fixed)
+model[["A"]]@values[1,5] <- 1 #Intercept Loading
+model[["A"]]@values[2,5] <- 1 #Intercept Loading
+model[["A"]]@values[3,5] <- 1 #Intercept Loading
+model[["A"]]@values[4,5] <- 1 #Intercept Loading
+model[["A"]]@values[4,6] <- 1 #Latent Basis Slope Loading (Fixed)
 
-model[["A"]]@values[6,2] <- .2 #Latent Basis Slope Loading (Free)
-model[["A"]]@values[6,3] <- .6 #Latent Basis Slope Loading (Free)
+model[["A"]]@values[2,6] <- .2 #Latent Basis Slope Loading (Free)
+model[["A"]]@values[3,6] <- .6 #Latent Basis Slope Loading (Free)
 
 # Specify "S" Matrix
 model[["S"]]@labels[1,1] <- "Manifest Residual"
@@ -97,12 +97,22 @@ model <- mxModel(model, objective, covMatrix)
 model <- mxRun(model)
 
 estimates <- model@output$estimate
-omxCheckCloseEnough(estimates[['Basis Loading V2']], 0.234, 0.01)
-omxCheckCloseEnough(estimates[['Basis Loading V4']], 0.527, 0.01)
-omxCheckCloseEnough(estimates[['Manifest Residual']], 11.005, 0.01)
-omxCheckCloseEnough(estimates[['Latent Intercept Variance']], 19.713, 0.01)
-omxCheckCloseEnough(estimates[['Latent Covariance']], 14.004, 0.01)
-omxCheckCloseEnough(estimates[['Latent Slope Variance']], 24.140, 0.01)
+
+# Results from old Mx:
+omxCheckCloseEnough(estimates[['Basis Loading V2']], 0.1110, 0.01)
+omxCheckCloseEnough(estimates[['Basis Loading V4']], 0.3343, 0.01)
+omxCheckCloseEnough(estimates[['Manifest Residual']], 10.3184, 0.01)
+omxCheckCloseEnough(estimates[['Latent Intercept Variance']], 24.2041, 0.01)
+omxCheckCloseEnough(estimates[['Latent Covariance']], 16.8327, 0.01)
+omxCheckCloseEnough(estimates[['Latent Slope Variance']], 45.8975, 0.01)
+
+# MPlus Results?
+# omxCheckCloseEnough(estimates[['Basis Loading V2']], 0.234, 0.01)
+# omxCheckCloseEnough(estimates[['Basis Loading V4']], 0.527, 0.01)
+# omxCheckCloseEnough(estimates[['Manifest Residual']], 11.005, 0.01)
+# omxCheckCloseEnough(estimates[['Latent Intercept Variance']], 19.713, 0.01)
+# omxCheckCloseEnough(estimates[['Latent Covariance']], 14.004, 0.01)
+# omxCheckCloseEnough(estimates[['Latent Slope Variance']], 24.140, 0.01)
 
 # Expected Results
 	# Manifest Residual			11.005 (0.771)

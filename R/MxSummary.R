@@ -66,7 +66,8 @@ computeOptimizationStatistics <- function(model, matrices, parameters) {
 	retval[['estimatedParameters']] <- length(estimates)
 	retval[['observedStatistics']] <- observedStatistics(model)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
-	retval <- append(retval, model@output$misc)
+	retval$SaturatedLikelihood <- model@output$SaturatedLikelihood
+	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
 	return(retval)
 }
 

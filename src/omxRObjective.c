@@ -102,6 +102,7 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	oo->objectiveFun = omxCallRObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRObjective;
+	oo->setFinalReturns = NULL;
 	oo->destructFun = omxDestroyRObjective;
 	oo->repopulateFun = omxRepopulateRObjective;
 	oo->argStruct = (void*) newObj;

@@ -45,6 +45,18 @@ void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give
 	
 }
 
+omxRListElement* omxSetFinalReturnsAlgebraObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+
+	retVal[0].numValues = 1;
+	retVal[0].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
+	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+
+	return retVal;
+}
+
 unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
 
 	if(oo->matrix->data[0] != ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0]) return TRUE;
@@ -65,6 +77,7 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	oo->objectiveFun = omxCallAlgebraObjective;
 	oo->needsUpdateFun = omxNeedsUpdateAlgebraObjective;
+	oo->setFinalReturns = omxSetFinalReturnsAlgebraObjective;
 	oo->destructFun = omxDestroyAlgebraObjective;
 	oo->repopulateFun = NULL;
 	

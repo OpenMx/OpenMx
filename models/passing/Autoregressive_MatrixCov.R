@@ -69,6 +69,8 @@ autoregressiveMatrixCov<-mxRun(model)
 
 autoregressiveMatrixCov@output
 
+chisq = autoregressiveMatrixCov@output$Minus2LogLikelihood - autoregressiveMatrixCov@output$SaturatedLikelihood
+
 # Comparing to old Mx Output
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.4268, 0.001)
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["varx"]], 0.6720, 0.001)
@@ -81,7 +83,7 @@ omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int2"]], 0.0816, 0
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int3"]], 0.0889, 0.001)
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int4"]], -0.036, 0.001)
 omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["int5"]], -0.135, 0.001)
-
+omxCheckCloseEnough(chisq, 8.435, 0.001)
 
 # Comparing to Mplus values
 # omxCheckCloseEnough(autoregressiveMatrixCov@output$estimate[["beta"]], 0.427, 0.001)

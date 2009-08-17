@@ -34,12 +34,17 @@ typedef struct {
 } omxRAMObjective;
 
 omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturns) {
-	*numReturns = 1;
-	omxRListElement* retVal = (omxRListElement*) Calloc(1, omxRListElement);
-	retVal->numValues = 1;
-	retVal->values = (double*) Calloc(1, double);
-	strncpy(retVal->label, "SaturatedLikelihood", 20);
-	*(retVal->values) = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
+	*numReturns = 2;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
+	retVal[0].numValues = 1;
+	retVal[0].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
+	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+
+	retVal[1].numValues = 1;
+	retVal[1].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
+	retVal[1].values[0] = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
 	return retVal;
 }
 

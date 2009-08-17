@@ -24,6 +24,7 @@
 
 #ifndef _OMX_FIML_OBJECTIVE_
 #define _OMX_FIML_OBJECTIVE_ TRUE
+#define OMX_DEBUG_ROWS FALSE
 
 extern omxMatrix** matrixList;
 
@@ -53,12 +54,12 @@ typedef struct omxFIMLObjective {
 
 void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars, int numDefs) {
 
-	if(OMX_DEBUG) { Rprintf("Processing Definition Vars.\n"); }
+	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
 
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
 		for(int l = 0; l < defVars[k].numLocations; l++) {
-			if(OMX_DEBUG) {
+			if(OMX_DEBUG_ROWS) {
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(data, row, defVars[k].column), defVars[k].matrices[l]);
 			}
 			*(defVars[k].location[l]) = omxMatrixElement(data, row, defVars[k].column);
@@ -72,6 +73,18 @@ void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars
 
 void omxDestroyFIMLObjective(omxObjective *oo) {
 
+}
+
+omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+
+	retVal[0].numValues = 1;
+	retVal[0].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
+	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+	
+	return retVal;
 }
 
 void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -166,7 +179,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 		
-//		if(OMX_DEBUG) { omxPrint(smallCov, "Local Covariance Matrix"); }
+		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
@@ -192,7 +205,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
 		sum += logDet + Q + (log(2 * M_PI) * smallRow->cols);
-		if(OMX_DEBUG) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", logDet, Q, (log(2 * M_PI) * smallRow->cols), logDet + Q + (log(2 * M_PI) * smallRow->cols), sum);}
+		if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", logDet, Q, (log(2 * M_PI) * smallRow->cols), logDet + Q + (log(2 * M_PI) * smallRow->cols), sum);}
 	}
 
 	if(OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
@@ -277,6 +290,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	
 	oo->objectiveFun = omxCallFIMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->repopulateFun = NULL;
 
