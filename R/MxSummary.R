@@ -49,7 +49,7 @@ fitStatistics <- function(model, objective, data, retval) {
 	retval[['AIC']] <- likelihood - 2 * DoF
 	retval[['BIC']] <- 0.5 * (likelihood - DoF * log(data@numObs))
 	rmseaSquared <- (chi / DoF - 1) / data@numObs
-	if (rmseaSquared < 0) {
+	if (length(rmseaSquared) == 0 || is.nan(rmseaSquared) || (rmseaSquared < 0)) {
 		retval[['RMSEA']] <- 0
 	} else {
 		retval[['RMSEA']] <- sqrt(rmseaSquared)
