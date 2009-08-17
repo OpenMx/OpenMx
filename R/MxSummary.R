@@ -13,8 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-observedStatistics <- function(model) {
-	data <- model@data
+observedStatistics <- function(model, data) {
 	if (is.null(data)) {
 		return(0)
 	}
@@ -37,16 +36,32 @@ observedStatistics <- function(model) {
 	}
 }
 
-computeOptimizationStatistics <- function(model, matrices, parameters) {
+fitStatistics <- function(model, objective, data, retval) {
+	likelihood <- model@output$Minus2LogLikelihood
+	saturated <- model@output$SaturatedLikelihood
+	chi <- likelihood - saturated
+	DoF <- retval$degreesOfFreedom
+	if (is.null(objective) || is(objective, "MxAlgebraObjective")) {
+		return(retval)
+	} else if (is.null(likelihood)) {
+		return(retval)
+	}
+	retval[['AIC']] <- likelihood - 2 * DoF
+	retval[['BIC']] <- 0.5 * (likelihood - DoF * log(data@numObs))
+	rmseaSquared <- (chi / DoF - 1) / data@numObs
+	if (rmseaSquared < 0) {
+		retval[['RMSEA']] <- 0
+	} else {
+		retval[['RMSEA']] <- sqrt(rmseaSquared)
+	}
+	return(retval)
+}
+
+computeOptimizationStatistics <- function(model, matrices, parameters, objective, data) {
 	retval <- list()
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
-	objective <- model@objective
 	estimates <- model@output$estimate
-	if (!(is.null(objective) || is(objective, "MxAlgebraObjective"))) {
-		retval[['AIC']] <- model@output$minimum + 
-			2 * length(estimates)
-	}
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -64,10 +79,11 @@ computeOptimizationStatistics <- function(model, matrices, parameters) {
 		retval[['parameters']] <- ptable
 	}
 	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(model)
+	retval[['observedStatistics']] <- observedStatistics(model, data)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
-	retval$SaturatedLikelihood <- model@output$SaturatedLikelihood
-	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	retval[['SaturatedLikelihood']] <- model@output$SaturatedLikelihood
+	retval[['Minus2LogLikelihood']] <- model@output$Minus2LogLikelihood
+	retval <- fitStatistics(model, objective, data, retval)
 	return(retval)
 }
 
@@ -77,9 +93,11 @@ setMethod("summary", "MxModel",
 		flatModel <- omxFlattenModel(object, namespace)
 		matrices <- generateSimpleMatrixList(flatModel)
 		parameters <- generateParameterList(flatModel)
-		retval <- computeOptimizationStatistics(object, matrices, parameters)
-		if (!is.null(object@data)) {
-			print(summary(object@data@observed))
+		objective <- flatModel@objectives[[omxIdentifier(object@name, 'objective')]]
+		data <- flatModel@datasets[[objective@data]]
+		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data)
+		if (!is.null(data)) {
+			print(summary(data@observed))
 			cat('\n')
 		}
 		if (length(object@output) > 0) {
@@ -95,10 +113,10 @@ setMethod("summary", "MxModel",
 		cat("Observed statistics: ", retval$observedStatistics, '\n')
 		cat("Estimated parameters: ", retval$estimatedParameters, '\n')
 		cat("Degrees of freedom: ", retval$degreesOfFreedom, '\n')
-		cat("AIC: ", '\n')
-		cat("BIC: ", '\n')
+		cat("AIC: ", retval$AIC, '\n')
+		cat("BIC: ", retval$BIC, '\n')
 		cat("adjusted BIC:", '\n')
-		cat("RMSEA: ", '\n')
+		cat("RMSEA: ", retval$RMSEA, '\n')
 		cat('\n')		
 		invisible(retval)
 	}
