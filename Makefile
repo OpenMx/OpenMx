@@ -8,6 +8,7 @@ TARGET = OpenMx_0.1.2-708.tar.gz
 PDFFILE = $(RBUILD)/OpenMx.pdf
 TESTFILE = inst/tools/testModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
+MEMORYTESTFILE = inst/tools/memoryTestModels.R
 
 # subdirectories
 RSOURCE = R
@@ -20,15 +21,16 @@ RFILES = $(wildcard R/*.R)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  build     create an OpenMx binary (in build) that can be exported"
-	@echo "  install   build and install OpenMx on this machine"
-	@echo "  pdf       create a pdf file (in build) of the OpenMx R documentation"
-	@echo "  html      create Sphinx documentation (in docs/build/html) in html format"
-	@echo "  test      run the OpenMx test suite"
-	@echo "  failtest  run the OpenMx failing test suite"
-	@echo "  check     run the R package checking system on the OpenMx package"
-	@echo "  clean     remove all files from the build directory"
-	@echo "  veryclean remove all files from the build directory and all *~ files"
+	@echo "  build      create an OpenMx binary (in build) that can be exported"
+	@echo "  install    build and install OpenMx on this machine"
+	@echo "  pdf        create a pdf file (in build) of the OpenMx R documentation"
+	@echo "  html       create Sphinx documentation (in docs/build/html) in html format"
+	@echo "  test       run the OpenMx test suite"
+	@echo "  failtest   run the OpenMx failing test suite"
+	@echo "  memorytest run the OpenMx test suite under the Valgrind memory debugger"
+	@echo "  check      run the R package checking system on the OpenMx package"
+	@echo "  clean      remove all files from the build directory"
+	@echo "  veryclean  remove all files from the build directory and all *~ files"
 
 internal-build: build/$(TARGET)
 
@@ -61,6 +63,8 @@ test:
 failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
 
+memorytest:
+	$(REXEC) -d "valgrind --tool=memcheck --leak-check=full --suppressions=inst/tools/OpenMx.supp --quiet" --vanilla --slave < $(MEMORYTESTFILE)
 
 clean:
 	rm -rf $(RBUILD)/*

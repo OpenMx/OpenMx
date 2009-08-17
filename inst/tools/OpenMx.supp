@@ -1,0 +1,32 @@
+{
+   dlsym suppression
+   Memcheck:Addr4
+   obj:/lib/ld-2.9.so
+   obj:/lib/tls/i686/cmov/libc-2.9.so
+   fun:_dl_sym
+   obj:/lib/tls/i686/cmov/libdl-2.9.so
+   obj:/lib/ld-2.9.so
+   obj:/lib/tls/i686/cmov/libdl-2.9.so
+   fun:dlsym
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+}
+{
+   getpwuid suppression
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/tls/i686/cmov/libc-2.9.so
+   fun:__nss_database_lookup
+   obj:*
+   obj:*
+   fun:getpwuid_r
+   fun:getpwuid
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+}
