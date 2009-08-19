@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import re
+import string
 
 class MxMatrix:
     name = None
@@ -56,7 +57,26 @@ def parseMatrices( mxInput, defines ):
                 matrix.free = True
                 matrix.unique = True
             retval[matrix.name] = matrix
-    return retval    
+    return retval
+
+def parseSpecifications( mxInput, defines, matrices ):
+    matchIter = re.finditer("^spec\S*\s+(\S+)", mxInput, re.IGNORECASE | re.MULTILINE)
+    for match in matchIter:
+        specification = list()
+        matrixName = match.group(1)
+        matrix = matrices[matrixName]
+        specCount = specLength[matrix.type](matrix.nrow, matrix.ncol)
+        specs = re.search("^spec\S*\s+" + matrixName + "((\s*\S+\s*)" + "{" + str(specCount) + "})",
+                          mxInput, re.IGNORECASE | re.MULTILINE)
+        specIter = re.finditer("\S+", specs.group(1))
+        for spec in specIter:
+            try:
+                specification.append(int(spec.group(0)))
+            except:
+                specification.append(int(defines[spec.group(0)]))
+        matrices[matrixName].specification = specification
+
+        
 
 def printMatrices( matrices ):
     startCounter = 1
@@ -65,13 +85,25 @@ def printMatrices( matrices ):
         outstring += "mxMatrix(type = \"" + matrix.type + "\", "
         outstring += "nrow = " + str(matrix.nrow) + ", "
         outstring += "ncol = " + str(matrix.ncol) + ", "
-        outstring += "free = " + str(matrix.free).upper() + ", "
+        if matrix.specification == None:
+            outstring += "free = " + str(matrix.free).upper() + ", "
+        else:
+            freelist = map(lambda x: x > 0, matrix.specification)
+            freestring = str(freelist).upper()
+            freestring = string.replace(freestring, "[", "c(")
+            freestring = string.replace(freestring, "]", ")")
+            outstring += "free = " + freestring + ", "
         nextcounter = None
         if matrix.free and not matrix.unique and matrix.specification == None:
             endCounter = startCounter + specLength[matrix.type](matrix.nrow, matrix.ncol) - 1
             outstring += "labels = " + str(startCounter) + " : "
             outstring += str(endCounter) + ", "
             startCounter = endCounter + 1
+        elif matrix.specification != None:
+            specstring = str(matrix.specification)
+            specstring = string.replace(specstring, "[", "c(")
+            specstring = string.replace(specstring, "]", ")")
+            outstring += "labels = " + specstring + ", "
         outstring += "byrow = TRUE, "
         outstring += "name = \"" + matrix.name + "\")"
         print outstring
@@ -100,7 +132,7 @@ def parseModel( mxInput ):
     matrices = parseMatrices(mxInput, defines)
 
     # Find all the matrix specifications
-#    parseSpecifications(mxInput, matrices)
+    parseSpecifications(mxInput, defines, matrices)
 
     # Print matrix declarations
     printMatrices(matrices)
