@@ -52,6 +52,8 @@ Objects created by the mxMatrix function are of a specific \sQuote{type}, which 
 \sQuote{Zero}   \tab matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 0 for all elements. \cr
 }
 
+When \sQuote{type} is either \sQuote{Lower}, \sQuote{Sdiag}, \sQuote{Symm}, or \sQuote{Stand}, and the arguments to \sQuote{free}, \sQuote{values}, \sQuote{labels}, \sQuote{lbound}, or \sQuote{ubound} are vectors with enough elements to populate exactly one half of the matrix, then \code{mxMatrix()} populates the lower triangle of the matrix (and transposes the lower triangle if the matrix is symmetric).
+
 }
 
 \value{
@@ -67,18 +69,24 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{
-#Create a 3x3 identity matrix
-i <- mxMatrix(type="Iden", 3, 3)
+# Create a 3 x 3 identity matrix
 
-#Create a full 4x2 matrix from existing value and specification matrices with all free parameters
-value <- matrix(c(1,2,3,4,5,6,7,8), nrow=4)
-f <- mxMatrix(value=value, free = TRUE)
+idenMatrix <- mxMatrix(type = "Iden", nrow = 3, 
+	ncol = 3, name = "I")
 
-#Create a 3x3 symmetric matrix with free off-diagonal parameters and starting values
-s <- mxMatrix(type="Symm", 3, 3,
-	c(FALSE, TRUE, TRUE, TRUE, FALSE, 
-	TRUE, TRUE, TRUE, FALSE),
-	c(1, .8, .8, .8, 1, .8, .8, .8, 1),
-	c(NA, "free1", "free2", "free1", NA, 
-	"free3", "free2", "free3", NA))
+# Create a full 4 x 2 matrix from existing 
+# value matrix with all free parameters
+
+vals <- matrix(1:8, nrow = 4)
+fullMatrix <- mxMatrix(type = "Full", values = vals, 
+	free = TRUE, name = "foo")
+ 
+# Create a 3 x 3 symmetric matrix with free off-
+# diagonal parameters and starting values
+
+symmMatrix <- mxMatrix(type = "Symm", nrow = 3, ncol = 3,
+	free = c(FALSE, TRUE, TRUE, FALSE, TRUE, FALSE),
+	values = c(1, .8, .8, 1, .8, 1),
+	labels = c(NA, "free1", "free2", NA, "free3", NA),
+	name = "bar")
 }
