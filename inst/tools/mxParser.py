@@ -171,7 +171,7 @@ def tryDirectives ( mxInput ):
             subtract = mxDirectives[directive](mxInput)
             mxInput = mxInput[subtract : ]
             return mxInput
-    match = re.match(".+", mxInput)
+    match = re.match(".*", mxInput)
     if (match != None):
         subtract = len(match.group(0)) + 1
         mxInput = mxInput[subtract : ]
