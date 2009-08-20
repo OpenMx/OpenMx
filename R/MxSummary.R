@@ -46,6 +46,8 @@ fitStatistics <- function(model, objective, data, retval) {
 	} else if (is.null(likelihood)) {
 		return(retval)
 	}
+	retval[['Chi']] <- chi
+	retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
 	retval[['AIC']] <- likelihood - 2 * DoF
 	retval[['BIC']] <- 0.5 * (likelihood - DoF * log(data@numObs))
 	rmseaSquared <- (chi / DoF - 1) / data@numObs
@@ -106,17 +108,21 @@ setMethod("summary", "MxModel",
 				cat(message,'\n','\n')
 			}
 		}
-		if (!is.null(retval$parameters)) {
-			print(retval$parameters)
+		if (!is.null(retval[['parameters']])) {
+			print(retval[['parameters']])
 			cat('\n')
 		}
-		cat("Observed statistics: ", retval$observedStatistics, '\n')
-		cat("Estimated parameters: ", retval$estimatedParameters, '\n')
-		cat("Degrees of freedom: ", retval$degreesOfFreedom, '\n')
-		cat("AIC: ", retval$AIC, '\n')
-		cat("BIC: ", retval$BIC, '\n')
+		cat("Observed statistics: ", retval[['observedStatistics']], '\n')
+		cat("Estimated parameters: ", retval[['estimatedParameters']], '\n')
+		cat("Degrees of freedom: ", retval[['degreesOfFreedom']], '\n')
+		cat("-2 log likelihood: ", retval[['Minus2LogLikelihood']], '\n')
+		cat("Saturated -2 log likelihood: ", retval[['SaturatedLikelihood']], '\n')
+		cat("Chi-Square: ", retval[['Chi']], '\n')
+		cat("p: ", retval[['p']], '\n')
+		cat("AIC: ", retval[['AIC']], '\n')
+		cat("BIC: ", retval[['BIC']], '\n')
 		cat("adjusted BIC:", '\n')
-		cat("RMSEA: ", retval$RMSEA, '\n')
+		cat("RMSEA: ", retval[['RMSEA']], '\n')
 		cat('\n')		
 		invisible(retval)
 	}
