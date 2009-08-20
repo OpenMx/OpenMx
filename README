@@ -1,9 +1,10 @@
 This is the primary development trunk of the OpenMx project.
-The various parts of the project will go in here in different directories, as things progress.
+The various parts of the project will go in here in different
+directories, as things progress.
 
 Files:
-'DESCRIPTION'	-	basic information about the package in a specific format (see 'Writing R Extensions')
-'LICENSE'	-	a copy of the license to the package, e.g. a copy of the GNU public license.
+'DESCRIPTION'	- basic information about the package in a specific format (see 'Writing R Extensions')
+'LICENSE'	- a copy of the license to the package, e.g. a copy of the GNU public license.
 
 Subdirectories:
 'R'	-	R code files.
