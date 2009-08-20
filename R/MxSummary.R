@@ -32,7 +32,7 @@ observedStatistics <- function(model, data) {
 		}
 		return(dof)
 	} else {
-		return(length(data@observed))
+		return(sum(!is.na(data@observed)))
 	}
 }
 
