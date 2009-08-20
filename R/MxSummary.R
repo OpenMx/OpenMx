@@ -46,10 +46,17 @@ fitStatistics <- function(model, objective, data, retval) {
 	} else if (is.null(likelihood)) {
 		return(retval)
 	}
+	if (data@type == 'raw') {
+		Fvalue <- likelihood
+	} else if (data@type == 'cov') {
+		Fvalue <- chi
+	} else {
+		Fvalue <- NA
+	}
 	retval[['Chi']] <- chi
 	retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
-	retval[['AIC']] <- likelihood - 2 * DoF
-	retval[['BIC']] <- 0.5 * (likelihood - DoF * log(data@numObs))
+	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
+	retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(data@numObs))
 	rmseaSquared <- (chi / DoF - 1) / data@numObs
 	if (length(rmseaSquared) == 0 || is.nan(rmseaSquared) || (rmseaSquared < 0)) {
 		retval[['RMSEA']] <- 0
@@ -119,8 +126,8 @@ setMethod("summary", "MxModel",
 		cat("Saturated -2 log likelihood: ", retval[['SaturatedLikelihood']], '\n')
 		cat("Chi-Square: ", retval[['Chi']], '\n')
 		cat("p: ", retval[['p']], '\n')
-		cat("AIC: ", retval[['AIC']], '\n')
-		cat("BIC: ", retval[['BIC']], '\n')
+		cat("AIC (Mx): ", retval[['AIC.Mx']], '\n')
+		cat("BIC (Mx): ", retval[['BIC.Mx']], '\n')
 		cat("adjusted BIC:", '\n')
 		cat("RMSEA: ", retval[['RMSEA']], '\n')
 		cat('\n')		
