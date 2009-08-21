@@ -15,21 +15,25 @@ cov(dzfData,use="complete")
 
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("twinACE", 
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
-    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"),
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), # matrices for the means
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), # seperate for each group, but may be equated later
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), # X,Y, and Z store the a,c,and e path coefficients
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
-    mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"),
-    mxAlgebra(X %*% t(X), name="A"),
+    mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"), # just a constant 0.5 for use in algebras below
+
+		mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
     mxAlgebra(Y %*% t(Y), name="C"),
     mxAlgebra(Z %*% t(Z), name="E"),
+
     # Algebra for expected variance/covariance matrix in MZs
     mxAlgebra(rbind (cbind(A+C+E  , A+C),
                      cbind(A+C    , A+C+E)), dimnames = list(selVars, selVars), name="expCovMZ"),
+
     # Algebra for expected variance/covariance matrix in DZs
     mxAlgebra(rbind (cbind(A+C+E  , h%x%A+C),
                      cbind(h%x%A+C, A+C+E)), dimnames = list(selVars, selVars), name="expCovDZ"),
+
 		# Build model for the MZ data.
     mxModel("MZ",
 			  # read in the manifest variables (selVars), to provide the observed covariance matrix and means for this group. 
@@ -38,7 +42,8 @@ twinACEModel <- mxModel("twinACE",
 				# so that the likelihood of the observed data can be calculated from their departure from our expectations.
         mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMeanMZ")
     ),
-		# Build model for the DZ data.
+
+		# Build matching model for the DZ data.
     mxModel("DZ", 
         mxData(dzfData, type="raw"), 
         mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMeanDZ")),
@@ -48,8 +53,8 @@ twinACEModel <- mxModel("twinACE",
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
 
-MZc <- mxEval(expCovMZ, twinACEFit)
-DZc <- mxEval(expCovDZ, twinACEFit)
+MZc <- mxEval(expCovMZ,  twinACEFit)
+DZc <- mxEval(expCovDZ,  twinACEFit)
 M   <- mxEval(expMeanMZ, twinACEFit)
 
 # Retrieve the A, C, and E variance components
