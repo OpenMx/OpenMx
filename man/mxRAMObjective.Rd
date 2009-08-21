@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxRAMObjective(A, S, F, M = NA)
+mxRAMObjective(A, S, F, M = NA, thresholds = NA)
 }
 
 
@@ -16,7 +16,8 @@ mxRAMObjective(A, S, F, M = NA)
    \item{A}{A character string indicating the name of the 'A' matrix.}
    \item{S}{A character string indicating the name of the 'S' matrix.}
    \item{F}{A character string indicating the name of the 'F' matrix.}
-   \item{M}{A character string indicating the name of the 'M' matrix. Optional.}
+   \item{M}{An optional character string indicating the name of the 'M' matrix.}
+   \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
 }
 
 \details{

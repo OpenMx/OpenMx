@@ -19,11 +19,12 @@ setClass(Class = "MxRAMObjective",
 		A = "MxCharOrNumber",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber",
-		M = "MxCharOrNumber"),
+		M = "MxCharOrNumber",
+		thresholds = "MxCharOrNumber"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
-	function(.Object, A, S, F, M,  
+	function(.Object, A, S, F, M, thresholds,  
 		data = as.numeric(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
@@ -31,6 +32,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@F <- F
 		.Object@M <- M
 		.Object@data <- data
+		.Object@thresholds <- thresholds
 		return(.Object)
 	}
 )
@@ -43,6 +45,7 @@ setMethod("omxObjFunNamespace", signature("MxRAMObjective"),
 		.Object@F <- omxConvertIdentifier(.Object@F, modelname, namespace)
 		.Object@M <- omxConvertIdentifier(.Object@M, modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, modelname, namespace)
+		.Object@thresholds <- omxConvertIdentifier(.Object@thresholds, modelname, namespace)
 		return(.Object)
 })
 
@@ -54,6 +57,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		fMatrix <- .Object@F
 		mMatrix <- .Object@M
 		data <- .Object@data
+		thresholds <- .Object@thresholds
 		if(is.na(data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
@@ -63,12 +67,9 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
-		if (is.na(.Object@M)) {
-			.Object@M <- as.integer(NA)
-		} else {
-			.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
-		}
+		.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
 		.Object@data <- omxLocateIndex(flatModel, data, name)
+		.Object@thresholds <- omxLocateIndex(flatModel, thresholds, name)
 		return(.Object)
 })
 
@@ -157,7 +158,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 	}
 )
 
-mxRAMObjective <- function(A, S, F, M = NA) {
+mxRAMObjective <- function(A, S, F, M = NA, thresholds = NA) {
 	if (missing(A) || typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
@@ -173,13 +174,14 @@ mxRAMObjective <- function(A, S, F, M = NA) {
 			"(the name of the 'F' matrix)")
 		stop(msg)
 	}
-	if (is.na(M)) M <- as.character(NA)
-	if (typeof(M) != "character") {
+	if (!(single.na(M) || typeof(M) == "character")) {
 		msg <- paste("argument M is not a string",
 			"(the name of the 'M' matrix)")
 		stop(msg)
-	}	
-	return(new("MxRAMObjective", A, S, F, M))
+	}
+	if (is.na(M)) M <- as.integer(NA)
+	if (is.na(thresholds)) thresholds <- as.integer(NA)
+	return(new("MxRAMObjective", A, S, F, M, thresholds))
 }
 
 displayRAMObjective <- function(objective) {
@@ -191,6 +193,11 @@ displayRAMObjective <- function(objective) {
 		cat("@M :", objective@M, '\n')
 	} else {
 		cat("@M :", omxQuotes(objective@M), '\n')
+	}
+	if (is.na(objective@thresholds)) {
+		cat("@thresholds : NA \n")
+	} else {
+		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
 	}
 	if (length(objective@result) == 0) {
 		cat("@result : empty\n")
