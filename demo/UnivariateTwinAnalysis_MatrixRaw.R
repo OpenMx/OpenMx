@@ -113,7 +113,10 @@ V <- (A + C + E)
 a2  <- A / V
 c2  <- C / V
 e2  <- E / V
-AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
+# As an example of how R can be used to report information based on OpenMx output, we'll build a reporting table with labels
+AEest <- round(rbind(cbind(A, C, E),cbind(a2, c2, e2)),3) # assemble the variance and standardized variance compoents into a table
+AEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
+names(AEest)<-c("A", "C", "E") # add column names
 LL_AE <- mxEval(objective, twinAEFit)
 
 LRT_ACE_AE <- LL_AE - LL_ACE
