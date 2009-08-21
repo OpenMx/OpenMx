@@ -15,9 +15,11 @@ cov(dzfData,use="complete")
 
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("twinACE", 
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), # matrices for the means
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), # seperate for each group, but may be equated later
-    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), # X,Y, and Z store the a,c,and e path coefficients
+    # matrices for the means
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), # because both expMeanMZ and expMeanDZ
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), # share the same label, we are equating them
+		# Matrices X,Y, and Z to store the a,c,and e path coefficients
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), 
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
     mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"), # just a constant 0.5 for use in algebras below
