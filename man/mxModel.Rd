@@ -17,7 +17,7 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
  	\item{...}{An arbitrary number of named entities, data sources, or MxPath objects. These will all be added or removed from the model as specified in the 'model' argument, based on the 'remove' argument.}
  	\item{manifestVars}{A list of manifest variables to be included in the model.}
  	\item{latentVars}{A list of latent variables to be included in the model.}
- 	\item{remove}{logical. If TRUE, elements listed in this statement are added to the original model. If FALSE, elements listed in this statement are removed from the original model.}
+ 	\item{remove}{logical. If TRUE, elements listed in this statement are removed from the original model. If FALSE, elements listed in this statement are added to the original model.}
  	\item{independent}{logical. If TRUE then the model is independent.}
  	\item{type}{character vector. The name of the model type to assign to this model.}
  	\item{name}{An optional character vector indicating the name of the object.}
