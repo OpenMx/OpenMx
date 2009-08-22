@@ -177,11 +177,11 @@ displayFIMLObjective <- function(objective) {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
 	}	
 	if (length(objective@result) == 0) {
-		cat("@result : empty\n")
+		cat("@result: (not yet computed) ")
 	} else {
-		cat("@result\n") 
-		print(objective@result)
+		cat("@result:\n")
 	}
+	print(objective@result)
 	invisible(objective)
 }
 
