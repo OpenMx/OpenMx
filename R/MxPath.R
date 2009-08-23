@@ -55,6 +55,19 @@ omxIsPath <- function(value) {
 		!is.null(value[['to']]))
 }
 
+matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
+	values <- mxMatrix@values
+	select <- (values != 0)
+	if (length(select) > 0) {
+ 	    rowFactors <- row(values, as.factor=TRUE)
+	    colFactors <- col(values, as.factor=TRUE)	
+		fromNames <- as.character(colFactors[select])
+		toNames <- as.character(rowFactors[select])
+		return(mxPath(from = fromNames, to = toNames, arrows = arrows))
+	} else {
+		return(list())
+	}
+}
 
 mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	values = NA, labels = NA, lbound = NA, ubound = NA) {

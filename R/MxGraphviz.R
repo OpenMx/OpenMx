@@ -13,46 +13,64 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setClass(Class = "MxGraph",
+	representation = representation(
+		manifestVars = "character", 
+		latentVars = "character", 
+		paths = "list"))
 
-# The graphNEL class is extended to allow for bi-directional arrows
-# on edges that have identical source and destination.
-# The graphNEL class only adds bidirectional arrows
-# when source and sink are different, and both directed
-# edges are present.
-
-graphvizAddMatrix <- function(values, rowFactors, colFactors, graph) {
-	select <- (values != 0)
-	if (length(select) > 0) {
-		fromValues <- as.character(colFactors[select])
-		toValues <- as.character(rowFactors[select])
-		graph <- addEdge(fromValues, toValues, graph, 1)
+setMethod("initialize", "MxGraph",
+	function(.Object, manifestVars = character(), 
+		latentVars = character(), paths = list()) {
+		.Object@manifestVars <- manifestVars
+		.Object@latentVars <- latentVars
+		.Object@paths <- paths
+		return(.Object)
 	}
-	return(graph)
+)	
+
+writeDotFile <- function(model, graph, dotFilename) {
+	dotFile <- file(dotFilename, "w")
+	graphName <- sub(" ", "_", model@name, fixed=TRUE)
+	cat("digraph", graphName, "{", "\n", file = dotFile)
+	if (length(graph@manifestVars) > 0) {
+		for(i in 1:length(graph@manifestVars)) {
+			cat('\t', graph@manifestVars[[i]], "[shape=box,height=0.5,width=0.5];\n", file = dotFile)
+		}
+	}
+	if (length(graph@latentVars) > 0) {
+		for(i in 1:length(graph@latentVars)) {
+			cat('\t', graph@latentVars[[i]], "[shape=circle];\n", file = dotFile)		
+		}
+	}
+	if (length(graph@paths) > 0) {
+		for(i in 1:length(graph@paths)) {
+			path <- graph@paths[[i]]
+			cat('\t', path$from, "->", path$to, file = dotFile)
+			if (path$arrows == 1) {
+				cat("[dir=forward]", file = dotFile)
+			} else if (path$arrows == 2) {
+				cat("[dir=both]", file = dotFile)			
+			}
+			cat(';\n', file = dotFile)
+		}
+	}
+	cat("}", "\n", file = dotFile)
+	close(dotFile)
 }
 
-omxGraphviz <- function(model) {
-	loads <- suppressWarnings(require(Rgraphviz))
-	if (!loads) {
-		stop(paste("omxGraphviz cannot be used unless",
-			"the Rgraphviz package has been installed"))
-	}
+omxGraphviz <- function(model, dotFilename) {
 	if (missing(model) || !is(model, "MxModel")) {
 		stop("The first argument is not an MxModel object")
 	}
 	if (!is(model, "MxRAMModel")) {
-		stop(paste("The model", omxQuotes(model@name), "is not a 'RAM' type model"))	
+		stop(paste("The model", omxQuotes(model@name), 
+			"is not a 'RAM' type model"))	
 	}
-	graph <- new("graphSEM", edgemode = "directed")
-	graph <- addNode(model@manifestVars, graph)
-	graph <- addNode(model@latentVars, graph)
-
-	aMatrix <- model[['A']]@values
-	sMatrix <- model[['S']]@values
-	rowFactors <- row(aMatrix, as.factor=TRUE)
-	colFactors <- col(aMatrix, as.factor=TRUE)
-	graph <- graphvizAddMatrix(aMatrix, rowFactors, colFactors, graph)
-	graph <- graphvizAddMatrix(sMatrix, rowFactors, colFactors, graph)	
-	
-	return(graph)
+	graph <- new("MxGraph", model@manifestVars, model@latentVars)
+	uniPaths <- matrixToPaths(model[['A']], 1)
+	biPaths <- matrixToPaths(model[['S']], 2)
+	graph@paths <- c(graph@paths, uniPaths, biPaths)
+	writeDotFile(model, graph, dotFilename)
 }
 
