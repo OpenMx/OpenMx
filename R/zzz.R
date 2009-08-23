@@ -18,6 +18,11 @@
 #TODO: replace with .onLoad once namespaces are implemented
 .First.lib <- function(libname, pkgname) {
    library.dynam("OpenMx") 
+	if (suppressWarnings(require(Rgraphviz)) == TRUE) {
+		setClass(Class = "graphSEM",
+			representation = representation(),
+			contains = "graphNEL")	
+	}      
    sfStop()
    sfInit(parallel = FALSE)
    options('mxDefaultType' = 'raw', 

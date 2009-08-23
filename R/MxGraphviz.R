@@ -13,6 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
+# The graphNEL class is extended to allow for bi-directional arrows
+# on edges that have identical source and destination.
+# The graphNEL class only adds bidirectional arrows
+# when source and sink are different, and both directed
+# edges are present.
+
 graphvizAddMatrix <- function(values, rowFactors, colFactors, graph) {
 	select <- (values != 0)
 	if (length(select) > 0) {
@@ -24,15 +31,18 @@ graphvizAddMatrix <- function(values, rowFactors, colFactors, graph) {
 }
 
 omxGraphviz <- function(model) {
-	loads <- require(Rgraphviz)
-	if (!loads) return()
+	loads <- suppressWarnings(require(Rgraphviz))
+	if (!loads) {
+		stop(paste("omxGraphviz cannot be used unless",
+			"the Rgraphviz package has been installed"))
+	}
 	if (missing(model) || !is(model, "MxModel")) {
 		stop("The first argument is not an MxModel object")
 	}
 	if (!is(model, "MxRAMModel")) {
 		stop(paste("The model", omxQuotes(model@name), "is not a 'RAM' type model"))	
 	}
-	graph <- new("graphNEL", edgemode = "directed")
+	graph <- new("graphSEM", edgemode = "directed")
 	graph <- addNode(model@manifestVars, graph)
 	graph <- addNode(model@latentVars, graph)
 
