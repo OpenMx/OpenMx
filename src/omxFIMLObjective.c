@@ -185,7 +185,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			char errStr[250];
-			sprintf(errStr, "Backing out of parameter space region where covariance matrix is not positive-definite.");
+			sprintf(errStr, "Covariance matrix is not positive-definite.");
 			omxRaiseError(oo->matrix->currentState, -1, errStr);
 			return;
 		}

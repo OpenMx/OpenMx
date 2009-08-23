@@ -193,9 +193,9 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	static double one = 1.0;
 	
 	/* Conformability Check! */
-	if(preMul->cols != postMul->rows) 
-		error("Non-conformable matrices in Matrix Quadratic Product.");
-		
+	if(preMul->cols != postMul->rows || postMul->rows != postMul->cols)
+		omxRaiseError(preMul->currentState, -1, "Non-conformable matrices in Matrix Quadratic Product.");
+
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState); // Leaks Memory!
 	
@@ -204,17 +204,19 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->objective);}
 	
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
-		omxResizeMatrix(result, preMul->cols, preMul->cols, FALSE);
+		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
 	
 	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
 	
 	omxComputeMatrix(intermediate);
+	omxComputeMatrix(result);
 
 	/* The call itself */
 	if(OMX_DEBUG) { Rprintf("Quadratic: premul.\n");}
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
 	omxComputeMatrix(intermediate);
 	if(OMX_DEBUG) { Rprintf("Quadratic: postmul.\n");}
+//	if(OMX_DEBUG) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
 	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
 	if(OMX_DEBUG) { Rprintf("Quadratic: clear.\n");}
 
