@@ -19,7 +19,8 @@ setClass(Class = "MxMLObjective",
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
-		thresholds = "MxCharOrNumber"),
+		thresholds = "MxCharOrNumber",
+		thresholdColumns = "numeric"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxMLObjective",
@@ -55,6 +56,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		covariance <- .Object@covariance
 		means <- .Object@means
 		data <- .Object@data
+		thresholds <- .Object@thresholds
 		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
 			msg <- paste("The MxMLObjective", omxQuotes(name),
@@ -66,9 +68,10 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
-		.Object@data <- dIndex		
-		.Object@thresholds <- omxLocateIndex(flatModel, .Object@thresholds, name)
+		.Object@data <- dIndex
+		.Object@thresholds <- omxLocateIndex(flatModel, thresholds, name)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
+		.Object@thresholdColumns <- generateThresholdColumns(flatModel, thresholds, data)
 		return(.Object)
 })
 

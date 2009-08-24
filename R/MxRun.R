@@ -31,7 +31,7 @@ mxRun <- function(model) {
 	independents <- lapply(independents, omxFreezeModel)
 	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel, namespace)
-	data <- flatModel@datasets
+	data <- convertDatasets(flatModel)
 	omxCheckFreeVariables(flatModel, namespace)
 	parameters <- generateParameterList(flatModel)
 	definitions <- generateDefinitionList(flatModel)

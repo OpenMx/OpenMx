@@ -57,7 +57,6 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		fMatrix <- .Object@F
 		mMatrix <- .Object@M
 		data <- .Object@data
-		thresholds <- .Object@thresholds
 		if(is.na(data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
@@ -69,7 +68,6 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
 		.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
 		.Object@data <- omxLocateIndex(flatModel, data, name)
-		.Object@thresholds <- omxLocateIndex(flatModel, thresholds, name)
 		return(.Object)
 })
 
@@ -151,8 +149,8 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 			list(x = meansFormula, y = meansName)))
 		dimnames(algebra) <- list(NULL, translatedNames)
 		model <- mxModel(model, algebra)
-		objective <- eval(substitute(mxFIMLObjective(x, y),
-			list(x = covName, y = meansName)))
+		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
+			list(x = covName, y = meansName, z = .Object@thresholds)))
 		model@objective <- objective
 		return(model)
 	}

@@ -33,14 +33,18 @@ writeDotFile <- function(model, graph, dotFilename) {
 	dotFile <- file(dotFilename, "w")
 	graphName <- sub(" ", "_", model@name, fixed=TRUE)
 	cat("digraph", graphName, "{", "\n", file = dotFile)
+	cat('\t', 'node [style=filled,fontname="Arial",fontsize=16]\n', file = dotFile)
 	if (length(graph@manifestVars) > 0) {
 		for(i in 1:length(graph@manifestVars)) {
-			cat('\t', graph@manifestVars[[i]], "[shape=box,height=0.5,width=0.5];\n", file = dotFile)
+			cat('\t', graph@manifestVars[[i]], 
+				'[shape=box,fillcolor="#a9fab1",height=0.5,width=0.5];\n', 
+				file = dotFile)
 		}
 	}
 	if (length(graph@latentVars) > 0) {
 		for(i in 1:length(graph@latentVars)) {
-			cat('\t', graph@latentVars[[i]], "[shape=circle];\n", file = dotFile)		
+			cat('\t', graph@latentVars[[i]], 
+				'[shape=circle,fillcolor="#f4fd78"];\n', file = dotFile)		
 		}
 	}
 	if (length(graph@paths) > 0) {
@@ -50,7 +54,13 @@ writeDotFile <- function(model, graph, dotFilename) {
 			if (path$arrows == 1) {
 				cat("[dir=forward]", file = dotFile)
 			} else if (path$arrows == 2) {
-				cat("[dir=both]", file = dotFile)			
+			    if (path$from == path$to && path$from %in% graph@latentVars) {
+					cat("[dir=both,headport=n,tailport=n]", file = dotFile)			
+				} else if (path$from == path$to) {
+					cat("[dir=both,headport=s,tailport=s]", file = dotFile)						
+				} else {
+					cat("[dir=both;]", file = dotFile)					
+				}
 			}
 			cat(';\n', file = dotFile)
 		}

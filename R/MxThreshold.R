@@ -13,14 +13,38 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-convertThresholds <- function(observed, thresholds, objname) {
+generateThresholdColumns <- function(flatModel, threshName, dataName) {
+	retval <- numeric()
+	if (is.na(threshName)) return(retval)
+	definitionNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
+	thresholds <- flatModel[[threshName]]	
+	threshNames <- dimnames(thresholds)[[2]]
+	for(i in 1:length(threshNames)) {
+		targetName <- threshNames[[i]]
+		index <- match(targetName, definitionNames)
+		if(is.na(index)) {
+			msg <- paste("The column name", omxQuotes(targetName),
+				"in the thresholds matrix in model",
+				omxQuotes(flatModel@name),
+				"cannot be found in the dimnames of the data.")
+			stop(msg, call. = FALSE)
+		}
+		retval[[i]] <- index - 1
+	}
+	return(retval)
+}
+
+convertThresholds <- function(flatModel, dataName, threshName) {
+	observed <- flatModel@datasets[[dataName]]@observed
+	thresholds <- flatModel[[threshName]]
+	modelName <- flatModel@name
 	if (dimnames(thresholds) == NULL || dimnames(thresholds)[[2]] == NULL) {
-		stop(paste("The thresholds matrix for objective function", 
-			omxQuotes(objname), "does not contain column names"), call. = FALSE)
+		stop(paste("The thresholds matrix for model", 
+			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
 	if (dimnames(observed) == NULL || dimnames(observed)[[2]] == NULL) {
-		stop(paste("The observed data matrix for objective function", 
-			omxQuotes(objname), "does not contain column names"), call. = FALSE)
+		stop(paste("The observed data matrix for model", 
+			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
 	threshNames <- dimnames(observed)[[2]]
 	obsNames <- dimnames(observed)[[2]]
@@ -28,7 +52,7 @@ convertThresholds <- function(observed, thresholds, objname) {
 	if (length(missingNames) > 0) {
 		stop(paste("The following column names in the threshold",
 			"matrix do not exist in the observed data matrix",
-			"for objective function", omxQuotes(objname), 
+			"for model", omxQuotes(modelName), 
 			":", omxQuotes(missingNames)), call. = FALSE)
 	}
 	for(i in 1:length(threshNames)) {		
@@ -39,32 +63,32 @@ convertThresholds <- function(observed, thresholds, objname) {
 			stop(paste("The number of thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"is not one less than the number of levels",
-				"in objective function", 
-				omxQuotes(objname)), call. = FALSE)
+				"in model", 
+				omxQuotes(modelName)), call. = FALSE)
 		}
 		values <- column[1:count]
 		if (any(is.na(values))) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"contain NA values in between non-NA values",
-				"in objective function",
-				omxQuotes(objname)), call. = FALSE)			
+				"in model",
+				omxQuotes(modelName)), call. = FALSE)			
 		}
 		if (count < length(column) && 
 				any(!is.na(column[count + 1:length(column)]))) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"contain NA values in between non-NA values",
-				"in objective function",
-				omxQuotes(objname)), call. = FALSE)
+				"in model",
+				omxQuotes(modelName)), call. = FALSE)
 		}
 		sortValues <- sort(values)
 		if (!all(sortValues == values)) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"are not in sorted order",
-				"in objective function",
-				omxQuotes(objname)), call. = FALSE)	
+				"in model",
+				omxQuotes(modelName)), call. = FALSE)	
 		}
 	}
 	return(observed)
