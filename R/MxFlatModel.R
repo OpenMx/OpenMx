@@ -71,12 +71,20 @@ convertDatasets <- function(flatModel) {
 	if (length(flatModel@objectives) > 0) {
 		for(i in 1:length(flatModel@objectives)) {
 			objective <- flatModel@objectives[[i]]
+			dataName <- objective@data
 			if ((is(objective, "MxFIMLObjective") ||
 				is(objective, "MxMLObjective")) &&
 				!is.na(objective@thresholds)) {
 				threshName <- objective@thresholds
-				dataName <- objective@data
-				flatModel@datasets[[dataName]]@observed <- convertThresholds(flatModel, dataName, threshName)
+				observed <- convertThresholds(flatModel, dataName, threshName)
+				flatModel@datasets[[dataName]]@observed <- observed
+			} else if (!is.na(dataName)) {
+				data <- flatModel@datasets[[dataName]]@observed
+				if (is.data.frame(data)) {
+					warning(paste("Converting data frame to numeric matrix",
+					"in model", omxQuotes(flatModel@name)), call. = FALSE)
+					flatModel@datasets[[dataName]]@observed <- data.matrix(data)
+				}
 			}
 		}	
 	}

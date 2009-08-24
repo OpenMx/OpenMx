@@ -20,8 +20,6 @@ mxRun <- function(model) {
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
 	omxVerifyModel(model)
-	# remove next line when data.frames are implemented in the back-end
-	model <- convertDataFrames(model)
 	model <- translateObjectives(model, namespace)
 	# Regenerate the namespace
 	namespace <- omxGenerateNamespace(model)
@@ -52,24 +50,6 @@ mxRun <- function(model) {
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
 	return(model)	
-}
-
-convertDataFrames <- function(model) {
-	if(!is.null(model@data)) {
-		data <- model@data@observed
-		if (is.data.frame(data)) {
-			warning(paste("Converting data frame to numeric matrix",
-				"in model", omxQuotes(model@name)), call. = FALSE)
-			model@data@observed <- data.matrix(data)
-		}
-	}
-	if(length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			submodel <- model@submodels[[i]]
-			model@submodels[[i]] <- convertDataFrames(submodel)
-		}
-	}
-	return(model)
 }
 
 processOptimizerOutput <- function(flatModel, matrixNames, 

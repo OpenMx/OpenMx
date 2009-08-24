@@ -38,11 +38,11 @@ convertThresholds <- function(flatModel, dataName, threshName) {
 	observed <- flatModel@datasets[[dataName]]@observed
 	thresholds <- flatModel[[threshName]]
 	modelName <- flatModel@name
-	if (dimnames(thresholds) == NULL || dimnames(thresholds)[[2]] == NULL) {
+	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
 		stop(paste("The thresholds matrix for model", 
 			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
-	if (dimnames(observed) == NULL || dimnames(observed)[[2]] == NULL) {
+	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
 		stop(paste("The observed data matrix for model", 
 			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
@@ -55,11 +55,12 @@ convertThresholds <- function(flatModel, dataName, threshName) {
 			"for model", omxQuotes(modelName), 
 			":", omxQuotes(missingNames)), call. = FALSE)
 	}
-	for(i in 1:length(threshNames)) {		
-		observed[,threshNames[[i]]] <- as.ordered(observed[,threshNames[[i]]])
+	for(i in 1:length(threshNames)) {
+		tName <- threshNames[[i]]
+		observed[,tName] <- as.ordered(observed[,tName])
 		column <- thresholds@values[,i]
 		count <- sum(!is.na(column))
-		if (count != (length(levels(observed[,threshNames[[i]]])) - 1)) {
+		if (count != (length(levels(observed[,tName])) - 1)) {
 			stop(paste("The number of thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"is not one less than the number of levels",
@@ -69,7 +70,7 @@ convertThresholds <- function(flatModel, dataName, threshName) {
 		values <- column[1:count]
 		if (any(is.na(values))) {
 			stop(paste("The thresholds in column",
-				omxQuotes(threshNames[[i]]),
+				omxQuotes(tName),
 				"contain NA values in between non-NA values",
 				"in model",
 				omxQuotes(modelName)), call. = FALSE)			
@@ -77,7 +78,7 @@ convertThresholds <- function(flatModel, dataName, threshName) {
 		if (count < length(column) && 
 				any(!is.na(column[count + 1:length(column)]))) {
 			stop(paste("The thresholds in column",
-				omxQuotes(threshNames[[i]]),
+				omxQuotes(tName),
 				"contain NA values in between non-NA values",
 				"in model",
 				omxQuotes(modelName)), call. = FALSE)
@@ -85,7 +86,7 @@ convertThresholds <- function(flatModel, dataName, threshName) {
 		sortValues <- sort(values)
 		if (!all(sortValues == values)) {
 			stop(paste("The thresholds in column",
-				omxQuotes(threshNames[[i]]),
+				omxQuotes(tName),
 				"are not in sorted order",
 				"in model",
 				omxQuotes(modelName)), call. = FALSE)	
