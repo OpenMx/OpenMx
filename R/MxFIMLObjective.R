@@ -20,7 +20,7 @@ setClass(Class = "MxFIMLObjective",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
 		thresholds = "MxCharOrNumber",
-		dataRow = "numeric"),
+		dataColumns = "numeric"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
@@ -80,7 +80,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		.Object@thresholds <- omxLocateIndex(flatModel, .Object@thresholds, name)
 		verifyExpectedNames(covName, meansName, flatModel)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
-		.Object@dataRow <- generateDataRow(flatModel, covName, dataName)
+		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
 		return(.Object)
 })
 
@@ -134,7 +134,7 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 	}
 }
 
-generateDataRow <- function(flatModel, covName, dataName) {
+generateDataColumns <- function(flatModel, covName, dataName) {
 	retval <- c()
 	definitionNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
 	covariance <- flatModel[[covName]]

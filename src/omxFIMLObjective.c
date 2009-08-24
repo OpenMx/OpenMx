@@ -42,7 +42,7 @@ typedef struct omxFIMLObjective {
 	omxMatrix* cov;
 	omxMatrix* means;
 	omxMatrix* data;
-	omxMatrix* dataRow;
+	omxMatrix* dataColumns;
 	omxMatrix* smallRow;
 	omxMatrix* smallCov;
 	omxMatrix* RCX;
@@ -107,7 +107,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int numDefs;
 	int nextRow, nextCol, numCols, numRemoves;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *data, *dataRow;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *data, *dataColumns;
 	omxDefinitionVar* defVars;
 
 	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;		// Locals, for readability.  Should compile out.
@@ -116,7 +116,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
 	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
 	data		= ((omxFIMLObjective*)oo->argStruct)->data;
-	dataRow		= ((omxFIMLObjective*)oo->argStruct)->dataRow;
+	dataColumns	= ((omxFIMLObjective*)oo->argStruct)->dataColumns;
 	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
 	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
 
@@ -155,8 +155,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 		
 		// Determine how many rows/cols to remove.
-		for(int j = 0; j < dataRow->cols; j++) {
-			int value = (int) omxMatrixElement(dataRow, 0, j);
+		for(int j = 0; j < dataColumns->cols; j++) {
+			int value = (int) omxMatrixElement(dataColumns, 0, j);
 			double dataValue = omxMatrixElement(data, row, j);
 			if(isnan(dataValue) || dataValue == NA_REAL) {
 				numRemoves++;
@@ -172,8 +172,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 			zeros[j] = 0;
 		}
-		
-		if(dataRow->cols <= numRemoves) continue;
+
+		if(dataColumns->cols <= numRemoves) continue;
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 		
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
@@ -244,8 +244,8 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	UNPROTECT(3);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataRow")));
-	newObj->dataRow = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
+	newObj->dataColumns = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
