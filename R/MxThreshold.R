@@ -31,35 +31,35 @@ convertThresholds <- function(observed, thresholds, objname) {
 			"for objective function", omxQuotes(objname), 
 			":", omxQuotes(missingNames)), call. = FALSE)
 	}
-	for(i in 1:length(threshNames)) {
-		tColumn <- as.ordered(observed[,threshNames[[i]]])
-		observed[,threshNames[[i]]] <- tColumn
-		tCount <- sum(!is.na(tColumn))
-		if (tCount != (length(levels(tColumn)) - 1)) {
+	for(i in 1:length(threshNames)) {		
+		observed[,threshNames[[i]]] <- as.ordered(observed[,threshNames[[i]]])
+		column <- thresholds@values[,i]
+		count <- sum(!is.na(column))
+		if (count != (length(levels(observed[,threshNames[[i]]])) - 1)) {
 			stop(paste("The number of thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"is not one less than the number of levels",
 				"in objective function", 
 				omxQuotes(objname)), call. = FALSE)
 		}
-		tValues <- tColumn[1:tCount]
-		if (any(is.na(tValues))) {
+		values <- column[1:count]
+		if (any(is.na(values))) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"contain NA values in between non-NA values",
 				"in objective function",
 				omxQuotes(objname)), call. = FALSE)			
 		}
-		if (tCount < length(tColumn) && 
-				any(!is.na(tColumn[tCount + 1:length(tColumn)]))) {
+		if (count < length(column) && 
+				any(!is.na(column[count + 1:length(column)]))) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"contain NA values in between non-NA values",
 				"in objective function",
 				omxQuotes(objname)), call. = FALSE)
 		}
-		sortValues <- sort(tValues)
-		if (!all(sortValues == tValues)) {
+		sortValues <- sort(values)
+		if (!all(sortValues == values)) {
 			stop(paste("The thresholds in column",
 				omxQuotes(threshNames[[i]]),
 				"are not in sorted order",
