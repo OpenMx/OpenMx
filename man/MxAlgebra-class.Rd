@@ -24,7 +24,7 @@ The 'formula' slot is an expression containing one or more \link{MxMatrix} objec
 
 The 'result' slot is used to hold the results of an optimization on the expression in the 'formula' slot. If this MxAlgebra has not been used as an argument in an objective function and subsequently included in an \link{MxModel} object and executed using the \link{mxRun} function, this slot will have a value of NULL. If this MxAlgebra has been used as an argument in an objective function and subsequently included in an \link{MxModel} object and executed using the \link{mxRun} function, then this slot will have a 1x1 matrix with the results of that optimization as its only value.
 
-Slots may be referenced with the @ symbol. See the documentation for \link{Extract} and the examples in the \link{mxAlgebra} document for more information.
+Slots may be referenced with the @ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxAlgebra} document for more information.
 }
 
 \references{

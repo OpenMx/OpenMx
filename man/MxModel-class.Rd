@@ -54,7 +54,7 @@ The \sQuote{options} slot contains a list of options for the optimizer. The name
 
 The \sQuote{output} slot contains a list of output added to the model by the \link{mxRun} function. Output includes parameter estimates, optimization information, model fit, and other information as dictated by the objective function. If a model has not been optimized using the \link{mxRun} function, the 'output' slot will be 'NULL'.
 
-\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Slots may be referenced with the @ symbol (model@data). See the documentation for \link{Extract} and the examples in \link{mxModel} for more information.
+\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (model[["matrixname"]]). Slots may be referenced with the @ symbol (model@data). See the documentation for \link[methods]{Classes} and the examples in \link{mxModel} for more information.
 }
 
 \references{

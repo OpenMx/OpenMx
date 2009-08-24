@@ -24,7 +24,7 @@ The 'name' slot is the name of the MxConstraint object. %Use of MxConstraint obj
 
 The 'alg1' and 'alg2' slots hold \link{MxAlgebra} or \link{MxMatrix} objects whose relationship is constrained or defined by the contents of the 'relation' slot. To affect an estimation or optimization, an MxConstraint object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
-Slots may be referenced with the @ symbol. See the documentation for \link{Extract} and the examples in the \link{mxConstraint} document for more information.
+Slots may be referenced with the @ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxConstraint} document for more information.
 }
 
 \references{

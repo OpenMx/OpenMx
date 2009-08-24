@@ -38,7 +38,7 @@ To be estimated, \link{MxModel} objects must include objective functions as argu
 (\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
 and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
 
-\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (\code{model[["matrixname"]]}). Slots may be referenced with the @ symbol (\code{model@data}). See the documentation for \link{Extract} and the examples in this document for more information.
+\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (\code{model[["matrixname"]]}). Slots may be referenced with the @ symbol (\code{model@data}). See the documentation for \link[methods]{Classes} and the examples in this document for more information.
 }
  	
 \value{

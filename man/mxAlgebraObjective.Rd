@@ -22,7 +22,7 @@ If no free parameters are included in any part of the 'algebra' argument, the mx
 
 If free parameters are included in the objects references in the 'algebra' argument, the mxAlgebraObjective minimizes the algebra defined in the 'algebra' argument. More than one free parameter may be included in the algebra, but the mxAlgebraObjective should be specified such that the objective function evaluates to a 1x1 matrix or scalar value. If the contents of the 'algebra' argument evaluates to a non-scalar matrix, only the first entry of that matrix is minimized.
 
-To evaluate, place MxAlgebraObjective objects, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be referenced using the \link{Extract} functionality.
+To evaluate, place MxAlgebraObjective objects, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
 }
 
 \value{
