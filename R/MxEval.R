@@ -14,34 +14,74 @@
 #   limitations under the License.
 
 mxEval <- function(expression, model, show = FALSE) {
-	formula <- match.call()$expression
-	modelVariable <- match.call()$model
+	inputExpression <- match.call()$expression
 	labelsData <- omxGenerateLabels(model)
-	formula <- evaluateTranslation(formula, model, modelVariable, labelsData, FALSE)
+	formula <- evaluateTranslation(inputExpression, model, labelsData)
 	if (show) {
-		showFormula <- evaluateTranslation(formula, model, modelVariable, labelsData, TRUE)
+    	modelVariable <- match.call()$model
+		showFormula <- showTranslation(inputExpression, model, modelVariable, labelsData)
 		cat(deparse(showFormula, width.cutoff = 500L), '\n')
 	}
 	return(eval(formula))
 }
 
-evaluateTranslation <- function(formula, model, modelVariable, labelsData, show) {
+evaluateTranslation <- function(formula, model, labelsData) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
-		formula <- translateSymbol(formula, model, modelVariable, labelsData, show)
+		formula <- translateSymbol(formula, model, labelsData)
 	} else {
 		formula[-1] <- lapply(formula[-1], 
-			evaluateTranslation, model, modelVariable, labelsData, show)
+			evaluateTranslation, model, labelsData)
 	}
 	return(formula)
 }
 
-translateSymbol <- function(symbol, model, modelVariable, labelsData, show) {
+translateSymbol <- function(symbol, model, labelsData) {
 	key <- deparse(symbol)
 	index <- match(key, dimnames(labelsData)[[1]])
-	if (!show) modelVariable <- as.symbol('model')
+	if (!is.na(index)) {
+		labelModel <- labelsData[[index,"model"]]
+		labelMatrix <- labelsData[[index,"matrix"]]
+		labelRow <- labelsData[[index,"row"]]
+		labelCol <- labelsData[[index,"col"]]
+		return(substitute(model[[x]]@values[[y,z]],
+			list(x = omxIdentifier(labelModel, labelMatrix),
+				y = labelRow, z = labelCol)))
+	}
+	lookup <- model[[key]]
+	if (is.null(lookup)) {
+		return(symbol)
+	} else if (is(lookup, "MxMatrix")) {
+		return(substitute(model[[x]]@values, list(x = key)))
+	} else if (is(lookup, "MxAlgebra")) {
+		return(substitute(model[[x]]@result, list(x = key)))
+	} else if (is(lookup, "MxObjective")) {
+		return(substitute(model[[x]]@result, list(x = key)))
+	} else {
+		stop(paste("Cannot evaluate the object",
+			omxQuotes(key), "in the model",
+			omxQuotes(model@name)))
+	}
+}
+
+showTranslation <- function(formula, model, modelVariable, labelsData) {
+	len <- length(formula)
+	if (len == 0) {
+		stop("mxEval has reached an invalid state")
+	} else if (len == 1) {
+		formula <- showSymbol(formula, model, modelVariable, labelsData)
+	} else {
+		formula[-1] <- lapply(formula[-1], 
+			showTranslation, model, modelVariable, labelsData)
+	}
+	return(formula)
+}
+
+showSymbol <- function(symbol, model, modelVariable, labelsData) {
+	key <- deparse(symbol)
+	index <- match(key, dimnames(labelsData)[[1]])
 	if (!is.na(index)) {
 		labelModel <- labelsData[[index,"model"]]
 		labelMatrix <- labelsData[[index,"matrix"]]
@@ -70,6 +110,7 @@ translateSymbol <- function(symbol, model, modelVariable, labelsData, show) {
 			omxQuotes(model@name)))
 	}
 }
+
 
 omxGenerateLabels <- function(model) {
 	return(generateLabelsHelper(model, data.frame()))
