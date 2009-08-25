@@ -246,7 +246,7 @@ A means vector can also be added here as part of the input summary statistics (a
      	    ncol=1, 
      	    free=T, 
      	    values=0, 
-     	    dimnames=list(NULL, selVars), 
+     	    dimnames=list(selVars, NULL), 
      	    name="expMean"
      	),
      	mxData(
@@ -284,7 +284,7 @@ Finally, if we want to use the matrix specification with raw data, we again spec
      	    ncol=1, 
      	    free=T, 
      	    values=0, 
-     	    dimnames=list(NULL, selVars),
+     	    dimnames=list(selVars, NULL),
      	    name="expMean"
      	),
      	mxData(
@@ -386,11 +386,11 @@ The optional expected means command specifies a 1x2 row vector with two free par
 
      	mxMatrix(
      	    type="Full", 
-     	    nrow=1, 
-     	    ncol=2, 
+     	    nrow=2, 
+     	    ncol=1, 
      	    free=T, 
      	    values=c(0,0), 
-     	    dimnames=list(NULL, selVars)
+     	    dimnames=list(selVars,NULL)
             name="expMean"
         )
 
