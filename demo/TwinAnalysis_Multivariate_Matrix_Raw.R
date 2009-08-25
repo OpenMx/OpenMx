@@ -15,8 +15,8 @@ nVar = length(selVars)/2; # number of dependent variables ** per INDIVIDUAL ( so
 # Examine the raw data before going on. You might also plot them
 obsMZmeans = colMeans(mzfData,na.rm=TRUE); obsMZmeans;
 colMeans(dzfData,na.rm=TRUE);
-cov2cor(cov(mzfData,use="complete");
-cov2cor(cov(dzfData,use="complete");
+cov2cor(cov(mzfData,use="complete"));
+cov2cor(cov(dzfData,use="complete"));
 
 ##### Fit ACE Model  ##### 
 # Define 1*1 constant of 0.5 for DZ cov A, or .25 for D
@@ -32,7 +32,7 @@ meanLabels = paste("Trait", rep(1:nVar,2),  "mean", sep=""); # make labels for t
 # [1] "Trait1mean" "Trait2mean" "Trait1mean" "Trait2mean"
 
 # grand mean phenotypes (grand mean because labels are the same across zyg and T1 and T2 for each trait
-expMZMeans = mxMatrix("Full", nrow=1, ncol=(nVar*2), free=TRUE, values=meanStarts, label=meanLabels, dimnames=list("means", selVars), name="expMeanMZ");
+expMZMeans = mxMatrix("Full", nrow=(nVar*2), ncol=1, free=TRUE, values=meanStarts, label=meanLabels, dimnames=list(selVars, "means"), name="expMeanMZ");
 # Clone the MZ means matrix for  DZs
 expDZMeans = expMZMeans; 
 expDZMeans@name="expMeanDZ"; 
