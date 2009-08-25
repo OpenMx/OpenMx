@@ -64,6 +64,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 				omxQuotes(flatModel@name))
 			stop(msg, call.=FALSE)
 		}
+		verifyExpectedNames(covariance, means, flatModel)
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex

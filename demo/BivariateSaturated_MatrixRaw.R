@@ -24,11 +24,11 @@ mxMatrix(
 ),
 mxMatrix(
     type="Full", 
-    nrow=1, 
-    ncol=2, 
+    nrow=2, 
+    ncol=1, 
     free=T, 
     values=c(0,0), 
-    dimnames=list(NULL,selVars), 
+    dimnames=list(selVars,NULL), 
     name="expMean"
 ),
 mxData(
@@ -48,7 +48,7 @@ LL4 <- mxEval(objective,bivSatFit4)
 
 #Mx answers hard-coded
 #example Mx..2: Saturated Model with Raw Data
-Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
+Mx.EM2 <- matrix(c(0.03211188, -0.004889211),2,1)
 Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
 Mx.LL2 <- 5415.772
 

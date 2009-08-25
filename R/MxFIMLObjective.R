@@ -121,13 +121,13 @@ verifyExpectedNames <- function(covName, meansName, flatModel) {
 	}
 	meanRows <- means[[1]]
 	meanCols <- means[[2]]
-	if (!is.null(meanRows) && length(meanRows) > 1) {
+	if (!is.null(meanCols) && length(meanCols) > 1) {
 		msg <- paste("The expected means matrix associated",
 			"with the FIML objective in model", 
-			omxQuotes(flatModel@name), "is not a 1 x N matrix.")
+			omxQuotes(flatModel@name), "is not a N x 1 matrix.")
 			stop(msg, call.=FALSE)
 	}
-	if ((length(covCols) != length(meanCols)) || !all(covCols == meanCols)) {
+	if ((length(covCols) != length(meanRows)) || !all(covCols == meanRows)) {
 			msg <- paste("The expected covariance and expected",
 				"means matrices associated",
 				"with the FIML objective function in model", 

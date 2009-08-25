@@ -33,11 +33,11 @@ multiRegModel<-mxModel("Multiple Regression - Matrix Specification",
     mxMatrix("Iden",  nrow=3, ncol=3,
         name="F",
         dimnames = list(c("x","y","z"), c("x","y","z"))),
-    mxMatrix("Full", nrow=1, ncol=3,
+    mxMatrix("Full", nrow=3, ncol=1,
         values=c(0,0,0),
         free=c(T,T,T),
         labels=c("meanx","beta0","meanz"),
-        dimnames = list(NULL, c("x","y","z")),
+        dimnames = list(c("x","y","z"), NULL),
         name="M"),
     mxRAMObjective("A","S","F","M")
 )

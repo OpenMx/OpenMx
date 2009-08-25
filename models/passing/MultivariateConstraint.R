@@ -15,7 +15,10 @@
 
 require(OpenMx)
 
-data <- mxData(matrix(c(3.6,2.2,0.5,2.2,3.2,2,0.5,2,3.9), nrow = 3),
+varNames <- c('x','y','z')
+
+data <- mxData(matrix(c(3.6,2.2,0.5,2.2,3.2,2,0.5,2,3.9), nrow = 3,
+	dimnames = list(varNames, varNames)),
 	type = "cov", numObs = 100)
 
 s <- mxMatrix("Symm", free = TRUE, 
@@ -23,6 +26,7 @@ s <- mxMatrix("Symm", free = TRUE,
 	labels = matrix(c("v1", "c12", "c13", 
 		"c12", "v2", "c23", 
 		"c13", "c23", "v3"), nrow = 3),
+	dimnames = list(varNames, varNames),
 	name = "s")
 	
 c <- mxMatrix("Full", free = FALSE,

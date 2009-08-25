@@ -55,34 +55,34 @@ defMeansModel <- mxModel("DefinitionMeans",
     ),
     mxMatrix(
         type="Full", 
-        nrow = 1, 
-        ncol = 2, 
+        nrow = 2, 
+        ncol = 1, 
         free=TRUE, 
-        dimnames=list(NULL,selvars), 
+        dimnames=list(selvars,NULL), 
         name = "M"
     ),
     mxMatrix(
         type="Full", 
-        nrow=1, 
-        ncol=2, 
+        nrow=2, 
+        ncol=1, 
         free=TRUE, 
         values=c(0, 0),
-        dimnames=list(NULL,selvars), 
+        dimnames=list(selvars,NULL), 
         name="beta"
     ),
     mxMatrix(
         type="Full", 
-        nrow=1, 
-        ncol=2, 
+        nrow=2, 
+        ncol=1, 
         free=FALSE, 
         labels=c("data.def"),
-        dimnames=list(NULL,selvars), 
+        dimnames=list(selvars,NULL), 
         name="def"
     ),
     mxAlgebra(
         expression=M+beta*def, 
         name="Mu", 
-        dimnames=list(NULL,selvars)
+        dimnames=list(selvars,NULL)
     )
 )
 

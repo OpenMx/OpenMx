@@ -55,12 +55,12 @@ model<-mxModel("Autoregressive Model, Matrix Specification, Covariance Data",
       		dimnames=list(
 				c("x1","x2","x3","x4","x5"), c("x1","x2","x3","x4","x5")),
             name="F"),
-      mxMatrix("Full", nrow=1, ncol=5,
+      mxMatrix("Full", nrow=5, ncol=1,
             values=c(1,1,1,1,1),
             free=c(T, T, T, T, T),
             labels=c("mean1","int2","int3","int4","int5"),
             dimnames=list(
-				NULL, c("x1","x2","x3","x4","x5")),
+				c("x1","x2","x3","x4","x5"), NULL),
             name="M"),
       mxRAMObjective("A","S","F","M")
       )

@@ -25,7 +25,7 @@ typedef struct {
 	omxMatrix *cov, *means, *I;
 	omxMatrix *A, *S, *F, *M;
 	omxMatrix *C, *X, *Y, *Z, *P, *V, *mCov;
-	
+
 	double logDetObserved;
 	double n;
 	double* work;
@@ -50,9 +50,9 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 
 void omxDestroyRAMObjective(omxObjective *oo) {
 	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
-	
+
 	oo->matrix->currentState->saturatedModel = argStruct->logDetObserved;
-	
+
 	omxFreeMatrixData(argStruct->I);
 	omxFreeMatrixData(argStruct->C);
 	omxFreeMatrixData(argStruct->X);
@@ -64,7 +64,7 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 }
 
 void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
-	
+
 	if(OMX_DEBUG) { Rprintf("RAM Objective Running.\n"); }
 	omxMatrix *cov = ((omxRAMObjective*)oo->argStruct)->cov;	// The compiler should cut through this.
 	omxMatrix *I = ((omxRAMObjective*)oo->argStruct)->I;
@@ -89,13 +89,13 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxRecompute(A);
 	omxRecompute(S);
 	omxRecompute(F);
-	
+
 	if(OMX_DEBUG) {
 		omxPrint(A, "A");
 		omxPrint(S, "S");
 		omxPrint(F, "F");
 	}
-	
+
 	omxCopyMatrix(Z, A);
 
 	const char NoTrans = 'n';
@@ -108,10 +108,10 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	int OneI = 1;
 	int ipiv[I->rows], j, k;
 	char u = 'U';
-	
+
 	/* Z = (I-A)^-1 */
 	if(OMX_DEBUG) { Rprintf("Beginning Objective Calculation.\n"); }
-	
+
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
 //	omxPrint(Z, "Z");
 	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
@@ -124,30 +124,30 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	}
 	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
-	
+
 	if(OMX_DEBUG) {omxPrint(Z, "Z");}
-	
+
 	/* C = FZSZ'F' */
 	if(OMX_DEBUG) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), One, F->data, (F->leading), Z->data, (Z->leading), Zero, Y->data, (Y->leading));}
 	F77_CALL(dgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &One, F->data, &(F->leading), Z->data, &(Z->leading), &Zero, Y->data, &(Y->leading)); 	// Y = FZ
 
 	if(OMX_DEBUG) {omxPrint(Y, "Y=FZ");}
-	
+
 	if(OMX_DEBUG) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), One, Y->data, (Y->leading), S->data, (S->leading), Zero, X->data, (X->leading));}
 	F77_CALL(dgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &One, Y->data, &(Y->leading), S->data, &(S->leading), &Zero, X->data, &(X->leading)); 	// X = FZS
-	
+
 	if(OMX_DEBUG) {omxPrint(X, "X = FZS");}
-	
+
 	if(OMX_DEBUG) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), One, X->data, (X->leading), Y->data, (Y->lagging), Zero, C->data, (C->leading));}
 	F77_CALL(dgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &One, X->data, &(X->leading), Y->data, &(Y->leading), &Zero, C->data, &(C->leading)); 	// C = FZSZ'F' (Because (FZ)' = Z'F')
 
 	/* Val = sum(diag(tempCov %*% solve(PredictedCov))) + log(det(PredictedCov)) */
-	/* Alternately, Val = sum (tempCov .* PredictedCov^-1) + log(det(PredictedCov)) */	
-	
+	/* Alternately, Val = sum (tempCov .* PredictedCov^-1) + log(det(PredictedCov)) */
+
 	omxCopyMatrix(mCov, C);
-	
+
 	if(OMX_DEBUG) {omxPrint(C, "Model-Implied Covariance Matrix");}
-	
+
 	F77_CALL(dpotrf)(&u, &(C->cols), C->data, &(C->cols), &k);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
@@ -167,10 +167,10 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	if(OMX_DEBUG) { Rprintf("Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f\n", det); }
 	det = log(det);
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of F(I-A)^-1*S*(I-A)^1'*F': %f (lwork: %d/%d)\n", det, *lwork, C->rows); }
-	
+
 	F77_CALL(dpotri)(&u, &(C->rows), C->data, &(C->leading), &k);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", k); }
-	
+
 	for(k = 0; k < C->cols; k++) {
 		for(j = 0; j <=k ; j++) {
 			if(j == k) {
@@ -178,15 +178,15 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 			} else {
 				sum += 2 * omxMatrixElement(C, j, k) * omxMatrixElement(cov, j, k);
 			}
-			
+
 		}
 	}
 	if(OMX_DEBUG) { Rprintf("Trace of (observed .* expected^-1) = %f\n", sum); }
-	
+
 	if(means != NULL && M != NULL) {
 		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
 		// For now, assume M has only one column.  If that changes, we need to multiply M by U, where U is an nx1 unit vector.
-		if(M->rows > 1) { error("NYI: Back-end currently only supports one row of means.");}
+		if(M->cols > 1) { error("NYI: Back-end currently only supports one column of means.");}
 		omxRecompute(Y);
 		// omxRecompute(C);
 		// omxRecompute(P);
@@ -208,12 +208,12 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &OneI, V->data, &OneI);
 //		if(OMX_DEBUG) { omxPrint(P, "P*Cov*P'"); }
 //		if(OMX_DEBUG) { omxPrint(V, "P*Cov*P'"); }
-		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row, total %f.\n", fmean, fmean/n); } 
+		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row, total %f.\n", fmean, fmean/n); }
 		if(fmean < 0.0) fmean = 0.0;
 	}
 
 //	if(OMX_DEBUG) { omxPrint(cov, "Covariance Matrix:"); }
-	
+
 	if(OMX_DEBUG) { Rprintf("RAMObjective value: %f + %f - %f= %f.\n", (sum + det), fmean, Q, (sum + det) + fmean - Q); }
 
 	oo->matrix->data[0] = ((sum + det) * (n-1) + fmean * n);
@@ -223,25 +223,25 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 }
 
 unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
-	
+
 	return(omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->A)
 	 	|| omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->S)
 	 	|| omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->F)
 		|| omxMatrixNeedsUpdate(((omxRAMObjective*)oo->argStruct)->M));
-	
+
 	// Note: cov is data, and should never need updating.
 }
 
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
-	
+
 	int l, k;
-	
+
 	omxRAMObjective *newObj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
-	
+
 	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function.\n"); }
 
 	// Read the observed covariance matrix from the data argument.
-	
+
 	SEXP newMatrix, dataObj;
 	int index;
 
@@ -282,19 +282,19 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->A = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecompute(newObj->A);
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
 	PROTECT(newMatrix = GET_SLOT(rObj, install("S")));
 	newObj->S = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecompute(newObj->S);
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
 	PROTECT(newMatrix = GET_SLOT(rObj, install("F")));
 	newObj->F = omxNewMatrixFromMxIndex(newMatrix, oo->matrix->currentState);
 	omxRecompute(newObj->F);
 	UNPROTECT(1);
-	
+
 	/* Identity Matrix, Size Of A */
 	newObj->I = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
 	omxInitMatrix(newObj->I, newObj->A->rows, newObj->A->cols, FALSE, oo->matrix->currentState);
@@ -308,10 +308,10 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		}
 	}
 	omxRecompute(newObj->I);
-	
+
 	l = newObj->cov->rows;
 	k = newObj->A->cols;
-	
+
 	newObj->Z = omxInitMatrix(NULL, k, k, TRUE, oo->matrix->currentState);
 	newObj->Y = omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
 	newObj->X = omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
@@ -321,7 +321,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	newObj->V = omxInitMatrix(NULL, 1, l, TRUE, oo->matrix->currentState);
 	newObj->lwork = k;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
-	
+
 	int info;
 	char u = 'U';
 	double det = 1.0, sum = 0.0;
@@ -334,10 +334,10 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	if(info > 0) {
 		error("Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
 	}
-	for(info = 0; info < newObj->C->cols; info++) { 
+	for(info = 0; info < newObj->C->cols; info++) {
 		det *= omxMatrixElement(newObj->C, info, info);			// Determinant
 	}
-	
+
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
 	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * (newObj->n - 1);
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
@@ -347,7 +347,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	oo->repopulateFun = NULL;
-	
+
 	oo->argStruct = (void*) newObj;
 
 }

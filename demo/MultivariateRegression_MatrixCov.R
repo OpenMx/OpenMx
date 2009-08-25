@@ -49,12 +49,12 @@ multivariateRegModel<-mxModel("Multiple Regression - Matrix Specification",
             c("w","x","y","z"),
             c("w","x","y","z")),
         name="F"),
-    mxMatrix("Full", nrow=1, ncol=4,
+    mxMatrix("Full", nrow=4, ncol=1,
         values=c(0,0,0,0),
         free=c(T,T,T,T),
         labels=c("betaw","meanx","betay","meanz"),
         dimnames=list(
-      	    NULL,c("w","x","y","z")),
+      	    c("w","x","y","z"), NULL),
         name="M"),
     mxRAMObjective("A","S","F","M")
 )

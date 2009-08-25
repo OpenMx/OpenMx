@@ -19,7 +19,7 @@ setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 setClass(Class = "MxNonNullData",
 	representation = representation(
 		observed = "MxDataFrameOrMatrix",
-		means  = "numeric",
+		means  = "matrix",
 		type   = "character",
 		numObs = "numeric",
 		name   = "character"))
@@ -61,6 +61,7 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], omxVerifyName)
+	means <- as.matrix(means)
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 

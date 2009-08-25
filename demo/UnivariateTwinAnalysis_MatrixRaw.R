@@ -16,8 +16,8 @@ cov(dzfData,use="complete")
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("twinACE", 
     # matrices for the means
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), # because both expMeanMZ and expMeanDZ
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), # share the same label, we are equating them
+    mxMatrix("Full", nrow=2, ncol=1, free=TRUE,  values= 20, label="mean", dimnames=list(selVars, NULL), name="expMeanMZ"), # because both expMeanMZ and expMeanDZ
+    mxMatrix("Full", nrow=2, ncol=1, free=TRUE,  values= 20, label="mean", dimnames=list(selVars, NULL), name="expMeanDZ"), # share the same label, we are equating them
 		# Matrices X,Y, and Z to store the a,c,and e path coefficients
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), 
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
@@ -85,7 +85,7 @@ LL_ACE <- mxEval(objective, twinACEFit)
 Mx.A <- 0.6173023
 Mx.C <- 5.595822e-14
 Mx.E <- 0.1730462
-Mx.M <- matrix(c(21.39293, 21.39293),1,2)
+Mx.M <- matrix(c(21.39293, 21.39293),2,1)
 Mx.LL_ACE <- 4067.663
 
 

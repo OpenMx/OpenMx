@@ -47,7 +47,7 @@ Chi2 <- LL2-SL2
 
 #Mx answers hard-coded
 #example Mx..2: Saturated Model with Raw Data
-Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
+Mx.EM2 <- matrix(c(0.03211188, -0.004889211),2,1)
 Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
 Mx.LL2 <- 5415.772
 

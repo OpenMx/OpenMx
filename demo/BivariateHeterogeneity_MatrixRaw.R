@@ -40,12 +40,12 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxMatrix(
             type="Full", 
-            nrow=1, 
-            ncol=2, 
+            nrow=2, 
+            ncol=1, 
             free=T, 
             values=c(0,0), 
             labels=c("mX1", "mY1"), 
-            dimnames=list(NULL, selVars), 
+            dimnames=list(selVars, NULL), 
             name="EM1"
         ), 
         mxData(
@@ -74,12 +74,12 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxMatrix(
             type="Full", 
-            nrow=1, 
-            ncol=2, 
+            nrow=2, 
+            ncol=1, 
             free=T, 
             values=c(0,0), 
             labels=c("mX2", "mY2"), 
-            dimnames=list(NULL, selVars), 
+            dimnames=list(selVars,NULL), 
             name="EM2"
         ), 
         mxData(
@@ -121,16 +121,16 @@ bivHomFit <- mxRun(bivHomModel)
 
 #Mx answers hard-coded
 #1: Heterogeneity Model
-Mx.EM1Het <- matrix(c(0.03211284, -0.004889846),1,2)
+Mx.EM1Het <- matrix(c(0.03211284, -0.004889846),2,1)
 Mx.EC1Het <- matrix(c(1.0092856, 0.4813512, 0.4813512, 0.9935414),2,2)
-Mx.EM2Het <- matrix(c(0.03341992, -0.007112054),1,2)
+Mx.EM2Het <- matrix(c(0.03341992, -0.007112054),2,1)
 Mx.EC2Het <- matrix(c(1.012324, 0.3799160, 0.379916, 0.9956605),2,2)
 Mx.LLHet <- 10944.873
 
 #2: Homogeneity Model
-Mx.EM1Hom <- matrix(c(0.03276872, -0.0059975),1,2)
+Mx.EM1Hom <- matrix(c(0.03276872, -0.0059975),2,1)
 Mx.EC1Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
-Mx.EM2Hom <- matrix(c(0.03276872, -0.0059975),1,2)
+Mx.EM2Hom <- matrix(c(0.03276872, -0.0059975),2,1)
 Mx.EC2Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
 Mx.LLHom <- 10954.368
 
