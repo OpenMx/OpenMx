@@ -56,6 +56,7 @@ processOptimizerOutput <- function(flatModel, matrixNames,
 		algebraNames, parameterNames, output) {
 	names(output$estimate) <- parameterNames
 	names(output$gradient) <- parameterNames
+	output$hessian <- t(output$hessianCholesky) %*% output$hessianCholesky
 	dimnames(output$hessian) <- list(parameterNames, parameterNames)
 	names(output$matrices) <- matrixNames
 	names(output$algebras) <- algebraNames

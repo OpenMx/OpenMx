@@ -71,6 +71,7 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
 	estimates <- model@output$estimate
+	errorEstimates <- sqrt(diag(solve(model@output$hessian)))
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -82,7 +83,7 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 			ptable[i, 'row'] <- mRow
 			ptable[i, 'col'] <- mCol
 			ptable[i, 'parameter estimate'] <- estimates[[i]]
-			ptable[i, 'error estimate'] <- model@output$hessian[i, i]
+			ptable[i, 'error estimate'] <- errorEstimates[[i]]
 
 		}
 		retval[['parameters']] <- ptable

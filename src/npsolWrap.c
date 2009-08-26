@@ -584,7 +584,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	SET_STRING_ELT(names, 2, mkChar("gradient"));
-	SET_STRING_ELT(names, 3, mkChar("hessian"));
+	SET_STRING_ELT(names, 3, mkChar("hessianCholesky"));
 	SET_STRING_ELT(names, 4, mkChar("status"));
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("matrices"));
