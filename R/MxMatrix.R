@@ -160,11 +160,7 @@ matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Uni
 squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 
 
-mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
-	free = FALSE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA, byrow = FALSE, 
-	dimnames = NA, name = NA) {
-	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
+matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.matrix(values)) {
 		nrow <- nrow(values)
 		ncol <- ncol(values)
@@ -180,7 +176,33 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	} else if (is.matrix(ubound)) {
 		nrow <- nrow(ubound)
 		ncol <- ncol(ubound)
+	} else if ((type == "Full") && ((is.na(nrow) && !is.na(ncol)) ||
+		(!is.na(nrow) && is.na(ncol)))) {
+		allLengths <- c(length(values), length(labels), 
+			length(free), length(lbound), length(ubound))
+		nonSingle <- allLengths[allLengths > 1]
+		if (length(nonSingle) > 0) {
+			first <- nonSingle[[1]]
+			if (all(sapply(nonSingle, function(x) { x == first }))) {
+				if (is.na(nrow)) {
+					nrow <- ceiling(first / ncol)
+				} else {
+					ncol <- ceiling(first / nrow)				
+				}
+			}		
+		}
 	}
+	return(c(nrow, ncol))
+}
+
+mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
+	free = FALSE, values = NA, labels = NA, 
+	lbound = NA, ubound = NA, byrow = FALSE, 
+	dimnames = NA, name = NA) {
+	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
+	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
+	nrow <- checkDims[[1]]
+	ncol <- checkDims[[2]]
 	if (type %in% squareMatrices) {
 		if (is.na(nrow) && is.na(ncol)) {
 			stop("Either nrow or ncol must be specified on a square matrix")
