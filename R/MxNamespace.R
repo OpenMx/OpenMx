@@ -259,13 +259,11 @@ checkNamespaceMatrix <- function(matrix, model, namespace) {
 }
 
 omxConvertIdentifier <- function(identifier, modelname, namespace) {
-	parameters <- omxGetParameters(namespace)
-	checkPeriod <- grep(omxSeparatorChar, identifier, fixed = TRUE)
-	if (is.na(identifier) || (length(checkPeriod) > 0) ||
-		(identifier %in% parameters)) {
-		return(identifier)
-	} else {
+    isLocalEntity <- as.character(identifier) %in% namespace$entities[[modelname]]
+    if (isLocalEntity) {
 		return(omxIdentifier(modelname, identifier))
+    } else {
+		return(identifier)
 	}
 }
 
@@ -307,7 +305,12 @@ namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
 
 namespaceConvertFormula <- function(formula, modelname, namespace) {
 	if (length(formula) == 1) {
-		formula <- as.symbol(omxConvertIdentifier(as.character(formula), modelname, namespace))
+        result <- omxConvertIdentifier(formula, modelname, namespace)
+        if (is.symbol(formula) && is.character(result)) {
+            formula <- as.symbol(result)
+        } else {
+            formula <- result
+        }
 	} else {
 		for (i in 2:length(formula)) {
 			formula[[i]] <- namespaceConvertFormula(formula[[i]], modelname, namespace)
