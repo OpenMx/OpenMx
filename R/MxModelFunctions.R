@@ -207,9 +207,9 @@ omxLocateIndex <- function(model, name, referant) {
 	} else if (!is.na(matrixNumber)) {
 		return(- matrixNumber)
 	} else if (!is.na(dataNumber)) {
-		return(dataNumber - 1)
+		return(dataNumber - 1L)
 	} else {
-		return(algebraNumber - 1)
+		return(algebraNumber - 1L)
 	}
 }
 

@@ -14,4 +14,4 @@
 #   limitations under the License.
 
 
-setClassUnion("MxCharOrNumber", c("character", "numeric"))
+setClassUnion("MxCharOrNumber", c("character", "integer"))

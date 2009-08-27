@@ -237,7 +237,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
-	index = (int) REAL(nextMatrix)[0];
+	index = INTEGER(nextMatrix)[0];
 	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
 	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("observed")));
 	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);

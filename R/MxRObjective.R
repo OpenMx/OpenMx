@@ -23,7 +23,7 @@ setClass(Class = "MxRObjective",
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRObjective",
-	function(.Object, objfun, data = as.numeric(NA), 
+	function(.Object, objfun, data = as.integer(NA), 
 		name = 'objective') {
 		.Object@objfun <- objfun
 		.Object@name <- name

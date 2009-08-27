@@ -24,7 +24,7 @@ setClass(Class = "MxMLObjective",
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxMLObjective",
-	function(.Object, covariance, means, thresholds, data = as.numeric(NA), 
+	function(.Object, covariance, means, thresholds, data = as.integer(NA), 
 		definitionVars = list(), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance

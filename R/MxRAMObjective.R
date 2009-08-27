@@ -25,7 +25,7 @@ setClass(Class = "MxRAMObjective",
 
 setMethod("initialize", "MxRAMObjective",
 	function(.Object, A, S, F, M, thresholds,  
-		data = as.numeric(NA), name = 'objective') {
+		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S

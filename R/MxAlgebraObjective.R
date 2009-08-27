@@ -21,7 +21,7 @@ setClass(Class = "MxAlgebraObjective",
 
 setMethod("initialize", "MxAlgebraObjective",
 	function(.Object, algebra, 
-		data = as.numeric(NA), name = 'objective') {
+		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@algebra <- algebra
 		.Object@data <- data
