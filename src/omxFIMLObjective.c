@@ -256,11 +256,11 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
-		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", (int) REAL(dataSource)[0]); }
-		newObj->defVars[nextDef].data = (int) REAL(dataSource)[0];
+		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
+		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", (int) REAL(columnSource)[0]); }
-		newObj->defVars[nextDef].column = (int) REAL(columnSource)[0];
+		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
+		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
 		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
 		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
@@ -268,9 +268,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
 			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
-				oo->matrix->currentState->matrixList[(int) REAL(nextItem)[0]],
-				(int) REAL(nextItem)[1], (int) REAL(nextItem)[2]);
-			newObj->defVars[nextDef].matrices[index-2] = oo->matrix->currentState->matrixList[(int) REAL(nextItem)[0]];
+				oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]],
+				INTEGER(nextItem)[1], INTEGER(nextItem)[2]);
+			newObj->defVars[nextDef].matrices[index-2] = oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList

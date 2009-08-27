@@ -62,7 +62,7 @@ generateDefinitionList <- function(flatModel) {
 	for(i in 1:length(flatModel@matrices)) {
 		result <- generateDefinitionListHelper(
 			flatModel@matrices[[i]], 
-			result, defLocations, i - 1)
+			result, defLocations, i - 1L)
 	}	
 	return(result)
 }

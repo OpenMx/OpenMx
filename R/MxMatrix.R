@@ -397,18 +397,18 @@ matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) 
 	cols <- col(labels)[select]
 	for(i in 1:length(parameterNames)) {
 		parameterName <- parameterNames[i]
-		row <- rows[i] - 1
-		col <- cols[i] - 1
+		row <- rows[i] - 1L
+		col <- cols[i] - 1L
 		if (parameterName %in% defNames) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
 				result[[parameterName]] <- original
 			} else {
-				dataNumber <- defLocations[[parameterName]][[1]]
-				columnNumber <- defLocations[[parameterName]][[2]]
+				dataNumber <- as.integer(defLocations[[parameterName]][[1]])
+				columnNumber <- as.integer(defLocations[[parameterName]][[2]])
 				result[[parameterName]] <- list(dataNumber, columnNumber, 
-						c(matrixNumber, row,col))
+						c(matrixNumber, row, col))
 			}
 		}
 	}
