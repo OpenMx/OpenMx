@@ -402,9 +402,8 @@ matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) 
 		if (parameterName %in% defNames) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
-				dataNumber <- 
-					original[[length(original) + 1]] <- c(matrixNumber, row, col)
-					result[[parameterName]] <- original
+				original[[length(original) + 1]] <- c(matrixNumber, row, col)
+				result[[parameterName]] <- original
 			} else {
 				dataNumber <- defLocations[[parameterName]][[1]]
 				columnNumber <- defLocations[[parameterName]][[2]]
