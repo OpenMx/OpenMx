@@ -144,7 +144,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
 		PROTECT(algebraElt = VECTOR_ELT(algebra, 1));
 		
-		if(!IS_NUMERIC(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
+		if(!IS_INTEGER(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
 			warning("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
 			omxFillMatrixFromMxAlgebra(om, algebraElt);		// Collapse the no-op algebra
 		} else {			// Still a No-op.  Sadly, we have to keep it that way.
@@ -196,7 +196,7 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os) {
 	SEXP argInts;
 	if(OMX_DEBUG) { Rprintf("Helper: processing next arg..."); }
 	
-	if(!IS_NUMERIC(algebraArg)) {
+	if(!IS_INTEGER(algebraArg)) {
 		if(OMX_DEBUG) { Rprintf("Helper detected list element.  Recursing.\n"); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os);
 	} else {

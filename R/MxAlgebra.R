@@ -105,8 +105,8 @@ algebraSymbolCheck <- function(formula, name) {
 generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- algebra@formula
 	algebraNumericCheck(retval, algebra@name)
-	matrixNumbers <- as.list(as.double(-1 : (-length(matrixNames))))
-	algebraNumbers <- as.list(as.double(0 : (length(algebraNames) - 1)))
+	matrixNumbers <- as.list(as.integer(-1 : (-length(matrixNames))))
+	algebraNumbers <- as.list(as.integer(0 : (length(algebraNames) - 1)))
 	names(matrixNumbers) <- matrixNames
 	names(algebraNumbers) <- algebraNames
 	retval <- eval(substitute(substitute(e, matrixNumbers), list(e = retval)))
@@ -118,7 +118,7 @@ generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 
 substituteOperators <- function(algebra) {
 	if ((length(algebra) == 1) && (is.list(algebra))) {
-		algebra <- list(0, algebra[[1]])
+		algebra <- list(0L, algebra[[1]])
 	} else if ((length(algebra) > 1) && (!is.numeric(algebra[[1]]))) {
 		if (as.character(algebra[[1]]) == '(') {
 			return(substituteOperators(as.list(algebra[[2]])))
@@ -130,7 +130,7 @@ substituteOperators <- function(algebra) {
 				stop(paste("Ambiguous function with name", algebra[[1]],
 					"and", (length(algebra) - 1), "arguments"))
 		} else if(length(result) == 1) {
-			head <- as.double(result[[1]])
+			head <- as.integer(result[[1]])
 			tail <- lapply(algebra[-1], substituteOperators)
 			result <- append(tail, head, after=0)
 			return(result)
@@ -144,7 +144,7 @@ substituteOperators <- function(algebra) {
 				stop(paste("Ambiguous function with name", algebra[[1]],
 					"and", (length(algebra) - 1), "arguments"))
 			} else {
-				head <- as.double(result[[1]])
+				head <- as.integer(result[[1]])
 			    tail <- lapply(algebra[-1], substituteOperators)
 				result <- append(tail, head, after=0)
 				return(result)
