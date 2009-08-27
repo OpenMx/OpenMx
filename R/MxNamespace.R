@@ -340,7 +340,7 @@ namespaceConvertData <- function(data, modelname) {
 	return(data)
 }
 
-namespaceSearch <- function(model, namespace, name) {
+namespaceSearch <- function(model, namespace, name, flat = FALSE) {
 	if (namespace == model@name) {
 		if (name %in% names(omxReservedNames) && 
 			!is.null(omxReservedNames[[name]]@search)) {
@@ -350,6 +350,8 @@ namespaceSearch <- function(model, namespace, name) {
 		second <- model@algebras[[name]]
 		third <- model@submodels[[name]]
 		fourth <- model@constraints[[name]]
+		if (flat) { fifth <- model@objectives[[name]] }
+		else { fifth <- NULL }
 		if (!is.null(model@objective) && name == model@objective@name) {
 			return(model@objective)
 		} else if (!is.null(model@data) && name == model@data@name) {
@@ -360,9 +362,11 @@ namespaceSearch <- function(model, namespace, name) {
 			return(second)
 		} else if (!is.null(third)) {
 			return(third)
-		} else {
+		} else if (!is.null(fourth)) {
 			return(fourth)
-		}
+		} else {
+            return(fifth)
+        }
 	} else {
 		if (length(model@submodels) == 0) {
 			return(NULL)

@@ -60,7 +60,7 @@ setReplaceMethod("$", "MxFlatModel",
 
 
 flatExtractMethod <- function(model, index) {
-	return(namespaceSearch(model, model@name, index))
+	return(namespaceSearch(model, model@name, index, TRUE))
 }
 
 flatReplaceMethod <- function(model, index, value) {

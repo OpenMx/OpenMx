@@ -19,7 +19,7 @@ shareData <- function(model) {
 
 # If we reach an independent model and this model
 # does not have any data, then give the current "default"
-# data to this model. As we move down the true, update
+# data to this model. As we move down the tree, update
 # the current "defult" data.
 shareDataHelper <- function(model, default) {
 	if((is.null(model@data)) && (model@independent == TRUE)) {

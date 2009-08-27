@@ -154,6 +154,21 @@ substituteOperators <- function(algebra) {
 	return(algebra)
 }
 
+checkAlgebras <- function(model, flatModel) {
+    if(length(flatModel@algebras) == 0) { return() }
+    for(i in 1:length(flatModel@algebras)) {
+        algebra <- flatModel@algebras[[i]]
+        expr <- substitute(mxEval(x, model, compute=TRUE),
+            list(x = as.symbol(algebra@name)))
+        tryCatch(eval(expr), error = function(x) {
+                stop(paste("The algebra", omxQuotes(algebra@name), 
+                    "in model", omxQuotes(model@name), 
+                    "generated the error message:",
+                    x$message), call. = FALSE)
+            })
+    }
+}
+
 displayAlgebra <- function(mxAlgebra) {
 	cat("mxAlgebra", omxQuotes(mxAlgebra@name), '\n')
 	cat("@formula: ", deparse(mxAlgebra@formula, width.cutoff=500L), '\n')
