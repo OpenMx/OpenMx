@@ -249,11 +249,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, currentState->freeVarList[k].lbound, currentState->freeVarList[k].ubound, numLocs); }
 		for(l = 0; l < currentState->freeVarList[k].numLocations; l++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
-			double* theVarList = REAL(nextLoc);			// These come through as doubles.
+			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
 
-			int theMat = (int)theVarList[0];			// Matrix is zero-based indexed.
-			int theRow = (int)theVarList[1];			// Row is zero-based.
-			int theCol = (int)theVarList[2];			// Column is zero-based.
+			int theMat = theVarList[0];			// Matrix is zero-based indexed.
+			int theRow = theVarList[1];			// Row is zero-based.
+			int theCol = theVarList[2];			// Column is zero-based.
 
 			currentState->freeVarList[k].location[l] = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
 			currentState->freeVarList[k].matrices[l] = theMat;

@@ -351,8 +351,8 @@ matrixParameters <- function(free, labels, lbound, ubound,
 	ubound <- ubound[select]
 	for(i in 1:length(parameterNames)) {
 		parameterName <- parameterNames[i]
-		row <- rows[i] - 1
-		col <- cols[i] - 1
+		row <- rows[i] - 1L
+		col <- cols[i] - 1L
 		minBounds <- lbound[i]
 		maxBounds <- ubound[i]
 		if (is.na(parameterName)) {

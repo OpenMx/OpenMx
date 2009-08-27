@@ -48,7 +48,7 @@ generateParameterList <- function(flatModel) {
 	for(i in 1:length(flatModel@matrices)) {
 		matrix <- flatModel@matrices[[i]]
 		result <- generateParameterListHelper(
-			matrix, result, i - 1)
+			matrix, result, i - 1L)
 	}
 	return(result)
 }
