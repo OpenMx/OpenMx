@@ -166,15 +166,12 @@ generateLocalNamespace <- function(model) {
 namespaceGetParameters <- function(model, thisEntities) {
 	parameters <- sapply(model@matrices, function(x) {
 			labels <- x@labels
-			labels <- labels[!is.na(labels)]
-			selection <- lapply(labels, function(x) {
-				length(unlist(strsplit(x, omxSeparatorChar, fixed = TRUE)))})
-			labels <- na.omit(labels[selection == 1])
-			labels <- setdiff(labels, thisEntities)
-			names(labels) <- list()
+			labels <- unique(labels[!is.na(labels) & x@free])
 			return(labels)
 		})
-	return(unlist(parameters))
+	parameters <- unlist(parameters)
+	names(parameters) <- NULL
+	return(parameters)
 }
 
 namespaceGetEntities <- function(model, slotname, thisEntities) {
@@ -215,6 +212,14 @@ omxCheckNamespace <- function(model, namespace) {
 	lapply(model@algebras, function(x) { checkNamespaceAlgebra(x, model, namespace) })
 	lapply(model@constraints, function(x) { checkNamespaceConstraint(x, model, namespace) })
 	lapply(model@submodels, function(x) { omxCheckNamespace(x, namespace) })
+	allEntities <- unique(unlist(namespace$entities))
+	overlap <- intersect(allEntities, namespace$parameters)
+	if (length(overlap) > 0) {
+		stop(paste("In model", omxQuotes(model@name),
+			"the following are both named",
+			"entities and free parameters:",
+			omxQuotes(overlap)), call. = FALSE)
+	}
 }
 
 checkNamespaceIdentifier <- function(identifier, model, namespace) {
@@ -254,7 +259,7 @@ checkNamespaceConstraint <- function(constraint, model, namespace) {
 
 checkNamespaceMatrix <- function(matrix, model, namespace) {
 	labels <- matrix@labels
-	notNAlabels <- labels[!is.na(labels)]
+	notNAlabels <- labels[!is.na(labels) & matrix@free]
 	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, namespace) })
 }
 

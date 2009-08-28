@@ -1,0 +1,5 @@
+require(OpenMx)
+foo <- mxMatrix(name = 'foo', nrow = 1, ncol = 1, free = TRUE, labels = 'foo')
+bar <- mxAlgebra(foo, name = 'bar')
+model <- mxModel('model', foo, bar)
+omxCheckError(mxRun(model), "In model 'model' the following are both named entities and free parameters: 'foo'")

@@ -126,3 +126,21 @@ omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
 			"are equal to within", percent, "percent.\n"))
 	}
 }
+
+omxCheckError <- function(expression, message) {
+	inputExpression <- match.call()$expression
+	checkErrorState <- FALSE
+	tryCatch(eval(inputExpression), error = function(x) {
+		if(x$message != message) {
+			stop(paste("An error was thrown with the wrong message:",
+				x$message), call. = FALSE)
+		} else { checkErrorState <<- TRUE }
+	})
+	if (!checkErrorState) {
+		stop(paste("No error was observed for the expression",
+			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste("The expected error was observed for the expression",
+			deparse(inputExpression, width.cutoff = 500L), '\n'))
+	}
+}
