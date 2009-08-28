@@ -27,7 +27,7 @@ univSatModel4 <- mxModel("univSat4",
         ncol=1, 
         free=T, 
         values=0, 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(

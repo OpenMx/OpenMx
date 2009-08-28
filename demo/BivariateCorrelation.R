@@ -15,11 +15,11 @@ cov(testData)
 bivCorModel <- mxModel("bivCor",
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(selVars, NULL), 
+        dimnames=list(NULL, selVars), 
         name="expMean"
     ), 
     mxMatrix(
@@ -71,7 +71,7 @@ Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 
 # Mx answers hard-coded
-Mx.EM <- matrix(c(0.03211656, -0.004883885), 2, 1)
+Mx.EM <- matrix(c(0.03211656, -0.004883885), 1, 2)
 Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), 2, 2)
 Mx.LL <- 5415.772
 

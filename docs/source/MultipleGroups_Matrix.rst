@@ -80,12 +80,12 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
             ), 
             mxMatrix(
                 type="Full", 
-                nrow=2, 
-                ncol=1, 
+                nrow=1, 
+                ncol=2, 
                 free=T, 
                 values=c(0,0), 
                 labels=c("mX1", "mY1"), 
-                dimnames=list(selVars, NULL), 
+                dimnames=list(NULL, selVars), 
                 name="EM1"
             ), 
             mxData(
@@ -114,12 +114,12 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
             ), 
             mxMatrix(
                 type="Full", 
-                nrow=2, 
-                ncol=1, 
+                nrow=1, 
+                ncol=2, 
                 free=T, 
                 values=c(0,0), 
                 labels=c("mX2", "mY2"), 
-                dimnames=list(selVars, NULL), 
+                dimnames=list(NULL, selVars), 
                 name="EM2"
             ), 
             mxData(

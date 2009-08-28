@@ -208,12 +208,12 @@ The fourth and final ``mxMatrix`` function specifies the M matrix. This matrix i
 
   mxMatrix(
       type="Full", 
-      nrow=2, 
-      ncol=1,
+      nrow=1, 
+      ncol=2,
       free=c(T, T),
       values=c(0, 0),
       labels=c("meanx", "beta0"),
-      dimnames=list(c("x","y"),NULL),
+      dimnames=list(NULL, c("x","y")),
       name="M"
   )
           
@@ -328,12 +328,12 @@ Now, we can move on to our code. It is identical in structure to our simple regr
           name="F",
           dimnames = list(c("x","y","z"), c("x","y","z"))),
       mxMatrix("Full", 
-          nrow=3,
-          ncol=1,
+          nrow=1,
+          ncol=3,
           values=c(0,0,0),
           free=c(T,T,T),
           labels=c("meanx","beta0","meanz"),
-          dimnames = list(c("x","y","z"),NULL),
+          dimnames = list(NULL, c("x","y","z")),
           name="M"),
       mxRAMObjective("A","S","F","M")
   )

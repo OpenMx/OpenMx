@@ -72,7 +72,7 @@ omxCheckCloseEnough(LL_ACE,Mx.LL_ACE,.001)
 omxCheckCloseEnough(A,Mx.A,.001)
 omxCheckCloseEnough(C,Mx.C,.001)
 omxCheckCloseEnough(E,Mx.E,.001)
-omxCheckCloseEnough(M,t(Mx.M),.001)
+omxCheckCloseEnough(M,Mx.M,.001)
 
 
 #Run AE model

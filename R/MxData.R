@@ -62,6 +62,7 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], omxVerifyName)
 	means <- as.matrix(means)
+	dim(means) <- c(1, length(means))
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 

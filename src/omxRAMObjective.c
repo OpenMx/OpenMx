@@ -186,7 +186,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	if(means != NULL && M != NULL) {
 		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
 		// For now, assume M has only one column.  If that changes, we need to multiply M by U, where U is an nx1 unit vector.
-		if(M->cols > 1) { error("NYI: Back-end currently only supports one column of means.");}
+		if(M->rows > 1) { error("NYI: Back-end currently only supports one row of means.");}
 		omxRecompute(Y);
 		// omxRecompute(C);
 		// omxRecompute(P);

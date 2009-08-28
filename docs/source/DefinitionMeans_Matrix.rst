@@ -97,28 +97,28 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
         ),
         mxMatrix(
             type="Full", 
-            nrow = 2, 
-            ncol = 1, 
+            nrow = 1, 
+            ncol = 2, 
             free=TRUE, 
-            dimnames=list(selvars,NULL), 
+            dimnames=list(NULL,selvars), 
             name = "M"
         ),
         mxMatrix(
             type="Full", 
-            nrow=2, 
-            ncol=1, 
+            nrow=1, 
+            ncol=2, 
             free=TRUE, 
             values=c(0, 0),
-            dimnames=list(selvars,NULL), 
+            dimnames=list(NULL,selvars), 
             name="beta"
         ),
         mxMatrix(
             type="Full", 
-            nrow=2, 
-            ncol=1, 
+            nrow=1, 
+            ncol=2, 
             free=FALSE, 
             labels=c("data.def"),
-            dimnames=list(selvars,NULL), 
+            dimnames=list(NULL,selvars), 
             name="def"
         ),
 
@@ -129,7 +129,7 @@ The trick - commonly used in regression models - is to multiply the *beta* matri
         mxAlgebra(
             expression=M+beta*def, 
             name="Mu", 
-            dimnames=list(selvars,NULL)
+            dimnames=list(NULL,selvars)
         )
     )
 

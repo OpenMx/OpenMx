@@ -58,12 +58,12 @@ uniRegModel <- mxModel("Simple Regression - Matrix Specification",
     ),
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1,
+        nrow=1, 
+        ncol=2,
         free=c(T, T),
         values=c(0, 0),
         labels=c("meanx", "beta0"),
-        dimnames=list(c("x","y"),NULL),
+        dimnames=list(NULL, c("x","y")),
         name="M"),
     mxRAMObjective("A", "S", "F", "M")
 )

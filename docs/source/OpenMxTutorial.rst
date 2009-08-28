@@ -134,18 +134,18 @@ When collecting data to test a specific hypothesis, one of the first things one 
 
 Say, we have collected data on two variables **X** and **Y** in 1000 individuals, and R descriptive statistics has shown that the correlation between them in 0.5.  For the sake of this example, we used another built-in function in the R package MASS, namely mvrnorm, to generate multivariate normal data with means of 0.0, variances of 1.0 and a correlation of 0.5 between **X** and **Y**.
 
-To evaluate the likelihood of the data, we estimate a saturated model with free means, free variances and a covariance.  Let's start with specifying the mean vector.  We use the ``mxMatrix`` command, provide the type, here "Full", the number of rows and columns, respectively 2 and 1, the specification of free/fixed parameters, the starting values, the dimnames and a name.  Given all the elements of this 2x1 matrix are free, we can use ``free=True``.  The starting values are provided using a list, i.e. ``c(0,0)``.  The dimnames are a type of label that is required to recognize the expected mean vector and expected covariance matrix.  In this case, the second element of the list should have the labels for the two variables ``c('X','Y')``.  Finally, we are explicit in naming this matrix ``expMean``.  Thus the matrix command looks like this.  Note the soft tabs to improve readability.
+To evaluate the likelihood of the data, we estimate a saturated model with free means, free variances and a covariance.  Let's start with specifying the mean vector.  We use the ``mxMatrix`` command, provide the type, here "Full", the number of rows and columns, respectively 1 and 2, the specification of free/fixed parameters, the starting values, the dimnames and a name.  Given all the elements of this 1x2 matrix are free, we can use ``free=True``.  The starting values are provided using a list, i.e. ``c(0,0)``.  The dimnames are a type of label that is required to recognize the expected mean vector and expected covariance matrix.  In this case, the second element of the list should have the labels for the two variables ``c('X','Y')``.  Finally, we are explicit in naming this matrix ``expMean``.  Thus the matrix command looks like this.  Note the soft tabs to improve readability.
 
 .. code-block:: r
 
     bivCorModel <- mxModel("bivCor",
         mxMatrix(
             type="Full", 
-            nrow=2, 
-            ncol=1, 
+            nrow=1, 
+            ncol=2, 
             free=True, 
             values=c(0,0), 
-            dimnames=list(selVars,NULL), 
+            dimnames=list(NULL,selVars), 
             name="expMean"
         ), 
 
@@ -260,11 +260,11 @@ The saturated model will have two matrices for the expected means of MZs and DZs
     mxModel("MZ",
         mxMatrix(
             type="Full", 
-            nrow=2, 
-            ncol=1, 
+            nrow=1, 
+            ncol=2, 
             free=True, 
             values=c(0,0), 
-            dimnames=list(selVars,NULL), 
+            dimnames=list(NULL,selVars), 
             name="expMeanMZ"), 
         mxMatrix("Full", 2, 2,
             free=c(T,T,F,T)
@@ -287,7 +287,7 @@ Note that the ``mxModel`` statement for the DZ twins is almost identical to that
 .. code-block:: r            
 
     mxModel("DZ",
-        mxMatrix("Full", 2, 1, T, c(0,0), dimnames=list(selVars, NULL), name="expMeanDZ"), 
+        mxMatrix("Full", 1, 2, T, c(0,0), dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), dimnames=list(NULL, selVars), name="CholMZ"), 
         mxAlgebra(CholDZ %*% t(CholDZ), name="expCovDZ", dimnames=list(selVars, selVars)), 
         mxData(DataDZ, type="raw"), 
@@ -320,9 +320,9 @@ Before we move on to fit the ACE model to the same data, we may want to test som
 
     twinSatModelSub1 <- mxModel(twinSatModel,
         mxModel("MZ",
-            mxMatrix("Full", 2, 1, T, 0, "mMZ", dimnames=list(selVars, NULL), name="expMeanMZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mMZ", dimnames=list(NULL, selVars), name="expMeanMZ"), 
         mxModel("DZ", 
-            mxMatrix("Full", 2, 1, T, 0, "mDZ", dimnames=list(selVars, NULL), name="expMeanDZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mDZ", dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
         mxAlgebraObjective("twin"))
     twinSatFitSub1 <- mxModel(twinSatModelSub1)
@@ -333,11 +333,11 @@ If we want to test if we can equate both means and variances across twin order a
 
     twinSatModelSub2 <- mxModel(twinSatModelSub1,
         mxModel("MZ",
-            mxMatrix("Full", 2, 1, T, 0, "mean", dimnames=list(selVars, NULL), name="expMeanMZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
             mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","MZcov","var"), 
                 dimnames=list(NULL, selVars), name="CholMZ"), 
         mxModel("DZ", 
-            mxMatrix("Full", 2, 1, T, 0, "mean", dimnames=list(selVars, NULL), name="expMeanDZ"), 
+            mxMatrix("Full", 1, 2, T, 0, "mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
             mxMatrix("Full", 2, 2, c(T,T,F,T), c(1,.5,0,1), labels= c("var","DZcov","var"), 
                 dimnames=list(NULL, selVars), name="CholDZ"), 
         mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
@@ -358,8 +358,8 @@ Now, we are ready to specify the ACE model to test which sources of variance sig
 
     #Specify ACE Model
     twinACEModel <- mxModel("twinACE", 
-        mxMatrix("Full", 2, 1, T, 20, "mean", dimnames=list(selVars, NULL), name="expMeanMZ"), 
-        mxMatrix("Full", 2, 1, T, 20, "mean", dimnames=list(selVars, NULL), name="expMeanDZ"), 
+        mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanMZ"), 
+        mxMatrix("Full", 1, 2, T, 20, "mean", dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e", name="Z"),

@@ -60,7 +60,7 @@ model<-mxModel("model", mxFIMLObjective("S", "M"),
 					dimnames=list(selvars,selvars), name="beta"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1),
 					lbound=c(0.001, NA, 0.001), dimnames=list(selvars,selvars), name="cov"),
-				mxMatrix("Full", nrow = 2, ncol = 1, free=TRUE, dimnames=list(selvars, NULL), name = "M"),
+				mxMatrix("Full", nrow = 1, ncol = 2, free=TRUE, dimnames=list(NULL, selvars), name = "M"),
 				mxAlgebra(cov+beta*def, name="S", dimnames=list(selvars,selvars))
 			)
 
@@ -74,5 +74,5 @@ omxCheckCloseEnough(1.011952,run@matrices$beta[1,2],.001)
 omxCheckCloseEnough(as.vector(c(0.982984089,0.004713885,0.004713885,2.052462084)),
 	as.vector(run@matrices$cov@values),.001)
 omxCheckCloseEnough(0.02570572, run@matrices$M[1,1], .001)
-omxCheckCloseEnough(0.01611651, run@matrices$M[2,1], .001)
+omxCheckCloseEnough(0.01611651, run@matrices$M[1,2], .001)
 

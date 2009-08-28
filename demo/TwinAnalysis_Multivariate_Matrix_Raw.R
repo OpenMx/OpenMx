@@ -32,7 +32,7 @@ meanLabels = paste("Trait", rep(1:nVar,2),  "mean", sep=""); # make labels for t
 # [1] "Trait1mean" "Trait2mean" "Trait1mean" "Trait2mean"
 
 # grand mean phenotypes (grand mean because labels are the same across zyg and T1 and T2 for each trait
-expMZMeans = mxMatrix("Full", nrow=(nVar*2), ncol=1, free=TRUE, values=meanStarts, label=meanLabels, dimnames=list(selVars, "means"), name="expMeanMZ");
+expMZMeans = mxMatrix("Full", nrow=1, ncol=(nVar*2), free=TRUE, values=meanStarts, label=meanLabels, dimnames=list("means", selVars), name="expMeanMZ");
 # Clone the MZ means matrix for  DZs
 expDZMeans = expMZMeans; 
 expDZMeans@name="expMeanDZ"; 

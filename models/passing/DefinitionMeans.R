@@ -55,14 +55,14 @@ model<-mxModel("model", mxFIMLObjective("Sigma", "Mu"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1), 
 					dimnames=list(selvars,selvars), name="Sigma"),
 					
-				mxMatrix("Full", nrow=2, ncol=1, free=TRUE, values=c(0, 0),
-					dimnames=list(selvars, NULL), name="beta"),
-				mxMatrix("Full", nrow=2, ncol=1, free=FALSE, labels=c("data.def"),
-					dimnames=list(selvars, NULL), name="def"),
-				mxMatrix("Full", nrow = 2, ncol = 1, free=TRUE, 
-					dimnames=list(selvars, NULL), name = "M"),
+				mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=c(0, 0),
+					dimnames=list(NULL, selvars), name="beta"),
+				mxMatrix("Full", nrow=1, ncol=2, free=FALSE, labels=c("data.def"),
+					dimnames=list(NULL, selvars), name="def"),
+				mxMatrix("Full", nrow=1, ncol=2, free=TRUE, 
+					dimnames=list(NULL, selvars), name = "M"),
 				
-				mxAlgebra(M+beta*def, name="Mu", dimnames=list(selvars, NULL))
+				mxAlgebra(M+beta*def, name="Mu", dimnames=list(NULL, selvars))
 			)
 
 #run the model

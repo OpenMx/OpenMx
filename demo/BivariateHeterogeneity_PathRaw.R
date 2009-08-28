@@ -149,13 +149,13 @@ Mx.cov; Mx.mean; Mx.like
 #Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
 omxCheckCloseEnough(LLHet,Mx.LLHet,.001)
 omxCheckCloseEnough(EC1Het,Mx.EC1Het,.001)
-omxCheckCloseEnough(EM1Het,t(Mx.EM1Het),.001)
+omxCheckCloseEnough(EM1Het,Mx.EM1Het,.001)
 omxCheckCloseEnough(EC2Het,Mx.EC2Het,.001)
-omxCheckCloseEnough(EM2Het,t(Mx.EM2Het),.001)
+omxCheckCloseEnough(EM2Het,Mx.EM2Het,.001)
 
 omxCheckCloseEnough(LLHom,Mx.LLHom,.001)
 omxCheckCloseEnough(EC1Hom,Mx.EC1Hom,.001)
-omxCheckCloseEnough(EM1Hom,t(Mx.EM1Hom),.001)
+omxCheckCloseEnough(EM1Hom,Mx.EM1Hom,.001)
 omxCheckCloseEnough(EC2Hom,Mx.EC2Hom,.001)
-omxCheckCloseEnough(EM2Hom,t(Mx.EM2Hom),.001)
+omxCheckCloseEnough(EM2Hom,Mx.EM2Hom,.001)
 

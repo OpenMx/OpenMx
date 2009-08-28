@@ -137,7 +137,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		translatedNames <- fMatrixTranslateNames(flatModel[[.Object@F]]@values, model@name)
 		dimnames(algebra) <- list(translatedNames, translatedNames)
 		model <- mxModel(model, algebra)
-		meansFormula <- substitute(F %*% Z %*% M,
+		meansFormula <- substitute(t(F %*% Z %*% t(M)),
 			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
 				M = as.symbol(.Object@M)))
 		if (is.null(model[['means']])) {
@@ -147,7 +147,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		}
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = meansFormula, y = meansName)))
-		dimnames(algebra) <- list(translatedNames, NULL)
+		dimnames(algebra) <- list(NULL, translatedNames)
 		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
 			list(x = covName, y = meansName, z = .Object@thresholds)))

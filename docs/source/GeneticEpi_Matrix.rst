@@ -46,22 +46,22 @@ As the focus is on individual differences, the model for the means is typically 
 
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(20,20), 
         labels= c("mean","mean"), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMeanMZ"
     ), 
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(20,20), 
         labels= c("mean","mean"), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMeanDZ"
     ), 
 

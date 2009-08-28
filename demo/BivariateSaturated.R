@@ -173,11 +173,11 @@ bivSatModel3m <- mxModel("bivSat3m",
     ),
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -211,11 +211,11 @@ mxMatrix(
 ),
 mxMatrix(
     type="Full", 
-    nrow=2, 
-    ncol=1, 
+    nrow=1, 
+    ncol=2, 
     free=T, 
     values=c(0,0), 
-    dimnames=list(selVars,NULL), 
+    dimnames=list(NULL,selVars), 
     name="expMean"
 ),
 mxData(
@@ -249,11 +249,11 @@ bivSatModel5 <- mxModel("bivSat5",
     ),
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -288,11 +288,11 @@ bivSatModel5m <- mxModel("bivSat5m",
     ),
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -330,11 +330,11 @@ bivSatModel6 <- mxModel("bivSat6",
     ),
     mxMatrix(
         type="Full", 
-        nrow=2, 
-        ncol=1, 
+        nrow=1, 
+        ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(selVars,NULL), 
+        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -358,12 +358,12 @@ Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1 <- -2.258885e-13
 
 #example Mx..1m: Saturated Model with Cov Matrices & Means
-Mx.EM1m <- matrix(c(0.03211648, -0.004883811),2,1)
+Mx.EM1m <- matrix(c(0.03211648, -0.004883811),1,2)
 Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1m <- -5.828112e-14
 
 #example Mx..2: Saturated Model with Raw Data
-Mx.EM2 <- matrix(c(0.03211188, -0.004889211),2,1)
+Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
 Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
 Mx.LL2 <- 5415.772
 

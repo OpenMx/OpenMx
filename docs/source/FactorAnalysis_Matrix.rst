@@ -144,16 +144,16 @@ The following code contains all of the components of our model. Before running a
             name="F"),
         mxMatrix(
             type="Full", 
-            nrow=7, 
-            ncol=1,
+            nrow=1, 
+            ncol=7,
             values=c(1,1,1,1,1,1,0),
             free=c(T,T,T,T,T,T,F),
             labels=c("meanx1","meanx2","meanx3",
                      "meanx4","meanx5","meanx6",
                      NA),
             dimnames=list(              	
-              	c("x1","x2","x3","x4","x5","x6","F1"),
-                NULL),
+              	NULL, 
+				c("x1","x2","x3","x4","x5","x6","F1")),
             name="M"),
         mxRAMObjective("A","S","F","M")
         )
@@ -276,16 +276,16 @@ The last matrix of our model is the M matrix, which defines the means and interc
 
   mxMatrix(
       type="Full", 
-      nrow=7, 
-      ncol=1,
+      nrow=1, 
+      ncol=7,
       values=c(1,1,1,1,1,1,0),
       free=c(T,T,T,T,T,T,F),
       labels=c("meanx1","meanx2","meanx3",
                "meanx4","meanx5","meanx6",
                NA),
       dimnames=list(
-        	c("x1","x2","x3","x4","x5","x6","F1"),
-            NULL),
+			NULL,
+        	c("x1","x2","x3","x4","x5","x6","F1")),
       name="M"
   )
 
@@ -439,8 +439,8 @@ Specifying the two factor model is virtually identical to the single factor case
           name="F"),
       mxMatrix(
           type="Full",
-          nrow=8, 
-          ncol=1,
+          nrow=1, 
+          ncol=8,
           values=c(1,1,1,1,1,1,0,0),
           free=c(T,T,T,T,T,T,F,F),
           labels=c("meanx1","meanx2","meanx3",
