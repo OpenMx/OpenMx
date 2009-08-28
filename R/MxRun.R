@@ -55,12 +55,23 @@ mxRun <- function(model) {
 
 processOptimizerOutput <- function(flatModel, matrixNames, 
 		algebraNames, parameterNames, output) {
-	names(output$estimate) <- parameterNames
-	names(output$gradient) <- parameterNames
+	if (length(output$estimate) == length(parameterNames)) {
+		names(output$estimate) <- parameterNames
+	}
+	if (length(output$gradient) == length(parameterNames)) {
+		names(output$gradient) <- parameterNames
+	}
 	output$hessian <- t(output$hessianCholesky) %*% output$hessianCholesky
-	dimnames(output$hessian) <- list(parameterNames, parameterNames)
-	names(output$matrices) <- matrixNames
-	names(output$algebras) <- algebraNames
+	if (nrow(output$hessian) == length(parameterNames) &&
+		ncol(output$hessian) == length(parameterNames)) {
+		dimnames(output$hessian) <- list(parameterNames, parameterNames)
+	}
+	if (length(output$matrices) == length(matrixNames)) {
+		names(output$matrices) <- matrixNames
+	}
+	if (length(output$algebras) == length(algebraNames)) {
+		names(output$algebras) <- algebraNames
+	}
 	npsolWarnings(flatModel@name, output$status[[1]])
 	return(output)
 }

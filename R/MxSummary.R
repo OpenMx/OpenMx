@@ -46,22 +46,26 @@ fitStatistics <- function(model, objective, data, retval) {
 	} else if (is.null(likelihood)) {
 		return(retval)
 	}
-	if (data@type == 'raw') {
+	if (is.null(data)) {
+		Fvalue <- NA
+	} else if (data@type == 'raw') {
 		Fvalue <- likelihood
 	} else if (data@type == 'cov') {
 		Fvalue <- chi
 	} else {
 		Fvalue <- NA
 	}
-	retval[['Chi']] <- chi
-	retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
-	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
-	retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(data@numObs))
-	rmseaSquared <- (chi / DoF - 1) / data@numObs
-	if (length(rmseaSquared) == 0 || is.nan(rmseaSquared) || (rmseaSquared < 0)) {
-		retval[['RMSEA']] <- 0
-	} else {
-		retval[['RMSEA']] <- sqrt(rmseaSquared)
+	if (!is.null(data)) {
+		retval[['Chi']] <- chi
+		retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
+		retval[['AIC.Mx']] <- Fvalue - 2 * DoF
+		retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(data@numObs))
+		rmseaSquared <- (chi / DoF - 1) / data@numObs
+		if (length(rmseaSquared) == 0 || is.nan(rmseaSquared) || (rmseaSquared < 0)) {
+			retval[['RMSEA']] <- 0
+		} else {
+			retval[['RMSEA']] <- sqrt(rmseaSquared)
+		}
 	}
 	return(retval)
 }
@@ -71,7 +75,11 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
 	estimates <- model@output$estimate
-	errorEstimates <- sqrt(diag(solve(model@output$hessian)))
+	if (length(model@output$hessian) > 0) {
+		errorEstimates <- sqrt(diag(solve(model@output$hessian)))
+	} else {
+		errorEstimates <- rep.int(NA, length(estimates))
+	}
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -104,7 +112,11 @@ setMethod("summary", "MxModel",
 		matrices <- generateSimpleMatrixList(flatModel)
 		parameters <- generateParameterList(flatModel)
 		objective <- flatModel@objectives[[omxIdentifier(object@name, 'objective')]]
-		data <- flatModel@datasets[[objective@data]]
+		if (!is.null(objective)) {
+			data <- flatModel@datasets[[objective@data]]
+		} else {
+			data <- NULL
+		}
 		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data)
 		if (!is.null(data)) {
 			print(summary(data@observed))
