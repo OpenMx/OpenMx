@@ -10,7 +10,7 @@
 \usage{
 mxMatrix(type = "Full", nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, lbound = NA, 
-	ubound = NA, byrow = FALSE, dimnames = NA, name = NA)
+	ubound = NA, byrow = getOption('mxByrow'), dimnames = NA, name = NA)
 }
 
 \arguments{

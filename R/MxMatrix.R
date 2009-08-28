@@ -197,7 +197,7 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 
 mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA, byrow = FALSE, 
+	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 	dimnames = NA, name = NA) {
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)

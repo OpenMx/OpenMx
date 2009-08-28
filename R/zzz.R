@@ -24,5 +24,6 @@
    	'mxOptimizerOptions' = npsolOptions, 
    	'mxRAMDefaultSingle' = 1.00, 
    	'mxRAMDefaultDouble' = 1.00,
+	'mxByrow' = FALSE,
    	'mxPrintUnitTests' = TRUE)
 }
