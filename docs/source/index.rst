@@ -13,6 +13,8 @@ Contents:
 
    Introduction
 
+   BeginnersGuide
+
    Examples_Path
 
    Examples_Matrix
