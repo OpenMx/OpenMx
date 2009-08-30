@@ -1,10 +1,10 @@
 Beginners Guide to OpenMx
-========================
+=========================
 
 This document will walk the reader through the basic concepts used in the OpenMx library.  It will assume that you have successfully installed the R statistical programming language and the OpenMx library for R.  Before we begin, let us start with a mini-lecture on the R programming language.  Our experience has found that this exercise will greatly increase your understanding of subsequent sections of the introduction.
 
 Pass By Value (READ THIS)
--------------
+-------------------------
 
 .. code-block:: r
     :linenos:
@@ -93,7 +93,7 @@ The basic unit of abstraction in the OpenMx library is the model.  A model serve
 All of the entities listed in the table are identified by the OpenMx library by the name assigned to them.  A name is any character string that does not contain the "." character.  In the parlance of the OpenMx library, a model is a container of named entities.  The name of an OpenMx entity bears no relation to the R variable that is used to identify the entity. In our example, the variable ``model`` stores a value that is a MxModel object with the name "One Factor".
 
 Matrix Creation
-^^^^^^^^
+^^^^^^^^^^^^^^^
 
 The next three lines create three MxMatrix objects.  The first argument declares the type of the matrix, the second argument declares the number of rows in the matrix, and the third argument declares the number of columns. The 'values' argument specifies the starting values in the matrix. The 'free' argument specifies whether a cell is a free or fixed parameter, and the 'name' argument specifies the name of the matrix. To repeat ourselves, the name of an OpenMx entity bears no relation to the R variable that is used to identify the entity. In our example, the variable ``matrixA`` stores a value that is a MxMatrix object with the name “A”.
 
