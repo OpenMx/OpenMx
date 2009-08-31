@@ -108,47 +108,26 @@ We add the paths that are specific to the MZ group or the DZ group into the resp
 
 .. code-block:: r
 
-    twinACEModel <- mxModel("twinACE", 
-        mxModel(share,
-            mxPath(
-                from="A1", 
-                to="A2", 
-                arrows=2, 
-                free=FALSE, 
-                values=1
-            ),
-            mxData(
-                observed=mzfData, 
-                type="raw"), 
-            type="RAM", 
-            name="MZ"
-        ),
-        mxModel(share, 
-            mxPath(
-                from="A1", 
-                to="A2", 
-                arrows=2, 
-                free=FALSE, 
-                values=.5
-            ),
-            mxData(
-                observed=dzfData, 
-                type="raw"
-            ), 
-            type="RAM", 
-            name="DZ"
-        ),
+    mzModel <- mxModel(share,
+        mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=1),
+        mxData(mzfData, type="raw"), 
+        type="RAM", name="MZ")
+
+    dzModel <- mxModel(share,
+        mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=.5),
+        mxData(dzfData, type="raw"), 
+        type="RAM", name="DZ")
+
 
 Finally, both models need to be evaluated simultaneously.  We first generate the sum of the objective functions for the two groups, using ``mxAlgebra``, and then use that as argument of the ``mxAlgebraObjective`` command.
 
 .. code-block:: r        
 
-        mxAlgebra(
-            expression=MZ.objective + DZ.objective, 
-            name="twin"
-        ), 
-        mxAlgebraObjective("twin")
-    )
+
+    twinACEModel <- mxModel("twinACE", mzModel, dzModel,
+        mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
+        mxAlgebraObjective("twin"))
+
 
 Model Fitting
 ^^^^^^^^^^^^^
@@ -185,27 +164,16 @@ To evaluate the significance of each of the model parameters, nested submodels a
 .. code-block:: r
 
     #Run AE model
-    twinAEModel <- mxModel(twinACEModel, 
-        type="RAM",
-        manifestVars=selVars,
-        latentVars=aceVars,
-        mxPath(
-            from=c("A1","C1","E1"), 
-            to="bmi1", 
-            arrows=1, 
-            free=c(T,F,T), 
-            values=c(.6,0,.6), 
-            label=c("a","c","e")
-        ),
-        mxPath(
-            from=c("A2","C2","E2"), 
-            to="bmi2", 
-            arrows=1, 
-            free=c(T,F,T), 
-            values=c(.6,0,.6), 
-            label=c("a","c","e")
-        )
-    )
+    mzModel <- mxModel(mzModel, 
+        mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")),
+        mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")))
+        
+    dzModel <- mxModel(dzModel, 
+        mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")),
+        mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")))
+            
+    twinAEModel <- mxModel(twinACEModel, mzModel, dzModel, name = "twinAE")
+
     twinAEFit <- mxRun(twinAEModel)
 
     MZc <- mxEval(MZ.covariance, twinAEFit)
