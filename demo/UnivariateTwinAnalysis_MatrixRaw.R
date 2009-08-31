@@ -14,55 +14,56 @@ cov(mzfData,use="complete")
 cov(dzfData,use="complete")
 
 #Fit ACE Model with RawData and Matrices Input
-twinACEModel <- mxModel("twinACE", 
-    # matrices for the means
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanMZ"), # because both expMeanMZ and expMeanDZ
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMeanDZ"), # share the same label, we are equating them
-		# Matrices X,Y, and Z to store the a,c,and e path coefficients
+share <- mxModel("share",
+	# Matrices X,Y, and Z to store the a,c,and e path coefficients
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), 
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
-    mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"), # just a constant 0.5 for use in algebras below
+    mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
+	mxAlgebra(Y %*% t(Y), name="C"),
+	mxAlgebra(Z %*% t(Z), name="E"))
 
-		mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
-    mxAlgebra(Y %*% t(Y), name="C"),
-    mxAlgebra(Z %*% t(Z), name="E"),
+# because both expMeanMZ and expMeanDZ
+# share the same label, we are equating them
 
-    # Algebra for expected variance/covariance matrix in MZs
+mzModel <- mxModel(share, name = "MZ",
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, 
+    	label="mean", dimnames=list(NULL, selVars), name="expMean"), 
+    # Algebra for expected variance/covariance matrix in MZ
     mxAlgebra(rbind (cbind(A+C+E  , A+C),
-                     cbind(A+C    , A+C+E)), dimnames = list(selVars, selVars), name="expCovMZ"),
+                     cbind(A+C    , A+C+E)), 
+              dimnames = list(selVars, selVars), name="expCov"),
+    mxData(mzfData, type="raw"), 
+    mxFIMLObjective("expCov", "expMean"))
 
-    # Algebra for expected variance/covariance matrix in DZs
+dzModel <- mxModel(share, name = "DZ",
+    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, 
+    	label="mean", dimnames=list(NULL, selVars), name="expMean"),
+	# just a constant 0.5 for use in algebras below
+    mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"), 
     mxAlgebra(rbind (cbind(A+C+E  , h%x%A+C),
-                     cbind(h%x%A+C, A+C+E)), dimnames = list(selVars, selVars), name="expCovDZ"),
+                     cbind(h%x%A+C, A+C+E)), 
+              dimnames = list(selVars, selVars), name="expCov"),
+    mxData(dzfData, type="raw"), 
+    mxFIMLObjective("expCov", "expMean"))
+     	
 
-		# Build model for the MZ data.
-    mxModel("MZ",
-			  # read in the manifest variables (selVars), to provide the observed covariance matrix and means for this group. 
-        mxData(mzfData, type="raw"), 
-				# link these observations to an objective - our expected MZ covariance and means, 
-				# so that the likelihood of the observed data can be calculated from their departure from our expectations.
-        mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMeanMZ")
-    ),
-
-		# Build matching model for the DZ data.
-    mxModel("DZ", 
-        mxData(dzfData, type="raw"), 
-        mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMeanDZ")),
+twinACEModel <- mxModel("twinACE", 
+	mzModel, dzModel, 
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
     mxAlgebraObjective("twin"))
 
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
 
-MZc <- mxEval(expCovMZ,  twinACEFit)
-DZc <- mxEval(expCovDZ,  twinACEFit)
-M   <- mxEval(expMeanMZ, twinACEFit)
+MZc <- mxEval(MZ.expCov,  twinACEFit)
+DZc <- mxEval(DZ.expCov,  twinACEFit)
+M   <- mxEval(MZ.expMean, twinACEFit)
 
 # Retrieve the A, C, and E variance components
-A   <- mxEval(A, twinACEFit)
-C   <- mxEval(C, twinACEFit)
-E   <- mxEval(E, twinACEFit)
+A   <- mxEval(MZ.A, twinACEFit)
+C   <- mxEval(MZ.C, twinACEFit)
+E   <- mxEval(MZ.E, twinACEFit)
 
 totalVariance <- (A+C+E)
 a2  <- A/totalVariance  # Standardize the variance components
@@ -96,19 +97,26 @@ omxCheckCloseEnough(C,Mx.C,.001)
 omxCheckCloseEnough(E,Mx.E,.001)
 omxCheckCloseEnough(M,Mx.M,.001)
 
-
 #Run AE model
-twinAEModel <- mxModel(twinACEModel, 
-    mxMatrix("Full", nrow=1, ncol=1, free=F, values=0, label="c", name="Y")
-    )
+mzModel <- mxModel(mzModel,
+	mxMatrix("Full", nrow=1, ncol=1, free=F, values=0, label="c", name="Y"))
+
+dzModel <- mxModel(dzModel,
+	mxMatrix("Full", nrow=1, ncol=1, free=F, values=0, label="c", name="Y"))
+
+twinAEModel <- mxModel("twinAE", 
+	mzModel, dzModel, 
+    mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
+    mxAlgebraObjective("twin"))
+	
 twinAEFit <- mxRun(twinAEModel)
 
 # As above, retrieve covariance, means, and A, C, and E variance components
-MZc <- mxEval(expCovMZ, twinAEFit)
-DZc <- mxEval(expCovDZ, twinAEFit)
-A   <- mxEval(A, twinAEFit)
-C   <- mxEval(C, twinAEFit)
-E   <- mxEval(E, twinAEFit)
+MZc <- mxEval(MZ.expCov, twinAEFit)
+DZc <- mxEval(DZ.expCov, twinAEFit)
+A   <- mxEval(MZ.A, twinAEFit)
+C   <- mxEval(MZ.C, twinAEFit)
+E   <- mxEval(MZ.E, twinAEFit)
 V <- (A + C + E)
 a2  <- A / V
 c2  <- C / V
