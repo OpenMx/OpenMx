@@ -27,6 +27,7 @@ setClass(Class = "MxModel",
 		objective = "MxObjective",
 		independent = "logical",
 		options = "list",
+		constMatrices = "list",
 		output = "list"
 ))
 
@@ -50,6 +51,7 @@ setMethod("initialize", "MxModel",
 		.Object@independent <- independent
 		.Object@options <- list()
 		.Object@output <- list()
+		.Object@constMatrices <- list()
 		.Object <- omxInitModel(.Object)
 		return(.Object)
 	}

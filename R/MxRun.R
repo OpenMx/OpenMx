@@ -30,6 +30,7 @@ mxRun <- function(model) {
 	depModel <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(depModel, namespace)
 	data <- convertDatasets(flatModel)
+    flatModel <- convertAlgebras(flatModel)
 	omxCheckFreeVariables(flatModel, namespace)
 	checkAlgebras(model, flatModel)
 	parameters <- generateParameterList(flatModel)

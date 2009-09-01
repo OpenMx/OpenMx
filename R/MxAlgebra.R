@@ -78,16 +78,6 @@ formulaList <- function(x) {
 	return(retval)
 }
 
-algebraNumericCheck <- function(formula, name) {
-	formula <- unlist(formulaList(formula))
-	test <- sapply(formula, is.numeric)
-	if(any(test)) {
-		msg <- paste("There is a numeric operand in",
-			"the algebra named", omxQuotes(name))
-		stop(msg, call. = FALSE)
-	}
-}
-
 algebraSymbolCheck <- function(formula, name) {
 	formula <- unlist(formulaList(formula))
 	test <- sapply(formula, function(x) {!is.numeric(x)})
@@ -104,7 +94,6 @@ algebraSymbolCheck <- function(formula, name) {
 
 generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- algebra@formula
-	algebraNumericCheck(retval, algebra@name)
 	matrixNumbers <- as.list(as.integer(-1 : (-length(matrixNames))))
 	algebraNumbers <- as.list(as.integer(0 : (length(algebraNames) - 1)))
 	names(matrixNumbers) <- matrixNames

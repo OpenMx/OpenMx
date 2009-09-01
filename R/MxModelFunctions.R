@@ -136,7 +136,19 @@ updateModelValuesHelper <- function(triples, value, flatModel, model) {
 }
 
 updateModelMatrices <- function(model, flatModel, values) {
+    newEnd <- length(flatModel@matrices) - length(flatModel@constMatrices)
+    if (newEnd == 0) {
+        flatModel@matrices <- list()
+    } else {
+        flatModel@matrices <- flatModel@matrices[1 : newEnd]
+    }
 	mList <- names(flatModel@matrices)
+    newEnd <- length(values) - length(flatModel@constMatrices)
+    if (newEnd == 0) {
+        values <- list()
+    } else {
+        values <- values[1 : newEnd]
+    }
 	if (length(mList) != length(values)) {
 		stop(paste("This model has", length(mList), 
 			"matrices, but you have given me", length(values),

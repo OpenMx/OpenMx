@@ -15,7 +15,17 @@
 
 omxSeparatorChar <- '.'
 
+isNumber <- function(input) {
+    match <- grep("^[0-9]+[.]*[0-9]*L?$", input, perl = TRUE, value = TRUE)
+    return(length(match) > 0)
+}
+
 omxVerifyReference <- function(reference) {
+    if (isNumber(reference)) {
+        stop(paste("The reference", omxQuotes(reference),
+            "is illegal because it can be interpreted",
+            "as a number"), call. = FALSE)
+    }
 	if (!is.na(reference) && substring(reference, nchar(reference), 
 				nchar(reference)) == omxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
@@ -38,6 +48,11 @@ omxVerifyReference <- function(reference) {
 }
 
 omxVerifyName <- function(name) {
+    if (isNumber(name)) {
+        stop(paste("The name", omxQuotes(name),
+            "is illegal because it can be interpreted",
+            "as a number"), call. = FALSE)
+    }
 	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {
 		if (components[[1]] != "data") {
@@ -244,7 +259,9 @@ checkNamespaceAlgebra <- function(algebra, model, namespace) {
 
 checkNamespaceFormula <- function(formula, model, namespace) {
 	if (length(formula) == 1) {
-		checkNamespaceIdentifier(as.character(formula), model, namespace)
+        if (!is.numeric(formula)) {
+    		checkNamespaceIdentifier(as.character(formula), model, namespace)
+        }
 	} else {
 		for (i in 2:length(formula)) {
 			checkNamespaceFormula(formula[[i]], model, namespace)
@@ -310,11 +327,13 @@ namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
 
 namespaceConvertFormula <- function(formula, modelname, namespace) {
 	if (length(formula) == 1) {
-        result <- omxConvertIdentifier(formula, modelname, namespace)
-        if (is.symbol(formula) && is.character(result)) {
-            formula <- as.symbol(result)
-        } else {
-            formula <- result
+        if (!is.numeric(formula)) {
+            result <- omxConvertIdentifier(formula, modelname, namespace)
+            if (is.symbol(formula) && is.character(result)) {
+                formula <- as.symbol(result)
+            } else {
+                formula <- result
+            }
         }
 	} else {
 		for (i in 2:length(formula)) {
