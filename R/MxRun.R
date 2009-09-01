@@ -72,7 +72,13 @@ processOptimizerOutput <- function(flatModel, matrixNames,
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
 	}
-	npsolWarnings(flatModel@name, output$status[[1]])
+    if (output$status[[1]] > 0) {
+    	npsolWarnings(flatModel@name, output$status[[1]])
+    } else if (output$status[[1]] < 0) {
+        stop(paste("The job for model", omxQuotes(flatModel@name),
+            "exited abnormally with the error message:",
+            output$status[[3]]))
+    }
 	return(output)
 }
 

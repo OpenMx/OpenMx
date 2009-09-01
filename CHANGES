@@ -3,6 +3,7 @@ TRUNK
 * added checking and type coercion to arguments of mxPath() function (a beta tester alerted us to this)
 * moved matrices into submodels in UnivariateTwinAnalysis_MatrixRaw demo
 * added Beginners Guide to online documentation
+* mxRun() issues an error when the back-end reports a negative status code
 
 Release 0.1.3-776
 =============
