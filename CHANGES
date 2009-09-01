@@ -1,8 +1,28 @@
 TRUNK
 =============
-* Added mxVersion() function to return the version number (as a string).
+* added checking and type coercion to arguments of mxPath() function (a beta tester alerted us to this)
+* moved matrices into submodels in UnivariateTwinAnalysis_MatrixRaw demo
+* added Beginners Guide to online documentation
 
-* mxEvaluate() function renamed to mxEval().  mxEval() was chosen to suggest similarity with the eval() function.
+Release 0.1.3-776
+=============
+* mxEvaluate() was renamed to mxEval() after input from beta testers on the forums.
+* new function mxVersion that prints out the current version number (beta tester request).
+* When printing OpenMx objects, the @ sign is used where it is needed if you would want to print part of the object (beta tester request).
+* now supports PPC macs.
+* implemented AIC, BIC and RMSEA calculations.
+* mxMatrix documentation now talks about lower triangular matrices (beta tester request).
+* fixed bugs in a number of demo scripts.
+* added chi-square and p-value patch from beta tester Michael Scharkow.
+* added comments to demo scripts.
+* fixed a bug in the quadratic operator  (a beta tester alerted us to this).
+* means vectors are now always 1xn matrices (beta tester request).
+* added an option "compute" to mxEval() to precompute matrix expressions without going to the optimizer.
+* Matrix algebra conformability is now tested in R at the beginning of each mxRun().
+* named entities (i.e. mxMatrices, mxAlgebras, etc.) can no longer have the same name as the label of a free parameter.  (This seems obscure, but you will like what we do with it in the next version!)
+* can use options(mxByrow=TRUE) in the R global options if you always read your matrices in with the byrow=TRUE argument.  Saves some typing.  (beta tester request)
+* fixed the standard error estimates summary.
+* added mxVersion() function to return the version number (as a string).
 
 Release 0.1.2-708
 =============
