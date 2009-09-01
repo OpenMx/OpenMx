@@ -69,12 +69,40 @@ matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 	}
 }
 
+pathCheckVector <- function(value, valname, type) {
+	if (!is.vector(value)) {
+		stop(paste("The", omxQuotes(valname), 
+			"argument to mxPath must be a",
+			type, "vector."), call. = FALSE)
+	}
+}
+
 mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	values = NA, labels = NA, lbound = NA, ubound = NA) {
-	if (length(values) == 1 && is.na(values)) values <- NULL
-	if (length(labels) == 1 && is.na(labels)) labels <- NULL
-	if (length(lbound) == 1 && is.na(lbound)) lbound <- NULL
-	if (length(ubound) == 1 && is.na(ubound)) ubound <- NULL
+	if (all != TRUE && all != FALSE) {
+		stop("The 'all' argument to mxPath must be either true or false.", 
+			call. = FALSE)
+	}
+	pathCheckVector(from, 'from', 'character')
+	pathCheckVector(to, 'to', 'character')
+	pathCheckVector(arrows, 'arrows', 'numeric')
+	pathCheckVector(free, 'free', 'logical')
+	pathCheckVector(labels, 'labels', 'character')
+	pathCheckVector(values, 'values', 'numeric')
+	pathCheckVector(lbound, 'lbound', 'numeric')
+	pathCheckVector(ubound, 'ubound', 'numeric')
+	from <- as.character(from)
+	to <- as.character(to)
+	arrows <- as.numeric(arrows)
+	free <- as.logical(free)
+	values <- as.numeric(values)
+	labels <- as.character(labels)
+	lbound <- as.numeric(lbound)
+	ubound <- as.numeric(ubound)
+	if (single.na(values)) values <- NULL
+	if (single.na(labels)) labels <- NULL
+	if (single.na(lbound)) lbound <- NULL
+	if (single.na(ubound)) ubound <- NULL
 	generatePath(from, to, all, arrows, 
 		values, free, labels, 
 		lbound, ubound)

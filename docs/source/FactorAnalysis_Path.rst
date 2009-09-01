@@ -249,7 +249,7 @@ Specifying the two factor model is virtually identical to the single factor case
       # latent variances and covariance
       mxPath(from=c("F1","F2"),
           arrows=2,
-          all=2,
+          all=TRUE,
           free=TRUE,
           values=c(1, .5,
                   .5, 1),
@@ -310,7 +310,7 @@ The second, third and fourth ``mxPath`` functions provide some changes to the mo
 
   mxPath(from=c("F1","F2"),
       arrows=2,
-      all=2,
+      all=TRUE,
       free=TRUE,
       values=c(1, .5,
               .5, 1),

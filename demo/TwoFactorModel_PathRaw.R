@@ -22,7 +22,7 @@ twoFactorModel <- mxModel("Two Factor Model - Path",
     # latent variances and covaraince
     mxPath(from=c("F1","F2"),
         arrows=2,
-        all=2,
+        all=TRUE,
         free=TRUE,
         values=c(1, .5,
                 .5, 1),
