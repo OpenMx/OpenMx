@@ -1,5 +1,5 @@
 require(OpenMx)
-foo <- mxAlgebra(1 + 2 + 3, 'foo')
+foo <- mxAlgebra(-1 + 2.0 + 5e-1, 'foo')
 model <- mxModel('model', foo)
 modelOut <- mxRun(model)
-omxCheckEquals(6, mxEval(foo, modelOut))
+omxCheckEquals(1.5, mxEval(foo, modelOut))

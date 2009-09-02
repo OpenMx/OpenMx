@@ -16,7 +16,7 @@
 omxSeparatorChar <- '.'
 
 isNumber <- function(input) {
-    match <- grep("^[0-9]+[.]*[0-9]*L?$", input, perl = TRUE, value = TRUE)
+    match <- grep("^[0-9]+[.]*[0-9]*(L|((E|e)[-+]?[0-9]+))?$", input, perl = TRUE, value = TRUE)
     return(length(match) > 0)
 }
 
