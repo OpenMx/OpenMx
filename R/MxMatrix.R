@@ -199,6 +199,10 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 	dimnames = NA, name = NA) {
+	if (single.na(values)) { values <- as.numeric(NA) }
+	if (single.na(labels)) { labels <- as.character(NA) }
+	if (single.na(lbound)) { lbound <- as.numeric(NA) }
+	if (single.na(ubound)) { ubound <- as.numeric(NA) }
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
 	nrow <- checkDims[[1]]
@@ -221,12 +225,6 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
 	}
-	fiveMatrices <- convertVFN(values, free, labels, lbound, ubound, nrow, ncol)
-	values <- fiveMatrices[[1]]
-	free <- fiveMatrices[[2]]
-	labels <- fiveMatrices[[3]]
-	lbound <- fiveMatrices[[4]]
-	ubound <- fiveMatrices[[5]]
 	typeName <- paste(type, "Matrix", sep="")
 	newMatrix <- new(typeName, name, values, free, labels, 
 			lbound, ubound, nrow, ncol, byrow)
@@ -238,25 +236,38 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	return(newMatrix)
 }
 
+matrixCheckArgument <- function(arg, name) {
+	if (is.list(arg) || isS4(arg)) {
+		stop(paste(omxQuotes(name), "argument to mxMatrix",
+			"must be a scalar, a vector, or a matrix."), call. = FALSE)
+	}
+}
+
+
 matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" ")), call. = FALSE)
 	}
-	if (is.list(values)) {
-		stop("'Values' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	matrixCheckArgument(values, 'values')
+	matrixCheckArgument(free, 'free')
+	matrixCheckArgument(labels, 'labels')
+	matrixCheckArgument(lbound, 'lbound')
+	matrixCheckArgument(ubound, 'ubound')
+	if (!is.numeric(values)) {
+		stop("'values' argument to mxMatrix must be of numeric type", call. = FALSE)
 	}
-	if (is.list(free)) {
-		stop("'Free' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	if (!is.logical(free)) {
+		stop("'free' argument to mxMatrix must be of logical type", call. = FALSE)
 	}
-	if (is.list(labels)) {
-		stop("'Labels' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	if (!is.character(labels)) {
+		stop("'labels' argument to mxMatrix must be of character type", call. = FALSE)
 	}
-	if (is.list(lbound)) {
-		stop("'Lbound' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	if (!is.numeric(lbound)) {
+		stop("'lbound' argument to mxMatrix must be of numeric type", call. = FALSE)
 	}
-	if (is.list(ubound)) {
-		stop("'Ubound' argument to mxMatrix must be a scalar, a vector, or a matrix.", call. = FALSE)
+	if (!is.numeric(ubound)) {
+		stop("'ubound' argument to mxMatrix must be of numeric type", call. = FALSE)
 	}
 	if (!(is.na(nrow) || (is.numeric(nrow) && length(nrow) == 1))) {
 		stop("'nrow' argument to mxMatrix must be either NA or a single value.", call. = FALSE)
@@ -279,59 +290,14 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	if (length(dimensions) > 1) {
 		allEqual <- sapply(dimensions, function(x) { x == dimensions[[1]] })
 		if(!all(allEqual)) {
-			stop("Two matrices provided to the call are not of identical dimensions.", call. = FALSE)
+			stop("Two matrices provided to mxMatrix are not of identical dimensions.", call. = FALSE)
 		}
 	}
-}
-
-convertVFN <- function(values, free, labels, lbound, ubound, nrow, ncol) {
-	if (is.matrix(values)) {
-		values <- matrix(as.numeric(values), nrow, ncol)
-	} else if (is.vector(values)) {
-		values <- as.numeric(values)
-	} else {
-		stop("\'values\' must be either a vector or a matrix", call. = FALSE)
-	}
-	if (is.matrix(free)) {
-		free <- matrix(as.logical(free), nrow, ncol)
-	} else if (is.vector(free)) {
-		free <- as.logical(free)
-	} else {
-		stop("\'free\' must be either a vector or a matrix", call. = FALSE)
-	}
-	if (is.matrix(labels)) {
-		labels <- matrix(as.character(labels), nrow, ncol)
-	} else if (single.na(labels)) {
-		labels <- as.character(NA)
-	} else if (is.vector(labels)) {
-		labels <- as.character(labels)
-	} else {
-		stop("\'labels\' must be either a vector or a matrix", call. = FALSE)
-	}
 	lapply(labels, omxVerifyReference)
-	if (is.matrix(lbound)) {
-		lbound <- matrix(as.numeric(lbound), nrow, ncol)
-	} else if (is.vector(lbound)) {
-		lbound <- as.numeric(lbound)
-	} else {
-		stop("\'lbound\' must be either a vector or a matrix", call. = FALSE)
-	}
-	if (is.matrix(ubound)) {
-		ubound <- matrix(as.numeric(ubound), nrow, ncol)
-	} else if (is.vector(ubound)) {
-		ubound <- as.numeric(ubound)
-	} else {
-		stop("\'ubound\' must be either a vector or a matrix", call. = FALSE)
-	}
-	if(length(values) > 1 && any(is.na(values))) {
-		stop("\'values\' cannot contain an NA", call. = FALSE)
-	}
 	if(any(is.na(free))) {
-		stop("\'free\' cannot contain an NA", call. = FALSE)
+		stop("\'free\' argument to mxMatrix cannot contain an NA", call. = FALSE)
 	}
-	return(list(values, free, labels, lbound, ubound))	
 }
-
 
 matrixParameters <- function(free, labels, lbound, ubound, 
 	result, matrixNumber, isSymmetric) {

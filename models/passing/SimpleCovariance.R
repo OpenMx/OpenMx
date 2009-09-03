@@ -17,8 +17,8 @@ library(OpenMx)
 
 # Define a model
 model <- mxModel()
-model <- mxModel(model, mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2))
-model <- mxModel(model, mxMatrix("Symm", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
+model <- mxModel(model, mxMatrix("Full", values = c(0,0.2,0,0), name="A", nrow=2, ncol=2))
+model <- mxModel(model, mxMatrix("Symm", values = c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Iden", name="F", nrow=2, ncol=2))
 
 model[["A"]]@free[2,1] <- TRUE

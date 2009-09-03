@@ -7,6 +7,7 @@ TRUNK
 * named entities and free or fixed parameter names cannot be numeric values
 * constant literals are allowed inside mxAlgebra() statements, e.g. mxAlgebra(1 + 2 + 3)
 * constant literals can be of the form 1.234E+56 or 1.234e+56.
+* type checking added to mxMatrix arguments (prompted by a forum post)
 
 Release 0.1.3-776
 =============
