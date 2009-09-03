@@ -18,35 +18,33 @@ share <- mxModel("share",
   mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
   mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
   mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
-	mxAlgebra(Y %*% t(Y), name="C"),
-	mxAlgebra(Z %*% t(Z), name="E")
+  mxAlgebra(Y %*% t(Y), name="C"),
+  mxAlgebra(Z %*% t(Z), name="E"),
+  mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values= 20, 
+     label="mean", dimnames=list(NULL, selVars), name="expMean")
 )
 
-# because both expMeanMZ and expMeanDZ
-# share the same label, we are equating them
-
-mzModel <- mxModel(share, name = "MZ",
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, label="mean", dimnames=list(NULL, selVars), name="expMean"), 
+mzModel <- mxModel(name = "MZ",
     # Algebra for expected variance/covariance matrix in MZ
-    mxAlgebra(rbind (cbind(A+C+E  , A+C),
-                     cbind(A+C    , A+C+E)), 
+    mxAlgebra(rbind (cbind(share.A + share.C + share.E  ,share.A + share.C),
+                     cbind(share.A + share.C    ,share.A + share.C + share.E)), 
               dimnames = list(selVars, selVars), name="expCov"),
     mxData(mzfData, type="raw"), 
-    mxFIMLObjective("expCov", "expMean")
+    mxFIMLObjective("expCov", "share.expMean")
 )
 
-dzModel <- mxModel(share, name = "DZ",
-    mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values= 20, label="mean", dimnames=list(NULL, selVars), name="expMean"),
-    mxAlgebra(rbind (cbind(A+C+E  , .5%x%A+C),
-                     cbind(.5%x%A+C, A+C+E)), # note use of .5, converted to 1*1 matrix
+dzModel <- mxModel(name = "DZ",
+    # note use of 0.5, converted to 1*1 matrix
+    mxAlgebra(rbind (cbind(share.A + share.C + share.E  , 0.5 %x% share.A + share.C),
+                     cbind(0.5 %x% share.A + share.C, share.A + share.C + share.E)), 
               dimnames = list(selVars, selVars), name="expCov"), 
     mxData(dzfData, type="raw"), 
-    mxFIMLObjective("expCov", "expMean")
+    mxFIMLObjective("expCov", "share.expMean")
 )
      	
 
 twinACEModel <- mxModel("twinACE", 
-	mzModel, dzModel, 
+	share, mzModel, dzModel, 
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
     mxAlgebraObjective("twin"))
 
@@ -55,12 +53,12 @@ twinACEFit <- mxRun(twinACEModel)
 
 MZc <- mxEval(MZ.expCov,  twinACEFit)
 DZc <- mxEval(DZ.expCov,  twinACEFit)
-M   <- mxEval(MZ.expMean, twinACEFit)
+M   <- mxEval(share.expMean, twinACEFit)
 
 # Retrieve the A, C, and E variance components
-A   <- mxEval(MZ.A, twinACEFit)
-C   <- mxEval(MZ.C, twinACEFit)
-E   <- mxEval(MZ.E, twinACEFit)
+A   <- mxEval(share.A, twinACEFit)
+C   <- mxEval(share.C, twinACEFit)
+E   <- mxEval(share.E, twinACEFit)
 
 totalVariance <- (A+C+E)
 a2  <- A/totalVariance  # Standardize the variance components
@@ -68,7 +66,7 @@ c2  <- C/totalVariance
 e2  <- E/totalVariance
 # As an example of how R can be used to report information based on OpenMx output, we'll build a reporting table with labels
 ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2)) # join the variance component matrices into rows, and join the rows into a table
-ACEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
+ACEest <- data.frame(ACEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
 names(ACEest)<-c("A", "C", "E") # add column names
 
 #Run Mx scripts
@@ -97,23 +95,18 @@ omxCheckCloseEnough(M,Mx.M,.001)
 ACEest; LL_ACE; # print table of results and LL
 
 ########## RUN a reduced AE MODEL ###########
-mzModel <- mxModel(mzModel, mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=0, label="c", name="Y") ) # drop c at 0 in MZs
-dzModel <- mxModel(dzModel, mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=0, label="c", name="Y") ) # and in DZs
+share <- mxModel(share, mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=0, label="c", name="Y") ) # drop c at 0
 
-twinAEModel <- mxModel("twinAE", 
-	mzModel, dzModel, 
-  mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-  mxAlgebraObjective("twin")
-)
+twinAEModel <- mxModel(twinACEModel, share, name = "twinAE")
 	
 twinAEFit <- mxRun(twinAEModel)
 
 # As above, retrieve covariance, means, and A, C, and E variance components
 MZc <- mxEval(MZ.expCov, twinAEFit)
 DZc <- mxEval(DZ.expCov, twinAEFit)
-A   <- mxEval(MZ.A, twinAEFit)
-C   <- mxEval(MZ.C, twinAEFit)
-E   <- mxEval(MZ.E, twinAEFit)
+A   <- mxEval(share.A, twinAEFit)
+C   <- mxEval(share.C, twinAEFit)
+E   <- mxEval(share.E, twinAEFit)
 totalVariance <- (A + C + E)
 a2  <- A / totalVariance
 c2  <- C / totalVariance
@@ -121,7 +114,7 @@ e2  <- E / totalVariance
 # Build a reporting table with labels
 AEest <- round(rbind(cbind(A, C, E),cbind(a2, c2, e2)),3) # assemble the variance and standardized variance compoents into a table
 AEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
-names(AEest)<-c("A", "C", "E") # add column names
+names(AEest) <- c("A", "C", "E") # add column names
 
 LL_AE <- mxEval(objective, twinAEFit); # get the log-likelihood
 LRT_ACE_AE <- LL_AE - LL_ACE
