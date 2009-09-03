@@ -14,10 +14,10 @@ cov(dzfData,use="complete")
 #Fit ACE Model with RawData and Matrices Input
 share <- mxModel("share",
 	# Matrices X,Y, and Z to store the a,c,and e path coefficients
-    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), 
-    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
-    mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
-    mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
+  mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="a", name="X"), 
+  mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="c", name="Y"),
+  mxMatrix("Full", nrow=1, ncol=1, free=TRUE,  values=.6,  label="e", name="Z"),
+  mxAlgebra(X %*% t(X), name="A"), # compute A,C, and E variance components
 	mxAlgebra(Y %*% t(Y), name="C"),
 	mxAlgebra(Z %*% t(Z), name="E"))
 
@@ -37,11 +37,9 @@ mzModel <- mxModel(share, name = "MZ",
 dzModel <- mxModel(share, name = "DZ",
     mxMatrix("Full", nrow=1, ncol=2, free=TRUE,  values= 20, 
     	label="mean", dimnames=list(NULL, selVars), name="expMean"),
-	# just a constant 0.5 for use in algebras below
-    mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=.5,  name="h"), 
-    mxAlgebra(rbind (cbind(A+C+E  , h%x%A+C),
-                     cbind(h%x%A+C, A+C+E)), 
-              dimnames = list(selVars, selVars), name="expCov"),
+    mxAlgebra(rbind (cbind(A+C+E  , .5%x%A+C),
+                     cbind(.5%x%A+C, A+C+E)), # note use of .5, converted to 1*1 matrix
+              dimnames = list(selVars, selVars), name="expCov"), 
     mxData(dzfData, type="raw"), 
     mxFIMLObjective("expCov", "expMean"))
      	
@@ -71,10 +69,6 @@ ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
 ACEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
 names(ACEest)<-c("A", "C", "E") # add column names
 
-
-LL_ACE <- mxEval(objective, twinACEFit)
-
-
 #Run Mx scripts
 #mymatrices1 <- omxOriginalMx("mx-scripts/univACE.mx", "temp-files")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 #Mx.A <- mymatrices1$A1.1
@@ -90,6 +84,8 @@ Mx.C <- 5.595822e-14
 Mx.E <- 0.1730462
 Mx.M <- matrix(c(21.39293, 21.39293),1,2)
 Mx.LL_ACE <- 4067.663
+LL_ACE <- mxEval(objective, twinACEFit) # extract loglikelihood
+ACEest; LL_ACE; # print table of results and LL
 
 
 #Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
@@ -119,19 +115,17 @@ DZc <- mxEval(DZ.expCov, twinAEFit)
 A   <- mxEval(MZ.A, twinAEFit)
 C   <- mxEval(MZ.C, twinAEFit)
 E   <- mxEval(MZ.E, twinAEFit)
-V <- (A + C + E)
-a2  <- A / V
-c2  <- C / V
-e2  <- E / V
+totalVariance <- (A + C + E)
+a2  <- A / totalVariance
+c2  <- C / totalVariance
+e2  <- E / totalVariance
 # As an example of how R can be used to report information based on OpenMx output, we'll build a reporting table with labels
 AEest <- round(rbind(cbind(A, C, E),cbind(a2, c2, e2)),3) # assemble the variance and standardized variance compoents into a table
 AEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
 names(AEest)<-c("A", "C", "E") # add column names
-LL_AE <- mxEval(objective, twinAEFit)
 
+LL_AE <- mxEval(objective, twinAEFit); # get the log-likelihood
 LRT_ACE_AE <- LL_AE - LL_ACE
-
 #Print relevant output
-ACEest
 AEest
 LRT_ACE_AE
