@@ -70,6 +70,10 @@ a2  <- A/totalVariance  # Standardize the variance components
 c2  <- C/totalVariance
 e2  <- E/totalVariance
 ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+ACEest <- data.frame(AEest, row.names=c("Variance Components","Standardized ∂2")) # build a data.frame with row.names
+names(ACEest)<-c("A", "C", "E") # add column names
+
+
 LL_ACE <- mxEval(objective, twinACEFit)
 
 
