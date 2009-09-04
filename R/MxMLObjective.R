@@ -20,6 +20,7 @@ setClass(Class = "MxMLObjective",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
 		thresholds = "MxCharOrNumber",
+		dataColumns = "numeric",
 		thresholdColumns = "numeric"),
 	contains = "MxBaseObjective")
 
@@ -66,12 +67,14 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
-		if (flatModel@datasets[[.Object@data]]@type == 'raw' && 
-			is.na(.Object@means)) {
-			msg <- paste("In model", omxQuotes(model@name),
-				"the ML objective has a raw dataset specified",
-				"but no expected means vector")
-			stop(msg, call.=FALSE)
+		if (flatModel@datasets[[.Object@data]]@type == 'raw') {
+			if (is.na(.Object@means)) {
+				msg <- paste("In model", omxQuotes(model@name),
+					"the ML objective has a raw dataset specified",
+					"but no expected means vector")
+				stop(msg, call.=FALSE)
+			}
+			.Object@dataColumns <- generateDataColumns(flatModel, covariance, data)
 		}
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
