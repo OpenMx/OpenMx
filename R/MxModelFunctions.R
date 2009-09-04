@@ -203,7 +203,7 @@ updateModelAlgebrasHelper <- function(aList, values, model) {
 }
 
 omxLocateIndex <- function(model, name, referant) {
-	if (is.na(name)) { return(name) }
+	if (is.na(name)) { return(as.integer(name)) }
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
 	oNames <- names(model@objectives)
