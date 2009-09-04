@@ -28,11 +28,33 @@ generatePath <- function(from, to,
 		if(!is.null(labels)) { 
 			lapply(labels, omxVerifyReference)
 		}
+        pathCheckLengths(from, to, arrows, values, 
+            free, labels, lbound, ubound)
 		result <- suppressWarnings(mapply(generateSinglePath, from, to, 
 		arrows, values, free,
 		labels, lbound, ubound, SIMPLIFY = FALSE))
 		return(result)
 }
+
+pathCheckLengths <- function(from, to, arrows, values, 
+        free, labels, lbound, ubound) {
+    numPaths <- max(length(from), length(to))
+    pathCheckSingleLength(numPaths, length(arrows), "arrows")
+    pathCheckSingleLength(numPaths, length(values), "values")
+    pathCheckSingleLength(numPaths, length(free), "free/fixed designations")
+    pathCheckSingleLength(numPaths, length(labels), "labels")
+    pathCheckSingleLength(numPaths, length(lbound), "lbounds")
+    pathCheckSingleLength(numPaths, length(ubound), "ubounds")
+}
+
+pathCheckSingleLength <- function(numPaths, len, lenName) {
+    if (numPaths < len) {
+        stop(paste("mxPath() call will generate", 
+            numPaths, "paths but you have specified",
+            len, lenName), call. = FALSE)
+    }
+}
+
 
 generateSinglePath <- function(from, to, 
 		arrows, values, free,

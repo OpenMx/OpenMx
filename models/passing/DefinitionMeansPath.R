@@ -64,7 +64,7 @@ defmeansmodel<-mxModel("Definition Means via Paths",
 	   			mxPath(from=c("x","y"), 
 	   				arrows=2,
 	   				free=TRUE,
-	   				values=c(1,.1,1),
+	   				values=c(1,1),
 	   				labels=c("Varx","Vary")
   		            ), # variances
 				mxPath(from="x", to="y",
