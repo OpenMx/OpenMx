@@ -59,14 +59,20 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		thresholds <- .Object@thresholds
 		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
-			msg <- paste("The MxMLObjective", omxQuotes(name),
-				"does not have a dataset associated with it in model",
-				omxQuotes(flatModel@name))
+			msg <- paste("In model", omxQuotes(model@name),
+				"the ML objective does not have a dataset specified")
 			stop(msg, call.=FALSE)
-		}
+		}		
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
+		if (flatModel@datasets[[.Object@data]]@type == 'raw' && 
+			is.na(.Object@means)) {
+			msg <- paste("In model", omxQuotes(model@name),
+				"the ML objective has a raw dataset specified",
+				"but no expected means vector")
+			stop(msg, call.=FALSE)
+		}
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex
