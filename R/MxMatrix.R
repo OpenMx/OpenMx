@@ -225,6 +225,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (!is.character(name)) {
 		stop("\'name\' must be a character vector!")
 	}
+	values <- as.numeric(values)
+	lbound <- as.numeric(lbound)
+	ubound <- as.numeric(ubound)
 	typeName <- paste(type, "Matrix", sep="")
 	newMatrix <- new(typeName, name, values, free, labels, 
 			lbound, ubound, nrow, ncol, byrow)

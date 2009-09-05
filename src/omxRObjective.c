@@ -90,6 +90,18 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	UNPROTECT(2); // theCall, estimate
 }
 
+omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+
+	retVal[0].numValues = 1;
+	retVal[0].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
+	retVal[0].values[0] = oo->matrix->data[0];
+
+	return retVal;
+}
+
 void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing R objective function.\n"); }
 	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
@@ -102,7 +114,7 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	
 	oo->objectiveFun = omxCallRObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRObjective;
-	oo->setFinalReturns = NULL;
+	oo->setFinalReturns = omxSetFinalReturnsRObjective;
 	oo->destructFun = omxDestroyRObjective;
 	oo->repopulateFun = omxRepopulateRObjective;
 	oo->argStruct = (void*) newObj;
