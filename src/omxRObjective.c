@@ -90,7 +90,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	UNPROTECT(2); // theCall, estimate
 }
 
-void omxInitRObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing R objective function.\n"); }
 	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
 	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));

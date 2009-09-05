@@ -22,6 +22,8 @@
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 
+extern void omxInitFIMLObjective(omxObjective* oo, SEXP rObj); // Included in case ML gets a raw data object.
+
 #ifndef _OMX_ML_OBJECTIVE_
 #define _OMX_ML_OBJECTIVE_ TRUE
 
@@ -223,7 +225,7 @@ unsigned short int omxNeedsUpdateMLObjective(omxObjective* oo) {
 	return 0;
 }
 
-void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
 	
@@ -233,6 +235,28 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	double det=1.0;
 	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
+	
+	if(OMX_DEBUG) { Rprintf("Retreiving data.\n"); }
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));  
+	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
+	if(strncmp(omxDataType(dataMat), "cov", 3) != 0) {
+		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
+			omxInitFIMLObjective(oo, rObj);
+			return;
+		}
+		char errstr[250];
+		sprintf(errstr, "ML Objective unable to handle data type %s.\n", omxDataType(dataMat));
+		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		return;
+	}
+	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
+	newObj->observedCov = omxDataMatrix(dataMat, NULL);
+	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
+	newObj->observedMeans = omxDataMeans(dataMat, NULL, NULL);
+	if(OMX_DEBUG && newObj->observedMeans == NULL) { Rprintf("ML: No Observed Means.\n"); }
+	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
+	newObj->n = omxDataNumObs(dataMat);
+	UNPROTECT(1); // nextMatrix
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
@@ -250,29 +274,6 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
 	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
-	
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));   // TODO: Need better way to process data elements.
-	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
-	index = INTEGER(nextMatrix)[0];
-	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("observed")));
-	newObj->observedCov = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
-	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("means")));
-	if(!R_FINITE(REAL(dataElt)[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("ML: No Observed Means.\n");
-		}
-		newObj->observedMeans = NULL;
-	} else {
-		newObj->observedMeans = omxNewMatrixFromMxMatrix(dataElt, oo->matrix->currentState);
-	}
-	UNPROTECT(1); // dataElt
-	if(OMX_DEBUG && newObj->observedMeans == NULL) { Rprintf("ML: No Observed Means.\n"); }
-	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
-	PROTECT(dataElt = GET_SLOT(nextMatrix, install("numObs")));
-	newObj->n = REAL(dataElt)[0];
-	UNPROTECT(4);
 	
 	/* Temporary storage for calculation */
 	int rows = newObj->observedCov->rows;

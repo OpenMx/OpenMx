@@ -55,7 +55,7 @@ void omxPrintMatrix(omxMatrix *source, char* header) {
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 	
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-	if(OMX_DEBUG) { Rprintf("Initializing 0x%0x to (%d, %d).\n", om, nrows, ncols); }
+	if(OMX_DEBUG) { Rprintf("Initializing 0x%0x to (%d, %d) with state at 0x%x.\n", om, nrows, ncols, os); }
 
 	om->rows = nrows;
 	om->cols = ncols;
@@ -64,7 +64,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
 	om->originalColMajor=om->colMajor;
-	
+
 	if(om->rows == 0 || om->cols == 0) {
 		om->data = NULL;
 		om->localData = FALSE;
@@ -81,13 +81,13 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
 	om->objective = NULL;
-	
+
 	om->currentState = os;
 	om->lastCompute = -1;
 	om->lastRow = -1;
-	
+
 	omxComputeMatrix(om);
-	
+
 	return om;
 	
 }
@@ -192,8 +192,8 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 	om->cols = om->originalCols;
 	if(om->aliasedPtr != NULL) {
 		memcpy(om->data, om->aliasedPtr->data, om->rows*om->cols*sizeof(double));
+		om->colMajor = om->aliasedPtr->colMajor;
 	}
-	om->colMajor = om->aliasedPtr->colMajor;
 	omxComputeMatrix(om);
 }
 
@@ -204,7 +204,7 @@ void omxComputeMatrix(omxMatrix *om) {
 	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
 	om->leading = (om->colMajor?om->rows:om->cols);
 	om->lagging = (om->colMajor?om->cols:om->rows);
-	
+
 	for(int i = 0; i < om->numPopulateLocations; i++) {
 		omxRecompute(om->populateFrom[i]);				// Make sure it's up to date
 		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], om->populateFrom[i]->data[0]);	
@@ -214,6 +214,7 @@ void omxComputeMatrix(omxMatrix *om) {
 	om->isDirty = FALSE;
 	om->lastCompute = om->currentState->computeCount;
 	om->lastRow = om->currentState->currentRow;
+
 }
 
 double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
@@ -232,8 +233,29 @@ double omxVectorElement(omxMatrix *om, int index) {
 	}
 }
 
+double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
+	int index = 0;
+	if(row >= om->originalRows || col >= om->originalCols) {
+		char errstr[250];
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->originalRows, om->originalCols);
+		error(errstr);
+	}
+	if(om->colMajor) {
+		index = col * om->originalRows + row;
+	} else {
+		index = row * om->originalCols + col;
+	}
+	return om->data[index];
+	
+}
+
 double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
+	if(row >= om->rows || col >= om->cols) {
+		char errstr[250];
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->rows, om->cols);
+		error(errstr);
+	}
 	if(om->colMajor) {
 		index = col * om->rows + row;
 	} else {
@@ -276,11 +298,10 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
 	
 	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
 	
-	/* Sanity Check */
-	if(!isMatrix(mxMatrix) && !isVector(mxMatrix)) {
+	if(!isMatrix(mxMatrix) && !isVector(mxMatrix)) { // Sanity Check
+		if(OMX_DEBUG) { Rprintf("R matrix is an object of some sort.\n"); }
 		if(inherits(mxMatrix, "MxMatrix")) {
-			//if(OMX_DEBUG) { 
-				Rprintf("R matrix is Mx Matrix.  Processing.\n"); //}
+			if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
 			PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
 			isMxMatrix = TRUE; // So we remember to unprotect.
 		} else {
@@ -301,8 +322,7 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
 		om->rows = 1;
 		om->cols = length(matrix);
 	}
-	if(OMX_DEBUG) { Rprintf("Data connected to (%d, %d) matrix.\n", om->rows, om->cols); }
-	
+	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) mxMatrix.\n", om->rows, om->cols); }
 	
 	om->localData = FALSE;
 	om->colMajor = TRUE;
@@ -368,25 +388,33 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 {
 //	if(OMX_DEBUG) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
 	
-	if(om->aliasedPtr == NULL) {  // This is meant only for aliased matrices.  Maybe Need a subclass?
-		error("removeRowsAndColumns intended only for aliased matrices.\n");
+	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
+	
+	int oldRows, oldCols;
+	
+	if(om->aliasedPtr == NULL) {
+		if(om->originalRows == 0 || om->originalCols == 0) {
+			om->originalRows = om->rows;
+			om->originalCols = om->cols;
+		}
+		oldRows = om->originalRows;
+		oldCols = om->originalCols;
+	} else {
+		oldRows = om->aliasedPtr->rows;
+		oldCols = om->aliasedPtr->cols;
 	}
 	
-	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
-		
 	int numCols = 0;
 	int nextCol = 0;
 	int nextRow = 0;
-	int oldRows = om->aliasedPtr->rows;
-	int oldCols = om->aliasedPtr->cols;
 	int j,k;
-
-	om->rows = oldRows - numRowsRemoved;
-	om->cols = oldCols - numColsRemoved;
 	
 	if(om->rows > om->originalRows || om->cols > om->originalCols) {	// sanity check.
 		error("Aliased Matrix is too small for alias.");
 	}
+
+	om->rows = oldRows - numRowsRemoved;
+	om->cols = oldCols - numColsRemoved;
 
 	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
 	for(int j = 0; j < oldCols; j++) {
@@ -396,14 +424,19 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 			continue;
 		} else {
 			nextRow = 0;
-			if(OMX_DEBUG) { Rprintf("Rows (max %d): ", oldRows);}
+			if(OMX_DEBUG) { Rprintf("Rows (max %d): ", oldRows); }
 			for(int k = 0; k < oldRows; k++) {
 				if(rowsRemoved[k]) {
 					if(OMX_DEBUG) { Rprintf("%d removed....", k);}
 					continue;
 				} else {
 					if(OMX_DEBUG) { Rprintf("%d kept....", k);}
-					omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
+					if(om->aliasedPtr == NULL) {
+						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+					} else {
+						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
+					}
+					omxPrint(om, "Now Reads: (:::DEBUG:::)");
 					nextRow++;
 				}
 			}

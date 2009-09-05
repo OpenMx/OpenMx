@@ -31,7 +31,7 @@ typedef struct omxObjectiveTableEntry omxObjectiveTableEntry;
 struct omxObjectiveTableEntry {
 
 	char name[250];
-	void (*initFun)(omxObjective*, SEXP, SEXP) ;
+	void (*initFun)(omxObjective*, SEXP) ;
 
 };
 

@@ -63,7 +63,7 @@ unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
 	return omxNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
 }
 
-void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Initializing Algebra objective function.\n"); }
 	

@@ -95,6 +95,7 @@ struct omxMatrix {						// A matrix
 
 /* Getters 'n Setters */
 	double omxMatrixElement(omxMatrix *om, int row, int col);
+	double omxAliasedMatrixElement(omxMatrix *om, int row, int col);	// Element from unaliased form of the same matrix
 	double omxVectorElement(omxMatrix *om, int index);
 	void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);

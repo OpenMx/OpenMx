@@ -67,7 +67,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
 		.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
-		.Object@data <- omxLocateIndex(flatModel, data, name)
+		.Object@data <- as.integer(omxLocateIndex(flatModel, data, name))
 		return(.Object)
 })
 

@@ -232,7 +232,7 @@ unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 	// Note: cov is data, and should never need updating.
 }
 
-void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	int l, k;
 
@@ -246,29 +246,18 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 	int index;
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("data")));
-	index = INTEGER(newMatrix)[0];
-
 	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", index); }
-	PROTECT(dataObj = VECTOR_ELT(dataList, index));
-	PROTECT(newMatrix = GET_SLOT(dataObj, install("observed")));
-	newObj->cov = omxNewMatrixFromMxMatrix(newMatrix, oo->matrix->currentState);
-	UNPROTECT(1); // newMatrix
+	omxData* dataElt = omxNewDataFromMxDataPtr(newMatrix, oo->matrix->currentState);
+	newObj->cov = omxDataMatrix(dataElt, NULL);
 	if(newObj->cov->rows != newObj->cov->cols) {
 		error("Covariance/Correlation matrix is not square.  Perhaps this should be a FIML evaluation.");
 	}
 	if(OMX_DEBUG) { Rprintf("Processing observed means.\n"); }
-	PROTECT(newMatrix = GET_SLOT(dataObj, install("means")));
-	if(R_FINITE(REAL(newMatrix)[0]) && !isnan(REAL(newMatrix)[0])) {
-		newObj->means = omxNewMatrixFromMxMatrix(newMatrix, oo->matrix->currentState);
-	} else {
-		newObj->means = NULL;
-	}
-	UNPROTECT(1); // newMatrix
+	newObj->means = omxDataMeans(dataElt, 0, NULL);
 	if(OMX_DEBUG && newObj->means == NULL) { Rprintf("RAM: No Observed Means.\n"); }
 	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
-	PROTECT(newMatrix = GET_SLOT(dataObj, install("numObs")));
-	newObj->n = REAL(newMatrix)[0];
-	UNPROTECT(3); // newMatrix:"means", dataObj, newMatrix:"data"
+	newObj->n = omxDataNumObs(dataElt);
+	UNPROTECT(1); // newMatrix
 
 	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
 	PROTECT(newMatrix = GET_SLOT(rObj, install("M")));

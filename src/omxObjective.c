@@ -78,7 +78,7 @@ unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 }
 
 
-void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
+void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 
 	int i;
 	const char *objType;
@@ -110,7 +110,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj, SEXP dataList) {
 		error("Objective type %s not supported.\n", obj->objType);
 	}
 
-	obj->initFun(obj, rObj, dataList);
+	obj->initFun(obj, rObj);
 
 	if(obj->objectiveFun == NULL) {								// If initialization fails, error code goes in argStruct
   		strncpy(errorCode, "No error code reported.", 25);		// If no error code is reported, we report that.

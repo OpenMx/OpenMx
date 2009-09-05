@@ -37,8 +37,13 @@
 #define OMX_DEBUG 1
 #define VERBOSE 1
 #else
+#ifdef VERBOSEMX
+#define OMX_DEBUG 0
+#define VERBOSE 1
+#else
 #define OMX_DEBUG 0
 #define VERBOSE 0
+#endif /* VERBOSEMX */
 #endif /* DEBUGMX */
 
 #ifdef DEBUGNPSOL
@@ -154,7 +159,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	currentState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
-	/* Store Data from MxMatrices */
+	/* Retrieve Data Objects */
+	if(OMX_DEBUG) { Rprintf("Processing %d data source(s).\n", length(data));}
+	currentState->numData = length(data);
+	currentState->dataList = (omxData**) R_alloc(length(data), sizeof(omxData*));
+
+	for(k = 0; k < length(data); k++) {
+		PROTECT(nextLoc = VECTOR_ELT(data, k));			// Retrieve the data object
+		currentState->dataList[k] = omxNewDataFromMxData(NULL, nextLoc, currentState);
+		if(OMX_DEBUG) {
+			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
+				currentState->dataList[k], currentState->dataList[k]->rows, currentState->dataList[k]->cols);
+		}
+		UNPROTECT(1); // nextMat
+	}
 
 	/* Retrieve All Matrices From the MatList */
 
@@ -187,7 +205,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		PROTECT(nextAlg = VECTOR_ELT(algList, j));		// The next algebra or objective to process
 		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
 		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
-			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlg, data);
+			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlg);
 		} else {															// This is an algebra spec.
 			omxFillMatrixFromMxAlgebra(currentState->algebraList[j], nextAlg);
 		}

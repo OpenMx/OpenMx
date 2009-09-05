@@ -30,8 +30,10 @@
 	void omxInitState(omxState* state) {
 		state->numMats = 0;
 		state->numAlgs = 0;
+		state->numData = 0;
 		state->matrixList = NULL;	
 		state->algebraList = NULL;
+		state->dataList = NULL;
 		state->objectiveMatrix = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
@@ -44,7 +46,7 @@
 		strncpy(state->statusMsg, "", 1);
 	}
 
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxMatrix* objective) {
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
 		error("NYI: Can't fill a state from outside yet.  Besides, do you really need a single function to do this?");
 	}
 	
@@ -59,6 +61,11 @@
 		if(OMX_DEBUG) { Rprintf("Freeing Matrices.\n");}
 		for(k = 0; k < oo->numMats; k++) {
 			omxFreeAllMatrixData(oo->matrixList[k]);
+		}
+		
+		if(OMX_DEBUG) { Rprintf("Freeing Data.\n");}
+		for(k = 0; k < oo->numData; k++) {
+			omxFreeData(oo->dataList[k]);
 		}
 		
 	}

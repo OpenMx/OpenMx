@@ -23,11 +23,11 @@
 #include "omxSymbolTable.h"
 #include "omxAlgebraFunctions.h"
 
-extern void omxInitAlgebraObjective(omxObjective *oo, SEXP rObj, SEXP dataList);
-extern void omxInitFIMLObjective(omxObjective *oo, SEXP rObj, SEXP dataList);
-extern void omxInitRAMObjective(omxObjective *oo, SEXP rObj, SEXP dataList);
-extern void omxInitMLObjective(omxObjective *oo, SEXP rObj, SEXP dataList);
-extern void omxInitRObjective(omxObjective *oo, SEXP rObj, SEXP dataList);	
+extern void omxInitAlgebraObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitFIMLObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitRAMObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitMLObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitRObjective(omxObjective *oo, SEXP rObj);	
 const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength] = {
 	{"MxAlgebraObjective", 			&omxInitAlgebraObjective},
 	{"MxFIMLObjective",				&omxInitFIMLObjective},

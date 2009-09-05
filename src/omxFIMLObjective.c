@@ -21,12 +21,15 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
+#include "omxSymbolTable.h"
+#include "omxData.h"
 
 #ifndef _OMX_FIML_OBJECTIVE_
 #define _OMX_FIML_OBJECTIVE_ TRUE
 #define OMX_DEBUG_ROWS FALSE
 
 extern omxMatrix** matrixList;
+extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
 
 typedef struct omxDefinitionVar {		 	// Definition Var
 
@@ -39,20 +42,45 @@ typedef struct omxDefinitionVar {		 	// Definition Var
 
 typedef struct omxFIMLObjective {
 
-	omxMatrix* cov;
-	omxMatrix* means;
-	omxMatrix* data;
-	omxMatrix* dataColumns;
-	omxMatrix* smallRow;
-	omxMatrix* smallCov;
-	omxMatrix* RCX;
+	/* Parts of the R  MxFIMLObjective Object */
+	omxMatrix* cov;				// Covariance Matrix
+	omxMatrix* means;			// Vector of means
+	omxData* data;				// The data
+	omxMatrix* dataColumns;		// The order of columns in the data matrix
+	omxMatrix* dataRow;			// One row of data
+
 //	double* zeros;
-	omxDefinitionVar* defVars;
-	int numDefs;
+	
+	/* Structures determined from info in the MxFIMLObjective Object*/
+	omxDefinitionVar* defVars;	// A list of definition variables
+	int numDefs;				// The length of the defVars list
+
+	/* Reserved memory for faster calculation */
+	omxMatrix* smallRow;		// Memory reserved for operations on each data row
+	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
+	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
+	omxMatrix* RCX;				// Memory reserved for computations
+	
+	/* Structures for FIMLOrdinalObjective Objects */
+	omxMatrix* cor;				// To calculate correlation matrix from covariance
+	omxMatrix* weights;			// Covariance weights to shift parameter estimates
+	omxMatrix* smallWeights;	// Memory reserved for reduced weight matrix	
+	omxMatrix* thresholds;		// Matrix of column thresholds
+	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
+	
+	/* Argument space for SADMVN function */
+	double* lThresh;			// Specific list of lower thresholds
+	double* uThresh;			// Specific list of upper thresholds
+	double* corList;			// SADMVN-specific list of correlations
+	double* smallCor;			// Reduced SADMVN-specific list of correlations
+	int* Infin;					// Which thresholds to use
+	int maxPts;					// From MxOptions (?)
+	double absEps;				// From MxOptions
+	double relEps;				// From MxOptions
 
 } omxFIMLObjective;
 
-void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars, int numDefs) {
+void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, int numDefs) {
 
 	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
 
@@ -60,11 +88,11 @@ void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars
 	for(int k = 0; k < numDefs; k++) {
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG_ROWS) {
-				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxMatrixElement(data, row, defVars[k].column), defVars[k].matrices[l]);
+				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(data, row, defVars[k].column), defVars[k].matrices[l]);
 			}
-			*(defVars[k].location[l]) = omxMatrixElement(data, row, defVars[k].column);
+			*(defVars[k].location[l]) = omxDoubleDataElement(data, row, defVars[k].column);
 			omxMarkDirty(defVars[k].matrices[l]);
-			if(ISNA(omxMatrixElement(data, row, defVars[k].column))) {
+			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
 				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
 			}
 		}
@@ -72,6 +100,272 @@ void handleDefinitionVarList(omxMatrix* data, int row, omxDefinitionVar* defVars
 }
 
 void omxDestroyFIMLObjective(omxObjective *oo) {
+
+}
+
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights) {
+	// Maybe coerce this into an algebra or sequence of algebras?
+	
+	if(OMX_DEBUG) { Rprintf("Standardizing matrix."); }
+	
+	int rows = cov->rows;
+	int cols = cov->cols;
+
+	for(int i = 0; i < rows; i++) {
+		omxSetMatrixElement(weights, 0, i, sqrt(omxMatrixElement(cov, i, i)));
+	}
+
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < i; j++) {
+			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (omxVectorElement(weights, i) * omxVectorElement(weights, j));
+		}
+	}
+}
+
+void checkIncreasing(omxMatrix* om) {
+	for(int k = 0; k < om->cols; k++) {
+		double previous = -9e999;
+		double current;
+		for(int j = 0; j < om->rows; j++ ) {
+			current = omxMatrixElement(om, j, k);
+			if(current == NA_REAL || current == NA_INTEGER) {
+				continue;
+			}
+			if(current <= previous) {
+				char errstr[250];
+				sprintf(errstr, "Thresholds are not strictly increasing.");
+				omxRaiseError(om->currentState, -1, errstr);
+			}
+		}
+		if(current == NA_REAL || current == NA_INTEGER) {
+			continue;
+		}
+	}
+}
+
+void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
+	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
+	// Requires: Data, means, covariances, thresholds
+
+	SEXP matrixDims;
+	int *dimList;
+	double sum;
+	char u = 'U';
+	int info = 0;
+	double oned = 1.0;
+	double zerod = 0.0;
+	int onei = 1;
+	int mainDist = 0;
+	double Q = 0.0;
+	double logDet = 0;
+	int numDefs;
+	int nextRow, nextCol, numCols, numRemoves;
+
+	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *smallWeights;
+	omxMatrix *cor, *weights, *thresholds, *smallThresh;
+	omxData* data;
+	double *lThresh, *uThresh, maxPts, absEps, relEps, Error, value, *corList, *smallCor;
+	int *Infin;
+	omxDefinitionVar* defVars;
+
+	// Locals, for readability.  Compiler should cut through this.
+	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;
+	means		= ((omxFIMLObjective*)oo->argStruct)->means;
+	smallRow 	= ((omxFIMLObjective*)oo->argStruct)->smallRow;
+	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
+	smallMeans	= ((omxFIMLObjective*)oo->argStruct)->smallMeans;
+	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
+	data		= ((omxFIMLObjective*)oo->argStruct)->data;
+	dataColumns	= ((omxFIMLObjective*)oo->argStruct)->dataColumns;
+	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
+	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
+	data		= ((omxFIMLObjective*)oo->argStruct)->data;
+
+	cor 		= ((omxFIMLObjective*)oo->argStruct)->cor;
+	corList 	= ((omxFIMLObjective*)oo->argStruct)->corList;
+	smallCor	= ((omxFIMLObjective*)oo->argStruct)->smallCor;
+	weights		= ((omxFIMLObjective*)oo->argStruct)->weights;
+	smallWeights= ((omxFIMLObjective*)oo->argStruct)->smallWeights;
+	thresholds	= ((omxFIMLObjective*)oo->argStruct)->thresholds;
+	smallThresh	= ((omxFIMLObjective*)oo->argStruct)->smallThresh;
+	lThresh		= ((omxFIMLObjective*)oo->argStruct)->lThresh;
+	uThresh		= ((omxFIMLObjective*)oo->argStruct)->uThresh;
+
+	Infin		= ((omxFIMLObjective*)oo->argStruct)->Infin;
+	maxPts		= ((omxFIMLObjective*)oo->argStruct)->maxPts;
+	absEps		= ((omxFIMLObjective*)oo->argStruct)->absEps;
+	relEps		= ((omxFIMLObjective*)oo->argStruct)->relEps;
+	
+	if(numDefs == 0) {
+		if(OMX_DEBUG) { Rprintf("No Definition Vars: precalculating."); }
+		omxRecompute(cov);			// Only recompute this here if there are no definition vars
+		omxRecompute(thresholds);
+		checkIncreasing(thresholds);
+		omxResetAliasedMatrix(weights);
+		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
+	}
+
+	int toRemove[cov->cols];
+	int ipiv[cov->rows];
+	int lwork = 2*cov->rows;
+	int removeNone[thresholds->cols];
+	double work[lwork];
+
+	sum = 0.0;
+
+	for(int row = 0; row < data->rows; row++) {
+		oo->matrix->currentState->currentRow = row;		// Set to a new row.
+		logDet = 0.0;
+		Q = 0.0;
+
+		// Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
+		numCols = 0;
+		numRemoves = 0;
+
+		// Handle Definition Variables.
+		if(numDefs != 0) {
+			if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
+			handleDefinitionVarList(data, row, defVars, numDefs);
+			omxRecompute(cov);
+			omxRecompute(thresholds);
+			checkIncreasing(thresholds);
+			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
+		}
+		
+		int nextRow = 0;
+
+		for(int j = 0; j < dataColumns->cols; j++) {
+			int var = omxVectorElement(dataColumns, j);
+			int value = omxIntDataElement(data, row, var); 			// Indexing correction means this is the index of the upper bound +1.
+
+			if(ISNA(value) || value == NA_INTEGER) {
+				numRemoves++;
+//				toRemove[j] = 1;
+				Infin[j] = -1;
+			} else {										// For joint, check here for continuousness
+				value--;									// Correct for C indexing: value is now the index of the upper bound.
+				// TODO: Subsample the corList and thresholds for speed. And then check to see if it's actually faster.
+				int loc = var - numRemoves;
+				double mean;
+				if(means == NULL) mean = 0;
+				else mean = omxVectorElement(means, var);
+				double weight = omxVectorElement(weights, var);
+//				toRemove[j] = 0;
+				if(value == 0) { 				// Lowest value
+					lThresh[j] = (omxMatrixElement(thresholds, 0, var) - mean) / weight;
+					uThresh[j] = (omxMatrixElement(thresholds, 0, var) - mean) / weight;
+					Infin[j] = 0;
+				} else {
+					lThresh[j] = (omxMatrixElement(thresholds, value-1, var) - mean) / weight;
+					if(thresholds->rows > value) {
+						double tmp = omxMatrixElement(thresholds, (value), var);
+						tmp = (tmp - mean) / weight;
+						uThresh[j] = tmp;
+						if(lThresh[j] > tmp) {
+							char errstr[250];
+							sprintf(errstr, "Thresholds %d and %d cross in column %d for row %d.", value-1, value, var, row);
+							omxRaiseError(smallCov->currentState, -1, errstr);
+							return;
+						}
+					} else {
+						uThresh[j] = NA_INTEGER; // NA is a special to indicate +Inf
+					}
+					Infin[j] = 2;
+				}
+				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) {
+					uThresh[j] = lThresh[j];
+					Infin[j] = 1;
+				}
+				
+			if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+			nextRow++;
+			}
+		}
+		
+		if(numRemoves >= smallCov->rows) continue;
+
+		// SADMVN calls Alan Gentz's sadmvn.f--see appropriate file for licensing info.
+		// TODO: Check with Gentz: should we be using sadmvn or sadmvn?
+		// Parameters are:
+		// 	N 		int			# of vars
+		//	Lower	double*		Array of lower bounds
+		//	Upper	double*		Array of upper bounds
+		//	Infin	int*		Array of flags: 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
+		//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
+		//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
+		//	Abseps	double		Absolute error tolerance.  Yick.
+		//	Releps	double		Relative error tolerance.  Use EPSILON.
+		//	Error	&double		On return: absolute real error, 99% confidence
+		//	Value	&double		On return: evaluated value
+		//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
+		double Error;
+		double absEps = 1e-8;
+		double relEps = 0;
+		int MaxPts = 100000*cov->rows;
+		double likelihood;
+		int inform;
+		int numVars = smallCov->rows;
+		/* FOR DEBUGGING PURPOSES */
+/*		numVars = 2;
+		lThresh[0] = -2;
+		uThresh[0] = -1.636364;
+		Infin[0] = 2;
+		lThresh[1] = 0;
+		uThresh[1] = 0;
+		Infin[1] = 0;
+		smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
+		F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+
+		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) { 
+			Rprintf("Input to sadmvn is (%d rows):\n", numVars);
+			
+			omxPrint(omxDataRow(data, row, dataColumns, smallRow), "Data Row");
+			
+			for(int i = 0; i < numVars; i++) {
+				Rprintf("Row %d: %f, %f, %d\n", i, lThresh[i], uThresh[i], Infin[i]);
+			}
+			
+			Rprintf("Cor: (Lower %d x %d):", cov->rows, cov->cols);
+			for(int i = 0; i < cov->rows*(cov->rows-1)/2; i++) {
+				// Rprintf("Row %d of Cor: ", i);
+//				for(int j = 0; j < i; j++) 
+				Rprintf(" %f", corList[i]); // (i*(i-1)/2) + j]);
+//				Rprintf("\n");
+			}
+			Rprintf("\n"); 
+		}
+		
+		if(OMX_DEBUG_ROWS) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
+
+		if(inform == 2) {
+			error("Improper input to sadmvn.");
+		}
+		
+		if(likelihood < 10e-10) {
+			char errstr[250];
+			sprintf(errstr, "Likelihood 0 for row %d.", row);
+			if(OMX_DEBUG) { Rprintf(errstr); }
+			omxRaiseError(smallCov->currentState, -1, errstr);
+			return;			
+		}
+
+		logDet = -2 * log(likelihood);
+
+		sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
+
+		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) {
+			Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+				sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+		}
+	}
+
+	if(OMX_DEBUG) {
+		Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+			sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+	}
+
+	oo->matrix->data[0] = sum;
 
 }
 
@@ -107,8 +401,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int numDefs;
 	int nextRow, nextCol, numCols, numRemoves;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *data, *dataColumns;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;
 	omxDefinitionVar* defVars;
+	omxData *data;
 
 	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;		// Locals, for readability.  Should compile out.
 	means		= ((omxFIMLObjective*)oo->argStruct)->means;
@@ -140,12 +435,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		logDet = 1.0;
 		Q = 0.0;
 
-		// Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
 		numCols = 0;
 		numRemoves = 0;
+		omxResetAliasedMatrix(smallRow); 									// Resize smallrow
+		omxDataRow(data, row, dataColumns, smallRow);						// Populate data row
 
-		omxResetAliasedMatrix(smallRow); 										// Reset Row size
-		
 		// Handle Definition Variables.
 		if(numDefs != 0) {
 			handleDefinitionVarList(data, row, defVars, numDefs);
@@ -153,19 +447,19 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			omxRecompute(cov);
 			omxRecompute(means);
 		}
+
+		if(OMX_DEBUG) { omxPrint(means, "Local Means"); }
+		if(OMX_DEBUG) { omxPrint(smallRow, "Local Data Row"); }
 		
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
-			int value = (int) omxMatrixElement(dataColumns, 0, j);
-			double dataValue = omxMatrixElement(data, row, j);
+			double dataValue = omxMatrixElement(smallRow, 0, j);
 			if(isnan(dataValue) || dataValue == NA_REAL) {
 				numRemoves++;
 				toRemove[j] = 1;
 			} else {
 				if(means != NULL) {
 					omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
-				} else {
-					omxSetMatrixElement(smallRow, 0, j, dataValue);
 				}
 				numCols++;
 				toRemove[j] = 0;
@@ -173,17 +467,18 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			zeros[j] = 0;
 		}
 
-		if(dataColumns->cols <= numRemoves) continue;
+		if(cov->cols <= numRemoves) continue;
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 		
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 		
-		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
+		if(OMX_DEBUG) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
+
 			char errStr[250];
 			sprintf(errStr, "Covariance matrix is not positive-definite.");
 			omxRaiseError(oo->matrix->currentState, -1, errStr);
@@ -218,7 +513,7 @@ unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 		|| omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->means);
 }
 
-void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
+void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
@@ -228,24 +523,26 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->means == NULL) { error("No means in FIML evaluation.");}
+	if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
 	UNPROTECT(1);
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
 	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
-
+	
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholds")));
+	newObj->thresholds = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);
+	
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
-	index = INTEGER(nextMatrix)[0];
-	PROTECT(nextMatrix = VECTOR_ELT(dataList, index));
-	PROTECT(nextMatrix = GET_SLOT(nextMatrix, install("observed")));
-	newObj->data = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(3);
+	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
+	if(OMX_DEBUG) {omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
@@ -276,7 +573,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 		UNPROTECT(1); // unprotect itemList
 	}
 	UNPROTECT(1); // unprotect nextMatrix
-
+	
 	/* Temporary storage for calculation */
 	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE, oo->matrix->currentState);
@@ -284,18 +581,33 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj, SEXP dataList) {
 //	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
-	// We can alias smallrow to itself because: 1) it has local data 2) we populate it explicitly in FIML.
-	// TODO: do this more cleanly.
-	omxAliasMatrix(newObj->smallRow, newObj->smallRow);
-	
+
 	oo->objectiveFun = omxCallFIMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->repopulateFun = NULL;
 
+//	Rprintf("Checking 0x%d.", newObj->data);
+	if(OMX_DEBUG) { Rprintf("Checking %d.", omxDataColumnIsFactor(newObj->data, 0)); }
+	
+	if(omxDataColumnIsFactor(newObj->data, 0)) {
+		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
+		newObj->weights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
+		newObj->smallWeights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
+		newObj->smallMeans = omxInitMatrix(NULL, newObj->cov->cols, 1, TRUE, oo->matrix->currentState);
+		omxAliasMatrix(newObj->smallMeans, newObj->means);
+		omxAliasMatrix(newObj->smallWeights, newObj->weights);
+		newObj->corList = (double*) R_alloc(newObj->cov->cols * (newObj->cov->cols + 1) / 2, sizeof(double));
+		newObj->smallCor = (double*) R_alloc(newObj->cov->cols * (newObj->cov->cols + 1) / 2, sizeof(double));
+		newObj->lThresh = (double*) R_alloc(newObj->cov->cols, sizeof(double));
+		newObj->uThresh = (double*) R_alloc(newObj->cov->cols, sizeof(double));
+		newObj->Infin = (int*) R_alloc(newObj->cov->cols, sizeof(int));
+		
+		oo->objectiveFun = omxCallFIMLOrdinalObjective;
+	}
+
 	oo->argStruct = (void*) newObj;
-	if(OMX_DEBUG) {Rprintf("Finished import of FIML objective function.\n"); }
 }
 
 #endif /* _OMX_FIML_OBJECTIVE_ */

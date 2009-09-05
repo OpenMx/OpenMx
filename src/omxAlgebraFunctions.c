@@ -112,9 +112,12 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	static double one = 1.0;
 	
 	/* Conformability Check! */
-	if(preMul->cols != postMul->rows) 
-		error("Non-conformable matrices in Matrix Multiply.");
-		
+	if(preMul->cols != postMul->rows) {
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices [(%d x %d) and (%d x %d)] in Matrix Multiply.", preMul->rows, preMul->cols, postMul->rows, postMul->cols);
+		error(errstr);
+	}
+
 	if(result->rows != preMul->rows || result->cols != preMul->cols)
 		omxResizeMatrix(result, preMul->rows, postMul->cols, FALSE);
 	
@@ -221,7 +224,6 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(OMX_DEBUG) { Rprintf("Quadratic: clear.\n");}
 
 	omxFreeMatrixData(intermediate);
-//	Free(intermediate);
 
 }
 
@@ -734,5 +736,4 @@ void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result)
 	for(int j = 0; j < max; j++) {
 		data[j] = sqrt(data[j]);
 	}
-
 }

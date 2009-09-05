@@ -77,8 +77,8 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 			.Object@dataColumns <- generateDataColumns(flatModel, covariance, data)
 		}
 		.Object@covariance <- covarianceIndex
-		.Object@means <- meansIndex
-		.Object@data <- dIndex
+		.Object@means <- as.integer(meansIndex)
+		.Object@data <- as.integer(dIndex)
 		.Object@thresholds <- omxLocateIndex(flatModel, thresholds, name)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@thresholdColumns <- generateThresholdColumns(flatModel, thresholds, data)

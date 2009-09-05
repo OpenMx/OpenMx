@@ -43,6 +43,7 @@ typedef struct omxConstraint omxConstraint;
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxObjective.h"
+#include "omxData.h"
 //#include "omxOptimizer.h"											// omxOptimizer objects coming soon
 
 /* Structure definitions for object evaluation */  // Might be cleaner to give these their own files.
@@ -56,6 +57,8 @@ struct omxFreeVar {			// Free Variables
 struct omxConstraint {		// Free Variable Constraints
 	int size;
 	int opCode;
+	double* lbound;
+	double* ubound;
 	omxMatrix* result;
 };
 
@@ -73,9 +76,10 @@ struct omxState {													// The Current State of Optimization
 /* Model and Optimizer Pointers */
 
 //	omxOptimizer* optimizer;										// Current Optimizer
-	int numMats, numAlgs;											// Number of matrices and algebras
+	int numMats, numAlgs, numData;									// Number of matrices, algebras, and data elements
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
+	omxData** dataList;												// Data Objects
 	omxMatrix* objectiveMatrix;										// Objective Algebra
 
 	/* May want to farm these out to the omxObjective object. */
@@ -111,13 +115,14 @@ struct omxState {													// The Current State of Optimization
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state);									// Null Constructor
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxMatrix* objective); 
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective); 
 	void omxFreeState(omxState *oo);									// Destructor
 	
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error 
 																		// TODO: Move RaiseError to omxOptimizer.
 	
 /* Advance a step */
+	void omxRaiseError(omxState *oo, int errorCode, char* errorStr);
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
 	

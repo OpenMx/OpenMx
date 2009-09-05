@@ -80,11 +80,11 @@ convertDatasets <- function(flatModel) {
 				flatModel@datasets[[dataName]]@observed <- observed
 			} else if (!is.na(dataName)) {
 				data <- flatModel@datasets[[dataName]]@observed
-				if (is.data.frame(data)) {
-					warning(paste("Converting data frame to numeric matrix",
-					"in model", omxQuotes(flatModel@name)), call. = FALSE)
-					flatModel@datasets[[dataName]]@observed <- data.matrix(data)
-				}
+#				if (is.data.frame(data)) {
+#					warning(paste("Converting data frame to numeric matrix",
+#					"in model", omxQuotes(flatModel@name)), call. = FALSE)
+#					flatModel@datasets[[dataName]]@observed <- data.matrix(data)
+#				}
 			}
 		}	
 	}
