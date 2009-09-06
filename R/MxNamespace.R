@@ -130,6 +130,7 @@ omxGenerateNamespace <- function(model) {
 	result <- generateLocalNamespace(model)
 	entities[[model@name]] <- result[[1]]
 	parameters <- result[[2]]
+    values <- result[[3]]
 	results <- lapply(model@submodels, omxGenerateNamespace)
 	if (length(results) > 0) {
 		for (i in 1:length(results)) {
@@ -143,17 +144,22 @@ omxGenerateNamespace <- function(model) {
 				entities[[subnames[[j]]]] <- subentities[[j]]
 			}
 			parameters <- union(parameters, results[[i]][['parameters']])
+            values <- union(values, results[[i]][['values']])
 		}
 	}
-	return(list('entities' = entities, 'parameters' = parameters))
+	return(list('entities' = entities, 'parameters' = parameters, 'values' = values))
 }
 
-omxGetEntities <- function(namespace) {
+getEntities <- function(namespace) {
 	return(namespace[['entities']])	
 }
 
-omxGetParameters <- function(namespace) {
+getParameters <- function(namespace) {
 	return(namespace[['parameters']])	
+}
+
+getValues <- function(namespace) {
+	return(namespace[['values']])	
 }
 
 generateLocalNamespace <- function(model) {
@@ -174,11 +180,12 @@ generateLocalNamespace <- function(model) {
 	} else if (!is.null(data)) {
 		thisEntities <- c(thisEntities, data@name)
 	}
-	thisParameters <- namespaceGetParameters(model, thisEntities)
-	return(list('entities' = thisEntities, 'parameters' = thisParameters))
+	thisParameters <- namespaceGetParameters(model)
+    thisValues <- namespaceGetValues(model)
+	return(list('entities' = thisEntities, 'parameters' = thisParameters, 'values' = thisValues))
 }
 
-namespaceGetParameters <- function(model, thisEntities) {
+namespaceGetParameters <- function(model) {
 	parameters <- sapply(model@matrices, function(x) {
 			labels <- x@labels
 			labels <- unique(labels[!is.na(labels) & x@free])
@@ -187,6 +194,17 @@ namespaceGetParameters <- function(model, thisEntities) {
 	parameters <- unlist(parameters)
 	names(parameters) <- NULL
 	return(parameters)
+}
+
+namespaceGetValues <- function(model) {
+	values <- sapply(model@matrices, function(x) {
+			labels <- x@labels
+			labels <- unique(labels[!is.na(labels) & !x@free])
+			return(labels)
+		})
+	values <- unlist(values)
+	names(values) <- NULL
+	return(values)
 }
 
 namespaceGetEntities <- function(model, slotname, thisEntities) {
@@ -235,17 +253,33 @@ omxCheckNamespace <- function(model, namespace) {
 			"entities and free parameters:",
 			omxQuotes(overlap)), call. = FALSE)
 	}
+	overlap <- intersect(allEntities, namespace$values)
+	if (length(overlap) > 0) {
+		stop(paste("In model", omxQuotes(model@name),
+			"the following are both named",
+			"entities and fixed parameters:",
+			omxQuotes(overlap)), call. = FALSE)
+	}
+	overlap <- intersect(namespace$parameters, namespace$values)
+	if (length(overlap) > 0) {
+		stop(paste("In model", omxQuotes(model@name),
+			"the following are both free",
+			"and fixed parameters:",
+			omxQuotes(overlap)), call. = FALSE)
+	}
 }
 
 checkNamespaceIdentifier <- function(identifier, model, namespace) {
-	entities <- omxGetEntities(namespace)
-	parameters <- omxGetParameters(namespace)
+	entities <- getEntities(namespace)
+	parameters <- getParameters(namespace)
+    values <- getValues(namespace)
 	identifier <- omxReverseIdentifier(model, identifier)
 	space <- identifier[[1]]
 	name <- identifier[[2]]
 	if ( !(name %in% entities[[space]]) &&
 		 !(omxIsDefinitionVariable(name)) &&
 		 !(name %in% parameters) &&
+         !(name %in% values) &&
 		 !(name %in% names(omxReservedNames))) {
 		stop(paste("Unknown reference: ", 
 			omxQuotes(omxIdentifier(space, name))), call. = FALSE)
@@ -259,7 +293,8 @@ checkNamespaceAlgebra <- function(algebra, model, namespace) {
 
 checkNamespaceFormula <- function(formula, model, namespace) {
 	if (length(formula) == 1) {
-        if (!is.numeric(formula)) {
+        if (is.numeric(formula)) {
+        } else {
     		checkNamespaceIdentifier(as.character(formula), model, namespace)
         }
 	} else {
@@ -327,7 +362,11 @@ namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
 
 namespaceConvertFormula <- function(formula, modelname, namespace) {
 	if (length(formula) == 1) {
-        if (!is.numeric(formula)) {
+        if (is.symbol(formula) && 
+            (as.character(formula) %in% namespace$parameters || 
+             as.character(formula) %in% namespace$values)) {
+        } else if (is.numeric(formula)) {
+        } else {
             result <- omxConvertIdentifier(formula, modelname, namespace)
             if (is.symbol(formula) && is.character(result)) {
                 formula <- as.symbol(result)

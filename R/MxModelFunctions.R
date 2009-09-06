@@ -135,20 +135,21 @@ updateModelValuesHelper <- function(triples, value, flatModel, model) {
 	return(model)
 }
 
+removeTail <- function(lst, tailSize) {
+    newEnd <- length(lst) - tailSize
+    if (newEnd == 0) {
+        return(list())
+    } else {
+        return(lst[1 : newEnd])
+    }
+}
+
 updateModelMatrices <- function(model, flatModel, values) {
-    newEnd <- length(flatModel@matrices) - length(flatModel@constMatrices)
-    if (newEnd == 0) {
-        flatModel@matrices <- list()
-    } else {
-        flatModel@matrices <- flatModel@matrices[1 : newEnd]
-    }
+    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@constMatrices))
+    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@freeMatrices))
+    values <- removeTail(values, length(flatModel@constMatrices))    
+    values <- removeTail(values, length(flatModel@freeMatrices))
 	mList <- names(flatModel@matrices)
-    newEnd <- length(values) - length(flatModel@constMatrices)
-    if (newEnd == 0) {
-        values <- list()
-    } else {
-        values <- values[1 : newEnd]
-    }
 	if (length(mList) != length(values)) {
 		stop(paste("This model has", length(mList), 
 			"matrices, but you have given me", length(values),

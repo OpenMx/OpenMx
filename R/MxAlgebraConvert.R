@@ -13,44 +13,70 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-convertAlgebras <- function(flatModel) {
+convertAlgebras <- function(flatModel, convertArguments) {
     algebras <- flatModel@algebras
     if (length(algebras) == 0) {
         return(flatModel)
     }
     for(i in 1:length(algebras)) {
-        flatModel <- convertSingleAlgebra(algebras[[i]], flatModel)
+        flatModel <- convertSingleAlgebra(algebras[[i]], flatModel, convertArguments)
     }
     flatModel@matrices <- c(flatModel@matrices, flatModel@constMatrices)
+    names(flatModel@freeMatrices) <- lapply(flatModel@freeMatrices, function(x) { x@name })
+    flatModel@matrices <- c(flatModel@matrices, flatModel@freeMatrices)
     return(flatModel)
 }
 
-convertSingleAlgebra <- function(algebra, flatModel) {
-    flatModel <- convertFormulaInsertModel(algebra@formula, flatModel)
-    formula <- convertFormula(algebra@formula, flatModel)
+convertSingleAlgebra <- function(algebra, flatModel, convertArguments) {
+    flatModel <- convertFormulaInsertModel(algebra@formula, flatModel, convertArguments)
+    formula <- convertFormula(algebra@formula, flatModel, convertArguments)
     flatModel[[algebra@name]]@formula <- formula
     return(flatModel)   
 }
 
-convertFormulaInsertModel <- function(formula, flatModel) {
+convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
 	if (length(formula) == 1) {
+        charFormula <- as.character(formula)
         if (is.numeric(formula)) {
             flatModel <- insertNumericValue(formula, flatModel)
+        } else if (charFormula %in% convertArguments$values) {
+            flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
+        } else if (charFormula %in% convertArguments$parameters) {
+            flatModel <- insertFreeParameter(charFormula, convertArguments$startvals, flatModel)
         }
 	} else {
 		for (i in 2:length(formula)) {
-			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel)
+			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
 		}
 	}
     return(flatModel)
 }
 
-convertFormula <- function(formula, flatModel) {
+insertFixedValue <- function(valName, startvals, flatModel) {
+    value <- startvals[[valName]]
+    flatModel <- insertNumericValue(value, flatModel)
+    return(flatModel)
+}
+
+insertFreeParameter <- function(paramName, startvals, flatModel) {
+    value <- as.matrix(startvals[[paramName]])
+    if (!(paramName %in% names(flatModel@freeMatrices))) {
+        localName <- omxUntitledName()
+        identifier <- omxIdentifier(flatModel@name, localName)
+        matrix <- mxMatrix("Full", values = value, labels = paramName,
+            free = TRUE, name = localName)
+        matrix@name <- identifier
+        flatModel@freeMatrices[[paramName]] <- matrix
+    }
+    return(flatModel)
+}
+
+convertFormula <- function(formula, flatModel, convertArguments) {
 	if (length(formula) == 1) {
-        formula <- lookupNumericValue(formula, flatModel)
+        formula <- lookupNumericValue(formula, flatModel, convertArguments)
 	} else {
 		for (i in 2:length(formula)) {
-			formula[[i]] <- convertFormula(formula[[i]], flatModel)
+			formula[[i]] <- convertFormula(formula[[i]], flatModel, convertArguments)
 		}
 	}
     return(formula)
@@ -82,7 +108,7 @@ insertNumericValue <- function(value, flatModel) {
     return(flatModel)
 }
 
-lookupNumericValue <- function(value, flatModel) {
+lookupNumericValue <- function(value, flatModel, convertArguments) {
     if (is.numeric(value)) {
         value <- as.matrix(value)
         for (i in 1:length(flatModel@constMatrices)) {
@@ -93,6 +119,19 @@ lookupNumericValue <- function(value, flatModel) {
                 return(as.symbol(flatModel@constMatrices[[i]]@name))
             }
         }
+    } else if (as.character(value) %in% convertArguments$values) {
+        value <- as.matrix(convertArguments$startvals[[as.character(value)]])
+        for (i in 1:length(flatModel@constMatrices)) {
+            constMatrix <- flatModel@constMatrices[[i]]@values
+            if (nrow(value) == nrow(constMatrix) &&
+                ncol(value) == ncol(constMatrix) &&
+                all(value == constMatrix)) {
+                return(as.symbol(flatModel@constMatrices[[i]]@name))
+            }
+        }
+    } else if (as.character(value) %in% convertArguments$parameters) {
+        matrix <- flatModel@freeMatrices[[as.character(value)]]
+        return(as.symbol(matrix@name))
     } else {
         return(value)
     }

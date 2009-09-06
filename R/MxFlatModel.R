@@ -110,24 +110,27 @@ generateDefinitionLocations <- function(datasets) {
 	return(result)
 }
 
-omxCheckFreeVariables <- function(flatModel, namespace) {
+omxCheckVariables <- function(flatModel, namespace) {
 	if(length(flatModel@matrices) > 0) {
 		startVals <- list()
 		freeVars <- list()
 		fixedVars <- list()
 		bounds <- list()
 		for(i in 1:length(flatModel@matrices)) {
-			result <- checkFreeVariablesHelper(flatModel@matrices[[i]], startVals, 
+			result <- checkVariablesHelper(flatModel@matrices[[i]], startVals, 
 				freeVars, fixedVars, bounds)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
 			bounds <- result[[4]]
 		}
-	}
+        return(startVals)
+	} else {
+        return(list())
+    }
 }
 
-checkFreeVariablesHelper <- function(matrix, startVals, freeVars,
+checkVariablesHelper <- function(matrix, startVals, freeVars,
 		fixedVars, bounds) {
 	labels <- matrix@labels
 	free <- matrix@free
