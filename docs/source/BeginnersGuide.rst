@@ -122,3 +122,52 @@ Model Execution
 ^^^^^^^^^^^^^^^^
 
 The mxRun function will run a model through the optimizer.  The return value of this function is an identical model, with all the free parameters in the cells of the matrices of the model assigned to their final values.  The summary function is a convenient method for displaying the highlights of a model after it has been executed.
+
+Path Model Specification
+------------------------
+
+.. image:: OneFactorFiveIndicators.png
+
+.. code-block:: r
+    :linenos:
+
+	require(OpenMx)
+
+	data(demoOneFactor)
+
+	manifests <- names(demoOneFactor)
+	latents <- c("G")
+
+	factorModel <- mxModel("One Factor", type="RAM",
+		manifestVars = manifests,
+		latentVars = latents,
+		mxPath(from=latents, to=manifests),
+		mxPath(from=manifests, arrows=2),
+		mxPath(from=latents, arrows=2,
+			free=F, values=1.0),
+		mxData(cov(demoOneFactor), type="cov",
+			numObs=500))
+
+	summary(mxRun(factorModel))
+
+We will now re-create the model from the previous section, but this time we will use a RAM-style specification technique. Let's break down what is happening in each section of this example.
+
+Preamble
+^^^^^^^^
+
+Every OpenMx script must begin with either ``library(OpenMx)`` or ``require(OpenMx)``.  These commands will load the OpenMx library.
+
+Reading Data
+^^^^^^^^^^^^
+
+The ``data`` function can be used to read sample data that has been pre-packaged into the R library.  In order to read your own data, you will most likely use the ``read.table``, ``read.csv``, ``read.delim`` functions, or other specialized functions available from CRAN to read from 3rd party sources.
+
+Model Creation
+^^^^^^^^^^^^^^
+
+The mxModel function is used to create a model.  By specifying the ``type`` argument to equal 'RAM', we create a path style model. A RAM style model must include a vector of manifest variables and a vector for latent variables.  In this case the manifest variables are ``c("x1", "x2", "x3", "x4", "x5")`` and the latent variable is ``c("G")``.
+
+Path Creation
+^^^^^^^^^^^^^
+
+Paths are created using the mxPath function. Multiple paths can be created with a single invocation of the mxPath function. The 'from' argument specifies the path sources, and the 'to' argument specifies the path sinks.  If the 'to' argument is missing, then it is assumed to be identical to the 'from' argument. By default, the :math:`i^{th}` element of the 'from' argument is matched with the :math:`i^{th}` element of the 'to' argument, in order to create a path.  'free' is a boolean vector that specifies whether a path is free or fixed. 'values' is a numeric vector that specifies the starting value of the path. 'labels' is a character vector that assigns a label to each free or fixed parameter.
