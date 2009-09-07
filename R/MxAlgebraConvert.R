@@ -23,7 +23,8 @@ convertAlgebras <- function(flatModel, convertArguments) {
     }
     flatModel@matrices <- c(flatModel@matrices, flatModel@constMatrices)
     names(flatModel@freeMatrices) <- lapply(flatModel@freeMatrices, function(x) { x@name })
-    flatModel@matrices <- c(flatModel@matrices, flatModel@freeMatrices)
+    names(flatModel@outsideMatrices) <- lapply(flatModel@outsideMatrices, function(x) { x@name })    
+    flatModel@matrices <- c(flatModel@matrices, flatModel@freeMatrices, flatModel@outsideMatrices)
     return(flatModel)
 }
 
@@ -43,6 +44,9 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
             flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
         } else if (charFormula %in% convertArguments$parameters) {
             flatModel <- insertFreeParameter(charFormula, convertArguments$startvals, flatModel)
+        } else if (!is.null(flatModel[[charFormula]])) {
+        } else if (exists(charFormula, envir = globalenv()) && is.numeric(get(charFormula, envir = globalenv()))) {
+            flatModel <- insertOutsideValue(charFormula, flatModel)
         }
 	} else {
 		for (i in 2:length(formula)) {
@@ -108,6 +112,16 @@ insertNumericValue <- function(value, flatModel) {
     return(flatModel)
 }
 
+insertOutsideValue <- function(varname, flatModel) {
+    value <- as.matrix(get(varname, envir = globalenv()))
+    localName <- omxUntitledName()
+    identifier <- omxIdentifier(flatModel@name, localName)
+    matrix <- mxMatrix("Full", values = value, name = localName)
+    matrix@name <- identifier
+    flatModel@constMatrices[[varname]] <- matrix
+    return(flatModel)
+}
+
 lookupNumericValue <- function(value, flatModel, convertArguments) {
     if (is.numeric(value)) {
         value <- as.matrix(value)
@@ -132,6 +146,11 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
     } else if (as.character(value) %in% convertArguments$parameters) {
         matrix <- flatModel@freeMatrices[[as.character(value)]]
         return(as.symbol(matrix@name))
+    } else if (!is.null(flatModel[[as.character(value)]])) {
+    	return(value)
+    } else if (as.character(value) %in% names(flatModel@outsideMatrices)) {
+        matrix <- flatModel@outsideMatrices[[as.character(value)]]
+        return(as.symbol(matrix@name))    
     } else {
         return(value)
     }

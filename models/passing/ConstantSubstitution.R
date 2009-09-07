@@ -1,5 +1,6 @@
 require(OpenMx)
-foo <- mxAlgebra(-1 + 2.0 + 5e-1, 'foo')
+bar <- matrix(c(1:4), 2, 2)
+foo <- mxAlgebra((-1 + 2.0 + 5e-1) %x% bar, 'foo')
 model <- mxModel('model', foo)
 modelOut <- mxRun(model)
-omxCheckEquals(1.5, mxEval(foo, modelOut))
+omxCheckEquals(matrix(c(1.5, 3.0, 4.5, 6.0), 2, 2), mxEval(foo, modelOut))

@@ -150,7 +150,8 @@ checkAlgebras <- function(model, flatModel) {
         expr <- substitute(mxEval(x, model, compute=TRUE),
             list(x = as.symbol(algebra@name)))
         tryCatch(eval(expr), error = function(x) {
-                stop(paste("The algebra", omxQuotes(algebra@name), 
+                stop(paste("The algebra", 
+                	omxQuotes(simplifyName(algebra@name, model@name)), 
                     "in model", omxQuotes(model@name), 
                     "generated the error message:",
                     x$message), call. = FALSE)

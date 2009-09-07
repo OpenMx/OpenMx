@@ -147,8 +147,10 @@ removeTail <- function(lst, tailSize) {
 updateModelMatrices <- function(model, flatModel, values) {
     flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@constMatrices))
     flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@freeMatrices))
+    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@outsideMatrices))
     values <- removeTail(values, length(flatModel@constMatrices))    
     values <- removeTail(values, length(flatModel@freeMatrices))
+    values <- removeTail(values, length(flatModel@outsideMatrices))    
 	mList <- names(flatModel@matrices)
 	if (length(mList) != length(values)) {
 		stop(paste("This model has", length(mList), 
