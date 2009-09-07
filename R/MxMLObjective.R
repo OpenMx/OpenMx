@@ -18,20 +18,16 @@ setClass(Class = "MxMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
-		definitionVars = "list",
-		thresholds = "MxCharOrNumber",
-		dataColumns = "numeric",
-		thresholdColumns = "numeric"),
+		thresholds = "MxCharOrNumber"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxMLObjective",
-	function(.Object, covariance, means, thresholds, data = as.integer(NA), 
-		definitionVars = list(), name = 'objective') {
+	function(.Object, covariance, means, thresholds, 
+		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
 		.Object@data <- data
-		.Object@definitionVars <- definitionVars
 		.Object@thresholds <- thresholds
 		return(.Object)
 	}
@@ -62,28 +58,41 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		if(is.na(data)) {
 			msg <- paste("In model", omxQuotes(model@name),
 				"the ML objective does not have a dataset specified")
-			stop(msg, call.=FALSE)
-		}		
+			stop(msg, call. = FALSE)
+		}
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
-		if (flatModel@datasets[[.Object@data]]@type == 'raw') {
-			if (is.na(.Object@means)) {
-				msg <- paste("In model", omxQuotes(model@name),
-					"the ML objective has a raw dataset specified",
-					"but no expected means vector")
-				stop(msg, call.=FALSE)
-			}
-			.Object@dataColumns <- generateDataColumns(flatModel, covariance, data)
-		}
 		.Object@covariance <- covarianceIndex
-		.Object@means <- as.integer(meansIndex)
-		.Object@data <- as.integer(dIndex)
-		.Object@thresholds <- omxLocateIndex(flatModel, thresholds, name)
-		.Object@definitionVars <- generateDefinitionList(flatModel)
-		.Object@thresholdColumns <- generateThresholdColumns(flatModel, thresholds, data)
+		.Object@means <- meansIndex
+		.Object@data <- dIndex
 		return(.Object)
 })
+
+
+setMethod("omxObjModelConvert", "MxMLObjective",
+	function(.Object, flatModel, model) {
+		if(is.na(.Object@data)) {
+			msg <- paste("The ML objective",
+				"does not have a dataset associated with it in model",
+				omxQuotes(model@name))
+			stop(msg, call. = FALSE)
+		}		
+		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
+			return(model)
+		}
+		if (is.na(.Object@means)) {
+			msg <- paste("In model", omxQuotes(model@name),
+				"the ML objective has a raw dataset specified",
+				"but no expected means vector")
+			stop(msg, call. = FALSE)
+		}
+		objective <- mxFIMLObjective(.Object@covariance, .Object@means, .Object@thresholds)
+		model@objective <- objective
+		return(model)
+	}
+)
+
 
 mxMLObjective <- function(covariance, means = NA, thresholds = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
