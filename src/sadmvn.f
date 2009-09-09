@@ -283,7 +283,7 @@
 *     First move any doubly infinite limits to innermost positions
 *
       IF ( INFIS .LT. N ) THEN
-         DO I = N, N-INFIS+1, -1
+         outer: DO I = N, N-INFIS+1, -1
             IF ( INFI(I) .GE. 0 ) THEN
                DO J = 1,I-1
                   IF ( INFI(J) .LT. 0 ) THEN
@@ -311,11 +311,11 @@
                      TMP = INFI(J)
                      INFI(J) = INFI(I)
                      INFI(I) = TMP
-                     GO TO 30
+                     CYCLE outer
                   ENDIF
                END DO
             ENDIF
- 30      END DO
+         END DO outer
       ENDIF
 *
 *     Determine Cholesky decomposition
@@ -1183,16 +1183,16 @@
 *     First move any doubly infinite limits to innermost positions
 *
       IF ( INFIS .LT. N ) THEN
-         DO I = N,N-INFIS+1,-1
+         outer: DO I = N,N-INFIS+1,-1
             IF ( INFI(I) .GE. 0 ) THEN
-               DO J = 1,I-1
+               inner: DO J = 1,I-1
                   IF ( INFI(J) .LT. 0 ) THEN
                      CALL RCSWAP(J, I, A, B, INFI, N, COV)
-                     GO TO 10
+                     CYCLE outer
                   ENDIF
-               END DO
+               END DO inner
             ENDIF
- 10      END DO
+         END DO outer
 *
 *     Sort remaining limits and determine Cholesky decomposition
 *
