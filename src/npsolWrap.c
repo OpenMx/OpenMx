@@ -122,9 +122,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP data, SEXP options, SEXP state) {
 	// For now, assume no constraints.
 
-	int N; // n,
-	SEXP nameString;
-
 	/* NPSOL Arguments */
 	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
 
@@ -132,7 +129,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int *iw; // , istate;
 
 //	double f;
-	double *A, *bl, *bu, *c, *clambda, *x, *w; //  *g, *R, *cJac,
+	double *A, *bl, *bu, *c, *clambda, *x = NULL, *w; //  *g, *R, *cJac,
 	double *est, *grad, *hess;
 
 	/* Helpful variables */
@@ -242,7 +239,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	 list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
     */
 	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
-	omxMatrix dm;
 	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
@@ -497,7 +493,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, msg, iterations, ans, names, algebras, algebra, matrices;
+	SEXP minimum, estimate, gradient, hessian, code, status, iterations, ans, names, algebras, algebra, matrices;
 
 	int numReturns = 8;
 

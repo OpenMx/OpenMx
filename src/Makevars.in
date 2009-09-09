@@ -4,5 +4,5 @@ NPSOL_DIR=@npsol_dir@
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR)
 
 # Uncomment the next line to turn on all debugging output in the backend
-# PKG_CFLAGS=-DDEBUGMX
+# PKG_CFLAGS=-Wall -DDEBUGMX
 # PKG_CFLAGS=-DVERBOSEMX

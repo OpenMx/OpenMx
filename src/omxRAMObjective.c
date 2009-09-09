@@ -99,12 +99,10 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxCopyMatrix(Z, A);
 
 	const char NoTrans = 'n';
-	const char Trans = 'T';
 	double MinusOne = -1.0;
 	double fmean = 0.0;
 	double Zero = 0.0;
 	double One = 1.0;
-	double Two = 2.0;
 	int OneI = 1;
 	int ipiv[I->rows], j, k;
 	char u = 'U';
@@ -242,11 +240,10 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	// Read the observed covariance matrix from the data argument.
 
-	SEXP newMatrix, dataObj;
-	int index;
+	SEXP newMatrix;
 
 	PROTECT(newMatrix = GET_SLOT(rObj, install("data")));
-	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", index); }
+	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", AS_INTEGER(newMatrix)); }
 	omxData* dataElt = omxNewDataFromMxDataPtr(newMatrix, oo->matrix->currentState);
 	newObj->cov = omxDataMatrix(dataElt, NULL);
 	if(newObj->cov->rows != newObj->cov->cols) {
@@ -314,7 +311,6 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	int info;
 	char u = 'U';
 	double det = 1.0, sum = 0.0;
-	int ipiv[newObj->C->cols];
 	omxCopyMatrix(newObj->C, newObj->cov);
 
 //	F77_CALL(dgetrf)(&(newObj->C->rows), &(newObj->C->cols), newObj->C->data, &(newObj->C->leading), ipiv, &info);

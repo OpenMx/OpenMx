@@ -167,7 +167,6 @@ int omxIntDataElement(omxData *od, int row, int col) {
 
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 	double dataElement;
-	int filter = 1;
 	
 	if(od->dataMat != NULL) {
 		if(om != NULL) {
@@ -207,6 +206,7 @@ unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	char errstr[250];
 	sprintf(errstr, "Attempted to access column %d of a %d-column data object.\n", col, od->cols);
 	omxRaiseError(od->currentState, -1, errstr);
+    return FALSE;
 }
 
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
@@ -229,9 +229,7 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 	if(om == NULL) {
 		om = omxInitMatrix(om, 1, cols, TRUE, od->currentState);
 	}
-	
-	int currentCol = 0;
-	
+		
 	for(int i = 0; i < cols; i++) {
 		omxSetMatrixElement(om, 1, i, omxVectorElement(od->meansMat, omxVectorElement(colList, i)));
 	}

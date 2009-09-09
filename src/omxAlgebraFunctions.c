@@ -291,9 +291,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 		error("Non-conformable matrices in Matrix Subtract.");
 		
 	omxCopyMatrix(result, inMat);
-	
-	int max = inMat->cols * inMat->rows;
-	
+		
 	if(OMX_DEBUG) {
 		omxPrint(subtrahend, "Subtracting");
 		omxPrint(inMat, "From");

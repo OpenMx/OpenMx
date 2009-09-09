@@ -109,7 +109,6 @@ void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights
 	if(OMX_DEBUG) { Rprintf("Standardizing matrix."); }
 	
 	int rows = cov->rows;
-	int cols = cov->cols;
 
 	for(int i = 0; i < rows; i++) {
 		omxSetMatrixElement(weights, 0, i, sqrt(omxMatrixElement(cov, i, i)));
@@ -124,7 +123,7 @@ void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights
 
 void checkIncreasing(omxMatrix* om) {
 	for(int k = 0; k < om->cols; k++) {
-		double previous = -9e999;
+		double previous = - INFINITY;
 		double current;
 		for(int j = 0; j < om->rows; j++ ) {
 			current = omxMatrixElement(om, j, k);
@@ -148,24 +147,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
 	// Requires: Data, means, covariances, thresholds
 
-	SEXP matrixDims;
-	int *dimList;
 	double sum;
-	char u = 'U';
-	int info = 0;
-	double oned = 1.0;
-	double zerod = 0.0;
-	int onei = 1;
-	int mainDist = 0;
 	double Q = 0.0;
 	double logDet = 0;
 	int numDefs;
-	int nextRow, nextCol, numCols, numRemoves;
+	int numCols, numRemoves = 0;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *smallWeights;
 	omxMatrix *cor, *weights, *thresholds, *smallThresh;
 	omxData* data;
-	double *lThresh, *uThresh, maxPts, absEps, relEps, Error, value, *corList, *smallCor;
+	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor;
 	int *Infin;
 	omxDefinitionVar* defVars;
 
@@ -206,12 +197,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
-	int toRemove[cov->cols];
-	int ipiv[cov->rows];
-	int lwork = 2*cov->rows;
-	int removeNone[thresholds->cols];
-	double work[lwork];
-
 	sum = 0.0;
 
 	for(int row = 0; row < data->rows; row++) {
@@ -246,7 +231,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			} else {										// For joint, check here for continuousness
 				value--;									// Correct for C indexing: value is now the index of the upper bound.
 				// TODO: Subsample the corList and thresholds for speed. And then check to see if it's actually faster.
-				int loc = var - numRemoves;
 				double mean;
 				if(means == NULL) mean = 0;
 				else mean = omxVectorElement(means, var);
@@ -387,19 +371,16 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
-	SEXP matrixDims;
-	int *dimList;
 	double sum;
 	char u = 'U';
 	int info = 0;
 	double oned = 1.0;
 	double zerod = 0.0;
 	int onei = 1;
-	int mainDist = 0;
 	double Q = 0.0;
 	double logDet = 0;
 	int numDefs;
-	int nextRow, nextCol, numCols, numRemoves;
+	int numCols, numRemoves;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;
 	omxDefinitionVar* defVars;
@@ -423,9 +404,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 
 	int toRemove[cov->cols];
-	int ipiv[cov->rows];
-	int lwork = 2*cov->rows;
-	double work[lwork];
 	int zeros[cov->cols];
 
 	sum = 0.0;
@@ -518,7 +496,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
 	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
-	int nextDef, index, data, column;
+	int nextDef, index;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));

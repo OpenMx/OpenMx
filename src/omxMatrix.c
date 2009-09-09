@@ -230,7 +230,12 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 double omxVectorElement(omxMatrix *om, int index) {
 	if(index < om->rows * om->cols) {
 		return om->data[index];
-	}
+	} else {
+		char errstr[250];
+		sprintf(errstr, "Requested improper index (%d) from (%d, %d) vector.", index, om->rows, om->cols);
+		error(errstr);
+        return (NA_REAL);
+    }
 }
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
@@ -239,6 +244,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 		char errstr[250];
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->originalRows, om->originalCols);
 		error(errstr);
+        return (NA_REAL);
 	}
 	if(om->colMajor) {
 		index = col * om->originalRows + row;
@@ -281,13 +287,12 @@ unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
 	for(int i = 0; i < om->numPopulateLocations; i++) {
 		if(omxNeedsUpdate(om->populateFrom[i])) return TRUE;	// Make sure it's up to date
 	}
-
+    return FALSE;
 };
 
 omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
 /* Populates the fields of a omxMatrix with details from an R Matrix. */
 
-	SEXP className;
 	SEXP matrixDims;
 	SEXP matrix = mxMatrix;
 	int* dimList;
@@ -355,7 +360,6 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
 	if(OMX_DEBUG) { Rprintf("Processing Population List: %d elements.\n", length(matStruct) - 1); }
 	SEXP subList;
-	SEXP matLoc, xLoc, yLoc;
 
 	if(length(matStruct) > 1) {
 		int numPopLocs = length(matStruct) - 1;
@@ -404,10 +408,8 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		oldCols = om->aliasedPtr->cols;
 	}
 
-	int numCols = 0;
 	int nextCol = 0;
 	int nextRow = 0;
-	int j,k;
 
 	if(om->rows > om->originalRows || om->cols > om->originalCols) {	// sanity check.
 		error("Aliased Matrix is too small for alias.");

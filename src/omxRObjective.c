@@ -69,7 +69,7 @@ unsigned short int omxNeedsUpdateRObjective(omxObjective* oo) {
 void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	omxRObjective* rObjective = (omxRObjective*)oo->argStruct; 
 
-	SEXP theCall, theReturn, estimate;
+	SEXP theCall, estimate;
 
 	PROTECT(estimate = allocVector(REALSXP, n));
 	double *est = REAL(estimate);

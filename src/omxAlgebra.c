@@ -100,7 +100,7 @@ int omxAlgebraNeedsUpdate(omxAlgebra *oa)
 			return TRUE;
 		}
 	}
-
+    return FALSE;
 }
 
 omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os) {
@@ -140,7 +140,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 				if(OMX_DEBUG) { Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j); }
 			UNPROTECT(1); /* algebraArg */
 		}
-	} else if(value == 0) {		// This is an algebra pointer, and we're a No-op algebra.
+	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
 		PROTECT(algebraElt = VECTOR_ELT(algebra, 1));
 		
@@ -190,10 +190,7 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 }
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os) {
-	int value;
-	omxAlgebra* newAlg;
 	omxMatrix* newMat;
-	SEXP argInts;
 	if(OMX_DEBUG) { Rprintf("Helper: processing next arg..."); }
 	
 	if(!IS_INTEGER(algebraArg)) {

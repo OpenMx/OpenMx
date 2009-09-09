@@ -37,7 +37,7 @@
 		state->objectiveMatrix = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
-		state->optimizerState;			
+		state->optimizerState = NULL;
 
 		state->computeCount = 0;
 		state->currentRow = 0;

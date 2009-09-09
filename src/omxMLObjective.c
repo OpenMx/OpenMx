@@ -79,8 +79,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
-	SEXP matrixDims;
-	int *dimList;
 	double sum = 0.0, det = 1.0;
 	char u = 'U';
 	char r = 'R';
@@ -89,10 +87,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	double zerod = 0.0;
 	double minusoned = -1.0;
 	int onei = 1;
-	int mainDist = 0;
 	double fmean = 0.0;
-	double logDet = 0;
-	int nextRow, nextCol, numCols, numRemoves;
 
 	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C, *I;
 
@@ -109,9 +104,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	I		 	= ((omxMLObjective*)oo->argStruct)->I;
 	double n 	= ((omxMLObjective*)oo->argStruct)->n;
 	double Q	= ((omxMLObjective*)oo->argStruct)->logDetObserved;
-	double* work = ((omxMLObjective*)oo->argStruct)->work;
-	int* lwork = &(((omxMLObjective*)oo->argStruct)->lwork);
-	int ipiv[scov->rows];
 
     /* Recompute and recopy */
 	omxRecompute(cov);							// We assume data won't need to be recomputed
@@ -229,9 +221,8 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
 	
-	SEXP nextMatrix, itemList, nextItem, dataElt;
-	int nextDef, index, data, column;
-	int *items, info=0;
+	SEXP nextMatrix;
+	int info=0;
 	double det=1.0;
 	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
