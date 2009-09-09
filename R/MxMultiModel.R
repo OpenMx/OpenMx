@@ -52,11 +52,10 @@ getIndependentsHelper <- function(model, lst) {
 }
 
 freezeMatrix <- function(mxMatrix) {
-	type <- class(mxMatrix)[[1]]
 	rows <- nrow(mxMatrix)
-	cols <- ncol(mxMatrix)	
-	return(new(type, mxMatrix@name, mxMatrix@values, 
-		FALSE, mxMatrix@labels, rows, cols))
+	cols <- ncol(mxMatrix)
+	mxMatrix@free <- matrix(FALSE, rows, cols)	
+	return(mxMatrix)
 }
 
 freezeAlgebra <- function(mxAlgebra) {
@@ -70,10 +69,15 @@ freezeObjective <- function(model) {
 	objective <- model@objective
 	if (!is.null(objective)) {
 		model[[objective@name]] <- NULL
-		if (!is.null(objective@result)) {
-			model[[objective@name]] <- mxMatrix(
-				values = objective@result,
-				name = objective@name)
+		if (length(objective@result) > 0) {
+			newMatrix <- mxMatrix(values = objective@result)
+			newMatrix@name <- objective@name
+			model[[objective@name]] <- newMatrix
+		} else {
+			newMatrix <- mxMatrix('Full', 1, 1)
+			newMatrix@values <- as.matrix(as.numeric(NA))
+			newMatrix@name <- objective@name
+			model[[objective@name]] <- newMatrix
 		}
 	}
 	return(model)

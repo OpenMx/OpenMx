@@ -27,8 +27,8 @@ mxRun <- function(model) {
 	independents <- omxGetIndependents(dshare)
 	independents <- sfLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
-	depModel <- omxReplaceModels(model, independents)
-	flatModel <- omxFlattenModel(depModel, namespace)
+	model <- omxReplaceModels(model, independents)
+	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
     flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
