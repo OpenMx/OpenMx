@@ -16,7 +16,7 @@
 omxLapply <- function(x, fun, ...) {
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-    	return(sfLapply(x, fun, ...))
+		return(sfLapply(x, fun, ...))
 	} else {
 		return(lapply(x, fun, ...))
 	}
