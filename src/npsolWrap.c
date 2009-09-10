@@ -493,7 +493,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, iterations, ans, names, algebras, algebra, matrices;
+	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans, names, algebras, algebra, matrices;
 
 	int numReturns = 8;
 
@@ -593,8 +593,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(code = NEW_NUMERIC(1));
 	REAL(code)[0] = currentState->statusCode;
 	SET_VECTOR_ELT(status, 1, code);
-	SET_VECTOR_ELT(status, 2, mkChar(currentState->statusMsg));
-
+	PROTECT(statusMsg = allocVector(STRSXP, 1));
+	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
+	SET_VECTOR_ELT(status, 2, statusMsg);
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	SET_STRING_ELT(names, 2, mkChar("gradient"));
@@ -622,7 +623,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(currentState);
 
-	UNPROTECT(12);						// Unprotect Output Parameters
+	UNPROTECT(13);						// Unprotect Output Parameters
 
 	return(ans);
 

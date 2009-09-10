@@ -87,7 +87,7 @@ processOptimizerOutput <- function(flatModel, matrixNames,
     } else if (output$status[[1]] < 0) {
         stop(paste("The job for model", omxQuotes(flatModel@name),
             "exited abnormally with the error message:",
-            output$status[[3]]))
+            output$status[[3]]), call. = FALSE)
     }
 	return(output)
 }
