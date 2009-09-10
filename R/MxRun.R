@@ -13,6 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+omxLapply <- function(x, fun, ...) {
+	libraries <- search()
+	if ("package:snowfall" %in% libraries) {
+    	return(sfLapply(x, fun, ...))
+	} else {
+		return(lapply(x, fun, ...))
+	}
+}
 
 mxRun <- function(model) {
 	cat("Running", model@name, "\n")
@@ -25,7 +33,7 @@ mxRun <- function(model) {
 	namespace <- omxGenerateNamespace(model)
 	dshare <- shareData(model)
 	independents <- omxGetIndependents(dshare)
-	independents <- sfLapply(independents, mxRun)
+	independents <- omxLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(model, namespace)

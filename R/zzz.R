@@ -18,8 +18,6 @@
 #TODO: replace with .onLoad once namespaces are implemented
 .First.lib <- function(libname, pkgname) {
    library.dynam("OpenMx") 
-   sfStop()
-   sfInit(parallel = FALSE)
    options('mxDefaultType' = 'raw', 
    	'mxOptimizerOptions' = npsolOptions, 
    	'mxRAMDefaultSingle' = 1.00, 
