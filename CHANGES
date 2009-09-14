@@ -15,6 +15,7 @@ TRUNK
 * implemented global variable substitution in mxAlgebra statements
 * turned off matrix and algebra substitution until a new proposal is decided
 * snow and snowfall are no longer required packages
+* added cycle detection to algebra expressions
 
 Release 0.1.3-776
 =============
