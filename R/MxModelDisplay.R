@@ -16,7 +16,14 @@
 
 omxQuotes <- function(name) {
 	listTerms <- sapply(name, function(x) {paste("'", x, "'", sep = '')} )
-	return(paste(listTerms, collapse=', '))
+	if (length(listTerms) == 2) {
+		return(paste(listTerms[1], ' and ', listTerms[2], sep = ''))
+	} else if (length(listTerms) > 2) {
+		return(paste(paste(listTerms[1:length(listTerms) - 1], collapse=', '),
+			', and ', listTerms[[length(listTerms)]], sep = ''))
+	} else {
+		return(listTerms)
+	}
 }
 
 printOptions <- function(options) {

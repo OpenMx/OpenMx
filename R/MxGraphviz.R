@@ -13,21 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClass(Class = "MxGraph",
-	representation = representation(
-		manifestVars = "character", 
-		latentVars = "character", 
-		paths = "list"))
-
-setMethod("initialize", "MxGraph",
-	function(.Object, manifestVars = character(), 
-		latentVars = character(), paths = list()) {
-		.Object@manifestVars <- manifestVars
-		.Object@latentVars <- latentVars
-		.Object@paths <- paths
-		return(.Object)
-	}
-)	
 
 writeDotFile <- function(model, graph, dotFilename) {
 	dotFile <- file(dotFilename, "w")
@@ -77,7 +62,7 @@ omxGraphviz <- function(model, dotFilename) {
 		stop(paste("The model", omxQuotes(model@name), 
 			"is not a 'RAM' type model"))	
 	}
-	graph <- new("MxGraph", model@manifestVars, model@latentVars)
+	graph <- new("MxRAMGraph", model@manifestVars, model@latentVars)
 	uniPaths <- matrixToPaths(model[['A']], 1)
 	biPaths <- matrixToPaths(model[['S']], 2)
 	graph@paths <- c(graph@paths, uniPaths, biPaths)

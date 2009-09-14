@@ -144,19 +144,24 @@ substituteOperators <- function(algebra) {
 }
 
 checkAlgebras <- function(model, flatModel) {
-    if(length(flatModel@algebras) == 0) { return() }
-    for(i in 1:length(flatModel@algebras)) {
-        algebra <- flatModel@algebras[[i]]
-        expr <- substitute(mxEval(x, model, compute=TRUE),
-            list(x = as.symbol(algebra@name)))
-        tryCatch(eval(expr), error = function(x) {
-                stop(paste("The algebra", 
-                	omxQuotes(simplifyName(algebra@name, model@name)), 
-                    "in model", omxQuotes(model@name), 
-                    "generated the error message:",
-                    x$message), call. = FALSE)
-            })
-    }
+	cycleDetection(flatModel)
+	checkAlgebraEvaluation(model, flatModel)
+}
+
+checkAlgebraEvaluation <- function(model, flatModel) {
+	if(length(flatModel@algebras) == 0) { return() }
+	for(i in 1:length(flatModel@algebras)) {
+		algebra <- flatModel@algebras[[i]]
+		expr <- substitute(mxEval(x, model, compute=TRUE),
+			list(x = as.symbol(algebra@name)))
+		tryCatch(eval(expr), error = function(x) {
+			stop(paste("The algebra", 
+				omxQuotes(simplifyName(algebra@name, model@name)), 
+				"in model", omxQuotes(model@name), 
+				"generated the error message:",
+				x$message), call. = FALSE)
+		})
+	}
 }
 
 displayAlgebra <- function(mxAlgebra) {

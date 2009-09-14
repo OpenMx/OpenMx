@@ -33,6 +33,7 @@ setMethod("initialize", "MxFIMLObjective",
 		.Object@data <- data
 		.Object@definitionVars <- definitionVars
 		.Object@thresholds <- thresholds
+		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
 	}
 )

@@ -28,6 +28,7 @@ setMethod("initialize", "MxRObjective",
 		.Object@objfun <- objfun
 		.Object@name <- name
 		.Object@data <- data
+		.Object@dependencies <- character()
 		return(.Object)
 	}
 )

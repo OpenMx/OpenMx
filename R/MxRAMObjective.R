@@ -33,6 +33,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@M <- M
 		.Object@data <- data
 		.Object@thresholds <- thresholds
+		.Object@dependencies <- c('A', 'S', 'F', 'M', 'thresholds')
 		return(.Object)
 	}
 )

@@ -29,6 +29,7 @@ setMethod("initialize", "MxMLObjective",
 		.Object@means <- means
 		.Object@data <- data
 		.Object@thresholds <- thresholds
+		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
 	}
 )

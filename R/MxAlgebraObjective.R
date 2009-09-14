@@ -25,6 +25,7 @@ setMethod("initialize", "MxAlgebraObjective",
 		.Object@name <- name
 		.Object@algebra <- algebra
 		.Object@data <- data
+		.Object@dependencies <- c('algebra')
 		return(.Object)
 	}
 )
