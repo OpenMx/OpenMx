@@ -47,10 +47,8 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 			modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, 
 			modelname, namespace)
-		.Object@thresholds <- 
-		# convertThresholds(.Object@thresholds
-         as.character(sapply(.Object@thresholds, function(x) {omxConvertIdentifier(x,
-			modelname, namespace)}))
+		.Object@thresholds <- sapply(.Object@thresholds, function(x) {omxConvertIdentifier(x,
+			modelname, namespace)})
 		return(.Object)
 })
 
