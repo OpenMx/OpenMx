@@ -18,7 +18,7 @@ setClass(Class = "MxMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
-		thresholds = "MxCharOrNumber"),
+		thresholds = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxMLObjective",
@@ -103,7 +103,7 @@ mxMLObjective <- function(covariance, means = NA, thresholds = NA) {
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
 	if (is.na(means)) means <- as.integer(NA)
-	if (is.na(thresholds)) thresholds <- as.integer(NA)
+	if (is.na(thresholds)) thresholds <- as.character(NA)
 	return(new("MxMLObjective", covariance, means, thresholds))
 }
 
@@ -111,7 +111,7 @@ displayMLObjective <- function(objective) {
 	cat("MxMLObjective", omxQuotes(objective@name), '\n')
 	cat("@covariance :", omxQuotes(objective@covariance), '\n')
 	cat("@means :", omxQuotes(objective@means), '\n')
-	if (is.na(objective@thresholds)) {
+	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')

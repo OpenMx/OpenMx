@@ -86,6 +86,7 @@ reportCycle <- function(backedges, destination, modelname) {
 addObjectiveDetection <- function(objective, dependencies) {
 	sources <- objective@dependencies
 	sources <- sapply(sources, function(x) { slot(objective, x) })
+	sources <- unlist(sources)
 	sources <- sources[!is.na(sources)]
 	sink <- objective@name
 	if (length(sources) > 0) {

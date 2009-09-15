@@ -40,6 +40,24 @@ typedef struct omxDefinitionVar {		 	// Definition Var
 
 } omxDefinitionVar;
 
+typedef struct omxThresholdColumn {		 	// Definition Var
+	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
+	int column;				// Which column has the thresholds
+	int numThresholds;		// And how many thresholds
+} omxThresholdColumn;
+
+typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
+	double Minus2LL;
+	double Mahalanobis;		// Square root of Mahalanobis distance Q = (row - means) %*% solve(sigma) %*% (row - means)
+	double Z;				// Z-score of Mahalnobis.  This is ((Q/n )^(1/3) - 1 + 2/(9n)) (9n/2)^(.5)
+	double Nrows;			// Number of rows in the data set--Unclear why this is returned
+	double Ncols;			// Number of columns in the (censored) data set
+	int misses;				// How many times likelihood broke on this row
+	int finalMissed;		// Whether or not likelihood was calculable in the final case
+	int modelNumber;		// Not used
+	
+} omxFIMLRowOutput;
+
 typedef struct omxFIMLObjective {
 
 	/* Parts of the R  MxFIMLObjective Object */
@@ -65,8 +83,8 @@ typedef struct omxFIMLObjective {
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
 	omxMatrix* weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallWeights;	// Memory reserved for reduced weight matrix	
-	omxMatrix* thresholds;		// Matrix of column thresholds
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
+	omxThresholdColumn* thresholdCols;		// List of column thresholds
 	
 	/* Argument space for SADMVN function */
 	double* lThresh;			// Specific list of lower thresholds
@@ -121,23 +139,18 @@ void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights
 	}
 }
 
-void checkIncreasing(omxMatrix* om) {
-	for(int k = 0; k < om->cols; k++) {
-		double previous = - INFINITY;
-		double current;
-		for(int j = 0; j < om->rows; j++ ) {
-			current = omxMatrixElement(om, j, k);
-			if(current == NA_REAL || current == NA_INTEGER) {
-				continue;
-			}
-			if(current <= previous) {
-				char errstr[250];
-				sprintf(errstr, "Thresholds are not strictly increasing.");
-				omxRaiseError(om->currentState, -1, errstr);
-			}
-		}
+void checkIncreasing(omxMatrix* om, int column) {
+	double previous = - INFINITY;
+	double current;
+	for(int j = 0; j < om->rows; j++ ) {
+		current = omxMatrixElement(om, j, column);
 		if(current == NA_REAL || current == NA_INTEGER) {
 			continue;
+		}
+		if(current <= previous) {
+			char errstr[250];
+			sprintf(errstr, "Thresholds are not strictly increasing.");
+			omxRaiseError(om->currentState, -1, errstr);
 		}
 	}
 }
@@ -154,7 +167,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	int numCols, numRemoves = 0;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *smallWeights;
-	omxMatrix *cor, *weights, *thresholds, *smallThresh;
+	omxMatrix *cor, *weights, *smallThresh;
+	omxThresholdColumn *thresholdCols;
 	omxData* data;
 	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor;
 	int *Infin;
@@ -171,17 +185,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	dataColumns	= ((omxFIMLObjective*)oo->argStruct)->dataColumns;
 	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
 	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
-	data		= ((omxFIMLObjective*)oo->argStruct)->data;
 
 	cor 		= ((omxFIMLObjective*)oo->argStruct)->cor;
 	corList 	= ((omxFIMLObjective*)oo->argStruct)->corList;
 	smallCor	= ((omxFIMLObjective*)oo->argStruct)->smallCor;
 	weights		= ((omxFIMLObjective*)oo->argStruct)->weights;
-	smallWeights= ((omxFIMLObjective*)oo->argStruct)->smallWeights;
-	thresholds	= ((omxFIMLObjective*)oo->argStruct)->thresholds;
 	smallThresh	= ((omxFIMLObjective*)oo->argStruct)->smallThresh;
 	lThresh		= ((omxFIMLObjective*)oo->argStruct)->lThresh;
 	uThresh		= ((omxFIMLObjective*)oo->argStruct)->uThresh;
+	smallWeights = ((omxFIMLObjective*)oo->argStruct)->smallWeights;
+	thresholdCols = ((omxFIMLObjective*)oo->argStruct)->thresholdCols;
 
 	Infin		= ((omxFIMLObjective*)oo->argStruct)->Infin;
 	maxPts		= ((omxFIMLObjective*)oo->argStruct)->maxPts;
@@ -191,8 +204,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	if(numDefs == 0) {
 		if(OMX_DEBUG) { Rprintf("No Definition Vars: precalculating."); }
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
-		omxRecompute(thresholds);
-		checkIncreasing(thresholds);
+		for(int j = 0; j < data->cols; j++) {
+			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
+				omxRecompute(thresholdCols[j].matrix);
+				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+			}
+		}
 		omxResetAliasedMatrix(weights);
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
@@ -213,8 +230,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
 			handleDefinitionVarList(data, row, defVars, numDefs);
 			omxRecompute(cov);
-			omxRecompute(thresholds);
-			checkIncreasing(thresholds);
+			for(int j=0; j < data->cols; j++) {
+				if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
+					omxRecompute(thresholdCols[j].matrix);
+					checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+				}
+			}
 			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 		}
 		
@@ -222,42 +243,38 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 		for(int j = 0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
-			int value = omxIntDataElement(data, row, var); 			// Indexing correction means this is the index of the upper bound +1.
-
-			if(ISNA(value) || value == NA_INTEGER) {
+			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
+			if(ISNA(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
 				numRemoves++;
-//				toRemove[j] = 1;
+				// toRemove[j] = 1;
 				Infin[j] = -1;
-			} else {										// For joint, check here for continuousness
-				value--;									// Correct for C indexing: value is now the index of the upper bound.
-				// TODO: Subsample the corList and thresholds for speed. And then check to see if it's actually faster.
+				continue;
+			} else {									// For joint, check here for continuousness
+				value--;								// Correct for C indexing: value is now the index of the upper bound.
+				// TODO: Subsample the corList and thresholds for speed. Doesn't look like that's much of a speedup.
+				// TODO: Check for high and low thresholds of NA
 				double mean;
 				if(means == NULL) mean = 0;
 				else mean = omxVectorElement(means, var);
 				double weight = omxVectorElement(weights, var);
-//				toRemove[j] = 0;
-				if(value == 0) { 				// Lowest value
-					lThresh[j] = (omxMatrixElement(thresholds, 0, var) - mean) / weight;
-					uThresh[j] = (omxMatrixElement(thresholds, 0, var) - mean) / weight;
+				// toRemove[j] = 0;
+				// Rprintf(":::Data column %d, matrix column %d, values %d & %d, matrix size (%d, %d), with %d thresholds:::\n", j, thresholdCols[j].column, value, value-1, thresholdCols[j].matrix->rows, thresholdCols[j].matrix->cols, thresholdCols[j].numThresholds);
+				if(value == 0) { 									// Lowest threshold = -Inf
+					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
+					uThresh[j] = lThresh[j];
 					Infin[j] = 0;
 				} else {
-					lThresh[j] = (omxMatrixElement(thresholds, value-1, var) - mean) / weight;
-					if(thresholds->rows > value) {
-						double tmp = omxMatrixElement(thresholds, (value), var);
-						tmp = (tmp - mean) / weight;
+					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - mean) / weight;
+					if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
+						double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - mean) / weight;
 						uThresh[j] = tmp;
-						if(lThresh[j] > tmp) {
-							char errstr[250];
-							sprintf(errstr, "Thresholds %d and %d cross in column %d for row %d.", value-1, value, var, row);
-							omxRaiseError(smallCov->currentState, -1, errstr);
-							return;
-						}
+						Infin[j] = 2;
 					} else {
 						uThresh[j] = NA_INTEGER; // NA is a special to indicate +Inf
+						Infin[j] = 1;
 					}
-					Infin[j] = 2;
 				}
-				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) {
+				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) { // for matrix-style specification.
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}
@@ -286,7 +303,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		double Error;
 		double absEps = 1e-8;
 		double relEps = 0;
-		int MaxPts = 100000*cov->rows;
+		int MaxPts = 1000*cov->rows;
 		double likelihood;
 		int inform;
 		int numVars = smallCov->rows;
@@ -496,7 +513,8 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
 	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
-	int nextDef, index;
+	int nextDef, index, hasOrdinal = FALSE;
+	int *nextInt;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
@@ -508,8 +526,29 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholds")));
-	newObj->thresholds = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
+	if(OMX_DEBUG) {Rprintf("Processing Thresholds.\n");}
+	newObj->thresholdCols = (omxThresholdColumn *) R_alloc(length(nextMatrix), sizeof(omxThresholdColumn));
+	for(index = 0; index < length(nextMatrix); index++) {
+		PROTECT(itemList = VECTOR_ELT(nextMatrix, index));
+		if(INTEGER(itemList)[0] == NA_INTEGER) {	// Continuous variable
+			if(OMX_DEBUG) {Rprintf("Threshold %d fail.\n", index);}
+			newObj->thresholdCols[index].matrix = NULL;
+			newObj->thresholdCols[index].column = 0; 
+			newObj->thresholdCols[index].numThresholds = 0;
+		} else {
+			// PROTECT(nextItem = VECTOR_ELT(itemList, 0));
+			nextInt = INTEGER(itemList);
+			if(OMX_DEBUG) {Rprintf("Threshold %d processed.\n", index);}
+			newObj->thresholdCols[index].matrix = omxNewMatrixFromMxIndex(itemList, oo->matrix->currentState);
+			newObj->thresholdCols[index].column = nextInt[1];
+			newObj->thresholdCols[index].numThresholds = newObj->thresholdCols[index].matrix->rows;
+			hasOrdinal++;
+			// UNPROTECT(1); /* nextItem */
+		}
+		UNPROTECT(1); /* itemList */
+	}
+	if(OMX_DEBUG) {Rprintf("%d thresholds processed.\n", index);}
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
@@ -569,7 +608,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 //	Rprintf("Checking 0x%d.", newObj->data);
 	if(OMX_DEBUG) { Rprintf("Checking %d.", omxDataColumnIsFactor(newObj->data, 0)); }
 	
-	if(omxDataColumnIsFactor(newObj->data, 0)) {
+	if(hasOrdinal) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
 		newObj->weights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 		newObj->smallWeights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);

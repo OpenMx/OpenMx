@@ -193,7 +193,7 @@ displayRAMObjective <- function(objective) {
 	} else {
 		cat("@M :", omxQuotes(objective@M), '\n')
 	}
-	if (is.na(objective@thresholds)) {
+	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')

@@ -75,8 +75,8 @@ convertDatasets <- function(flatModel) {
 			if ((is(objective, "MxFIMLObjective") ||
 				is(objective, "MxMLObjective")) &&
 				!is.na(objective@thresholds)) {
-				threshName <- objective@thresholds
-				observed <- convertThresholds(flatModel, dataName, threshName)
+				threshNames <- objective@thresholds
+				observed <- convertThresholds(flatModel, dataName, threshNames)
 				flatModel@datasets[[dataName]]@observed <- observed
 			} else if (!is.na(dataName)) {
 				data <- flatModel@datasets[[dataName]]@observed

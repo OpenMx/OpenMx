@@ -19,9 +19,9 @@ setClass(Class = "MxFIMLObjective",
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
-		thresholds = "MxCharOrNumber",
+		thresholds = "character",
 		dataColumns = "numeric",
-		thresholdColumns = "numeric"),
+		thresholdColumns = "list"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
@@ -47,8 +47,10 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 			modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, 
 			modelname, namespace)
-		.Object@thresholds <- omxConvertIdentifier(.Object@thresholds,
-			modelname, namespace)
+		.Object@thresholds <- 
+		# convertThresholds(.Object@thresholds
+         as.character(sapply(.Object@thresholds, function(x) {omxConvertIdentifier(x,
+			modelname, namespace)}))
 		return(.Object)
 })
 
@@ -61,12 +63,13 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 				omxQuotes(flatModel@name))
 			stop(msg, call.=FALSE)
 		}
-		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
+		mxDataObject <- flatModel@datasets[[.Object@data]]
+		if (mxDataObject@type != 'raw') {
 			msg <- paste("The dataset associated with the FIML objective", 
-				"in model", omxQuotes(flatModel@name), "is not raw data.")
+				"in model", omxQuotes(model@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
-		dataNames <- dimnames(flatModel@datasets[[.Object@data]]@observed)
+		dataNames <- dimnames(mxDataObject@observed)
 		if (is.null(dataNames) || is.null(dataNames[[2]])) {
 			msg <- paste("The dataset associated with the FIML objective", 
 				"in model", omxQuotes(flatModel@name), 
@@ -76,15 +79,18 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		meansName <- .Object@means
 		covName <- .Object@covariance
 		dataName <- .Object@data
-		threshName <- .Object@thresholds
+		threshNames <- .Object@thresholds
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- as.integer(omxLocateIndex(flatModel, .Object@data, name))
-		.Object@thresholds <- omxLocateIndex(flatModel, .Object@thresholds, name)
 		verifyExpectedNames(covName, meansName, flatModel, "FIML")
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
-		.Object@thresholdColumns <- generateThresholdColumns(flatModel, threshName, dataName)
+		.Object@thresholdColumns <- generateThresholdColumns(flatModel, threshNames, dataName)
+		print(.Object@thresholdColumns)
+		if (length(mxDataObject@observed) == 0) {
+			.Object@data <- as.integer(NA)
+		}
 		return(.Object)
 })
 
@@ -167,7 +173,7 @@ mxFIMLObjective <- function(covariance, means, thresholds = NA) {
 	if (missing(means) || typeof(means) != "character") {
 		stop("Means argument is not a string (the name of the expected means vector)")
 	}
-	if (is.na(thresholds)) thresholds <- as.integer(NA)
+	if (all(is.na(thresholds))) thresholds <- as.character(NA)
 	return(new("MxFIMLObjective", covariance, means, thresholds))
 }
 
@@ -175,7 +181,7 @@ displayFIMLObjective <- function(objective) {
 	cat("MxFIMLObjective", omxQuotes(objective@name), '\n')
 	cat("@covariance :", omxQuotes(objective@covariance), '\n')
 	cat("@means :", omxQuotes(objective@means), '\n')
-	if (is.na(objective@thresholds)) {
+	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
