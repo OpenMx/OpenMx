@@ -197,9 +197,9 @@ updateModelAlgebrasHelper <- function(aList, values, model) {
 			&& !is.nan(values[[i]]) && 
 			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
 			model[[name]]@result <- as.matrix(values[[i]])
-            if (is(candidate, "MxAlgebra")) {
-                # dimnames(model[[name]]@result) <- dimnames(model[[name]])
-            }
+			if (is(candidate, "MxAlgebra")) {
+				dimnames(model[[name]]@result) <- dimnames(model[[name]])
+			}
 		}
 	}
 	return(model)
