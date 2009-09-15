@@ -27,7 +27,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
 	if (show) {
     	modelVariable <- match.call()$model
         if (compute) {
-            showFormula <- showEvaluation(flatExpression, flatModel, modelVariable, labelsData)            
+            showFormula <- showEvaluation(flatExpression, flatModel, modelVariable, labelsData)
         } else {
     		showFormula <- showTranslation(inputExpression, model, modelVariable, labelsData)
         }
@@ -108,7 +108,8 @@ computeSymbol <- function(symbol, model, labelsData) {
 	} else if (is(lookup, "MxMatrix")) {
 		return(substitute(model[[x]]@values, list(x = key)))
 	} else if (is(lookup, "MxAlgebra")) {
-		return(substitute(mxEval(x, model, TRUE), list(x = lookup@formula)))
+		return(substitute(omxDimnames(mxEval(x, model, TRUE), y),
+			list(x = lookup@formula, y = lookup@.dimnames)))
 	} else if (is(lookup, "MxObjective")) {
         if (length(lookup@result) == 0) {
             return(matrix(NA,1,1))
@@ -120,6 +121,12 @@ computeSymbol <- function(symbol, model, labelsData) {
 			omxQuotes(key), "in the model",
 			omxQuotes(model@name)))
 	}
+}
+
+omxDimnames <- function(value, names) {
+	value <- as.matrix(value)
+	dimnames(value) <- names
+	return(value)
 }
 
 showTranslation <- function(formula, model, modelVariable, labelsData) {

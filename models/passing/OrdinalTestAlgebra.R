@@ -64,9 +64,9 @@ model <- mxModel(model, mxMatrix("Lower", name="I2", nrow = nthresh2, ncol = nth
 
 # Algebras
 model <- mxModel(model, mxAlgebra(I1%*%T, name="OneMddd4lThreshold"))
-model <- mxModel(model, mxAlgebra(cbind(OneMddd4lThreshold, OneMddd4lThreshold), name ="thresh1", dimnames=list(NA, c("t1mddd4l", "t2mddd4l"))))
+model <- mxModel(model, mxAlgebra(cbind(OneMddd4lThreshold, OneMddd4lThreshold), name ="thresh1", dimnames=list(NULL, c("t1mddd4l", "t2mddd4l"))))
 model <- mxModel(model, mxAlgebra(I2%*%U, name="OneNeur1Threshold"))
-model <- mxModel(model, mxAlgebra(cbind(OneNeur1Threshold, OneNeur1Threshold), name ="thresh2", dimnames=list(NA, c("t1neur1", "t2neur1"))))
+model <- mxModel(model, mxAlgebra(cbind(OneNeur1Threshold, OneNeur1Threshold), name ="thresh2", dimnames=list(NULL, c("t1neur1", "t2neur1"))))
 
 model <- mxModel(model, mxBounds(parameters=c(paste("mddd4lThreshold", 2:nthresh1, sep=""), paste("Neur1Threshold", 2:nthresh2, sep="")), min = 0, ))
 
