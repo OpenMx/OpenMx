@@ -7,6 +7,7 @@ RPDF = Rd2dvi
 TARGET = OpenMx_0.1.3-776.tar.gz
 PDFFILE = $(RBUILD)/OpenMx.pdf
 TESTFILE = inst/tools/testModels.R
+RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.R
 
@@ -28,6 +29,7 @@ help:
 	@echo "  test       run the OpenMx test suite"
 	@echo "  failtest   run the OpenMx failing test suite"
 	@echo "  memorytest run the OpenMx test suite under the Valgrind memory debugger"
+	@echo "  rproftest  run the OpenMx test suite under the Rprof R profiler"
 	@echo "  check      run the R package checking system on the OpenMx package"
 	@echo "  clean      remove all files from the build directory"
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
@@ -56,6 +58,9 @@ install: clean internal-build
 
 check: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
+
+rproftest:
+	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
 
 test:
 	$(REXEC) --vanilla --slave < $(TESTFILE)
