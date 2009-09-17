@@ -1,8 +1,13 @@
 
 NPSOL_DIR=@npsol_dir@
 
+# Currently this sets -Wall if compiler is gcc
+COMPILER_SPECIFIC_FLAGS=@compiler_specific_flags@
+
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR)
 
 # Uncomment the next line to turn on all debugging output in the backend
-# PKG_CFLAGS=-Wall -DDEBUGMX
-# PKG_CFLAGS=-DVERBOSEMX
+# DEBUGGING_FLAGS=-DDEBUGMX
+# DEBUGGING_FLAGS=-DVERBOSEMX
+
+PKG_CFLAGS=$(COMPILER_SPECIFIC_FLAGS) $(DEBUGGING_FLAGS)

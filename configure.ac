@@ -16,8 +16,10 @@ AC_MSG_CHECKING(whether gcc is installed)
 if test "$GCC" != yes; then
 AC_MSG_RESULT(no)
 AC_MSG_ERROR(gcc is not the default C compiler)
+compiler_specific_flags=""
 else
 AC_MSG_RESULT(yes)
+compiler_specific_flags="-Wall"
 fi
 
 # check the host type
@@ -54,6 +56,7 @@ AC_CHECK_FILE([${npsol_file}],,[AC_MSG_ERROR([npsol library not found])])
 
 npsol_dir="../${npsol_library}"
 AC_SUBST(npsol_dir)
+AC_SUBST(compiler_specific_flags)
 AC_CONFIG_FILES([src/Makevars])
 
 AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h])

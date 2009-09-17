@@ -631,6 +631,7 @@ host_os
 GCC_VERSION
 AWK
 npsol_dir
+compiler_specific_flags
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -2621,9 +2622,11 @@ echo "${ECHO_T}no" >&6; }
 { { echo "$as_me:$LINENO: error: gcc is not the default C compiler" >&5
 echo "$as_me: error: gcc is not the default C compiler" >&2;}
    { (exit 1); exit 1; }; }
+compiler_specific_flags=""
 else
 { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
+compiler_specific_flags="-Wall"
 fi
 
 # check the host type
@@ -2912,6 +2915,7 @@ fi
 
 
 npsol_dir="../${npsol_library}"
+
 
 ac_config_files="$ac_config_files src/Makevars"
 
@@ -3610,11 +3614,12 @@ host_os!$host_os$ac_delim
 GCC_VERSION!$GCC_VERSION$ac_delim
 AWK!$AWK$ac_delim
 npsol_dir!$npsol_dir$ac_delim
+compiler_specific_flags!$compiler_specific_flags$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 57; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 58; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
