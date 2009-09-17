@@ -79,20 +79,21 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-# the algebra B evaluates to the matrix A
-A <- mxMatrix("Full", nrow = 3, ncol = 3, name = "A")
+A <- mxMatrix("Full", nrow = 3, ncol = 3, values=2, name = "A")
+
+# Simple example: algebra B simply evaluates to the matrix A
 B <- mxAlgebra(A, name = "B")
 
-# the algebra C is A + B
+# Compute A + B
 C <- mxAlgebra(A + B, name = "C")
 
-\dontrun{ % not all functions have been implemented yet
-# the algebra D is sin(C)
+# Compute sin(C)
 D <- mxAlgebra(sin(C), name = "D")
 
-# Evaluate the mxAlgebra object 'D'
-modelD <- mxModel(model="AlgebraExample", A, B, C, D, mxAlgebraObjective("D"))
-modelD <- mxRun(modelD)
-}
+# Make a model and evaluate the mxAlgebra object 'D'
+A <- mxMatrix("Full", nrow = 3, ncol = 3, values=2, name = "A")
+model <- mxModel("AlgebraExample", A, B, C, D )
+fit   <- mxRun(model)
+mxEval(D, fit)
 
 }
