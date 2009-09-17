@@ -90,6 +90,11 @@ computeTranslation <- function(formula, model, labelsData) {
 	return(formula)
 }
 
+captureComputeTranslation <- function(expression, model, labelsData) {
+	formula <- match.call()$expression
+	return(computeTranslation(formula, model, labelsData))
+}
+
 computeSymbol <- function(symbol, model, labelsData) {
 	key <- deparse(symbol)
 	index <- match(key, dimnames(labelsData)[[1]])
@@ -108,7 +113,7 @@ computeSymbol <- function(symbol, model, labelsData) {
 	} else if (is(lookup, "MxMatrix")) {
 		return(substitute(model[[x]]@values, list(x = key)))
 	} else if (is(lookup, "MxAlgebra")) {
-		return(substitute(omxDimnames(mxEval(x, model, TRUE), y),
+		return(substitute(omxDimnames(eval(captureComputeTranslation(x, flatModel, labelsData)), y),
 			list(x = lookup@formula, y = lookup@.dimnames)))
 	} else if (is(lookup, "MxObjective")) {
         if (length(lookup@result) == 0) {
