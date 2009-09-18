@@ -1,5 +1,9 @@
 TRUNK
-=============
+=====
+
+
+Release 0.1.4-827
+=================
 * added checking and type coercion to arguments of mxPath() function (a beta tester alerted us to this)
 * moved matrices into submodels in UnivariateTwinAnalysis_MatrixRaw demo
 * added Beginners Guide to online documentation
@@ -22,7 +26,7 @@ TRUNK
 * added 'make rproftest' target to makefile
 
 Release 0.1.3-776
-=============
+=================
 * mxEvaluate() was renamed to mxEval() after input from beta testers on the forums.
 * new function mxVersion that prints out the current version number (beta tester request).
 * When printing OpenMx objects, the @ sign is used where it is needed if you would want to print part of the object (beta tester request).
