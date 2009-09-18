@@ -10,7 +10,8 @@ TRUNK
 * type checking added to mxMatrix arguments (prompted by a forum post)
 * mxPath() issues an error if any of the arguments are longer than the number of paths to be generated
 * data frames are now accepted at the back-end
-* FIML ordinal objective function is now working. Ugly and slow, but working.
+* FIML ordinal objective function is now working. Still a bit slow and inelegant, but working
+* FIML ordinal now accepts algebras and matrices. dimnames of columns must match data elements
 * implemented free parameter and fixed parameter substitution in mxAlgebra statements
 * implemented global variable substitution in mxAlgebra statements
 * turned off matrix and algebra substitution until a new proposal is decided

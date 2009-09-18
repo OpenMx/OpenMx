@@ -102,8 +102,8 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				od->location[j] = ~(numInts++);
 			} else if (isInteger(od->columns[j])) {
 				if(OMX_DEBUG) {Rprintf("Column %d is an integer.\n", j);}
-				od->intData[numInts] = INTEGER(od->columns[j]);
-				od->location[j] = ~(numInts++);
+				od->realData[numReals] = REAL(AS_NUMERIC(od->columns[j])); // May need PROTECTion.
+				od->location[j] = (numReals++);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
 				od->realData[numReals] = REAL(od->columns[j]);
@@ -249,30 +249,21 @@ omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 	}
 
 	if(od->dataMat != NULL) { // Matrix Object
-		if(OMX_DEBUG) { Rprintf(":::DEBUG:::1"); }
 		for(int j = 0; j < om->cols; j++) {
 			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, omxVectorElement(colList, j)));
 		}
 	} else {		// Data Frame object 
-///		if(OMX_DEBUG) { Rprintf(":::DEBUG:::2"); }
 		double dataElement;
 		for(int j = 0; j < om->cols; j++) {
-//			if(OMX_DEBUG) { Rprintf(":::DEBUG:::%d, 0x%x, %d", (int)omxVectorElement(colList, j), od, od->cols); }
 			int location = od->location[(int)omxVectorElement(colList, j)];
-//			if(OMX_DEBUG) { Rprintf(":::DEBUG:::%d", (int)omxVectorElement(colList, j)); }
 			if(location < 0) {
-//				if(OMX_DEBUG) { Rprintf(":::DEBUG:::"); }
 				dataElement = (double) od->intData[~location][row];
 			} else {
-//				if(OMX_DEBUG) { Rprintf(":::DEBUG:::"); }
 				dataElement = od->realData[location][row];
 			}
-//			if(OMX_DEBUG) { Rprintf(":::DEBUG:::"); }
 			omxSetMatrixElement(om, 0, j, dataElement);
 		}
 	}
-	if(OMX_DEBUG) { Rprintf(":::DEBUG:::"); }
-	
 	return om;
 }
 

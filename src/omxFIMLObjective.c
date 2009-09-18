@@ -47,7 +47,7 @@ typedef struct omxThresholdColumn {		 	// Definition Var
 } omxThresholdColumn;
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
-	double Minus2LL;
+	double Minus2LL;		// Minus 2 Log Likelihood
 	double Mahalanobis;		// Square root of Mahalanobis distance Q = (row - means) %*% solve(sigma) %*% (row - means)
 	double Z;				// Z-score of Mahalnobis.  This is ((Q/n )^(1/3) - 1 + 2/(9n)) (9n/2)^(.5)
 	double Nrows;			// Number of rows in the data set--Unclear why this is returned
@@ -55,7 +55,6 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	int misses;				// How many times likelihood broke on this row
 	int finalMissed;		// Whether or not likelihood was calculable in the final case
 	int modelNumber;		// Not used
-	
 } omxFIMLRowOutput;
 
 typedef struct omxFIMLObjective {
@@ -301,9 +300,9 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		//	Value	&double		On return: evaluated value
 		//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
 		double Error;
-		double absEps = 1e-8;
+		double absEps = 1e-3;
 		double relEps = 0;
-		int MaxPts = 1000*cov->rows;
+		int MaxPts = 100000*cov->rows;
 		double likelihood;
 		int inform;
 		int numVars = smallCov->rows;
@@ -330,9 +329,9 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			Rprintf("Cor: (Lower %d x %d):", cov->rows, cov->cols);
 			for(int i = 0; i < cov->rows*(cov->rows-1)/2; i++) {
 				// Rprintf("Row %d of Cor: ", i);
-//				for(int j = 0; j < i; j++) 
+				// for(int j = 0; j < i; j++) 
 				Rprintf(" %f", corList[i]); // (i*(i-1)/2) + j]);
-//				Rprintf("\n");
+				// Rprintf("\n");
 			}
 			Rprintf("\n"); 
 		}
@@ -473,7 +472,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
-
 			char errStr[250];
 			sprintf(errStr, "Covariance matrix is not positive-definite.");
 			omxRaiseError(oo->matrix->currentState, -1, errStr);
