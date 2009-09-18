@@ -36,54 +36,13 @@ selvars<-c("x","y")
 
 #define the model, including a FIML objective function, which will optimize the matrix S
 defMeansModel <- mxModel("DefinitionMeans", 
-    mxFIMLObjective(
-        covariance="Sigma",
-        means="Mu"
-    ),
-    mxData((
-        observed=data.frame(y,def)), 
-        type="raw"
-    ),
-    mxMatrix(
-        type="Symm", 
-        nrow=2, 
-        ncol=2, 
-        free=TRUE, 
-        values=c(1, 0, 1), 
-        dimnames=list(selvars,selvars), 
-        name="Sigma"
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow = 1, 
-        ncol = 2, 
-        free=TRUE, 
-        dimnames=list(NULL,selvars), 
-        name = "M"
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=TRUE, 
-        values=c(0, 0),
-        dimnames=list(NULL,selvars), 
-        name="beta"
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=FALSE, 
-        labels=c("data.def"),
-        dimnames=list(NULL,selvars), 
-        name="def"
-    ),
-    mxAlgebra(
-        expression=M+beta*def, 
-        name="Mu", 
-        dimnames=list(NULL,selvars)
-    )
+    mxFIMLObjective(covariance="Sigma", means="Mu"),
+    mxData((observed=data.frame(y,def)), type="raw"), 
+    mxMatrix(type="Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1),    dimnames=list(selvars,selvars), name="Sigma"), 
+    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE,                       dimnames=list(NULL,selvars), name = "M"),
+    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, values=c(0, 0),       dimnames=list(NULL,selvars), name = "beta"), 
+    mxMatrix(type="Full", nrow=1, ncol=2, free=FALSE,labels=c("data.def"), dimnames=list(NULL,selvars), name = "def"),
+		mxAlgebra(expression=M+beta*def,                                       dimnames=list(NULL,selvars), name = "Mu")
 )
 
 # Run the model
@@ -109,4 +68,3 @@ beta <- mxEval(beta, defMeansFit)
 omxCheckCloseEnough(ObsCovs, Sigma, .01)
 omxCheckCloseEnough(ObsMeansGroup1, as.vector(M+beta), .001)
 omxCheckCloseEnough(ObsMeansGroup2, as.vector(Mu), .001)
-

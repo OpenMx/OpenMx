@@ -38,6 +38,7 @@ BivariateHeterogeneity_MatrixRaw	Bivariate hetero/homogeneity model using matrix
 UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specification and raw data
 UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
 TwinAnalysis_Multivariate_Matrix_Raw	Multivariate ACE model using matrix specification and raw data
+Twin_independent_path_general_factor.R	Multivariate twin model for independent general factor
 DefinitionMeans_PathRaw	Definition variable model for mean differences using path-centric specification and raw data
 DefinitionMeans_MatrixRaw	Definition variable model for mean differences using matrix specification and raw data
 OneFactorMatrixDemo  One factor model from the matrix-style demo on the front page of the website.
