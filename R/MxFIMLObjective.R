@@ -85,7 +85,6 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
 		.Object@thresholdColumns <- generateThresholdColumns(flatModel, threshNames, dataName)
-		print(.Object@thresholdColumns)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}

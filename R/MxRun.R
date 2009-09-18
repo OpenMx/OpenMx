@@ -38,11 +38,12 @@ mxRun <- function(model) {
 	model <- omxReplaceModels(model, independents)
 	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel)
-	checkAlgebraEvaluation(model, flatModel)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
+	oldFlatModel <- flatModel
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)
+	checkAlgebraEvaluation(model, oldFlatModel)
 	parameters <- generateParameterList(flatModel)
 	definitions <- generateDefinitionList(flatModel)
 	matrices <- generateSimpleMatrixList(flatModel)

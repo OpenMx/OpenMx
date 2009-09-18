@@ -21,3 +21,14 @@ model <- mxModel('model', A, B, foo)
 omxCheckError(mxRun(model), paste("The algebra 'foo' in model",
 	"'model' generated the error message:",
 	"non-conformable arrays"))
+cycle <- mxAlgebra(cycle, 'cycle')
+model <- mxModel('model', cycle)
+omxCheckError(mxRun(model), paste("A cycle has been detected",
+	"in model 'model' involving the following elements:",
+	"'cycle'"))
+foo <- mxAlgebra(bar, 'foo')
+bar <- mxAlgebra(foo, 'bar')
+model <- mxModel('model', foo, bar)
+omxCheckError(mxRun(model), paste("A cycle has been detected",
+	"in model 'model' involving the following elements:",
+	"'bar' and 'foo'"))

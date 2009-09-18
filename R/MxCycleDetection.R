@@ -69,7 +69,6 @@ cycleVisitor <- function(graph, vertex, info, modelname) {
 }
 
 reportCycle <- function(backedges, destination, modelname) {
-	print("reporting cycle")
 	target <- backedges[[destination]]
 	cycle <- union(destination, target)
 	while(target != destination) {
