@@ -113,6 +113,8 @@ a2 <- SD %*% a  # Standardized path coefficients
 c2 <- SD %*% c 
 e2 <- SD %*% e 
 
+accuracy <- 2
+
 StandardizedEstimates <- data.frame(cbind(a2,c2,e2), row.names=selVars[1:nVar])
 names(StandardizedEstimates) <- paste(rep(c("A", "C", "E"), each=nVar), rep(1:nVar), sep="")
 print(round(StandardizedEstimates,accuracy)) 

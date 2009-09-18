@@ -100,7 +100,10 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
 				od->intData[numInts] = INTEGER(od->columns[j]);
 				od->location[j] = ~(numInts++);
-
+			} else if (isInteger(od->columns[j])) {
+				if(OMX_DEBUG) {Rprintf("Column %d is an integer.\n", j);}
+				od->intData[numInts] = INTEGER(od->columns[j]);
+				od->location[j] = ~(numInts++);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
 				od->realData[numReals] = REAL(od->columns[j]);
