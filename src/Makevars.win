@@ -1,6 +1,6 @@
 RTOOLS_VERSION = 2.9
 
-NPSOL_DIR= "..\inst\npsol\windows\x86\rtools"
+NPSOL_DIR= "..\inst"
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR)$(RTOOLS_VERSION)
 
