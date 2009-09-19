@@ -43,7 +43,7 @@ mxRun <- function(model) {
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)
-	checkAlgebraEvaluation(model, oldFlatModel)
+	checkAlgebraConstraintEvaluation(model, oldFlatModel)
 	parameters <- generateParameterList(flatModel)
 	definitions <- generateDefinitionList(flatModel)
 	matrices <- generateSimpleMatrixList(flatModel)
@@ -62,7 +62,7 @@ mxRun <- function(model) {
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
-	return(model)	
+	return(model)
 }
 
 processOptimizerOutput <- function(flatModel, matrixNames, 

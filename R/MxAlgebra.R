@@ -143,14 +143,14 @@ substituteOperators <- function(algebra) {
 	return(algebra)
 }
 
-checkAlgebras <- function(model, flatModel) {
-	cycleDetection(flatModel)
-	checkAlgebraEvaluation(model, flatModel)
+checkAlgebraConstraintEvaluation <- function(model, flatModel) {
+	labelsData <- omxGenerateLabels(model)
+	checkAlgebraEvaluation(model, flatModel, labelsData)
+	checkConstraintEvaluation(model, flatModel, labelsData)
 }
 
-checkAlgebraEvaluation <- function(model, flatModel) {
+checkAlgebraEvaluation <- function(model, flatModel, labelsData) {
 	if(length(flatModel@algebras) == 0) { return() }
-	labelsData <- omxGenerateLabels(model)
 	for(i in 1:length(flatModel@algebras)) {
 		algebra <- flatModel@algebras[[i]]
 		tryCatch(eval(computeSymbol(as.symbol(algebra@name), flatModel, labelsData)), 
@@ -161,7 +161,24 @@ checkAlgebraEvaluation <- function(model, flatModel) {
 					"generated the error message:",
 					x$message), call. = FALSE)
 		})
-	}
+	}	
+}
+
+checkConstraintEvaluation <- function(model, flatModel, labelsData) {
+	if(length(flatModel@constraints) == 0) { return() }
+	for(i in 1:length(flatModel@constraints)) {
+		constraint <- flatModel@constraints[[i]]
+		lhs <- eval(computeSymbol(as.symbol(constraint@alg1), flatModel, labelsData))
+		rhs <- eval(computeSymbol(as.symbol(constraint@alg2), flatModel, labelsData))
+		if (!all(dim(lhs) == dim(rhs))) {
+			stop(paste("The algebras/matrices", 
+				omxQuotes(c(simplifyName(constraint@alg1, model@name), 
+					simplifyName(constraint@alg2, model@name))), 
+				"in model", omxQuotes(model@name),
+				"are in constraint", omxQuotes(simplifyName(constraint@name, model@name)),
+				"and are not of identical dimensions"), call. = FALSE)
+		}
+	}		
 }
 
 displayAlgebra <- function(mxAlgebra) {

@@ -32,3 +32,17 @@ model <- mxModel('model', foo, bar)
 omxCheckError(mxRun(model), paste("A cycle has been detected",
 	"in model 'model' involving the following elements:",
 	"'bar' and 'foo'"))
+A <- mxMatrix('Full', 1, 1, name = 'A')
+B <- mxMatrix('Full', 2, 2, name = 'B')
+C <- mxAlgebra(A, 'C')
+D <- mxAlgebra(B, 'D')
+constraint1 <- mxConstraint('A', '=', 'B', name = 'constraint1')
+constraint2 <- mxConstraint('C', '=', 'D', name = 'constraint2')
+model1 <- mxModel('model1', A, B, constraint1)
+model2 <- mxModel('model2', A, B, C, D, constraint2)
+omxCheckError(mxRun(model1), paste("The algebras/matrices",
+	"'A' and 'B' in model 'model1' are in constraint 'constraint1'",
+	"and are not of identical dimensions"))
+omxCheckError(mxRun(model2), paste("The algebras/matrices",
+	"'C' and 'D' in model 'model2' are in constraint 'constraint2'",
+	"and are not of identical dimensions"))
