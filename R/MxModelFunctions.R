@@ -184,6 +184,7 @@ updateModelAlgebras <- function(model, flatModel, values) {
 updateModelMatricesHelper <- function(mList, values, model) {
 	for(i in 1:length(mList)) {
 		name <- mList[[i]]
+		dimnames(values[[i]]) <- dimnames(model[[name]])
 		model[[name]]@values <- values[[i]]
 	}
 	return(model)
