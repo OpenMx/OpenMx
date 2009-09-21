@@ -40,8 +40,19 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 #Create a constraint between MxMatrices 'A' and 'B'
 constraint <- mxConstraint('A', '=', 'B', name = 'constraint')
 
-#Constrain a matrix of free parameters 'F' to be greater than a matrix of zeros 'Z'
-F <- mxMatrix(nrow=2, ncol=2, free=TRUE, name="F")
-Z <- mxMatrix(type="Zero", nrow=2, ncol=2, name="Z")
-positive <- mxConstraint("F", ">", "Z")
+# Constrain a matrix of free parameters 'K' to be equal to matrix 'limit'
+K <- mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K")
+limit <- mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE,name="limit", values=1:4)
+
+model<- mxModel("con_test", K,limit, 
+	mxConstraint("K", "=", "limit"), 
+	mxAlgebra(min(K), name="minK"), 
+	mxAlgebraObjective("minK")
+)
+fit <- mxRun(model)
+fit@matrices$K@values
+#      [,1] [,2]
+# [1,]    1    3
+# [2,]    2    4
+
 }
