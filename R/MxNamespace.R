@@ -269,7 +269,7 @@ omxCheckNamespace <- function(model, namespace) {
 	}
 }
 
-checkNamespaceIdentifier <- function(identifier, model, namespace) {
+checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 	entities <- getEntities(namespace)
 	parameters <- getParameters(namespace)
     values <- getValues(namespace)
@@ -282,38 +282,40 @@ checkNamespaceIdentifier <- function(identifier, model, namespace) {
          !(name %in% values) &&
          !(exists(name, envir = globalenv())) &&
 		 !(name %in% names(omxReservedNames))) {
-		stop(paste("Unknown reference: ", 
-			omxQuotes(omxIdentifier(space, name))), call. = FALSE)
+		stop(paste("Unknown reference", 
+			omxQuotes(simplifyName(omxIdentifier(space, name), model@name)),
+			"detected in the entity", omxQuotes(entity),
+			"in model", omxQuotes(model@name)), call. = FALSE)
 	}
 }
 
 checkNamespaceAlgebra <- function(algebra, model, namespace) {
 	formula <- algebra@formula
-	checkNamespaceFormula(formula, model, namespace)
+	checkNamespaceFormula(formula, model, algebra, namespace)
 }
 
-checkNamespaceFormula <- function(formula, model, namespace) {
+checkNamespaceFormula <- function(formula, model, algebra, namespace) {
 	if (length(formula) == 1) {
         if (is.numeric(formula)) {
         } else {
-    		checkNamespaceIdentifier(as.character(formula), model, namespace)
+    		checkNamespaceIdentifier(as.character(formula), model, algebra@name, namespace)
         }
 	} else {
 		for (i in 2:length(formula)) {
-			checkNamespaceFormula(formula[[i]], model, namespace)
+			checkNamespaceFormula(formula[[i]], model, algebra, namespace)
 		}
 	}
 }
 
 checkNamespaceConstraint <- function(constraint, model, namespace) {
-	checkNamespaceIdentifier(constraint@alg1, model, namespace)
-	checkNamespaceIdentifier(constraint@alg2, model, namespace)
+	checkNamespaceIdentifier(constraint@alg1, model, constraint@name, namespace)
+	checkNamespaceIdentifier(constraint@alg2, model, constraint@name, namespace)
 }
 
 checkNamespaceMatrix <- function(matrix, model, namespace) {
 	labels <- matrix@labels
 	notNAlabels <- labels[!is.na(labels) & matrix@free]
-	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, namespace) })
+	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, matrix@name, namespace) })
 }
 
 omxConvertIdentifier <- function(identifier, modelname, namespace) {
