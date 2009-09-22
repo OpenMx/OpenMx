@@ -20,16 +20,21 @@ isNumber <- function(input) {
     return(length(match) > 0)
 }
 
-omxVerifyReference <- function(reference) {
+omxVerifyReference <- function(reference, location) {
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
-            "is illegal because it can be interpreted",
+            "in", location, "is illegal because it can be interpreted",
             "as a number"), call. = FALSE)
     }
+	if (hasSquareBrackets(reference) && !isSubstitution(reference)) {
+        stop(paste("The reference", omxQuotes(reference),
+            "in", location, "is illegal because it has square brackets",
+			"but it is not a valid substitution"), call. = FALSE)
+	}
 	if (!is.na(reference) && substring(reference, nchar(reference), 
 				nchar(reference)) == omxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
-				"is illegal because it contains a",
+				"in", location, "is illegal because it contains a",
 				omxQuotes(omxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
@@ -39,7 +44,7 @@ omxVerifyReference <- function(reference) {
 		component <- components[[i]]
 		if (nchar(component) == 0) {
 			stop(paste("The reference", omxQuotes(reference),
-				"is illegal because it contains a",
+				"in", location, "is illegal because it contains a",
 				omxQuotes(omxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)

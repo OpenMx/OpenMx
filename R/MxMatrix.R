@@ -203,7 +203,14 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (single.na(labels)) { labels <- as.character(NA) }
 	if (single.na(lbound)) { lbound <- as.numeric(NA) }
 	if (single.na(ubound)) { ubound <- as.numeric(NA) }
-	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol)
+	if (single.na(name)) {
+		name <- omxUntitledName()
+	}
+	omxVerifyName(name)
+	if (!is.character(name)) {
+		stop("\'name\' must be a character vector!")
+	}
+	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol, name)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
 	nrow <- checkDims[[1]]
 	ncol <- checkDims[[2]]
@@ -217,13 +224,6 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 		}
 	} else if (is.na(nrow) || is.na(ncol)) {
 		stop("Both nrow and ncol must be specified on a non-square matrix")
-	}
-	if (is.na(name)) {
-		name <- omxUntitledName()
-	}
-	omxVerifyName(name)
-	if (!is.character(name)) {
-		stop("\'name\' must be a character vector!")
 	}
 	values <- as.numeric(values)
 	lbound <- as.numeric(lbound)
@@ -247,7 +247,7 @@ matrixCheckArgument <- function(arg, name) {
 }
 
 
-matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
+matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol, name) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" ")), call. = FALSE)
@@ -296,7 +296,7 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 			stop("Two matrices provided to mxMatrix are not of identical dimensions.", call. = FALSE)
 		}
 	}
-	lapply(labels, omxVerifyReference)
+	lapply(labels, omxVerifyReference, paste("matrix", omxQuotes(name)))
 	if(any(is.na(free))) {
 		stop("\'free\' argument to mxMatrix cannot contain an NA", call. = FALSE)
 	}

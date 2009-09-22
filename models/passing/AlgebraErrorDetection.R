@@ -46,3 +46,11 @@ omxCheckError(mxRun(model1), paste("The algebras/matrices",
 omxCheckError(mxRun(model2), paste("The algebras/matrices",
 	"'C' and 'D' in model 'model2' are in constraint 'constraint2'",
 	"and are not of identical dimensions"))
+A <- mxMatrix('Full', 1, 1, name = 'A')
+B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
+model <- mxModel('model', A, B)
+mxRun(model)
+omxCheckError(mxMatrix('Full', 1, 1, name = 'B', labels = 'A[foo,bar]'),
+	paste("The reference 'A[foo,bar]' in matrix 'B'",
+	"is illegal because it has square brackets but it is",
+	"not a valid substitution")) 

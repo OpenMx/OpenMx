@@ -26,7 +26,8 @@ generatePath <- function(from, to,
 			from <- rep(from, each=length(to))	
 		}
 		if(!is.null(labels)) { 
-			lapply(labels, omxVerifyReference)
+			lapply(labels, omxVerifyReference, 
+				paste("path from", omxQuotes(from), "to", omxQuotes(to)))
 		}
         pathCheckLengths(from, to, arrows, values, 
             free, labels, lbound, ubound)
