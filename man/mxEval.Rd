@@ -30,7 +30,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \examples{
 
 matrixA <- mxMatrix("Full", nrow = 1, ncol = 1, 
-	values = "1", name = "A")
+	values = 1, name = "A")
 algebraB <- mxAlgebra(A + A, name = "B")
 
 model <- mxModel(matrixA, algebraB)

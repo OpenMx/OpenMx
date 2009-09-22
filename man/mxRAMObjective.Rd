@@ -50,9 +50,9 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
    
-   matrixA <- mxMatrix("Full", c(0,0.2,0,0), name="A", nrow=2, ncol=2)
-   matrixS <- mxMatrix("Full", c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE)
-   matrixF <- mxMatrix("Full", c(1,0,0,1), name="F", nrow=2, ncol=2)
+   matrixA <- mxMatrix("Full", values=c(0,0.2,0,0), name="A", nrow=2, ncol=2)
+   matrixS <- mxMatrix("Full", values=c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE)
+   matrixF <- mxMatrix("Full", values=c(1,0,0,1), name="F", nrow=2, ncol=2)
 
    # Create a RAM objective with default A, S, F matrix names
    objective <- mxRAMObjective("A", "S", "F")
