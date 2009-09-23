@@ -23,8 +23,13 @@ cycleDetection <- function(flatModel) {
 		for(i in 1:length(flatModel@algebras)) {
 			dependencies <- addAlgebraDetection(flatModel@algebras[[i]], dependencies)
 		}
-		containsCycle(dependencies, flatModel)
 	}
+	if (length(flatModel@matrices) > 0) {
+		for(i in 1:length(flatModel@matrices)) {
+			dependencies <- addMatrixDetection(flatModel@matrices[[i]], dependencies)
+		}
+	}
+	containsCycle(dependencies, flatModel)	
 }
 
 containsCycle <- function(graph, flatModel) {
@@ -94,17 +99,25 @@ addObjectiveDetection <- function(objective, dependencies) {
 	return(dependencies)
 }
 
+addMatrixDetection <- function(matrix, dependencies) {
+	subs <- sapply(matrix@labels, isSubstitution)
+	subs <- matrix@labels[subs]
+	if (length(subs) > 0) {
+		for(i in 1:length(subs)) {
+			asub <- subs[[i]]
+			pieces <- splitSubstitution(asub)
+			identifier <- pieces[[1]]
+			dependencies <- omxAddDependency(identifier, matrix@name, dependencies)
+		}
+	}
+	return(dependencies)
+}
+
 addAlgebraDetection <- function(algebra, dependencies) {
 	sink <- algebra@name
 	formula <- algebra@formula
 	dependencies <- addFormulaDetection(formula, sink, dependencies)
 	return(dependencies)
-}
-
-omxAddDependency <- function(source, sink, dependencies) {
-	dependencies <- addNode(source, dependencies)
-	dependencies <- addNode(sink, dependencies)
-	dependencies <- addEdge(source, sink, dependencies)
 }
 
 addFormulaDetection <- function(formula, sink, dependencies) {
@@ -117,4 +130,11 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 	}
 	return(dependencies)
 }
+
+omxAddDependency <- function(source, sink, dependencies) {
+	dependencies <- addNode(source, dependencies)
+	dependencies <- addNode(sink, dependencies)
+	dependencies <- addEdge(source, sink, dependencies)
+}
+
 

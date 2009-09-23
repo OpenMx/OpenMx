@@ -26,3 +26,22 @@ omxCheckError(mxRun(model),
 	paste("The substitution 'foo[1,2]'",
 		"has been assigned to a",
 		"free parameter in matrix 'A'"))
+A <- mxMatrix('Full', 1, 1, labels = 'model2.B[1,1]', name = 'A')
+B <- mxMatrix('Full', 1, 1, labels = 'model1.A[1,1]', name = 'B')
+model1 <- mxModel('model1', A)
+model2 <- mxModel('model2', B)
+model <- mxModel('model', model1, model2)
+omxCheckError(mxRun(model),
+	paste("A cycle has been detected",
+		"in model 'model' involving the",
+		"following elements: 'model2.B'",
+		"and 'model1.A'"))
+A <- mxMatrix('Full', 1, 1, labels = 'B[1,1]', name = 'A')
+B <- mxMatrix('Full', 1, 1, labels = 'C[1,1]', name = 'B')
+C <- mxMatrix('Full', 1, 1, labels = 'A[1,1]', name = 'C')
+model <- mxModel('model', A, B, C)
+omxCheckError(mxRun(model),
+	paste("A cycle has been detected",
+		"in model 'model' involving the",
+		"following elements: 'B',",
+		"'C', and 'A'"))
