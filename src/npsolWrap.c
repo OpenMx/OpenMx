@@ -412,7 +412,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					}
 					break;
 			}
-			k++;
 		}
 
 
