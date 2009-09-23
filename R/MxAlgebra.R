@@ -143,10 +143,11 @@ substituteOperators <- function(algebra) {
 	return(algebra)
 }
 
-checkAlgebraConstraintEvaluation <- function(model, flatModel) {
+checkEvaluation <- function(model, flatModel) {
 	labelsData <- omxGenerateLabels(model)
 	checkAlgebraEvaluation(model, flatModel, labelsData)
 	checkConstraintEvaluation(model, flatModel, labelsData)
+	checkSquareBracketEvaluation(model, flatModel, labelsData)
 }
 
 checkAlgebraEvaluation <- function(model, flatModel, labelsData) {

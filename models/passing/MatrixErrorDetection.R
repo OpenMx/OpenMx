@@ -45,3 +45,13 @@ omxCheckError(mxRun(model),
 		"in model 'model' involving the",
 		"following elements: 'B',",
 		"'C', and 'A'"))
+A <- mxMatrix('Full', 2, 2, name = 'A')
+B <- mxMatrix('Full', 2, 2, name = 'B')
+C <- mxAlgebra(A + B, name = 'C')
+D <- mxMatrix('Full', 1, 1, labels = 'C[2,3]', name = 'D')
+model <- mxModel('model', A, B, C, D)
+omxCheckError(mxRun(model),
+	paste("The substitution 'C[2,3]'",
+		"detected in the matrix 'D'",
+		"in model 'model' has invalid",
+		"(row,col) values"))

@@ -31,3 +31,58 @@ hasSquareBrackets <- function(input) {
     match <- grep("[\\[\\]]", input, perl = TRUE, value = TRUE)
     return(length(match) > 0)
 }
+
+checkSquareBracketEvaluation <- function(model, flatModel, labelsData) {
+	if(length(flatModel@matrices) == 0) { return() }
+	for(i in 1:length(flatModel@matrices)) {
+		checkSquareBracketMatrix(flatModel@matrices[[i]], model, flatModel, labelsData)
+	}
+}
+
+checkSquareBracketMatrix <- function(matrix, model, flatModel, labelsData) {
+	labels <- matrix@labels
+	labels <- labels[!is.na(labels)]
+	if (length(labels) == 0) { return() }
+	subs <- sapply(labels, isSubstitution)
+	labels <- labels[subs]
+	if (length(labels) == 0) { return() }
+	for(i in 1:length(labels)) {
+		substitute <- labels[[i]]
+		pieces <- splitSubstitution(substitute)
+		identifier <- pieces[[1]]
+		idenrow <- as.numeric(pieces[[2]])
+		idencol <- as.numeric(pieces[[3]])
+		entity <- flatModel[[identifier]]
+		if (is.null(entity)) {
+			stop(paste("Unknown reference", 
+ 				omxQuotes(simplifyName(identifier, model@name)),
+				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
+				"in model", omxQuotes(model@name)), call. = FALSE)
+		}
+		if (is(entity, "MxMatrix")) {
+			subrow <- nrow(entity)
+			subcol <- ncol(entity)
+		} else if (is(entity, "MxAlgebra")) {
+			value <- as.matrix(eval(computeSymbol(as.symbol(identifier), flatModel, labelsData)))
+			subrow <- nrow(value)
+			subcol <- nrow(value)
+		} else if (is(entity, "MxObjectiveFunction")) {
+			subrow <- 1
+			subcol <- 1
+		} else {
+			stop(paste("Cannot apply the substitution using", 
+ 				omxQuotes(simplifyName(identifier, model@name)),
+				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
+				"in model", omxQuotes(model@name)), call. = FALSE)			
+		}
+		if (idenrow < 0 || idencol < 0 || idenrow > subrow || idencol > subcol) {
+			identifier <- simplifyName(identifier, model@name)
+			substitute <- paste(identifier, '[', idenrow, ',', idencol, ']', sep = '')
+			stop(paste("The substitution", 
+ 				omxQuotes(substitute),
+				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
+				"in model", omxQuotes(model@name),
+				"has invalid (row,col) values"), call. = FALSE)
+		}
+	}
+}
