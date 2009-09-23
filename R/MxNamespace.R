@@ -205,6 +205,10 @@ namespaceGetValues <- function(model) {
 	values <- sapply(model@matrices, function(x) {
 			labels <- x@labels
 			labels <- unique(labels[!is.na(labels) & !x@free])
+			defVars <- sapply(labels, omxIsDefinitionVariable)
+			labels <- labels[!defVars]
+			subs <- sapply(labels, isSubstitution)
+			labels <- labels[!subs]
 			return(labels)
 		})
 	values <- unlist(values)
@@ -283,6 +287,7 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 	name <- identifier[[2]]
 	if ( !(name %in% entities[[space]]) &&
 		 !(omxIsDefinitionVariable(name)) &&
+		 !(isSubstitution(name)) &&
 		 !(name %in% parameters) &&
          !(name %in% values) &&
          !(exists(name, envir = globalenv())) &&
@@ -323,6 +328,13 @@ checkNamespaceMatrix <- function(matrix, model, namespace) {
 	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, matrix@name, namespace) })
 }
 
+omxConvertSubstitution <- function(substitution, modelname, namespace) {
+	pieces <- splitSubstitution(substitution)
+	identifier <- omxConvertIdentifier(pieces[[1]], modelname, namespace)
+	result <- paste(identifier, '[', pieces[[2]], ',', pieces[[3]], ']', sep = '')
+	return(result)
+}
+
 omxConvertIdentifier <- function(identifier, modelname, namespace) {
     isLocalEntity <- as.character(identifier) %in% namespace$entities[[modelname]]
     if (isLocalEntity) {
@@ -341,6 +353,8 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 			datasource <- unlist(strsplit(dataname, omxSeparatorChar, fixed = TRUE))[[1]]
 			return(omxIdentifier(datasource, label))
 		}
+	} else if (isSubstitution(label)) {
+		return(omxConvertSubstitution(label, modelname, namespace))
 	}
 	return(omxConvertIdentifier(label, modelname, namespace))
 }

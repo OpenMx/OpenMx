@@ -255,7 +255,7 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	cols <- col(labels)[!is.na(labels)]
 	if (length(select) > 0) {
 		for(i in 1:length(select)) {
-			if(!omxIsDefinitionVariable(select[[i]])) {
+			if(!omxIsDefinitionVariable(select[[i]]) && !isSubstitution(select[[i]])) {
 				labelsData[select[[i]], "model"] <- modelName
 				labelsData[select[[i]], "matrix"] <- matrix@name
 				labelsData[select[[i]], "row"] <- rows[[i]]

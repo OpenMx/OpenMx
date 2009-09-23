@@ -1,6 +1,6 @@
 TRUNK
 =====
-
+* improved error messages on unknown identifier in a model (beta tester issue)
 
 Release 0.1.4-827
 =================
@@ -46,7 +46,7 @@ Release 0.1.3-776
 * added mxVersion() function to return the version number (as a string).
 
 Release 0.1.2-708
-=============
+=================
 * Added R help documentation for omxCheckCloseEnough(), omxCheckWithinPercentError(), 
 	omxCheckTrue(), omxCheckEquals(), and omxCheckSetEquals()
 

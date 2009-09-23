@@ -118,7 +118,7 @@ omxCheckVariables <- function(flatModel, namespace) {
 		bounds <- list()
 		for(i in 1:length(flatModel@matrices)) {
 			result <- checkVariablesHelper(flatModel@matrices[[i]], startVals, 
-				freeVars, fixedVars, bounds)
+				freeVars, fixedVars, bounds, flatModel@name)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
@@ -131,7 +131,7 @@ omxCheckVariables <- function(flatModel, namespace) {
 }
 
 checkVariablesHelper <- function(matrix, startVals, freeVars,
-		fixedVars, bounds) {
+		fixedVars, bounds, modelname) {
 	labels <- matrix@labels
 	free <- matrix@free
 	values <- matrix@values
@@ -150,8 +150,17 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 			lbound <- lbounds[[i]]
 			ubound <- ubounds[[i]]
 			if (omxIsDefinitionVariable(label)) {
+				if (isFree) {
+					stop(paste("The definition variable", omxQuotes(label),
+						"has been assigned to a free parameter",
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
+				}
 			} else if (isFree) {
-				if (label %in% fixedVars) {
+				if (isSubstitution(label)) {
+					stop(paste("The substitution", omxQuotes(label),
+						"has been assigned to a free parameter",
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
+				} else if (label %in% fixedVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
 						"and a fixed value!"), call. = FALSE)
@@ -177,7 +186,8 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 					bounds[[label]] <- c(lbound, ubound)
 				}
 			} else {
-				if (label %in% freeVars) {
+				if (isSubstitution(label)) {
+				} else if (label %in% freeVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a fixed value",
 						"and a free parameter!"), call. = FALSE)

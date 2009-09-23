@@ -13,21 +13,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-splitSubstitution <- function(input) {
-	split1 <- unlist(strsplit(input, "[\\[\\]]", perl = TRUE))
-	identifier <- split1[[1]]
-	split2 <- unlist(strsplit(split1[[2]], ",", fixed = TRUE))
-	row <- split2[[1]]
-	col <- split2[[2]]
-	return(c(identifier, row, col))
-}
-
-isSubstitution <- function(input) {
-    match <- grep("^([^\\[\\]])+\\[[0-9]+,[0-9]+\\]$", input, perl = TRUE, value = TRUE)
-    return(length(match) > 0)
-}
-
-hasSquareBrackets <- function(input) {
-    match <- grep("[\\[\\]]", input, perl = TRUE, value = TRUE)
-    return(length(match) > 0)
-}
+require(OpenMx)
+A <- mxMatrix('Full', 1, 1, labels = 'data.foo', free = TRUE, name = 'A')
+model <- mxModel('model', A)
+omxCheckError(mxRun(model), 
+	paste("The definition variable 'data.foo'",
+		"has been assigned to a",
+		"free parameter in matrix 'A'"))
+A <- mxMatrix('Full', 1, 1, labels = 'foo[1,2]', free = TRUE, name = 'A')
+model <- mxModel('model', A)
+omxCheckError(mxRun(model), 
+	paste("The substitution 'foo[1,2]'",
+		"has been assigned to a",
+		"free parameter in matrix 'A'"))
