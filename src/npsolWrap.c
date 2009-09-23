@@ -327,14 +327,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 		/* Set boundaries and widths. */
 		if(nclin <= 0) {
+			nclin = 0;					// This should never matter--nclin should always be non-negative.
 			nlinwid = 1;				// For memory allocation purposes, nlinwid > 0
-		} else {
+		} else {						// nlinwid is  used to calculate ldA, and eventually the size of A.
 			nlinwid = nclin;
 		}
 
 		if(ncnln <= 0) {
+			ncnln = 0;					// This should never matter--ncnln should always be non-negative.
 			nlnwid = 1;					// For memory allocation purposes nlnwid > 0
-		} else {
+		} else {						// nlnwid is used to calculate ldJ, and eventually the size of J.
 			nlnwid = ncnln;
 		}
 
@@ -343,9 +345,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		leniw = 3 * n + nclin + 2 * ncnln;
 		lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
 
-		ldA = nlinwid;  		// nclin;
-		ldJ = nlnwid; 			// ncnln;
-		ldR = n;				// Need to check on size of this one.
+		ldA = nlinwid;  		// NPSOL specifies this should be either 1 or nclin, whichever is greater
+		ldJ = nlnwid; 			// NPSOL specifies this should be either 1 or nclin, whichever is greater
+		ldR = n;				// TODO: Test alternative versions of the size of R to see what's best.
 
 	/* Allocate arrays */
 		A		= (double*) R_alloc (ldA * n, sizeof ( double )  );
@@ -370,10 +372,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			bu[k] = currentState->freeVarList[k].ubound;				// Infinity would be at 10^20.
 		}
 
-		for(; k < n+nclin; k++) {
+		for(; k < n+nclin; k++) {						// At present, nclin == 0.
 			bl[k] = NEG_INF; 							// Linear constraints have no bounds.
 			bu[k] = INF;								// Because there are no linear constraints.
-		}
+		}												// But if there were, they would go here.
 
 		for(l = 0; l < currentState->numConstraints; l++) {					// Nonlinear constraints:
 			if(OMX_DEBUG) { Rprintf("Constraint %d: ", l);}
