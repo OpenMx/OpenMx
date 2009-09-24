@@ -48,7 +48,7 @@ mxRun <- function(model) {
 	definitions <- generateDefinitionList(flatModel)
 	matrices <- generateSimpleMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
-	startVals <- generateValueList(flatModel, matrices, parameters)
+	startVals <- generateValueList(matrices, parameters)
 	objectives <- convertObjectives(flatModel, model)
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)

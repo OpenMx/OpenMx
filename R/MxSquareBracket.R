@@ -105,3 +105,35 @@ omxComputeSubstitution <- function(matrix, model) {
 	}
 	return(value)
 }
+
+generateMatrixReferences <- function(model) {
+	matnames <- names(model@matrices)
+	retval <- replicate(length(matnames), list())
+	names(retval) <- matnames
+	if (length(model@matrices) == 0) {
+		return(retval)
+	}
+	for (i in 1:length(model@matrices)) {
+		matrix <- model@matrices[[i]]
+		name <- matrix@name
+		labels <- matrix@labels
+		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
+		rows <- row(labels)[select]
+		cols <- col(labels)[select]
+		subs <- labels[select]
+		if (length(subs) > 0) {
+			for (j in 1:length(subs)) {
+				pieces <- splitSubstitution(subs[[j]])
+				identifier <- pieces[[1]]
+				fromrow <- as.integer(pieces[[2]]) - 1L
+				fromcol <- as.integer(pieces[[3]]) - 1L
+				torow <- as.integer(rows[j] - 1)
+				tocol <- as.integer(cols[j] - 1)
+				index <- omxLocateIndex(model, identifier, name)
+				len <- length(retval[[name]])
+				retval[[name]][[len + 1]] <- c(index, fromrow, fromcol, torow, tocol)
+			}
+		}
+	}
+	return(retval)
+}

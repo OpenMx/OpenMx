@@ -14,28 +14,28 @@
 #   limitations under the License.
 
 
-generateMatrixList <- function(mxModel) {
-	matvalues <- lapply(mxModel@matrices, generateMatrixValuesHelper)
-	matnames  <- names(mxModel@matrices)
+generateMatrixList <- function(model) {
+	matvalues <- lapply(model@matrices, generateMatrixValuesHelper)
+	matnames  <- names(model@matrices)
 	names(matvalues) <- matnames
-	references <- generateMatrixReferences(mxModel)
+	references <- generateMatrixReferences(model)
 	retval <- mapply(function(x,y) { c(list(x), y) }, 
 			matvalues, references, SIMPLIFY = FALSE)
 	return(retval)
 }
 
-generateSimpleMatrixList <- function(mxModel) {
-	retval <- generateMatrixList(mxModel)
+generateSimpleMatrixList <- function(model) {
+	retval <- generateMatrixList(model)
 	retval <- lapply(retval, function(x) { 
 		c(list(as.matrix(x[[1]])), x[-1]) }) 
 	return(retval)
 }
 
-generateAlgebraList <- function(mxModel) {
-	mNames <- names(mxModel@matrices)
-	aNames <- names(mxModel@algebras)
-	oNames <- names(mxModel@objectives)
-	retval <- lapply(mxModel@algebras, generateAlgebraHelper, 
+generateAlgebraList <- function(model) {
+	mNames <- names(model@matrices)
+	aNames <- names(model@algebras)
+	oNames <- names(model@objectives)
+	retval <- lapply(model@algebras, generateAlgebraHelper, 
 		mNames, append(aNames, oNames))
     return(retval)
 }
@@ -67,7 +67,7 @@ generateDefinitionList <- function(flatModel) {
 	return(result)
 }
 
-generateValueList <- function(mxModel, mList, pList) {
+generateValueList <- function(mList, pList) {
 	mList <- lapply(mList, function(x) { x[[1]] })
 	retval <- vector()
 	if (length(pList) == 0) {

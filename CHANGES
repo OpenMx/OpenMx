@@ -1,6 +1,8 @@
 TRUNK
 =====
 * improved error messages on unknown identifier in a model (beta tester issue)
+* fixed bug in mxMatrix() when values argument is matrix and byrow=TRUE
+* implemented square-bracket substitution for MxMatrix labels
 
 Release 0.1.4-827
 =================

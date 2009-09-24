@@ -207,7 +207,8 @@ void omxComputeMatrix(omxMatrix *om) {
 
 	for(int i = 0; i < om->numPopulateLocations; i++) {
 		omxRecompute(om->populateFrom[i]);				// Make sure it's up to date
-		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], om->populateFrom[i]->data[0]);
+		double value = omxMatrixElement(om->populateFrom[i], om->populateFromRow[i], om->populateFromCol[i]);
+		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
 		// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
 	}
 
@@ -365,6 +366,8 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		int numPopLocs = length(matStruct) - 1;
 		matrix->numPopulateLocations = numPopLocs;
 		matrix->populateFrom = (omxMatrix**)R_alloc(numPopLocs, sizeof(omxMatrix*));
+		matrix->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
+		matrix->populateFromCol = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
 	}
@@ -373,16 +376,17 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
 
 		int* locations = INTEGER(subList);
-		int loc = locations[2];
+		int loc = locations[0];
 		if(OMX_DEBUG) { Rprintf("."); } //:::
 		if(loc < 0) {			// NOTE: This duplicates some of the functionality of NewMatrixFromMxIndex
 			matrix->populateFrom[i] = matrix->currentState->matrixList[(~loc)];
 		} else {
 			matrix->populateFrom[i] = matrix->currentState->algebraList[(loc)];
 		}
-
-		matrix->populateToRow[i] = locations[0];
-		matrix->populateToCol[i] = locations[1];
+		matrix->populateFromRow[i] = locations[1];
+		matrix->populateFromCol[i] = locations[2]; 
+		matrix->populateToRow[i] = locations[3];
+		matrix->populateToCol[i] = locations[4];
 
 		UNPROTECT(1); // subList
 	}
