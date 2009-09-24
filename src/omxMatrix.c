@@ -74,8 +74,11 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	}
 
 	om->populateFrom = NULL;
+	om->populateFromCol = NULL;
+	om->populateFromRow = NULL;
 	om->populateToCol = NULL;
 	om->populateToRow = NULL;
+
 	om->numPopulateLocations = 0;
 
 	om->aliasedPtr = NULL;
