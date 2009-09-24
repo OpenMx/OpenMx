@@ -22,7 +22,8 @@ RFILES = $(wildcard R/*.R)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  build      create an OpenMx binary (in build) that can be exported"
+	@echo "  build      create an OpenMx binary on unix systems"
+	@echo "  winbuild   create an OpenMx binary on windows systems"
 	@echo "  install    build and install OpenMx on this machine"
 	@echo "  pdf        create a pdf file (in build) of the OpenMx R documentation"
 	@echo "  html       create Sphinx documentation (in docs/build/html) in html format"
@@ -50,8 +51,16 @@ html: build
 	cp build/html/* docs/source/static/Rdoc
 	cd docs; make clean; make html
 
-build: clean internal-build
+common-build: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+
+build: common-build
+	rm -f $(RBUILD)/$(TARGET)
+	cd $(RBUILD); gunzip *.gz;\
+	tar --delete --file=`ls` OpenMx/npsol;\
+	gzip *.tar
+
+winbuild: common-build
 
 install: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
