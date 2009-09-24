@@ -86,3 +86,22 @@ checkSquareBracketMatrix <- function(matrix, model, flatModel, labelsData) {
 		}
 	}
 }
+
+omxComputeSubstitution <- function(matrix, model) {
+	labels <- matrix@labels
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
+	rows <- row(labels)[select]
+	cols <- col(labels)[select]
+	subs <- labels[select]
+	if (length(subs) == 0) { return(matrix@values) }
+	value <- matrix@values
+	for(i in 1:length(subs)) {
+		pieces <- splitSubstitution(subs[[i]])
+		identifier <- pieces[[1]]
+		sourcerow <- as.numeric(pieces[[2]])
+		sourcecol <- as.numeric(pieces[[3]])
+		other <- eval(substitute(mxEval(x, model, compute=TRUE), list(x = as.symbol(identifier)))) 
+		value[rows[[i]],cols[[i]]] <- other[sourcerow,sourcecol]
+	}
+	return(value)
+}

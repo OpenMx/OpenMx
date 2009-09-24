@@ -111,7 +111,7 @@ computeSymbol <- function(symbol, model, labelsData) {
 	if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
-		return(substitute(model[[x]]@values, list(x = key)))
+		return(substitute(omxComputeSubstitution(model[[x]], model), list(x = key)))
 	} else if (is(lookup, "MxAlgebra")) {
 		return(substitute(omxDimnames(eval(captureComputeTranslation(x, flatModel, labelsData)), y),
 			list(x = lookup@formula, y = lookup@.dimnames)))
@@ -209,8 +209,16 @@ showEvaluationSymbol <- function(symbol, model, modelVariable, labelsData) {
 	if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
-		return(substitute(modelName[[x]]@values,
-			list(modelName = modelVariable, x = key)))
+		labels <- lookup@labels
+		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
+		subs <- labels[select]
+		if (length(subs) == 0) {
+			return(substitute(modelName[[x]]@values,
+				list(modelName = modelVariable, x = key)))
+		} else {
+			return(substitute(omxComputeSubstitution(modelName[[x]], modelName),
+				list(modelName = modelVariable, x = key)))
+		}
 	} else if (is(lookup, "MxAlgebra")) {
 		return(substitute(mxEval(x, modelName, TRUE), list(x = lookup@formula,
             modelName = modelVariable)))
