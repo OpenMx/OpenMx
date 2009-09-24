@@ -33,7 +33,7 @@ void omxPrintMatrix(omxMatrix *source, char* header) {
 	int j, k;
 
 	Rprintf("%s: (%d x %d) [%s-major]\n", header, source->rows, source->cols, (source->colMajor?"col":"row"));
-	if(OMX_DEBUG) {Rprintf("Matrix Printing is at %0x\n", source);}
+	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix Printing is at %0x\n", source);}
 
 	if(source->colMajor) {
 		for(j = 0; j < source->rows; j++) {
@@ -98,9 +98,13 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Duplicate a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
-	if(OMX_DEBUG) { Rprintf("omxCopyMatrix"); }
-
-	omxFreeMatrixData(dest);
+	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
+	
+	int regenerateMemory = TRUE;
+	
+	if(dest->localData && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
+		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
+	}
 
 	dest->rows = orig->rows;
 	dest->cols = orig->cols;
@@ -113,10 +117,14 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->lastRow = orig->lastRow;
 
 	if(dest->rows == 0 || dest->cols == 0) {
+		omxFreeMatrixData(dest);
 		dest->data = NULL;
 		dest->localData=FALSE;
 	} else {
-		dest->data = (double*) Calloc(dest->rows * dest->cols, double);
+		if(regenerateMemory) {
+			omxFreeMatrixData(dest);											// Free and regenerate memory
+			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
+		}
 		memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
 		dest->localData = TRUE;
 	}
@@ -137,7 +145,7 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 void omxFreeMatrixData(omxMatrix * om) {
 
 	if(om->localData && om->data != NULL) {
-		if(OMX_DEBUG) { Rprintf("Freeing 0x%0x. Localdata = %d.\n", om->data, om->localData); }
+		if(OMX_DEBUG_MATRIX) { Rprintf("Freeing matrix at 0x%0x. Localdata = %d.\n", om->data, om->localData); }
 		Free(om->data);
 		om->data = NULL;
 		om->localData = FALSE;
@@ -147,7 +155,7 @@ void omxFreeMatrixData(omxMatrix * om) {
 
 void omxFreeAllMatrixData(omxMatrix *om) {
 
-	if(OMX_DEBUG) { Rprintf("Freeing 0x%0x with data = %0x and algebra %0x.\n", om, om->data, om->algebra); }
+	if(OMX_DEBUG) { Rprintf("Freeing matrix at 0x%0x with data = %0x and algebra %0x.\n", om, om->data, om->algebra); }
 
 	if(om->localData && om->data != NULL) {
 		Free(om->data);
@@ -169,9 +177,9 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
-	if(OMX_DEBUG) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }
+	if(OMX_DEBUG_MATRIX) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }
 	if(keepMemory == FALSE) {
-		if(OMX_DEBUG) { Rprintf(" and regenerating memory to do it"); }
+		if(OMX_DEBUG_MATRIX) { Rprintf(" and regenerating memory to do it"); }
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
 		om->localData = TRUE;
@@ -179,7 +187,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
 	}
 
-	if(OMX_DEBUG) { Rprintf(".\n"); }
+	if(OMX_DEBUG_MATRIX) { Rprintf(".\n"); }
 	om->rows = nrows;
 	om->cols = ncols;
 	if(keepMemory == FALSE) {
@@ -202,7 +210,7 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 
 void omxComputeMatrix(omxMatrix *om) {
 
-//	if(OMX_DEBUG) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
+//	if(OMX_DEBUG_MATRIX) { Rprintf("Matrix compute: 0x%0x, 0x%0x, %d.\n", om, om->currentState, om->colMajor); }
 	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
 	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
 	om->leading = (om->colMajor?om->rows:om->cols);
@@ -397,7 +405,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
-//	if(OMX_DEBUG) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
+//	if(OMX_DEBUG_MATRIX) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
 
 	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
 
@@ -427,31 +435,31 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
 	for(int j = 0; j < oldCols; j++) {
-		if(OMX_DEBUG) { Rprintf("Handling column %d/%d...", j, oldCols);}
+		if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Handling column %d/%d...", j, oldCols);}
 		if(colsRemoved[j]) {
-			if(OMX_DEBUG) { Rprintf("Removed.\n");}
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Removed.\n");}
 			continue;
 		} else {
 			nextRow = 0;
-			if(OMX_DEBUG) { Rprintf("Rows (max %d): ", oldRows); }
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Rows (max %d): ", oldRows); }
 			for(int k = 0; k < oldRows; k++) {
 				if(rowsRemoved[k]) {
-					if(OMX_DEBUG) { Rprintf("%d removed....", k);}
+					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("%d removed....", k);}
 					continue;
 				} else {
-					if(OMX_DEBUG) { Rprintf("%d kept....", k);}
+					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("%d kept....", k);}
 					if(om->aliasedPtr == NULL) {
 						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
 					} else {
 						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
 					}
-					if(OMX_DEBUG) {
+					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) {
 						omxPrint(om, "Now Reads: (:::DEBUG:::)");
 			  		}
 					nextRow++;
 				}
 			}
-			if(OMX_DEBUG) { Rprintf("\n");}
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("\n");}
 			nextCol++;
 		}
 	}
@@ -468,7 +476,8 @@ void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matri
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
-	if(OMX_DEBUG) {Rprintf("MatrixNeedsUpdate?");}
+	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix 0x%x NeedsUpdate?", matrix);}
+	if(matrix == NULL) return FALSE;		// Not existing means never having to say you need to recompute.
 	if(matrix->isDirty) return TRUE;
 	if(matrix->lastCompute < matrix->currentState->computeCount) return TRUE;  	// No need to check args if oa's dirty.
 	if(matrix->lastRow < matrix->currentState->currentRow) return TRUE;			// Ditto.

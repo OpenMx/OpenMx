@@ -31,7 +31,7 @@ void omxDestroyAlgebraObjective(omxObjective *oo) {
 }
 
 void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
-
+	if(OMX_DEBUG_ALGEBRA) {Rprintf("Beginning Algebra Objective Computation.\n");}
 	omxMatrix* algebra = ((omxAlgebraObjective*)(oo->argStruct))->algebra;
 
 	omxRecompute(algebra);
@@ -43,6 +43,7 @@ void omxCallAlgebraObjective(omxObjective *oo) {	// TODO: Figure out how to give
 	
 	oo->matrix->data[0] = algebra->data[0];
 	
+	if(OMX_DEBUG) {Rprintf("Algebra Objective value is %f.\n", oo->matrix->data[0]);}
 }
 
 omxRListElement* omxSetFinalReturnsAlgebraObjective(omxObjective *oo, int *numReturns) {

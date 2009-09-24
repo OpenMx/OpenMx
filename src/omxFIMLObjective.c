@@ -20,13 +20,13 @@
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include "omxDefines.h"
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 
 #ifndef _OMX_FIML_OBJECTIVE_
 #define _OMX_FIML_OBJECTIVE_ TRUE
-#define OMX_DEBUG_ROWS FALSE
 
 extern omxMatrix** matrixList;
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
@@ -201,7 +201,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	relEps		= ((omxFIMLObjective*)oo->argStruct)->relEps;
 	
 	if(numDefs == 0) {
-		if(OMX_DEBUG) { Rprintf("No Definition Vars: precalculating."); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
 		for(int j = 0; j < data->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
@@ -413,6 +413,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
 
 	if(numDefs == 0) {
+		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
 		omxRecompute(means);
 	}
@@ -436,14 +437,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		// Handle Definition Variables.
 		if(numDefs != 0) {
+			if(OMX_DEBUG_ROWS) {Rprintf("Handling definition vars and calculating cov and means for row %d.\n", row);}
 			handleDefinitionVarList(data, row, defVars, numDefs);
 			omxStateNextRow(oo->matrix->currentState);							// Advance Row
 			omxRecompute(cov);
 			omxRecompute(means);
 		}
 
-		if(OMX_DEBUG) { omxPrint(means, "Local Means"); }
-		if(OMX_DEBUG) { omxPrint(smallRow, "Local Data Row"); }
+		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
+		if(OMX_DEBUG_ROWS) { omxPrint(smallRow, "Local Data Row"); }
 		
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
@@ -467,13 +469,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 		
-		if(OMX_DEBUG) { omxPrint(smallCov, "Local Covariance Matrix"); }
+		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			char errStr[250];
-			sprintf(errStr, "Covariance matrix is not positive-definite.");
+			sprintf(errStr, "Covariance matrix is not positive-definite in row %d.\n", row);
 			omxRaiseError(oo->matrix->currentState, -1, errStr);
 			return;
 		}
@@ -496,7 +498,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", logDet, Q, (log(2 * M_PI) * smallRow->cols), logDet + Q + (log(2 * M_PI) * smallRow->cols), sum);}
 	}
 
-	if(OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+	if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
 	oo->matrix->data[0] = sum;
 
 }

@@ -34,7 +34,7 @@
 
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Transpose.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Transpose.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -49,7 +49,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Invert.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Invert.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -70,7 +70,7 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Powering.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Powering.\n");}
 
 	omxMatrix* inMat = matList[0];
 	omxMatrix* power = matList[1];
@@ -99,7 +99,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Multiply.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Multiply.\n");}
 	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -123,7 +123,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	
 	
 	/* For debugging */
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(result, "NewMatrix");
 		Rprintf("DGEMM: %c, %c, %d, %d, %d, %f, %0x %d %0x %d %f %0x %d\n", *(preMul->majority), *(postMul->majority), (preMul->rows), (postMul->cols), (preMul->cols), one, (preMul->data), (preMul->leading), (postMul->data), (postMul->leading), zero, (result->data), (result->leading)); 
 	}
@@ -162,7 +162,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Kronecker Product.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Kronecker Product.\n");}
 	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -186,7 +186,7 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product.\n");}
 	
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -202,26 +202,26 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState); // Leaks Memory!
 	
-	if(OMX_DEBUG) { Rprintf("Quadratic: os = 0x%x, step = %d.\n", result->currentState, intermediate->currentState->computeCount);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: os = 0x%x, step = %d.\n", result->currentState, intermediate->currentState->computeCount);}
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->objective);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->objective);}
 	
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
 	
 	omxComputeMatrix(intermediate);
 	omxComputeMatrix(result);
 
 	/* The call itself */
-	if(OMX_DEBUG) { Rprintf("Quadratic: premul.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: premul.\n");}
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
 	omxComputeMatrix(intermediate);
-	if(OMX_DEBUG) { Rprintf("Quadratic: postmul.\n");}
-//	if(OMX_DEBUG) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: postmul.\n");}
+//	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
 	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
-	if(OMX_DEBUG) { Rprintf("Quadratic: clear.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: clear.\n");}
 
 	omxFreeMatrixData(intermediate);
 
@@ -230,7 +230,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Division.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Division.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* divisor = matList[1];
@@ -256,7 +256,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Addition.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Addition.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* addend = matList[1];
@@ -282,7 +282,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Subtraction.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Subtraction.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* subtrahend = matList[1];
@@ -292,7 +292,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 		
 	omxCopyMatrix(result, inMat);
 		
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(subtrahend, "Subtracting");
 		omxPrint(inMat, "From");
 	}
@@ -308,7 +308,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 		}
 	}
 
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(inMat, "And Got");
 	}
 }
@@ -316,7 +316,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Unary Minus.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Unary Minus.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -333,7 +333,7 @@ void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Horizontal Matrix Concatenation.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Horizontal Matrix Concatenation.\n");}
 
 	int totalRows = 0, totalCols = 0, currentCol=0;
 	
@@ -349,7 +349,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 	
 	if(result->rows != totalRows || result->cols != totalCols) {
-		if(OMX_DEBUG) { Rprintf("ALGEBRA: HorizCat: resizing result.\n");}
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: HorizCat: resizing result.\n");}
 		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 	
@@ -366,7 +366,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Vertical Matrix Concatenation.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Vertical Matrix Concatenation.\n");}
 
 	int totalRows = 0, totalCols = 0, currentRow=0;
 	
@@ -399,7 +399,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Determinant.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Determinant.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	omxMatrix* calcMat;					// This should be preallocated.
@@ -426,7 +426,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		error("Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.");  // UPDATE!
 	}
 	
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(calcMat, "LU Decomp");
 		Rprintf("info is %d.\n", info);
 	}
@@ -436,7 +436,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		if(ipiv[i] != (i+1)) det *= -1;
 	}
 
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		Rprintf("det is %d.\n", det);
 	}
 
@@ -446,7 +446,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Trace.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Trace.\n");}
 	
 	omxMatrix* inMat = matList[0];
 
@@ -471,7 +471,7 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Total Sum.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Total Sum.\n");}
 	
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -494,7 +494,7 @@ void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Total Product.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Total Product.\n");}
 
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -517,7 +517,7 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) 
 
 void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Minimum Element.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Minimum Element.\n");}
 	
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -540,7 +540,7 @@ void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
 
 void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Maximum Element.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Maximum Element.\n");}
 
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -563,7 +563,7 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result){
 void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Absolute Value.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Absolute Value.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -581,7 +581,7 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Cosine.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Cosine.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -599,7 +599,7 @@ void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Cosine.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Cosine.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -617,7 +617,7 @@ void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Sine.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Sine.\n");}
 	
 	omxMatrix* inMat = matList[0];
 
@@ -635,7 +635,7 @@ void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Sine.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Sine.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -653,7 +653,7 @@ void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Tangent.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Tangent.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -671,7 +671,7 @@ void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Tangent.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Hyperbolic Tangent.\n");}
 
 	omxMatrix* inMat = matList[0];
 	
@@ -689,7 +689,7 @@ void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Exponent.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Exponent.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	
@@ -707,7 +707,7 @@ void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	
-	if(OMX_DEBUG) { Rprintf("ALGEBRA: Matrix Element Natural Log.\n");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Element Natural Log.\n");}
 	
 	omxMatrix* inMat = matList[0];
 	

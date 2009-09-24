@@ -20,6 +20,7 @@
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include "omxDefines.h"
 
 #include <stdio.h>
 #include "omxState.h"
@@ -27,30 +28,6 @@
 #include "omxAlgebra.h"
 #include "omxObjective.h"
 //#include "omxSymbolTable.h"
-
-#define M(y,z) m[z][y]
-#define EPSILON 1e-16
-#define TRUE 1
-#define FALSE 0
-
-#ifdef DEBUGMX
-#define OMX_DEBUG 1
-#define VERBOSE 1
-#else
-#ifdef VERBOSEMX
-#define OMX_DEBUG 0
-#define VERBOSE 1
-#else
-#define OMX_DEBUG 0
-#define VERBOSE 0
-#endif /* VERBOSEMX */
-#endif /* DEBUGMX */
-
-#ifdef DEBUGNPSOL
-#define OMX_DEBUG_OPTIMIZER 1
-#else
-#define OMX_DEBUG_OPTIMIZER 0
-#endif
 
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
@@ -238,7 +215,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	 The second element of the list is the upper bound.  The remaining elements of this
 	 list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
     */
-	if(VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
+	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
@@ -276,10 +253,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		UNPROTECT(1); // nextVar
 	}
 
-	if(VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 
 	/* Processing Constraints */
-	if(VERBOSE) { Rprintf("Processing Constraints.\n");}
+	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
 	omxMatrix *arg1, *arg2;
 	currentState->numConstraints = length(constraints);
 	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numConstraints); }
@@ -299,7 +276,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		currentState->conList[k].size = currentState->conList[k].result->rows * currentState->conList[k].result->cols;
 		ncnln += currentState->conList[k].size;
 	}
-	if(VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
 	funcon = F77_SUB(constraintFunction);
 
@@ -418,7 +395,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 
 		/* Initialize Starting Values */
-		if(VERBOSE) {
+		if(OMX_VERBOSE) {
 			Rprintf("--------------------------\n");
 			Rprintf("Starting Values (%d) are:\n", n);
 		}
@@ -427,7 +404,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			if(x[k] == 0.0) {
 				x[k] += .1;
 			}
-			if(VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
+			if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
 		if(OMX_DEBUG) {
 			Rprintf("--------------------------\n");
@@ -616,7 +593,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 7, algebras);
 	namesgets(ans, names);
 
-	if(VERBOSE) {
+	if(OMX_VERBOSE) {
 		Rprintf("Inform Value: %d\n", inform);
 		Rprintf("--------------------------\n");
 	}
@@ -667,7 +644,7 @@ void F77_SUB(objectiveFunction)
 	}
 
 	*f = objectiveMatrix->data[0];
-	if(VERBOSE) {
+	if(OMX_VERBOSE) {
 		Rprintf("Objective Value is: %f.\n", objectiveMatrix->data[0]);
 	}
 
@@ -699,7 +676,7 @@ void F77_SUB(constraintFunction)
 	for(j = 0; j < currentState->numConstraints; j++) {
 		omxRecompute(currentState->conList[j].result);
 		size = currentState->conList[j].result->rows * currentState->conList[j].result->cols;
-		if(VERBOSE) { omxPrint(currentState->conList[j].result, "Constraint evaluates as:"); }
+		if(OMX_VERBOSE) { omxPrint(currentState->conList[j].result, "Constraint evaluates as:"); }
 		for(k = 0; k < currentState->conList[j].size; k++){
 			c[l++] = currentState->conList[j].result->data[k];
 		}
@@ -721,7 +698,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
 	os->computeCount++;
 
-	if(VERBOSE) {
+	if(OMX_VERBOSE) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d\n", os->computeCount);
 		Rprintf("Estimates: [");
@@ -734,7 +711,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 
 	/* Fill in Free Var Estimates */
 	for(int k = 0; k < os->numFreeParams; k++) {
-		if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
+		// if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
 		for(int l = 0; l < freeVarList[k].numLocations; l++) {
 			*(freeVarList[k].location[l]) = x[k];
 			if(OMX_DEBUG) {

@@ -52,19 +52,21 @@
 	
 	void omxFreeState(omxState *oo) {
 		int k;
-		if(OMX_DEBUG) { Rprintf("Freeing Algebras.\n");}
+		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", oo->numAlgs);}
 		for(k = 0; k < oo->numAlgs; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d.\n", k); }
+			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", k, oo->algebraList[k]); }
 			omxFreeAllMatrixData(oo->algebraList[k]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing Matrices.\n");}
+		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", oo->numMats);}
 		for(k = 0; k < oo->numMats; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, oo->matrixList[k]); }
 			omxFreeAllMatrixData(oo->matrixList[k]);
 		}
 		
-		if(OMX_DEBUG) { Rprintf("Freeing Data.\n");}
+		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", oo->numData);}
 		for(k = 0; k < oo->numData; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->dataList[k]); }
 			omxFreeData(oo->dataList[k]);
 		}
 		

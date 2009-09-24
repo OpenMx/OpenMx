@@ -34,6 +34,7 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include "omxDefines.h"
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
@@ -63,13 +64,6 @@ struct omxConstraint {		// Free Variable Constraints
 };
 
 #define MAX_STRING_LEN 250
-
-#ifdef DEBUGMX
-#define OMX_DEBUG 1
-#else
-#define OMX_DEBUG 0
-#endif /* DEBUGMX */
-
 
 struct omxState {													// The Current State of Optimization
 

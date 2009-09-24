@@ -55,26 +55,26 @@ void omxFreeObjectiveArgs(omxObjective *oo) {
 }
 
 void omxObjectiveCompute(omxObjective *oo) {
-	if(OMX_DEBUG) { Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->matrix->isDirty?"Yes":"No"));}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->matrix->isDirty?"Yes":"No"));}
 
 	oo->objectiveFun(oo);
 
-	oo->matrix->isDirty = FALSE;
-
+	if(oo->matrix != NULL)
+		omxComputeMatrix(oo->matrix);
 }
 
 unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 {
-	if(OMX_DEBUG) {Rprintf("omxObjectiveNeedsUpdate:");}
+	if(OMX_DEBUG_MATRIX) {Rprintf("omxObjectiveNeedsUpdate:");}
 	unsigned short needsIt = TRUE;   		// Defaults to TRUE if unspecified
 	if(!(oo->needsUpdateFun == NULL)) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("Calling update function 0x%x:", oo->needsUpdateFun);}
 		needsIt = oo->needsUpdateFun(oo);
 	}
 	
-	if(OMX_DEBUG) {Rprintf("%s\n", (needsIt?"Yes":"No"));}
+	if(OMX_DEBUG_MATRIX) {Rprintf("%s\n", (needsIt?"Yes":"No"));}
 	
 	return needsIt;
-
 }
 
 

@@ -67,17 +67,17 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 }
 
 void omxAlgebraCompute(omxAlgebra *oa) {
-	if(OMX_DEBUG) {Rprintf("Algebra compute: 0x%0x (needed: %d/%d).\n", oa, oa->matrix->lastCompute, oa->matrix->currentState->computeCount);}
+	if(OMX_DEBUG_ALGEBRA) {Rprintf("Algebra compute: 0x%0x (needed: %d/%d).\n", oa, oa->matrix->lastCompute, oa->matrix->currentState->computeCount);}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG) { Rprintf("Recomputing arg %d at 0x%0x.\n", j, oa->args[j]); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x.\n", j, oa->args[j]); }
 		omxRecompute(oa->args[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
 	
 	if(oa->funWrapper == NULL) { 			// No-op algebra: only for algebra-is-a-matrix condition.
 		if(oa->numArgs == 1) {
-			if(OMX_DEBUG) { omxPrint(oa->args[0], "No-op Matrix"); }
+			if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->args[0], "No-op Matrix"); }
 			omxCopyMatrix(oa->matrix, oa->args[0]);
 		} else {
 			error("Internal Error: Empty algebra evaluated.\n");
@@ -88,15 +88,15 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 	}
 	omxComputeMatrix(oa->matrix);
 	
-	if(OMX_DEBUG) { omxAlgebraPrint(oa, "Result is"); }
+	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
 }
 
 int omxAlgebraNeedsUpdate(omxAlgebra *oa)
 {
-	if(OMX_DEBUG) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numArgs);}
+	if(OMX_DEBUG_ALGEBRA) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numArgs);}
 	for(int j = 0; j < fabs(oa->numArgs); j++) {
 		if(omxNeedsUpdate(oa->args[j])) {
-			if(OMX_DEBUG) {Rprintf("Arg %d Needs Update.\n");}
+			if(OMX_DEBUG_ALGEBRA) {Rprintf("Arg %d Needs Update.\n");}
 			return TRUE;
 		}
 	}
@@ -115,7 +115,7 @@ omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os) {
 void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 
 	int value;
-	omxAlgebra *oa;
+	omxAlgebra *oa = NULL;
 	SEXP algebraOperator, algebraArg, algebraElt;
 	
 	PROTECT(algebraOperator = AS_INTEGER(VECTOR_ELT(algebra, 0)));

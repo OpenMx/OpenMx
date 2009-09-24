@@ -35,6 +35,7 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include "omxDefines.h"
 
 typedef struct omxObjective omxObjective;
 typedef struct omxRListElement omxRListElement;
@@ -43,13 +44,6 @@ typedef struct omxRListElement omxRListElement;
 #include "omxAlgebra.h"
 #include "omxAlgebraFunctions.h"
 #include "omxObjectiveTable.h"
-
-
-#ifdef DEBUGMX
-#define OMX_DEBUG 1
-#else
-#define OMX_DEBUG 0
-#endif /* DEBUGMX */
 
 struct omxRListElement {
 	char label[250];

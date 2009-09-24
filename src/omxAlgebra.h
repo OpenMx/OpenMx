@@ -35,12 +35,7 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-
-#ifdef DEBUGMX
-#define OMX_DEBUG 1
-#else
-#define OMX_DEBUG 0
-#endif /* DEBUGMX */
+#include "omxDefines.h"
 
 typedef struct omxAlgebra omxAlgebra;
 

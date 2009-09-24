@@ -36,6 +36,7 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h> 
+#include "omxDefines.h"
 
 typedef struct omxData omxData;
 
@@ -43,11 +44,6 @@ typedef struct omxData omxData;
 #include "omxObjective.h"
 #include "omxState.h"
 
-#ifdef DEBUGMX
-#define OMX_DEBUG 1
-#else
-#define OMX_DEBUG 0
-#endif /* DEBUG */
 
 struct omxData {						// A matrix
 										//TODO: Improve encapsulation

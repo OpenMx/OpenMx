@@ -171,14 +171,14 @@ int omxIntDataElement(omxData *od, int row, int col) {
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 	double dataElement;
 	
-	if(od->dataMat != NULL) {
-		if(om != NULL) {
+	if(od->dataMat != NULL) {		// Data was entered as a matrix.
+		if(om != NULL) {			// It stays as such
 			omxCopyMatrix(om, od->dataMat);
 			return om;
 		}
 		return od->dataMat;
 	}
-	
+									// Otherwise, we must construct the matrix.
 	int numRows = od->rows, numCols = od->cols;
 	
 	if(om == NULL) {
