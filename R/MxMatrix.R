@@ -225,9 +225,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	} else if (is.na(nrow) || is.na(ncol)) {
 		stop("Both nrow and ncol must be specified on a non-square matrix")
 	}
-	values <- as.numeric(values)
-	lbound <- as.numeric(lbound)
-	ubound <- as.numeric(ubound)
+	values <- as.numeric.preserve(values)
+	lbound <- as.numeric.preserve(lbound)
+	ubound <- as.numeric.preserve(ubound)
 	typeName <- paste(type, "Matrix", sep="")
 	newMatrix <- new(typeName, name, values, free, labels, 
 			lbound, ubound, nrow, ncol, byrow)
@@ -237,6 +237,14 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	}
 	omxVerifyMatrix(newMatrix)
 	return(newMatrix)
+}
+
+as.numeric.preserve <- function(arg) {
+	if (is.matrix(arg)) {
+		return(matrix(as.numeric(arg), nrow(arg), ncol(arg)))
+	} else {
+		return(as.numeric(arg))
+	}
 }
 
 matrixCheckArgument <- function(arg, name) {
