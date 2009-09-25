@@ -7,6 +7,9 @@
 # 		var = matrix(0,nVar,nVar);  diag(var)=diag(Vtot);  # variances on the diagonal, 0's elsewhere.
 # 		SD =  solve(sqrt(var))   # Inverse (solve) of diagonal matrix of standard deviations: \sqrt(var)~ in oldMx-speak
 # 	Improved comments
+# TODO (tb) Write equivalent script in old-mx
+# TODO (tb) Add output from old-mx
+# TODO (tb) Add near-enough calls to verify output
 
 require(OpenMx)
 #Import Data

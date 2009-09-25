@@ -10,6 +10,8 @@ MultivariateRegression_PathRaw	Multivariate regression using path-centric specif
 MultivariateRegression_PathCov	Multivariate regression using path-centric specification and covariance data
 MultivariateRegression_MatrixRaw	Multivariate regression using matrix (RAM) specification and raw data
 MultivariateRegression_MatrixCov	Multivariate regression using matrix (RAM) specification and covariance data
+OneFactorMatrixDemo  One factor model from the matrix-style demo on the front page of the website.
+OneFactorPathDemo  One factor model from the path-style demo on the front page of the website.
 OneFactorModel_PathRaw	Common factor model using path-centric specification and raw data
 OneFactorModel_PathCov	Common factor model using path-centric specification and covariance data
 OneFactorModel_MatrixRaw	Common factor model using matrix (RAM) specification and raw data
@@ -35,11 +37,10 @@ BivariateSaturated	Bivariate saturated model using path-centric/matrix specifica
 BivariateCorrelation	Bivariate saturated model testing significance of correlation using matrix specification and raw data
 BivariateHeterogeneity_PathRaw	Bivariate hetero/homogeneity model using path-centric specification and raw data
 BivariateHeterogeneity_MatrixRaw	Bivariate hetero/homogeneity model using matrix specification and raw data
+DefinitionMeans_PathRaw	Definition variable model for mean differences using path-centric specification and raw data
+DefinitionMeans_MatrixRaw	Definition variable model for mean differences using matrix specification and raw data
 UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specification and raw data
 UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
 TwinAnalysis_Multivariate_Matrix_Raw	Multivariate ACE model using matrix specification and raw data
 Twin_independent_path_general_factor	Multivariate twin model for independent general factor
-DefinitionMeans_PathRaw	Definition variable model for mean differences using path-centric specification and raw data
-DefinitionMeans_MatrixRaw	Definition variable model for mean differences using matrix specification and raw data
-OneFactorMatrixDemo  One factor model from the matrix-style demo on the front page of the website.
-OneFactorPathDemo  One factor model from the path-style demo on the front page of the website.
+NTF_design              Nuclear twin family ACE model
