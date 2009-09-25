@@ -1,11 +1,16 @@
-TRUNK
+trunk
 =====
+
+
+Release 0.1.5-851
+=================
 * improved error messages on unknown identifier in a model (beta tester issue)
 * fixed bug in mxMatrix() when values argument is matrix and byrow=TRUE
 * implemented square-bracket substitution for MxMatrix labels
 * fixed a bug in computation of omxFIMLObjective within an algebra when definition variables are used
 * significant alterations to back-end debugging flags
 * tweaked memory handling in back-end matrix copying
+* added support for x86_64 linux with gcc 4.2 and 4.3
 
 Release 0.1.4-827
 =================
