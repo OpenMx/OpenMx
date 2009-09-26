@@ -2,7 +2,6 @@
 # Author: 
 # History:  Sat 26 Sep 2009 14:57:38 BST
 # (tb) updated to use data(), addded var name array, added summary statement... 
-# Question: why are the data read in as z y x, but then reported as x y z?
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 require(OpenMx)
@@ -12,12 +11,12 @@ selVars = c("x","y","z") # why is this reverse of the selection order?
 multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
     mxData(MultipleDataRaw,type="raw"),
     mxMatrix("Full", nrow=3, ncol=3,
-        values=c(0,0,0,
-                 1,0,1,
-                 0,0,0),
-        free=c(F, F, F,
-               T, F, T,
-               F, F, F),
+        values=c(0, 0, 0,
+                 1, 0, 1,
+                 0, 0, 0),
+        free=  c(F, F, F,
+                 T, F, T,
+                 F, F, F),
         labels=c(NA,     NA, NA,
                 "betax", NA,"betaz",
                  NA,     NA, NA),
@@ -27,9 +26,9 @@ multiRegModel<-mxModel("Multiple Regression - Matrix Specification",
         values=c(1, 0, .5,
                  0, 1, 0,
                 .5, 0, 1),
-        free=c(T, F, T,
-               F, T, F,
-               T, F, T),
+        free=  c(T, F, T,
+                 F, T, F,
+                 T, F, T),
         labels=c("varx",  NA,         "covxz",
                   NA,    "residual",   NA,
                  "covxz", NA,         "varz"),
