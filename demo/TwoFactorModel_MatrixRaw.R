@@ -1,18 +1,13 @@
 require(OpenMx)
-
 data(myFADataRaw)
-
 twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
-manifest <- names(twoFactorRaw)
-latent = c("F1", "F2")
-vars <- c(manifest, latent)
+manifest     <- names(twoFactorRaw)
+latent       <- c("F1", "F2")
+vars         <- c(manifest, latent)
 
 twoFactorModel <- mxModel("Two Factor Model - Matrix", 
     type="RAM",
-    mxData(
-        observed=twoFactorRaw, 
-        type="raw",
-        ),
+    mxData(observed=twoFactorRaw, type="raw"),
     mxMatrix("Full", nrow=8, ncol=8,
         values=c(0,0,0,0,0,0,1,0,
                  0,0,0,0,0,0,1,0,
@@ -88,7 +83,7 @@ twoFactorModel <- mxModel("Two Factor Model - Matrix",
 )
       
 twoFactorFit <- mxRun(twoFactorModel)
-
+summary(twoFactorFit)
 # Old Mx Values
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.9723, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.9313, 0.01)
@@ -128,4 +123,3 @@ omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx6"]], 2.9673, 0.01)
 # omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx4"]], 3.053, 0.01)
 # omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx5"]], 3.016, 0.01)
 # omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx6"]], 3.010, 0.01)
-

@@ -22,28 +22,18 @@ myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967
   
 twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
 
-twoFactorModel <- mxModel("Two Factor Model - Path", 
-    type="RAM",
-    mxData(
-        observed=twoFactorCov, 
-        type="cov", 
-        numObs=500,
-        means=twoFactorMeans
-        ),
+twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
+    mxData(twoFactorCov, type="cov", numObs=500, means=twoFactorMeans),
     manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
     latentVars=c("F1","F2"),
     # residual variances
     mxPath(from=c("x1", "x2", "x3", "y1", "y2", "y3"),
-        arrows=2,
-        free=TRUE,
-        values=c(1,1,1,1,1,1),
+        arrows=2, free=TRUE, values=1,
         labels=c("e1","e2","e3","e4","e5","e6")
     ),
     # latent variances and covaraince
     mxPath(from=c("F1","F2"),
-        arrows=2,
-        all=TRUE,
-        free=TRUE,
+        arrows=2,all=TRUE, free=TRUE,
         values=c(1, .5,
                 .5, 1),
         labels=c("varF1", "cov", "cov", "varF2")
@@ -77,7 +67,7 @@ twoFactorModel <- mxModel("Two Factor Model - Path",
 ) # close model
       
 twoFactorFit <- mxRun(twoFactorModel)
-
+summary(twoFactorFit)
 # Old Mx Values
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.9720, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.9310, 0.01)

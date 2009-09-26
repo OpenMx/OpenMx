@@ -1,7 +1,5 @@
 require(OpenMx)
-
 data(myFADataRaw)
-
 myFADataRaw<-myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
 
 oneFactorModel<-mxModel("Common Factor Model - Matrix Specification", 

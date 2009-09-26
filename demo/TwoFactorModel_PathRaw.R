@@ -1,15 +1,9 @@
 require(OpenMx)
-
 data(myFADataRaw)
-
 twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 
-twoFactorModel <- mxModel("Two Factor Model - Path", 
-    type="RAM",
-    mxData(
-        observed=twoFactorRaw, 
-        type="raw",
-        ),
+twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
+    mxData(observed=twoFactorRaw, type="raw"),
     manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
     latentVars=c("F1","F2"),
     # residual variances
@@ -53,7 +47,7 @@ twoFactorModel <- mxModel("Two Factor Model - Path",
         labels=c("meanx1","meanx2","meanx3",
                  "meany1","meany2","meany3",
                   NA,NA)
-    ) # means
+    )
 ) # close model
       
 twoFactorFit <- mxRun(twoFactorModel)
