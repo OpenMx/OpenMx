@@ -1,9 +1,14 @@
+# SCRIPT: MultipleRegression_MatrixRawReverse.R
+# Author: 
+# History:  Sat 26 Sep 2009 14:57:38 BST
+# (tb) updated to use data(), addded var name array, added summary statement... 
+# Question: why are the data read in as z y x, but then reported as x y z?
+# OpenMx: http://www.openmx.virginia.com
+##########################################
 require(OpenMx)
-myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
-
-MultipleDataRaw<-myRegDataRaw[,c("z","y","x")]
-
-
+data("myRegData", package="OpenMx")
+MultipleDataRaw<-myRegData[,c("z","y","x")]
+selVars = c("x","y","z") # why is this reverse of the selection order?
 multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
     mxData(MultipleDataRaw,type="raw"),
     mxMatrix("Full", nrow=3, ncol=3,
@@ -17,7 +22,7 @@ multiRegModel<-mxModel("Multiple Regression - Matrix Specification",
                 "betax", NA,"betaz",
                  NA,     NA, NA),
         byrow=TRUE,
-        name = "A"),
+        name = "A" ),
     mxMatrix("Symm", nrow=3, ncol=3, 
         values=c(1, 0, .5,
                  0, 1, 0,
@@ -29,22 +34,21 @@ multiRegModel<-mxModel("Multiple Regression - Matrix Specification",
                   NA,    "residual",   NA,
                  "covxz", NA,         "varz"),
         byrow=TRUE,
-        name="S"),
+        name="S" ),
     mxMatrix("Iden",  nrow=3, ncol=3,
-        name="F",
-        dimnames = list(c("x","y","z"), c("x","y","z"))),
-    mxMatrix("Full", nrow=1, ncol=3,
-        values=c(0,0,0),
-        free=c(T,T,T),
+        dimnames = list(selVars,selVars),
+		name="F"
+	),
+    mxMatrix("Full", nrow=1, ncol=3, values=0, free  =T,
         labels=c("meanx","beta0","meanz"),
-        dimnames = list(NULL, c("x","y","z")),
-        name="M"),
+        dimnames = list(NULL, selVars),
+        name="M"
+	),
     mxRAMObjective("A","S","F","M")
 )
       
 multiRegFit<-mxRun(multiRegModel)
-
-multiRegFit@output
+summary(multiRegFit)
 
 # Old Mx Output
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6332, 0.001)
@@ -56,14 +60,3 @@ omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8275, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2862, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0611, 0.001)
-
-
-# omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6331, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4246, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2260, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["residual"]], 0.646, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["varx"]], 1.116, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.836, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["cov"]], 0.289, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.054, 0.001)
-# omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.061, 0.001)
