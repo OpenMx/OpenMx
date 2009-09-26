@@ -1,5 +1,5 @@
 require(OpenMx)
-myDataRaw<-read.table("myAutoregressiveData.txt",header=T)
+myDataRaw<-read.table("data/myAutoregressiveData.txt",header=T)
 
 myDataCov<-matrix(
 	c(0.672, 0.315, 0.097, -0.037, 0.046,

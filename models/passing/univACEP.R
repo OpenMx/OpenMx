@@ -7,7 +7,7 @@
 
 require(OpenMx)
 #Prepare Data
-data("myTwinData", package="OpenMx")
+data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
 mzfData <- as.matrix(subset(myTwinData, zyg==1, selVars))

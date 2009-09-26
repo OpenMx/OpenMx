@@ -18,7 +18,7 @@ require(OpenMx)
 #Ordinal Data test, based on poly3dz.mx
 
 # Data
-data <- read.table("mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+data <- read.table("data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
 
 nthresh1 <- 1
 nthresh2 <- 12

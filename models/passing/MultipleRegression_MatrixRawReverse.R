@@ -5,7 +5,7 @@
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 require(OpenMx)
-data("myRegData", package="OpenMx")
+data("myRegDataRaw", package="OpenMx")
 MultipleDataRaw<-myRegData[,c("z","y","x")]
 selVars = c("x","y","z") # why is this reverse of the selection order?
 multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
