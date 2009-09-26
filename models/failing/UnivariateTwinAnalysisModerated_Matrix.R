@@ -2,6 +2,7 @@
 # Author: 
 # History:  Sat 26 Sep 2009 14:07:23 BST
 #    changed to use data instead of read.table (tb)
+#    changed myTwinData missing from "." to NA to avoid hassles with data()
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 require(OpenMx)

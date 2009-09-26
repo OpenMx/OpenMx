@@ -1,20 +1,13 @@
 # SCRIPT: univACEP.R
 # History:  Sat 26 Sep 2009 16:20:23 BST
-# currently errors
-# > twinACEFit <- mxRun(twinACEModel)
-# Running twinACE 
-# Error in mxRun(twinACEModel) : 
-#   REAL() can only be applied to a 'numeric', not a 'character'
-
-# TODO : not running
-
+#    (tb) Built MZ/DZ models from shared model correctly;  Adapt to data(); Added summary() calls
+# TODO: could use mx check on the redcued model (tb) 
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 
 require(OpenMx)
 #Prepare Data
 data("myTwinData", package="OpenMx")
-myTwinData[myTwinData=="."]=NA # na.strings="."
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
 mzfData <- as.matrix(subset(myTwinData, zyg==1, selVars))
@@ -51,6 +44,7 @@ twinACEModel <- mxModel("twinACE", MZ, DZ,
 
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
+summary(twinACEFit)
 
 MZc <- mxEval(MZ.covariance, twinACEFit)
 DZc <- mxEval(DZ.covariance, twinACEFit)
@@ -80,27 +74,42 @@ omxCheckCloseEnough(C,Mx.C,.001)
 omxCheckCloseEnough(E,Mx.E,.001)
 omxCheckCloseEnough(M,Mx.M,.001)
 
-#Run AE model
-twinAEModel <- mxModel(twinACEModel, type="RAM",
-    manifestVars=selVars,
-    latentVars=aceVars,
-    mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e")),
-    mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6), label=c("a","c","e"))
-    )
-twinAEFit <- mxRun(twinAEModel)
+#Build and Run AE model
+share2 <- mxModel(share,
+	mxPath(from=c("C1"), to="bmi1", arrows=1, free=FALSE, values=0, label="c"),
+	mxPath(from=c("C2"), to="bmi2", arrows=1, free=FALSE, values=0, label="c")
+)
 
-MZc <- mxEval(MZ.covariance, twinAEFit)
-DZc <- mxEval(DZ.covariance, twinAEFit)
-M   <- mxEval(MZ.means, twinAEFit)
-A   <- mxEval(a*a, twinAEFit)
-C   <- mxEval(c*c, twinAEFit)
-E   <- mxEval(e*e, twinAEFit)
+MZ = mxModel(share2, name="MZ",
+    mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=1),
+    mxData(mzfData, type="raw")
+)
+
+DZ = mxModel(share2, name="DZ",
+    mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=.5),
+    mxData(dzfData, type="raw") 
+)
+
+model <- mxModel("twinAE", MZ, DZ,
+    mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
+    mxAlgebraObjective("twin")
+)
+
+fit <- mxRun(model)
+summary(fit)
+
+MZc <- mxEval(MZ.covariance, fit)
+DZc <- mxEval(DZ.covariance, fit)
+M   <- mxEval(MZ.means, fit)
+A   <- mxEval(a*a, fit)
+C   <- mxEval(c*c, fit)
+E   <- mxEval(e*e, fit)
 V   <- (A + C + E)
 a2  <- A / V
 c2  <- C / V
 e2  <- E / V
 AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
-LL_AE <- mxEval(objective, twinAEFit)
+LL_AE <- mxEval(objective, fit)
 
 LRT_ACE_AE <- (LL_AE - LL_ACE)
 
@@ -108,3 +117,19 @@ LRT_ACE_AE <- (LL_AE - LL_ACE)
 ACEest
 AEest
 LRT_ACE_AE
+
+# NEEDS TEST ANSWERS FROM AE MODEL IN Mx
+#Mx answers hard-coded
+#1: Heterogeneity Model
+# Mx.A <- 0.6173023
+# Mx.C <- 5.595822e-14
+# Mx.E <- 0.1730462
+# Mx.M <- matrix(c(21.39293, 21.39293),1,2)
+# Mx.LL_ACE <- 4067.663
+
+#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+# omxCheckCloseEnough(LL_ACE,Mx.LL_ACE,.001)
+# omxCheckCloseEnough(A,Mx.A,.001)
+# omxCheckCloseEnough(C,Mx.C,.001)
+# omxCheckCloseEnough(E,Mx.E,.001)
+# omxCheckCloseEnough(M,Mx.M,.001)
