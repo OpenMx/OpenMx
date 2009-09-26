@@ -6,18 +6,15 @@
 ##########################################
 require(OpenMx)
 #Prepare Data
-twinData <- data("myTwinData.txt", package="OpenMx")
-# na.strings="."
-twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
-
+data("myTwinData", package="OpenMx") # data are in the file "myTwinData.txt" in the package's data folder
+myTwinData[myTwinData=="."]=NA # na.strings="."
+twinData <- subset(myTwinData, !is.na(age))
 summary(twinData)
-selVars   <- c('bmi1','bmi2')
-twinData1 <- subset(twinData, !is.na(age))
-summary(twinData1)
-mzfData <- as.matrix(subset(twinData1, zyg==1, c(bmi1,bmi2,age)))
-dzfData <- as.matrix(subset(twinData1, zyg==3, c(bmi1,bmi2,age)))
-cov(mzfData)
-cov(dzfData)
+selVars <- c('bmi1','bmi2')
+mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2,age)))
+dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2,age)))
+cov(mzfData, use="complete.obs")
+cov(dzfData, use="complete.obs")
 summary(mzfData)
 
 #Fit ACE Model with RawData and Matrices Input
