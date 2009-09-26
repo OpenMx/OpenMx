@@ -3,6 +3,10 @@
 # History:  version 1: Fri Sep 18 12:56:23 BST 2009
 # Rhelp: http://www.statmethods.net
 # OpenMx: http://www.openmx.virginia.com
+# TODO: write equivalent file for mx 1.x 
+# TODO: Add omxCheckCloseEnough() calls
+
+
 ##########################################
 # The diagram of this model is as follows: (not including variance and means) (open in omnigraffle or other .dot capable program)
 # digraph G {

@@ -1,12 +1,18 @@
+# SCRIPT: UnivariateTwinAnalysisModerated_Matrix.R
+# Author: 
+# History:  Sat 26 Sep 2009 14:07:23 BST
+#    changed to use data instead of read.table (tb)
+# OpenMx: http://www.openmx.virginia.com
+##########################################
 require(OpenMx)
-
 #Prepare Data
-twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+twinData <- data("myTwinData.txt", package="OpenMx")
+# na.strings="."
 twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
 
 summary(twinData)
-selVars <- c('bmi1','bmi2')
-twinData1<-subset(twinData, !is.na(age))
+selVars   <- c('bmi1','bmi2')
+twinData1 <- subset(twinData, !is.na(age))
 summary(twinData1)
 mzfData <- as.matrix(subset(twinData1, zyg==1, c(bmi1,bmi2,age)))
 dzfData <- as.matrix(subset(twinData1, zyg==3, c(bmi1,bmi2,age)))
@@ -16,14 +22,15 @@ summary(mzfData)
 
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("ACE", 
-        mxMatrix("Full", nrow=1, ncol=1, free=T, values=0.3352, label="a", name="X"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="c", name="Y"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="e", name="Z"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="amod", name="Xmod"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="cmod", name="Ymod"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="emod", name="Zmod"),
-        mxBounds(c("c", "e"), NA, 0),
-        mxBounds(c("a"), 0, NA),
+    mxMatrix("Full", nrow=1, ncol=1, free=T, values=0.3352, label="a", name="X"),
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="c", name="Y"),
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="e", name="Z"),
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="amod", name="Xmod"),
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="cmod", name="Ymod"),
+    mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.01, label="emod", name="Zmod"),
+    mxBounds(c("c", "e"), NA, 0),
+    mxBounds(c("a"), 0, NA),
+
     mxModel("MZ",
         mxData(mzfData, type="raw"), 
         mxMatrix("Full", nrow=1, ncol=1, free=F, label="data.age", name="Age"),
@@ -39,8 +46,9 @@ twinACEModel <- mxModel("ACE",
                          dimnames = list(selVars, selVars), name="expCovMZ"),
 
         mxMatrix("Full", 1, 2, T, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
-        mxFIMLObjective("expCovMZ", "expMeanMZ")),
- 
+        mxFIMLObjective("expCovMZ", "expMeanMZ")
+    ),
+
     mxModel("DZ", 
         mxData(dzfData, type="raw"), 
         mxMatrix("Full", nrow=1, ncol=1, free=F, label="data.age", name="Age"),
@@ -59,24 +67,22 @@ twinACEModel <- mxModel("ACE",
         mxFIMLObjective("expCovDZ", "expMeanDZ")),
  
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-    mxAlgebraObjective("twin"))
+    mxAlgebraObjective("twin")
+)
 
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
 
-
 #Check results against hard-coded Mx results
-
-
-MZc <- mxEval(expCovMZ, twinACEFit$MZ)
-DZc <- mxEval(expCovDZ, twinACEFit$DZ)
-M <- mxEval(expMeanMZ, twinACEFit$MZ)
-X <- mxEval(ACE.X, twinACEFit)
-Y <- mxEval(ACE.Y, twinACEFit)
-Z <- mxEval(ACE.Z, twinACEFit)
-Xmod <- mxEval(ACE.Xmod, twinACEFit)
-Ymod <- mxEval(ACE.Ymod, twinACEFit)
-Zmod <- mxEval(ACE.Zmod, twinACEFit)
+MZc    <- mxEval(expCovMZ,  twinACEFit$MZ)
+DZc    <- mxEval(expCovDZ,  twinACEFit$DZ)
+M      <- mxEval(expMeanMZ, twinACEFit$MZ)
+X      <- mxEval(ACE.X, twinACEFit)
+Y      <- mxEval(ACE.Y, twinACEFit)
+Z      <- mxEval(ACE.Z, twinACEFit)
+Xmod   <- mxEval(ACE.Xmod,  twinACEFit)
+Ymod   <- mxEval(ACE.Ymod,  twinACEFit)
+Zmod   <- mxEval(ACE.Zmod,  twinACEFit)
 LL_ACE <- mxEval(objective, twinACEFit)
 
 
@@ -90,11 +96,11 @@ LL_ACE <- mxEval(objective, twinACEFit)
 
 #Mx answers hard-coded
 #1: Heterogeneity Model
-Mx.X <- 0.3352
-Mx.Y <- -0.9489
-Mx.Z <- -0.1013
-Mx.Xmod <- 0.0174
-Mx.Ymod <- 0.0332
+Mx.X    <-  0.3352
+Mx.Y    <- -0.9489
+Mx.Z    <- -0.1013
+Mx.Xmod <-  0.0174
+Mx.Ymod <-  0.0332
 Mx.Zmod <- -0.0131
 Mx.M <- matrix(c(21.3810, 21.3810),1,2)
 Mx.LL_ACE <- 4013.616
