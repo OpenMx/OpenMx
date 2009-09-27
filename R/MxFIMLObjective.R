@@ -74,6 +74,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 				"does not contain column names (use dimnames).")
 			stop(msg, call.=FALSE)
 		}
+		checkNumericData(mxDataObject)
 		meansName <- .Object@means
 		covName <- .Object@covariance
 		dataName <- .Object@data

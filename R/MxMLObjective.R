@@ -61,6 +61,8 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 				"the ML objective does not have a dataset specified")
 			stop(msg, call. = FALSE)
 		}
+		mxDataObject <- flatModel@datasets[[.Object@data]]
+		checkNumericData(mxDataObject)
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)

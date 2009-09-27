@@ -64,6 +64,8 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				omxQuotes(flatModel@name))
 			stop(msg, call. = FALSE)
 		}
+		mxDataObject <- flatModel@datasets[[.Object@data]]
+		checkNumericData(mxDataObject)
 		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)

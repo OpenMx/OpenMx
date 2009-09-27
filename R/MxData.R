@@ -66,6 +66,15 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 
+checkNumericData <- function(data) {
+	if(is.matrix(data@observed) && !is.double(data@observed)) {
+		msg <- paste("The data object",
+			omxQuotes(data@name), "contains an observed matrix that",
+			"is not of type 'double'")
+		stop(msg, call. = FALSE)
+	}
+}
+
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')

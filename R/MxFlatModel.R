@@ -78,8 +78,8 @@ convertDatasets <- function(flatModel) {
 				threshNames <- objective@thresholds
 				observed <- convertThresholds(flatModel, dataName, threshNames)
 				flatModel@datasets[[dataName]]@observed <- observed
-			} else if (!is.na(dataName)) {
-				data <- flatModel@datasets[[dataName]]@observed
+#			} else if (!is.na(dataName)) {
+#				data <- flatModel@datasets[[dataName]]@observed
 #				if (is.data.frame(data)) {
 #					warning(paste("Converting data frame to numeric matrix",
 #					"in model", omxQuotes(flatModel@name)), call. = FALSE)
