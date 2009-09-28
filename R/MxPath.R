@@ -19,6 +19,9 @@ generatePath <- function(from, to,
 		labels, lbound, ubound) {
 		if (single.na(to)) {
 			to <- from
+			loop <- TRUE
+		} else {
+			loop <- FALSE
 		}
 		from <- as.list(from)
 		to <- as.list(to)
@@ -30,7 +33,7 @@ generatePath <- function(from, to,
 				paste("path from", omxQuotes(from), "to", omxQuotes(to)))
 		}
         pathCheckLengths(from, to, arrows, values, 
-            free, labels, lbound, ubound)
+            free, labels, lbound, ubound, loop)
 		result <- suppressWarnings(mapply(generateSinglePath, from, to, 
 		arrows, values, free,
 		labels, lbound, ubound, SIMPLIFY = FALSE))
@@ -38,21 +41,23 @@ generatePath <- function(from, to,
 }
 
 pathCheckLengths <- function(from, to, arrows, values, 
-        free, labels, lbound, ubound) {
+        free, labels, lbound, ubound, loop) {
     numPaths <- max(length(from), length(to))
-    pathCheckSingleLength(numPaths, length(arrows), "arrows")
-    pathCheckSingleLength(numPaths, length(values), "values")
-    pathCheckSingleLength(numPaths, length(free), "free/fixed designations")
-    pathCheckSingleLength(numPaths, length(labels), "labels")
-    pathCheckSingleLength(numPaths, length(lbound), "lbounds")
-    pathCheckSingleLength(numPaths, length(ubound), "ubounds")
+    pathCheckSingleLength(numPaths, length(arrows), "arrows", from, to, loop)
+    pathCheckSingleLength(numPaths, length(values), "values", from, to, loop)
+    pathCheckSingleLength(numPaths, length(free), "free/fixed designations", from, to, loop)
+    pathCheckSingleLength(numPaths, length(labels), "labels", from, to, loop)
+    pathCheckSingleLength(numPaths, length(lbound), "lbounds", from, to, loop)
+    pathCheckSingleLength(numPaths, length(ubound), "ubounds", from, to, loop)
 }
 
-pathCheckSingleLength <- function(numPaths, len, lenName) {
+pathCheckSingleLength <- function(numPaths, len, lenName, from, to, loop) {
     if (numPaths < len) {
+    	if (loop) { to <- NA }
         stop(paste("mxPath() call will generate", 
             numPaths, "paths but you have specified",
-            len, lenName), call. = FALSE)
+            len, lenName, "with 'from' argument assigned to", omxQuotes(from),
+            "and 'to' argument assigned to", omxQuotes(to)), call. = FALSE)
     }
 }
 
