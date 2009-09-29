@@ -1,36 +1,24 @@
 grammar MxAlgebra;
+options {
+     language=Python;
+}
 
 // BEGIN MATRIX ALGEBRA FORMULAS
 // Comment -- I am assuming all operators are left-associative,
 // except for exponentiation which is right-associative. 
 
-expression :	quaternary ;
-	
-quaternary :	tertiary ( hAdhere | vAdhere  | plus | minus )* ;
-hAdhere	   :	PIPE! tertiary ;
-vAdhere	   :	UNDERSCORE! tertiary ;
-plus	   :	PLUS! tertiary ;
-minus	   :	MINUS! tertiary ;
+expression :    quaternary ;	
+quaternary :    tertiary ( PIPE^ tertiary | UNDERSCORE^ tertiary | PLUS^ tertiary | MINUS^ tertiary )* ;
+tertiary   :    secondary ( ASTERISK^ secondary | DOT^ secondary | AT^ secondary | AMPERSAND^ secondary | PERCENT^ secondary )* ;
+secondary  :    primary (CARET^ secondary)? ;
 
-tertiary   :	secondary ( mult | dot | kronecker | quadratic | div )* ;
-mult	   :	ASTERISK! secondary ;
-dot 	   :	DOT! secondary ;
-kronecker  :	AT! secondary ;
-quadratic  :	AMPERSAND! secondary ;
-div	   :	PERCENT! secondary ;
+primary	   :    (MINUS^)* atom ( TILDE^ | SQUOTE^ )* ;
 
-exponent   :	CARET! ;
-secondary  :	primary (exponent secondary)? ;
-
-primary	   :	mAtom ( inverse | transpose )* ;
-inverse	   :	TILDE! ;
-transpose  :	SQUOTE! ;
+atom       :    REFERENCE^ | parens | function ;
+parens     :    LPAREN^ expression RPAREN!;
 	
-mAtom	   :	REFERENCE | parens | function ;
-parens     :	LPAREN! expression RPAREN! ;
-	
-function   :	FNAME LPAREN! arguments RPAREN! ;
-arguments  :	expression (COMMA! expression)? ;	
+function   :    FNAME^ LPAREN! arguments RPAREN! ;
+arguments  :    expression (COMMA! expression)* ;
 
 AMPERSAND  : '&' ;
 ASTERISK   : '*' ;
@@ -42,15 +30,15 @@ LPAREN     : '(' ;
 MINUS      : '-' ;
 PERCENT    : '%' ;
 PIPE       : '|' ;	
-PLUS 	   : '+' ;
-RPAREN	   : ')' ;
+PLUS       : '+' ;
+RPAREN     : ')' ;
 SQUOTE 	   : '\'';             // single quote
 TILDE      : '~' ;
 UNDERSCORE : '_' ;
 
 fragment ID  :	('a'..'z'|'A'..'Z'|'0'..'9')+ ;
 REFERENCE    :	 ID ;
-FNAME	     :	'\\' ID ;
+FNAME        :	'\\' ID ;
 	
 WS  :   ( ' '
         | '\t'
@@ -58,4 +46,3 @@ WS  :   ( ' '
         | '\n'
         ) {$channel=HIDDEN;}
     ;
-
