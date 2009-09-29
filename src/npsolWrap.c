@@ -167,6 +167,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Process Algebras Here */
 	currentState->numAlgs = length(algList);
+	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
+
 	l = 1;
 	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", currentState->numAlgs, length(algList)); }
 	currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
@@ -181,7 +183,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
 			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlg);
 		} else {															// This is an algebra spec.
-			omxFillMatrixFromMxAlgebra(currentState->algebraList[j], nextAlg);
+			omxFillMatrixFromMxAlgebra(currentState->algebraList[j], 
+				nextAlg, CHAR(STRING_ELT(algListNames, j)));
 		}
 		UNPROTECT(1);	// nextAlg
 	}

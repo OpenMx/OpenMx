@@ -67,7 +67,7 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 }
 
 void omxAlgebraCompute(omxAlgebra *oa) {
-	if(OMX_DEBUG_ALGEBRA) {Rprintf("Algebra compute: 0x%0x (needed: %d/%d).\n", oa, oa->matrix->lastCompute, oa->matrix->currentState->computeCount);}
+	if(OMX_DEBUG_ALGEBRA) {Rprintf("Algebra compute (%s): 0x%0x (needed: %d/%d).\n", oa->name, oa, oa->matrix->lastCompute, oa->matrix->currentState->computeCount);}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x.\n", j, oa->args[j]); }
@@ -103,16 +103,16 @@ int omxAlgebraNeedsUpdate(omxAlgebra *oa)
     return FALSE;
 }
 
-omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os) {
+omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
 
 	omxMatrix *om = omxInitMatrix(NULL, 0, 0, TRUE, os);
 	
-	omxFillMatrixFromMxAlgebra(om, alg);
+	omxFillMatrixFromMxAlgebra(om, alg, name);
 	
 	return om;
 }
 
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 
 	int value;
 	omxAlgebra *oa = NULL;
@@ -136,7 +136,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 		}
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
-				oa->args[j] = omxAlgebraParseHelper(algebraArg, om->currentState);
+				oa->args[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name);
 				if(OMX_DEBUG) { Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j); }
 			UNPROTECT(1); /* algebraArg */
 		}
@@ -146,7 +146,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 		
 		if(!IS_INTEGER(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
 			warning("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
-			omxFillMatrixFromMxAlgebra(om, algebraElt);		// Collapse the no-op algebra
+			omxFillMatrixFromMxAlgebra(om, algebraElt, name);		// Collapse the no-op algebra
 		} else {			// Still a No-op.  Sadly, we have to keep it that way.
 			
 			PROTECT(algebraOperator = AS_INTEGER(algebraElt));
@@ -167,6 +167,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra) {
 		}
 		UNPROTECT(1); /* algebraElt */
 	}
+	oa->name = name;
 
 	UNPROTECT(1);	/* algebraOperator */
 
@@ -189,13 +190,13 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	if(OMX_DEBUG) { Rprintf("Table Entry processed.\n"); }
 }
 
-omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os) {
+omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
 	omxMatrix* newMat;
 	if(OMX_DEBUG) { Rprintf("Helper: processing next arg..."); }
 	
 	if(!IS_INTEGER(algebraArg)) {
 		if(OMX_DEBUG) { Rprintf("Helper detected list element.  Recursing.\n"); }
-		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os);
+		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
 		newMat = omxNewMatrixFromMxIndex(algebraArg, os);
 	}

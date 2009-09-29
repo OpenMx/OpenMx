@@ -50,6 +50,7 @@ struct omxAlgebra {						// A matrix
 	int numArgs;						// Length of args
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
+	const char* name;				// The name of the algebra (for debugging)
 
 };
 
@@ -57,8 +58,8 @@ struct omxAlgebra {						// A matrix
 	omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os);			// Constructor 
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
-	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat, omxState* os);		// Create an Algebra from an R mxMatrix
-	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat);			// Populate an Algebra from an R mxMatrix
+	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat, omxState* os, const char *name);	// Create an Algebra from an R mxMatrix
+	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name);	// Populate an Algebra from an R mxMatrix
 	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2, omxState* os); // For constraints.
 
@@ -67,7 +68,7 @@ struct omxAlgebra {						// A matrix
 	 																	// Adjust an algebra for a table entry
 	void omxAlgebraCopyAlgebra(omxAlgebra *dest, omxAlgebra *src);		// Copy across another element.  
 																		// NOTE: Duplicates.
-	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os);
+	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name);
 
 /* Algebra-specific implementations of matrix functions */
 	void omxAlgebraRecompute(omxAlgebra *oa);
