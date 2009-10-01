@@ -140,4 +140,10 @@ def p_error(t):
                     str(t.lexpos))
 
 import ply.yacc as mxAlgebraParser
-mxAlgebraParser.yacc()
+mxAlgebraParser.yacc(write_tables=0,debug=0)
+
+if __name__ == "__main__":
+    import sys
+    lines = sys.stdin.readlines()
+    input = "".join(lines)
+    print(mxAlgebraParser.parse(input))
