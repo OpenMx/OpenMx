@@ -90,8 +90,8 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 			ptable[i, 'matrix'] <- simplifyName(matrixNames[[mLocation]], model@name)
 			ptable[i, 'row'] <- mRow
 			ptable[i, 'col'] <- mCol
-			ptable[i, 'parameter estimate'] <- estimates[[i]]
-			ptable[i, 'error estimate'] <- errorEstimates[[i]]
+			ptable[i, 'Estimate'] <- estimates[[i]]
+			ptable[i, 'Std.Error'] <- errorEstimates[[i]]
 
 		}
 		retval[['parameters']] <- ptable

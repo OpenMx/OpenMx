@@ -1,5 +1,7 @@
 trunk
 =====
+* in summary(), renamed "parameter estimate" column to "Estimate" and
+  renamed "error estimate" to "Std.Error"
 
 
 Release 0.1.5-851
