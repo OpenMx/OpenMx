@@ -50,8 +50,8 @@ lex.lex()
 precedence = (
     ('left','PLUS','MINUS','PIPE','UNDERSCORE'),
     ('left','ASTERISK','DOT','AT','AMPERSAND','PERCENT'),
-    ('right','UMINUS'),    
     ('right','CARET'),
+    ('right','UMINUS'),    
     ('left','TILDE','SQUOTE')
     )
 
@@ -90,7 +90,7 @@ def p_expression_unaryop(t):
 
 def p_expression_uminus(t):
     'expression : MINUS expression %prec UMINUS'
-    t[0] = "-" + t[2]
+    t[0] = "(-" + t[2] + ")"
 
 def p_expression_group(t):
     'expression : LPAREN expression RPAREN'
