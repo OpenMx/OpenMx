@@ -22,6 +22,8 @@ setClass(Class = "MxAlgebra",
 		name = "character",
 		dirty = "logical",
 		.dimnames = "MxListOrNull",
+		nrow = "integer",
+		ncol = "integer",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
@@ -143,18 +145,19 @@ substituteOperators <- function(algebra) {
 	return(algebra)
 }
 
-checkEvaluation <- function(model, flatModel) {
+checkEvaluation <- function(model, flatModel, oldFlatModel) {
 	labelsData <- omxGenerateLabels(model)
-	checkAlgebraEvaluation(model, flatModel, labelsData)
-	checkConstraintEvaluation(model, flatModel, labelsData)
-	checkSquareBracketEvaluation(model, flatModel, labelsData)
+	flatModel <- checkAlgebraEvaluation(model, flatModel, oldFlatModel, labelsData)
+	checkConstraintEvaluation(model, oldFlatModel, labelsData)
+	checkSquareBracketEvaluation(model, oldFlatModel, labelsData)
+	return(flatModel)
 }
 
-checkAlgebraEvaluation <- function(model, flatModel, labelsData) {
-	if(length(flatModel@algebras) == 0) { return() }
+checkAlgebraEvaluation <- function(model, retval, flatModel, labelsData) {
+	if(length(flatModel@algebras) == 0) { return(retval) }
 	for(i in 1:length(flatModel@algebras)) {
 		algebra <- flatModel@algebras[[i]]
-		tryCatch(eval(computeSymbol(as.symbol(algebra@name), flatModel, labelsData)), 
+		result <- tryCatch(eval(computeSymbol(as.symbol(algebra@name), flatModel, labelsData)), 
 			error = function(x) {
 				stop(paste("The algebra", 
 					omxQuotes(simplifyName(algebra@name, model@name)), 
@@ -162,7 +165,12 @@ checkAlgebraEvaluation <- function(model, flatModel, labelsData) {
 					"generated the error message:",
 					x$message), call. = FALSE)
 		})
-	}	
+		algebra <- retval[[algebra@name]]
+		algebra@nrow <- nrow(result)
+		algebra@ncol <- ncol(result)
+		retval[[algebra@name]] <- algebra
+	}
+	return(retval)
 }
 
 checkConstraintEvaluation <- function(model, flatModel, labelsData) {

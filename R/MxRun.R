@@ -43,7 +43,7 @@ mxRun <- function(model) {
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)
-	checkEvaluation(model, oldFlatModel)
+	flatModel <- checkEvaluation(model, flatModel, oldFlatModel)
 	parameters <- generateParameterList(flatModel)
 	definitions <- generateDefinitionList(flatModel)
 	matrices <- generateSimpleMatrixList(flatModel)
