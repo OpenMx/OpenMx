@@ -65,7 +65,8 @@ The following code contains all of the components of our model. Before running a
     defMeansModel <- mxModel("DefinitionMeans", 
         mxFIMLObjective(
             covariance="Sigma",
-            means="Mu"
+            means="Mu",
+            dimnames=selvars
         ), 
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"DefinitionMeans"``.
@@ -92,7 +93,6 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
             ncol=2, 
             free=TRUE, 
             values=c(1, 0, 1), 
-            dimnames=list(selvars,selvars), 
             name="Sigma"
         ),
         mxMatrix(
@@ -100,7 +100,6 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
             nrow = 1, 
             ncol = 2, 
             free=TRUE, 
-            dimnames=list(NULL,selvars), 
             name = "M"
         ),
         mxMatrix(
@@ -109,7 +108,6 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
             ncol=2, 
             free=TRUE, 
             values=c(0, 0),
-            dimnames=list(NULL,selvars), 
             name="beta"
         ),
         mxMatrix(
@@ -118,7 +116,6 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
             ncol=2, 
             free=FALSE, 
             labels=c("data.def"),
-            dimnames=list(NULL,selvars), 
             name="def"
         ),
 
@@ -128,8 +125,7 @@ The trick - commonly used in regression models - is to multiply the *beta* matri
 
         mxAlgebra(
             expression=M+beta*def, 
-            name="Mu", 
-            dimnames=list(NULL,selvars)
+            name="Mu"
         )
     )
 

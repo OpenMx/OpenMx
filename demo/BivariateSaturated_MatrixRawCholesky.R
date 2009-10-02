@@ -16,10 +16,10 @@ R.cov = cov(testData)
 
 bivSatModel6 <- mxModel("bivSat6",
     mxMatrix(type="Full", nrow=2, ncol=2, free=c(TRUE,TRUE,FALSE,TRUE), values=c(1,.2,0,1), name="Chol"),
-		mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, values=c(0,0), dimnames=list(NULL,selVars), name="expMean"),
-    mxAlgebra(Chol %*% t(Chol), dimnames=list(selVars,selVars), name="expCov"),
+		mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, values=c(0,0), name="expMean"),
+    mxAlgebra(Chol %*% t(Chol), name="expCov"),
 		mxData(observed=testData, type="raw"),
-		mxFIMLObjective(covariance="expCov",means="expMean")
+		mxFIMLObjective(covariance="expCov",means="expMean",dimnames=selVars)
 		)
 bivSatFit6 <- mxRun(bivSatModel6)
 EM <- mxEval(expMean, bivSatFit6)

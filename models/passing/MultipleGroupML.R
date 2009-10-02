@@ -20,11 +20,11 @@ varNames <- c('x')
 data1 <- mxData(matrix(1, dimnames = list(varNames,varNames)), type="cov", numObs=100)
 data2 <- mxData(matrix(2, dimnames = list(varNames,varNames)), type="cov", numObs=100)
 
-mat1 <- mxMatrix("Full",2,free=TRUE, nrow=1, ncol=1, name="mat1", dimnames = list(varNames,varNames))
-mat2 <- mxMatrix("Full",1,free=TRUE, nrow=1, ncol=1, name="mat2", dimnames = list(varNames,varNames))
+mat1 <- mxMatrix("Full",2,free=TRUE, nrow=1, ncol=1, name="mat1")
+mat2 <- mxMatrix("Full",1,free=TRUE, nrow=1, ncol=1, name="mat2")
 
-obj1 <- mxMLObjective("mat1")
-obj2 <- mxMLObjective("mat2")
+obj1 <- mxMLObjective("mat1", dimnames = varNames)
+obj2 <- mxMLObjective("mat2", dimnames = varNames)
 
 model1 <- mxModel("model1", data1, mat1, obj1)
 model2 <- mxModel("model2", data2, mat2, obj2)

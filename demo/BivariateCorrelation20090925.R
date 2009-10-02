@@ -31,7 +31,6 @@ bivCorModel <- mxModel("bivCor",
         ncol=2, 
         free=TRUE, 
         values=c(0,0), 
-        dimnames=list(NULL, selVars), 
         name="expMean"
     ), 
     mxMatrix(
@@ -46,7 +45,6 @@ bivCorModel <- mxModel("bivCor",
     mxAlgebra(
         expression=Chol %*% t(Chol), 
         name="expCov", 
-        dimnames=list(selVars, selVars)
     ), 
     mxData(
         observed=testData, 
@@ -54,7 +52,8 @@ bivCorModel <- mxModel("bivCor",
     ), 
     mxFIMLObjective(
         covariance="expCov", 
-        means="expMean")
+        means="expMean",
+        dimnames=selVars)
     )
 
 # Run Model and Generate Output

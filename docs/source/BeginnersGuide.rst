@@ -47,10 +47,9 @@ Matrix Model Specification
     matrixL <-  mxMatrix("Symm", 1, 1, values=1, free=F, name="L")
     matrixU <-  mxMatrix("Diag", 5, 5, values=1, free=T, name="U")
 
-    algebraR <- mxAlgebra(A %*% L %*% t(A) + U, name="R", 
-        dimnames = list(names(demoOneFactor), names(demoOneFactor)))
+    algebraR <- mxAlgebra(A %*% L %*% t(A) + U, name="R")
 
-    objective <- mxMLObjective("R")
+    objective <- mxMLObjective("R", dimnames = names(demoOneFactor))
     data <- mxData(cov(demoOneFactor), type="cov", numObs=500)
 
     factorModel <- mxModel(factorModel, matrixA, matrixL, matrixU, 
@@ -102,12 +101,12 @@ Each MxMatrix object is a container that stores five matrices of equal dimension
 Algebra Creation
 ^^^^^^^^^^^^^^^^
 
-Lines 11-12 construct an expression for the expected covariance algebra.  The first argument is the algebra expression that will be evaluated by the numerical optimizer.  The matrix operations and functions that are permitted in an MxAlgebra expression are listed in the help for the mxAlgebra function (``?mxAlgebra``).  The algebra expression refers to entities according to their names.  Since this particular algebra will be used to calculate the expected covariance of the model, we need to assign dimnames to the rows and columns of the algebra, such that a correspondance can be determined between the expected covariance matrix and the observed covariance matrix.
+Lines 11-12 construct an expression for the expected covariance algebra.  The first argument is the algebra expression that will be evaluated by the numerical optimizer.  The matrix operations and functions that are permitted in an MxAlgebra expression are listed in the help for the mxAlgebra function (``?mxAlgebra``).  The algebra expression refers to entities according to their names.
 
 Objective Function Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Line 14 constructs an objective function for the model.  For this example, we are using a maximum likelihood objective function and specifying an expected covariance algebra and omitting an expected means algebra. The expected covariance algebra is referenced according to its name.  The objective function for a particular model is given the name "objective".  Consequently there is no need to specify a name for objective function objects.
+Line 14 constructs an objective function for the model.  For this example, we are using a maximum likelihood objective function and specifying an expected covariance algebra and omitting an expected means algebra. The expected covariance algebra is referenced according to its name.  The objective function for a particular model is given the name "objective".  Consequently there is no need to specify a name for objective function objects. We need to assign dimnames for the rows and columns of the covariance matrix, such that a correspondance can be determined between the expected covariance matrix and the observed covariance matrix.
 
 Data Source Creation
 ^^^^^^^^^^^^^^^^^^^^

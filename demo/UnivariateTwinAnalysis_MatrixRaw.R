@@ -21,25 +21,25 @@ share <- mxModel("share",
   mxAlgebra(Y %*% t(Y), name="C"),
   mxAlgebra(Z %*% t(Z), name="E"),
   mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values= 20, 
-     label="mean", dimnames=list(NULL, selVars), name="expMean")
+     label="mean", name="expMean")
 )
 
 mzModel <- mxModel(name = "MZ",
     # Algebra for expected variance/covariance matrix in MZ
     mxAlgebra(rbind (cbind(share.A + share.C + share.E  ,share.A + share.C),
                      cbind(share.A + share.C    ,share.A + share.C + share.E)), 
-              dimnames = list(selVars, selVars), name="expCov"),
+              name="expCov"),
     mxData(mzfData, type="raw"), 
-    mxFIMLObjective("expCov", "share.expMean")
+    mxFIMLObjective("expCov", "share.expMean", selVars)
 )
 
 dzModel <- mxModel(name = "DZ",
     # note use of 0.5, converted to 1*1 matrix
     mxAlgebra(rbind (cbind(share.A + share.C + share.E  , 0.5 %x% share.A + share.C),
                      cbind(0.5 %x% share.A + share.C, share.A + share.C + share.E)), 
-              dimnames = list(selVars, selVars), name="expCov"), 
+              name="expCov"), 
     mxData(dzfData, type="raw"), 
-    mxFIMLObjective("expCov", "share.expMean")
+    mxFIMLObjective("expCov", "share.expMean", selVars)
 )
      	
 

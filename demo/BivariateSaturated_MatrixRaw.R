@@ -19,7 +19,6 @@ mxMatrix(
     ncol=2, 
     free=T, 
     values=c(1,.5,1), 
-    dimnames=list(selVars,selVars), 
     name="expCov"
 ),
 mxMatrix(
@@ -28,7 +27,6 @@ mxMatrix(
     ncol=2, 
     free=T, 
     values=c(0,0), 
-    dimnames=list(NULL,selVars), 
     name="expMean"
 ),
 mxData(
@@ -37,7 +35,8 @@ mxData(
 ),
 mxFIMLObjective(
     covariance="expCov",
-    means="expMean"
+    means="expMean",
+    dimnames=selVars
 )
 )
 bivSatFit4 <- mxRun(bivSatModel4)

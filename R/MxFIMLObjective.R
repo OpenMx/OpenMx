@@ -20,19 +20,21 @@ setClass(Class = "MxFIMLObjective",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
 		thresholds = "character",
+		dims = "character",
 		dataColumns = "numeric",
 		thresholdColumns = "list"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, covariance, means, thresholds, data = as.integer(NA),
-		definitionVars = list(), name = 'objective') {
+	function(.Object, covariance, means, dims, thresholds, 
+		data = as.integer(NA), definitionVars = list(), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
 		.Object@data <- data
 		.Object@definitionVars <- definitionVars
 		.Object@thresholds <- thresholds
+		.Object@dims <- dims
 		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
 	}
@@ -82,6 +84,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- as.integer(omxLocateIndex(flatModel, .Object@data, name))
+		flatModel <- updateObjectiveDimnames(covName, meansName, flatModel, "FIML", .Object@dims)
 		verifyExpectedNames(covName, meansName, flatModel, "FIML")
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
@@ -91,6 +94,41 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		}
 		return(.Object)
 })
+
+updateObjectiveDimnames <- function(covName, meansName, flatModel, objectiveName, dims) {
+	if (is.na(meansName)) {
+		means <- NA
+	} else {
+		means <- flatModel[[meansName]]
+	}
+	covariance <- flatModel[[covName]]
+	if(!is.null(dimnames(covariance)) && !single.na(dims) && 
+		!identical(dimnames(covariance), list(dims, dims))) {
+		msg <- paste("The expected covariance matrix associated",
+			"with the", objectiveName, "objective in model", 
+			omxQuotes(flatModel@name), "contains dimnames and",
+			"the objective function has specified dimnames")
+		stop(msg, call.=FALSE)		
+	}
+	if(is.null(dimnames(covariance)) && !single.na(dims)) {
+		dimnames(covariance) <- list(dims, dims)
+		flatModel[[covName]] <- covariance
+	}
+	if (!isS4(means) && is.na(means)) return(flatModel)
+	if(!is.null(dimnames(means)) && !single.na(dims) &&
+		!identical(dimnames(means), list(NULL, dims))) {
+		msg <- paste("The expected means matrix associated",
+			"with the", objectiveName, "objective in model", 
+			omxQuotes(flatModel@name), "contains dimnames and",
+			"the objective function has specified dimnames")
+		stop(msg, call.=FALSE)	
+	}
+	if(is.null(dimnames(means)) && !single.na(dims)) {
+		dimnames(means) <- list(NULL, dims)
+		flatModel[[meansName]] <- means
+	}	
+	return(flatModel)
+}
 
 verifyExpectedNames <- function(covName, meansName, flatModel, objectiveName) {
 	if (is.na(meansName)) {
@@ -164,7 +202,7 @@ generateDataColumns <- function(flatModel, covName, dataName) {
 }
 
 
-mxFIMLObjective <- function(covariance, means, thresholds = NA) {
+mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
@@ -172,13 +210,28 @@ mxFIMLObjective <- function(covariance, means, thresholds = NA) {
 		stop("Means argument is not a string (the name of the expected means vector)")
 	}
 	if (all(is.na(thresholds))) thresholds <- as.character(NA)
-	return(new("MxFIMLObjective", covariance, means, thresholds))
+	if (single.na(dimnames)) dimnames <- as.character(NA)
+	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
+		stop("Dimnames argument is not a character vector")
+	}
+	if (length(dimnames) == 0) {
+		stop("Dimnames argument cannot be an empty vector")
+	}
+	if (length(dimnames) > 1 && any(is.na(dimnames))) {
+		stop("NA values are not allowed for dimnames vector")
+	}	
+	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds))
 }
 
 displayFIMLObjective <- function(objective) {
 	cat("MxFIMLObjective", omxQuotes(objective@name), '\n')
 	cat("@covariance :", omxQuotes(objective@covariance), '\n')
 	cat("@means :", omxQuotes(objective@means), '\n')
+	if (single.na(objective@dims)) {
+		cat("@dims : NA \n")
+	} else {
+		cat("@dims :", omxQuotes(objective@dims), '\n')
+	}	
 	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {

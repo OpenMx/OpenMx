@@ -49,11 +49,10 @@ write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=
 # One common mean vector, "M"
 
 #define the model, including a FIML objective function, which will optimize the matrix S
-model<-mxModel("model", mxFIMLObjective("Sigma", "Mu"), 
+model<-mxModel("model", mxFIMLObjective("Sigma", "Mu", selvars), 
 				mxData((data.frame(y,def)), type="raw"),
 				
-				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1), 
-					dimnames=list(selvars,selvars), name="Sigma"),
+				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1), name="Sigma"),
 					
 				mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=c(0, 0),
 					dimnames=list(NULL, selvars), name="beta"),
@@ -62,7 +61,7 @@ model<-mxModel("model", mxFIMLObjective("Sigma", "Mu"),
 				mxMatrix("Full", nrow=1, ncol=2, free=TRUE, 
 					dimnames=list(NULL, selvars), name = "M"),
 				
-				mxAlgebra(M+beta*def, name="Mu", dimnames=list(NULL, selvars))
+				mxAlgebra(M+beta*def, name="Mu")
 			)
 
 #run the model

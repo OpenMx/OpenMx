@@ -51,7 +51,6 @@ As the focus is on individual differences, the model for the means is typically 
         free=T, 
         values=c(20,20), 
         labels= c("mean","mean"), 
-        dimnames=list(NULL,selVars), 
         name="expMeanMZ"
     ), 
     mxMatrix(
@@ -61,7 +60,6 @@ As the focus is on individual differences, the model for the means is typically 
         free=T, 
         values=c(20,20), 
         labels= c("mean","mean"), 
-        dimnames=list(NULL,selVars), 
         name="expMeanDZ"
     ), 
 
@@ -137,13 +135,11 @@ Previous Mx users will likely be familiar with the look of the expected covarian
     mxAlgebra(
         expression=rbind (cbind(A + C + E, A + C),
                           cbind(A + C    , A + C + E)), 
-        dimnames = list(selVars, selVars), 
         name="expCovMZ"
     ),
     mxAlgebra(
         expression=rbind (cbind(A + C + E  , h %x% A + C),
                           cbind(h %x% A + C, A + C + E)), 
-        dimnames = list(selVars, selVars), 
         name="expCovDZ"
     ),
 
@@ -158,7 +154,8 @@ As the expected covariance matrices are different for the two groups of twins, w
         ), 
         mxFIMLObjective(
             covariances="twinACE.expCovMZ", 
-            means="twinACE.expMeanMZ"
+            means="twinACE.expMeanMZ",
+            dimnames=selVars
         )
     ),
     mxModel("DZ", 
@@ -168,7 +165,8 @@ As the expected covariance matrices are different for the two groups of twins, w
         ), 
         mxFIMLObjective(
             covariances="twinACE.expCovDZ", 
-            means="twinACE.expMeanDZ"
+            means="twinACE.expMeanDZ",
+            dimnames=selVars
         )
     ),
 

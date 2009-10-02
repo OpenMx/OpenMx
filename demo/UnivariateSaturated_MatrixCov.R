@@ -18,7 +18,6 @@ univSatModel3 <- mxModel("univSat3",
         ncol=1, 
         free=T, 
         values=1, 
-        dimnames=list(selVars,selVars), 
         name="expCov"
     ),
     mxData(
@@ -27,7 +26,8 @@ univSatModel3 <- mxModel("univSat3",
         numObs=1000 
     ),
     mxMLObjective(
-        covariance="expCov"
+        covariance="expCov",
+        dimnames=selVars
     )
     )
 univSatFit3 <- mxRun(univSatModel3)
@@ -44,7 +44,6 @@ univSatModel3m <- mxModel("univSat3m",
         ncol=1, 
         free=T, 
         values=1, 
-        dimnames=list(selVars,selVars), 
         name="expCov"
     ),
     mxMatrix(
@@ -53,7 +52,6 @@ univSatModel3m <- mxModel("univSat3m",
         ncol=1, 
         free=T, 
         values=0, 
-        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -64,7 +62,8 @@ univSatModel3m <- mxModel("univSat3m",
     ),
     mxMLObjective(
         covariance="expCov", 
-        means="expMean"
+        means="expMean",
+        dimnames=selVars
     )
     )
 univSatFit3m <- mxRun(univSatModel3m)

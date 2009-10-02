@@ -174,7 +174,6 @@ To evaluate the likelihood of the data using SEM, we estimate a saturated model 
             ncol=2, 
             free=TRUE, 
             values=c(0,0), 
-            dimnames=list(NULL,selVars), 
             name="expMean"
         ), 
 
@@ -188,13 +187,11 @@ Next, we need to specify the expected covariance matrix.  As this matrix is symm
             ncol=2, 
             free=TRUE, 
             values=.5, 
-            dimnames=list(selVars, selVars), 
             name="Chol"
         ), 
         mxAlgebra(
             expression=Chol %*% t(Chol), 
-            name="expCov", 
-            dimnames=list(selVars, selVars)
+            name="expCov"
         ), 
 
 Now that we have specified our 'model', we need to supply the data.  This is done with the ``mxData`` command.  The first argument includes the actual data, in the type given by the second argument.  Type can be a covariance matrix (cov), a correlation matrix (cor), a matrix of cross-products (sscp) or raw data (raw).  We will use the latter option and read in the raw data directly from the simulated dataset ``testData``.
@@ -212,7 +209,8 @@ Next, we specify which objective function we wish to use to obtain the likelihoo
 
         mxFIMLObjective(
             covariance="expCov", 
-            means="expMean")
+            means="expMean",
+            dimnames=selVars)
         )
 
 All these elements become arguments of the ``mxModel`` command, seperated by comma's.  The first argument can be a name, as in this case "bivCor" or another model (see below).  The model is saved in an object 'bivCorModel'.  This object becomes the argument of the ``mxRun`` command, which evaluates the model and provides output - if the model ran successfully - using the following command.

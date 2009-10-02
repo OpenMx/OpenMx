@@ -18,16 +18,18 @@ setClass(Class = "MxMLObjective",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
+		dims = "character",
 		thresholds = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxMLObjective",
-	function(.Object, covariance, means, thresholds, 
+	function(.Object, covariance, means, dims, thresholds, 
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
 		.Object@data <- data
+		.Object@dims <- dims
 		.Object@thresholds <- thresholds
 		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
@@ -54,6 +56,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		covariance <- .Object@covariance
 		means <- .Object@means
 		data <- .Object@data
+		dims <- .Object@dims
 		thresholds <- .Object@thresholds
 		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
@@ -63,6 +66,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
 		checkNumericData(mxDataObject)
+		flatModel <- updateObjectiveDimnames(covariance, means, flatModel, "ML", dims)
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
@@ -97,7 +101,7 @@ setMethod("omxObjModelConvert", "MxMLObjective",
 )
 
 
-mxMLObjective <- function(covariance, means = NA, thresholds = NA) {
+mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
@@ -106,7 +110,17 @@ mxMLObjective <- function(covariance, means = NA, thresholds = NA) {
 	}
 	if (is.na(means)) means <- as.integer(NA)
 	if (is.na(thresholds)) thresholds <- as.character(NA)
-	return(new("MxMLObjective", covariance, means, thresholds))
+	if (is.na(dimnames)) dimnames <- as.character(NA)
+	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
+		stop("Dimnames argument is not a character vector")
+	}
+	if (length(dimnames) == 0) {
+		stop("Dimnames argument cannot be an empty vector")
+	}
+	if (length(dimnames) > 1 && any(is.na(dimnames))) {
+		stop("NA values are not allowed for dimnames vector")
+	}
+	return(new("MxMLObjective", covariance, means, dimnames, thresholds))
 }
 
 displayMLObjective <- function(objective) {
@@ -117,6 +131,11 @@ displayMLObjective <- function(objective) {
 		cat("@thresholds : NA \n")
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
+	}
+	if (single.na(objective@dims)) {
+		cat("@dims : NA \n")
+	} else {
+		cat("@dims :", omxQuotes(objective@dims), '\n')
 	}
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")

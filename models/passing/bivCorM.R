@@ -19,21 +19,18 @@ bivCorModel <- mxModel("bivCor",
         ncol=2, 
         free=c(T,T,F,T), 
         values=c(1,.2,0,1), 
-        dimnames=list(selVars, selVars), 
         name="Chol"
     ), 
     mxAlgebra(
         expression=Chol %*% t(Chol), 
-        name="expCov", 
-        dimnames=list(selVars, selVars)
+        name="expCov"
     ), 
     mxMatrix(
         type="Full", 
         nrow=1, 
         ncol=2, 
         free=T, 
-        values=c(0,0), 
-        dimnames=list(NULL, selVars), 
+        values=c(0,0),
         name="expMean"
     ), 
     mxData(
@@ -42,7 +39,8 @@ bivCorModel <- mxModel("bivCor",
     ), 
     mxFIMLObjective(
         covariance="expCov", 
-        means="expMean"
+        means="expMean",
+        dimnames=selVars
     )
     )
 
@@ -60,7 +58,6 @@ bivCorModelSub <-mxModel(bivCorModel,
         ncol=2, 
         free=c(T,F,F,T), 
         values=c(1,0,0,1), 
-        dimnames=list(selVars, selVars),
         name="Chol"
         )
     )

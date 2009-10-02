@@ -23,8 +23,7 @@ bivSatModel5 <- mxModel("bivSat5",
     ),
     mxAlgebra(
         Chol %*% t(Chol), 
-        name="expCov", 
-        dimnames=list(selVars,selVars)
+        name="expCov" 
     ),
     mxMatrix(
         type="Full", 
@@ -32,7 +31,6 @@ bivSatModel5 <- mxModel("bivSat5",
         ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -41,7 +39,8 @@ bivSatModel5 <- mxModel("bivSat5",
         numObs=1000 
     ),
     mxMLObjective(
-        covariance="expCov"
+        covariance="expCov",
+        dimnames=selVars
     )
     )
 bivSatFit5 <- mxRun(bivSatModel5)
@@ -62,8 +61,7 @@ bivSatModel5m <- mxModel("bivSat5m",
     ),
     mxAlgebra(
         Chol %*% t(Chol), 
-        name="expCov", 
-        dimnames=list(selVars,selVars)
+        name="expCov" 
     ),
     mxMatrix(
         type="Full", 
@@ -71,7 +69,6 @@ bivSatModel5m <- mxModel("bivSat5m",
         ncol=2, 
         free=T, 
         values=c(0,0), 
-        dimnames=list(NULL,selVars), 
         name="expMean"
     ),
     mxData(
@@ -82,7 +79,8 @@ bivSatModel5m <- mxModel("bivSat5m",
     ),
     mxMLObjective(
         covariance="expCov",
-        means="expMean"
+        means="expMean",
+        dimnames=selVars
     )
     )
 bivSatFit5m <- mxRun(bivSatModel5m)

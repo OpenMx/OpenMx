@@ -70,13 +70,11 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 free=c(T,T,F,T), 
                 values=c(1,.2,0,1),
                 labels=c("vX1", "cXY1", "zero", "vY1"),
-                dimnames=list(selVars, selVars), 
                 name="Chol1"
             ), 
             mxAlgebra(
                 Chol1 %*% t(Chol1), 
-                name="EC1", 
-                dimnames=list(selVars, selVars)
+                name="EC1" 
             ), 
             mxMatrix(
                 type="Full", 
@@ -85,7 +83,6 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 free=T, 
                 values=c(0,0), 
                 labels=c("mX1", "mY1"), 
-                dimnames=list(NULL, selVars), 
                 name="EM1"
             ), 
             mxData(
@@ -94,7 +91,8 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
             ), 
             mxFIMLObjective(
                 "EC1", 
-                "EM1")
+                "EM1"
+                selVars)
             ),
         mxModel("group2",
             mxMatrix(
@@ -104,13 +102,11 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 free=c(T,T,F,T), 
                 values=c(1,.2,0,1),
                 labels=c("vX2", "cXY2", "zero", "vY2"),
-                dimnames=list(selVars, selVars), 
                 name="Chol2"
             ), 
             mxAlgebra(
                 Chol2 %*% t(Chol2), 
                 name="EC2", 
-                dimnames=list(selVars, selVars)
             ), 
             mxMatrix(
                 type="Full", 
@@ -119,7 +115,6 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 free=T, 
                 values=c(0,0), 
                 labels=c("mX2", "mY2"), 
-                dimnames=list(NULL, selVars), 
                 name="EM2"
             ), 
             mxData(
@@ -128,7 +123,8 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
             ), 
             mxFIMLObjective(
                 "EC2", 
-                "EM2")
+                "EM2",
+                selVars)
             ), ....
 
 As a result, we estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the 'Labels matrix:' parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``

@@ -17,12 +17,12 @@ A <- mxAlgebra(X * t(X), name="A")
 C <- mxAlgebra(Y * t(Y), name="C")
 E <- mxAlgebra(Z * t(Z), name="E")
 cMZ <- mxAlgebra(rbind(cbind(A+C+E,A+C),cbind(A+C,A+C+E)), 
-	dimnames = list(varNames,varNames), name="cMZ")
+	name="cMZ")
 cDZ <- mxAlgebra(rbind(cbind(A+C+E,h%x%A+C),cbind(h%x%A+C,A+C+E)),
-	dimnames = list(varNames,varNames), name="cDZ")
+	name="cDZ")
 
-objMZ <- mxMLObjective("cMZ")
-objDZ <- mxMLObjective("cDZ")
+objMZ <- mxMLObjective("cMZ", dimnames = varNames)
+objDZ <- mxMLObjective("cDZ", dimnames = varNames)
 
 modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,A,C,E,cMZ, objMZ)
 modelDZ <- mxModel("modelDZ", dataDZ, X,Y,Z,h,A,C,E,cDZ, objDZ)

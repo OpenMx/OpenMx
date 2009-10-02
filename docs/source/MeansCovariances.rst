@@ -222,7 +222,6 @@ We now specify essentially the same models with matrices.  Starting with the mod
      	    ncol=1, 
      	    free=T, 
      	    values=1, 
-     	    dimnames=list(selVars,selVars), 
      	    name="expCov"
      	),
      	mxData(
@@ -231,7 +230,7 @@ We now specify essentially the same models with matrices.  Starting with the mod
      	    numObs=1000
      	),
      	mxMLObjective(
-     	    "expCov")
+     	    "expCov", dimnames=selVars)
      	)
     univSatFit3 <- mxRun(univSatModel3)
 
@@ -246,7 +245,6 @@ A means vector can also be added here as part of the input summary statistics (a
      	    ncol=1, 
      	    free=T, 
      	    values=0, 
-     	    dimnames=list(NULL,selVars), 
      	    name="expMean"
      	),
      	mxData(
@@ -257,7 +255,8 @@ A means vector can also be added here as part of the input summary statistics (a
      	),
      	mxMLObjective(
      	    "expCov",
-     	    "expMean"
+     	    "expMean",
+            dimnames=selVars
      	)
 
 
@@ -275,7 +274,6 @@ Finally, if we want to use the matrix specification with raw data, we again spec
      	    ncol=1, 
      	    free=T, 
      	    values=1, 
-     	    dimnames=list(selVars,selVars),
      	    name="expCov"
      	),
      	mxMatrix(
@@ -284,7 +282,6 @@ Finally, if we want to use the matrix specification with raw data, we again spec
      	    ncol=1, 
      	    free=T, 
      	    values=0, 
-     	    dimnames=list(NULL,selVars),
      	    name="expMean"
      	),
      	mxData(
@@ -293,7 +290,8 @@ Finally, if we want to use the matrix specification with raw data, we again spec
      	),
      	mxFIMLObjective(
      	    "expCov", 
-     	    "expMean")
+     	    "expMean",
+            dimnames=selVars)
      	)
      	
 Note that the output generated for the paths and matrices specification are completely equivalent.

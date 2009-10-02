@@ -35,8 +35,7 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxAlgebra(
             Chol1 %*% t(Chol1), 
-            name="EC1", 
-            dimnames=list(selVars, selVars)
+            name="EC1"
         ), 
         mxMatrix(
             type="Full", 
@@ -45,7 +44,6 @@ bivHetModel <- mxModel("bivHet",
             free=T, 
             values=c(0,0), 
             labels=c("mX1", "mY1"), 
-            dimnames=list(NULL, selVars), 
             name="EM1"
         ), 
         mxData(
@@ -54,7 +52,8 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxFIMLObjective(
             "EC1", 
-            "EM1")
+            "EM1",
+            selVars)
         ),
     mxModel("group2",
         mxMatrix(
@@ -69,8 +68,7 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxAlgebra(
             Chol2 %*% t(Chol2), 
-            name="EC2", 
-            dimnames=list(selVars, selVars)
+            name="EC2" 
         ), 
         mxMatrix(
             type="Full", 
@@ -79,7 +77,6 @@ bivHetModel <- mxModel("bivHet",
             free=T, 
             values=c(0,0), 
             labels=c("mX2", "mY2"), 
-            dimnames=list(NULL, selVars), 
             name="EM2"
         ), 
         mxData(
@@ -88,7 +85,8 @@ bivHetModel <- mxModel("bivHet",
         ), 
         mxFIMLObjective(
             "EC2", 
-            "EM2")
+            "EM2",
+            selVars)
         ),
     mxAlgebra(
             group1.objective + group2.objective, 

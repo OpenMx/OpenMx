@@ -49,9 +49,8 @@ nameList <- names(data)
 # Define the model
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377), 
-            nrow = nvar, ncol = nvar, free=TRUE, 
-            dimnames=list(nameList, nameList)))
-model <- mxModel(model, mxMatrix("Zero", name = "M", nrow = 1, ncol = nvar, free=FALSE, dimnames = list(NULL, nameList)))
+            nrow = nvar, ncol = nvar, free=TRUE))
+model <- mxModel(model, mxMatrix("Zero", name = "M", nrow = 1, ncol = nvar, free=FALSE))
 model <- mxModel(model, mxMatrix("Full", 
             name="thresh", 
             # values = Mx1Threshold,
@@ -70,7 +69,7 @@ model <- mxModel(model, mxMatrix("Full",
                         ), 2))
 
 # Define the objective function
-objective <- mxFIMLObjective(covariance="R", means="M", thresholds="thresh")
+objective <- mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="thresh")
 
 # Define the observed covariance matrix
 dataMatrix <- mxData(data, type='raw')

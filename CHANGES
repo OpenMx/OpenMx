@@ -3,7 +3,7 @@ trunk
 * in summary(), renamed "parameter estimate" column to "Estimate" and
   renamed "error estimate" to "Std.Error"
 * tools/mxAlgebraParser.py will convert Mx 1.0 algebra expressions (Python PLY library is required)
-
+* added 'dimnames' argument to mxFIMLObjective() and mxMLObjective()
 
 Release 0.1.5-851
 =================

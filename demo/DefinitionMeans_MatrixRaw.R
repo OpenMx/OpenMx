@@ -36,13 +36,13 @@ selvars<-c("x","y")
 
 #define the model, including a FIML objective function, which will optimize the matrix S
 defMeansModel <- mxModel("DefinitionMeans", 
-    mxFIMLObjective(covariance="Sigma", means="Mu"),
+    mxFIMLObjective(covariance="Sigma", means="Mu", dimnames=selvars),
     mxData((observed=data.frame(y,def)), type="raw"), 
-    mxMatrix(type="Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1),    dimnames=list(selvars,selvars), name="Sigma"), 
-    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE,                       dimnames=list(NULL,selvars), name = "M"),
-    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, values=c(0, 0),       dimnames=list(NULL,selvars), name = "beta"), 
-    mxMatrix(type="Full", nrow=1, ncol=2, free=FALSE,labels=c("data.def"), dimnames=list(NULL,selvars), name = "def"),
-		mxAlgebra(expression=M+beta*def,                                       dimnames=list(NULL,selvars), name = "Mu")
+    mxMatrix(type="Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1), name="Sigma"), 
+    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, name = "M"),
+    mxMatrix(type="Full", nrow=1, ncol=2, free=TRUE, values=c(0, 0), name = "beta"), 
+    mxMatrix(type="Full", nrow=1, ncol=2, free=FALSE, labels=c("data.def"), name = "def"),
+		mxAlgebra(expression=M+beta*def, name = "Mu")
 )
 
 # Run the model

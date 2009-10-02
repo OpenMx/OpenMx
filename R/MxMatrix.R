@@ -239,11 +239,11 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	return(newMatrix)
 }
 
-as.numeric.preserve <- function(arg) {
-	if (is.matrix(arg)) {
-		return(matrix(as.numeric(arg), nrow(arg), ncol(arg)))
+as.numeric.preserve <- function(x, ...) {
+	if (is.matrix(x)) {
+		return(matrix(as.numeric(x, ...), nrow(x), ncol(x)))
 	} else {
-		return(as.numeric(arg))
+		return(as.numeric(x, ...))
 	}
 }
 
