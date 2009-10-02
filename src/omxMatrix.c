@@ -295,7 +295,7 @@ void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
 
 unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
-
+	if(OMX_DEBUG) { Rprintf("(%d x %d) ", om->rows, om->cols); }
 	for(int i = 0; i < om->numPopulateLocations; i++) {
 		if(omxNeedsUpdate(om->populateFrom[i])) return TRUE;	// Make sure it's up to date
 	}
@@ -475,17 +475,34 @@ void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matri
 }
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
+	unsigned short retval;
 	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
 	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix 0x%x NeedsUpdate?", matrix);}
-	if(matrix == NULL) return FALSE;		// Not existing means never having to say you need to recompute.
-	if(matrix->isDirty) return TRUE;
-	if(matrix->lastCompute < matrix->currentState->computeCount) return TRUE;  	// No need to check args if oa's dirty.
-	if(matrix->lastRow < matrix->currentState->currentRow) return TRUE;			// Ditto.
-
-	if(matrix->algebra != NULL) return omxAlgebraNeedsUpdate(matrix->algebra);
-	else if(matrix->objective != NULL) return omxObjectiveNeedsUpdate(matrix->objective);
-	else return omxMatrixNeedsUpdate(matrix);
-
+	if(matrix == NULL) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("matrix argument is NULL. ");}
+		retval = FALSE;		// Not existing means never having to say you need to recompute.
+	} else if(matrix->isDirty) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("matrix is dirty. ");}
+		retval = TRUE;
+	} else if(matrix->lastCompute < matrix->currentState->computeCount) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last compute is less than current compute count. ");}
+		retval = TRUE;  	// No need to check args if oa's dirty.
+	} else if(matrix->lastRow < matrix->currentState->currentRow) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last row is less than current row. ");}
+		retval = TRUE;			// Ditto.
+	} else if(matrix->algebra != NULL) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("checking algebra needs update. ");}
+		retval = omxAlgebraNeedsUpdate(matrix->algebra);
+	} else if(matrix->objective != NULL) {
+		if(OMX_DEBUG_MATRIX) {Rprintf("checking objective function needs update. ");}
+		retval = omxObjectiveNeedsUpdate(matrix->objective);
+	} else {
+		if(OMX_DEBUG_MATRIX) {Rprintf("checking matrix needs update. ");}
+		retval = omxMatrixNeedsUpdate(matrix);
+	}
+	if(OMX_DEBUG_MATRIX && retval) {Rprintf("Yes.\n");}
+	if(OMX_DEBUG_MATRIX && !retval) {Rprintf("No.\n");}
+	return(retval);
 }
 
 void inline omxRecompute(omxMatrix *matrix) {
