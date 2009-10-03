@@ -103,7 +103,7 @@ generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval))
 	algebraSymbolCheck(retval, algebra@name)
-	return(retval)
+	return(list(algebra@initial, retval))
 }
 
 substituteOperators <- function(algebra) {

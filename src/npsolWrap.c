@@ -117,7 +117,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 
-	SEXP nextLoc, nextMat, nextAlg, nextVar;
+	SEXP nextLoc, nextMat, nextAlgTuple, nextAlg, nextVar;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -178,15 +178,17 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	for(int j = 0; j < currentState->numAlgs; j++) {
-		PROTECT(nextAlg = VECTOR_ELT(algList, j));		// The next algebra or objective to process
+		PROTECT(nextAlgTuple = VECTOR_ELT(algList, j));		// The next algebra or objective to process
 		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
-		if(IS_S4_OBJECT(nextAlg)) {											// This is an objective object.
-			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlg);
+		if(IS_S4_OBJECT(nextAlgTuple)) {												// This is an objective object.
+			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
 		} else {															// This is an algebra spec.
-			omxFillMatrixFromMxAlgebra(currentState->algebraList[j], 
+			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
+			omxFillMatrixFromMxAlgebra(currentState->algebraList[j],
 				nextAlg, CHAR(STRING_ELT(algListNames, j)));
+			UNPROTECT(1);	// nextAlg
 		}
-		UNPROTECT(1);	// nextAlg
+		UNPROTECT(1);	// nextAlgTuple
 	}
 
 	/* Process Objective Function */
