@@ -22,8 +22,7 @@ setClass(Class = "MxAlgebra",
 		name = "character",
 		dirty = "logical",
 		.dimnames = "MxListOrNull",
-		nrow = "integer",
-		ncol = "integer",
+		initial = "matrix",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
@@ -166,8 +165,7 @@ checkAlgebraEvaluation <- function(model, retval, flatModel, labelsData) {
 					x$message), call. = FALSE)
 		})
 		algebra <- retval[[algebra@name]]
-		algebra@nrow <- nrow(result)
-		algebra@ncol <- ncol(result)
+		algebra@initial <- result
 		retval[[algebra@name]] <- algebra
 	}
 	return(retval)
