@@ -61,6 +61,12 @@ setMethod("omxVerifyModel", "MxRAMModel",
                 "does not contain any paths.")
 			stop(msg, call. = FALSE)
         }
+        objective <- model$objective
+        if (!is.null(objective) && !is(objective, "MxRAMObjective")) {
+			msg <- paste("The RAM model", omxQuotes(model@name),
+                "does not contain a RAM objective function.")
+			stop(msg, call. = FALSE)        	
+        }
         return(TRUE)
     }
 )
