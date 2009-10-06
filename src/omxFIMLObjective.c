@@ -474,7 +474,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			char errStr[250];
-			sprintf(errStr, "Covariance matrix is not positive-definite in row %d.\n", row);
+			sprintf(errStr, "Expected covariance matrix is not positive-definite in row %d.\n", row);
 			omxRaiseError(oo->matrix->currentState, -1, errStr);
 			return;
 		}
@@ -486,7 +486,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			char errstr[250];
-			sprintf(errstr, "Cannot invert covariance matrix. Error %d.", info);
+			sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
 			omxRaiseError(oo->matrix->currentState, -1, errstr);
 			return;
 		}
