@@ -31,7 +31,7 @@ End Group
 
 Title G2: MZ data
  #include ozbmi.dat
- Select if zyg=1
+ Select if zyg = 1
  Select bmi1 bmi2 ;
  Begin Matrices = Group 1;
   M Full 1 nvar2 Free
@@ -46,7 +46,7 @@ End
 
 Title G3: DZ data
  #include ozbmi.dat
- Select if zyg=3
+ Select if zyg = 3
  Select bmi1 bmi2 ;
  Begin Matrices = Group 1;
   M Full 1 nvar2 Free
