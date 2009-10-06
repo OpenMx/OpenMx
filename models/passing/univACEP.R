@@ -1,12 +1,12 @@
 # SCRIPT: univACEP.R
 # History:  Sat 26 Sep 2009 16:20:23 BST
 #    (tb) Built MZ/DZ models from shared model correctly;  Adapt to data(); Added summary() calls
-# TODO: could use mx check on the redcued model (tb) 
+# TODO: could use mx check on the reduced model (tb) 
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 
 require(OpenMx)
-#Prepare Data
+# Prepare Data
 data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
