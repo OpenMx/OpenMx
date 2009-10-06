@@ -110,7 +110,7 @@ mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA
 	}
 	if (is.na(means)) means <- as.integer(NA)
 	if (is.na(thresholds)) thresholds <- as.character(NA)
-	if (is.na(dimnames)) dimnames <- as.character(NA)
+	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
 	}
