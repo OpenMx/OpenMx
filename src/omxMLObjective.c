@@ -124,16 +124,12 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(info > 0) {
 		int n = oo->matrix->currentState->numFreeParams;
 			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
-		int errlen = 50+10*n;
-		char errstr[50+10*n];
-		char shortstr[30];
-		sprintf(errstr, "Non-positive-definite at free parameters:");
-		for(int i = 0; i < n; i++) {
-			sprintf(shortstr, "\t%3.3f", *(oo->matrix->currentState->freeVarList[i].location[0]));
-			strncat(errstr, shortstr, 10);
+		char errstr[250];
+		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
+		if(oo->matrix->currentState->computeCount <= 0) {
+			strncat(errstr, " at starting values", 20);
 		}
-		strncat(errstr, "\n", 1);
-		if(errlen > 250) errlen = 250;
+		strncat(errstr, ".\n", 3);
 		omxRaiseError(oo->matrix->currentState, -1, errstr);						// Raise error
 		return;																		// Leave output untouched
 	}
@@ -286,10 +282,12 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
-	if(info > 0) {
-		error("Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
+	if(info != 0) {
+		char errStr[250];
+		sprintf(errStr, "Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
+		omxRaiseError(oo->matrix->currentState, -1, errStr);
+		return;
 	}
-
 	for(info = 0; info < newObj->localCov->cols; info++) { 
 		det *= omxMatrixElement(newObj->localCov, info, info);
 	}
