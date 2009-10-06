@@ -127,11 +127,17 @@ omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
 	}
 }
 
+trim <- function(input) {
+	input <- sub("(?m)^\\s+", "", input, perl = TRUE)
+	input <- sub("(?m)\\s+$", "", input, perl = TRUE)
+	return(input)
+}
+
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	checkErrorState <- FALSE
 	tryCatch(eval(inputExpression), error = function(x) {
-		if(x$message != message) {
+		if(trim(x$message) != trim(message)) {
 			stop(paste("An error was thrown with the wrong message:",
 				x$message), call. = FALSE)
 		} else { checkErrorState <<- TRUE }
