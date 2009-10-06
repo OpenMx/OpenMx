@@ -39,8 +39,8 @@
 		state->freeVarList = NULL;
 		state->optimizerState = NULL;
 
-		state->computeCount = 0;
-		state->currentRow = 0;
+		state->computeCount = -1;
+		state->currentRow = -1;
 
 		state->statusCode = 0;
 		strncpy(state->statusMsg, "", 1);

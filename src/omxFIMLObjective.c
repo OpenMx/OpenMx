@@ -416,10 +416,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
 		omxRecompute(means);
+		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }	
+		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
-	
-	if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
-
 	int toRemove[cov->cols];
 	int zeros[cov->cols];
 
@@ -592,9 +591,10 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	UNPROTECT(1); // unprotect nextMatrix
 	
 	/* Temporary storage for calculation */
-	newObj->smallRow = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
-	newObj->smallCov = omxInitMatrix(NULL, newObj->cov->rows, newObj->cov->cols, TRUE, oo->matrix->currentState);
-	newObj->RCX = omxInitMatrix(NULL, 1, newObj->data->cols, TRUE, oo->matrix->currentState);
+	int covCols = newObj->cov->cols;
+	newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+	newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
+	newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
 //	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
@@ -610,16 +610,16 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(hasOrdinal) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
-		newObj->weights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
-		newObj->smallWeights = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
-		newObj->smallMeans = omxInitMatrix(NULL, newObj->cov->cols, 1, TRUE, oo->matrix->currentState);
+		newObj->weights = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+		newObj->smallWeights = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
 		omxAliasMatrix(newObj->smallMeans, newObj->means);
 		omxAliasMatrix(newObj->smallWeights, newObj->weights);
-		newObj->corList = (double*) R_alloc(newObj->cov->cols * (newObj->cov->cols + 1) / 2, sizeof(double));
-		newObj->smallCor = (double*) R_alloc(newObj->cov->cols * (newObj->cov->cols + 1) / 2, sizeof(double));
-		newObj->lThresh = (double*) R_alloc(newObj->cov->cols, sizeof(double));
-		newObj->uThresh = (double*) R_alloc(newObj->cov->cols, sizeof(double));
-		newObj->Infin = (int*) R_alloc(newObj->cov->cols, sizeof(int));
+		newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
+		newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
+		newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
+		newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
+		newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 		
 		oo->objectiveFun = omxCallFIMLOrdinalObjective;
 	}

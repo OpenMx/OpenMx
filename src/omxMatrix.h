@@ -101,7 +101,8 @@ struct omxMatrix {						// A matrix
 /* Other Functions */
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 	 						unsigned short keepMemory);					// Resize, with or without re-initialization
-	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix 
+	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 	// Create an omxMatrix from an R MxMatrix 
+	omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix 
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);				// Copy across another matrix.  
 	
@@ -111,7 +112,7 @@ struct omxMatrix {						// A matrix
 	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
-	void omxComputeMatrix(omxMatrix *matrix);
+	void omxMatrixCompute(omxMatrix *matrix);
 	void omxPrintMatrix(omxMatrix *source, char* d);				// Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 

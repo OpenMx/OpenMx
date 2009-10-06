@@ -108,7 +108,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	char u = 'U';
 
 	/* Z = (I-A)^-1 */
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning Objective Calculation.\n"); }
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning RAM Objective Calculation.\n"); }
 
 	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
 //	omxPrint(Z, "Z");

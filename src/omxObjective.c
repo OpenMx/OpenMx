@@ -60,7 +60,7 @@ void omxObjectiveCompute(omxObjective *oo) {
 	oo->objectiveFun(oo);
 
 	if(oo->matrix != NULL)
-		omxComputeMatrix(oo->matrix);
+		omxMatrixCompute(oo->matrix);
 }
 
 unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)

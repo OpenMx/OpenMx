@@ -74,8 +74,7 @@ struct omxObjective {					// An objective
 	void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP mxobj);			// Create an objective function from an R MxObjective object
 	void omxFreeObjectiveArgs(omxObjective* objective);						// Frees all args
 
-/* Algebra-specific implementations of matrix functions */
-	void omxObjectiveRecompute(omxObjective *oo);
+/* Objective-specific implementations of matrix functions */
 	void omxObjectiveCompute(omxObjective *oo);
 	unsigned short int omxObjectiveNeedsUpdate(omxObjective *oo);
 	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.

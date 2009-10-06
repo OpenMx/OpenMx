@@ -43,7 +43,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
-	omxComputeMatrix(result);
+	omxMatrixCompute(result);
 }
 
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -118,9 +118,8 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 		error(errstr);
 	}
 
-	if(result->rows != preMul->rows || result->cols != preMul->cols)
+	if(result->rows != preMul->rows || result->cols != postMul->cols)
 		omxResizeMatrix(result, preMul->rows, postMul->cols, FALSE);
-	
 	
 	/* For debugging */
 	if(OMX_DEBUG_ALGEBRA) {
@@ -131,7 +130,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	/* The call itself */
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
-	omxComputeMatrix(result);
+	omxMatrixCompute(result);
 
 }
 
@@ -211,13 +210,13 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
 	
-	omxComputeMatrix(intermediate);
-	omxComputeMatrix(result);
+	omxMatrixCompute(intermediate);
+	omxMatrixCompute(result);
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: premul.\n");}
 	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
-	omxComputeMatrix(intermediate);
+	omxMatrixCompute(intermediate);
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: postmul.\n");}
 //	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
 	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));

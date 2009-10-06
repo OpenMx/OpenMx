@@ -183,12 +183,27 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		if(IS_S4_OBJECT(nextAlgTuple)) {												// This is an objective object.
 			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
 		} else {															// This is an algebra spec.
+			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
+			omxFillMatrixFromMxMatrix(currentState->algebraList[j],
+				nextAlg, currentState);
+			UNPROTECT(1);	// nextAlg
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(currentState->algebraList[j],
 				nextAlg, CHAR(STRING_ELT(algListNames, j)));
 			UNPROTECT(1);	// nextAlg
 		}
 		UNPROTECT(1);	// nextAlgTuple
+	}
+
+	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
+	omxStateNextEvaluation(currentState);
+
+	for(k = 0; k < currentState->numMats; k++) {
+		omxRecompute(currentState->matrixList[k]);
+	}
+	
+	for(k = 0; k < currentState->numAlgs; k++) {
+		omxRecompute(currentState->algebraList[k]);
 	}
 
 	/* Process Objective Function */

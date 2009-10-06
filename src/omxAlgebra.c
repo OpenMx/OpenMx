@@ -67,10 +67,10 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 }
 
 void omxAlgebraCompute(omxAlgebra *oa) {
-	if(OMX_DEBUG_ALGEBRA) {Rprintf("Algebra compute (%s): 0x%0x (needed: %d/%d).\n", oa->name, oa, oa->matrix->lastCompute, oa->matrix->currentState->computeCount);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Algebra compute (%s): 0x%0x (needed: %d/%d).\n", oa->name, oa->matrix, oa->matrix->lastCompute, oa->matrix->currentState->computeCount); }
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x.\n", j, oa->args[j]); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->args[j], (omxNeedsUpdate(oa->args[j])?"does":"does not")); }
 		omxRecompute(oa->args[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -86,7 +86,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 		if(OMX_DEBUG) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
 		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->matrix);
 	}
-	omxComputeMatrix(oa->matrix);
+	omxMatrixCompute(oa->matrix);
 	
 	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
 }
@@ -171,9 +171,9 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 
 	UNPROTECT(1);	/* algebraOperator */
 
-	omxAlgebraCompute(oa);
-	
-	omxComputeMatrix(om);
+	// omxAlgebraCompute(oa);
+	// 
+	// omxMatrixCompute(om);
 
 }
 
