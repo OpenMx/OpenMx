@@ -1,0 +1,8 @@
+require(OpenMx)
+cov <- mxMatrix('Full', 2, 2, values = c(0,1,1,0), name = 'cov', free = c(FALSE,TRUE,TRUE,FALSE))
+objective <- mxMLObjective('cov', dimnames = c('a','b'))
+identity <- diag(2)
+dimnames(identity) <- list(c('a','b'),c('a','b'))
+data <- mxData(identity, 'cov', numObs = 10)
+model <- mxModel('model', cov, objective, data)
+mxRun(model)
