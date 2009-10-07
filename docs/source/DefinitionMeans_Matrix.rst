@@ -129,7 +129,7 @@ The trick - commonly used in regression models - is to multiply the *beta* matri
         )
     )
 
-The result of this algebra is named *Mu``, and this handle is referred to in the mxFIMLObjective function call.  We can then run the model and examine the output with a few simple commands.
+The result of this algebra is named *Mu*, and this handle is referred to in the mxFIMLObjective function call.  We can then run the model and examine the output with a few simple commands.
 
 Model Fitting
 ^^^^^^^^^^^^^^

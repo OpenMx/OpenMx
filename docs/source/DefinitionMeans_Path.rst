@@ -116,8 +116,7 @@ Model specification is carried out using two lists of variables, ``manifestVars`
         free=c(TRUE,TRUE),
         values=c(1,1),
         labels =c("beta_1","beta_2")
-    ) # moderator paths
-)
+    )) # moderator paths
 
 We can then run the model and examine the output with a few simple commands.
 

@@ -182,10 +182,10 @@ A nice feature of OpenMx is that an existing model can be modified in any respec
 
 .. code-block:: r
 
-univRawModel1 <- mxModel(univSatModel1,mxData(
-    	    observed=testData, 
-    	    type="raw"
-    	))
+	univRawModel1 <- mxModel(univSatModel1,mxData(
+		observed=testData, 
+		type="raw"
+	))
 
 This model can be run as usual with an ``mxRun`` command:
 .. code-block:: r

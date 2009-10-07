@@ -146,7 +146,7 @@ Optimization Script
 -------------------
 
 When collecting data to test a specific hypothesis, one of the first things one typically does is checking the basic descriptive statistics, such as the means, variances and covariances/correlations.  We could of course use basic functions in R, i.e., `meanCol(Data)` or `cov(Data)` to perform these operations.  However, if we want to test specific hypotheses about the data, for example, test whether the correlation between two variables is significantly different from zero, we need to compare the likelihood of the data when the correlation is freely estimated with the likelihood of the data when the correlation is fixed to zero.  Let's work through a specific `example
-<http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation20090925.R`_>.
+<http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation20090925.R>`_.
 
 Say, we have collected data on two variables **X** and **Y** in 1000 individuals, and R descriptive statistics has shown that the correlation between them is 0.5.  For the sake of this example, we used another built-in function in the R package MASS, namely ``mvrnorm``, to generate multivariate normal data for 1000 individuals with means of 0.0, variances of 1.0 and a correlation (``rs``) of 0.5 between **X** and **Y**.  Note the that first argument of ``mvrnorm`` is the sample size, the second the vector of means, and the third the covariance matrix to be simulated.  We save the data in the object ``xy`` and create a vector of labels for the two variables in ``selVars`` which is used in the ``dimnames`` statement later on.  The R functions ``summary()`` and ``cov()`` are used to verify that the simulations appear OK.
 

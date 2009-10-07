@@ -13,7 +13,7 @@ A parallel version of this example, using matrix specification of models rather 
 Common Factor Model
 -------------------
 
-The common factor model is a method for modeling the relationships between observed variables believed to measure or indicate the same latent variable. While there are a number of exploratory approaches to extracting latent factor(s), this example uses structural modeling to fit confirmatory factor models. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}'-:math:`x_{6}' are given below.
+The common factor model is a method for modeling the relationships between observed variables believed to measure or indicate the same latent variable. While there are a number of exploratory approaches to extracting latent factor(s), this example uses structural modeling to fit confirmatory factor models. The model for any person and path diagram of the common factor model for a set of variables :math:`x_{1}`-:math:`x_{6}` are given below.
 
 .. math::
    :nowrap:
