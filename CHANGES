@@ -1,9 +1,15 @@
-trunk
+TRUNK
 =====
-* in summary(), renamed "parameter estimate" column to "Estimate" and
-  renamed "error estimate" to "Std.Error"
-* tools/mxAlgebraParser.py will convert Mx 1.0 algebra expressions (Python PLY library is required)
-* added 'dimnames' argument to mxFIMLObjective() and mxMLObjective()
+
+Release 0.2.0-905
+=================
+* several of the twin model demo examples have been recoded.
+* fixed bug with non-floating point matrices.
+* more error checking for mxPath().
+* tools/mxAlgebraParser.py will convert Mx 1.0 algebra expressions (Python PLY library is required).
+* renamed "parameter estimate" column to "Estimate" and "error estimate" to "Std.Error" in summary().
+* added 'dimnames' argument to mxFIMLObjective() and mxMLObjective().
+* error checking for RAM models with non-RAM objective functions.
 
 Release 0.1.5-851
 =================
