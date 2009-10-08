@@ -37,18 +37,21 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-A <- mxMatrix(values = 0.5, nrow = 2, ncol = 1, 
-	free = TRUE, name = "A")
+vars <- c('x','y')
 
-D <- mxMatrix(type = "Diag", values = c(0, 0.5), 
-	free = c(FALSE, TRUE), nrow = 2, name = "D")
+A <- mxMatrix(values = 0.5, nrow = 2, ncol = 1,
+   free = TRUE, name = "A")
+D <- mxMatrix(type = "Diag", values = c(0, 0.5),
+   free = c(FALSE, TRUE), nrow = 2, name = "D")
 
 expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
+observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3),
+   nrow = 2, ncol = 2, dimnames = list(vars,vars)), 'cov', numObs = 150)
 
-observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3), nrow = 2, ncol = 2), 
-	'cov', numObs = 150)
+objective <- mxMLObjective(covariance = "expectedCov", dimnames = vars)
 
-objective <- mxMLObjective(covariance = "expectedCov")
+model <- mxModel("mxMLObjective example", A, D, expectedCov, objective, observedCov)
 
-model <- mxModel(A, D, expectedCov, objective, observedCov)
+\dontrun{summary(mxRun(model))}
+
 }

@@ -1,5 +1,6 @@
-TRUNK
+trunk
 =====
+* checked observed data for dimnames on ML objective functions
 
 Release 0.2.0-905
 =================

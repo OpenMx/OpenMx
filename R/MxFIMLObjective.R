@@ -69,13 +69,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 				"in model", omxQuotes(model@name), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
-		dataNames <- dimnames(mxDataObject@observed)
-		if (is.null(dataNames) || is.null(dataNames[[2]])) {
-			msg <- paste("The dataset associated with the FIML objective", 
-				"in model", omxQuotes(flatModel@name), 
-				"does not contain column names (use dimnames).")
-			stop(msg, call.=FALSE)
-		}
+		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, "FIML")
 		checkNumericData(mxDataObject)
 		meansName <- .Object@means
 		covName <- .Object@covariance
@@ -130,6 +124,29 @@ updateObjectiveDimnames <- function(covName, meansName, flatModel, objectiveName
 	return(flatModel)
 }
 
+verifyObservedNames <- function(data, type, flatModel, objectiveName) {
+	dataNames <- dimnames(data)
+	if(is.null(dataNames)) {
+		msg <- paste("The observed data associated with the",
+			objectiveName, "objective in model",
+			omxQuotes(flatModel@name), "does not contain dimnames.")
+		stop(msg, call. = FALSE)
+	}
+	if ((type == "cov" || type == "cor") && (length(dataNames) < 2 ||
+		is.null(dataNames[[1]]) || is.null(dataNames[[2]]) || 
+		!identical(dataNames[[1]], dataNames[[2]]))) {
+                msg <- paste("The dataset associated with the", objectiveName,
+                                "objective in model", omxQuotes(flatModel@name),
+                                "does not contain identical row and column non-NULL dimnames.")
+                stop(msg, call. = FALSE)
+	} else if ((type == "raw") && (length(dataNames) < 2 || is.null(dataNames[[2]]))) {
+		msg <- paste("The dataset associated with the", objectiveName,
+				"objective in model", omxQuotes(flatModel@name),
+				"does not contain column names (use dimnames).")
+		stop(msg, call. = FALSE)
+	}
+}
+
 verifyExpectedNames <- function(covName, meansName, flatModel, objectiveName) {
 	if (is.na(meansName)) {
 		means <- NA
@@ -142,7 +159,7 @@ verifyExpectedNames <- function(covName, meansName, flatModel, objectiveName) {
 			msg <- paste("The expected covariance matrix associated",
 				"with the", objectiveName, "objective in model", 
 				omxQuotes(flatModel@name), "does not contain dimnames.")
-			stop(msg, call.=FALSE)	
+			stop(msg, call. = FALSE)	
 	}
 	covRows <- covariance[[1]]
 	covCols <- covariance[[2]]	

@@ -64,7 +64,8 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 				"the ML objective does not have a dataset specified")
 			stop(msg, call. = FALSE)
 		}
-		mxDataObject <- flatModel@datasets[[.Object@data]]
+		mxDataObject <- flatModel@datasets[[data]]
+		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, "ML")
 		checkNumericData(mxDataObject)
 		flatModel <- updateObjectiveDimnames(covariance, means, flatModel, "ML", dims)
 		verifyExpectedNames(covariance, means, flatModel, "ML")
