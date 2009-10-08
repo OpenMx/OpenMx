@@ -52,6 +52,7 @@ setMethod("omxObjFunNamespace", signature("MxMLObjective"),
 
 setMethod("omxObjFunConvert", signature("MxMLObjective"), 
 	function(.Object, flatModel, model) {
+		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
@@ -60,14 +61,14 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		thresholds <- .Object@thresholds
 		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
-			msg <- paste("In model", omxQuotes(model@name),
+			msg <- paste("In model", omxQuotes(modelname),
 				"the ML objective does not have a dataset specified")
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[data]]
-		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, "ML")
+		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "ML")
 		checkNumericData(mxDataObject)
-		verifyExpectedNames(covariance, means, flatModel, "ML")
+		verifyExpectedNames(covariance, means, flatModel, modelname, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
