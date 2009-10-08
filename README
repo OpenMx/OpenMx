@@ -3,17 +3,19 @@ The various parts of the project will go in here in different
 directories, as things progress.
 
 Files:
-'DESCRIPTION'	- basic information about the package in a specific format (see 'Writing R Extensions')
-'LICENSE'	- a copy of the license to the package, e.g. a copy of the GNU public license.
+'DESCRIPTION'	- basic information about the package
+'LICENSE'	- a copy of the license to the package
 
 Subdirectories:
-'R'	-	R code files.
-'man'	-	Documentation in .Rd format.
-'src'	-	The sources and headers for compiled code, plus optionally a Makefile.
-'tests'	-	package-specifc test code.
-'demo'	-	R scripts (for running via demo()) that demonstrate some of the functionality of the package.
-'models/passing' - OpenMx models that are currently executing sucessfully
-'models/failing' - OpenMx models that are currently not executing succesfully
+'R'	-	R code files
+'man'	-	documentation in .Rd format
+'doc'   -	user guide in Sphinx format
+'src'	-	sources and headers for compiled code.
+'demo'	-	R demo scripts
+'models/passing' - OpenMx test suite currently executing sucessfully
+'models/failing' - OpenMx test suite currently not executing succesfully
 'data'	-	data files the package makes available for loading using data().
+'inst/tools'	 - Mx 1.0 parser and developer scripts
+'inst/npsol'	 - npsol compiled binaries
 
 To install: type "make" to see the available options.
