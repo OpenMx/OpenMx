@@ -67,7 +67,6 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 		mxDataObject <- flatModel@datasets[[data]]
 		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, "ML")
 		checkNumericData(mxDataObject)
-		flatModel <- updateObjectiveDimnames(covariance, means, flatModel, "ML", dims)
 		verifyExpectedNames(covariance, means, flatModel, "ML")
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
@@ -79,15 +78,16 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 
 
 setMethod("omxObjModelConvert", "MxMLObjective",
-	function(.Object, flatModel, model) {
+	function(.Object, job, model, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The ML objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call. = FALSE)
-		}		
-		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
-			return(model)
+		}
+		job <- updateObjectiveDimnames(.Object, job, model@name)
+		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
+			return(job)
 		}
 		if (is.na(.Object@means)) {
 			msg <- paste("In model", omxQuotes(model@name),
@@ -96,8 +96,8 @@ setMethod("omxObjModelConvert", "MxMLObjective",
 			stop(msg, call. = FALSE)
 		}
 		objective <- mxFIMLObjective(.Object@covariance, .Object@means, .Object@thresholds)
-		model@objective <- objective
-		return(model)
+		job[[model@name]][['objective']] <- objective
+		return(job)
 	}
 )
 
@@ -127,7 +127,11 @@ mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA
 displayMLObjective <- function(objective) {
 	cat("MxMLObjective", omxQuotes(objective@name), '\n')
 	cat("@covariance :", omxQuotes(objective@covariance), '\n')
-	cat("@means :", omxQuotes(objective@means), '\n')
+	if (single.na(objective@means)) {
+		cat("@means : NA \n")
+	} else {
+		cat("@means :", omxQuotes(objective@means), '\n')
+	}
 	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {

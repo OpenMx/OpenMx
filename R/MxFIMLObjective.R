@@ -78,7 +78,6 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- as.integer(omxLocateIndex(flatModel, .Object@data, name))
-		flatModel <- updateObjectiveDimnames(covName, meansName, flatModel, "FIML", .Object@dims)
 		verifyExpectedNames(covName, meansName, flatModel, "FIML")
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
@@ -89,39 +88,61 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		return(.Object)
 })
 
-updateObjectiveDimnames <- function(covName, meansName, flatModel, objectiveName, dims) {
+setMethod("omxObjModelConvert", "MxFIMLObjective",
+	function(.Object, job, model, flatJob) {
+		job <- updateObjectiveDimnames(.Object, job, model@name)
+		return(job)
+	}
+)
+
+updateObjectiveDimnames <- function(flatObjective, job, modelname) {
+	covName <- flatObjective@covariance
+	meansName <- flatObjective@means
 	if (is.na(meansName)) {
 		means <- NA
 	} else {
-		means <- flatModel[[meansName]]
+		means <- job[[meansName]]
 	}
-	covariance <- flatModel[[covName]]
-	if(!is.null(dimnames(covariance)) && !single.na(dims) && 
+	covariance <- job[[covName]]
+	if (is.null(covariance)) {
+		stop(paste("Unknown expected covariance name", 
+			omxQuotes(simplifyName(covName)),
+			"detected in the objective function",
+			"of model", omxQuotes(modelname)), call. = FALSE)
+	}
+	if (is.null(means)) {
+		stop(paste("Unknown expected means name", 
+			omxQuotes(simplifyName(meansName)),
+			"detected in the objective function",
+			"of model", omxQuotes(modelname)), call. = FALSE)
+	}
+	dims <- flatObjective@dims
+	if (!is.null(dimnames(covariance)) && !single.na(dims) && 
 		!identical(dimnames(covariance), list(dims, dims))) {
 		msg <- paste("The expected covariance matrix associated",
 			"with the", objectiveName, "objective in model", 
-			omxQuotes(flatModel@name), "contains dimnames and",
+			omxQuotes(modelname), "contains dimnames and",
 			"the objective function has specified dimnames")
 		stop(msg, call.=FALSE)		
 	}
-	if(is.null(dimnames(covariance)) && !single.na(dims)) {
+	if (is.null(dimnames(covariance)) && !single.na(dims)) {
 		dimnames(covariance) <- list(dims, dims)
-		flatModel[[covName]] <- covariance
+		job[[covName]] <- covariance
 	}
-	if (!isS4(means) && is.na(means)) return(flatModel)
-	if(!is.null(dimnames(means)) && !single.na(dims) &&
+	if (!isS4(means) && is.na(means)) return(job)
+	if (!is.null(dimnames(means)) && !single.na(dims) &&
 		!identical(dimnames(means), list(NULL, dims))) {
 		msg <- paste("The expected means matrix associated",
 			"with the", objectiveName, "objective in model", 
-			omxQuotes(flatModel@name), "contains dimnames and",
+			omxQuotes(modelname), "contains dimnames and",
 			"the objective function has specified dimnames")
 		stop(msg, call.=FALSE)	
 	}
-	if(is.null(dimnames(means)) && !single.na(dims)) {
+	if (is.null(dimnames(means)) && !single.na(dims)) {
 		dimnames(means) <- list(NULL, dims)
-		flatModel[[meansName]] <- means
-	}	
-	return(flatModel)
+		job[[meansName]] <- means
+	}
+	return(job)
 }
 
 verifyObservedNames <- function(data, type, flatModel, objectiveName) {

@@ -1,6 +1,8 @@
 trunk
 =====
 * checked observed data for dimnames on ML objective functions
+* using dimnames= argument to mxMLObjective() and mxFIMLObjective()
+  propagates to MxMatrix objects on output.
 
 Release 0.2.0-905
 =================

@@ -37,18 +37,18 @@ setGeneric("omxObjFunConvert",
 })
 
 setGeneric("omxObjModelConvert",
-	function(.Object, flatModel, model) {
+	function(.Object, job, model, flatJob) {
 	return(standardGeneric("omxObjModelConvert"))
 })
 
 setMethod("omxObjModelConvert", "MxBaseObjective",
-	function(.Object, flatModel, model) {
-		return(model)
+	function(.Object, job, model, flatJob) {
+		return(job)
 })
 
 setMethod("omxObjModelConvert", "NULL",
-	function(.Object, flatModel, model) {
-		return(model)
+	function(.Object, job, model, flatJob) {
+		return(job)
 })
 
 convertObjectives <- function(flatModel, model) {
@@ -60,15 +60,19 @@ convertObjectives <- function(flatModel, model) {
 
 translateObjectives <- function(model, namespace) {
 	flatModel <- omxFlattenModel(model, namespace)
-	flatObjective <- flatModel@objectives[[omxIdentifier(model@name, 'objective')]]
-	model <- omxObjModelConvert(flatObjective, flatModel, model)
+	return(translateObjectivesHelper(model, model, flatModel))
+}
+
+translateObjectivesHelper <- function(job, model, flatJob) {
+	flatObjective <- flatJob@objectives[[omxIdentifier(model@name, 'objective')]]
+	job <- omxObjModelConvert(flatObjective, job, model, flatJob)
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			submodel <- model@submodels[[i]]
 			if (submodel@independent == FALSE) {
-				model@submodels[[i]] <- translateObjectives(submodel, namespace)
+				job <- translateObjectivesHelper(job, submodel, flatJob)
 			}
 		}
 	}
-	return(model)
+	return(job)
 }

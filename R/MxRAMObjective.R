@@ -92,18 +92,18 @@ fMatrixTranslateNames <- function(fMatrix, modelName) {
 }
 
 setMethod("omxObjModelConvert", "MxRAMObjective",
-	function(.Object, flatModel, model) {
+	function(.Object, job, model, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}		
-		if (flatModel@datasets[[.Object@data]]@type != 'raw' || 
+		if (flatJob@datasets[[.Object@data]]@type != 'raw' || 
 			is.na(.Object@M)) {
-			return(model)
+			return(job)
 		}
-		dims <- dimnames(flatModel[[.Object@F]])
+		dims <- dimnames(flatJob[[.Object@F]])
 		if (is.null(dims) || is.null(dims[[2]])) {
 			msg <- paste("The F matrix in model",
 				omxQuotes(model@name),
@@ -116,7 +116,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 			iName <- omxUntitledName()
 		}
 		model <- mxModel(model, mxMatrix(type="Iden", 
-			nrow=nrow(flatModel[[.Object@A]]), name = iName))
+			nrow=nrow(flatJob[[.Object@A]]), name = iName))
 		if (is.null(model[['Z']])) {
 			zName <- 'Z'
 		} else {
@@ -137,7 +137,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 				S = as.symbol(.Object@S)))
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = covFormula, y = covName)))
-		translatedNames <- fMatrixTranslateNames(flatModel[[.Object@F]]@values, model@name)
+		translatedNames <- fMatrixTranslateNames(flatJob[[.Object@F]]@values, model@name)
 		dimnames(algebra) <- list(translatedNames, translatedNames)
 		model <- mxModel(model, algebra)
 		meansFormula <- substitute(t(F %*% Z %*% t(M)),
@@ -155,7 +155,8 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
 			list(x = covName, y = meansName, z = .Object@thresholds)))
 		model@objective <- objective
-		return(model)
+		job[[model@name]] <- model
+		return(job)
 	}
 )
 

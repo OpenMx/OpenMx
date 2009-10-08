@@ -427,7 +427,9 @@ namespaceConvertData <- function(data, modelname) {
 
 namespaceSearch <- function(model, namespace, name, flat = FALSE) {
 	if (namespace == model@name) {
-		if (name %in% names(omxReservedNames) && 
+		if (name == model@name) {
+			return(model)
+		} else if (name %in% names(omxReservedNames) && 
 			!is.null(omxReservedNames[[name]]@search)) {
 			return(omxReservedNames[[name]]@search(model))
 		}
@@ -474,7 +476,9 @@ namespaceSearch <- function(model, namespace, name, flat = FALSE) {
 
 namespaceSearchReplace <- function(model, namespace, name, value) {
 	if (namespace == model@name) {
-		if (name %in% names(omxReservedNames) && 
+		if (name == model@name) {
+			return(value)
+		} else if (name %in% names(omxReservedNames) && 
 			!is.null(omxReservedNames[[name]]@replace)) {
 			return(omxReservedNames[[name]]@replace(model, value))
 		}
