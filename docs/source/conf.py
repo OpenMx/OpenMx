@@ -60,7 +60,7 @@ release = '0.2.0-905'
 #today_fmt = '%B %d, %Y'
 
 # List of documents that shouldn't be included in the build.
-unused_docs = ['DefinitionMeans_Matrix', 'DefinitionMeans_Path', 'FactorAnalysis_Matrix', 'FactorAnalysis_Path', 'GeneticEpi_Matrix', 'GeneticEpi_Path', 'MeansCovariances', 'MultipleGroups_Matrix', 'MultipleGroups_Path', 'OpenMxTutorial', 'Regression_Matrix', 'Regression_Path', 'TimeSeries_Matrix', 'TimeSeries_Path']
+unused_docs = []
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.

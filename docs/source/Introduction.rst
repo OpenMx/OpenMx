@@ -5,6 +5,13 @@
 Introduction
 ************
 
-.. include:: OpenMxTutorial.rst
+.. toctree::
+   :hidden:
 
-.. include:: MeansCovariances.rst
+   BeginnersGuide
+   QuickOverview
+   TwoModelStylesTwoDataStyles
+
+.. include:: BeginnersGuide.rst
+.. include:: QuickOverview.rst
+.. include:: TwoModelStylesTwoDataStyles.rst

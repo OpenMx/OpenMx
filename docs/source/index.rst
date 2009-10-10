@@ -11,9 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 3
 
-   Introduction
-
-   BeginnersGuide
+   Introduction 
 
    Examples_Path
 
