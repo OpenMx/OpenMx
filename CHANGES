@@ -1,8 +1,8 @@
 trunk
-====
+=====
 
-0.2.1-922
-=========
+Release 0.2.1-922
+=================
 * checked observed data for dimnames on ML objective functions
 * using dimnames= argument to mxMLObjective() and mxFIMLObjective()
   propagates to MxMatrix objects on output.
