@@ -18,8 +18,10 @@ ACE Model: a Twin Analysis
 A twin analysis is a typical example of multiple groups, in this case MZ twins and DZ twins, with different expectations for the covariance structure (and possibly means).  We illustrate the model here with the corresponding two path diagrams:
 
 .. image:: graph/TwinACEModelMZ.png
+    :height: 2.5in
     
 .. image:: graph/TwinACEModelDZ.png
+    :height: 2.5in
 
 
 Data

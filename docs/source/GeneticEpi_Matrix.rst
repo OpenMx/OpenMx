@@ -43,9 +43,10 @@ Model Specification
 There are a variety of ways to set up the ACE model.  The most commonly used approach in Mx is to specify three matrices for each of the three sources of variance.  The matrix **X** represents the additive genetic path *a*, the **Y** matrix is used for the shared environmental path *c* and the matrix **Z** for the unique environmental path *e*.  The expected variances and covariances between member of twin pairs are typically expressed in variance components (or the square of the path coefficients, i.e. :math:`a^2`, :math:`c^2` and :math:`e^2`).  These quantities can be calculated using matrix algebra, by multiplying the **X** matrix by its transpose **t(X)**.  Note that the transpose is not strictly needed in the univariate case, but will allow easier transition to the multivariate case.  We then use matrix algebra again to add the relevant matrices corresponding to the expectations for each of the statistics of the observed covariance matrix.  The R functions 'cbind' and 'rbind' are used to concatenate the resulting matrices in the appropriate way.  The expectations can be derived from the path diagrams for MZ and DZ twins.
 
 .. image:: graph/TwinACEModelMZ.png
+    :height: 2.5in
     
 .. image:: graph/TwinACEModelDZ.png
-
+    :height: 2.5in
 
 Let's go through each of the matrices step by step.  They will all form arguments of the ``mxModel``, specified as follows.  Note that we left the comma's at the end of the lines which are necessary when all the arguments are combined prior to running the model.  Each line can be pasted into R, and then evaluated together once the whole model is specified.
 

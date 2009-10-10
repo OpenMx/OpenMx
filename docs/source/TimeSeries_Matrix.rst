@@ -24,7 +24,7 @@ The latent growth curve model is a variation of the factor model for repeated me
    \end{eqnarray*}
 
 .. image:: graph/GrowthCurveModel.png
-
+    :height: 2.5in
 
 The values and specification of the :math:`\lambda` parameters allow for alterations to the growth curve model. This example will utilize a linear growth curve model, so we will specify :math:`\lambda` to increase linearly with time. If the observations occur at regular intervals in time, then :math:`\lambda` can be specified with any values increasing at a constant rate. For this example, we'll use [0, 1, 2, 3, 4] so that the intercept represents scores at the first measurement occasion, and the slope represents the rate of change per measurement occasion. Any linear transformation of these values can be used for linear growth curve models.
 

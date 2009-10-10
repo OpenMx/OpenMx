@@ -27,7 +27,7 @@ The path diagram of the heterogeneity model for a set of variables :math:`x` and
 ..   \end{eqnarray*}
 
 .. image:: graph/HeterogeneityModel.png
-  
+    :height: 2.5in  
 
 Data
 ^^^^
