@@ -20,13 +20,14 @@ TwoFactorModel_PathRaw	Two factor model using path-centric specification and raw
 TwoFactorModel_PathCov	Two factor model using path-centric specification and covariance data
 TwoFactorModel_MatrixRaw	Two factor model using matrix (RAM) specification and raw data
 TwoFactorModel_MatrixCov	Two factor model using matrix (RAM) specification and covariance data
-LGC_PathRaw	Latent growth curve model using path-centric specification and raw data
-LGC_MatrixRaw	Latent growth curve model using matrix (RAM) specification and raw data
+LatentGrowthCurveModel_PathRaw	Latent growth curve model using path-centric specification and raw data
+LatentGrowthCurveModel_MatrixRaw	Latent growth curve model using matrix (RAM) specification and raw data
 UnivariateSaturated_PathCov	Univariate saturated model using path-centric specification and covariance data
 UnivariateSaturated_PathRaw	Univariate saturated model using path-centric specification and raw data
 UnivariateSaturated_MatrixCov	Univariate saturated model using matrix specification and covariance data
 UnivariateSaturated_MatrixRaw	Univariate saturated model using matrix specification and raw data
 UnivariateSaturated	Univariate saturated model using path-centric/matrix specification and covariance/raw data
+UnivariateTwinAnalysis From fitting saturated models to testing model assumptions to fitting the ACE model and a submodel
 BivariateSaturated_PathCov	Bivariate saturated model using path-centric specification and covariance data
 BivariateSaturated_PathRaw	Bivariate saturated model using path-centric specification and raw data
 BivariateSaturated_MatrixCov	Bivariate saturated model using matrix specification and covariance data
@@ -41,6 +42,5 @@ DefinitionMeans_PathRaw	Definition variable model for mean differences using pat
 DefinitionMeans_MatrixRaw	Definition variable model for mean differences using matrix specification and raw data
 UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specification and raw data
 UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
-TwinAnalysis_Multivariate_Matrix_Raw	Multivariate ACE model using matrix specification and raw data
-Twin_independent_path_general_factor	Multivariate twin model for independent general factor
-NTF_design              Nuclear twin family ACE model
+MatrixAlgebra	Basic matrix algebra operations
+OneFactorModelDemo	One factor matrix model demo from front page of website

@@ -4,6 +4,7 @@ trunk
 * using dimnames= argument to mxMLObjective() and mxFIMLObjective()
   propagates to MxMatrix objects on output.
 * bug fix for error message where model name is incorrect
+* updated user guide in response to feedback from beta testers
 
 Release 0.2.0-905
 =================

@@ -86,7 +86,7 @@ setMethod("omxObjModelConvert", "MxMLObjective",
 				omxQuotes(model@name))
 			stop(msg, call. = FALSE)
 		}
-		job <- updateObjectiveDimnames(.Object, job, model@name)
+		job <- updateObjectiveDimnames(.Object, job, model@name, "ML")
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
 			return(job)
 		}

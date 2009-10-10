@@ -91,12 +91,12 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 
 setMethod("omxObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, flatJob) {
-		job <- updateObjectiveDimnames(.Object, job, model@name)
+		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
 		return(job)
 	}
 )
 
-updateObjectiveDimnames <- function(flatObjective, job, modelname) {
+updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName) {
 	covName <- flatObjective@covariance
 	meansName <- flatObjective@means
 	if (is.na(meansName)) {

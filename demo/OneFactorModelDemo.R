@@ -3,7 +3,7 @@
 #  Author: Steve Boker
 #    Date: 08 01 2009 
 #
-# OpenMx one factor matrix model demo for front page of website
+# OpenMx one factor matrix model demo from front page of website
 # 
 # Revision History
 #   Hermine Maes -- 10 08 2009 updated & reformatted
