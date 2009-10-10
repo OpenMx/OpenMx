@@ -1,4 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: OneFactorModel_MatrixCov.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# One Factor model to estimate factor loadings, residual variances and means
+# Matrix style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
+
+#Prepare Data
+# -----------------------------------------------------------------------
 myFADataCov<-matrix(
 	c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677,
 	  0.642, 1.025, 0.608, 0.668, 0.643, 0.676,
@@ -10,88 +25,110 @@ myFADataCov<-matrix(
 	dimnames=list(
 		c("x1","x2","x3","x4","x5","x6"),
 		c("x1","x2","x3","x4","x5","x6"))
-	)
+)
 
 myFADataMeans<-c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010)
 
-oneFactorModel<-mxModel("Common Factor Model - Matrix Specification", 
-      mxData(myFADataCov, type="cov", mean=myFADataMeans, numObs=500),
-      mxMatrix("Full", nrow=7, ncol=7,
-            values=c(0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,0),
-            free=c(F, F, F, F, F, F, F,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, F),
-            labels=c(NA,NA,NA,NA,NA,NA,"l1",
-                     NA,NA,NA,NA,NA,NA,"l2",
-                     NA,NA,NA,NA,NA,NA,"l3",
-                     NA,NA,NA,NA,NA,NA,"l4",
-                     NA,NA,NA,NA,NA,NA,"l5",
-                     NA,NA,NA,NA,NA,NA,"l6",
-                     NA,NA,NA,NA,NA,NA,NA),
-            byrow=TRUE,
-            name="A"),
-      mxMatrix("Symm", nrow=7, ncol=7, 
-            values=c(1,0,0,0,0,0,0,
-                     0,1,0,0,0,0,0,
-                     0,0,1,0,0,0,0,
-                     0,0,0,1,0,0,0,
-                     0,0,0,0,1,0,0,
-                     0,0,0,0,0,1,0,
-                     0,0,0,0,0,0,1),
-            free=c(T, F, F, F, F, F, F,
-                   F, T, F, F, F, F, F,
-                   F, F, T, F, F, F, F,
-                   F, F, F, T, F, F, F,
-                   F, F, F, F, T, F, F,
-                   F, F, F, F, F, T, F,
-                   F, F, F, F, F, F, T),
-            labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
-                     NA, "e2",   NA,   NA,   NA,   NA,   NA,
-                     NA,   NA, "e3",   NA,   NA,   NA,   NA,
-                     NA,   NA,   NA, "e4",   NA,   NA,   NA,
-                     NA,   NA,   NA,   NA, "e5",   NA,   NA,
-                     NA,   NA,   NA,   NA,   NA, "e6",   NA,
-                     NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
-            byrow=TRUE,
-            name="S"),
-      mxMatrix("Full",  nrow=6, ncol=7,
-            free=FALSE,
-            values=c(1,0,0,0,0,0,0,
-                     0,1,0,0,0,0,0,
-                     0,0,1,0,0,0,0,
-                     0,0,0,1,0,0,0,
-                     0,0,0,0,1,0,0,
-                     0,0,0,0,0,1,0),
-            byrow=TRUE,
-            #dimnames=list(
-            #	c("x1","x2","x3","x4","x5","x6"),
-            #	c("x1","x2","x3","x4","x5","x6",NA)),
-            name="F"),
-      mxMatrix("Full", nrow=1, ncol=7,
-            values=c(1,1,1,1,1,1,0),
-            free=c(T,T,T,T,T,T,F),
-            labels=c("meanx1","meanx2","meanx3",
-                     "meanx4","meanx5","meanx6",
-                     NA),
-            #dimnames=list(
-            #	NULL,
-            #	c("x1","x2","x3","x4","x5","x6",NA)),
-            name="M"),
-      mxRAMObjective("A","S","F","M")
-      )
-      
-oneFactorFit<-mxRun(oneFactorModel)
+#Create an MxModel object
+# -----------------------------------------------------------------------
+oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification", 
+	mxData(
+		observed=myFADataCov, 
+		type="cov", 
+		numObs=500,
+		mean=myFADataMeans
+	),
+	mxMatrix(
+		type="Full", 
+		nrow=7, 
+		ncol=7,
+		values=c(0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,1,
+		         0,0,0,0,0,0,0),
+		free=c(F, F, F, F, F, F, F,
+		       F, F, F, F, F, F, T,
+		       F, F, F, F, F, F, T,
+		       F, F, F, F, F, F, T,
+		       F, F, F, F, F, F, T,
+		       F, F, F, F, F, F, T,
+		       F, F, F, F, F, F, F),
+		labels=c(NA,NA,NA,NA,NA,NA,"l1",
+		         NA,NA,NA,NA,NA,NA,"l2",
+		         NA,NA,NA,NA,NA,NA,"l3",
+		         NA,NA,NA,NA,NA,NA,"l4",
+		         NA,NA,NA,NA,NA,NA,"l5",
+		         NA,NA,NA,NA,NA,NA,"l6",
+		         NA,NA,NA,NA,NA,NA,NA),
+		byrow=TRUE,
+		name="A"
+	),
+	mxMatrix(
+		type="Symm", 
+		nrow=7, 
+		ncol=7, 
+		values=c(1,0,0,0,0,0,0,
+		         0,1,0,0,0,0,0,
+		         0,0,1,0,0,0,0,
+		         0,0,0,1,0,0,0,
+		         0,0,0,0,1,0,0,
+		         0,0,0,0,0,1,0,
+		         0,0,0,0,0,0,1),
+		free=c(T, F, F, F, F, F, F,
+		       F, T, F, F, F, F, F,
+		       F, F, T, F, F, F, F,
+		       F, F, F, T, F, F, F,
+		       F, F, F, F, T, F, F,
+		       F, F, F, F, F, T, F,
+		       F, F, F, F, F, F, T),
+		labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
+		         NA, "e2",   NA,   NA,   NA,   NA,   NA,
+		         NA,   NA, "e3",   NA,   NA,   NA,   NA,
+		         NA,   NA,   NA, "e4",   NA,   NA,   NA,
+		         NA,   NA,   NA,   NA, "e5",   NA,   NA,
+		         NA,   NA,   NA,   NA,   NA, "e6",   NA,
+		         NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
+		byrow=TRUE,
+		name="S"
+	),
+	mxMatrix(
+		type="Full", 
+		nrow=6, 
+		ncol=7,
+		free=FALSE,
+		values=c(1,0,0,0,0,0,0,
+		         0,1,0,0,0,0,0,
+		         0,0,1,0,0,0,0,
+		         0,0,0,1,0,0,0,
+		         0,0,0,0,1,0,0,
+		         0,0,0,0,0,1,0),
+		byrow=TRUE,
+		name="F"
+	),
+	mxMatrix(
+		type="Full", 
+		nrow=1, 
+		ncol=7,
+		values=c(1,1,1,1,1,1,0),
+		free=c(T,T,T,T,T,T,F),
+		labels=c("meanx1","meanx2","meanx3",
+		         "meanx4","meanx5","meanx6",
+		         NA),
+		name="M"
+	),
+	mxRAMObjective("A","S","F","M")
+)
+     
+oneFactorFit <- mxRun(oneFactorModel)
 
+summary(oneFactorFit)
+oneFactorFit@output$estimate
+
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l2"]], 0.999, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l3"]], 0.959, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l4"]], 1.028, 0.01)

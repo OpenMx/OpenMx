@@ -1,6 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: BivariateHeterogeneity_PathRaw.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Bivariate Heterogeneity model to test differences in means and variances across multiple groups
+# Path style model input - Raw data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 require(MASS)
 #group 1
 set.seed(200)
@@ -12,7 +25,7 @@ rs=.4
 xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 
 #Print Descriptive Statistics
-selVars <- c('X','Y')
+selVars <- c("X","Y")
 summary(xy1)
 cov(xy1)
 dimnames(xy1) <- list(NULL, selVars)
@@ -21,11 +34,12 @@ cov(xy2)
 dimnames(xy2) <- list(NULL, selVars)
 
 #Fit Heterogeneity Model
-bivHetModel <- mxModel("bivHet",
+# -----------------------------------------------------------------------
+bivHetModel <- mxModel("bivariate Heterogeneity -- Path Specification",
     mxModel("group1",
         manifestVars= selVars,
         mxPath(
-            from=c("X", "Y"), 
+            from=selVars, 
             arrows=2, 
             free=T, 
             values=1, 
@@ -43,7 +57,7 @@ bivHetModel <- mxModel("bivHet",
         ),
         mxPath(
             from="one", 
-            to=c("X", "Y"), 
+            to=selVars, 
             arrows=1, 
             free=T, 
             values=0, 
@@ -58,7 +72,7 @@ bivHetModel <- mxModel("bivHet",
     mxModel("group2",
         manifestVars= selVars,
         mxPath(
-            from=c("X", "Y"), 
+            from=selVars, 
             arrows=2, 
             free=T, 
             values=1, 
@@ -76,7 +90,7 @@ bivHetModel <- mxModel("bivHet",
         ),
         mxPath(
             from="one", 
-            to=c("X", "Y"), 
+            to=selVars, 
             arrows=1, 
             free=T, 
             values=0, 
@@ -89,11 +103,12 @@ bivHetModel <- mxModel("bivHet",
         type="RAM"
         ),
     mxAlgebra(
-            group1.objective + group2.objective, 
-            name="h12"
-        ),
+        group1.objective + group2.objective, 
+        name="h12"
+    ),
     mxAlgebraObjective("h12")
-    )
+)
+
 bivHetFit <- mxRun(bivHetModel)
     EM1Het <- mxEval(group1.means, bivHetFit)
     EM2Het <- mxEval(group2.means, bivHetFit)
@@ -102,6 +117,7 @@ bivHetFit <- mxRun(bivHetModel)
     LLHet <- mxEval(objective, bivHetFit)
 
 #Fit Homnogeneity Model
+# -----------------------------------------------------------------------
 bivHomModel <- bivHetModel
     bivHomModel[['group2.S']]@labels <- bivHomModel[['group1.S']]@labels
     bivHomModel[['group2.M']]@labels <- bivHomModel[['group1.M']]@labels
@@ -118,6 +134,7 @@ bivHomFit <- mxRun(bivHomModel)
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #1: Heterogeneity Model
 Mx.EM1Het <- matrix(c(0.03211284, -0.004889846),1,2)
 Mx.EC1Het <- matrix(c(1.0092856, 0.4813512, 0.4813512, 0.9935414),2,2)
@@ -134,6 +151,7 @@ Mx.LLHom <- 10954.368
 
 
 #OpenMx summary
+# -----------------------------------------------------------------------
 cov <- rbind(cbind(EC1Het,EC2Het),cbind(EC1Hom,EC2Hom))
 mean <- rbind(cbind(EM1Het, EM2Het),cbind(EM1Hom,EM2Hom))
 like <- rbind(cbind(LLHet),cbind(LLHom))
@@ -146,7 +164,9 @@ Mx.like <- rbind(cbind(Mx.LLHet),cbind(Mx.LLHom))
 Mx.cov; Mx.mean; Mx.like
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 omxCheckCloseEnough(LLHet,Mx.LLHet,.001)
 omxCheckCloseEnough(EC1Het,Mx.EC1Het,.001)
 omxCheckCloseEnough(EM1Het,Mx.EM1Het,.001)
@@ -158,4 +178,3 @@ omxCheckCloseEnough(EC1Hom,Mx.EC1Hom,.001)
 omxCheckCloseEnough(EM1Hom,Mx.EM1Hom,.001)
 omxCheckCloseEnough(EC2Hom,Mx.EC2Hom,.001)
 omxCheckCloseEnough(EM2Hom,Mx.EM2Hom,.001)
-

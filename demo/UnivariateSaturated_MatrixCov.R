@@ -1,6 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: UnivariateSaturated_MatrixCov.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Univariate Saturated model to estimate means and variances
+# Matrix style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 set.seed(100)
 x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x)
@@ -11,6 +24,7 @@ mean(testData)
 var(testData)
 
 #example 3: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------
 univSatModel3 <- mxModel("univSat3",
     mxMatrix(
         type="Symm", 
@@ -29,7 +43,8 @@ univSatModel3 <- mxModel("univSat3",
         covariance="expCov",
         dimnames=selVars
     )
-    )
+)
+
 univSatFit3 <- mxRun(univSatModel3)
 EC3 <- mxEval(expCov, univSatFit3)
 LL3 <- mxEval(objective, univSatFit3)
@@ -37,6 +52,7 @@ SL3 <- univSatFit3@output$SaturatedLikelihood
 Chi3 <- LL3-SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------
 univSatModel3m <- mxModel("univSat3m",
     mxMatrix(
         type="Symm", 
@@ -65,7 +81,8 @@ univSatModel3m <- mxModel("univSat3m",
         means="expMean",
         dimnames=selVars
     )
-    )
+)
+
 univSatFit3m <- mxRun(univSatModel3m)
 EM3m <- mxEval(expMean, univSatFit3m)
 EC3m <- mxEval(expCov, univSatFit3m)
@@ -75,6 +92,7 @@ Chi3m <- LL3m-SL3m
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <-  1.062112
 Mx.LL1 <- -1.474434e-17
@@ -85,7 +103,9 @@ Mx.EC1m <- 1.062112
 Mx.LL1m <- -1.108815e-13
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 ##3:CovMat
 omxCheckCloseEnough(Chi3,Mx.LL1,.001)
 omxCheckCloseEnough(EC3,Mx.EC1,.001)

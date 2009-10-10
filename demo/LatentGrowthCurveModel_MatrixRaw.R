@@ -1,10 +1,28 @@
+# -----------------------------------------------------------------------
+# Program: LatentGrowthModel_MatrixRaw.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# Latent Growth model to estimate means and (co)variances of slope and intercept
+# Matrix style model input - Raw data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
+#Prepare Data
+# -----------------------------------------------------------------------
 data(myLongitudinalData)
 
-growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification", 
-    mxData(myLongitudinalData, 
-        type="raw"),
+#Create an MxModel object
+# -----------------------------------------------------------------------
+growthCurveModel <- mxModel("Linear Growth Curve Model -- Matrix Specification", 
+    mxData(
+    	observed=myLongitudinalData, 
+        type="raw"
+    ),
     mxMatrix(
         type="Full",
         nrow=7, 
@@ -18,7 +36,8 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
                  0,0,0,0,0,0,0,
                  0,0,0,0,0,0,0),
         byrow=TRUE,
-        name="A"),
+        name="A"
+    ),
     mxMatrix(
         type="Symm",
         nrow=7,
@@ -45,7 +64,8 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
                  NA, NA, NA, NA, NA, "vari", "cov",
                  NA, NA, NA, NA, NA, "cov", "vars"),
         byrow= TRUE,
-        name="S"),
+        name="S"
+    ),
     mxMatrix(
         type="Full",
         nrow=5,
@@ -56,19 +76,28 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
                  0,0,1,0,0,0,0,
                  0,0,0,1,0,0,0,
                  0,0,0,0,1,0,0),
-        dimnames=list(c("x1","x2","x3","x4","x5"), c("x1","x2","x3","x4","x5","int","slope")),
         byrow=T,
-        name="F"),
-    mxMatrix("Full",  nrow=1, ncol=7,
+        name="F"
+    ),
+    mxMatrix(
+    	type="Full",
+    	nrow=1, 
+    	ncol=7,
         values=c(0,0,0,0,0,1,1),
         free=c(F,F,F,F,F,T,T),
         labels=c(NA,NA,NA,NA,NA,"meani","means"),
-        name="M"),
+        name="M"
+    ),
     mxRAMObjective("A","S","F","M")
-    )
+)
       
 growthCurveFit<-mxRun(growthCurveModel)
 
+summary(growthCurveFit)
+growthCurveFit@output$estimate
+
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
 omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["means"]], 1.813, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["vari"]], 3.878, 0.01)

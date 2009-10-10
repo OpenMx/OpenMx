@@ -1,5 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: TwoFactorModel_PathCov.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# Two Factor model to estimate factor loadings, residual variances and means
+# Path style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
+#Prepare Data
+# -----------------------------------------------------------------------
 myFADataCov <- matrix(
       c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
         0.642, 1.025, 0.608, 0.668, 0.643, 0.676, 0.273, 0.282, 0.287,
@@ -14,32 +28,46 @@ myFADataCov <- matrix(
       dimnames=list(
           c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
           c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
-      )
+)
 
-twoFactorCov <- myFADataCov[c("x1", "x2", "x3", "y1", "y2", "y3"),c("x1", "x2", "x3", "y1", "y2", "y3")]
+twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
   
 myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
   
 twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
 
+#Create an MxModel object
+# -----------------------------------------------------------------------
 twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
-    mxData(twoFactorCov, type="cov", numObs=500, means=twoFactorMeans),
+    mxData(
+    	observed=twoFactorCov, 
+    	type="cov", 
+    	numObs=500, 
+    	means=twoFactorMeans
+    ),
     manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
     latentVars=c("F1","F2"),
     # residual variances
-    mxPath(from=c("x1", "x2", "x3", "y1", "y2", "y3"),
-        arrows=2, free=TRUE, values=1,
+    mxPath(
+    	from=c("x1", "x2", "x3", "y1", "y2", "y3"),
+        arrows=2, 
+        free=TRUE, 
+        values=1,
         labels=c("e1","e2","e3","e4","e5","e6")
     ),
     # latent variances and covaraince
-    mxPath(from=c("F1","F2"),
-        arrows=2,all=TRUE, free=TRUE,
+    mxPath(
+    	from=c("F1","F2"),
+        arrows=2,
+        all=TRUE, 
+        free=TRUE,
         values=c(1, .5,
                 .5, 1),
         labels=c("varF1", "cov", "cov", "varF2")
     ), 
     # factor loadings for x variables
-    mxPath(from="F1",
+    mxPath(
+    	from="F1",
         to=c("x1","x2","x3"),
         arrows=1,
         free=c(FALSE,TRUE,TRUE),
@@ -47,7 +75,8 @@ twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
         labels=c("l1","l2","l3")
     ),
     # factor loadings for y variables
-    mxPath(from="F2",
+    mxPath(
+    	from="F2",
         to=c("y1","y2","y3"),
         arrows=1,
         free=c(FALSE,TRUE,TRUE),
@@ -55,20 +84,23 @@ twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
         labels=c("l4","l5","l6")
     ),
     # means
-    mxPath(from="one",
+    mxPath(
+    	from="one",
         to=c("x1","x2","x3","y1","y2","y3","F1","F2"),
         arrows=1,
         free=c(T ,T, T, T, T, T, F, F),
         values=c(1,1,1,1,1,1,0,0),
-        labels=c("meanx1","meanx2","meanx3",
-                 "meany1","meany2","meany3",
-                  NA,NA)
-    ) # means
+        labels=c("meanx1","meanx2","meanx3","meany1","meany2","meany3",NA,NA)
+    )
 ) # close model
       
 twoFactorFit <- mxRun(twoFactorModel)
+
 summary(twoFactorFit)
-# Old Mx Values
+twoFactorFit@output$estimate
+
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.9720, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.9310, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l5"]], 1.0498, 0.01)
@@ -88,22 +120,3 @@ omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx3"]], 2.986, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany1"]], 2.955, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany2"]], 2.956, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany3"]], 2.967, 0.01)
-
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.999, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.959, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["l4"]], 1.028, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["l5"]], 1.008, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["l6"]], 1.021, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["varF1"]], 0.645, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e1"]], 0.350, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e2"]], 0.379, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e3"]], 0.389, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e4"]], 0.320, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e5"]], 0.370, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["e6"]], 0.346, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx1"]], 2.988, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx2"]], 3.011, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx3"]], 2.986, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx4"]], 3.053, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx5"]], 3.016, 0.01)
-# omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx6"]], 3.010, 0.01)

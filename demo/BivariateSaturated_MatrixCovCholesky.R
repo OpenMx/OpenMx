@@ -1,37 +1,44 @@
+# -----------------------------------------------------------------------
+# Program: BivariateSaturated_MatrixCovCholesky.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Bivariate Saturated model to estimate means and (co)variances 
+# using Cholesky Decomposition
+# Matrix style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 require(MASS)
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
-selVars <- c('X','Y')
+selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
 
 #example 5: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel5 <- mxModel("bivSat5",
     mxMatrix(
-        type="Full", 
+        type="Lower", 
         nrow=2, 
         ncol=2, 
-        free=c(T,T,F,T), 
-        values=c(1,.2,0,1), 
+        free=T, 
+        values=.5, 
         name="Chol"
     ),
     mxAlgebra(
-        Chol %*% t(Chol), 
+        expression=Chol %*% t(Chol), 
         name="expCov" 
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=T, 
-        values=c(0,0), 
-        name="expMean"
     ),
     mxData(
         observed=cov(testData), 
@@ -42,7 +49,8 @@ bivSatModel5 <- mxModel("bivSat5",
         covariance="expCov",
         dimnames=selVars
     )
-    )
+)
+
 bivSatFit5 <- mxRun(bivSatModel5)
 EC5 <- mxEval(expCov, bivSatFit5)
 LL5 <- mxEval(objective,bivSatFit5)
@@ -50,17 +58,18 @@ SL5 <- summary(bivSatFit5)$SaturatedLikelihood
 Chi5 <- LL5-SL5
 
 #example 5m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel5m <- mxModel("bivSat5m",
     mxMatrix(
-        type="Full", 
+        type="Lower", 
         nrow=2, 
         ncol=2, 
-        free=c(T,T,F,T), 
-        values=c(1,.2,0,1), 
+        free=T, 
+        values=.5, 
         name="Chol"
     ),
     mxAlgebra(
-        Chol %*% t(Chol), 
+        expression=Chol %*% t(Chol), 
         name="expCov" 
     ),
     mxMatrix(
@@ -82,7 +91,8 @@ bivSatModel5m <- mxModel("bivSat5m",
         means="expMean",
         dimnames=selVars
     )
-    )
+)
+
 bivSatFit5m <- mxRun(bivSatModel5m)
 EM5m <- mxEval(expMean, bivSatFit5m)
 EC5m <- mxEval(expCov, bivSatFit5m)
@@ -92,6 +102,7 @@ Chi5m <- LL5m-SL5m
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1 <- -2.258885e-13
@@ -102,7 +113,9 @@ Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1m <- -5.828112e-14
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 #5:CovMat Cholesky
 omxCheckCloseEnough(Chi5,Mx.LL1,.001)
 omxCheckCloseEnough(EC5,Mx.EC1,.001)

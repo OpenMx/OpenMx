@@ -1,4 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: SimpleRegression_MatrixCov.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# Simple Regression model to estimate effect of independent on dependent variables
+# Matrix style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
+
+#Prepare Data
+# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -10,13 +25,14 @@ myRegDataCov <- matrix(
         c("w","x","y","z"))
 )
  
-SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
- 
+SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	 
 myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 SimpleDataMeans <- myRegDataMeans[c(2,3)]
 	
-uniRegModel <- mxModel("Simple Regression - Matrix Specification", 
+#Create an MxModel object
+# -----------------------------------------------------------------------
+uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
     mxData(
       observed=SimpleDataCov, 
       type="cov", 
@@ -53,7 +69,6 @@ uniRegModel <- mxModel("Simple Regression - Matrix Specification",
         type="Iden",  
         nrow=2, 
         ncol=2,
-        dimnames=list(c("x","y"),c("x","y")),
         name="F"
     ),
     mxMatrix(
@@ -63,17 +78,17 @@ uniRegModel <- mxModel("Simple Regression - Matrix Specification",
         free=c(T, T),
         values=c(0, 0),
         labels=c("meanx", "beta0"),
-        dimnames=list(NULL, c("x","y")),
         name="M"),
     mxRAMObjective("A", "S", "F", "M")
 )
       
-      
 uniRegFit <- mxRun(uniRegModel)
 
+summary(uniRegFit)
 uniRegFit@output
 
-
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.54776, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.48312, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.672, 0.01)

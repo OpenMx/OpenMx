@@ -1,6 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: UnivariateSaturated_MatrixRaw.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Univariate Saturated model to estimate means and variances
+# Matrix style model input - Raw data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 set.seed(100)
 x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x)
@@ -11,6 +24,7 @@ mean(testData)
 var(testData)
 
 #examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------
 univSatModel4 <- mxModel("univSat4",
     mxMatrix(
         type="Symm", 
@@ -37,7 +51,8 @@ univSatModel4 <- mxModel("univSat4",
         means="expMean",
         dimnames=selVars
     )
-    )
+)
+
 univSatFit4 <- mxRun(univSatModel4)
 EM4 <- mxEval(expMean, univSatFit4)
 EC4 <- mxEval(expCov, univSatFit4)
@@ -45,13 +60,15 @@ LL4 <- mxEval(objective, univSatFit4);
 
 
 #Mx answers hard-coded
-#example Mx..1: Saturated Model with Raw Data
+v#example Mx..1: Saturated Model with Raw Data
 Mx.EM2 <- 0.01680516
 Mx.EC2 <- 1.061050
 Mx.LL2 <- 2897.135
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 #4:RawMat
 omxCheckCloseEnough(LL4,Mx.LL2,.001)
 omxCheckCloseEnough(EC4,Mx.EC2,.001)

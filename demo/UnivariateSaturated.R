@@ -1,6 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: UnivariateSaturated.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Univariate Saturated model to estimate means and variances
+# Two matrix styles - Two data styles
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 set.seed(100)
 x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x)
@@ -11,8 +24,9 @@ mean(testData)
 var(testData)
 
 #example 1: Saturated Model with Cov Matrices and Path-Style Input
+# -----------------------------------------------------------------------
 univSatModel1 <- mxModel("univSat1",
-    manifestVars= selVars,
+    manifestVars=selVars,
     mxPath(
         from=c("X"), 
         arrows=2, 
@@ -27,7 +41,7 @@ univSatModel1 <- mxModel("univSat1",
         numObs=1000 
     ),
     type="RAM"
-    )
+)
 univSatFit1 <- mxRun(univSatModel1)
 EC1 <- mxEval(S, univSatFit1)
 LL1 <- mxEval(objective, univSatFit1)
@@ -35,8 +49,9 @@ SL1 <- univSatFit1@output$SaturatedLikelihood
 Chi1 <- LL1-SL1
 
 #example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
+# -----------------------------------------------------------------------
 univSatModel1m <- mxModel("univSat1m",
-    manifestVars= selVars,
+    manifestVars=selVars,
     mxPath(
         from=c("X"), 
         arrows=2, 
@@ -60,7 +75,7 @@ univSatModel1m <- mxModel("univSat1m",
         means=mean(testData)
     ),
     type="RAM"
-    )
+)
 univSatFit1m <- mxRun(univSatModel1m)
 EM1m <- mxEval(M, univSatFit1m)
 EC1m <- mxEval(S, univSatFit1m)
@@ -69,6 +84,7 @@ SL1m <- univSatFit1m@output$SaturatedLikelihood
 Chi1m <- LL1m-SL1m
 
 #example 2: Saturated Model with Raw Data and Path input
+# -----------------------------------------------------------------------
 univSatModel2 <- mxModel("univSat2",
     manifestVars= selVars,
     mxPath(
@@ -84,13 +100,14 @@ univSatModel2 <- mxModel("univSat2",
         type="raw", 
     ),
     type="RAM"
-    )
+)
 univSatFit2 <- mxRun(univSatModel2)
 EM2 <- mxEval(M, univSatFit2)
 EC2 <- mxEval(S, univSatFit2)
 LL2 <- mxEval(objective,univSatFit2);
 
 #example 2s: Saturated Model with Raw Data and Path input built upon Cov/Means version
+# -----------------------------------------------------------------------
 univSatModel2s <- mxModel(univSatModel1,
     mxData(
         observed=testData, 
@@ -123,7 +140,7 @@ univSatModel3 <- mxModel("univSat3",
         covariance="expCov",
         dimnames=selVars
     )
-    )
+)
 univSatFit3 <- mxRun(univSatModel3)
 EC3 <- mxEval(expCov, univSatFit3)
 LL3 <- mxEval(objective, univSatFit3)
@@ -131,6 +148,7 @@ SL3 <- univSatFit3@output$SaturatedLikelihood
 Chi3 <- LL3-SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------
 univSatModel3m <- mxModel("univSat3m",
     mxMatrix(
         type="Symm", 
@@ -159,7 +177,7 @@ univSatModel3m <- mxModel("univSat3m",
         means="expMean",
         dimnames=selVars
     )
-    )
+)
 univSatFit3m <- mxRun(univSatModel3m)
 EM3m <- mxEval(expMean, univSatFit3m)
 EC3m <- mxEval(expCov, univSatFit3m)
@@ -168,6 +186,7 @@ SL3m <- univSatFit3m@output$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 
 #examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------
 univSatModel4 <- mxModel("univSat4",
     mxMatrix(
         type="Symm", 
@@ -194,7 +213,7 @@ univSatModel4 <- mxModel("univSat4",
         means="expMean",
         dimnames=selVars
     )
-    )
+)
 univSatFit4 <- mxRun(univSatModel4)
 EM4 <- mxEval(expMean, univSatFit4)
 EC4 <- mxEval(expCov, univSatFit4)
@@ -202,6 +221,7 @@ LL4 <- mxEval(objective, univSatFit4);
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <-  1.062112
 Mx.LL1 <- -1.474434e-17
@@ -217,6 +237,7 @@ Mx.LL2 <- 2897.135
 
 
 #OpenMx summary
+# -----------------------------------------------------------------------
 cov <- rbind(cbind(EC1,EC1m,EC2),cbind(EC3,EC3m,EC4))
 mean <- rbind(cbind(EM1m, EM2),cbind(EM3m,EM4))
 like <- rbind(cbind(LL1,LL1m,LL2),cbind(LL3,LL3m,LL4))
@@ -229,7 +250,9 @@ Mx.like <- cbind(Mx.LL1,Mx.LL1m,Mx.LL2)
 Mx.cov; Mx.mean; Mx.like
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 #1:CovPat
 omxCheckCloseEnough(Chi1,Mx.LL1,.001)
 omxCheckCloseEnough(EC1,Mx.EC1,.001)
@@ -256,4 +279,3 @@ omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
 omxCheckCloseEnough(LL4,Mx.LL2,.001)
 omxCheckCloseEnough(EC4,Mx.EC2,.001)
 omxCheckCloseEnough(EM4,Mx.EM2,.001)
-

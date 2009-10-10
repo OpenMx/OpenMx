@@ -1,5 +1,19 @@
+# -----------------------------------------------------------------------
+# Program: SimpleRegression_PathCov.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# Simple Regression model to estimate effect of independent on dependent variables
+# Path style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
+#Prepare Data
+# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -11,14 +25,15 @@ myRegDataCov <- matrix(
       c("w","x","y","z"))
 )
  
- myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
 SimpleDataMeans <- myRegDataMeans[c(2,3)]
 	
 myRegDataMeans<-c(0.05416, 2.57393)
 
-# Create an MxModel object
+#Create an MxModel object
+# -----------------------------------------------------------------------
  uniRegModel <- mxModel("Simple Regression -- Path Specification", 
     type="RAM",
     mxData(
@@ -59,11 +74,11 @@ myRegDataMeans<-c(0.05416, 2.57393)
       
 uniRegFit <- mxRun(uniRegModel)
 
-# commented out until the summary function is implemented
-# summary(uniRegFit)
-
+summary(uniRegFit)
 uniRegFit@output
 
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.54776, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.48312, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.672, 0.01)

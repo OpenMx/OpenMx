@@ -1,6 +1,20 @@
+# -----------------------------------------------------------------------
+# Program: BivariateSaturated.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Bivariate Saturated model to estimate means and (co)variances 
+# using Cholesky Decomposition
+# Two matrix styles - Two data styles
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 require(MASS)
 set.seed(200)
 rs=.5
@@ -12,6 +26,7 @@ summary(testData)
 cov(testData)
 
 #example 1: Saturated Model with Cov Matrices and Path-Style Input
+# -----------------------------------------------------------------------
 bivSatModel1 <- mxModel("bivSat1",
     manifestVars= selVars,
     mxPath(
@@ -45,6 +60,7 @@ SL1 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi1 <- LL1-SL1
 
 #example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
+# -----------------------------------------------------------------------
 bivSatModel1m <- mxModel("bivSat1m",
     manifestVars= selVars,
     mxPath(
@@ -88,6 +104,7 @@ SL1m <- summary(bivSatFit1m)$SaturatedLikelihood
 Chi1m <- LL1m-SL1m
 
 #example 2: Saturated Model with Raw Data and Path input
+# -----------------------------------------------------------------------
 bivSatModel2 <- mxModel("bivSat2",
     manifestVars= selVars,
     mxPath(
@@ -120,8 +137,8 @@ LL2 <- mxEval(objective, bivSatFit2)
 SL2 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi2 <- LL2-SL2
 
-
 #example 2s: Saturated Model with Raw Data and Path input built upon Cov/Means version
+# -----------------------------------------------------------------------
 bivSatModel2s <- mxModel(bivSatModel1,
     mxData(
         observed=testData, 
@@ -135,6 +152,7 @@ EC2s <- mxEval(S, bivSatFit2s)
 LL2s <- mxEval(objective, bivSatFit2s)
 
 #example 3: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel3 <- mxModel("bivSat3",
     mxMatrix(
         type="Symm", 
@@ -161,6 +179,7 @@ SL3 <- summary(bivSatFit3)$SaturatedLikelihood
 Chi3 <- LL3-SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel3m <- mxModel("bivSat3m",
     mxMatrix(
         type="Symm", 
@@ -198,6 +217,7 @@ SL3m <- summary(bivSatFit3m)$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 
 #examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel4 <- mxModel("bivSat4",
 mxMatrix(
     type="Symm", 
@@ -231,6 +251,7 @@ EC4 <- mxEval(expCov, bivSatFit4)
 LL4 <- mxEval(objective,bivSatFit4)
 
 #example 5: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel5 <- mxModel("bivSat5",
     mxMatrix(
         type="Full", 
@@ -270,6 +291,7 @@ SL5 <- summary(bivSatFit5)$SaturatedLikelihood
 Chi5 <- LL5-SL5
 
 #example 5m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel5m <- mxModel("bivSat5m",
     mxMatrix(
         type="Full", 
@@ -312,6 +334,7 @@ SL5m <- summary(bivSatFit5m)$SaturatedLikelihood
 Chi5m <- LL5m-SL5m
 
 #examples 6: Saturated Model with RawData and Matrix-Style Input
+# -----------------------------------------------------------------------
 bivSatModel6 <- mxModel("bivSat6",
     mxMatrix(
         type="Full", 
@@ -351,6 +374,7 @@ LL6 <- mxEval(objective,bivSatFit6)
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1 <- -2.258885e-13
@@ -367,6 +391,7 @@ Mx.LL2 <- 5415.772
 
 
 #OpenMx summary
+# -----------------------------------------------------------------------
 cov <- rbind(cbind(EC1,EC1m,EC2),cbind(EC3,EC3m,EC4))
 mean <- rbind(cbind(EM1m, EM2),cbind(EM3m,EM4))
 like <- rbind(cbind(LL1,LL1m,LL2),cbind(LL3,LL3m,LL4))
@@ -379,7 +404,9 @@ Mx.like <- cbind(Mx.LL1,Mx.LL1m,Mx.LL2)
 Mx.cov; Mx.mean; Mx.like
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 #1:CovPat
 omxCheckCloseEnough(Chi1,Mx.LL1,.001)
 omxCheckCloseEnough(EC1,Mx.EC1,.001)

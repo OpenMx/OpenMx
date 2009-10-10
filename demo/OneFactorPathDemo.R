@@ -1,27 +1,28 @@
-# ---------------------------------------------------------------------
-# Program: OneFactorPathDemo.R
+# -----------------------------------------------------------------------
+# Program: OneFactorPathDemo.R  
 #  Author: Steve Boker
-#    Date: Thu Jul 30 13:33:08 EDT 2009
+#    Date: 08 01 2009 
 #
-# This program is the OpenMx one factor path model demo for the front page
-#
-#
-# ---------------------------------------------------------------------
+# OpenMx one factor path model demo for front page of website
+# 
 # Revision History
-#    -- Thu Jul 30 13:33:11 EDT 2009
-#      Created OneFactorPathDemo.R.
-#
-# ---------------------------------------------------------------------
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
 
 require(OpenMx)
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
-factorModel <- mxModel("One Factor", type="RAM",
-    manifestVars = manifests, latentVars = latents,
+
+factorModel <- mxModel("One Factor", 
+    type="RAM",
+    manifestVars=manifests, 
+    latentVars=latents,
     mxPath(from=latents, to=manifests),
     mxPath(from=manifests, arrows=2),
     mxPath(from=latents, arrows=2, free=F, values=1.0),
     mxData(cov(demoOneFactor), type="cov", numObs=500))
+
 summary(mxRun(factorModel))
 

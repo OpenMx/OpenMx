@@ -1,13 +1,30 @@
+# -----------------------------------------------------------------------
+# Program: SimpleRegression_MatrixRaw.R  
+#  Author: Ryne Estabrook
+#    Date: 08 01 2009 
+#
+# Simple Regression model to estimate effect of independent on dependent variables
+# Matrix style model input - Raw data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
+#Prepare Data
+# -----------------------------------------------------------------------
 data(myRegDataRaw)
 
-SimpleDataRaw<-myRegDataRaw[,c("x","y")]
+SimpleDataRaw <- myRegDataRaw[,c("x","y")]
 
-uniRegModel<-mxModel("Simple Regression - Matrix Specification", 
+#Create an MxModel object
+# -----------------------------------------------------------------------
+uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
     mxData(
         observed=SimpleDataRaw,
-        type="raw"),
+        type="raw"
+    ),
     mxMatrix(
         type="Full", 
         nrow=2, 
@@ -38,7 +55,6 @@ uniRegModel<-mxModel("Simple Regression - Matrix Specification",
         type="Iden",  
         nrow=2, 
         ncol=2,
-        dimnames=list(c("x","y"),c("x","y")),
         name="F"
     ),
     mxMatrix(
@@ -48,24 +64,19 @@ uniRegModel<-mxModel("Simple Regression - Matrix Specification",
         free=c(T, T),
         values=c(0, 0),
         labels=c("meanx", "beta0"),
-        dimnames=list(NULL, c("x","y")),
         name="M"),
     mxRAMObjective("A", "S", "F", "M")
 )
       
-uniRegOutput<-mxRun(uniRegModel)
+uniRegFit<-mxRun(uniRegModel)
 
-uniRegOutput@output
+summary(uniRegFit)
+uniRegFit@output
 
-# Old Mx Output
-omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.5478, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.4831, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.6652, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.0542, 0.001)
-omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.1053, 0.001)
-
-# omxCheckCloseEnough(uniRegOutput@output$estimate[["beta0"]], 2.54776, 0.001)
-# omxCheckCloseEnough(uniRegOutput@output$estimate[["beta1"]], 0.48312, 0.001)
-# omxCheckCloseEnough(uniRegOutput@output$estimate[["residual"]], 0.672, 0.001)
-# omxCheckCloseEnough(uniRegOutput@output$estimate[["meanx"]], 0.05412, 0.001)
-# omxCheckCloseEnough(uniRegOutput@output$estimate[["varx"]], 1.11654, 0.001)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.5478, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.4831, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.6652, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.1053, 0.001)

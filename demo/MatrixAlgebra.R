@@ -1,13 +1,15 @@
-require(OpenMx)
-
 # -----------------------------------------------------------------------
-# Program: MatrixAlgebra20090924.R  
+# Program: MatrixAlgebra.R  
 #  Author: Hermine Maes
-#    Date: Wed Sep 24 11:45:52 EDT 2009
+#    Date: 08 01 2009 
+#
+# Matrix Algebra in OpenMx: Basic matrix algebra operations
 #
 # Revision History
-#   Hermine Maes -- Wed Sep 24 11:45:52 EDT 2009 MatrixAlgebra20090924.R
+#   Hermine Maes -- 10 08 2009 updated & reformatted
 # -----------------------------------------------------------------------
+
+require(OpenMx)
 
 # Specify Model Matrices and Algebra
 # -----------------------------------------------------------------------

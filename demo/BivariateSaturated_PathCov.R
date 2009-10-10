@@ -1,17 +1,31 @@
+# -----------------------------------------------------------------------
+# Program: BivariateSaturated_PathCov.R  
+#  Author: Hermine Maes
+#    Date: 08 01 2009 
+#
+# Bivariate Saturated model to estimate means and (co)variances
+# Path style model input - Covariance matrix data input
+#
+# Revision History
+#   Hermine Maes -- 10 08 2009 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
 #Simulate Data
+# -----------------------------------------------------------------------
 require(MASS)
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
-selVars <- c('X','Y')
+selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
 
 #example 1: Saturated Model with Cov Matrices and Path-Style Input
+# -----------------------------------------------------------------------
 bivSatModel1 <- mxModel("bivSat1",
     manifestVars= selVars,
     mxPath(
@@ -37,7 +51,8 @@ bivSatModel1 <- mxModel("bivSat1",
         numObs=1000 
     ),
     type="RAM"
-    )
+)
+
 bivSatFit1 <- mxRun(bivSatModel1)
 EC1 <- mxEval(S, bivSatFit1)
 LL1 <- mxEval(objective, bivSatFit1)
@@ -45,6 +60,7 @@ SL1 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi1 <- LL1-SL1
 
 #example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
+# -----------------------------------------------------------------------
 bivSatModel1m <- mxModel("bivSat1m",
     manifestVars= selVars,
     mxPath(
@@ -79,7 +95,8 @@ bivSatModel1m <- mxModel("bivSat1m",
         means=colMeans(testData)
     ),
     type="RAM"
-    )
+)
+
 bivSatFit1m <- mxRun(bivSatModel1m)
 EM1m <- mxEval(M, bivSatFit1m)
 EC1m <- mxEval(S, bivSatFit1m)
@@ -89,6 +106,7 @@ Chi1m <- LL1m-SL1m
 
 
 #Mx answers hard-coded
+# -----------------------------------------------------------------------
 #example Mx..1: Saturated Model with Cov Matrices
 Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1 <- -2.258885e-13
@@ -99,7 +117,9 @@ Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1m <- -5.828112e-14
 
 
-#Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
+#Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------
+# (LL: likelihood; EC: expected covariance, EM: expected means)
 #1:CovPat
 omxCheckCloseEnough(Chi1,Mx.LL1,.001)
 omxCheckCloseEnough(EC1,Mx.EC1,.001)
