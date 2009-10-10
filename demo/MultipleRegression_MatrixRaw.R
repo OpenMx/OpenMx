@@ -62,6 +62,7 @@ multiRegModel <- mxModel("Multiple Regression -- Matrix Specification",
     	nrow=3, 
     	ncol=3,
         name="F",
+        dimnames=list(c("x","y","z"),c("x","y","z"))
     ),
     mxMatrix(
     	type="Full", 

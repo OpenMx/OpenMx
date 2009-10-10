@@ -77,6 +77,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model -- Matrix Specification",
                  0,0,0,1,0,0,0,
                  0,0,0,0,1,0,0),
         byrow=T,
+        dimnames=list(NULL, c(names(myLongitudinalData), "intercept", "slope")),
         name="F"
     ),
     mxMatrix(

@@ -16,7 +16,10 @@ require(OpenMx)
 # -----------------------------------------------------------------------
 data(myFADataRaw)
 
-twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
+manifestVars <- c("x1","x2","x3","y1","y2","y3")
+latentVars <- c("F1","F2")
+
+twoFactorRaw <- myFADataRaw[,manifestVars]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
@@ -100,7 +103,8 @@ twoFactorModel <- mxModel("Two Factor Model -- Matrix Specification",
                  0,0,0,0,1,0,0,0,
                  0,0,0,0,0,1,0,0),
         byrow=T,
-        name="F"
+        name="F",
+        dimnames=list(manifestVars ,c(manifestVars, latentVars))
     ),
     mxMatrix(
     	type="Full", 

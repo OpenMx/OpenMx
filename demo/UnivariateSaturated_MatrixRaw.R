@@ -60,7 +60,7 @@ LL4 <- mxEval(objective, univSatFit4);
 
 
 #Mx answers hard-coded
-v#example Mx..1: Saturated Model with Raw Data
+#example Mx..1: Saturated Model with Raw Data
 Mx.EM2 <- 0.01680516
 Mx.EC2 <- 1.061050
 Mx.LL2 <- 2897.135

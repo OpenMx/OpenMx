@@ -55,7 +55,8 @@ uniRegModel <- mxModel("Simple Regression -- Matrix Specification",
         type="Iden",  
         nrow=2, 
         ncol=2,
-        name="F"
+        name="F",
+        dimnames=list(c("x","y"),c("x","y"))
     ),
     mxMatrix(
         type="Full", 

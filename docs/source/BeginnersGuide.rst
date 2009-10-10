@@ -44,7 +44,7 @@ Path Model Specification
 Below is a figure of a one factor model with five indicators.  The script reads data from disk, creates the one factor model, fits the model to the observed covariances, and prints a summary of the results.  Let's break down what is happening in each section of this example.
 
 .. image:: graph/OneFactorFiveIndicators.png
-    :height: 200
+    :height: 2in
 
 .. code-block:: r
     :linenos:

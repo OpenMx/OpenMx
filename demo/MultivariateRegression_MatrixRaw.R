@@ -65,7 +65,8 @@ multivariateRegModel <- mxModel("Multiple Regression -- Matrix Specification",
     	type="Iden",
     	nrow=4, 
     	ncol=4,
-        name="F"
+        name="F",
+        dimnames=list(c("w", "x", "y", "z"),c("w", "x", "y", "z"))
     ),
     mxMatrix(
     	type="Full", 

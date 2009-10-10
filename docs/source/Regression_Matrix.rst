@@ -415,7 +415,7 @@ The structural modeling approach allows for the inclusion of not only multiple i
    \end{eqnarray*}
 
 .. image:: graph/MultivariateRegression.png
-    :height: 280
+    :height: 2.5in
 
 We now have twice as many regression parameters, a second residual variance, and the same means, variances and covariances of our independent variables. As with all of our other examples, this is a fully saturated model.
 

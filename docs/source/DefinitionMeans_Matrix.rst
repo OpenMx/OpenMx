@@ -33,6 +33,7 @@ where :math:`def` is the definition variable and the residual sources of varianc
 Our task is to implement the model shown in the figure below:
 
 .. image:: graph/DefinitionMeansModel.png
+    :height: 2in
 
 
 Data Simulation
