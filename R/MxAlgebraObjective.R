@@ -34,11 +34,13 @@ setMethod("omxObjFunConvert", signature("MxAlgebraObjective"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		algebra <- .Object@algebra
-		algebraIndex <- omxLocateIndex(flatModel, algebra, name)
-		if (is.na(algebraIndex)) {
-			stop(paste("Could not find a matrix/algebra with name", 
-				algebra, "in the model."))
+		if (is.na(algebra)) {
+			modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
+			msg <- paste("The algebra name cannot be NA",
+			"for the algebra objective of model", omxQuotes(modelname))
+			stop(msg, call. = FALSE)
 		}
+		algebraIndex <- omxLocateIndex(flatModel, algebra, name)
 		.Object@algebra <- algebraIndex
 		return(.Object)
 })
