@@ -78,7 +78,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		threshNames <- .Object@thresholds
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
-		.Object@data <- as.integer(omxLocateIndex(flatModel, .Object@data, name))
+		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
