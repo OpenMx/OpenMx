@@ -139,11 +139,11 @@ def p_error(t):
                     " at line " + str(t.lineno) + " at position " +\
                     str(t.lexpos))
 
-import ply.yacc as mxAlgebraParser
-mxAlgebraParser.yacc(write_tables=0,debug=0)
+import ply.yacc as parser
+parser.yacc(write_tables=0,debug=0)
 
 if __name__ == "__main__":
     import sys
     lines = sys.stdin.readlines()
     input = "".join(lines)
-    print(mxAlgebraParser.parse(input))
+    print(parser.parse(input))

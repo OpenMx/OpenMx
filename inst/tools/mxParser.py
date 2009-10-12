@@ -2,8 +2,11 @@
 import sys
 import re
 import string
+sys.path.append('.')
+import mxAlgebraParser
 
 matrices = {}
+algebras = {}
 defines = {}
 title = None
 valBuffer = ""
@@ -18,6 +21,10 @@ class MxMatrix:
     values = None
     specification = None
 
+class MxAlgebra:
+	name = None
+	expression = None
+
 def parseDefine( mxInput ):
     global defines
     match = re.match("\s*#define\s+(\S+)\s+(\S+)\s*", mxInput)
@@ -30,6 +37,23 @@ def parseTitle( mxInput ):
     title = match.group(1).strip()
     title = title.replace('.','_')
     return len(match.group(0)) + 1
+
+
+def parseAlgebras( mxInput ):
+    global algebras
+    block = re.match("\s*Begin Algebra;(.*?)End Algebra;\s*", 
+    	mxInput, re.MULTILINE | re.IGNORECASE | re.DOTALL)
+    declareLines = block.group(1).strip().split(';')
+    for declare in declareLines:
+        declare = declare.strip()
+        pieces = re.search("(.+)=(.+)", declare, re.DOTALL)
+        if pieces != None:
+			algebra = MxAlgebra()
+			algebra.name = pieces.group(1).strip()
+			algebra.expression = pieces.group(2).strip()
+			algebras[algebra.name] = algebra
+    return len(block.group(0))
+
 
 def parseMatrices( mxInput ):
     global defines, matrices
@@ -65,7 +89,7 @@ def parseSpecification( mxInput ):
     specification = list()
     matrixName = match.group(1)
     matrix = matrices[matrixName]
-    specCount = specLength[matrix.type](matrix.nrow, matrix.ncol)
+    specCount = specLength[matrix.type[:4]](matrix.nrow, matrix.ncol)
     specs = re.search("\s*spec\S*\s+" + matrixName + "((\s*\S+\s*)" + "{" + str(specCount) + "})\s*",
                        mxInput, re.IGNORECASE | re.MULTILINE)
     specIter = re.finditer("\S+", specs.group(1))
@@ -104,6 +128,14 @@ def parseStartOrValue( mxInput ):
     valBuffer += '\n'
     return len(match.group(0))
         
+def printAlgebras():
+	for algebra in algebras.values():
+		outstring = "algebra" + algebra.name + " <- "		
+		outstring += "mxAlgebra(" + mxAlgebraParser.parser.parse(algebra.expression) + ", "
+		outstring += "name = \"" + algebra.name + "\")"
+		print outstring
+	if len(algebras.values()) > 0:
+		print
 
 def printMatrices():
     global matrices
@@ -123,9 +155,9 @@ def printMatrices():
             outstring += "free = " + freestring + ", "
         nextcounter = None
         if matrix.free and not matrix.unique and matrix.specification == None:
-            endCounter = startCounter + specLength[matrix.type](matrix.nrow, matrix.ncol) - 1
-            outstring += "labels = " + str(startCounter) + " : "
-            outstring += str(endCounter) + ", "
+            endCounter = startCounter + specLength[matrix.type[:4]](matrix.nrow, matrix.ncol) - 1
+            outstring += "labels = makeLabels(c(" + str(startCounter) + ":"
+            outstring += str(endCounter) + ")), "
             startCounter = endCounter + 1
         elif matrix.specification != None:
             specstring = str(matrix.specification)
@@ -135,32 +167,48 @@ def printMatrices():
         outstring += "byrow = TRUE, "
         outstring += "name = \"" + matrix.name + "\")"
         print outstring
-        print
+	if len(matrices.values()) > 0:
+		print
+
 
 def printValueBuffer():
-    global valBuffer
-    print valBuffer
+	global valBuffer
+	if valBuffer != "":
+		print valBuffer
 
 def printModel():
-    global matrices
-    print "model <- mxModel(name = \"" + title + "\")"
-    matrixNames = str(map(lambda x: "matrix" + x, matrices.keys()))
-    matrixNames = string.replace(matrixNames, "[", "")
-    matrixNames = string.replace(matrixNames, "]", "")
-    matrixNames = string.replace(matrixNames, "'", "")
-    print "model <- mxModel(model, " + matrixNames + ")"
-    print
+	global matrices, algebras
+	if title == None:
+		print "model <- mxModel()"
+	else:
+		print "model <- mxModel(name = \"" + title + "\")"
+	print
+	matrixNames = str(map(lambda x: "matrix" + x, matrices.keys()))
+	matrixNames = string.replace(matrixNames, "[", "")
+	matrixNames = string.replace(matrixNames, "]", "")
+	matrixNames = string.replace(matrixNames, "'", "")
+	if len(matrixNames) > 0:
+		print "model <- mxModel(model, " + matrixNames + ")"
+	algNames = str(map(lambda x: "algebra" + x, algebras.keys()))
+	algNames = string.replace(algNames, "[", "")
+	algNames = string.replace(algNames, "]", "")
+	algNames = string.replace(algNames, "'", "")
+	if len(algNames) > 0:
+		print "model <- mxModel(model, " + algNames + ")"
+	print
+
 
 specLength = {   "Diag"  : lambda row, col: row,
-                 "SDiag" : lambda row, col: row * (row - 1) / 2,
-                 "Stand" : lambda row, col: row * (row - 1) / 2,
+                 "SDia" : lambda row, col: row * (row - 1) / 2,
+                 "Stan" : lambda row, col: row * (row - 1) / 2,
                  "Symm"  : lambda row, col: row * (row + 1) / 2,
-                 "Lower" : lambda row, col: row * (row + 1) / 2,
+                 "Lowe" : lambda row, col: row * (row + 1) / 2,
                  "Full"  : lambda row, col: row * col }
 
 mxDirectives = {    "\s*title" : parseTitle,
                     "\s*#define" : parseDefine,
                     "\s*Begin Matrices" : parseMatrices,
+					"\s*Begin Algebra" : parseAlgebras,
                     "\s*spec\S*" : parseSpecification,
                     "\s*(start|value)" : parseStartOrValue }
 
@@ -179,19 +227,27 @@ def tryDirectives ( mxInput ):
                 
 def parseModel( mxInput ):
 
-    # Remove all comments from the file
-    mxInput = re.sub(re.compile('!.*$', re.MULTILINE), '', mxInput)
+	# Remove all comments from the file
+	mxInput = re.sub(re.compile('!.*$', re.MULTILINE), '', mxInput)
     
-    while len(mxInput) > 0:
-        mxInput = tryDirectives(mxInput)
+	while len(mxInput) > 0:
+		mxInput = tryDirectives(mxInput)
 
-    # Print matrix declarations
-    printMatrices()
+	print
+	print "makeLabels <- function(x) { sapply(x, function(y) { paste('var', y, sep = '') })}"
+	print
 
-    # Print any value assignments
-    printValueBuffer()
 
-    # Print model declaration
-    printModel()
+	# Print matrix declarations
+	printMatrices()
+
+	# Print matrix declarations
+	printAlgebras()
+
+	# Print any value assignments
+	printValueBuffer()
+
+	# Print model declaration
+	printModel()
 
 parseModel(sys.stdin.read())
