@@ -91,10 +91,11 @@ matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 	    colFactors <- col(values, as.factor=TRUE)	
 		fromNames <- as.character(colFactors[select])
 		toNames <- as.character(rowFactors[select])
-		return(mxPath(from = fromNames, to = toNames, arrows = arrows))
-	} else {
-		return(list())
+		if (length(fromNames) > 0 && length(toNames) > 0) {
+			return(mxPath(from = fromNames, to = toNames, arrows = arrows))
+		}
 	}
+	return(list())
 }
 
 pathCheckVector <- function(value, valname, type) {
