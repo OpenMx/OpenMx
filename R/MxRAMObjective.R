@@ -65,6 +65,13 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
+		if(!is.na(mMatrix) && single.na(mxDataObject@means)) {
+			msg <- paste("The RAM objective",
+				"has an expected means vector but",
+				"no observed means vector in model",
+				omxQuotes(flatModel@name))
+			stop(msg, call. = FALSE)
+		}
 		checkNumericData(mxDataObject)
 		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)

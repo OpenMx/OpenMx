@@ -176,8 +176,10 @@ addEntriesRAM <- function(model, entries) {
 	filter <- sapply(entries, omxIsPath)
 	paths <- entries[filter]
 	checkPaths(model, paths)
-	if (length(paths) > 0) for(i in 1:length(paths)) {
-		model <- insertPathRAM(model, paths[[i]])
+	if (length(paths) > 0) {
+		for(i in 1:length(paths)) {
+			model <- insertPathRAM(model, paths[[i]])
+		}
 	}
 	filter <- sapply(entries, function(x) { is(x, "MxData") })
 	data <- entries[filter]
@@ -191,7 +193,7 @@ addEntriesRAM <- function(model, entries) {
 	return(model)
 }
 
-useMeansVector <- function(data) {
+requireMeansVector <- function(data) {
 	return(!is.null(data) && ((data@type == 'raw') ||
 		((data@type == 'cov' || data@type == 'cor') &&
 		 !(length(data@means) == 1 && is.na(data@means)))))
@@ -492,13 +494,7 @@ replaceMethodRAM <- function(model, index, value) {
 	name <- pair[[2]]
 	if (namespace == model@name && name == "data") {
 		model@data <- value
-		if (!useMeansVector(value)) {
-			model[['M']] <- NULL
-			if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
-				!is.na(model@objective@M)) {
-					model@objective@M <- as.character(NA)
-			}
-		} else if (is.null(model[['M']])) {
+		if (requireMeansVector(value) && is.null(model[['M']])) {
 			model[['M']] <- createMatrixM(model)
 			if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
 				is.na(model@objective@M)) {
