@@ -132,7 +132,8 @@ The following code contains all of the components of our model. Before running a
 			type="Iden",  
 			nrow=2, 
 			ncol=2,
-			name="F"
+			name="F",
+			dimnames=list(c("x","y"),c("x","y"))
 		),
 		# means
 		mxMatrix(
@@ -221,7 +222,8 @@ There are no free parameters in any **F** matrix.
 		type="Iden", 
 		nrow=2, 
 		ncol=2,
-		name="F"
+		name="F",
+		dimnames=list(c("x","y"),c("x","y"))
 	)
   
 The fourth and final ``mxMatrix`` function specifies the **M** matrix. This matrix is used to specify the means and intercepts of our model. Exogenous or independent variables receive means, while endogenous or dependent variables get intercepts, or means conditional on regression on other variables. This matrix contains only one row. This matrix consists of two free parameters; the mean of *x* (labeled ``"meanx"``) and the intercept of *y* (labeled ``"beta0"``). This matrix gives starting values of 1 for both parameters, and is named ``"M"``.
@@ -357,7 +359,8 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 			type="Iden", 
 			nrow=3, 
 			ncol=3,
-			name="F"
+			name="F",
+			dimnames=list(c("x","y","z"),c("x","y","z"))			
 		),
 		# means
 		mxMatrix(
@@ -492,7 +495,8 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
 			type="Iden", 
 			nrow=4, 
 			ncol=4,
-			name="F"
+			name="F",
+			dimnames=list(c("w", "x", "y", "z"),c("w", "x", "y", "z"))
 		),
 		# means
 		mxMatrix(
