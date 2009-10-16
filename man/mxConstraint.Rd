@@ -49,8 +49,10 @@ model<- mxModel("con_test", K,limit,
 	mxAlgebra(min(K), name="minK"), 
 	mxAlgebraObjective("minK")
 )
+\dontrun{
 fit <- mxRun(model)
 fit@matrices$K@values
+}
 #      [,1] [,2]
 # [1,]    1    3
 # [2,]    2    4
