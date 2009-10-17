@@ -20,7 +20,7 @@ writeDotFile <- function(model, graph, dotFilename) {
 	} else {
 		dotFile = ""
 	}
-	graphName <- sub(" ", "_", model@name, fixed=TRUE)
+	graphName <- paste('"', model@name, '"', sep='')
 	cat("digraph", graphName, "{", "\n", file = dotFile)
 	cat('\t', 'node [style=filled, fontname="Arial", fontsize=16]\n', file = dotFile)
 	if (length(graph@manifestVars) > 0) {
@@ -35,6 +35,9 @@ writeDotFile <- function(model, graph, dotFilename) {
 			cat('\t', graph@latentVars[[i]], 
 				'[shape=circle, fillcolor="#f4fd78"];\n', file = dotFile)		
 		}
+	}
+	if (!is.null(model[['M']])) {
+		cat('\t', 'one', '[shape=triangle];\n', file = dotFile)
 	}
 	if (length(graph@paths) > 0) {
 		for(i in 1:length(graph@paths)) {
@@ -71,7 +74,8 @@ omxGraphviz <- function(model, dotFilename = "") {
 	graph <- new("MxRAMGraph", model@manifestVars, model@latentVars)
 	uniPaths <- matrixToPaths(model[['A']], 1)
 	biPaths <- matrixToPaths(model[['S']], 2)
-	graph@paths <- c(graph@paths, uniPaths, biPaths)
+	meanPaths <- meansToPaths(model[['M']])
+	graph@paths <- c(graph@paths, uniPaths, biPaths, meanPaths)
 	writeDotFile(model, graph, dotFilename)
 }
 

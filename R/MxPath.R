@@ -85,7 +85,9 @@ omxIsPath <- function(value) {
 
 matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 	values <- mxMatrix@values
-	select <- (values != 0)
+	free <- mxMatrix@free
+	labels <- mxMatrix@labels
+	select <- (values != 0) | (free) | (!is.na(labels))
 	if (length(select) > 0) {
  	    rowFactors <- row(values, as.factor=TRUE)
 	    colFactors <- col(values, as.factor=TRUE)	
@@ -93,6 +95,22 @@ matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 		toNames <- as.character(rowFactors[select])
 		if (length(fromNames) > 0 && length(toNames) > 0) {
 			return(mxPath(from = fromNames, to = toNames, arrows = arrows))
+		}
+	}
+	return(list())
+}
+
+meansToPaths <- function(mxMatrix) {
+	if (is.null(mxMatrix)) return(list())
+	values <- mxMatrix@values
+	free <- mxMatrix@free
+	labels <- mxMatrix@labels
+	select <- (values != 0) | (free) | (!is.na(labels))
+	if (length(select) > 0) {
+	    colFactors <- col(values, as.factor=TRUE)
+		toNames <- as.character(colFactors[select])
+		if (length(toNames) > 0) {
+			return(mxPath(from = 'one', to = toNames, arrows = 1))
 		}
 	}
 	return(list())

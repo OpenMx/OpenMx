@@ -1,5 +1,7 @@
 trunk
 =====
+* omxGraphviz() either prints to stdout or to a filename
+* Relaxed omxGraphviz() to draw an arrow if (value != 0 || free == TRUE || !is.na(label))
 
 Release 0.2.1-922
 =================
