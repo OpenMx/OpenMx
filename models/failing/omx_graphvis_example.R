@@ -14,19 +14,6 @@ model <- mxModel("univSat1", manifestVars= selVars,
   type="RAM"
 )
 fit = mxRun(model)
-omxGraphviz(fit)
-
-# dot has a manifest with cov arrows, but no means triangle
-# digraph univSat1 { 
-#    node [style=filled, fontname="Arial", fontsize=16]
-#    X [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
-#    X -> X[dir=both, headport=s, tailport=s];
-# }
-
-# summary(fit)
-#    name matrix row col   Estimate  Std.Error
-# 1 var X      S   1   1 0.99325690 0.03114318
-# 2  <NA>      M   1   1 0.01635556 0.02262332
-# ...
-# Observed statistics:  1000 
-# Estimated parameters:  2 
+omxGraphviz(fit,'test.dot')
+# system("open test.dot") # uncomment this to have R open the dot file in your default app (omnigraffle etc)
+# getwd() # will show you where the file is written
