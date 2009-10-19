@@ -349,6 +349,10 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (omxIsDefinitionVariable(label)) {
 		if (length(components) == 3) {
 			return(label)
+		} else if (is.null(dataname)) {
+			stop(paste("A definition variable has",
+				"been declared in model", omxQuotes(modelname),
+				"that does not contain a data set"), call. = FALSE)
 		} else {
 			datasource <- unlist(strsplit(dataname, omxSeparatorChar, fixed = TRUE))[[1]]
 			return(omxIdentifier(datasource, label))

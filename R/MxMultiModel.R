@@ -102,8 +102,13 @@ omxFlattenModel <- function(model, namespace) {
 	flatModel@objective <- model@objective
 	defaultData <- model@data
 	flatModel@data <- defaultData
+	if (is.null(defaultData)) {
+		defaultDataName <- NULL
+	} else {
+		defaultDataName <- defaultData@name
+	}
 	flatModel@matrices <- lapply(model@matrices, 
-		function(x) { namespaceConvertMatrix(x, name, defaultData@name, namespace) })
+		function(x) { namespaceConvertMatrix(x, name, defaultDataName, namespace) })
 	flatModel@algebras <- lapply(model@algebras, 
 		function(x) { namespaceConvertAlgebra(x, name, namespace) })
 	flatModel@constraints <- lapply(model@constraints,

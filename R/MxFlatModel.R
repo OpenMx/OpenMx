@@ -111,6 +111,7 @@ generateDefinitionLocations <- function(datasets) {
 }
 
 omxCheckVariables <- function(flatModel, namespace) {
+	datasets <- flatModel@datasets
 	if(length(flatModel@matrices) > 0) {
 		startVals <- list()
 		freeVars <- list()
@@ -118,7 +119,7 @@ omxCheckVariables <- function(flatModel, namespace) {
 		bounds <- list()
 		for(i in 1:length(flatModel@matrices)) {
 			result <- checkVariablesHelper(flatModel@matrices[[i]], startVals, 
-				freeVars, fixedVars, bounds, flatModel@name)
+				freeVars, fixedVars, bounds, flatModel@name, datasets)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
@@ -131,7 +132,7 @@ omxCheckVariables <- function(flatModel, namespace) {
 }
 
 checkVariablesHelper <- function(matrix, startVals, freeVars,
-		fixedVars, bounds, modelname) {
+		fixedVars, bounds, modelname, datasets) {
 	labels <- matrix@labels
 	free <- matrix@free
 	values <- matrix@values
@@ -154,6 +155,29 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 					stop(paste("The definition variable", omxQuotes(label),
 						"has been assigned to a free parameter",
 						"in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
+				}
+				result <- strsplit(label, '.', fixed=TRUE)[[1]]
+				if(length(result) != 3) {
+					stop("Internal error: definition variable does not have three pieces", call. = FALSE)
+				}
+				dataname <- paste(result[[1]], '.', result[[2]], sep = '')
+				targetdata <- datasets[[dataname]]
+				if (is.null(targetdata)) {
+					stop(paste("The definition variable", omxQuotes(label),
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+						"refers to a data set that does not exist"), call. = FALSE)
+				}
+				targetNames <- dimnames(targetdata@observed)
+				if (is.null(targetNames) || is.null(targetNames[[2]])) {
+					stop(paste("The definition variable", omxQuotes(label),
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+						"refers to a data set that does not contain column names"), call. = FALSE)	
+				}
+				if (!(result[[3]] %in% targetNames[[2]])) {
+					stop(paste("The definition variable", omxQuotes(label),
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+						"refers to a data set that does not contain",
+						"a column with name", omxQuotes(result[[3]])), call. = FALSE)	
 				}
 			} else if (isFree) {
 				if (isSubstitution(label)) {
