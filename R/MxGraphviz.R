@@ -15,52 +15,50 @@
 
 
 writeDotFile <- function(model, graph, dotFilename) {
-	if (dotFilename != "") {
-		dotFile <- file(dotFilename, "w")
-	} else {
-		dotFile = ""
-	}
+	outputLines <- list()
 	graphName <- paste('"', model@name, '"', sep='')
-	cat("digraph", graphName, "{", "\n", file = dotFile)
-	cat('\t', 'node [style=filled, fontname="Arial", fontsize=16]\n', file = dotFile)
+	outputLines <- c(outputLines, paste("digraph", graphName, "{"))
+	outputLines <- c(outputLines, paste('\t', 'node [style=filled, fontname="Arial", fontsize=16];'))
 	if (length(graph@manifestVars) > 0) {
 		for(i in 1:length(graph@manifestVars)) {
-			cat('\t', graph@manifestVars[[i]], 
-				'[shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];\n', 
-				file = dotFile)
+			outputLines <- c(outputLines, paste('\t', graph@manifestVars[[i]], 
+				'[shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];'))
 		}
 	}
 	if (length(graph@latentVars) > 0) {
 		for(i in 1:length(graph@latentVars)) {
-			cat('\t', graph@latentVars[[i]], 
-				'[shape=circle, fillcolor="#f4fd78"];\n', file = dotFile)		
+			outputLines <- c(outputLines, paste('\t', graph@latentVars[[i]], 
+				'[shape=circle, fillcolor="#f4fd78"];'))		
 		}
 	}
 	if (!is.null(model[['M']])) {
-		cat('\t', 'one', '[shape=triangle];\n', file = dotFile)
+		outputLines <- c(outputLines, paste('\t', 'one', '[shape=triangle];'))
 	}
 	if (length(graph@paths) > 0) {
 		for(i in 1:length(graph@paths)) {
+			outputArrow <- list()
 			path <- graph@paths[[i]]
-			cat('\t', path$from, "->", path$to, file = dotFile)
+			outputArrow <- c(outputArrow, paste('\t', path$from, "->", path$to))
 			if (path$arrows == 1) {
-				cat("[dir=forward]", file = dotFile)
+				outputArrow <- c(outputArrow, "[dir=forward]")
 			} else if (path$arrows == 2) {
 			    if (path$from == path$to && path$from %in% graph@latentVars) {
-					cat("[dir=both, headport=n, tailport=n]", file = dotFile)			
+					outputArrow <- c(outputArrow, "[dir=both, headport=n, tailport=n]")			
 				} else if (path$from == path$to) {
-					cat("[dir=both, headport=s, tailport=s]", file = dotFile)						
+					outputArrow <- c(outputArrow, "[dir=both, headport=s, tailport=s]")						
 				} else {
-					cat("[dir=both]", file = dotFile)					
+					outputArrow <- c(outputArrow, "[dir=both]")					
 				}
 			}
-			cat(';\n', file = dotFile)
+			outputArrow <- c(outputArrow, ';')
+			outputArrow <- paste(outputArrow, collapse='')
+			outputLines <- c(outputLines, outputArrow)
 		}
 	}
-	cat("}", "\n", file = dotFile)
-	if (dotFilename != "") {
-		close(dotFile)
-	}
+	outputLines <- c(outputLines, '}\n')
+	outputLines <- paste(outputLines, collapse='\n')
+	cat(outputLines, file = dotFilename)
+	return(invisible(outputLines))
 }
 
 omxGraphviz <- function(model, dotFilename = "") {
