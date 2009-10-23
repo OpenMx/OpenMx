@@ -23,5 +23,6 @@
    	'mxRAMDefaultSingle' = 1.00, 
    	'mxRAMDefaultDouble' = 1.00,
 	'mxByrow' = FALSE,
+	'mxShowDimnames' = TRUE,
    	'mxPrintUnitTests' = TRUE)
 }

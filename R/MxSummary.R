@@ -86,6 +86,15 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 			mLocation <- parameters[[i]][[3]][[1]] + 1
 			mRow <- parameters[[i]][[3]][[2]] + 1
 			mCol <- parameters[[i]][[3]][[3]] + 1
+			aMatrix <- matrices[[mLocation]][[1]]
+			if (getOption('mxShowDimnames')) {
+				if (!is.null(rownames(aMatrix))) {
+					mRow <- rownames(aMatrix)[[mRow]]
+				}
+				if (!is.null(colnames(aMatrix))) {
+					mCol <- colnames(aMatrix)[[mCol]]
+				}
+			}
 			ptable[i, 'name'] <- names(estimates)[[i]]
 			ptable[i, 'matrix'] <- simplifyName(matrixNames[[mLocation]], model@name)
 			ptable[i, 'row'] <- mRow
@@ -109,7 +118,7 @@ setMethod("summary", "MxModel",
 	function(object, ...) {	
 		namespace <- omxGenerateNamespace(object)
 		flatModel <- omxFlattenModel(object, namespace)
-		matrices <- generateSimpleMatrixList(flatModel)
+		matrices <- generateMatrixList(flatModel)
 		parameters <- generateParameterList(flatModel)
 		objective <- flatModel@objectives[[omxIdentifier(object@name, 'objective')]]
 		if (!is.null(objective)) {

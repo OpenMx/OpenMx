@@ -24,13 +24,6 @@ generateMatrixList <- function(model) {
 	return(retval)
 }
 
-generateSimpleMatrixList <- function(model) {
-	retval <- generateMatrixList(model)
-	retval <- lapply(retval, function(x) { 
-		c(list(as.matrix(x[[1]])), x[-1]) }) 
-	return(retval)
-}
-
 generateAlgebraList <- function(model) {
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)

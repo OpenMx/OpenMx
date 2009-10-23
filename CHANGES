@@ -4,6 +4,7 @@ trunk
 * Relaxed omxGraphviz() to draw an arrow if (value != 0 || free == TRUE || !is.na(label))
 * omxGraphviz() returns a character string invisibly
 * error checking for bogus definition variables
+* summary() uses matrix dimnames by default, use options('mxShowDimnames'=FALSE) to disable
 * added support for gcc 4.4 (Ubuntu 9.10) on x86 and x86_64 architectures
 
 Release 0.2.1-922
