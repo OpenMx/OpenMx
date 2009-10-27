@@ -31,10 +31,18 @@ setMethod("initialize", "MxMLObjective",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
-		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
 	}
 )
+
+setMethod("omxObjDependencies", signature("MxMLObjective"),
+	function(.Object, dependencies) {
+	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
+	sources <- sources[!is.na(sources)]
+	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	return(dependencies)
+})
+
 
 setMethod("omxObjFunNamespace", signature("MxMLObjective"), 
 	function(.Object, modelname, namespace) {

@@ -35,10 +35,18 @@ setMethod("initialize", "MxFIMLObjective",
 		.Object@definitionVars <- definitionVars
 		.Object@thresholds <- thresholds
 		.Object@dims <- dims
-		.Object@dependencies <- c('covariance', 'means', 'thresholds')
 		return(.Object)
 	}
 )
+
+setMethod("omxObjDependencies", signature("MxFIMLObjective"),
+	function(.Object, dependencies) {
+	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
+	sources <- sources[!is.na(sources)]
+	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	return(dependencies)
+})
+
 
 setMethod("omxObjFunNamespace", signature("MxFIMLObjective"), 
 	function(.Object, modelname, namespace) {

@@ -33,10 +33,17 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@M <- M
 		.Object@data <- data
 		.Object@thresholds <- thresholds
-		.Object@dependencies <- c('A', 'S', 'F', 'M', 'thresholds')
 		return(.Object)
 	}
 )
+
+setMethod("omxObjDependencies", signature("MxRAMObjective"),
+	function(.Object, dependencies) {
+	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds)
+	sources <- sources[!is.na(sources)]
+	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	return(dependencies)
+})
 
 setMethod("omxObjFunNamespace", signature("MxRAMObjective"), 
 	function(.Object, modelname, namespace) {

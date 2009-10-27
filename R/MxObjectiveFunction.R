@@ -21,7 +21,6 @@ setClass(Class = "MxBaseObjective",
 	representation = representation(
 		name = "character",
 		data = "MxCharOrNumber",
-		dependencies = "character",
 		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
@@ -41,6 +40,11 @@ setGeneric("omxObjModelConvert",
 	return(standardGeneric("omxObjModelConvert"))
 })
 
+setGeneric("omxObjDependencies",
+	function(.Object, dependencies) {
+	return(standardGeneric("omxObjDependencies"))
+})
+
 setMethod("omxObjModelConvert", "MxBaseObjective",
 	function(.Object, job, model, flatJob) {
 		return(job)
@@ -49,6 +53,16 @@ setMethod("omxObjModelConvert", "MxBaseObjective",
 setMethod("omxObjModelConvert", "NULL",
 	function(.Object, job, model, flatJob) {
 		return(job)
+})
+
+setMethod("omxObjDependencies", "MxBaseObjective",
+	function(.Object, dependencies) {
+		return(dependencies)
+})
+
+setMethod("omxObjDependencies", "NULL",
+	function(.Object, dependencies) {
+		return(dependencies)
 })
 
 convertObjectives <- function(flatModel, model) {

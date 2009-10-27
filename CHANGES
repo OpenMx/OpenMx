@@ -7,6 +7,7 @@ trunk
 * summary() uses matrix dimnames by default, use options('mxShowDimnames'=FALSE) to disable
 * added support for gcc 4.4 (Ubuntu 9.10) on x86 and x86_64 architectures
 * created R documention for omxGraphviz() function
+* generalized dependency specification for objective functions (omxObjDependencies)
 
 Release 0.2.1-922
 =================

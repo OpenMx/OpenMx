@@ -25,10 +25,15 @@ setMethod("initialize", "MxAlgebraObjective",
 		.Object@name <- name
 		.Object@algebra <- algebra
 		.Object@data <- data
-		.Object@dependencies <- c('algebra')
 		return(.Object)
 	}
 )
+
+setMethod("omxObjDependencies", signature("MxAlgebraObjective"),
+	function(.Object, dependencies) {
+	dependencies <- omxAddDependency(.Object@algebra, .Object@name, dependencies)
+	return(dependencies)
+})
 
 setMethod("omxObjFunConvert", signature("MxAlgebraObjective"), 
 	function(.Object, flatModel, model) {

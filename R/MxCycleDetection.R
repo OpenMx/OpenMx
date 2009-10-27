@@ -16,9 +16,7 @@
 cycleDetection <- function(flatModel) {
 	dependencies <- new("MxDirectedGraph")
 	objective <- flatModel@objective
-	if (!is.null(objective) && !is.null(objective@dependencies)) {
-		dependencies <- addObjectiveDetection(objective, dependencies)
-	}
+	dependencies <- addObjectiveDetection(objective, dependencies)
 	if (length(flatModel@algebras) > 0) {
 		for(i in 1:length(flatModel@algebras)) {
 			dependencies <- addAlgebraDetection(flatModel@algebras[[i]], dependencies)
@@ -88,14 +86,7 @@ reportCycle <- function(backedges, destination, modelname) {
 }
 
 addObjectiveDetection <- function(objective, dependencies) {
-	sources <- objective@dependencies
-	sources <- sapply(sources, function(x) { slot(objective, x) })
-	sources <- unlist(sources)
-	sources <- sources[!is.na(sources)]
-	sink <- objective@name
-	if (length(sources) > 0) {
-		dependencies <- omxAddDependency(sources, sink, dependencies)
-	}
+	dependencies <- omxObjDependencies(objective, dependencies)
 	return(dependencies)
 }
 
