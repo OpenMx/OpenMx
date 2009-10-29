@@ -1,3 +1,5 @@
+.. _factoranalysis-matrix-specification:
+
 Factor Analysis, Matrix Specification
 =====================================
 
@@ -545,4 +547,4 @@ The **F** and **M** matrices contain only minor changes. The **F** matrix is now
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
 
-These models may also be specified using paths instead of matrices. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Path.html#factoranalysis-path-specification>`_ for path specification of these models.
+These models may also be specified using paths instead of matrices. See :ref:`factoranalysis-path-specification` for path specification of these models.

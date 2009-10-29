@@ -1,3 +1,5 @@
+.. _multiplegroups-matrix-specification:
+
 Multiple Groups, Matrix Specification
 =====================================
 
@@ -264,4 +266,4 @@ Finally, to evaluate which model fits the data best, we generate a likelihood ra
         LRT= rbind(LLHet,LLHom,Chi)
         LRT
 
-These models may also be specified using paths instead of matrices. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Path.html#multiplegroups-path-specification>`_ for path specification of these models.
+These models may also be specified using paths instead of matrices. See :ref:`multiplegroups-path-specification` for path specification of these models.

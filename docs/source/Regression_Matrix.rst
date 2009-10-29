@@ -1,3 +1,5 @@
+.. _regression-matrix-specification:
+
 Regression, Matrix Specification
 =====================================
 
@@ -513,4 +515,4 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
 
 The only additional components to our ``mxMatrix`` functions are the inclusion of the *w* variable, which becomes the first row and column of all matrices. The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary()`` function to run, view and summarize the completed model.
 
-These models may also be specified using paths instead of matrices. See `here <http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Path.html#regression-path-specification>`_ for path specification of these models.
+These models may also be specified using paths instead of matrices. See :ref:`regression-path-specification` for path specification of these models.

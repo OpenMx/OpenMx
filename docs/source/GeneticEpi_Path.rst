@@ -1,3 +1,5 @@
+.. _geneticepidemiology-path-specification:
+
 Genetic Epidemiology, Path Specification
 =========================================
 
@@ -360,4 +362,4 @@ We use a likelihood ratio test (or take the difference between -2 times the log-
     AEest
     LRT_ACE_AE
 
-Note that the way to specify submodels using path specification is not straightforward and requires repeating code.  The OpenMx team is currently working on better alternatives.  These models may also be specified using matrices instead of paths, which allow for easier submodel specification. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Matrix.html#geneticepidemiology-matrix-specification>`_ for matrix specification of these models.
+Note that the way to specify submodels using path specification is not straightforward and requires repeating code.  The OpenMx team is currently working on better alternatives.  These models may also be specified using matrices instead of paths, which allow for easier submodel specification. See :ref:`geneticepidemiology-matrix-specification` for matrix specification of these models.

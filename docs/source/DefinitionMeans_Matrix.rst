@@ -1,3 +1,5 @@
+.. _definitionmeans-matrix-specification:
+
 Definition Variables, Matrix Specification
 ==========================================
 
@@ -181,4 +183,4 @@ It is possible to compare the estimates from this model to some summary statisti
     omxCheckCloseEnough(ObsMeansGroup1,as.vector(M+beta),.001)
     omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
 
-These models may also be specified using paths instead of matrices. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Path.html#definitionmeans-path-specification>`_ for path specification of these models.
+These models may also be specified using paths instead of matrices. See :ref:`definitionmeans-path-specification` for path specification of these models.

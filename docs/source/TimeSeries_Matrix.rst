@@ -1,3 +1,5 @@
+.. _timeseries-matrix-specification:
+
 Time Series, Matrix Specification
 =========================================
 
@@ -272,4 +274,4 @@ The model is now ready to run using the ``mxRun`` function, and the output of th
 	growthCurveFit@output
 	summary(growthCurveFit)
 
-These models may also be specified using paths instead of matrices.  See `here <http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Path.html#timeseries-path-specification>`_ for path specification of these models.
+These models may also be specified using paths instead of matrices.  See :ref:`timeseries-path-specification` for path specification of these models.

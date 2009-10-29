@@ -1,3 +1,5 @@
+.. _timeseries-path-specification:
+
 Time Series, Path Specification
 =================================
 
@@ -216,4 +218,4 @@ A summary of the output can be reached using ``summary()``.
 	growthCurveFit@output
 	summary(growthCurveFit)
 
-These models may also be specified using matrices instead of paths. See `here <http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Matrix.html#timeseries-matrix-specification>`_ for matrix specification of these models.
+These models may also be specified using matrices instead of paths. See :ref:`timeseries-matrix-specification` for matrix specification of these models.

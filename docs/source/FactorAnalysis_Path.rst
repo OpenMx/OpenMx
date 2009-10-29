@@ -1,3 +1,5 @@
+.. _factoranalysis-path-specification:
+
 Factor Analysis, Path Specification
 =====================================
 
@@ -368,4 +370,4 @@ The model can now be run using the ``mxRun`` function, and the output of the mod
 	oneFactorFit@output
 	summary(oneFactorFit)
   
-These models may also be specified using matrices instead of paths. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Matrix.html#factoranalysis-matrix-specification>`_ for matrix specification of these models.
+These models may also be specified using matrices instead of paths. See :ref:`factoranalysis-matrix-specification` for matrix specification of these models.

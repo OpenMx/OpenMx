@@ -1,3 +1,5 @@
+.. _definitionmeans-path-specification:
+
 Definition Variables, Path Specification
 ========================================
 
@@ -179,4 +181,4 @@ The R object ``defmeansFit`` contains matrices and algebras; here we are interes
     omxCheckCloseEnough(ObsMeansGroup1,as.vector(Mu+beta),.001)
     omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
 
-These models may also be specified using matrices instead of paths. See `here 	<http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Matrix.html#definitionmeans-matrix-specification>`_ for matrix specification of these models.
+These models may also be specified using matrices instead of paths. See :ref:`definitionmeans-matrix-specification` for matrix specification of these models.

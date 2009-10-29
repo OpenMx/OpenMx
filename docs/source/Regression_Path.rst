@@ -1,3 +1,5 @@
+.. _regression-path-specification:
+
 Regression, Path Specification
 ===============================
 
@@ -422,4 +424,4 @@ Our code should look very similar to our previous two models. It includes the sa
 
 The only additional components to our ``mxPath`` functions are the inclusion of the *w* variable and the additional set of regression coefficients for *w*. Running the model and viewing output works exactly as before.
 
-These models may also be specified using matrices instead of paths. See `here <http://openmx.psyc.virginia.edu/repoview/1/trunk/docs/build/html/Examples_Matrix.html#regression-matrix-specification>`_ for matrix specification of these models.
+These models may also be specified using matrices instead of paths. See :ref:`regression-matrix-specification` for matrix specification of these models.
