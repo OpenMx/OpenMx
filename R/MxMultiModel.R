@@ -73,11 +73,6 @@ freezeObjective <- function(model) {
 			newMatrix <- mxMatrix(values = objective@result)
 			newMatrix@name <- objective@name
 			model[[objective@name]] <- newMatrix
-		} else {
-			newMatrix <- mxMatrix('Full', 1, 1)
-			newMatrix@values <- as.matrix(as.numeric(NA))
-			newMatrix@name <- objective@name
-			model[[objective@name]] <- newMatrix
 		}
 	}
 	return(model)

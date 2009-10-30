@@ -45,6 +45,11 @@ setGeneric("omxObjDependencies",
 	return(standardGeneric("omxObjDependencies"))
 })
 
+setGeneric("omxObjInitialMatrix",
+	function(.Object, flatModel) {
+	return(standardGeneric("omxObjInitialMatrix"))
+})
+
 setMethod("omxObjModelConvert", "MxBaseObjective",
 	function(.Object, job, model, flatJob) {
 		return(job)
@@ -63,6 +68,16 @@ setMethod("omxObjDependencies", "MxBaseObjective",
 setMethod("omxObjDependencies", "NULL",
 	function(.Object, dependencies) {
 		return(dependencies)
+})
+
+setMethod("omxObjInitialMatrix", "MxBaseObjective",
+	function(.Object, flatModel) {
+		return(matrix(as.double(NA),1,1))
+})
+
+setMethod("omxObjInitialMatrix", "NULL",
+	function(.Object, flatModel) {
+		return(NULL)
 })
 
 convertObjectives <- function(flatModel, model) {
