@@ -56,7 +56,7 @@ checkEqualDimensions <- function(a, b) {
 
 omxCheckEquals <- function(a, b) {
 	checkEqualDimensions(a, b)	
-	if (any(a != b)) {
+	if (any(!identical(a, b))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not equal"))

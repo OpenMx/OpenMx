@@ -72,7 +72,7 @@ setMethod("omxObjDependencies", "NULL",
 
 setMethod("omxObjInitialMatrix", "MxBaseObjective",
 	function(.Object, flatModel) {
-		return(matrix(as.double(NA),1,1))
+		return(matrix(as.double(NA), 1, 1))
 })
 
 setMethod("omxObjInitialMatrix", "NULL",

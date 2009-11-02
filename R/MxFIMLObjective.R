@@ -22,11 +22,12 @@ setClass(Class = "MxFIMLObjective",
 		thresholds = "character",
 		dims = "character",
 		dataColumns = "numeric",
-		thresholdColumns = "list"),
+		thresholdColumns = "list",
+		vector = "logical"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, covariance, means, dims, thresholds, 
+	function(.Object, covariance, means, dims, thresholds, vector, 
 		data = as.integer(NA), definitionVars = list(), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
@@ -35,6 +36,7 @@ setMethod("initialize", "MxFIMLObjective",
 		.Object@definitionVars <- definitionVars
 		.Object@thresholds <- thresholds
 		.Object@dims <- dims
+		.Object@vector <- vector
 		return(.Object)
 	}
 )
@@ -103,6 +105,32 @@ setMethod("omxObjModelConvert", "MxFIMLObjective",
 		return(job)
 	}
 )
+
+setMethod("omxObjInitialMatrix", "MxFIMLObjective",
+	function(.Object, flatModel) {
+		flatObjective <- flatModel@objectives[[.Object@name]]
+		if (flatObjective@vector == FALSE) {
+			return(matrix(as.double(NA), 1, 1))
+		} else {
+			modelname <- omxReverseIdentifier(flatModel, flatObjective@name)[[1]]
+			name <- flatObjective@name
+			if(is.na(flatObjective@data)) {
+				msg <- paste("The FIML objective",
+				"does not have a dataset associated with it in model",
+				omxQuotes(modelname))
+				stop(msg, call.=FALSE)
+			}
+			mxDataObject <- flatModel@datasets[[flatObjective@data]]
+			if (mxDataObject@type != 'raw') {
+				msg <- paste("The dataset associated with the FIML objective", 
+					"in model", omxQuotes(modelname), "is not raw data.")
+				stop(msg, call.=FALSE)
+			}
+			rows <- nrow(mxDataObject@observed)
+			return(matrix(as.double(NA), rows, 1))
+		}
+})
+
 
 updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName) {
 	covName <- flatObjective@covariance
@@ -249,7 +277,7 @@ generateDataColumns <- function(flatModel, covName, dataName) {
 }
 
 
-mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA) {
+mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}
@@ -266,8 +294,11 @@ mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA) {
 	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
+	}
+	if (length(vector) > 1 || typeof(vector) != "logical") {
+		stop("Vector argument is not a logical value (return a vector or a scalar)")
 	}	
-	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds))
+	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds, vector))
 }
 
 displayFIMLObjective <- function(objective) {
