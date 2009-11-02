@@ -1,6 +1,7 @@
 trunk
 =====
 * added 'vector' argument to mxFIMLObjective() function. Specifies whether to return the likelihood vector (if TRUE) or the sum of log likelihoods (if FALSE). Default value is FALSE.
+* renamed omxCheckEquals() to omxCheckIdentical().  Replaced "==" comparison with a call to function "identical" so that NAs can be compared using this function.
 
 
 Release 0.2.2-951

@@ -1,5 +1,5 @@
-\name{omxCheckEquals}
-\alias{omxCheckEquals}
+\name{omxCheckIdentical}
+\alias{omxCheckIdentical}
 
 \title{Exact Equality Testing Function}
 
@@ -8,7 +8,7 @@
 }
 
 \usage{
-omxCheckEquals(a, b)
+omxCheckIdentical(a, b)
 }
 
 \arguments{
@@ -17,7 +17,7 @@ omxCheckEquals(a, b)
 }
 
 \details{
-Performs the \sQuote{==} operator on the two arguments. If the two arguments are not equal, then an error will be thrown. If \sQuote{a} and \sQuote{b} are equal to each other, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+Performs the \sQuote{identical} comparison on the two arguments. If the two arguments are not equal, then an error will be thrown. If \sQuote{a} and \sQuote{b} are equal to each other, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
 }
 
 \references{
@@ -34,11 +34,11 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-omxCheckEquals(c(1, 2, 3), c(1, 2, 3))
+omxCheckIdentical(c(1, 2, 3), c(1, 2, 3))
 
-omxCheckEquals(FALSE, FALSE)
+omxCheckIdentical(FALSE, FALSE)
 
 # Throws an error
-try(omxCheckEquals(c(1, 2, 3), c(2, 1, 3)))
+try(omxCheckIdentical(c(1, 2, 3), c(2, 1, 3)))
 
 }

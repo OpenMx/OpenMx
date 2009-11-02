@@ -23,7 +23,7 @@ Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be e
 
 \seealso{\itemize{
 \item{\code{\link{omxCheckWithinPercentError}}}{for approximate equality testing within a percentage.}
-\item{\code{\link{omxCheckEquals}}}{for exact equality testing.}
+\item{\code{\link{omxCheckIdentical}}}{for exact equality testing.}
 \item{\code{\link{omxCheckSetEquals}}}{for set equality testing.}
 \item{\code{\link{omxCheckTrue}}}{for boolean equality testing.}
 }}

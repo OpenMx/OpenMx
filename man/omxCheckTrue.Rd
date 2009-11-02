@@ -26,7 +26,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \seealso{\itemize{
 \item{\code{\link{omxCheckCloseEnough}}}{for approximate equality testing within an epsilon.}
 \item{\code{\link{omxCheckWithinPercentError}}}{for approximate equality testing within a percentage.}
-\item{\code{\link{omxCheckEquals}}}{for exact equality testing.}
+\item{\code{\link{omxCheckIdentical}}}{for exact equality testing.}
 \item{\code{\link{omxCheckSetEquals}}}{for set equality testing.}
 }}
 
