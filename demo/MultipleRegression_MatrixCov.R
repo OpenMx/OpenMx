@@ -80,7 +80,7 @@ multiRegModel<-mxModel("Multiple Regression -- Matrix Specification",
             labels=c("meanx","beta0","meanz"),
             name="M"
       ),
-      mxRAMObjective("A","S","F","M")
+      mxRAMObjective("A","S","F","M",dimnames=c('x','y','z'))
 )
       
 multiRegFit <- mxRun(multiRegModel)

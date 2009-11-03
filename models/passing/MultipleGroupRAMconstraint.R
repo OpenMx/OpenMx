@@ -23,8 +23,8 @@
 require(OpenMx)
 
 #Data: 1x1 "covariance" matrices (Ok, variance matrices)
-data1 <- mxData(matrix(1), type="cov", numObs=100)
-data2 <- mxData(matrix(2), type="cov", numObs=100)
+data1 <- mxData(matrix(1, dimnames = list('a', 'a')), type="cov", numObs=100)
+data2 <- mxData(matrix(2, dimnames = list('a', 'a')), type="cov", numObs=100)
 
 #S Matrices: 1 x 1 with a free parameter (must have the same value in multiple group estimation)
 S1 <- mxMatrix("Full", 1.5, free=TRUE, nrow=1, ncol=1, labels="parameter", name="S")
@@ -34,7 +34,7 @@ S2 <- mxMatrix("Full", 1.5, free=TRUE, nrow=1, ncol=1, labels="parameter", name=
 matrixA <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
 
 #F Matrix, 1 x 1 Identity Matrix
-matrixF <- mxMatrix("Iden", nrow=1, name="F")
+matrixF <- mxMatrix("Iden", nrow=1, name="F", dimnames = list('a', 'a'))
 
 #Lets make some objective functions!
 objective <- mxRAMObjective("A", "S", "F")

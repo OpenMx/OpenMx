@@ -21,8 +21,8 @@
 require(OpenMx)
 
 #Data: 1x1 "covariance" matrices (Ok, variance matrices)
-data1 <- mxData(matrix(1), type="cov", numObs=100)
-data2 <- mxData(matrix(2), type="cov", numObs=100)
+data1 <- mxData(matrix(1, dimnames = list('a', 'a')), type="cov", numObs=100)
+data2 <- mxData(matrix(2, dimnames = list('a', 'a')), type="cov", numObs=100)
 
 #S Matrices: 1 x 1 with a free parameter
 S1 <- mxMatrix("Full", 1.1,free=TRUE, nrow=1, ncol=1, name="S")
@@ -35,7 +35,7 @@ matrixA <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
 matrixF <- mxMatrix("Iden", nrow=1, name="F")
 
 #Lets make some objective functions!
-objective <- mxRAMObjective("A", "S", "F")
+objective <- mxRAMObjective("A", "S", "F", dimnames = c('a'))
 
 #Models
 model1<-mxModel("first", matrixA, S1, matrixF, objective, data1)

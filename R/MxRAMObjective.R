@@ -20,11 +20,12 @@ setClass(Class = "MxRAMObjective",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber",
 		M = "MxCharOrNumber",
-		thresholds = "MxCharOrNumber"),
+		thresholds = "MxCharOrNumber",
+		dims = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
-	function(.Object, A, S, F, M, thresholds,  
+	function(.Object, A, S, F, M, dims, thresholds,  
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
@@ -32,6 +33,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@F <- F
 		.Object@M <- M
 		.Object@data <- data
+		.Object@dims <- dims
 		.Object@thresholds <- thresholds
 		return(.Object)
 	}
@@ -59,6 +61,7 @@ setMethod("omxObjFunNamespace", signature("MxRAMObjective"),
 
 setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
 	function(.Object, flatModel, model) {
+		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
@@ -68,7 +71,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		if(is.na(data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
-				omxQuotes(flatModel@name))
+				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
@@ -76,7 +79,7 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			msg <- paste("The RAM objective",
 				"has an expected means vector but",
 				"no observed means vector in model",
-				omxQuotes(flatModel@name))
+				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
 		checkNumericData(mxDataObject)
@@ -85,6 +88,52 @@ setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
 		.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
 		.Object@data <- as.integer(omxLocateIndex(flatModel, data, name))
+		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "RAM")
+		fMatrix <- flatModel[[fMatrix]]@values
+		if (is.null(dimnames(fMatrix))) {
+			msg <- paste("The F matrix of model",
+				omxQuotes(modelname), "does not contain dimnames")
+			stop(msg, call. = FALSE)		
+		}
+		if (is.null(dimnames(fMatrix)[[2]])) {
+			msg <- paste("The F matrix of model",
+				omxQuotes(modelname), "does not contain colnames")
+			stop(msg, call. = FALSE)
+		}
+		mMatrix <- flatModel[[mMatrix]]		
+		if(!is.null(mMatrix)) {
+			means <- dimnames(mMatrix@values)
+			if (is.null(means)) {
+				msg <- paste("The M matrix associated",
+				"with the RAM objective function in model", 
+				omxQuotes(modelname), "does not contain dimnames.")
+				stop(msg, call.=FALSE)	
+			}
+			meanRows <- means[[1]]
+			meanCols <- means[[2]]
+			if (!is.null(meanRows) && length(meanRows) > 1) {
+				msg <- paste("The M matrix associated",
+				"with the RAM objective in model", 
+				omxQuotes(modelname), "is not a 1 x N matrix.")
+				stop(msg, call.=FALSE)
+			}
+			if (!identical(dimnames(fMatrix)[[2]], meanCols)) {
+				msg <- paste("The column names of the F matrix",
+					"and the column names of the M matrix",
+					"in model", 
+					omxQuotes(modelname), "do not contain identical",
+					"names.")
+				stop(msg, call.=FALSE)
+			}
+		}
+		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)				
+		if (!identical(translatedNames, rownames(mxDataObject@observed))) {
+			msg <- paste("The names of the manifest",
+				"variables in the F matrix of model",
+				omxQuotes(modelname), "does not match the",
+				"dimnames of the observed covariance matrix")
+			stop(msg, call. = FALSE)
+		}
 		return(.Object)
 })
 
@@ -105,6 +154,50 @@ fMatrixTranslateNames <- function(fMatrix, modelName) {
 	return(retval)
 }
 
+updateRAMdimnames <- function(flatObjective, job, modelname) {
+	fMatrixName <- flatObjective@F
+	mMatrixName <- flatObjective@M
+	if (is.na(mMatrixName)) {
+		mMatrix <- NA
+	} else {
+		mMatrix <- job[[mMatrixName]]
+	}
+	fMatrix <- job[[fMatrixName]]
+	if (is.null(fMatrix)) {
+		stop(paste("Unknown F matrix name", 
+			omxQuotes(simplifyName(fMatrixName)),
+			"detected in the objective function",
+			"of model", omxQuotes(modelname)), call. = FALSE)
+	}
+	dims <- flatObjective@dims
+	if (!is.null(dimnames(fMatrix)) && !single.na(dims) && 
+		!identical(dimnames(fMatrix)[[2]], dims)) {
+		msg <- paste("The F matrix associated",
+			"with the RAM objective in model", 
+			omxQuotes(modelname), "contains dimnames and",
+			"the objective function has specified dimnames")
+		stop(msg, call.=FALSE)		
+	}
+	if (is.null(dimnames(fMatrix)) && !single.na(dims)) {
+		dimnames(fMatrix) <- list(c(), dims)
+		job[[fMatrixName]] <- fMatrix
+	}
+	if (!isS4(mMatrix) && is.na(mMatrix)) return(job)
+	if (!is.null(dimnames(mMatrix)) && !single.na(dims) &&
+		!identical(dimnames(mMatrix), list(NULL, dims))) {
+		msg <- paste("The M matrix associated",
+			"with the RAM objective in model", 
+			omxQuotes(modelname), "contains dimnames and",
+			"the objective function has specified dimnames")
+		stop(msg, call.=FALSE)	
+	}
+	if (is.null(dimnames(mMatrix)) && !single.na(dims)) {
+		dimnames(mMatrix) <- list(NULL, dims)
+		job[[mMatrixName]] <- mMatrix
+	}
+	return(job)
+}
+
 setMethod("omxObjModelConvert", "MxRAMObjective",
 	function(.Object, job, model, flatJob) {
 		if(is.na(.Object@data)) {
@@ -112,7 +205,8 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
-		}		
+		}
+		job <- updateRAMdimnames(.Object, job, model@name)
 		if (flatJob@datasets[[.Object@data]]@type != 'raw' || 
 			is.na(.Object@M)) {
 			return(job)
@@ -174,7 +268,7 @@ setMethod("omxObjModelConvert", "MxRAMObjective",
 	}
 )
 
-mxRAMObjective <- function(A, S, F, M = NA, thresholds = NA) {
+mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA) {
 	if (missing(A) || typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
@@ -197,7 +291,17 @@ mxRAMObjective <- function(A, S, F, M = NA, thresholds = NA) {
 	}
 	if (is.na(M)) M <- as.integer(NA)
 	if (is.na(thresholds)) thresholds <- as.integer(NA)
-	return(new("MxRAMObjective", A, S, F, M, thresholds))
+	if (single.na(dimnames)) dimnames <- as.character(NA)
+	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
+		stop("Dimnames argument is not a character vector")
+	}
+	if (length(dimnames) == 0) {
+		stop("Dimnames argument cannot be an empty vector")
+	}
+	if (length(dimnames) > 1 && any(is.na(dimnames))) {
+		stop("NA values are not allowed for dimnames vector")
+	}	
+	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds))
 }
 
 displayRAMObjective <- function(objective) {
@@ -210,6 +314,11 @@ displayRAMObjective <- function(objective) {
 	} else {
 		cat("@M :", omxQuotes(objective@M), '\n')
 	}
+	if (single.na(objective@dims)) {
+		cat("@dims : NA \n")
+	} else {
+		cat("@dims :", omxQuotes(objective@dims), '\n')
+	}		
 	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {

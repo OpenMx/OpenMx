@@ -27,7 +27,7 @@ myFADataCov <- matrix(
       nrow=9,
       dimnames=list(
           c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
-          c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
+          c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"))
 )
 
 twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
@@ -130,7 +130,7 @@ twoFactorModel <- mxModel("Two Factor Model -- Matrix Specification",
         labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA,NA),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M")
+    mxRAMObjective("A","S","F","M",dimnames=c("x1","x2","x3","y1","y2","y3","F1","F2"))
 )
       
 twoFactorFit <- mxRun(twoFactorModel)

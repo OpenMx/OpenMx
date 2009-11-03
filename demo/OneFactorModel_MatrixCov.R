@@ -119,7 +119,7 @@ oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification",
 		         NA),
 		name="M"
 	),
-	mxRAMObjective("A","S","F","M")
+	mxRAMObjective("A","S","F","M",dimnames=c("x1","x2","x3","x4","x5","x6","F1"))
 )
      
 oneFactorFit <- mxRun(oneFactorModel)

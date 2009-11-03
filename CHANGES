@@ -2,7 +2,8 @@ trunk
 =====
 * added 'vector' argument to mxFIMLObjective() function. Specifies whether to return the likelihood vector (if TRUE) or the sum of log likelihoods (if FALSE). Default value is FALSE.
 * renamed omxCheckEquals() to omxCheckIdentical().  Replaced "==" comparison with a call to function "identical" so that NAs can be compared using this function.
-
+* for RAM objective functions, added checking of column names of F and M matrices
+* added 'dimnames' argument to mxRAMObjective() function. Populates the column names of F and M matrices.
 
 Release 0.2.2-951
 =================

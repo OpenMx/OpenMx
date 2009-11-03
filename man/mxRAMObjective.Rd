@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxRAMObjective(A, S, F, M = NA, thresholds = NA)
+mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA)
 }
 
 
@@ -17,11 +17,14 @@ mxRAMObjective(A, S, F, M = NA, thresholds = NA)
    \item{S}{A character string indicating the name of the 'S' matrix.}
    \item{F}{A character string indicating the name of the 'F' matrix.}
    \item{M}{An optional character string indicating the name of the 'M' matrix.}
+   \item{dimnames}{An optional character vector to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
 }
 
 \details{
 Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
+
+The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the 'F' matrix and optionally to the 'M' matrix, if the 'M' matrix exists.
 
 The 'A' argument refers to the A or asymmetric matrix in the RAM approach. This matrix consists of all of the asymmetric paths (one-headed arrows) in the model. A free parameter in any row and column describes a regression of the variable represented by that row regressed on the variable represented in that column. 
 

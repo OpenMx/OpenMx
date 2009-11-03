@@ -430,6 +430,9 @@ namespaceConvertData <- function(data, modelname) {
 }
 
 namespaceSearch <- function(model, namespace, name, flat = FALSE) {
+	if (is.na(name) || is.null(name)) {
+		return(NULL)
+	}
 	if (namespace == model@name) {
 		if (name == model@name) {
 			return(model)
