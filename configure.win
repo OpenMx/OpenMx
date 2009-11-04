@@ -6,5 +6,5 @@ fi
 echo $PWD
 ${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
 ${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c
-cp inst/npsol/windows/x86/rtools2.9/libnpsol.dll inst
+cp inst/npsol/windows/x86/rtools2.10/libnpsol.dll inst
 rm -rf inst/npsol
