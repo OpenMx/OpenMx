@@ -43,7 +43,7 @@ Objects created by the mxMatrix function are of a specific \sQuote{type}, which 
 
 \sQuote{Sdiag}  \tab matrices must be square, with a value of 0 for all entries in the upper triangle and along the diagonal. No free parameters in the upper triangle or along the diagonal. \cr
 
-\sQuote{Symm}   \tab matrices must be square, and elements in the principle diagonal and lower triangular portion of the matrix may be free parameters of any value. Elements in the upper triangular portion of the matrix are constrained to be equal to those in the lower triangular portion, such that the value and parameter specificiation of the element in row i and column j is identical to to the value and specification of the element in row j and column i. Values and parameters specified in one element of the matrix are automatically applied to equivalent elements. \cr
+\sQuote{Symm}   \tab matrices must be square, and elements in the principle diagonal and lower triangular portion of the matrix may be free parameters of any value. Elements in the upper triangular portion of the matrix are constrained to be equal to those in the lower triangular portion, such that the value and parameter specificiation of the element in row i and column j is identical to to the value and specification of the element in row j and column i. \cr
 
 \sQuote{Stand}  \tab matrices are symmetric matrices (see 'Symm') with 1's along the main diagonal. \cr
 
