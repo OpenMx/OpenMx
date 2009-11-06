@@ -37,6 +37,8 @@ def parseTitle( mxInput ):
     match = re.match("\s*Title(.*)$", mxInput, re.MULTILINE | re.IGNORECASE)
     title = match.group(1).strip()
     title = title.replace('.','_')
+    if title == "":
+       title = "model"
     return len(match.group(0)) + 1
 
 
@@ -235,6 +237,7 @@ def parseModel( mxInput ):
 		mxInput = tryDirectives(mxInput)
 
 	print
+	print "require(OpenMx)"
 	print "makeLabels <- function(x) { sapply(x, function(y) { paste('var', y, sep = '') })}"
 	print
 

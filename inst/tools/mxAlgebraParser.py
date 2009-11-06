@@ -48,7 +48,9 @@ lex.lex()
 # Parsing rules
 
 precedence = (
-    ('left','PLUS','MINUS','PIPE','UNDERSCORE'),
+    ('left','UNDERSCORE'),
+    ('left','PIPE'),
+    ('left','PLUS','MINUS'),
     ('left','ASTERISK','DOT','AT','AMPERSAND','PERCENT'),
     ('right','CARET'),
     ('right','UMINUS'),    
