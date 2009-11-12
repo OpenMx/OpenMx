@@ -52,7 +52,6 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	double Z;				// Z-score of Mahalnobis.  This is ((Q/n )^(1/3) - 1 + 2/(9n)) (9n/2)^(.5)
 	double Nrows;			// Number of rows in the data set--Unclear why this is returned
 	double Ncols;			// Number of columns in the (censored) data set
-	int misses;				// How many times likelihood broke on this row
 	int finalMissed;		// Whether or not likelihood was calculable in the final case
 	int modelNumber;		// Not used
 } omxFIMLRowOutput;
@@ -65,6 +64,7 @@ typedef struct omxFIMLObjective {
 	omxData* data;				// The data
 	omxMatrix* dataColumns;		// The order of columns in the data matrix
 	omxMatrix* dataRow;			// One row of data
+	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 
 //	double* zeros;
 	
@@ -164,6 +164,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	double logDet = 0;
 	int numDefs;
 	int numCols, numRemoves = 0;
+	int returnRowLikelihoods = 0;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *smallWeights;
 	omxMatrix *cor, *weights, *smallThresh;
@@ -194,6 +195,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	uThresh		= ((omxFIMLObjective*)oo->argStruct)->uThresh;
 	smallWeights = ((omxFIMLObjective*)oo->argStruct)->smallWeights;
 	thresholdCols = ((omxFIMLObjective*)oo->argStruct)->thresholdCols;
+	returnRowLikelihoods = ((omxFIMLObjective*)oo->argStruct)->returnRowLikelihoods;
 
 	Infin		= ((omxFIMLObjective*)oo->argStruct)->Infin;
 	maxPts		= ((omxFIMLObjective*)oo->argStruct)->maxPts;
@@ -299,6 +301,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		//	Error	&double		On return: absolute real error, 99% confidence
 		//	Value	&double		On return: evaluated value
 		//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
+		// TODO: Separate block diagonal covariance matrices into pieces for integration separately
 		double Error;
 		double absEps = 1e-3;
 		double relEps = 0;
@@ -342,31 +345,37 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			error("Improper input to sadmvn.");
 		}
 		
-		if(likelihood < 10e-10) {
+		if(likelihood < 10e-10 && returnRowLikelihoods) {
 			char errstr[250];
 			sprintf(errstr, "Likelihood 0 for row %d.", row);
 			if(OMX_DEBUG) { Rprintf(errstr); }
 			omxRaiseError(smallCov->currentState, -1, errstr);
-			return;			
+			return;
 		}
+		
+		if(returnRowLikelihoods) {
+            if(OMX_DEBUG_ROWS) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
+            omxSetMatrixElement(oo->matrix, row, 0, likelihood);
+        } else {
+            logDet = -2 * log(likelihood);
 
-		logDet = -2 * log(likelihood);
+            sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
 
-		sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
-
-		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) {
-			Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
-				sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
-		}
+            if(OMX_DEBUG_ROWS) {
+                Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+            }
+        }
 	}
 
-	if(OMX_DEBUG) {
-		Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
-			sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
-	}
+    if(!returnRowLikelihoods) {
+        if(OMX_DEBUG) {
+            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+                sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+        }
 
-	oo->matrix->data[0] = sum;
-
+        oo->matrix->data[0] = sum;
+    }
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
@@ -394,24 +403,28 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	double zerod = 0.0;
 	int onei = 1;
 	double Q = 0.0;
-	double logDet = 0;
+	double determinant = 1.0;
 	int numDefs;
 	int numCols, numRemoves;
+	int returnRowLikelihoods;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;
 	omxDefinitionVar* defVars;
 	omxData *data;
 
-	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;		// Locals, for readability.  Should compile out.
-	means		= ((omxFIMLObjective*)oo->argStruct)->means;
-	smallRow 	= ((omxFIMLObjective*)oo->argStruct)->smallRow;
-	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
-	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
-	data		= ((omxFIMLObjective*)oo->argStruct)->data;
-	dataColumns	= ((omxFIMLObjective*)oo->argStruct)->dataColumns;
-	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
-	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
-
+    omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+    
+	cov 		= ofo->cov;		// Locals, for readability.  Should compile out.
+	means		= ofo->means;
+	smallRow 	= ofo->smallRow;
+	smallCov 	= ofo->smallCov;
+	RCX 		= ofo->RCX;
+	data		= ofo->data;
+	dataColumns	= ofo->dataColumns;
+	defVars		= ofo->defVars;
+	numDefs		= ofo->numDefs;
+    returnRowLikelihoods = ofo->returnRowLikelihoods;
+    
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
@@ -426,7 +439,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	for(int row = 0; row < data->rows; row++) {
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		logDet = 1.0;
+		determinant = 1.0;
 		Q = 0.0;
 
 		numCols = 0;
@@ -479,9 +492,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			return;
 		}
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
-			logDet *= omxMatrixElement(smallCov, diag, diag);
+			determinant *= omxMatrixElement(smallCov, diag, diag);
 		}
-		logDet = log(logDet * logDet);
+		determinant = determinant * determinant;
 		
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
@@ -493,12 +506,20 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
-		sum += logDet + Q + (log(2 * M_PI) * smallRow->cols);
-		if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", logDet, Q, (log(2 * M_PI) * smallRow->cols), logDet + Q + (log(2 * M_PI) * smallRow->cols), sum);}
+        if(returnRowLikelihoods) {
+            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, smallRow->cols), determinant, exp(Q), pow(2 * M_PI, smallRow->cols) * determinant * exp(Q));}
+            sum = pow(2 * M_PI, smallRow->cols) * determinant * exp(Q);
+            omxSetMatrixElement(oo->matrix, row, 0, sum);
+        } else {
+            sum += log(determinant) + Q + (log(2 * M_PI) * smallRow->cols);
+            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);}
+        }
 	}
 
-	if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-	oo->matrix->data[0] = sum;
+    if(!returnRowLikelihoods) {
+	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+	   omxSetMatrixElement(oo->matrix, 0, 0, sum);
+    }
 
 }
 
@@ -553,6 +574,14 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
 	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);
+	
+	if(OMX_DEBUG) {Rprintf("Accessing row likelihood option.\n"); }
+	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
+	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
+	if(newObj->returnRowLikelihoods) {
+	   omxResizeMatrix(oo->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
+    }
 	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
