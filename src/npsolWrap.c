@@ -620,8 +620,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Free data memory */
 	omxFreeState(currentState);
-
+	
 	UNPROTECT(13);						// Unprotect Output Parameters
+
+	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
 	return(ans);
 
@@ -656,6 +658,7 @@ void F77_SUB(objectiveFunction)
 		if(OMX_DEBUG) {
 			Rprintf("Objective Value is incorrect.\n", objectiveMatrix->data[0]);
 		}
+		omxRaiseError(currentState, -1, "Objective returned invalid value.");
 		*mode = -1;
 	}
 

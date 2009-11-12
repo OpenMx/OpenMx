@@ -296,7 +296,6 @@ void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
 
 unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
-	if(OMX_DEBUG) { Rprintf("(%d x %d) ", om->rows, om->cols); }
 	for(int i = 0; i < om->numPopulateLocations; i++) {
 		if(omxNeedsUpdate(om->populateFrom[i])) return TRUE;	// Make sure it's up to date
 	}

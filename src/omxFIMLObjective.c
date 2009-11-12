@@ -475,7 +475,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			zeros[j] = 0;
 		}
 
-		if(cov->cols <= numRemoves) continue;
+		if(cov->cols <= numRemoves) {
+            if(returnRowLikelihoods) {
+                omxSetMatrixElement(oo->matrix, row, 0, 1);
+            }
+            continue;
+        }
+        
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 		
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
