@@ -513,8 +513,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
         if(returnRowLikelihoods) {
-            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, smallRow->cols), determinant, exp(Q), pow(2 * M_PI, smallRow->cols) * determinant * exp(Q));}
-            sum = pow(2 * M_PI, smallRow->cols) * determinant * exp(Q);
+            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
+            sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q);
             omxSetMatrixElement(oo->matrix, row, 0, sum);
         } else {
             sum += log(determinant) + Q + (log(2 * M_PI) * smallRow->cols);

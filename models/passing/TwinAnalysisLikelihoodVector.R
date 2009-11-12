@@ -109,11 +109,11 @@ twinACEModel <- mxModel("twinACE",
 	    mxFIMLObjective(
 			covariance="twinACE.expCovDZ", 
 			means="twinACE.expMean", 
-			dimnames=selVars
+			dimnames=selVars, vector=TRUE
 		)
 	),
     mxAlgebra(
-		expression=(-2.0 *sum(log(MZ.objective))) + DZ.objective, 
+		expression=-2.0 *sum(log(MZ.objective), log(DZ.objective)), 
 		name="twin"
 	), 
 	mxAlgebraObjective("twin")
