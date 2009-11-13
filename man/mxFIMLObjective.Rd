@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA)
+mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE)
 }
 
 
@@ -17,10 +17,11 @@ mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA)
    \item{means}{A character string indicating the name of the expected means algebra.}
    \item{dimnames}{An optional character vector to be assigned to the dimnames of the covariance and means algebras.}
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
+   \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxFIMLObjective function uses full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the 'covariance' and 'means' arguments. The 'covariance' argument takes an \link{MxAlgebra} object, which defines the expected covariance of an associated \link{MxData} object. The 'means' argument takes an \link{MxAlgebra} object, which defines the expected means of an associated \link{MxData} object. The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the dimnames of the means vector, and the row and columns dimnames of the covariance matrix.
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxFIMLObjective function uses full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the 'covariance' and 'means' arguments. The 'covariance' argument takes an \link{MxAlgebra} object, which defines the expected covariance of an associated \link{MxData} object. The 'means' argument takes an \link{MxAlgebra} object, which defines the expected means of an associated \link{MxData} object. The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the dimnames of the means vector, and the row and columns dimnames of the covariance matrix. The 'vector' argument is either TRUE or FALSE, and determines whether the objective function returns a column vector of the likelihoods, or a single -2*(log likelihood) value.
 
 mxFIMLObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxFIMLObjective function, but must be included in the \link{MxModel} object. mxFIMLObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'raw'. Missing values are permitted in the associated \link{MxData} object.
 
