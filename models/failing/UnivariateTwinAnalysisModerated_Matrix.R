@@ -7,9 +7,16 @@
 ##########################################
 require(OpenMx)
 #Prepare Data
+<<<<<<< .mine
+twinData <- read.table("myTwinData2.txt", header=F, na.strings=".")
+twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
+names(twinData)<-twinVars
+
+=======
 data("myTwinData", package="OpenMx") # data are in the file "myTwinData.txt" in the package's data folder
 myTwinData[myTwinData=="."]=NA # na.strings="."
 twinData <- subset(myTwinData, !is.na(age))
+>>>>>>> .r893
 summary(twinData)
 selVars <- c('bmi1','bmi2')
 mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2,age)))
@@ -20,6 +27,16 @@ summary(mzfData)
 
 #Fit ACE Model with RawData and Matrices Input
 twinACEModel <- mxModel("ACE", 
+<<<<<<< .mine
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=1, label="a", name="X"),
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=1, label="c", name="Y"),
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=1, label="e", name="Z"),
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=.10, label="amod", name="Xmod"),
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=.10, label="cmod", name="Ymod"),
+        mxMatrix("Full", nrow=1, ncol=1, free=F, values=.10, label="emod", name="Zmod"),
+#        mxBounds(c("c", "e"), NA, 0),
+#        mxBounds(c("a"), 0, NA),
+=======
     mxMatrix("Full", nrow=1, ncol=1, free=T, values=0.3352, label="a", name="X"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="c", name="Y"),
     mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=-.6, label="e", name="Z"),
@@ -29,6 +46,7 @@ twinACEModel <- mxModel("ACE",
     mxBounds(c("c", "e"), NA, 0),
     mxBounds(c("a"), 0, NA),
 
+>>>>>>> .r893
     mxModel("MZ",
         mxData(mzfData, type="raw"), 
         mxMatrix("Full", nrow=1, ncol=1, free=F, label="data.age", name="Age"),
@@ -43,7 +61,7 @@ twinACEModel <- mxModel("ACE",
                          cbind(A + C    , A + C + E)), 
                          dimnames = list(selVars, selVars), name="expCovMZ"),
 
-        mxMatrix("Full", 1, 2, T, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
+        mxMatrix("Full", 1, 2, F, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanMZ"), 
         mxFIMLObjective("expCovMZ", "expMeanMZ")
     ),
 
@@ -61,7 +79,7 @@ twinACEModel <- mxModel("ACE",
         mxAlgebra(rbind (cbind(A + C + E  , h %x% A + C),
                          cbind(h %x% A + C, A + C + E)), dimnames = list(selVars, selVars), name="expCovDZ"),
         
-        mxMatrix("Full", 1, 2, T, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanDZ"), 
+        mxMatrix("Full", 1, 2, F, c(20,20), labels= c("mean","mean"), dimnames=list(NULL, selVars), name="expMeanDZ"), 
         mxFIMLObjective("expCovDZ", "expMeanDZ")),
  
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
@@ -70,6 +88,7 @@ twinACEModel <- mxModel("ACE",
 
 #Run ACE model
 twinACEFit <- mxRun(twinACEModel)
+summary(twinACEFit)
 
 #Check results against hard-coded Mx results
 MZc    <- mxEval(expCovMZ,  twinACEFit$MZ)

@@ -42,25 +42,12 @@ selvars<-c("x","y")
 #write data to a file for the mx script to read (not necessary for running in R)
 write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
 
-# Three covariance model matrices: 
-#  "cov" for the zero relationship group
-#  "def" for the definition variable, 
-#   and "beta" for estimating difference between groups' covariances
-# One common mean vector, "M"
-
-#define the model, including a FIML objective function, which will optimize the matrix S
+#define the model with path commands, triggered by type="RAM"
 defmeansmodel<-mxModel("Definition Means via Paths", 
 				type="RAM",
 				mxData(data.frame(y,def), type="raw"),
 			      manifestVars=c("x","y"),
 				  latentVars="DefDummy",
-# this does not work 
-#				mxPath(from=c("x","y"), to=c("x","y"),
-#					arrows=2,
-#					free=TRUE,
-#					values=c(1,.1,1),
-#					labels=c("Varx","Covxy","Vary")
-#			            ), # variances and covariance
 	   			mxPath(from=c("x","y"), 
 	   				arrows=2,
 	   				free=TRUE,
