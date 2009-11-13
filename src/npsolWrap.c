@@ -201,7 +201,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numMats; k++) {
 		omxRecompute(currentState->matrixList[k]);
 	}
-	
+
 	for(k = 0; k < currentState->numAlgs; k++) {
 		omxRecompute(currentState->algebraList[k]);
 	}
@@ -620,7 +620,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Free data memory */
 	omxFreeState(currentState);
-	
+
 	UNPROTECT(13);						// Unprotect Output Parameters
 
 	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
@@ -654,11 +654,19 @@ void F77_SUB(objectiveFunction)
 
 	/* Derivative Calculation Goes Here. */
 
-	if(isnan(objectiveMatrix->data[0]) || isinf(objectiveMatrix->data[0])) {
+	if(isnan(objectiveMatrix->data[0])) {
 		if(OMX_DEBUG) {
-			Rprintf("Objective Value is incorrect.\n", objectiveMatrix->data[0]);
+			Rprintf("Objective value is NaN.\n");
 		}
-		omxRaiseError(currentState, -1, "Objective returned invalid value.");
+		omxRaiseError(currentState, -1, "Objective function returned a value of NaN.");
+		*mode = -1;
+	}
+
+	if(isinf(objectiveMatrix->data[0])) {
+		if(OMX_DEBUG) {
+			Rprintf("Objective Value is infinite.\n");
+		}
+		omxRaiseError(currentState, -1, "Objective function returned an infinite value.");
 		*mode = -1;
 	}
 
