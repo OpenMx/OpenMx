@@ -73,5 +73,5 @@ twinACEFit <- mxRun(twinACEModel)
 # Check results against hard-coded Mx1 estimates and likelihood
 estimates<-as.vector(c(twinACEFit@matrices$X@values,twinACEFit@matrices$Y@values,twinACEFit@matrices$Z@values,twinACEFit@matrices$expMean@values[1,1]))
 fitStatistics<-c(twinACEFit@objective@result)
-omxCheckCloseEnough(as.vector(c(-0.7974,-0.4196,0.4509,-0.0254,10165.966)),as.vector(c(estimates,fitStatistics)),.001)
+omxCheckCloseEnough(as.vector(c(-0.7974,-0.4196,0.4509,-0.0254,10165.966)),as.vector(c(estimates,fitStatistics)),.005)
 
