@@ -16,7 +16,10 @@
 library(OpenMx)
 
 # Define a model
-model <- mxModel("fa\xE7ile")
+name <- "fa\xE7ile"
+Encoding(name) <- "latin1"
+name <- iconv(name, "latin1", "UTF-8")
+model <- mxModel(name)
 model <- mxModel(model, mxMatrix("Full", values = c(0,0.2,0,0), name="\\delta A", nrow=2, ncol=2))
 model <- mxModel(model, mxMatrix("Symm", values = c(0.8,0,0,0.8), name="\\delta S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Iden", name="\\delta F", nrow=2, ncol=2, dimnames = list(c('a','b'), c('a','b'))))
