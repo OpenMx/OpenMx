@@ -88,6 +88,8 @@ model <- mxModel(model, mxAlgebra(A[1,], name = 'test30f'))
 model <- mxModel(model, mxAlgebra(A[,1], name = 'test30g'))
 model <- mxModel(model, mxAlgebra(A[0,], name = 'test30h'))
 model <- mxModel(model, mxAlgebra(A[,0], name = 'test30i'))
+model <- mxModel(model, mxAlgebra(A[,1] + B[,2], name = 'test30j'))
+model <- mxModel(model, mxAlgebra(A[1,] + B[2,], name = 'test30k'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -156,5 +158,5 @@ omxCheckCloseEnough(model[['test30f']]@result, t(as.matrix(A@values[1,])), 0.001
 omxCheckCloseEnough(model[['test30g']]@result, as.matrix(A@values[,1]), 0.001)
 suppressWarnings(omxCheckCloseEnough(model[['test30h']]@result, as.matrix(A@values[0,]), 0.001))
 suppressWarnings(omxCheckCloseEnough(model[['test30i']]@result, as.matrix(A@values[,0]), 0.001))
-
-
+omxCheckCloseEnough(model[['test30j']]@result, mxEval(A[,1] + B[,2], model, compute=TRUE), 0.001)
+omxCheckCloseEnough(model[['test30k']]@result, mxEval(A[1,] + B[2,], model, compute=TRUE), 0.001)
