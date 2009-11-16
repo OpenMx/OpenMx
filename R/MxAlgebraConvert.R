@@ -40,6 +40,8 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
         charFormula <- as.character(formula)
         if (is.numeric(formula)) {
             flatModel <- insertNumericValue(formula, flatModel)
+        } else if (identical(charFormula, "")) {
+            flatModel <- insertNumericValue(matrix(0,0,0), flatModel)
         } else if (charFormula %in% convertArguments$values) {
             flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
         } else if (charFormula %in% convertArguments$parameters) {
@@ -130,6 +132,13 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
             if (nrow(value) == nrow(constMatrix) &&
                 ncol(value) == ncol(constMatrix) &&
                 all(value == constMatrix)) {
+                return(as.symbol(flatModel@constMatrices[[i]]@name))
+            }
+        }
+    } else if (identical(as.character(value), "")) {
+        for (i in 1:length(flatModel@constMatrices)) {
+            constMatrix <- flatModel@constMatrices[[i]]@values
+            if (nrow(constMatrix) == 0 && ncol(constMatrix) == 0) {
                 return(as.symbol(flatModel@constMatrices[[i]]@name))
             }
         }

@@ -175,6 +175,12 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 
 }
 
+void omxZeroByZeroMatrix(omxMatrix *om) {
+	if (om->rows > 0 || om->cols > 0) {
+		omxResizeMatrix(om, 0, 0, FALSE);
+	}
+}
+
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }

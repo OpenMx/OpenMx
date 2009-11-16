@@ -5,7 +5,7 @@ trunk
 * renamed omxCheckEquals() to omxCheckIdentical().  Replaced "==" comparison with a call to function "identical" so that NAs can be compared using this function.
 * for RAM objective functions, added checking of column names of F and M matrices
 * added 'dimnames' argument to mxRAMObjective() function. Populates the column names of F and M matrices.
-
+* added square bracket operator to MxAlgebra expressions.  A[x,y] or A[,y] or A[x,] or A[,] are valid.
 
 Release 0.2.2-951
 =================

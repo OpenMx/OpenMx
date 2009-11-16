@@ -26,6 +26,11 @@ omxVerifyReference <- function(reference, location) {
             "in", location, "is illegal because it can be interpreted",
             "as a number"), call. = FALSE)
     }
+    if (identical(reference, "")) {
+        stop(paste("The reference", omxQuotes(reference),
+            "in", location, "is illegal because references",
+            "of zero length are not allowed"), call. = FALSE)
+    }
 	if (hasSquareBrackets(reference) && !isSubstitution(reference)) {
         stop(paste("The reference", omxQuotes(reference),
             "in", location, "is illegal because it has square brackets",
@@ -105,7 +110,7 @@ simplifyName <- function(flatName, modelName) {
 
 omxReverseIdentifier <- function(model, name) {
 	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
-	if(length(components) == 1) {
+	if(length(components) < 2) {
 		namespace <- model@name
 	} else if (length(components) == 2) {
 		if (components[[1]] == 'data') {
@@ -307,6 +312,7 @@ checkNamespaceAlgebra <- function(algebra, model, namespace) {
 checkNamespaceFormula <- function(formula, model, algebra, namespace) {
 	if (length(formula) == 1) {
         if (is.numeric(formula)) {
+        } else if (identical(as.character(formula), "")) {
         } else {
     		checkNamespaceIdentifier(as.character(formula), model, algebra@name, namespace)
         }
@@ -392,6 +398,7 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
             (as.character(formula) %in% namespace$parameters || 
              as.character(formula) %in% namespace$values)) {
         } else if (is.numeric(formula)) {
+        } else if (identical(as.character(formula), "")) {
         } else {
             result <- omxConvertIdentifier(formula, modelname, namespace)
             if (is.symbol(formula) && is.character(result)) {
@@ -430,7 +437,7 @@ namespaceConvertData <- function(data, modelname) {
 }
 
 namespaceSearch <- function(model, namespace, name, flat = FALSE) {
-	if (is.na(name) || is.null(name)) {
+	if (is.na(name) || is.null(name) || identical(name, "")) {
 		return(NULL)
 	}
 	if (namespace == model@name) {

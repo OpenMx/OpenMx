@@ -99,6 +99,7 @@ struct omxMatrix {						// A matrix
 	void omxMarkDirty(omxMatrix *om);
 
 /* Other Functions */
+	void omxZeroByZeroMatrix(omxMatrix *source);
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 	 						unsigned short keepMemory);					// Resize, with or without re-initialization
 	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 	// Create an omxMatrix from an R MxMatrix 

@@ -278,6 +278,53 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}	
 }
 
+void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result) {
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Extract.\n");}
+
+	omxMatrix* inMat = matList[0];
+	omxMatrix* rowMatrix = matList[1];
+	omxMatrix* colMatrix = matList[2];
+
+	if (rowMatrix->rows == 1 && colMatrix->rows == 1) {
+		int row = omxMatrixElement(rowMatrix, 0, 0) - 1;
+		int col = omxMatrixElement(colMatrix, 0, 0) - 1;
+		if (row == -1 || col == -1) {
+			omxZeroByZeroMatrix(result);
+			return;
+		} else if (!(result->rows == 1 && result->cols == 1)) {
+			omxResizeMatrix(result, 1, 1, FALSE);
+		}
+		omxSetMatrixElement(result, 0, 0, omxMatrixElement(inMat, row, col));
+	} else if (rowMatrix->rows == 0 && colMatrix->rows == 0) {
+		omxCopyMatrix(result, inMat);
+	} else if (rowMatrix->rows == 0) {
+		int rowSize = inMat->rows;
+		int col = omxMatrixElement(colMatrix, 0, 0) - 1;
+		if (col == -1) { 
+			omxZeroByZeroMatrix(result);
+			return;
+		} else if (!(result->rows == rowSize && result->cols == 1)) {
+			omxResizeMatrix(result, rowSize, 1, FALSE);
+		}
+		for(int i = 0; i < rowSize; i++) {
+			omxSetMatrixElement(result, i, 0, omxMatrixElement(inMat, i, col));
+		}
+	} else if (colMatrix->rows == 0) {
+		int colSize = inMat->cols;
+		int row = omxMatrixElement(rowMatrix, 0, 0) - 1;
+		if (row == -1) { 
+			omxZeroByZeroMatrix(result);
+			return;
+		} else if (!(result->cols == colSize && result->rows == 1)) {
+			omxResizeMatrix(result, 1, colSize, FALSE);
+		}
+		for(int i = 0; i < colSize; i++) {
+			omxSetMatrixElement(result, 0, i, omxMatrixElement(inMat, row, i));
+		}
+	}
+}
+
 void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	

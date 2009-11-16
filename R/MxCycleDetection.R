@@ -92,7 +92,7 @@ addObjectiveDetection <- function(objective, dependencies) {
 
 addMatrixDetection <- function(matrix, dependencies) {
 	subs <- sapply(matrix@labels, isSubstitution)
-	subs <- matrix@labels[subs]
+	if (length(subs) > 0) subs <- matrix@labels[subs] 
 	if (length(subs) > 0) {
 		for(i in 1:length(subs)) {
 			asub <- subs[[i]]
