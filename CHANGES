@@ -6,6 +6,7 @@ trunk
 * for RAM objective functions, added checking of column names of F and M matrices
 * added 'dimnames' argument to mxRAMObjective() function. Populates the column names of F and M matrices.
 * added square bracket operator to MxAlgebra expressions.  A[x,y] or A[,y] or A[x,] or A[,] are valid.
+* mxModel(remove=TRUE) accepts both character names or S4 named entities.
 
 Release 0.2.2-951
 =================

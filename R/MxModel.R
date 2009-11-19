@@ -379,6 +379,9 @@ modelRemoveFilter <- function(model, entries, names, bounds) {
 	if (is.null(head)) {
 	} else if(is.character(head) && (length(head) == 1)) {
 		names[[nLength + 1]] <- head
+	} else if(isS4(head) && ("name" %in% slotNames(head))) {
+		entityName <- head@name
+		names[[nLength + 1]] <- entityName		
 	} else if(is(head, "MxBounds")) {
 		bounds[[bLength + 1]] <- head
 	} else if(omxIsPath(head)) {
