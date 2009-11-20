@@ -97,6 +97,22 @@ typedef struct omxFIMLObjective {
 
 } omxFIMLObjective;
 
+void omxDestroyFIMLObjective(omxObjective *oo) {
+
+}
+
+omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
+	*numReturns = 1;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+
+	retVal[0].numValues = 1;
+	retVal[0].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
+	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+	
+	return retVal;
+}
+
 void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, int numDefs) {
 
 	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
@@ -114,10 +130,6 @@ void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, 
 			}
 		}
 	}
-}
-
-void omxDestroyFIMLObjective(omxObjective *oo) {
-
 }
 
 void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights) {
@@ -344,15 +356,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		if(inform == 2) {
 			error("Improper input to sadmvn.");
 		}
-		
-		if(likelihood < 10e-10 && returnRowLikelihoods) {
-			char errstr[250];
-			sprintf(errstr, "Likelihood 0 for row %d.", row);
-			if(OMX_DEBUG) { Rprintf(errstr); }
-			omxRaiseError(smallCov->currentState, -1, errstr);
-			return;
-		}
-		
+
 		if(returnRowLikelihoods) {
             if(OMX_DEBUG_ROWS) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
             omxSetMatrixElement(oo->matrix, row, 0, likelihood);
@@ -376,18 +380,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
         oo->matrix->data[0] = sum;
     }
-}
-
-omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
-	*numReturns = 1;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
-	
-	return retVal;
 }
 
 void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -492,10 +484,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		/* The Calculation */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
-			char errStr[250];
-			sprintf(errStr, "Expected covariance matrix is not positive-definite in row %d.\n", row);
-			omxRaiseError(oo->matrix->currentState, -1, errStr);
-			return;
+			if(!returnRowLikelihoods) {
+				char errStr[250];
+				sprintf(errStr, "Expected covariance matrix is not positive-definite in row %d.\n", row);
+				omxRaiseError(oo->matrix->currentState, -1, errStr);
+				return;
+			} else {
+				omxSetMatrixElement(oo->matrix, row, 0, 0.0);
+				continue;
+			}
 		}
 		for(int diag = 0; diag < (smallCov->rows); diag++) {
 			determinant *= omxMatrixElement(smallCov, diag, diag);
@@ -504,10 +501,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
-			char errstr[250];
-			sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
-			omxRaiseError(oo->matrix->currentState, -1, errstr);
-			return;
+			if(!returnRowLikelihoods) {
+				char errstr[250];
+				sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
+				omxRaiseError(oo->matrix->currentState, -1, errstr);
+				return;
+			} else {
+				omxSetMatrixElement(oo->matrix, row, 0, 0.0);
+				continue;
+			}
 		}
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);

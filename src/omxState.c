@@ -70,6 +70,7 @@
 			omxFreeData(oo->dataList[k]);
 		}
 		
+		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}
 	
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {
