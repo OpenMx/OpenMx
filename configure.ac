@@ -45,12 +45,7 @@ linux)
    npsol_library="${npsol_library}/linux/${omx_arch}/gcc${major_release}"
 ;;
 osx)
-   case "${host_cpu}" in
-   *86_64) omx_arch=x86_64 ;;
-   *) omx_arch=x86ppc ;;
-   esac
-
-   npsol_library="${npsol_library}/osx/${omx_arch}"
+   npsol_library="${npsol_library}/osx"
 ;;
 *)
    AC_MSG_ERROR(openmx platform is not recognized: ${omx_platform})
