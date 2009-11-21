@@ -28,8 +28,8 @@ twinACEModel <- mxModel("twinACE",
         mxMatrix("Full", 1, 2, T, 20, "mean", name="expMean"), 
 
                 # Matrices X, Y, and Z to store the a, c, and e path coefficients
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
+        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=0, label="a", name="X"),
+        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=0, label="c", name="Y"),
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=.1, ubound=10, label="e", name="Z"),
 
                 # Matrixes A, C, and E to compute A, C, and E variance components
@@ -73,5 +73,5 @@ twinACEFit <- mxRun(twinACEModel)
 # Check results against hard-coded Mx1 estimates and likelihood
 estimates <- mxEval(as.vector(c(X, Y, Z, expMean[1,1])), twinACEFit)
 fitStatistics <- mxEval(objective, twinACEFit)
-omxCheckCloseEnough(as.vector(c(-0.7974,-0.4196,0.4509,-0.0254,10165.966)),as.vector(c(estimates,fitStatistics)),.005)
+omxCheckCloseEnough(as.vector(c(0.7974,0.4196,0.4509,-0.0254,10165.966)),as.vector(c(estimates,fitStatistics)),.005)
 
