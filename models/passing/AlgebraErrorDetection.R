@@ -54,3 +54,9 @@ omxCheckError(mxMatrix('Full', 1, 1, name = 'B', labels = 'A[foo,bar]'),
 	paste("The reference 'A[foo,bar]' in matrix 'B'",
 	"is illegal because it has square brackets but it is",
 	"not a valid substitution")) 
+kevin <- 'bacon'
+B <- mxAlgebra(A[kevin, ], name = 'B')
+dimnames(A) <- list('Tom', 'Cruise')
+model <- mxModel('model', A, B)
+omxCheckError(mxRun(model), paste("The matrix 'model.A' does",
+	"not contain the row name 'bacon'"))

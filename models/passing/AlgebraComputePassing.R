@@ -20,7 +20,14 @@ A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
 B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
 C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')
 
-model <- mxModel(A, B, C)
+dimnames(A) <- list(letters[1:5], letters[22:26])
+dimnames(B) <- dimnames(A)
+dimnames(C) <- list(letters[1:6], letters[22:26])
+
+model <- mxModel(A, B, C, name = 'model')
+zeta <- 'z'
+alpha <- 'a'
+two <- 2
 
 # Insert passing tests
 model <- mxModel(model, mxAlgebra(A * (B + A), name = 'parens'))
@@ -90,6 +97,13 @@ model <- mxModel(model, mxAlgebra(A[0,], name = 'test30h'))
 model <- mxModel(model, mxAlgebra(A[,0], name = 'test30i'))
 model <- mxModel(model, mxAlgebra(A[,1] + B[,2], name = 'test30j'))
 model <- mxModel(model, mxAlgebra(A[1,] + B[2,], name = 'test30k'))
+model <- mxModel(model, mxAlgebra(A['a','v'], name = 'test30l'))
+model <- mxModel(model, mxAlgebra(A['d','v'], name = 'test30m'))
+model <- mxModel(model, mxAlgebra(A['e',], name = 'test30n'))
+model <- mxModel(model, mxAlgebra(A[,'z'], name = 'test30o'))
+model <- mxModel(model, mxAlgebra(A[,zeta], name = 'test30p'))
+model <- mxModel(model, mxAlgebra(A[alpha,], name = 'test30q'))
+model <- mxModel(model, mxAlgebra(A[two,two], name = 'test30r'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -153,10 +167,18 @@ omxCheckCloseEnough(model[['test30a']]@result, A@values[1,1], 0.001)
 suppressWarnings(omxCheckCloseEnough(model[['test30b']]@result, A@values[1,0], 0.001))
 suppressWarnings(omxCheckCloseEnough(model[['test30c']]@result, A@values[0,1], 0.001))
 suppressWarnings(omxCheckCloseEnough(model[['test30d']]@result, A@values[0,0], 0.001))
-omxCheckCloseEnough(model[['test30e']]@result, A@values[,], 0.001)
-omxCheckCloseEnough(model[['test30f']]@result, t(as.matrix(A@values[1,])), 0.001)
-omxCheckCloseEnough(model[['test30g']]@result, as.matrix(A@values[,1]), 0.001)
+omxCheckCloseEnough(model[['test30e']]@result, mxEval(A[,], model), 0.001)
+omxCheckCloseEnough(model[['test30f']]@result, mxEval(A[1,], model), 0.001)
+omxCheckCloseEnough(model[['test30g']]@result, mxEval(A[,1], model), 0.001)
 suppressWarnings(omxCheckCloseEnough(model[['test30h']]@result, as.matrix(A@values[0,]), 0.001))
 suppressWarnings(omxCheckCloseEnough(model[['test30i']]@result, as.matrix(A@values[,0]), 0.001))
-omxCheckCloseEnough(model[['test30j']]@result, mxEval(A[,1] + B[,2], model, compute=TRUE), 0.001)
-omxCheckCloseEnough(model[['test30k']]@result, mxEval(A[1,] + B[2,], model, compute=TRUE), 0.001)
+omxCheckCloseEnough(model[['test30j']]@result, mxEval(A[,1] + B[,2], model), 0.001)
+omxCheckCloseEnough(model[['test30k']]@result, mxEval(A[1,] + B[2,], model), 0.001)
+omxCheckCloseEnough(model[['test30l']]@result, A@values['a','v'], 0.001)
+omxCheckCloseEnough(model[['test30m']]@result, A@values['d','v'], 0.001)
+omxCheckCloseEnough(model[['test30n']]@result, mxEval(A['e',], model), 0.001)
+omxCheckCloseEnough(model[['test30o']]@result, mxEval(A[,'z'], model), 0.001)
+omxCheckCloseEnough(model[['test30p']]@result, mxEval(A[,zeta], model), 0.001)
+omxCheckCloseEnough(model[['test30q']]@result, mxEval(A[alpha,], model), 0.001)
+omxCheckCloseEnough(model[['test30r']]@result, mxEval(A[two,two], model), 0.001)
+

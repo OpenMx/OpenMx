@@ -42,6 +42,17 @@ evaluateTranslation <- function(formula, model, labelsData) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
 		formula <- translateSymbol(formula, model, labelsData)
+	} else if (len == 4 && identical(as.character(formula[1]), '[')) {
+		formula[-1] <- lapply(formula[-1], 
+			evaluateTranslation, model, labelsData)
+		# The order of the if/else-if matters
+		# as.matrix(x) should be invoked on A[,y] and A[,]
+		# t(as.matrix(x)) should be invoked on A[x,]
+		if (identical(as.character(formula[3]), '')) {
+			formula <- substitute(as.matrix(x), list(x = formula))
+		} else if (identical(as.character(formula[4]), '')) {
+			formula <- substitute(t(as.matrix(x)), list(x = formula))
+		}
 	} else {
 		formula[-1] <- lapply(formula[-1], 
 			evaluateTranslation, model, labelsData)
@@ -151,6 +162,17 @@ showTranslation <- function(formula, model, modelVariable, labelsData) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
 		formula <- showSymbol(formula, model, modelVariable, labelsData)
+	} else if (len == 4 && identical(as.character(formula[1]), '[')) {
+		formula[-1] <- lapply(formula[-1], 
+			showTranslation, model, modelVariable, labelsData)
+		# The order of the if/else-if matters
+		# as.matrix(x) should be invoked on A[,y] and A[,]
+		# t(as.matrix(x)) should be invoked on A[x,]
+		if (identical(as.character(formula[3]), '')) {
+			formula <- substitute(as.matrix(x), list(x = formula))
+		} else if (identical(as.character(formula[4]), '')) {
+			formula <- substitute(t(as.matrix(x)), list(x = formula))
+		}
 	} else {
 		formula[-1] <- lapply(formula[-1], 
 			showTranslation, model, modelVariable, labelsData)

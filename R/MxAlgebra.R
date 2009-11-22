@@ -81,7 +81,7 @@ formulaList <- function(x) {
 
 algebraSymbolCheck <- function(formula, name) {
 	formula <- unlist(formulaList(formula))
-	test <- sapply(formula, function(x) {!is.numeric(x)})
+	test <- sapply(formula, function(x) {!is.numeric(x) && !is.character(x)})
 	if(length(formula[test]) == 1) {
 		msg <- paste("The reference", omxQuotes(formula[test]),
 			"is unknown in the algebra named", omxQuotes(name))

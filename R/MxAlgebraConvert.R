@@ -50,6 +50,12 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
         } else if (exists(charFormula, envir = globalenv()) && is.numeric(get(charFormula, envir = globalenv()))) {
             flatModel <- insertOutsideValue(charFormula, flatModel)
         }
+	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
+		formula[[3]] <- translateSquareBracketArgument(formula[[3]], formula[[2]], flatModel, 1)
+		formula[[4]] <- translateSquareBracketArgument(formula[[4]], formula[[2]], flatModel, 2)
+		for (i in 2:length(formula)) {
+			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
+		}
 	} else {
 		for (i in 2:length(formula)) {
 			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
@@ -77,15 +83,69 @@ insertFreeParameter <- function(paramName, startvals, flatModel) {
     return(flatModel)
 }
 
+
+translateSquareBracketArgument <- function(arg, matrixName, model, rowCol) {
+	if (is.character(arg)) {
+		arg <- translateRowColName(matrixName, arg, model, rowCol)
+	} else if (is.symbol(arg)) {
+		charFormula <- as.character(arg)
+		if (!identical(charFormula, '') && exists(charFormula, envir = globalenv())) {
+			target <- get(charFormula, envir = globalenv())
+			if (is.character(target)) {
+				arg <- translateRowColName(matrixName, target, model, rowCol)
+			}
+		}
+	}
+	return(arg)
+}
+
+
 convertFormula <- function(formula, flatModel, convertArguments) {
 	if (length(formula) == 1) {
         formula <- lookupNumericValue(formula, flatModel, convertArguments)
+	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
+		formula[[3]] <- translateSquareBracketArgument(formula[[3]], formula[[2]], flatModel, 1)
+		formula[[4]] <- translateSquareBracketArgument(formula[[4]], formula[[2]], flatModel, 2)
+		for (i in 2:length(formula)) {
+			formula[[i]] <- convertFormula(formula[[i]], flatModel, convertArguments)
+		}	
 	} else {
 		for (i in 2:length(formula)) {
 			formula[[i]] <- convertFormula(formula[[i]], flatModel, convertArguments)
 		}
 	}
     return(formula)
+}
+
+translateRowColName <- function(symbol, argname, model, rowcol) {
+	key <- deparse(symbol)
+	lookup <- model[[key]]
+	lookupNames <- dimnames(lookup)
+	if (rowcol == 1) displayRowcol <- 'row'
+	else if (rowcol == 2) displayRowcol <- 'column'
+	if (is.null(lookupNames)) {
+		msg <- paste("The matrix", omxQuotes(key), 
+			"does not contain dimnames and",
+			"some algebra is referring",
+			"to", displayRowcol, omxQuotes(rowname), "by name")
+		stop(msg, call. = FALSE)
+	}
+	if (is.null(lookupNames[[rowcol]])) {
+		msg <- paste("The matrix", omxQuotes(key), 
+			"does not contain", displayRowcol, "names and",
+			"some algebra is referring",
+			"to", displayRowcol, omxQuotes(rowname), "by name")
+		stop(msg, call. = FALSE)
+	}
+	rcNames <- lookupNames[[rowcol]]
+	index <- match(argname, rcNames)[[1]]
+	if (is.na(index)) {
+		msg <- paste("The matrix", omxQuotes(key),
+			"does not contain the", displayRowcol, "name",
+			omxQuotes(argname))
+		stop(msg, call. = FALSE)
+	}
+	return(index)
 }
 
 insertNumericValue <- function(value, flatModel) {
