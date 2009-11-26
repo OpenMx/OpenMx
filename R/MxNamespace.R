@@ -61,6 +61,10 @@ omxVerifyName <- function(name) {
     if (identical(name, "")) {
         stop(paste("The empty string is an invalid name"), call. = FALSE)
     }
+    if (length(name) == 0) {
+        stop(paste("The string of zero length is an invalid name"),
+            call. = FALSE)
+    }
     if (isNumber(name)) {
         stop(paste("The name", omxQuotes(name),
             "is illegal because it can be interpreted",

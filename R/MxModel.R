@@ -156,7 +156,7 @@ firstArgument <- function(model, name) {
 		} else {
 			first <- list(model)
 		}
-		if (is.na(name)) {
+		if (length(name) > 0 && is.na(name)) {
 			name <- omxUntitledName()
 		}
 		omxVerifyName(name)
