@@ -56,8 +56,9 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	}
 	if (type == "raw") {
 		numObs <- nrow(observed)
-	} else if (type == 'cov' && (nrow(observed) != ncol(observed))) {
-		stop("Data argument must be a square matrix for 'cov' data type")
+	}
+	if (type == "cov") {
+		verifyCovarianceMatrix(observed)
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], omxVerifyName)
@@ -74,6 +75,25 @@ checkNumericData <- function(data) {
 		stop(msg, call. = FALSE)
 	}
 }
+
+verifyCovarianceMatrix <- function(covMatrix) {
+	if(nrow(covMatrix) != ncol(covMatrix)) {
+		msg <- paste("The observed covariance matrix",
+			"is not a square matrix")
+		stop(msg, call. = FALSE)
+	}
+	if (any(is.na(covMatrix))) {
+		msg <- paste("The observed covariance matrix",
+			"contains NA values")
+		stop(msg, call. = FALSE)	
+	}
+	if (!all(covMatrix == t(covMatrix))) {
+		msg <- paste("The observed covariance matrix",
+			"is not a symmetric matrix")
+		stop(msg, call. = FALSE)
+	}
+}
+
 
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
