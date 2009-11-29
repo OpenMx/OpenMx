@@ -65,7 +65,7 @@ checkSquareBracketMatrix <- function(matrix, model, flatModel, labelsData) {
 		} else if (is(entity, "MxAlgebra")) {
 			value <- as.matrix(eval(computeSymbol(as.symbol(identifier), flatModel, labelsData)))
 			subrow <- nrow(value)
-			subcol <- nrow(value)
+			subcol <- ncol(value)
 		} else if (is(entity, "MxObjectiveFunction")) {
 			subrow <- 1
 			subcol <- 1
