@@ -25,6 +25,8 @@ Objective functions are functions for which free parameter values are chosen suc
 
 mxFIMLObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxFIMLObjective function, but must be included in the \link{MxModel} object. mxFIMLObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'raw'. Missing values are permitted in the associated \link{MxData} object.
 
+dimnames must be supplied where the matrices referenced by the covariance and means algebras are not themselves labeled. Failure to do so leads to an error noting that the covariance or means matrix associated with the FIML objective does not contain dimnames.
+
 To evaluate, place MxFIMLObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be referenced using the \link{Extract} functionality.
 }
 
