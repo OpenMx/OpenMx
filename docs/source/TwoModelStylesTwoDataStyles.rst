@@ -341,7 +341,7 @@ Bivariate Saturated Model
 Rarely will we analyze a single variable.  As soon as a second variable is added, not only can we estimate both means and  variances, but also a covariance between the two variables, as shown in the following path diagram:
 
 .. image:: graph/BivariateSaturatedModel.png
-    :height: 1.5in
+    :height: 1.0in
   
 The path diagram for our bivariate example includes two boxes for the observed variables 'X' and 'Y', each with a two-headed arrow for the variance of each variables.  We also estimate a covariance between the two variables with the two-headed arrow connecting the two boxes.  The optional means are represented as single-headed arrows from a triangle to the two boxes.
 
