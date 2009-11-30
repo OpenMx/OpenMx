@@ -8,6 +8,7 @@ trunk
 * square bracket operator supports row and column string arguments.
 * mxModel(remove=TRUE) accepts both character names or S4 named entities.
 * added support for x86_64 on OS X 10.6 (snow leopard)
+* fixed support for x86_64 on Ubuntu 9.10 (gcc 4.4)
 
 Release 0.2.2-951
 =================
