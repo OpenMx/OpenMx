@@ -29,7 +29,7 @@ require(OpenMx)
 #------------------------------------------------------+
 
 # Data
-data <- read.table("lazarsfeld.ord",na.string=".", col.names=c("Armyrun", "Favatt", "squaredeal", "welfare", "freq"))
+data <- read.table("data/lazarsfeld.ord",na.string=".", col.names=c("Armyrun", "Favatt", "squaredeal", "welfare", "freq"))
 freq <- data[,5]
 vars <- data[,1:4]
 
@@ -40,22 +40,24 @@ nthresh <- 1
 nameList <- names(vars)
 
 class1 <- mxModel("Class1", 
-            mxMatrix("Iden", name = "R", nrow = nvar, ncol = nvar, free=F),
-            mxMatrix("Full", name = "M", nrow = 1, ncol = nvar, free=F),
-            mxMatrix("Full", name = "ThresholdsClass1", nrow = 1, ncol = nvar, dimnames = list("Threshold",nameList), free=TRUE),
-            mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="ThresholdsClass1",vector=TRUE),
-            mxData(vars, type="raw"))
+            mxMatrix("Iden", name = "R", nrow = nvar, ncol = nvar, free=FALSE),
+            mxMatrix("Full", name = "M", nrow = 1, ncol = nvar, free=FALSE),
+            mxMatrix("Full", name = "ThresholdsClass1", nrow = 1, ncol = nvar, 
+            	dimnames = list("Threshold",nameList), free=TRUE),
+            mxFIMLObjective(covariance="R", means="M", dimnames=nameList, 
+            	thresholds="ThresholdsClass1",vector=TRUE))
 
 class2 <- mxModel("Class2", 
-            mxMatrix("Iden", name = "R", values = mxEval(R, class1), free=F),
-            mxMatrix("Full", name = "M", nrow = nvar, ncol = nvar, free=F),
-            mxMatrix("Full", name = "ThresholdsClass2", nrow = 1, ncol = nvar, dimnames = list("Threshold",nameList), free=TRUE),
-            mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="ThresholdsClass2",vector=TRUE),
-            mxData(vars, type="raw"))
+            mxMatrix("Iden", name = "R", nrow = nvar, ncol = nvar, free=FALSE),
+            mxMatrix("Full", name = "M", nrow = nvar, ncol = nvar, free=FALSE),
+            mxMatrix("Full", name = "ThresholdsClass2", nrow = 1, ncol = nvar, 
+            	dimnames = list("Threshold",nameList), free=TRUE),
+            mxFIMLObjective(covariance="R", means="M", dimnames=nameList,
+            	thresholds="ThresholdsClass2",vector=TRUE))
 
 # Define the model
 
-lcamodel <- mxModel("lcamodel", class1, class2,
+lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"), 
             
 # Create class membership probabilities, constrain them to be in the range 0-1, and make their sum equal 1.0
             mxMatrix("Full", name = "ClassMembershipProbabilities", nrow = nclass, ncol = 1, free=TRUE, 
@@ -66,7 +68,8 @@ lcamodel <- mxModel("lcamodel", class1, class2,
             mxConstraint("constraintLHS","=","constraintRHS"),
 
 # Define the objective function
-            mxAlgebra(-2*sum(freq * log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), name="lca"),
+            mxAlgebra(-2*sum(freq * log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 
+            	name="lca"),
             mxAlgebraObjective("lca")
 )
 
@@ -75,8 +78,9 @@ model <- mxRun(lcamodel)
 summary(model)
 model@matrices
 
+
 # Check results against those hard-coded from old Mx:
-omxCheckCloseEnough(as.vector(mxEval(Class1.ThresholdsClass1, model)), as.vector(c(0.1805, 0.9071, 1.3169, 1.5869)),.01)
-omxCheckCloseEnough(as.vector(mxEval(Class2.ThresholdsClass2, model)), as.vector(c(-1.3247, -0.2909, -0.1466, -0.0044)),.01)
-omxCheckCloseEnough(as.vector(mxEval(ClassMembershipProbabilities, model)), as.vector(c(0.5560,0.4440)),.01)
+omxCheckCloseEnough(as.vector(mxEval(Class1.ThresholdsClass1, model)), c(-1.3247, -0.2909, -0.1466, -0.0044),.01)
+omxCheckCloseEnough(as.vector(mxEval(Class2.ThresholdsClass2, model)), c(0.1805, 0.9071, 1.3169, 1.5869),.01)
+omxCheckCloseEnough(as.vector(mxEval(ClassMembershipProbabilities, model)), c(0.4440, 0.5560),.01)
 omxCheckCloseEnough(model@output$Minus2LogLikelihood, 4696.444, 0.01)
