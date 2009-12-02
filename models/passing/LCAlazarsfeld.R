@@ -29,7 +29,8 @@ require(OpenMx)
 #------------------------------------------------------+
 
 # Data
-data <- read.table("data/lazarsfeld.ord",na.string=".", col.names=c("Armyrun", "Favatt", "squaredeal", "welfare", "freq"))
+data <- read.table("data/lazarsfeld.ord",na.string=".", 
+	col.names=c("Armyrun", "Favatt", "squaredeal", "welfare", "freq"))
 freq <- data[,5]
 vars <- data[,1:4]
 
@@ -80,7 +81,15 @@ model@matrices
 
 
 # Check results against those hard-coded from old Mx:
-omxCheckCloseEnough(as.vector(mxEval(Class1.ThresholdsClass1, model)), c(-1.3247, -0.2909, -0.1466, -0.0044),.01)
-omxCheckCloseEnough(as.vector(mxEval(Class2.ThresholdsClass2, model)), c(0.1805, 0.9071, 1.3169, 1.5869),.01)
-omxCheckCloseEnough(as.vector(mxEval(ClassMembershipProbabilities, model)), c(0.4440, 0.5560),.01)
+negativeThresholds <- as.vector(mxEval(Class1.ThresholdsClass1, model))
+positiveThresholds <- as.vector(mxEval(Class2.ThresholdsClass2, model))
+if (negativeThresholds[[1]] > 0) {
+	temp <- negativeThresholds
+	negativeThresholds <- positiveThresholds
+	positiveThresholds <- temp
+}
+
+omxCheckCloseEnough(negativeThresholds, c(-1.3247, -0.2909, -0.1466, -0.0044),.01)
+omxCheckCloseEnough(positiveThresholds, c(0.1805, 0.9071, 1.3169, 1.5869),.01)
+omxCheckCloseEnough(sort(as.vector(mxEval(ClassMembershipProbabilities, model))), c(0.4440, 0.5560),.01)
 omxCheckCloseEnough(model@output$Minus2LogLikelihood, 4696.444, 0.01)
