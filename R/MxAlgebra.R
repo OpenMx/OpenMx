@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 setClassUnion("MxListOrNull", c("list", "NULL"))
-setClassUnion("MxAlgebraFormula", c("call", "name", "logical"))
+setClassUnion("MxAlgebraFormula", c("call", "name", "language", "logical", "numeric"))
 
 setClass(Class = "MxAlgebra",
 	representation = representation(
