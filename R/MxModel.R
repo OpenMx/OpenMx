@@ -396,6 +396,11 @@ modelRemoveFilter <- function(model, entries, names, bounds) {
 }
 
 addSingleNamedEntity <- function(model, entity) {
+	if (model@name == entity@name) {
+		stop(paste("You cannot insert an entity named",
+			omxQuotes(entity@name), "into a model named",
+			omxQuotes(model@name)), call. = FALSE)
+	}
 	model[[entity@name]] <- entity
 	return(model)
 }
