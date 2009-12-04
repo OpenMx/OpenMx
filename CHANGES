@@ -1,5 +1,8 @@
 trunk
 =====
+
+Release 0.2.3-1006
+==================
 * added 'vector' argument to mxFIMLObjective() function. Specifies whether to return the likelihood vector (if TRUE) or the sum of log likelihoods (if FALSE). Default value is FALSE.
 * renamed omxCheckEquals() to omxCheckIdentical(). omxCheckIdentical() call "identical" so that NAs can be compared.
 * added checking of column names of F and M matrices in RAM objective functions.
@@ -10,6 +13,7 @@ trunk
 * added support for x86_64 on OS X 10.6 (snow leopard)
 * fixed support for x86_64 on Ubuntu 9.10 (gcc 4.4)
 * throw error message when inserting a named entity into a model with an identical name
+* added Anthony William Fairbank Edwards "Likelihood" (1972; 1984) A, B, O blood group example to online documentation
 
 Release 0.2.2-951
 =================
