@@ -54,6 +54,15 @@ html: build
 common-build: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
+common-build64: clean internal-build
+	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+
+build64: common-build64
+	rm -f $(RBUILD)/$(TARGET)
+	cd $(RBUILD); gunzip *.gz;\
+	tar --delete --file=`ls` OpenMx/npsol;\
+	gzip *.tar
+
 build: common-build
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *.gz;\
