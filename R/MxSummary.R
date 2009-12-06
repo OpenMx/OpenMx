@@ -13,26 +13,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-observedStatistics <- function(model, data) {
+observedStatistics <- function(model, data, flatModel) {
 	if (is.null(data)) {
 		return(0)
 	}
 	if (data@type == 'cov' || data@type == 'sscp') {
 		n <- nrow(data@observed)
-		dof <- n * (n + 1) / 2
+		dof <- n * (n + 1) / 2 + length(flatModel@constraints)
 		if (!single.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
 	} else if (data@type == 'cor') {
 		n <- nrow(data@observed)
-		dof <- n * (n - 1) / 2
+		dof <- n * (n - 1) / 2 + length(flatModel@constraints)
 		if (!single.na(data@means)) {
-			dof <- dof + length(data@means)
+			dof <- dof + length(data@means) 
 		}
 		return(dof)
 	} else {
-		return(sum(!is.na(data@observed)))
+		return(sum(!is.na(data@observed)) + length(flatModel@constraints))
 	}
 }
 
@@ -70,7 +70,7 @@ fitStatistics <- function(model, objective, data, retval) {
 	return(retval)
 }
 
-computeOptimizationStatistics <- function(model, matrices, parameters, objective, data) {
+computeOptimizationStatistics <- function(model, matrices, parameters, objective, data, flatModel) {
 	retval <- list()
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
@@ -106,7 +106,7 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 		retval[['parameters']] <- ptable
 	}
 	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(model, data)
+	retval[['observedStatistics']] <- observedStatistics(model, data, flatModel)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
 	retval[['SaturatedLikelihood']] <- model@output$SaturatedLikelihood
 	retval[['Minus2LogLikelihood']] <- model@output$Minus2LogLikelihood
@@ -126,7 +126,7 @@ setMethod("summary", "MxModel",
 		} else {
 			data <- NULL
 		}
-		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data)
+		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data, flatModel)
 		if (!is.null(data)) {
 			print(summary(data@observed))
 			cat('\n')
