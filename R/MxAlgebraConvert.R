@@ -46,7 +46,10 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
             flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
         } else if (charFormula %in% convertArguments$parameters) {
             flatModel <- insertFreeParameter(charFormula, convertArguments$startvals, flatModel)
+		} else if (omxIsDefinitionVariable(charFormula)) {
+             flatModel <- insertDefinitionVariable(charFormula, flatModel)
         } else if (!is.null(flatModel[[charFormula]])) {
+             # do not translate this symbol
         } else if (exists(charFormula, envir = globalenv()) && is.numeric(get(charFormula, envir = globalenv()))) {
             flatModel <- insertOutsideValue(charFormula, flatModel)
         }
@@ -83,6 +86,18 @@ insertFreeParameter <- function(paramName, startvals, flatModel) {
     return(flatModel)
 }
 
+insertDefinitionVariable <- function(defName, flatModel) {
+    value <- as.matrix(0)
+    if (!(defName %in% names(flatModel@freeMatrices))) {
+        localName <- omxUntitledName()
+        identifier <- omxIdentifier(flatModel@name, localName)
+        matrix <- mxMatrix("Full", values = value, labels = defName,
+            free = FALSE, name = localName)
+        matrix@name <- identifier
+        flatModel@freeMatrices[[defName]] <- matrix
+    }
+    return(flatModel)
+}
 
 translateSquareBracketArgument <- function(arg, matrixName, model, rowCol) {
 	if (is.character(arg)) {
@@ -185,7 +200,7 @@ insertOutsideValue <- function(varname, flatModel) {
 }
 
 lookupNumericValue <- function(value, flatModel, convertArguments) {
-    if (is.numeric(value)) {
+   if (is.numeric(value)) {
         value <- as.matrix(value)
         for (i in 1:length(flatModel@constMatrices)) {
             constMatrix <- flatModel@constMatrices[[i]]@values
@@ -213,6 +228,9 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
             }
         }
     } else if (as.character(value) %in% convertArguments$parameters) {
+        matrix <- flatModel@freeMatrices[[as.character(value)]]
+        return(as.symbol(matrix@name))
+	} else if (omxIsDefinitionVariable(as.character(value))) {
         matrix <- flatModel@freeMatrices[[as.character(value)]]
         return(as.symbol(matrix@name))
     } else if (!is.null(flatModel[[as.character(value)]])) {

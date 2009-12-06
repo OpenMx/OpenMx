@@ -39,6 +39,7 @@ mxRun <- function(model) {
 	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
+	flatModel <- populateDefInitialValues(flatModel)
 	oldFlatModel <- flatModel
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))

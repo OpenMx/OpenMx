@@ -1,5 +1,7 @@
 trunk
 =====
+* definition variables can now be used inside algebra expressions
+* definition variables inside of MxMatrices will populate to the 1st row before conformability checking. In plain english: you do not need to specify the starting values for definition variables.
 
 Release 0.2.3-1006
 ==================

@@ -130,7 +130,9 @@ computeSymbol <- function(symbol, model, labelsData) {
 				y = labelRow, z = labelCol)))
 	}
 	lookup <- model[[key]]
-	if (is.null(lookup)) {
+	if (omxIsDefinitionVariable(key)) {
+		return(definitionStartingValue(key, model))
+	} else if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
 		return(substitute(omxComputeSubstitution(model[[x]], model), list(x = key)))

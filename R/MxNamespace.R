@@ -102,6 +102,16 @@ omxIsDefinitionVariable <- function(name) {
 	}
 }
 
+isLocalDefinitionVariable <- function(name) {
+	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	if (length(components) == 2 && components[[1]] == 'data') {
+		return(TRUE)
+	} else {
+		return(FALSE)
+	}
+}
+
+
 omxIdentifier <- function(namespace, name) {
 	return(paste(namespace, name, sep = omxSeparatorChar))
 }
@@ -129,6 +139,7 @@ omxReverseIdentifier <- function(model, name) {
 	} else if (length(components) == 3) {
 		if (components[[2]] == 'data') {
 			namespace <- components[[1]]
+			name <- paste(components[[2]], components[[3]], sep = '.')
 		} else {
 			stop(paste("The reference", omxQuotes(name),
 				"has multiple separator characters."),
@@ -363,6 +374,8 @@ omxConvertSubstitution <- function(substitution, modelname, namespace) {
 omxConvertIdentifier <- function(identifier, modelname, namespace) {
     isLocalEntity <- as.character(identifier) %in% namespace$entities[[modelname]]
     if (isLocalEntity) {
+		return(omxIdentifier(modelname, identifier))
+	} else if (isLocalDefinitionVariable(as.character(identifier))) {
 		return(omxIdentifier(modelname, identifier))
     } else {
 		return(identifier)
