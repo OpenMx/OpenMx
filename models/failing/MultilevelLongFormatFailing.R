@@ -23,6 +23,7 @@ require(OpenMx)
 # This script is used to test the multilevel long format functionality using definition variables
 #    as indices.
 
+set.seed(42) # repeatibility
 tID <- rep(1:10, each=10)
 trueX <- rep(rnorm(10, mean=0, sd=2), each=10) + rnorm(100, mean=0, sd=.2)
 trueB <- rep(rnorm(10, mean=0, sd=.5), each=10)
