@@ -191,7 +191,10 @@ When a mean vector is supplied and a parameter added for the estimated mean, the
 Raw Data and Path-style Input
 -----------------------------
 
-Instead of fitting models to summary statistics, it is now popular to fit models directly to the raw data and using full information maximum likelihood (FIML).  Doing so requires specifying not only a model for the covariances, but also one for the means, just as in the case of fitting to covariance matrices and mean vectors described above.  
+Instead of fitting models to summary statistics, it is now popular to fit models directly to the raw data and using full information maximum likelihood (FIML).  Doing so requires specifying not only a model for the covariances, but also one for the means, just as in the case of fitting to covariance matrices and mean vectors described above.  The path diagram for this model, now including means (path from triangle of value 1) is as follows:
+
+.. image:: graph/UnivariateSaturatedModel.png
+
 
 ..  
 	With RAM path specification, and raw data input, OpenMx has a default model for the means, in
