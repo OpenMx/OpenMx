@@ -31,11 +31,6 @@ omxVerifyReference <- function(reference, location) {
             "in", location, "is illegal because references",
             "of zero length are not allowed"), call. = FALSE)
     }
-	if (hasSquareBrackets(reference) && !isSubstitution(reference)) {
-        stop(paste("The reference", omxQuotes(reference),
-            "in", location, "is illegal because it has square brackets",
-			"but it is not a valid substitution"), call. = FALSE)
-	}
 	if (!is.na(reference) && substring(reference, nchar(reference), 
 				nchar(reference)) == omxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
@@ -87,6 +82,18 @@ omxVerifyName <- function(name) {
 	if (name %in% names(omxReservedNames)) {
 		stop(paste("The name", omxQuotes(name),
 			"is illegal because it is a reserved name"),
+			call. = FALSE)
+	}
+	components <- unlist(strsplit(name, '[', fixed = TRUE))
+	if (length(components) > 1) {
+		stop(paste("The name", omxQuotes(name),
+			"is illegal because it contains the '[' character"),
+			call. = FALSE)
+	}
+	components <- unlist(strsplit(name, ']', fixed = TRUE))
+	if (length(components) > 1) {
+		stop(paste("The name", omxQuotes(name),
+			"is illegal because it contains the ']' character"),
 			call. = FALSE)
 	}
 }
@@ -230,7 +237,7 @@ namespaceGetValues <- function(model) {
 			labels <- unique(labels[!is.na(labels) & !x@free])
 			defVars <- sapply(labels, omxIsDefinitionVariable)
 			labels <- labels[!defVars]
-			subs <- sapply(labels, isSubstitution)
+			subs <- sapply(labels, hasSquareBrackets)
 			labels <- labels[!subs]
 			return(labels)
 		})
@@ -310,7 +317,7 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 	name <- identifier[[2]]
 	if ( !(name %in% entities[[space]]) &&
 		 !(omxIsDefinitionVariable(name)) &&
-		 !(isSubstitution(name)) &&
+		 !(hasSquareBrackets(name)) &&
 		 !(name %in% parameters) &&
          !(name %in% values) &&
          !(exists(name, envir = globalenv())) &&
@@ -383,6 +390,12 @@ omxConvertIdentifier <- function(identifier, modelname, namespace) {
 }
 
 omxConvertLabel <- function(label, modelname, dataname, namespace) {
+	if (hasSquareBrackets(label)) {
+		components <- splitSubstitution(label)
+		identifier <- omxConvertLabel(components[[1]], modelname, dataname, namespace)
+		results <- paste(identifier, '[', components[[2]], ',', components[[3]], ']', sep = '')
+		return(results)
+	}
 	components <- unlist(strsplit(label, omxSeparatorChar, fixed = TRUE))
 	if (omxIsDefinitionVariable(label)) {
 		if (length(components) == 3) {
@@ -395,8 +408,6 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 			datasource <- unlist(strsplit(dataname, omxSeparatorChar, fixed = TRUE))[[1]]
 			return(omxIdentifier(datasource, label))
 		}
-	} else if (isSubstitution(label)) {
-		return(omxConvertSubstitution(label, modelname, namespace))
 	}
 	return(omxConvertIdentifier(label, modelname, namespace))
 }

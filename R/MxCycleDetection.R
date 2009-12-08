@@ -79,10 +79,11 @@ reportCycle <- function(backedges, destination, modelname) {
 		cycle <- union(cycle, target)
 	}
 	cycle <- sapply(cycle, simplifyName, modelname)
+	report <- cycle[!sapply(cycle, hasSquareBrackets)]
 	stop(paste("A cycle has been detected",
 		"in model", omxQuotes(modelname),
 		"involving the following elements:",
-		omxQuotes(cycle)), call. = FALSE)
+		omxQuotes(report)), call. = FALSE)
 }
 
 addObjectiveDetection <- function(objective, dependencies) {
@@ -91,14 +92,12 @@ addObjectiveDetection <- function(objective, dependencies) {
 }
 
 addMatrixDetection <- function(matrix, dependencies) {
-	subs <- sapply(matrix@labels, isSubstitution)
-	if (length(subs) > 0) subs <- matrix@labels[subs] 
+	labels <- matrix@labels
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	subs <- labels[select]
 	if (length(subs) > 0) {
 		for(i in 1:length(subs)) {
-			asub <- subs[[i]]
-			pieces <- splitSubstitution(asub)
-			identifier <- pieces[[1]]
-			dependencies <- omxAddDependency(identifier, matrix@name, dependencies)
+			dependencies <- omxAddDependency(subs[[i]], matrix@name, dependencies)
 		}
 	}
 	return(dependencies)

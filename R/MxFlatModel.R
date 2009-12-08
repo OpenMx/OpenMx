@@ -17,7 +17,10 @@
 setClass(Class = "MxFlatModel",
 	representation = representation(
 		objectives = "list",
-		datasets = "list"
+		datasets = "list",
+		constMatrices = "list",
+		freeMatrices = "list",
+		outsideMatrices = "list"
 	),
 	contains = "MxModel")
 	
@@ -30,6 +33,9 @@ setMethod("initialize", "MxFlatModel",
 		}
 		.Object@objectives <- objectives
 		.Object@datasets <- datasets
+		.Object@constMatrices <- list()
+		.Object@freeMatrices <- list()
+		.Object@outsideMatrices <- list()		
 		return(.Object)
 	}
 )
@@ -138,11 +144,14 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 	values <- matrix@values
 	lbounds <- matrix@lbound
 	ubounds <- matrix@ubound
-	free <- free[!is.na(labels)]
-	values <- values[!is.na(labels)]
-	lbounds <- lbounds[!is.na(labels)]
-	ubounds <- ubounds[!is.na(labels)]
-	labels <- labels[!is.na(labels)]
+	select <- !is.na(labels)
+	free <- free[select]
+	values <- values[select]
+	lbounds <- lbounds[select]
+	ubounds <- ubounds[select]
+	rows <- row(labels)[select]
+	cols <- col(labels)[select]
+	labels <- labels[select]
 	if(length(labels) > 0) {
 		for(i in 1:length(labels)) {
 			label <- labels[[i]]
@@ -150,6 +159,8 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 			value <- values[[i]]
 			lbound <- lbounds[[i]]
 			ubound <- ubounds[[i]]
+			row <- rows[[i]]
+			col <- cols[[i]]
 			if (omxIsDefinitionVariable(label)) {
 				if (isFree) {
 					stop(paste("The definition variable", omxQuotes(label),
@@ -180,10 +191,11 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"a column with name", omxQuotes(result[[3]])), call. = FALSE)	
 				}
 			} else if (isFree) {
-				if (isSubstitution(label)) {
-					stop(paste("The substitution", omxQuotes(label),
+				if (hasSquareBrackets(label)) {
+					stop(paste("The label with square brackets",
 						"has been assigned to a free parameter",
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
+						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+						"at row", row, "and column", col), call. = FALSE)
 				} else if (label %in% fixedVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
@@ -210,7 +222,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 					bounds[[label]] <- c(lbound, ubound)
 				}
 			} else {
-				if (isSubstitution(label)) {
+				if (hasSquareBrackets(label)) {
 				} else if (label %in% freeVars) {
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a fixed value",

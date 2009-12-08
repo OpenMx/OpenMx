@@ -36,6 +36,7 @@ mxRun <- function(model) {
 	independents <- omxLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, independents)
+	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
@@ -61,6 +62,7 @@ mxRun <- function(model) {
 		algebras, data, options, state, PACKAGE = "OpenMx")
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
+	model <- undoSquareBracketLabels(model)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
 	return(model)

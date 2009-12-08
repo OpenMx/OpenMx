@@ -116,6 +116,7 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 
 setMethod("summary", "MxModel",
 	function(object, ...) {	
+		object <- convertSquareBracketLabels(object)
 		namespace <- omxGenerateNamespace(object)
 		flatModel <- omxFlattenModel(object, namespace)
 		matrices <- generateMatrixList(flatModel)

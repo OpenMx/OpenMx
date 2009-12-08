@@ -23,9 +23,10 @@ omxCheckError(mxRun(model),
 A <- mxMatrix('Full', 1, 1, labels = 'foo[1,2]', free = TRUE, name = 'A')
 model <- mxModel('model', A)
 omxCheckError(mxRun(model), 
-	paste("The substitution 'foo[1,2]'",
+	paste("The label with square brackets",
 		"has been assigned to a",
-		"free parameter in matrix 'A'"))
+		"free parameter in matrix 'A'",
+		"at row 1 and column 1"))
 A <- mxMatrix('Full', 1, 1, labels = 'model2.B[1,1]', name = 'A')
 B <- mxMatrix('Full', 1, 1, labels = 'model1.A[1,1]', name = 'B')
 model1 <- mxModel('model1', A)
@@ -51,7 +52,7 @@ C <- mxAlgebra(A + B, name = 'C')
 D <- mxMatrix('Full', 1, 1, labels = 'C[2,3]', name = 'D')
 model <- mxModel('model', A, B, C, D)
 omxCheckError(mxRun(model),
-	paste("The substitution 'C[2,3]'",
-		"detected in the matrix 'D'",
-		"in model 'model' has invalid",
-		"(row,col) values"))
+	paste("The label 'C[2, 3]'",
+		"of matrix 'D'",
+		"in model 'model' generated the error message:",
+		"subscript out of bounds"))

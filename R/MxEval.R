@@ -13,7 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# The mxEval funcion is NOT reentrant.  This is because the 
+# convertSquareBracketLabels() transformation can only occur once.
+# Recursive calls should use the helper function computeSymbol().
+# There would also be a performance penalty associated with a 
+# recursive call to mxEval().
 mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
+	model <- convertSquareBracketLabels(model)
 	inputExpression <- match.call()$expression
 	labelsData <- omxGenerateLabels(model)
     if (compute) {
@@ -135,7 +141,7 @@ computeSymbol <- function(symbol, model, labelsData) {
 	} else if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
-		return(substitute(omxComputeSubstitution(model[[x]], model), list(x = key)))
+		return(substitute(computeMatrixHelper(x, flatModel, labelsData), list(x = lookup)))
 	} else if (is(lookup, "MxAlgebra")) {
 		return(substitute(omxDimnames(eval(captureComputeTranslation(x, flatModel, labelsData)), y),
 			list(x = lookup@formula, y = lookup@.dimnames)))
@@ -150,6 +156,45 @@ computeSymbol <- function(symbol, model, labelsData) {
 			omxQuotes(key), "in the model",
 			omxQuotes(model@name)))
 	}
+}
+
+omxComputeMatrix <- function(matrix, model) {
+	return(eval(substitute(mxEval(x, model, TRUE), list(x = as.symbol(matrix@name)))))
+}
+
+computeMatrixHelper <- function(matrix, flatModel, labelsData) {
+	labels <- matrix@labels
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	subs <- labels[select]
+	rows <- row(labels)[select]
+	cols <- col(labels)[select]
+	if (length(subs) == 0) {
+		return(matrix@values)
+	}
+	for (i in 1:length(subs)) {
+		algname <- subs[[i]]
+		result <- tryCatch(eval(computeSymbol(as.symbol(algname), flatModel, labelsData)),
+			error = function(x) {
+				algebra <- flatModel[[algname]]
+				stop(paste("The label", 
+					omxQuotes(simplifyName(deparse(algebra@formula, width.cutoff=500L), flatModel@name)),
+					"of matrix", omxQuotes(simplifyName(matrix@name, flatModel@name)),
+					"in model", omxQuotes(flatModel@name), 
+					"generated the error message:",
+					x$message), call. = FALSE)
+		})
+		result <- as.matrix(result)
+		if (nrow(result) != 1 || ncol(result) != 1) {
+			algebra <- flatModel[[algname]]
+			stop(paste("The label", 
+				omxQuotes(simplifyName(deparse(algebra@formula, width.cutoff=500L), flatModel@name)),
+				"of matrix", omxQuotes(simplifyName(matrix@name, flatModel@name)),
+				"in model", omxQuotes(flatModel@name), 
+				"does not evaluate to a (1 x 1) matrix."), call. = FALSE)
+		}
+		matrix@values[rows[[i]], cols[[i]]] <- result[1,1]
+	}
+	return(matrix@values)
 }
 
 omxDimnames <- function(value, names) {
@@ -256,13 +301,13 @@ showEvaluationSymbol <- function(symbol, model, modelVariable, labelsData) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
 		labels <- lookup@labels
-		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
-		subs <- labels[select]
-		if (length(subs) == 0) {
-			return(substitute(modelName[[x]]@values,
+		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	    subs <- labels[select]
+	    if (length(subs) == 0) {
+			return(substitute(modelName[[x]]@values, 
 				list(modelName = modelVariable, x = key)))
 		} else {
-			return(substitute(omxComputeSubstitution(modelName[[x]], modelName),
+			return(substitute(omxComputeMatrix(modelName[[x]], model),
 				list(modelName = modelVariable, x = key)))
 		}
 	} else if (is(lookup, "MxAlgebra")) {
@@ -309,7 +354,7 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	cols <- col(labels)[!is.na(labels)]
 	if (length(select) > 0) {
 		for(i in 1:length(select)) {
-			if(!omxIsDefinitionVariable(select[[i]]) && !isSubstitution(select[[i]])) {
+			if(!omxIsDefinitionVariable(select[[i]]) && !hasSquareBrackets(select[[i]])) {
 				labelsData[select[[i]], "model"] <- modelName
 				labelsData[select[[i]], "matrix"] <- matrix@name
 				labelsData[select[[i]], "row"] <- rows[[i]]

@@ -142,14 +142,14 @@ translateRowColName <- function(symbol, argname, model, rowcol) {
 		msg <- paste("The matrix", omxQuotes(key), 
 			"does not contain dimnames and",
 			"some algebra is referring",
-			"to", displayRowcol, omxQuotes(rowname), "by name")
+			"to", displayRowcol, omxQuotes(rowcol), "by name")
 		stop(msg, call. = FALSE)
 	}
 	if (is.null(lookupNames[[rowcol]])) {
 		msg <- paste("The matrix", omxQuotes(key), 
 			"does not contain", displayRowcol, "names and",
 			"some algebra is referring",
-			"to", displayRowcol, omxQuotes(rowname), "by name")
+			"to", displayRowcol, omxQuotes(rowcol), "by name")
 		stop(msg, call. = FALSE)
 	}
 	rcNames <- lookupNames[[rowcol]]

@@ -22,88 +22,83 @@ splitSubstitution <- function(input) {
 	return(c(identifier, row, col))
 }
 
-isSubstitution <- function(input) {
-    match <- grep("^([^\\[\\]])+\\[[0-9]+,[0-9]+\\]$", input, perl = TRUE, value = TRUE)
-    return(length(match) > 0)
-}
-
 hasSquareBrackets <- function(input) {
     match <- grep("[\\[\\]]", input, perl = TRUE, value = TRUE)
     return(length(match) > 0)
 }
 
-checkSquareBracketEvaluation <- function(model, flatModel, labelsData) {
-	if(length(flatModel@matrices) == 0) { return() }
-	for(i in 1:length(flatModel@matrices)) {
-		checkSquareBracketMatrix(flatModel@matrices[[i]], model, flatModel, labelsData)
-	}
-}
-
-checkSquareBracketMatrix <- function(matrix, model, flatModel, labelsData) {
-	labels <- matrix@labels
-	labels <- labels[!is.na(labels)]
-	if (length(labels) == 0) { return() }
-	subs <- sapply(labels, isSubstitution)
-	labels <- labels[subs]
-	if (length(labels) == 0) { return() }
-	for(i in 1:length(labels)) {
-		substitute <- labels[[i]]
-		pieces <- splitSubstitution(substitute)
-		identifier <- pieces[[1]]
-		idenrow <- as.numeric(pieces[[2]])
-		idencol <- as.numeric(pieces[[3]])
-		entity <- flatModel[[identifier]]
-		if (is.null(entity)) {
-			stop(paste("Unknown reference", 
- 				omxQuotes(simplifyName(identifier, model@name)),
-				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
-				"in model", omxQuotes(model@name)), call. = FALSE)
-		}
-		if (is(entity, "MxMatrix")) {
-			subrow <- nrow(entity)
-			subcol <- ncol(entity)
-		} else if (is(entity, "MxAlgebra")) {
-			value <- as.matrix(eval(computeSymbol(as.symbol(identifier), flatModel, labelsData)))
-			subrow <- nrow(value)
-			subcol <- ncol(value)
-		} else if (is(entity, "MxObjectiveFunction")) {
-			subrow <- 1
-			subcol <- 1
-		} else {
-			stop(paste("Cannot apply the substitution using", 
- 				omxQuotes(simplifyName(identifier, model@name)),
-				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
-				"in model", omxQuotes(model@name)), call. = FALSE)			
-		}
-		if (idenrow < 0 || idencol < 0 || idenrow > subrow || idencol > subcol) {
-			identifier <- simplifyName(identifier, model@name)
-			substitute <- paste(identifier, '[', idenrow, ',', idencol, ']', sep = '')
-			stop(paste("The substitution", 
- 				omxQuotes(substitute),
-				"detected in the matrix", omxQuotes(simplifyName(matrix@name, model@name)),
-				"in model", omxQuotes(model@name),
-				"has invalid (row,col) values"), call. = FALSE)
+convertSquareBracketLabels <- function(model) {
+	if(length(model@matrices) > 0) {
+		for(i in 1:length(model@matrices)) {
+			model <- convertSquareBracketHelper(model, i)
 		}
 	}
+	if(length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			if (model@submodels[[i]]@independent == FALSE) {
+				model@submodels[[i]] <- convertSquareBracketLabels(model@submodels[[i]])
+			}
+		}
+	}
+	return(model)
 }
 
-omxComputeSubstitution <- function(matrix, model) {
-	labels <- matrix@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
+undoSquareBracketLabels <- function(model) {
+	if(length(model@matrices) > 0) {
+		for(i in 1:length(model@matrices)) {
+			model <- undoSquareBracketHelper(model, i)
+		}
+	}
+	if(length(model@submodels) > 0) {
+		for(i in 1:length(model@submodels)) {
+			if (model@submodels[[i]]@independent == FALSE) {
+				model@submodels[[i]] <- undoSquareBracketLabels(model@submodels[[i]])
+			}
+		}
+	}
+	return(model)
+}
+
+convertSquareBracketHelper <- function(model, index) {
+	target <- model@matrices[[index]]
+	labels <- target@labels
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
 	rows <- row(labels)[select]
 	cols <- col(labels)[select]
 	subs <- labels[select]
-	if (length(subs) == 0) { return(matrix@values) }
-	value <- matrix@values
-	for(i in 1:length(subs)) {
-		pieces <- splitSubstitution(subs[[i]])
-		identifier <- pieces[[1]]
-		sourcerow <- as.numeric(pieces[[2]])
-		sourcecol <- as.numeric(pieces[[3]])
-		other <- eval(substitute(mxEval(x, model, compute=TRUE), list(x = as.symbol(identifier)))) 
-		value[rows[[i]],cols[[i]]] <- other[sourcerow,sourcecol]
+	if (length(subs) > 0) {
+		for (i in 1:length(subs)) {
+			row <- rows[[i]]
+			col <- cols[[i]]
+			formula <- parse(text = subs[[i]])
+			name <- paste(target@name, '[', row, ',', col, ']', sep='')
+			algebra <- eval(substitute(mxAlgebra(x), list(x = formula[[1]])))
+			model[[name]] <- algebra
+			model@matrices[[index]]@labels[row,col] <- name
+		}
 	}
-	return(value)
+	return(model)
+}
+
+undoSquareBracketHelper <- function(model, index) {
+	target <- model@matrices[[index]]
+	labels <- target@labels
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	rows <- row(labels)[select]
+	cols <- col(labels)[select]
+	subs <- labels[select]
+	if (length(subs) > 0) {
+		for (i in 1:length(subs)) {
+			row <- rows[[i]]
+			col <- cols[[i]]
+			name <- paste(target@name, '[', row, ',', col, ']', sep='')
+			algebra <- model[[name]]
+			newlabel <- deparse(algebra@formula, width.cutoff = 500)
+			model@matrices[[index]]@labels[row,col] <- newlabel
+			model[[name]] <- NULL
+		}
+	}
+	return(model)
 }
 
 generateMatrixReferences <- function(model) {
@@ -117,16 +112,15 @@ generateMatrixReferences <- function(model) {
 		matrix <- model@matrices[[i]]
 		name <- matrix@name
 		labels <- matrix@labels
-		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), isSubstitution)
+		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
 		rows <- row(labels)[select]
 		cols <- col(labels)[select]
 		subs <- labels[select]
 		if (length(subs) > 0) {
 			for (j in 1:length(subs)) {
-				pieces <- splitSubstitution(subs[[j]])
-				identifier <- pieces[[1]]
-				fromrow <- as.integer(pieces[[2]]) - 1L
-				fromcol <- as.integer(pieces[[3]]) - 1L
+				identifier <- subs[[j]]
+				fromrow <- 0L
+				fromcol <- 0L
 				torow <- as.integer(rows[j] - 1)
 				tocol <- as.integer(cols[j] - 1)
 				index <- omxLocateIndex(model, identifier, name)
