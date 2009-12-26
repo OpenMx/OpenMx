@@ -114,6 +114,32 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 	return(retval)
 }
 
+print.summary.mxmodel <- function(x,...) {
+	if (!is.null(x$dataSummary)) {
+		print(x$dataSummary)
+		cat('\n')
+	}
+	if (!is.null(x$npsolMessage)) {
+		cat(x$npsolMessage,'\n','\n')
+	}
+	if (!is.null(x$parameters)) {
+		print(x$parameters)
+		cat('\n')
+	}
+	cat("Observed statistics: ", x$observedStatistics, '\n')
+	cat("Estimated parameters: ", x$estimatedParameters, '\n')
+	cat("Degrees of freedom: ", x$degreesOfFreedom, '\n')
+	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
+	cat("Saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
+	cat("Chi-Square: ", x$Chi, '\n')
+	cat("p: ", x$p, '\n')
+	cat("AIC (Mx): ", x$AIC.Mx, '\n')
+	cat("BIC (Mx): ", x$BIC.Mx, '\n')
+	cat("adjusted BIC:", '\n')
+	cat("RMSEA: ", x$RMSEA, '\n')
+	cat('\n')
+}
+
 setMethod("summary", "MxModel",
 	function(object, ...) {	
 		object <- convertSquareBracketLabels(object)
@@ -129,32 +155,13 @@ setMethod("summary", "MxModel",
 		}
 		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data, flatModel)
 		if (!is.null(data)) {
-			print(summary(data@observed))
-			cat('\n')
+			retval[['dataSummary']] <- summary(data@observed)
 		}
 		if (length(object@output) > 0) {
 			message <- npsolMessages[[as.character(object@output$status[[1]])]]
-			if (!is.null(message)) {
-				cat(message,'\n','\n')
-			}
+			retval[['npsolMessage']] <- message
 		}
-		if (!is.null(retval[['parameters']])) {
-			print(retval[['parameters']])
-			cat('\n')
-		}
-		cat("Observed statistics: ", retval[['observedStatistics']], '\n')
-		cat("Estimated parameters: ", retval[['estimatedParameters']], '\n')
-		cat("Degrees of freedom: ", retval[['degreesOfFreedom']], '\n')
-		cat("-2 log likelihood: ", retval[['Minus2LogLikelihood']], '\n')
-		cat("Saturated -2 log likelihood: ", retval[['SaturatedLikelihood']], '\n')
-		cat("Chi-Square: ", retval[['Chi']], '\n')
-		cat("p: ", retval[['p']], '\n')
-		cat("AIC (Mx): ", retval[['AIC.Mx']], '\n')
-		cat("BIC (Mx): ", retval[['BIC.Mx']], '\n')
-		cat("adjusted BIC:", '\n')
-		cat("RMSEA: ", retval[['RMSEA']], '\n')
-		cat('\n')		
-		invisible(retval)
+		class(retval) <- "summary.mxmodel"
+		return(retval)
 	}
 )
-

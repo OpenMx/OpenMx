@@ -3,6 +3,8 @@ trunk
 * definition variables can now be used inside algebra expressions
 * definition variables inside of MxMatrices will populate to the 1st row before conformability checking. In plain english: you do not need to specify the starting values for definition variables.
 * the square-bracket operator when used in MxMatrix labels is no longer restricted to constants for the row and column.  The row and column arguments will accept any term that evaluates to a scalar value or a (1 x 1) matrix.
+* summary() on a model returns a S3 object.  Behaves like summary() in stats package.
+* eliminated UnusualLabels.R test case.  Too many problems with windows versus OS X versus linux.
 
 Release 0.2.3-1006
 ==================
