@@ -24,6 +24,7 @@ The following operations are supported in mxAlgebra:
 \itemize{
 \item{\code{solve()}}{Inversion}
 \item{\code{t()}}{Transposition}
+\item{\code{^}}{Element powering}
 \item{\code{+}}{Addition}
 \item{\code{-}}{Subtraction}
 \item{\code{\%*\%}}{Matrix Multiplication}
@@ -31,15 +32,16 @@ The following operations are supported in mxAlgebra:
 \item{\code{/}}{Element division}
 \item{\code{\%x\%}}{Kronecker product}
 \item{\code{\%&\%}}{Quadratic product}
-\item{\code{cbind()}}{Horizontal adhesion}
-\item{\code{rbind()}}{Vertical adhesion}
 }
 
 The following functions are supported in mxAlgebra:
 \itemize{
-\item{\code{sum(diag())}}{Trace}
+\item{\code{cbind()}}{Horizontal adhesion}
+\item{\code{rbind()}}{Vertical adhesion}
 \item{\code{det()}}{Determinant}
+\item{\code{tr()}}{Trace}
 \item{\code{sum()}}{Sum}
+\item{\code{prod()}}{Product}
 \item{\code{max()}}{Maximum}
 \item{\code{min()}}{Min}
 \item{\code{abs()}}{Absolute value}
@@ -52,17 +54,6 @@ The following functions are supported in mxAlgebra:
 \item{\code{exp()}}{Exponent}
 \item{\code{log()}}{Natural Logarithm}
 \item{\code{sqrt()}}{Square root}
-\item{\code{diag()}}{Diagonal to vector or vector to diagonal, depending on input}
-\item{\code{c(t()}}{Matrix to vector (by row; returns vector)}
-\item{\code{c()}}{Matrix to vector (by column)}
-\item{\code{vech()}}{Lower triangular matrix to vector (requires MCMCpack package)}
-\item{\code{cov2cor()}}{Standardize matrix}
-\item{\code{Re(eigen(A, only.values=TRUE)$values)}}{Real eigenvalues (for matrix A)}
-\item{\code{Re(eigen(A, )$values)}}{Real eigenvectors (for matrix A)}
-\item{\code{Im(eigen(A, only.values=TRUE)$values)}}{Imanginary eigenvalues (for matrix A)}
-\item{\code{Im(eigen(A, )$values)}}{Imanginary eigenvectors (for matrix A)}
-\item{\code{colMeans()}}{Mean of columns}
-\item{\code{var()}}{Covariance of columns}
 }}
 
 \value{
