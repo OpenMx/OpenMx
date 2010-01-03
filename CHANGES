@@ -5,6 +5,7 @@ trunk
 * the square-bracket operator when used in MxMatrix labels is no longer restricted to constants for the row and column.  The row and column arguments will accept any term that evaluates to a scalar value or a (1 x 1) matrix.
 * summary() on a model returns a S3 object.  Behaves like summary() in stats package.
 * eliminated UnusualLabels.R test case.  Too many problems with windows versus OS X versus linux.
+* implemented vech() and vechs() functions: half-vectorization and strict half-vectorization
 
 Release 0.2.3-1006
 ==================

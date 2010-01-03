@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2009 The OpenMx Project
+ *  Copyright 2007-2010 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 #ifndef _OMX_ALGEBRA_FUNCTIONS_
 #define _OMX_ALGEBRA_FUNCTIONS_
 
-#include <R.h> 
-#include <Rinternals.h> 
+#include <R.h>
+#include <Rinternals.h>
 #include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxMatrix.h"
@@ -56,5 +56,7 @@ void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif

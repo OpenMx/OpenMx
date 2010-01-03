@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@ require(OpenMx)
 A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
 B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
 C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')
+D <- mxMatrix(values = 1:10, nrow = 2, ncol = 5, name = 'D')
+E <- mxMatrix(values = 1:10, nrow = 5, ncol = 2, name = 'E')
 
 dimnames(A) <- list(letters[1:5], letters[22:26])
 dimnames(B) <- dimnames(A)
 dimnames(C) <- list(letters[1:6], letters[22:26])
 
-model <- mxModel(A, B, C, name = 'model')
+model <- mxModel(A, B, C, D, E, name = 'model')
 zeta <- 'z'
 alpha <- 'a'
 two <- 2
@@ -104,6 +106,10 @@ model <- mxModel(model, mxAlgebra(A[,'z'], name = 'test30o'))
 model <- mxModel(model, mxAlgebra(A[,zeta], name = 'test30p'))
 model <- mxModel(model, mxAlgebra(A[alpha,], name = 'test30q'))
 model <- mxModel(model, mxAlgebra(A[two,two], name = 'test30r'))
+model <- mxModel(model, mxAlgebra(vech(D), name = 'test31a'))
+model <- mxModel(model, mxAlgebra(vech(E), name = 'test31b'))
+model <- mxModel(model, mxAlgebra(vechs(D), name = 'test32a'))
+model <- mxModel(model, mxAlgebra(vechs(E), name = 'test32b'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -181,4 +187,7 @@ omxCheckCloseEnough(model[['test30o']]@result, mxEval(A[,'z'], model), 0.001)
 omxCheckCloseEnough(model[['test30p']]@result, mxEval(A[,zeta], model), 0.001)
 omxCheckCloseEnough(model[['test30q']]@result, mxEval(A[alpha,], model), 0.001)
 omxCheckCloseEnough(model[['test30r']]@result, mxEval(A[two,two], model), 0.001)
-
+omxCheckCloseEnough(model[['test31a']]@result, mxEval(as.matrix(vech(D)), model), 0.001)
+omxCheckCloseEnough(model[['test31b']]@result, mxEval(as.matrix(vech(E)), model), 0.001)
+omxCheckCloseEnough(model[['test32a']]@result, mxEval(as.matrix(vechs(D)), model), 0.001)
+omxCheckCloseEnough(model[['test32b']]@result, mxEval(as.matrix(vechs(E)), model), 0.001)
