@@ -13,64 +13,124 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-observedStatistics <- function(model, data, flatModel) {
+dataMatchesHistory <- function(data, historySet) {
+	return(any(sapply(historySet, identical, data)))
+}
+
+observedStatisticsHelper <- function(data, historySet) {
+	if (is.null(data)) {
+		return(list(0, historySet))
+	}
+	if (data@type == 'cov' || data@type == 'sscp') {
+		if (dataMatchesHistory(data, historySet)) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n + 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means)
+		}
+		historySet <- append(data, historySet)		
+	} else if (data@type == 'cor') {
+		if (dataMatchesHistory(data, historySet)) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n - 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means) 
+		}
+		historySet <- append(data, historySet)
+	} else {
+		dof <- 0
+		for (i in 1:ncol(data@observed)) {
+			if (!dataMatchesHistory(data@observed[,i], historySet)) {
+				dof <- dof + sum(!is.na(data@observed[,i]))
+				historySet <- append(data@observed[,i], historySet)
+			}
+		}
+	}
+	return(list(dof, historySet))
+}
+
+observedStatisticsSingleModel <- function(data) {
 	if (is.null(data)) {
 		return(0)
 	}
 	if (data@type == 'cov' || data@type == 'sscp') {
 		n <- nrow(data@observed)
-		dof <- n * (n + 1) / 2 + length(flatModel@constraints)
+		dof <- n * (n + 1) / 2
 		if (!single.na(data@means)) {
 			dof <- dof + length(data@means)
 		}
 		return(dof)
 	} else if (data@type == 'cor') {
 		n <- nrow(data@observed)
-		dof <- n * (n - 1) / 2 + length(flatModel@constraints)
+		dof <- n * (n - 1) / 2
 		if (!single.na(data@means)) {
 			dof <- dof + length(data@means) 
 		}
 		return(dof)
 	} else {
-		return(sum(!is.na(data@observed)) + length(flatModel@constraints))
+		return(sum(!is.na(data@observed)))
 	}
 }
 
-fitStatistics <- function(model, objective, data, retval) {
-	likelihood <- model@output$Minus2LogLikelihood
-	saturated <- model@output$SaturatedLikelihood
+observedStatistics <- function(flatModel) {
+	datasets <- flatModel@datasets
+	if (length(datasets) == 0) {
+		return(length(flatModel@constraints))
+	} else if (length(datasets) == 1) {
+		return(observedStatisticsSingleModel(datasets[[1]]) + 
+			length(flatModel@constraints))
+	}
+	historySet <- list()
+	retval <- 0
+	for(i in 1:length(datasets)) {
+		result <- observedStatisticsHelper(datasets[[i]], historySet)
+		retval <- retval + result[[1]]
+		historySet <- result[[2]]
+	}
+	retval <- retval + length(flatModel@constraints)
+	return(retval)
+}
+
+numberObservations <- function(flatModel) {
+	obs <- sapply(flatModel@datasets, 
+		function(x) { x@numObs })
+	return(sum(as.numeric(obs)))
+}
+
+computeFValue <- function(flatModel, likelihood, chi) {
+	if(length(flatModel@datasets) == 0) return(NA)
+	if(all(sapply(flatModel@datasets, function(x) 
+		{x@type == 'raw'}))) return(likelihood)
+	if(all(sapply(flatModel@datasets, function(x) 
+		{x@type == 'cov'}))) return(chi)
+	return(NA)
+}
+
+fitStatistics <- function(flatModel, retval) {
+	likelihood <- retval[['Minus2LogLikelihood']]
+	saturated <- retval[['SaturatedLikelihood']]
 	chi <- likelihood - saturated
 	DoF <- retval$degreesOfFreedom
-	if (is.null(objective) || is(objective, "MxAlgebraObjective")) {
-		return(retval)
-	} else if (is.null(likelihood)) {
-		return(retval)
-	}
-	if (is.null(data)) {
-		Fvalue <- NA
-	} else if (data@type == 'raw') {
-		Fvalue <- likelihood
-	} else if (data@type == 'cov') {
-		Fvalue <- chi
+	Fvalue <- computeFValue(flatModel, likelihood, chi)
+	retval[['Chi']] <- chi
+	retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
+	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
+	retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(retval[['numObs']]))
+	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]
+	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
+		is.nan(rmseaSquared) || (rmseaSquared < 0)) {
+		retval[['RMSEA']] <- NA
 	} else {
-		Fvalue <- NA
-	}
-	if (!is.null(data)) {
-		retval[['Chi']] <- chi
-		retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
-		retval[['AIC.Mx']] <- Fvalue - 2 * DoF
-		retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(data@numObs))
-		rmseaSquared <- (chi / DoF - 1) / data@numObs
-		if (length(rmseaSquared) == 0 || is.nan(rmseaSquared) || (rmseaSquared < 0)) {
-			retval[['RMSEA']] <- 0
-		} else {
-			retval[['RMSEA']] <- sqrt(rmseaSquared)
-		}
+		retval[['RMSEA']] <- sqrt(rmseaSquared)
 	}
 	return(retval)
 }
 
-computeOptimizationStatistics <- function(model, matrices, parameters, objective, data, flatModel) {
+parameterList <- function(model, matrices, parameters) {
 	retval <- list()
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
@@ -105,12 +165,15 @@ computeOptimizationStatistics <- function(model, matrices, parameters, objective
 		}
 		retval[['parameters']] <- ptable
 	}
+	return(retval)
+}
+
+computeOptimizationStatistics <- function(model, flatModel, retval) {
+	estimates <- model@output$estimate
 	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(model, data, flatModel)
+	retval[['observedStatistics']] <- observedStatistics(flatModel)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
-	retval[['SaturatedLikelihood']] <- model@output$SaturatedLikelihood
-	retval[['Minus2LogLikelihood']] <- model@output$Minus2LogLikelihood
-	retval <- fitStatistics(model, objective, data, retval)
+	retval <- fitStatistics(flatModel, retval)
 	return(retval)
 }
 
@@ -131,6 +194,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("Degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
 	cat("Saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
+	cat("numObs: ", x$numObs, '\n')
 	cat("Chi-Square: ", x$Chi, '\n')
 	cat("p: ", x$p, '\n')
 	cat("AIC (Mx): ", x$AIC.Mx, '\n')
@@ -140,8 +204,35 @@ print.summary.mxmodel <- function(x,...) {
 	cat('\n')
 }
 
+setLikelihoods <- function(model, saturatedLikelihood, retval) {
+	if(is.null(saturatedLikelihood)) {
+		retval$SaturatedLikelihood <- model@output$SaturatedLikelihood
+	} else {
+		retval$SaturatedLikelihood <- saturatedLikelihood		
+	}
+	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	if (is.null(retval$SaturatedLikelihood)) {
+		retval$SaturatedLikelihood <- NA
+	}
+	if (is.null(retval$Minus2LogLikelihood)) {
+		retval$Minus2LogLikelihood <- NA
+	}
+	return(retval)
+}
+
+setNumberObservations <- function(numObs, flatModel, retval) {
+	if(is.null(numObs)) {
+		retval$numObs <- numberObservations(flatModel)
+	} else {
+		retval$numObs <- numObs
+	}
+	return(retval)
+}
+
 setMethod("summary", "MxModel",
-	function(object, ...) {	
+	function(object, ...) {
+		saturatedLikelihood <- match.call()$SaturatedLikelihood
+		numObs <- match.call()$numObs
 		object <- convertSquareBracketLabels(object)
 		namespace <- omxGenerateNamespace(object)
 		flatModel <- omxFlattenModel(object, namespace)
@@ -153,7 +244,10 @@ setMethod("summary", "MxModel",
 		} else {
 			data <- NULL
 		}
-		retval <- computeOptimizationStatistics(object, matrices, parameters, objective, data, flatModel)
+		retval <- parameterList(object, matrices, parameters)
+		retval <- setLikelihoods(object, saturatedLikelihood, retval)
+		retval <- setNumberObservations(numObs, flatModel, retval)
+		retval <- computeOptimizationStatistics(object, flatModel, retval)
 		if (!is.null(data)) {
 			retval[['dataSummary']] <- summary(data@observed)
 		}
