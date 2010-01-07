@@ -46,7 +46,7 @@ Mx1R <- rbind(
     c(0.0760,  0.1869,  0.4377, 1.0000))
 
 nameList <- names(data)
-data$breaking <- rep(1, length(data$t1neur1))
+data$breaking <- rep(1, length(data$t1neur1))  ### <-- This line causes the model to break.
 
 # Define the model
 model <- mxModel()
@@ -81,6 +81,10 @@ model <- mxModel(model, objective, dataMatrix)
 model <- mxRun(model)
 
 estimates <- model@output$estimate
+
+# Response:
+# Error: subscript out of bounds
+# Execution halted
 
 # Results from old Mx:
 omxCheckCloseEnough(mxEval(thresh, model)[,1], Mx1Threshold[,1], 0.01)
