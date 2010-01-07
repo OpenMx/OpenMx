@@ -6,6 +6,7 @@ trunk
 * summary() on a model returns a S3 object.  Behaves like summary() in stats package.
 * eliminated UnusualLabels.R test case.  Too many problems with windows versus OS X versus linux.
 * implemented vech() and vechs() functions: half-vectorization and strict half-vectorization
+* fixed bug in ordinal FIML when # of data columns > # of thresholds
 
 Release 0.2.3-1006
 ==================

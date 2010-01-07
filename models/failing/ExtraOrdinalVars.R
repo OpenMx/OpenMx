@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ nameList <- names(data)
 data$breaking <- rep(1, length(data$t1neur1))  ### <-- This line causes the model to break.
 
 # Define the model
-model <- mxModel()
+model <- mxModel('model')
 model <- mxModel(model, mxMatrix("Stand", name = "R", nrow = nvar, ncol = nvar, free=TRUE))
 model <- mxModel(model, mxMatrix("Zero", name = "M", nrow = 1, ncol = nvar, free=FALSE))
 model <- mxModel(model, mxMatrix("Full", 
@@ -66,7 +66,7 @@ model <- mxModel(model, mxMatrix("Full",
             dimnames = list(c(), nameList), 
             labels = rep(c(paste("neur", 1:nthresh2, sep=""),
                         paste("mddd4l", 1:nthresh1, sep=""), rep(NA, diff))
-                        ), 2))
+                        )))
 
 # Define the objective function
 objective <- mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="thresh")
@@ -81,10 +81,6 @@ model <- mxModel(model, objective, dataMatrix)
 model <- mxRun(model)
 
 estimates <- model@output$estimate
-
-# Response:
-# Error: subscript out of bounds
-# Execution halted
 
 # Results from old Mx:
 omxCheckCloseEnough(mxEval(thresh, model)[,1], Mx1Threshold[,1], 0.01)
