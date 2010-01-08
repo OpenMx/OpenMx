@@ -35,6 +35,16 @@ setMethod("initialize", "MxRowObjective",
 	}
 )
 
+setMethod("omxObjNewEntities", signature("MxRowObjective"),
+	function(.Object) {
+		if (is.na(.Object@rowResults)) {
+			return(NULL)
+		} else {
+			return(.Object@rowResults)
+		}
+	}
+)
+
 setMethod("omxObjDependencies", signature("MxRowObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@reduceAlgebra)
@@ -98,8 +108,10 @@ setMethod("omxObjModelConvert", "MxRowObjective",
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
-		labelsData <- omxGenerateLabels(job)		
-		result <- tryCatch(eval(computeSymbol(as.symbol(rowAlgebraName), flatJob, labelsData)), 
+		labelsData <- omxGenerateLabels(job)
+		flatModel <- flatJob # computeSymbol should be fixed to avoid this
+		result <- tryCatch(eval(computeSymbol(
+			as.symbol(rowAlgebraName), flatJob, labelsData)), 
 			error = function(x) {
 				stop(paste("The entity", 
 					omxQuotes(simplifyName(rowAlgebraName, model@name)), 
@@ -107,6 +119,7 @@ setMethod("omxObjModelConvert", "MxRowObjective",
 					"generated the error message:",
 					x$message), call. = FALSE)
 		})
+		rm(flatModel) # undo the hack induced by computeSymbol
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
 				omxQuotes(simplifyName(rowAlgebraName, model@name)), 

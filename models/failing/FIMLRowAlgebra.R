@@ -1,3 +1,18 @@
+#
+#   Copyright 2007-2010 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 require(OpenMx)
 require(MASS)
 
@@ -47,7 +62,7 @@ dimnames(x) <- list(NULL, c('a','b','c'))
 rTime <- system.time(inSum <- sum(apply(x, 1, missdmnormIn, mu=expectedmean, sigma=expectedcov), na.rm=TRUE), gcFirst=TRUE)
 
 
-model <- mxModel()
+model <- mxModel('model')
 data <- mxData(data.frame(x), 'raw')
 
 model <- mxModel(model,
@@ -64,7 +79,8 @@ model <- mxModel(model,
         (2*pi)^3 * 1/sqrt(det(expectedCov)) * (t(dataRow) %*% (solve(expectedCov)) %*% dataRow)^(1/2),
         name="rowAlgebra"),
     mxAlgebra(sum(rowResults), name="reduceAlgebra"),
-    mxRowObjective(rowAlgebra="rowAlgebra", rowResults="rowResults", reduceAlgebra="reduceAlgebra"),
+    mxRowObjective(rowAlgebra="rowAlgebra", rowResults="rowResults",
+		reduceAlgebra="reduceAlgebra"),
     mxData(data.frame(x), 'raw')
 )
 

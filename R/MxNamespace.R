@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -209,6 +209,7 @@ generateLocalNamespace <- function(model) {
 		stop(namespaceErrorMessage(objective@name), call. = FALSE)
 	} else if (!is.null(objective)) {
 		thisEntities <- c(thisEntities, objective@name)
+		thisEntities <- c(thisEntities, omxObjNewEntities(objective))
 	}
 	if (!is.null(data) && (data@name %in% thisEntities)) {
 		stop(namespaceErrorMessage(data@name), call. = FALSE)

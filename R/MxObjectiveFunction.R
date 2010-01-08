@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -50,6 +50,11 @@ setGeneric("omxObjInitialMatrix",
 	return(standardGeneric("omxObjInitialMatrix"))
 })
 
+setGeneric("omxObjNewEntities",
+	function(.Object) {
+	return(standardGeneric("omxObjNewEntities"))
+})
+
 setMethod("omxObjModelConvert", "MxBaseObjective",
 	function(.Object, job, model, flatJob) {
 		return(job)
@@ -68,6 +73,11 @@ setMethod("omxObjDependencies", "MxBaseObjective",
 setMethod("omxObjDependencies", "NULL",
 	function(.Object, dependencies) {
 		return(dependencies)
+})
+
+setMethod("omxObjNewEntities", "MxBaseObjective",
+	function(.Object) {
+		return(NULL)
 })
 
 setMethod("omxObjInitialMatrix", "MxBaseObjective",
