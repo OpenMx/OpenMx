@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -201,6 +201,8 @@ print.summary.mxmodel <- function(x,...) {
 	cat("BIC (Mx): ", x$BIC.Mx, '\n')
 	cat("adjusted BIC:", '\n')
 	cat("RMSEA: ", x$RMSEA, '\n')
+	cat("frontend elapsed time:", format(x$frontendTime), '\n')
+	cat("backend elapsed time:", format(x$backendTime), '\n')
 	cat('\n')
 }
 
@@ -255,6 +257,8 @@ setMethod("summary", "MxModel",
 			message <- npsolMessages[[as.character(object@output$status[[1]])]]
 			retval[['npsolMessage']] <- message
 		}
+		retval$frontendTime <- object@output$frontendTime
+		retval$backendTime <- object@output$backendTime
 		class(retval) <- "summary.mxmodel"
 		return(retval)
 	}

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ omxLapply <- function(x, fun, ...) {
 }
 
 mxRun <- function(model) {
+	frontendStart <- Sys.time()
 	cat("Running", model@name, "\n")
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
@@ -57,14 +58,19 @@ mxRun <- function(model) {
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
+	frontendStop1 <- Sys.time()
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, options, state, PACKAGE = "OpenMx")
+	backendStop <- Sys.time()
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
+	frontendStop2 <- Sys.time()
+	model@output <- calculateTiming(model@output, frontendStart,
+		frontendStop1, backendStop, frontendStop2)	
 	return(model)
 }
 
@@ -94,6 +100,14 @@ processOptimizerOutput <- function(flatModel, matrixNames,
             "exited abnormally with the error message:",
             output$status[[3]]), call. = FALSE)
     }
+	return(output)
+}
+
+calculateTiming <- function(output, frontendStart,
+	frontendStop1, backendStop, frontendStop2) {
+	output$frontendTime <- (frontendStop1 - frontendStart) +
+		(frontendStop2 - backendStop)
+	output$backendTime <- (backendStop - frontendStop1)
 	return(output)
 }
 

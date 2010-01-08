@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ model <- mxModel(model, mxMatrix("Full",
             dimnames = list(c(), nameList), 
             labels = rep(c(paste("neur", 1:nthresh2, sep=""),
                         paste("mddd4l", 1:nthresh1, sep=""), rep(NA, diff))
-                        ), 2))
+                        )))
 
 # Define the objective function
 objective <- mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="thresh")
@@ -76,6 +76,8 @@ dataMatrix <- mxData(data, type='raw')
 
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, dataMatrix)
+
+model <- mxOption(model, "Function Precision", 1e-9)
 
 # Run the job
 model <- mxRun(model)
