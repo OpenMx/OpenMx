@@ -333,12 +333,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
 		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) { 
+			char infinCodes[3][20];
+			strcpy(infinCodes[0], "(-INF, upper]");
+			strcpy(infinCodes[1], "[lower, INF)");
+			strcpy(infinCodes[2], "[lower, upper]");
 			Rprintf("Input to sadmvn is (%d rows):\n", numVars);
 			
 			omxPrint(omxDataRow(data, row, dataColumns, smallRow), "Data Row");
 			
 			for(int i = 0; i < numVars; i++) {
-				Rprintf("Row %d: %f, %f, %d\n", i, lThresh[i], uThresh[i], Infin[i]);
+				Rprintf("Row %d: %f, %f, %d(%s)\n", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
 			}
 			
 			Rprintf("Cor: (Lower %d x %d):", cov->rows, cov->cols);
@@ -482,6 +486,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
+		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (t(dataRow) %*% (solve(ExpectedCov)) %*% dataRow)^(1/2) */
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			if(!returnRowLikelihoods) {
