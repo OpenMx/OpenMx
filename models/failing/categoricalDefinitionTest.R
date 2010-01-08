@@ -1,5 +1,4 @@
 library(OpenMx)
-library(polycor)
 library(mvtnorm)
 
 # should we write files, including data files and mplus input files?
@@ -47,21 +46,6 @@ data[,6] <- g
 # view the correlation matrix of the data
 cor(data)
 
-# view the polychoric correlation matrix of the data
-p.matrix <- function(x, ML=FALSE){
-    if(is.matrix(x)==FALSE&is.data.frame(x)==FALSE) stop("x must be an matrix or data frame. Go back and try again")
-    y <- matrix(NA, nrow=dim(x)[2], ncol=dim(x)[2])
-    diag(y) <- 1
-    for (i in 2:dim(x)[2]){
-        for (j in 1:(dim(x)[2]-1)){
-            if(i>j)(y[i,j] <- polychor(data[,i],data[,j], ML=ML))
-            if(i>j)(y[j,i]<-y[i,j])
-        }
-    }
-    return(y)
-}
-
-p.matrix(data)
 
 # write data to file
 if(write.files==TRUE) write.table(data, "data.dat", row.names=FALSE, col.names=FALSE)
@@ -75,8 +59,8 @@ A@free[1:5, 6]   <- TRUE
 A@labels[1:5, 6] <- paste("l",1:5,sep="")
 
 S <- mxMatrix("Symm", 6, 6, name="S")
-diag(CS@values) <- 1
-diag(CS@labels) <- c(paste("e",1:5,sep=""), "var.F")
+diag(S@values) <- 1
+diag(S@labels) <- c(paste("e",1:5,sep=""), "var.F")
 
 F <- mxMatrix("Full", 5, 6, 
     dimnames=list(names(data)[1:5], c(names(data)[1:5], "F")), 
@@ -134,7 +118,7 @@ diag(CF@values) <- 1
 CM <- mxMatrix("Zero", 1, 7, name="CM")
 
 # columns are variables; there are four thresholds for each variable
-CT <- mxMatrix("Full", 1, 5, FALSE, 0, 
+CT <- mxMatrix("Full", 1, 5, TRUE, 0, 
     labels = paste("t", 1:5, sep=""), 
     dimnames = list(c(), names(data)[1:5]), 
     name="thresholds")
@@ -144,6 +128,8 @@ catModel2 <- mxModel("Categorical Test with Definition",
     CA, CS, CF, CM, CT, 
     mxRAMObjective("CA", "CS", "CF", "CM", thresholds="thresholds")
 )
+
+catModel2 <- mxOption(catModel2, "Function Precision", 1e-9)
 
 catResults2 <- mxRun(catModel2)
 
@@ -157,56 +143,3 @@ catResults2@output$estimate[6:10]/catResults2@output$estimate[1:5]
 catResults2@output$estimate[1:5]
 
 catResults2@output
-
-# Run it in Mplus, requires write.files==TRUE
-if(write.files==TRUE) write.table(c("TITLE: Simple Test;", "", "DATA:  FILE = data.dat;", "",
-"VARIABLE: NAMES = x1-x5 g;", "          USEVAR = x1-x5;", "          CATEGORICAL = x1-x5;", "", "MODEL:", "",
-"F by x1* x2-x5;", "F@1;"), "mplustest.inp", row.names=FALSE, col.names=FALSE, quote=FALSE)
-
-if(write.files==TRUE) write.table(c("call Mplus mplustest.inp"), "callMplus1.bat", row.names=FALSE, col.names=FALSE, quote=FALSE)
-
-if(write.files==TRUE) system("callMplus1.bat")
-
-if(write.files==TRUE) mplus <- scan("mplustest.out", what="character")
-if(write.files==TRUE) ref <- 1:length(mplus)
-if(write.files==TRUE) d   <- ref[mplus=="Difficulties"]
-if(write.files==TRUE) difficulties <- c(mplus[c(d+2, d+7, d+12, d+17, d+22)])
-if(write.files==TRUE) e   <- ref[mplus=="Discriminations"]
-if(write.files==TRUE) discriminations <- c(mplus[c(d+4, d+9, d+14, d+19, d+24)])
-if(write.files==TRUE) difficulties
-if(write.files==TRUE) discriminations
-
-
-
-
-
-### Appendix ###
-## Continuous model, for checking ##
-
-A <- mxMatrix("Full", 6, 6, name="A")
-A@values[1:5, 6] <- 1
-A@free[1:5, 6]   <- TRUE
-A@labels[1:5, 6] <- paste("l",1:5,sep="")
-
-S <- mxMatrix("Symm", 6, 6, name="S")
-diag(S@values)      <- 1
-diag(S@free)[1:5]   <- TRUE
-diag(S@labels)      <- c(paste("e",1:5,sep=""), "var.F")
-
-F <- mxMatrix("Full", 5, 6, dimnames=list(names(data)[1:5], c(names(data)[1:5], "F")), name="F")
-diag(F@values) <- 1
-
-M <- mxMatrix("Full", 1, 6, T, name="M")
-M@free[1,6] <- FALSE
-
-firstModel <- mxModel("Continuous Test",
-    mxData(data, type="raw"),
-    A, S, F, M,
-    mxRAMObjective("A", "S", "F", "M")
-)
-
-firstResults <- mxRun(firstModel)
-
-summary(firstResults)
-
-

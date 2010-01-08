@@ -59,22 +59,19 @@ model <- mxModel(model,
         name = "dataRow",
         nrow=1, ncol=3, 
         free=FALSE,
-        dimnames = list(NULL, c('data.a','data.b','data.c'))),
+        labels = c('data.a','data.b','data.c')),
     mxAlgebra(
         (2*pi)^3 * 1/sqrt(det(expectedCov)) * (t(dataRow) %*% (solve(expectedCov)) %*% dataRow)^(1/2),
         name="rowAlgebra"),
-    mxMatrix("Full",
-        name="rowResults",
-        nrow=numRows, ncol=1,
-        values = rep(0, numRows),
-        free=FALSE),
     mxAlgebra(sum(rowResults), name="reduceAlgebra"),
-    mxRowObjective(rowAlgebra="rowAlgebra", rowResults="rowResults"),
+    mxRowObjective(rowAlgebra="rowAlgebra", rowResults="rowResults", reduceAlgebra="reduceAlgebra"),
     mxData(data.frame(x), 'raw')
 )
 
 # Add the objective function and the data to the model
 model <- mxRun(model)
+
+#Error: The entity 'rowAlgebra' in model 'untitled1' generated the error message: object 'flatModel' not found
 
 NPSOLOutput <- model@output
 outSum <- NPSOLOutput$minimum
