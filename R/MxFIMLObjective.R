@@ -143,13 +143,13 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 	covariance <- job[[covName]]
 	if (is.null(covariance)) {
 		stop(paste("Unknown expected covariance name", 
-			omxQuotes(simplifyName(covName)),
+			omxQuotes(simplifyName(covName, modelname)),
 			"detected in the objective function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	if (is.null(means)) {
 		stop(paste("Unknown expected means name", 
-			omxQuotes(simplifyName(meansName)),
+			omxQuotes(simplifyName(meansName, modelname)),
 			"detected in the objective function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}

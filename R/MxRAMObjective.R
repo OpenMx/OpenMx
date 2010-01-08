@@ -165,7 +165,7 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 	fMatrix <- job[[fMatrixName]]
 	if (is.null(fMatrix)) {
 		stop(paste("Unknown F matrix name", 
-			omxQuotes(simplifyName(fMatrixName)),
+			omxQuotes(simplifyName(fMatrixName, modelname)),
 			"detected in the objective function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
