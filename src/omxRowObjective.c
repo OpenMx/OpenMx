@@ -134,7 +134,6 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 
 	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
 	int nextDef, index;
-	int *nextInt;
 	omxRowObjective *newObj = (omxRowObjective*) R_alloc(1, sizeof(omxRowObjective));
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }

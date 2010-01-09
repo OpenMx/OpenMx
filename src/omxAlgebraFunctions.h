@@ -25,6 +25,10 @@
 #include <R_ext/Lapack.h>
 #include "omxMatrix.h"
 
+/* Helpers */
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights); // TODO: Convert to Algebra?
+void checkIncreasing(omxMatrix* om, int column);
+
 /* Functional Wrappers */
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
@@ -58,5 +62,7 @@ void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif

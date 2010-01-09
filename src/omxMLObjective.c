@@ -122,8 +122,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
 	omxPrint(localCov, "After Decomp:");}
 	if(info > 0) {
-		int n = oo->matrix->currentState->numFreeParams;
-			/* This section needs to be replaced.  Once we have a back-end-to-front-end error protocol. */
 		char errstr[250];
 		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
 		if(oo->matrix->currentState->computeCount <= 0) {
@@ -138,7 +136,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		det *= localCov->data[info+localCov->rows*info];
 	}	
 	det *= det;
-	// TODO: Prove this will still work for negative estimated variances (Heywood cases).
 	
 	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));

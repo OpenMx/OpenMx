@@ -30,7 +30,48 @@
 #include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 
+/* Helper Functions */
+extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
+
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
+	// Maybe coerce this into an algebra or sequence of algebras?
+	
+	if(OMX_DEBUG) { Rprintf("Standardizing matrix."); }
+	
+	int rows = cov->rows;
+
+	for(int i = 0; i < rows; i++) {
+		weights[i] = sqrt(omxMatrixElement(cov, i, i));
+	}
+
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < i; j++) {
+			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (weights[i] * weights[j]);
+		}
+	}
+}
+
+void checkIncreasing(omxMatrix* om, int column) {
+	double previous = - INFINITY;
+	double current;
+	for(int j = 0; j < om->rows; j++ ) {
+		current = omxMatrixElement(om, j, column);
+		if(current == NA_REAL || current == NA_INTEGER) {
+			continue;
+		}
+		if(current <= previous) {
+			char errstr[250];
+			sprintf(errstr, "Thresholds are not strictly increasing.");
+			omxRaiseError(om->currentState, -1, errstr);
+		}
+	}
+}
+
+
+
 // TODO: Implement wrappers for BLAS functions used here.
+
+/* omxAlgebraFunction Wrappers */
 
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
@@ -838,4 +879,91 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		error("Internal error in vechs().\n");
 	}
 
+}
+
+void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	omxMatrix* cov = matList[0];
+	omxMatrix* means = matList[1];
+	omxMatrix* lBoundMat = matList[2];
+	omxMatrix* uBoundMat = matList[3];
+	int nCols = cov->cols;
+	double lBounds[nCols], uBounds[nCols];
+	
+	/* Conformance checks: */
+	if(result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
+	if(uBounds <= lBounds) {
+		char errstr[250];
+		sprintf(errstr, "Thresholds are not strictly increasing.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
+	
+	double weights[nCols];
+	double corList[nCols * (nCols + 1) / 2];
+
+	omxStandardizeCovMatrix(cov, &corList, &weights);
+	
+	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
+	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
+	// Parameters are:
+	// 	N 		int			# of vars
+	//	Lower	double*		Array of lower bounds
+	//	Upper	double*		Array of upper bounds
+	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
+	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
+	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
+	//	Abseps	double		Absolute error tolerance.  Yick.
+	//	Releps	double		Relative error tolerance.  Use EPSILON.
+	//	Error	&double		On return: absolute real error, 99% confidence
+	//	Value	&double		On return: evaluated value
+	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
+	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
+	double Error;
+	double absEps = 1e-3;
+	double relEps = 0;
+	int MaxPts = OMX_DEFAULT_MAX_PTS;
+	double likelihood;
+	int inform;
+	int numVars = cov->rows;
+	int Infin[cov->rows];
+	
+	for(int i = 1; i <= nCols; i++) {
+		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
+		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
+		Infin[i] = 2; // Default to both thresholds
+		if(uBounds[i] <= lBounds[i]) {
+			char errstr[250];
+			sprintf(errstr, "Thresholds are not strictly increasing.");
+			omxRaiseError(result->currentState, -1, errstr);
+		}
+		if(!R_finite(lBounds[i]) ) {
+			Infin[i] -= 2;	// NA or INF or -INF means no lower threshold.
+		} else {
+			
+		}
+		if(!R_finite(uBounds[i]) ) {
+			Infin[i] -= 1; // NA or INF or -INF means no upper threshold.
+		}
+		
+	}
+
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
+	
+	if(inform == 2) {
+		char errstr[250];
+		sprintf(errstr, "Improper input to sadmvn.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
+
+}
+
+void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	char errstr[250];
+	sprintf(errstr, "NYI: Haven't gotten to this yet.  But it's not on the symbol table, so how did you call it anyway?");
+	omxRaiseError(result->currentState, -1, errstr);
+	
+	
 }

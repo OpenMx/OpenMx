@@ -32,3 +32,4 @@
 30		"Submatrix extract"	"["		3			"omxMatrixExtract"
 31		"Half vectorization"	"vech"		1			"omxMatrixVech"
 32		"1/2 vector (strict)"	"vechs"		1			"omxMatrixVechs"
+33      "Multivariate Normal Integration"   "omxMnor"   3   "omxMultivariateNormalIntegration"

@@ -80,8 +80,7 @@ typedef struct omxFIMLObjective {
 	
 	/* Structures for FIMLOrdinalObjective Objects */
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
-	omxMatrix* weights;			// Covariance weights to shift parameter estimates
-	omxMatrix* smallWeights;	// Memory reserved for reduced weight matrix	
+	double* weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
 	omxThresholdColumn* thresholdCols;		// List of column thresholds
 	
@@ -132,40 +131,6 @@ void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, 
 	}
 }
 
-void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, omxMatrix* weights) {
-	// Maybe coerce this into an algebra or sequence of algebras?
-	
-	if(OMX_DEBUG) { Rprintf("Standardizing matrix."); }
-	
-	int rows = cov->rows;
-
-	for(int i = 0; i < rows; i++) {
-		omxSetMatrixElement(weights, 0, i, sqrt(omxMatrixElement(cov, i, i)));
-	}
-
-	for(int i = 0; i < rows; i++) {
-		for(int j = 0; j < i; j++) {
-			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (omxVectorElement(weights, i) * omxVectorElement(weights, j));
-		}
-	}
-}
-
-void checkIncreasing(omxMatrix* om, int column) {
-	double previous = - INFINITY;
-	double current;
-	for(int j = 0; j < om->rows; j++ ) {
-		current = omxMatrixElement(om, j, column);
-		if(current == NA_REAL || current == NA_INTEGER) {
-			continue;
-		}
-		if(current <= previous) {
-			char errstr[250];
-			sprintf(errstr, "Thresholds are not strictly increasing.");
-			omxRaiseError(om->currentState, -1, errstr);
-		}
-	}
-}
-
 void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
@@ -178,11 +143,11 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	int numCols, numRemoves = 0;
 	int returnRowLikelihoods = 0;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *smallWeights;
-	omxMatrix *cor, *weights, *smallThresh;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
+	omxMatrix *cor, *smallThresh;
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
-	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor;
+	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor, *weights;
 	int *Infin;
 	omxDefinitionVar* defVars;
 
@@ -205,7 +170,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	smallThresh	= ((omxFIMLObjective*)oo->argStruct)->smallThresh;
 	lThresh		= ((omxFIMLObjective*)oo->argStruct)->lThresh;
 	uThresh		= ((omxFIMLObjective*)oo->argStruct)->uThresh;
-	smallWeights = ((omxFIMLObjective*)oo->argStruct)->smallWeights;
 	thresholdCols = ((omxFIMLObjective*)oo->argStruct)->thresholdCols;
 	returnRowLikelihoods = ((omxFIMLObjective*)oo->argStruct)->returnRowLikelihoods;
 
@@ -223,7 +187,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
 			}
 		}
-		omxResetAliasedMatrix(weights);
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
@@ -269,7 +232,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				double mean;
 				if(means == NULL) mean = 0;
 				else mean = omxVectorElement(means, var);
-				double weight = omxVectorElement(weights, var);
+				double weight = weights[var];
 				// toRemove[j] = 0;
 				// Rprintf(":::Data column %d, matrix column %d, values %d & %d, matrix size (%d, %d), with %d thresholds:::\n", j, thresholdCols[j].column, value, value-1, thresholdCols[j].matrix->rows, thresholdCols[j].matrix->cols, thresholdCols[j].numThresholds);
 				if(value == 0) { 									// Lowest threshold = -Inf
@@ -299,8 +262,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		
 		if(numRemoves >= smallCov->rows) continue;
 
-		// SADMVN calls Alan Gentz's sadmvn.f--see appropriate file for licensing info.
-		// TODO: Check with Gentz: should we be using sadmvn or sadmvn?
+		// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
+		// TODO: Check with Genz: should we be using sadmvn or sadmvn?
 		// Parameters are:
 		// 	N 		int			# of vars
 		//	Lower	double*		Array of lower bounds
@@ -652,11 +615,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(hasOrdinal) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
-		newObj->weights = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
-		newObj->smallWeights = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+		newObj->weights = R_alloc(covCols, sizeof(double));
 		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
 		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		omxAliasMatrix(newObj->smallWeights, newObj->weights);
 		newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
 		newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
 		newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
