@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2009 The OpenMx Project
+ *  Copyright 2007-2010 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	}
 	UNPROTECT(1); // nextMatrix
 
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowAlgeba")));
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowAlgebra")));
 	newObj->rowAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) { 
 		char errstr[250];

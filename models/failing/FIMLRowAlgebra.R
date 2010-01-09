@@ -76,7 +76,7 @@ model <- mxModel(model,
         free=FALSE,
         labels = c('data.a','data.b','data.c')),
     mxAlgebra(
-        (2*pi)^3 * 1/sqrt(det(expectedCov)) * (t(dataRow) %*% (solve(expectedCov)) %*% dataRow)^(1/2),
+        (2*pi)^3 * 1/sqrt(det(expectedCov)) * (dataRow %*% (solve(expectedCov)) %*% t(dataRow))^(1/2),
         name="rowAlgebra"),
     mxAlgebra(sum(rowResults), name="reduceAlgebra"),
     mxRowObjective(rowAlgebra="rowAlgebra", rowResults="rowResults",

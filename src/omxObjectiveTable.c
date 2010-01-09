@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2009 The OpenMx Project
+ *  Copyright 2007-2010 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength] = 
 	{"MxAlgebraObjective", 			&omxInitAlgebraObjective},
 	{"MxFIMLObjective",				&omxInitFIMLObjective},
 	{"MxRAMObjective", 				&omxInitRAMObjective},
-	{"MxRowObjective", 				&omxInitRAMObjective},
+	{"MxRowObjective", 				&omxInitRowObjective},
 	{"MxMLObjective", 				&omxInitMLObjective},
 	{"MxRObjective",				&omxInitRObjective},
 	

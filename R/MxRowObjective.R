@@ -89,6 +89,7 @@ setMethod("omxObjFunConvert", signature("MxRowObjective"),
 		.Object@rowAlgebra <- omxLocateIndex(flatModel, .Object@rowAlgebra, name)
 		.Object@rowResults <- omxLocateIndex(flatModel, .Object@rowResults, name)
 		.Object@reduceAlgebra <- omxLocateIndex(flatModel, .Object@reduceAlgebra, name)
+		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		.Object@definitionVars <- generateDefinitionList(flatModel)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
@@ -145,9 +146,10 @@ setMethod("omxObjModelConvert", "MxRowObjective",
 				"because this entity already exists in the model")
 			stop(msg, call. = FALSE)
 		}
-		rowResults <- mxMatrix('Full', nrow = rows, ncol = cols, name = rowResultsName)
+		rowResults <- mxMatrix('Full', nrow = rows, ncol = cols)
 		job[[model@name]][[rowResultsName]] <- rowResults
-		job[[.Object@name]]@rowResults <- rowResultsName
+		pair <- omxReverseIdentifier(model, rowResultsName)
+		job[[.Object@name]]@rowResults <- pair[[2]]
 		if (is.na(reduceAlgebraName)) {
 			reduceAlgebraName <- omxUntitledName()
 			reduceAlgebra <- eval(substitute(mxAlgebra(x, reduceAlgebraName), 
