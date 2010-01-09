@@ -46,7 +46,6 @@ typedef struct omxRowObjective {
 	omxMatrix* rowResults;		// Aggregation of row algebra results
 	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
 	omxData*   data;				// The data
-	omxMatrix* dataColumns;		// The order of columns in the data matrix
 	
 	/* Structures determined from info in the MxRowObjective Object*/
 	omxDefinitionVar* defVars;	// A list of definition variables
@@ -85,7 +84,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 	int numDefs;
 
-	omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra, *dataColumns;
+	omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
 	omxDefinitionVar* defVars;
 	omxData *data;
 
@@ -95,7 +94,6 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	rowResults	  = oro->rowResults;
 	reduceAlgebra = oro->reduceAlgebra;
 	data		= oro->data;
-	dataColumns	= oro->dataColumns;
 	defVars		= oro->defVars;
 	numDefs		= oro->numDefs;
     
@@ -175,12 +173,6 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 	}
 	UNPROTECT(1);// nextMatrix
-	
-	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
-	newObj->dataColumns = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
-	if(OMX_DEBUG) {omxPrint(newObj->dataColumns, "Variable mapping"); }
-	UNPROTECT(1);
 	
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
