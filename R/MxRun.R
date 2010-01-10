@@ -48,7 +48,6 @@ mxRun <- function(model) {
 	cycleDetection(flatModel)
 	flatModel <- checkEvaluation(model, flatModel, oldFlatModel)
 	parameters <- generateParameterList(flatModel)
-	definitions <- generateDefinitionList(flatModel)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(matrices, parameters)

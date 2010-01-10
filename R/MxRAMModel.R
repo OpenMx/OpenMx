@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -205,7 +205,6 @@ removeEntriesRAM <- function(model, entries) {
 	}
 	filter   <- sapply(entries, omxIsPath)
 	paths    <- entries[filter]
-	notpaths <- entries[!filter]
 	if (length(paths) > 0) for(i in 1:length(paths)) {
 		model <- removePathRAM(model, paths[[i]])
 	}

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-20010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ setMethod("omxSquareMatrix", "SdiagMatrix",
 populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 	len <- length(input)
 	if (len == n * n) {
-		values <- matrix(input, n, n, byrow)
+		output <- matrix(input, n, n, byrow)
 	} else if (len == n * (n - 1) / 2 || len == 1) {
 		if(byrow) {
 			output <- matrix(default, n, n)

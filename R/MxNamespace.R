@@ -169,7 +169,6 @@ omxGenerateNamespace <- function(model) {
 	results <- lapply(model@submodels, omxGenerateNamespace)
 	if (length(results) > 0) {
 		for (i in 1:length(results)) {
-			submodel <- model@submodels[[i]]
 			subentities <- results[[i]][['entities']]
 			subnames <- names(subentities)
 			for (j in 1:length(subentities)) {
