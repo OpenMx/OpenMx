@@ -1,0 +1,25 @@
+
+useDynLib(OpenMx)
+
+# basic functions in the OpenMx library
+exportPattern("^mx.+")
+
+# advanced functions in the OpenMx library
+exportPattern("^omx.+")
+
+# matrix algebra functions exported by the library
+export(tr, "%&%", vech, vechs)
+
+# export S4 classes in the OpenMx library
+exportClassPattern("^.+Matrix")
+exportClassPattern("^Mx.+")
+
+# export S4 methods in the OpenMx library
+exportMethods("[","[[", "$")
+exportMethods(summary, nrow, ncol, length, dimnames, show, print)
+
+# export S3 methods in the OpenMx library
+S3method(print, summary.mxmodel)
+
+
+

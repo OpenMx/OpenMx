@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,9 +14,23 @@
 #   limitations under the License.
 
 
+unlockCounter <- function() {
+	if(.untitledLocked) {
+		unlockBinding('.untitledLocked', getNamespace("OpenMx"))
+		unlockBinding('.untitledCounter', getNamespace("OpenMx"))
+		.untitledLocked <<- FALSE
+	}
+}
+
+omxUntitledNumberReset <- function() {
+	unlockCounter()
+	.untitledCounter <<- 0
+}
+
 omxUntitledNumber <- function() {
-	omxUntitledCounter <<- omxUntitledCounter + 1
-	return(omxUntitledCounter)	
+	unlockCounter()
+	.untitledCounter <<- .untitledCounter + 1
+	return(.untitledCounter)	
 }
 
 omxUntitledName <- function() {
@@ -24,4 +38,5 @@ omxUntitledName <- function() {
 	return(name)
 }
 
-omxUntitledCounter <- 0
+.untitledCounter <- 0
+.untitledLocked <- TRUE

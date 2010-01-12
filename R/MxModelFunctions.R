@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ getObjectiveIndex <- function(flatModel) {
 	}
 }
 
-updateModelValues <- function(model, flatModel, pList, values) {
+omxUpdateModelValues <- function(model, flatModel, pList, values) {
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),

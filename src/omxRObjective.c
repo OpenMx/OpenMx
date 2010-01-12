@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2009 The OpenMx Project
+ *  Copyright 2007-2010 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 
 	PROTECT(theCall = allocVector(LANGSXP, 5));
 	
-	SETCAR(theCall, install("updateModelValues"));
+	SETCAR(theCall, install("omxUpdateModelValues"));
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->flatModel);
 	SETCADDDR(theCall, rObjective->parameters);

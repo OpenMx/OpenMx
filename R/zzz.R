@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,11 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-
-#TODO: replace with .onLoad once namespaces are implemented
-.First.lib <- function(libname, pkgname) {
-   library.dynam("OpenMx") 
+.onLoad <- function(libname, pkgname) {
    options('mxDefaultType' = 'raw', 
    	'mxOptimizerOptions' = npsolOptions, 
    	'mxRAMDefaultSingle' = 1.00, 
