@@ -16,9 +16,11 @@
 
 unlockCounter <- function() {
 	if(.untitledLocked) {
-		unlockBinding('.untitledLocked', getNamespace("OpenMx"))
-		unlockBinding('.untitledCounter', getNamespace("OpenMx"))
+		namespace <- getNamespace("OpenMx")
+		unlockBinding('.untitledLocked', namespace)
 		.untitledLocked <<- FALSE
+		lockBinding('.untitledLocked', namespace)
+		unlockBinding('.untitledCounter', namespace)
 	}
 }
 
