@@ -9,6 +9,7 @@ trunk
 * fixed bug in ordinal FIML when # of data columns > # of thresholds
 * added 'frontendTime' and 'backendTime' values to summary() output. They store the elapsed time of a model in the R front-end and C back-end, respectively.
 * created a name space for the OpenMx library. Only mx**() and omx**() functions should be exported to the user, plus several miscellaneous matrix functions and S4 generic functions.
+* corrected 'observedStatistics' output of summary() to exclude definition variables
 
 Release 0.2.3-1006
 ==================

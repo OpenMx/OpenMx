@@ -17,7 +17,17 @@ dataMatchesHistory <- function(data, historySet) {
 	return(any(sapply(historySet, identical, data)))
 }
 
-observedStatisticsHelper <- function(data, historySet) {
+defVarMatch <- function(defVars, modelName, colName) {
+	return(any(sapply(defVars, defVarMatchHelper, modelName, colName)))
+}
+
+defVarMatchHelper <- function(candidate, modelName, colName) {
+	components <- unlist(strsplit(candidate, omxSeparatorChar, fixed = TRUE))
+	return((components[[1]] == modelName) && (components[[3]] == colName))
+}
+
+observedStatisticsHelper <- function(data, historySet, defVars) {
+	modelName <- unlist(strsplit(data@name, omxSeparatorChar, fixed = TRUE))[[1]]
 	if (is.null(data)) {
 		return(list(0, historySet))
 	}
@@ -43,17 +53,19 @@ observedStatisticsHelper <- function(data, historySet) {
 		historySet <- append(data, historySet)
 	} else {
 		dof <- 0
-		for (i in 1:ncol(data@observed)) {
-			if (!dataMatchesHistory(data@observed[,i], historySet)) {
-				dof <- dof + sum(!is.na(data@observed[,i]))
-				historySet <- append(data@observed[,i], historySet)
+		observed <- data@observed		
+		for (i in 1:ncol(observed)) {
+			if (!defVarMatch(defVars, modelName, colnames(observed)[[i]]) && 
+				!dataMatchesHistory(observed[,i], historySet)) {
+				dof <- dof + sum(!is.na(observed[,i]))
+				historySet <- append(observed[,i], historySet)
 			}
 		}
 	}
 	return(list(dof, historySet))
 }
 
-observedStatisticsSingleModel <- function(data) {
+observedStatisticsSingleModel <- function(data, defVars) {
 	if (is.null(data)) {
 		return(0)
 	}
@@ -72,22 +84,31 @@ observedStatisticsSingleModel <- function(data) {
 		}
 		return(dof)
 	} else {
-		return(sum(!is.na(data@observed)))
+		observed <- data@observed
+		defVars <- sapply(defVars, function(x) {
+			unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]})
+		indexes <- match(defVars, colnames(observed))
+		indexes <- indexes[!is.na(indexes)]
+		if(length(indexes) > 0) {
+			observed <- observed[,-indexes]
+		}
+		return(sum(!is.na(observed)))
 	}
 }
 
 observedStatistics <- function(flatModel) {
 	datasets <- flatModel@datasets
+	defVars <- names(generateDefinitionList(flatModel))
 	if (length(datasets) == 0) {
 		return(length(flatModel@constraints))
 	} else if (length(datasets) == 1) {
-		return(observedStatisticsSingleModel(datasets[[1]]) + 
+		return(observedStatisticsSingleModel(datasets[[1]], defVars) + 
 			length(flatModel@constraints))
 	}
 	historySet <- list()
 	retval <- 0
 	for(i in 1:length(datasets)) {
-		result <- observedStatisticsHelper(datasets[[i]], historySet)
+		result <- observedStatisticsHelper(datasets[[i]], historySet, defVars)
 		retval <- retval + result[[1]]
 		historySet <- result[[2]]
 	}
