@@ -96,14 +96,31 @@ observedStatisticsSingleModel <- function(data, defVars) {
 	}
 }
 
-observedStatistics <- function(flatModel) {
+calculateNumberConstraints <- function(model, flatModel) {
+	if (length(flatModel@constraints) == 0) return(0)
+	sum(sapply(flatModel@constraints, calculateNumberConstraintsHelper, model, flatModel))
+}
+
+calculateNumberConstraintsHelper <- function(constraint, model, flatModel) {
+	if (constraint@relation == "=") {
+		lhsName <- constraint@alg1
+		value <- eval(substitute(mxEval(x, model, compute=TRUE),
+			list(x = as.symbol(lhsName))))
+		return(nrow(value) * ncol(value))
+	} else {
+		return(0)
+	}
+}
+
+observedStatistics <- function(model, flatModel) {
 	datasets <- flatModel@datasets
 	defVars <- names(generateDefinitionList(flatModel))
+	countConstraints <- calculateNumberConstraints(model, flatModel)
 	if (length(datasets) == 0) {
-		return(length(flatModel@constraints))
+		return(countConstraints)
 	} else if (length(datasets) == 1) {
 		return(observedStatisticsSingleModel(datasets[[1]], defVars) + 
-			length(flatModel@constraints))
+			countConstraints)
 	}
 	historySet <- list()
 	retval <- 0
@@ -112,7 +129,7 @@ observedStatistics <- function(flatModel) {
 		retval <- retval + result[[1]]
 		historySet <- result[[2]]
 	}
-	retval <- retval + length(flatModel@constraints)
+	retval <- retval + countConstraints
 	return(retval)
 }
 
@@ -192,7 +209,7 @@ parameterList <- function(model, matrices, parameters) {
 computeOptimizationStatistics <- function(model, flatModel, retval) {
 	estimates <- model@output$estimate
 	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(flatModel)
+	retval[['observedStatistics']] <- observedStatistics(model, flatModel)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
 	retval <- fitStatistics(flatModel, retval)
 	return(retval)
