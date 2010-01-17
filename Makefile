@@ -22,7 +22,9 @@ RFILES = $(wildcard R/*.R)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  build      create an OpenMx binary on unix systems"
+	@echo "  build      create an OpenMx binary for unix systems (no cross-compilation)"
+	@echo "  build64    create an OpenMx binary for x86_64 systems"
+	@echo "  buildppc   create an OpenMx binary for ppc systems"
 	@echo "  winbuild   create an OpenMx binary on windows systems"
 	@echo "  install    build and install OpenMx on this machine"
 	@echo "  pdf        create a pdf file (in build) of the OpenMx R documentation"
@@ -57,6 +59,9 @@ common-build: clean internal-build
 common-build64: clean internal-build
 	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
+common-buildppc: clean internal-build
+	cd $(RBUILD); $(REXEC) --arch ppc $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+
 build64: common-build64
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *.gz;\
@@ -64,6 +69,12 @@ build64: common-build64
 	gzip *.tar
 
 build: common-build
+	rm -f $(RBUILD)/$(TARGET)
+	cd $(RBUILD); gunzip *.gz;\
+	tar --delete --file=`ls` OpenMx/npsol;\
+	gzip *.tar
+
+buildppc: common-buildppc
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *.gz;\
 	tar --delete --file=`ls` OpenMx/npsol;\
