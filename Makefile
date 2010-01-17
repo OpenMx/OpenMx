@@ -46,7 +46,8 @@ pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
 
-html: build
+html: internal-build
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
 	cd $(RBUILD); gunzip *.gz; tar -xf *.tar
 	mv build/OpenMx/html build/html
