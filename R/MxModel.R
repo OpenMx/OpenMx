@@ -133,7 +133,6 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	lst <- mappendHelper(lst, list())
 	model <- omxModelBuilder(model, lst, name, manifestVars,
 		latentVars, remove, independent)
-	model@options <- getOption('mxOptimizerOptions')
 	return(model)
 }
 

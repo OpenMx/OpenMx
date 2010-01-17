@@ -77,8 +77,6 @@ dataMatrix <- mxData(data, type='raw')
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, dataMatrix)
 
-model <- mxOption(model, "Function Precision", 1e-9)
-
 # Run the job
 model <- mxRun(model)
 

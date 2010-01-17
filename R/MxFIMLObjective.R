@@ -102,6 +102,11 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 setMethod("omxObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, flatJob) {
 		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
+		precision <- "Function Precision"
+		if(!single.na(.Object@thresholds) && 
+			is.null(job@options[[precision]])) {
+			job <- mxOption(job, precision, 1e-9)
+		}
 		return(job)
 	}
 )

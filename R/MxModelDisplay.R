@@ -28,35 +28,16 @@ omxQuotes <- function(name) {
 
 printOptions <- function(options) {
 	retval <- ""
-	select <- list()
-	if (length(options) > 0) {
-		for(i in 1:length(options)) {
-			key <- names(options)[[i]] 
-			if(!(key %in% names(getOption('mxOptimizerOptions')))) {
-				select[[key]] <- options[[key]]
-			} else if (options[[key]] != getOption('mxOptimizerOptions')[[key]]) {
-				select[[key]] <- options[[key]]
-			}
-		}
-	}	
 	
-	missingKeys <- setdiff(names(getOption('mxOptimizerOptions')), names(options))
-	if (length(missingKeys) > 0) {
-		for(i in 1:length(missingKeys)) {
-			key <- missingKeys[[i]]
-			select[[key]] <- "NULL"
-		}
-	}
-	
-	if (length(select) == 0) {
+	if (length(options) == 0) {
 		return(retval)
 	}
-	for(i in 1:length(select)) {
-		key <- names(select)[[i]]
-		value <- select[[i]]
+	for(i in 1:length(options)) {
+		key <- names(options)[[i]]
+		value <- options[[i]]
 		retval <- paste(retval, omxQuotes(key), '=',
 				omxQuotes(value))
-		if (i < length(select)) {
+		if (i < length(options)) {
 			retval <- paste(retval, ',', sep='')
 		}
 	}

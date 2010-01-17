@@ -41,10 +41,12 @@ npsolOptions <- list(
 
 # Convert the keys and values into strings
 generateOptionsList <- function(input) {
-	keys <- sapply(names(input), as.character)
-	values <- sapply(input, as.character)
-	options <- list()
-	options[keys] <- values
+	options <- getOption('mxOptimizerOptions')
+	if (length(input) > 0) {
+		keys <- sapply(names(input), as.character)
+		values <- sapply(input, as.character)
+		options[keys] <- values
+	}
 	return(options)
 }
 
