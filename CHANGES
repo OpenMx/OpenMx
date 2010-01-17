@@ -3,6 +3,7 @@ trunk
 * added 'mxVersion' slot to output of 'summary' function.
 * added documentation of 'summary' function.  If model refers to a MxModel object, then use "?summary(model)" or the more generic "method ? summary('MxModel')".
 * set default function precision for ordinal FIML evaluation to "1e-9"
+* not throwing an error on mxMatrix('Full', 3, 3, labels = c(NA, NA, NA))
 
 Release 0.2.4-1038
 ==================

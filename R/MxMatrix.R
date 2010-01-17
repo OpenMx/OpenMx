@@ -24,6 +24,12 @@ single.na <- function(a) {
 		(is.na(a) == TRUE))
 }
 
+all.na <- function(a) {
+	return((length(a) > 0) &&
+		(is.list(a) || is.vector(a) || is.matrix(a)) && 
+		(all(sapply(a, is.na))))	
+}
+
 verifySquare <- function(.Object) {
 	if (nrow(.Object@labels) != ncol(.Object@labels)) { 
 		stop(paste("Labels matrix of MxMatrix", 
@@ -199,10 +205,10 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 	dimnames = NA, name = NA) {
-	if (single.na(values)) { values <- as.numeric(NA) }
-	if (single.na(labels)) { labels <- as.character(NA) }
-	if (single.na(lbound)) { lbound <- as.numeric(NA) }
-	if (single.na(ubound)) { ubound <- as.numeric(NA) }
+	if (all.na(values)) { values <- as.numeric(values) }
+	if (all.na(labels)) { labels <- as.character(labels) }
+	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
+	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
 	if (single.na(name)) {
 		name <- omxUntitledName()
 	}
