@@ -241,6 +241,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("RMSEA: ", x$RMSEA, '\n')
 	cat("frontend elapsed time:", format(x$frontendTime), '\n')
 	cat("backend elapsed time:", format(x$backendTime), '\n')
+	cat("openmx version number:", x$mxVersion, '\n')
 	cat('\n')
 }
 
@@ -297,6 +298,7 @@ setMethod("summary", "MxModel",
 		}
 		retval$frontendTime <- object@output$frontendTime
 		retval$backendTime <- object@output$backendTime
+		retval$mxVersion <- object@output$mxVersion
 		class(retval) <- "summary.mxmodel"
 		return(retval)
 	}

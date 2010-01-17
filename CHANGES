@@ -1,3 +1,8 @@
+trunk
+=====
+* added 'mxVersion' slot to output of 'summary' function.
+* added documentation of 'summary' function.  If model refers to a MxModel object, then use "?summary(model)" or the more generic "method ? summary('MxModel')".
+
 Release 0.2.4-1038
 ==================
 * definition variables can now be used inside algebra expressions

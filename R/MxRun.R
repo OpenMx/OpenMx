@@ -75,6 +75,7 @@ mxRun <- function(model) {
 
 processOptimizerOutput <- function(flatModel, matrixNames, 
 		algebraNames, parameterNames, output) {
+	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
 	}
