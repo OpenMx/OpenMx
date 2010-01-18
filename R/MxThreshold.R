@@ -46,7 +46,7 @@ generateThresholdColumns <- function(flatModel, threshNames, dataName) {
 	return(retval)
 }
 
-convertThresholds <- function(flatModel, dataName, threshNames) {
+convertThresholds <- function(flatModel, model, dataName, threshNames) {
 	if (single.na(threshNames) || length(threshNames) == 0) {
 		observed <- flatModel@datasets[[dataName]]@observed
 		return(observed)
@@ -58,76 +58,30 @@ convertThresholds <- function(flatModel, dataName, threshNames) {
 			stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), 
 				"for model", omxQuotes(flatModel@name), 
 				"does not exist."), call. = FALSE)
-		} else if (is(thresholds, "MxAlgebra")) {
-			flatModel <- convertThresholdAlgebra(flatModel, dataName, threshName)			
-		} else if (is(thresholds, "MxMatrix")) {
-			flatModel <- convertThresholdMatrix(flatModel, dataName, threshName)			
+		} else if (is(thresholds, "MxAlgebra") || is(thresholds, "MxMatrix")) {
+			flatModel <- convertSingleThreshold(flatModel, dataName, threshName)
 		} else {
 			stop(paste("The thresholds entity", omxQuotes(threshName), 
 				"for model", omxQuotes(flatModel@name), 
-				"is not a MxMatrix or MxAlgebra."), call. = FALSE)			
+				"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 		}
+	}
+	if (length(threshNames) == 1) {
+		checkSingleThresholdEntity(flatModel, model, dataName, threshNames[[1]])
 	}
 	observed <- flatModel@datasets[[dataName]]@observed
 	return(observed)
 }
 
-
-convertThresholdAlgebra <- function(flatModel, dataName, threshName) {
+checkSingleThresholdEntity <- function(flatModel, model, dataName, threshName) {
 	observed <- flatModel@datasets[[dataName]]@observed
-	thresholds <- flatModel[[threshName]]
 	modelName <- flatModel@name
-	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
-		stop(paste("The thresholds algebra", omxQuotes(threshName), "for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
-	}
-	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
-		stop(paste("The observed data matrix for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
-	}
 	threshNames <- dimnames(observed)[[2]]
-	obsNames <- dimnames(observed)[[2]]
-	missingNames <- setdiff(threshNames, obsNames)
-	if (length(missingNames) > 0) {
-		stop(paste("The following column names in the threshold",
-			"algebra do not exist in the observed data matrix",
-			"for model", omxQuotes(modelName), 
-			":", omxQuotes(missingNames)), call. = FALSE)
-	}
+	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
+		list(x = as.symbol(threshName))))
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
-		observed[,tName] <- as.ordered(observed[,tName])
-	}
-	flatModel@datasets[[dataName]]@observed <- observed
-	return(flatModel)
-}
-
-
-convertThresholdMatrix <- function(flatModel, dataName, threshName) {
-	observed <- flatModel@datasets[[dataName]]@observed
-	thresholds <- flatModel[[threshName]]
-	modelName <- flatModel@name
-	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
-		stop(paste("The thresholds matrix", omxQuotes(threshName), "for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
-	}
-	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
-		stop(paste("The observed data matrix for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
-	}
-	threshNames <- dimnames(thresholds)[[2]]
-	obsNames <- dimnames(observed)[[2]]
-	missingNames <- setdiff(threshNames, obsNames)
-	if (length(missingNames) > 0) {
-		stop(paste("The following column names in the threshold",
-			"matrix do not exist in the observed data matrix",
-			"for model", omxQuotes(modelName), 
-			":", omxQuotes(missingNames)), call. = FALSE)
-	}
-	for(i in 1:length(threshNames)) {
-		tName <- threshNames[[i]]
-		observed[,tName] <- as.ordered(observed[,tName])
-		column <- thresholds@values[,i]
+		column <- thresholds[,i]
 		count <- sum(!is.na(column))
 		if (count != (length(levels(observed[,tName])) - 1)) {
 			stop(paste("The number of thresholds in column",
@@ -160,6 +114,33 @@ convertThresholdMatrix <- function(flatModel, dataName, threshName) {
 				"in model",
 				omxQuotes(modelName)), call. = FALSE)	
 		}
+	}
+}
+
+convertSingleThreshold <- function(flatModel, dataName, threshName) {
+	observed <- flatModel@datasets[[dataName]]@observed
+	thresholds <- flatModel[[threshName]]
+	modelName <- flatModel@name
+	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
+		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), "for model", 
+			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
+	}
+	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
+		stop(paste("The observed data matrix for model", 
+			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
+	}
+	threshNames <- dimnames(thresholds)[[2]]
+	obsNames <- dimnames(observed)[[2]]
+	missingNames <- setdiff(threshNames, obsNames)
+	if (length(missingNames) > 0) {
+		stop(paste("The following column names in the threshold",
+			"matrix/algebra do not exist in the observed data matrix",
+			"for model", omxQuotes(modelName), 
+			":", omxQuotes(missingNames)), call. = FALSE)
+	}
+	for(i in 1:length(threshNames)) {
+		tName <- threshNames[[i]]
+		observed[,tName] <- as.ordered(observed[,tName])
 	}
 	flatModel@datasets[[dataName]]@observed <- observed
 	return(flatModel)

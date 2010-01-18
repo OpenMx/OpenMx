@@ -39,7 +39,7 @@ mxRun <- function(model) {
 	model <- omxReplaceModels(model, independents)
 	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
-	data <- convertDatasets(flatModel)
+	data <- convertDatasets(flatModel, model)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
 	flatModel <- populateDefInitialValues(flatModel)
 	oldFlatModel <- flatModel

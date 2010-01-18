@@ -73,7 +73,7 @@ flatReplaceMethod <- function(model, index, value) {
 	return(namespaceSearchReplace(model, model@name, index, value))
 }
 
-convertDatasets <- function(flatModel) {
+convertDatasets <- function(flatModel, model) {
 	if (length(flatModel@objectives) > 0) {
 		for(i in 1:length(flatModel@objectives)) {
 			objective <- flatModel@objectives[[i]]
@@ -82,7 +82,7 @@ convertDatasets <- function(flatModel) {
 				is(objective, "MxMLObjective")) &&
 				!is.na(objective@thresholds)) {
 				threshNames <- objective@thresholds
-				observed <- convertThresholds(flatModel, dataName, threshNames)
+				observed <- convertThresholds(flatModel, model, dataName, threshNames)
 				flatModel@datasets[[dataName]]@observed <- observed
 #			} else if (!is.na(dataName)) {
 #				data <- flatModel@datasets[[dataName]]@observed

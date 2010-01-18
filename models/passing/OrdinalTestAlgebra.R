@@ -46,7 +46,7 @@ Mx1R <- rbind(
     c(0.0760,  0.1869,  0.4377, 1.0000))
 
 nameList <- names(data)
-print(nameList)
+
 # Define the model
 model <- mxModel()
 model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377), 
