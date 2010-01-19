@@ -5,6 +5,7 @@ trunk
 * set default function precision for ordinal FIML evaluation to "1e-9"
 * not throwing an error on mxMatrix('Full', 3, 3, labels = c(NA, NA, NA))
 * applying identical error checking to single thresholds matrix and single thresholds algebra
+* implemented generic method names() for MxModel objects.
 
 Release 0.2.4-1038
 ==================

@@ -16,7 +16,7 @@ exportClassPattern("^Mx.+")
 
 # export S4 methods in the OpenMx library
 exportMethods("[","[[", "$")
-exportMethods(summary, nrow, ncol, length, dimnames, show, print)
+exportMethods(summary, nrow, ncol, length, names, dimnames, show, print)
 
 # export S3 methods in the OpenMx library
 S3method(print, summary.mxmodel)

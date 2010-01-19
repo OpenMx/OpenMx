@@ -74,6 +74,25 @@ setGeneric("omxVerifyModel", function(model) {
 
 # End declaration of generics
 
+setMethod("names", "MxModel",
+	function(x) {		
+		matrices <- names(x@matrices)
+		algebras <- names(x@algebras)
+		submodels <- names(x@submodels)
+		constraints <- names(x@constraints)
+		retval1 <- union(matrices, algebras)
+		retval2 <- union(submodels, constraints)
+		retval <- union(retval1, retval2)
+		if (!is.null(x@objective)) {
+			retval <- union(retval, x@objective@name)
+		}
+		if (!is.null(x@data)) {
+			retval <- union(retval, x@data@name)
+		}
+		return(retval)
+	}
+)
+
 setMethod("[[", "MxModel",
 	function(x, i, j, ..., drop = FALSE) {
 		return(omxExtractMethod(x, i))
