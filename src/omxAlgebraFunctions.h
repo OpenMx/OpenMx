@@ -50,6 +50,8 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result);

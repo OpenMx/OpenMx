@@ -102,7 +102,9 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
 	if(l != 0) {
-		error("Attempted to invert non-invertable matrix.");
+		char errstr[250];
+		sprintf(errstr, "Attempted to invert non-invertable matrix.");
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 	F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 
@@ -132,7 +134,9 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 			for(int k = 0; k < inMat->cols; k++)
 				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), omxMatrixElement(power, j,k)));
 	} else {
-		error("Non-conformable matrices in elementPower.");
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices in elementPower.");
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 }
@@ -146,7 +150,9 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* postMul = matList[1];
 
 	if(preMul == NULL || postMul == NULL) {
-		error("Null matrix pointer detected.\n");
+		char errstr[250];
+		sprintf(errstr, "Null matrix pointer detected.\n");
+		
 	}
 
 	static double zero = 0.0;
@@ -156,7 +162,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(preMul->cols != postMul->rows) {
 		char errstr[250];
 		sprintf(errstr, "Non-conformable matrices [(%d x %d) and (%d x %d)] in Matrix Multiply.", preMul->rows, preMul->cols, postMul->rows, postMul->cols);
-		error(errstr);
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 	if(result->rows != preMul->rows || result->cols != postMul->cols)
@@ -181,8 +187,11 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* second = matList[1];
 
 	/* Conformability Check! */
-	if(first->cols != second->cols || first->rows != second->rows)
-		error("Non-conformable matrices in Element Multiplication.");
+	if(first->cols != second->cols || first->rows != second->rows) {
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices in Element Multiplication.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
 
 	omxCopyMatrix(result, first);
 
@@ -276,8 +285,11 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* divisor = matList[1];
 
 	/* Conformability Check! */
-	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows)
-		error("Non-conformable matrices in Element Division.");
+	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows) {
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices in Element Division.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
 
 	omxCopyMatrix(result, inMat);
 
@@ -302,8 +314,11 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* addend = matList[1];
 
 	/* Conformability Check! */
-	if(inMat->cols != addend->cols || inMat->rows != addend->rows)
-		error("Non-conformable matrices in Matrix Addition.");
+	if(inMat->cols != addend->cols || inMat->rows != addend->rows) {
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices in Matrix Addition.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
 
 	omxCopyMatrix(result, inMat);
 
@@ -374,8 +389,11 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* inMat = matList[0];
 	omxMatrix* subtrahend = matList[1];
 
-	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows)
-		error("Non-conformable matrices in Matrix Subtract.");
+	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows) {
+		char errstr[250];
+		sprintf(errstr, "Non-conformable matrices in Matrix Subtract.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
 
 	omxCopyMatrix(result, inMat);
 
@@ -430,7 +448,9 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalRows != matList[j]->rows) {
-			error("Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
+			char errstr[250];
+			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
+			omxRaiseError(result->currentState, -1, errstr);
 		}
 		totalCols += matList[j]->cols;
 	}
@@ -463,7 +483,9 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalCols != matList[j]->cols) {
-			error("Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
+			char errstr[250];
+			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
+			omxRaiseError(result->currentState, -1, errstr);
 		}
 		totalRows += matList[j]->rows;
 	}
@@ -496,7 +518,10 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	double det = 1;
 	int info;
 
-	if(rows != cols) { error("Determinant of non-square matrix cannot be found.\n"); }
+	if(rows != cols) { 
+		char errstr[250];
+		sprintf(errstr, "Determinant of non-square matrix cannot be found.\n");
+		omxRaiseError(result->currentState, -1, errstr); }
 
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -510,7 +535,9 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	F77_CALL(dgetrf)(&(calcMat->rows), &(calcMat->cols), calcMat->data, &(calcMat->cols), ipiv, &info);
 
 	if(info != 0) {
-		error("Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.");  // UPDATE!
+		char errstr[250];
+		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.");  // UPDATE!
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {
@@ -543,7 +570,9 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(inMat->rows != inMat->cols) {
-		error("Non-square matrix in Trace().\n");
+		char errstr[250];
+		sprintf(errstr, "Non-square matrix in Trace().\n");
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 	double trace = 0.0;
@@ -663,6 +692,55 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 		data[j] = fabs(data[j]);
 	}
 
+}
+
+void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Diagonal.\n");}
+	
+	omxMatrix* inMat = matList[0];
+	int diags = inMat->cols;
+	if(inMat->cols > inMat->rows) {
+		diags = inMat->rows;
+	}
+	
+	if (result->cols != 1 || result->rows != diags) {
+		omxResizeMatrix(result, 1, diags, FALSE);
+	}
+
+	for(int j = 0; j < diags; j++) {
+		omxSetMatrixElement(result, 1, j, omxMatrixElement(inMat, j, j));
+	}
+	
+}
+
+void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) {
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Diagonal.\n");}
+	
+	omxMatrix* inMat = matList[0];
+	int diags = inMat->cols;
+	double value;
+	
+	if(inMat->cols < inMat->rows) {
+		diags = inMat->rows;
+	}
+	
+	if(inMat->cols != 1 && inMat->rows != 1) {
+		char errstr[250];
+		sprintf(errstr, "To generate a matrix from a diagonal that is not 1xN or Nx1.");
+		omxRaiseError(result->currentState, -1, errstr);
+	}
+
+	for(int j = 0; j < diags; j++) {
+		for(int k = 0; k < diags; k++) {
+			if(j == k) { 
+				omxSetMatrixElement(result, j, k, omxVectorElement(inMat, j));
+			} else {
+				omxSetMatrixElement(result, j, k, 0);
+			}
+		}
+	}
 }
 
 void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -847,7 +925,9 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 
 	if(counter != size) {
-		error("Internal error in vech().\n");
+		char errstr[250];
+		sprintf(errstr, "Internal error in vech().\n");
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 }
@@ -876,7 +956,9 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 
 	if(counter != size) {
-		error("Internal error in vechs().\n");
+		char errstr[250];
+		sprintf(errstr, "Internal error in vechs().\n");
+		omxRaiseError(result->currentState, -1, errstr);
 	}
 
 }
@@ -892,11 +974,6 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	
 	/* Conformance checks: */
 	if(result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
-	if(uBounds <= lBounds) {
-		char errstr[250];
-		sprintf(errstr, "Thresholds are not strictly increasing.");
-		omxRaiseError(result->currentState, -1, errstr);
-	}
 	
 	double weights[nCols];
 	double corList[nCols * (nCols + 1) / 2];
@@ -956,14 +1033,15 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(result->currentState, -1, errstr);
 	}
+	
+	omxSetMatrixElement(result, 1, 1, likelihood);
 
 }
 
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
 	char errstr[250];
-	sprintf(errstr, "NYI: Haven't gotten to this yet.  But it's not on the symbol table, so how did you call it anyway?");
+	sprintf(errstr, "All-regions integration not yet implemented.  Sorry.");
 	omxRaiseError(result->currentState, -1, errstr);
-	
-	
+
 }
