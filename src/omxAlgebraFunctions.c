@@ -35,9 +35,9 @@ extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*
 
 void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
 	// Maybe coerce this into an algebra or sequence of algebras?
-	
+
 	if(OMX_DEBUG) { Rprintf("Standardizing matrix."); }
-	
+
 	int rows = cov->rows;
 
 	for(int i = 0; i < rows; i++) {
@@ -152,7 +152,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(preMul == NULL || postMul == NULL) {
 		char errstr[250];
 		sprintf(errstr, "Null matrix pointer detected.\n");
-		
+
 	}
 
 	static double zero = 0.0;
@@ -518,7 +518,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	double det = 1;
 	int info;
 
-	if(rows != cols) { 
+	if(rows != cols) {
 		char errstr[250];
 		sprintf(errstr, "Determinant of non-square matrix cannot be found.\n");
 		omxRaiseError(result->currentState, -1, errstr); }
@@ -695,46 +695,50 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 }
 
 void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Diagonal.\n");}
-	
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: diag2vec.\n");}
+
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
 	if(inMat->cols > inMat->rows) {
 		diags = inMat->rows;
 	}
-	
+
 	if (result->cols != 1 || result->rows != diags) {
-		omxResizeMatrix(result, 1, diags, FALSE);
+		omxResizeMatrix(result, diags, 1, FALSE);
 	}
 
 	for(int j = 0; j < diags; j++) {
-		omxSetMatrixElement(result, 1, j, omxMatrixElement(inMat, j, j));
+		omxSetMatrixElement(result, j, 0, omxMatrixElement(inMat, j, j));
 	}
-	
+
 }
 
 void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Diagonal.\n");}
-	
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: vec2diag.\n");}
+
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
 	double value;
-	
+
 	if(inMat->cols < inMat->rows) {
 		diags = inMat->rows;
 	}
-	
+
 	if(inMat->cols != 1 && inMat->rows != 1) {
 		char errstr[250];
 		sprintf(errstr, "To generate a matrix from a diagonal that is not 1xN or Nx1.");
 		omxRaiseError(result->currentState, -1, errstr);
 	}
 
+	if (result->cols != diags || result->rows != diags) {
+			omxResizeMatrix(result, diags, diags, FALSE);
+	}
+
 	for(int j = 0; j < diags; j++) {
 		for(int k = 0; k < diags; k++) {
-			if(j == k) { 
+			if(j == k) {
 				omxSetMatrixElement(result, j, k, omxVectorElement(inMat, j));
 			} else {
 				omxSetMatrixElement(result, j, k, 0);
@@ -964,22 +968,22 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	
+
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	omxMatrix* lBoundMat = matList[2];
 	omxMatrix* uBoundMat = matList[3];
 	int nCols = cov->cols;
 	double lBounds[nCols], uBounds[nCols];
-	
+
 	/* Conformance checks: */
 	if(result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
-	
+
 	double weights[nCols];
 	double corList[nCols * (nCols + 1) / 2];
 
 	omxStandardizeCovMatrix(cov, &corList, &weights);
-	
+
 	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
 	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
 	// Parameters are:
@@ -1003,7 +1007,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	int inform;
 	int numVars = cov->rows;
 	int Infin[cov->rows];
-	
+
 	for(int i = 1; i <= nCols; i++) {
 		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
@@ -1016,30 +1020,30 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		if(!R_finite(lBounds[i]) ) {
 			Infin[i] -= 2;	// NA or INF or -INF means no lower threshold.
 		} else {
-			
+
 		}
 		if(!R_finite(uBounds[i]) ) {
 			Infin[i] -= 1; // NA or INF or -INF means no upper threshold.
 		}
-		
+
 	}
 
 	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
-	
+
 	if(inform == 2) {
 		char errstr[250];
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(result->currentState, -1, errstr);
 	}
-	
+
 	omxSetMatrixElement(result, 1, 1, likelihood);
 
 }
 
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	
+
 	char errstr[250];
 	sprintf(errstr, "All-regions integration not yet implemented.  Sorry.");
 	omxRaiseError(result->currentState, -1, errstr);

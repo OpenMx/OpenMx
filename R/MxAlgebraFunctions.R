@@ -33,3 +33,19 @@ vech <- function(A) {
 vechs <- function(A) {
 	return(A[lower.tri(A, diag=FALSE)])
 }
+
+diag2vec <- function(A) {
+	return(as.matrix(diag(as.matrix(A))))
+}
+
+vec2diag <- function(A) {
+	A <- as.matrix(A)
+	if (nrow(A) != 1 && ncol(A) != 1) {
+		stop("argument must be a row or column vector")
+	}
+	if (nrow(A) * ncol(A) == 1) {
+		return(A)
+	} else {
+		return(as.matrix(diag(as.numeric(A))))
+	}		
+}
