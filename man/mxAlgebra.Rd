@@ -54,6 +54,10 @@ The following functions are supported in mxAlgebra:
 \item{\code{exp()}}{Exponent}
 \item{\code{log()}}{Natural Logarithm}
 \item{\code{sqrt()}}{Square root}
+\item{\code{vech()}}{Half-vectorization}
+\item{\code{vechs()}}{Strict half-vectorization}
+\item{\code{vec2diag()}}{Create a diagonal matrix}
+\item{\code{diag2vec()}}{Extract diagonal from matrix}
 }}
 
 \value{
