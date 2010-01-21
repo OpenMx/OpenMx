@@ -23,6 +23,7 @@ RFILES = $(wildcard R/*.R)
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  build      create an OpenMx binary for unix systems (no cross-compilation)"
+	@echo "  build32    create an OpenMx binary for i386 systems"
 	@echo "  build64    create an OpenMx binary for x86_64 systems"
 	@echo "  buildppc   create an OpenMx binary for ppc systems"
 	@echo "  winbuild   create an OpenMx binary on windows systems"
@@ -57,29 +58,29 @@ html: internal-build
 common-build: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
+common-build32: clean internal-build
+	cd $(RBUILD); $(REXEC) --arch i386 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+
 common-build64: clean internal-build
 	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
 common-buildppc: clean internal-build
 	cd $(RBUILD); $(REXEC) --arch ppc $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
-build64: common-build64
+post-build:
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *.gz;\
 	tar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
 
-build: common-build
-	rm -f $(RBUILD)/$(TARGET)
-	cd $(RBUILD); gunzip *.gz;\
-	tar --delete --file=`ls` OpenMx/npsol;\
-	gzip *.tar
 
-buildppc: common-buildppc
-	rm -f $(RBUILD)/$(TARGET)
-	cd $(RBUILD); gunzip *.gz;\
-	tar --delete --file=`ls` OpenMx/npsol;\
-	gzip *.tar
+build32: common-build32 post-build
+
+build64: common-build64 post-build
+
+buildppc: common-buildppc post-build
+
+build: common-build post-build
 
 winbuild: common-build
 
