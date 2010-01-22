@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.2.5-1050
+==================
 * added 'mxVersion' slot to output of 'summary' function.
 * added documentation of 'summary' function.  If model refers to a MxModel object, then use "?summary(model)" or the more generic "method ? summary('MxModel')".
 * set default function precision for ordinal FIML evaluation to "1e-9"
