@@ -70,9 +70,9 @@ run<-mxRun(model)
 
 #Compare OpenMx results to hard-coded Mx 1.0 results 
 
-omxCheckCloseEnough(1.011952,run@matrices$beta[1,2],.001)
+omxCheckCloseEnough(1.011952, mxEval(beta[1,2], run), .001)
 omxCheckCloseEnough(as.vector(c(0.982984089,0.004713885,0.004713885,2.052462084)),
-	as.vector(run@matrices$cov@values),.001)
-omxCheckCloseEnough(0.02570572, run@matrices$M[1,1], .001)
-omxCheckCloseEnough(0.01611651, run@matrices$M[1,2], .001)
+	as.vector(mxEval(cov, run)),.001)
+omxCheckCloseEnough(0.02570572, mxEval(M[1,1], run), .001)
+omxCheckCloseEnough(0.01611651, mxEval(M[1,2], run), .001)
 

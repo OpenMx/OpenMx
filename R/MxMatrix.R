@@ -126,22 +126,46 @@ setMethod("length", "MxMatrix",
 
 setMethod("[", "MxMatrix",
 	function(x, i, j, ..., drop = FALSE) {
-		return(x@values[i,j])
+		if(!is.null(match.call()$name)) {
+			name <- match.call()$name
+		} else {
+			name <- x@name
+		}
+		labels <- as.matrix(x@labels[i,j])
+		values <- as.matrix(x@values[i,j])		
+		free <- as.matrix(x@free[i,j])
+		lbound <- as.matrix(x@lbound[i,j])
+		ubound <- as.matrix(x@ubound[i,j])
+		if(!missing(i) && missing(j) && length(i) == 1) {
+			labels <- t(labels)
+			values <- t(values)
+			free <- t(free)
+			lbound <- t(lbound)
+			ubound <- t(ubound)
+		}
+		type <- class(x)[[1]]
+		nrow <- nrow(labels)
+		ncol <- ncol(labels)
+		newMatrix <- tryCatch(suppressWarnings(
+			new(type, name, values, free, labels, 
+				lbound, ubound, nrow, ncol, FALSE)),
+				error = function(e) new("FullMatrix", name, 
+					values, free, labels, lbound, ubound, 
+					nrow, ncol, FALSE))
+		return(newMatrix)
 	}
 )
 
 setReplaceMethod("[", "MxMatrix", 
 	function(x, i, j, value) {
-		if(is(value, "numeric")) {
-			x@values[i,j] <- value
-		} else if(is(value, "logical")) {
-			x@free[i,j] <- value
-		} else if(is(value, "character")) {
-			x@labels[i,j] <- value
-		} else {
-			stop(paste("Unknown type", type(value), "for MxMatrix",
-				omxQuotes(x@name), "element replacement."), call. = FALSE)
+		if(!is(value,"MxMatrix")) {
+			stop("right-hand side must be MxMatrix object")
 		}
+		x@values[i,j] <- value@values
+		x@free[i,j] <- value@free
+		x@labels[i,j] <- value@labels
+		x@lbound[i,j] <- value@lbound
+		x@ubound[i,j] <- value@ubound
 		return(x)
 	}
 )

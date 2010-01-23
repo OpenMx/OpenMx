@@ -1,3 +1,7 @@
+trunk
+=====
+* implemented foo[x,y] and foo[x,y] <- z for MxMatrix objects
+
 Release 0.2.5-1050
 ==================
 * added 'mxVersion' slot to output of 'summary' function.
