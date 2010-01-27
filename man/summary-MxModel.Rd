@@ -21,7 +21,7 @@ summary(object, ...)
 \details{
 
 The following named arguments are supported by the summary method:
-\itemize{
+\describe{
 \item{SaturatedLikelihood}{Explicitly specify a saturated likelihood for testing (a numeric value)}
 }
 

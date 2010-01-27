@@ -21,7 +21,7 @@ mxAlgebra(expression, name = NA, dimnames = NA)
 The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxAlgebraObjective} function. The \code{mxAlgebraObjective} function must reference the \code{MxAlgebra} object to be evaluated by name.
 
 The following operations are supported in mxAlgebra:
-\itemize{
+\describe{
 \item{\code{solve()}}{Inversion}
 \item{\code{t()}}{Transposition}
 \item{\code{^}}{Element powering}
@@ -35,7 +35,7 @@ The following operations are supported in mxAlgebra:
 }
 
 The following functions are supported in mxAlgebra:
-\itemize{
+\describe{
 \item{\code{cbind()}}{Horizontal adhesion}
 \item{\code{rbind()}}{Vertical adhesion}
 \item{\code{det()}}{Determinant}

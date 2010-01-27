@@ -23,13 +23,9 @@ Checks element-wise whether an object is equal to TRUE. If any of the elements a
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
-\seealso{\itemize{
-\item{\code{\link{omxCheckCloseEnough}}}{for approximate equality testing within an epsilon.}
-\item{\code{\link{omxCheckWithinPercentError}}}{for approximate equality testing within a percentage.}
-\item{\code{\link{omxCheckIdentical}}}{for exact equality testing.}
-\item{\code{\link{omxCheckSetEquals}}}{for set equality testing.}
-}}
-
+\seealso{
+\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}
+}
 
 \examples{
 

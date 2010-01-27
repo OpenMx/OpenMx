@@ -25,13 +25,9 @@ Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be e
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
-\seealso{\itemize{
-\item{\code{\link{omxCheckCloseEnough}}}{for approximate equality testing within an epsilon.}
-\item{\code{\link{omxCheckIdentical}}}{for exact equality testing.}
-\item{\code{\link{omxCheckSetEquals}}}{for set equality testing.}
-\item{\code{\link{omxCheckTrue}}}{for boolean equality testing.}
-}}
-
+\seealso{
+\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}, \code{\link{omxCheckTrue}}
+}
 
 \examples{
 

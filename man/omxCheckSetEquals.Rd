@@ -24,12 +24,9 @@ Performs the \sQuote{setequal} function on the two arguments. If the two argumen
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
-\seealso{\itemize{
-\item{\code{\link{omxCheckCloseEnough}}}{for approximate equality testing within an epsilon.}
-\item{\code{\link{omxCheckWithinPercentError}}}{for approximate equality testing within a percentage.}
-\item{\code{\link{omxCheckIdentical}}}{for exact equality testing.}
-\item{\code{\link{omxCheckTrue}}}{for boolean equality testing.}
-}}
+\seealso{
+\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckTrue}}
+}
 
 \examples{
 
