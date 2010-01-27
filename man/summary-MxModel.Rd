@@ -1,5 +1,6 @@
 \name{summary-MxModel}
-\alias{summary,MxModel-method}
+\alias{MxModel-method}
+\alias{summary}
 
 \title{Model Summary}
 
@@ -9,11 +10,11 @@
 
 
 \usage{
-summary(model, ...)
+summary(object, ...)
 }
 
 \arguments{
-   \item{model}{A MxModel object.}
+   \item{object}{A MxModel object.}
    \item{...}{Any number of named arguments (see below).}
 }
 
@@ -34,6 +35,6 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
   model <- mxModel()
   modelOut <- mxRun(model)
-  statistics <- mxSummary(modelOut)
+  statistics <- summary(modelOut)
 
 }
