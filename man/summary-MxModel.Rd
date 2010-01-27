@@ -1,5 +1,5 @@
 \name{summary-MxModel}
-\alias{MxModel-method}
+\alias{summary,MxModel-method}
 \alias{summary}
 
 \title{Model Summary}
