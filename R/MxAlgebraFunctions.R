@@ -14,38 +14,38 @@
 #   limitations under the License.
 
 
-tr <- function(A) {
-	if (is.matrix(A)) {
-		return(sum(diag(A)))
+tr <- function(x) {
+	if (is.matrix(x)) {
+		return(sum(diag(x)))
 	} else {
 		return(NA)
 	}
 }
 
-"%&%" <- function(A, B) {
-  return(A %*% B %*% t(A))
+"%&%" <- function(x, y) {
+  return(x %*% y %*% t(x))
 }
 
-vech <- function(A) {
-	return(A[lower.tri(A, diag=TRUE)])
+vech <- function(x) {
+	return(x[lower.tri(x, diag=TRUE)])
 }
 
-vechs <- function(A) {
-	return(A[lower.tri(A, diag=FALSE)])
+vechs <- function(x) {
+	return(x[lower.tri(x, diag=FALSE)])
 }
 
-diag2vec <- function(A) {
-	return(as.matrix(diag(as.matrix(A))))
+diag2vec <- function(x) {
+	return(as.matrix(diag(as.matrix(x))))
 }
 
-vec2diag <- function(A) {
-	A <- as.matrix(A)
-	if (nrow(A) != 1 && ncol(A) != 1) {
+vec2diag <- function(x) {
+	x <- as.matrix(x)
+	if (nrow(x) != 1 && ncol(x) != 1) {
 		stop("argument must be a row or column vector")
 	}
-	if (nrow(A) * ncol(A) == 1) {
-		return(A)
+	if (nrow(x) * ncol(x) == 1) {
+		return(x)
 	} else {
-		return(as.matrix(diag(as.numeric(A))))
+		return(as.matrix(diag(as.numeric(x))))
 	}		
 }

@@ -1,6 +1,7 @@
 trunk
 =====
 * implemented foo[x,y] and foo[x,y] <- z for MxMatrix objects
+* added R documentation for vech, vechs, vec2diag, and diag2vec
 
 Release 0.2.5-1050
 ==================
