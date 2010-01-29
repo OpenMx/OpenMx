@@ -22,6 +22,15 @@ omxLapply <- function(x, fun, ...) {
 	}
 }
 
+omxSapply <- function(x, fun, ...) {
+	libraries <- search()
+	if ("package:snowfall" %in% libraries) {
+		return(sfSapply(x, fun, ...))
+	} else {
+		return(sapply(x, fun, ...))
+	}
+}
+
 mxRun <- function(model) {
 	frontendStart <- Sys.time()
 	cat("Running", model@name, "\n")

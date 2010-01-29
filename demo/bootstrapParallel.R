@@ -17,7 +17,7 @@
 # specifics = specific variances
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
-nReps <- 50000
+nReps <- 250
 nVar <- nrow(lambda)
 specifics <- diag(nVar)
 chl <- chol(lambda %*% t(lambda) + specifics)
@@ -46,6 +46,14 @@ createNewModel <- function(model, modelname) {
 	model@data@observed <- randomCov(nObs, nVar, chl, dn)
 	model@name <- modelname
 	return(model)
+}
+
+getStats <- function(model) {
+	retval <- c(model@output$status[[1]],
+		max(abs(model@output$gradient)),
+		model@output$estimate,
+		sqrt(diag(solve(model@output$hessian))))
+	return(retval)
 }
 
 
@@ -79,16 +87,9 @@ for (i in 1:nReps) {
   topModel <- mxModel(topModel, createNewModel(template, paste("stErrSim",i,sep='')))
 }
 
-modelResults <- mxRun(topModel)
+modelResults <- suppressWarnings(mxRun(topModel))
 
-for(i in 1:nReps) {
-  modelName <- paste("stErrSim",i,sep='')
-  model <- modelResults[[modelName]]
-  results[i,1] <- model@output$status[[1]]
-  results[i,2] <- max(abs(model@output$gradient))
-  results[i,pStrt:pEnd] <- model@output$estimate
-  results[i,hStrt:hEnd] <- sqrt(diag(solve(model@output$hessian)))
-}
+results <- t(omxSapply(modelResults@submodels, getStats))
 
 # get rid of bad covergence results
 results2 <- data.frame(results[which(results[,1] <= 1),])
