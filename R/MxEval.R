@@ -112,6 +112,13 @@ computeTranslation <- function(formula, model, labelsData) {
 			formula <- substitute(t(as.matrix(x)), list(x = formula))
 		}
 	} else {
+		func <- get(as.character(formula[[1]]))
+		if(!is.primitive(func)) {
+			tryCatch(match.call(func, formula),
+				error = function(x) {
+					stop(paste("in", deparse(formula), x$message), call. = FALSE)
+			})
+		}
 		formula[-1] <- lapply(formula[-1], 
 			computeTranslation, model, labelsData)
 	}
