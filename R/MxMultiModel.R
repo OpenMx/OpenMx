@@ -27,8 +27,11 @@ shareDataHelper <- function(model, default) {
 	} else if (!is.null(model@data)) {
 		default <- model@data
 	}
-	submodels <- omxLapply(model@submodels, shareDataHelper, default)
-	model@submodels <- submodels
+	if (length(model@submodels) > 0) {
+		submodels <- omxLapply(model@submodels, 
+			shareDataHelper, default)
+		model@submodels <- submodels
+	}
 	return(model)
 }
 
@@ -79,7 +82,9 @@ omxFreezeModel <- function(model) {
 	algebras <- algebras[!sapply(algebras, is.null)]
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
-	model@submodels <- lapply(model@submodels, omxFreezeModel)
+	if(length(model@submodels) > 0) {
+		model@submodels <- omxLapply(model@submodels, omxFreezeModel)
+	}
 	return(model)
 }
 

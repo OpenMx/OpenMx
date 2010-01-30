@@ -44,7 +44,7 @@ mxRun <- function(model, silent = FALSE) {
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	independents <- omxLapply(independents, mxRun, silent)
-	independents <- lapply(independents, omxFreezeModel)
+	independents <- omxLapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, independents)
 	if(is.null(model@objective) && 
 			length(model@matrices) == 0 && 
