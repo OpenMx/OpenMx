@@ -98,6 +98,10 @@ convertObjectives <- function(flatModel, model) {
 }
 
 translateObjectives <- function(model, namespace) {
+	if(is.null(model@objective) && 
+		length(omxDependentModels(model)) == 0) {
+		return(model)
+	}
 	flatModel <- omxFlattenModel(model, namespace)
 	return(translateObjectivesHelper(model, model, flatModel))
 }

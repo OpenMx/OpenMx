@@ -31,16 +31,9 @@ omxSapply <- function(x, fun, ...) {
 	}
 }
 
-omxDependentModels <- function(model) {
-	retval <- model@submodels
-	if(length(retval) == 0) return(retval)
-	retval <- retval[which(sapply(retval, function(x) { !x@independent }))]
-	return(retval)
-}
-
-mxRun <- function(model) {
+mxRun <- function(model, silent = FALSE) {
 	frontendStart <- Sys.time()
-	cat("Running", model@name, "\n")
+	if(!silent) cat("Running", model@name, "\n")
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
@@ -49,8 +42,8 @@ mxRun <- function(model) {
 	# Regenerate the namespace
 	namespace <- omxGenerateNamespace(model)
 	dshare <- shareData(model)
-	independents <- omxGetIndependents(dshare)
-	independents <- omxLapply(independents, mxRun)
+	independents <- getAllIndependents(dshare)
+	independents <- omxLapply(independents, mxRun, silent)
 	independents <- lapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, independents)
 	if(is.null(model@objective) && 

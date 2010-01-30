@@ -8,11 +8,12 @@
 }
 
 \usage{
-mxRun(model)
+mxRun(model, silent=FALSE)
 }
 
 \arguments{
-    \item{model}{An \link{MxModel} object to be optimized.}
+    \item{model}{A \link{MxModel} object to be optimized.}
+    \item{silent}{A boolean indicating whether to print status to terminal.}
 }
 
 \details{

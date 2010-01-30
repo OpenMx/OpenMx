@@ -165,8 +165,8 @@ omxGenerateNamespace <- function(model) {
 	result <- generateLocalNamespace(model)
 	entities[[model@name]] <- result[[1]]
 	parameters <- result[[2]]
-    values <- result[[3]]
-	results <- lapply(model@submodels, omxGenerateNamespace)
+	values <- result[[3]]
+	results <- omxLapply(model@submodels, omxGenerateNamespace)
 	if (length(results) > 0) {
 		for (i in 1:length(results)) {
 			subentities <- results[[i]][['entities']]
@@ -249,7 +249,7 @@ namespaceGetValues <- function(model) {
 namespaceGetEntities <- function(model, slotname, thisEntities) {
 	entities <- slot(model, slotname)
 	entityNames <- names(entities)
-	checkNameAlignment(entityNames, entityExtractNames(entities))
+	checkNameAlignment(entityNames, omxExtractNames(entities))
 	entityIntersect <- intersect(entityNames, thisEntities)
 	if (length(entityIntersect) > 0) {
 		stop(namespaceErrorMessage(entityIntersect), call. = FALSE)
@@ -268,7 +268,7 @@ namespaceErrorMessage <- function(rlist) {
 	}
 }
 
-entityExtractNames <- function(lst) {
+omxExtractNames <- function(lst) {
 	lapply(lst, function(x) { x@name } )	
 }
 
@@ -280,10 +280,10 @@ checkNameAlignment <- function(lst1, lst2) {
 }
 
 omxCheckNamespace <- function(model, namespace) {
-	lapply(model@matrices, function(x) { checkNamespaceMatrix(x, model, namespace) })
-	lapply(model@algebras, function(x) { checkNamespaceAlgebra(x, model, namespace) })
-	lapply(model@constraints, function(x) { checkNamespaceConstraint(x, model, namespace) })
-	lapply(model@submodels, function(x) { omxCheckNamespace(x, namespace) })
+	lapply(model@matrices, checkNamespaceMatrix, model, namespace)
+	lapply(model@algebras, checkNamespaceAlgebra, model, namespace)
+	lapply(model@constraints, checkNamespaceConstraint, model, namespace)
+	lapply(omxDependentModels(model), omxCheckNamespace, namespace)
 	allEntities <- unique(unlist(namespace$entities))
 	overlap <- intersect(allEntities, namespace$parameters)
 	if (length(overlap) > 0) {

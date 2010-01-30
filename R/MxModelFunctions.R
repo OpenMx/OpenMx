@@ -225,12 +225,8 @@ omxLocateIndex <- function(model, name, referant) {
 omxCheckMatrices <- function(model) {
 	matrices <- model@matrices
 	lapply(matrices, omxVerifyMatrix)
-	if (length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			submodel <- model@submodels[[i]]
-			if(submodel@independent == FALSE) {
-				omxCheckMatrices(submodel)
-			}
-		}
+	submodels <- omxDependentModels(model)
+	if(length(submodels) > 0) {
+		omxLapply(submodels, omxCheckMatrices)
 	}
 }

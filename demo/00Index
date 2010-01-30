@@ -44,3 +44,4 @@ UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specifica
 UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
 MatrixAlgebra	Basic matrix algebra operations
 OneFactorModelDemo	One factor matrix model demo from front page of website
+BootstrapParallel	Bootstrap model with independent submodels

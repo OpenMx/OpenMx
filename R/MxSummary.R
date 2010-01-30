@@ -292,7 +292,7 @@ setMethod("summary", "MxModel",
 		if (!is.null(data)) {
 			retval[['dataSummary']] <- summary(data@observed)
 		}
-		if (length(object@output) > 0) {
+		if (!is.null(object@output$status)) {
 			message <- npsolMessages[[as.character(object@output$status[[1]])]]
 			retval[['npsolMessage']] <- message
 		}

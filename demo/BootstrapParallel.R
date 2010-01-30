@@ -82,12 +82,14 @@ template <- mxModel(name="stErrSim",
 
 topModel <- mxModel(name = 'container')
 
-# simulation loop
-for (i in 1:nReps) {
-  topModel <- mxModel(topModel, createNewModel(template, paste("stErrSim",i,sep='')))
-}
+submodels <- lapply(1:nReps, function(x) {
+  createNewModel(template, paste('stErrSim', x, sep=''))
+})
 
-modelResults <- suppressWarnings(mxRun(topModel))
+names(submodels) <- omxExtractNames(submodels)
+topModel@submodels <- submodels
+
+modelResults <- suppressWarnings(mxRun(topModel, silent=TRUE))
 
 results <- t(omxSapply(modelResults@submodels, getStats))
 
