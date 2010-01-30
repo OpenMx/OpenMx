@@ -17,7 +17,7 @@
 # specifics = specific variances
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
-nReps <- 250
+nReps <- 10
 nVar <- nrow(lambda)
 specifics <- diag(nVar)
 chl <- chol(lambda %*% t(lambda) + specifics)

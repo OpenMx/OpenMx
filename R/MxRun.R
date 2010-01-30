@@ -31,6 +31,13 @@ omxSapply <- function(x, fun, ...) {
 	}
 }
 
+omxDependentModels <- function(model) {
+	retval <- model@submodels
+	if(length(retval) == 0) return(retval)
+	retval <- retval[which(sapply(retval, function(x) { !x@independent }))]
+	return(retval)
+}
+
 mxRun <- function(model) {
 	frontendStart <- Sys.time()
 	cat("Running", model@name, "\n")
@@ -46,6 +53,17 @@ mxRun <- function(model) {
 	independents <- omxLapply(independents, mxRun)
 	independents <- lapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, independents)
+	if(is.null(model@objective) && 
+			length(model@matrices) == 0 && 
+			length(model@algebras) == 0 &&
+			length(omxDependentModels(model)) == 0) {
+		frontendStop1 <- Sys.time()
+		backendStop <- frontendStop1
+		frontendStop2 <- frontendStop1
+		model@output <- calculateTiming(model@output, frontendStart,
+			frontendStop1, backendStop, frontendStop2)		
+		return(model)
+	}
 	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel, model)
