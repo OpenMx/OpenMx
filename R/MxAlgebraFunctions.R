@@ -50,6 +50,20 @@ vec2diag <- function(x) {
 	}
 }
 
+omxLookupSymbolTable <- function(name) {
+	index <- which(omxSymbolTable["R.name"] == name)
+	if(length(index) == 0) {
+		stop(paste("Internal error, function",
+			name, "cannot be found in OpenMx symbol table"),
+			call. = FALSE)
+	} else if (length(index) > 1) {
+		stop(paste("Internal error, function",
+			name, "appears twice in OpenMx symbol table"),
+			call. = FALSE)	
+	}
+	return(as.integer(index - 1))
+}
+
 omxMnor <- function(cov, means, lbounds, ubounds) {
     
     cov <- as.matrix(cov)
@@ -70,7 +84,10 @@ omxMnor <- function(cov, means, lbounds, ubounds) {
         stop("ubounds must have as many columns as cov")
     }
     
-    retVal <- .Call("omxCallAlgebra", list(cov, means, lbounds, ubounds), as.integer(35), NA)
+    retVal <- .Call("omxCallAlgebra", 
+    	list(cov, means, lbounds, ubounds), 
+    	omxLookupSymbolTable("omxMnor"), 
+    	NA)
     
     return(as.matrix(as.numeric(retVal)))
     

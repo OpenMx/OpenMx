@@ -2,11 +2,13 @@ trunk
 =====
 * implemented foo[x,y] and foo[x,y] <- z for MxMatrix objects
 * added R documentation for vech, vechs, vec2diag, and diag2vec
+* performance improvements for independent submodels
+* added 'silent=FALSE' argument to mxRun() function
 
 Release 0.2.5-1050
 ==================
-* added 'mxVersion' slot to output of 'summary' function.
-* added documentation of 'summary' function.  If model refers to a MxModel object, then use "?summary(model)" or the more generic "method ? summary('MxModel')".
+* added 'mxVersion' slot to output of summary() function.
+* added documentation of summary() function.
 * set default function precision for ordinal FIML evaluation to "1e-9"
 * not throwing an error on mxMatrix('Full', 3, 3, labels = c(NA, NA, NA))
 * applying identical error checking to single thresholds matrix and single thresholds algebra
