@@ -536,7 +536,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if(info != 0) {
 		char errstr[250];
-		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.");  // UPDATE!
+		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.", info);
 		omxRaiseError(result->currentState, -1, errstr);
 	}
 
@@ -720,7 +720,6 @@ void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) 
 
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
-	double value;
 
 	if(inMat->cols < inMat->rows) {
 		diags = inMat->rows;
@@ -982,7 +981,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	double weights[nCols];
 	double corList[nCols * (nCols + 1) / 2];
 
-	omxStandardizeCovMatrix(cov, &corList, &weights);
+	omxStandardizeCovMatrix(cov, corList, weights);
 
 	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
 	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
@@ -1008,13 +1007,13 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	int numVars = cov->rows;
 	int Infin[cov->rows];
 
-	for(int i = 1; i <= nCols; i++) {
+	for(int i = 0; i < nCols; i++) {
 		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		Infin[i] = 2; // Default to both thresholds
 		if(uBounds[i] <= lBounds[i]) {
 			char errstr[250];
-			sprintf(errstr, "Thresholds are not strictly increasing.");
+			sprintf(errstr, "Thresholds are not strictly increasing: %3.3f >= %3.3f.", lBounds[i], uBounds[i]);
 			omxRaiseError(result->currentState, -1, errstr);
 		}
 		if(!R_finite(lBounds[i]) ) {
@@ -1038,7 +1037,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		omxRaiseError(result->currentState, -1, errstr);
 	}
 
-	omxSetMatrixElement(result, 1, 1, likelihood);
+	omxSetMatrixElement(result, 0, 0, likelihood);
 
 }
 
@@ -1047,5 +1046,116 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	char errstr[250];
 	sprintf(errstr, "All-regions integration not yet implemented.  Sorry.");
 	omxRaiseError(result->currentState, -1, errstr);
+	
+	
+	omxMatrix* cov = matList[0];
+	omxMatrix* means = matList[1];
+	int nCols = cov->cols;
+	int i,j,k;
+
+	int totalLevels = 0;
+	omxMatrix *thresholdMats[nCols];
+	int numThresholds[nCols], matNums[nCols], thresholdCols[nCols];
+	int currentThresholds[nCols];
+
+	for(i = 0; i < nCols;) {						// Map out the structure of levels.
+		thresholdMats[i] = matList[i+2];
+		
+		for(j = 0; j < thresholdMats[i]->cols; j++) {
+			double ubound, lbound = omxMatrixElement(thresholdMats[i], j, 0);
+			if(ISNA(lbound)) {
+				char errstr[250];
+				sprintf(errstr, "Invalid lowest threshold for dimension %d of Allint.", j);
+				omxRaiseError(result->currentState, -1, errstr);
+			}
+			for(k = 1; k < numThresholds[i+j];k++) {
+				ubound = omxMatrixElement(thresholdMats[i], j, k);
+				if(ISNA(ubound)) {
+					numThresholds[i+j] = k-1;
+					totalLevels += numThresholds[i+j];
+					continue;
+				} 
+				
+				if(!(ubound > lbound)) {
+					char errstr[250];
+					sprintf(errstr, "Thresholds are not strictly increasing for dimension %d of Allint.", j);
+					omxRaiseError(result->currentState, -1, errstr);
+				}
+				
+				if(!R_finite(ubound)) {
+					numThresholds[i+j] = k;
+					totalLevels += numThresholds[i+j];
+					continue;
+				}
+				
+				if(j == (thresholdMats[i]->cols -1)) {
+					totalLevels += j;
+					continue;
+				}
+			}
+			currentThresholds[i+j] = 1;
+			matNums[i+j] = i;
+		}
+		i+=j;
+	}
+	currentThresholds[nCols] = 0;
+
+	/* Conformance checks: */
+	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1, FALSE);
+	
+	double weights[nCols];
+	double corList[nCols * (nCols + 1) / 2];
+
+	omxStandardizeCovMatrix(cov, &(*corList), &(*weights));
+
+	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
+	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
+	// Parameters are:
+	// 	N 		int			# of vars
+	//	Lower	double*		Array of lower bounds
+	//	Upper	double*		Array of upper bounds
+	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
+	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
+	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
+	//	Abseps	double		Absolute error tolerance.  Yick.
+	//	Releps	double		Relative error tolerance.  Use EPSILON.
+	//	Error	&double		On return: absolute real error, 99% confidence
+	//	Value	&double		On return: evaluated value
+	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
+	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
+	double Error;
+	double absEps = 1e-3;
+	double relEps = 0;
+	int MaxPts = OMX_DEFAULT_MAX_PTS;
+	double likelihood;
+	int inform;
+	int numVars = cov->rows;
+	int Infin[cov->rows];
+	double lBounds[nCols];
+	double uBounds[nCols];
+
+	for(i = 0; i < totalLevels; i++) {
+		for(j = (nCols-1); j < 0; j--) {
+			currentThresholds[j]++;
+			if(currentThresholds[j] <= numThresholds[j]) continue;
+			currentThresholds[j] = 1;
+		}
+		
+		lBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]-1) - omxVectorElement(means, i))/weights[i];
+		uBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]) - omxVectorElement(means, i))/weights[i];
+		Infin[i] = 2; // Default to both thresholds
+
+		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
+
+		if(inform == 2) {
+			char errstr[250];
+			sprintf(errstr, "Improper input to sadmvn.");
+			omxRaiseError(result->currentState, -1, errstr);
+		}
+		
+		omxSetMatrixElement(result, i, 1, likelihood);
+	}
 
 }

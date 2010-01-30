@@ -234,17 +234,21 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 	return output;
 }
 
-omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* arg1, omxMatrix* arg2, omxState* os) {
+omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {
 	/* For now, we'll be content with 2 args. */
 	
 	omxMatrix *om;
 	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
+	if(entry->numArgs >= 0 && entry->numArgs != numArgs) {
+		error("Wrong number of arguments passed to algebra %s.", entry->rName);
+	}
 	
 	om = omxInitAlgebra(oa, os);
 	omxFillAlgebraFromTableEntry(oa, entry);
-	oa->args[0] = arg1;
-	oa->args[1] = arg2;
+	for(int i = 0; i < numArgs;i++) {
+		om->algebra->args[i] = args[i];
+	}
 	
 	omxMarkDirty(om);
 	

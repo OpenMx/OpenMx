@@ -615,7 +615,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(hasOrdinal) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
-		newObj->weights = R_alloc(covCols, sizeof(double));
+		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
 		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
 		omxAliasMatrix(newObj->smallMeans, newObj->means);
 		newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));

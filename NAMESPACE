@@ -1,5 +1,5 @@
 
-useDynLib(OpenMx)
+useDynLib(OpenMx, .registration=TRUE)
 
 # basic functions in the OpenMx library
 exportPattern("^mx.+")

@@ -122,5 +122,16 @@ struct omxMatrix {						// A matrix
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);					
 	void omxRecompute(omxMatrix *matrix);
 	void omxCompute(omxMatrix *matrix);
-
+	
+/* BLAS Wrappers */
+/*
+	void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB, double* alpha, omxMatrix* a, omxMatrix *b, double* beta, omxMatrix* result);
+	void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat, omxMatrix* vec, double* beta, omxMatrix*result, int* info);
+	void omxDGEMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat, omxMatrix* vec, double* beta, omxMatrix*result, int* info);
+	void omxDSYMM(unsigned short int symmOnLeft, double* alpha, omxMatrix* a, omxMatrix *b, double* beta, omxMatrix* result);
+	void omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int* info);
+	void omxDGETRF(omxMatrix* mat, int* ipiv, int* info);
+	void omxDPOTRF(omxMatrix* mat, int* info);
+	void omxDPOTRI(omxMatrix* mat, int* info);
+*/
 #endif /* _OMXMATRIX_H_ */

@@ -71,13 +71,37 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
 	SEXP data, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 	
-SEXP callOmxAlgebra(SEXP matList, SEXP algList, SEXP options);
+SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
+
+/* Set up R .Call info */
+R_CallMethodDef callMethods[] = {
+{"callNPSOL", (void*(*)())&callNPSOL, 9},
+{"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
+{NULL, NULL, 0}
+};
+
+void
+R_init_mylib(DllInfo *info)
+{
+/* Register routines, allocate resources. */
+R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+}
+
+void
+R_unload_mylib(DllInfo *info)
+{
+/* Release resources. */
+}
 
 /* Main functions */
-SEXP callOmxAlgebra(SEXP matList, SEXP algList, SEXP options) {
+SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	
 	int j,k,l;
-	SEXP nextLoc, nextMat, nextAlgTuple, nextAlg;
+	omxMatrix* algebra;
+	int algebraNum = INTEGER(algNum)[0];
+	SEXP ans, nextMat;
+	char output[250];
+	int errOut = 0;
 	
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
@@ -92,88 +116,42 @@ SEXP callOmxAlgebra(SEXP matList, SEXP algList, SEXP options) {
 	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 
 	for(k = 0; k < length(matList); k++) {
-		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// This is the matrix + populations
-		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
+		PROTECT(nextMat = VECTOR_ELT(matList, k));		// This is the matrix + populations
 		currentState->matrixList[k] = omxNewMatrixFromMxMatrix(nextMat, currentState);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
 		}
-		UNPROTECT(2); // nextLoc and nextMat
+		UNPROTECT(1); // nextMat
 	}
 
-	/* Process Algebras Here */
-	currentState->numAlgs = length(algList);
-	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
-
-	l = 1;
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", currentState->numAlgs, length(algList)); }
-	currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
-
-	for(int j = 0; j < currentState->numAlgs; j++) {
-		currentState->algebraList[j] = omxInitMatrix(NULL, 0,0, TRUE, currentState);
-	}
-
-	for(int j = 0; j < currentState->numAlgs; j++) {
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, j));		// The next algebra or objective to process
-		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
-		if(IS_S4_OBJECT(nextAlgTuple)) {												// This is an objective object.
-			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
-		} else {															// This is an algebra spec.
-			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
-			omxFillMatrixFromMxMatrix(currentState->algebraList[j],
-				nextAlg, currentState);
-			UNPROTECT(1);	// nextAlg
-			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
-			omxFillMatrixFromMxAlgebra(currentState->algebraList[j],
-				nextAlg, CHAR(STRING_ELT(algListNames, j)));
-			UNPROTECT(1);	// nextAlg
-		}
-		UNPROTECT(1);	// nextAlgTuple
-	}
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, currentState->matrixList, currentState->numMats, currentState);
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(currentState);
 
-	for(k = 0; k < currentState->numMats; k++) {
-		omxRecompute(currentState->matrixList[k]);
-	}
+	omxRecompute(algebra);
 
-	for(k = 0; k < currentState->numAlgs; k++) {
-		omxRecompute(currentState->algebraList[k]);
-	}
+	PROTECT(ans = allocMatrix(REALSXP, algebra->rows, algebra->cols));
+	for(l = 0; l < algebra->rows; l++)
+		for(j = 0; j < algebra->cols; j++)
+			REAL(ans)[j * algebra->rows + l] =
+				omxMatrixElement(algebra, l, j);
+    
+	UNPROTECT(1);	/* algebra */
 	
-	SEXP status, algebras, algebra, ans, names;
-	
-	PROTECT(ans = allocVector(VECSXP, 2));
-	PROTECT(names = allocVector(STRSXP, 2));
-
-	PROTECT(status = allocVector(VECSXP, 3));
-	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
-	
-	for(k = 0; k < currentState->numAlgs; k++) {
-		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, currentState->algebraList[k]->cols));
-		for(l = 0; l < currentState->algebraList[k]->rows; l++)
-			for(j = 0; j < currentState->algebraList[k]->cols; j++)
-				REAL(algebra)[j * currentState->algebraList[k]->rows + l] =
-					omxMatrixElement(currentState->algebraList[k], l, j);
-		SET_VECTOR_ELT(algebras, k, algebra);
-
-		UNPROTECT(1);	/* algebra */
-	}
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 	
-	SET_STRING_ELT(names, 0, mkChar("status"));
-	SET_STRING_ELT(names, 1, mkChar("algebras"));
-	
-	SET_VECTOR_ELT(ans, 0, status);
-	SET_VECTOR_ELT(ans, 1, algebras);
-	namesgets(ans, names);
+	if(currentState->statusCode != 0) {
+		errOut = currentState->statusCode;
+		strncpy(output, currentState->statusMsg, 250);
+	}
 	
 	omxFreeState(currentState);
-
-	UNPROTECT(4);
+	
+	if(errOut != 0) {
+		error(output);
+	}
 
 	return ans;
 }
@@ -376,7 +354,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
 		currentState->conList[k].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
-		currentState->conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, arg1, arg2, currentState); // 10 = binary subtract
+		omxMatrix *args[2] = {arg1, arg2};
+		currentState->conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, currentState); // 10 = binary subtract
 		omxRecompute(currentState->conList[k].result);
 		currentState->conList[k].size = currentState->conList[k].result->rows * currentState->conList[k].result->cols;
 		ncnln += currentState->conList[k].size;
@@ -576,7 +555,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans, names, algebras, algebra, matrices;
+	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices;
 
 	int numReturns = 8;
 

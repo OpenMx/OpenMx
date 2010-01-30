@@ -21,12 +21,18 @@ B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
 C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')
 D <- mxMatrix(values = 1:10, nrow = 2, ncol = 5, name = 'D')
 E <- mxMatrix(values = 1:10, nrow = 5, ncol = 2, name = 'E')
+# For Mnor
+J <- mxMatrix("Full", values=rbind(c(1, 0, 0), c(1, 0, 0)), free=F, name="J")
+L <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,-Inf), free=F, name="L")
+M <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,0), free=F, name="M")
+U <- mxMatrix("Full", nrow=1, ncol=3, values=c(Inf,Inf,Inf), free=F, name="U")
+V <- mxMatrix("Stand", nrow=3, ncol=3, values=c(.5, .5, .5), free=F, name="V")
 
 dimnames(A) <- list(letters[1:5], letters[22:26])
 dimnames(B) <- dimnames(A)
 dimnames(C) <- list(letters[1:6], letters[22:26])
 
-model <- mxModel(A, B, C, D, E, name = 'model')
+model <- mxModel(A, B, C, D, E, V, M, L, U, name = 'model')
 zeta <- 'z'
 alpha <- 'a'
 two <- 2
@@ -114,6 +120,7 @@ model <- mxModel(model, mxAlgebra(diag2vec(B), name = 'test33a'))
 model <- mxModel(model, mxAlgebra(diag2vec(C), name = 'test33b'))
 model <- mxModel(model, mxAlgebra(vec2diag(B[1,]), name = 'test34a'))
 model <- mxModel(model, mxAlgebra(vec2diag(t(B[1,])), name = 'test34b'))
+model <- mxModel(model, mxAlgebra(omxMnor(V, M, L, U), name= 'test35a'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -199,3 +206,4 @@ omxCheckCloseEnough(model[['test33a']]@result, mxEval(diag2vec(B), model), 0.001
 omxCheckCloseEnough(model[['test33b']]@result, mxEval(diag2vec(C), model), 0.001)
 omxCheckCloseEnough(model[['test34a']]@result, mxEval(vec2diag(B[1,]), model), 0.001)
 omxCheckCloseEnough(model[['test34b']]@result, mxEval(vec2diag(t(B[1,])), model), 0.001)
+omxCheckCloseEnough(model[['test35a']]@result, .33333, 0.001)

@@ -47,5 +47,49 @@ vec2diag <- function(x) {
 		return(x)
 	} else {
 		return(as.matrix(diag(as.numeric(x))))
-	}		
+	}
+}
+
+omxMnor <- function(cov, means, lbounds, ubounds) {
+    
+    cov <- as.matrix(cov)
+    means <- as.matrix(means)
+    lbounds <- as.matrix(lbounds)
+    ubounds <- as.matrix(ubounds)
+
+    if(nrow(cov) != ncol(cov)) {
+        stop("Cov must be square")
+    }
+    if(ncol(cov) != ncol(means)) {
+        stop("means must have as many columns as cov")
+    }
+    if(ncol(cov) != ncol(lbounds)) {
+        stop("lbounds must have as many columns as cov")
+    }
+    if(ncol(cov) != ncol(ubounds)) {
+        stop("ubounds must have as many columns as cov")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", list(cov, means, lbounds, ubounds), as.integer(35), NA)
+    
+    return(as.matrix(as.numeric(retVal)))
+    
+}
+
+omxAllInt <- function(cov, means, ...) {
+    cov <- as.matrix(cov)
+    means <- as.matrix(means)
+    thresholdMats <- list(...)
+
+    if(nrow(cov) != ncol(cov)) {
+        stop("Cov must be square")
+    }
+    if(ncol(cov) != ncol(means)) {
+        stop("means must have as many columns as cov")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", list(cov, means, thresholdMats))
+    
+    return(as.matrix(as.numeric(retVal)))
+
 }
