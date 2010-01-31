@@ -4,6 +4,7 @@ trunk
 * added R documentation for vech, vechs, vec2diag, and diag2vec
 * performance improvements for independent submodels
 * added 'silent=FALSE' argument to mxRun() function
+* added R documentation for omxApply(), omxSapply(), and omxLapply()
 
 Release 0.2.5-1050
 ==================

@@ -13,24 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-omxLapply <- function(x, fun, ...) {
-	libraries <- search()
-	if ("package:snowfall" %in% libraries) {
-		return(sfLapply(x, fun, ...))
-	} else {
-		return(lapply(x, fun, ...))
-	}
-}
-
-omxSapply <- function(x, fun, ...) {
-	libraries <- search()
-	if ("package:snowfall" %in% libraries) {
-		return(sfSapply(x, fun, ...))
-	} else {
-		return(sapply(x, fun, ...))
-	}
-}
-
 mxRun <- function(model, silent = FALSE) {
 	frontendStart <- Sys.time()
 	if(!silent) cat("Running", model@name, "\n")
