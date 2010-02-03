@@ -24,7 +24,7 @@ omxLapply <- function(x, fun, ...) {
 }
 
 omxSapply <- function(x, fun, ..., simplify = TRUE, USE.NAMES = TRUE) {
-	if (lenth(x) == 0) return(x)
+	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
 		return(sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
