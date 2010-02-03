@@ -56,4 +56,3 @@ populateDefVarMatrix <- function(matrix, model) {
 	}
 	return(value)
 }
-

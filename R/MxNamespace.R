@@ -208,7 +208,7 @@ generateLocalNamespace <- function(model) {
 		stop(namespaceErrorMessage(objective@name), call. = FALSE)
 	} else if (!is.null(objective)) {
 		thisEntities <- c(thisEntities, objective@name)
-		thisEntities <- c(thisEntities, omxObjNewEntities(objective))
+		thisEntities <- c(thisEntities, genericObjNewEntities(objective))
 	}
 	if (!is.null(data) && (data@name %in% thisEntities)) {
 		stop(namespaceErrorMessage(data@name), call. = FALSE)
@@ -467,7 +467,7 @@ namespaceConvertConstraint <- function(constraint, modelname, namespace) {
 
 namespaceConvertObjective <- function(objective, modelname, namespace) {
 	if (!is.null(objective)) {
-		objective <- omxObjFunNamespace(objective, modelname, namespace)
+		objective <- genericObjFunNamespace(objective, modelname, namespace)
 	}
 	return(objective)
 }
@@ -581,4 +581,3 @@ namespaceSearchReplace <- function(model, namespace, name, value) {
 	}
 	return(model)
 }
-

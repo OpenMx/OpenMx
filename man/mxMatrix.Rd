@@ -1,7 +1,7 @@
 \name{mxMatrix}
 \alias{mxMatrix}
 
-\title{Function To Create MxMatrix Object}
+\title{Create MxMatrix Object}
 
 \description{
   This functions creates a new \link{MxMatrix} object.

@@ -242,4 +242,3 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
         return(value)
     }
 }
-

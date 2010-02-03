@@ -1,7 +1,7 @@
 \name{mxConstraint}
 \alias{mxConstraint}
 
-\title{Function To Create an MxConstraint Object}
+\title{Create MxConstraint Object}
 
 \description{
 This function creates a new \link{MxConstraint} object.

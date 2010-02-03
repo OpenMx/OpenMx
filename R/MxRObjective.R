@@ -32,7 +32,7 @@ setMethod("initialize", "MxRObjective",
 	}
 )
 
-setMethod("omxObjFunConvert", signature("MxRObjective"), 
+setMethod("genericObjFunConvert", signature("MxRObjective"), 
 	function(.Object, flatModel, model) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
@@ -40,7 +40,7 @@ setMethod("omxObjFunConvert", signature("MxRObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjFunNamespace", signature("MxRObjective"), 
+setMethod("genericObjFunNamespace", signature("MxRObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		return(.Object)

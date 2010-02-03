@@ -39,7 +39,7 @@ setMethod("initialize", "MxRAMObjective",
 	}
 )
 
-setMethod("omxObjDependencies", signature("MxRAMObjective"),
+setMethod("genericObjDependencies", signature("MxRAMObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
@@ -47,7 +47,7 @@ setMethod("omxObjDependencies", signature("MxRAMObjective"),
 	return(dependencies)
 })
 
-setMethod("omxObjFunNamespace", signature("MxRAMObjective"), 
+setMethod("genericObjFunNamespace", signature("MxRAMObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		.Object@A <- omxConvertIdentifier(.Object@A, modelname, namespace)
@@ -55,11 +55,23 @@ setMethod("omxObjFunNamespace", signature("MxRAMObjective"),
 		.Object@F <- omxConvertIdentifier(.Object@F, modelname, namespace)
 		.Object@M <- omxConvertIdentifier(.Object@M, modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, modelname, namespace)
-		.Object@thresholds <- omxConvertIdentifier(.Object@thresholds, modelname, namespace)
+		.Object@thresholds <- sapply(.Object@thresholds, 
+			omxConvertIdentifier, modelname, namespace)
 		return(.Object)
 })
 
-setMethod("omxObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
+setMethod("genericObjRename", signature("MxRAMObjective"),
+	function(.Object, oldname, newname) {
+		.Object@A <- renameReference(.Object@A, oldname, newname)
+		.Object@S <- renameReference(.Object@S, oldname, newname)
+		.Object@F <- renameReference(.Object@F, oldname, newname)
+		.Object@M <- renameReference(.Object@M, oldname, newname)
+		.Object@data <- renameReference(.Object@data, oldname, newname)
+		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+		return(.Object)
+})
+
+setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
 	function(.Object, flatModel, model) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
@@ -198,7 +210,7 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 	return(job)
 }
 
-setMethod("omxObjModelConvert", "MxRAMObjective",
+setMethod("genericObjModelConvert", "MxRAMObjective",
 	function(.Object, job, model, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
@@ -340,4 +352,3 @@ setMethod("print", "MxRAMObjective", function(x,...) {
 setMethod("show", "MxRAMObjective", function(object) { 
 	displayRAMObjective(object) 
 })
-

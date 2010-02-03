@@ -94,4 +94,3 @@ setMethod("addEdge", c("character", "character", "MxDirectedGraph"),
 	graph@edges <- edges
 	return(graph)
 })
-

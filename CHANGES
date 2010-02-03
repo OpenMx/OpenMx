@@ -5,6 +5,8 @@ trunk
 * performance improvements for independent submodels
 * added 'silent=FALSE' argument to mxRun() function
 * added R documentation for omxApply(), omxSapply(), and omxLapply()
+* wrote mxRename() and added R documentation for function
+* renamed all objective function generic functions from omxObj* to genericObj*
 
 Release 0.2.5-1050
 ==================

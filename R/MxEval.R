@@ -154,7 +154,7 @@ computeSymbol <- function(symbol, model, labelsData) {
 			list(x = lookup@formula, y = lookup@.dimnames)))
 	} else if (is(lookup, "MxObjective")) {
         if (length(lookup@result) == 0) {
-            return(omxObjInitialMatrix(lookup, model))
+            return(genericObjInitialMatrix(lookup, model))
         } else {
     		return(substitute(model[[x]]@result, list(x = key)))
         }
@@ -322,7 +322,7 @@ showEvaluationSymbol <- function(symbol, model, modelVariable, labelsData) {
             modelName = modelVariable)))
 	} else if (is(lookup, "MxObjective")) {
         if (length(lookup@result) == 0) {
-            return(omxObjInitialMatrix(lookup, model))
+            return(genericObjInitialMatrix(lookup, model))
         } else {
     		return(substitute(modelName[[x]]@result, 
                 list(x = key, modelName = modelVariable)))

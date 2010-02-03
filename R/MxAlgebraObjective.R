@@ -29,13 +29,13 @@ setMethod("initialize", "MxAlgebraObjective",
 	}
 )
 
-setMethod("omxObjDependencies", signature("MxAlgebraObjective"),
+setMethod("genericObjDependencies", signature("MxAlgebraObjective"),
 	function(.Object, dependencies) {
 	dependencies <- omxAddDependency(.Object@algebra, .Object@name, dependencies)
 	return(dependencies)
 })
 
-setMethod("omxObjFunConvert", signature("MxAlgebraObjective"), 
+setMethod("genericObjFunConvert", signature("MxAlgebraObjective"), 
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		algebra <- .Object@algebra
@@ -50,13 +50,18 @@ setMethod("omxObjFunConvert", signature("MxAlgebraObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjFunNamespace", signature("MxAlgebraObjective"), 
+setMethod("genericObjFunNamespace", signature("MxAlgebraObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		.Object@algebra <- omxConvertIdentifier(.Object@algebra, modelname, namespace)
 		return(.Object)
 })
 
+setMethod("genericObjRename", signature("MxAlgebraObjective"),
+	function(.Object, oldname, newname) {
+		.Object@algebra <- renameReference(.Object@algebra, oldname, newname)
+		return(.Object)
+})
 
 mxAlgebraObjective <- function(algebra) {
 	if (missing(algebra) || typeof(algebra) != "character") {

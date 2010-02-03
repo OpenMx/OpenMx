@@ -1,7 +1,7 @@
 \name{mxEval}
 \alias{mxEval}
 
-\title{Function To Evaluate MxModel Values}
+\title{Evaluate Values in MxModel}
 
 \description{
    This function can be used to evaluate an arbitrary R expression that includes named entities from a \link{MxModel} object, or labels from a \link{MxMatrix} object.

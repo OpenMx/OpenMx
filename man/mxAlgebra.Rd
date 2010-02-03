@@ -1,7 +1,7 @@
 \name{mxAlgebra}
 \alias{mxAlgebra}
 
-\title{Function To Create MxAlgebra Object}
+\title{Create MxAlgebra Object}
 
 \description{
    This function creates a new \link{MxAlgebra} object.

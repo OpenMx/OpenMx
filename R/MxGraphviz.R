@@ -76,4 +76,3 @@ omxGraphviz <- function(model, dotFilename = "") {
 	graph@paths <- c(graph@paths, uniPaths, biPaths, meanPaths)
 	writeDotFile(model, graph, dotFilename)
 }
-

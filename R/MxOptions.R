@@ -49,4 +49,3 @@ generateOptionsList <- function(input) {
 	}
 	return(options)
 }
-

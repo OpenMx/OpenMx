@@ -1,7 +1,7 @@
 \name{mxMLObjective}
 \alias{mxMLObjective}
 
-\title{Function To Create MxMLObjective Object}
+\title{Create MxMLObjective Object}
 
 \description{
    This function creates a new MxMLObjective object.

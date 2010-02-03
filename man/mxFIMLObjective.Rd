@@ -1,7 +1,7 @@
 \name{mxFIMLObjective}
 \alias{mxFIMLObjective}
 
-\title{Function To Create MxFIMLObjective Object}
+\title{Create MxFIMLObjective Object}
 
 \description{
    This function creates a new MxFIMLObjective object.

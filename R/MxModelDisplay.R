@@ -128,4 +128,3 @@ setMethod("print", "MxModel", function(x,...) {
 setMethod("show", "MxModel", function(object) { 
 	displayModel(object) 
 })
-

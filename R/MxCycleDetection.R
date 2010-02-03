@@ -87,7 +87,7 @@ reportCycle <- function(backedges, destination, modelname) {
 }
 
 addObjectiveDetection <- function(objective, dependencies) {
-	dependencies <- omxObjDependencies(objective, dependencies)
+	dependencies <- genericObjDependencies(objective, dependencies)
 	return(dependencies)
 }
 
@@ -126,5 +126,4 @@ omxAddDependency <- function(source, sink, dependencies) {
 	dependencies <- addNode(sink, dependencies)
 	dependencies <- addEdge(source, sink, dependencies)
 }
-
 

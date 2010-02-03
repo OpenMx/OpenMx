@@ -41,7 +41,7 @@ setMethod("initialize", "MxFIMLObjective",
 	}
 )
 
-setMethod("omxObjDependencies", signature("MxFIMLObjective"),
+setMethod("genericObjDependencies", signature("MxFIMLObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
@@ -50,7 +50,7 @@ setMethod("omxObjDependencies", signature("MxFIMLObjective"),
 })
 
 
-setMethod("omxObjFunNamespace", signature("MxFIMLObjective"), 
+setMethod("genericObjFunNamespace", signature("MxFIMLObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		.Object@covariance <- omxConvertIdentifier(.Object@covariance, 
@@ -59,12 +59,21 @@ setMethod("omxObjFunNamespace", signature("MxFIMLObjective"),
 			modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, 
 			modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds, function(x) {omxConvertIdentifier(x,
-			modelname, namespace)})
+		.Object@thresholds <- sapply(.Object@thresholds,
+			omxConvertIdentifier, modelname, namespace)
 		return(.Object)
 })
 
-setMethod("omxObjFunConvert", signature("MxFIMLObjective"), 
+setMethod("genericObjRename", signature("MxFIMLObjective"),
+	function(.Object, oldname, newname) {
+		.Object@covariance <- renameReference(.Object@covariance, oldname, newname)
+		.Object@means <- renameReference(.Object@means, oldname, newname)		
+		.Object@data <- renameReference(.Object@data, oldname, newname)	
+		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+		return(.Object)
+})
+
+setMethod("genericObjFunConvert", signature("MxFIMLObjective"), 
 	function(.Object, flatModel, model) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
@@ -99,7 +108,7 @@ setMethod("omxObjFunConvert", signature("MxFIMLObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjModelConvert", "MxFIMLObjective",
+setMethod("genericObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, flatJob) {
 		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
 		precision <- "Function Precision"
@@ -111,7 +120,7 @@ setMethod("omxObjModelConvert", "MxFIMLObjective",
 	}
 )
 
-setMethod("omxObjInitialMatrix", "MxFIMLObjective",
+setMethod("genericObjInitialMatrix", "MxFIMLObjective",
 	function(.Object, flatModel) {
 		flatObjective <- flatModel@objectives[[.Object@name]]
 		if (flatObjective@vector == FALSE) {

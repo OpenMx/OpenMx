@@ -1,7 +1,7 @@
 \name{mxRAMObjective}
 \alias{mxRAMObjective}
 
-\title{Function To Create MxRAMObjective Object}
+\title{Create MxRAMObjective Object}
 
 \description{
    This function creates a new MxRAMObjective object.

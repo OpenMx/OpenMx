@@ -1,7 +1,7 @@
 \name{mxData}
 \alias{mxData}
 
-\title{Function To Create MxData Object}
+\title{Create MxData Object}
 
 \description{
    This function creates a new \link{MxData} object.

@@ -35,7 +35,7 @@ setMethod("initialize", "MxMLObjective",
 	}
 )
 
-setMethod("omxObjDependencies", signature("MxMLObjective"),
+setMethod("genericObjDependencies", signature("MxMLObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
@@ -44,7 +44,7 @@ setMethod("omxObjDependencies", signature("MxMLObjective"),
 })
 
 
-setMethod("omxObjFunNamespace", signature("MxMLObjective"), 
+setMethod("genericObjFunNamespace", signature("MxMLObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		.Object@covariance <- omxConvertIdentifier(.Object@covariance, 
@@ -53,12 +53,21 @@ setMethod("omxObjFunNamespace", signature("MxMLObjective"),
 			modelname, namespace)
 		.Object@data <- omxConvertIdentifier(.Object@data, 
 			modelname, namespace)
-		.Object@thresholds <- omxConvertIdentifier(.Object@thresholds, 
-			modelname, namespace)			
+		.Object@thresholds <- sapply(.Object@thresholds, 
+			omxConvertIdentifier, modelname, namespace)			
 		return(.Object)
 })
 
-setMethod("omxObjFunConvert", signature("MxMLObjective"), 
+setMethod("genericObjRename", signature("MxMLObjective"),
+	function(.Object, oldname, newname) {
+		.Object@covariance <- renameReference(.Object@covariance, oldname, newname)
+		.Object@means <- renameReference(.Object@means, oldname, newname)		
+		.Object@data <- renameReference(.Object@data, oldname, newname)	
+		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+		return(.Object)
+})
+
+setMethod("genericObjFunConvert", signature("MxMLObjective"), 
 	function(.Object, flatModel, model) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
@@ -86,7 +95,7 @@ setMethod("omxObjFunConvert", signature("MxMLObjective"),
 })
 
 
-setMethod("omxObjModelConvert", "MxMLObjective",
+setMethod("genericObjModelConvert", "MxMLObjective",
 	function(.Object, job, model, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The ML objective",

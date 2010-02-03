@@ -2,7 +2,7 @@
 \alias{mxPath}
 \alias{MxPath}
 
-\title{Function To Create List of Paths}
+\title{Create List of Paths}
 
 \description{
    This function creates a list of paths.

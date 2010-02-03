@@ -260,7 +260,7 @@ originalMxHelper <- function(mx.filename, output.directory) {
 		        cat(paste(Mat,Grp,".",k," <- matrix(1,nrow=Dims[1],ncol=Dims[2])",sep=""),file="temp")
 			}
 
-		    #Make the new matrix & latch it onto the "matrices" list			eval(parse(file="temp"))
+		    #Make the new matrix & latch it onto the "matrices" list			eval(parse(file="temp"))
 			cat(paste("matrices$",Mat,Grp,".",k,  " <- ",Mat,Grp,".",k,sep=""),file="temp")
 			eval(parse(file="temp"))
 ############ 
@@ -272,6 +272,5 @@ originalMxHelper <- function(mx.filename, output.directory) {
 
 ######################################################################## 
  
-
 
 

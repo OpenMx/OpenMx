@@ -35,7 +35,7 @@ setMethod("initialize", "MxRowObjective",
 	}
 )
 
-setMethod("omxObjNewEntities", signature("MxRowObjective"),
+setMethod("genericObjNewEntities", signature("MxRowObjective"),
 	function(.Object) {
 		if (is.na(.Object@rowResults)) {
 			return(NULL)
@@ -45,7 +45,7 @@ setMethod("omxObjNewEntities", signature("MxRowObjective"),
 	}
 )
 
-setMethod("omxObjDependencies", signature("MxRowObjective"),
+setMethod("genericObjDependencies", signature("MxRowObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@reduceAlgebra)
 	sources <- sources[!is.na(sources)]
@@ -56,7 +56,7 @@ setMethod("omxObjDependencies", signature("MxRowObjective"),
 })
 
 
-setMethod("omxObjFunNamespace", signature("MxRowObjective"), 
+setMethod("genericObjFunNamespace", signature("MxRowObjective"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- omxIdentifier(modelname, .Object@name)
 		.Object@rowAlgebra <- omxConvertIdentifier(.Object@rowAlgebra, 
@@ -70,7 +70,15 @@ setMethod("omxObjFunNamespace", signature("MxRowObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjFunConvert", signature("MxRowObjective"), 
+setMethod("genericObjRename", signature("MxRowObjective"),
+	function(.Object, oldname, newname) {
+		.Object@rowAlgebra <- renameReference(.Object@rowAlgebra, oldname, newname)
+		.Object@reduceAlgebra <- renameReference(.Object@reduceAlgebra, oldname, newname)
+		.Object@data <- renameReference(.Object@data, oldname, newname)
+		return(.Object)
+})
+
+setMethod("genericObjFunConvert", signature("MxRowObjective"), 
 	function(.Object, flatModel, model) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
@@ -97,7 +105,7 @@ setMethod("omxObjFunConvert", signature("MxRowObjective"),
 		return(.Object)
 })
 
-setMethod("omxObjModelConvert", "MxRowObjective",
+setMethod("genericObjModelConvert", "MxRowObjective",
 	function(.Object, job, model, flatJob) {
 		rowAlgebraName <- .Object@rowAlgebra
 		rowResultsName <- .Object@rowResults
@@ -168,8 +176,8 @@ setMethod("omxObjModelConvert", "MxRowObjective",
 		return(job)
 	}
 )
-
-setMethod("omxObjInitialMatrix", "MxRowObjective",
+
+setMethod("genericObjInitialMatrix", "MxRowObjective",
 	function(.Object, flatModel) {
 		reduceAlgebraName <- .Object@reduceAlgebra
 		labelsData <- omxGenerateLabels(flatModel)		

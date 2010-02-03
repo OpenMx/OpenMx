@@ -1,7 +1,7 @@
 \name{mxModel}
 \alias{mxModel}
 
-\title{Function To Create MxModel Object}
+\title{Create MxModel Object}
  	
 \description{
    This function creates a new \link{MxModel} object.
