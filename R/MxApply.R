@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 omxLapply <- function(x, fun, ...) {
+	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
 		return(sfLapply(x, fun, ...))
@@ -23,6 +24,7 @@ omxLapply <- function(x, fun, ...) {
 }
 
 omxSapply <- function(x, fun, ..., simplify = TRUE, USE.NAMES = TRUE) {
+	if (lenth(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
 		return(sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
@@ -32,6 +34,7 @@ omxSapply <- function(x, fun, ..., simplify = TRUE, USE.NAMES = TRUE) {
 }
 
 omxApply <- function(x, margin, fun, ...) {
+	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
 		return(sfApply(x, margin, fun, ...))
