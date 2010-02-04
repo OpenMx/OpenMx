@@ -152,8 +152,8 @@ updateModelMatrices <- function(model, flatModel, values) {
 	}
 	if (length(mList) == 0) {
 		return(model)
-	}	
-	model <- updateModelMatricesHelper(mList, values, model)
+	}
+	model <- updateModelEntitiesHelper(mList, values, model)
 	return(model)
 }
 
@@ -170,29 +170,24 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	if (length(aList) == 0) {
 		return(model)
 	}	
-	model <- updateModelAlgebrasHelper(aList, values, model)
+	model <- updateModelEntitiesHelper(aList, values, model)
 	return(model)
 }
 
-updateModelMatricesHelper <- function(mList, values, model) {
-	for(i in 1:length(mList)) {
-		name <- mList[[i]]
-		dimnames(values[[i]]) <- dimnames(model[[name]])
-		model[[name]]@values <- values[[i]]
-	}
-	return(model)
-}
-
-updateModelAlgebrasHelper <- function(aList, values, model) {
-	for(i in 1:length(aList)) {
-		name <- aList[[i]]
+updateModelEntitiesHelper <- function(entNames, values, model) {
+	for(i in 1:length(entNames)) {
+		name <- entNames[[i]]
 		candidate <- model[[name]]
-		if (!is.null(candidate) && (length(values[[i]]) > 0) 
-			&& !is.nan(values[[i]]) && 
-			(is(candidate,"MxAlgebra") || (is(candidate,"MxObjective")))) {
-			model[[name]]@result <- as.matrix(values[[i]])
-			if (is(candidate, "MxAlgebra")) {
-				dimnames(model[[name]]@result) <- dimnames(model[[name]])
+		if (!is.null(candidate) && (length(values[[i]]) > 0)
+			&& !is.nan(values[[i]])) {
+			if (is(candidate,"MxAlgebra") || is(candidate,"MxObjective")) {
+				model[[name]]@result <- as.matrix(values[[i]])
+				if (is(candidate, "MxAlgebra")) {
+					dimnames(model[[name]]@result) <- dimnames(model[[name]])
+				}
+			} else if(is(candidate, "MxMatrix")) {
+				dimnames(values[[i]]) <- dimnames(model[[name]])
+				model[[name]]@values <- values[[i]]
 			}
 		}
 	}

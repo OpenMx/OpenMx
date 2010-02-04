@@ -270,11 +270,9 @@ setNumberObservations <- function(numObs, flatModel, retval) {
 	return(retval)
 }
 
-setMethod("summary", "MxModel",
-	function(object, ...) {
-		saturatedLikelihood <- match.call()$SaturatedLikelihood
-		numObs <- match.call()$numObs
-		object <- convertSquareBracketLabels(object)
+summaryHelper <- function(object, params) {
+		saturatedLikelihood <- params[[1]]
+		numObs <- params[[2]]	
 		namespace <- omxGenerateNamespace(object)
 		flatModel <- omxFlattenModel(object, namespace)
 		matrices <- generateMatrixList(flatModel)
@@ -301,5 +299,24 @@ setMethod("summary", "MxModel",
 		retval$mxVersion <- object@output$mxVersion
 		class(retval) <- "summary.mxmodel"
 		return(retval)
+}
+
+setMethod("summary", "MxModel",
+	function(object, ...) {
+		saturatedLikelihood <- match.call()$SaturatedLikelihood
+		numObs <- match.call()$numObs		
+		object <- convertSquareBracketLabels(object)
+		independents <- getAllIndependents(object)
+		frozen <- omxLapply(independents, omxFreezeModel)
+		object <- omxReplaceModels(object, frozen)
+		primary <- summaryHelper(object, list(saturatedLikelihood, numObs))
+		remainder <- omxLapply(independents, summary, ...)
+		if (length(remainder) == 0) {
+			return(primary)
+		} else {
+			names(remainder) <- omxExtractNames(independents)
+			remainder[[object@name]] <- primary
+			return(remainder)
+		}
 	}
 )

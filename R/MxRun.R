@@ -26,8 +26,8 @@ mxRun <- function(model, silent = FALSE) {
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	independents <- omxLapply(independents, mxRun, silent)
-	independents <- omxLapply(independents, omxFreezeModel)
-	model <- omxReplaceModels(model, independents)
+	frozen <- omxLapply(independents, omxFreezeModel)
+	model <- omxReplaceModels(model, frozen)
 	if(is.null(model@objective) && 
 			length(model@matrices) == 0 && 
 			length(model@algebras) == 0 &&
@@ -64,6 +64,7 @@ mxRun <- function(model, silent = FALSE) {
 		constraints, matrices, parameters, 
 		algebras, data, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
+	model <- omxReplaceModels(model, independents)
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)

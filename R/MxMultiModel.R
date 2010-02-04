@@ -80,6 +80,7 @@ omxFreezeModel <- function(model) {
 	algebras <- algebras[!sapply(algebras, is.null)]
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
+	model@constraints <- list()
 	model@submodels <- omxLapply(model@submodels, omxFreezeModel)
 	return(model)
 }
@@ -174,6 +175,7 @@ omxIndependentModels <- function(model) {
 
 
 omxReplaceModels <- function(model, replacements) {
+	if (length(replacements) == 0) return(model)
 	mnames <- names(model@submodels)
 	rnames <- names(replacements)
 	if (setequal(mnames, rnames)) {
@@ -183,15 +185,10 @@ omxReplaceModels <- function(model, replacements) {
 	inames <- intersect(mnames, rnames)
 	if (length(inames) > 0) {
 		for(i in 1:length(inames)) {
-			name <- inames[[i]]
-			model[[name]] <- replacements[[name]]
+			name <- inames[[i]]		
+			model@submodels[[name]] <- replacements[[name]]
 		}
 	}
-	if (length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			model@submodels[[i]] <- 
-				omxReplaceModels(model@submodels[[i]], replacements)
-		}
-	}
+	model@submodels <- omxLapply(model@submodels, omxReplaceModels, replacements)	
 	return(model)
 }
