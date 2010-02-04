@@ -26,18 +26,20 @@ mxRun <- function(model, silent = FALSE) {
 	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
+	indepTimeStart <- Sys.time()
 	independents <- omxLapply(independents, mxRun, silent)
+	indepTimeStop <- Sys.time()
+	indepElapsed <- indepTimeStop - indepTimeStart
 	if(is.null(model@objective) && 
 			length(model@matrices) == 0 && 
 			length(model@algebras) == 0 &&
 			length(omxDependentModels(model)) == 0) {
 		model <- omxReplaceModels(model, independents)
 		model <- undoDataShare(model, dataList)
-		frontendStop1 <- Sys.time()
-		backendStop <- frontendStop1
-		frontendStop2 <- frontendStop1
-		model@output <- calculateTiming(model@output, frontendStart,
-			frontendStop1, backendStop, frontendStop2)		
+		frontendStop <- Sys.time()
+		frontendElapsed <- frontendStop - frontendStart - indepElapsed
+		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed) 
+		model@output$mxVersion <- mxVersion()
 		return(model)
 	}
 	frozen <- lapply(independents, omxFreezeModel)
@@ -62,11 +64,13 @@ mxRun <- function(model, silent = FALSE) {
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
-	frontendStop1 <- Sys.time()
+	frontendStop <- Sys.time()
+	frontendElapsed <- frontendStop - frontendStart - indepElapsed
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
+	backendElapsed <- backendStop - frontendStop
 	model <- omxReplaceModels(model, independents)
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
@@ -74,9 +78,10 @@ mxRun <- function(model, silent = FALSE) {
 	model <- undoDataShare(model, dataList)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
-	frontendStop2 <- Sys.time()
-	model@output <- calculateTiming(model@output, frontendStart,
-		frontendStop1, backendStop, frontendStop2)	
+	frontendStop <- Sys.time()
+	frontendElapsed <- frontendElapsed + frontendStop - backendStop
+	model@output <- calculateTiming(model@output, frontendElapsed,
+		backendElapsed, indepElapsed)
 	return(model)
 }
 
@@ -110,11 +115,11 @@ processOptimizerOutput <- function(flatModel, matrixNames,
 	return(output)
 }
 
-calculateTiming <- function(output, frontendStart,
-	frontendStop1, backendStop, frontendStop2) {
-	output$frontendTime <- (frontendStop1 - frontendStart) +
-		(frontendStop2 - backendStop)
-	output$backendTime <- (backendStop - frontendStop1)
+calculateTiming <- function(output, frontendElapsed,
+	backendElapsed, indepElapsed) {
+	output$frontendTime <- frontendElapsed
+	output$backendTime <- backendElapsed
+	output$independentTime <- indepElapsed
 	return(output)
 }
 

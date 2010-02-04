@@ -241,6 +241,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("RMSEA: ", x$RMSEA, '\n')
 	cat("frontend elapsed time:", format(x$frontendTime), '\n')
 	cat("backend elapsed time:", format(x$backendTime), '\n')
+	cat("independent elapsed time:", format(x$independentTime), '\n')
 	cat("openmx version number:", x$mxVersion, '\n')
 	cat('\n')
 }
@@ -296,6 +297,7 @@ summaryHelper <- function(object, params) {
 		}
 		retval$frontendTime <- object@output$frontendTime
 		retval$backendTime <- object@output$backendTime
+		retval$independentTime <- object@output$independentTime
 		retval$mxVersion <- object@output$mxVersion
 		class(retval) <- "summary.mxmodel"
 		return(retval)
@@ -304,8 +306,15 @@ summaryHelper <- function(object, params) {
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		saturatedLikelihood <- match.call()$SaturatedLikelihood
-		numObs <- match.call()$numObs		
+		numObs <- match.call()$numObs
+		submodels <- match.call()$submodels
 		object <- convertSquareBracketLabels(object)
+		if (!is.null(submodels) && !submodels) {
+			dependents <- omxDependentModels(object)
+			object@submodels <- dependents
+			primary <- summaryHelper(object, list(saturatedLikelihood, numObs))
+			return(primary)
+		}
 		independents <- getAllIndependents(object)
 		frozen <- lapply(independents, omxFreezeModel)
 		object <- omxReplaceModels(object, frozen)
