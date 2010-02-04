@@ -27,7 +27,7 @@ shareDataHelper <- function(model, default) {
 	} else if (!is.null(model@data)) {
 		default <- model@data
 	}
-	submodels <- omxLapply(model@submodels, 
+	submodels <- lapply(model@submodels, 
 		shareDataHelper, default)
 	model@submodels <- submodels
 	return(model)
@@ -81,7 +81,7 @@ omxFreezeModel <- function(model) {
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
 	model@constraints <- list()
-	model@submodels <- omxLapply(model@submodels, omxFreezeModel)
+	model@submodels <- lapply(model@submodels, omxFreezeModel)
 	return(model)
 }
 
@@ -189,6 +189,6 @@ omxReplaceModels <- function(model, replacements) {
 			model@submodels[[name]] <- replacements[[name]]
 		}
 	}
-	model@submodels <- omxLapply(model@submodels, omxReplaceModels, replacements)	
+	model@submodels <- lapply(model@submodels, omxReplaceModels, replacements)	
 	return(model)
 }

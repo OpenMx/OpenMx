@@ -221,5 +221,5 @@ omxCheckMatrices <- function(model) {
 	matrices <- model@matrices
 	lapply(matrices, omxVerifyMatrix)
 	submodels <- omxDependentModels(model)
-	omxLapply(submodels, omxCheckMatrices)
+	lapply(submodels, omxCheckMatrices)
 }

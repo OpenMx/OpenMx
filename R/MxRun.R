@@ -23,15 +23,16 @@ mxRun <- function(model, silent = FALSE) {
 	model <- translateObjectives(model, namespace)
 	# Regenerate the namespace
 	namespace <- omxGenerateNamespace(model)
+	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	independents <- omxLapply(independents, mxRun, silent)
-	frozen <- omxLapply(independents, omxFreezeModel)
-	model <- omxReplaceModels(model, frozen)
 	if(is.null(model@objective) && 
 			length(model@matrices) == 0 && 
 			length(model@algebras) == 0 &&
 			length(omxDependentModels(model)) == 0) {
+		model <- omxReplaceModels(model, independents)
+		model <- undoDataShare(model, dataList)
 		frontendStop1 <- Sys.time()
 		backendStop <- frontendStop1
 		frontendStop2 <- frontendStop1
@@ -39,6 +40,8 @@ mxRun <- function(model, silent = FALSE) {
 			frontendStop1, backendStop, frontendStop2)		
 		return(model)
 	}
+	frozen <- lapply(independents, omxFreezeModel)
+	model <- omxReplaceModels(model, frozen)
 	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
 	data <- convertDatasets(flatModel, model)
@@ -68,6 +71,7 @@ mxRun <- function(model, silent = FALSE) {
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)
+	model <- undoDataShare(model, dataList)
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
 	frontendStop2 <- Sys.time()

@@ -269,7 +269,11 @@ namespaceErrorMessage <- function(rlist) {
 }
 
 omxExtractNames <- function(lst) {
-	lapply(lst, function(x) { x@name } )	
+	if (length(lst) == 0) {
+		return(character())
+	} else {
+		return(sapply(lst, function(x) { x@name } ))
+	}
 }
 
 checkNameAlignment <- function(lst1, lst2) {

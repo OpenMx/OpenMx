@@ -307,7 +307,7 @@ setMethod("summary", "MxModel",
 		numObs <- match.call()$numObs		
 		object <- convertSquareBracketLabels(object)
 		independents <- getAllIndependents(object)
-		frozen <- omxLapply(independents, omxFreezeModel)
+		frozen <- lapply(independents, omxFreezeModel)
 		object <- omxReplaceModels(object, frozen)
 		primary <- summaryHelper(object, list(saturatedLikelihood, numObs))
 		remainder <- omxLapply(independents, summary, ...)

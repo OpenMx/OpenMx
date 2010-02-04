@@ -63,7 +63,7 @@ propagateModelName <- function(model, oldname, newname) {
 	model@algebras <- lapply(model@algebras, renameAlgebra, oldname, newname)
 	model@constraints <- lapply(model@constraints, renameConstraint, oldname, newname)
 	model@objective <- genericObjRename(model@objective, oldname, newname)
-	model@submodels <- omxLapply(model@submodels, propagateModelName, oldname, newname)
+	model@submodels <- lapply(model@submodels, propagateModelName, oldname, newname)
 	names(model@submodels) <- omxExtractNames(model@submodels)
 	return(model)
 }

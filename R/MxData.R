@@ -94,6 +94,19 @@ verifyCovarianceMatrix <- function(covMatrix) {
 	}
 }
 
+generateDataList <- function(model) {
+	retval <- unlist(lapply(model@submodels, generateDataList))
+	if (is.null(retval)) retval <- list()	
+	retval[[model@name]] <- model@data
+	return(retval)
+}
+
+undoDataShare <- function(model, dataList) {
+	model@data <- dataList[[model@name]]
+	model@submodels <- omxLapply(model@submodels, undoDataShare, dataList)
+	return(model)
+}
+
 
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
