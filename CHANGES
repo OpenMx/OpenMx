@@ -9,6 +9,7 @@ trunk
 * renamed all objective function generic functions from omxObj* to genericObj*
 * added 'submodels' argument to summary() to ignore independent submodels (see ?summary)
 * added 'independentTime' to summary() output. Wall clock time for independent submodels.
+* added 'wallTime' and 'cpuTime' to summary() output. Total wall clock time and total cpu time.
 
 Release 0.2.5-1050
 ==================

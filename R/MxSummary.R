@@ -239,9 +239,11 @@ print.summary.mxmodel <- function(x,...) {
 	cat("BIC (Mx): ", x$BIC.Mx, '\n')
 	cat("adjusted BIC:", '\n')
 	cat("RMSEA: ", x$RMSEA, '\n')
-	cat("frontend elapsed time:", format(x$frontendTime), '\n')
-	cat("backend elapsed time:", format(x$backendTime), '\n')
-	cat("independent elapsed time:", format(x$independentTime), '\n')
+	cat("frontend time:", format(x$frontendTime), '\n')
+	cat("backend time:", format(x$backendTime), '\n')
+	cat("independent submodels time:", format(x$independentTime), '\n')
+	cat("wall clock time:", format(x$wallTime), '\n')
+	cat("cpu time:", format(x$cpuTime), '\n')
 	cat("openmx version number:", x$mxVersion, '\n')
 	cat('\n')
 }
@@ -298,6 +300,8 @@ summaryHelper <- function(object, params) {
 		retval$frontendTime <- object@output$frontendTime
 		retval$backendTime <- object@output$backendTime
 		retval$independentTime <- object@output$independentTime
+		retval$wallTime <- object@output$wallTime
+		retval$cpuTime <- object@output$cpuTime
 		retval$mxVersion <- object@output$mxVersion
 		class(retval) <- "summary.mxmodel"
 		return(retval)
