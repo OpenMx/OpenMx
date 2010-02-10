@@ -63,7 +63,7 @@ struct omxObjective {					// An objective
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 
 	void* argStruct;															// Arguments needed for objective function
-	char objType[250];															// Type of Objective Function
+	char* objType;															// Type of Objective Function
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this objective function
 

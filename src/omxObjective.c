@@ -41,14 +41,15 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->setFinalReturns = NULL;
 	oo->gradientFun = NULL;
 	oo->argStruct = NULL;
-	strncpy(oo->objType, "\0", 1);
+	oo->objType = (char*) calloc(251, sizeof(char*));
+	oo->objType[0] = '\0';
 	oo->matrix = NULL;
 	
 }
 
 void omxFreeObjectiveArgs(omxObjective *oo) {
 	/* Completely destroy the objective function tree */
-
+	free(oo->objType);
 	oo->destructFun(oo);
 	oo->matrix = NULL;
 	
@@ -96,7 +97,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
 	objType = CHAR(objectiveClass);
 	obj->objType[250] = '\0';
-	strncpy(obj->objType, objType, 249);
+	strncpy(obj->objType, objType, 250);
 	
 	/* Switch based on objective type. */ 
 	for(i = 0; i < omxObjectiveTableLength; i++) {
