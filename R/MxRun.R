@@ -37,8 +37,7 @@ mxRun <- function(model, silent = FALSE) {
 		model <- omxReplaceModels(model, independents)
 		model <- undoDataShare(model, dataList)
 		frontendStop <- Sys.time()
-		frontendElapsed <- frontendStop - frontendStart
-		frontendElapsed <- frontendElapsed - indepElapsed
+		frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, independents) 
 		model@output$mxVersion <- mxVersion()
 		return(model)
@@ -66,8 +65,7 @@ mxRun <- function(model, silent = FALSE) {
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
 	frontendStop <- Sys.time()
-	frontendElapsed <- frontendStop - frontendStart
-	frontendElapsed <- frontendElapsed - indepElapsed
+	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, options, state, PACKAGE = "OpenMx")
@@ -81,8 +79,7 @@ mxRun <- function(model, silent = FALSE) {
 	model@output <- processOptimizerOutput(flatModel, names(matrices),
 		names(algebras), names(parameters), output)
 	frontendStop <- Sys.time()
-	frontendElapsed2 <- frontendStop - backendStop
-	frontendElapsed <- frontendElapsed2 + frontendElapsed 
+	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
 		backendElapsed, indepElapsed, independents)
 	return(model)
