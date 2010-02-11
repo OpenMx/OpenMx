@@ -101,13 +101,30 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
+	
+	omxFIMLObjective* ofo = (omxFIMLObjective *)(oo->argStruct);
+	
+	omxRListElement* retVal;
+	
 	*numReturns = 1;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+	
+	if(!ofo->returnRowLikelihoods) {
+		retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+	} else {
+		retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
+	}
 
 	retVal[0].numValues = 1;
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
 	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+	
+	
+	if(ofo->returnRowLikelihoods) {
+		omxData* data = ofo->data;
+		retVal[1].numValues = data->rows;
+		retVal[1].values = (double*) R_alloc(data->rows, sizeof(double));
+	}
 	
 	return retVal;
 }

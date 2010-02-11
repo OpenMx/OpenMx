@@ -63,6 +63,11 @@ struct omxConstraint {		// Free Variable Constraints
 	omxMatrix* result;
 };
 
+struct omxOptimizerState {			// For hessian or confidence interval computation
+	int currentParameter;			// Which parameter is being examined?
+	double offset;					// Current offset of optimization
+};
+
 #define MAX_STRING_LEN 250
 
 struct omxState {													// The Current State of Optimization
@@ -82,17 +87,8 @@ struct omxState {													// The Current State of Optimization
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
-
-	unsigned short int allowShortcut;								// See below:
-	/* This is primarily included to allow special case objective functions and optimizers to disable it.
-		All matrices are initialized at compute count 0.  The optimizer is requested to run the objective
-		function once at compute count 1 to trace dependencies.  All matrices that are updated at compute
-		count 1 (that is, are non-static) will advance their lastCompute to 1, and those that are computed
-		at each row will advance their lastRow to the total number of rows.
-		If Shortcut evaluation is enabled, any matrix/algebra with a lastCompute of 0 will not check to see 
-		if it needs updating, ever.  Any matrix/algebra with a lastRow of 0 will not check row-by-row to see
-		if it need re-evaluation.  This can be disabled in cases where the dependency tree might change during
-		optimization.  NOT YET IMPLEMENTED. */
+	double* optimalValues;											// Values of the free parameters at the optimum value
+	double optimum;													// Objective value at optimum
 
 /* Current Optimization State (optimizer-specific) */
 	void* optimizerState;											// Optimizer specific state storage

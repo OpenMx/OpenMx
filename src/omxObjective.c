@@ -30,6 +30,61 @@
 
 #include "omxObjective.h"
 
+void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo) {
+	/* This function calculates the standard errors from the hessian matrix */
+	// sqrt(diag(solve(hessian)))
+	
+	int numParams = oo->matrix->currentState->numFreeParams;
+	
+	if(oo->stdError == NULL) {
+		oo->stdError = (double*) R_alloc(numParams, sizeof(double));
+	}
+	
+	double* stdErr = oo->stdError;
+	
+	double* hessian = oo->hessian;
+	double* workspace = (double *) Calloc(numParams * numParams, double);
+	
+	for(int i = 0; i < numParams; i++)
+		for(int j = 0; j <= i; j++)
+			workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
+	
+	char u = 'U';
+	int ipiv[numParams];
+	int lwork = -1;
+	double temp;
+	int info = 0;
+	
+	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
+	
+	lwork = (temp > numParams?temp:numParams);
+	
+	double* work = (double*) Calloc(lwork, double);
+	
+	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
+	
+	if(info != 0) {
+		
+		oo->stdError = NULL;
+		
+	} else {
+		
+		F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
+	
+		if(info != 0) {
+			oo->stdError = NULL;
+		} else {
+			for(int i = 0; i < numParams; i++) {
+				stdErr[i] = scale * sqrt(workspace[i * numParams + i]);
+			}
+		}
+	}
+	
+	Free(workspace);
+	Free(work);
+	
+}
+
 void omxInitEmptyObjective(omxObjective *oo) {
 	/* Sets everything to NULL to avoid bad pointer calls */
 	
@@ -38,12 +93,17 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->repopulateFun = NULL;
 	oo->objectiveFun = NULL;
 	oo->needsUpdateFun = NULL;
+	oo->getStandardErrorFun = NULL;
 	oo->setFinalReturns = NULL;
 	oo->gradientFun = NULL;
 	oo->argStruct = NULL;
 	oo->objType = (char*) calloc(251, sizeof(char*));
 	oo->objType[0] = '\0';
 	oo->matrix = NULL;
+	
+}
+
+void omxGetObjectiveStandardErrors(omxObjective *oo) {
 	
 }
 
@@ -135,4 +195,29 @@ void omxObjectiveGradient(omxObjective* oo, double* gradient) {
 void omxObjectivePrint(omxObjective* oo, char* d) {
 	Rprintf("(Objective, type %s) ", oo->objType);
 	omxPrintMatrix(oo->matrix, d);
+}
+
+omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* currentState, char* const slotName) {
+	SEXP slotValue;
+	omxMatrix* newMatrix = NULL;
+	if(strncmp(slotName, "", 1) == 0) return NULL;
+	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
+	newMatrix = omxNewMatrixFromMxIndex(slotValue, currentState);
+	if(newMatrix != NULL) omxRecompute(newMatrix);
+	else if(OMX_DEBUG) Rprintf("No M found.\n");
+	UNPROTECT(1);
+	return newMatrix;
+}
+
+omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* currentState, char* const dataSlotName) {
+	
+	SEXP slotValue;
+	
+	PROTECT(slotValue = GET_SLOT(rObj, install(dataSlotName)));
+	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", AS_INTEGER(slotValue)); }
+	omxData* dataElt = omxNewDataFromMxDataPtr(slotValue, currentState);
+	UNPROTECT(1); // newMatrix
+	
+	return dataElt;
+	
 }

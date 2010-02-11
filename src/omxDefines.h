@@ -27,7 +27,7 @@
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
-#define OMX_DEFAULT_MAX_PTS 1000*cov->rows
+#define OMX_DEFAULT_MAX_PTS 100*cov->rows*cov->rows
 #define MAX_STRING_LEN 250
 #define EPSILON 1e-16
 #define TRUE 1

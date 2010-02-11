@@ -43,12 +43,15 @@ typedef struct omxRListElement omxRListElement;
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxAlgebraFunctions.h"
+#include "omxData.h"
+#include "omxState.h"
 #include "omxObjectiveTable.h"
 
 struct omxRListElement {
 	char label[250];
 	double* values;
 	int numValues;
+	int rows, cols;
 };
 
 struct omxObjective {					// An objective
@@ -60,10 +63,13 @@ struct omxObjective {					// An objective
 	void (*repopulateFun)(omxObjective* oo, double* x, int n);					// To repopulate any data stored in the objective function
 	void (*objectiveFun)(omxObjective* oo);										// Wrapper for the objective function itself
 	unsigned short int (*needsUpdateFun)(omxObjective* oo);						// To calculate recomputation
+	double* (*getStandardErrorFun)(omxObjective* oo);								// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 
 	void* argStruct;															// Arguments needed for objective function
 	char* objType;															// Type of Objective Function
+	double* hessian;															// Hessian details
+	double* stdError;															// Standard Error estimates
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this objective function
 
@@ -73,6 +79,7 @@ struct omxObjective {					// An objective
 	void omxInitEmptyObjective(omxObjective *oo);
 	void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP mxobj);			// Create an objective function from an R MxObjective object
 	void omxFreeObjectiveArgs(omxObjective* objective);						// Frees all args
+	void omxGetObjectiveStandardErrors(omxObjective *oo);					// Get Standard Errors
 
 /* Objective-specific implementations of matrix functions */
 	void omxObjectiveCompute(omxObjective *oo);
@@ -80,5 +87,12 @@ struct omxObjective {					// An objective
 	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.
 
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
+	
+	/* Helper functions */
+	void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo);		// Does what it says
+	
+	/* Helpers related to objective initialization */
+	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
+	omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* state, char* const dataSlotName);	// Gets an mxData object from a data slot
 
 #endif /* _OMXOBJECTIVE_H_ */

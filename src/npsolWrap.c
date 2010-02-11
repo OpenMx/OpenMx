@@ -45,12 +45,12 @@ void F77_SUB(constraintFunction)(int *mode, int *ncnln, int *n, int *ldJ, int *n
 void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
+unsigned short omxEstimateHessian(omxObjective* oo, double functionPrecision, double v, int r, omxState* currentState, double optimum);
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
 const double NEG_INF = -2e20;
 const double INF = 2e20;
-
 
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
@@ -64,7 +64,6 @@ double *R, *cJac;				// Hessian (Approx) and Jacobian
 int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
 
 omxState* currentState;			// Current State of optimization
-
 
 /* Functions for Export */
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
@@ -574,6 +573,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Store outputs for return */
 	if(objective != NULL) {
 		REAL(minimum)[0] = f;
+		currentState->optimum = f;
 	} else {
 		REAL(minimum)[0] = R_NaReal;
 	}
@@ -581,10 +581,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	est = REAL(estimate);  // Aliases to avoid repeated function calls.
 	grad = REAL(gradient);
 	hess = REAL(hessian);
+	currentState->optimalValues = (double*) R_alloc(n, sizeof(double));
 
 	for(k = 0; k < n; k++) {		// Do these with memcpy instead, probably.
 		est[k] = x[k];
 		grad[k] = g[k];
+		currentState->optimalValues[k] = x[k];
 		for(l = 0; l < n; l++) {
 			hess[k*n + l] = R[k*n + l];  // This is ok, because they're both in Col-Major already.
 		}
@@ -621,6 +623,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(om != NULL) {					// In the event of a no-objective run.
 		omxObjective* oo = om->objective;
 		if(OMX_DEBUG) { Rprintf("Checking for additional objective info.\n"); }
+		
 		if(oo != NULL && oo->setFinalReturns != NULL) {
 			if(OMX_DEBUG) { Rprintf("Expecting objective Info....");}
 			int numEls;
@@ -640,6 +643,19 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				}
 			}
 		}
+		
+/*		if(oo != NULL) {
+			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
+			if(omxEstimateHessian(oo, .0001, 2, 4, currentState, currentState->optimum)) {
+				for(int i = 0; i < n*n; i++) hess[i] = R[i];  // Symmetric; majority won't matter
+				if(oo->getStandardErrorFun != NULL) {
+					oo->getStandardErrorFun(oo);
+				} else {
+					omxCalculateStdErrorFromHessian(sqrt(2.0), oo);
+				}
+			}
+		}
+*/		
 		if(OMX_DEBUG) { Rprintf("Done.\n");}
 	} else {
 		PROTECT(ans = allocVector(VECSXP, numReturns));
@@ -692,7 +708,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	return(ans);
 
 }
-
 
 /****** Objective Function *********/
 void F77_SUB(objectiveFunction)
@@ -840,4 +855,110 @@ SEXP getVar(SEXP str, SEXP env) {
 	error("getVar: env should be an environment");
    ans = findVar(install(CHAR(STRING_ELT(str, 0))), env);
    return(ans);
+}
+
+/*************************************************************************************
+ *
+ *   omxEstimateHessian
+ *
+ *  author: tbrick, 2010-02-04
+ *
+ *  Based on code in the numDeriv library for R <citation needed>
+ *
+ *  @params oo 					objective to evaluate
+ *  @params gradient 			an nx1 structure to be filled with the gradient
+ *  @params functionPrecision	functional precision for the calculation
+ *  @params v					divisor for Richardson approximation
+ *  @params r					number of repetitions for Richardson approximation
+ ************************************************************************************/
+unsigned short omxEstimateHessian(omxObjective* oo, double functionPrecision, double v, int r, omxState* currentState, double optimum) {
+	
+	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
+	
+	int numParams = currentState->numFreeParams;
+	double* freeParams = (double*) Calloc(numParams, double);
+	double* optima = currentState->optimalValues;
+	double f0 = currentState->optimum;
+	
+	if(oo->hessian == NULL) {
+		oo->hessian = (double*) R_alloc(numParams* numParams, sizeof(double));
+	}
+	double* hessian = oo->hessian;
+	
+	double Haprox=0;
+	double Daprox=0;
+	
+	for(int i = 0; i < numParams; i++) {
+		freeParams[i] = optima[i];
+		handleFreeVarList(currentState, freeParams, numParams);
+		
+	}
+	
+	omxMatrix* objectiveMatrix = oo->matrix;
+	
+	/* Part the first: Gradient and diagonal */
+	for(int i = 0; i < numParams; i++) {
+		for(int l = i; l >= 0; l--) {
+			for(int j = r; j >= 0; j--) {
+				double iOffset = abs(functionPrecision*freeParams[i]) / pow(v, j);
+				double lOffset = abs(functionPrecision*freeParams[i]) / pow(v, j);
+
+				freeParams[i] = optima[i] + iOffset;
+				if(l != i) freeParams[l] = optima[l] + lOffset;
+				if (objectiveMatrix->objective->repopulateFun != NULL) { //  Just in case
+					objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, freeParams, numParams);
+				} else {
+					handleFreeVarList(currentState, freeParams, numParams);
+				}
+				omxRecompute(objectiveMatrix);
+				double f1 = omxMatrixElement(objectiveMatrix, 0, 0);
+
+				freeParams[i] = optima[i] - iOffset;
+				if(l != i) freeParams[l] = optima[l] - lOffset;
+				if (objectiveMatrix->objective->repopulateFun != NULL) { // Just in case
+					objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, freeParams, numParams);
+				} else {
+					handleFreeVarList(currentState, freeParams, numParams);
+				}
+				omxRecompute(objectiveMatrix);
+				double f2 = omxMatrixElement(objectiveMatrix, 0, 0);
+				if(j == r) {							// First run on this parameter set
+					if(i == l) {						// Get the diagonal first
+						Haprox = (f1 - f2) / (2.0*iOffset);
+//						Daprox = (f1 - 2.0 * f0 + f2) / (iOffset*iOffset);
+					} else {							// Then the off-diagonals
+						Daprox = (f1 - 2.0*f0 + f2 - hessian[i*numParams+i]*iOffset*iOffset - 
+									hessian[i*numParams+i]*lOffset*lOffset)/(2.0*iOffset*lOffset);
+					}
+				} else {
+					if(i == l) {						// Diagonal Richardson step
+						double m = pow(4, j);
+						Haprox = ((Haprox * m) + ((f1 - f2) / (2.0*iOffset))) / (m-1);
+//						Daprox = ((Haprox * m) + ((f1 - 2.0 * f0 + f2) / (iOffset*iOffset))) / (m-1);
+					} else {							// Off-diagonal Richardson step
+						double m = pow(4, j);
+						Daprox = ((Daprox * m) 
+							+ (f1 - 2.0*f0 + f2 
+							- hessian[i*numParams+i]*iOffset*iOffset 
+							- hessian[i*numParams+i]*lOffset*lOffset)/(2*iOffset*lOffset))
+							/ (m-1);
+					}
+				}
+			}
+			if(i == l) {
+				hessian[i*numParams+i] = Haprox;
+			} else {                           
+				hessian[i*numParams+l] = Daprox;
+				hessian[l*numParams+i] = Daprox;
+			}
+			
+		}
+	}
+
+	Free(freeParams);
+
+	oo->hessian = hessian;
+
+	return TRUE;
+
 }

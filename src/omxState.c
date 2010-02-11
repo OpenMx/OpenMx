@@ -38,6 +38,8 @@
 		state->conList = NULL;
 		state->freeVarList = NULL;
 		state->optimizerState = NULL;
+		state->optimalValues = NULL;
+		state->optimum = 9999999999;
 
 		state->computeCount = -1;
 		state->currentRow = -1;

@@ -181,6 +181,23 @@ void omxZeroByZeroMatrix(omxMatrix *om) {
 	}
 }
 
+omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
+	omxMatrix* newMat = NULL;
+	int l,k;
+
+	newMat = omxInitMatrix(newMat, nrows, nrows, FALSE, state);
+	for(k =0; k < newMat->rows; k++) {
+		for(l = 0; l < newMat->cols; l++) {
+			if(l == k) {
+				omxSetMatrixElement(newMat, k, l, 1);
+			} else {
+				omxSetMatrixElement(newMat, k, l, 0);
+			}
+		}
+	}
+	return newMat;
+}
+
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }
