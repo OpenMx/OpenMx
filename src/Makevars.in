@@ -7,7 +7,7 @@ COMPILER_SPECIFIC_FLAGS=@compiler_specific_flags@
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR)
 
 # Uncomment one of the following lines to turn on all debugging output in the backend
- DEBUGGING_FLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
+# DEBUGGING_FLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # DEBUGGING_FLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # DEBUGGING_FLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX # turn on algebra and matrix debugging
 # DEBUGGING_FLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
