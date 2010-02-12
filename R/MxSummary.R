@@ -96,12 +96,13 @@ observedStatisticsSingleModel <- function(data, defVars) {
 	}
 }
 
-calculateNumberConstraints <- function(model, flatModel) {
-	if (length(flatModel@constraints) == 0) return(0)
-	sum(sapply(flatModel@constraints, calculateNumberConstraintsHelper, model, flatModel))
+calculateConstraints <- function(model, flatModel) {
+	if (length(flatModel@constraints) == 0) return(c())
+	retval <- sapply(flatModel@constraints, calculateConstraintsHelper, model, flatModel)
+	return(retval)
 }
 
-calculateNumberConstraintsHelper <- function(constraint, model, flatModel) {
+calculateConstraintsHelper <- function(constraint, model, flatModel) {
 	if (constraint@relation == "=") {
 		lhsName <- constraint@alg1
 		value <- eval(substitute(mxEval(x, model, compute=TRUE),
@@ -112,10 +113,10 @@ calculateNumberConstraintsHelper <- function(constraint, model, flatModel) {
 	}
 }
 
-observedStatistics <- function(model, flatModel) {
+observedStatistics <- function(model, flatModel, constraints) {
 	datasets <- flatModel@datasets
 	defVars <- names(generateDefinitionList(flatModel))
-	countConstraints <- calculateNumberConstraints(model, flatModel)
+	countConstraints <- sum(constraints)
 	if (length(datasets) == 0) {
 		return(countConstraints)
 	} else if (length(datasets) == 1) {
@@ -208,8 +209,10 @@ parameterList <- function(model, matrices, parameters) {
 
 computeOptimizationStatistics <- function(model, flatModel, retval) {
 	estimates <- model@output$estimate
+	constraints <- calculateConstraints(model, flatModel)
+	retval[['constraints']] <- constraints
 	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(model, flatModel)
+	retval[['observedStatistics']] <- observedStatistics(model, flatModel, constraints)
 	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
 	retval <- fitStatistics(flatModel, retval)
 	return(retval)
@@ -228,6 +231,16 @@ print.summary.mxmodel <- function(x,...) {
 		cat('\n')
 	}
 	cat("Observed statistics: ", x$observedStatistics, '\n')
+	constraints <- x$constraints
+	if(length(constraints) > 0) {
+		for(i in 1:length(constraints)) {
+			name <- names(constraints)[[i]]
+			if (constraints[[i]] == 1) plural <- ''
+			else plural <- 's'
+			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
+				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
+		}
+	}
 	cat("Estimated parameters: ", x$estimatedParameters, '\n')
 	cat("Degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
@@ -303,6 +316,7 @@ summaryHelper <- function(object, params) {
 		retval$wallTime <- object@output$wallTime
 		retval$cpuTime <- object@output$cpuTime
 		retval$mxVersion <- object@output$mxVersion
+		retval$modelName <- object@name
 		class(retval) <- "summary.mxmodel"
 		return(retval)
 }
