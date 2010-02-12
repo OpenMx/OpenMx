@@ -22,13 +22,13 @@ C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')
 D <- mxMatrix(values = 1:10, nrow = 2, ncol = 5, name = 'D')
 E <- mxMatrix(values = 1:10, nrow = 5, ncol = 2, name = 'E')
 # For Mnor and AllInt
-F <- mxMatrix("Stand", nrow=2, ncol=2, values=c(.95), free=F, name="F")
-G <- mxMatrix("Full", values=rbind(c(0, 0), c(2,3), free=F, name="G")
-J <- mxMatrix("Full", values=rbind(c(1, 0, 0), c(1, 0, 0)), free=F, name="J")
-L <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,-Inf), free=F, name="L")
-M <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,0), free=F, name="M")
-U <- mxMatrix("Full", nrow=1, ncol=3, values=c(Inf,Inf,Inf), free=F, name="U")
-V <- mxMatrix("Stand", nrow=3, ncol=3, values=c(.5, .5, .5), free=F, name="V")
+F <- mxMatrix("Stand", nrow=2, ncol=2, values=c(.95), free=FALSE, name="F")
+G <- mxMatrix("Full", values=rbind(c(0, 0), c(2,3)), free=FALSE, name="G")
+J <- mxMatrix("Full", values=rbind(c(1, 0, 0), c(1, 0, 0)), free=FALSE, name="J")
+L <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,-Inf), free=FALSE, name="L")
+M <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,0), free=FALSE, name="M")
+U <- mxMatrix("Full", nrow=1, ncol=3, values=c(Inf,Inf,Inf), free=FALSE, name="U")
+V <- mxMatrix("Stand", nrow=3, ncol=3, values=c(.5, .5, .5), free=FALSE, name="V")
 
 dimnames(A) <- list(letters[1:5], letters[22:26])
 dimnames(B) <- dimnames(A)
@@ -45,4 +45,4 @@ model <- mxRun(model)
 
 # Check passing tests
 
-omxCheckCloseEnough(model[['test35b']]@result, .33333, model), 0.001)
+omxCheckCloseEnough(model[['test35b']]@result, .33333, 0.001)
