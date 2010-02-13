@@ -33,6 +33,8 @@
 void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
+
+	if(oo->hessian == NULL) return;
 	
 	int numParams = oo->matrix->currentState->numFreeParams;
 	
@@ -100,6 +102,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->objType = (char*) calloc(251, sizeof(char*));
 	oo->objType[0] = '\0';
 	oo->matrix = NULL;
+	oo->hessian = NULL;
 	
 }
 

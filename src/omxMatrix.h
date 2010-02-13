@@ -93,6 +93,9 @@ struct omxMatrix {						// A matrix
 /* Matrix Creation Functions */
 	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 			// Create an omxMatrix from an R MxMatrix
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size
+	extern omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);	// Create a matrix/algebra from a matrix pointer
+	extern omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
+	
 
 /* Getters 'n Setters */
 	double omxMatrixElement(omxMatrix *om, int row, int col);

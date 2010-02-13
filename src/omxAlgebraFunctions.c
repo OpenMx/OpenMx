@@ -665,10 +665,22 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	double trace = 0.0;
+	float min = 10E20;
+	float max = 0.0;
 
 	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 	for(int j = 0; j < inMat->rows; j++) {
+		float thisElement = omxMatrixElement(inMat, j, j);
+		if(abs(min) > abs(thisElement)) min = thisElement;
+		if(abs(max) < abs(thisElement)) max = thisElement;
 		trace += omxMatrixElement(inMat, j, j);
+	}
+	
+	if(abs(max/min) > 10E10) {
+		// TODO: Warn or sort-and-sum if numerical instability shows up.
+		// char errstr[250];
+		// sprintf(errstr, "Matrix trace() may be numerically unstable.\n");
+		// omxRaiseError(result->currentState, -1, errstr);
 	}
 
 	omxSetMatrixElement(result, 0, 0, trace);
