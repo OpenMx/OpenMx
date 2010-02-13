@@ -985,6 +985,8 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
+	Rprintf("Do stuff");
+
 	double start = omxVectorElement(matList[0], 0);
 	double stop = omxVectorElement(matList[1], 0);
 
@@ -1012,15 +1014,20 @@ void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxResizeMatrix(result, size, 1, FALSE);
 	}
 
+	/* Sanity-checking.  This loop can be eliminated */
+	for(int i = 0; i < size; i++) {
+		omxSetVectorElement(result, i, 0);
+	}
+
 	int count = 0;
-	if (difference >= 0) {
-		while (start < stop) {
+	if ((stop - start) >= 0) {
+		while (start <= stop) {
 			omxSetVectorElement(result, count, start);
 			start = start + 1.0;
 			count++;
 		}
 	} else {
-		while (start > stop) {
+		while (start >= stop) {
 			omxSetVectorElement(result, count, start);
 			start = start - 1.0;
 			count++;
