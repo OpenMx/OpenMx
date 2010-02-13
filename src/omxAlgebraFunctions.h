@@ -66,5 +66,6 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif

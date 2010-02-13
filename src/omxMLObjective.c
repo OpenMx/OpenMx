@@ -14,10 +14,10 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
-#include <Rinternals.h> 
+#include <R.h>
+#include <Rinternals.h>
 #include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
@@ -40,7 +40,7 @@ typedef struct omxMLObjective {
 	omxMatrix* I;
 	double n;
 	double logDetObserved;
-	
+
 	double* work;
 	int lwork;
 
@@ -108,60 +108,61 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
     /* Recompute and recopy */
 	omxRecompute(cov);							// We assume data won't need to be recomputed
 	omxCopyMatrix(localCov, cov);						// But expected cov is destroyed in inversion
-	
+
 	if(OMX_DEBUG) {
 		omxPrint(scov, "Observed Covariance is");
 		omxPrint(localCov, "Implied Covariance Is");
 	}
-	
+
 	/* Calculate |expected| */
-	
+
 //	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
 	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
-	
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); 
+
+	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info);
 	omxPrint(localCov, "After Decomp:");}
 	if(info > 0) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
 		if(oo->matrix->currentState->computeCount <= 0) {
 			strncat(errstr, " at starting values", 20);
 		}
 		strncat(errstr, ".\n", 3);
 		omxRaiseError(oo->matrix->currentState, -1, errstr);						// Raise error
+		free(errstr);
 		return;																		// Leave output untouched
 	}
 
 	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the square of the product of the diagonal elements of U from the LU factorization.
 		det *= localCov->data[info+localCov->rows*info];
-	}	
+	}
 	det *= det;
-	
+
 	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));
 	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
-	
+
 	/* Calculate Expected^(-1) */
 //	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
 	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
 	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
-	
+
 	if(OMX_DEBUG) {omxPrint(cov, "Expected Covariance Matrix:");}
 	if(OMX_DEBUG) {omxPrint(localCov, "Inverted Matrix:");}
-	
+
 	/* Calculate C = Observed * expected^(-1) */
-	
-	if(OMX_DEBUG) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",  
-					(scov->rows), (localCov->cols), oned, scov->data, (localCov->leading), 
+
+	if(OMX_DEBUG) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
+					(scov->rows), (localCov->cols), oned, scov->data, (localCov->leading),
 					localCov->data, (localCov->leading), zerod, localProd->data, (localProd->leading));}
 
 
 	// Stop gcc from issuing a warning
 	int majority = *(scov->majority) == 'n' ? scov->rows : scov->cols;
-	
+
 	/*  TODO:  Make sure leading edges are being appropriately calculated, and sub them back into this */
-	F77_CALL(dsymm)(&r, &u, &(localCov->rows), &(scov->cols), 
-					&oned, localCov->data, &(majority), 
+	F77_CALL(dsymm)(&r, &u, &(localCov->rows), &(scov->cols),
+					&oned, localCov->data, &(majority),
  					scov->data, &(majority),
 					&zerod, localProd->data, &(localProd->leading));
 
@@ -170,15 +171,15 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	for(info = 0; info < localCov->cols; info++) {
 		sum += localProd->data[info*localCov->cols + info];
 	}
-	
+
 //	for(info = 0; info < (localCov->cols * localCov->rows); info++) {
 //		sum += localCov->data[info] * scov->data[info];
 //	}
-	
+
 	if(OMX_DEBUG) {omxPrint(scov, "Observed Covariance Matrix:");}
 	if(OMX_DEBUG) {omxPrint(localCov, "Inverse Matrix:");}
 	if(OMX_DEBUG) {omxPrint(localProd, "Product Matrix:");}
-		
+
 	if(means != NULL) {
 		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
 		omxRecompute(smeans);
@@ -192,10 +193,10 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		// P = C * P'
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &onei, C->data, &onei);
 
-		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); } 
+		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); }
 		if(fmean < 0.0) fmean = 0.0;
 	}
-	
+
 	oo->matrix->data[0] = (sum + det) * (n - 1) + fmean * (n);
 
 	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
@@ -205,32 +206,33 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 unsigned short int omxNeedsUpdateMLObjective(omxObjective* oo) {
  	if(omxNeedsUpdate(((omxMLObjective*)oo->argStruct)->expectedCov))
 		return 1;
-	if(((omxMLObjective*)oo->argStruct)->expectedMeans != NULL) 
+	if(((omxMLObjective*)oo->argStruct)->expectedMeans != NULL)
 		return omxNeedsUpdate(((omxMLObjective*)oo->argStruct)->expectedMeans);
 	return 0;
 }
 
 void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
-	
+
 	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
-	
+
 	SEXP nextMatrix;
 	int info=0;
 	double det=1.0;
 	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
-	
+
 	if(OMX_DEBUG) { Rprintf("Retreiving data.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));  
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	if(strncmp(omxDataType(dataMat), "cov", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
 			omxInitFIMLObjective(oo, rObj);
 			return;
 		}
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "ML Objective unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 		return;
 	}
 	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
@@ -241,7 +243,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
 	newObj->n = omxDataNumObs(dataMat);
 	UNPROTECT(1); // nextMatrix
-	
+
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
 	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
@@ -253,12 +255,12 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 		newObj->expectedMeans = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	}
 	UNPROTECT(1);
-	
+
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
 	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
 	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
-	
+
 	/* Temporary storage for calculation */
 	int rows = newObj->observedCov->rows;
 	int cols = newObj->observedCov->cols;
@@ -267,25 +269,26 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	newObj->P = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
 	newObj->C = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
 	newObj->I = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-	
+
 	for(int i = 0; i < rows; i++) omxSetMatrixElement(newObj->I, i, i, 1.0);
-	
+
 	omxCopyMatrix(newObj->localCov, newObj->observedCov);
-	
+
 	newObj->lwork = newObj->expectedCov->rows;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
-	
-	
+
+
 	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info != 0) {
-		char errStr[250];
-		sprintf(errStr, "Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
-		omxRaiseError(oo->matrix->currentState, -1, errStr);
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
+		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 		return;
 	}
-	for(info = 0; info < newObj->localCov->cols; info++) { 
+	for(info = 0; info < newObj->localCov->cols; info++) {
 		det *= omxMatrixElement(newObj->localCov, info, info);
 	}
 	det *= det;					// Product of squares.
@@ -293,16 +296,16 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
 	newObj->logDetObserved = log(det);
 	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
-	
+
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
-	
+
 	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
 	oo->repopulateFun = NULL;
 	oo->argStruct = (void*) newObj;
-	
+
 }
 
 #endif /* _OMX_ML_OBJECTIVE_ */

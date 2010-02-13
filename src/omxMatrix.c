@@ -99,9 +99,9 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Duplicate a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
 	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
-	
+
 	int regenerateMemory = TRUE;
-	
+
 	if(dest->localData && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
 		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
 	}
@@ -267,19 +267,32 @@ double omxVectorElement(omxMatrix *om, int index) {
 	if(index < om->rows * om->cols) {
 		return om->data[index];
 	} else {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Requested improper index (%d) from (%d, %d) vector.", index, om->rows, om->cols);
 		error(errstr);
+		free(errstr);
         return (NA_REAL);
+    }
+}
+
+void omxSetVectorElement(omxMatrix *om, int index, double value) {
+	if(index < om->rows * om->cols) {
+		om->data[index] = value;
+	} else {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Setting improper index (%d) from (%d, %d) vector.", index, om->rows, om->cols);
+		error(errstr);
+		free(errstr);
     }
 }
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->originalRows || col >= om->originalCols) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->originalRows, om->originalCols);
 		error(errstr);
+		free(errstr);
         return (NA_REAL);
 	}
 	if(om->colMajor) {
@@ -294,9 +307,10 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->rows || col >= om->cols) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->rows, om->cols);
 		error(errstr);
+		free(errstr);
 	}
 	if(om->colMajor) {
 		index = col * om->rows + row;
@@ -428,7 +442,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 			matrix->populateFrom[i] = matrix->currentState->algebraList[(loc)];
 		}
 		matrix->populateFromRow[i] = locations[1];
-		matrix->populateFromCol[i] = locations[2]; 
+		matrix->populateFromCol[i] = locations[2];
 		matrix->populateToRow[i] = locations[3];
 		matrix->populateToCol[i] = locations[4];
 
@@ -514,7 +528,7 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	unsigned short retval;
 	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
 	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix 0x%x NeedsUpdate?", matrix);}
-	
+
 	if(matrix == NULL) {
 		if(OMX_DEBUG_MATRIX) {Rprintf("matrix argument is NULL. ");}
 		retval = FALSE;		// Not existing means never having to say you need to recompute.

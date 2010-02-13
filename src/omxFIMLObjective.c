@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -67,7 +67,7 @@ typedef struct omxFIMLObjective {
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 
 //	double* zeros;
-	
+
 	/* Structures determined from info in the MxFIMLObjective Object*/
 	omxDefinitionVar* defVars;	// A list of definition variables
 	int numDefs;				// The length of the defVars list
@@ -77,13 +77,13 @@ typedef struct omxFIMLObjective {
 	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
 	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
 	omxMatrix* RCX;				// Memory reserved for computations
-	
+
 	/* Structures for FIMLOrdinalObjective Objects */
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
 	double* weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
 	omxThresholdColumn* thresholdCols;		// List of column thresholds
-	
+
 	/* Argument space for SADMVN function */
 	double* lThresh;			// Specific list of lower thresholds
 	double* uThresh;			// Specific list of upper thresholds
@@ -101,13 +101,13 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
-	
+
 	omxFIMLObjective* ofo = (omxFIMLObjective *)(oo->argStruct);
-	
+
 	omxRListElement* retVal;
-	
+
 	*numReturns = 1;
-	
+
 	if(!ofo->returnRowLikelihoods) {
 		retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
 	} else {
@@ -118,14 +118,14 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
 	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
-	
-	
+
+
 	if(ofo->returnRowLikelihoods) {
 		omxData* data = ofo->data;
 		retVal[1].numValues = data->rows;
 		retVal[1].values = (double*) R_alloc(data->rows, sizeof(double));
 	}
-	
+
 	return retVal;
 }
 
@@ -194,7 +194,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	maxPts		= ((omxFIMLObjective*)oo->argStruct)->maxPts;
 	absEps		= ((omxFIMLObjective*)oo->argStruct)->absEps;
 	relEps		= ((omxFIMLObjective*)oo->argStruct)->relEps;
-	
+
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
@@ -231,7 +231,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			}
 			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 		}
-		
+
 		int nextRow = 0;
 
 		for(int j = 0; j < dataColumns->cols; j++) {
@@ -271,12 +271,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}
-				
+
 			if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
 			nextRow++;
 			}
 		}
-		
+
 		if(numRemoves >= smallCov->rows) continue;
 
 		// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
@@ -312,29 +312,29 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
 		F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
-		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) { 
+		if(!oo->matrix->currentState->currentRow && OMX_DEBUG) {
 			char infinCodes[3][20];
 			strcpy(infinCodes[0], "(-INF, upper]");
 			strcpy(infinCodes[1], "[lower, INF)");
 			strcpy(infinCodes[2], "[lower, upper]");
 			Rprintf("Input to sadmvn is (%d rows):\n", numVars);
-			
+
 			omxPrint(omxDataRow(data, row, dataColumns, smallRow), "Data Row");
-			
+
 			for(int i = 0; i < numVars; i++) {
 				Rprintf("Row %d: %f, %f, %d(%s)\n", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
 			}
-			
+
 			Rprintf("Cor: (Lower %d x %d):", cov->rows, cov->cols);
 			for(int i = 0; i < cov->rows*(cov->rows-1)/2; i++) {
 				// Rprintf("Row %d of Cor: ", i);
-				// for(int j = 0; j < i; j++) 
+				// for(int j = 0; j < i; j++)
 				Rprintf(" %f", corList[i]); // (i*(i-1)/2) + j]);
 				// Rprintf("\n");
 			}
-			Rprintf("\n"); 
+			Rprintf("\n");
 		}
-		
+
 		if(OMX_DEBUG_ROWS) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
 		if(inform == 2) {
@@ -350,7 +350,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
             sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
 
             if(OMX_DEBUG_ROWS) {
-                Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+                Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
 				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
             }
         }
@@ -358,7 +358,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
     if(!returnRowLikelihoods) {
         if(OMX_DEBUG) {
-            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n", 
+            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
                 sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
         }
 
@@ -389,7 +389,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	omxData *data;
 
     omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
-    
+
 	cov 		= ofo->cov;		// Locals, for readability.  Should compile out.
 	means		= ofo->means;
 	smallRow 	= ofo->smallRow;
@@ -400,12 +400,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	defVars		= ofo->defVars;
 	numDefs		= ofo->numDefs;
     returnRowLikelihoods = ofo->returnRowLikelihoods;
-    
+
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
 		omxRecompute(means);
-		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }	
+		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
 	int toRemove[cov->cols];
@@ -434,7 +434,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
 		if(OMX_DEBUG_ROWS) { omxPrint(smallRow, "Local Data Row"); }
-		
+
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxMatrixElement(smallRow, 0, j);
@@ -457,12 +457,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
             }
             continue;
         }
-        
+
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
-		
+
 		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
 		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
-		
+
 		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 		/* The Calculation */
@@ -470,9 +470,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			if(!returnRowLikelihoods) {
-				char errStr[250];
-				sprintf(errStr, "Expected covariance matrix is not positive-definite in row %d.\n", row);
-				omxRaiseError(oo->matrix->currentState, -1, errStr);
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(errstr, "Expected covariance matrix is not positive-definite in row %d.\n", row);
+				omxRaiseError(oo->matrix->currentState, -1, errstr);
+				free(errstr);
 				return;
 			} else {
 				omxSetMatrixElement(oo->matrix, row, 0, 0.0);
@@ -483,13 +484,14 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			determinant *= omxMatrixElement(smallCov, diag, diag);
 		}
 		determinant = determinant * determinant;
-		
+
 		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 		if(info != 0) {
 			if(!returnRowLikelihoods) {
-				char errstr[250];
+				char *errstr = calloc(250, sizeof(char));
 				sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
 				omxRaiseError(oo->matrix->currentState, -1, errstr);
+				free(errstr);
 				return;
 			} else {
 				omxSetMatrixElement(oo->matrix, row, 0, 0.0);
@@ -538,7 +540,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
 	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
-	
+
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
 	if(OMX_DEBUG) {Rprintf("Processing Thresholds.\n");}
 	newObj->thresholdCols = (omxThresholdColumn *) R_alloc(length(nextMatrix), sizeof(omxThresholdColumn));
@@ -547,7 +549,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 		if(INTEGER(itemList)[0] == NA_INTEGER) {	// Continuous variable
 			if(OMX_DEBUG) {Rprintf("Threshold %d fail.\n", index);}
 			newObj->thresholdCols[index].matrix = NULL;
-			newObj->thresholdCols[index].column = 0; 
+			newObj->thresholdCols[index].column = 0;
 			newObj->thresholdCols[index].numThresholds = 0;
 		} else {
 			// PROTECT(nextItem = VECTOR_ELT(itemList, 0));
@@ -563,12 +565,12 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	}
 	if(OMX_DEBUG) {Rprintf("%d thresholds processed.\n", index);}
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
 	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) {Rprintf("Accessing row likelihood option.\n"); }
 	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
 	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
@@ -576,13 +578,13 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	   omxResizeMatrix(oo->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
     }
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromMxMatrix(nextMatrix, oo->matrix->currentState);
 	if(OMX_DEBUG) {omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
-	
+
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
@@ -611,7 +613,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 		UNPROTECT(1); // unprotect itemList
 	}
 	UNPROTECT(1); // unprotect nextMatrix
-	
+
 	/* Temporary storage for calculation */
 	int covCols = newObj->cov->cols;
 	newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
@@ -629,7 +631,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 //	Rprintf("Checking 0x%d.", newObj->data);
 	if(OMX_DEBUG) { Rprintf("Checking %d.", omxDataColumnIsFactor(newObj->data, 0)); }
-	
+
 	if(hasOrdinal) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
 		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
@@ -640,7 +642,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 		newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
 		newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
 		newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
-		
+
 		oo->objectiveFun = omxCallFIMLOrdinalObjective;
 	}
 

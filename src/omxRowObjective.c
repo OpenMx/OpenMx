@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -46,7 +46,7 @@ typedef struct omxRowObjective {
 	omxMatrix* rowResults;		// Aggregation of row algebra results
 	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
 	omxData*   data;				// The data
-	
+
 	/* Structures determined from info in the MxRowObjective Object*/
 	omxDefinitionVar* defVars;	// A list of definition variables
 	int numDefs;				// The length of the defVars list
@@ -62,18 +62,18 @@ omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturn
 	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
 
 	retVal[0].numValues = 0;
-	
+
 	return retVal;
 }
 
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
-	
+
 	int i;
 	for(i = 0; i < source->cols; source++) {
 		omxSetMatrixElement(target, row, i, omxMatrixElement(source, 1, i));
 	}
-	
+
 }
 
 void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -89,18 +89,18 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxData *data;
 
     omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
-    
+
 	rowAlgebra	  = oro->rowAlgebra;	 // Locals, for readability.  Should compile out.
 	rowResults	  = oro->rowResults;
 	reduceAlgebra = oro->reduceAlgebra;
 	data		= oro->data;
 	defVars		= oro->defVars;
 	numDefs		= oro->numDefs;
-    
+
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating row algebra for all rows.\n");}
 		omxRecompute(rowAlgebra);		// Only recompute this here if there are no definition vars
-		if(OMX_DEBUG) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }	
+		if(OMX_DEBUG) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }
 		for(int row = 0; row < data->rows; row++) {
 			omxCopyMatrixToRow(rowAlgebra, row, rowResults);
 		}
@@ -116,7 +116,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		}
 		omxCopyMatrixToRow(rowAlgebra, row, rowResults);
 	}
-	
+
 	omxRecompute(reduceAlgebra);
 
 	omxCopyMatrix(oo->matrix, reduceAlgebra);
@@ -137,42 +137,46 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	omxRowObjective *newObj = (omxRowObjective*) R_alloc(1, sizeof(omxRowObjective));
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); 
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
-	if(newObj->data == NULL) { 
-		char errstr[250];
+	if(newObj->data == NULL) {
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No data provided to omxRowObjective.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 	}
 	UNPROTECT(1); // nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowAlgebra")));
 	newObj->rowAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->rowAlgebra == NULL) { 
-		char errstr[250];
+	if(newObj->rowAlgebra == NULL) {
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row-wise algebra in omxRowObjective.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 	}
 	UNPROTECT(1);// nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowResults")));
 	newObj->rowResults = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->rowResults == NULL) { 
-		char errstr[250];
+	if(newObj->rowResults == NULL) {
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowObjective.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 	}
 	UNPROTECT(1);// nextMatrix
-	
+
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("reduceAlgebra")));
 	newObj->reduceAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->reduceAlgebra == NULL) { 
-		char errstr[250];
+	if(newObj->reduceAlgebra == NULL) {
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row reduction algebra in omxRowObjective.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
 	}
 	UNPROTECT(1);// nextMatrix
-	
+
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);

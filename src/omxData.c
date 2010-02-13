@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxData.cc
 *
 *  Created: Timothy R. Brick 	Date: 2009-07-15
@@ -50,7 +50,7 @@ omxData* omxInitData(omxData* od, omxState* os) {
 
 omxData* omxNewDataFromMxDataPtr(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
-	
+
 	return state->dataList[dataIdx];
 }
 
@@ -66,12 +66,12 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	if(od == NULL) {
 		od = omxInitData(data, state);
 	}
-	
+
 	SEXP dataLoc, dataVal;
 	int numCols;
 	int numInts=0;
 	int numReals=0;
-		
+
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {Rprintf("Processing Data Type.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("type")));
@@ -81,7 +81,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		od->type[249] = '\0';
 	UNPROTECT(2); // dataLoc, dataVec
 	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->type);}
-	
+
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("observed")));
 	if(OMX_DEBUG) {Rprintf("Processing Data Elements.\n");}
 	if(isFrame(dataLoc)) {
@@ -118,14 +118,14 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		od->dataMat = omxNewMatrixFromMxMatrix(dataLoc, od->currentState);
 		od->cols = od->dataMat->cols;
 		od->rows = od->dataMat->rows;
-	}	
+	}
 	UNPROTECT(1); // dataLoc
-	
+
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
 		od->meansMat = omxNewMatrixFromMxMatrix(dataLoc, od->currentState);
 	UNPROTECT(1); // dataLoc
-	
+
 	if(strncmp(od->type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("numObs")));
@@ -134,7 +134,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	} else {
 		od->numObs = od->rows;
 	}
-	
+
 	return od;
 }
 
@@ -159,7 +159,7 @@ int omxIntDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
 		return (int) omxMatrixElement(od->dataMat, row, col);
 	}
-	
+
 	int location = od->location[col];
 	if(location < 0) {
 		return (od->intData[~location][row]);
@@ -170,7 +170,7 @@ int omxIntDataElement(omxData *od, int row, int col) {
 
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 	double dataElement;
-	
+
 	if(od->dataMat != NULL) {		// Data was entered as a matrix.
 		if(om != NULL) {			// It stays as such
 			omxCopyMatrix(om, od->dataMat);
@@ -180,11 +180,11 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 	}
 									// Otherwise, we must construct the matrix.
 	int numRows = od->rows, numCols = od->cols;
-	
+
 	if(om == NULL) {
 		om = omxInitMatrix(om, numRows, numCols, TRUE, od->currentState);
 	}
-	
+
 	if(om->rows != numRows || om->cols != numCols) {
 		omxResizeMatrix(om, numRows, numCols, FALSE);
 	}
@@ -206,44 +206,45 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	if(od->dataMat != NULL) return FALSE;
 	if(col <= od->cols) return (od->location[col] < 0);
-	char errstr[250];
+	char *errstr = calloc(250, sizeof(char));
 	sprintf(errstr, "Attempted to access column %d of a %d-column data object.\n", col, od->cols);
 	omxRaiseError(od->currentState, -1, errstr);
+	free(errstr);
     return FALSE;
 }
 
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
-	
+
 	if(colList == NULL) {
 		if(om == NULL) return od->meansMat;
 		omxCopyMatrix(om, od->meansMat);
 		return om;
 	}
-	
+
 	int cols = colList->cols;
-	
+
 	if(colList == NULL || cols == 0 || cols > od->cols) {
 		cols = od->cols;
 		if(om == NULL) return od->meansMat;
 		omxCopyMatrix(om, od->meansMat);
 		return om;
 	}
-	
+
 	if(om == NULL) {
 		om = omxInitMatrix(om, 1, cols, TRUE, od->currentState);
 	}
-		
+
 	for(int i = 0; i < cols; i++) {
 		omxSetMatrixElement(om, 1, i, omxVectorElement(od->meansMat, omxVectorElement(colList, i)));
 	}
-	
+
 	return om;
 }
 
 omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 
 	if(colList == NULL || row > od->rows) return NULL;	// Sanity check
-	
+
 	if(om == NULL) {
 		om = omxInitMatrix(om, 1, od->cols, TRUE, od->currentState);
 	}
@@ -252,7 +253,7 @@ omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 		for(int j = 0; j < om->cols; j++) {
 			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, omxVectorElement(colList, j)));
 		}
-	} else {		// Data Frame object 
+	} else {		// Data Frame object
 		double dataElement;
 		for(int j = 0; j < om->cols; j++) {
 			int location = od->location[(int)omxVectorElement(colList, j)];

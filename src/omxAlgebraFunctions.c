@@ -60,9 +60,10 @@ void checkIncreasing(omxMatrix* om, int column) {
 			continue;
 		}
 		if(current <= previous) {
-			char errstr[250];
+			char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Thresholds are not strictly increasing.");
 			omxRaiseError(om->currentState, -1, errstr);
+			free(errstr);
 		}
 	}
 }
@@ -102,9 +103,10 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
 	if(l != 0) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Attempted to invert non-invertable matrix.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 	F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 
@@ -134,9 +136,10 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 			for(int k = 0; k < inMat->cols; k++)
 				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), omxMatrixElement(power, j,k)));
 	} else {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices in elementPower.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 }
@@ -150,9 +153,9 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* postMul = matList[1];
 
 	if(preMul == NULL || postMul == NULL) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Null matrix pointer detected.\n");
-
+		free(errstr);
 	}
 
 	static double zero = 0.0;
@@ -160,9 +163,10 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Conformability Check! */
 	if(preMul->cols != postMul->rows) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices [(%d x %d) and (%d x %d)] in Matrix Multiply.", preMul->rows, preMul->cols, postMul->rows, postMul->cols);
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	if(result->rows != preMul->rows || result->cols != postMul->cols)
@@ -188,9 +192,10 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Conformability Check! */
 	if(first->cols != second->cols || first->rows != second->rows) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices in Element Multiplication.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	omxCopyMatrix(result, first);
@@ -286,9 +291,10 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Conformability Check! */
 	if(inMat->cols != divisor->cols || inMat->rows != divisor->rows) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices in Element Division.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	omxCopyMatrix(result, inMat);
@@ -315,9 +321,10 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Conformability Check! */
 	if(inMat->cols != addend->cols || inMat->rows != addend->rows) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices in Matrix Addition.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	omxCopyMatrix(result, inMat);
@@ -390,9 +397,10 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* subtrahend = matList[1];
 
 	if(inMat->cols != subtrahend->cols || inMat->rows != subtrahend->rows) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-conformable matrices in Matrix Subtract.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	omxCopyMatrix(result, inMat);
@@ -448,9 +456,10 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalRows != matList[j]->rows) {
-			char errstr[250];
+			char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
 			omxRaiseError(result->currentState, -1, errstr);
+			free(errstr);
 		}
 		totalCols += matList[j]->cols;
 	}
@@ -483,9 +492,10 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalCols != matList[j]->cols) {
-			char errstr[250];
+			char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
 			omxRaiseError(result->currentState, -1, errstr);
+			free(errstr);
 		}
 		totalRows += matList[j]->rows;
 	}
@@ -519,9 +529,11 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int info;
 
 	if(rows != cols) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Determinant of non-square matrix cannot be found.\n");
-		omxRaiseError(result->currentState, -1, errstr); }
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
 
 	if(result->rows != 1 || result->cols != 1) {
 		omxResizeMatrix(result, 1, 1, FALSE);
@@ -535,9 +547,10 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	F77_CALL(dgetrf)(&(calcMat->rows), &(calcMat->cols), calcMat->data, &(calcMat->cols), ipiv, &info);
 
 	if(info != 0) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.", info);
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {
@@ -570,9 +583,10 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(inMat->rows != inMat->cols) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-square matrix in Trace().\n");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	double trace = 0.0;
@@ -726,9 +740,10 @@ void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) 
 	}
 
 	if(inMat->cols != 1 && inMat->rows != 1) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "To generate a matrix from a diagonal that is not 1xN or Nx1.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	if (result->cols != diags || result->rows != diags) {
@@ -928,9 +943,10 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 
 	if(counter != size) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Internal error in vech().\n");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 }
@@ -959,11 +975,57 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 
 	if(counter != size) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Internal error in vechs().\n");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
+}
+
+void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
+
+	double start = omxVectorElement(matList[0], 0);
+	double stop = omxVectorElement(matList[1], 0);
+
+	if (!R_finite(start)) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Non-finite start value in ':' operator.\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+	if (!R_finite(stop)) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Non-finite stop value in ':' operator.\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+	double difference = stop - start;
+	if (difference < 0) difference = - difference;
+
+	int size = ((int) difference) + 1;
+
+	/* Consistency check: */
+	if(result->rows != size || result->cols != 1) {
+		omxResizeMatrix(result, size, 1, FALSE);
+	}
+
+	int count = 0;
+	if (difference >= 0) {
+		while (start < stop) {
+			omxSetVectorElement(result, count, start);
+			start = start + 1.0;
+			count++;
+		}
+	} else {
+		while (start > stop) {
+			omxSetVectorElement(result, count, start);
+			start = start - 1.0;
+			count++;
+		}
+	}
 }
 
 void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result) {
@@ -1012,9 +1074,10 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		Infin[i] = 2; // Default to both thresholds
 		if(uBounds[i] <= lBounds[i]) {
-			char errstr[250];
+			char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Thresholds are not strictly increasing: %3.3f >= %3.3f.", lBounds[i], uBounds[i]);
 			omxRaiseError(result->currentState, -1, errstr);
+			free(errstr);
 		}
 		if(!R_finite(lBounds[i]) ) {
 			Infin[i] -= 2;	// NA or INF or -INF means no lower threshold.
@@ -1032,9 +1095,10 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
 	if(inform == 2) {
-		char errstr[250];
+		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
 	}
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
@@ -1043,11 +1107,11 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	char errstr[250];
+	char *errstr = calloc(250, sizeof(char));
 	sprintf(errstr, "All-regions integration not yet implemented.  Sorry.");
 	omxRaiseError(result->currentState, -1, errstr);
-	
-	
+	free(errstr);
+
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	int nCols = cov->cols;
@@ -1060,13 +1124,14 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	for(i = 0; i < nCols;) {						// Map out the structure of levels.
 		thresholdMats[i] = matList[i+2];
-		
+
 		for(j = 0; j < thresholdMats[i]->cols; j++) {
 			double ubound, lbound = omxMatrixElement(thresholdMats[i], j, 0);
 			if(ISNA(lbound)) {
-				char errstr[250];
+				char *errstr = calloc(250, sizeof(char));
 				sprintf(errstr, "Invalid lowest threshold for dimension %d of Allint.", j);
 				omxRaiseError(result->currentState, -1, errstr);
+				free(errstr);
 			}
 			for(k = 1; k < numThresholds[i+j];k++) {
 				ubound = omxMatrixElement(thresholdMats[i], j, k);
@@ -1074,20 +1139,21 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 					numThresholds[i+j] = k-1;
 					totalLevels += numThresholds[i+j];
 					continue;
-				} 
-				
+				}
+
 				if(!(ubound > lbound)) {
-					char errstr[250];
+					char *errstr = calloc(250, sizeof(char));
 					sprintf(errstr, "Thresholds are not strictly increasing for dimension %d of Allint.", j);
 					omxRaiseError(result->currentState, -1, errstr);
+					free(errstr);
 				}
-				
+
 				if(!R_finite(ubound)) {
 					numThresholds[i+j] = k;
 					totalLevels += numThresholds[i+j];
 					continue;
 				}
-				
+
 				if(j == (thresholdMats[i]->cols -1)) {
 					totalLevels += j;
 					continue;
@@ -1102,7 +1168,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Conformance checks: */
 	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1, FALSE);
-	
+
 	double weights[nCols];
 	double corList[nCols * (nCols + 1) / 2];
 
@@ -1140,7 +1206,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 			if(currentThresholds[j] <= numThresholds[j]) continue;
 			currentThresholds[j] = 1;
 		}
-		
+
 		lBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]-1) - omxVectorElement(means, i))/weights[i];
 		uBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]) - omxVectorElement(means, i))/weights[i];
 		Infin[i] = 2; // Default to both thresholds
@@ -1150,11 +1216,12 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
 		if(inform == 2) {
-			char errstr[250];
+			char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Improper input to sadmvn.");
 			omxRaiseError(result->currentState, -1, errstr);
+			free(errstr);
 		}
-		
+
 		omxSetMatrixElement(result, i, 1, likelihood);
 	}
 
