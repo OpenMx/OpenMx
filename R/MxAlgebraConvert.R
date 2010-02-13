@@ -99,7 +99,7 @@ insertDefinitionVariable <- function(defName, flatModel) {
     return(flatModel)
 }
 
-translateSquareBracketArgument <- function(arg, matrixName, model, rowCol) {
+squareBracketArgumentHelper <- function(arg, matrixName, model, rowCol) {
 	if (is.character(arg)) {
 		arg <- translateRowColName(matrixName, arg, model, rowCol)
 	} else if (is.symbol(arg)) {
@@ -112,6 +112,17 @@ translateSquareBracketArgument <- function(arg, matrixName, model, rowCol) {
 		}
 	}
 	return(arg)
+}
+
+translateSquareBracketArgument <- function(arg, matrixName, model, rowCol) {
+	if (length(arg) > 1) {
+		for (i in 1:length(arg)) {
+			arg[[i]] <- translateSquareBracketArgument(arg[[i]], matrixName, model, rowCol)
+		}
+		return(arg)
+	} else {
+		return(squareBracketArgumentHelper(arg, matrixName, model, rowCol))
+	}
 }
 
 

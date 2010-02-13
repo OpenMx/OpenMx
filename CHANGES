@@ -11,6 +11,7 @@ trunk
 * added 'independentTime' to summary() output. Wall clock time for independent submodels.
 * added 'wallTime' and 'cpuTime' to summary() output. Total wall clock time and total cpu time.
 * implemented ':' operator for MxAlgebra expressions. 1:5 returns the vector [1,2,3,4,5]
+* implemented subranges for '[' operator in MxAlgebra expressions. foo[1:5,] is valid inside algebra.
 
 Release 0.2.5-1050
 ==================

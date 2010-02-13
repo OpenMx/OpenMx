@@ -341,6 +341,98 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
+int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMatrix *result) {
+
+	int *retval;
+	/* Case 1: the source vector contains no elements */
+	if (source->rows == 0 || source->cols == 0) {
+		retval = (int*) calloc(dimLength, sizeof(int));
+		for(int i = 0; i < dimLength; i++) {
+			retval[i] = i;
+		}
+		*indices = retval;
+		return(dimLength);
+	}
+	int zero = 0, positive = 0, negative = 0;
+	/* Count the number of zero, positive, and negative elements */
+	for(int i = 0; i < source->rows * source->cols; i++) {
+		int element = (int) omxVectorElement(source, i);
+		if (element < 0) {
+			/* bounds checking */
+			if (element < - dimLength) {
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(errstr, "index %d is out of bounds in '[' operator.", element);
+				omxRaiseError(result->currentState, -1, errstr);
+				free(errstr);
+				return(0);
+			}
+			negative++;
+		} else if (element == 0) {
+			zero++;
+		} else {
+			/* bounds checking */
+			if (element > dimLength) {
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(errstr, "index %d is out of bounds in '[' operator.", element);
+				omxRaiseError(result->currentState, -1, errstr);
+				free(errstr);
+				return(0);
+			}
+			positive++;
+		}
+	}
+	/* It is illegal to mix positive and negative elements */
+	if (positive > 0 && negative > 0) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Positive and negative indices together in '[' operator.");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+		return(0);
+	}
+	/* convert negative indices into a list of positive indices */
+	if (negative > 0) {
+		int *track = calloc(dimLength, sizeof(int));
+		int length = dimLength;
+		for(int i = 0; i < source->rows * source->cols; i++) {
+			int element = (int) omxVectorElement(source, i);
+			if (element < 0) {
+				if (!track[-element - 1]) length--;
+				track[-element - 1]++;
+			}
+		}
+		if (length == 0) {
+			free(track);
+			return(0);
+		}
+		retval = calloc(length, sizeof(int));
+		int j = 0;
+		for(int i = 0; i < dimLength; i++) {
+			if(!track[i]) {
+				retval[j++] = i;
+			}
+		}
+		free(track);
+		*indices = retval;
+		return(length);
+	}
+	/* convert positive indices with offset of zero instead of one */
+	if (positive > 0) {
+		int length = positive - zero;
+		retval = calloc(length, sizeof(int));
+		int j = 0;
+		for(int i = 0; i < source->rows * source->cols; i++) {
+			int element = (int) omxVectorElement(source, i);
+			if (element > 0) {
+				retval[j++] = element - 1;
+			}
+		}
+		*indices = retval;
+		return(length);
+	}
+	/* return zero length if no positive or negative elements */
+	return(0);
+}
+
 void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Extract.\n");}
@@ -349,43 +441,26 @@ void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix* rowMatrix = matList[1];
 	omxMatrix* colMatrix = matList[2];
 
-	if (rowMatrix->rows == 1 && colMatrix->rows == 1) {
-		int row = omxMatrixElement(rowMatrix, 0, 0) - 1;
-		int col = omxMatrixElement(colMatrix, 0, 0) - 1;
-		if (row == -1 || col == -1) {
-			omxZeroByZeroMatrix(result);
-			return;
-		} else if (!(result->rows == 1 && result->cols == 1)) {
-			omxResizeMatrix(result, 1, 1, FALSE);
-		}
-		omxSetMatrixElement(result, 0, 0, omxMatrixElement(inMat, row, col));
-	} else if (rowMatrix->rows == 0 && colMatrix->rows == 0) {
-		omxCopyMatrix(result, inMat);
-	} else if (rowMatrix->rows == 0) {
-		int rowSize = inMat->rows;
-		int col = omxMatrixElement(colMatrix, 0, 0) - 1;
-		if (col == -1) {
-			omxZeroByZeroMatrix(result);
-			return;
-		} else if (!(result->rows == rowSize && result->cols == 1)) {
-			omxResizeMatrix(result, rowSize, 1, FALSE);
-		}
-		for(int i = 0; i < rowSize; i++) {
-			omxSetMatrixElement(result, i, 0, omxMatrixElement(inMat, i, col));
-		}
-	} else if (colMatrix->rows == 0) {
-		int colSize = inMat->cols;
-		int row = omxMatrixElement(rowMatrix, 0, 0) - 1;
-		if (row == -1) {
-			omxZeroByZeroMatrix(result);
-			return;
-		} else if (!(result->cols == colSize && result->rows == 1)) {
-			omxResizeMatrix(result, 1, colSize, FALSE);
-		}
-		for(int i = 0; i < colSize; i++) {
-			omxSetMatrixElement(result, 0, i, omxMatrixElement(inMat, row, i));
+	int *rowIndices, *colIndices;
+	int rowIndexLength, colIndexLength;
+
+	rowIndexLength = matrixExtractIndices(rowMatrix, inMat->rows, &rowIndices, result);
+	colIndexLength = matrixExtractIndices(colMatrix, inMat->cols, &colIndices, result);
+
+	if (result->rows != rowIndexLength || result->cols != colIndexLength) {
+		omxResizeMatrix(result, rowIndexLength, colIndexLength, FALSE);
+	}
+
+	for(int row = 0; row < rowIndexLength; row++) {
+		for(int col = 0; col < colIndexLength; col++) {
+			double element = omxMatrixElement(inMat, rowIndices[row], colIndices[col]);
+			omxSetMatrixElement(result, row, col, element);
 		}
 	}
+
+	if (rowIndexLength > 0) free(rowIndices);
+	if (colIndexLength > 0) free(colIndices);
+
 }
 
 void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)

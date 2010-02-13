@@ -357,9 +357,21 @@ checkNamespaceFormula <- function(formula, model, algebra, namespace) {
 }
 
 checkNamespaceFormulaAllowCharacters <- function(formula, model, algebra, namespace) {
-	if (length(formula) == 1 && is.character(formula)) {
+	if (length(formula) == 1) {
+        if (is.numeric(formula)) {
+        } else if (is.character(formula)) {
+        } else if (identical(as.character(formula), "")) {
+        } else {
+    		checkNamespaceIdentifier(as.character(formula), model, algebra@name, namespace)
+        }
+	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
+			checkNamespaceFormula(formula[[2]], model, algebra, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[3]], model, algebra, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[4]], model, algebra, namespace)
 	} else {
-		checkNamespaceFormula(formula, model, algebra, namespace)
+		for (i in 2:length(formula)) {
+			checkNamespaceFormulaAllowCharacters(formula[[i]], model, algebra, namespace)
+		}
 	}
 }
 
