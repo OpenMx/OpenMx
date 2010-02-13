@@ -985,8 +985,6 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	Rprintf("Do stuff");
-
 	double start = omxVectorElement(matList[0], 0);
 	double stop = omxVectorElement(matList[1], 0);
 
