@@ -69,7 +69,7 @@ omxState* currentState;			// Current State of optimization
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
 	SEXP data, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
-	
+
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 
 /* Set up R .Call info */
@@ -94,14 +94,14 @@ R_unload_mylib(DllInfo *info)
 
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
-	
+
 	int j,k,l;
 	omxMatrix* algebra;
 	int algebraNum = INTEGER(algNum)[0];
 	SEXP ans, nextMat;
 	char output[250];
 	int errOut = 0;
-	
+
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
 	omxInitState(currentState);
@@ -136,18 +136,18 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 		for(j = 0; j < algebra->cols; j++)
 			REAL(ans)[j * algebra->rows + l] =
 				omxMatrixElement(algebra, l, j);
-    
+
 	UNPROTECT(1);	/* algebra */
-	
+
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
-	
+
 	if(currentState->statusCode != 0) {
 		errOut = currentState->statusCode;
 		strncpy(output, currentState->statusMsg, 250);
 	}
-	
+
 	omxFreeState(currentState);
-	
+
 	if(errOut != 0) {
 		error(output);
 	}
@@ -179,7 +179,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 
 	SEXP nextLoc, nextMat, nextAlgTuple, nextAlg, nextVar;
-	
+
 	omxMatrix** calculateHessians = NULL;
 	int numHessians = 0;
 
@@ -603,7 +603,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	namesgets(optimizer, names);
-	
+
 	if(calculateHessians) {
 		if(currentState->numConstraints == 0) {
 			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
@@ -652,7 +652,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(om != NULL) {					// In the event of a no-objective run.
 		omxObjective* oo = om->objective;
 		if(OMX_DEBUG) { Rprintf("Checking for additional objective info.\n"); }
-		
+
 		if(oo != NULL && oo->setFinalReturns != NULL) {
 			if(OMX_DEBUG) { Rprintf("Expecting objective Info....");}
 			int numEls;
@@ -672,7 +672,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				}
 			}
 		}
-		
+
 		if(OMX_DEBUG) { Rprintf("Done.\n");}
 	} else {
 		PROTECT(ans = allocVector(VECSXP, numReturns));
@@ -718,7 +718,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(currentState);
 
-	UNPROTECT(16);						// Unprotect Output Parameters
+	UNPROTECT(15);						// Unprotect Output Parameters
 
 	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
@@ -892,35 +892,35 @@ SEXP getVar(SEXP str, SEXP env) {
  *
  ************************************************************************************/
 unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, double v, int r, omxState* currentState, double optimum) {
-	
+
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
 	if(numHessians > 1) {
 		error("NYI: Cannot yet calculate more than a single hessian per optimization.\n");
 	}
-	
+
 	omxObjective* oo = matList[0]->objective;
 	int numParams = currentState->numFreeParams;
 	double* freeParams = (double*) Calloc(numParams, double);
 	double* optima = currentState->optimalValues;
 	double f0 = currentState->optimum;
-	
+
 	if(oo->hessian == NULL) {
 		oo->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
 	}
 	double* hessian = oo->hessian;
-	
+
 	double Haprox=0;
 	double Daprox=0;
-	
+
 	for(int i = 0; i < numParams; i++) {
 		freeParams[i] = optima[i];
 		handleFreeVarList(currentState, freeParams, numParams);
-		
+
 	}
-	
+
 	omxMatrix* objectiveMatrix = oo->matrix;
-	
+
 	/* Part the first: Gradient and diagonal */
 	for(int i = 0; i < numParams; i++) {
 		for(int l = i; l >= 0; l--) {
@@ -957,7 +957,7 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 					if(i == l) {						// Get the diagonal first
 						Haprox = (f1 - f2) / (2.0*iOffset);
 					} else {							// Then the off-diagonals
-						Daprox = (f1 - 2.0*f0 + f2 - hessian[i*numParams+i]*iOffset*iOffset - 
+						Daprox = (f1 - 2.0*f0 + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 									hessian[i*numParams+i]*lOffset*lOffset)/(2.0*iOffset*lOffset);
 					}
 				} else {
@@ -966,23 +966,23 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 						Haprox = ((Haprox * m) + ((f1 - f2) / (2.0*iOffset))) / (m-1);
 					} else {							// Off-diagonal Richardson step
 						double m = pow(4, j);
-						Daprox = ((Daprox * m) 
-							+ (f1 - 2.0*f0 + f2 
-							- hessian[i*numParams+i]*iOffset*iOffset 
+						Daprox = ((Daprox * m)
+							+ (f1 - 2.0*f0 + f2
+							- hessian[i*numParams+i]*iOffset*iOffset
 							- hessian[i*numParams+i]*lOffset*lOffset)/(2*iOffset*lOffset))
 							/ (m-1);
 					}
 				}
 			}
-			
+
 			if(OMX_DEBUG) {Rprintf("Hessian estimation: Populating Hessian and Gradient.\n");}
 			if(i == l) {
 				hessian[i*numParams+i] = Haprox;
-			} else {                           
+			} else {
 				hessian[i*numParams+l] = Daprox;
 				hessian[l*numParams+i] = Daprox;
 			}
-			
+
 		}
 	}
 
