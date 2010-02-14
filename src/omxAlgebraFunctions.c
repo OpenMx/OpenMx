@@ -356,7 +356,15 @@ int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMat
 	int zero = 0, positive = 0, negative = 0;
 	/* Count the number of zero, positive, and negative elements */
 	for(int i = 0; i < source->rows * source->cols; i++) {
-		int element = (int) omxVectorElement(source, i);
+		double delement = omxVectorElement(source, i);
+		if (!R_finite(delement)) {
+			char *errstr = calloc(250, sizeof(char));
+			sprintf(errstr, "non-finite value in '[' operator.\n");
+			omxRaiseError(result->currentState, -1, errstr);
+			free(errstr);
+			return(0);
+		}
+		int element = (int) delement;
 		if (element < 0) {
 			/* bounds checking */
 			if (element < - dimLength) {
