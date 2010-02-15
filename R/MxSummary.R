@@ -325,9 +325,9 @@ setMethod("summary", "MxModel",
 	function(object, ...) {
 		saturatedLikelihood <- match.call()$SaturatedLikelihood
 		numObs <- match.call()$numObs
-		submodels <- match.call()$submodels
+		indep <- match.call()$indep
 		object <- convertSquareBracketLabels(object)
-		if (!is.null(submodels) && !submodels) {
+		if (!is.null(indep) && !indep) {
 			dependents <- omxDependentModels(object)
 			object@submodels <- dependents
 			primary <- summaryHelper(object, list(saturatedLikelihood, numObs))

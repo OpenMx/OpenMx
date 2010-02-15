@@ -7,7 +7,7 @@ trunk
 * added R documentation for omxApply(), omxSapply(), and omxLapply()
 * wrote mxRename() and added R documentation for function
 * renamed all objective function generic functions from omxObj* to genericObj*
-* added 'submodels' argument to summary() to ignore independent submodels (see ?summary)
+* added 'indep' argument to summary() to ignore independent submodels (see ?summary)
 * added 'independentTime' to summary() output. Wall clock time for independent submodels.
 * added 'wallTime' and 'cpuTime' to summary() output. Total wall clock time and total cpu time.
 * implemented ':' operator for MxAlgebra expressions. 1:5 returns the vector [1,2,3,4,5]

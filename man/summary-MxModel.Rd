@@ -23,7 +23,7 @@ summary(object, ...)
 The following named arguments are supported by the summary method:
 \describe{
 \item{SaturatedLikelihood}{Explicitly specify a saturated likelihood for testing (a numeric value)}
-\item{submodels}{Set to FALSE to ignore independent submodels in summary.}
+\item{indep}{Set to FALSE to ignore independent submodels in summary.}
 }
 
 }
