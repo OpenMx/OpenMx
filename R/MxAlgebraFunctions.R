@@ -74,14 +74,24 @@ omxMnor <- function(cov, means, lbounds, ubounds) {
     if(nrow(cov) != ncol(cov)) {
         stop("Cov must be square")
     }
-    if(ncol(cov) != ncol(means)) {
-        stop("means must have as many columns as cov")
+    if(nrow(means) > 1 && ncol(means) > 1) {
+    	stop("'means' argument must be row or column vector")
     }
-    if(ncol(cov) != ncol(lbounds)) {
-        stop("lbounds must have as many columns as cov")
+    if(nrow(lbounds) > 1 && ncol(lbounds) > 1) {
+    	stop("'lbounds' argument must be row or column vector")    
     }
-    if(ncol(cov) != ncol(ubounds)) {
-        stop("ubounds must have as many columns as cov")
+    if(nrow(ubounds) > 1 && ncol(ubounds) > 1) {
+    	stop("'ubounds' argument must be row or column vector")    
+    }
+    
+    if(ncol(cov) != length(means)) {
+        stop("'means' must have length equal to diag(cov)")
+    }
+    if(ncol(cov) != length(lbounds)) {
+        stop("'lbounds' must have length equal to diag(cov)")
+    }
+    if(ncol(cov) != length(ubounds)) {
+        stop("'ubounds' must have length equal to diag(cov)")
     }
     
     retVal <- .Call("omxCallAlgebra", 

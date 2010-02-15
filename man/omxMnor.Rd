@@ -26,17 +26,14 @@ omxMnor(cov, means, lbounds, ubounds)
    For all i, ubound[i] must be strictly greater than lbound[i].
 }
 
-\seealso{
-}
-
 \examples{
 
 data(myFAData)
 
 cov <- cov(myFAData[,1:3])
-means <- t(as.matrix(mean(myFAData[,1:3])))
-lbounds <- t(as.matrix(c(-Inf, 0,   1)))    % Integrate from -Infinity to 0 on first variable
-ubounds <- t(as.matrix(c(0,    Inf, 2.5)))   % From 0 to +Infinity on second, and from 1 to 2.5 on third
+means <- mean(myFAData[,1:3])
+lbounds <- c(-Inf, 0,   1)    # Integrate from -Infinity to 0 on first variable
+ubounds <- c(0,    Inf, 2.5)  # From 0 to +Infinity on second, and from 1 to 2.5 on third
 omxMnor(cov, means, lbounds, ubounds)
 
 }

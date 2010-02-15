@@ -683,7 +683,7 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 		if(abs(max) < abs(thisElement)) max = thisElement;
 		trace += omxMatrixElement(inMat, j, j);
 	}
-	
+
 	if(abs(max/min) > 10E10) {
 		// TODO: Warn or sort-and-sum if numerical instability shows up.
 		// char errstr[250];
@@ -1134,14 +1134,47 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	omxMatrix* means = matList[1];
 	omxMatrix* lBoundMat = matList[2];
 	omxMatrix* uBoundMat = matList[3];
-	int nCols = cov->cols;
-	double lBounds[nCols], uBounds[nCols];
 
 	/* Conformance checks: */
-	if(result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
+	if (result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
 
-	double weights[nCols];
-	double corList[nCols * (nCols + 1) / 2];
+	if (cov->rows != cov->cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "covariance is not a square matrix");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+		return;
+	}
+
+	if (means->rows > 1 && means->cols > 1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "means is neither row nor column vector");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+		return;
+	}
+
+	if (lBoundMat->rows > 1 && lBoundMat->cols > 1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "lbounds is neither row nor column vector");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+		return;
+	}
+
+	if (uBoundMat->rows > 1 && uBoundMat->cols > 1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "ubounds is neither row nor column vector");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+		return;
+	}
+
+	int nElements = (cov->cols > 1) ? cov->cols : cov->rows;
+	double lBounds[nElements], uBounds[nElements];
+
+	double weights[nElements];
+	double corList[nElements * (nElements + 1) / 2];
 
 	omxStandardizeCovMatrix(cov, corList, weights);
 
@@ -1169,7 +1202,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	int numVars = cov->rows;
 	int Infin[cov->rows];
 
-	for(int i = 0; i < nCols; i++) {
+	for(int i = 0; i < nElements; i++) {
 		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
 		Infin[i] = 2; // Default to both thresholds
