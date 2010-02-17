@@ -75,7 +75,7 @@ lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"),
 )
 
 # Run the job
-model <- mxRun(lcamodel)
+model <- mxRun(lcamodel, silent=TRUE)
 summary(model)
 model@matrices
 

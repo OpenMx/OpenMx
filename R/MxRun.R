@@ -76,8 +76,9 @@ mxRun <- function(model, silent = FALSE) {
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)
 	model <- undoDataShare(model, dataList)
-	model@output <- processOptimizerOutput(flatModel, names(matrices),
-		names(algebras), names(parameters), output)
+	model@output <- processOptimizerOutput(silent, flatModel,
+		names(matrices), names(algebras),
+		names(parameters), output)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
@@ -85,7 +86,7 @@ mxRun <- function(model, silent = FALSE) {
 	return(model)
 }
 
-processOptimizerOutput <- function(flatModel, matrixNames, 
+processOptimizerOutput <- function(silent, flatModel, matrixNames, 
 		algebraNames, parameterNames, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
@@ -105,7 +106,7 @@ processOptimizerOutput <- function(flatModel, matrixNames,
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
 	}
-    if (output$status[[1]] > 0) {
+    if (output$status[[1]] > 0 && !silent) {
     	npsolWarnings(flatModel@name, output$status[[1]])
     } else if (output$status[[1]] < 0) {
         stop(paste("The job for model", omxQuotes(flatModel@name),

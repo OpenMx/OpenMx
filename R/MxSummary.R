@@ -156,7 +156,7 @@ fitStatistics <- function(flatModel, retval) {
 	DoF <- retval$degreesOfFreedom
 	Fvalue <- computeFValue(flatModel, likelihood, chi)
 	retval[['Chi']] <- chi
-	retval[['p']] <- pchisq(chi, DoF, lower.tail = FALSE)
+	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
 	retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(retval[['numObs']]))
 	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]

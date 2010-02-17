@@ -24,8 +24,6 @@ null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),
 
 
 sink(null, type = 'output')	
-sink(null, type = 'message')
-
 
 files <- list.files(directories, pattern = '^.+[.]R$',
 	full.names = TRUE, recursive = TRUE)
@@ -34,11 +32,9 @@ errors <- list()
 	
 errorRecover <- function(script, index) {
 	sink(type = 'output')
-	sink(type = 'message')	
 	cat(paste("Running model", index, "of",
 		length(files), script, "...\n"))
 	sink(null, type = 'output')	
-	sink(null, type = 'message')
 	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
 			errors[[script]] <<- x
@@ -55,7 +51,6 @@ if (length(files) > 0) {
 }	
 
 sink(type = 'output')
-sink(type = 'message')	
 close(null)
 
 cat("Number of errors:", length(errors), '\n')

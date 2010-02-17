@@ -19,6 +19,8 @@ mxRun(model, silent=FALSE)
 \details{
 The mxRun function is used to optimize free parameters in \link{MxModel} objects based on an objective function. MxModel objects included in the mxRun function must include an appropriate objective function.
 
+If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal, and a warning is not issued if NPSOL returns a non-zero status code.
+
 Free parameters are estimated or updated based on the objective function. These estimated values, along with estimation information and model fit, can be found in the 'output' slot of MxModel objects after mxRun has been used.
 
 If a model is dependent on or shares parameters with another model, both models must be included as arguments in another MxModel object. This top-level MxModel object must include objective functions in both submodels, as well as an additional objective function describing how the results of the first two should be combined.
