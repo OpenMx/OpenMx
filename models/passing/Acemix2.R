@@ -22,12 +22,12 @@ frameMZ<-data.frame(pMZ<-DataMZ$pMZ)
 
 twinACEModel <- mxModel("twinACE", 
                 # Matrix expMean for expected mean vector for MZ and DZ twins    
-        mxMatrix("Full", 1, 2, T, 20, "mean", name="expMean"), 
+        mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=20, label="mean", name="expMean"), 
 
                 # Matrices X, Y, and Z to store the a, c, and e path coefficients
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
         mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=.1, ubound=10, label="e", name="Z"),
+        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e", name="Z", lbound=.1, ubound=10),
 
                 # Matrixes A, C, and E to compute A, C, and E variance components
         mxAlgebra(X * t(X), name="A"),
