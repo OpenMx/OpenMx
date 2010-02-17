@@ -817,7 +817,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(currentState);
 
-	UNPROTECT(17);						// Unprotect Output Parameters
+	UNPROTECT(19);						// Unprotect Output Parameters
 
 	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
