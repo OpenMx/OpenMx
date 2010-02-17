@@ -36,7 +36,8 @@ extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, i
 						double *x, int *iw,	int *leniw, double *w, int *lenw);
 
 /* Objective Function */
-void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );
+void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );				// For general computation
+void F77_SUB(limitObjectiveFunction)(	int* mode, int* n, double* x, double* f, double* g, int* nstate );			// For limit computations
 
 /* Constraint Function */
 void F77_SUB(constraintFunction)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
@@ -181,7 +182,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP nextLoc, nextMat, nextAlgTuple, nextAlg, nextVar;
 
 	omxMatrix** calculateHessians = NULL;
+	int calculateLimits = FALSE;
 	int numHessians = 0;
+	
+	double* limits = NULL;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -274,11 +278,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(!isNull(objective)) {
 		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
 		currentState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, currentState);
+		calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));	// DEBUG:::This is a bad place for a default. 
+		calculateHessians[0] = currentState->objectiveMatrix;				//TODO: move calculateHessians default
+		numHessians = 1;
 	} else {
 		currentState->objectiveMatrix = NULL;
 		n = 0;
 		currentState->numFreeParams = n;
 	}
+	
+	// TODO: Make calculateHessians an option instead.
 
 	/* Process Matrix and Algebra Population Function */
 	/*
@@ -556,9 +565,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer;
+	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer, intervals, NAmat, calculatedHessian, stdErrors;
 
-	int numReturns = 8;
+	int numReturns = 11;
 
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
@@ -572,7 +581,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(optimizer = allocVector(VECSXP, 2));
 	PROTECT(gradient = allocVector(REALSXP, n));
 	PROTECT(hessian = allocMatrix(REALSXP, n, n));
+	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
+	PROTECT(stdErrors = allocMatrix(REALSXP, n, 2)); // for optimizer
 	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
+	PROTECT(intervals = allocMatrix(REALSXP, n, 2)); // for optimizer
+	PROTECT(NAmat = allocMatrix(REALSXP, 1,1)); // In case of missingness
+	REAL(NAmat)[0] = R_NaReal;
 
 	/* Store outputs for return */
 	if(objective != NULL) {
@@ -585,16 +599,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	est = REAL(estimate);  // Aliases to avoid repeated function calls.
 	grad = REAL(gradient);
 	hess = REAL(hessian);
-	currentState->optimalValues = (double*) R_alloc(n, sizeof(double));
 
 	for(k = 0; k < n; k++) {		// Do these with memcpy instead, probably.
 		est[k] = x[k];
 		grad[k] = g[k];
-		currentState->optimalValues[k] = x[k];
-		for(l = 0; l < n; l++) {
-			hess[k*n + l] = R[k*n + l];  // This is ok, because they're both in Col-Major already.
+		for(l = 0; l < n; l++) {			// Save the NPSOL hessian, in case somebody wants it
+			hess[k*n + l] = R[k*n + l];		// This is ok, because they're both in Col-Major already.
 		}
 	}
+	
+	omxSaveState(currentState, x, f);		// Keep the current values for the currentState.
 
 	/* Fill in details from the optimizer */
 	SET_VECTOR_ELT(optimizer, 0, gradient);
@@ -603,12 +617,24 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	namesgets(optimizer, names);
+	
+	REAL(code)[0] = inform;
+	REAL(iterations)[0] = iter;
 
-	if(calculateHessians) {
+	/* Fill Status code. */
+	SET_VECTOR_ELT(status, 0, code);
+	PROTECT(code = NEW_NUMERIC(1));
+	REAL(code)[0] = currentState->statusCode;
+	SET_VECTOR_ELT(status, 1, code);
+	PROTECT(statusMsg = allocVector(STRSXP, 1));
+	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
+	SET_VECTOR_ELT(status, 2, statusMsg);
+
+	if(numHessians) {
 		if(currentState->numConstraints == 0) {
 			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
 			if(omxEstimateHessian(calculateHessians, numHessians, .0001, 2, 4, currentState, currentState->optimum)) {
-				for(int j = 0; j < numHessians; j++) {
+				for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
 					omxObjective* oo = calculateHessians[j]->objective;
 					if(oo->getStandardErrorFun != NULL) {
 						oo->getStandardErrorFun(oo);
@@ -616,10 +642,49 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						omxCalculateStdErrorFromHessian(sqrt(2.0), oo);
 					}
 				}
+			} else {
+				numHessians = 0;
+			}
+		} else {
+			numHessians = 0;
+		}
+	}
+
+	if(calculateLimits && REAL(code)[0] <= 0 && REAL(code)[0] <= 1) {
+		if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
+		currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+		omxOptimizerState* oos = currentState->optimizerState;
+		oos->offset = 3.841;
+		limits = REAL(intervals);
+		for(int i = 0; i < n; i++) {
+			oos->currentParameter = i;
+			/* Find lower limit */
+			oos->alpha = 1;
+			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+							(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+			if(inform == 0 || inform == 1) {
+				limits[i] = x[i];
+			} else {
+				limits[i] = R_NaReal;
+			}
+			
+			/* Find upper limit */
+			oos->alpha = -1;
+			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+							(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+			if(inform == 0 || inform == 1) {
+				limits[n + i] = x[i];		// n + i because it's col-major, second column.
+			} else {
+				limits[n + i] = R_NaReal;	// n + i because it's col-major, second column.
 			}
 		}
-		handleFreeVarList(currentState, currentState->optimalValues, n);
+	} else {
+		limits = NULL;
 	}
+
+	handleFreeVarList(currentState, currentState->optimalValues, n);  // Restore to optima for final compute
 
 	for(k = 0; k < currentState->numMats; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
@@ -671,26 +736,42 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					UNPROTECT(1); // oElement
 				}
 			}
+		} else {
+			PROTECT(ans = allocVector(VECSXP, numReturns));
+			PROTECT(names = allocVector(STRSXP, numReturns));
 		}
-
 		if(OMX_DEBUG) { Rprintf("Done.\n");}
 	} else {
 		PROTECT(ans = allocVector(VECSXP, numReturns));
 		PROTECT(names = allocVector(STRSXP, numReturns));
 	}
+	
+	if(numHessians) {		// Populate Hessian outputs here so that Objectives have a chance to edit them.
+		if(OMX_DEBUG) { Rprintf("Calculating hessians for %d objectives.\n", numHessians); }
+		for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
+			omxObjective* oo = calculateHessians[j]->objective;
+			if(oo->hessian == NULL) {
+				if(OMX_DEBUG) {Rprintf("Objective has no hessian. Aborting.\n");}
+				continue;
+			}
+			
+			double* hessian  = REAL(calculatedHessian);
+			double* stdError = REAL(stdErrors);
+			for(int k = 0; k < n * n; k++) {
+				hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
+			}
+			
+			if(oo->stdError == NULL) {
+				if(OMX_DEBUG) {Rprintf("Objective has no hessian. Aborting.\n");}
+				continue;
+			}
+			
+			for(int k = 0; k < n; k++) {
+				stdError[k] = oo->stdError[k];
+			}
+		}
+	}
 
-
-	REAL(code)[0] = inform;
-	REAL(iterations)[0] = iter;
-
-	/* Fill Status code. */
-	SET_VECTOR_ELT(status, 0, code);
-	PROTECT(code = NEW_NUMERIC(1));
-	REAL(code)[0] = currentState->statusCode;
-	SET_VECTOR_ELT(status, 1, code);
-	PROTECT(statusMsg = allocVector(STRSXP, 1));
-	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
-	SET_VECTOR_ELT(status, 2, statusMsg);
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	SET_STRING_ELT(names, 2, mkChar("gradient"));
@@ -699,6 +780,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("matrices"));
 	SET_STRING_ELT(names, 7, mkChar("algebras"));
+	SET_STRING_ELT(names, 8, mkChar("mlBasedLikelihoodBoundaries"));
+	SET_STRING_ELT(names, 9, mkChar("hessian"));
+	SET_STRING_ELT(names, 10, mkChar("standardErrors"));
 
 	SET_VECTOR_ELT(ans, 0, minimum);
 	SET_VECTOR_ELT(ans, 1, estimate);
@@ -708,6 +792,21 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, matrices);
 	SET_VECTOR_ELT(ans, 7, algebras);
+	if(limits == NULL) {
+		SET_VECTOR_ELT(ans, 8, NAmat);
+	} else {
+		SET_VECTOR_ELT(ans, 8, intervals);
+	}
+	if(numHessians == 0) {
+		SET_VECTOR_ELT(ans, 8, NAmat);
+	} else {
+		SET_VECTOR_ELT(ans, 8, calculatedHessian);
+	}
+	if(numHessians == 0) {
+		SET_VECTOR_ELT(ans, 8, NAmat);
+	} else {
+		SET_VECTOR_ELT(ans, 8, stdErrors);
+	}
 	namesgets(ans, names);
 
 	if(OMX_VERBOSE) {
@@ -718,7 +817,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(currentState);
 
-	UNPROTECT(15);						// Unprotect Output Parameters
+	UNPROTECT(17);						// Unprotect Output Parameters
 
 	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
@@ -874,6 +973,18 @@ SEXP getVar(SEXP str, SEXP env) {
    return(ans);
 }
 
+void F77_SUB(limitObjectiveFunction)
+	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
+	
+		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
+		
+		omxOptimizerState* oos = currentState->optimizerState;
+		
+		double diff = oos->offset - *f;
+		*f = diff * diff - oos->alpha * x[oos->currentParameter];
+}
+	
+	
 /*************************************************************************************
  *
  *   omxEstimateHessian
@@ -898,6 +1009,8 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 	if(numHessians > 1) {
 		error("NYI: Cannot yet calculate more than a single hessian per optimization.\n");
 	}
+	
+	if(numHessians == 0) return FALSE;
 
 	omxObjective* oo = matList[0]->objective;
 	int numParams = currentState->numFreeParams;

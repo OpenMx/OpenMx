@@ -48,7 +48,8 @@
 		strncpy(state->statusMsg, "", 1);
 	}
 
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, 
+						omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
 		error("NYI: Can't fill a state from outside yet.  Besides, do you really need a single function to do this?");
 	}
 	
@@ -73,6 +74,19 @@
 		}
 		
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
+	}
+	
+	void omxSaveState(omxState *os, double* freeVals, double minimum) {
+		if(os->optimalValues == NULL) {
+			os->optimalValues = (double*) R_alloc(os->numFreeParams, sizeof(double));
+		}
+		
+		for(int i = 0; i < os->numFreeParams; i++) {
+			os->optimalValues[i] = freeVals[i];
+		}
+		os->optimum = minimum;
+		os->optimumStatus = os->statusCode;
+		strncpy(os->optimumMsg, os->statusMsg, 250);
 	}
 	
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {

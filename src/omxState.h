@@ -40,6 +40,7 @@
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
+typedef struct omxOptimizerState omxOptimizerState;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -66,6 +67,9 @@ struct omxConstraint {		// Free Variable Constraints
 struct omxOptimizerState {			// For hessian or confidence interval computation
 	int currentParameter;			// Which parameter is being examined?
 	double offset;					// Current offset of optimization
+	short int alpha;				// Parameter multiplier
+	// Objective should be:  (3.84 - (-2LL))^2 + alpha * parameter
+	// Alpha should generally be +1 to minimize parameter -1 to maximize
 };
 
 #define MAX_STRING_LEN 250
@@ -87,11 +91,16 @@ struct omxState {													// The Current State of Optimization
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
+	
+	/* Saved Optimum State */ // TODO: Rename saved optimum state
 	double* optimalValues;											// Values of the free parameters at the optimum value
-	double optimum;													// Objective value at optimum
+	double optimum;													// Objective value at last saved optimum
+	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
+	char optimumMsg[250];											// Status message of last saved optimum
+	omxOptimizerState* optimizerState;								// Current optimum parameters for limit computation
 
 /* Current Optimization State (optimizer-specific) */
-	void* optimizerState;											// Optimizer specific state storage
+//	void* optimizerInfo;											// Optimizer specific storage
 
 /* Data members for use by Objective Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
@@ -107,6 +116,7 @@ struct omxState {													// The Current State of Optimization
 	void omxInitState(omxState* state);									// Null Constructor
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective); 
 	void omxFreeState(omxState *oo);									// Destructor
+	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error 
 																		// TODO: Move RaiseError to omxOptimizer.

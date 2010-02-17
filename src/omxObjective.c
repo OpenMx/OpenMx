@@ -106,10 +106,6 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	
 }
 
-void omxGetObjectiveStandardErrors(omxObjective *oo) {
-	
-}
-
 void omxFreeObjectiveArgs(omxObjective *oo) {
 	/* Completely destroy the objective function tree */
 	free(oo->objType);
