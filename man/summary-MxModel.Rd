@@ -36,6 +36,10 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
   model <- mxModel()
   modelOut <- mxRun(model)
+  # compute a summary and store in variable "statistics"
   statistics <- summary(modelOut)
+
+  # specify a saturated likelihood for testing
+  summary(modelOut, SaturatedLikelihood=300)
 
 }
