@@ -34,8 +34,8 @@ model <- mxModel("model",
                  mxData(ObsCov, 'cov', numObs=500),
                  mxMLObjective("PreCov"))
 # start values
-model@matrices$F@values <- matrix(c(.4, .5, .6, .2, .8, .7, .5, .2), nrow=4, ncol=2)
-model@matrices$U@values <- diag(c(.2, .3, .4, .5))                            
+model$F@values <- matrix(c(.4, .5, .6, .2, .8, .7, .5, .2), nrow=4, ncol=2)
+model$U@values <- diag(c(.2, .3, .4, .5))                            
 # NOTE 10 observed statistics but 12 parameters. model is not identified                               
 model <- mxOption(model, "StandardErrors", "Yes")
 model <- mxRun(model)                
@@ -61,8 +61,8 @@ model2 <- mxModel("model2",
                  mxAlgebra(F %*% t(F) + U, name="PreCov", dimnames <- dimNames),
                  mxData(ObsCov, 'cov', numObs=500),
                  mxMLObjective("PreCov"))
-model2@matrices$F@values <- matrix(c(.9, .8, .3, .1, .2, .4, .8, .9), nrow=4, ncol=2)
-model2@matrices$U@values <- diag(c(.8, .6, .4, .9))
+model2$F@values <- matrix(c(.9, .8, .3, .1, .2, .4, .8, .9), nrow=4, ncol=2)
+model2$U@values <- diag(c(.8, .6, .4, .9))
 # again 10 obs stats & 12 parameters
 model2 <- mxOption(model2, "StandardErrors", "Yes")
 model2 <- mxRun(model2)
