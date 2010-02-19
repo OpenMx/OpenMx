@@ -1,5 +1,5 @@
 library(OpenMx)
-library(numDeriv)
+
 vNames <- c("V1", "V2", "V3", "V4")
 dimNames <- list(2)
 dimNames[[1]] <- vNames
@@ -34,9 +34,10 @@ fcn <- function(x) {
   fval <- 499*(log(det(PreCov)) + sum(temp) - 4)
   return(fval)
 }
-numHess <- hessian(fcn, model@output$estimate, method="Richardson")
 
-omxCheckCloseEnough(numHess, model@output$calculatedHessian, .01)
+data(numHess1)
+
+omxCheckCloseEnough(data.matrix(numHess1), model@output$calculatedHessian, .01)
 
 # use a different set of starting values
 model2 <- mxModel("model2",
@@ -52,6 +53,6 @@ model2 <- mxOption(model2, "StandardErrors", "Yes")
 model2 <- mxRun(model2)
 
 # numerical estimate of hessian
-numHess2 <- hessian(fcn, model2@output$estimate, method="Richardson")
+data(numHess2)
 
-omxCheckCloseEnough(numHess2, model2@output$calculatedHessian, .01)
+omxCheckCloseEnough(data.matrix(numHess2), model2@output$calculatedHessian, .01)
