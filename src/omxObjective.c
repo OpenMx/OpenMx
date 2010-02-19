@@ -102,7 +102,9 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->objType = (char*) calloc(251, sizeof(char*));
 	oo->objType[0] = '\0';
 	oo->matrix = NULL;
+	oo->stdError = NULL;
 	oo->hessian = NULL;
+	oo->gradient = NULL;
 	
 }
 
@@ -196,6 +198,8 @@ void omxObjectivePrint(omxObjective* oo, char* d) {
 	omxPrintMatrix(oo->matrix, d);
 }
 
+
+/* Helper functions */
 omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* currentState, char* const slotName) {
 	SEXP slotValue;
 	omxMatrix* newMatrix = NULL;

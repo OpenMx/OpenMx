@@ -63,12 +63,13 @@ struct omxObjective {					// An objective
 	void (*repopulateFun)(omxObjective* oo, double* x, int n);					// To repopulate any data stored in the objective function
 	void (*objectiveFun)(omxObjective* oo);										// Wrapper for the objective function itself
 	unsigned short int (*needsUpdateFun)(omxObjective* oo);						// To calculate recomputation
-	double* (*getStandardErrorFun)(omxObjective* oo);								// To calculate standard errors
+	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 
 	void* argStruct;															// Arguments needed for objective function
-	char* objType;															// Type of Objective Function
+	char* objType;																// Type of Objective Function
 	double* hessian;															// Hessian details
+	double* gradient;															// Gradient details
 	double* stdError;															// Standard Error estimates
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this objective function

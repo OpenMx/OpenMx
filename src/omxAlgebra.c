@@ -83,7 +83,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}
 	} else {
-		if(OMX_DEBUG) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
 		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->matrix);
 	}
 	omxMatrixCompute(oa->matrix);
