@@ -34,7 +34,7 @@ npsolOptions <- list(
 	"Feasibility tolerance" = "1.0e-05",
 	"Major iterations" = "1000",
 	"Verify level" = "3",
-	"Linesearch tolerance" = "0.3",
+	"Line search tolerance" = "0.3",
 	"Derivative Level" = "0",
 	"Hessian" = "Yes"
 )

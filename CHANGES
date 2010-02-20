@@ -14,6 +14,7 @@ trunk
 * implemented subranges for '[' operator in MxAlgebra expressions. foo[1:5,] is valid inside algebra.
 * implemented omxMnor, use ?omxMnor for R help on this function
 * added omxGetParameters, omxSetParameters, omxAssignFirstParameters.  Use ? for documentation.
+* enumerated OpenMx and NPSOL options in ?mxOption documentation
 
 Release 0.2.5-1050
 ==================

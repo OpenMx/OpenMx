@@ -54,7 +54,7 @@ uniRegModel <- mxModel("Simple Regression -- Path Specification",
       ) 
 ) # close model
       
-uniRegFit <- mxRun(uniRegModel)
+uniRegFit <- mxRun(uniRegModel, silent=TRUE)
 
 summary(uniRegFit)
 uniRegFit@output

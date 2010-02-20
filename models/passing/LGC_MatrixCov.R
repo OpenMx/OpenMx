@@ -80,7 +80,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
     mxRAMObjective("A","S","F","M",dimnames=c("x1","x2","x3","x4","x5","intercept","slope"))
     )
       
-growthCurveFit<-mxRun(growthCurveModel)
+growthCurveFit<-mxRun(growthCurveModel, silent=TRUE)
 
 omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["means"]], 1.813, 0.01)

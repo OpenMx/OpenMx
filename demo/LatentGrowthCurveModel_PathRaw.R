@@ -76,7 +76,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model -- Path Specification",
     )
 ) # close model
       
-growthCurveFit <- mxRun(growthCurveModel)
+growthCurveFit <- mxRun(growthCurveModel, silent=TRUE)
 
 summary(growthCurveFit)
 growthCurveFit@output$estimate
