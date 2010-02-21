@@ -29,9 +29,9 @@ and 'value' are ignored. Use \code{getOption('mxOptimizerOptions')} to see the d
 OpenMx options
 
 \tabular{rccl}{
-CalculateHessian \tab [Yes|No] \tab  \tab calculate the hessian explicitly after optimization.  If 'No', a less precise hessian estimate (from the optimizer) is returned. Ignored if \var{StandardErrors}. \cr
-StandardErrors \tab [Yes|No] \tab   \tab return standard error estimates from the explicitly calculate hessian.  Forces explicit calculation of the hessian. \cr
-MLConfidenceIntervals \tab [Yes|No] \tab  \tab calculate confidence intervals based on boundaries of the maximum likelihood space. At present, this assumes a Chi-square distribution for the results of the objective function. \cr
+Calculate Hessian \tab [Yes|No] \tab  \tab calculate the hessian explicitly after optimization.  If \sQuote{No}, a less precise hessian estimate (from the optimizer) is returned. Forced to \sQuote{Yes} if \sQuote{Standard Errors} option is enabled. \cr
+Standard Errors \tab [Yes|No] \tab   \tab return standard error estimates from the explicitly calculate hessian.  Forces explicit calculation of the hessian. \cr
+ML Confidence Intervals \tab [Yes|No] \tab  \tab calculate confidence intervals based on boundaries of the maximum likelihood space. At present, this assumes a Chi-square distribution for the results of the objective function. \cr
 }
 
 NPSOL-specific options
@@ -49,7 +49,7 @@ Major iterations \tab \var{i} \tab the maximum number of major iterations before
 Verify level \tab [-1:3|Yes|No] \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r} \tab controls the accuracy with which a step is taken. \cr
 Derivative Level \tab [0-3] \tab see NPSOL manual. \cr
-Hessian \tab [Yes|No] \tab return the transformed Hessian or the Hessian itself. \cr
+Hessian \tab [Yes|No] \tab return the transformed Hessian (if \sQuote{No}) or the Hessian itself (if \sQuote{Yes}). \cr
 }
 
 }
@@ -67,6 +67,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 model <- mxModel()
 
 model <- mxOption(model, "Function Precision", 1e-5)
+model <- mxOption(model, "Standard Errors", "Yes")
 model <- mxOption(model, "Function Precision", NULL)
 
 }

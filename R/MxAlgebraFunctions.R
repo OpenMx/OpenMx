@@ -110,10 +110,12 @@ omxAllInt <- function(cov, means, ...) {
     if(nrow(cov) != ncol(cov)) {
         stop("'cov' must be square")
     }
-    if(ncol(cov) != ncol(means) || nrow(means) != 1) {
-        stop("'means' must have 1 row and as many columns as cov")
+    if(nrow(means) > 1 && ncol(means) > 1) {
+    	stop("'means' argument must be row or column vector")
     }
-    
+    if(ncol(cov) != length(means)) {
+        stop("'means' must have length equal to diag(cov)")
+    }
     if(sum(sapply(thresholdMats, ncol)) < ncol(cov)) {
         stop("'thresholds' must have at least as many total columns as 'cov'")
     }

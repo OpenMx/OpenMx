@@ -95,7 +95,7 @@ R_unload_mylib(DllInfo *info)
 
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
-	
+
 	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
 
 	int j,k,l;
@@ -191,7 +191,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int calculateStdErrors = FALSE;
 	int calculateLimits = FALSE;
 	int numHessians = 0;
-	
+
 	double* limits = NULL;
 
 	/* Sanity Check and Parse Inputs */
@@ -290,7 +290,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		n = 0;
 		currentState->numFreeParams = n;
 	}
-	
+
 	// TODO: Make calculateHessians an option instead.
 
 	/* Process Matrix and Algebra Population Function */
@@ -515,7 +515,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		SEXP optionNames;
 		PROTECT(optionNames = GET_NAMES(options));
 		for(int i = 0; i < numOptions; i++) {
-			if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "CalculateHessian", 16)) {
+			if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "Calculate Hessian", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found hessian option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
@@ -523,7 +523,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
 					numHessians = 1;
 				}
-			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "StandardErrors", 16)) {
+			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "Standard Errors", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found standard error option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
@@ -534,7 +534,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						numHessians = 1;
 					}
 				}
-			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "MLConfidenceIntervals", 16)) {
+			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "ML Confidence Intervals", 18)) {
 				if(OMX_DEBUG) { Rprintf("Found confidence interval option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling maximum-likelihood-based confidence interval calculation.\n");}
@@ -638,7 +638,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			hess[k*n + l] = R[k*n + l];		// This is ok, because they're both in Col-Major already.
 		}
 	}
-	
+
 	omxSaveState(currentState, x, f);		// Keep the current values for the currentState.
 
 	/* Fill in details from the optimizer */
@@ -648,7 +648,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	namesgets(optimizer, names);
-	
+
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
 
@@ -703,7 +703,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			} else {
 				limits[i] = R_NaReal;
 			}
-			
+
 			/* Find upper limit */
 			oos->alpha = -1;
 			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
@@ -780,7 +780,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		PROTECT(ans = allocVector(VECSXP, numReturns));
 		PROTECT(names = allocVector(STRSXP, numReturns));
 	}
-	
+
 	if(numHessians) {		// Populate Hessian outputs here so that Objectives have a chance to edit them.
 		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
 		for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
@@ -791,7 +791,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			}
 
 			if(OMX_DEBUG) { Rprintf("Objective %d has hessian at 0x%x.\n", j, oo->hessian);}
-			
+
 			double* hessian  = REAL(calculatedHessian);
 			double* stdError = REAL(stdErrors);
 			for(int k = 0; k < n * n; k++) {
@@ -799,12 +799,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
 			}
 			if(OMX_DEBUG) {Rprintf("Done.\n", k);}
-			
+
 			if(oo->stdError == NULL) {
 				if(OMX_DEBUG) {Rprintf("Objective has no standard errors. Aborting.\n");}
 				continue;
 			}
-			
+
 			for(int k = 0; k < n; k++) {
 				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
 				stdError[k] = oo->stdError[k];
@@ -1016,16 +1016,16 @@ SEXP getVar(SEXP str, SEXP env) {
 
 void F77_SUB(limitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
-	
+
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
-		
+
 		omxOptimizerState* oos = currentState->optimizerState;
-		
+
 		double diff = oos->offset - *f;
 		*f = diff * diff - oos->alpha * x[oos->currentParameter];
 }
-	
-	
+
+
 /*************************************************************************************
  *
  *   omxEstimateHessian
@@ -1047,31 +1047,31 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
-	
+
 	double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 	double eps = 1E-4;	// Kept here for access purposes.
-	
+
 	if(numHessians > 1) {
 		error("NYI: Cannot yet calculate more than a single hessian per optimization.\n");
 	}
-	
+
 	if(numHessians == 0) return FALSE;
 
 	omxObjective* oo = matList[0]->objective;
 	int numParams = currentState->numFreeParams;
 	double* freeParams = (double*) Calloc(numParams, double);
 	double* optima = currentState->optimalValues;
-	
+
 	if(oo->hessian == NULL) {
 		oo->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
 		if(OMX_DEBUG) {Rprintf("Generated hessian memory, (%d x %d), at 0x%x.\n", numParams, numParams, oo->hessian);}
 	}
-	
+
 	if(oo->gradient == NULL) {
 		oo->gradient = (double*) R_alloc(numParams, sizeof(double));
 		if(OMX_DEBUG) {Rprintf("Generated gradient memory, (%d), at 0x%x.\n", numParams, oo->gradient);}
 	}
-	
+
 	double* gradient = oo->gradient;
 	double* hessian = oo->hessian;
 
@@ -1081,9 +1081,9 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 	for(int i = 0; i < numParams; i++) {
 		freeParams[i] = optima[i];
 	}
-	
+
 	omxMatrix* objectiveMatrix = oo->matrix;
-	
+
 	if (objectiveMatrix->objective->repopulateFun != NULL) {	//  Just in case
 		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, freeParams, numParams);
 	} else {
@@ -1108,9 +1108,9 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 			}
 			omxRecompute(objectiveMatrix);
 			double f1 = omxMatrixElement(objectiveMatrix, 0, 0);
-        
+
 			if(OMX_DEBUG) {Rprintf("Hessian estimation: One Step Back.\n");}
-        
+
 			freeParams[i] = optima[i] - iOffset;
 			if (objectiveMatrix->objective->repopulateFun != NULL) {	// Just in case
 				objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, freeParams, numParams);
@@ -1119,26 +1119,26 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 			}
 			omxRecompute(objectiveMatrix);
 			double f2 = omxMatrixElement(objectiveMatrix, 0, 0);
-			
+
 			Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
 			Haprox[k] = (f1 - 2.0*f0 + f2) / (iOffset * iOffset);		// This is second derivative
 			freeParams[i] = optima[i];									// Reset parameter value
 			iOffset /= v;
 			if(OMX_DEBUG) {Rprintf("Hessian estimation: (%d, %d)--Calculating F1: %f F2: %f, Haprox: %f...\n", i, i, f1, f2, Haprox[k]);}
 		}
-		
+
 		for(int m = 1; m < r; m++) {						// Richardson Step
 			for(int k = 0; k < (r - m); k++) {
 				Gaprox[k] = (Gaprox[k+1] * pow(4.0, m) - Gaprox[k])/(pow(4.0, m)-1); // NumDeriv Hard-wires 4s for r here. Why?
 				Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k])/(pow(4.0, m)-1); // NumDeriv Hard-wires 4s for r here. Why?
 			}
 		}
-		
+
 		if(OMX_DEBUG) { Rprintf("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d) with value %f...\n", hessian, i, i, i*numParams+i, Haprox[0]); }
 		gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
 		hessian[i*numParams + i] = Haprox[0];
 	// }
-	
+
 	/* Part the Second: Off-diagonals */  			// These go here because they depend on their associated diagonals
 	// for(int i = 0; i < numParams; i++) {			// Which parameter (Again).
 		for(int l = (i-1); l >= 0; l--) {				// Crossed with which parameter? (Start with diagonal)
@@ -1173,10 +1173,10 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 				Haprox[k] = (f1 - 2.0*f0 + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 							hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
 				if(OMX_DEBUG) {Rprintf("Hessian first off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f).\n", Haprox[k], iOffset, lOffset, f1, hessian[i*numParams+i], hessian[l*numParams+l], v, k, pow(v, k), functionPrecision*optima[i], functionPrecision*optima[l]);}
-				
+
 				freeParams[i] = optima[i];				// Reset parameter values
 				freeParams[l] = optima[l];
-				
+
 				iOffset = iOffset / v;					//  And shrink step
 				lOffset = lOffset / v;
 			}
@@ -1187,7 +1187,7 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 					Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k]) / (pow(4.0, m)-1);
 				}
 			}
-			
+
 			if(OMX_DEBUG) {Rprintf("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
 			hessian[i*numParams+l] = Haprox[0];
 			hessian[l*numParams+i] = Haprox[0];
@@ -1195,7 +1195,7 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 
 		if(OMX_DEBUG) {Rprintf("Done with parameter %d.\n", i);}
 	}
-	
+
 	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
 
 	Free(freeParams);

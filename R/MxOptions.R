@@ -36,7 +36,10 @@ npsolOptions <- list(
 	"Verify level" = "3",
 	"Line search tolerance" = "0.3",
 	"Derivative Level" = "0",
-	"Hessian" = "Yes"
+	"Hessian" = "Yes",
+	"Calculate Hessian" = "No",
+	"Standard Errors" = "No",
+	"ML Confidence Intervals" = "No"	
 )
 
 # Convert the keys and values into strings
