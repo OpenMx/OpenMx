@@ -515,7 +515,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		SEXP optionNames;
 		PROTECT(optionNames = GET_NAMES(options));
 		for(int i = 0; i < numOptions; i++) {
-			if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "Calculate Hessian", 17)) {
+			if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Calculate Hessian", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found hessian option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
@@ -523,7 +523,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
 					numHessians = 1;
 				}
-			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "Standard Errors", 17)) {
+			} else if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Standard Errors", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found standard error option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
@@ -534,7 +534,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						numHessians = 1;
 					}
 				}
-			} else if(!strncmp(CHAR(STRING_ELT(optionNames, i)), "ML Confidence Intervals", 18)) {
+			} else if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Chi-square Confidence Intervals", 31)) {
 				if(OMX_DEBUG) { Rprintf("Found confidence interval option...");};
 				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling maximum-likelihood-based confidence interval calculation.\n");}

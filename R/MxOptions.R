@@ -39,7 +39,7 @@ npsolOptions <- list(
 	"Hessian" = "Yes",
 	"Calculate Hessian" = "No",
 	"Standard Errors" = "No",
-	"ML Confidence Intervals" = "No"	
+	"Chi-square Confidence Intervals" = "No"	
 )
 
 # Convert the keys and values into strings

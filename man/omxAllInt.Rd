@@ -4,7 +4,7 @@
 \title{All Interval Multivariate Normal Integration}
 
 \description{
-   \code{omxAllInt} computes the probabilities of a large number of cells of a multivariate normal distribution that has been sliced by a varying number of thresholds in each dimension.  While the same functionality can be achieved by repeated calls to \code{\link{omxMNor}}, \code{omxAllInt} is more efficient for repeated operations on a single covariance matrix.
+   \code{omxAllInt} computes the probabilities of a large number of cells of a multivariate normal distribution that has been sliced by a varying number of thresholds in each dimension.  While the same functionality can be achieved by repeated calls to \code{\link{omxMnor}}, \code{omxAllInt} is more efficient for repeated operations on a single covariance matrix.
    \code{omxAllInt} returns an nx1 matrix of probabilities cycling from lowest to highest thresholds in each column with the rightmost variable in \var{cov} changing most rapidly.
 }
 
@@ -39,7 +39,7 @@ omxAllInt(cov, means, ...)
 }
 
 \seealso{
-\code{\link{omxMNor}}
+\code{\link{omxMnor}}
 }
 
 \examples{
@@ -52,7 +52,7 @@ thresholdForColumn1 <- cbind(c(-Inf, 0,   1))               # Integrate from -In
                                                             # Note: The first variable will never be calculated from 1 to +Infinity.
 thresholdsForColumn2 <- cbind(c(-Inf, -1, 0, 1, Inf))       # These columns will be integrated from -Inf to -1, -1 to 0, etc.
 thresholdsForColumns3and4 <- cbind(c(-Inf, 1.96, 2.326, Inf), c(-Inf, -1.96, 2.326, Inf))
-omxAllInt(cov, means, thresholdForColumn1, thresholdsForColumn2, thresholdsforColumns3and4, thresholdsForColumn2)
+omxAllInt(cov, means, thresholdForColumn1, thresholdsForColumn2, thresholdsForColumns3and4, thresholdsForColumn2)
                                                             # Notice that columns 2 and 5 are assigned identical thresholds.
 
 # An alternative specification of the same calculation follows
