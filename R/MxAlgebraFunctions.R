@@ -98,7 +98,6 @@ omxMnor <- function(cov, means, lbounds, ubounds) {
     	list(cov, means, lbounds, ubounds), 
     	omxLookupSymbolTable("omxMnor"), 
     	NA)
-    
     return(as.matrix(as.numeric(retVal)))
     
 }
@@ -109,13 +108,20 @@ omxAllInt <- function(cov, means, ...) {
     thresholdMats <- list(...)
 
     if(nrow(cov) != ncol(cov)) {
-        stop("Cov must be square")
+        stop("'cov' must be square")
     }
-    if(ncol(cov) != ncol(means)) {
-        stop("means must have as many columns as cov")
+    if(ncol(cov) != ncol(means) || nrow(means) != 1) {
+        stop("'means' must have 1 row and as many columns as cov")
     }
     
-    retVal <- .Call("omxCallAlgebra", list(cov, means, thresholdMats))
+    if(sum(sapply(thresholdMats, ncol)) < ncol(cov)) {
+        stop("'thresholds' must have at least as many total columns as 'cov'")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", 
+        c(list(cov, means), thresholdMats),         # Flatten args into a single list
+        omxLookupSymbolTable("omxAllInt"), 
+        NA)
     
     return(as.matrix(as.numeric(retVal)))
 

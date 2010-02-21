@@ -186,6 +186,8 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	oa->numArgs = oate->numArgs;
 	if(oa->numArgs >= 0) {
 		oa->args = (omxMatrix**)R_alloc(oa->numArgs, sizeof(omxMatrix*));
+	} else {
+		oa->args = NULL;
 	}
 	if(OMX_DEBUG) { Rprintf("Table Entry processed.\n"); }
 }
@@ -235,19 +237,32 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 }
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {
-	/* For now, we'll be content with 2 args. */
 	
+	if(OMX_DEBUG) {Rprintf("Generating new algebra from opcode %d (%s).\n", opCode, omxAlgebraSymbolTable[opCode].rName);}
 	omxMatrix *om;
 	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
 	if(entry->numArgs >= 0 && entry->numArgs != numArgs) {
-		error("Wrong number of arguments passed to algebra %s.", entry->rName);
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Internal error: incorrect number of arguments passed to algebra %s.", entry->rName);
+		omxRaiseError(os, -1, errstr);
+		free(errstr);
+		return NULL;
 	}
 	
 	om = omxInitAlgebra(oa, os);
 	omxFillAlgebraFromTableEntry(oa, entry);
+
+	if(OMX_DEBUG) {Rprintf("Calculating args for %s.\n", entry->rName);}
+	if(oa->args == NULL) {					// # of matrices for operator is variable
+		oa->numArgs = numArgs;
+		oa->args = (omxMatrix**) R_alloc(numArgs, sizeof(omxMatrix*));
+	} 
+	
+	if(OMX_DEBUG) {Rprintf("Populating args for %s.\n", entry->rName);}
+	
 	for(int i = 0; i < numArgs;i++) {
-		om->algebra->args[i] = args[i];
+		oa->args[i] = args[i];
 	}
 	
 	omxMarkDirty(om);

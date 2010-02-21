@@ -95,6 +95,8 @@ R_unload_mylib(DllInfo *info)
 
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
+	
+	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
 
 	int j,k,l;
 	omxMatrix* algebra;
@@ -126,6 +128,10 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	}
 
 	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, currentState->matrixList, currentState->numMats, currentState);
+
+	if(algebra==NULL) {
+		error(currentState->statusMsg);
+	}
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(currentState);
@@ -683,7 +689,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
 		currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
 		omxOptimizerState* oos = currentState->optimizerState;
-		oos->offset = 3.841;
+		oos->offset = 3.841;							// TODO: Get this from the objective function
 		limits = REAL(intervals);
 		for(int i = 0; i < n; i++) {
 			oos->currentParameter = i;

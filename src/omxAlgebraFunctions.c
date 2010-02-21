@@ -1240,64 +1240,74 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	char *errstr = calloc(250, sizeof(char));
-	sprintf(errstr, "All-regions integration not yet implemented.  Sorry.");
-	omxRaiseError(result->currentState, -1, errstr);
-	free(errstr);
-
+	if(OMX_DEBUG_ALGEBRA) { 
+		Rprintf("All-part multivariate normal integration.\n"); 
+	}
+	
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	int nCols = cov->cols;
 	int i,j,k;
 
-	int totalLevels = 0;
+	int totalLevels = 1;
 	omxMatrix *thresholdMats[nCols];
 	int numThresholds[nCols], matNums[nCols], thresholdCols[nCols];
 	int currentThresholds[nCols];
+	int currentMat = 0;
 
-	for(i = 0; i < nCols;) {						// Map out the structure of levels.
-		thresholdMats[i] = matList[i+2];
+	for(i = currentMat; i < nCols;) {							// Map out the structure of levels.
+	if(OMX_DEBUG_ALGEBRA) { 
+		Rprintf("All-part multivariate normal integration: Examining threshold column %d.\n", i); 
+	}
+		thresholdMats[currentMat] = matList[currentMat+2];		// Get the thresholds for this covariance column
 
-		for(j = 0; j < thresholdMats[i]->cols; j++) {
-			double ubound, lbound = omxMatrixElement(thresholdMats[i], j, 0);
+		for(j = 0; j < thresholdMats[currentMat]->cols; j++) {	// We walk along the columns of this threshold matrix
+			double ubound, lbound = omxMatrixElement(thresholdMats[currentMat], 0, j);
 			if(ISNA(lbound)) {
 				char *errstr = calloc(250, sizeof(char));
 				sprintf(errstr, "Invalid lowest threshold for dimension %d of Allint.", j);
 				omxRaiseError(result->currentState, -1, errstr);
 				free(errstr);
+				return;
 			}
-			for(k = 1; k < numThresholds[i+j];k++) {
-				ubound = omxMatrixElement(thresholdMats[i], j, k);
+			
+			thresholdCols[i] = j;
+			
+			for(k = 1; k < thresholdMats[currentMat]->rows; k++) {
+				ubound = omxMatrixElement(thresholdMats[currentMat], k, j);
 				if(ISNA(ubound)) {
-					numThresholds[i+j] = k-1;
-					totalLevels += numThresholds[i+j];
-					continue;
+					numThresholds[i] = k-1;
+					totalLevels *= numThresholds[i];
+					break;
 				}
 
 				if(!(ubound > lbound)) {
 					char *errstr = calloc(250, sizeof(char));
-					sprintf(errstr, "Thresholds are not strictly increasing for dimension %d of Allint.", j);
+					sprintf(errstr, "Thresholds (%f and %f) are not strictly increasing for dimension %d of Allint.", lbound, ubound, j+1);
 					omxRaiseError(result->currentState, -1, errstr);
 					free(errstr);
+					return;
 				}
 
-				if(!R_finite(ubound)) {
-					numThresholds[i+j] = k;
-					totalLevels += numThresholds[i+j];
-					continue;
+				if(!R_finite(ubound)) {					// Infinite bounds must be last.
+					numThresholds[i] = k;
+					totalLevels *= numThresholds[i];
+					break;
 				}
 
-				if(j == (thresholdMats[i]->cols -1)) {
-					totalLevels += j;
-					continue;
+				if(k == (thresholdMats[currentMat]->rows -1)) { // In case the highest threshold isn't Infinity
+					numThresholds[i] = k;
+					totalLevels *= numThresholds[i];
 				}
 			}
-			currentThresholds[i+j] = 1;
-			matNums[i+j] = i;
+			currentThresholds[i] = 1;
+			matNums[i] = currentMat;
+			if(++i >= nCols) {							// We have all we need
+				break;
+			}
 		}
-		i+=j;
+		currentMat++;
 	}
-	currentThresholds[nCols] = 0;
 
 	/* Conformance checks: */
 	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1, FALSE);
@@ -1328,21 +1338,71 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int MaxPts = OMX_DEFAULT_MAX_PTS;
 	double likelihood;
 	int inform;
-	int numVars = cov->rows;
-	int Infin[cov->rows];
+	int numVars = nCols;
+	int Infin[nCols];
 	double lBounds[nCols];
 	double uBounds[nCols];
-
-	for(i = 0; i < totalLevels; i++) {
-		for(j = (nCols-1); j < 0; j--) {
-			currentThresholds[j]++;
-			if(currentThresholds[j] <= numThresholds[j]) continue;
-			currentThresholds[j] = 1;
+	
+	
+	/* Set up first row */
+	for(j = (nCols-1); j >= 0; j--) {					// For each threshold set, starting from the fastest
+		
+		Infin[j] = 2; 									// Default to using both thresholds
+		lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
+		if(!R_finite(lBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
+				Infin[j] -= 2; 
 		}
+		
+		uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
+    	
+		if(!R_finite(uBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
+				Infin[j] -= 1; 
+		}
+		
+		if(Infin[j] < 0) { Infin[j] = 3; }			// Both bounds infinite.
+	}
+	
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
-		lBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]-1) - omxVectorElement(means, i))/weights[i];
-		uBounds[i] = (omxMatrixElement(thresholdMats[matNums[i]], thresholdCols[i], currentThresholds[i]) - omxVectorElement(means, i))/weights[i];
-		Infin[i] = 2; // Default to both thresholds
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
+
+	if(inform == 2) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Improper input to sadmvn.");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+	omxSetMatrixElement(result, 0, 0, likelihood);
+	
+	
+	/* And repeat with increments for all other rows. */
+	for(i = 1; i < totalLevels; i++) {
+		for(j = (nCols-1); j >= 0; j--) {							// For each threshold set, starting from the fastest
+			currentThresholds[j]++;									// Move to the next threshold set.
+			if(currentThresholds[j] > numThresholds[j]) {			// Hit the end; cycle to the next.
+				currentThresholds[j] = 1;
+			}
+
+			/* Update only the rows that need it. */
+			Infin[j] = 2; // Default to both thresholds
+			lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
+			if(!R_finite(lBounds[j])) {								// Inifinite lower bounds = -Inf to ?
+				Infin[j] -= 2; 
+			}
+			uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
+        	
+			if(!R_finite(uBounds[j])) { 							// Inifinite lower bounds = -Inf to ?
+				Infin[j] -= 1; 
+			}
+			
+			if(Infin[j] < 0) { Infin[j] = 3; }						// Both bounds infinite.
+			
+			if(currentThresholds[j] != 1) {							// If we just cycled, we need to see the next set.
+				break;
+			}
+			
+		}
 
 		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
@@ -1355,7 +1415,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 			free(errstr);
 		}
 
-		omxSetMatrixElement(result, i, 1, likelihood);
+		omxSetMatrixElement(result, i, 0, likelihood);
 	}
 
 }

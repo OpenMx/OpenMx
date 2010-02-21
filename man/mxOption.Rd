@@ -29,9 +29,9 @@ and 'value' are ignored. Use \code{getOption('mxOptimizerOptions')} to see the d
 OpenMx options
 
 \tabular{rccl}{
-CalculateHessian \tab [Yes|No] \tab  \tab TODO fill this out \cr
-StandardErrors \tab [Yes|No] \tab   \tab TODO fill this out \cr
-MLConfidenceIntervals \tab [Yes|No] \tab  \tab TODO fill this out \cr
+CalculateHessian \tab [Yes|No] \tab  \tab calculate the hessian explicitly after optimization.  If 'No', a less precise hessian estimate (from the optimizer) is returned. Ignored if \var{StandardErrors}. \cr
+StandardErrors \tab [Yes|No] \tab   \tab return standard error estimates from the explicitly calculate hessian.  Forces explicit calculation of the hessian. \cr
+MLConfidenceIntervals \tab [Yes|No] \tab  \tab calculate confidence intervals based on boundaries of the maximum likelihood space. At present, this assumes a Chi-square distribution for the results of the objective function. \cr
 }
 
 NPSOL-specific options
