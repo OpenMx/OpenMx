@@ -312,6 +312,14 @@ omxCheckNamespace <- function(model, namespace) {
 	}
 }
 
+legalGlobalReference <- function(name) {
+	if(exists(name, envir = globalenv())) {
+		value <- get(name, envir = globalenv())
+		return(is.numeric(value) || is.character(value))
+	}
+	return(FALSE);
+}
+
 checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 	entities <- getEntities(namespace)
 	parameters <- getParameters(namespace)
@@ -324,7 +332,7 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 		 !(hasSquareBrackets(name)) &&
 		 !(name %in% parameters) &&
          !(name %in% values) &&
-         !(exists(name, envir = globalenv())) &&
+         !(legalGlobalReference(name)) &&
 		 !(name %in% names(omxReservedNames))) {
 		stop(paste("Unknown reference", 
 			omxQuotes(simplifyName(omxIdentifier(space, name), model@name)),
