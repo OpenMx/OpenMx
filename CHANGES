@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.2.6-1114
+==================
 * implemented omxAllInt, use ?omxAllInt for R help on this function
 * implemented omxMnor, use ?omxMnor for R help on this function
 * added option to calculate Hessian after optimization.  See ?mxOption for R help.
