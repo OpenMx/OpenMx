@@ -45,7 +45,7 @@ TwoLocusModel <- mxModel("TwoLocus",
     mxAlgebraObjective("NegativeLogLikelihood")
 )
 
-TwoLocusFit<-mxRun(TwoLocusModel)
+TwoLocusFit<-mxRun(TwoLocusModel, silent=TRUE)
 TwoLocusFit@matrices
 TwoLocusFit@algebras
 

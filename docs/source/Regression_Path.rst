@@ -141,7 +141,7 @@ The third component of our code creates an ``MxData`` object. The example above,
     mxData(
         observed=SimpleDataRaw, 
         type="raw"
-),
+	),
 
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
 

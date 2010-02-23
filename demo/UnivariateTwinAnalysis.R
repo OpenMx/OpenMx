@@ -1,3 +1,18 @@
+#
+#   Copyright 2007-2010 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 # -----------------------------------------------------------------------
 # Program: UnivariateTwinAnalysis.R  
 #  Author: Hermine Maes
@@ -52,7 +67,7 @@ twinSatModel <- mxModel("twinSat",
 		mxFIMLObjective("expCovDZ", "expMeanDZ", selVars)),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxAlgebraObjective("twin"))
-twinSatFit <- mxRun(twinSatModel)
+twinSatFit <- mxRun(twinSatModel, silent=TRUE)
 
 # Generate Saturated Model Output
 # -----------------------------------------------------------------------
@@ -68,14 +83,14 @@ LL_Sat <- mxEval(objective, twinSatFit)
 twinSatModelSub1 <- twinSatModel
 twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, T, 0, "mMZ", name="expMeanMZ")
 twinSatModelSub1$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mDZ", name="expMeanDZ")
-twinSatFitSub1 <- mxRun(twinSatModelSub1)
+twinSatFitSub1 <- mxRun(twinSatModelSub1, silent=TRUE)
 
 # Specify and Run Saturated SubModel 2 equating means across zygosity
 # -----------------------------------------------------------------------
 twinSatModelSub2 <- twinSatModelSub1
 twinSatModelSub2$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanMZ")
 twinSatModelSub2$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanDZ")
-twinSatFitSub2 <- mxRun(twinSatModelSub2)
+twinSatFitSub2 <- mxRun(twinSatModelSub2, silent=TRUE)
 
 # Generate Saturated Model Comparison Output
 # -----------------------------------------------------------------------
@@ -118,7 +133,7 @@ twinACEModel <- mxModel("twinACE",
 
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxAlgebraObjective("twin"))
-twinACEFit <- mxRun(twinACEModel)
+twinACEFit <- mxRun(twinACEModel, silent=TRUE)
 
 # Generate ACE Model Output
 # -----------------------------------------------------------------------
@@ -147,7 +162,7 @@ LRT_ACE= LL_ACE - LL_Sat
 # ----------------------------------------------------------------------
 twinAEModel <- twinACEModel
 twinAEModel$twinACE$Y <- mxMatrix("Full", 1, 1, F, 0, "c", name="Y")  # drop c
-twinAEFit <- mxRun(twinAEModel)
+twinAEFit <- mxRun(twinAEModel, silent=TRUE)
 
 # Generate ACE Model Output
 # -----------------------------------------------------------------------
