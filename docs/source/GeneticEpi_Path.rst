@@ -1,4 +1,4 @@
-.. _geneticepidemiology-path-specification:
+    .. _geneticepidemiology-path-specification:
 
 Genetic Epidemiology, Path Specification
 =========================================
@@ -43,10 +43,10 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     aceVars <- c("A1","C1","E1","A2","C2","E2")
     mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
     dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-	colMeans(mzfData,na.rm=TRUE)
-	colMeans(dzfData,na.rm=TRUE)
-	cov(mzfData,use="complete")
-	cov(dzfData,use="complete")
+    colMeans(mzfData,na.rm=TRUE)
+    colMeans(dzfData,na.rm=TRUE)
+    cov(mzfData,use="complete")
+    cov(dzfData,use="complete")
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -57,196 +57,196 @@ Let's go through the paths specification step by step.  First, we include the ``
 
 .. code-block:: r
 
-	#Fit ACE Model with RawData and Path-Style Input
-	ACEModel <- mxModel("ACE", 
-		type="RAM",
-		manifestVars=selVars,
-		latentVars=aceVars,
-		mxPath(
-			from=aceVars, 
-			arrows=2, 
-			free=FALSE, 
-			values=1
-		),
-		mxPath(
-			from="one", 
-			to=aceVars, 
-			arrows=1, 
-			free=FALSE, 
-			values=0
-		),
-		mxPath(
-			from="one", 
-			to=selVars, 
-			arrows=1, 
-			free=TRUE, 
-			values=20, 
-			labels="mean",
-		),	
-		mxPath(
-			from=c("A1","C1","E1"), 
-			to="bmi1", 
-			arrows=1, 
-			free=TRUE, 
-			values=.6, 
-			label=c("a","c","e")
-		),
-		mxPath(
-			from=c("A2","C2","E2"), 
-			to="bmi2", 
-			arrows=1, 
-			free=TRUE, 
-			values=.6, 
-			label=c("a","c","e")
-		),
-		mxPath(
-			from="C1", 
-			to="C2", 
-			arrows=2, 
-			free=FALSE, 
-			values=1
-		)
-	)    
-	mzModel <- mxModel(ACEModel, name="MZ",
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=1
-		),
-		mxData(
-			observed=mzfData, 
-			type="raw"
-		)
-	)
-	dzModel <- mxModel(ACEModel, name="DZ", 
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=.5
-		),
-		mxData(
-			observed=dzfData, 
-			type="raw"
-		)
-	)
-	twinACEModel <- mxModel("twinACE", mzModel, dzModel,
-		mxAlgebra(
-			expression=MZ.objective + DZ.objective, 
-			name="twin"
-		), 
-		mxAlgebraObjective("twin")
-	)
+    #Fit ACE Model with RawData and Path-Style Input
+    ACEModel <- mxModel("ACE", 
+        type="RAM",
+        manifestVars=selVars,
+        latentVars=aceVars,
+        mxPath(
+            from=aceVars, 
+            arrows=2, 
+            free=FALSE, 
+            values=1
+        ),
+        mxPath(
+            from="one", 
+            to=aceVars, 
+            arrows=1, 
+            free=FALSE, 
+            values=0
+        ),
+        mxPath(
+            from="one", 
+            to=selVars, 
+            arrows=1, 
+            free=TRUE, 
+            values=20, 
+            labels="mean",
+        ),    
+        mxPath(
+            from=c("A1","C1","E1"), 
+            to="bmi1", 
+            arrows=1, 
+            free=TRUE, 
+            values=.6, 
+            label=c("a","c","e")
+        ),
+        mxPath(
+            from=c("A2","C2","E2"), 
+            to="bmi2", 
+            arrows=1, 
+            free=TRUE, 
+            values=.6, 
+            label=c("a","c","e")
+        ),
+        mxPath(
+            from="C1", 
+            to="C2", 
+            arrows=2, 
+            free=FALSE, 
+            values=1
+        )
+    )    
+    mzModel <- mxModel(ACEModel, name="MZ",
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=1
+        ),
+        mxData(
+            observed=mzfData, 
+            type="raw"
+        )
+    )
+    dzModel <- mxModel(ACEModel, name="DZ", 
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=.5
+        ),
+        mxData(
+            observed=dzfData, 
+            type="raw"
+        )
+    )
+    twinACEModel <- mxModel("twinACE", mzModel, dzModel,
+        mxAlgebra(
+            expression=MZ.objective + DZ.objective, 
+            name="twin"
+        ), 
+        mxAlgebraObjective("twin")
+    )
 
 Models specifying paths are translated into 'RAM' specifications for optimization, indicated by using the ``type="RAM"``.  For further details on RAM, see ref.  Note that we left the comma's at the end of the lines which are necessary when all the arguments are combined prior to running the model.  Each line can be pasted into R, and then evaluated together once the whole model is specified.  We start the path diagram specification by providing the names for the manifest variables in ``manifestVars`` and the latent variables in ``latentVars``.  We use here the 'selVars' and 'aceVars' objects that we created before when preparing the data.
 
 .. code-block:: r
 
-		type="RAM",
-		manifestVars=selVars,
-		latentVars=aceVars,
+        type="RAM",
+        manifestVars=selVars,
+        latentVars=aceVars,
 
 We start by specifying paths for the variances and means of the latent variables.  These includes double-headed arrows from each latent variable back to itself, fixed at one, and single-headed arrows from the triangle (with a fixed value of one) to each of the latent variables, fixed at zero.  Next we specify paths for the means of the observed variables using single-headed arrows from 'one' to each of the manifest variables.  These are set to be free and given a start value of 20.  As we use the same label (``mean``) for the two means, they are constrained to be equal.  Remember that R 'recycles'.  The main paths of interest are those from each of the latent variables to the respective observed variable.  These are also estimated (thus all are set free), get a start value of .6 and appropriate labels.  As the common environmental factors are by definition the same for both twins, we fix the correlation between **C1** and **C2** to one.
 
 .. code-block:: r        
         
-	# variances of latent variables
-	mxPath(
-		from=aceVars, 
-		arrows=2, 
-		free=FALSE, 
-		values=1
-	),
-	# means of latent variables
-	mxPath(
-		from="one", 
-		to=aceVars, 
-		arrows=1, 
-		free=FALSE, 
-		values=0
-	),
-	# means of observed variables
-	mxPath(
-		from="one", 
-		to=selVars, 
-		arrows=1, free=TRUE, 
-		values=20, 
-		labels="mean"
-	),
-	# path coefficients for twin 1
-	mxPath(
-		from=c("A1","C1","E1"), 
-		to="bmi1", 
-		arrows=1, 
-		free=TRUE, 
-		values=.6, 
-		label=c("a","c","e")
-	),
-	# path coefficients for twin 2
-	mxPath(
-		from=c("A2","C2","E2"), 
-		to="bmi2", 
-		arrows=1, 
-		free=TRUE, 
-		values=.6, 
-		label=c("a","c","e")
-	),
-	# covariance between C1 & C2
-	mxPath(
-		from="C1", 
-		to="C2", 
-		arrows=2, 
-		free=FALSE, 
-		values=1
-	)
+    # variances of latent variables
+    mxPath(
+        from=aceVars, 
+        arrows=2, 
+        free=FALSE, 
+        values=1
+    ),
+    # means of latent variables
+    mxPath(
+        from="one", 
+        to=aceVars, 
+        arrows=1, 
+        free=FALSE, 
+        values=0
+    ),
+    # means of observed variables
+    mxPath(
+        from="one", 
+        to=selVars, 
+        arrows=1, free=TRUE, 
+        values=20, 
+        labels="mean"
+    ),
+    # path coefficients for twin 1
+    mxPath(
+        from=c("A1","C1","E1"), 
+        to="bmi1", 
+        arrows=1, 
+        free=TRUE, 
+        values=.6, 
+        label=c("a","c","e")
+    ),
+    # path coefficients for twin 2
+    mxPath(
+        from=c("A2","C2","E2"), 
+        to="bmi2", 
+        arrows=1, 
+        free=TRUE, 
+        values=.6, 
+        label=c("a","c","e")
+    ),
+    # covariance between C1 & C2
+    mxPath(
+        from="C1", 
+        to="C2", 
+        arrows=2, 
+        free=FALSE, 
+        values=1
+    )
 
 We add the paths that are specific to the MZ group or the DZ group into the respective models, 'mzModel' and 'dzModel', which are combined in 'twinACEModel'.  So we have two ``mxModel`` statements following the 'ACEModel' model statement.  Each of the two models have access to all the paths already defined given ACEModel is the first argument of ``mxModel``.  In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  That concludes the specification of the model for the MZ's, thus we move to the ``mxData`` command that calls up the data.frame with the MZ raw data, ``mzfData``, with the type specified explicitly.  We also gave the model a name, ``MZ``, to refer back to it later when we need to add the objective functions.  The ``mxModel`` command for the DZ group is very similar, except that the the correlation between **A1** and **A2** is fixed to 0.5 and the DZ data, ``dzfData`` are read in.  Note that OpenMx can handle constants in algebra.
 
 .. code-block:: r
 
-	mzModel <- mxModel(ACEModel, name="MZ",
-		# covariance between A1 & A2 in MZ's
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=1
-		),
-		mxData(
-			observed=mzfData, 
-			type="raw"
-		)
-	)
-	dzModel <- mxModel(ACEModel, name="DZ", 
-		# covariance between A1 & A2 in DZ's
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=.5
-		),
-		mxData(
-			observed=dzfData, 
-			type="raw"
-		)
-	)
+    mzModel <- mxModel(ACEModel, name="MZ",
+        # covariance between A1 & A2 in MZ's
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=1
+        ),
+        mxData(
+            observed=mzfData, 
+            type="raw"
+        )
+    )
+    dzModel <- mxModel(ACEModel, name="DZ", 
+        # covariance between A1 & A2 in DZ's
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=.5
+        ),
+        mxData(
+            observed=dzfData, 
+            type="raw"
+        )
+    )
 
 Finally, both models need to be evaluated simultaneously.  We specify a new ``mxModel`` which has the mzModel and dzModel as its arguments.  We then generate the sum of the objective functions for the two groups, using ``mxAlgebra``, and use the result (``twin``) as argument of the ``mxAlgebraObjective`` command.
 
 .. code-block:: r        
 
-	twinACEModel <- mxModel("twinACE", mzModel, dzModel,
-		mxAlgebra(
-			expression=MZ.objective + DZ.objective, 
-			name="twin"
-		), 
-		mxAlgebraObjective("twin")
-	)
+    twinACEModel <- mxModel("twinACE", mzModel, dzModel,
+        mxAlgebra(
+            expression=MZ.objective + DZ.objective, 
+            name="twin"
+        ), 
+        mxAlgebraObjective("twin")
+    )
 
 Model Fitting
 ^^^^^^^^^^^^^
@@ -262,18 +262,18 @@ Often, however, one is interested in specific parts of the output.  In the case 
 
 .. code-block:: r
 
-    MZc <- mxEval(MZ.covariance, twinACEFit)	# expected covariance matrix for MZ's
-    DZc <- mxEval(DZ.covariance, twinACEFit)	# expected covariance matrix for DZ's
-    M <- mxEval(MZ.means, twinACEFit)	# expected mean
-    A <- mxEval(a*a, twinACEFit)	# additive genetic variance, a^2
-    C <- mxEval(c*c, twinACEFit)	# shared environmental variance, c^2
-    E <- mxEval(e*e, twinACEFit)	# unique environmental variance, e^2
-    V <- (A+C+E)	# total variance
-    a2 <- A/V		# standardized A
-    c2 <- C/V		# standardized C
-    e2 <- E/V		# standardized E
-    ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))	# table of estimates
-    LL_ACE <- mxEval(objective, twinACEFit)		# likelihood of ACE model
+    MZc <- mxEval(MZ.covariance, twinACEFit)    # expected covariance matrix for MZ's
+    DZc <- mxEval(DZ.covariance, twinACEFit)    # expected covariance matrix for DZ's
+    M <- mxEval(MZ.means, twinACEFit)    # expected mean
+    A <- mxEval(a*a, twinACEFit)    # additive genetic variance, a^2
+    C <- mxEval(c*c, twinACEFit)    # shared environmental variance, c^2
+    E <- mxEval(e*e, twinACEFit)    # unique environmental variance, e^2
+    V <- (A+C+E)    # total variance
+    a2 <- A/V        # standardized A
+    c2 <- C/V        # standardized C
+    e2 <- E/V        # standardized E
+    ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))    # table of estimates
+    LL_ACE <- mxEval(objective, twinACEFit)        # likelihood of ACE model
 
 Alternative Models: an AE Model
 -------------------------------
@@ -282,74 +282,74 @@ To evaluate the significance of each of the model parameters, nested submodels a
 
 .. code-block:: r
 
-	#Run AE model
-	AEModel <- mxModel(twinACEModel, #name="twinAE",
-		mxPath(
-			from=c("A1","C1","E1"), 
-			to="bmi1", 
-			arrows=1, 
-			free=c(T,F,T),
-			values=c(.6,0,.6), 
-			label=c("a","c","e")
-		),
-		mxPath(
-			from=c("A2","C2","E2"), 
-			to="bmi2", 
-			arrows=1, 
-			free=c(T,F,T),
-			values=c(.6,0,.6), 
-			label=c("a","c","e")
-		)
-	)
-	mzModel <- mxModel(AEModel, name="MZ",
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=1
-		),
-		mxData(
-			observed=mzfData, 
-			type="raw"
-		)
-	)
-	dzModel <- mxModel(AEModel, name="DZ", 
-		mxPath(
-			from="A1", 
-			to="A2", 
-			arrows=2, 
-			free=FALSE, 
-			values=.5
-		),
-		mxData(
-			observed=dzfData, 
-			type="raw"
-		)
-	)        
-	twinAEModel <- mxModel("twinAE", mzModel, dzModel,
-		mxAlgebra(
-			expression=MZ.objective + DZ.objective, 
-			name="twin"
-		), 
-		mxAlgebraObjective("twin")
-	)
+    #Run AE model
+    AEModel <- mxModel(twinACEModel, #name="twinAE",
+        mxPath(
+            from=c("A1","C1","E1"), 
+            to="bmi1", 
+            arrows=1, 
+            free=c(T,F,T),
+            values=c(.6,0,.6), 
+            label=c("a","c","e")
+        ),
+        mxPath(
+            from=c("A2","C2","E2"), 
+            to="bmi2", 
+            arrows=1, 
+            free=c(T,F,T),
+            values=c(.6,0,.6), 
+            label=c("a","c","e")
+        )
+    )
+    mzModel <- mxModel(AEModel, name="MZ",
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=1
+        ),
+        mxData(
+            observed=mzfData, 
+            type="raw"
+        )
+    )
+    dzModel <- mxModel(AEModel, name="DZ", 
+        mxPath(
+            from="A1", 
+            to="A2", 
+            arrows=2, 
+            free=FALSE, 
+            values=.5
+        ),
+        mxData(
+            observed=dzfData, 
+            type="raw"
+        )
+    )        
+    twinAEModel <- mxModel("twinAE", mzModel, dzModel,
+        mxAlgebra(
+            expression=MZ.objective + DZ.objective, 
+            name="twin"
+        ), 
+        mxAlgebraObjective("twin")
+    )
 
-	twinAEFit <- mxRun(twinAEModel)
-	
-	
-	MZc <- mxEval(MZ.covariance, twinAEFit)
-	DZc <- mxEval(DZ.covariance, twinAEFit)
-	M <- mxEval(MZ.means, twinAEFit)
-	A <- mxEval(a*a, twinAEFit)
-	C <- mxEval(c*c, twinAEFit)
-	E <- mxEval(e*e, twinAEFit)
-	V <- (A+C+E)
-	a2 <- A/V
-	c2 <- C/V
-	e2 <- E/V
-	AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
-	LL_AE <- mxEval(objective, twinAEFit)
+    twinAEFit <- mxRun(twinAEModel)
+    
+    
+    MZc <- mxEval(MZ.covariance, twinAEFit)
+    DZc <- mxEval(DZ.covariance, twinAEFit)
+    M <- mxEval(MZ.means, twinAEFit)
+    A <- mxEval(a*a, twinAEFit)
+    C <- mxEval(c*c, twinAEFit)
+    E <- mxEval(e*e, twinAEFit)
+    V <- (A+C+E)
+    a2 <- A/V
+    c2 <- C/V
+    e2 <- E/V
+    AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
+    LL_AE <- mxEval(objective, twinAEFit)
 
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models, for the difference in degrees of freedom) to determine the best fitting model, and print relevant output.
 

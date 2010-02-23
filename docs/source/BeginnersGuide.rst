@@ -49,22 +49,24 @@ Below is a figure of a one factor model with five indicators.  The script reads 
 .. code-block:: r
     :linenos:
 
-	require(OpenMx)
+    require(OpenMx)
 
-	data(demoOneFactor)
+    data(demoOneFactor)
     manifests <- names(demoOneFactor)
-	latents <- c("G")
+    latents <- c("G")
 
-	factorModel <- mxModel("One Factor", 
-	    type="RAM",
-		manifestVars = manifests,
-		latentVars = latents,
-		mxPath(from=latents, to=manifests),
-		mxPath(from=manifests, arrows=2),
-		mxPath(from=latents, arrows=2, free=F, values=1.0),
-		mxData(observed=cov(demoOneFactor), type="cov", numObs=500))
+    factorModel <- mxModel(name="One Factor", 
+        type="RAM",
+        manifestVars = manifests,
+        latentVars = latents,
+        mxPath(from=latents, to=manifests),
+        mxPath(from=manifests, arrows=2),
+        mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
+        mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
+    )
 
-	summary(mxRun(factorModel))
+    factorFit <- (mxRun(factorModel)
+    summary(factorFit)
 
 This example uses a RAM-style specification technique. Let's break down what is happening in each section of this example.
 
@@ -120,16 +122,17 @@ Matrix Model Specification
 
     data(demoOneFactor)
 
-    factorModel <- mxModel(name = "One Factor",
-        mxMatrix(type="Full", nrow=5, ncol=1, free=T, values=0.2, name="A"),
-        mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="L"),
-        mxMatrix(type="Diag", nrow=5, ncol=5, free=T, values=1, name="U"),
+    factorModel <- mxModel(name="One Factor",
+        mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="A"),
+        mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+        mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
         mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
         mxMLObjective(covariance="R", dimnames = names(demoOneFactor)),
-        mxData(observed=cov(demoOneFactor), type="cov", numObs=500))
+        mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
+    )
     
-    factorModelFit <- mxRun(factorModel)
-    summary(factorModelFit)
+    factorFit <- mxRun(factorModel)
+    summary(factorFit)
 
 We will now re-create the model from the previous section, but this time we will use a matrix specification technique. The script reads data from disk, creates the one factor model, fits the model to the observed covariances, and prints a summary of the results.  Let's break down what is happening in each section of this example.
 
@@ -198,7 +201,7 @@ The ``mxRun`` function will run a model through the optimizer.  The return value
 Alternative Formulation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Rather than adding the paths/matrices/algebras, objective function and data as arguments to the ``mxModel``, which we will use primarily throughout the documentation, we can also create separate objects for each of the parts of the model, which can then be combined in an mxModel statement at the end.  To repeat ourselves, the name of an OpenMx entity bears no relation to the R variable that is used to identify the entity. In our example, the variable ``matrixA`` stores a value that is a MxMatrix object with the name “A”.
+Rather than adding the paths/matrices/algebras, objective function and data as arguments to the ``mxModel``, which we will use primarily throughout the documentation, we can also create separate objects for each of the parts of the model, which can then be combined in an ``mxModel`` statement at the end.  To repeat ourselves, the name of an OpenMx entity bears no relation to the R variable that is used to identify the entity. In our example, the variable ``matrixA`` stores a value that is a MxMatrix object with the name “A”.
  
 .. code-block:: r
     :linenos:
@@ -207,11 +210,11 @@ Rather than adding the paths/matrices/algebras, objective function and data as a
 
     data(demoOneFactor)
 
-    factorModel <- mxModel(name = "One Factor")
+    factorModel <- mxModel(name="One Factor")
 
-    matrixA <-  mxMatrix(type="Full", nrow=5, ncol=1, free=T, values=0.2, name="A")
-    matrixL <-  mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="L")
-    matrixU <-  mxMatrix(type="Diag", nrow=5, ncol=5, free=T, values=1, name="U")
+    matrixA <-  mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="A")
+    matrixL <-  mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L")
+    matrixU <-  mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U")
 
     algebraR <- mxAlgebra(expression=A %*% L %*% t(A) + U, name="R")
 
@@ -219,8 +222,8 @@ Rather than adding the paths/matrices/algebras, objective function and data as a
     data <- mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 
     factorModel <- mxModel(factorModel, matrixA, matrixL, matrixU, algebraR, objective, data)
-    
-    factorModelFit <- mxRun(factorModel)
-    summary(factorModelFit)
 
-Note that lines 5 and 17 could have been combined with the following call: ``factorModel <- mxModel(matrixA, matrixL, matrixU, algebraR, objective, data, name = "One Factor")``.
+    factorFit <- mxRun(factorModel)
+    summary(factorFit)
+
+Note that lines 5 and 17 could have been combined with the following call: ``factorModel <- mxModel(matrixA, matrixL, matrixU, algebraR, objective, data, name="One Factor")``.

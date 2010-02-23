@@ -47,14 +47,14 @@ Our first step to running this model is to put include the data to be analyzed. 
 
 .. code-block:: r
 
-	myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
+    myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
 
 The names of the variables provided by the header row can be displayed with the names() function.
 
 .. code-block:: r
 
-	> names(myRegDataRaw)
-	[1] "w" "x" "y" "z"
+    > names(myRegDataRaw)
+    [1] "w" "x" "y" "z"
 
 As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we'll select only the variables we want and place them back into our data object. That can be done with the R code below.
 
@@ -62,7 +62,7 @@ As you can see, our data has four variables in it. However, our model only conta
 
 .. code-block:: r
 
-	SimpleDataRaw <- myRegDataRaw[,c("x","y")]
+    SimpleDataRaw <- myRegDataRaw[,c("x","y")]
 
 For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we'll include a vector of means in a separate object. Data is selected in the same way as before.
 
@@ -70,23 +70,23 @@ For covariance data, we do something very similar. We create an object to house 
 
 .. code-block:: r
 
-	myRegDataCov <- matrix(
-		c(0.808,-0.110, 0.089, 0.361,
-		 -0.110, 1.116, 0.539, 0.289,
-		  0.089, 0.539, 0.933, 0.312,
-		  0.361, 0.289, 0.312, 0.836),
-		nrow=4,
-		dimnames=list(
-			c("w","x","y","z"),
-			c("w","x","y","z"))
-	)
+    myRegDataCov <- matrix(
+        c(0.808,-0.110, 0.089, 0.361,
+         -0.110, 1.116, 0.539, 0.289,
+          0.089, 0.539, 0.933, 0.312,
+          0.361, 0.289, 0.312, 0.836),
+        nrow=4,
+        dimnames=list(
+            c("w","x","y","z"),
+            c("w","x","y","z"))
+    )
 
-	SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
+    SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]    
 
-	myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+    myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
-	SimpleDataMeans <- myRegDataMeans[c(2,3)]
-	
+    SimpleDataMeans <- myRegDataMeans[c(2,3)]
+    
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
@@ -94,60 +94,60 @@ The following code contains all of the components of our model. Before running a
 
 .. code-block:: r
 
-	require(OpenMx)
+    require(OpenMx)
 
-	uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
-		mxData(
-			observed=SimpleRegRaw, 
-			type="raw"
-		),
-		# asymmetric paths
-		mxMatrix(
-			type="Full", 
-			nrow=2, 
-			ncol=2,
-			free=c(F, F,
-			       F, F),
-			values=c(0, 0,
-			         1, 0),
-			labels=c(NA,     NA,
-			        "beta1", NA),
-			byrow=TRUE,
-			name="A"
-		),
-		# symmetric paths
-		mxMatrix(
-			type="Symm", 
-			nrow=2, 
-			ncol=2, 
-			values=c(1, 0,
-			         0, 1),
-			free=c(T, F,
-			       F, T),
-			labels=c("varx", NA,
-			          NA,    "residual"),
-			byrow=TRUE,
-			name="S"
-		),
-		# filter matrix
-		mxMatrix(
-			type="Iden",  
-			nrow=2, 
-			ncol=2,
-			name="F",
-			dimnames=list(c("x","y"),c("x","y"))
-		),
-		# means
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=2,
-			free=c(T, T),
-			values=c(0, 0),
-			labels=c("meanx", "beta0"),
-			name="M"),
-		mxRAMObjective("A", "S", "F", "M")
-	)
+    uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
+        mxData(
+            observed=SimpleRegRaw, 
+            type="raw"
+        ),
+        # asymmetric paths
+        mxMatrix(
+            type="Full", 
+            nrow=2, 
+            ncol=2,
+            free=c(F, F,
+                   F, F),
+            values=c(0, 0,
+                     1, 0),
+            labels=c(NA,     NA,
+                    "beta1", NA),
+            byrow=TRUE,
+            name="A"
+        ),
+        # symmetric paths
+        mxMatrix(
+            type="Symm", 
+            nrow=2, 
+            ncol=2, 
+            values=c(1, 0,
+                     0, 1),
+            free=c(T, F,
+                   F, T),
+            labels=c("varx", NA,
+                      NA,    "residual"),
+            byrow=TRUE,
+            name="S"
+        ),
+        # filter matrix
+        mxMatrix(
+            type="Iden",  
+            nrow=2, 
+            ncol=2,
+            name="F",
+            dimnames=list(c("x","y"),c("x","y"))
+        ),
+        # means
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=2,
+            free=c(T, T),
+            values=c(0, 0),
+            labels=c("meanx", "beta0"),
+            name="M"),
+        mxRAMObjective("A", "S", "F", "M")
+    )
       
 This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression -- Matrix Specification``.
 
@@ -155,21 +155,21 @@ The second component of our code creates an ``MxData`` object. The example above
 
 .. code-block:: r
 
-	mxData(
-		observed=SimpleDataRaw, 
-		type="raw"
-	)
+    mxData(
+        observed=SimpleDataRaw, 
+        type="raw"
+    )
   
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
 
 .. code-block:: r
 
-	mxData(
-		observed=SimpleDataCov, 
-		type="cov",
-		numObs=100,
-		means=SimpleRegMeans
-	)  
+    mxData(
+        observed=SimpleDataCov, 
+        type="cov",
+        numObs=100,
+        means=SimpleRegMeans
+    )  
 
 The next four functions specify the four matricies that make up the RAM specified model. Each of these matrices defines part of the relationship between the observed variables. These matrices are then combined by the objective function, which follows the four ``mxMatrix`` functions, to define the expected covariances and means for the supplied data. In all of the included matrices, the order of variables matches those in the data. Therefore, the first row and column of all matrices corresponds to the *x* variable, while the second row and column of all matrices corresponds to the *y* variable. 
 
@@ -177,39 +177,39 @@ The **A** matrix is created first. This matrix specifies all of the assymetric p
 
 .. code-block:: r
 
-	# asymmetric paths
-	mxMatrix(
-		type="Full", 
-		nrow=2, 
-		ncol=2,
-		free=c(F, F,
-		       F, F),
-		values=c(0, 0,
-		         1, 0),
-		labels=c(NA,     NA,
-		        "beta1", NA),
-		byrow=TRUE,
-		name="A"
-	)
+    # asymmetric paths
+    mxMatrix(
+        type="Full", 
+        nrow=2, 
+        ncol=2,
+        free=c(F, F,
+               F, F),
+        values=c(0, 0,
+                 1, 0),
+        labels=c(NA,     NA,
+                "beta1", NA),
+        byrow=TRUE,
+        name="A"
+    )
   
 The second ``mxMatrix`` function specifies the **S** matrix. This matrix specifies all of the symmetric paths or covariances among the variables. By definition, this matrix is symmetric. A free parameter in the **S** matrix represents a variance or covariance between the variables represented by the row and column that parameter is in. In the code below, two free parameters are specified. The free parameter in the first row and column of the **S** matrix is the variance of *x* (labeled ``"varx"``), while the free parameter in the second row and column is the residual variance of *y* (labeled ``"residual"``). This matrix is named ``"S"``.
 
 .. code-block:: r
 
-	# symmetric paths
-	mxMatrix(
-		type="Symm", 
-		nrow=2, 
-		ncol=2, 
-		values=c(1, 0,
-		         0, 1),
-		free=c(T, F,
-		       F, T),
-		labels=c("varx", NA,
-		          NA,    "residual"),
-		byrow=TRUE,
-		name="S"
-	)
+    # symmetric paths
+    mxMatrix(
+        type="Symm", 
+        nrow=2, 
+        ncol=2, 
+        values=c(1, 0,
+                 0, 1),
+        free=c(T, F,
+               F, T),
+        labels=c("varx", NA,
+                  NA,    "residual"),
+        byrow=TRUE,
+        name="S"
+    )
   
 The third ``mxMatrix`` function specifies the **F** matrix. This matrix is used to filter latent variables out of the expected covariance of the manifest variables, or to reorder the manifest variables. When there are no latent variables in a model and the order of manifest variables is the same in the model as in the data, then this filter matrix is simply an identity matrix.  
 
@@ -219,53 +219,53 @@ There are no free parameters in any **F** matrix.
 
 .. code-block:: r
 
-	# filter matrix
-	mxMatrix(
-		type="Iden", 
-		nrow=2, 
-		ncol=2,
-		name="F",
-		dimnames=list(c("x","y"),c("x","y"))
-	)
+    # filter matrix
+    mxMatrix(
+        type="Iden", 
+        nrow=2, 
+        ncol=2,
+        name="F",
+        dimnames=list(c("x","y"),c("x","y"))
+    )
   
 The fourth and final ``mxMatrix`` function specifies the **M** matrix. This matrix is used to specify the means and intercepts of our model. Exogenous or independent variables receive means, while endogenous or dependent variables get intercepts, or means conditional on regression on other variables. This matrix contains only one row. This matrix consists of two free parameters; the mean of *x* (labeled ``"meanx"``) and the intercept of *y* (labeled ``"beta0"``). This matrix gives starting values of 1 for both parameters, and is named ``"M"``.
 
 .. code-block:: r
 
-	# means
-	mxMatrix(
-	    type="Full", 
-	    nrow=1, 
-	    ncol=2,
-	    free=c(T, T),
-	    values=c(0, 0),
-	    labels=c("meanx", "beta0"),
-	    name="M"
-	)
+    # means
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=2,
+        free=c(T, T),
+        values=c(0, 0),
+        labels=c("meanx", "beta0"),
+        name="M"
+    )
           
 The final part of this model is the objective function. This defines both how the specified matrices combine to create the expected covariance matrix of the data, as well as the fit function to be minimized. In a RAM specified model, the expected covariance matrix is defined as:       
           
 .. math::
-	:nowrap:
+    :nowrap:
    
-	\begin{eqnarray*} 
-	ExpCovariance = F * (I - A)^{-1} * S * ((I - A)^{-1})' * F'
-	\end{eqnarray*}        
+    \begin{eqnarray*} 
+    ExpCovariance = F * (I - A)^{-1} * S * ((I - A)^{-1})' * F'
+    \end{eqnarray*}        
 
 The expected means are defined as:
 
 .. math::
-	:nowrap:
+    :nowrap:
 
-	\begin{eqnarray*} 
-	ExpMean = F * (I - A)^{-1} * M 
-	\end{eqnarray*} 
+    \begin{eqnarray*} 
+    ExpMean = F * (I - A)^{-1} * M 
+    \end{eqnarray*} 
 
 The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the ``A``, ``S``, ``F`` and ``M`` matrices in your model.
 
 .. code-block:: r
    
-	mxRAMObjective("A", "S", "F", "M")
+    mxRAMObjective("A", "S", "F", "M")
 
 The model now includes an observed covariance matrix (i.e., data) and the matrices and objective function required to define the expected covariance matrix and estimate parameters.
 
@@ -276,14 +276,14 @@ We've created an ``MxModel`` object, and placed it into an object or variable na
 
 .. code-block:: r
 
-	uniRegFit <- mxRun(uniRegModel)
+    uniRegFit <- mxRun(uniRegModel)
 
 The ``@output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``summary()`` function, as shown here.
 
 .. code-block:: r
 
-	uniRegFit@output
-	summary(uniRegFit)
+    uniRegFit@output
+    summary(uniRegFit)
 
 
 Multiple Regression
@@ -307,75 +307,75 @@ We prepare our data the same way as before, selecting three variables instead of
 
 .. code-block:: r
 
-	MultipleDataRaw <- myRegDataRaw[,c("x","y","z")]
+    MultipleDataRaw <- myRegDataRaw[,c("x","y","z")]
 
-	MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
+    MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]    
 
-	MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
+    MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 Now, we can move on to our code. It is identical in structure to our simple regression code, containing the same **A**, **S**, **F** and **M** matrices. With the addition of a third variables, the **A**, **S** and **F** matrices become 3x3, while the **M** matrix becomes a 1x3 matrix.
 
 .. code-block:: r
 
-	multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
-		mxData(
-			MultipleDataRaw,
-			type="raw"
-		),
-		# asymmetric paths
-		mxMatrix(
-			type="Full",
-			nrow=3,
-			ncol=3,
-			values=c(0,0,0,
-			         1,0,1,
-			         0,0,0),
-			free=c(F, F, F,
-			       T, F, T,
-			       F, F, F),
-			labels=c(NA,     NA, NA,
-			        "betax", NA,"betaz",
-			         NA,     NA, NA),
-			byrow=TRUE,
-			name = "A"
-		),
-		# symmetric paths
-		mxMatrix(
-			type="Symm", 
-			nrow=3, 
-			ncol=3, 
-			values=c(1, 0, .5,
-			         0, 1, 0,
-			        .5, 0, 1),
-			free=c(T, F, T,
-			       F, T, F,
-			       T, F, T),
-			labels=c("varx",  NA,         "covxz",
-			          NA,    "residual",   NA,
-			         "covxz", NA,         "varz"),
-			byrow=TRUE,
-			name="S"
-		),
-		# filter matrix
-		mxMatrix(
-			type="Iden", 
-			nrow=3, 
-			ncol=3,
-			name="F",
-			dimnames=list(c("x","y","z"),c("x","y","z"))			
-		),
-		# means
-		mxMatrix(
-			type="Full", 
-			nrow=1,
-			ncol=3,
-			values=c(0,0,0),
-			free=c(T,T,T),
-			labels=c("meanx","beta0","meanz"),
-			name="M"
-		),
-	    mxRAMObjective("A","S","F","M")
-	)
+    multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
+        mxData(
+            MultipleDataRaw,
+            type="raw"
+        ),
+        # asymmetric paths
+        mxMatrix(
+            type="Full",
+            nrow=3,
+            ncol=3,
+            values=c(0,0,0,
+                     1,0,1,
+                     0,0,0),
+            free=c(F, F, F,
+                   T, F, T,
+                   F, F, F),
+            labels=c(NA,     NA, NA,
+                    "betax", NA,"betaz",
+                     NA,     NA, NA),
+            byrow=TRUE,
+            name = "A"
+        ),
+        # symmetric paths
+        mxMatrix(
+            type="Symm", 
+            nrow=3, 
+            ncol=3, 
+            values=c(1, 0, .5,
+                     0, 1, 0,
+                    .5, 0, 1),
+            free=c(T, F, T,
+                   F, T, F,
+                   T, F, T),
+            labels=c("varx",  NA,         "covxz",
+                      NA,    "residual",   NA,
+                     "covxz", NA,         "varz"),
+            byrow=TRUE,
+            name="S"
+        ),
+        # filter matrix
+        mxMatrix(
+            type="Iden", 
+            nrow=3, 
+            ncol=3,
+            name="F",
+            dimnames=list(c("x","y","z"),c("x","y","z"))            
+        ),
+        # means
+        mxMatrix(
+            type="Full", 
+            nrow=1,
+            ncol=3,
+            values=c(0,0,0),
+            free=c(T,T,T),
+            labels=c("meanx","beta0","meanz"),
+            name="M"
+        ),
+        mxRAMObjective("A","S","F","M")
+    )
 
 The ``mxData`` function now takes a different data object (``MultipleDataRaw`` replaces ``SingleDataRaw``, adding an additional variable), but is otherwise unchanged. The ``mxRAMObjective`` does not change. The only differences between this model and the simple regression script can be found in the **A**, **S**, **F** and **M** matrices, which have expanded to accommodate a second independent variable.
 
@@ -383,23 +383,23 @@ The A matrix now contains two free parameters, representing the regressions of t
 
 .. code-block:: r
 
-	# asymmetric paths
-	mxMatrix(
-		type="Full",
-		nrow=3,
-		ncol=3,
-		values=c(0,0,0,
-		         1,0,1,
-		         0,0,0),
-		free=c(F, F, F,
-		       T, F, T,
-		       F, F, F),
-		labels=c(NA,     NA, NA,
-		        "betax", NA,"betaz",
-		         NA,     NA, NA),
-		byrow=TRUE,
-		name = "A"
-	)
+    # asymmetric paths
+    mxMatrix(
+        type="Full",
+        nrow=3,
+        ncol=3,
+        values=c(0,0,0,
+                 1,0,1,
+                 0,0,0),
+        free=c(F, F, F,
+               T, F, T,
+               F, F, F),
+        labels=c(NA,     NA, NA,
+                "betax", NA,"betaz",
+                 NA,     NA, NA),
+        byrow=TRUE,
+        name = "A"
+    )
       
 We've made a similar changes in the other matrices. The **S** matrix includes not only a variance term for the *z* variable, but also a covariance between the two independent variables. The **F** matrix still does not contain free parameters, but has expanded in size.  The **M** matrix includes an additional free parameter for the mean of *z*.
 
@@ -428,90 +428,90 @@ Data import for this analysis will actually be slightly simpler than before. The
 
 .. code-block:: r
 
-	myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+    myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
 
-	myRegDataCov <- matrix(
-	    c(0.808,-0.110, 0.089, 0.361,
-	     -0.110, 1.116, 0.539, 0.289,
-	      0.089, 0.539, 0.933, 0.312,
-	      0.361, 0.289, 0.312, 0.836),
-	    nrow=4,
-	    dimnames=list(
-	        c("w","x","y","z"),
-	        c("w","x","y","z"))
-	)
+    myRegDataCov <- matrix(
+        c(0.808,-0.110, 0.089, 0.361,
+         -0.110, 1.116, 0.539, 0.289,
+          0.089, 0.539, 0.933, 0.312,
+          0.361, 0.289, 0.312, 0.836),
+        nrow=4,
+        dimnames=list(
+            c("w","x","y","z"),
+            c("w","x","y","z"))
+    )
 
-	myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+    myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxRAMObjective`` again refers to the A, S, F and M matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order 4x4, and the **M** matrix now contains one row and four columns.
 
 .. code-block:: r
 
-	multivariateRegModel<-mxModel("Multiple Regression -- Matrix Specification", 
-		mxData(
-			myRegDataRaw,
-			type="raw"
-		),
-		# asymmetric paths
-		mxMatrix(
-			type="Full", 
-			nrow=4, 
-			ncol=4,
-			values=c(0,1,0,1,
-			         0,0,0,0,
-			         0,1,0,1,
-			         0,0,0,0),
-			free=c(F, T, F, T,
-			       F, F, F, F,
-			       F, T, F, T,
-			       F, F, F, F),
-			labels=c(NA, "betawx", NA, "betawz",
-			         NA,  NA,     NA,  NA, 
-			         NA, "betayx", NA, "betayz",
-			         NA,  NA,     NA,  NA),
-			byrow=TRUE,
-			name="A"
-		),
-		# symmetric paths
-		mxMatrix(
-			type="Symm", 
-			nrow=4, 
-			ncol=4, 
-			values=c(1,  0, 0,  0,
-			         0,  1, 0, .5,
-			         0,  0, 1,  0,
-			         0, .5, 0,  1),
-			free=c(T, F, F, F,
-			       F, T, F, T,
-			       F, F, T, T,
-			       F, T, F, T),
-			labels=c("residualw",  NA,     NA,         NA,
-			          NA,         "varx",  NA,        "covxz",
-			          NA,          NA,    "residualy", NA,
-			          NA,         "covxz", NA,        "varz"),
-			byrow=TRUE,
-			name="S"
-		),
-		# filter matrix
-		mxMatrix(
-			type="Iden", 
-			nrow=4, 
-			ncol=4,
-			name="F",
-			dimnames=list(c("w", "x", "y", "z"),c("w", "x", "y", "z"))
-		),
-		# means
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=4,
-			values=c(0,0,0,0),
-			free=c(T,T,T,T),
-			labels=c("betaw","meanx","betay","meanz"),
-			name="M"
-		),
-		mxRAMObjective("A","S","F","M")
-	)
+    multivariateRegModel<-mxModel("Multiple Regression -- Matrix Specification", 
+        mxData(
+            myRegDataRaw,
+            type="raw"
+        ),
+        # asymmetric paths
+        mxMatrix(
+            type="Full", 
+            nrow=4, 
+            ncol=4,
+            values=c(0,1,0,1,
+                     0,0,0,0,
+                     0,1,0,1,
+                     0,0,0,0),
+            free=c(F, T, F, T,
+                   F, F, F, F,
+                   F, T, F, T,
+                   F, F, F, F),
+            labels=c(NA, "betawx", NA, "betawz",
+                     NA,  NA,     NA,  NA, 
+                     NA, "betayx", NA, "betayz",
+                     NA,  NA,     NA,  NA),
+            byrow=TRUE,
+            name="A"
+        ),
+        # symmetric paths
+        mxMatrix(
+            type="Symm", 
+            nrow=4, 
+            ncol=4, 
+            values=c(1,  0, 0,  0,
+                     0,  1, 0, .5,
+                     0,  0, 1,  0,
+                     0, .5, 0,  1),
+            free=c(T, F, F, F,
+                   F, T, F, T,
+                   F, F, T, T,
+                   F, T, F, T),
+            labels=c("residualw",  NA,     NA,         NA,
+                      NA,         "varx",  NA,        "covxz",
+                      NA,          NA,    "residualy", NA,
+                      NA,         "covxz", NA,        "varz"),
+            byrow=TRUE,
+            name="S"
+        ),
+        # filter matrix
+        mxMatrix(
+            type="Iden", 
+            nrow=4, 
+            ncol=4,
+            name="F",
+            dimnames=list(c("w", "x", "y", "z"),c("w", "x", "y", "z"))
+        ),
+        # means
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=4,
+            values=c(0,0,0,0),
+            free=c(T,T,T,T),
+            labels=c("betaw","meanx","betay","meanz"),
+            name="M"
+        ),
+        mxRAMObjective("A","S","F","M")
+    )
 
 The only additional components to our ``mxMatrix`` functions are the inclusion of the *w* variable, which becomes the first row and column of all matrices. The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary()`` function to run, view and summarize the completed model.
 

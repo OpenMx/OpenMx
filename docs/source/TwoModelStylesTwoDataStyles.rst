@@ -65,24 +65,24 @@ The model estimates the mean and the variance of the variable X.  We call this m
 
 .. code-block:: r
 
-	#example 1: Saturated Model with Cov Matrices and Path-Style Input
-	univSatModel1 <- mxModel("univSat1",
-	    manifestVars= selVars,
-	    mxPath(
-	        from=c("X"), 
-	        arrows=2, 
-	        free=T, 
-	        values=1, 
-	        lbound=.01, 
-	        labels="vX"
-	    ),
-	    mxData(
-	        observed=var(testData), 
-	        type="cov", 
-	        numObs=1000 
-	    ),
-	    type="RAM"
-	)
+    #example 1: Saturated Model with Cov Matrices and Path-Style Input
+    univSatModel1 <- mxModel("univSat1",
+        manifestVars= selVars,
+        mxPath(
+            from=c("X"), 
+            arrows=2, 
+            free=T, 
+            values=1, 
+            lbound=.01, 
+            labels="vX"
+        ),
+        mxData(
+            observed=var(testData), 
+            type="cov", 
+            numObs=1000 
+        ),
+        type="RAM"
+    )
 
 Each of of the commands are discussed separately beside excerpts of the OpenMx code.  We use the ``mxModel`` command to specify the model.  Its first argument is a name.  All arguments are separated by commas.
 
@@ -94,32 +94,32 @@ When using the path specification, it is easiest to work from an existing path d
 
 .. code-block:: r
 
-    	manifestVars=selVars ,
-    	
-    	mxPath(
-    	    from=c("X"), 
-    	    arrows=2, 
-    	    free=T, 
-    	    values=1, 
-    	    lbound=.01, 
-    	    labels="vX"
-    	),
-    	
+        manifestVars=selVars ,
+        
+        mxPath(
+            from=c("X"), 
+            arrows=2, 
+            free=T, 
+            values=1, 
+            lbound=.01, 
+            labels="vX"
+        ),
+        
 We specify which data the model is fitted to with the ``mxData`` command.  Its first argument, ``observed=``, reads in the data from an R matrix or data.frame, with the ``type=`` given in the second argument.  Given we read a covariance matrix here, we use the ``var()`` function (as there is no covariance for a single variable).  When summary statistics are used as input, the number of observations (``numObs=``) needs to be supplied.
 
 .. code-block:: r
 
-    	mxData(
-    	    observed=var(testData), 
-    	    type="cov", 
-    	    numObs=1000
-    	),
+        mxData(
+            observed=var(testData), 
+            type="cov", 
+            numObs=1000
+        ),
 
 With the path specification, the 'RAM' objective function is used by default, as indicated by the ``type`` argument.  Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see refs].
 
 .. code-block:: r
 
-    	type="RAM"
+        type="RAM"
     )
 
 Model Fitting
@@ -144,15 +144,15 @@ The output of these objects like as follows:
 
 .. code-block:: r
 
-        > EC1
+    > EC1
                  [,1]
         [1,] 1.062112
-        > LL1
+    > LL1
                  [,1]
         [1,] 1.060259
-        > SL1
+    > SL1
         [1] 1.060259
-        > Chi1
+    > Chi1
                      [,1]
         [1,] 2.220446e-16
 
@@ -161,25 +161,25 @@ In addition to providing a covariance matrix as input data, we could add a means
 
 .. code-block:: r
 
-    	mxPath(
-    	    from="one", 
-    	    to="X", 
-    	    arrows=1, 
-    	    free=T, 
-    	    values=0, 
-    	    labels="mX"
-    	),
+        mxPath(
+            from="one", 
+            to="X", 
+            arrows=1, 
+            free=T, 
+            values=0, 
+            labels="mX"
+        ),
 
 The other required change is in the ``mxData`` command, which now takes a fourth argument ``means`` for the vector of observed means from the data calculated using the R ``mean`` command.
 
 .. code-block:: r
 
-    	mxData(
-    	    observed=matrix(var(testData),1,1), 
-    	    type="cov", 
-    	    numObs=1000, 
-    	    means=mean(testData)
-    	),
+        mxData(
+            observed=matrix(var(testData),1,1), 
+            type="cov", 
+            numObs=1000, 
+            means=mean(testData)
+        ),
 
 When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be referred to in the output in a similar was as the expected variance before.
 
@@ -197,29 +197,29 @@ Instead of fitting models to summary statistics, it is now popular to fit models
 
 
 ..  
-	With RAM path specification, and raw data input, OpenMx has a default model for the means, in
-	which every observed variable has a free parameter for its mean [NB this should change in future
-	versions to require means model].  
+    With RAM path specification, and raw data input, OpenMx has a default model for the means, in
+    which every observed variable has a free parameter for its mean [NB this should change in future
+    versions to require means model].  
 
 The only change required is in the ``mxData`` command, which now takes either an R matrix or a data.frame with the observed data as first argument, and the ``type="raw"`` as the second argument.
 
 .. code-block:: r
 
-    	mxData(
-    	    observed=testData, 
-    	    type="raw"
-    	)
+        mxData(
+            observed=testData, 
+            type="raw"
+        )
 
 A nice feature of OpenMx is that an existing model can be easily modified.  So ``univSatModel1`` can be modified  as follows:
 
 .. code-block:: r
 
-	univRawModel1 <- mxModel(univSatModel1,
-		mxData(
-    	    observed=testData, 
-    	    type="raw"
-	    )
-	)
+    univRawModel1 <- mxModel(univSatModel1,
+        mxData(
+            observed=testData, 
+            type="raw"
+        )
+    )
 
 The resulting model can be run as usual using ``mxRun``:
 
@@ -231,13 +231,13 @@ Note that the output now includes the expected means, as well as the expected co
 
 .. code-block:: r
 
-        > EM2
+    > EM2
                    [,1]
         [1,] 0.01680498
-        > EC2
+    > EC2
                  [,1]
         [1,] 1.061049
-        > LL2
+    > LL2
                  [,1]
         [1,] 2897.135
 
@@ -251,53 +251,53 @@ Starting with the model fitted to the summary covariance matrix, we need to crea
 
 .. code-block:: r
 
-	univSatModel3 <- mxModel("univSat3",
-		mxMatrix(
-			type="Symm", 
-			nrow=1, 
-			ncol=1, 
-			free=T, 
-			values=1, 
-			name="expCov"
-		),
-		mxData(
-			observed=var(testData), 
-			type="cov", 
-			numObs=1000
-		),
-		mxMLObjective(
-			covariance="expCov",
-			dimnames=selVars
-		), 
-	)
+    univSatModel3 <- mxModel("univSat3",
+        mxMatrix(
+            type="Symm", 
+            nrow=1, 
+            ncol=1, 
+            free=T, 
+            values=1, 
+            name="expCov"
+        ),
+        mxData(
+            observed=var(testData), 
+            type="cov", 
+            numObs=1000
+        ),
+        mxMLObjective(
+            covariance="expCov",
+            dimnames=selVars
+        ), 
+    )
 
-	univSatFit3 <- mxRun(univSatModel3)
+    univSatFit3 <- mxRun(univSatModel3)
 
 A means vector can also be added as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is also required to specify the vector of expected means. In this case a matrix of ``type='Full'``, with ``1`` row and column, is assigned ``free=T`` with start value ``0``, and the name ``expMean``.  The second change is an additional argument ``mean`` to the ``mxMLObjective`` function for the expected mean, here ``expMean``.
 
 .. code-block:: r
 
-     	....
-	     	mxMatrix(
-	     	    type="Full", 
-	     	    nrow=1, 
-	     	    ncol=1, 
-	     	    free=T, 
-	     	    values=0, 
-	     	    name="expMean"
-	     	),
-	     	mxData(
-	     	    observed=var(testData), 
-	     	    type="cov", 
-	     	    numObs=1000, 
-	     	    means=mean(testData)
-	     	),
-	     	mxMLObjective(
-	     	    covariance="expCov",
-	     	    means="expMean",
-	     	    dimnames=selVars
-			)
-     	)
+        ....
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=1, 
+            free=T, 
+            values=0, 
+            name="expMean"
+        ),
+        mxData(
+            observed=var(testData), 
+            type="cov", 
+            numObs=1000, 
+            means=mean(testData)
+        ),
+        mxMLObjective(
+            covariance="expCov",
+            means="expMean",
+            dimnames=selVars
+        )
+    )
 
 
 Raw Data and Matrix-style Input
@@ -307,34 +307,34 @@ Finally, if we want to use the matrix specification with raw data, we again spec
 
 .. code-block:: r
 
-	univSatModel4 <- mxModel("univSat4",
-		mxMatrix(
-			type="Symm", 
-			nrow=1, 
-			ncol=1, 
-			free=T, 
-			values=1, 
-			name="expCov"
-		),
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=T, 
-			values=0, 
-			name="expMean"
-		),
-		mxData(
-			observed=testData,
-			type="raw"
-		),
-		mxFIMLObjective(
-			covariance="expCov",
-			means="expMean",
-			dimnames=selVars
-		)
-	)
-     	
+    univSatModel4 <- mxModel("univSat4",
+        mxMatrix(
+            type="Symm", 
+            nrow=1, 
+            ncol=1, 
+            free=T, 
+            values=1, 
+            name="expCov"
+        ),
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=1, 
+            free=T, 
+            values=0, 
+            name="expMean"
+        ),
+        mxData(
+            observed=testData,
+            type="raw"
+        ),
+        mxFIMLObjective(
+            covariance="expCov",
+            means="expMean",
+            dimnames=selVars
+        )
+    )
+         
 Note that the output generated for the paths and matrices specification are completely equivalent.
 
 
@@ -373,38 +373,38 @@ The ``mxPath`` commands look as follows.  The first one specifies two-headed arr
 
 .. code-block:: r
 
-	....
-       	mxPath(
-       	    from=c("X", "Y"), 
-       	    arrows=2, 
-       	    free=T, 
-       	    values=1, 
-       	    lbound=.01, 
-       	    labels=c("varX","varY")
-       	)
-    	mxPath(
-    	    from="X", 
-    	    to="Y", 
-    	    arrows=2, 
-    	    free=T, 
-    	    values=.2, 
-    	    lbound=.01, 
-    	    labels="covXY"
-    	)
+        ....
+        mxPath(
+            from=c("X", "Y"), 
+            arrows=2, 
+            free=T, 
+            values=1, 
+            lbound=.01, 
+            labels=c("varX","varY")
+        )
+        mxPath(
+            from="X", 
+            to="Y", 
+            arrows=2, 
+            free=T, 
+            values=.2, 
+            lbound=.01, 
+            labels="covXY"
+        )
 
 When observed means are included in addition to the observed covariance matrix, we add an ``mxPath`` command with single-headed arrows from ``one`` to the variables to represent the two means.
 
 .. code-block:: r
 
-	....
-    	mxPath(
-    	    from="one", 
-    	    to=c("X", "Y"), 
-    	    arrows=1, 
-    	    free=T, 
-    	    values=.01, 
-    	    labels=c("meanX","meanY")
-    	)
+        ....
+        mxPath(
+            from="one", 
+            to=c("X", "Y"), 
+            arrows=1, 
+            free=T, 
+            values=.01, 
+            labels=c("meanX","meanY")
+        )
 
 Changes for fitting to raw data just require the ``mxData`` command to read in the data directly with ``type=raw``.
 
@@ -412,27 +412,27 @@ Using matrices instead of paths, our ``mxMatrix`` command for the expected covar
 
 .. code-block:: r
 
-	....
-     	mxMatrix(
-     	    type="Symm", 
-     	    nrow=2, 
-     	    ncol=2, 
-     	    free=T, 
-     	    values=c(1,.5,1), 
-      	    name="expCov"
-     	)
+        ....
+        mxMatrix(
+            type="Symm", 
+            nrow=2, 
+            ncol=2, 
+            free=T, 
+            values=c(1,.5,1), 
+            name="expCov"
+        )
 
 The optional expected means command specifies a 1x2 row vector with two free parameters, each given a 0 start value.
 
 .. code-block:: r
 
-	....
-     	mxMatrix(
-     	    type="Full", 
-     	    nrow=1, 
-     	    ncol=2, 
-     	    free=T, 
-     	    values=c(0,0), 
+        ....
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=2, 
+            free=T, 
+            values=c(0,0), 
             name="expMean"
         )
 
@@ -440,18 +440,18 @@ Combining these two ``mxMatrix`` commands with the raw data, specified in the ``
 
 .. code-block:: r
 
-	....
-     	mxMatrix(
-     	    type="Lower", 
-     	    nrow=2, 
-     	    ncol=2, 
-     	    free=T, 
-     	    values=.5, 
-     	    name="Chol"
-     	)
-    	mxAlgebra(
-    	    Chol %*% t(Chol), 
-    	    name="expCov",
-    	)
+        ....
+        mxMatrix(
+            type="Lower", 
+            nrow=2, 
+            ncol=2, 
+            free=T, 
+            values=.5, 
+            name="Chol"
+        )
+        mxAlgebra(
+            Chol %*% t(Chol), 
+            name="expCov",
+        )
 
 The following sections describe OpenMx examples in detail beginning with regression, factor analysis, time series analysis, multiple group models, including twin models, and analysis using definition variables. Again each is presented in both path and matrix styles and where relevant, contrasting data from covariance matrices versus raw data input are also illustrated.  Additional examples will be added as they are implemented in OpenMx.

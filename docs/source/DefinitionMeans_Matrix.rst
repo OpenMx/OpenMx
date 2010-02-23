@@ -45,25 +45,25 @@ Our first step to running this model is to simulate the data to be analyzed. Eac
 
 .. code-block:: r
 
-	library(MASS)  # to get hold of mvrnorm function 
+    library(MASS)  # to get hold of mvrnorm function 
 
-	set.seed(200)  # to make the simulation repeatable
-	N=500          # sample size, per group
+    set.seed(200)  # to make the simulation repeatable
+    N=500          # sample size, per group
 
-	Sigma <- matrix(c(1,.5,.5,1),2,2)
-	group1<-mvrnorm(N, c(1,2), Sigma)
-	group2<-mvrnorm(N, c(0,0), Sigma)
+    Sigma <- matrix(c(1,.5,.5,1),2,2)
+    group1<-mvrnorm(N, c(1,2), Sigma)
+    group2<-mvrnorm(N, c(0,0), Sigma)
 
 We make use of the superb R function ``mvrnorm`` in order to simulate N=500 records of data for each group.  These observations correlate .5 and have a variance of 1, per the matrix Sigma.  The means of *x* and *y* in group 1 are 1.0 and 2.0, respectively; those in group 2 are both zero.  The output of the ``mvrnorm`` function calls are matrices with 500 rows and 3 columns, which are stored in group 1 and group 2.  Now we create the definition variable
 
 .. code-block:: r
 
-	# Put the two groups together, create a definition variable, 
-	# and make a list of which variables are to be analyzed (selVars)
-	xy<-rbind(group1,group2)
-	dimnames(xy)[2]<-list(c("x","y"))
-	def<-rep(c(1,0),each=n)
-	selVars<-c("x","y")
+    # Put the two groups together, create a definition variable, 
+    # and make a list of which variables are to be analyzed (selVars)
+    xy<-rbind(group1,group2)
+    dimnames(xy)[2]<-list(c("x","y"))
+    def<-rep(c(1,0),each=n)
+    selVars<-c("x","y")
 
 The objects ``xy`` and ``def`` might be combined in a data frame.  However, in this case we won't bother to do it externally, and simply paste them together in the ``mxData`` function call.
 
@@ -74,12 +74,12 @@ The following code contains all of the components of our model. Before running a
 
 .. code-block:: r
 
-	defMeansModel <- mxModel("Definition Means -- Matrix Specification", 
-		mxFIMLObjective(
-			covariance="Sigma",
-			means="Mu",
-			dimnames=selVars
-		), 
+    defMeansModel <- mxModel("Definition Means -- Matrix Specification", 
+        mxFIMLObjective(
+            covariance="Sigma",
+            means="Mu",
+            dimnames=selVars
+        ), 
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means -- Matrix Specification"``.
 

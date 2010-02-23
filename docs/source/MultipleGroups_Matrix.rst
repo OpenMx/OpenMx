@@ -67,124 +67,124 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
 
 .. code-block:: r
 
-	require(OpenMx)
+    require(OpenMx)
 
-	bivHetModel <- mxModel("bivHet",
-		 mxModel("group1", 
-		....
-		 mxModel("group2", 
-		....
-		 mxAlgebra(group1.objective + group2.objective, name="h12"),
-		 mxAlgebraObjective("h12")
-	)
+    bivHetModel <- mxModel("bivHet",
+         mxModel("group1", 
+        ....
+         mxModel("group2", 
+        ....
+         mxAlgebra(group1.objective + group2.objective, name="h12"),
+         mxAlgebraObjective("h12")
+    )
      
 For each of the groups, we fit a saturated model, using a Cholesky decomposition to generate the expected covariance matrix and a row vector for the expected means.  Note that we have specified different labels for all the free elements, in the two ``mxModel`` statements.  For more details, see example 1.
 
 .. code-block:: r
 
-	#Fit Heterogeneity Model
-	bivHetModel <- mxModel("bivHet",
-		mxModel("group1",
-			mxMatrix(
-				type="Lower", 
-				nrow=2, 
-				ncol=2, 
-				free=T, 
-				values=.5,
-				labels=c("vX1", "cXY1", "vY1"),
-				name="Chol1"
-			), 
-			mxAlgebra(
-				Chol1 %*% t(Chol1), 
-				name="EC1" 
-			), 
-			mxMatrix(
-				type="Full", 
-				nrow=1, 
-				ncol=2, 
-				free=T, 
-				values=c(0,0), 
-				labels=c("mX1", "mY1"), 
-				name="EM1"
-			), 
-			mxData(
-				xy1, 
-				type="raw"
-			), 
-			mxFIMLObjective(
-				"EC1", 
-				"EM1",
-				selVars
-			)
-		),
-		mxModel("group2",
-			mxMatrix(
-				type="Lower", 
-				nrow=2, 
-				ncol=2, 
-				free=T, 
-				values=.5,
-				labels=c("vX2", "cXY2", "vY2"),
-				name="Chol2"
-			), 
-			mxAlgebra(
-				Chol2 %*% t(Chol2), 
-				name="EC2"
-			), 
-			mxMatrix(
-				type="Full", 
-				nrow=1, 
-				ncol=2, 
-				free=T, 
-				values=c(0,0), 
-				labels=c("mX2", "mY2"), 
-				name="EM2"
-			), 
-			mxData(
-				xy2, 
-				type="raw"
-			), 
-			mxFIMLObjective(
-				"EC2", 
-				"EM2",
-				selVars
-			)
-		),
+    #Fit Heterogeneity Model
+    bivHetModel <- mxModel("bivHet",
+        mxModel("group1",
+            mxMatrix(
+                type="Lower", 
+                nrow=2, 
+                ncol=2, 
+                free=T, 
+                values=.5,
+                labels=c("vX1", "cXY1", "vY1"),
+                name="Chol1"
+            ), 
+            mxAlgebra(
+                Chol1 %*% t(Chol1), 
+                name="EC1" 
+            ), 
+            mxMatrix(
+                type="Full", 
+                nrow=1, 
+                ncol=2, 
+                free=T, 
+                values=c(0,0), 
+                labels=c("mX1", "mY1"), 
+                name="EM1"
+            ), 
+            mxData(
+                xy1, 
+                type="raw"
+            ), 
+            mxFIMLObjective(
+                "EC1", 
+                "EM1",
+                selVars
+            )
+        ),
+        mxModel("group2",
+            mxMatrix(
+                type="Lower", 
+                nrow=2, 
+                ncol=2, 
+                free=T, 
+                values=.5,
+                labels=c("vX2", "cXY2", "vY2"),
+                name="Chol2"
+            ), 
+            mxAlgebra(
+                Chol2 %*% t(Chol2), 
+                name="EC2"
+            ), 
+            mxMatrix(
+                type="Full", 
+                nrow=1, 
+                ncol=2, 
+                free=T, 
+                values=c(0,0), 
+                labels=c("mX2", "mY2"), 
+                name="EM2"
+            ), 
+            mxData(
+                xy2, 
+                type="raw"
+            ), 
+            mxFIMLObjective(
+                "EC2", 
+                "EM2",
+                selVars
+            )
+        ),
 
 As a result, we estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``
 
 .. code-block:: r
 
-	in group1
-		$S
-		        X      Y     
-		X   "vX1"     NA
-		Y  "cXY1"  "vY1" 
+    in group1
+        $S
+                X      Y     
+        X   "vX1"     NA
+        Y  "cXY1"  "vY1" 
 
-		$M
-		        X      Y    
-		[1,] "mX1" "mY1"
+        $M
+                X      Y    
+        [1,] "mX1" "mY1"
 
-	in group2
-		$S
-		        X      Y     
-		X   "vX2"     NA
-		Y  "cXY2"  "vY2" 
+    in group2
+        $S
+                X      Y     
+        X   "vX2"     NA
+        Y  "cXY2"  "vY2" 
 
-		$M
-		        X      Y    
-		[1,] "mX2" "mY2"
+        $M
+                X      Y    
+        [1,] "mX2" "mY2"
 
 To evaluate both models together, we use an ``mxAlgebra`` command that adds up the values of the objective functions of the two groups.  The objective function to be used here is the ``mxAlgebraObjective`` which uses as its argument the sum of the function values of the two groups, referred to by the name of the previously defined ``mxAlgebra`` object ``h12``.
 
 .. code-block:: r
 
-		mxAlgebra(
-			group1.objective + group2.objective, 
-			name="h12"
-		),
-		mxAlgebraObjective("h12")
-	)
+        mxAlgebra(
+            group1.objective + group2.objective, 
+            name="h12"
+        ),
+        mxAlgebraObjective("h12")
+    )
 
 Model Fitting
 ^^^^^^^^^^^^^
@@ -199,11 +199,11 @@ A variety of output can be printed.  We chose here to print the expected means a
 
 .. code-block:: r
     
-	EM1Het <- mxEval(group1.EM1, bivHetFit)
-	EM2Het <- mxEval(group2.EM2, bivHetFit)
-	EC1Het <- mxEval(group1.EC1, bivHetFit)
-	EC2Het <- mxEval(group2.EC2, bivHetFit)
-	LLHet <- mxEval(objective, bivHetFit)
+    EM1Het <- mxEval(group1.EM1, bivHetFit)
+    EM2Het <- mxEval(group2.EM2, bivHetFit)
+    EC1Het <- mxEval(group1.EC1, bivHetFit)
+    EC2Het <- mxEval(group2.EC2, bivHetFit)
+    LLHet <- mxEval(objective, bivHetFit)
 
 
 Homogeneity Model: a Submodel
@@ -220,32 +220,32 @@ As elements in matrices can be equated by assigning the same label, we now have 
 
 .. code-block:: r
 
-	bivHomModel[['group2.Chol2']]@labels <- bivHomModel[['group1.Chol1']]@labels
-	bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
+    bivHomModel[['group2.Chol2']]@labels <- bivHomModel[['group1.Chol1']]@labels
+    bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
 
 The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below.
 
 .. code-block:: r
 
-	in group1
-		$S
-		        X      Y     
-		X   "vX1"     NA
-		Y  "cXY1"  "vY1" 
+    in group1
+        $S
+                X      Y     
+        X   "vX1"     NA
+        Y  "cXY1"  "vY1" 
 
-		$M
-		        X      Y    
-		[1,] "mX1" "mY1"
-	
-	in group2
-		$S
-		        X      Y     
-		X   "vX1"     NA
-		Y  "cXY1"  "vY1" 
+        $M
+                X      Y    
+        [1,] "mX1" "mY1"
+    
+    in group2
+        $S
+                X      Y     
+        X   "vX1"     NA
+        Y  "cXY1"  "vY1" 
 
-		$M
-		        X      Y    
-		[1,] "mX1" "mY1"
+        $M
+                X      Y    
+        [1,] "mX1" "mY1"
 
 We can produce similar output for the submodel, i.e. expected means and covariances and likelihood, the only difference in the code being the model name.  Note that as a result of equating the labels, the expected means and covariances of the two groups should be the same.
 

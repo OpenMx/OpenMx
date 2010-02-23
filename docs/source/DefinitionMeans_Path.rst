@@ -1,4 +1,4 @@
-.. _definitionmeans-path-specification:
+    .. _definitionmeans-path-specification:
 
 Definition Variables, Path Specification
 ========================================
@@ -44,10 +44,10 @@ Our first step to running this model is to simulate the data to be analyzed. Eac
 
 .. code-block:: r
 
-    library(MASS)	# to get hold of mvrnorm function 
+    library(MASS)    # to get hold of mvrnorm function 
 
-    set.seed(200)	# to make the simulation repeatable
-    N=500	# sample size, per group
+    set.seed(200)    # to make the simulation repeatable
+    N=500    # sample size, per group
   
     Sigma <- matrix(c(1,.5,.5,1),2,2)
     group1<-mvrnorm(N, c(1,2), Sigma)
@@ -73,9 +73,9 @@ The following code contains all of the components of our model.  Before specifyi
 
 .. code-block:: r
 
-	require(OpenMx)
-	defmeansmodel<-mxModel("Definition Means -- Path Specification", 
-		type="RAM",
+    require(OpenMx)
+    defmeansmodel<-mxModel("Definition Means -- Path Specification", 
+        type="RAM",
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means -- Path Specification"``.
 
@@ -90,60 +90,60 @@ Model specification is carried out using two lists of variables, ``manifestVars`
 
 .. code-block:: r
 
-	# variances
-	mxPath(
-		from=c("x","y"), 
-		arrows=2, 
-		free= TRUE, 
-		values=1,  
-		labels=c("Varx","Vary")
-	),
-	# covariances  
-	mxPath(
-		from="x", 
-		to="y", 
-		arrows=2, 
-		free= TRUE, 
-		values=.1, 
-		labels=c("Covxy")
-	), 
-	# means      
-	mxPath(
-		from="one", 
-		to=c("x","y"), 
-		arrows=1, 
-		free=TRUE, 
-		values=1, 
-		labels=c("meanx","meany")
-	), 
-	# definition value 
-	mxPath(
-		from="one", 
-		to="DefDummy", 
-		arrows=1, 
-		free= FALSE, 
-		values=1, 
-		labels="data.def"
-	),    
-	# beta weights
-	mxPath(
-		from="DefDummy", 
-		to=c("x","y"), 
-		arrows=1, 
-		free= TRUE, 
-		values=1, 
-		labels=c("beta_1","beta_2")
-	), 
+    # variances
+    mxPath(
+        from=c("x","y"), 
+        arrows=2, 
+        free= TRUE, 
+        values=1,  
+        labels=c("Varx","Vary")
+    ),
+    # covariances  
+    mxPath(
+        from="x", 
+        to="y", 
+        arrows=2, 
+        free= TRUE, 
+        values=.1, 
+        labels=c("Covxy")
+    ), 
+    # means      
+    mxPath(
+        from="one", 
+        to=c("x","y"), 
+        arrows=1, 
+        free=TRUE, 
+        values=1, 
+        labels=c("meanx","meany")
+    ), 
+    # definition value 
+    mxPath(
+        from="one", 
+        to="DefDummy", 
+        arrows=1, 
+        free= FALSE, 
+        values=1, 
+        labels="data.def"
+    ),    
+    # beta weights
+    mxPath(
+        from="DefDummy", 
+        to=c("x","y"), 
+        arrows=1, 
+        free= TRUE, 
+        values=1, 
+        labels=c("beta_1","beta_2")
+    ), 
 
 
 Next, we declare where the data are, and their type, by creating an ``MxData`` object with the ``mxData`` function. This code first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
 
 .. code-block:: r
 
-	mxData(
-		observed=data.frame(xy,def), 
-		type="raw"
-	),
+    mxData(
+        observed=data.frame(xy,def), 
+        type="raw"
+    ),
 
 We can then run the model and examine the output with a few simple commands.
 
@@ -152,10 +152,10 @@ Model Fitting
 
 .. code-block:: r
 
-	# Run the model
-	defMeansFit<-mxRun(defMeansModel)
+    # Run the model
+    defMeansFit<-mxRun(defMeansModel)
 
-	defMeansFit@matrices
+    defMeansFit@matrices
 
 The R object ``defmeansFit`` contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFi@matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix A, the two-headed arrows in S, and the mean vector single headed arrows in M.
 

@@ -38,21 +38,21 @@ The first step to running our model is to import data. The code below is used to
 
 .. code-block:: r
 
-	myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
+    myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
 
-	myLongitudinalDataCov<-matrix(
-		c(6.362, 4.344, 4.915,  5.045,  5.966,
-		  4.344, 7.241, 5.825,  6.181,  7.252,
-		  4.915, 5.825, 9.348,  7.727,  8.968,
-		  5.045, 6.181, 7.727, 10.821, 10.135,
-		  5.966, 7.252, 8.968, 10.135, 14.220),
-	nrow=5,
-	dimnames=list(
-		c("x1","x2","x3","x4","x5"),
-		c("x1","x2","x3","x4","x5"))
-	)
+    myLongitudinalDataCov<-matrix(
+        c(6.362, 4.344, 4.915,  5.045,  5.966,
+          4.344, 7.241, 5.825,  6.181,  7.252,
+          4.915, 5.825, 9.348,  7.727,  8.968,
+          5.045, 6.181, 7.727, 10.821, 10.135,
+          5.966, 7.252, 8.968, 10.135, 14.220),
+    nrow=5,
+    dimnames=list(
+        c("x1","x2","x3","x4","x5"),
+        c("x1","x2","x3","x4","x5"))
+    )
 
-	myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+    myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -63,67 +63,67 @@ Before running a model, the OpenMx library must be loaded into R using either th
 
 .. code-block:: r
 
-	require(OpenMx)
+    require(OpenMx)
 
-	growthCurveModel <- mxModel("Linear Growth Curve Model -- Path Specification", 
-		type="RAM",
-		mxData(
-			myLongitudinalData,
-			type="raw"
-		),
-		manifestVars=c("x1","x2","x3","x4","x5"),
-		latentVars=c("intercept","slope"),
-		# residual variances
-		mxPath(
-			from=c("x1","x2","x3","x4","x5"), 
-			arrows=2,
-			free=TRUE, 
-			values = c(1, 1, 1, 1, 1),
-			labels=c("residual","residual","residual","residual","residual")
-		),
-		# latent variances and covariance
-		mxPath(
-			from=c("intercept","slope"), 
-			arrows=2,
-			all=TRUE,
-			free=TRUE, 
-			values=c(1, 1, 1, 1),
-			labels=c("vari", "cov", "cov", "vars")
-		),
-		# intercept loadings
-		mxPath(
-			from="intercept",
-			to=c("x1","x2","x3","x4","x5"),
-			arrows=1,
-			free=FALSE,
-			values=c(1, 1, 1, 1, 1)
-		),
-		# slope loadings
-		mxPath(
-			from="slope",
-			to=c("x1","x2","x3","x4","x5"),
-			arrows=1,
-			free=FALSE,
-			values=c(0, 1, 2, 3, 4
-		),
-		# manifest means
-		mxPath(
-			from="one",
-			to=c("x1", "x2", "x3", "x4", "x5"),
-			arrows=1,
-			free=FALSE,
-			values=c(0, 0, 0, 0, 0)
-		),
-		# latent means
-		mxPath(
-			from="one",
-			to=c("intercept", "slope"),
-			arrows=1,
-			free=TRUE,
-			values=c(1, 1),
-			labels=c("meani", "means")
-		)
-	) # close model
+    growthCurveModel <- mxModel("Linear Growth Curve Model -- Path Specification", 
+        type="RAM",
+        mxData(
+            myLongitudinalData,
+            type="raw"
+        ),
+        manifestVars=c("x1","x2","x3","x4","x5"),
+        latentVars=c("intercept","slope"),
+        # residual variances
+        mxPath(
+            from=c("x1","x2","x3","x4","x5"), 
+            arrows=2,
+            free=TRUE, 
+            values = c(1, 1, 1, 1, 1),
+            labels=c("residual","residual","residual","residual","residual")
+        ),
+        # latent variances and covariance
+        mxPath(
+            from=c("intercept","slope"), 
+            arrows=2,
+            all=TRUE,
+            free=TRUE, 
+            values=c(1, 1, 1, 1),
+            labels=c("vari", "cov", "cov", "vars")
+        ),
+        # intercept loadings
+        mxPath(
+            from="intercept",
+            to=c("x1","x2","x3","x4","x5"),
+            arrows=1,
+            free=FALSE,
+            values=c(1, 1, 1, 1, 1)
+        ),
+        # slope loadings
+        mxPath(
+            from="slope",
+            to=c("x1","x2","x3","x4","x5"),
+            arrows=1,
+            free=FALSE,
+            values=c(0, 1, 2, 3, 4
+        ),
+        # manifest means
+        mxPath(
+            from="one",
+            to=c("x1", "x2", "x3", "x4", "x5"),
+            arrows=1,
+            free=FALSE,
+            values=c(0, 0, 0, 0, 0)
+        ),
+        # latent means
+        mxPath(
+            from="one",
+            to=c("intercept", "slope"),
+            arrows=1,
+            free=TRUE,
+            values=c(1, 1),
+            labels=c("meani", "means")
+        )
+    ) # close model
 
 The model begins with a name, in this case "Linear Growth Curve Model -- Path Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entities in the referenced model object. The ``type="RAM"`` argument specifies a RAM model, allowing the ``mxModel`` to define an expected covariance matrix from the paths we supply.
 
@@ -131,12 +131,12 @@ Data is supplied with the ``mxData`` function. This example uses raw data, but t
 
 .. code-block:: r
 
-	mxData(
-		myLongitudinalDataCov,
-		type="cov",
-		numObs=500,
-		means=myLongitudinalDataMeans
-	),
+    mxData(
+        myLongitudinalDataCov,
+        type="cov",
+        numObs=500,
+        means=myLongitudinalDataMeans
+    ),
 
 Next, the manifest and latent variables are specified with the ``manifestVars`` and ``latentVars`` arguments. The two latent variables in this model are named ``"Intercept"`` and ``"Slope"``.
 
@@ -144,78 +144,78 @@ There are six ``mxPath`` functions in this model. The first two specify the vari
 
 .. code-block:: r
 
-	# residual variances
-	mxPath(
-		from=c("x1","x2","x3","x4","x5"), 
-		arrows=2,
-		free=TRUE, 
-		values = c(1, 1, 1, 1, 1),
-		labels=c("residual","residual","residual","residual","residual")
-	),
+    # residual variances
+    mxPath(
+        from=c("x1","x2","x3","x4","x5"), 
+        arrows=2,
+        free=TRUE, 
+        values = c(1, 1, 1, 1, 1),
+        labels=c("residual","residual","residual","residual","residual")
+    ),
       
 Next are the variances and covariance of the two latent variables. Like the last function, we've omitted the ``to`` argument for this set of two-headed paths. However, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from intercept to intercept (the variance of the interecpts), from intercept to slope (the covariance of the latent variables), from slope to intercept (again, the covariance), and from slope to slope (the variance of the slopes). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
       
 .. code-block:: r
 
-	# latent variances and covariance
-	mxPath(
-		from=c("intercept","slope"), 
-		arrows=2,
-		all=TRUE,
-		free=TRUE, 
-		values=c(1, 1, 1, 1),
-		labels=c("vari", "cov", "cov", "vars")
-	),
+    # latent variances and covariance
+    mxPath(
+        from=c("intercept","slope"), 
+        arrows=2,
+        all=TRUE,
+        free=TRUE, 
+        values=c(1, 1, 1, 1),
+        labels=c("vari", "cov", "cov", "vars")
+    ),
       
 The third and fourth ``mxPath`` functions specify the factor loadings. As these are defined to be a constant value of 1 for the intercept factor and the set [0, 1, 2, 3, 4] for the slope factor, these functions have no free parameters.       
       
 .. code-block:: r
 
-	# intercept loadings
-	mxPath(
-		from="intercept",
-		to=c("x1","x2","x3","x4","x5"),
-		arrows=1,
-		free=FALSE,
-		values=c(1, 1, 1, 1, 1)
-	),
-	# slope loadings
-	mxPath(
-		from="slope",
-		to=c("x1","x2","x3","x4","x5"),
-		arrows=1,
-		free=FALSE,
-		values=c(0, 1, 2, 3, 4)
-	),
+    # intercept loadings
+    mxPath(
+        from="intercept",
+        to=c("x1","x2","x3","x4","x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(1, 1, 1, 1, 1)
+    ),
+    # slope loadings
+    mxPath(
+        from="slope",
+        to=c("x1","x2","x3","x4","x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(0, 1, 2, 3, 4)
+    ),
   
 The last two ``mxPath`` functions specify the means. The manifest variables are not regressed on the constant, and thus have intercepts of zero. The observed means are entirely functions of the means of the intercept and slope. To specify this, the manifest variables are regressed on the constant (denoted ``"one"``) with a fixed value of zero, and the regressions of the latent variables on the constant are estimated as free parameters.
 
 .. code-block:: r
 
-	# manifest means
-	mxPath(
-		from="one",
-		to=c("x1", "x2", "x3", "x4", "x5"),
-		arrows=1,
-		free=FALSE,
-		values=c(0, 0, 0, 0, 0)
-	),
-	# latent means
-	mxPath(
-		from="one",
-		to=c("intercept", "slope"),
-		arrows=1,
-		free=TRUE,
-		values=c(1, 1),
-		labels=c("meani", "means")
-	),
+    # manifest means
+    mxPath(
+        from="one",
+        to=c("x1", "x2", "x3", "x4", "x5"),
+        arrows=1,
+        free=FALSE,
+        values=c(0, 0, 0, 0, 0)
+    ),
+    # latent means
+    mxPath(
+        from="one",
+        to=c("intercept", "slope"),
+        arrows=1,
+        free=TRUE,
+        values=c(1, 1),
+        labels=c("meani", "means")
+    ),
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
 A summary of the output can be reached using ``summary()``.
 
-	growthCurveFit <- mxRun(growthCurveModel)
+    growthCurveFit <- mxRun(growthCurveModel)
 
-	growthCurveFit@output
-	summary(growthCurveFit)
+    growthCurveFit@output
+    summary(growthCurveFit)
 
 These models may also be specified using matrices instead of paths. See :ref:`timeseries-matrix-specification` for matrix specification of these models.

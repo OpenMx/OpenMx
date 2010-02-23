@@ -13,5 +13,5 @@ Examples, Matrix Specification
    MultipleGroups_Matrix
    GeneticEpi_Matrix
    DefinitionMeans_Matrix
-   ABOBloodGroups_Matrix
+   Likelihood_Matrix
 

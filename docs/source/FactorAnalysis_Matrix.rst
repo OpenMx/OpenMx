@@ -42,32 +42,32 @@ Our first step to running this model is to put include the data to be analyzed. 
 
 .. code-block:: r
 
-	> names(myFADataRaw)
-	[1] "x1" "x2" "x3" "x4" "x5" "x6" "y1" "y2" "y3"
+    > names(myFADataRaw)
+    [1] "x1" "x2" "x3" "x4" "x5" "x6" "y1" "y2" "y3"
 
-	oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
+    oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
 
-	myFADataCov <- matrix(
-		c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
-		  0.642, 1.025, 0.608, 0.668, 0.643, 0.676, 0.273, 0.282, 0.287,
-		  0.611, 0.608, 0.984, 0.633, 0.657, 0.626, 0.286, 0.287, 0.264,
-		  0.672, 0.668, 0.633, 1.003, 0.676, 0.665, 0.330, 0.290, 0.274,
-		  0.637, 0.643, 0.657, 0.676, 1.028, 0.654, 0.328, 0.317, 0.331,
-		  0.677, 0.676, 0.626, 0.665, 0.654, 1.020, 0.323, 0.341, 0.349,
-		  0.342, 0.273, 0.286, 0.330, 0.328, 0.323, 0.993, 0.472, 0.467,
-		  0.299, 0.282, 0.287, 0.290, 0.317, 0.341, 0.472, 0.978, 0.507,
-		  0.337, 0.287, 0.264, 0.274, 0.331, 0.349, 0.467, 0.507, 1.059),
-	nrow=9,
-	dimnames=list(
-		c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
-		c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
-	)
+    myFADataCov <- matrix(
+        c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
+          0.642, 1.025, 0.608, 0.668, 0.643, 0.676, 0.273, 0.282, 0.287,
+          0.611, 0.608, 0.984, 0.633, 0.657, 0.626, 0.286, 0.287, 0.264,
+          0.672, 0.668, 0.633, 1.003, 0.676, 0.665, 0.330, 0.290, 0.274,
+          0.637, 0.643, 0.657, 0.676, 1.028, 0.654, 0.328, 0.317, 0.331,
+          0.677, 0.676, 0.626, 0.665, 0.654, 1.020, 0.323, 0.341, 0.349,
+          0.342, 0.273, 0.286, 0.330, 0.328, 0.323, 0.993, 0.472, 0.467,
+          0.299, 0.282, 0.287, 0.290, 0.317, 0.341, 0.472, 0.978, 0.507,
+          0.337, 0.287, 0.264, 0.274, 0.331, 0.349, 0.467, 0.507, 1.059),
+    nrow=9,
+    dimnames=list(
+        c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
+        c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
+    )
 
-	oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"),c("x1","x2","x3","x4","x5","x6")]
+    oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"),c("x1","x2","x3","x4","x5","x6")]
 
-	myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
+    myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
 
-	oneFactorMeans <- myFADataMeans[1:6]
+    oneFactorMeans <- myFADataMeans[1:6]
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -76,98 +76,98 @@ The following code contains all of the components of our model. Before running a
 
 .. code-block:: r
 
-	oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification", 
-		mxData(
-			myFADataRaw, 
-			type="raw"
-		),
-		# asymmetric paths
-		mxMatrix(
-			type="Full", 
-			nrow=7, 
-			ncol=7,
-			values=c(0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,0),
-			free=c(F, F, F, F, F, F, F,
-			       F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, F),
-			labels=c(NA,NA,NA,NA,NA,NA,"l1",
-			         NA,NA,NA,NA,NA,NA,"l2",
-			         NA,NA,NA,NA,NA,NA,"l3",
-			         NA,NA,NA,NA,NA,NA,"l4",
-			         NA,NA,NA,NA,NA,NA,"l5",
-			         NA,NA,NA,NA,NA,NA,"l6",
-			         NA,NA,NA,NA,NA,NA,NA),
-			byrow=TRUE,
-			name="A"
-		),
-		# symmetric paths
-		mxMatrix(
-			type="Symm",
-			nrow=7,
-			ncol=7, 
-			values=c(1,0,0,0,0,0,0,
-			         0,1,0,0,0,0,0,
-			         0,0,1,0,0,0,0,
-			         0,0,0,1,0,0,0,
-			         0,0,0,0,1,0,0,
-			         0,0,0,0,0,1,0,
-			         0,0,0,0,0,0,1),
-			free=c(T, F, F, F, F, F, F,
-			       F, T, F, F, F, F, F,
-			       F, F, T, F, F, F, F,
-			       F, F, F, T, F, F, F,
-			       F, F, F, F, T, F, F,
-			       F, F, F, F, F, T, F,
-			       F, F, F, F, F, F, T),
-			labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
-			         NA, "e2",   NA,   NA,   NA,   NA,   NA,
-			         NA,   NA, "e3",   NA,   NA,   NA,   NA,
-			         NA,   NA,   NA, "e4",   NA,   NA,   NA,
-			         NA,   NA,   NA,   NA, "e5",   NA,   NA,
-			         NA,   NA,   NA,   NA,   NA, "e6",   NA,
-			         NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
-			byrow=TRUE,
-			name="S"
-		),
-		# filter matrix
-		mxMatrix(
-			type="Full", 
-			nrow=6, 
-			ncol=7,
-			free=FALSE,
-			values=c(1,0,0,0,0,0,0,
-			         0,1,0,0,0,0,0,
-			         0,0,1,0,0,0,0,
-			         0,0,0,1,0,0,0,
-			         0,0,0,0,1,0,0,
-			         0,0,0,0,0,1,0),
-			byrow=TRUE,
-			name="F"
-		),
-		# means
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=7,
-			values=c(1,1,1,1,1,1,0),
-			free=c(T,T,T,T,T,T,F),
-			labels=c("meanx1","meanx2","meanx3",
-			         "meanx4","meanx5","meanx6",
-			         NA),
-			name="M"
-		),
-		mxRAMObjective("A","S","F","M")
-	)
+    oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification", 
+        mxData(
+            myFADataRaw, 
+            type="raw"
+        ),
+        # asymmetric paths
+        mxMatrix(
+            type="Full", 
+            nrow=7, 
+            ncol=7,
+            values=c(0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,0),
+            free=c(F, F, F, F, F, F, F,
+                   F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, F),
+            labels=c(NA,NA,NA,NA,NA,NA,"l1",
+                     NA,NA,NA,NA,NA,NA,"l2",
+                     NA,NA,NA,NA,NA,NA,"l3",
+                     NA,NA,NA,NA,NA,NA,"l4",
+                     NA,NA,NA,NA,NA,NA,"l5",
+                     NA,NA,NA,NA,NA,NA,"l6",
+                     NA,NA,NA,NA,NA,NA,NA),
+            byrow=TRUE,
+            name="A"
+        ),
+        # symmetric paths
+        mxMatrix(
+            type="Symm",
+            nrow=7,
+            ncol=7, 
+            values=c(1,0,0,0,0,0,0,
+                     0,1,0,0,0,0,0,
+                     0,0,1,0,0,0,0,
+                     0,0,0,1,0,0,0,
+                     0,0,0,0,1,0,0,
+                     0,0,0,0,0,1,0,
+                     0,0,0,0,0,0,1),
+            free=c(T, F, F, F, F, F, F,
+                   F, T, F, F, F, F, F,
+                   F, F, T, F, F, F, F,
+                   F, F, F, T, F, F, F,
+                   F, F, F, F, T, F, F,
+                   F, F, F, F, F, T, F,
+                   F, F, F, F, F, F, T),
+            labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
+                     NA, "e2",   NA,   NA,   NA,   NA,   NA,
+                     NA,   NA, "e3",   NA,   NA,   NA,   NA,
+                     NA,   NA,   NA, "e4",   NA,   NA,   NA,
+                     NA,   NA,   NA,   NA, "e5",   NA,   NA,
+                     NA,   NA,   NA,   NA,   NA, "e6",   NA,
+                     NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
+            byrow=TRUE,
+            name="S"
+        ),
+        # filter matrix
+        mxMatrix(
+            type="Full", 
+            nrow=6, 
+            ncol=7,
+            free=FALSE,
+            values=c(1,0,0,0,0,0,0,
+                     0,1,0,0,0,0,0,
+                     0,0,1,0,0,0,0,
+                     0,0,0,1,0,0,0,
+                     0,0,0,0,1,0,0,
+                     0,0,0,0,0,1,0),
+            byrow=TRUE,
+            name="F"
+        ),
+        # means
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=7,
+            values=c(1,1,1,1,1,1,0),
+            free=c(T,T,T,T,T,T,F),
+            labels=c("meanx1","meanx2","meanx3",
+                     "meanx4","meanx5","meanx6",
+                     NA),
+            name="M"
+        ),
+        mxRAMObjective("A","S","F","M")
+    )
   
 This ``mxModel`` function can be split into several parts. First, we give the model a name. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Common Factor Model -- Matrix Specification"``.
 
@@ -175,21 +175,21 @@ The second component of our code creates an ``MxData`` object. The example above
 
 .. code-block:: r
 
-	mxData(
-	    observed=oneFactorRaw, 
-	    type="raw"
-	)
+    mxData(
+        observed=oneFactorRaw, 
+        type="raw"
+    )
   
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
 
 .. code-block:: r
 
-	mxData(
-	    observed=oneFactorCov, 
-	    type="cov",
-	    numObs=500,
-	    means=oneFactorMeans
-	) 
+    mxData(
+        observed=oneFactorCov, 
+        type="cov",
+        numObs=500,
+        means=oneFactorMeans
+    ) 
   
 Model specification is carried out using ``mxMatrix`` functions to create matrices for a RAM specified model. The **A** matrix specifies all of the assymetric paths or regressions in our model. In the common factor model, these parameters are the factor loadings. This matrix is square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). Regressions are specified in the **A** matrix by placing a free parameter in the row of the dependent variable and the column of independent variable. 
 
@@ -197,69 +197,69 @@ The common factor model requires that one parameter (typically either a factor l
 
 .. code-block:: r
 
-	# asymmetric paths
-	mxMatrix(
-		type="Full",
-		nrow=7,
-		ncol=7,
-		values=c(0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,0),
-		free=c(F, F, F, F, F, F, F,
-		       F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, F),
-		labels=c(NA,NA,NA,NA,NA,NA,"l1",
-		         NA,NA,NA,NA,NA,NA,"l2",
-		         NA,NA,NA,NA,NA,NA,"l3",
-		         NA,NA,NA,NA,NA,NA,"l4",
-		         NA,NA,NA,NA,NA,NA,"l5",
-		         NA,NA,NA,NA,NA,NA,"l6",
-		         NA,NA,NA,NA,NA,NA,NA),
-		byrow=TRUE,
-		name="A"
-	)
+    # asymmetric paths
+    mxMatrix(
+        type="Full",
+        nrow=7,
+        ncol=7,
+        values=c(0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,0),
+        free=c(F, F, F, F, F, F, F,
+               F, F, F, F, F, F, T,
+               F, F, F, F, F, F, T,
+               F, F, F, F, F, F, T,
+               F, F, F, F, F, F, T,
+               F, F, F, F, F, F, T,
+               F, F, F, F, F, F, F),
+        labels=c(NA,NA,NA,NA,NA,NA,"l1",
+                 NA,NA,NA,NA,NA,NA,"l2",
+                 NA,NA,NA,NA,NA,NA,"l3",
+                 NA,NA,NA,NA,NA,NA,"l4",
+                 NA,NA,NA,NA,NA,NA,"l5",
+                 NA,NA,NA,NA,NA,NA,"l6",
+                 NA,NA,NA,NA,NA,NA,NA),
+        byrow=TRUE,
+        name="A"
+    )
 
 The second matrix in a RAM model is the **S** matrix, which specifies the symmetric or covariance paths in our model. This matrix is symmetric and square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). The symmetric paths in our model consist of six residual variances and one factor variance. All of these variances are given starting values of one and labels ``"e1"`` - ``"e6"`` and ``"varF1"``.
 
 .. code-block:: r
 
-	# symmetric paths
-	mxMatrix(
-		type="Symm", 
-		nrow=7, 
-		ncol=7, 
-		values=c(1,0,0,0,0,0,0,
-		         0,1,0,0,0,0,0,
-		         0,0,1,0,0,0,0,
-		         0,0,0,1,0,0,0,
-		         0,0,0,0,1,0,0,
-		         0,0,0,0,0,1,0,
-		         0,0,0,0,0,0,1),
-		free=c(T, F, F, F, F, F, F,
-		       F, T, F, F, F, F, F,
-		       F, F, T, F, F, F, F,
-		       F, F, F, T, F, F, F,
-		       F, F, F, F, T, F, F,
-		       F, F, F, F, F, T, F,
-		       F, F, F, F, F, F, T),
-		labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
-		         NA, "e2",   NA,   NA,   NA,   NA,   NA,
-		         NA,   NA, "e3",   NA,   NA,   NA,   NA,
-		         NA,   NA,   NA, "e4",   NA,   NA,   NA,
-		         NA,   NA,   NA,   NA, "e5",   NA,   NA,
-		         NA,   NA,   NA,   NA,   NA, "e6",   NA,
-		         NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
-		byrow=TRUE,
-		name="S"
-	)
+    # symmetric paths
+    mxMatrix(
+        type="Symm", 
+        nrow=7, 
+        ncol=7, 
+        values=c(1,0,0,0,0,0,0,
+                 0,1,0,0,0,0,0,
+                 0,0,1,0,0,0,0,
+                 0,0,0,1,0,0,0,
+                 0,0,0,0,1,0,0,
+                 0,0,0,0,0,1,0,
+                 0,0,0,0,0,0,1),
+        free=c(T, F, F, F, F, F, F,
+               F, T, F, F, F, F, F,
+               F, F, T, F, F, F, F,
+               F, F, F, T, F, F, F,
+               F, F, F, F, T, F, F,
+               F, F, F, F, F, T, F,
+               F, F, F, F, F, F, T),
+        labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
+                 NA, "e2",   NA,   NA,   NA,   NA,   NA,
+                 NA,   NA, "e3",   NA,   NA,   NA,   NA,
+                 NA,   NA,   NA, "e4",   NA,   NA,   NA,
+                 NA,   NA,   NA,   NA, "e5",   NA,   NA,
+                 NA,   NA,   NA,   NA,   NA, "e6",   NA,
+                 NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
+        byrow=TRUE,
+        name="S"
+    )
       
 The third matrix in our RAM model is the **F** or filter matrix. Our data contains six observed variables, but the **A** and **S** matrices contain seven rows and columns. For our model to define the covariances present in our data, we must have some way of projecting the relationships defined in the **A** and **S** matrices onto our data. The **F** matrix filters the latent variables out of the expected covariance matrix, and can also be used to reorder variables. 
 
@@ -267,38 +267,38 @@ The **F** matrix will always contain the same number of rows as manifest variabl
 
 .. code-block:: r
 
-	# filter matrix
-	mxMatrix(
-		type="Full",
-		nrow=6, 
-		ncol=7,
-		free=FALSE,
-		values=c(1,0,0,0,0,0,0,
-		         0,1,0,0,0,0,0,
-		         0,0,1,0,0,0,0,
-		         0,0,0,1,0,0,0,
-		         0,0,0,0,1,0,0,
-		         0,0,0,0,0,1,0),
-		byrow=TRUE,
-		name="F"
-	)
+    # filter matrix
+    mxMatrix(
+        type="Full",
+        nrow=6, 
+        ncol=7,
+        free=FALSE,
+        values=c(1,0,0,0,0,0,0,
+                 0,1,0,0,0,0,0,
+                 0,0,1,0,0,0,0,
+                 0,0,0,1,0,0,0,
+                 0,0,0,0,1,0,0,
+                 0,0,0,0,0,1,0),
+        byrow=TRUE,
+        name="F"
+    )
 
 The last matrix of our model is the **M** matrix, which defines the means and intercepts for our model. This matrix describes all of the regressions on the constant in a path model, or the means conditional on the means of exogenous variables. This matrix contains a single row, and one column for every manifest and latent variable in the model. In our model, the latent variable has a constrained mean of zero, while the manifest variables have freely estimated means, labeled ``"meanx1"`` through ``"meanx6"``.
 
 .. code-block:: r
 
-	# means
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=7,
-		values=c(1,1,1,1,1,1,0),
-		free=c(T,T,T,T,T,T,F),
-		labels=c("meanx1","meanx2","meanx3",
-		         "meanx4","meanx5","meanx6",
-		         NA),
-		name="M"
-	)
+    # means
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=7,
+        values=c(1,1,1,1,1,1,0),
+        free=c(T,T,T,T,T,T,F),
+        labels=c("meanx1","meanx2","meanx3",
+                 "meanx4","meanx5","meanx6",
+                 NA),
+        name="M"
+    )
 
 The final part of this model is the objective function. This defines both how the specified matrices combine to create the expected covariance matrix of the data, as well as the fit function to be minimized. In a RAM specified model, the expected covariance matrix is defined as:       
           
@@ -322,7 +322,7 @@ The free parameters in the model can then be estimated using maximum likelihood 
 
 .. code-block:: r
    
-	mxRAMObjective("A", "S", "F", "M")
+    mxRAMObjective("A", "S", "F", "M")
 
 The model now includes an observed covariance matrix (i.e., data) and the matrices and objective function required to define the expected covariance matrix and estimate parameters.
 
@@ -330,11 +330,11 @@ The model can now be run using the ``mxRun`` function, and the output of the mod
 
 .. code-block:: r
 
-	oneFactorFit <- mxRun(oneFactorModel)
+    oneFactorFit <- mxRun(oneFactorModel)
 
-	oneFactorFit@output
+    oneFactorFit@output
 
-	summary(oneFactorFit)
+    summary(oneFactorFit)
 
 
 Two Factor Model
@@ -359,189 +359,189 @@ The data for the two factor model can be found in the ``myFAData`` files introdu
 
 .. code-block:: r
 
-	twoFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "y1", "y2", "y3")]
+    twoFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "y1", "y2", "y3")]
 
-	twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
+    twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
 
-	twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
+    twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
   
 Specifying the two factor model is virtually identical to the single factor case. The ``mxData`` function has been changed to reference the appropriate data, but is identical in usage. We've added a second latent variable, so the **A** and **S** matrices are now of order 8x8. Similarly, the **F** matrix is now of order 6x8 and the **M** matrix of order 1x8. The ``mxRAMObjective`` has not changed. The code for our two factor model looks like this:
 
 .. code-block:: r
 
-	twoFactorModel <- mxModel("Two Factor Model -- Matrix Specification", 
-	    type="RAM",
-	    mxData(
-	        observed=twoFactorRaw, 
-	        type="raw",
-	    ),
-		# asymmetric paths
-		mxMatrix(
-			type="Full",
-			nrow=8, 
-			ncol=8,
-			values=c(0,0,0,0,0,0,1,0,
-			         0,0,0,0,0,0,1,0,
-			         0,0,0,0,0,0,1,0,
-			         0,0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,0,1,
-			         0,0,0,0,0,0,0,0,
-			         0,0,0,0,0,0,0,0),
-			free=c(F, F, F, F, F, F, F, F,
-			       F, F, F, F, F, F, T, F,
-			       F, F, F, F, F, F, T, F,
-			       F, F, F, F, F, F, F, F,
-			       F, F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, F, T,
-			       F, F, F, F, F, F, F, F,
-			       F, F, F, F, F, F, F, F),
-			labels=c(NA,NA,NA,NA,NA,NA,"l1", NA,
-			         NA,NA,NA,NA,NA,NA,"l2", NA,
-			         NA,NA,NA,NA,NA,NA,"l3", NA,
-			         NA,NA,NA,NA,NA,NA, NA,"l4",
-			         NA,NA,NA,NA,NA,NA, NA,"l5",
-			         NA,NA,NA,NA,NA,NA, NA,"l6",
-			         NA,NA,NA,NA,NA,NA, NA, NA,
-			         NA,NA,NA,NA,NA,NA, NA, NA),
-			byrow=TRUE,
-			name="A"
-		),
-		# symmetric paths
-		mxMatrix(
-			type="Symm", 
-			nrow=8, 
-			ncol=8, 
-			values=c(1,0,0,0,0,0, 0, 0,
-			         0,1,0,0,0,0, 0, 0,
-			         0,0,1,0,0,0, 0, 0,
-			         0,0,0,1,0,0, 0, 0,
-			         0,0,0,0,1,0, 0, 0,
-			         0,0,0,0,0,1, 0, 0,
-			         0,0,0,0,0,0, 1,.5,
-			         0,0,0,0,0,0,.5, 1),
-			free=c(T, F, F, F, F, F, F, F,
-			       F, T, F, F, F, F, F, F,
-			       F, F, T, F, F, F, F, F,
-			       F, F, F, T, F, F, F, F,
-			       F, F, F, F, T, F, F, F,
-			       F, F, F, F, F, T, F, F,
-			       F, F, F, F, F, F, T, T,
-			       F, F, F, F, F, F, T, T),
-			labels=c("e1", NA,   NA,   NA,   NA,   NA,    NA,    NA,
-			         NA, "e2",   NA,   NA,   NA,   NA,    NA,    NA,
-			         NA,   NA, "e3",   NA,   NA,   NA,    NA,    NA,
-			         NA,   NA,   NA, "e4",   NA,   NA,    NA,    NA,
-			         NA,   NA,   NA,   NA, "e5",   NA,    NA,    NA,
-			         NA,   NA,   NA,   NA,   NA, "e6",    NA,    NA,
-			         NA,   NA,   NA,   NA,   NA,   NA, "varF1", "cov",
-			         NA,   NA,   NA,   NA,   NA,   NA, "cov", "varF2"),
-			byrow=TRUE,
-			name="S"
-		),
-		# filter matrix
-		mxMatrix(
-			type="Full",
-			nrow=6, 
-			ncol=8,
-			free=F,
-			values=c(1,0,0,0,0,0,0,0,
-			         0,1,0,0,0,0,0,0,
-			         0,0,1,0,0,0,0,0,
-			         0,0,0,1,0,0,0,0,
-			         0,0,0,0,1,0,0,0,
-			         0,0,0,0,0,1,0,0),
-			byrow=T,
-			name="F"
-		),
-		# means
-		mxMatrix(
-			type="Full",
-			nrow=1, 
-			ncol=8,
-			values=c(1,1,1,1,1,1,0,0),
-			free=c(T,T,T,T,T,T,F,F),
-			labels=c("meanx1","meanx2","meanx3",
-			         "meanx4","meanx5","meanx6",
-			          NA,NA),
-			name="M"
-		),
-		mxRAMObjective("A","S","F","M")
-	)
+    twoFactorModel <- mxModel("Two Factor Model -- Matrix Specification", 
+        type="RAM",
+        mxData(
+            observed=twoFactorRaw, 
+            type="raw",
+        ),
+        # asymmetric paths
+        mxMatrix(
+            type="Full",
+            nrow=8, 
+            ncol=8,
+            values=c(0,0,0,0,0,0,1,0,
+                     0,0,0,0,0,0,1,0,
+                     0,0,0,0,0,0,1,0,
+                     0,0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,0,1,
+                     0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0),
+            free=c(F, F, F, F, F, F, F, F,
+                   F, F, F, F, F, F, T, F,
+                   F, F, F, F, F, F, T, F,
+                   F, F, F, F, F, F, F, F,
+                   F, F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, F, T,
+                   F, F, F, F, F, F, F, F,
+                   F, F, F, F, F, F, F, F),
+            labels=c(NA,NA,NA,NA,NA,NA,"l1", NA,
+                     NA,NA,NA,NA,NA,NA,"l2", NA,
+                     NA,NA,NA,NA,NA,NA,"l3", NA,
+                     NA,NA,NA,NA,NA,NA, NA,"l4",
+                     NA,NA,NA,NA,NA,NA, NA,"l5",
+                     NA,NA,NA,NA,NA,NA, NA,"l6",
+                     NA,NA,NA,NA,NA,NA, NA, NA,
+                     NA,NA,NA,NA,NA,NA, NA, NA),
+            byrow=TRUE,
+            name="A"
+        ),
+        # symmetric paths
+        mxMatrix(
+            type="Symm", 
+            nrow=8, 
+            ncol=8, 
+            values=c(1,0,0,0,0,0, 0, 0,
+                     0,1,0,0,0,0, 0, 0,
+                     0,0,1,0,0,0, 0, 0,
+                     0,0,0,1,0,0, 0, 0,
+                     0,0,0,0,1,0, 0, 0,
+                     0,0,0,0,0,1, 0, 0,
+                     0,0,0,0,0,0, 1,.5,
+                     0,0,0,0,0,0,.5, 1),
+            free=c(T, F, F, F, F, F, F, F,
+                   F, T, F, F, F, F, F, F,
+                   F, F, T, F, F, F, F, F,
+                   F, F, F, T, F, F, F, F,
+                   F, F, F, F, T, F, F, F,
+                   F, F, F, F, F, T, F, F,
+                   F, F, F, F, F, F, T, T,
+                   F, F, F, F, F, F, T, T),
+            labels=c("e1", NA,   NA,   NA,   NA,   NA,    NA,    NA,
+                     NA, "e2",   NA,   NA,   NA,   NA,    NA,    NA,
+                     NA,   NA, "e3",   NA,   NA,   NA,    NA,    NA,
+                     NA,   NA,   NA, "e4",   NA,   NA,    NA,    NA,
+                     NA,   NA,   NA,   NA, "e5",   NA,    NA,    NA,
+                     NA,   NA,   NA,   NA,   NA, "e6",    NA,    NA,
+                     NA,   NA,   NA,   NA,   NA,   NA, "varF1", "cov",
+                     NA,   NA,   NA,   NA,   NA,   NA, "cov", "varF2"),
+            byrow=TRUE,
+            name="S"
+        ),
+        # filter matrix
+        mxMatrix(
+            type="Full",
+            nrow=6, 
+            ncol=8,
+            free=F,
+            values=c(1,0,0,0,0,0,0,0,
+                     0,1,0,0,0,0,0,0,
+                     0,0,1,0,0,0,0,0,
+                     0,0,0,1,0,0,0,0,
+                     0,0,0,0,1,0,0,0,
+                     0,0,0,0,0,1,0,0),
+            byrow=T,
+            name="F"
+        ),
+        # means
+        mxMatrix(
+            type="Full",
+            nrow=1, 
+            ncol=8,
+            values=c(1,1,1,1,1,1,0,0),
+            free=c(T,T,T,T,T,T,F,F),
+            labels=c("meanx1","meanx2","meanx3",
+                     "meanx4","meanx5","meanx6",
+                      NA,NA),
+            name="M"
+        ),
+        mxRAMObjective("A","S","F","M")
+    )
 
 The four ``mxMatrix`` functions have changed slightly to accomodate the changes in the model. The **A** matrix, shown below, is used to specify the regressions of the manifest variables on the factors. The first three manifest variables (``"x1"``-``"x3"``) are regressed on ``"F1"``, and the second three manifest variables (``"y1"``-``"y3"``) are regressed on ``"F2"``. We must again constrain the model to identify and scale the latent variables, which we do by constraining the first loading for each latent variable to a value of one.
 
 .. code-block:: r
 
-	# asymmetric paths
-	mxMatrix(
-		type="Full",
-		nrow=8, 
-		ncol=8,
-		values=c(0,0,0,0,0,0,1,0,
-		         0,0,0,0,0,0,1,0,
-		         0,0,0,0,0,0,1,0,
-		         0,0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,0,1,
-		         0,0,0,0,0,0,0,0,
-		         0,0,0,0,0,0,0,0),
-		free=c(F, F, F, F, F, F, F, F,
-		       F, F, F, F, F, F, T, F,
-		       F, F, F, F, F, F, T, F,
-		       F, F, F, F, F, F, F, F,
-		       F, F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, F, T,
-		       F, F, F, F, F, F, F, F,
-		       F, F, F, F, F, F, F, F),
-		labels=c(NA,NA,NA,NA,NA,NA,"l1", NA,
-		         NA,NA,NA,NA,NA,NA,"l2", NA,
-		         NA,NA,NA,NA,NA,NA,"l3", NA,
-		         NA,NA,NA,NA,NA,NA, NA,"l4",
-		         NA,NA,NA,NA,NA,NA, NA,"l5",
-		         NA,NA,NA,NA,NA,NA, NA,"l6",
-		         NA,NA,NA,NA,NA,NA, NA, NA,
-		         NA,NA,NA,NA,NA,NA, NA, NA),
-		byrow=TRUE,
-		name="A"
-	)
+    # asymmetric paths
+    mxMatrix(
+        type="Full",
+        nrow=8, 
+        ncol=8,
+        values=c(0,0,0,0,0,0,1,0,
+                 0,0,0,0,0,0,1,0,
+                 0,0,0,0,0,0,1,0,
+                 0,0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,0,1,
+                 0,0,0,0,0,0,0,0,
+                 0,0,0,0,0,0,0,0),
+        free=c(F, F, F, F, F, F, F, F,
+               F, F, F, F, F, F, T, F,
+               F, F, F, F, F, F, T, F,
+               F, F, F, F, F, F, F, F,
+               F, F, F, F, F, F, F, T,
+               F, F, F, F, F, F, F, T,
+               F, F, F, F, F, F, F, F,
+               F, F, F, F, F, F, F, F),
+        labels=c(NA,NA,NA,NA,NA,NA,"l1", NA,
+                 NA,NA,NA,NA,NA,NA,"l2", NA,
+                 NA,NA,NA,NA,NA,NA,"l3", NA,
+                 NA,NA,NA,NA,NA,NA, NA,"l4",
+                 NA,NA,NA,NA,NA,NA, NA,"l5",
+                 NA,NA,NA,NA,NA,NA, NA,"l6",
+                 NA,NA,NA,NA,NA,NA, NA, NA,
+                 NA,NA,NA,NA,NA,NA, NA, NA),
+        byrow=TRUE,
+        name="A"
+    )
       
 The **S** matrix has an additional row and column, and two additional parameters. For the two factor model, we must add a variance term for the second latent variable and a covariance between the two latent variables.  
       
 .. code-block:: r
 
-	# symmetric paths
-	mxMatrix(
-		type="Symm", 
-		nrow=8, 
-		ncol=8, 
-		values=c(1,0,0,0,0,0, 0, 0,
-		         0,1,0,0,0,0, 0, 0,
-		         0,0,1,0,0,0, 0, 0,
-		         0,0,0,1,0,0, 0, 0,
-		         0,0,0,0,1,0, 0, 0,
-		         0,0,0,0,0,1, 0, 0,
-		         0,0,0,0,0,0, 1,.5,
-		         0,0,0,0,0,0,.5, 1),
-		free=c(T, F, F, F, F, F, F, F,
-		       F, T, F, F, F, F, F, F,
-		       F, F, T, F, F, F, F, F,
-		       F, F, F, T, F, F, F, F,
-		       F, F, F, F, T, F, F, F,
-		       F, F, F, F, F, T, F, F,
-		       F, F, F, F, F, F, T, T,
-		       F, F, F, F, F, F, T, T),
-		labels=c("e1", NA,   NA,   NA,   NA,   NA,    NA,    NA,
-		         NA, "e2",   NA,   NA,   NA,   NA,    NA,    NA,
-		         NA,   NA, "e3",   NA,   NA,   NA,    NA,    NA,
-		         NA,   NA,   NA, "e4",   NA,   NA,    NA,    NA,
-		         NA,   NA,   NA,   NA, "e5",   NA,    NA,    NA,
-		         NA,   NA,   NA,   NA,   NA, "e6",    NA,    NA,
-		         NA,   NA,   NA,   NA,   NA,   NA, "varF1", "cov",
-		         NA,   NA,   NA,   NA,   NA,   NA, "cov", "varF2"),
-		byrow=TRUE,
-		name="S"
-	)
+    # symmetric paths
+    mxMatrix(
+        type="Symm", 
+        nrow=8, 
+        ncol=8, 
+        values=c(1,0,0,0,0,0, 0, 0,
+                 0,1,0,0,0,0, 0, 0,
+                 0,0,1,0,0,0, 0, 0,
+                 0,0,0,1,0,0, 0, 0,
+                 0,0,0,0,1,0, 0, 0,
+                 0,0,0,0,0,1, 0, 0,
+                 0,0,0,0,0,0, 1,.5,
+                 0,0,0,0,0,0,.5, 1),
+        free=c(T, F, F, F, F, F, F, F,
+               F, T, F, F, F, F, F, F,
+               F, F, T, F, F, F, F, F,
+               F, F, F, T, F, F, F, F,
+               F, F, F, F, T, F, F, F,
+               F, F, F, F, F, T, F, F,
+               F, F, F, F, F, F, T, T,
+               F, F, F, F, F, F, T, T),
+        labels=c("e1", NA,   NA,   NA,   NA,   NA,    NA,    NA,
+                 NA, "e2",   NA,   NA,   NA,   NA,    NA,    NA,
+                 NA,   NA, "e3",   NA,   NA,   NA,    NA,    NA,
+                 NA,   NA,   NA, "e4",   NA,   NA,    NA,    NA,
+                 NA,   NA,   NA,   NA, "e5",   NA,    NA,    NA,
+                 NA,   NA,   NA,   NA,   NA, "e6",    NA,    NA,
+                 NA,   NA,   NA,   NA,   NA,   NA, "varF1", "cov",
+                 NA,   NA,   NA,   NA,   NA,   NA, "cov", "varF2"),
+        byrow=TRUE,
+        name="S"
+    )
       
 The **F** and **M** matrices contain only minor changes. The **F** matrix is now of order 6x8, but the additional column is simply a column of zeros. The **M** matrix contains an additional column (with only a single row), which contains the mean of the second latent variable. As this model does not contain a parameter for that latent variable, this mean is constrained to zero.
 

@@ -26,17 +26,17 @@ Let us assume you have collected data on a large sample of twin pairs for your p
 
     require(OpenMx)
 
-	#Prepare Data
-	twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
-	twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
-	summary(twinData)
-	selVars <- c('bmi1','bmi2')
-	mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-	dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-	colMeans(mzfData,na.rm=TRUE)
-	colMeans(dzfData,na.rm=TRUE)
-	cov(mzfData,use="complete")
-	cov(dzfData,use="complete")
+    #Prepare Data
+    twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+    twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
+    summary(twinData)
+    selVars <- c('bmi1','bmi2')
+    mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
+    dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
+    colMeans(mzfData,na.rm=TRUE)
+    colMeans(dzfData,na.rm=TRUE)
+    cov(mzfData,use="complete")
+    cov(dzfData,use="complete")
 
 
 Model Specification
@@ -62,83 +62,83 @@ Given the current example is univariate (in the sense that we analyze one variab
 
 .. code-block:: r
 
-	# additive genetic path
-	mxMatrix(
-	    type="Full", 
-	    nrow=1, 
-	    ncol=1, 
-	    free=TRUE, 
-	    values=.6, 
-	    label="a", 
-	    name="X"
-	),
-	# shared environmental path
-	mxMatrix(
-	    type="Full", 
-	    nrow=1, 
-	    ncol=1, 
-	    free=TRUE, 
-	    values=.6, 
-	    label="c", 
-	    name="Y"
-	),
-	# specific environmental path
-	mxMatrix(
-	    type="Full", 
-	    nrow=1, 
-	    ncol=1, 
-	    free=TRUE, 
-	    values=.6, 
-	    label="e", 
-	    name="Z"
-	),
+    # additive genetic path
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=1, 
+        free=TRUE, 
+        values=.6, 
+        label="a", 
+        name="X"
+    ),
+    # shared environmental path
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=1, 
+        free=TRUE, 
+        values=.6, 
+        label="c", 
+        name="Y"
+    ),
+    # specific environmental path
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=1, 
+        free=TRUE, 
+        values=.6, 
+        label="e", 
+        name="Z"
+    ),
 
 While the labels in these matrices are given lower case names, similar to the convention that paths have lower case names, the names for the variance component matrices, obtained from multiplying matrices with their transpose have upper case letters ``A``, ``C`` and ``E`` which are distinct  (as R is case-sensitive).
 
 .. code-block:: r
 
-	# additive genetic variance
-	mxAlgebra(
-		expression=X * t(X), 
-		name="A"
-	),
-	# shared environmental variance
-	mxAlgebra(
-		expression=Y * t(Y), 
-		name="C"
-	),
-	# specific environmental variance
-	mxAlgebra(
-		expression=Z * t(Z), 
-		name="E"
-	), 
+    # additive genetic variance
+    mxAlgebra(
+        expression=X * t(X), 
+        name="A"
+    ),
+    # shared environmental variance
+    mxAlgebra(
+        expression=Y * t(Y), 
+        name="C"
+    ),
+    # specific environmental variance
+    mxAlgebra(
+        expression=Z * t(Z), 
+        name="E"
+    ), 
 
 As the focus is on individual differences, the model for the means is typically simple.  We can estimate each of the means, in each of the two groups (MZ & DZ) as free parameters.  Alternatively, we can establish whether the means can be equated across order and zygosity by fitting submodels to the saturated model.  In this case, we opted to use one 'grand' mean, obtained by assigning the same label to the two elements of the matrix 'expMeanMZ' and the two elements of the matrix 'expMeanDZ', each of which are 'Full' 1x2 matrices with free parameters and start values of 20.
 
 .. code-block:: r
 
-	# means
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=2, 
-		free=T, 
-		values=20, 
-		labels="mean", 
-		name="expMean"
-	), 
+    # means
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=2, 
+        free=T, 
+        values=20, 
+        labels="mean", 
+        name="expMean"
+    ), 
         
 Previous Mx users will likely be familiar with the look of the expected covariance matrices for MZ and DZ twin pairs.  These 2x2 matrices are built by horizontal and vertical concatenation of the appropriate matrix expressions for the variance, the MZ or the DZ covariance.  In R, concatenation of matrices is accomplished with the 'rbind' and 'cbind' functions.  Thus to represent the matrices in expression below in R, we use the following code.
 
 .. math::
    :nowrap:
 
-	\begin{eqnarray*}
-   covMZ = \left[ \begin{array}{r}	a^2+c^2+e^2,  a^2+c^2 \\ 
-									a^2+c^2,  a^2+c^2+e^2 \\ \end{array} \right]
-   & covDZ = \left[ \begin{array}{r}	a^2+c^2+e^2,  .5a^2+c^2 \\ 
-										.5a^2+c^2,  a^2+c^2+e^2 \\ \end{array} \right]
-	\end{eqnarray*}
+    \begin{eqnarray*}
+   covMZ = \left[ \begin{array}{r}    a^2+c^2+e^2,  a^2+c^2 \\ 
+                                    a^2+c^2,  a^2+c^2+e^2 \\ \end{array} \right]
+   & covDZ = \left[ \begin{array}{r}    a^2+c^2+e^2,  .5a^2+c^2 \\ 
+                                        .5a^2+c^2,  a^2+c^2+e^2 \\ \end{array} \right]
+    \end{eqnarray*}
 
 .. code-block:: r
 
@@ -157,39 +157,39 @@ As the expected covariance matrices are different for the two groups of twins, w
 
 .. code-block:: r
 
-	mxModel("MZ",
-		mxData(
-			observed=mzfData, 
-			type="raw"
-		), 
-		mxFIMLObjective(
-			covariances="twinACE.expCovMZ", 
-			means="twinACE.expMean",
-			dimnames=selVars
-		)
-	),
-	mxModel("DZ", 
-		mxData(
-			observed=dzfData, 
-			type="raw"
-		), 
-		mxFIMLObjective(
-			covariances="twinACE.expCovDZ", 
-			means="twinACE.expMean",
-			dimnames=selVars
-		)
-	),
+    mxModel("MZ",
+        mxData(
+            observed=mzfData, 
+            type="raw"
+        ), 
+        mxFIMLObjective(
+            covariances="twinACE.expCovMZ", 
+            means="twinACE.expMean",
+            dimnames=selVars
+        )
+    ),
+    mxModel("DZ", 
+        mxData(
+            observed=dzfData, 
+            type="raw"
+        ), 
+        mxFIMLObjective(
+            covariances="twinACE.expCovDZ", 
+            means="twinACE.expMean",
+            dimnames=selVars
+        )
+    ),
 
 Finally, both models need to be evaluated simultaneously.  We first generate the sum of the objective functions for the two groups, using ``mxAlgebra``.  We refer to the correct objective function (object named ``objective``) by adding the name of the model to the two-level argument, i.e. ``MZ.objective``.  We then use that as argument of the ``mxAlgebraObjective`` command.
 
 .. code-block:: r
 
-		mxAlgebra(
-			expression=MZ.objective + DZ.objective, 
-			name="twin"
-		), 
-		mxAlgebraObjective("twin")
-	)
+        mxAlgebra(
+            expression=MZ.objective + DZ.objective, 
+            name="twin"
+        ), 
+        mxAlgebraObjective("twin")
+    )
 
 Model Fitting
 ^^^^^^^^^^^^^
@@ -198,25 +198,25 @@ We need to invoke the ``mxRun`` command to start the model evaluation and optimi
 
 .. code-block:: r
 
-	#Run ACE model
-	twinACEFit <- mxRun(twinACEModel)
+    #Run ACE model
+    twinACEFit <- mxRun(twinACEModel)
 
 Often, however, one is interested in specific parts of the output.  In the case of twin modeling, we typically will inspect the expected covariance matrices and mean vectors, the parameter estimates, and possibly some derived quantities, such as the standardized variance components, obtained by dividing each of the components by the total variance.  Note in the code below that the ``mxEval`` command allows easy extraction of the values in the various matrices/algebras which form the first argument, with the model name as second argument.  Once these values have been put in new objects, we can use and regular R expression to derive further quantities or organize them in a convenient format for including in tables.  Note that helper functions could (and will likely) easily be written for standard models to produce 'standard' output. 
 
 .. code-block:: r
 
-	MZc <- mxEval(expCovMZ, twinACEFit)
-	DZc <- mxEval(expCovDZ, twinACEFit)
-	M <- mxEval(expMeanMZ, twinACEFit)
-	A <- mxEval(A, twinACEFit)
-	C <- mxEval(C, twinACEFit)
-	E <- mxEval(E, twinACEFit)
-	V <- (A+C+E)
-	a2 <- A/V
-	c2 <- C/V
-	e2 <- E/V
-	ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-	LL_ACE <- mxEval(objective, twinACEFit)
+    MZc <- mxEval(expCovMZ, twinACEFit)
+    DZc <- mxEval(expCovDZ, twinACEFit)
+    M <- mxEval(expMeanMZ, twinACEFit)
+    A <- mxEval(A, twinACEFit)
+    C <- mxEval(C, twinACEFit)
+    E <- mxEval(E, twinACEFit)
+    V <- (A+C+E)
+    a2 <- A/V
+    c2 <- C/V
+    e2 <- E/V
+    ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+    LL_ACE <- mxEval(objective, twinACEFit)
 
 
 Alternative Models: an AE Model
@@ -226,43 +226,43 @@ To evaluate the significance of each of the model parameters, nested submodels a
 
 .. code-block:: r
 
-	#Run AE model
-	twinAEModel <- mxModel(twinACEModel, 
-		# drop shared environmental path
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=F, 
-			values=0, 
-			label="c", 
-			name="Y"
-		)
-	)
-	
-	twinAEFit <- mxRun(twinAEModel)
+    #Run AE model
+    twinAEModel <- mxModel(twinACEModel, 
+        # drop shared environmental path
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=1, 
+            free=F, 
+            values=0, 
+            label="c", 
+            name="Y"
+        )
+    )
+    
+    twinAEFit <- mxRun(twinAEModel)
 
-	MZc <- mxEval(expCovMZ, twinAEFit)
-	DZc <- mxEval(expCovDZ, twinAEFit)
-	A <- mxEval(A, twinAEFit)
-	C <- mxEval(C, twinAEFit)
-	E <- mxEval(E, twinAEFit)
-	V <- (A+C+E)
-	a2 <- A/V
-	c2 <- C/V
-	e2 <- E/V
-	AEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-	LL_AE <- mxEval(objective, twinAEFit)
+    MZc <- mxEval(expCovMZ, twinAEFit)
+    DZc <- mxEval(expCovDZ, twinAEFit)
+    A <- mxEval(A, twinAEFit)
+    C <- mxEval(C, twinAEFit)
+    E <- mxEval(E, twinAEFit)
+    V <- (A+C+E)
+    a2 <- A/V
+    c2 <- C/V
+    e2 <- E/V
+    AEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+    LL_AE <- mxEval(objective, twinAEFit)
 
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models) to determine the best fitting model, and print relevant output.
 
 .. code-block:: r
 
-	LRT_ACE_AE <- LL_AE-LL_ACE
+    LRT_ACE_AE <- LL_AE-LL_ACE
 
-	#Print relevant output
-	ACEest
-	AEest
-	LRT_ACE_AE
+    #Print relevant output
+    ACEest
+    AEest
+    LRT_ACE_AE
 
 Note that the OpenMx team is currently working on better alternatives for dropping parameters.  These models may also be specified using paths instead of matrices, which allow for easier submodel specification. See :ref:`geneticepidemiology-path-specification` for path specification of these models.
