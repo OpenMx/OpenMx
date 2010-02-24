@@ -74,7 +74,7 @@ setMethod("genericObjRename", signature("MxFIMLObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxFIMLObjective"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, defVars) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
@@ -95,11 +95,11 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		covName <- .Object@covariance
 		dataName <- .Object@data
 		threshNames <- .Object@thresholds
+		.Object@definitionVars <- omxFilterDefinitionVariables(defVars, .Object@data)
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
-		.Object@definitionVars <- generateDefinitionList(flatModel)
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
 		.Object@thresholdColumns <- generateThresholdColumns(flatModel, threshNames, dataName)
 		if (length(mxDataObject@observed) == 0) {

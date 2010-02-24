@@ -79,7 +79,7 @@ setMethod("genericObjRename", signature("MxRowObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxRowObjective"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, defVars) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
@@ -94,11 +94,11 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
+		.Object@definitionVars <- omxFilterDefinitionVariables(defVars, .Object@data)
 		.Object@rowAlgebra <- omxLocateIndex(flatModel, .Object@rowAlgebra, name)
 		.Object@rowResults <- omxLocateIndex(flatModel, .Object@rowResults, name)
 		.Object@reduceAlgebra <- omxLocateIndex(flatModel, .Object@reduceAlgebra, name)
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
-		.Object@definitionVars <- generateDefinitionList(flatModel)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}

@@ -393,6 +393,11 @@ matrixParameters <- function(free, labels, lbound, ubound,
 	return(result)
 }
 
+# Definition variables is a list:
+# each entry of the list is a sublist of length 3 or more
+# first entry of the sublist: data number
+# second entry of the sublist: column number
+# remaining entries of the sublist: c(matrix number, row, column)
 matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) {
 	select <- !is.na(labels)
 	if (all(select == FALSE)) {

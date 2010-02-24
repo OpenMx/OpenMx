@@ -56,3 +56,18 @@ populateDefVarMatrix <- function(matrix, model) {
 	}
 	return(value)
 }
+defVariableIsMatch <- function(defName, dataName) {
+	components <- unlist(strsplit(defName, omxSeparatorChar, fixed = TRUE))
+	target <- paste(components[[1]], components[[2]], sep = '.')
+	return(identical(target, dataName))
+}
+
+omxFilterDefinitionVariables <- function(defVars, dataName) {
+	if (length(defVars) == 0) return(defVars)
+	dvNames <- names(defVars)	
+	filter <- sapply(dvNames, defVariableIsMatch, dataName)
+	return(defVars[filter])
+}
+
+
+

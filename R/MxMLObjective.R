@@ -68,7 +68,7 @@ setMethod("genericObjRename", signature("MxMLObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxMLObjective"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, defVars) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		covariance <- .Object@covariance

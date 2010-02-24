@@ -72,7 +72,7 @@ setMethod("genericObjRename", signature("MxRAMObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
-	function(.Object, flatModel, model) {
+	function(.Object, flatModel, model, defVars) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
