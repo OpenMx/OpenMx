@@ -47,7 +47,7 @@
 #endif /* DEBUGMX */
 
 #ifdef DEBUGMX_ROWS
-#define OMX_DEBUG_ROWS (row > 3 || row % 10 == 0)
+#define OMX_DEBUG_ROWS ((data->currentState->currentRow < 10) || (data->currentState->currentRow % 50 == 0))
 #else
 #define OMX_DEBUG_ROWS 0
 #endif /* DEBUGMX_ROWS */

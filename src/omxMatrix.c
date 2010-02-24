@@ -55,7 +55,7 @@ void omxPrintMatrix(omxMatrix *source, char* header) {
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-	if(OMX_DEBUG) { Rprintf("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.\n", om, nrows, ncols, os); }
+	if(OMX_DEBUG_MATRIX) { Rprintf("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.\n", om, nrows, ncols, os); }
 
 	om->rows = nrows;
 	om->cols = ncols;

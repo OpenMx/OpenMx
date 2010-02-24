@@ -34,6 +34,7 @@ extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*
 typedef struct omxDefinitionVar {		 	// Definition Var
 
 	int data, column;		// Where it comes from
+	omxData* source;		// Data source
 	int numLocations;		// Num locations
 	double** location;		// And where it goes
 	omxMatrix** matrices;	// Matrix numbers for dirtying
@@ -137,7 +138,7 @@ void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, 
 	for(int k = 0; k < numDefs; k++) {
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG_ROWS) {
-				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(data, row, defVars[k].column), defVars[k].matrices[l]);
+				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
 			*(defVars[k].location[l]) = omxDoubleDataElement(data, row, defVars[k].column);
 			omxMarkDirty(defVars[k].matrices[l]);
@@ -425,15 +426,18 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		// Handle Definition Variables.
 		if(numDefs != 0) {
-			if(OMX_DEBUG_ROWS) {Rprintf("Handling definition vars and calculating cov and means for row %d.\n", row);}
+			// omxStateNextRow(oo->matrix->currentState);						// Advance Row
+			if(OMX_DEBUG_ROWS) {Rprintf("Handling definition vars and calculating cov and means for row %d.\n", oo->matrix->currentState->currentRow);}
 			handleDefinitionVarList(data, row, defVars, numDefs);
-			omxStateNextRow(oo->matrix->currentState);							// Advance Row
 			omxRecompute(cov);
 			omxRecompute(means);
 		}
 
 		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
-		if(OMX_DEBUG_ROWS) { omxPrint(smallRow, "Local Data Row"); }
+		if(OMX_DEBUG_ROWS) {
+			char note[50];
+			sprintf(note, "Local Data Row %d", row);
+			omxPrint(smallRow, note); }
 
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
@@ -507,7 +511,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
             omxSetMatrixElement(oo->matrix, row, 0, sum);
         } else {
             sum += log(determinant) + Q + (log(2 * M_PI) * smallRow->cols);
-            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);}
+            if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);}
         }
 	}
 
@@ -595,6 +599,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
 		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
 		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
+		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
