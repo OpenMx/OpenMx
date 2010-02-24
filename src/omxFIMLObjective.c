@@ -136,11 +136,11 @@ void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, 
 
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
+		if(defVars[k].source != data) continue;			// For now, don't populate from the wrong data frame.
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG_ROWS) {
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
-			if(defVars[k].source != data) continue;			// For now, don't populate from the wrong data frame.
 			*(defVars[k].location[l]) = omxDoubleDataElement(data, row, defVars[k].column);
 			omxMarkDirty(defVars[k].matrices[l]);
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
