@@ -8,18 +8,21 @@
 }
 
 \usage{
-mxRun(model, silent=FALSE)
+mxRun(model, silent=FALSE, unsafe=FALSE)
 }
 
 \arguments{
-    \item{model}{A \link{MxModel} object to be optimized.}
+    \item{model}{A \link{MxModel} object to be optimized.}    
     \item{silent}{A boolean indicating whether to print status to terminal.}
+    \item{unsafe}{A boolean indicating whether to ignore errors.}
 }
 
 \details{
 The mxRun function is used to optimize free parameters in \link{MxModel} objects based on an objective function. MxModel objects included in the mxRun function must include an appropriate objective function.
 
 If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal, and a warning is not issued if NPSOL returns a non-zero status code.
+
+If the \sQuote{unsafe} flag is TRUE, then any error conditions will throw a warning instead of an error.  It is strongly recommended to use this feature only for debugging purposes.
 
 Free parameters are estimated or updated based on the objective function. These estimated values, along with estimation information and model fit, can be found in the 'output' slot of MxModel objects after mxRun has been used.
 

@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, silent = FALSE) {
+mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	frontendStart <- Sys.time()
 	if(!silent) cat("Running", model@name, "\n")
 	namespace <- omxGenerateNamespace(model)
@@ -79,7 +79,7 @@ mxRun <- function(model, silent = FALSE) {
 	model <- undoDataShare(model, dataList)
 	model@output <- processOptimizerOutput(silent, flatModel,
 		names(matrices), names(algebras),
-		names(parameters), output)
+		names(parameters), unsafe, output)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
@@ -88,7 +88,7 @@ mxRun <- function(model, silent = FALSE) {
 }
 
 processOptimizerOutput <- function(silent, flatModel, matrixNames, 
-		algebraNames, parameterNames, output) {
+		algebraNames, parameterNames, unsafe, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
@@ -110,9 +110,15 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
     if (output$status[[1]] > 0 && !silent) {
     	npsolWarnings(flatModel@name, output$status[[1]])
     } else if (output$status[[1]] < 0) {
-        stop(paste("The job for model", omxQuotes(flatModel@name),
-            "exited abnormally with the error message:",
-            output$status[[3]]), call. = FALSE)
+    	if (unsafe) {
+    		warning(paste("The job for model", omxQuotes(flatModel@name),
+	            "exited abnormally with the error message:",
+	            output$status[[3]]), call. = FALSE)
+    	} else {
+	        stop(paste("The job for model", omxQuotes(flatModel@name),
+	            "exited abnormally with the error message:",
+	            output$status[[3]]), call. = FALSE)
+	    }
     }
 	return(output)
 }

@@ -1,3 +1,7 @@
+trunk
+=====
+* added 'unsafe' argument to mxRun function.  See ?mxRun for more information.
+
 Release 0.2.6-1114
 ==================
 * implemented omxAllInt, use ?omxAllInt for R help on this function
