@@ -1,6 +1,8 @@
 trunk
 =====
 * added 'unsafe' argument to mxRun function.  See ?mxRun for more information.
+* bugfix for filtering definition variable assignment to current data source.
+* bugfix for using data.frame with integer type columns that are not factors.
 
 Release 0.2.6-1114
 ==================

@@ -101,9 +101,10 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				od->intData[numInts] = INTEGER(od->columns[j]);
 				od->location[j] = ~(numInts++);
 			} else if (isInteger(od->columns[j])) {
-				if(OMX_DEBUG) {Rprintf("Column %d is an integer.\n", j);}
-				od->realData[numReals] = REAL(AS_NUMERIC(od->columns[j])); // May need PROTECTion.
-				od->location[j] = (numReals++);
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(errstr, "Internal error: Column %d is in integer format.", j);
+				omxRaiseError(od->currentState, -1, errstr);
+				free(errstr);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
 				od->realData[numReals] = REAL(od->columns[j]);
