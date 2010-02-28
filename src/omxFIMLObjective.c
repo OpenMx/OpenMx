@@ -282,7 +282,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			}
 		}
 
-		if(numRemoves >= smallCov->rows) continue;
+		if(numRemoves >= smallCov->rows) {
+			if(returnRowLikelihoods) {
+			    omxSetMatrixElement(oo->matrix, row, 0, 1.0);
+			}
+			continue;
+		}
 
 		// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
 		// TODO: Check with Genz: should we be using sadmvn or sadmvn?
