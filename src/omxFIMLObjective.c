@@ -203,6 +203,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
 		omxRecompute(cov);			// Only recompute this here if there are no definition vars
+		omxRecompute(means);
 		for(int j = 0; j < data->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 				omxRecompute(thresholdCols[j].matrix);
@@ -228,6 +229,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
 			handleDefinitionVarList(data, row, defVars, numDefs);
 			omxRecompute(cov);
+			omxRecompute(means);
 			for(int j=0; j < data->cols; j++) {
 				if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 					omxRecompute(thresholdCols[j].matrix);
