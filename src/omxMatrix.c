@@ -88,10 +88,24 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->currentState = os;
 	om->lastCompute = -2;
 	om->lastRow = -2;
+	om->isTemporary = FALSE;
 
 	omxMatrixCompute(om);
 
 	return om;
+
+}
+
+omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
+
+	if(om == NULL) {
+		om = (omxMatrix*) Calloc(1, omxMatrix);
+	}
+
+	om = omxInitMatrix(om, nrows, ncols, isColMajor, os);
+	om->isTemporary = TRUE;
+	
+	return(om);
 
 }
 
@@ -171,6 +185,11 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 	if(om->objective != NULL) {
 		omxFreeObjectiveArgs(om->objective);
 		om->objective = NULL;
+	}
+	
+	if(om->isTemporary) {
+		Free(om);
+		om = NULL;
 	}
 
 }

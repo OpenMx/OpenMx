@@ -70,6 +70,7 @@ struct omxMatrix {						// A matrix
 /* Curent State */
 	omxState* currentState;				// Optimizer State
 	unsigned short isDirty;				// Retained, for historical purposes.
+	unsigned short isTemporary;			// Whether or not to destroy the omxMatrix Structure when omxFreeAllMatrixData is called.
 	int lastCompute;					// Compute Count Number at last computation
 	int lastRow;						// Compute Count Number at last row update (Used for row-by-row computation only)
 
@@ -86,7 +87,8 @@ struct omxMatrix {						// A matrix
 };
 
 /* Initialize and Destroy */
-	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);	// Set up matrix
+	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);			// Set up matrix 
+	omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);	// Set up matrix that can be freed
 	void omxFreeMatrixData(omxMatrix* om);							// Release any held data.
 	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
 

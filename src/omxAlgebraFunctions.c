@@ -254,7 +254,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxRaiseError(preMul->currentState, -1, "Non-conformable matrices in Matrix Quadratic Product.");
 
 	omxMatrix* intermediate = NULL;
-	intermediate = omxInitMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState); // Leaks Memory!
+	intermediate = omxInitTemporaryMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState);
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: os = 0x%x, step = %d.\n", result->currentState, intermediate->currentState->computeCount);}
 
@@ -277,7 +277,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: clear.\n");}
 
-	omxFreeMatrixData(intermediate);
+	omxFreeAllMatrixData(intermediate);
 
 }
 
@@ -622,7 +622,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxResizeMatrix(result, 1, 1, FALSE);
 	}
 
-	calcMat = omxInitMatrix(NULL, rows, cols, TRUE, inMat->currentState);
+	calcMat = omxInitTemporaryMatrix(NULL, rows, cols, TRUE, inMat->currentState);
 	omxCopyMatrix(calcMat, inMat);
 
 	int ipiv[rows];
@@ -649,6 +649,8 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(OMX_DEBUG_ALGEBRA) {
 		Rprintf("det is %d.\n", det);
 	}
+
+	omxFreeAllMatrixData(calcMat);
 
 	omxSetMatrixElement(result, 0, 0, det);
 }
