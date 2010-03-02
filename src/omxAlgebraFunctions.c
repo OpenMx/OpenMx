@@ -210,9 +210,9 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 				omxMatrixElement(second, i, j));
 		}
 	}
-
-
 }
+
+
 void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
@@ -234,7 +234,29 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 					omxSetMatrixElement(result, preRow*postMul->rows + postRow,
 						preCol*postMul->cols + postCol,
 						omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
+}
 
+void omxKroneckerPower(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Kronecker Power.\n");}
+
+	omxMatrix* preMul = matList[0];
+	omxMatrix* postMul = matList[1];
+
+	int rows = preMul->rows * postMul->rows;
+	int cols = preMul->cols * postMul->cols;
+
+	if(result->rows != rows || result->cols != cols)
+		omxResizeMatrix(result, rows, cols, FALSE);
+
+	for(int preRow = 0; preRow < preMul->rows; preRow++)
+		for(int postRow = 0; postRow < postMul->rows; postRow++)
+			for(int preCol = 0; preCol < preMul->cols; preCol++)
+				for(int postCol = 0; postCol < postMul->cols; postCol++)
+					omxSetMatrixElement(result, preRow*postMul->rows + postRow,
+						preCol*postMul->cols + postCol,
+						pow(omxMatrixElement(preMul, preRow, preCol), omxMatrixElement(postMul, postRow, postCol)));
 }
 
 void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -1242,10 +1264,10 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
-	if(OMX_DEBUG_ALGEBRA) { 
-		Rprintf("All-part multivariate normal integration.\n"); 
+	if(OMX_DEBUG_ALGEBRA) {
+		Rprintf("All-part multivariate normal integration.\n");
 	}
-	
+
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	int nCols = cov->cols;
@@ -1258,8 +1280,8 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int currentMat = 0;
 
 	for(i = currentMat; i < nCols;) {							// Map out the structure of levels.
-	if(OMX_DEBUG_ALGEBRA) { 
-		Rprintf("All-part multivariate normal integration: Examining threshold column %d.\n", i); 
+	if(OMX_DEBUG_ALGEBRA) {
+		Rprintf("All-part multivariate normal integration: Examining threshold column %d.\n", i);
 	}
 		thresholdMats[currentMat] = matList[currentMat+2];		// Get the thresholds for this covariance column
 
@@ -1272,9 +1294,9 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 				free(errstr);
 				return;
 			}
-			
+
 			thresholdCols[i] = j;
-			
+
 			for(k = 1; k < thresholdMats[currentMat]->rows; k++) {
 				ubound = omxMatrixElement(thresholdMats[currentMat], k, j);
 				if(ISNA(ubound)) {
@@ -1344,26 +1366,26 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int Infin[nCols];
 	double lBounds[nCols];
 	double uBounds[nCols];
-	
-	
+
+
 	/* Set up first row */
 	for(j = (nCols-1); j >= 0; j--) {					// For each threshold set, starting from the fastest
-		
+
 		Infin[j] = 2; 									// Default to using both thresholds
 		lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
 		if(!R_finite(lBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 2; 
+				Infin[j] -= 2;
 		}
-		
+
 		uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
-    	
+
 		if(!R_finite(uBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 1; 
+				Infin[j] -= 1;
 		}
-		
+
 		if(Infin[j] < 0) { Infin[j] = 3; }			// Both bounds infinite.
 	}
-	
+
 	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
@@ -1376,8 +1398,8 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
-	
-	
+
+
 	/* And repeat with increments for all other rows. */
 	for(i = 1; i < totalLevels; i++) {
 		for(j = (nCols-1); j >= 0; j--) {							// For each threshold set, starting from the fastest
@@ -1390,20 +1412,20 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 			Infin[j] = 2; // Default to both thresholds
 			lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
 			if(!R_finite(lBounds[j])) {								// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 2; 
+				Infin[j] -= 2;
 			}
 			uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
-        	
+
 			if(!R_finite(uBounds[j])) { 							// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 1; 
+				Infin[j] -= 1;
 			}
-			
+
 			if(Infin[j] < 0) { Infin[j] = 3; }						// Both bounds infinite.
-			
+
 			if(currentThresholds[j] != 1) {							// If we just cycled, we need to see the next set.
 				break;
 			}
-			
+
 		}
 
 		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);

@@ -37,3 +37,4 @@
 35		"Multivariate Normal Integration"   "omxMnor"   4   "omxMultivariateNormalIntegration"
 36		"All Cells Multivariate Normal Integration"   "omxAllInt"   -1   "omxAllIntegrationNorms"
 37		"Colon"			":"		2			"omxSequenceGenerator"
+38		"Kronecker powering"	"%^%"		2			"omxKroneckerPower"

@@ -23,7 +23,11 @@ tr <- function(x) {
 }
 
 "%&%" <- function(x, y) {
-  return(x %*% y %*% t(x))
+	return(x %*% y %*% t(x))
+}
+
+"%^%" <- function(x, y) {
+	return(kronecker(x, y, '^'))
 }
 
 vech <- function(x) {

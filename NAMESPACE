@@ -8,7 +8,7 @@ exportPattern("^mx.+")
 exportPattern("^omx.+")
 
 # matrix algebra functions exported by the library
-export(tr, "%&%", vech, vechs, diag2vec, vec2diag)
+export(tr, "%&%", "%^%", vech, vechs, diag2vec, vec2diag)
 
 # export S4 classes in the OpenMx library
 exportClassPattern("^.+Matrix")

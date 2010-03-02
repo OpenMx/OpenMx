@@ -1,3 +1,8 @@
+trunk
+=====
+* bugfix for memory leak behavior in kronecker product calculation
+* implemented kronecker exponentiation operator %^%.
+
 Release 0.2.7-1125
 ==================
 * added 'unsafe' argument to mxRun function.  See ?mxRun for more information.
