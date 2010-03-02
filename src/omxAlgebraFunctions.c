@@ -126,18 +126,13 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(result->cols != cols || result->rows != rows)
 		omxResizeMatrix(result, rows, cols, FALSE);
 
-	if(power->rows == 1 && power->cols == 1) {
-		double exponent = power->data[0];
-		for(int j = 0; j < inMat->rows; j++)
-			for(int k = 0; k < inMat->cols; k++)
-				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), exponent));
-	} else if(power->rows == rows && power->cols == cols) {
+	if(power->rows == rows && power->cols == cols) {
 		for(int j = 0; j < inMat->rows; j++)
 			for(int k = 0; k < inMat->cols; k++)
 				omxSetMatrixElement(result, j, k, pow(omxMatrixElement(inMat, j,k), omxMatrixElement(power, j,k)));
 	} else {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in elementPower.");
+		sprintf(errstr, "Non-conformable matrices in ^ operator.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
