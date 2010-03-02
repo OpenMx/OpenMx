@@ -67,14 +67,17 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 
-convertIntegerColumns <- function(dframe) {
-	for(i in 1:ncol(dframe)) {
-		column <- dframe[,i]
-		if(!is.factor(column) && is.integer(column)) {
-			dframe[,i] <- as.double(dframe[,i])
-		}
+convertIntegerSingleColumn <- function(column) {
+	if(!is.factor(column) && is.integer(column)) {
+		return(as.double(column))
+	} else {
+		return(column)
 	}
-	return(dframe)
+}
+
+convertIntegerColumns <- function(dframe) {
+	output <- data.frame(lapply(dframe, convertIntegerSingleColumn))
+	return(output)
 }
 
 checkNumericData <- function(data) {
