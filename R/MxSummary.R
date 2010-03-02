@@ -174,11 +174,11 @@ parameterList <- function(model, matrices, parameters) {
 	if(length(model@output) == 0) { return(retval) }
 	ptable <- data.frame()
 	estimates <- model@output$estimate
-	if (length(model@output$hessian) > 0) {
-		errorEstimates <- sqrt(diag(solve(model@output$hessian)))
-	} else {
-		errorEstimates <- rep.int(NA, length(estimates))
-	}
+#	if (length(model@output$hessian) > 0) {
+#		errorEstimates <- sqrt(diag(solve(model@output$hessian)))
+#	} else {
+#		errorEstimates <- rep.int(NA, length(estimates))
+#	}
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -199,8 +199,6 @@ parameterList <- function(model, matrices, parameters) {
 			ptable[i, 'row'] <- mRow
 			ptable[i, 'col'] <- mCol
 			ptable[i, 'Estimate'] <- estimates[[i]]
-			ptable[i, 'Std.Error'] <- errorEstimates[[i]]
-
 		}
 		retval[['parameters']] <- ptable
 	}

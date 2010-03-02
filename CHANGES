@@ -2,6 +2,8 @@ trunk
 =====
 * bugfix for memory leak behavior in kronecker product calculation
 * implemented kronecker exponentiation operator %^%.
+* actually updating means calculations in ordinal FIML models
+* removing standard errors from summary() until they are computed correctly
 
 Release 0.2.7-1125
 ==================
