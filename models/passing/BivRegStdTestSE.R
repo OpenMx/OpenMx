@@ -19,15 +19,12 @@
 
 options(width=80)
 
-require(psych)
 require(OpenMx)
 
 # ----------------------------------
 # Read the data and print descriptive statistics.
 
 multiData1 <- read.csv("data/multiData.csv")
-multiData1 <- multiData1[1:200,]
-describe(multiData1)
 
 # ----------------------------------
 # Build an OpenMx bivariate regression model using y and x1
@@ -49,7 +46,7 @@ biRegModel <- mxModel("Bivariate Regression of y on x1 and x2",
            arrows=2, 
            free=TRUE, values=.2, 
            labels=c("CovX1X2")),
-    mxData(observed=multiData1Cov, type="cov", numObs=200)
+    mxData(observed=multiData1Cov, type="cov", numObs=500)
     )
 biRegModel <- mxOption(biRegModel, "Standard Errors", "Yes")
 

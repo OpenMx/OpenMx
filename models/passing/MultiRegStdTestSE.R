@@ -19,7 +19,6 @@
 
 options(width=80)
 
-require(psych)
 require(OpenMx)
 
 # ----------------------------------
@@ -27,7 +26,6 @@ require(OpenMx)
 
 multiData1 <- read.csv("data/multiData.csv")
 
-describe(multiData1)
 
 # ----------------------------------
 # Build an OpenMx multiple regression model using y and x1
