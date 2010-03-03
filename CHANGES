@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.2.8-1133
+==================
 * bugfix for memory leak behavior in kronecker product calculation
 * implemented kronecker exponentiation operator %^%.
 * actually updating means calculations in ordinal FIML models
