@@ -1190,10 +1190,13 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	}
 
 	int nElements = (cov->cols > 1) ? cov->cols : cov->rows;
-	double lBounds[nElements], uBounds[nElements];
-
-	double weights[nElements];
-	double corList[nElements * (nElements + 1) / 2];
+	double *lBounds, *uBounds;
+	double *weights;
+	double *corList;
+	lBounds = (double*) Calloc(nElements, double);
+	uBounds = (double*) Calloc(nElements, double);
+	weights = (double*) Calloc(nElements, double);	
+	corList = (double*) Calloc(nElements * (nElements + 1) / 2, double);
 
 	omxStandardizeCovMatrix(cov, corList, weights);
 
@@ -1252,6 +1255,11 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
+	
+	Free(corList);
+	Free(weights);
+	Free(uBounds);
+	Free(lBounds);
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
 

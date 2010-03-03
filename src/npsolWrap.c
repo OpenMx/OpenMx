@@ -96,6 +96,7 @@ R_unload_mylib(DllInfo *info)
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
+	if(OMX_DEBUG) { Rprintf("-----------------------------------------------------------------------\n");}
 	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
 
 	int j,k,l;

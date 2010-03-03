@@ -119,8 +119,8 @@ struct omxMatrix {						// A matrix
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, char* d); 											// Pretty-print a (small) matrix
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
-	inline void omxRecompute(omxMatrix *matrix);										// Recompute if needed
-	inline void omxCompute(omxMatrix *matrix);											// Compute it whether needed or not
+	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
+	void omxCompute(omxMatrix *matrix);													// Recompute the matrix no matter what.
 
 /* BLAS Wrappers */
 
@@ -150,23 +150,5 @@ struct omxMatrix {						// A matrix
 	void omxMatrixCompute(omxMatrix *matrix);
 	void omxPrintMatrix(omxMatrix *source, char* d);                    // Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
-
-	void omxObjectiveCompute(omxObjective *oo);
-	void omxAlgebraCompute(omxAlgebra *oa);
-
-	inline void omxRecompute(omxMatrix *matrix) {
-		if(!omxNeedsUpdate(matrix)) return;
-		if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
-		else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-		else omxMatrixCompute(matrix);
-	}
-
-	inline void omxCompute(omxMatrix *matrix) {
-		if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
-		else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-		else omxMatrixCompute(matrix);
-	}
-
-
 
 #endif /* _OMXMATRIX_H_ */
