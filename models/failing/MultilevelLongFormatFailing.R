@@ -16,7 +16,7 @@
 require(OpenMx)
 
 # Multilevel Long Format Test
-# Author: Ryne Estabrook
+# Author: Steve Boker
 # Date: Sun Nov 29 14:06:07 EST 2009
 
 
