@@ -1,3 +1,7 @@
+trunk
+=====
+* bugfix for ordinal FIML with columns that are not threshold columns
+
 Release 0.2.8-1133
 ==================
 * bugfix for memory leak behavior in kronecker product calculation

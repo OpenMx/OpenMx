@@ -76,9 +76,9 @@ convertThresholds <- function(flatModel, model, dataName, threshNames) {
 checkSingleThresholdEntity <- function(flatModel, model, dataName, threshName) {
 	observed <- flatModel@datasets[[dataName]]@observed
 	modelName <- flatModel@name
-	threshNames <- dimnames(observed)[[2]]
 	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
 		list(x = as.symbol(threshName))))
+	threshNames <- dimnames(thresholds)[[2]]
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
 		column <- thresholds[,i]
