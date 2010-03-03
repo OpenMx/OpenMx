@@ -574,16 +574,3 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	if(OMX_DEBUG_MATRIX && !retval) {Rprintf("No.\n");}
 	return(retval);
 }
-
-void inline omxRecompute(omxMatrix *matrix) {
-	if(!omxNeedsUpdate(matrix)) return;
-	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
-	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
-}
-
-void inline omxCompute(omxMatrix *matrix) {
-	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
-	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
-}

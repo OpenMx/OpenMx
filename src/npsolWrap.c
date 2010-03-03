@@ -661,7 +661,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
 	SET_VECTOR_ELT(status, 2, statusMsg);
 
-	if(numHessians) {
+	if(numHessians && currentState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
 		if(currentState->numConstraints == 0) {
 			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
 			int gotHessians = omxEstimateHessian(calculateHessians, numHessians, .0001, /*2.0,*/ 4, currentState, currentState->optimum);
@@ -805,11 +805,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
 						stdError[k] = NA_REAL;
 					}
-				}
-
-				for(int k = 0; k < n; k++) {
-					if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-					stdError[k] = oo->stdError[k];
+				} else {
+					for(int k = 0; k < n; k++) {
+						if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
+						stdError[k] = oo->stdError[k];
+					}
 				}
 			}
 		}
