@@ -673,7 +673,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						if(oo->getStandardErrorFun != NULL) {
 							oo->getStandardErrorFun(oo);
 						} else {
-							omxCalculateStdErrorFromHessian(sqrt(2.0), oo);
+							omxCalculateStdErrorFromHessian(2.0, oo);
 						}
 					}
 				}
@@ -799,15 +799,18 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
 			}
 			if(OMX_DEBUG) {Rprintf("Done.\n", k);}
+			if(calculateStdErrors) {
+				if(oo->stdError == NULL) {
+					for(int k = 0; k < n; k++) {
+						if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
+						stdError[k] = NA_REAL;
+					}
+				}
 
-			if(oo->stdError == NULL) {
-				if(OMX_DEBUG) {Rprintf("Objective has no standard errors. Aborting.\n");}
-				continue;
-			}
-
-			for(int k = 0; k < n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-				stdError[k] = oo->stdError[k];
+				for(int k = 0; k < n; k++) {
+					if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
+					stdError[k] = oo->stdError[k];
+				}
 			}
 		}
 	}
@@ -842,7 +845,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	} else {
 		SET_VECTOR_ELT(ans, 9, calculatedHessian);
 	}
-	if(numHessians == 0) {
+	if(!calculateStdErrors) {
 		SET_VECTOR_ELT(ans, 10, NAmat);
 	} else {
 		SET_VECTOR_ELT(ans, 10, stdErrors);

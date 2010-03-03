@@ -90,7 +90,7 @@ struct omxObjective {					// An objective
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
 	
 	/* Helper functions */
-	void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo);		// Does what it says
+	void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo);	// Does what it says
 	
 	/* Helpers related to objective initialization */
 	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot

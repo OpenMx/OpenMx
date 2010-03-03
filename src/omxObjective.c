@@ -30,7 +30,7 @@
 
 #include "omxObjective.h"
 
-void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo) {
+void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
 
@@ -77,7 +77,7 @@ void omxCalculateStdErrorFromHessian(int scale, omxObjective *oo) {
 			oo->stdError = NULL;
 		} else {
 			for(int i = 0; i < numParams; i++) {
-				stdErr[i] = scale * sqrt(workspace[i * numParams + i]);
+				stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
 			}
 		}
 	}
