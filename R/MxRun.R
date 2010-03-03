@@ -96,10 +96,15 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 	if (length(output$gradient) == length(parameterNames)) {
 		names(output$gradient) <- parameterNames
 	}
-	output$hessian <- t(output$hessianCholesky) %*% output$hessianCholesky
-	if (nrow(output$hessian) == length(parameterNames) &&
-		ncol(output$hessian) == length(parameterNames)) {
-		dimnames(output$hessian) <- list(parameterNames, parameterNames)
+	output$estimatedHessian <- t(output$hessianCholesky) %*% output$hessianCholesky
+	if (nrow(output$estimatedHessian) == length(parameterNames) &&
+		ncol(output$estimatedHessian) == length(parameterNames)) {
+		dimnames(output$estimatedHessian) <- list(parameterNames, parameterNames)
+	}
+	if (!is.null(output$calculatedHessian) && 
+		nrow(output$calculatedHessian) == length(parameterNames) &&
+		ncol(output$calculatedHessian) == length(parameterNames)) {
+		dimnames(output$calculatedHessian) <- list(parameterNames, parameterNames)
 	}
 	if (length(output$matrices) == length(matrixNames)) {
 		names(output$matrices) <- matrixNames

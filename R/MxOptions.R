@@ -37,8 +37,8 @@ npsolOptions <- list(
 	"Line search tolerance" = "0.3",
 	"Derivative Level" = "0",
 	"Hessian" = "Yes",
-	"Calculate Hessian" = "No",
-	"Standard Errors" = "No",
+	"Calculate Hessian" = "Yes",
+	"Standard Errors" = "Yes",
 	"Chi-square Confidence Intervals" = "No"	
 )
 
