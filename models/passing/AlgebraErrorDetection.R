@@ -57,3 +57,4 @@ dimnames(A) <- list('Tom', 'Cruise')
 model <- mxModel('model', A, B)
 omxCheckError(mxRun(model), paste("The matrix 'model.A' does",
 	"not contain the row name 'bacon'"))
+model <- mxModel('model', mxModel("model2", mxAlgebra(model2.objective, name="Obj"), mxAlgebraObjective("Obj")))
