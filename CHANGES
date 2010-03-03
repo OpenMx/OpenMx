@@ -1,6 +1,7 @@
 trunk
 =====
 * bugfix for ordinal FIML with columns that are not threshold columns
+* bugfix for detection of algebraic cycles when multiple objective functions are present
 
 Release 0.2.8-1133
 ==================

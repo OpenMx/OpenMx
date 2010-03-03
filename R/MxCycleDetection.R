@@ -15,8 +15,11 @@
 
 cycleDetection <- function(flatModel) {
 	dependencies <- new("MxDirectedGraph")
-	objective <- flatModel@objective
-	dependencies <- addObjectiveDetection(objective, dependencies)
+	if (length(flatModel@objectives) > 0) {
+		for(i in 1:length(flatModel@objectives)) {
+			dependencies <- addObjectiveDetection(flatModel@objectives[[i]], dependencies)
+		}	
+	}
 	if (length(flatModel@algebras) > 0) {
 		for(i in 1:length(flatModel@algebras)) {
 			dependencies <- addAlgebraDetection(flatModel@algebras[[i]], dependencies)
