@@ -58,3 +58,6 @@ model <- mxModel('model', A, B)
 omxCheckError(mxRun(model), paste("The matrix 'model.A' does",
 	"not contain the row name 'bacon'"))
 model <- mxModel('model', mxModel("model2", mxAlgebra(model2.objective, name="Obj"), mxAlgebraObjective("Obj")))
+omxCheckError(mxRun(model), paste("A cycle has been detected in model",
+	"'model' involving the following elements:",
+	"'model2.Obj' and 'model2.objective'"))
