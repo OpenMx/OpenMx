@@ -108,17 +108,11 @@ verifyCovarianceMatrix <- function(covMatrix) {
 }
 
 generateDataList <- function(model) {
-	return(generateDataListHelper(model, TRUE))
-}
-
-generateDataListHelper <- function(model, name) {
-	retval <- unlist(lapply(model@submodels, generateDataListHelper, FALSE))
+	retval <- lapply(model@submodels, generateDataList)
+	names(retval) <- NULL
+	retval <- unlist(retval)
 	if (is.null(retval)) retval <- list()
-	if (name) {
-		retval[[model@name]] <- model@data
-	} else {
-		retval[[length(retval) + 1]] <- model@data
-	}
+	retval[[model@name]] <- model@data
 	return(retval)
 }
 

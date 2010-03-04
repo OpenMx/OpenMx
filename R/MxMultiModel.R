@@ -133,14 +133,17 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 			name <- submodel@name
 			submodel@data <- namespaceConvertData(submodel@data, name)
 			submodel@objective <- namespaceConvertObjective(submodel@objective, name, namespace)
-			if (is.null(submodel@data)) {
-				submodel@matrices <- lapply(submodel@matrices, 
-					function(x) { 
-						namespaceConvertMatrix(x, name, defaultData@name, namespace) })
+			if (is.null(defaultData)) {
+				defaultDataName <- NULL
 			} else {
-				submodel@matrices <- lapply(submodel@matrices, 
-					function(x) { 
-						namespaceConvertMatrix(x, name, submodel@data@name, namespace) })
+				defaultDataName <- defaultData@name
+			}
+			if (is.null(submodel@data)) {
+				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
+					name, defaultDataName, namespace)
+			} else {
+				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
+					name, submodel@data@name, namespace)
 			}
 			submodel@algebras <- lapply(submodel@algebras, 
 				function(x) { namespaceConvertAlgebra(x, name, namespace) })
