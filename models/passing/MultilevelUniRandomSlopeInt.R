@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 require(OpenMx)
+require(nlme)
 
 # Multilevel Long Format Test
 # Author: Steve Boker
