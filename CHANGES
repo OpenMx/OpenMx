@@ -1,7 +1,9 @@
-trunk
-=====
+Release 0.2.9-1147
+==================
 * bugfix for ordinal FIML with columns that are not threshold columns
 * bugfix for detection of algebraic cycles when multiple objective functions are present
+* test cases included for standard error calculation
+* enabled standard error calculation by default
 
 Release 0.2.8-1133
 ==================
