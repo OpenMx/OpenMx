@@ -120,8 +120,13 @@ omxAllInt <- function(cov, means, ...) {
     if(ncol(cov) != length(means)) {
         stop("'means' must have length equal to diag(cov)")
     }
+    
     if(sum(sapply(thresholdMats, ncol)) < ncol(cov)) {
         stop("'thresholds' must have at least as many total columns as 'cov'")
+    }
+
+    if(min(sapply(thresholdMats, nrow)) < 2) {
+        stop("every column of 'thresholds' must have at least two rows: one lower bound and one upper")
     }
     
     retVal <- .Call("omxCallAlgebra", 

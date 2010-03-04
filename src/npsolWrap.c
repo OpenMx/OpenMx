@@ -804,7 +804,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				if(oo->stdError == NULL) {
 					for(int k = 0; k < n; k++) {
 						if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
-						stdError[k] = NA_REAL;
+						stdError[k] = R_NaReal;
 					}
 				} else {
 					for(int k = 0; k < n; k++) {

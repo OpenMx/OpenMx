@@ -309,7 +309,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->originalRows || col >= om->originalCols) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->originalRows, om->originalCols);
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->originalRows, om->originalCols);
 		error(errstr);
 		free(errstr);
         return (NA_REAL);
@@ -327,7 +327,7 @@ double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->rows || col >= om->cols) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row, col, om->rows, om->cols);
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->rows, om->cols);
 		error(errstr);
 		free(errstr);
 	}
