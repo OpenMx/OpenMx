@@ -1098,11 +1098,61 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	// if(OMX_DEBUG_ALGEBRA) { 
+		Rprintf("Row Vectorize %s.\n", result->algebra->name);
+		// }
+	
 	omxMatrix *inMat = matList[0];
+	
+	int size = (inMat->rows * inMat->cols);
+	
+	/* Consistency Check */
+	if(result->rows != size || result->cols != 1)
+		omxResizeMatrix(result, size, 1, FALSE);
+	
+	if(!inMat->colMajor) {		// Special case: we can just memcpy.
+		Rprintf(":::DEBUG::: MEMCPY::\n");
+		memcpy(result->data, inMat->data, size*sizeof(double));
+	} else {
+		int next = 0;
+		Rprintf(":::DEBUG::: STEP::\n");
+		for(int i = 0; i < inMat->rows; i++) {
+			for(int j = 0; j < inMat->cols; j++) {
+				omxSetMatrixElement(result, next++, 0, omxMatrixElement(inMat, i, j));
+			}
+		}
+	}
+	Rprintf(":::DEBUG::: DONE\n");
 }
 
 void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	// if(OMX_DEBUG_ALGEBRA) {
+		 Rprintf("Column Vectorize %s.\n", result->algebra->name);
+		// }
+	
 	omxMatrix *inMat = matList[0];
+	
+	int size = (inMat->rows * inMat->cols);
+	
+	/* Consistency Check */
+	if(result->rows != size || result->cols != 1)
+		omxResizeMatrix(result, size, 1, FALSE);
+		
+	Rprintf(":::DEBUG::: RESIZE\n");
+	
+	if(inMat->colMajor) {		// Special case: we can just memcpy.
+		Rprintf(":::DEBUG::: MEMCPY::\n");
+		memcpy(result->data, inMat->data, size * sizeof(double));
+	} else {
+		int next = 0;
+		Rprintf(":::DEBUG::: STEP::\n");
+		for(int i = 0; i < inMat->cols; i++) {
+			for(int j = 0; j < inMat->rows; j++) {
+				omxSetMatrixElement(result, next++, 0, omxMatrixElement(inMat, j, i));
+			}
+		}
+	}
+	Rprintf(":::DEBUG::: DONE\n");
 }
 
 
