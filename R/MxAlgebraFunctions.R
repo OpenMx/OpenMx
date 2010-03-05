@@ -30,6 +30,14 @@ tr <- function(x) {
 	return(kronecker(x, y, '^'))
 }
 
+cvectorize <- function(x) {	
+	return(matrix(x, length(x), 1))
+}
+
+rvectorize <- function(x) {
+	return(matrix(t(x), length(x), 1))
+}
+
 vech <- function(x) {
 	return(x[lower.tri(x, diag=TRUE)])
 }

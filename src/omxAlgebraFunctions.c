@@ -1097,6 +1097,15 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 }
 
+void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	omxMatrix *inMat = matList[0];
+}
+
+void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	omxMatrix *inMat = matList[0];
+}
+
+
 void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	double start = omxVectorElement(matList[0], 0);

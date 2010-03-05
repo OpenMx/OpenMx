@@ -24,7 +24,8 @@ The following operations are supported in mxAlgebra:
 \describe{
 \item{\code{solve()}}{Inversion}
 \item{\code{t()}}{Transposition}
-\item{\code{^}}{Element powering}
+\item{\code{^}}{Elementwise powering}
+\item{\code{\%^\%}}{Kronecker powering}
 \item{\code{+}}{Addition}
 \item{\code{-}}{Subtraction}
 \item{\code{\%*\%}}{Matrix Multiplication}
@@ -54,6 +55,8 @@ The following functions are supported in mxAlgebra:
 \item{\code{exp()}}{Exponent}
 \item{\code{log()}}{Natural Logarithm}
 \item{\code{sqrt()}}{Square root}
+\item{\code{rvectorize()}}{Vectorize by row}
+\item{\code{cvectorize()}}{Vectorize by column}
 \item{\code{vech()}}{Half-vectorization}
 \item{\code{vechs()}}{Strict half-vectorization}
 \item{\code{vec2diag()}}{Create a diagonal matrix}
