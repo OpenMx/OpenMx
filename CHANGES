@@ -5,6 +5,7 @@ trunk
 * bugfix for error reporting in bad matrix access, uncalculated std. errors, and poor omxAllint thresholds
 * implemented rvectorize, cvectorize algebra functions: vectorize by row, and vectorize by column
 * not allowing the following forbidden characters in names or labels: "+-!~?:*/^%<>=&|$"
+* added timestamp to summary() output
 
 Release 0.2.9-1147
 ==================

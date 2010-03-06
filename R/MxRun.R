@@ -38,7 +38,7 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 		model <- undoDataShare(model, dataList)
 		frontendStop <- Sys.time()
 		frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, independents) 
+		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, frontendStop, independents) 
 		model@output$mxVersion <- mxVersion()
 		return(model)
 	}
@@ -83,7 +83,7 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
-		backendElapsed, indepElapsed, independents)
+		backendElapsed, indepElapsed, frontendStop, independents)
 	return(model)
 }
 
@@ -129,11 +129,12 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 }
 
 calculateTiming <- function(output, frontend,
-	backend, indep, independents) {
+	backend, indep, timestamp, independents) {
 	output$frontendTime <- frontend
 	output$backendTime <- backend
 	output$independentTime <- indep
 	output$wallTime <- frontend + backend + indep
+	output$timestamp <- timestamp
 	if("package:snowfall" %in% search() && length(independents) > 0) {
 		output$cpuTime <- frontend + backend + sum(sapply(independents,
 			function(x) { x@output$cpuTime }))

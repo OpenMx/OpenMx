@@ -252,6 +252,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("BIC (Mx): ", x$BIC.Mx, '\n')
 	cat("adjusted BIC:", '\n')
 	cat("RMSEA: ", x$RMSEA, '\n')
+	cat("timestamp:", format(x$timestamp), '\n')
 	cat("frontend time:", format(x$frontendTime), '\n')
 	cat("backend time:", format(x$backendTime), '\n')
 	cat("independent submodels time:", format(x$independentTime), '\n')
@@ -310,6 +311,7 @@ summaryHelper <- function(object, params) {
 			message <- npsolMessages[[as.character(object@output$status[[1]])]]
 			retval[['npsolMessage']] <- message
 		}
+		retval$timestamp <- object@output$timestamp
 		retval$frontendTime <- object@output$frontendTime
 		retval$backendTime <- object@output$backendTime
 		retval$independentTime <- object@output$independentTime
