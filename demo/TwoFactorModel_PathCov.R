@@ -54,7 +54,7 @@ twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-twoFactorModel <- mxModel("Two Factor Model - Path", type="RAM",
+twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
     mxData(
     	observed=twoFactorCov, 
     	type="cov", 

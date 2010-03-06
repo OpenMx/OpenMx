@@ -95,7 +95,7 @@ The following code contains all of the components of our model. Before running a
 
     require(OpenMx)
 
-    uniRegModel <- mxModel("Simple Regression -- Path Specification", 
+    uniRegModel <- mxModel("Simple Regression Path Specification", 
         type="RAM",
         mxData(
             observed=SimpleDataRaw, 
@@ -130,7 +130,7 @@ The following code contains all of the components of our model. Before running a
         )
     ) # close model
 
-This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression -- Path Specification``.
+This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression Path Specification``.
 
 The next part of our code is the ``type`` argument. By setting ``type="RAM"``, we tell OpenMx that we are specifying a RAM model for covariances and means, and that we are doing so using the ``mxPath`` function. With this setting, OpenMx uses the specified paths to define the expected covariance and means of our data.
 
@@ -254,7 +254,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 
     require(OpenMx)
 
-    multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
+    multiRegModel <- mxModel("Multiple Regression Path Specification", 
         type="RAM",
         mxData(
             observed=MultipleDataRaw, 
@@ -307,7 +307,7 @@ The first bit of our code should look very familiar. ``require(OpenMx)`` makes s
 
 The ``mxPath`` functions work just as before. Our first function defines the variances of our variables. Whereas our simple regression included just the variance of *x* and the residual variance of *y*, our multiple regression includes the variance of *z* as well. 
 
-Our second ``mxPath`` function specifies a two-headed arrow (covariance) between *x* and *z*. We've omitted the ``to`` argument from two-headed arrows up until now, as we have only required variances. Covariances may be specified by using both the ``from`` and ``to`` arguments. This path is freely estimated, has a starting value of 0.5, and is labeled ``"covxz``.
+Our second ``mxPath`` function specifies a two-headed arrow (covariance) between *x* and *z*. We've omitted the ``to`` argument from two-headed arrows up until now, as we have only required variances. Covariances may be specified by using both the ``from`` and ``to`` arguments. This path is freely estimated, has a starting value of 0.5, and is labeled ``covxz``.
 
 .. code-block:: r
 
@@ -366,7 +366,7 @@ Our code should look very similar to our previous two models. It includes the sa
 
 .. code-block:: r
 
-    multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
+    multivariateRegModel <- mxModel("MultiVariate Regression Path Specification", 
         type="RAM",
         mxData(
             observed=myRegDataRaw, 

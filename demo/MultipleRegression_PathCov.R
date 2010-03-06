@@ -47,7 +47,7 @@ MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
+multiRegModel <- mxModel("Multiple Regression Path Specification", 
       type="RAM",
       mxData(
           observed=MultipleDataCov, 

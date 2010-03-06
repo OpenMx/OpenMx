@@ -18,13 +18,15 @@
 # Author: 
 # History:  Sat 26 Sep 2009 14:57:38 BST
 # (tb) updated to use data(), addded var name array, added summary statement... 
-# OpenMx: http://www.openmx.virginia.com
+# OpenMx: http://openmx.psyc.virginia.edu
 ##########################################
 require(OpenMx)
 data("myRegDataRaw", package="OpenMx")
 MultipleDataRaw<-myRegData[,c("z","y","x")]
-selVars = c("x","y","z") # why is this reverse of the selection order?
-multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
+# selVars is the reverse of the selection order to test
+# dimnames on the means and covariance matrices
+selVars <- c("x","y","z")
+multiRegModel<-mxModel("Multiple Regression Matrix Specification", 
     mxData(MultipleDataRaw,type="raw"),
     mxMatrix("Full", nrow=3, ncol=3,
         values=c(0, 0, 0,

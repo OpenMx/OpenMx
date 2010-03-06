@@ -36,7 +36,7 @@ SimpleDataRaw <- myRegDataRaw[,c("x","y")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
+uniRegModel <- mxModel("Simple Regression Matrix Specification", 
     mxData(
         observed=SimpleDataRaw,
         type="raw"

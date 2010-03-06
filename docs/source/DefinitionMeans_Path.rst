@@ -74,10 +74,10 @@ The following code contains all of the components of our model.  Before specifyi
 .. code-block:: r
 
     require(OpenMx)
-    defmeansmodel<-mxModel("Definition Means -- Path Specification", 
+    defmeansmodel<-mxModel("Definition Means Path Specification", 
         type="RAM",
 
-The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means -- Path Specification"``.
+The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.
 
 The second line of the ``mxModel`` function call declares that we are going to be using RAM specification of the model, using directional and bidirectional path coefficients between the variables. 
 

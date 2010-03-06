@@ -35,7 +35,7 @@ MultipleDataRaw<-myRegDataRaw[,c("x","y","z")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multiRegModel <- mxModel("Multiple Regression -- Matrix Specification", 
+multiRegModel <- mxModel("Multiple Regression Matrix Specification", 
     mxData(
     	observed=MultipleDataRaw,
     	type="raw"

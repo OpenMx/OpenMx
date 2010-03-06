@@ -31,7 +31,7 @@ myDataCov<-matrix(
 	
 myDataMeans<-c(3.054, 1.385, 0.680, 0.254, -0.027)
 
-model<-mxModel("Autoregressive Model - Path", 
+model<-mxModel("Autoregressive Model Path", 
       type="RAM",
       mxData(myDataCov,type="cov", means=myDataMeans, numObs=100),
       manifestVars=c("x1","x2","x3","x4","x5"),

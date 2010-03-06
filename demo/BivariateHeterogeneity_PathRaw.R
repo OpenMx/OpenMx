@@ -51,7 +51,7 @@ dimnames(xy2) <- list(NULL, selVars)
 
 #Fit Heterogeneity Model
 # -----------------------------------------------------------------------
-bivHetModel <- mxModel("bivariate Heterogeneity -- Path Specification",
+bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
     mxModel("group1",
         manifestVars= selVars,
         mxPath(

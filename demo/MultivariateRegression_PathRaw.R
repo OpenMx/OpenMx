@@ -33,7 +33,7 @@ data(myRegDataRaw)
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multivariateRegModel <- mxModel("MultiVariate Regression -- Path Specification", 
+multivariateRegModel <- mxModel("MultiVariate Regression Path Specification", 
     type="RAM",
     mxData(
         observed=myRegDataRaw, 

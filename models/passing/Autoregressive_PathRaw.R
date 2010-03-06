@@ -17,7 +17,7 @@
 require(OpenMx)
 myDataRaw<-read.table("data/myAutoregressiveData.txt",header=T)
 
-model<-mxModel("Autoregressive Model - Path", 
+model<-mxModel("Autoregressive Model Path", 
       type="RAM",
       mxData(myDataRaw,type="raw"),
       #mxData(myDataCov,type="cov", means=myDataMeans, numObs=100),

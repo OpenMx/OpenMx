@@ -50,7 +50,7 @@ myRegDataMeans<-c(0.05416, 2.57393)
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
- uniRegModel <- mxModel("Simple Regression -- Path Specification", 
+ uniRegModel <- mxModel("Simple Regression Path Specification", 
     type="RAM",
     mxData(
         observed=SimpleDataCov, 

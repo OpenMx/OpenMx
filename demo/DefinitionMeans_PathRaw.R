@@ -50,7 +50,7 @@ selVars<-c("x","y")               # Make a selection variables object
 
 #Define model
 # -----------------------------------------------------------------------
-defMeansModel <- mxModel("Definition Means -- Path Specification", 
+defMeansModel <- mxModel("Definition Means Path Specification", 
 	type="RAM",
 	manifestVars=selVars,
 	latentVars  ="DefDummy",

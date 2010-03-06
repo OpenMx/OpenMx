@@ -74,14 +74,14 @@ The following code contains all of the components of our model. Before running a
 
 .. code-block:: r
 
-    defMeansModel <- mxModel("Definition Means -- Matrix Specification", 
+    defMeansModel <- mxModel("Definition Means Matrix Specification", 
         mxFIMLObjective(
             covariance="Sigma",
             means="Mu",
             dimnames=selVars
         ), 
 
-The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means -- Matrix Specification"``.
+The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Matrix Specification"``.
 
 The second argument in this ``mxModel`` call is itself a function. It declares that the objective function to be optimized is full information maximum likelihood (FIML) under normal theory, which is tagged as ``mxFIMLObjective``.  There are in turn two arguments to this function: the covariance matrix ``Sigma`` and the mean vector ``Mu``.  These matrices will be defined later in the ``mxModel`` function call.
 

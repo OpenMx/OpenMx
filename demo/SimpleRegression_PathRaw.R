@@ -38,7 +38,7 @@ myRegDataRaw <- myRegDataRaw[,c("x","y")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-uniRegModel <- mxModel("Simple Regression -- Path Specification", 
+uniRegModel <- mxModel("Simple Regression Path Specification", 
       type="RAM",
       mxData(
       		observed=myRegDataRaw, 

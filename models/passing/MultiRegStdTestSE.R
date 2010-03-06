@@ -35,7 +35,7 @@ outcomes <- c("y")
 manifests <- names(multiData1)
 multiData1Cov <- cov(multiData1)
 
-multiRegModel <- mxModel("Multiple Regression of y on x1, x2, x3, & x4",
+multiRegModel <- mxModel("Multiple Regression of y on x1, x2, x3, x4",
     type="RAM",
     manifestVars=manifests,
     mxPath(from=predictors, to=outcomes, 

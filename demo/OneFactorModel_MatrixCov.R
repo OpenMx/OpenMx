@@ -47,7 +47,7 @@ myFADataMeans<-c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010)
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification", 
+oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
 	mxData(
 		observed=myFADataCov, 
 		type="cov", 

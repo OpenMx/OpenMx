@@ -36,7 +36,7 @@ twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-twoFactorModel <- mxModel("Two Factor Model -- Path Specification", 
+twoFactorModel <- mxModel("Two Factor Model Path Specification", 
 	type="RAM",
     mxData(
     	observed=twoFactorRaw, 

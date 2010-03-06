@@ -33,7 +33,7 @@ data(myLongitudinalData)
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-growthCurveModel <- mxModel("Linear Growth Curve Model -- Matrix Specification", 
+growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
     mxData(
     	observed=myLongitudinalData, 
         type="raw"

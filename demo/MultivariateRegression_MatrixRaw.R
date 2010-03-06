@@ -33,7 +33,7 @@ data(myRegDataRaw)
 	
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multivariateRegModel <- mxModel("Multiple Regression -- Matrix Specification", 
+multivariateRegModel <- mxModel("Multiple Regression Matrix Specification", 
     mxData(
     	observed=myRegDataRaw,
     	type="raw"

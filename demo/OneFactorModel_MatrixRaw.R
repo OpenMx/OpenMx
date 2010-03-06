@@ -39,7 +39,7 @@ myFADataRaw <- myFADataRaw[,manifestVars]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-oneFactorModel <- mxModel("Common Factor Model -- Matrix Specification", 
+oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
 	mxData(
 		observed=myFADataRaw, 
 		type="raw"

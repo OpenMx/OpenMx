@@ -48,7 +48,7 @@ SimpleDataMeans <- myRegDataMeans[c(2,3)]
 	
 #Create an MxModel object
 # -----------------------------------------------------------------------
-uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
+uniRegModel <- mxModel("Simple Regression Matrix Specification", 
     mxData(
       observed=SimpleDataCov, 
       type="cov", 

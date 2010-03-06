@@ -50,7 +50,7 @@ selVars<-c("x","y")               # Make a selection variables object
 
 #Define model
 # -----------------------------------------------------------------------
-defMeansModel <- mxModel("Definition  Means -- Matrix Specification", 
+defMeansModel <- mxModel("Definition  Means Matrix Specification", 
     mxMatrix(
     	type="Symm", 
     	nrow=2, 

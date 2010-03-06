@@ -79,7 +79,7 @@ Creating a path-centric factor model will use many of the same functions and arg
 
     require(OpenMx)
 
-    oneFactorModel <- mxModel("Common Factor Model -- Path Specification", 
+    oneFactorModel <- mxModel("Common Factor Model Path Specification", 
         type="RAM",
         mxData(
             observed=oneFactorRaw,
@@ -136,7 +136,7 @@ can be replaced with a covariance matrix and means, like so:
 
 .. code-block:: r
 
-    oneFactorModel<-mxModel("Common Factor Model -- Path Specification", 
+    oneFactorModel<-mxModel("Common Factor Model Path Specification", 
         type="RAM",
         mxData(
             observed=oneFactorCov,
@@ -248,7 +248,7 @@ Specifying the two factor model is virtually identical to the single factor case
  
 .. code-block:: r 
   
-    twofactorModel<-mxModel("Two Factor Model -- Path Specification", 
+    twofactorModel<-mxModel("Two Factor Model Path Specification", 
         type="RAM",
         mxData(
             observed=twoFactorRaw, 

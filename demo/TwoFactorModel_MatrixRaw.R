@@ -39,7 +39,7 @@ twoFactorRaw <- myFADataRaw[,manifestVars]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-twoFactorModel <- mxModel("Two Factor Model -- Matrix Specification", 
+twoFactorModel <- mxModel("Two Factor Model Matrix Specification", 
     type="RAM",
     mxData(
     	observed=twoFactorRaw, 

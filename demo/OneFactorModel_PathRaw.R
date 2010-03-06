@@ -35,7 +35,7 @@ myFADataRaw <- myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-oneFactorModel <- mxModel("Common Factor Model -- Path Specification", 
+oneFactorModel <- mxModel("Common Factor Model Path Specification", 
 	type="RAM",
 	mxData(
 		observed=myFADataRaw, 

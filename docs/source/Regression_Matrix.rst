@@ -96,7 +96,7 @@ The following code contains all of the components of our model. Before running a
 
     require(OpenMx)
 
-    uniRegModel <- mxModel("Simple Regression -- Matrix Specification", 
+    uniRegModel <- mxModel("Simple Regression Matrix Specification", 
         mxData(
             observed=SimpleRegRaw, 
             type="raw"
@@ -149,7 +149,7 @@ The following code contains all of the components of our model. Before running a
         mxRAMObjective("A", "S", "F", "M")
     )
       
-This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression -- Matrix Specification``.
+This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression Matrix Specification``.
 
 The second component of our code creates an ``MxData`` object. The example above, reproduced here, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
 
@@ -317,7 +317,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 
 .. code-block:: r
 
-    multiRegModel<-mxModel("Multiple Regression - Matrix Specification", 
+    multiRegModel<-mxModel("Multiple Regression Matrix Specification", 
         mxData(
             MultipleDataRaw,
             type="raw"
@@ -447,7 +447,7 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
 
 .. code-block:: r
 
-    multivariateRegModel<-mxModel("Multiple Regression -- Matrix Specification", 
+    multivariateRegModel<-mxModel("Multiple Regression Matrix Specification", 
         mxData(
             myRegDataRaw,
             type="raw"

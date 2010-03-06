@@ -64,7 +64,7 @@ The following code contains all of the components of our model. Before running a
 
     require(OpenMx)
 
-    growthCurveModel <- mxModel("Linear Growth Curve Model -- Matrix Specification", 
+    growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
         mxData(
             myLongitudinalDataRaw, 
             type="raw"
@@ -141,7 +141,7 @@ The following code contains all of the components of our model. Before running a
         mxRAMObjective("A","S","F","M")
     )
 
-The model begins with a name, in this case "Linear Growth Curve Model -- Matrix Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entites in the referenced model object. 
+The model begins with a name, in this case "Linear Growth Curve Model Matrix Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entites in the referenced model object. 
 
 Data is supplied with the ``mxData`` function. This example uses raw data, but the ``mxData`` function in the code above could be replaced with the function below to include covariance data.
 

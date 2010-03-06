@@ -47,7 +47,7 @@ MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multiRegModel<-mxModel("Multiple Regression -- Matrix Specification", 
+multiRegModel<-mxModel("Multiple Regression Matrix Specification", 
       mxData(
       		observed=MultipleDataCov, 
       		type="cov", 

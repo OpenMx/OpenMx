@@ -20,6 +20,14 @@ isNumber <- function(input) {
     return(length(match) > 0)
 }
 
+explode <- function(string) { 
+	strsplit(string, split=character())[[1]] 
+}
+
+illegalChars <- "+-!~?:*/^%<>=&|$"
+illegalCharsVector <- explode(illegalChars)
+
+
 omxVerifyReference <- function(reference, location) {
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
@@ -48,6 +56,22 @@ omxVerifyReference <- function(reference, location) {
 				omxQuotes(omxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
+		}
+	}
+	badCharacterMatch <- illegalCharsVector %in% explode(reference)
+	if(any(badCharacterMatch)) {
+		badChars <- illegalCharsVector[badCharacterMatch]
+		if(length(badChars) == 1) {
+			stop(paste("The reference", omxQuotes(reference),
+				"in", location, "is illegal because it contains the",
+				omxQuotes(badChars[[1]]), 
+				"character."),
+			call. = FALSE)		
+		} else {
+			stop(paste("The reference", omxQuotes(reference),
+				"in", location, "is illegal because it contains the characters",
+				paste(omxQuotes(badChars), '.', sep = '')),
+			call. = FALSE)		
 		}
 	}
 }
@@ -96,6 +120,23 @@ omxVerifyName <- function(name) {
 			"is illegal because it contains the ']' character"),
 			call. = FALSE)
 	}
+	badCharacterMatch <- illegalCharsVector %in% explode(name)
+	if(any(badCharacterMatch)) {
+		badChars <- illegalCharsVector[badCharacterMatch]
+		if(length(badChars) == 1) {
+			stop(paste("The name", omxQuotes(name),
+				"is illegal because it contains the",
+				omxQuotes(badChars[[1]]), 
+				"character."),
+			call. = FALSE)		
+		} else {
+			stop(paste("The name", omxQuotes(name),
+				"is illegal because it contains the characters",
+				paste(omxQuotes(badChars), '.', sep = '')),
+			call. = FALSE)		
+		}
+	}	
+	
 }
 
 omxIsDefinitionVariable <- function(name) {

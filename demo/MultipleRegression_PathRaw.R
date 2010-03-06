@@ -37,7 +37,7 @@ myRegDataRaw<-myRegDataRaw[,c("x","y","z")]
 
 #Create an MxModel object
 # -----------------------------------------------------------------------
-multiRegModel <- mxModel("Multiple Regression -- Path Specification", 
+multiRegModel <- mxModel("Multiple Regression Path Specification", 
       type="RAM",
       mxData(
           observed=myRegDataRaw, 

@@ -65,7 +65,7 @@ Before running a model, the OpenMx library must be loaded into R using either th
 
     require(OpenMx)
 
-    growthCurveModel <- mxModel("Linear Growth Curve Model -- Path Specification", 
+    growthCurveModel <- mxModel("Linear Growth Curve Model Path Specification", 
         type="RAM",
         mxData(
             myLongitudinalData,
@@ -125,7 +125,7 @@ Before running a model, the OpenMx library must be loaded into R using either th
         )
     ) # close model
 
-The model begins with a name, in this case "Linear Growth Curve Model -- Path Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entities in the referenced model object. The ``type="RAM"`` argument specifies a RAM model, allowing the ``mxModel`` to define an expected covariance matrix from the paths we supply.
+The model begins with a name, in this case "Linear Growth Curve Model Path Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entities in the referenced model object. The ``type="RAM"`` argument specifies a RAM model, allowing the ``mxModel`` to define an expected covariance matrix from the paths we supply.
 
 Data is supplied with the ``mxData`` function. This example uses raw data, but the ``mxData`` function in the code above could be replaced with the function below to include covariance data.
 
