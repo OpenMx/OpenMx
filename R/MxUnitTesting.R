@@ -59,6 +59,19 @@ omxCheckIdentical <- function(a, b) {
 	if (any(!identical(a, b))) {
 		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
+			"are not identical"))
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste(deparse(match.call()$a), "and", 
+			deparse(match.call()$b),
+			"are equal.\n"))	
+	}
+}
+
+omxCheckEquals <- function(a, b) {
+	checkEqualDimensions(a, b)	
+	if (any(a != b)) {
+		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
+			"and", omxQuotes(paste(b, collapse = ' ')), 
 			"are not equal"))
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 

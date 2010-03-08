@@ -66,7 +66,7 @@ EC3 <- mxEval(expCov, bivSatFit3)
 LL3 <- mxEval(objective,bivSatFit3)
 bivSatSummary3 <- summary(bivSatFit3) 
 SL3 <- bivSatSummary3$SaturatedLikelihood
-omxCheckIdentical(bivSatSummary3$observedStatistics, nrow(covData) * (ncol(covData) + 1) / 2)
+omxCheckEquals(bivSatSummary3$observedStatistics, nrow(covData) * (ncol(covData) + 1) / 2)
 Chi3 <- LL3-SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
