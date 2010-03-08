@@ -37,7 +37,7 @@ testData <- xy
 selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
-cov(testData)
+covData <- cov(testData)
 
 #example 3: Saturated Model with Cov Matrices and Matrix-Style Input
 # -----------------------------------------------------------------------
@@ -51,7 +51,7 @@ bivSatModel3 <- mxModel("bivSat3",
         name="expCov"
     ),
     mxData(
-        observed=cov(testData), 
+        observed=covData, 
         type="cov", 
         numObs=1000 
     ),
@@ -64,7 +64,9 @@ bivSatModel3 <- mxModel("bivSat3",
 bivSatFit3 <- mxRun(bivSatModel3)
 EC3 <- mxEval(expCov, bivSatFit3)
 LL3 <- mxEval(objective,bivSatFit3)
-SL3 <- summary(bivSatFit3)$SaturatedLikelihood
+bivSatSummary3 <- summary(bivSatFit3) 
+SL3 <- bivSatSummary3$SaturatedLikelihood
+omxCheckIdentical(bivSatSummary3$observedStatistics, nrow(covData) * (ncol(covData) + 1) / 2)
 Chi3 <- LL3-SL3
 
 #example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input

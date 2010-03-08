@@ -71,10 +71,11 @@ bivSatModel4 <- mxModel("bivSat4",
 )
 
 bivSatFit4 <- mxRun(bivSatModel4)
+bivSatSummary4 <- summary(bivSatFit4)
 EM4 <- mxEval(expMean, bivSatFit4)
 EC4 <- mxEval(expCov, bivSatFit4)
 LL4 <- mxEval(objective,bivSatFit4)
-
+omxCheckIdentical(bivSatSummary4$observedStatistics, sum(!is.na(testData)))
 
 #Mx answers hard-coded
 # -----------------------------------------------------------------------
