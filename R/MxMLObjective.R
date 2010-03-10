@@ -91,6 +91,9 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex
+		if (single.na(.Object@dims)) {
+			.Object@dims <- rownames(flatModel[[covariance]])
+		}
 		return(.Object)
 })
 

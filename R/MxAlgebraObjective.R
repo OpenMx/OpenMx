@@ -47,6 +47,7 @@ setMethod("genericObjFunConvert", signature("MxAlgebraObjective"),
 		}
 		algebraIndex <- omxLocateIndex(flatModel, algebra, name)
 		.Object@algebra <- algebraIndex
+		.Object@data <- as.integer(NA)
 		return(.Object)
 })
 

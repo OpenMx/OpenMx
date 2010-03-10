@@ -63,7 +63,7 @@ omxCheckIdentical <- function(a, b) {
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),
-			"are equal.\n"))	
+			"are identical.\n"))	
 	}
 }
 

@@ -27,7 +27,8 @@ setClass(Class = "MxModel",
 		objective = "MxObjective",
 		independent = "logical",
 		options = "list",
-		output = "list"
+		output = "list",
+		runstate="list"
 ))
 
 omxModelTypes[['raw']] <- "MxModel"
@@ -50,6 +51,7 @@ setMethod("initialize", "MxModel",
 		.Object@independent <- independent
 		.Object@options <- list()
 		.Object@output <- list()
+		.Object@runstate <- list()
 		.Object <- omxInitModel(.Object)
 		return(.Object)
 	}
@@ -285,7 +287,7 @@ setMethod("omxInitModel", "MxModel", function(model) {
 })
 
 setMethod("omxTypeName", "MxModel", function(model) { 
-	return("unspecified")
+	return("default")
 })
 
 setMethod("omxVerifyModel", "MxModel", function(model) {

@@ -13,96 +13,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-dataMatchesHistory <- function(data, historySet) {
-	return(any(sapply(historySet, identical, data)))
-}
-
-defVarMatch <- function(defVars, modelName, colName) {
-	return(any(sapply(defVars, defVarMatchHelper, modelName, colName)))
-}
-
-defVarMatchHelper <- function(candidate, modelName, colName) {
-	components <- unlist(strsplit(candidate, omxSeparatorChar, fixed = TRUE))
-	return((components[[1]] == modelName) && (components[[3]] == colName))
-}
-
-observedStatisticsHelper <- function(data, historySet, defVars) {
-	modelName <- unlist(strsplit(data@name, omxSeparatorChar, fixed = TRUE))[[1]]
-	if (is.null(data)) {
-		return(list(0, historySet))
+calculateConstraints <- function(model, useSubmodels) {
+	constraints <- model@runstate$constraints
+	retval <- c()
+	if (length(constraints) > 0) {
+		retval <- sapply(constraints, calculateConstraintsHelper, model)
 	}
-	if (data@type == 'cov' || data@type == 'sscp') {
-		if (dataMatchesHistory(data, historySet)) {
-			return (list(0, historySet))
-		}
-		n <- nrow(data@observed)
-		dof <- n * (n + 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means)
-		}
-		historySet <- append(data, historySet)		
-	} else if (data@type == 'cor') {
-		if (dataMatchesHistory(data, historySet)) {
-			return (list(0, historySet))
-		}
-		n <- nrow(data@observed)
-		dof <- n * (n - 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means) 
-		}
-		historySet <- append(data, historySet)
-	} else {
-		dof <- 0
-		observed <- data@observed		
-		for (i in 1:ncol(observed)) {
-			if (!defVarMatch(defVars, modelName, colnames(observed)[[i]]) && 
-				!dataMatchesHistory(observed[,i], historySet)) {
-				dof <- dof + sum(!is.na(observed[,i]))
-				historySet <- append(observed[,i], historySet)
-			}
-		}
+	if (useSubmodels && length(model@runstate$independents) > 0) {
+		submodelConstraints <- lapply(model@runstate$independents, calculateConstraints, FALSE)
+		names(submodelConstraints) <- NULL
+		submodelConstraints <- unlist(submodelConstraints)
+		retval <- c(retval, submodelConstraints)
 	}
-	return(list(dof, historySet))
-}
-
-observedStatisticsSingleModel <- function(data, defVars) {
-	if (is.null(data)) {
-		return(0)
-	}
-	if (data@type == 'cov' || data@type == 'sscp') {
-		n <- nrow(data@observed)
-		dof <- n * (n + 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means)
-		}
-		return(dof)
-	} else if (data@type == 'cor') {
-		n <- nrow(data@observed)
-		dof <- n * (n - 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means) 
-		}
-		return(dof)
-	} else {
-		observed <- data@observed
-		defVars <- sapply(defVars, function(x) {
-			unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]})
-		indexes <- match(defVars, colnames(observed))
-		indexes <- indexes[!is.na(indexes)]
-		if(length(indexes) > 0) {
-			observed <- observed[,-indexes]
-		}
-		return(sum(!is.na(observed)))
-	}
-}
-
-calculateConstraints <- function(model, flatModel) {
-	if (length(flatModel@constraints) == 0) return(c())
-	retval <- sapply(flatModel@constraints, calculateConstraintsHelper, model, flatModel)
 	return(retval)
 }
 
-calculateConstraintsHelper <- function(constraint, model, flatModel) {
+calculateConstraintsHelper <- function(constraint, model) {
 	if (constraint@relation == "=") {
 		lhsName <- constraint@alg1
 		value <- eval(substitute(mxEval(x, model, compute=TRUE),
@@ -113,48 +39,86 @@ calculateConstraintsHelper <- function(constraint, model, flatModel) {
 	}
 }
 
-observedStatistics <- function(model, flatModel, constraints) {
-	datasets <- flatModel@datasets
-	defVars <- names(generateDefinitionList(flatModel))
-	countConstraints <- sum(constraints)
-	if (length(datasets) == 0) {
-		return(countConstraints)
-	} else if (length(datasets) == 1) {
-		return(observedStatisticsSingleModel(datasets[[1]], defVars) + 
-			countConstraints)
+observedStatisticsHelper <- function(objective, datalist, historySet) {
+	if (is.na(objective@data)) {
+		return(list(0, historySet))
 	}
-	historySet <- list()
-	retval <- 0
-	for(i in 1:length(datasets)) {
-		result <- observedStatisticsHelper(datasets[[i]], historySet, defVars)
-		retval <- retval + result[[1]]
-		historySet <- result[[2]]
+	data <- datalist[[objective@data + 1]]
+	if (data@type == 'cov' || data@type == 'sscp') {
+		if (data@name %in% historySet) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n + 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means)
+		}
+		historySet <- append(data, historySet)		
+	} else if (data@type == 'cor') {
+		if (data@name %in% historySet) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n - 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means) 
+		}
+		historySet <- append(data, historySet)
+	} else {
+		dof <- 0
+		observed <- data@observed
+		for (i in 1:ncol(observed)) {
+			colname <- colnames(observed)[[i]]
+			fullname <- paste(data@name, colname, sep='.')
+			if ((colname %in% objective@dims) && !(fullname %in% historySet)) {
+				dof <- dof + sum(!is.na(observed[,i]))
+				historySet <- append(fullname, historySet)
+			}
+		}
 	}
-	retval <- retval + countConstraints
+	return(list(dof, historySet))
+}
+
+observedStatistics <- function(model, useSubmodels, constraintOffset) {
+	datalist <- model@runstate$datalist
+	objectives <- model@runstate$objectives
+	retval <- constraintOffset
+	if (length(objectives) > 0) {
+		historySet <- character()
+		for(i in 1:length(objectives)) {
+			result <- observedStatisticsHelper(objectives[[i]], datalist, historySet)
+			retval <- retval + result[[1]]
+			historySet <- result[[2]]
+		}
+	}
+	if (useSubmodels && length(model@runstate$independents) > 0) {
+		submodelStatistics <- sapply(model@runstate$independents, observedStatistics, FALSE, 0)
+		retval <- retval + sum(submodelStatistics)
+	}
 	return(retval)
 }
 
-numberObservations <- function(flatModel) {
-	obs <- sapply(flatModel@datasets, 
-		function(x) { x@numObs })
+numberObservations <- function(datalist) {
+	obs <- sapply(datalist, function(x) { x@numObs })
 	return(sum(as.numeric(obs)))
 }
 
-computeFValue <- function(flatModel, likelihood, chi) {
-	if(length(flatModel@datasets) == 0) return(NA)
-	if(all(sapply(flatModel@datasets, function(x) 
+computeFValue <- function(datalist, likelihood, chi) {
+	if(length(datalist) == 0) return(NA)
+	if(all(sapply(datalist, function(x) 
 		{x@type == 'raw'}))) return(likelihood)
-	if(all(sapply(flatModel@datasets, function(x) 
+	if(all(sapply(datalist, function(x) 
 		{x@type == 'cov'}))) return(chi)
 	return(NA)
 }
 
-fitStatistics <- function(flatModel, retval) {
+fitStatistics <- function(model, useSubmodels, retval) {
+	datalist <- model@runstate$datalist
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
 	chi <- likelihood - saturated
 	DoF <- retval$degreesOfFreedom
-	Fvalue <- computeFValue(flatModel, likelihood, chi)
+	Fvalue <- computeFValue(datalist, likelihood, chi)
 	retval[['Chi']] <- chi
 	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
@@ -169,17 +133,29 @@ fitStatistics <- function(flatModel, retval) {
 	return(retval)
 }
 
-parameterList <- function(model, matrices, parameters) {
-	retval <- list()
-	if(length(model@output) == 0) { return(retval) }
-	ptable <- data.frame()
-	estimates <- model@output$estimate	
-	if (!is.null(model@output$standardErrors) &&
-		length(model@output$standardErrors) == length(estimates)) {
-		errorEstimates <- model@output$standardErrors
+parameterList <- function(model, useSubmodels) {
+	if (useSubmodels && length(model@runstate$independents) > 0) {
+		ptable <- parameterListHelper(model, TRUE)
+		submodelParameters <- lapply(model@runstate$independents, parameterListHelper, TRUE)
+		ptable <- Reduce(rbind, submodelParameters, ptable)
 	} else {
-		errorEstimates <- rep.int(as.numeric(NA), length(estimates))
+		ptable <- parameterListHelper(model, FALSE)
 	}
+	return(ptable)
+}
+
+parameterListHelper <- function(model, modelName) {
+	ptable <- data.frame()
+	if(length(model@output) == 0) { return(ptable) }
+	estimates <- model@output$estimate
+    if (!is.null(model@output$standardErrors) && 
+ 		length(model@output$standardErrors) == length(estimates)) { 
+ 		errorEstimates <- model@output$standardErrors 
+	} else { 
+		errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+	}
+	matrices <- model@runstate$matrices
+	parameters <- model@runstate$parameters
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -195,26 +171,27 @@ parameterList <- function(model, matrices, parameters) {
 					mCol <- colnames(aMatrix)[[mCol]]
 				}
 			}
+			if (modelName) {
+				ptable[i, 'model'] <- model@name
+			}
 			ptable[i, 'name'] <- names(estimates)[[i]]
 			ptable[i, 'matrix'] <- simplifyName(matrixNames[[mLocation]], model@name)
 			ptable[i, 'row'] <- mRow
 			ptable[i, 'col'] <- mCol
 			ptable[i, 'Estimate'] <- estimates[[i]]
 			ptable[i, 'Std.Error'] <- errorEstimates[[i]]
-		}		
-		retval[['parameters']] <- ptable
+		}
 	}
-	return(retval)
+	return(ptable)
 }
 
-computeOptimizationStatistics <- function(model, flatModel, retval) {
+computeOptimizationStatistics <- function(model, useSubmodels, retval) {
 	estimates <- model@output$estimate
-	constraints <- calculateConstraints(model, flatModel)
-	retval[['constraints']] <- constraints
-	retval[['estimatedParameters']] <- length(estimates)
-	retval[['observedStatistics']] <- observedStatistics(model, flatModel, constraints)
-	retval[['degreesOfFreedom']] <- retval[['observedStatistics']] - retval[['estimatedParameters']]
-	retval <- fitStatistics(flatModel, retval)
+	retval[['constraints']] <- calculateConstraints(model, useSubmodels)
+	retval[['estimatedParameters']] <- nrow(retval$parameters)
+	retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
+	retval[['degreesOfFreedom']] <- retval$observedStatistics - retval$estimatedParameters
+	retval <- fitStatistics(model, useSubmodels, retval)
 	return(retval)
 }
 
@@ -258,7 +235,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("independent submodels time:", format(x$independentTime), '\n')
 	cat("wall clock time:", format(x$wallTime), '\n')
 	cat("cpu time:", format(x$cpuTime), '\n')
-	cat("openmx version number:", x$mxVersion, '\n')
+	cat("openmx version number:", format(x$mxVersion), '\n')
 	cat('\n')
 }
 
@@ -278,74 +255,54 @@ setLikelihoods <- function(model, saturatedLikelihood, retval) {
 	return(retval)
 }
 
-setNumberObservations <- function(numObs, flatModel, retval) {
+setNumberObservations <- function(numObs, datalist, retval) {
 	if(is.null(numObs)) {
-		retval$numObs <- numberObservations(flatModel)
+		retval$numObs <- numberObservations(datalist)
 	} else {
 		retval$numObs <- numObs
 	}
 	return(retval)
 }
 
-summaryHelper <- function(object, params) {
-		saturatedLikelihood <- params[[1]]
-		numObs <- params[[2]]	
-		namespace <- omxGenerateNamespace(object)
-		flatModel <- omxFlattenModel(object, namespace)
-		matrices <- generateMatrixList(flatModel)
-		parameters <- generateParameterList(flatModel)
-		objective <- flatModel@objectives[[omxIdentifier(object@name, 'objective')]]
-		if (!is.null(objective)) {
-			data <- flatModel@datasets[[objective@data]]
-		} else {
-			data <- NULL
-		}
-		retval <- parameterList(object, matrices, parameters)
-		retval <- setLikelihoods(object, saturatedLikelihood, retval)
-		retval <- setNumberObservations(numObs, flatModel, retval)
-		retval <- computeOptimizationStatistics(object, flatModel, retval)
-		if (!is.null(data)) {
-			retval[['dataSummary']] <- summary(data@observed)
-		}
-		if (!is.null(object@output$status)) {
-			message <- npsolMessages[[as.character(object@output$status[[1]])]]
-			retval[['npsolMessage']] <- message
-		}
-		retval$timestamp <- object@output$timestamp
-		retval$frontendTime <- object@output$frontendTime
-		retval$backendTime <- object@output$backendTime
-		retval$independentTime <- object@output$independentTime
-		retval$wallTime <- object@output$wallTime
-		retval$cpuTime <- object@output$cpuTime
-		retval$mxVersion <- object@output$mxVersion
-		retval$modelName <- object@name
-		class(retval) <- "summary.mxmodel"
-		return(retval)
+generateDataSummary <- function(model, useSubmodels) {
+	datalist <- model@runstate$datalist
+	retval <- lapply(datalist, function(x) { summary(x@observed) })
+	if (useSubmodels && length(model@runstate$independents) > 0) {
+		submodelSummary <- lapply(model@runstate$independents, generateDataSummary, FALSE)
+		names(submodelSummary) <- NULL
+		submodelSummary <- unlist(submodelSummary, recursive = FALSE)
+		retval <- c(retval, submodelSummary)
+	}
+	return(retval)
 }
 
 setMethod("summary", "MxModel",
 	function(object, ...) {
+		model <- object
 		saturatedLikelihood <- match.call()$SaturatedLikelihood
 		numObs <- match.call()$numObs
-		indep <- match.call()$indep
-		object <- convertSquareBracketLabels(object)
-		if (!is.null(indep) && !indep) {
-			dependents <- omxDependentModels(object)
-			object@submodels <- dependents
-			primary <- summaryHelper(object, list(saturatedLikelihood, numObs))
-			return(primary)
+		useSubmodels <- match.call()$indep
+		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
+		retval <- list()
+		retval$parameters <- parameterList(model, useSubmodels)
+		retval <- setLikelihoods(model, saturatedLikelihood, retval)
+		retval <- setNumberObservations(numObs, model@runstate$datalist, retval)
+		retval <- computeOptimizationStatistics(model, useSubmodels, retval)
+		retval$dataSummary <- generateDataSummary(model, useSubmodels)
+
+		if (!is.null(model@output$status)) {
+			message <- npsolMessages[[as.character(model@output$status[[1]])]]
+			retval[['npsolMessage']] <- message
 		}
-		independents <- getAllIndependents(object)
-		frozen <- lapply(independents, omxFreezeModel)
-		object <- omxReplaceModels(object, frozen)
-		primary <- summaryHelper(object, list(saturatedLikelihood, numObs))
-		remainder <- omxLapply(independents, summary, ...)
-		if (length(remainder) == 0) {
-			return(primary)
-		} else {
-			names(remainder) <- omxExtractNames(independents)
-			remainder[[object@name]] <- primary
-			return(remainder)
-		}
+		retval$timestamp <- model@output$timestamp
+		retval$frontendTime <- model@output$frontendTime
+		retval$backendTime <- model@output$backendTime
+		retval$independentTime <- model@output$independentTime
+		retval$wallTime <- model@output$wallTime
+		retval$cpuTime <- model@output$cpuTime
+		retval$mxVersion <- model@output$mxVersion
+		retval$modelName <- model@name
+		class(retval) <- "summary.mxmodel"
+		return(retval)
 	}
 )

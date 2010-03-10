@@ -24,7 +24,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}
+\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}, \code{\link{omxCheckEquals}}
 }
 
 \examples{

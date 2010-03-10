@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+require(OpenMx)
+
 # parameters for the simulation: lambda = factor loadings,
 # specifics = specific variances
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)

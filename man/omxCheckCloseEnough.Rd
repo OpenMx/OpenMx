@@ -22,7 +22,7 @@ Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be e
 }
 
 \seealso{
-\code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}, \code{\link{omxCheckTrue}}
+\code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}}, \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 }
 
 \references{

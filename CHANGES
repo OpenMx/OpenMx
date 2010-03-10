@@ -6,6 +6,7 @@ trunk
 * implemented rvectorize, cvectorize algebra functions: vectorize by row, and vectorize by column
 * not allowing the following forbidden characters in names or labels: "+-!~?:*/^%<>=&|$"
 * added timestamp to summary() output
+* reimplemented summary() function to handle unused data rows, and independent submodels
 
 Release 0.2.9-1147
 ==================

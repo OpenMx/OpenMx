@@ -1,0 +1,40 @@
+\name{omxCheckEquals}
+\alias{omxCheckEquals}
+
+\title{Equality Testing Function}
+
+\description{
+   This function tests whether two objects are equal using the \sQuote{==} operator.
+}
+
+\usage{
+omxCheckEquals(a, b)
+}
+
+\arguments{
+   \item{a}{The first value to compare.}
+   \item{b}{The second value to compare.}
+}
+
+\details{
+Performs the \sQuote{==} comparison on the two arguments. If the two arguments are not equal, then an error will be thrown. If \sQuote{a} and \sQuote{b} are equal to each other, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+}
+
+\references{
+The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+}
+
+\seealso{
+\code{\link{omxCheckCloseEnough}}, \code{\link{omxCheckWithinPercentError}}, \code{\link{omxCheckSetEquals}}, \code{\link{omxCheckTrue}}, \code{\link{omxCheckIdentical}}
+}
+
+\examples{
+
+omxCheckEquals(c(1, 2, 3), c(1, 2, 3))
+
+omxCheckEquals(FALSE, FALSE)
+
+# Throws an error
+try(omxCheckEquals(c(1, 2, 3), c(2, 1, 3)))
+
+}

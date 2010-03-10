@@ -105,6 +105,9 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
+		if (single.na(.Object@dims)) {
+			.Object@dims <- rownames(flatModel[[covName]])
+		}
 		return(.Object)
 })
 

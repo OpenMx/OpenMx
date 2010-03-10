@@ -38,8 +38,9 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 		model <- undoDataShare(model, dataList)
 		frontendStop <- Sys.time()
 		frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, frontendStop, independents) 
+		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, frontendStop, independents)
 		model@output$mxVersion <- mxVersion()
+		model@runstate$independents <- independents
 		return(model)
 	}
 	frozen <- lapply(independents, omxFreezeModel)
@@ -80,6 +81,8 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	model@output <- processOptimizerOutput(silent, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), unsafe, output)
+	model <- populateRunStateInformation(model, parameters, matrices, 
+		objectives, data, flatModel@constraints, independents, defVars)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
@@ -126,6 +129,18 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 	    }
     }
 	return(output)
+}
+
+populateRunStateInformation <- function(model, parameters, matrices, 
+		objectives, datalist, constraints, independents, defvars) {
+	model@runstate$parameters <- parameters
+	model@runstate$matrices <- matrices
+	model@runstate$objectives <- objectives
+	model@runstate$datalist <- datalist
+	model@runstate$constraints <- constraints
+	model@runstate$independents <- independents
+	model@runstate$defvars <- names(defvars)
+	return(model)
 }
 
 calculateTiming <- function(output, frontend,
