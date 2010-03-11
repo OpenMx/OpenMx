@@ -9,4 +9,5 @@ Introduction
    BeginnersGuide
    QuickOverview
    TwoModelStylesTwoDataStyles
+   StyleGuide
 
