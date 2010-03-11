@@ -76,22 +76,47 @@ setGeneric("omxVerifyModel", function(model) {
 
 # End declaration of generics
 
+generateParentNames <- function(model) {
+	retval <- generateLocalNames(model)
+	if (length(model@submodels) > 0) {
+		retval <- union(retval, names(model@submodels))
+		childNames <- unlist(lapply(model@submodels, generateChildNames))
+		retval <- union(retval, childNames)
+	}
+	return(retval)
+}
+
+generateChildNames <- function(model) {
+	retval <- generateLocalNames(model)	
+	if (!is.null(retval)) {
+		retval <- paste(model@name, retval, sep = ".")
+	}
+	if (length(model@submodels) > 0) {
+		retval <- union(retval, names(model@submodels))
+		childNames <- unlist(lapply(model@submodels, generateChildNames))
+		retval <- union(retval, childNames)
+	}
+	return(retval)
+}
+
+generateLocalNames <- function(model) {
+	matrices <- names(model@matrices)
+	algebras <- names(model@algebras)
+	constraints <- names(model@constraints)
+	retval <- union(matrices, algebras)
+	retval <- union(retval, constraints)
+	if (!is.null(model@objective)) {
+		retval <- union(retval, model@objective@name)
+	}
+	if (!is.null(model@data)) {
+		retval <- union(retval, model@data@name)
+	}
+	return(retval)
+}
+
 setMethod("names", "MxModel",
-	function(x) {		
-		matrices <- names(x@matrices)
-		algebras <- names(x@algebras)
-		submodels <- names(x@submodels)
-		constraints <- names(x@constraints)
-		retval1 <- union(matrices, algebras)
-		retval2 <- union(submodels, constraints)
-		retval <- union(retval1, retval2)
-		if (!is.null(x@objective)) {
-			retval <- union(retval, x@objective@name)
-		}
-		if (!is.null(x@data)) {
-			retval <- union(retval, x@data@name)
-		}
-		return(retval)
+	function(x) {
+		generateParentNames(x)
 	}
 )
 
@@ -119,19 +144,12 @@ setReplaceMethod("$", "MxModel",
 	}
 )
 
-
 omxExtractMethod <- function(model, index) {
-	pair <- omxReverseIdentifier(model, index)
-	namespace <- pair[[1]]
-	name <- pair[[2]]
-	return(namespaceSearch(model, namespace, name))
+	return(namespaceSearch(model, index))
 }
 
 omxReplaceMethod <- function(model, index, value) {
-	pair <- omxReverseIdentifier(model, index)
-	namespace <- pair[[1]]
-	name <- pair[[2]]
-	return(namespaceSearchReplace(model, namespace, name, value))
+	return(namespaceSearchReplace(model, index, value))
 }
 
 omxSameType <- function(a, b) {

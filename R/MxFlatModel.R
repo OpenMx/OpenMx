@@ -66,11 +66,11 @@ setReplaceMethod("$", "MxFlatModel",
 
 
 flatExtractMethod <- function(model, index) {
-	return(namespaceSearch(model, model@name, index, TRUE))
+	return(flatNamespaceSearch(model, index))
 }
 
 flatReplaceMethod <- function(model, index, value) {
-	return(namespaceSearchReplace(model, model@name, index, value))
+	return(flatNamespaceSearchReplace(model, index, value))
 }
 
 convertDatasets <- function(flatModel, model) {
