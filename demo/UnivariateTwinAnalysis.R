@@ -96,9 +96,9 @@ twinSatFitSub2 <- mxRun(twinSatModelSub2, silent=TRUE)
 # -----------------------------------------------------------------------
 LL_Sat <- mxEval(objective, twinSatFit)
 LL_Sub1 <- mxEval(objective, twinSatFitSub1)
-LRT1= LL_Sub1 - LL_Sat
-LL_Sub2 <- mxEval(objective, twinSatFitSub1)
-LRT2= LL_Sub2 - LL_Sat
+LRT1 <- LL_Sub1 - LL_Sat
+LL_Sub2 <- mxEval(objective, twinSatFitSub2)
+LRT2 <- LL_Sub2 - LL_Sat
 
 
 # Specify and Run ACE Model with RawData and Matrix-style Input

@@ -9,6 +9,7 @@ trunk
 * reimplemented summary() function to handle unused data rows, and independent submodels
 * reimplemented names(model), model$foo, and model$foo <- value to return all components of a model tree
 * started work on an "OpenMx style guide" section to the User Guide.
+* fix documentation + demo errors brought to our attention by dbishop
 
 Release 0.2.9-1147
 ==================

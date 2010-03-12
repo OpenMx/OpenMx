@@ -228,13 +228,13 @@ All these elements become arguments of the ``mxModel`` command, seperated by com
 
     bivCorFit <- mxRun(bivCorModel)
 
-We can request various parts of the output to inspect by referring to them by the name of the object resulting from the ``mxRun`` command, i.e. ``bivCorFit``, followed by the name of the objects corresponding to the expected mean vector, i.e. ``[['ExpMean']]``, and covariance matrix, i.e. ``[['ExpCov']]``, in quotes and double square brackets, followed by ``@values``.  The command ``mxEval`` can also be used to extract relevant information, such as the likelihood, (``objective``) where the first argument of the command is the object of interest and the second the object obtaining the results.
+We can request various final values of the output using the ``mxEval`` command.  In the following example, the simplest use case of ``mxEval`` is seen.  The name of a matrix or algebra is used, and ``mxEval`` returns the current value of that matrix or algebra.  See the :doc:`StyleGuide` for more advanced uses of the ``mxEval`` command.
 
 .. code-block:: r
 
-    EM <- bivCorFit[['expMean']]@values
-    EC <- bivCorFit[['expCov']]@values
-    LL <- mxEval(objective,bivCorFit);
+    EM <- mxEval(expMean, bivCorFit)
+    EC <- mxEval(expCov, bivCorFit)
+    LL <- mxEval(objective,bivCorFit)
 
 These commands generate the following output:
 
@@ -349,8 +349,8 @@ First, we simulate twin data using the ``mvrnorm`` R function.  If the additive 
     e2<-0.2     #Specific environment variance component (e squared)
     rMZ <- a2+c2
     rDZ <- .5*a2+c2
-    MZ <- mvrnorm (1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
-    DZ <- mvrnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
+    DataMZ <- mvrnorm (1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
+    DataDZ <- mvrnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
 
     selVars <- c('t1','t2')
     dimnames(DataMZ) <- list(NULL,selVars)
@@ -379,7 +379,7 @@ We typically start with fitting a saturated model, estimating means, variances a
             type="Lower", 
             nrow=2, 
             ncol=2,
-            free=TRUE
+            free=TRUE,
             values=.5,
             name="CholMZ"), 
         mxAlgebra(
