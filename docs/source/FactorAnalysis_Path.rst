@@ -241,11 +241,11 @@ The data for the two factor model can be found in the ``myFAData`` files introdu
     twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
 
     twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
-  
+
 Specifying the two factor model is virtually identical to the single factor case. The last three variables of our ``manifestVars`` argument have changed from ``"x4","x5","x6"`` to "y1","y2","y3", which is carried through references to the variables in later ``mxPath`` functions.
  
-.. code-block:: r 
-  
+.. code-block:: r
+
     twofactorModel<-mxModel("Two Factor Model Path Specification", 
         type="RAM",
         mxData(
@@ -311,7 +311,7 @@ We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` an
         free=TRUE,
         values=c(1,1,1,1,1,1),
         labels=c("e1","e2","e3","e4","e5","e6")
-    ),
+    )
     #means
     mxPath(
         from="one",
@@ -320,7 +320,7 @@ We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` an
         free=c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,FALSE),
         values=c(1,1,1,1,1,1,0,0),
         labels=c("meanx1", "meanx2", "meanx3", "meany1","meany2","meany3",NA,NA)
-    ),
+    )
   
 The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function specifies the variances and covariance of the two latent variables. Like previous examples, we've omitted the ``to`` argument for this set of two-headed paths. Unlike previous examples, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from F1 to F1 (the variance of F1), from F1 to F2 (the covariance of the latent variables), from F2 to F1 (again, the covariance), and from F2 to F2 (the variance of F2). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
 
@@ -334,7 +334,7 @@ The second, third and fourth ``mxPath`` functions provide some changes to the mo
         free=TRUE,
         values=c(1, .5,.5, 1),
         labels=c("varF1","cov","cov","varF2")
-    ),
+    )
   
 The third and fourth ``mxPath`` functions define the factor loadings for each of the latent variables. We've split these loadings into two functions, one for each latent variable. The first loading for each latent variable is fixed to a value of one, just as in the previous example.
 
@@ -348,7 +348,7 @@ The third and fourth ``mxPath`` functions define the factor loadings for each of
         free=c(FALSE,TRUE,TRUE),
         values=c(1,1,1),
         labels=c("l1","l2","l3")
-    ),
+    )
     #factor loadings for y variables
     mxPath(
         from="F2",
@@ -357,7 +357,7 @@ The third and fourth ``mxPath`` functions define the factor loadings for each of
         free=c(FALSE,TRUE,TRUE),
         values=c(1,1,1),
         labels=c("l4","l5","l6")
-    ),
+    )
   
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model. A summary of the output can be reached using ``summary()``.
 

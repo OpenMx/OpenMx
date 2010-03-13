@@ -27,12 +27,12 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     require(OpenMx)
 
     #Prepare Data
-    twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+    data(myTwinData)
     twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
-    summary(twinData)
+    summary(myTwinData)
     selVars <- c('bmi1','bmi2')
-    mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-    dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
+    mzfData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
+    dzfData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
     colMeans(mzfData,na.rm=TRUE)
     colMeans(dzfData,na.rm=TRUE)
     cov(mzfData,use="complete")
@@ -148,8 +148,8 @@ Previous Mx users will likely be familiar with the look of the expected covarian
         name="expCovMZ"
     ),
     mxAlgebra(
-        expression=rbind (cbind(A+C+E  , h%x%A+C),
-                          cbind(h%x%A+C, A+C+E)), 
+        expression=rbind (cbind(A+C+E  , 0.5 %x% A+C),
+                          cbind(0.5 %x% A+C, A+C+E)), 
         name="expCovDZ"
     ),
 
@@ -163,7 +163,7 @@ As the expected covariance matrices are different for the two groups of twins, w
             type="raw"
         ), 
         mxFIMLObjective(
-            covariances="twinACE.expCovMZ", 
+            covariance="twinACE.expCovMZ", 
             means="twinACE.expMean",
             dimnames=selVars
         )
@@ -174,7 +174,7 @@ As the expected covariance matrices are different for the two groups of twins, w
             type="raw"
         ), 
         mxFIMLObjective(
-            covariances="twinACE.expCovDZ", 
+            covariance="twinACE.expCovDZ", 
             means="twinACE.expMean",
             dimnames=selVars
         )
