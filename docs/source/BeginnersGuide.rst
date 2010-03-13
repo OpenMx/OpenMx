@@ -65,7 +65,7 @@ Below is a figure of a one factor model with five indicators.  The script reads 
         mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
     )
 
-    factorFit <- (mxRun(factorModel)
+    factorFit <- mxRun(factorModel)
     summary(factorFit)
 
 This example uses a RAM-style specification technique. Let's break down what is happening in each section of this example.

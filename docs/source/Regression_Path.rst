@@ -46,14 +46,13 @@ Our first step to running this model is to include the data to be analyzed. The 
 
 .. code-block:: r
 
-    myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
+    data(myRegDataRaw)
 
 The names of the variables provided by the header row can be displayed with the names() function.
 
 .. code-block:: r
 
-    > names(myRegDataRaw)
-    [1] "w" "x" "y" "z"
+    names(myRegDataRaw)
 
 As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we'll select only the variables we want and place them back into our data object. That can be done with the R code below.
 
@@ -141,7 +140,7 @@ The third component of our code creates an ``MxData`` object. The example above,
     mxData(
         observed=SimpleDataRaw, 
         type="raw"
-	),
+	)
 
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
 
@@ -151,14 +150,14 @@ If we were to use a covariance matrix and vector of means as data, we would repl
         observed=SimpleDataCov, 
         type="cov",
         numObs=100,
-        means=SimpleRegMeans
-    ),
+        means=SimpleDataMeans
+    )
 
 We must also specify the list of observed variables using the ``manifestVars`` argument. In the code below, we include a list of both observed variables, *x* and *y*. 
 
 .. code-block:: r
- 
-    manifestVars=c("x", "y"),
+
+    manifestVars=c("x", "y")
 
 The last features of our code are three ``mxPath`` functions, which describe the relationships between variables. Each function first describes the variables involved in any path. Paths go from the variables listed in the ``from`` argument, and to the variables listed in the ``to`` argument. When ``arrows`` is set to ``1``, then one-headed arrows (regressions) are drawn from the ``from`` variables to the ``to`` variables. When ``arrows`` is set to ``2``, two headed arrows (variances or covariances) are drawn from the the ``from`` variables to the ``to`` variables. If ``arrows`` is set to ``2``, then the ``to`` argument may be omitted to draw paths both to and from the list of ``from`` variables.
 
@@ -173,7 +172,7 @@ The variance terms of our model (that is, the variance of *x* and the residual v
         free=TRUE, 
         values = c(1, 1),
         labels=c("varx", "residual")
-    ),
+    )
       
 The regression term of our model (that is, the regression of *y* on *x*) is created with the following ``mxPath`` function. We want a single one-headed arrow from ``x`` to ``y``. This path should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``"beta1"``.     
           
@@ -187,7 +186,7 @@ The regression term of our model (that is, the regression of *y* on *x*) is crea
         free=TRUE,
         values=1,
         labels="beta1"
-    ),
+    )
 
 We also need means and intercepts in our model. Exogenous or independent variables have means, while endogenous or dependent variables have intercepts. These can be included by regressing both ``x`` and ``y`` on a constant, which can be refered to in OpenMx by ``"one"``. The intercept terms of our model are created with the following ``mxPath`` function. We want single one-headed arrows from the constant to both ``x`` and ``y``. These paths should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``meanx`` and ``"beta1"``, respectively.           
       
@@ -201,7 +200,7 @@ We also need means and intercepts in our model. Exogenous or independent variabl
         free=TRUE,
         values=c(1, 1),
         labels=c("meanx", "beta0")
-    ),
+    )
 
 Our model is now complete!
 
@@ -319,7 +318,7 @@ Our second ``mxPath`` function specifies a two-headed arrow (covariance) between
         free=TRUE,
         values=0.5,
         labels="covxz"
-    ), 
+    )
 
 The third and fourth ``mxPath`` functions mirror the second and third ``mxPath`` functions from our simple regression, defining the regressions of *y* on both *x* and *z* as well as the means and intercepts of our model.
 
@@ -347,7 +346,7 @@ Data import for this analysis will actually be slightly simpler than before. The
 
 .. code-block:: r
 
-    myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+    data(myRegDataRaw)
   
     myRegDataCov <- matrix(
         c(0.808,-0.110, 0.089, 0.361,

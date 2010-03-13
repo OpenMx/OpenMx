@@ -47,14 +47,13 @@ Our first step to running this model is to put include the data to be analyzed. 
 
 .. code-block:: r
 
-    myRegDataRaw <- read.table("myRegData.txt",header=TRUE)
+    data(myRegDataRaw)
 
 The names of the variables provided by the header row can be displayed with the names() function.
 
 .. code-block:: r
 
-    > names(myRegDataRaw)
-    [1] "w" "x" "y" "z"
+    names(myRegDataRaw)
 
 As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we'll select only the variables we want and place them back into our data object. That can be done with the R code below.
 
@@ -98,7 +97,7 @@ The following code contains all of the components of our model. Before running a
 
     uniRegModel <- mxModel("Simple Regression Matrix Specification", 
         mxData(
-            observed=SimpleRegRaw, 
+            observed=SimpleDataRaw, 
             type="raw"
         ),
         # asymmetric paths
@@ -168,7 +167,7 @@ If we were to use a covariance matrix and vector of means as data, we would repl
         observed=SimpleDataCov, 
         type="cov",
         numObs=100,
-        means=SimpleRegMeans
+        means=SimpleDataMeans
     )  
 
 The next four functions specify the four matricies that make up the RAM specified model. Each of these matrices defines part of the relationship between the observed variables. These matrices are then combined by the objective function, which follows the four ``mxMatrix`` functions, to define the expected covariances and means for the supplied data. In all of the included matrices, the order of variables matches those in the data. Therefore, the first row and column of all matrices corresponds to the *x* variable, while the second row and column of all matrices corresponds to the *y* variable. 
@@ -264,7 +263,7 @@ The expected means are defined as:
 The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the ``A``, ``S``, ``F`` and ``M`` matrices in your model.
 
 .. code-block:: r
-   
+
     mxRAMObjective("A", "S", "F", "M")
 
 The model now includes an observed covariance matrix (i.e., data) and the matrices and objective function required to define the expected covariance matrix and estimate parameters.
@@ -428,7 +427,7 @@ Data import for this analysis will actually be slightly simpler than before. The
 
 .. code-block:: r
 
-    myRegDataRaw<-read.table("myRegData.txt",header=TRUE)
+	data(myRegDataRaw)
 
     myRegDataCov <- matrix(
         c(0.808,-0.110, 0.089, 0.361,
@@ -483,7 +482,7 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
                      0, .5, 0,  1),
             free=c(T, F, F, F,
                    F, T, F, T,
-                   F, F, T, T,
+                   F, F, T, F,
                    F, T, F, T),
             labels=c("residualw",  NA,     NA,         NA,
                       NA,         "varx",  NA,        "covxz",
