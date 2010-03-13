@@ -62,7 +62,7 @@ We make use of the superb R function ``mvrnorm`` in order to simulate N=500 reco
     # and make a list of which variables are to be analyzed (selVars)
     xy<-rbind(group1,group2)
     dimnames(xy)[2]<-list(c("x","y"))
-    def<-rep(c(1,0),each=n)
+    def<-rep(c(1,0),each=N)
     selVars<-c("x","y")
 
 The objects ``xy`` and ``def`` might be combined in a data frame.  However, in this case we won't bother to do it externally, and simply paste them together in the ``mxData`` function call.
@@ -129,11 +129,10 @@ The trick - commonly used in regression models - is to multiply the ``beta`` mat
 
 .. code-block:: r
 
-        mxAlgebra(
-            expression= M+beta*def, 
-            name="Mu"
-        )
-    )
+   mxAlgebra(
+        expression= M+beta*def, 
+        name="Mu"
+    ),
 
 The result of this algebra is named ``Mu``, and this handle is referred to in the ``mxFIMLObjective`` function call.  
 
@@ -141,10 +140,10 @@ Next, we declare where the data are, and their type, by creating an ``MxData`` o
 
 .. code-block:: r
 
-        mxData((
-            observed=data.frame(xy,def)), 
-            type="raw"
-        ),
+    mxData(
+         observed=data.frame(xy,def), 
+         type="raw"
+    ))
 
 We can then run the model and examine the output with a few simple commands.
 
@@ -168,15 +167,15 @@ It is possible to compare the estimates from this model to some summary statisti
     # data, so as to estimate variance of combined sample without the mean correction.
  
     # First we compute some summary statistics from the data
-    ObsCovs<-cov(rbind(group1-rep(c(1,2),each=n),group2))
-    ObsMeansGroup1<-c(mean(group1[,1],mean(group1[,2]))
-    ObsMeansGroup2<-c(mean(group2[,1],mean(group2[,2]))
+    ObsCovs<-cov(rbind(group1 - rep(c(1,2),each=N), group2))
+    ObsMeansGroup1<-c(mean(group1[,1]), mean(group1[,2]))
+    ObsMeansGroup2<-c(mean(group2[,1]), mean(group2[,2]))
  
     # Second we extract the parameter estimates and matrix algebra results from the model
-    Sigma<-run@matrices$Sigma@values
-    Mu<-run@algebras$Mu@result
-    M<-run@matrices$M@values
-    beta<-run@matrices$beta@values
+    Sigma <- mxEval(Sigma, defMeansFit)
+    Mu <- mxEval(Mu, defMeansFit)
+    M <- mxEval(M, defMeansFit)
+    beta <- mxEval(beta, defMeansFit)
  
     # Third, we check to see if things are more or less equal
     omxCheckCloseEnough(ObsCovs,Sigma,.01)
