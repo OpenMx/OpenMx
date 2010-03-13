@@ -11,28 +11,28 @@ trunk
 * started work on an "OpenMx style guide" section to the User Guide.
 * fix documentation + demo errors brought to our attention by dbishop
 
-Release 0.2.9-1147
-==================
+Release 0.2.9-1147 (Mar 04, 2010)
+=================================
 * bugfix for ordinal FIML with columns that are not threshold columns
 * bugfix for detection of algebraic cycles when multiple objective functions are present
 * test cases included for standard error calculation
 * enabled standard error calculation by default
 
-Release 0.2.8-1133
-==================
+Release 0.2.8-1133 (Mar 02, 2010)
+=================================
 * bugfix for memory leak behavior in kronecker product calculation
 * implemented kronecker exponentiation operator %^%.
 * actually updating means calculations in ordinal FIML models
 * removing standard errors from summary() until they are computed correctly
 
-Release 0.2.7-1125
-==================
+Release 0.2.7-1125 (Feb 28, 2010)
+=================================
 * added 'unsafe' argument to mxRun function.  See ?mxRun for more information.
 * bugfix for filtering definition variable assignment to current data source.
 * bugfix for using data.frame with integer type columns that are not factors.
 
-Release 0.2.6-1114
-==================
+Release 0.2.6-1114 (Feb 23, 2010)
+=================================
 * implemented omxAllInt, use ?omxAllInt for R help on this function
 * implemented omxMnor, use ?omxMnor for R help on this function
 * added option to calculate Hessian after optimization.  See ?mxOption for R help.
@@ -53,8 +53,8 @@ Release 0.2.6-1114
 * implemented foo[x,y] and foo[x,y] <- z for MxMatrix objects
 
 
-Release 0.2.5-1050
-==================
+Release 0.2.5-1050 (Jan 22, 2010)
+=================================
 * added 'mxVersion' slot to output of summary() function.
 * added documentation of summary() function.
 * set default function precision for ordinal FIML evaluation to "1e-9"
@@ -63,8 +63,8 @@ Release 0.2.5-1050
 * implemented generic method names() for MxModel objects.
 * implemented vec2diag() and diag2vec() matrix algebra functions.
 
-Release 0.2.4-1038
-==================
+Release 0.2.4-1038 (Jan 15, 2010)
+=================================
 * definition variables can now be used inside algebra expressions
 * definition variables inside of MxMatrices will populate to the 1st row before conformability checking. In plain english: you do not need to specify the starting values for definition variables.
 * the square-bracket operator when used in MxMatrix labels is no longer restricted to constants for the row and column.  The row and column arguments will accept any term that evaluates to a scalar value or a (1 x 1) matrix.
@@ -77,8 +77,8 @@ Release 0.2.4-1038
 * corrected 'observedStatistics' output of summary() to exclude definition variables
 * corrected 'observedStatistics' output of summary() count the number of equality constraints
 
-Release 0.2.3-1006
-==================
+Release 0.2.3-1006 (Dec 04, 2009)
+=================================
 * added 'vector' argument to mxFIMLObjective() function. Specifies whether to return the likelihood vector (if TRUE) or the sum of log likelihoods (if FALSE). Default value is FALSE.
 * renamed omxCheckEquals() to omxCheckIdentical(). omxCheckIdentical() call "identical" so that NAs can be compared.
 * added checking of column names of F and M matrices in RAM objective functions.
@@ -91,8 +91,8 @@ Release 0.2.3-1006
 * throw error message when inserting a named entity into a model with an identical name
 * added Anthony William Fairbank Edwards "Likelihood" (1972; 1984) A, B, O blood group example to online documentation
 
-Release 0.2.2-951
-=================
+Release 0.2.2-951 (Oct 29, 2009)
+================================
 * omxGraphviz() either prints to stdout or to a filename
 * updated omxGraphviz() to draw an arrow if (value != 0 || free == TRUE || !is.na(label))
 * omxGraphviz() returns a character string invisibly
@@ -103,8 +103,8 @@ Release 0.2.2-951
 * generalized dependency specification for objective functions (omxObjDependencies)
 * fixed cross-reference links in User Guide
 
-Release 0.2.1-922
-=================
+Release 0.2.1-922 (Oct 10, 2009)
+================================
 * checked observed data for dimnames on ML objective functions
 * using dimnames= argument to mxMLObjective() and mxFIMLObjective()
   propagates to MxMatrix objects on output.
@@ -112,8 +112,8 @@ Release 0.2.1-922
 * updated user guide in response to feedback from beta testers
 * incremented version number to 0.2.1-922 to sync demos and user guide
 
-Release 0.2.0-905
-=================
+Release 0.2.0-905 (Oct 06, 2009)
+================================
 * several of the twin model demo examples have been recoded.
 * fixed bug with non-floating point matrices.
 * more error checking for mxPath().
@@ -122,8 +122,8 @@ Release 0.2.0-905
 * added 'dimnames' argument to mxFIMLObjective() and mxMLObjective().
 * error checking for RAM models with non-RAM objective functions.
 
-Release 0.1.5-851
-=================
+Release 0.1.5-851 (Sep 25, 2009)
+================================
 * improved error messages on unknown identifier in a model (beta tester issue)
 * fixed bug in mxMatrix() when values argument is matrix and byrow=TRUE
 * implemented square-bracket substitution for MxMatrix labels
@@ -132,8 +132,8 @@ Release 0.1.5-851
 * tweaked memory handling in back-end matrix copying
 * added support for x86_64 linux with gcc 4.2 and 4.3
 
-Release 0.1.4-827
-=================
+Release 0.1.4-827 (Sep 18, 2009)
+================================
 * added checking and type coercion to arguments of mxPath() function (a beta tester alerted us to this)
 * moved matrices into submodels in UnivariateTwinAnalysis_MatrixRaw demo
 * added Beginners Guide to online documentation
@@ -155,8 +155,8 @@ Release 0.1.4-827
 * added dimnames checking of algebras in the front-end before optimization is called
 * added 'make rproftest' target to makefile
 
-Release 0.1.3-776
-=================
+Release 0.1.3-776 (Aug 28, 2009)
+================================
 * mxEvaluate() was renamed to mxEval() after input from beta testers on the forums.
 * new function mxVersion that prints out the current version number (beta tester request).
 * When printing OpenMx objects, the @ sign is used where it is needed if you would want to print part of the object (beta tester request).
@@ -175,16 +175,16 @@ Release 0.1.3-776
 * fixed the standard error estimates summary.
 * added mxVersion() function to return the version number (as a string).
 
-Release 0.1.2-708
-=================
+Release 0.1.2-708 (Aug 14, 2009)
+================================
 * Added R help documentation for omxCheckCloseEnough(), omxCheckWithinPercentError(), 
 	omxCheckTrue(), omxCheckEquals(), and omxCheckSetEquals()
 
 * (mxMatrix) Fixed a bug in construction of symmetric matrixes.
     - now supports lower, standardized, and subdiagonal matrices.
 
-Release 0.1 (August 3, 2009)
-============================
+Release 0.1 (Aug 03, 2009)
+==========================
 * (mxEvaluate) mxEvaluate translates MxMatrix references, MxAlgebra references,  MxObjectiveFunction references, and label references.
 
 * (mxOptions) added 'reset' argument to mxOptions()
