@@ -41,10 +41,8 @@ Our first step to running this model is to include the data to be analyzed. The 
 
 .. code-block:: r
 
-    myFADataRaw <- read.table("myFAData.txt",header=TRUE)
-
-    > names(myFADataRaw)
-    [1] "x1" "x2" "x3" "x4" "x5" "x6" "y1" "y2" "y3"
+	data(myFADataRaw)
+    names(myFADataRaw)
 
     oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
 
@@ -130,7 +128,7 @@ As with previous examples, this model begins with a name for the model and a ``t
     mxData(
         observed=oneFactorRaw,
         type="raw"
-    ),
+    )
           
 can be replaced with a covariance matrix and means, like so:
 
@@ -204,7 +202,7 @@ Lastly, we must specify the mean structure for this model. As there are a total 
         free=c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE),
         values=c(1,1,1,1,1,1,0),
         labels =c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA)
-    ),
+    ))
 
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
 A summary of the output can be reached using ``summary()``.

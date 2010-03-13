@@ -74,7 +74,7 @@ The following code contains all of the components of our model.  Before specifyi
 .. code-block:: r
 
     require(OpenMx)
-    defmeansmodel<-mxModel("Definition Means Path Specification", 
+    defMeansModel<-mxModel("Definition Means Path Specification", 
         type="RAM",
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.
@@ -143,7 +143,7 @@ Next, we declare where the data are, and their type, by creating an ``MxData`` o
     mxData(
         observed=data.frame(xy,def), 
         type="raw"
-    ),
+    ))
 
 We can then run the model and examine the output with a few simple commands.
 
@@ -167,14 +167,14 @@ The R object ``defmeansFit`` contains matrices and algebras; here we are interes
     # the mean difference contributing to the variance estimate.
  
     # First we compute some summary statistics from the data
-    ObsCovs <- cov(rbind(group1 - rep(c(1,2), each=n), group2))
+    ObsCovs <- cov(rbind(group1 - rep(c(1,2), each=N), group2))
     ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
     ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
     # Second we extract the parameter estimates and matrix algebra results from the model
-    Sigma<-defmeansresult@matrices$S@values[1:2,1:2]
-    Mu<-defmeansresult@matrices$M@values[1:2]
-    beta<-defmeansresult@matrices$A@values[1:2,3]
+    Sigma <- mxEval(S[1:2,1:2], defMeansFit)
+    Mu <- mxEval(M[1:2], defMeansFit)
+    beta <- mxEval(A[1:2,3], defMeansFit)
 
     # Third, we check to see if things are more or less equal
     omxCheckCloseEnough(ObsCovs,Sigma,.01)

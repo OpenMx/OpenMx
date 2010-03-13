@@ -39,7 +39,7 @@ The first step to running our model is to import data. The code below is used to
 
 .. code-block:: r
 
-    myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
+	data(myLongitudinalData)
 
     myLongitudinalDataCov<-matrix(
         c(6.362, 4.344, 4.915,  5.045,  5.966,
@@ -53,7 +53,7 @@ The first step to running our model is to import data. The code below is used to
         c("x1","x2","x3","x4","x5"))
     )
 
-    myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+    myLongitudinalDataMeans <- c(9.864, 11.812, 13.612, 15.317, 17.178)
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -66,7 +66,7 @@ The following code contains all of the components of our model. Before running a
 
     growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
         mxData(
-            myLongitudinalDataRaw, 
+            myLongitudinalData, 
             type="raw"
         ),
         # asymmetric paths
@@ -126,7 +126,8 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,1,0,0,0,
                      0,0,0,0,1,0,0),
             byrow=T,
-            name="F"
+            name="F",
+			dimnames=list(NULL, c("x1","x2","x3","x4","x5","",""))
         ),
         # means
             mxMatrix(

@@ -38,7 +38,7 @@ The first step to running our model is to import data. The code below is used to
 
 .. code-block:: r
 
-    myLongitudinalData <- read.table("myLongitudinalData.txt",header=T)
+	data(myLongitudinalData)
 
     myLongitudinalDataCov<-matrix(
         c(6.362, 4.344, 4.915,  5.045,  5.966,
@@ -52,7 +52,7 @@ The first step to running our model is to import data. The code below is used to
         c("x1","x2","x3","x4","x5"))
     )
 
-    myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+    myLongitudinalDataMeans <- c(9.864, 11.812, 13.612, 15.317, 17.178)
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -104,7 +104,7 @@ Before running a model, the OpenMx library must be loaded into R using either th
             to=c("x1","x2","x3","x4","x5"),
             arrows=1,
             free=FALSE,
-            values=c(0, 1, 2, 3, 4
+            values=c(0, 1, 2, 3, 4)
         ),
         # manifest means
         mxPath(
@@ -136,7 +136,7 @@ Data is supplied with the ``mxData`` function. This example uses raw data, but t
         type="cov",
         numObs=500,
         means=myLongitudinalDataMeans
-    ),
+    )
 
 Next, the manifest and latent variables are specified with the ``manifestVars`` and ``latentVars`` arguments. The two latent variables in this model are named ``"Intercept"`` and ``"Slope"``.
 
@@ -151,7 +151,7 @@ There are six ``mxPath`` functions in this model. The first two specify the vari
         free=TRUE, 
         values = c(1, 1, 1, 1, 1),
         labels=c("residual","residual","residual","residual","residual")
-    ),
+    )
       
 Next are the variances and covariance of the two latent variables. Like the last function, we've omitted the ``to`` argument for this set of two-headed paths. However, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from intercept to intercept (the variance of the interecpts), from intercept to slope (the covariance of the latent variables), from slope to intercept (again, the covariance), and from slope to slope (the variance of the slopes). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
       
@@ -165,7 +165,7 @@ Next are the variances and covariance of the two latent variables. Like the last
         free=TRUE, 
         values=c(1, 1, 1, 1),
         labels=c("vari", "cov", "cov", "vars")
-    ),
+    )
       
 The third and fourth ``mxPath`` functions specify the factor loadings. As these are defined to be a constant value of 1 for the intercept factor and the set [0, 1, 2, 3, 4] for the slope factor, these functions have no free parameters.       
       
@@ -178,7 +178,7 @@ The third and fourth ``mxPath`` functions specify the factor loadings. As these 
         arrows=1,
         free=FALSE,
         values=c(1, 1, 1, 1, 1)
-    ),
+    )
     # slope loadings
     mxPath(
         from="slope",
@@ -186,7 +186,7 @@ The third and fourth ``mxPath`` functions specify the factor loadings. As these 
         arrows=1,
         free=FALSE,
         values=c(0, 1, 2, 3, 4)
-    ),
+    )
   
 The last two ``mxPath`` functions specify the means. The manifest variables are not regressed on the constant, and thus have intercepts of zero. The observed means are entirely functions of the means of the intercept and slope. To specify this, the manifest variables are regressed on the constant (denoted ``"one"``) with a fixed value of zero, and the regressions of the latent variables on the constant are estimated as free parameters.
 
@@ -199,7 +199,7 @@ The last two ``mxPath`` functions specify the means. The manifest variables are 
         arrows=1,
         free=FALSE,
         values=c(0, 0, 0, 0, 0)
-    ),
+    )
     # latent means
     mxPath(
         from="one",
@@ -208,14 +208,15 @@ The last two ``mxPath`` functions specify the means. The manifest variables are 
         free=TRUE,
         values=c(1, 1),
         labels=c("meani", "means")
-    ),
+    )
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
 A summary of the output can be reached using ``summary()``.
 
+.. code-block:: r
+
     growthCurveFit <- mxRun(growthCurveModel)
 
-    growthCurveFit@output
     summary(growthCurveFit)
 
 These models may also be specified using matrices instead of paths. See :ref:`timeseries-matrix-specification` for matrix specification of these models.

@@ -42,8 +42,8 @@ Our first step to running this model is to put include the data to be analyzed. 
 
 .. code-block:: r
 
-    > names(myFADataRaw)
-    [1] "x1" "x2" "x3" "x4" "x5" "x6" "y1" "y2" "y3"
+	data(myFADataRaw)
+    names(myFADataRaw)
 
     oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
 
@@ -63,7 +63,8 @@ Our first step to running this model is to put include the data to be analyzed. 
         c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
     )
 
-    oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"),c("x1","x2","x3","x4","x5","x6")]
+    oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"), 
+			c("x1","x2","x3","x4","x5","x6")]
 
     myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
 
@@ -152,7 +153,8 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,0,1,0,0,
                      0,0,0,0,0,1,0),
             byrow=TRUE,
-            name="F"
+            name="F",
+			dimnames=list(NULL, c("x1", "x2", "x3", "x4", "x5", "x6", "f1"))
         ),
         # means
         mxMatrix(
@@ -168,7 +170,7 @@ The following code contains all of the components of our model. Before running a
         ),
         mxRAMObjective("A","S","F","M")
     )
-  
+
 This ``mxModel`` function can be split into several parts. First, we give the model a name. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Common Factor Model Matrix Specification"``.
 
 The second component of our code creates an ``MxData`` object. The example above, reproduced here, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
