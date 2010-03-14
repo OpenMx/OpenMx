@@ -435,18 +435,18 @@ Before we move on to fit the ACE model to the same data, we may want to test som
 .. code-block:: r 
 
     twinSatModelSub1 <- mxModel(twinSatModel, name = "twinSatSub1")
-	twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mMZ")
-   	twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mDZ")
+    twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mMZ")
+    twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mDZ")
     twinSatFitSub1 <- mxRun(twinSatModelSub1)
 
 If we want to test if we can equate both means and variances across twin order and zygosity at once, we will end up with the following specification.  Note that we use the same label across models for elements that need to be equated.
 
 .. code-block:: r 
 
-	twinSatModelSub2 <- mxModel(twinSatModelSub1, name = "twinSatSub2")
-	twinSatModelSub2$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mean")
-	twinSatModelSub2$MZ$CholMZ <- mxMatrix("Lower", 2, 2, TRUE, 0.5, labels= c("var","MZcov","var")) 
-	twinSatModelSub2$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mean") 
+    twinSatModelSub2 <- mxModel(twinSatModelSub1, name = "twinSatSub2")
+    twinSatModelSub2$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mean")
+    twinSatModelSub2$MZ$CholMZ <- mxMatrix("Lower", 2, 2, TRUE, 0.5, labels= c("var","MZcov","var")) 
+    twinSatModelSub2$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mean") 
     twinSatModelSub2$MZ$CholDZ <- mxMatrix("Lower", 2, 2, T, 0.5, labels= c("var","DZcov","var"))
     twinSatFitSub2 <- mxRun(twinSatModelSub2)
 
