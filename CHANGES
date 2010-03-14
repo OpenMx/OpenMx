@@ -4,7 +4,7 @@ trunk
 * bugfix for sharing/unsharing data to a three-level hierarchy
 * bugfix for error reporting in bad matrix access, uncalculated std. errors, and poor omxAllint thresholds
 * implemented rvectorize, cvectorize algebra functions: vectorize by row, and vectorize by column
-* not allowing the following forbidden characters in names or labels: "+-!~?:*/^%<>=&|$"
+* not allowing the following forbidden characters in names or labels: "+-!~?:\*/^%<>=&|$"
 * added timestamp to summary() output
 * reimplemented summary() function to handle unused data rows, and independent submodels
 * reimplemented names(model), model$foo, and model$foo <- value to return all components of a model tree
