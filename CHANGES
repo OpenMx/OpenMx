@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.2.10-1172 (Mar 14, 2010)
+==================================
 * bugfix for assigning default data name when default data does not exist
 * bugfix for sharing/unsharing data to a three-level hierarchy
 * bugfix for error reporting in bad matrix access, uncalculated std. errors, and poor omxAllint thresholds
