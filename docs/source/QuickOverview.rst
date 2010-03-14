@@ -108,9 +108,7 @@ For the algebras to be evaluated, they become arguments of the ``mxModel`` comma
     answers@algebras
     result <- mxEval(list(q1,q2,q3,q4,q5),answers)	
 
-As you notice, we added some lines at the end to generate the desired output.  The resulting matrices and algebras are stored in ``answers``; we can refer back to them by specifying ``answers@matrices`` or ``answers@algebras``.  We can also calculate any additional quantities or perform extra matrix operations on the results using the ``mxEval`` command.  For example, if we want to see all the answers to the questions in matrixAlgebra.R, the results would look like this:
-
-.. code-block:: r
+As you notice, we added some lines at the end to generate the desired output.  The resulting matrices and algebras are stored in ``answers``; we can refer back to them by specifying ``answers@matrices`` or ``answers@algebras``.  We can also calculate any additional quantities or perform extra matrix operations on the results using the ``mxEval`` command.  For example, if we want to see all the answers to the questions in matrixAlgebra.R, the results would look like this::
 
     [[1]]
          [,1]
@@ -236,9 +234,7 @@ We can request various final values of the output using the ``mxEval`` command. 
     EC <- mxEval(expCov, bivCorFit)
     LL <- mxEval(objective,bivCorFit)
 
-These commands generate the following output:
-
-.. code-block:: r
+These commands generate the following output::
 
     EM
                   X            Y
@@ -253,9 +249,7 @@ These commands generate the following output:
              [,1]
     [1,] 5415.772
 
-Standard lists of parameter estimates and goodness-of-fit statistics can also be obtained with the ``summary`` command.
-
-.. code-block:: r
+Standard lists of parameter estimates and goodness-of-fit statistics can also be obtained with the ``summary`` command.::
 
     > summary(bivCorFit)
              X                   Y            
@@ -297,14 +291,14 @@ If we want to test whether the covariance/correlation is significantly different
             ncol=2,
             free=TRUE,
             name="Chol"
-        )
+        ))
 
 Or we can write it more succintly as follows:
 
 .. code-block:: r
 
     bivCorModelSub <-mxModel(bivCorModel,
-        mxMatrix( type="Diag", nrow=2, ncol=2, free=TRUE, name="Chol" )
+        mxMatrix( type="Diag", nrow=2, ncol=2, free=TRUE, name="Chol" ))
 
     bivCorFitSub <- mxRun(bivCorModelSub)
 
@@ -384,7 +378,7 @@ We typically start with fitting a saturated model, estimating means, variances a
             name="CholMZ"), 
         mxAlgebra(
             expression=CholMZ %*% t(CholMZ), 
-            name="expCovMZ", 
+            name="expCovMZ"), 
         mxData(
             observed=DataMZ, 
             type="raw"), 
@@ -402,7 +396,7 @@ Note that the ``mxModel`` statement for the DZ twins is almost identical to that
         mxMatrix("Lower", 2, 2, T, .5, name="CholDZ"), 
         mxAlgebra(CholDZ %*% t(CholDZ), name="expCovDZ"), 
         mxData(DataDZ, type="raw"), 
-        mxFIMLObjective("expCovDZ", "expMeanDZ", selVars)),
+        mxFIMLObjective("expCovDZ", "expMeanDZ", selVars))
 
 The two models are then combined in a 'super'model which includes them as arguments.  Additional arguments are an ``mxAlgebra`` statement to add the objective funtions/likelihood of the two submodels.  To evaluate them simultaneously, we use the ``mxAlgebraObjective`` with the previous algebra as its argument.  The ``mxRun`` command is used to start optimization.
 
@@ -440,26 +434,20 @@ Before we move on to fit the ACE model to the same data, we may want to test som
 
 .. code-block:: r 
 
-    twinSatModelSub1 <- mxModel(twinSatModel,
-        mxModel("MZ",
-            mxMatrix("Full", 1, 2, T, 0, "mMZ", name="expMeanMZ"), 
-        mxModel("DZ", 
-            mxMatrix("Full", 1, 2, T, 0, "mDZ", name="expMeanDZ")
-    )
-    twinSatFitSub1 <- mxModel(twinSatModelSub1)
+    twinSatModelSub1 <- mxModel(twinSatModel, name = "twinSatSub1")
+	twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mMZ")
+   	twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mDZ")
+    twinSatFitSub1 <- mxRun(twinSatModelSub1)
 
 If we want to test if we can equate both means and variances across twin order and zygosity at once, we will end up with the following specification.  Note that we use the same label across models for elements that need to be equated.
 
 .. code-block:: r 
 
-    twinSatModelSub2 <- mxModel(twinSatModelSub1,
-        mxModel("MZ",
-            mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanMZ"), 
-            mxMatrix("Lower", 2, 2, T, .5, labels= c("var","MZcov","var"), name="CholMZ"), 
-        mxModel("DZ", 
-            mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanDZ"), 
-            mxMatrix("Lower", 2, 2, T, .5, labels= c("var","DZcov","var"), name="CholDZ")
-    )
+	twinSatModelSub2 <- mxModel(twinSatModelSub1, name = "twinSatSub2")
+	twinSatModelSub2$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, TRUE, 0, "mean")
+	twinSatModelSub2$MZ$CholMZ <- mxMatrix("Lower", 2, 2, TRUE, 0.5, labels= c("var","MZcov","var")) 
+	twinSatModelSub2$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mean") 
+    twinSatModelSub2$MZ$CholDZ <- mxMatrix("Lower", 2, 2, T, 0.5, labels= c("var","DZcov","var"))
     twinSatFitSub2 <- mxRun(twinSatModelSub2)
 
 We can compare the likelihood of this submodel to that of the fully saturated model or the previous submodel using the results from ``mxEval`` commands with regular R algebra.  A summary of the model parameters, estimates and goodness-of-fit statistics can also be obtained using ``summary(twinSatFit)``.
@@ -468,9 +456,9 @@ We can compare the likelihood of this submodel to that of the fully saturated mo
 
     LL_Sat <- mxEval(objective, twinSatFit)
     LL_Sub1 <- mxEval(objective, twinSatFitSub1)
-    LRT1= LL_Sub1 - LL_Sat
+    LRT1 <- LL_Sub1 - LL_Sat
     LL_Sub2 <- mxEval(objective, twinSatFitSub1)
-    LRT2= LL_Sub2 - LL_Sat
+    LRT2 <- LL_Sub2 - LL_Sat
 
 Now, we are ready to specify the ACE model to test which sources of variance significantly contribute to the phenotype and estimate their best value.  The structure of this script is going to mimic that of the saturated model.  The main difference is that we no longer estimate the variance-covariance matrix directly, but express it as a function of the three sources of variance, **A**, **C** and **E**.  As the same sources are used for the MZ and the DZ group, the matrices which will represent them are part of the 'super'model.  As these sources are variances, which need to be positive, we typically use a Cholesky decomposition of the standard deviations (and effectively estimate **a** rather then **a^2**, see later for more in depth coverage).  Thus, we specify three separate matrices for the three sources of variance using the ``mxMatrix`` command and 'calculate' the variance components with the ``mxAlgebra`` command.  Note that there are a variety of ways to specify this model, we have picked one that corresponds well to previous Mx code, and has some intuitive appeal.
 
@@ -479,7 +467,7 @@ Now, we are ready to specify the ACE model to test which sources of variance sig
     #Specify ACE Model
     twinACEModel <- mxModel("twinACE", 
     # Matrix expMean for expected mean vector for MZ and DZ twins    
-        mxMatrix( type="Full", nrow=1, nrow=2, free=TRUE, values=20, label="mean", name="expMean"), 
+        mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values=20, label="mean", name="expMean"), 
     # Matrices X, Y, and Z to store the a, c, and e path coefficients		
         mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
         mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),

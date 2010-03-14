@@ -140,9 +140,7 @@ There are a variety of ways to generate output.  We will promote the use of the 
     SL1 <- univSatFit1@output$other$Saturated
     Chi1 <- LL1-SL1
 
-The output of these objects like as follows:
-
-.. code-block:: r
+The output of these objects like as follows::
 
     > EC1
                  [,1]
@@ -161,6 +159,7 @@ In addition to providing a covariance matrix as input data, we could add a means
 
 .. code-block:: r
 
+    univSatModel1m <- mxModel(univSatModel1, name = "univSat1m",
         mxPath(
             from="one", 
             to="X", 
@@ -175,16 +174,17 @@ The other required change is in the ``mxData`` command, which now takes a fourth
 .. code-block:: r
 
         mxData(
-            observed=matrix(var(testData),1,1), 
+            observed=matrix(var(testData),1,1, dimnames = list(selVars, selVars)), 
             type="cov", 
             numObs=1000, 
             means=mean(testData)
-        ),
+        ))
 
 When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be referred to in the output in a similar was as the expected variance before.
 
 .. code-block:: r
 
+		univSatFit1m <- mxRun(univSatModel1m)
         EM1m <- mxEval(M, univSatFit1m) 
 
 
@@ -227,9 +227,7 @@ The resulting model can be run as usual using ``mxRun``:
 
     univRawFit1 <- mxRun(univSatModel1)
 
-Note that the output now includes the expected means, as well as the expected covariance matrix and  -2 x log-likelihood of the data.
-
-.. code-block:: r
+Note that the output now includes the expected means, as well as the expected covariance matrix and  -2 x log-likelihood of the data.::
 
     > EM2
                    [,1]
@@ -268,7 +266,7 @@ Starting with the model fitted to the summary covariance matrix, we need to crea
         mxMLObjective(
             covariance="expCov",
             dimnames=selVars
-        ), 
+        )
     )
 
     univSatFit3 <- mxRun(univSatModel3)
@@ -277,7 +275,6 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
 
 .. code-block:: r
 
-        ....
         mxMatrix(
             type="Full", 
             nrow=1, 
@@ -285,19 +282,18 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
             free=T, 
             values=0, 
             name="expMean"
-        ),
+        )
         mxData(
             observed=var(testData), 
             type="cov", 
             numObs=1000, 
             means=mean(testData)
-        ),
+        )
         mxMLObjective(
             covariance="expCov",
             means="expMean",
             dimnames=selVars
         )
-    )
 
 
 Raw Data and Matrix-style Input
@@ -373,7 +369,6 @@ The ``mxPath`` commands look as follows.  The first one specifies two-headed arr
 
 .. code-block:: r
 
-        ....
         mxPath(
             from=c("X", "Y"), 
             arrows=2, 
@@ -396,7 +391,6 @@ When observed means are included in addition to the observed covariance matrix, 
 
 .. code-block:: r
 
-        ....
         mxPath(
             from="one", 
             to=c("X", "Y"), 
@@ -412,7 +406,6 @@ Using matrices instead of paths, our ``mxMatrix`` command for the expected covar
 
 .. code-block:: r
 
-        ....
         mxMatrix(
             type="Symm", 
             nrow=2, 
@@ -426,7 +419,6 @@ The optional expected means command specifies a 1x2 row vector with two free par
 
 .. code-block:: r
 
-        ....
         mxMatrix(
             type="Full", 
             nrow=1, 
@@ -440,7 +432,6 @@ Combining these two ``mxMatrix`` commands with the raw data, specified in the ``
 
 .. code-block:: r
 
-        ....
         mxMatrix(
             type="Lower", 
             nrow=2, 
