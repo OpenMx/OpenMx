@@ -69,10 +69,8 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
     require(OpenMx)
 
     bivHetModel <- mxModel("bivHet",
-        mxModel("group1", 
-        ....
-        mxModel("group2", 
-        ....
+        mxModel("group1"), 
+        mxModel("group2"), 
         mxAlgebra(group1.objective + group2.objective, name="h12"),
         mxAlgebraObjective("h12")
     )
@@ -156,9 +154,7 @@ For each of the groups, we fit a saturated model, by specifying free parameters 
             type="RAM"
         ),
 
-As a result, we estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``
-
-.. code-block:: r
+As a result, we estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``::
 
     in group1
         $S
@@ -203,7 +199,7 @@ The ``mxRun`` command is required to actually evaluate the model.  Note that we 
 A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specification, respectively in the matrices **M** and **S** for the two groups.  OpenMx also puts the values for the expected means and covariances in the ``means`` and ``covariance`` objects.  We also print the likelihood of data given the model.  The ``mxEval`` command takes any R expression, followed by the fitted model name.  Given that the model ``bivHetFit`` included two models (group1 and group2), we need to use the two level names, i.e. ``group1.means`` to refer to the objects in the correct model.
 
 .. code-block:: r
-    
+
     EM1Het <- mxEval(group1.means, bivHetFit)
     EM2Het <- mxEval(group2.means, bivHetFit)
     EC1Het <- mxEval(group1.covariance, bivHetFit)
@@ -233,9 +229,7 @@ As the free parameters of the paths are translated into RAM matrices, and matrix
     bivHomModel[['group2.S']]@labels <- bivHomModel[['group1.S']]@labels
     bivHomModel[['group2.M']]@labels <- bivHomModel[['group1.M']]@labels
 
-The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below.
-
-.. code-block:: r
+The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below::
 
     in group1
         $S
@@ -276,8 +270,8 @@ Finally, to evaluate which model fits the data best, we generate a likelihood ra
 
 .. code-block:: r
 
-    Chi= LLHom-LLHet
-    LRT= rbind(LLHet,LLHom,Chi)
+    Chi <- LLHom-LLHet
+    LRT <- rbind(LLHet,LLHom,Chi)
     LRT
 
 These models may also be specified using matrices instead of paths. See :ref:`multiplegroups-matrix-specification` for matrix specification of these models.

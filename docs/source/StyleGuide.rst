@@ -36,23 +36,17 @@ Modifying Elements
 
 The list indexing operator can also be used to modify the components of an existing model. There are three modes of using the list indexing operator to perform modifications, and they correspond to the three models for accessing elements.
 
-In the first mode, a submodel can be replaced using the unique name of the submodel.
-
-.. code-block:: r
+In the first mode, a submodel can be replaced using the unique name of the submodel::
 
    model$undersub1 <- NULL              # eliminate 'undersub1' and all children models
    model$submodel1 <- mxModel(...)      # replace 'submodel1' with the contents of the mxModel() expression
 
-In the second mode, the named entities of the parent model are modified using their names.
-
-.. code-block:: r
+In the second mode, the named entities of the parent model are modified using their names::
 
    model$A <- NULL                      # eliminate matrix 'A'
    model$D <- mxMatrix(...)             # create matrix 'D'
 
-In the third mode, a named entities of a submodel can be modified using the ``modelname.entityname`` format.
-
-.. code-block:: r
+In the third mode, a named entities of a submodel can be modified using the ``modelname.entityname`` format::
 
    model$submodel1.C <- NULL                   # eliminate constraint 'C' from submodel1
    model$undersub1.D <- mxAlgebra(...)         # create algebra 'D' in undersub1

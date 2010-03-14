@@ -6,6 +6,8 @@ RCHECK = check
 RPDF = Rd2dvi
 TARGET = OpenMx_0.2.9-1147.tar.gz
 PDFFILE = $(RBUILD)/OpenMx.pdf
+DOCTESTGEN = inst/tools/docTestGenerator.sh
+DOCTESTFILE = inst/tools/testDocs.R
 TESTFILE = inst/tools/testModels.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
@@ -30,6 +32,7 @@ help:
 	@echo "  install    build and install OpenMx on this machine"
 	@echo "  pdf        create a pdf file (in build) of the OpenMx R documentation"
 	@echo "  html       create Sphinx documentation (in docs/build/html) in html format"
+	@echo "  testdocs   test the examples in the Sphinx documentation"
 	@echo "  test       run the OpenMx test suite"
 	@echo "  failtest   run the OpenMx failing test suite"
 	@echo "  memorytest run the OpenMx test suite under the Valgrind memory debugger"
@@ -92,6 +95,10 @@ check: internal-build
 
 rproftest:
 	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
+
+testdocs:
+	$(DOCTESTGEN)
+	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
 	$(REXEC) --vanilla --slave < $(TESTFILE)

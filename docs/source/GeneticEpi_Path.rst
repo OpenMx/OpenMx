@@ -36,13 +36,13 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     require(OpenMx)
 
     #Prepare Data
-    twinData <- read.table("myTwinData.txt", header=T, na.strings=".")
+    data(myTwinData)
     twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
-    summary(twinData)
+    summary(myTwinData)
     selVars <- c('bmi1','bmi2')
     aceVars <- c("A1","C1","E1","A2","C2","E2")
-    mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-    dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
+    mzfData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
+    dzfData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
     colMeans(mzfData,na.rm=TRUE)
     colMeans(dzfData,na.rm=TRUE)
     cov(mzfData,use="complete")
@@ -145,21 +145,23 @@ Models specifying paths are translated into 'RAM' specifications for optimizatio
 
 .. code-block:: r
 
-        type="RAM",
-        manifestVars=selVars,
-        latentVars=aceVars,
+	mxModel("ACE", 
+	        type="RAM",
+	        manifestVars=selVars,
+	        latentVars=aceVars
+	)
 
 We start by specifying paths for the variances and means of the latent variables.  These includes double-headed arrows from each latent variable back to itself, fixed at one, and single-headed arrows from the triangle (with a fixed value of one) to each of the latent variables, fixed at zero.  Next we specify paths for the means of the observed variables using single-headed arrows from 'one' to each of the manifest variables.  These are set to be free and given a start value of 20.  As we use the same label (``mean``) for the two means, they are constrained to be equal.  Remember that R 'recycles'.  The main paths of interest are those from each of the latent variables to the respective observed variable.  These are also estimated (thus all are set free), get a start value of .6 and appropriate labels.  As the common environmental factors are by definition the same for both twins, we fix the correlation between **C1** and **C2** to one.
 
 .. code-block:: r        
-        
+
     # variances of latent variables
     mxPath(
         from=aceVars, 
         arrows=2, 
         free=FALSE, 
         values=1
-    ),
+    )
     # means of latent variables
     mxPath(
         from="one", 
@@ -167,7 +169,7 @@ We start by specifying paths for the variances and means of the latent variables
         arrows=1, 
         free=FALSE, 
         values=0
-    ),
+    )
     # means of observed variables
     mxPath(
         from="one", 
@@ -175,7 +177,7 @@ We start by specifying paths for the variances and means of the latent variables
         arrows=1, free=TRUE, 
         values=20, 
         labels="mean"
-    ),
+    )
     # path coefficients for twin 1
     mxPath(
         from=c("A1","C1","E1"), 
@@ -184,7 +186,7 @@ We start by specifying paths for the variances and means of the latent variables
         free=TRUE, 
         values=.6, 
         label=c("a","c","e")
-    ),
+    )
     # path coefficients for twin 2
     mxPath(
         from=c("A2","C2","E2"), 
@@ -193,7 +195,7 @@ We start by specifying paths for the variances and means of the latent variables
         free=TRUE, 
         values=.6, 
         label=c("a","c","e")
-    ),
+    )
     # covariance between C1 & C2
     mxPath(
         from="C1", 
@@ -283,7 +285,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
 .. code-block:: r
 
     #Run AE model
-    AEModel <- mxModel(twinACEModel, #name="twinAE",
+    AEModel <- mxModel(ACEModel, name="twinAE",
         mxPath(
             from=c("A1","C1","E1"), 
             to="bmi1", 
