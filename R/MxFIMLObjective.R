@@ -282,10 +282,10 @@ generateDataColumns <- function(flatModel, covName, dataName) {
 		index <- match(targetName, definitionNames)
 		if(is.na(index)) {
 			msg <- paste("The column name", omxQuotes(targetName),
-				"in the observed covariance matrix",
+				"in the expected covariance matrix",
 				"of the FIML objective function in model",
 				omxQuotes(flatModel@name),
-				"cannot be found in the dimnames of the data.")
+				"cannot be found in the column names of the data.")
 			stop(msg, call. = FALSE)
 		}
 		retval[[i]] <- index - 1
