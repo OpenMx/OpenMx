@@ -9,6 +9,7 @@ PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
 TESTFILE = inst/tools/testModels.R
+NIGHTLYFILE = inst/tools/testNightly.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.R
@@ -24,20 +25,36 @@ RFILES = $(wildcard R/*.R)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
+	@echo ""	
+	@echo "BUILDS"
+	@echo ""
 	@echo "  build      create an OpenMx binary for unix systems (no cross-compilation)"
 	@echo "  build32    create an OpenMx binary for i386 systems"
 	@echo "  build64    create an OpenMx binary for x86_64 systems"
 	@echo "  buildppc   create an OpenMx binary for ppc systems"
 	@echo "  winbuild   create an OpenMx binary on windows systems"
+	@echo ""		
+	@echo "INSTALL"
+	@echo ""	
 	@echo "  install    build and install OpenMx on this machine"
+	@echo ""
+	@echo "DOCUMENTATION"
+	@echo ""	
 	@echo "  pdf        create a pdf file (in build) of the OpenMx R documentation"
 	@echo "  html       create Sphinx documentation (in docs/build/html) in html format"
-	@echo "  testdocs   test the examples in the Sphinx documentation"
-	@echo "  test       run the OpenMx test suite"
-	@echo "  failtest   run the OpenMx failing test suite"
-	@echo "  memorytest run the OpenMx test suite under the Valgrind memory debugger"
-	@echo "  rproftest  run the OpenMx test suite under the Rprof R profiler"
-	@echo "  check      run the R package checking system on the OpenMx package"
+	@echo ""
+	@echo "TESTING"
+	@echo ""	
+	@echo "  test       run the test suite"	
+	@echo "  check      run the R package checking system on the OpenMx package"		
+	@echo "  nightly    run the nightly test suite"			
+	@echo "  testdocs   test the examples in the Sphinx documentation"	
+	@echo "  failtest   run the failing test suite"
+	@echo "  memorytest run the test suite under the Valgrind memory debugger"
+	@echo "  rproftest  run the test suite under the Rprof R profiler"
+	@echo ""
+	@echo "CLEANING"
+	@echo ""	
 	@echo "  clean      remove all files from the build directory"
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
 
@@ -102,6 +119,9 @@ testdocs:
 
 test:
 	$(REXEC) --vanilla --slave < $(TESTFILE)
+	
+nightly:
+	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
 
 failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
