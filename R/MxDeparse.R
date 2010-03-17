@@ -14,10 +14,28 @@
 #   limitations under the License.
 
 
-omxDeparseVector <- function(vec) {
-	return(paste("c(",
-		paste(vec, collapse = ", "),
-		")", sep = ""))
+deparseVector <- function(vec) {
+	if (is.character(vec)) {
+		inner <- paste(sapply(vec, omxQuotes), collapse = ", ")
+	} else {
+		inner <- paste(vec, collapse = ", ")
+	}
+	return(paste("c(", inner, ")", sep = ""))
+}
+
+deparseDimnames <- function(dimnames) { 
+	if (is.null(dimnames[[1]])) {
+		rownames <- "NULL"
+	} else {
+		rownames <- deparseVector(dimnames[[1]])
+	}
+	if (is.null(dimnames[[2]])) {
+		colnames <- "NULL"
+	} else {
+		colnames <- deparseVector(dimnames[[2]])
+	}
+	return(paste("list(", rownames, 
+		", ", colnames, ")", sep = ""))
 }
 
 setGeneric("mxDeparse", function(object, indent = '   ') { 
@@ -76,9 +94,87 @@ setMethod("mxDeparse", "matrix",
 				", nrow = ", nrow(object),
 				", ncol = ", ncol(object), ")", sep = ""))
 		}
-		return(paste("matrix(", omxDeparseVector(c(t(object))),
+		return(paste("matrix(", deparseVector(c(t(object))),
 			", nrow = ", nrow(object),
 			", ncol = ", ncol(object),
 			", byrow = TRUE)", sep = ""))
 	}
 )
+
+setMethod("mxDeparse", "ZeroMatrix",
+	function(object, indent = '   ') {
+		return(paste("mxMatrix(type = 'Zero', nrow = ",
+			nrow(object), ", ncol = ",
+			ncol(object), ", name = ", 
+			omxQuotes(object@name), ")", sep = ""))
+	}
+)
+
+setMethod("mxDeparse", "UnitMatrix",
+	function(object, indent = '   ') {
+		return(paste("mxMatrix(type = 'Unit', nrow = ",
+			nrow(object), ", ncol = ",
+			ncol(object), ", name = ", 
+			omxQuotes(object@name), ")", sep = ""))
+	}
+)
+
+setMethod("mxDeparse", "IdenMatrix",
+	function(object, indent = '   ') {
+		return(paste("mxMatrix(type = 'Iden', nrow = ",
+			nrow(object), ", ncol = ",
+			ncol(object), ", name = ", 
+			omxQuotes(object@name), ")", sep = ""))
+	}
+)
+
+matrixNAdefault <- function(object, location, retval) {
+	if (all(is.na(object))) {		
+	} else if (all(apply(object, c(1,2), identical, object[1,1]))) {
+		if (is.character(object)) {
+			retval <- paste(retval, ", ", location, " = ", 
+				omxQuotes(object[1,1]), sep = "")
+		} else {
+			retval <- paste(retval, ", ", location, " = ", 
+				object[1,1], sep = "")
+		}
+	} else {
+		retval <- paste(retval, ", ", location, " = ",
+			deparseVector(c(t(object@labels))), sep = "")
+	}
+	return(retval)
+}
+
+setMethod("mxDeparse", "MxMatrix",
+	function(object, indent = '   ') {
+		type <- sub("Matrix", "", class(object)[[1]], fixed = TRUE)
+		retval <- paste("mxMatrix(", omxQuotes(type), sep = "")
+		retval <- paste(retval, ", ", nrow(object),
+				", ", ncol(object), sep = "")
+		if (all(object@free)) {
+			retval <- paste(retval, ", free = TRUE", sep = "")
+		} else if (any(object@free)) {
+			retval <- paste(retval, ", free = ",
+				deparseVector(c(t(object@free))), sep = "")
+		}
+		if (all(object@values == 0)) {
+		} else if (all(object@values == object@values[1,1])) {
+			retval <- paste(retval, ", values = ", 
+				object@values[1,1], sep = "")
+		} else {
+			retval <- paste(retval, ", values = ",
+				deparseVector(c(t(object@values))), sep = "")
+		}
+		retval <- matrixNAdefault(object@labels, "labels", retval)
+		retval <- matrixNAdefault(object@lbound, "lbound", retval)
+		retval <- matrixNAdefault(object@ubound, "ubound", retval)
+		retval <- paste(retval, ", byrow = TRUE", sep = "")
+		if (!is.null(dimnames(object))) {
+			retval <- paste(retval, ", dimnames = ", deparseDimnames(dimnames(object)), sep = "")
+		}
+		retval <- paste(retval, ", name = ", omxQuotes(object@name), sep = "")
+		retval <- paste(retval, ')', sep = "")
+		return(retval)
+	}
+)
+
