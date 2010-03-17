@@ -131,10 +131,13 @@ mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
 	if (is.na(means)) means <- as.integer(NA)
-	if (is.na(thresholds)) thresholds <- as.character(NA)
+	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
+	}
+	if (length(thresholds) != 1) {
+		stop("Thresholds argument must be a single matrix or algebra name")
 	}
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")

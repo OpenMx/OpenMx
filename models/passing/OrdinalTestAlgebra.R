@@ -18,7 +18,12 @@ require(OpenMx)
 #Ordinal Data test, based on poly3dz.mx
 
 # Data
-data <- read.table("data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+data <- read.table("data/mddndzf.dat", na.string=".", 
+	col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+data[,1] <- as.ordered(data[,1])
+data[,2] <- as.ordered(data[,2])
+data[,3] <- as.ordered(data[,3])
+data[,4] <- as.ordered(data[,4])
 
 nthresh1 <- 1
 nthresh2 <- 12
@@ -48,7 +53,7 @@ Mx1R <- rbind(
 nameList <- names(data)
 
 # Define the model
-model <- mxModel()
+model <- mxModel('model')
 model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377), 
             nrow = nvar, ncol = nvar, free=TRUE, 
             dimnames=list(nameList, nameList)))
@@ -63,15 +68,19 @@ model <- mxModel(model, mxMatrix("Lower", name="I1", nrow = nthresh1, ncol = nth
 model <- mxModel(model, mxMatrix("Lower", name="I2", nrow = nthresh2, ncol = nthresh2, free=F, values=1))
 
 # Algebras
-model <- mxModel(model, mxAlgebra(I1%*%T, name="OneMddd4lThreshold"))
-model <- mxModel(model, mxAlgebra(cbind(OneMddd4lThreshold, OneMddd4lThreshold), name ="thresh1", dimnames=list(NULL, c("t1mddd4l", "t2mddd4l"))))
-model <- mxModel(model, mxAlgebra(I2%*%U, name="OneNeur1Threshold"))
-model <- mxModel(model, mxAlgebra(cbind(OneNeur1Threshold, OneNeur1Threshold), name ="thresh2", dimnames=list(NULL, c("t1neur1", "t2neur1"))))
+model$OneMddd4lThreshold <- mxAlgebra(I1%*%T)
+model$thresh1 <- mxAlgebra(cbind(OneMddd4lThreshold, OneMddd4lThreshold), 
+	dimnames=list(NULL, c("t1mddd4l", "t2mddd4l")))
+model$OneNeur1Threshold <- mxAlgebra(I2%*%U)
+model$thresh2 <- mxAlgebra(cbind(OneNeur1Threshold, OneNeur1Threshold), 
+	dimnames=list(NULL, c("t1neur1", "t2neur1")))
+model$zeros <- mxMatrix('Zero', nrow = 11, ncol = 2)
+model$thresholds <- mxAlgebra(cbind(rbind(thresh1, zeros), thresh2))
 
 model <- mxModel(model, mxBounds(parameters=c(paste("mddd4lThreshold", 2:nthresh1, sep=""), paste("Neur1Threshold", 2:nthresh2, sep="")), min = 0, ))
 
 # Define the objective function
-objective <- mxFIMLObjective(covariance="R", means="M", thresholds=c("thresh1", "thresh2"))
+objective <- mxFIMLObjective(covariance="R", means="M", thresholds=c("thresholds"))
 
 # Define the observed covariance matrix
 dataMatrix <- mxData(data, type='raw')

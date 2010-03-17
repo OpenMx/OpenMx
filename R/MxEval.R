@@ -192,7 +192,9 @@ computeMatrixHelper <- function(matrix, flatModel, labelsData) {
 
 omxDimnames <- function(value, names) {
 	value <- as.matrix(value)
-	dimnames(value) <- names
+	if (!is.null(names)) {
+		dimnames(value) <- names
+	}
 	return(value)
 }
 

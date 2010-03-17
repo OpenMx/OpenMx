@@ -78,13 +78,7 @@ convertDatasets <- function(flatModel, model) {
 		for(i in 1:length(flatModel@objectives)) {
 			objective <- flatModel@objectives[[i]]
 			dataName <- objective@data
-			if ((is(objective, "MxFIMLObjective") ||
-				is(objective, "MxMLObjective")) &&
-				!is.na(objective@thresholds)) {
-				threshNames <- objective@thresholds
-				observed <- convertThresholds(flatModel, model, dataName, threshNames)
-				flatModel@datasets[[dataName]]@observed <- convertIntegerColumns(observed)
-			} else if (!is.na(dataName)) {
+			if (!is.na(dataName)) {
 				observed <- flatModel@datasets[[dataName]]@observed
 				if (is.data.frame(observed)) {
 					flatModel@datasets[[dataName]]@observed <- convertIntegerColumns(observed)
@@ -92,7 +86,7 @@ convertDatasets <- function(flatModel, model) {
 			}
 		}	
 	}
-	return(flatModel@datasets)
+	return(flatModel)
 }
 
 generateDefinitionLocations <- function(datasets) {

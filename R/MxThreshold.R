@@ -13,114 +13,44 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-matchSingleDefinitionName <- function(targetName, threshNames, flatModel) {
-	for(i in 1:length(threshNames)) {
-		entity <- flatModel[[threshNames[[i]]]]
-		entityCols <- dimnames(entity)[[2]]
-		if (targetName %in% entityCols) {
-			return(threshNames[[i]])
-		}
-	}
-	return(as.integer(NA))
-}
-
-generateThresholdColumns <- function(flatModel, threshNames, dataName) {
-	retval <- list()
-	definitionNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
-	if (single.na(threshNames) || (length(threshNames) == 0)) {
+generateThresholdColumns <- function(flatModel, model, dataName, threshName) {
+	datasource <- flatModel@datasets[[dataName]]@observed
+	definitionNames <- dimnames(datasource)[[2]]
+	if (single.na(threshName)) {
 		return(as.list(replicate(length(definitionNames), as.integer(NA))))
 	}
+	retval <- list()
+	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
+		list(x = as.symbol(threshName))))
+	threshCols <- dimnames(thresholds)[[2]]
 	for(i in 1:length(definitionNames)) {
 		targetName <- definitionNames[[i]]
-		threshMatch <- matchSingleDefinitionName(targetName, threshNames, flatModel)
-		if (is.na(threshMatch)) {
-			retval[[i]] <- threshMatch
-		} else {
-			matchIndex <- omxLocateIndex(flatModel, threshMatch, flatModel@name)
-			entity <- flatModel[[threshMatch]]
-			entityCols <- dimnames(entity)[[2]]
-			colIndex <- match(targetName, entityCols)
-			retval[[i]] <- c(matchIndex, colIndex - 1L)
-		}
+		colIndex <- match(targetName, threshCols)
+		numThresholds <- length(levels(datasource[,targetName])) - 1
+		retval[[i]] <- as.integer(c(colIndex - 1, numThresholds))
 	}
 	return(retval)
 }
 
-convertThresholds <- function(flatModel, model, dataName, threshNames) {
-	if (single.na(threshNames) || length(threshNames) == 0) {
-		observed <- flatModel@datasets[[dataName]]@observed
-		return(observed)
+verifyThresholds <- function(flatModel, model, dataName, threshName) {
+	if (single.na(threshName)) {
+		return()
 	}
-	for(i in 1:length(threshNames)) {
-		threshName <- threshNames[[i]]
-		thresholds <- flatModel[[threshName]]
-		if (is.null(thresholds)) {
-			stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), 
-				"for model", omxQuotes(flatModel@name), 
-				"does not exist."), call. = FALSE)
-		} else if (is(thresholds, "MxAlgebra") || is(thresholds, "MxMatrix")) {
-			flatModel <- convertSingleThreshold(flatModel, dataName, threshName)
-		} else {
-			stop(paste("The thresholds entity", omxQuotes(threshName), 
-				"for model", omxQuotes(flatModel@name), 
-				"is not a MxMatrix or MxAlgebra."), call. = FALSE)
-		}
-	}
-	if (length(threshNames) == 1) {
-		checkSingleThresholdEntity(flatModel, model, dataName, threshNames[[1]])
-	}
-	observed <- flatModel@datasets[[dataName]]@observed
-	return(observed)
-}
-
-checkSingleThresholdEntity <- function(flatModel, model, dataName, threshName) {
-	observed <- flatModel@datasets[[dataName]]@observed
 	modelName <- flatModel@name
+	object <- flatModel[[threshName]]
+	if (is.null(object)) {
+		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), 
+			"for model", omxQuotes(modelName), 
+			"does not exist."), call. = FALSE)
+	} else if (is(object, "MxAlgebra") || is(object, "MxMatrix")) {
+	} else {
+		stop(paste("The thresholds entity", omxQuotes(threshName), 
+			"for model", omxQuotes(modelName), 
+			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
+	}
 	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
 		list(x = as.symbol(threshName))))
-	threshNames <- dimnames(thresholds)[[2]]
-	for(i in 1:length(threshNames)) {
-		tName <- threshNames[[i]]
-		column <- thresholds[,i]
-		count <- sum(!is.na(column))
-		if (count != (length(levels(observed[,tName])) - 1)) {
-			stop(paste("The number of thresholds in column",
-				omxQuotes(threshNames[[i]]),
-				"is not one less than the number of levels",
-				"in model", 
-				omxQuotes(modelName)), call. = FALSE)
-		}
-		values <- column[1:count]
-		if (any(is.na(values))) {
-			stop(paste("The thresholds in column",
-				omxQuotes(tName),
-				"contain NA values in between non-NA values",
-				"in model",
-				omxQuotes(modelName)), call. = FALSE)			
-		}
-		if (count < length(column) && 
-				any(!is.na(column[count + 1:length(column)]))) {
-			stop(paste("The thresholds in column",
-				omxQuotes(tName),
-				"contain NA values in between non-NA values",
-				"in model",
-				omxQuotes(modelName)), call. = FALSE)
-		}
-		sortValues <- sort(values)
-		if (!all(sortValues == values)) {
-			stop(paste("The thresholds in column",
-				omxQuotes(tName),
-				"are not in sorted order",
-				"in model",
-				omxQuotes(modelName)), call. = FALSE)	
-		}
-	}
-}
-
-convertSingleThreshold <- function(flatModel, dataName, threshName) {
 	observed <- flatModel@datasets[[dataName]]@observed
-	thresholds <- flatModel[[threshName]]
-	modelName <- flatModel@name
 	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
 		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), "for model", 
 			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
@@ -140,8 +70,43 @@ convertSingleThreshold <- function(flatModel, dataName, threshName) {
 	}
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
-		observed[,tName] <- as.ordered(observed[,tName])
+		column <- thresholds[,i]
+		if (!is.ordered(observed[,tName])) {
+			stop(paste("In model",
+				omxQuotes(modelName),
+				"column",
+				omxQuotes(threshNames[[i]]),
+				"is not an ordered factor.",
+				"Use mxFactor() on this column."), call. = FALSE)
+		}
+		expectedThreshCount <- length(levels(observed[,tName])) - 1
+		if (nrow(thresholds) < expectedThreshCount) {
+			stop(paste("In model",
+				omxQuotes(modelName),
+				"the number of thresholds in column",
+				omxQuotes(threshNames[[i]]),
+				"is less than the (l - 1), where l is equal",
+				"to the number of levels in the ordinal",
+				"data. Use mxFactor() on this column."), call. = FALSE)
+		}
+		values <- column[1:expectedThreshCount]
+		sortValues <- sort(values)
+		if (!all(sortValues == values)) {
+			stop(paste("In model", 
+				omxQuotes(modelName),
+				"the thresholds in column",
+				omxQuotes(tName),
+				"are not in sorted order."), call. = FALSE)	
+		}
 	}
-	flatModel@datasets[[dataName]]@observed <- observed
-	return(flatModel)
+}
+
+mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ordered = TRUE) {
+	if(missing(levels)) {
+		stop("the 'levels' argument is not optional")
+	}
+	if(!identical(ordered, TRUE)) {
+		stop("the 'ordered' argument must be TRUE")
+	}
+	return(factor(x, levels, labels, exclude, ordered))
 }

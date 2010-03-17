@@ -41,7 +41,7 @@ typedef struct omxDefinitionVar {		 	// Definition Var
 
 } omxDefinitionVar;
 
-typedef struct omxThresholdColumn {		 	// Definition Var
+typedef struct omxThresholdColumn {		 	// Threshold
 	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
 	int column;				// Which column has the thresholds
 	int numThresholds;		// And how many thresholds
@@ -542,7 +542,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
+	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
 	int nextDef, index, hasOrdinal = FALSE;
 	int *nextInt;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
@@ -556,6 +556,11 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 
+	PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds"))); // see UNPROTECT(2)
+
+	/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
+     * and fill all the thresholdCols with {NULL, 0, 0}.
+	 * However the current path does not have a lot of overhead. */
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
 	if(OMX_DEBUG) {Rprintf("Processing Thresholds.\n");}
 	newObj->thresholdCols = (omxThresholdColumn *) R_alloc(length(nextMatrix), sizeof(omxThresholdColumn));
@@ -567,19 +572,29 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 			newObj->thresholdCols[index].column = 0;
 			newObj->thresholdCols[index].numThresholds = 0;
 		} else {
+			if (INTEGER(threshMatrix)[0] == NA_INTEGER) {
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(errstr, "Threshold columns specified without a thresholds matrix.");
+				omxRaiseError(oo->matrix->currentState, -1, errstr);
+				free(errstr);
+			}
 			// PROTECT(nextItem = VECTOR_ELT(itemList, 0));
 			nextInt = INTEGER(itemList);
-			if(OMX_DEBUG) {Rprintf("Threshold %d processed.\n", index);}
-			newObj->thresholdCols[index].matrix = omxNewMatrixFromMxIndex(itemList, oo->matrix->currentState);
-			newObj->thresholdCols[index].column = nextInt[1];
-			newObj->thresholdCols[index].numThresholds = newObj->thresholdCols[index].matrix->rows;
+			newObj->thresholdCols[index].matrix = omxNewMatrixFromMxIndex(threshMatrix, 
+				oo->matrix->currentState);
+			newObj->thresholdCols[index].column = nextInt[0];
+			newObj->thresholdCols[index].numThresholds = nextInt[1];
+			if(OMX_DEBUG) {
+				Rprintf("Threshold %d processed.\n", index);
+				Rprintf("Column %d with %d thresholds.\n", nextInt[0], nextInt[1]);
+			}
 			hasOrdinal++;
 			// UNPROTECT(1); /* nextItem */
 		}
 		UNPROTECT(1); /* itemList */
 	}
 	if(OMX_DEBUG) {Rprintf("%d thresholds processed.\n", index);}
-	UNPROTECT(1);
+	UNPROTECT(2); /* threshMatrix and nextMatrix ("thresholds" and "thresholdColumns") */
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.

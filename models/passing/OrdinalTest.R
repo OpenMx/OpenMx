@@ -19,6 +19,10 @@ require(OpenMx)
 
 # Data
 data <- read.table("data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+data[,1] <- as.ordered(data[,1])
+data[,2] <- as.ordered(data[,2])
+data[,3] <- as.ordered(data[,3])
+data[,4] <- as.ordered(data[,4])
 
 nthresh1 <- 1
 nthresh2 <- 12

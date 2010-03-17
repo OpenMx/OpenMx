@@ -302,17 +302,20 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA) {
 		stop(msg)
 	}
 	if (is.na(M)) M <- as.integer(NA)
-	if (is.na(thresholds)) thresholds <- as.integer(NA)
+	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
+	}
+	if (length(thresholds) != 1) {
+		stop("Thresholds argument must be a single matrix or algebra name")
 	}
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
-	}	
+	}
 	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds))
 }
 

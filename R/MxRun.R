@@ -47,7 +47,8 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	model <- omxReplaceModels(model, frozen)
 	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
-	data <- convertDatasets(flatModel, model)
+	flatModel <- convertDatasets(flatModel, model)
+	data <- flatModel@datasets
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
 	flatModel <- populateDefInitialValues(flatModel)
 	oldFlatModel <- flatModel

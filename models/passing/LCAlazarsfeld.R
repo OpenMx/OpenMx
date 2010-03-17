@@ -32,6 +32,10 @@ require(OpenMx)
 data <- read.table("data/lazarsfeld.ord",na.string=".", 
 	col.names=c("Armyrun", "Favatt", "squaredeal", "welfare", "freq"))
 freq <- data[,5]
+data[,1] <- as.ordered(data[,1])
+data[,2] <- as.ordered(data[,2])
+data[,3] <- as.ordered(data[,3])
+data[,4] <- as.ordered(data[,4])
 vars <- data[,1:4]
 
 nclass <- 2

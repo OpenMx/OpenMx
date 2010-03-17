@@ -19,7 +19,7 @@ setClass(Class = "MxFIMLObjective",
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
 		definitionVars = "list",
-		thresholds = "character",
+		thresholds = "MxCharOrNumber",
 		dims = "character",
 		dataColumns = "numeric",
 		thresholdColumns = "list",
@@ -87,21 +87,24 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		if (mxDataObject@type != 'raw') {
 			msg <- paste("The dataset associated with the FIML objective", 
 				"in model", omxQuotes(modelname), "is not raw data.")
-			stop(msg, call.=FALSE)
+			stop(msg, call. = FALSE)
 		}
 		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "FIML")
 		checkNumericData(mxDataObject)
 		meansName <- .Object@means
 		covName <- .Object@covariance
 		dataName <- .Object@data
-		threshNames <- .Object@thresholds
+		threshName <- .Object@thresholds
 		.Object@definitionVars <- omxFilterDefinitionVariables(defVars, .Object@data)
 		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
-		.Object@thresholdColumns <- generateThresholdColumns(flatModel, threshNames, dataName)
+		verifyThresholds(flatModel, model, dataName, threshName)
+		.Object@thresholds <- omxLocateIndex(flatModel, threshName, name)
+		.Object@thresholdColumns <- generateThresholdColumns(flatModel, 
+			model, dataName, threshName)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
@@ -301,10 +304,13 @@ mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA, v
 	if (missing(means) || typeof(means) != "character") {
 		stop("Means argument is not a string (the name of the expected means vector)")
 	}
-	if (all(is.na(thresholds))) thresholds <- as.character(NA)
+	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
+	}
+	if (length(thresholds) != 1) {
+		stop("Thresholds argument must be a single matrix or algebra name")
 	}
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")

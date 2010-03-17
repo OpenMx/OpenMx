@@ -1,3 +1,7 @@
+trunk
+=====
+* implemented http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
+
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================
 * bugfix for assigning default data name when default data does not exist
