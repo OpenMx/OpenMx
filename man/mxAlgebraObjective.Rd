@@ -16,38 +16,37 @@ mxAlgebraObjective(algebra)
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. While the other objective functions in OpenMx are packaged with a function to be optimized (i.e., maximum likelihood), the mxAlgebraObjective function uses the referenced \link{MxAlgebra} or \link{MxMatrix} object as the function to be minimized.
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. While the other objective functions in OpenMx are packaged with a function to be optimized (i.e., maximum likelihood), the \code{mxAlgebraObjective} function uses the referenced \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object as the function to be minimized.
 
-If no free parameters are included in any part of the 'algebra' argument, the mxAlgebraObjective works as an algebra evaluator. If the 'algebra' argument is given an \link{MxMatrix} object with no free parameters, the original object is returned. If the 'algebra' argument is given an \link{MxAlgebra} object whose referenced matrices and algebras have no free parameters, the mxAlgebraObjective function carries out the operations defined in the 'expression' argument of that \link{MxAlgebra} object.
+If a model's primary objective function is a \code{mxAlgebraObjective} objective function, then the referenced algebra in the objective function must return a 1 x 1 matrix (when using OpenMx's default optimizer).  There is no restriction on the dimensions of an objective function that is not the primary, or \sQuote{topmost}, objective function.
 
-If free parameters are included in the objects references in the 'algebra' argument, the mxAlgebraObjective minimizes the algebra defined in the 'algebra' argument. More than one free parameter may be included in the algebra, but the mxAlgebraObjective should be specified such that the objective function evaluates to a 1x1 matrix or scalar value. If the contents of the 'algebra' argument evaluates to a non-scalar matrix, only the first entry of that matrix is minimized.
-
-To evaluate, place MxAlgebraObjective objects, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
+To evaluate an algebra objective function, place the following objects in a \code{\link{MxModel}} object: a \code{MxAlgebraObjective}, \code{\link{MxAlgebra}} and \code{\link{MxMatrix}} entities referenced by the \code{MxAlgebraObjective}, and optional \code{\link{MxBounds}} and \code{\link{MxConstraint}} entities. This model may then be evaluated using the \code{\link{mxRun}} function. The results of the optimization may be obtained using the \code{\link{mxEval}} function on the name of the \code{\link{MxAlgebra}}, after the model has been run.
 }
 
 \value{
-Returns a new MxAlgebraObjective object. MxAlgebraObjective objects should be included with models with referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+Returns a new MxAlgebraObjective object. MxAlgebraObjective objects should be included with models with referenced \code{\link{MxAlgebra}} and \code{\link{MxMatrix}} objects.
 }
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.}
 
 \examples{
-#Create a matrix 'A' with no free parameters
+# Create a matrix 'A' with no free parameters
 A <- mxMatrix('Full', nrow = 1, ncol = 1, values = c(0), name = 'A')
 
-#Create an algebra 'B', which defines the expression A + A
+# Create an algebra 'B', which defines the expression A + A
 B <- mxAlgebra(A + A, name = 'B')
 
-#Define the objective function for algebra 'B'
+# Define the objective function for algebra 'B'
 objective <- mxAlgebraObjective('B')
 
-#Place the algebra, its associated matrix and its objective function in a model
+# Place the algebra, its associated matrix and 
+# its objective function in a model
 model <- mxModel(A, B, objective)
 
-#Evalulate the algebra
+# Evalulate the algebra
 modelRun <- mxRun(model)
 
-#View the results
+# View the results
 modelRun@output
 }
