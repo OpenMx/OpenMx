@@ -77,7 +77,12 @@ model$thresh2 <- mxAlgebra(cbind(OneNeur1Threshold, OneNeur1Threshold),
 model$zeros <- mxMatrix('Zero', nrow = 11, ncol = 2)
 model$thresholds <- mxAlgebra(cbind(rbind(thresh1, zeros), thresh2))
 
-model <- mxModel(model, mxBounds(parameters=c(paste("mddd4lThreshold", 2:nthresh1, sep=""), paste("Neur1Threshold", 2:nthresh2, sep="")), min = 0, ))
+if (nthresh1 > 1) {
+	model <- mxModel(model, mxBounds(parameters = paste("mddd4lThreshold", 2:nthresh1, sep=""), min = 0))
+}
+if (nthresh2 > 1) {
+	model <- mxModel(model, mxBounds(parameters = paste("Neur1Threshold", 2:nthresh2, sep=""), min = 0))
+}
 
 # Define the objective function
 objective <- mxFIMLObjective(covariance="R", means="M", thresholds=c("thresholds"))

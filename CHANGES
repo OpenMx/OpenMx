@@ -3,6 +3,7 @@ trunk
 * implemented http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
 * added mxFactor() function (see ?mxFactor for help)
 * added directory to repository for nightly tests ("make nightly")
+* added error checking for mxBounds() with undefined parameter names
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

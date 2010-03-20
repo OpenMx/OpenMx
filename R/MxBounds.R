@@ -60,24 +60,48 @@ mxBounds <- function(parameters, min = NA, max = NA) {
 	return(new("MxBounds", min, max, parameters))
 }
 
+checkBounds <- function(model, bounds) {
+	parameters <- omxGetParameters(model)
+	parameters <- names(parameters)
+	for(i in 1:length(bounds)) {
+		bound <- bounds[[i]]
+		nomatch <- !(bound@parameters %in% parameters)
+		if (any(nomatch)) {
+			stop(paste("In model ", omxQuotes(model@name),
+				" the following parameter names are",
+				" used in mxBounds() but do",
+				" not exist in the model: ",
+				omxQuotes(bound@parameters[nomatch]), '.',
+				sep = ''), call. = FALSE)
+		}
+	}
+}
+
 modelAddBounds <- function(model, bounds) {
 	if (length(bounds) == 0) {
 		return(model)
 	}
+	checkBounds(model, bounds)
+	return(modelAddBoundsHelper(model, bounds))
+}
+
+modelAddBoundsHelper <- function(model, bounds) {
 	if (length(model@matrices) > 0) {
 		for(i in 1:length(bounds)) {
 			for(j in 1:length(model@matrices)) {
 				matrix <- model@matrices[[j]]
 				matches <- matrix@labels %in% bounds[[i]]@parameters
-				matrix@lbound[matches] <- bounds[[i]]@min
-				matrix@ubound[matches] <- bounds[[i]]@max
-				model@matrices[[j]] <- matrix
+				if (any(matches)) {					
+					matrix@lbound[matches] <- bounds[[i]]@min
+					matrix@ubound[matches] <- bounds[[i]]@max
+					model@matrices[[j]] <- matrix
+				}
 			}
 		}
 	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
-			model@submodels[[i]] <- modelAddBounds(model@submodels[[i]], bounds)
+			model@submodels[[i]] <- modelAddBoundsHelper(model@submodels[[i]], bounds)
 		}
 	}
 	return(model)
