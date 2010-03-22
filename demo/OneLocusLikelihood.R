@@ -33,10 +33,7 @@ OneLocusModel <- mxModel("OneLocus",
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="Q"),
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="R"),
-# Algebra for sum of allele frequencies and 1.0 constant for equality constraint
-    mxAlgebra( expression=P+Q+R, name="SumAlleleFreqs"),
-    mxMatrix( type="Unit", nrow=1, ncol=1, name="I"),
-    mxConstraint("I", "=", "SumAlleleFreqs"),
+    mxConstraint(P+Q+R == 1, name = "EqualityConstraint"),
 # Matrix of observed data
     mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
 # Algebra for predicted proportions

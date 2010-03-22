@@ -14,7 +14,7 @@ MxModel objects support the '$' operator, also known as the list indexing operat
       mxMatrix(type='Full', nrow=1, ncol=1, name='A'),
       mxAlgebra(A, name='B'),
       mxModel('submodel1', 
-         mxConstraint('topmodel1.A', '=', 'topmodel1.B', name = 'C'),
+         mxConstraint(topmodel1.A == topmodel1.B, name = 'C'),
          mxModel('undersub1', mxData(diag(3), type='cov', numObs=10))),
       mxModel('submodel2', mxAlgebraObjective('topmodel1.A')))
 

@@ -29,10 +29,11 @@ calculateConstraints <- function(model, useSubmodels) {
 }
 
 calculateConstraintsHelper <- function(constraint, model) {
-	if (constraint@relation == "=") {
-		lhsName <- constraint@alg1
+	if (constraint@relation == "==") {
+		leftHandSide <- constraint@formula[[2]]
 		value <- eval(substitute(mxEval(x, model, compute=TRUE),
-			list(x = as.symbol(lhsName))))
+			list(x = leftHandSide)))
+		value <- as.matrix(value)
 		return(nrow(value) * ncol(value))
 	} else {
 		return(0)

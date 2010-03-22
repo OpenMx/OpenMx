@@ -31,10 +31,9 @@ onelocus<-mxModel("onelocus", mxAlgebraObjective("NegativeLogLikelihood"),
 				mxMatrix("Full", nrow=4, ncol=1, values=c(212,103,39,148),name="ObservedFreqs"), # Data
 
 				mxAlgebra(rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), name="ExpectedFreqs"), # Predicted proportions
-				mxAlgebra(P+Q+R, name="SumAlleleFreqs"),                                  # P+Q+R has to equal 1.0
 				mxAlgebra(-(sum( log(ExpectedFreqs) * ObservedFreqs )), name = "NegativeLogLikelihood"),  # here is -log Likelihood
 				
-				mxConstraint("I", "=", "SumAlleleFreqs")   # This is the equality constraint
+				mxConstraint(P + Q + R == 1, "equalityConstraint")   # This is the equality constraint
 			)
 
 #run the model

@@ -387,47 +387,47 @@ checkNamespaceAlgebra <- function(algebra, model, namespace) {
 	checkNamespaceFormula(formula, model, algebra, namespace)
 }
 
-checkNamespaceFormula <- function(formula, model, algebra, namespace) {
+checkNamespaceFormula <- function(formula, model, entity, namespace) {
 	if (length(formula) == 1) {
         if (is.numeric(formula)) {
         } else if (identical(as.character(formula), "")) {
         } else {
-    		checkNamespaceIdentifier(as.character(formula), model, algebra@name, namespace)
+    		checkNamespaceIdentifier(as.character(formula), model, entity@name, namespace)
         }
 	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
-			checkNamespaceFormula(formula[[2]], model, algebra, namespace)
-			checkNamespaceFormulaAllowCharacters(formula[[3]], model, algebra, namespace)
-			checkNamespaceFormulaAllowCharacters(formula[[4]], model, algebra, namespace)
+			checkNamespaceFormula(formula[[2]], model, entity, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[3]], model, entity, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[4]], model, entity, namespace)
 	} else {
 		for (i in 2:length(formula)) {
-			checkNamespaceFormula(formula[[i]], model, algebra, namespace)
+			checkNamespaceFormula(formula[[i]], model, entity, namespace)
 		}
 	}
 }
 
-checkNamespaceFormulaAllowCharacters <- function(formula, model, algebra, namespace) {
+checkNamespaceFormulaAllowCharacters <- function(formula, model, entity, namespace) {
 	if (length(formula) == 1) {
         if (is.numeric(formula)) {
         } else if (is.character(formula)) {
         } else if (identical(as.character(formula), "")) {
         } else {
-    		checkNamespaceIdentifier(as.character(formula), model, algebra@name, namespace)
+    		checkNamespaceIdentifier(as.character(formula), model, entity@name, namespace)
         }
 	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
-			checkNamespaceFormula(formula[[2]], model, algebra, namespace)
-			checkNamespaceFormulaAllowCharacters(formula[[3]], model, algebra, namespace)
-			checkNamespaceFormulaAllowCharacters(formula[[4]], model, algebra, namespace)
+			checkNamespaceFormula(formula[[2]], model, entity, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[3]], model, entity, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[4]], model, entity, namespace)
 	} else {
 		for (i in 2:length(formula)) {
-			checkNamespaceFormulaAllowCharacters(formula[[i]], model, algebra, namespace)
+			checkNamespaceFormulaAllowCharacters(formula[[i]], model, entity, namespace)
 		}
 	}
 }
 
 
 checkNamespaceConstraint <- function(constraint, model, namespace) {
-	checkNamespaceIdentifier(constraint@alg1, model, constraint@name, namespace)
-	checkNamespaceIdentifier(constraint@alg2, model, constraint@name, namespace)
+	formula <- constraint@formula
+	checkNamespaceFormula(formula, model, constraint, namespace)
 }
 
 checkNamespaceMatrix <- function(matrix, model, namespace) {
@@ -525,9 +525,9 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
 
 namespaceConvertConstraint <- function(constraint, modelname, namespace) {
 	constraint@name <- omxIdentifier(modelname, constraint@name)
-	constraint@alg1 <- omxConvertIdentifier(constraint@alg1, modelname, namespace)
-	constraint@alg2 <- omxConvertIdentifier(constraint@alg2, modelname, namespace)
+	constraint@formula <- namespaceConvertFormula(constraint@formula, modelname, namespace)
 	return(constraint)
+
 }
 
 namespaceConvertObjective <- function(objective, modelname, namespace) {

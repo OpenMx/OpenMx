@@ -152,7 +152,7 @@ checkEvaluation <- function(model, flatModel, oldFlatModel) {
 	labelsData <- omxGenerateLabels(model)
 	checkMatrixEvaluation(model, oldFlatModel, labelsData)
 	flatModel <- checkAlgebraEvaluation(model, flatModel, oldFlatModel, labelsData)
-	checkConstraintEvaluation(model, oldFlatModel, labelsData)
+	checkConstraintEvaluation(model, flatModel, labelsData)
 	return(flatModel)
 }
 
@@ -187,12 +187,37 @@ checkConstraintEvaluation <- function(model, flatModel, labelsData) {
 	if(length(flatModel@constraints) == 0) { return() }
 	for(i in 1:length(flatModel@constraints)) {
 		constraint <- flatModel@constraints[[i]]
-		lhs <- eval(computeSymbol(as.symbol(constraint@alg1), flatModel, labelsData))
-		rhs <- eval(computeSymbol(as.symbol(constraint@alg2), flatModel, labelsData))
+		lhs <- tryCatch(eval(computeSymbol(as.symbol(constraint@alg1), flatModel, labelsData)), 
+			error = function(x) {
+				stop(paste("The left hand side of constraint", 
+					omxQuotes(simplifyName(constraint@name, model@name)), 
+					"in model", omxQuotes(model@name), 
+					"generated the error message:",
+					x$message), call. = FALSE)
+		})
+		rhs <- tryCatch(eval(computeSymbol(as.symbol(constraint@alg2), flatModel, labelsData)), 
+			error = function(x) {
+				stop(paste("The right hand side of constraint", 
+					omxQuotes(simplifyName(constraint@name, model@name)), 
+					"in model", omxQuotes(model@name), 
+					"generated the error message:",
+					x$message), call. = FALSE)
+		})
 		if (!all(dim(lhs) == dim(rhs))) {
+			lhsName <- constraint@formula[[2]]
+			rhsName <- constraint@formula[[3]]
+			if (length(lhsName) == 1) {
+				lhsName <- simplifyName(deparse(lhsName), model@name)
+			} else {
+				lhsName <- deparse(lhsName)
+			}
+			if (length(rhsName) == 1) {
+				rhsName <- simplifyName(deparse(rhsName), model@name)
+			} else {
+				rhsName <- deparse(rhsName)
+			}
 			stop(paste("The algebras/matrices", 
-				omxQuotes(c(simplifyName(constraint@alg1, model@name), 
-					simplifyName(constraint@alg2, model@name))), 
+				omxQuotes(c(lhsName, rhsName)),
 				"in model", omxQuotes(model@name),
 				"are in constraint", omxQuotes(simplifyName(constraint@name, model@name)),
 				"and are not of identical dimensions"), call. = FALSE)

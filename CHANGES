@@ -4,6 +4,7 @@ trunk
 * added mxFactor() function (see ?mxFactor for help)
 * added directory to repository for nightly tests ("make nightly")
 * added error checking for mxBounds() with undefined parameter names
+* mxConstraint("A", "=", "B") is now written as mxConstraint(A == B)
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

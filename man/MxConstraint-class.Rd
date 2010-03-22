@@ -15,14 +15,12 @@ The MxConstraint class has the following slots:
   \tabular{rcl}{
 	\tab \tab \cr
 	name \tab - \tab The name of the object \cr
-	alg1 \tab - \tab The name of an \link{MxAlgebra} or \link{MxMatrix} object \cr 
-	relation \tab - \tab A character string, either '<', '=', or '>' \cr
-	alg2 \tab - \tab The name of an \link{MxAlgebra} or \link{MxMatrix} object \cr     
+	formula \tab - \tab The R expression to be evaluated
   }
   
-The 'name' slot is the name of the MxConstraint object. %Use of MxConstraint objects in other functions in the \link{OpenMx} library may require reference by name.
+The \sQuote{name} slot is the name of the MxConstraint object. Use of MxConstraint objects in other functions in the \link{OpenMx} library may require reference by name.
 
-The 'alg1' and 'alg2' slots hold \link{MxAlgebra} or \link{MxMatrix} objects whose relationship is constrained or defined by the contents of the 'relation' slot. To affect an estimation or optimization, an MxConstraint object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+The \sQuote{formula} slot is an expression containing the expression to be evaluated. These objects are operated on or related to one another using one or more operations detailed in the \code{\link{mxConstraint}} help file.
 
 Slots may be referenced with the @ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxConstraint} document for more information.
 }

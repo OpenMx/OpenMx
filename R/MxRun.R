@@ -38,7 +38,8 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 		model <- undoDataShare(model, dataList)
 		frontendStop <- Sys.time()
 		frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-		model@output <- calculateTiming(model@output, frontendElapsed, 0, indepElapsed, frontendStop, independents)
+		model@output <- calculateTiming(model@output, frontendElapsed, 
+			0, indepElapsed, frontendStop, independents)
 		model@output$mxVersion <- mxVersion()
 		model@runstate$independents <- independents
 		return(model)
@@ -52,6 +53,7 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
 	flatModel <- populateDefInitialValues(flatModel)
 	oldFlatModel <- flatModel
+	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)

@@ -68,9 +68,7 @@ lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"),
             mxMatrix("Full", name = "ClassMembershipProbabilities", nrow = nclass, ncol = 1, free=TRUE, 
 			        labels = c(paste("pclass", 1:nclass, sep=""))),
             mxBounds(c(paste("pclass", 1:nclass, sep="")),0,1),
-		    mxMatrix("Iden", nrow = 1, name = "constraintLHS"),
-		    mxAlgebra(sum(ClassMembershipProbabilities), name = "constraintRHS"),
-            mxConstraint(constraintLHS == constraintRHS),
+            mxConstraint(1 == sum(ClassMembershipProbabilities), name = 'sumConstraint'),
 
 # Define the objective function
             mxAlgebra(-2*sum(freq * log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 

@@ -13,6 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+constraintsToAlgebras <- function(flatModel) {
+	constraints <- flatModel@constraints
+	if (length(constraints) == 0) {
+		return(flatModel)
+	}
+	for(i in 1:length(constraints)) {
+		flatModel <- constraintsToAlgebrasHelper(constraints[[i]], flatModel)
+	}
+	return(flatModel)
+}
+
 convertAlgebras <- function(flatModel, convertArguments) {
     algebras <- flatModel@algebras
     if (length(algebras) == 0) {
@@ -26,6 +37,24 @@ convertAlgebras <- function(flatModel, convertArguments) {
     names(flatModel@outsideMatrices) <- lapply(flatModel@outsideMatrices, function(x) { x@name })    
     flatModel@matrices <- c(flatModel@matrices, flatModel@freeMatrices, flatModel@outsideMatrices)
     return(flatModel)
+}
+
+constraintsToAlgebrasHelper <- function(constraint, flatModel) {
+	leftHandSide <- constraint@formula[[2]]
+	rightHandSide <- constraint@formula[[3]]
+	leftHandName <- omxUntitledName()
+	rightHandName <- omxUntitledName()
+	leftHandAlgebra <- new("MxAlgebra", NA, leftHandName)
+	rightHandAlgebra <- new("MxAlgebra", NA, rightHandName)
+	leftHandAlgebra@formula <- leftHandSide
+	rightHandAlgebra@formula <- rightHandSide
+	constraint@alg1 <- paste(flatModel@name, leftHandName, sep='.')
+	constraint@alg2 <- paste(flatModel@name, rightHandName, sep='.')
+	constraint@relation <- as.character(constraint@formula[[1]])
+	flatModel[[constraint@name]] <- constraint
+	flatModel[[leftHandName]] <- leftHandAlgebra
+	flatModel[[rightHandName]] <- rightHandAlgebra
+	return(flatModel)
 }
 
 convertSingleAlgebra <- function(algebra, flatModel, convertArguments) {

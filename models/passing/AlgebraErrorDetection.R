@@ -36,15 +36,20 @@ A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 2, 2, name = 'B')
 C <- mxAlgebra(A, 'C')
 D <- mxAlgebra(B, 'D')
-constraint1 <- mxConstraint('A', '=', 'B', name = 'constraint1')
-constraint2 <- mxConstraint('C', '=', 'D', name = 'constraint2')
-model1 <- mxModel('model1', A, B, constraint1)
+constraint1 <- mxConstraint(A == B, name = 'constraint1')
+constraint2 <- mxConstraint(C == D, name = 'constraint2')
+constraint3 <- mxConstraint(1 == B, name = 'constraint3')
+model1 <- mxModel('model1', A, B, C, D, constraint1)
 model2 <- mxModel('model2', A, B, C, D, constraint2)
+model3 <- mxModel('model3', A, B, C, D, constraint3)
 omxCheckError(mxRun(model1), paste("The algebras/matrices",
 	"'A' and 'B' in model 'model1' are in constraint 'constraint1'",
 	"and are not of identical dimensions"))
 omxCheckError(mxRun(model2), paste("The algebras/matrices",
 	"'C' and 'D' in model 'model2' are in constraint 'constraint2'",
+	"and are not of identical dimensions"))
+omxCheckError(mxRun(model3), paste("The algebras/matrices",
+	"'1' and 'B' in model 'model3' are in constraint 'constraint3'",
 	"and are not of identical dimensions"))
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')

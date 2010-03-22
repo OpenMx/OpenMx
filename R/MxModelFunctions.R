@@ -138,19 +138,13 @@ removeTail <- function(lst, tailSize) {
 }
 
 updateModelMatrices <- function(model, flatModel, values) {
-    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@constMatrices))
-    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@freeMatrices))
-    flatModel@matrices <- removeTail(flatModel@matrices, length(flatModel@outsideMatrices))
-    values <- removeTail(values, length(flatModel@constMatrices))    
-    values <- removeTail(values, length(flatModel@freeMatrices))
-    values <- removeTail(values, length(flatModel@outsideMatrices))    
 	mList <- names(flatModel@matrices)
 	if (length(mList) != length(values)) {
 		stop(paste("This model has", length(mList), 
-			"matrices, but you have given me", length(values),
+			"matrices, but the backend has returned", length(values),
 			"values"))
 	}
-	if (length(mList) == 0) {
+	if (length(values) == 0) {
 		return(model)
 	}
 	model <- updateModelEntitiesHelper(mList, values, model)
@@ -164,12 +158,12 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	aList <- append(aNames, oNames)
 	if(length(aList) != length(values)) {
 		stop(paste("This model has", length(aList), 
-			"algebras, but you have given me", length(values),
+			"algebras, but the backend has returned", length(values),
 			"values"))
 	}
 	if (length(aList) == 0) {
 		return(model)
-	}	
+	}
 	model <- updateModelEntitiesHelper(aList, values, model)
 	return(model)
 }

@@ -8,20 +8,18 @@ This function creates a new \link{MxConstraint} object.
 }
 
 \usage{
-mxConstraint(alg1, relation, alg2, name = NA)
+mxConstraint(expression, name = NA)
 }
 
 \arguments{
-\item{alg1}{A character string indicating the name of an \link{MxAlgebra} or \link{MxMatrix} object, whose relationship to the object specified in the 'alg2' argument is constrained.}
-\item{relation}{A character string indicating the relation between 'alg1' and 'alg2'. Must be either "<", "=", or ">".}
-\item{alg2}{A character string indicating the name of an \link{MxAlgebra} or \link{MxMatrix} object, whose relationship to the object specified in the 'alg1' argument is constrained.}   
-\item{name}{An optional character string indicating the name of this object.}
+   \item{expression}{An R expression of matrix operators and matrix functions.}
+   \item{name}{An optional character string indicating the name of the object.}
 }
 
 \details{
-The mxConstraint function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The relationships "<", "=" and ">" are supported. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+The mxConstraint function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The constraint relation is written identically to how a \link{MxAlgebra} expression would be written.  The outermost operator in this relation must be either \sQuote{<}, \sQuote{==} or \sQuote{>}. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
-The mxConstraint function may not be used to constrain free parameters, either by name or by their position in an \link{MxMatrix} or \link{MxAlgebra} object. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'spec' matrices.
+The mxConstraint function should not be used to constrain free parameters, either by name or by their position in an \link{MxMatrix} or \link{MxAlgebra} object. Free parameters in the same \link{MxModel} are constrained to equality by giving them the same name in their respective 'labels' matrices.
 }
 
 \value{
@@ -38,14 +36,14 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 #Create a constraint between MxMatrices 'A' and 'B'
-constraint <- mxConstraint('A', '=', 'B', name = 'constraint')
+constraint <- mxConstraint(A > B, name = 'AdominatesB')
 
 # Constrain a matrix of free parameters 'K' to be equal to matrix 'limit'
 K <- mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K")
-limit <- mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE,name="limit", values=1:4)
+limit <- mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE, name="limit", values=1:4)
 
-model<- mxModel("con_test", K,limit, 
-	mxConstraint("K", "=", "limit"), 
+model<- mxModel("con_test", K, limit, 
+	mxConstraint(K == limit, name = "Klimit_equality"), 
 	mxAlgebra(min(K), name="minK"), 
 	mxAlgebraObjective("minK")
 )

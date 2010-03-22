@@ -17,22 +17,24 @@
 setClass(Class = "MxConstraint",
 	representation = representation(
 		name = "character",
+		formula = "MxAlgebraFormula",
 		alg1 = "MxCharOrNumber",
 		alg2 = "MxCharOrNumber",
 		relation = "MxCharOrNumber"
 	))
 	
 setMethod("initialize", "MxConstraint",
-	function(.Object, name, alg1, alg2, relation) {
+	function(.Object, name, formula) {
 		.Object@name <- name
-		.Object@alg1 <- alg1
-		.Object@alg2 <- alg2
-		.Object@relation <- relation
+		.Object@formula <- formula
+		.Object@alg1 <- as.character(NA)
+		.Object@alg2 <- as.character(NA)
+		.Object@relation <- as.character(NA)
 		return(.Object)
 	}
 )
 
-mxConstraint <- function(alg1, relation, alg2, name = NA) {
+mxConstraint <- function(expression, name = NA) {
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
@@ -41,26 +43,19 @@ mxConstraint <- function(alg1, relation, alg2, name = NA) {
 		stop(paste("Name argument is not a string",
 		"(the name of the objective function)"))
 	}
-	if (missing(alg1) || typeof(alg1) != "character") {
-		stop(paste("Alg1 argument is not a string",
-		"(the name of the first algebra)"))		
-	}		
-	if (missing(alg2) || typeof(alg2) != "character") {
-		stop(paste("Alg2 argument is not a string",
-		"(the name of the second algebra)"))
+	formula <- match.call()$expression
+	if (length(formula) != 3) {
+		stop(paste("A constraint must be of the form:",
+			omxQuotes("exp1 [<, ==, >] exp2")),
+			call. = FALSE)
 	}
-	if (missing(relation) || typeof(relation) != "character") {
-		stop(paste("Relation argument is not a string",
-		"(<, =, or >)"))
-	}
+	relation <- as.character(formula[[1]])
 	if (!(relation %in% omxConstraintRelations)) {
-			clist <- paste(omxConstraintRelations, 
-				collapse = ", ")
-			msg <- paste("Relation must be in the list:",
-				clist)
-			stop(msg)
-		}
-	return(new("MxConstraint", name, alg1, alg2, relation))
+		stop(paste("A constraint must be of the form:",
+			omxQuotes("exp1 [<, ==, >] exp2")),
+			call. = FALSE)
+	}
+	return(new("MxConstraint", name, formula))
 }
 
 convertConstraints <- function(flatModel) {
@@ -87,22 +82,14 @@ convertSingleConstraint <- function(constraint, flatModel) {
 	return(list(index1,index2,index3 - 1))
 }
 
-omxConstraintRelations <- c("<", "=", ">")
+omxConstraintRelations <- c("<", "==", ">")
 
 
 
-displayMxConstraint <- function(object) {
+displayConstraint <- function(object) {
 	cat("MxConstraint", omxQuotes(object@name), '\n')
-	cat("alg1 :", omxQuotes(object@alg1), '\n')
-	cat("relation :", omxQuotes(object@relation), '\n')
-	cat("alg2 :", omxQuotes(object@alg2), '\n')	
-	invisible(object)
+	cat("@formula: ", deparse(object@formula, width.cutoff=500L), '\n')
 }
 
-setMethod("print", "MxConstraint", function(x,...) { 
-	displayMxConstraint(x) 
-})
-
-setMethod("show", "MxConstraint", function(object) { 
-	displayMxConstraint(object) 
-})
+setMethod("print", "MxConstraint", function(x,...) { displayConstraint(x) })
+setMethod("show", "MxConstraint", function(object) { displayConstraint(object) })

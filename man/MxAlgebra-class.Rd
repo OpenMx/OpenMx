@@ -20,7 +20,7 @@ The MxAlgebra class has the following slots:
   
 The \sQuote{name} slot is the name of the MxAlgebra object. Use of MxAlgebra objects in the \code{\link{mxConstraint}} function or an objective function requires reference by name.
 
-The \sQuote{formula} slot is an expression containing one or more \code{\link{MxMatrix}} objects. These objects are operated on or related to one another using one or more operations detailed in the \code{\link{mxAlgebra}} help file.
+The \sQuote{formula} slot is an expression containing the expression to be evaluated. These objects are operated on or related to one another using one or more operations detailed in the \code{\link{mxAlgebra}} help file.
 
 The \sQuote{result} slot is used to hold the results of computing the expression in the \sQuote{formula} slot. If the containing model has not been executed, then the \sQuote{result} slot will hold a 0 x 0 matrix.  Otherwise the slot will store the computed value of the algebra using the final estimates of the free parameters.
 
