@@ -480,16 +480,11 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
 	matrix@name <- omxIdentifier(modelname, matrix@name)
 	free <- matrix@free
-	select <- free == FALSE
+	labels <- matrix@labels
+	select <- (!free) & (!is.na(labels))
 	if (any(select)) {
-		rows <- row(free)[select]
-		cols <- col(free)[select]
-		refNames <- matrix@labels[select]
-		for(j in 1:length(refNames)) {
-			row <- rows[j]
-			col <- cols[j]
-			matrix@labels[row,col] <- omxConvertLabel(refNames[j], modelname, dataname, namespace)
-		}
+		refNames <- labels[select]
+		matrix@labels[select] <- sapply(refNames, omxConvertLabel, modelname, dataname, namespace)
 	}
 	return(matrix)
 }
