@@ -126,11 +126,15 @@ removeVariablesRAM <- function(model, latent, manifest) {
 	}
 	model@latentVars <- setdiff(model@latentVars, latent)
 	model@manifestVars <- setdiff(model@manifestVars, manifest)
-	model[['A']] <- removeVariablesAS(model[['A']], latent)
-	model[['A']] <- removeVariablesAS(model[['A']], manifest)
-	model[['S']] <- removeVariablesAS(model[['S']], latent)
-	model[['S']] <- removeVariablesAS(model[['S']], manifest)
+	A <- model[['A']]
+	S <- model[['S']]
+	A <- removeVariablesAS(A, latent)
+	A <- removeVariablesAS(A, manifest)
+	S <- removeVariablesAS(S, latent)
+	S <- removeVariablesAS(S, manifest)
 	model[['F']] <- createMatrixF(model)
+	model[['A']] <- A
+	model[['S']] <- S
 	return(model)
 }
 
@@ -139,22 +143,25 @@ addVariablesRAM <- function(model, latent, manifest) {
 	newManifest <- setdiff(manifest, model@manifestVars)
 	model@latentVars <- c(model@latentVars, newLatent)
 	model@manifestVars <- c(model@manifestVars, newManifest)
-	if (is.null(model[['A']])) {
-		model[['A']] <- createMatrixA(model)
+	A <- model[['A']]
+	S <- model[['S']]
+	M <- model[['M']]
+	if (is.null(A)) {
+		A <- createMatrixA(model)
 	} else {
-		model[['A']] <- addVariablesAS(model[['A']], 
-			model, newLatent, newManifest)
+		A <- addVariablesAS(A, model, newLatent, newManifest)
 	}
-	if (is.null(model[['S']])) {
-		model[['S']] <- createMatrixS(model)
+	if (is.null(S)) {
+		S <- createMatrixS(model)
 	} else {
-		model[['S']] <- addVariablesAS(model[['S']], 
-			model, newLatent, newManifest)
+		S <- addVariablesAS(S, model, newLatent, newManifest)
 	}
-	if (!is.null(model[['M']])) {
-		model[['M']] <- addVariablesM(model[['M']], 
-			model, newLatent, newManifest)
+	if (!is.null(M)) {
+		M <- addVariablesM(M, model, newLatent, newManifest)
 	}
+	model[['A']] <- A
+	model[['S']] <- S
+	model[['M']] <- M
 	model[['F']] <- createMatrixF(model)
 	return(model)
 }
@@ -173,7 +180,7 @@ addEntriesRAM <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	filter <- sapply(entries, omxIsPath)
+	filter <- sapply(entries, is, "MxPath")
 	paths <- entries[filter]
 	checkPaths(model, paths)
 	if (length(paths) > 0) {
@@ -181,7 +188,7 @@ addEntriesRAM <- function(model, entries) {
 			model <- insertPathRAM(model, paths[[i]])
 		}
 	}
-	filter <- sapply(entries, function(x) { is(x, "MxData") })
+	filter <- sapply(entries, is, "MxData")
 	data <- entries[filter]
 	if (length(data) > 0) {
 		if (length(data) > 1) {
@@ -203,8 +210,8 @@ removeEntriesRAM <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	filter   <- sapply(entries, omxIsPath)
-	paths    <- entries[filter]
+	filter <- sapply(entries, is, "MxPath")
+	paths <- entries[filter]
 	if (length(paths) > 0) for(i in 1:length(paths)) {
 		model <- removePathRAM(model, paths[[i]])
 	}
@@ -212,29 +219,23 @@ removeEntriesRAM <- function(model, entries) {
 }
 
 getNotPathsOrData <- function(lst) {
-	filter <- sapply(lst, function(x) {
-		omxIsPath(x) || is(x, "MxData")})
-	notpaths <- lst[!filter]
-	return(notpaths)
-}
-
-pathSelectFrom <- function(lst) {
-  retval <- lapply(lst, function(x) { x$from } )
-  return(retval)
-}	
-
-pathSelectTo <- function(lst) {
-  retval <- lapply(lst, function(x) { x$to } )
-  return(retval)
+	pathfilter <- sapply(lst, is, "MxPath")
+	datafilter <- sapply(lst, is, "MxData")
+	retval <- lst[!(pathfilter | datafilter)]
+	return(retval)
 }
 
 checkPaths <- function(model, paths) {
 	variables <- c(model@manifestVars, model@latentVars)
-	if (any(is.na(pathSelectFrom(paths))) || any(is.na(pathSelectTo(paths)))) {
+	fromNames <- unlist(sapply(paths, slot, 'from'))
+	toNames <- unlist(sapply(paths, slot, 'to'))
+	if(is.null(fromNames)) { fromNames <- character() }
+	if(is.null(toNames)) { toNames <- character() }
+	if (any(is.na(fromNames)) || any(is.na(toNames))) {
 		stop("The \'from\' field or the \'to\' field contains an NA", call. = FALSE)
 	}
-	missingSource <- setdiff(pathSelectFrom(paths), variables)
-	missingSink   <- setdiff(pathSelectTo(paths), variables)
+	missingSource <- setdiff(fromNames, variables)
+	missingSink   <- setdiff(toNames, variables)
 	missingSource <- setdiff(missingSource, "one")
 	if(length(missingSource) > 0) {
 		stop(paste("The following are neither manifest nor latent variables:",
@@ -247,97 +248,115 @@ checkPaths <- function(model, paths) {
 }
 
 insertPathRAM <- function(model, path) {
-	from <- path$from
-	to <- path$to
-	arrows <- path$arrows
-	if (from == "one") {
+	allfrom <- path@from
+	allto <- path@to
+	allarrows <- path@arrows
+	if (length(allfrom) == 1 && (allfrom == "one")) {
 		model <- insertMeansPathRAM(model, path)
 		return(model)
 	}
 	default1 <- getOption('mxRAMDefaultSingle')
 	default2 <- getOption('mxRAMDefaultDouble')
-	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
-	if (is.null(model[['S']])) { model[['S']] <- createMatrixS(model) }
-	if (is.null(model[['F']])) { model[['F']] <- createMatrixF(model) }
-	if (arrows == 1) {
-		model[['A']] <- matrixSetPath(model[['A']], from, to, path, default1)
-		model[['S']] <- matrixClearPath(model[['S']], from, to)
-		model[['S']] <- matrixClearPath(model[['S']], to, from)
-	} else if (arrows == 2) {
-		model[['S']] <- matrixSetPath(model[['S']], from, to, path, default2)
-		model[['S']] <- matrixSetPath(model[['S']], to, from, path, default2)
-		model[['A']] <- matrixClearPath(model[['A']], from, to)
-		model[['A']] <- matrixClearPath(model[['A']], to, from)
-	} else {
-		stop(paste("Unknown arrow type", arrows, 
-				"with source", omxQuotes(from), 
+	A <- model[['A']]
+	S <- model[['S']]
+	F <- model[['F']]
+	maxlength <- max(length(allfrom), length(allto))
+	if (is.null(A)) { A <- createMatrixA(model) }
+	if (is.null(S)) { S <- createMatrixS(model) }
+	if (is.null(F)) { F <- createMatrixF(model) }
+	for(i in 0:(maxlength - 1)) {
+		from <- allfrom[i %% length(allfrom) + 1]
+		to <- allto[i %% length(allto) + 1]
+		arrows <- allarrows[i %% length(allarrows) + 1]
+		if (arrows == 1) {
+			A <- matrixSetPath(A, from, to, path, i, default1)
+			S <- matrixClearPath(S, from, to)
+			S <- matrixClearPath(S, to, from)
+		} else if (arrows == 2) {
+			S <- matrixSetPath(S, from, to, path, i, default2)
+			S <- matrixSetPath(S, to, from, path, i, default2)
+			A <- matrixClearPath(A, from, to)
+			A <- matrixClearPath(A, to, from)
+		} else {
+			stop(paste("Unknown arrow type", arrows, 
+					"with source", omxQuotes(from), 
 				"and sink", omxQuotes(to)),
 				call. = FALSE)
+		}
 	}
+	model[['A']] <- A
+	model[['S']] <- S
+	model[['F']] <- F
 	return(model)
 }
 
 insertMeansPathRAM <- function(model, path) {
-	to <- path$to
-	arrows <- path$arrows
-	if (arrows != 1) {
+	allto <- path@to
+	arrows <- path@arrows
+	if (any(arrows != 1)) {
 		stop(paste('The means path to variable', omxQuotes(to),
 			'does not contain a single-headed arrow.'), call. = FALSE)
 	}
-	if (is.null(model[['M']])) { 
+	M <- model$M
+	if (is.null(M)) { 
 		if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
 			is.na(model@objective@M)) {
 				model@objective@M <- "M"
 		}
-		model[['M']] <- createMatrixM(model)
+		M <- createMatrixM(model)
 	}
-	model[['M']] <- matrixSetPath(model[['M']], to, 1, path, 0)
+	for(i in 0:(length(allto) - 1)) {
+		to <- allto[i %% length(allto) + 1]
+		M <- matrixSetPath(M, to, 1, path, i, 0)
+	}
+	model$M <- M
 	return(model)
 }
 
 removePathRAM <- function(model, path) {
-	from <- path$from
-	to <- path$to
-	arrows <- path$arrows
-	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
-	if (is.null(model[['S']])) { model[['S']] <- createMatrixS(model) }
-	if (is.null(model[['F']])) { model[['F']] <- createMatrixF(model) }
-	if (arrows == 1) {
-		model[['A']] <- matrixClearPath(model[['A']], from, to)
-	} else if (arrows == 2) {
-		model[['S']] <- matrixClearPath(model[['S']], from, to)
-		model[['S']] <- matrixClearPath(model[['S']], to, from)
-	} else {
-		stop(paste("Unknown arrow type", arrows, 
-				"with source", omxQuotes(from), 
-				"and sink", omxQuotes(to)),
-				call. = FALSE)
+	allfrom <- path@from
+	allto <- path@to
+	allarrows <- path@arrows
+	A <- model[['A']]
+	S <- model[['S']]
+	F <- model[['F']]
+	if (is.null(A)) { A <- createMatrixA(model) }
+	if (is.null(S)) { S <- createMatrixS(model) }
+	if (is.null(F)) { F <- createMatrixF(model) }
+	maxlength <- max(length(allfrom), length(allto))
+	for(i in 0:(maxlength - 1)) {
+		from <- allfrom[i %% length(allfrom) + 1]
+		to <- allto[i %% length(allto) + 1]
+		arrows <- allarrows[i %% length(allarrows) + 1]
+		if (arrows == 1) {
+			A <- matrixClearPath(A, from, to)
+		} else if (arrows == 2) {
+			S <- matrixClearPath(S, from, to)
+			S <- matrixClearPath(S, to, from)
+		} else {
+			stop(paste("Unknown arrow type", arrows, 
+					"with source", omxQuotes(from), 
+					"and sink", omxQuotes(to)),
+					call. = FALSE)
+		}
 	}
+
+	model[['A']] <- A
+	model[['S']] <- S
+	model[['F']] <- F
 	return(model)
 }
 
-matrixSetPath <- function(mxMatrix, from, to, path, default) {
-	labels <- path$labels
-	value <- path$values
-	free <- path$free
-	ubound <- path$ubound
-	lbound <- path$lbound
-	if (is.null(value)) {
-		mxMatrix@values[to, from] <- as.numeric(default)
-	} else {
-		mxMatrix@values[to, from] <- as.numeric(value)
-	}
-	if (is.null(labels)) {
-		mxMatrix@labels[to, from] <- as.character(NA)
-	} else {
-		mxMatrix@labels[to, from] <- as.character(labels)
-	}
-	if (!is.null(ubound)) {
-		mxMatrix@ubound[to, from] <- as.numeric(ubound)
-	}
-	if (!is.null(lbound)) {
-		mxMatrix@lbound[to, from] <- as.numeric(lbound)
-	}
+matrixSetPath <- function(mxMatrix, from, to, path, offset, default) {
+	labels <- path@labels[offset %% length(path@labels) + 1]
+	value <- path@values[offset %% length(path@values) + 1]
+	free <- path@free[offset %% length(path@free) + 1]
+	ubound <- path@ubound[offset %% length(path@ubound) + 1]
+	lbound <- path@lbound[offset %% length(path@lbound) + 1]
+	mxMatrix@values[to, from] <- value
+	mxMatrix@labels[to, from] <- labels
+	mxMatrix@ubound[to, from] <- ubound
+	mxMatrix@lbound[to, from] <- lbound
 	mxMatrix@free[to, from] <- free
 	return(mxMatrix)
 }

@@ -6,6 +6,7 @@ trunk
 * added error checking for mxBounds() with undefined parameter names
 * mxConstraint("A", "=", "B") is now written as mxConstraint(A == B)
 * performance improvement to namespace conversion
+* changing MxPath data structure from a list to an S4 object
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

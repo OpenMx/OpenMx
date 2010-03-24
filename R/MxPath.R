@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,31 +13,55 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setClass(Class = "MxPath",
+	representation = representation(
+		from = "character",
+		to = "character",
+		arrows = "numeric",
+		values = "numeric",
+		free = "logical",
+		labels = "character",
+		lbound = "numeric",
+		ubound = "numeric"
+))
+
+setMethod("initialize", "MxPath",
+	function(.Object, from, to, arrows, values,
+		free, labels, lbound, ubound) {
+		.Object@from <- from
+		.Object@to <- to
+		.Object@arrows <- arrows
+		.Object@values <- values
+		.Object@free <- free
+		.Object@labels <- labels
+		.Object@lbound <- lbound
+		.Object@ubound <- ubound
+		return(.Object)
+	}
+)
+
 # returns a list of paths
 generatePath <- function(from, to, 
 		all, arrows, values, free,
 		labels, lbound, ubound) {
-		if (single.na(to)) {
-			to <- from
-			loop <- TRUE
-		} else {
-			loop <- FALSE
-		}
-		from <- as.list(from)
-		to <- as.list(to)
-		if (all) {
-			from <- rep(from, each=length(to))	
-		}
-		if(!is.null(labels)) { 
-			lapply(labels, omxVerifyReference, 
-				paste("path from", omxQuotes(from), "to", omxQuotes(to)))
-		}
-        pathCheckLengths(from, to, arrows, values, 
-            free, labels, lbound, ubound, loop)
-		result <- suppressWarnings(mapply(generateSinglePath, from, to, 
-		arrows, values, free,
-		labels, lbound, ubound, SIMPLIFY = FALSE))
-		return(result)
+	if (single.na(to)) {
+		to <- from
+		loop <- TRUE
+	} else {
+		loop <- FALSE
+	}
+	if (all) {
+		from <- rep(from, each=length(to))
+	}
+	missingvalues <- is.na(values)
+	values[missingvalues] <- 0
+	if(!is.null(labels)) { 
+		lapply(labels, omxVerifyReference, 
+			paste("path from", omxQuotes(from), "to", omxQuotes(to)))
+	}
+	pathCheckLengths(from, to, arrows, values, 
+		free, labels, lbound, ubound, loop)
+	return(new("MxPath", from, to, arrows, values, free, labels, lbound, ubound))
 }
 
 pathCheckLengths <- function(from, to, arrows, values, 
@@ -116,8 +140,8 @@ meansToPaths <- function(mxMatrix) {
 	return(list())
 }
 
-pathCheckVector <- function(value, valname, type) {
-	if (!is.vector(value)) {
+pathCheckVector <- function(value, valname, check, type) {
+	if (!is.vector(value) || !check(value)) {
 		stop(paste("The", omxQuotes(valname), 
 			"argument to mxPath must be a",
 			type, "vector."), call. = FALSE)
@@ -126,31 +150,42 @@ pathCheckVector <- function(value, valname, type) {
 
 mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	values = NA, labels = NA, lbound = NA, ubound = NA) {
-	if (all != TRUE && all != FALSE) {
-		stop("The 'all' argument to mxPath must be either true or false.", 
-			call. = FALSE)
+	if (missing(from)) {
+		stop("The 'from' argument to mxPath must have a value.")
 	}
-	pathCheckVector(from, 'from', 'character')
-	pathCheckVector(to, 'to', 'character')
-	pathCheckVector(arrows, 'arrows', 'numeric')
-	pathCheckVector(free, 'free', 'logical')
-	pathCheckVector(labels, 'labels', 'character')
-	pathCheckVector(values, 'values', 'numeric')
-	pathCheckVector(lbound, 'lbound', 'numeric')
-	pathCheckVector(ubound, 'ubound', 'numeric')
-	from <- as.character(from)
-	to <- as.character(to)
-	arrows <- as.numeric(arrows)
-	free <- as.logical(free)
-	values <- as.numeric(values)
-	labels <- as.character(labels)
-	lbound <- as.numeric(lbound)
-	ubound <- as.numeric(ubound)
-	if (single.na(values)) values <- NULL
-	if (single.na(labels)) labels <- NULL
-	if (single.na(lbound)) lbound <- NULL
-	if (single.na(ubound)) ubound <- NULL
+	if (length(all) != 1 || !is.logical(all)) {
+		stop("The 'all' argument to mxPath must be either true or false.")
+	}
+	if (all.na(to)) { to <- as.character(to) }
+	if (all.na(values)) { values <- as.numeric(values) }
+	if (all.na(labels)) { labels <- as.character(labels) }
+	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
+	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
+	
+	pathCheckVector(from, 'from', is.character, 'character')
+	pathCheckVector(to, 'to', is.character, 'character')
+	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
+	pathCheckVector(free, 'free', is.logical, 'logical')
+	pathCheckVector(labels, 'labels', is.character, 'character')
+	pathCheckVector(values, 'values', is.numeric, 'numeric')
+	pathCheckVector(lbound, 'lbound', is.numeric, 'numeric')
+	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
 	generatePath(from, to, all, arrows, 
 		values, free, labels, 
 		lbound, ubound)
 }
+
+displayPath <- function(object) {
+	cat("mxPath", '\n')
+	cat("@from: ", omxQuotes(object@from), '\n')
+	cat("@to: ", omxQuotes(object@to), '\n')
+	cat("@arrows: ", object@arrows, '\n')
+	cat("@values: ", object@values, '\n')
+	cat("@free: ", object@free, '\n')
+	cat("@labels: ", object@labels, '\n')
+	cat("@lbound: ", object@lbound, '\n')
+	cat("@ubound: ", object@ubound, '\n')
+}
+
+setMethod("print", "MxPath", function(x,...) { displayPath(x) })
+setMethod("show", "MxPath", function(object) { displayPath(object) })

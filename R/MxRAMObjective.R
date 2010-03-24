@@ -138,7 +138,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				stop(msg, call.=FALSE)
 			}
 		}
-		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)				
+		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
 		if (!identical(translatedNames, rownames(mxDataObject@observed))) {
 			msg <- paste("The names of the manifest",
 				"variables in the F matrix of model",

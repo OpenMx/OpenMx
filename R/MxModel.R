@@ -169,7 +169,7 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
-	lst <- mappendHelper(lst, list())
+	lst <- unlist(lst)
 	model <- omxModelBuilder(model, lst, name, manifestVars,
 		latentVars, remove, independent)
 	return(model)
@@ -330,7 +330,7 @@ modelAddEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelAddFilter(model, entries, list(), list())
+	tuple <- modelAddFilter(model, entries)
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
@@ -344,7 +344,7 @@ modelRemoveEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelRemoveFilter(model, entries, list(), list())
+	tuple <- modelRemoveFilter(model, entries)
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
@@ -354,77 +354,45 @@ modelRemoveEntries <- function(model, entries) {
 	return(model)
 }
 
-mappendHelper <- function(lst, result) {
-	if (length(lst) == 0) {
-		return(result)
-	} else if (length(lst) == 1) {
-		len <- length(result)
-		addition <- lst[[1]]
-		if (is.list(addition)) {
-			result <- append(result, addition)
-		} else {
-			result[[len + 1]] <- addition
-		}
-		return(result)
-	} else {
-		len <- length(result)
-		addition <- lst[[1]]
-		if (is.list(addition)) {
-			result <- append(result, addition)
-		} else {
-			result[[len + 1]] <- addition
-		}
-		return(mappendHelper(lst[2:length(lst)], result))
-	}
-}
+modelAddFilter <- function(model, entries) {
 
-modelAddFilter <- function(model, entries, namedEntities, bounds) {
-	if (length(entries) == 0) {
-		return(list(namedEntities, bounds))
-	}
-	head <- entries[[1]]
-	nLength <- length(namedEntities)
-	bLength <- length(bounds)
-	if (is.null(head)) {
-	} else if(isS4(head) && ("name" %in% slotNames(head))) {
-		namedEntities[[nLength + 1]] <- head
-	} else if(is(head, "MxBounds")) {
-		bounds[[bLength + 1]] <- head
-	} else if(omxIsPath(head)) {
+	boundsFilter <- sapply(entries, is, "MxBounds")
+	namedFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
+	pathFilter <- sapply(entries, is, "MxPath")
+	unknownFilter <- !(boundsFilter | namedFilter)
+	
+	if (any(pathFilter)) {
 		stop(paste("The model type of model",
 			omxQuotes(model@name), "does not recognize paths."),
 			call. = FALSE)
-	} else {
-		stop(paste("Cannot add the following item into the model:", 
-			head), call. = FALSE)
 	}
-	return(modelAddFilter(model, entries[-1], namedEntities, bounds))
+
+	if (any(unknownFilter)) {
+		stop(paste("Cannot add the following item(s) into the model:", 
+			entries[unknownFilter]), call. = FALSE)
+	}
+
+	return(list(entries[namedFilter], entries[boundsFilter]))
 }
 
-modelRemoveFilter <- function(model, entries, names, bounds) {
-	if (length(entries) == 0) {
-		return(list(names, bounds))
-	}
-	head <- entries[[1]]
-	nLength <- length(names)
-	bLength <- length(bounds)
-	if (is.null(head)) {
-	} else if(is.character(head) && (length(head) == 1)) {
-		names[[nLength + 1]] <- head
-	} else if(isS4(head) && ("name" %in% slotNames(head))) {
-		entityName <- head@name
-		names[[nLength + 1]] <- entityName		
-	} else if(is(head, "MxBounds")) {
-		bounds[[bLength + 1]] <- head
-	} else if(omxIsPath(head)) {
+modelRemoveFilter <- function(model, entries) {
+	boundsFilter <- sapply(entries, is, "MxBounds")
+	namedFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
+	pathFilter <- sapply(entries, is, "MxPath")
+	unknownFilter <- !(boundsFilter | namedFilter)
+	
+	if (any(pathFilter)) {
 		stop(paste("The model type of model",
 			omxQuotes(model@name), "does not recognize paths."),
 			call. = FALSE)
-	} else {
-		stop(paste("Cannot remove the following item from the model:", 
-			head), call. = FALSE)
 	}
-	return(modelRemoveFilter(model, entries[-1], names, bounds))
+
+	if (any(unknownFilter)) {
+		stop(paste("Cannot remove the following item(s) from the model:", 
+			entries[unknownFilter]), call. = FALSE)
+	}
+
+	return(list(entries[namedFilter], entries[boundsFilter]))
 }
 
 addSingleNamedEntity <- function(model, entity) {
