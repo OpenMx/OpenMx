@@ -1,7 +1,8 @@
 Package: OpenMx
 Version: 0.2.10-1172
+Date: 2010-03-14
 Title: The OpenMx Statistical Modeling Package
-Author: Steven Boker, Michael Neale, Hermine Maes, Paras Metah, Sarah Kenny, Timothy Bates, Ryne Estabrook, Jeffrey Spies, Timothy Brick, Michael Spiegel
+Author: Steven Boker, Michael Neale, Hermine Maes, Michael Wilde, Michael Spiegel, Timothy Brick, Jeffrey Spies, Ryne Estabrook, Sarah Kenny, Timothy Bates, Paras Mehta, John Fox
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
 URL: http://openmx.psyc.virginia.edu
 Description: The OpenMx Project intends to rewrite and extend the popular statistical package Mx to address the challenges facing a large range of modern statistical problems such as: the difficulty of measuring behavioral traits; the availability of technologies - such as such as magnetic resonance imaging, continuous physiological monitoring and microarrays - which generate extremely large amounts of data often with complex time-dependent patterning; and increased sophistication in the statistical models used to analyze the data.
