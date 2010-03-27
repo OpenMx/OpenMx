@@ -30,16 +30,36 @@ omxGetParameters <- function(model, indep = FALSE) {
 	return(parameters)
 }
 
-omxSetParameters <- function(model, names, values, indep = FALSE) {
-	if(length(names) != length(values)) {
-		stop("length of 'names' and 'values' must be identical")
+setParametersCheckVector <- function(values, test, argname, typename) {
+	if (single.na(values)) return()
+	if (!test(values)) {
+		stop(paste(omxQuotes(argname), 
+			"argument must either be NA or a",
+			typename, "vector"), call. = FALSE)
 	}
-	model@matrices <- lapply(model@matrices, setParametersHelper, names, values)
+}
+
+omxSetParameters <- function(model, labels, free = NA, values = NA,
+	lbound = NA, ubound = NA, indep = FALSE) {
+	if (missing(labels) || !is.character(labels) || length(labels) == 0) {
+		stop("'labels' argument must be a character vector")	
+	}
+	if (any(is.na(labels))) {
+		stop("'labels' argument must not contain NA values")	
+	}
+	if (any(duplicated(labels))) {
+		stop("'labels' argument must not contain duplicate values")		
+	}
+	setParametersCheckVector(free, is.logical, 'free', 'logical')
+	setParametersCheckVector(values, is.numeric, 'values', 'numeric')
+	setParametersCheckVector(lbound, is.numeric, 'lbound', 'numeric')
+	setParametersCheckVector(ubound, is.numeric, 'ubound', 'numeric')
+	model@matrices <- lapply(model@matrices, setParametersHelper, labels, free, values, lbound, ubound)
 	if(indep) {
-		model@submodels <- lapply(model@submodels, omxSetParameters, names, values, indep)
+		model@submodels <- lapply(model@submodels, omxSetParameters, labels, free, values, lbound, ubound, indep)
 	} else {
 		select <- omxDependentModels(model)
-		select <- lapply(select, omxSetParameters, names, values, indep)
+		select <- lapply(select, omxSetParameters, labels, free, values, lbound, ubound, indep)
 		model@submodels <- c(select, omxIndependentModels(model))
 	}
 	return(model)
@@ -48,7 +68,7 @@ omxSetParameters <- function(model, names, values, indep = FALSE) {
 omxAssignFirstParameters <- function(model, indep = FALSE) {
 	params <- omxGetParameters(model, indep)
 	pnames <- names(params)
-	model <- omxSetParameters(model, pnames[!is.na(pnames)], params[!is.na(pnames)], indep)
+	model <- omxSetParameters(model, pnames[!is.na(pnames)], values = params[!is.na(pnames)], indep = indep)
 	return(model)
 }
 
@@ -70,11 +90,26 @@ getParametersHelper <- function(amatrix) {
 }
 
 
-setParametersHelper <- function(amatrix, names, values) {	
+setParametersHelper <- function(amatrix, names, free, values, lbound, ubound) {	
 	labels <- amatrix@labels
 	locations <- which(labels %in% names)
 	indices <- match(labels[locations], names)
-	amatrix@values[locations] <- values[indices]
+	if (!single.na(free)) {
+		index2 <- ((indices - 1) %% length(free)) + 1
+		amatrix@free[locations] <- free[index2]
+	}
+	if (!single.na(values)) {
+		index2 <- ((indices - 1) %% length(values)) + 1
+		amatrix@values[locations] <- values[index2]
+	}
+	if (!single.na(lbound)) {
+		index2 <- ((indices - 1) %% length(lbound)) + 1
+		amatrix@lbound[locations] <- lbound[index2]
+	}
+	if (!single.na(ubound)) {
+		index2 <- ((indices - 1) %% length(ubound)) + 1
+		amatrix@ubound[locations] <- ubound[index2]
+	}
 	return(amatrix)
 }
 
