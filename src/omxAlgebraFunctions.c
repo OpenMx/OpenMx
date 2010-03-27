@@ -1098,18 +1098,18 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	if(OMX_DEBUG_ALGEBRA) { 
+	if(OMX_DEBUG_ALGEBRA) {
 		Rprintf("Row Vectorize %s.\n", result->algebra->name);
 	}
-	
+
 	omxMatrix *inMat = matList[0];
-	
+
 	int size = (inMat->rows * inMat->cols);
-	
+
 	/* Consistency Check */
 	if(result->rows != size || result->cols != 1)
 		omxResizeMatrix(result, size, 1, FALSE);
-	
+
 	if(!inMat->colMajor) {		// Special case: we can just memcpy.
 		if (OMX_DEBUG_ALGEBRA) Rprintf(":::DEBUG::: MEMCPY::\n");
 		memcpy(result->data, inMat->data, size*sizeof(double));
@@ -1129,17 +1129,17 @@ void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) {
 		 Rprintf("Column Vectorize %s.\n", result->algebra->name);
 	}
-	
+
 	omxMatrix *inMat = matList[0];
-	
+
 	int size = (inMat->rows * inMat->cols);
-	
+
 	/* Consistency Check */
 	if(result->rows != size || result->cols != 1)
 		omxResizeMatrix(result, size, 1, FALSE);
-		
+
 	if (OMX_DEBUG_ALGEBRA) Rprintf(":::DEBUG::: RESIZE\n");
-	
+
 	if(inMat->colMajor) {		// Special case: we can just memcpy.
 		if (OMX_DEBUG_ALGEBRA) Rprintf(":::DEBUG::: MEMCPY::\n");
 		memcpy(result->data, inMat->data, size * sizeof(double));
@@ -1234,7 +1234,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 	if (lBoundMat->rows > 1 && lBoundMat->cols > 1) {
 		char *errstr = Calloc(250, char);
-		sprintf(errstr, "lbounds is neither row nor column vector");
+		sprintf(errstr, "lbound is neither row nor column vector");
 		omxRaiseError(result->currentState, -1, errstr);
 		Free(errstr);
 		return;
@@ -1242,7 +1242,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 	if (uBoundMat->rows > 1 && uBoundMat->cols > 1) {
 		char *errstr = Calloc(250, char);
-		sprintf(errstr, "ubounds is neither row nor column vector");
+		sprintf(errstr, "ubound is neither row nor column vector");
 		omxRaiseError(result->currentState, -1, errstr);
 		Free(errstr);
 		return;

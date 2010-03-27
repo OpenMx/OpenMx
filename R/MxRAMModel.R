@@ -219,6 +219,9 @@ removeEntriesRAM <- function(model, entries) {
 }
 
 getNotPathsOrData <- function(lst) {
+	if (length(lst) == 0) {
+		return(lst)
+	}
 	pathfilter <- sapply(lst, is, "MxPath")
 	datafilter <- sapply(lst, is, "MxData")
 	retval <- lst[!(pathfilter | datafilter)]

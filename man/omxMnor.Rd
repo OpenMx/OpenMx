@@ -8,18 +8,18 @@
 }
 
 \usage{
-omxMnor(cov, means, lbounds, ubounds)
+omxMnor(covariance, means, lbound, ubound)
 }
 
 \arguments{
-   \item{cov}{the covariance matrix describing the multivariate normal distribution.}
+   \item{covariance}{the covariance matrix describing the multivariate normal distribution.}
    \item{means}{a row vector containing means of the variables of the underlying distribution.}
-   \item{lbounds}{a row vector containing the lower bounds of the integration in each variable.}
-   \item{ubounds}{a row vector containing the upper bounds of the integration in each variable.}
+   \item{lbound}{a row vector containing the lower bounds of the integration in each variable.}
+   \item{ubound}{a row vector containing the upper bounds of the integration in each variable.}
 }
 
 \details{
-   The order of columns in the means, lbounds, and ubounds vector are assumed to be the same as that of the covariance matrix.  That is, means[i] is considered to be the mean of the variable whose variance is in cov[i,i].  That variable will be integrated from lbounds[i] to ubounds[i] as part of the integration.
+   The order of columns in the \sQuote{means}, \sQuote{lbound}, and \sQuote{ubound} vectors are assumed to be the same as that of the covariance matrix.  That is, means[i] is considered to be the mean of the variable whose variance is in covariance[i,i].  That variable will be integrated from lbound[i] to ubound[i] as part of the integration.
 
    The value of ubound[i] or lbound[i] may be set to Inf or -Inf if a boundary at positive or negative infinity is desired.
    
@@ -30,10 +30,10 @@ omxMnor(cov, means, lbounds, ubounds)
 
 data(myFAData)
 
-cov <- cov(myFAData[,1:3])
+covariance <- cov(myFAData[,1:3])
 means <- mean(myFAData[,1:3])
-lbounds <- c(-Inf, 0,   1)    # Integrate from -Infinity to 0 on first variable
-ubounds <- c(0,    Inf, 2.5)  # From 0 to +Infinity on second, and from 1 to 2.5 on third
-omxMnor(cov, means, lbounds, ubounds)
+lbound <- c(-Inf, 0,   1)    # Integrate from -Infinity to 0 on first variable
+ubound <- c(0,    Inf, 2.5)  # From 0 to +Infinity on second, and from 1 to 2.5 on third
+omxMnor(covariance, means, lbound, ubound)
 
 }

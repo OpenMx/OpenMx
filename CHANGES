@@ -7,6 +7,10 @@ trunk
 * mxConstraint("A", "=", "B") is now written as mxConstraint(A == B)
 * performance improvement to namespace conversion
 * changing MxPath data structure from a list to an S4 object
+* renaming 'cov' argument to 'covariance' in omxMnor()
+* renaming 'lbounds' argument to 'lbound' in omxMnor()
+* renaming 'ubounds' argument to 'ubound' in omxMnor()
+* renaming 'cov' argument to 'covariance' in omxAllInt()
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

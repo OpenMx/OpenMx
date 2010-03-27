@@ -76,61 +76,61 @@ omxLookupSymbolTable <- function(name) {
 	return(as.integer(index - 1))
 }
 
-omxMnor <- function(cov, means, lbounds, ubounds) {
+omxMnor <- function(covariance, means, lbound, ubound) {
     
-    cov <- as.matrix(cov)
+    covariance <- as.matrix(covariance)
     means <- as.matrix(means)
-    lbounds <- as.matrix(lbounds)
-    ubounds <- as.matrix(ubounds)
+    lbound <- as.matrix(lbound)
+    ubound <- as.matrix(ubound)
 
-    if(nrow(cov) != ncol(cov)) {
-        stop("Cov must be square")
+    if(nrow(covariance) != ncol(covariance)) {
+        stop("Covariance must be square")
     }
     if(nrow(means) > 1 && ncol(means) > 1) {
     	stop("'means' argument must be row or column vector")
     }
-    if(nrow(lbounds) > 1 && ncol(lbounds) > 1) {
-    	stop("'lbounds' argument must be row or column vector")    
+    if(nrow(lbound) > 1 && ncol(lbound) > 1) {
+    	stop("'lbound' argument must be row or column vector")    
     }
-    if(nrow(ubounds) > 1 && ncol(ubounds) > 1) {
-    	stop("'ubounds' argument must be row or column vector")    
+    if(nrow(ubound) > 1 && ncol(ubound) > 1) {
+    	stop("'ubound' argument must be row or column vector")    
     }
     
-    if(ncol(cov) != length(means)) {
-        stop("'means' must have length equal to diag(cov)")
+    if(ncol(covariance) != length(means)) {
+        stop("'means' must have length equal to diag(covariance)")
     }
-    if(ncol(cov) != length(lbounds)) {
-        stop("'lbounds' must have length equal to diag(cov)")
+    if(ncol(covariance) != length(lbound)) {
+        stop("'lbound' must have length equal to diag(covariance)")
     }
-    if(ncol(cov) != length(ubounds)) {
-        stop("'ubounds' must have length equal to diag(cov)")
+    if(ncol(covariance) != length(ubound)) {
+        stop("'ubound' must have length equal to diag(covariance)")
     }
     
     retVal <- .Call("omxCallAlgebra", 
-    	list(cov, means, lbounds, ubounds), 
+    	list(covariance, means, lbound, ubound), 
     	omxLookupSymbolTable("omxMnor"), 
     	NA)
     return(as.matrix(as.numeric(retVal)))
     
 }
 
-omxAllInt <- function(cov, means, ...) {
-    cov <- as.matrix(cov)
+omxAllInt <- function(covariance, means, ...) {
+    covariance <- as.matrix(covariance)
     means <- as.matrix(means)
     thresholdMats <- list(...)
 
-    if(nrow(cov) != ncol(cov)) {
-        stop("'cov' must be square")
+    if(nrow(covariance) != ncol(covariance)) {
+        stop("'covariance' must be square")
     }
     if(nrow(means) > 1 && ncol(means) > 1) {
     	stop("'means' argument must be row or column vector")
     }
-    if(ncol(cov) != length(means)) {
+    if(ncol(covariance) != length(means)) {
         stop("'means' must have length equal to diag(cov)")
     }
     
-    if(sum(sapply(thresholdMats, ncol)) < ncol(cov)) {
-        stop("'thresholds' must have at least as many total columns as 'cov'")
+    if(sum(sapply(thresholdMats, ncol)) < ncol(covariance)) {
+        stop("'thresholds' must have at least as many total columns as 'covariance'")
     }
 
     if(min(sapply(thresholdMats, nrow)) < 2) {
@@ -138,7 +138,7 @@ omxAllInt <- function(cov, means, ...) {
     }
     
     retVal <- .Call("omxCallAlgebra", 
-        c(list(cov, means), thresholdMats),         # Flatten args into a single list
+        c(list(covariance, means), thresholdMats),         # Flatten args into a single list
         omxLookupSymbolTable("omxAllInt"), 
         NA)
     
