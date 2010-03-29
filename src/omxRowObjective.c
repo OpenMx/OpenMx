@@ -28,9 +28,11 @@
 #ifndef _OMX_ROW_OBJECTIVE_
 #define _OMX_ROW_OBJECTIVE_ TRUE
 
+// TODO: Migrate omxDefinitionVar struct to a more central location.
 typedef struct omxDefinitionVar {		 	// Definition Var
 
 	int data, column;		// Where it comes from
+	omxData* source;		// Data source
 	int numLocations;		// Num locations
 	double** location;		// And where it goes
 	omxMatrix** matrices;	// Matrix numbers for dirtying
@@ -68,10 +70,10 @@ omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturn
 
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
-
+	
 	int i;
-	for(i = 0; i < source->cols; source++) {
-		omxSetMatrixElement(target, row, i, omxMatrixElement(source, 1, i));
+	for(i = 0; i < source->cols; i++) {
+		omxSetMatrixElement(target, row, i, omxMatrixElement(source, 0, i));
 	}
 
 }
@@ -96,24 +98,27 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	data		= oro->data;
 	defVars		= oro->defVars;
 	numDefs		= oro->numDefs;
+	
+	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
+		if(OMX_DEBUG) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
+		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
+	}
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating row algebra for all rows.\n");}
 		omxRecompute(rowAlgebra);		// Only recompute this here if there are no definition vars
 		if(OMX_DEBUG) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }
-		for(int row = 0; row < data->rows; row++) {
-			omxCopyMatrixToRow(rowAlgebra, row, rowResults);
-		}
 	}
+
 	for(int row = 0; row < data->rows; row++) {
 
 		// Handle Definition Variables.
-		if(numDefs != 0) {
-			if(OMX_DEBUG_ROWS) { Rprintf("Handling definition vars and calculating algebra for row %d.\n", row); }
+		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
 			handleDefinitionVarList(data, row, defVars, numDefs);
 			omxStateNextRow(oo->matrix->currentState);						// Advance row
 			omxRecompute(rowAlgebra);										// Calculate this row
 		}
+
 		omxCopyMatrixToRow(rowAlgebra, row, rowResults);
 	}
 
@@ -187,6 +192,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
 		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
 		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
+		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];

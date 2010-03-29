@@ -40,3 +40,7 @@
 38		"Kronecker powering"	"%^%"		2			"omxKroneckerPower"
 39		"Vectorize by row"		"rvectorize"		1			"omxRowVectorize"
 40		"Vectorize by column"	"cvectorize"		1			"omxColVectorize"
+41		"Real Eigenvectors"	"eigenvec"		1			"omxRealEigenvectors"
+42		"Real Eigenvalues"	"eigenval"		1			"omxRealEigenvalues"
+43		"Imaginary Eigenvectors"	"ieigenvec"		1			"omxImaginaryEigenvectors"
+44		"Imaginary Eigenvalues"	"ieigenval"		1			"omxImaginaryEigenvalues"

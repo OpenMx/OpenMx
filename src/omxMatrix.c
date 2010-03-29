@@ -340,6 +340,12 @@ double omxMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
+	if(row >= om->rows || col >= om->cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Attempted to set improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->rows, om->cols);
+		error(errstr);
+		free(errstr);
+	}
 	int index = 0;
 	if(om->colMajor) {
 		index = col * om->rows + row;

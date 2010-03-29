@@ -70,4 +70,8 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result);
 #endif

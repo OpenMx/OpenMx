@@ -252,6 +252,7 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	
 	om = omxInitAlgebra(oa, os);
 	omxFillAlgebraFromTableEntry(oa, entry);
+	oa->name = entry->opName;
 
 	if(OMX_DEBUG) {Rprintf("Calculating args for %s.\n", entry->rName);}
 	if(oa->args == NULL) {					// # of matrices for operator is variable

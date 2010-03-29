@@ -145,3 +145,55 @@ omxAllInt <- function(covariance, means, ...) {
     return(as.matrix(as.numeric(retVal)))
 
 }
+
+eigenvec <- function(mat) {
+    if(nrow(mat) != ncol(mat)) {
+        stop("matrix must be square")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", 
+        list(mat),         # Flatten args into a single list
+        omxLookupSymbolTable("eigenvec"), 
+        NA)
+        
+    return(as.matrix(as.numeric(retVal)))
+}
+
+ieigenvec <- function(mat) {
+    if(nrow(mat) != ncol(mat)) {
+        stop("matrix must be square")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", 
+        list(mat),         # Flatten args into a single list
+        omxLookupSymbolTable("ieigenvec"), 
+        NA)
+        
+    return(as.matrix(as.numeric(retVal)))
+}
+
+eigenval <- function(mat) {
+    if(nrow(mat) != ncol(mat)) {
+        stop("matrix must be square")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", 
+        list(mat),         # Flatten args into a single list
+        omxLookupSymbolTable("eigenval"), 
+        NA)
+
+    return(as.matrix(as.numeric(retVal)))
+}
+
+ieigenval <- function(mat) {
+    if(nrow(mat) != ncol(mat)) {
+        stop("matrix must be square")
+    }
+    
+    retVal <- .Call("omxCallAlgebra", 
+        list(mat),         # Flatten args into a single list
+        omxLookupSymbolTable("ieigenval"), 
+        NA)
+        
+    return(as.matrix(as.numeric(retVal)))
+}
