@@ -12,6 +12,7 @@ trunk
 * renaming 'ubounds' argument to 'ubound' in omxMnor()
 * renaming 'cov' argument to 'covariance' in omxAllInt()
 * new signature for omxSetParameters(model, labels, free, values, lbound, ubound, indep)
+* improving error messages in mxMatrix() function
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

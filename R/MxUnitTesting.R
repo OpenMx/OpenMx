@@ -113,9 +113,11 @@ omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
 			abs(x - y) > epsilon }, 
 			as.vector(a), as.vector(b)))
 	if (check) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
+		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
+			omxQuotes(paste(a, collapse = ' ')), 
 			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not equal to within", epsilon))
+			"are not equal to within", epsilon), 
+			call. = FALSE)
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
 			deparse(match.call()$b),

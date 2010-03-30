@@ -238,7 +238,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	}
 	omxVerifyName(name)
 	if (!is.character(name)) {
-		stop("\'name\' must be a character vector!")
+		stop(paste("'name' argument must",
+			"be a character vector in", 
+			deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
 	}
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol, name)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
@@ -246,14 +248,20 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	ncol <- checkDims[[2]]
 	if (type %in% squareMatrices) {
 		if (is.na(nrow) && is.na(ncol)) {
-			stop("Either nrow or ncol must be specified on a square matrix")
+			stop(paste("Either 'nrow' or 'ncol'",
+				"must be specified on a",
+				"square matrix in", 
+				deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
 		} else if (is.na(nrow)) {
 			nrow <- ncol
 		} else if (is.na(ncol)) {
 			ncol <- nrow
 		}
 	} else if (is.na(nrow) || is.na(ncol)) {
-		stop("Both nrow and ncol must be specified on a non-square matrix")
+		stop(paste("Both 'nrow' and 'ncol'",
+					"must be specified on a",
+					"non-square matrix in",
+					deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
 	}
 	values <- as.numeric.preserve(values)
 	lbound <- as.numeric.preserve(lbound)
@@ -280,7 +288,8 @@ as.numeric.preserve <- function(x, ...) {
 matrixCheckArgument <- function(arg, name) {
 	if (is.list(arg) || isS4(arg)) {
 		stop(paste(omxQuotes(name), "argument to mxMatrix",
-			"must be a scalar, a vector, or a matrix."), call. = FALSE)
+			"must be a scalar, a vector, or a matrix in",
+			deparse(width.cutoff = 400L, sys.call(-2))), call. = FALSE)
 	}
 }
 
@@ -288,7 +297,8 @@ matrixCheckArgument <- function(arg, name) {
 matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol, name) {
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
-			paste(matrixTypes, collapse=" ")), call. = FALSE)
+			paste(matrixTypes, collapse=" "),
+			"in", deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	matrixCheckArgument(values, 'values')
 	matrixCheckArgument(free, 'free')
@@ -296,47 +306,69 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	matrixCheckArgument(lbound, 'lbound')
 	matrixCheckArgument(ubound, 'ubound')
 	if (!is.numeric(values)) {
-		stop("'values' argument to mxMatrix must be of numeric type", call. = FALSE)
+		stop(paste("'values' argument to mxMatrix",
+			"must be of numeric type in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.logical(free)) {
-		stop("'free' argument to mxMatrix must be of logical type", call. = FALSE)
+		stop(paste("'free' argument to mxMatrix",
+			"must be of logical type in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.character(labels)) {
-		stop("'labels' argument to mxMatrix must be of character type", call. = FALSE)
+		stop(paste("'labels' argument to mxMatrix",
+			"must be of character type in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.numeric(lbound)) {
-		stop("'lbound' argument to mxMatrix must be of numeric type", call. = FALSE)
+		stop(paste("'lbound' argument to mxMatrix",
+			"must be of numeric type in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.numeric(ubound)) {
-		stop("'ubound' argument to mxMatrix must be of numeric type", call. = FALSE)
+		stop(paste("'ubound' argument to mxMatrix",
+			"must be of numeric type in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!(is.na(nrow) || (is.numeric(nrow) && length(nrow) == 1))) {
-		stop("'nrow' argument to mxMatrix must be either NA or a single value.", call. = FALSE)
+		stop(paste("'nrow' argument to mxMatrix",
+			"must be either NA or a single value in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!(is.na(ncol) || (is.numeric(ncol) && length(ncol) == 1))) {
-		stop("'ncol' argument to mxMatrix must be either NA or a single value.", call. = FALSE)
+		stop(paste("'ncol' argument to mxMatrix",
+			"must be either NA or a single value in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels) 
 		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(nrow))) {
-		warning("\'nrow\' is disregarded for mxMatrix constructor")
+		warning(paste("'nrow' is disregarded",
+			"for mxMatrix constructor in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels)
 		|| is.matrix(lbound) || is.matrix(ubound)) &&
 		(!is.na(ncol))) {
-		warning("\'ncol\' is disregarded for mxMatrix constructor")
+		warning(paste("'ncol' is disregarded",
+			"for mxMatrix constructor in", 
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	dimensions <- sapply(list(values, free, labels, lbound, ubound), dim)
 	dimensions <- dimensions[!sapply(dimensions, is.null)]
 	if (length(dimensions) > 1) {
 		allEqual <- sapply(dimensions, function(x) { x == dimensions[[1]] })
 		if(!all(allEqual)) {
-			stop("Two matrices provided to mxMatrix are not of identical dimensions.", call. = FALSE)
+			stop(paste("Two matrices provided",
+				"to mxMatrix are not of identical",
+				"dimensions in", deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 	}
 	lapply(labels, omxVerifyReference, paste("matrix", omxQuotes(name)))
 	if(any(is.na(free))) {
-		stop("\'free\' argument to mxMatrix cannot contain an NA", call. = FALSE)
+		stop(paste("'free' argument to mxMatrix",
+			"cannot contain an NA in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }
 
