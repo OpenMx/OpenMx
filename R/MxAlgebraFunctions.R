@@ -146,54 +146,58 @@ omxAllInt <- function(covariance, means, ...) {
 
 }
 
-eigenvec <- function(mat) {
-    if(nrow(mat) != ncol(mat)) {
+eigenvec <- function(x) {
+    x <- as.matrix(x)
+    if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
     
-    retVal <- .Call("omxCallAlgebra", 
-        list(mat),         # Flatten args into a single list
+    retval <- .Call("omxCallAlgebra", 
+        list(x),         # Flatten args into a single list
         omxLookupSymbolTable("eigenvec"), 
         NA)
         
-    return(as.matrix(as.numeric(retVal)))
+    return(as.matrix(as.numeric(retval)))
 }
 
-ieigenvec <- function(mat) {
-    if(nrow(mat) != ncol(mat)) {
+ieigenvec <- function(x) {
+    x <- as.matrix(x)
+    if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
     
-    retVal <- .Call("omxCallAlgebra", 
-        list(mat),         # Flatten args into a single list
+    retval <- .Call("omxCallAlgebra", 
+        list(x),         # Flatten args into a single list
         omxLookupSymbolTable("ieigenvec"), 
         NA)
         
-    return(as.matrix(as.numeric(retVal)))
+    return(as.matrix(as.numeric(retval)))
 }
 
-eigenval <- function(mat) {
-    if(nrow(mat) != ncol(mat)) {
+eigenval <- function(x) {
+    x <- as.matrix(x)
+    if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
     
-    retVal <- .Call("omxCallAlgebra", 
-        list(mat),         # Flatten args into a single list
+    retval <- .Call("omxCallAlgebra", 
+        list(x),         # Flatten args into a single list
         omxLookupSymbolTable("eigenval"), 
         NA)
 
-    return(as.matrix(as.numeric(retVal)))
+    return(as.matrix(as.numeric(retval)))
 }
 
-ieigenval <- function(mat) {
-    if(nrow(mat) != ncol(mat)) {
+ieigenval <- function(x) {
+    x <- as.matrix(x)
+    if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
     
-    retVal <- .Call("omxCallAlgebra", 
-        list(mat),         # Flatten args into a single list
+    retval <- .Call("omxCallAlgebra", 
+        list(x),         # Flatten args into a single list
         omxLookupSymbolTable("ieigenval"), 
         NA)
         
-    return(as.matrix(as.numeric(retVal)))
+    return(as.matrix(as.numeric(retval)))
 }
