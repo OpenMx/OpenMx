@@ -37,30 +37,30 @@ The following operations are supported in mxAlgebra:
 
 The following functions are supported in mxAlgebra:
 \describe{
-\item{\code{cbind()}}{Horizontal adhesion}
-\item{\code{rbind()}}{Vertical adhesion}
-\item{\code{det()}}{Determinant}
-\item{\code{tr()}}{Trace}
-\item{\code{sum()}}{Sum}
-\item{\code{prod()}}{Product}
-\item{\code{max()}}{Maximum}
-\item{\code{min()}}{Min}
-\item{\code{abs()}}{Absolute value}
-\item{\code{sin()}}{Sine}
-\item{\code{sinh()}}{Hyperbolic sine}
-\item{\code{cos()}}{Cosine}
-\item{\code{cosh()}}{Hyperbolic cosine}
-\item{\code{tan()}}{Tangent}
-\item{\code{tanh()}}{Hyperbolic tangent}
-\item{\code{exp()}}{Exponent}
-\item{\code{log()}}{Natural Logarithm}
-\item{\code{sqrt()}}{Square root}
-\item{\code{rvectorize()}}{Vectorize by row}
-\item{\code{cvectorize()}}{Vectorize by column}
-\item{\code{vech()}}{Half-vectorization}
-\item{\code{vechs()}}{Strict half-vectorization}
-\item{\code{vec2diag()}}{Create a diagonal matrix}
-\item{\code{diag2vec()}}{Extract diagonal from matrix}
+\item{\code{cbind}}{Horizontal adhesion}
+\item{\code{rbind}}{Vertical adhesion}
+\item{\code{det}}{Determinant}
+\item{\code{tr}}{Trace}
+\item{\code{sum}}{Sum}
+\item{\code{prod}}{Product}
+\item{\code{max}}{Maximum}
+\item{\code{min}}{Min}
+\item{\code{abs}}{Absolute value}
+\item{\code{sin}}{Sine}
+\item{\code{sinh}}{Hyperbolic sine}
+\item{\code{cos}}{Cosine}
+\item{\code{cosh}}{Hyperbolic cosine}
+\item{\code{tan}}{Tangent}
+\item{\code{tanh}}{Hyperbolic tangent}
+\item{\code{exp}}{Exponent}
+\item{\code{log}}{Natural Logarithm}
+\item{\code{sqrt}}{Square root}
+\item{\code{\link{rvectorize}}}{Vectorize by row}
+\item{\code{\link{cvectorize}}}{Vectorize by column}
+\item{\code{\link{vech}}}{Half-vectorization}
+\item{\code{\link{vechs}}}{Strict half-vectorization}
+\item{\code{\link{vec2diag}}}{Create a diagonal matrix}
+\item{\code{\link{diag2vec}}}{Extract diagonal from matrix}
 }}
 
 \value{

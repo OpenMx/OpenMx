@@ -20,7 +20,7 @@ vech(x)
 }
 
 \seealso{
-\code{\link{vech}} 
+\code{\link{vechs}}, \code{\link{rvectorize}}, \code{\link{cvectorize}}
 }
 
 \examples{
