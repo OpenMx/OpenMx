@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -330,13 +330,15 @@ modelAddEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelAddFilter(model, entries)
+	tuple <- modelModifyFilter(model, entries, "add")
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
+	intervals     <- tuple[[3]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- addSingleNamedEntity(model, namedEntities[[i]])
 	}
 	model <- modelAddBounds(model, bounds)
+	model <- modelAddIntervals(model, intervals)
 	return(model)
 }
 
@@ -344,55 +346,34 @@ modelRemoveEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelRemoveFilter(model, entries)
+	tuple <- modelModifyFilter(model, entries, "remove")
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
+	intervals     <- tuple[[3]]
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- removeSingleNamedEntity(model, namedEntities[[i]])
 	}
 	model <- modelRemoveBounds(model, bounds)
+	model <- modelRemoveIntervals(model, intervals)
 	return(model)
 }
 
-modelAddFilter <- function(model, entries) {
-
+modelModifyFilter <- function(model, entries, action) {
 	boundsFilter <- sapply(entries, is, "MxBounds")
+	intervalFilter <- sapply(entries, is, "MxInterval")
 	namedFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
 	pathFilter <- sapply(entries, is, "MxPath")
-	unknownFilter <- !(boundsFilter | namedFilter)
-	
+	unknownFilter <- !(boundsFilter | namedFilter | intervalFilter)
 	if (any(pathFilter)) {
 		stop(paste("The model type of model",
 			omxQuotes(model@name), "does not recognize paths."),
 			call. = FALSE)
 	}
-
 	if (any(unknownFilter)) {
-		stop(paste("Cannot add the following item(s) into the model:", 
+		stop(paste("Cannot", action, "the following item(s) into the model:", 
 			entries[unknownFilter]), call. = FALSE)
 	}
-
-	return(list(entries[namedFilter], entries[boundsFilter]))
-}
-
-modelRemoveFilter <- function(model, entries) {
-	boundsFilter <- sapply(entries, is, "MxBounds")
-	namedFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
-	pathFilter <- sapply(entries, is, "MxPath")
-	unknownFilter <- !(boundsFilter | namedFilter)
-	
-	if (any(pathFilter)) {
-		stop(paste("The model type of model",
-			omxQuotes(model@name), "does not recognize paths."),
-			call. = FALSE)
-	}
-
-	if (any(unknownFilter)) {
-		stop(paste("Cannot remove the following item(s) from the model:", 
-			entries[unknownFilter]), call. = FALSE)
-	}
-
-	return(list(entries[namedFilter], entries[boundsFilter]))
+	return(list(entries[namedFilter], entries[boundsFilter], entries[intervalFilter]))
 }
 
 addSingleNamedEntity <- function(model, entity) {
