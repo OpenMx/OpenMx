@@ -20,6 +20,7 @@ setClass(Class = "MxModel",
 		matrices = "list",
 		algebras = "list",
 		constraints = "list",
+		intervals = "list",
 		latentVars = "character",
 		manifestVars = "character",
 		data = "MxData",
@@ -34,21 +35,17 @@ setClass(Class = "MxModel",
 omxModelTypes[['raw']] <- "MxModel"
 
 setMethod("initialize", "MxModel",
-	function(.Object, name = character(),
-		latentVars = character(), manifestVars = character(), 
-		matrices = list(), algebras = list(), 
-		constraints = list(), data = NULL, submodels = list(), 
-		objective = NULL, independent = FALSE) {
+	function(.Object, name = character()) {
 		.Object@name <- name
-		.Object@latentVars <- latentVars
-		.Object@manifestVars <- manifestVars
-		.Object@matrices <- matrices
-		.Object@algebras <- algebras
-		.Object@constraints <- constraints
-		.Object@data <- data
-		.Object@submodels <- submodels
-		.Object@objective <- objective
-		.Object@independent <- independent
+		.Object@latentVars <- character()
+		.Object@manifestVars <- character()
+		.Object@matrices <- list()
+		.Object@algebras <- list()
+		.Object@constraints <- list()
+		.Object@data <- NULL
+		.Object@submodels <- list()
+		.Object@objective <- NULL
+		.Object@independent <- FALSE
 		.Object@options <- list()
 		.Object@output <- list()
 		.Object@runstate <- list()
@@ -192,7 +189,7 @@ firstArgument <- function(model, name) {
 			name <- omxUntitledName()
 		}
 		omxVerifyName(name)
-		model <- new(defaultType, name = name)
+		model <- new(defaultType, name)
 	}
 	return(list(first, model, name))
 }
@@ -334,6 +331,7 @@ modelAddEntries <- function(model, entries) {
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
+	names(intervals) <- sapply(intervals, slot, "reference")
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- addSingleNamedEntity(model, namedEntities[[i]])
 	}
@@ -350,6 +348,7 @@ modelRemoveEntries <- function(model, entries) {
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
+	names(intervals) <- sapply(intervals, slot, "reference")
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- removeSingleNamedEntity(model, namedEntities[[i]])
 	}

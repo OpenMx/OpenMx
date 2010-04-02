@@ -98,12 +98,10 @@ omxFlattenModel <- function(model, namespace) {
 	} else {
 		defaultDataName <- defaultData@name
 	}
-	flatModel@matrices <- lapply(model@matrices, 
-		function(x) { namespaceConvertMatrix(x, name, defaultDataName, namespace) })
-	flatModel@algebras <- lapply(model@algebras, 
-		function(x) { namespaceConvertAlgebra(x, name, namespace) })
-	flatModel@constraints <- lapply(model@constraints,
-		function(x) { namespaceConvertConstraint(x, name, namespace) })
+	flatModel@matrices <- lapply(model@matrices, namespaceConvertMatrix, name, defaultDataName, namespace)
+	flatModel@algebras <- lapply(model@algebras, namespaceConvertAlgebra, name, namespace)
+	flatModel@constraints <- lapply(model@constraints, namespaceConvertConstraint, name, namespace)
+	flatModel@intervals <- lapply(model@intervals, namespaceConvertInterval, name, namespace)
 	names(flatModel@matrices) <- omxExtractNames(flatModel@matrices)
 	names(flatModel@algebras) <- omxExtractNames(flatModel@algebras)
 	names(flatModel@constraints) <- omxExtractNames(flatModel@constraints)
@@ -145,10 +143,8 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
 					name, submodel@data@name, namespace)
 			}
-			submodel@algebras <- lapply(submodel@algebras, 
-				function(x) { namespaceConvertAlgebra(x, name, namespace) })
-			submodel@constraints <- lapply(submodel@constraints, 
-				function(x) { namespaceConvertConstraint(x, name, namespace) })
+			submodel@algebras <- lapply(submodel@algebras, namespaceConvertAlgebra, name, namespace)
+			submodel@constraints <- lapply(submodel@constraints, namespaceConvertConstraint, name, namespace)
 			names(submodel@matrices) <- omxExtractNames(submodel@matrices)
 			names(submodel@algebras) <- omxExtractNames(submodel@algebras)
 			names(submodel@constraints) <- omxExtractNames(submodel@constraints)

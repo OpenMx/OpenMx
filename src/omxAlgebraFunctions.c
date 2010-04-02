@@ -466,6 +466,9 @@ void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix* rowMatrix = matList[1];
 	omxMatrix* colMatrix = matList[2];
 
+	if(OMX_DEBUG_ALGEBRA) { omxPrint(rowMatrix, "Row matrix: "); }
+	if(OMX_DEBUG_ALGEBRA) { omxPrint(colMatrix, "Col matrix: "); }
+
 	int *rowIndices, *colIndices;
 	int rowIndexLength, colIndexLength;
 

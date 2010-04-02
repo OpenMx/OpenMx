@@ -13,8 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
+mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE) {
 	frontendStart <- Sys.time()
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxRun does not accept values for the '...' argument")
+	}
 	if(!silent) cat("Running", model@name, "\n")
 	namespace <- omxGenerateNamespace(model)
 	omxCheckNamespace(model, namespace)
@@ -27,7 +31,8 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	indepTimeStart <- Sys.time()
-	independents <- omxLapply(independents, mxRun, silent)
+	independents <- omxLapply(independents, mxRun, 
+		intervals = intervals, silent = silent, unsafe = unsafe)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if(is.null(model@objective) && 
@@ -66,6 +71,7 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	objectives <- convertObjectives(flatModel, model, defVars)
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
+	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
@@ -73,7 +79,7 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
-		algebras, data, options, state, PACKAGE = "OpenMx")
+		algebras, data, intervalList, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- omxReplaceModels(model, independents)

@@ -50,6 +50,7 @@ displayModel <- function(model, expand = FALSE) {
 	cat("@matrices :", omxQuotes(names(model@matrices)), '\n')
 	cat("@algebras :", omxQuotes(names(model@algebras)), '\n')
 	cat("@constraints :", omxQuotes(names(model@constraints)), '\n')
+	cat("@intervals :", omxQuotes(names(model@intervals)), '\n')
 	if (length(model@latentVars) == 0) {
 		cat("@latentVars : none\n")
 	} else {

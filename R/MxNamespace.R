@@ -522,7 +522,11 @@ namespaceConvertConstraint <- function(constraint, modelname, namespace) {
 	constraint@name <- omxIdentifier(modelname, constraint@name)
 	constraint@formula <- namespaceConvertFormula(constraint@formula, modelname, namespace)
 	return(constraint)
+}
 
+namespaceConvertInterval <- function(interval, modelname, namespace) {
+	interval@reference <- omxConvertLabel(interval@reference, modelname, NULL, namespace)
+	return(interval)
 }
 
 namespaceConvertObjective <- function(objective, modelname, namespace) {

@@ -49,6 +49,10 @@ modelAddIntervals <- function(model, intervals) {
 	if (length(intervals) == 0) {
 		return(model)
 	}
+	iNames <- names(intervals)
+	for(i in 1:length(intervals)) {
+		model@intervals[[iNames]] <- intervals[[i]]
+	}
 	return(model)
 }
 
@@ -56,9 +60,40 @@ modelRemoveIntervals <- function(model, intervals) {
 	if (length(intervals) == 0) {
 		return(model)
 	}
+	iNames <- names(intervals)
+	for(i in 1:length(intervals)) {		
+		model@intervals[[iNames]] <- NULL
+	}
 	return(model)
 }
 
+generateIntervalList <- function(flatModel, useIntervals, modelname, parameters) {
+	if (length(useIntervals) != 1 || 
+		typeof(useIntervals) != "logical" || 
+		is.na(useIntervals)) {
+		stop(paste("'intervals' argument", 
+			"must be TRUE or FALSE in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+	if (!useIntervals) {
+		return(list())
+	}
+	return(lapply(flatModel@intervals, generateIntervalListHelper, modelname, parameters))
+}
+
+
+generateIntervalListHelper <- function(interval, modelname, parameters) {
+	pnames <- names(parameters)
+	reference <- interval@reference
+	if(reference %in% pnames) {
+		return(c(parameters[[reference]][[3]], interval@lowerdelta, interval@upperdelta))
+	} else {
+		stop(paste("Unknown reference to", omxQuotes(reference),
+			"detected in a confidence interval",
+			"specification in model", omxQuotes(modelname), "in",
+			deparse(width.cutoff = 400L, sys.call(-3))), call. = FALSE)
+	}
+}
 
 displayInterval <- function(object) {
 	cat("MxInterval", '\n')

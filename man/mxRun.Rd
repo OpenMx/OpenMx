@@ -8,11 +8,13 @@
 }
 
 \usage{
-mxRun(model, silent=FALSE, unsafe=FALSE)
+mxRun(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 }
 
 \arguments{
     \item{model}{A \link{MxModel} object to be optimized.}    
+    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+    \item{intervals}{A boolean indicating whether to compute the specified confidence intervals.}
     \item{silent}{A boolean indicating whether to print status to terminal.}
     \item{unsafe}{A boolean indicating whether to ignore errors.}
 }
