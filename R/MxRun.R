@@ -51,12 +51,12 @@ mxRun <- function(model, silent = FALSE, unsafe = FALSE) {
 	flatModel <- convertDatasets(flatModel, model)
 	data <- flatModel@datasets
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
-	flatModel <- populateDefInitialValues(flatModel)
 	oldFlatModel <- flatModel
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)
+	flatModel <- populateDefInitialValues(flatModel)
 	flatModel <- checkEvaluation(model, flatModel, oldFlatModel)
 	parameters <- generateParameterList(flatModel)
 	matrices <- generateMatrixList(flatModel)
