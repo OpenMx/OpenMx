@@ -78,15 +78,23 @@ generateIntervalList <- function(flatModel, useIntervals, modelname, parameters)
 	if (!useIntervals) {
 		return(list())
 	}
-	return(lapply(flatModel@intervals, generateIntervalListHelper, modelname, parameters))
+	return(lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters))
 }
 
 
-generateIntervalListHelper <- function(interval, modelname, parameters) {
+generateIntervalListHelper <- function(interval, flatModel, modelname, parameters) {
 	pnames <- names(parameters)
 	reference <- interval@reference
 	if(reference %in% pnames) {
 		return(c(parameters[[reference]][[3]], interval@lowerdelta, interval@upperdelta))
+	} else if (hasSquareBrackets(reference)) {
+		components <- splitSubstitution(reference)
+		entityName <- components[[1]]
+		row <- as.numeric(components[[2]])
+		col <- as.numeric(components[[3]])
+		entityNumber <- omxLocateIndex(flatModel, entityName, 
+			paste("confidence interval", interval@reference))
+		return(c(entityNumber, row - 1, col - 1, interval@lowerdelta, interval@upperdelta))		
 	} else {
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",
