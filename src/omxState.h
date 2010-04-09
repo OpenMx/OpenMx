@@ -41,6 +41,7 @@ typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
 typedef struct omxOptimizerState omxOptimizerState;
+typedef struct omxConfidenceInterval omxConfidenceInterval;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -72,6 +73,18 @@ struct omxOptimizerState {			// For hessian or confidence interval computation
 	// Alpha should generally be +1 to minimize parameter -1 to maximize
 };
 
+struct omxConfidenceInterval {		// For Confidence interval request
+	omxMatrix* matrix;				// The matrix
+	int row, col;					// Location of element to calculate
+	double ubound;					// Objective-space upper boundary
+	double lbound;					// Objective-space lower boundary
+	double max;						// Value at upper bound
+	double min;						// Value at lower bound
+	int lCode;						// Optimizer code at lower bound
+	int uCode;						// Optimizer code at upper bound
+	unsigned short calcLower;		// Are we currently calculating lbound?
+};
+
 #define MAX_STRING_LEN 250
 
 struct omxState {													// The Current State of Optimization
@@ -88,6 +101,9 @@ struct omxState {													// The Current State of Optimization
 	/* May want to farm these out to the omxObjective object. */
 	int numConstraints;
 	omxConstraint* conList;											// List of constraints
+	int numIntervals;
+	int currentInterval;											// The interval currently being calculated
+	omxConfidenceInterval* intervalList;							// List of confidence intervals requested
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
@@ -122,7 +138,6 @@ struct omxState {													// The Current State of Optimization
 																		// TODO: Move RaiseError to omxOptimizer.
 	
 /* Advance a step */
-	void omxRaiseError(omxState *oo, int errorCode, char* errorStr);
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
 	

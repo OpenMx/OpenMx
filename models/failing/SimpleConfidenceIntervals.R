@@ -138,7 +138,10 @@ CIalower <- mxModel(twinACEFit, name = 'ACE_CIlower',
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.A,name="lowerCIa"),
 		mxAlgebraObjective("lowerCIa"))
 
-runCIalower<-mxRun(CIalower)
-runCIaupper<-mxRun(CIaupper)
+runCIalower<-mxRun(CIalower, intervals=FALSE)
+runCIaupper<-mxRun(CIaupper, intervals=FALSE)
+
+# omxCheckCloseEnough(twinACEFit@output$estimate[["beta"]], 0.372, 0.001)
+
 
 

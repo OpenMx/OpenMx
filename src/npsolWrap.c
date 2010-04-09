@@ -190,10 +190,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	omxMatrix** calculateHessians = NULL;
 	int calculateStdErrors = FALSE;
-	int calculateLimits = FALSE;
 	int numHessians = 0;
-
-	double* limits = NULL;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -379,6 +376,34 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
 	funcon = F77_SUB(constraintFunction);
 
+	/* Process Confidence Interval List */
+	/*
+	 intervalList is a list().  Each element refers to one confidence interval request.
+	 Each interval request is a length 5 vector of REAL.
+	 The first three elements are the matrixPointer, Row, and Column of the element
+	 for which bounds are to be calculated, and are cast to ints here for speed.
+	 The last two are the upper and lower boundaries for the confidence space (respectively).
+    */
+	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
+	currentState->numIntervals = length(intervalList);
+	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numIntervals); }
+	currentState->intervalList = (omxConfidenceInterval*) R_alloc(currentState->numIntervals, sizeof(omxConfidenceInterval));
+	for(k = 0; k < currentState->numIntervals; k++) {
+		omxConfidenceInterval *oCI = &(currentState->intervalList[k]);
+		PROTECT(nextVar = VECTOR_ELT(intervalList, k));
+		double* intervalInfo = REAL(nextVar);
+		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, currentState);	// Expects an R object
+		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
+		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
+		oCI->lbound = (int) intervalInfo[3];
+		oCI->ubound = (int) intervalInfo[4];
+		UNPROTECT(1);
+		oCI->max = R_NaReal;					// NAs, in case something goes wrong
+		oCI->min = R_NaReal;
+	}
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+
 	/* Set up Optimization Memory Allocations */
 
 	if(n == 0) {			// Special Case for the evaluation-only condition
@@ -535,12 +560,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						numHessians = 1;
 					}
 				}
-			} else if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Chi-square Confidence Intervals", 31)) {
-				if(OMX_DEBUG) { Rprintf("Found confidence interval option...");};
-				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
-					if(OMX_DEBUG) { Rprintf("Enabling maximum-likelihood-based confidence interval calculation.\n");}
-					calculateLimits = TRUE;
-				}
 			} else {
 				sprintf(optionCharArray, "%s %s", CHAR(STRING_ELT(optionNames, i)), STRING_VALUE(VECTOR_ELT(options, i)));
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
@@ -597,9 +616,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer, intervals, NAmat, calculatedHessian, stdErrors;
+	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer, intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
 
-	int numReturns = 11;
+	int numReturns = 12;
 
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
@@ -616,7 +635,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
 	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1)); // for optimizer
 	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
-	PROTECT(intervals = allocMatrix(REALSXP, n, 2)); // for optimizer
+	PROTECT(intervals = allocMatrix(REALSXP, currentState->numIntervals, 2)); // for optimizer
+	PROTECT(intervalCodes = allocMatrix(INTSXP, currentState->numIntervals, 2)); // for optimizer
 	PROTECT(NAmat = allocMatrix(REALSXP, 1,1)); // In case of missingness
 	REAL(NAmat)[0] = R_NaReal;
 
@@ -686,38 +706,50 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 	}
 
-	if(calculateLimits && REAL(code)[0] <= 0 && REAL(code)[0] <= 1) {
-		if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
-		currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
-		omxOptimizerState* oos = currentState->optimizerState;
-		oos->offset = 3.841;							// TODO: Get this from the objective function
-		limits = REAL(intervals);
-		for(int i = 0; i < n; i++) {
-			oos->currentParameter = i;
-			/* Find lower limit */
-			oos->alpha = 1;
-			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-							(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-			if(inform == 0 || inform == 1) {
-				limits[i] = x[i];
-			} else {
-				limits[i] = R_NaReal;
-			}
+	if(currentState->numIntervals) {
+		if(REAL(code)[0] >= 0 && REAL(code)[0] <= 1) {
+			if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
+			currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+			for(int i = 0; i < currentState->numIntervals; i++) {
+				currentState->currentInterval = i;
+				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
+				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
+				currentCI->ubound += currentState->optimum;			// COnvert from offsets to targets
+				/* Find lower limit */
+				currentCI->calcLower = TRUE;
+				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+				if(inform > 0) {
+					currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					currentCI->lCode = inform;
+				} else {
+					currentCI->min = R_NaReal;
+					currentCI->lCode = inform;
+					Rprintf("Calculation of Lower Interval %d failed: Bad inform value of %d\n", i, inform);
+				}
+				
+				if(OMX_DEBUG) {Rprintf("Found Lower bound %d.  Seeking upper.\n", i);}
+				// TODO: Repopulate original optimizer state in between CI calculations
 
-			/* Find upper limit */
-			oos->alpha = -1;
-			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-							(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-			if(inform == 0 || inform == 1) {
-				limits[n + i] = x[i];		// n + i because it's col-major, second column.
-			} else {
-				limits[n + i] = R_NaReal;	// n + i because it's col-major, second column.
+				/* Find upper limit */
+				currentCI->calcLower = FALSE;
+				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+				if(inform > 0) {
+					currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					currentCI->uCode = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+				} else {
+					currentCI->max = R_NaReal;
+					currentCI->uCode = inform;
+					Rprintf("Calculation of Upper Interval %d failed: Bad inform value of %d\n", i, inform);
+				}
+				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
+		} else {					// Improper code. No intervals calculated.  // TODO: Throw a warning, allow force()
+				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
 		}
-	} else {
-		limits = NULL;
 	}
 
 	handleFreeVarList(currentState, currentState->optimalValues, n);  // Restore to optima for final compute
@@ -782,7 +814,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		PROTECT(names = allocVector(STRSXP, numReturns));
 	}
 
-	if(numHessians) {		// Populate Hessian outputs here so that Objectives have a chance to edit them.
+	if(numHessians) {
 		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
 		for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
 			omxObjective* oo = calculateHessians[j]->objective;
@@ -815,6 +847,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			}
 		}
 	}
+	
+	if(currentState->numIntervals) {	// Populate CIs
+		int numInts = currentState->numIntervals;
+		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
+		for(int j = 0; j < numInts; j++) {
+			omxConfidenceInterval *oCI = &(currentState->intervalList[j]);
+			double* interval = REAL(intervals);
+			int* intervalCode = INTEGER(intervalCodes);
+			interval[j] = oCI->min;
+			interval[j + numInts] = oCI->max;
+			intervalCode[j] = oCI->lCode;
+			intervalCode[j + numInts] = oCI->uCode;
+		}
+	}
 
 	SET_STRING_ELT(names, 0, mkChar("minimum"));
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
@@ -824,9 +870,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 5, mkChar("iterations"));
 	SET_STRING_ELT(names, 6, mkChar("matrices"));
 	SET_STRING_ELT(names, 7, mkChar("algebras"));
-	SET_STRING_ELT(names, 8, mkChar("mlBasedLikelihoodBoundaries"));
-	SET_STRING_ELT(names, 9, mkChar("calculatedHessian"));
-	SET_STRING_ELT(names, 10, mkChar("standardErrors"));
+	SET_STRING_ELT(names, 8, mkChar("confidenceIntervals"));
+	SET_STRING_ELT(names, 9, mkChar("confidenceIntervalCodes"));
+	SET_STRING_ELT(names, 10, mkChar("calculatedHessian"));
+	SET_STRING_ELT(names, 11, mkChar("standardErrors"));
 
 	SET_VECTOR_ELT(ans, 0, minimum);
 	SET_VECTOR_ELT(ans, 1, estimate);
@@ -836,20 +883,25 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, matrices);
 	SET_VECTOR_ELT(ans, 7, algebras);
-	if(limits == NULL) {
+	if(currentState->numIntervals == 0) {
 		SET_VECTOR_ELT(ans, 8, NAmat);
 	} else {
 		SET_VECTOR_ELT(ans, 8, intervals);
 	}
-	if(numHessians == 0) {
+	if(currentState->numIntervals == 0) {
 		SET_VECTOR_ELT(ans, 9, NAmat);
 	} else {
-		SET_VECTOR_ELT(ans, 9, calculatedHessian);
+		SET_VECTOR_ELT(ans, 9, intervalCodes);
 	}
-	if(!calculateStdErrors) {
+	if(numHessians == 0) {
 		SET_VECTOR_ELT(ans, 10, NAmat);
 	} else {
-		SET_VECTOR_ELT(ans, 10, stdErrors);
+		SET_VECTOR_ELT(ans, 10, calculatedHessian);
+	}
+	if(!calculateStdErrors) {
+		SET_VECTOR_ELT(ans, 11, NAmat);
+	} else {
+		SET_VECTOR_ELT(ans, 11, stdErrors);
 	}
 	namesgets(ans, names);
 
@@ -1020,13 +1072,20 @@ SEXP getVar(SEXP str, SEXP env) {
 
 void F77_SUB(limitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
+		
+		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", currentState->currentInterval, (currentState->intervalList[currentState->currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxOptimizerState* oos = currentState->optimizerState;
+		omxConfidenceInterval *oCI = &(currentState->intervalList[currentState->currentInterval]);
 
-		double diff = oos->offset - *f;
-		*f = diff * diff - oos->alpha * x[oos->currentParameter];
+		if(oCI->calcLower) {
+			double diff = oCI->lbound - *f;											// Offset - likelihood
+			*f = diff * diff + omxMatrixElement(oCI->matrix, oCI->row, oCI->col);	// Minimize element, too.
+		} else {
+			double diff = oCI->ubound - *f;											// Offset - likelihood
+			*f = diff * diff - omxMatrixElement(oCI->matrix, oCI->row, oCI->col);	// Maximize element, too.
+		}
 }
 
 

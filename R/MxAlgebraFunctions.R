@@ -157,7 +157,7 @@ eigenvec <- function(x) {
         omxLookupSymbolTable("eigenvec"), 
         NA)
         
-    return(as.matrix(as.numeric(retval)))
+    return(as.matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
 
 ieigenvec <- function(x) {
@@ -171,7 +171,7 @@ ieigenvec <- function(x) {
         omxLookupSymbolTable("ieigenvec"), 
         NA)
         
-    return(as.matrix(as.numeric(retval)))
+    return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
 
 eigenval <- function(x) {
@@ -185,7 +185,7 @@ eigenval <- function(x) {
         omxLookupSymbolTable("eigenval"), 
         NA)
 
-    return(as.matrix(as.numeric(retval)))
+    return(matrix(as.numeric(retval)))
 }
 
 ieigenval <- function(x) {
@@ -199,5 +199,5 @@ ieigenval <- function(x) {
         omxLookupSymbolTable("ieigenval"), 
         NA)
         
-    return(as.matrix(as.numeric(retval)))
+    return(matrix(as.numeric(retval)))
 }

@@ -481,6 +481,7 @@ void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	for(int row = 0; row < rowIndexLength; row++) {
 		for(int col = 0; col < colIndexLength; col++) {
+			if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Extract: (%d, %d)[%d, %d] <- (%d, %d)[%d,%d].\n", result->rows, result->cols, row, col, rowIndexLength, colIndexLength, rowIndices[row], colIndices[col]);}
 			double element = omxMatrixElement(inMat, rowIndices[row], colIndices[col]);
 			omxSetMatrixElement(result, row, col, element);
 		}
@@ -701,12 +702,12 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 	for(int j = 0; j < inMat->rows; j++) {
 		float thisElement = omxMatrixElement(inMat, j, j);
-		if(abs(min) > abs(thisElement)) min = thisElement;
-		if(abs(max) < abs(thisElement)) max = thisElement;
+		if(fabs(min) > fabs(thisElement)) min = thisElement;
+		if(fabs(max) < fabs(thisElement)) max = thisElement;
 		trace += omxMatrixElement(inMat, j, j);
 	}
 
-	if(abs(max/min) > 10E10) {
+	if(fabs(max/min) > 10E10) {
 		// TODO: Warn or sort-and-sum if numerical instability shows up.
 		// char errstr[250];
 		// sprintf(errstr, "Matrix trace() may be numerically unstable.\n");
@@ -1500,6 +1501,64 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
+int omxCompareDoubleHelper(const void* one, const void* two) {
+	double diff = *(double*) two - *(double*) one;
+	if(diff > EPSILON) {
+		return 1;
+	} else if(diff < -EPSILON) {
+		return -1;
+	} else return 0;
+}
+
+
+int omxComparePointerContentsHelper(const void* one, const void* two) {
+	double diff = (*(*(double**) two)) - (*(*(double**) one));
+	if(diff > EPSILON) {
+		return 1;
+	} else if(diff < -EPSILON) {
+		return -1;
+	} else return 0;
+}
+
+void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
+	/* Sorts the columns of a matrix or the rows of a column vector 
+					in decreasing order of the elements of sortOrder. */
+
+	if(OMX_DEBUG) {Rprintf("SortHelper:Original is (%d x %d), result is (%d x %d).\n", original->rows, original->cols, result->rows, result->cols);}
+	
+	if(!result->colMajor || !original->colMajor 
+		|| result->cols != original->cols || result->rows != original->rows) {
+		char *errstr = Calloc(250, char);
+		sprintf(errstr, "Incorrect input to omxRowSortHelper: %d %d %d %d", result->cols, original->cols, result->rows, original->rows);
+		omxRaiseError(result->currentState, -1, errstr);
+		Free(errstr);
+	}
+	
+	double* sortArray[original->rows];
+	int numElements = original->cols;
+	int numRows = original->rows;
+	
+	if(numElements == 1)  numElements = numRows;		// Special case for column vectors
+	
+	for(int i = 0; i < numElements; i++) {
+		sortArray[i] = sortOrder + i;
+	}
+	
+	mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper);
+	
+	if(OMX_DEBUG) {Rprintf("Original is (%d x %d), result is (%d x %d).\n", original->rows, original->cols, result->rows, result->cols);}
+	
+	
+	for(int i = 0; i < numElements; i++) {
+		if(original->cols == 1) {
+			omxSetMatrixElement(result, i, 0, omxMatrixElement(original, (sortArray[i] - sortOrder), 0));
+		} else {
+			memcpy(omxLocationOfMatrixElement(result, 0, i), omxLocationOfMatrixElement(original, 0, sortArray[i]-sortOrder), numRows * sizeof(double));
+		}
+	}
+	
+	return;
+}
 
 void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	
@@ -1507,44 +1566,39 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(A, matList[0]);				// FIXME: Much memory badness here.
+	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxCopyMatrix(B, matList[0]);				// FIXME: Much memory badness here.
+	omxResizeMatrix(A, B->rows, 1, FALSE);
 	
-	if(A == NULL) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Null matrix pointer detected.\n");
-		free(errstr);
-	}
-
 	/* Conformability Check! */
-	if(A->cols != A->rows) {
+	if(B->cols != B->rows) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
-		omxRaiseError(result->currentState, -1, errstr);
+		omxRaiseError(B->currentState, -1, errstr);
 		free(errstr);
 	}
+	
+	if(result->rows != B->rows || result->cols != 1) 
+		omxResizeMatrix(result, B->rows, 1, FALSE);
 	
 	char N = 'N';						// Indicators for BLAS
 	// char V = 'V';						// Indicators for BLAS
 	
 	int One = 1;
-	int lwork = 10*A->rows;
+	int lwork = 10*B->rows;
 	
-	double WI[A->cols];					// Unreported parts
-	// double VR[A->rows * A->cols];		// Unreported parts
+	double WI[B->cols];					// Unreported parts
 	double work[lwork];					// Storage space
 	int info;
-
-	if(result->rows != A->rows || result->cols != 1)
-		omxResizeMatrix(result, A->rows, 1, FALSE);
 
 	/* For debugging */
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(result, "NewMatrix");
-		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d\n", N, N, (A->rows), A->data, (A->leading), result->data, WI, NULL, One, NULL, One, work, &lwork, &info);
+		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d\n", N, N, (result->rows), result->data, (result->leading), A->data, WI, NULL, One, NULL, One, work, &lwork, &info);
 	}
 
 	/* The call itself */
-	F77_CALL(dgeev)(&N, &N, &(A->rows), A->data, &(A->leading), result->data, WI, NULL, &One, NULL, &One, work, &lwork, &info);
+	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), A->data, WI, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
@@ -1555,8 +1609,25 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
+	
 	result->colMajor = TRUE;
+	
+	// Calculate Eigenvalue modulus.
+	for(int i = 0; i < A->rows; i++) {
+		double value = omxMatrixElement(A, i, 0);
+		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] > EPSILON)
+			value = sqrt(WI[i]*WI[i] + value*value);				// Sort by eigenvalue modulus
+			WI[i] = value;
+			WI[++i] = value;										// Conjugate pair.
+		} else {
+			WI[i] = fabs(value); 									// Modulus of a real is its absolute value
+		}
+	}
+	
+	omxSortHelper(WI, A, result);
+		
 	omxFreeMatrixData(A);			// FIXME: Memory Badness here
+	omxFreeMatrixData(B);			// FIXME: Memory Badness here
 	omxMatrixCompute(result);
 
 }
@@ -1565,7 +1636,9 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(A, matList[0]);				// FIXME: Much memory badness here.
+	omxCopyMatrix(result, matList[0]);				// FIXME: Much memory badness here.
+	omxResizeMatrix(A, result->rows, result->cols, FALSE);
+	
 
 	if(A == NULL) {
 		char *errstr = calloc(250, sizeof(char));
@@ -1593,17 +1666,15 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	double work[lwork];					// Storage space
 	int info;
 
-	if(result->rows != A->rows || result->cols != A->cols)
-		omxResizeMatrix(result, A->rows, A->cols, FALSE);
 
 	/* For debugging */
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(result, "NewMatrix");
-		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %x, %d, %x, %d, %d, %d\n", N, V, (A->rows), A->data, (A->leading), WR, WI, NULL, result->data, &(result->leading), work, lwork, info);
+		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %x, %d, %x, %d, %d, %d\n", N, V, (result->rows), result->data, (result->leading), WR, WI, NULL, A->data, &(A->leading), work, lwork, info);
 	}
 
 	/* The call itself */
-	F77_CALL(dgeev)(&N, &V, &(A->rows), A->data, &(A->leading), WR, WI, NULL, &One, result->data, &(result->leading), work, &lwork, &info);
+	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
@@ -1616,16 +1687,23 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 	
 	// Filter real and imaginary eigenvectors.  Real ones have no WI.
-	for(int i = 0; i < result->rows; i++) {
-		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] < EPSILON)
-			for(int j = 0; j < result->cols; j++) {
-				result->data[(i+1)*result->rows + j] = result->data[i*result->rows + j];
-			}
+	for(int i = 0; i < A->cols; i++) {
+		if(fabs(WI[i]) > EPSILON) {									// If this is part of a conjugate pair
+			memcpy(omxLocationOfMatrixElement(A, 0, i+1), omxLocationOfMatrixElement(A, 0, i), A->rows * sizeof(double));
+				// ^^ This is column-major, so we can clobber columns over one another.
+			WR[i] = sqrt(WR[i] *WR[i] + WI[i]*WI[i]);				// Sort by eigenvalue modulus
+			WR[i+1] = WR[i];										// Identical--conjugate pair
 			i++; 	// Skip the next one; we know it's the conjugate pair.
+		} else {
+			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
 		}
 	}
 	
 	result->colMajor = TRUE;
+	
+	// Sort results
+	omxSortHelper(WR, A, result);
+
 	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
 	omxMatrixCompute(result);
 	
@@ -1636,44 +1714,40 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(A, matList[0]);				// FIXME: Potential memory badness here.
-
-	if(A == NULL) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Null matrix pointer detected.\n");
-		free(errstr);
-	}
+	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxCopyMatrix(B, matList[0]);				// FIXME: Potential memory badness here.
+	omxResizeMatrix(A, B->rows, 1, FALSE);
 
 	/* Conformability Check! */
-	if(A->cols != A->rows) {
+	if(B->cols != B->rows) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
 	
+	if(result->cols != 1 || result->rows != A->rows) 
+		omxResizeMatrix(result, B->rows, 1, FALSE);
+		
 	char N = 'N';						// Indicators for BLAS
 	char V = 'V';						// Indicators for BLAS
 	
 	int One = 1;
-	int lwork = 10*A->rows;
+	int lwork = 10*B->rows;
 	
-	double WR[A->cols];					// Unreported parts
-	double VR[A->rows * A->cols];		// Unreported parts
+	double WR[B->cols];					// Unreported parts
+	double VR[B->rows * B->cols];		// Unreported parts
 	double work[lwork];					// Storage space
 	int info;
-
-	if(result->rows != A->rows || result->cols != 1)
-		omxResizeMatrix(result, A->rows, 1, FALSE);
 
 	/* For debugging */
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(result, "NewMatrix");
-		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d\n", N, V, A->data, (A->rows), result->data, NULL, NULL, One, VR, (A->rows), work, lwork, info);
+		Rprintf("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d\n", N, V, B->data, (B->rows), A->data, WR, NULL, One, VR, (A->rows), work, lwork, info);
 	}
 
 	/* The call itself */
-	F77_CALL(dgeev)(&N, &N, &(A->rows), A->data, &(A->leading), WR, result->data, NULL, &One, NULL, &One, work, &lwork, &info);
+	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), WR, A->data, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
@@ -1684,7 +1758,25 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
+
+	// Calculate Eigenvalue modulus.
+	for(int i = 0; i < result->rows; i++) {
+		double value = omxMatrixElement(A, i, 0);					// A[i] is the ith imaginary eigenvalue
+		value *= value;												// Squared imaginary part
+		if(value > EPSILON) {
+			value = sqrt(WR[i] *WR[i] + value);				// Sort by eigenvalue modulus
+			WR[i] = value;
+			WR[++i] = value;										// Conjugate pair.
+		} else {
+			WR[i] = fabs(WR[i]);
+		}
+	}
+
 	result->colMajor = TRUE;
+	
+	// Sort results
+	omxSortHelper(WR, A, result);
+	
 	omxFreeMatrixData(A);				//FIXME: Potential Memory badness here.
 	omxMatrixCompute(result);
 
@@ -1694,13 +1786,8 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(A, matList[0]);				// FIXME: Potential Much memory badness here.
-
-	if(A == NULL) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Null matrix pointer detected.\n");
-		free(errstr);
-	}
+	omxCopyMatrix(result, matList[0]);				// FIXME: Potential Much memory badness here.
+	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
 	/* Conformability Check! */
 	if(A->cols != A->rows) {
@@ -1731,7 +1818,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	}
 
 	/* The call itself */
-	F77_CALL(dgeev)(&N, &V, &(A->rows), A->data, &(A->leading), WR, WI, NULL, &One, result->data, &(result->leading), work, &lwork, &info);
+	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
@@ -1744,22 +1831,31 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	}
 	
 	// Filter real and imaginary eigenvectors.  Imaginary ones have a WI.
-	for(int i = 0; i < result->rows; i++) {
+	for(int i = 0; i < result->cols; i++) {
 		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] > EPSILON)
-			for(int j = 0; j < result->cols; j++) {
-				result->data[(i)*result->rows + j] = result->data[(i+1)*result->rows + j];  // Conjugate pair.
-				result->data[(i+1)*result->rows + j] = -result->data[(i+1)*result->rows + j];  // List positive first.
+			// memcpy(omxLocationOfMatrixElement(A, 0, i), omxLocationOfMatrixElement(A, 0, i+1), A->rows * sizeof(double));
+			for(int j = 0; j < result->rows; j++) {
+				double value = omxMatrixElement(A, j, i+1);			// Conjugate pair
+				omxSetMatrixElement(A, j, i, value);				// Positive first,
+				omxSetMatrixElement(A, j, i+1, -value);				// Negative second
 			}
+			WR[i] = sqrt(WR[i] *WR[i] + WI[i]*WI[i]);				// Sort by eigenvalue modulus
+			WR[i+1] = WR[i];										// Identical--conjugate pair
 			i++; 	// Skip the next one; we know it's the conjugate pair.
 		} else {						// If it's not imaginary, it's zero.
-			for(int j = 0; j < result->cols; j++) {
-				result->data[(i)*result->rows + j] = 0.0;
+			for(int j = 0; j < A->rows; j++) {
+				omxSetMatrixElement(A, j, i, 0.0);
 			}
+			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
+			
 		}
 	}
+
+	result->colMajor = TRUE;
+	
+	omxSortHelper(WR, A, result);
 	
 	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
-	result->colMajor = TRUE;
 	omxMatrixCompute(result);
 	
 }

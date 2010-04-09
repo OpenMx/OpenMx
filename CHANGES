@@ -14,6 +14,7 @@ trunk
 * new signature for omxSetParameters(model, labels, free, values, lbound, ubound, indep)
 * improving error messages in mxMatrix() function
 * added R documentation for rvectorize() and cvectorize()
+* implemented eigenvalues and eigenvectors
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================
