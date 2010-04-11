@@ -29,6 +29,7 @@
 
 #include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
+#include "merge.h"
 
 /* Helper Functions */
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
@@ -1105,7 +1106,7 @@ void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) {
 		Rprintf("Row Vectorize %s.\n", result->algebra->name);
 	}
-	
+
 	omxMatrix *inMat = matList[0];
 
 	int size = (inMat->rows * inMat->cols);
@@ -1521,34 +1522,34 @@ int omxComparePointerContentsHelper(const void* one, const void* two) {
 }
 
 void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
-	/* Sorts the columns of a matrix or the rows of a column vector 
+	/* Sorts the columns of a matrix or the rows of a column vector
 					in decreasing order of the elements of sortOrder. */
 
 	if(OMX_DEBUG) {Rprintf("SortHelper:Original is (%d x %d), result is (%d x %d).\n", original->rows, original->cols, result->rows, result->cols);}
-	
-	if(!result->colMajor || !original->colMajor 
+
+	if(!result->colMajor || !original->colMajor
 		|| result->cols != original->cols || result->rows != original->rows) {
 		char *errstr = Calloc(250, char);
 		sprintf(errstr, "Incorrect input to omxRowSortHelper: %d %d %d %d", result->cols, original->cols, result->rows, original->rows);
 		omxRaiseError(result->currentState, -1, errstr);
 		Free(errstr);
 	}
-	
+
 	double* sortArray[original->rows];
 	int numElements = original->cols;
 	int numRows = original->rows;
-	
+
 	if(numElements == 1)  numElements = numRows;		// Special case for column vectors
-	
+
 	for(int i = 0; i < numElements; i++) {
 		sortArray[i] = sortOrder + i;
 	}
-	
-	mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper);
-	
+
+	freebsd_mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper);
+
 	if(OMX_DEBUG) {Rprintf("Original is (%d x %d), result is (%d x %d).\n", original->rows, original->cols, result->rows, result->cols);}
-	
-	
+
+
 	for(int i = 0; i < numElements; i++) {
 		if(original->cols == 1) {
 			omxSetMatrixElement(result, i, 0, omxMatrixElement(original, (sortArray[i] - sortOrder), 0));
@@ -1556,20 +1557,20 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 			memcpy(omxLocationOfMatrixElement(result, 0, i), omxLocationOfMatrixElement(original, 0, sortArray[i]-sortOrder), numRows * sizeof(double));
 		}
 	}
-	
+
 	return;
 }
 
 void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
-	
-	
+
+
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);				// FIXME: Much memory badness here.
 	omxResizeMatrix(A, B->rows, 1, FALSE);
-	
+
 	/* Conformability Check! */
 	if(B->cols != B->rows) {
 		char *errstr = calloc(250, sizeof(char));
@@ -1577,16 +1578,16 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxRaiseError(B->currentState, -1, errstr);
 		free(errstr);
 	}
-	
-	if(result->rows != B->rows || result->cols != 1) 
+
+	if(result->rows != B->rows || result->cols != 1)
 		omxResizeMatrix(result, B->rows, 1, FALSE);
-	
+
 	char N = 'N';						// Indicators for BLAS
 	// char V = 'V';						// Indicators for BLAS
-	
+
 	int One = 1;
 	int lwork = 10*B->rows;
-	
+
 	double WI[B->cols];					// Unreported parts
 	double work[lwork];					// Storage space
 	int info;
@@ -1604,14 +1605,14 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
 		if(info > 0)
 			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
-		else 
+		else
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
+
 	result->colMajor = TRUE;
-	
+
 	// Calculate Eigenvalue modulus.
 	for(int i = 0; i < A->rows; i++) {
 		double value = omxMatrixElement(A, i, 0);
@@ -1623,22 +1624,22 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			WI[i] = fabs(value); 									// Modulus of a real is its absolute value
 		}
 	}
-	
+
 	omxSortHelper(WI, A, result);
-		
+
 	omxFreeMatrixData(A);			// FIXME: Memory Badness here
 	omxFreeMatrixData(B);			// FIXME: Memory Badness here
 	omxMatrixCompute(result);
 
 }
-	
+
 void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);				// FIXME: Much memory badness here.
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
-	
+
 
 	if(A == NULL) {
 		char *errstr = calloc(250, sizeof(char));
@@ -1653,13 +1654,13 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
+
 	char N = 'N';						// Indicators for BLAS
 	char V = 'V';						// Indicators for BLAS
-	
+
 	int One = 1;
 	int lwork = 10*A->rows;
-	
+
 	double WR[A->cols];					// Unreported parts
 	double WI[A->cols];					// Unreported parts
 	// double VR[A->rows * A->cols];		// Unreported parts
@@ -1680,12 +1681,12 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
 		if(info > 0)
 			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
-		else 
+		else
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
+
 	// Filter real and imaginary eigenvectors.  Real ones have no WI.
 	for(int i = 0; i < A->cols; i++) {
 		if(fabs(WI[i]) > EPSILON) {									// If this is part of a conjugate pair
@@ -1698,15 +1699,15 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
 		}
 	}
-	
+
 	result->colMajor = TRUE;
-	
+
 	// Sort results
 	omxSortHelper(WR, A, result);
 
 	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
 	omxMatrixCompute(result);
-	
+
 }
 
 void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
@@ -1725,16 +1726,16 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
-	if(result->cols != 1 || result->rows != A->rows) 
+
+	if(result->cols != 1 || result->rows != A->rows)
 		omxResizeMatrix(result, B->rows, 1, FALSE);
-		
+
 	char N = 'N';						// Indicators for BLAS
 	char V = 'V';						// Indicators for BLAS
-	
+
 	int One = 1;
 	int lwork = 10*B->rows;
-	
+
 	double WR[B->cols];					// Unreported parts
 	double VR[B->rows * B->cols];		// Unreported parts
 	double work[lwork];					// Storage space
@@ -1753,7 +1754,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
 		if(info > 0)
 			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
-		else 
+		else
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
@@ -1773,15 +1774,15 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	}
 
 	result->colMajor = TRUE;
-	
+
 	// Sort results
 	omxSortHelper(WR, A, result);
-	
+
 	omxFreeMatrixData(A);				//FIXME: Potential Memory badness here.
 	omxMatrixCompute(result);
 
 }
-	
+
 void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
@@ -1796,13 +1797,13 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
+
 	char N = 'N';						// Indicators for BLAS
 	char V = 'V';						// Indicators for BLAS
-	
+
 	int One = 1;
 	int lwork = 10*A->rows;
-	
+
 	double WR[A->cols];					// Unreported parts
 	double WI[A->cols];					// Unreported parts
 	double work[lwork];					// Storage space
@@ -1810,7 +1811,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 
 	if(result->rows != A->rows || result->cols != A->cols)
 		omxResizeMatrix(result, A->rows, A->cols, FALSE);
-		
+
 	/* For debugging */
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(result, "NewMatrix");
@@ -1824,12 +1825,12 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
 		if(info > 0)
 			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
-		else 
+		else
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
-	
+
 	// Filter real and imaginary eigenvectors.  Imaginary ones have a WI.
 	for(int i = 0; i < result->cols; i++) {
 		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] > EPSILON)
@@ -1847,15 +1848,15 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 				omxSetMatrixElement(A, j, i, 0.0);
 			}
 			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
-			
+
 		}
 	}
 
 	result->colMajor = TRUE;
-	
+
 	omxSortHelper(WR, A, result);
-	
+
 	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
 	omxMatrixCompute(result);
-	
+
 }
