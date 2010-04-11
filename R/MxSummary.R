@@ -197,14 +197,13 @@ computeOptimizationStatistics <- function(model, useSubmodels, retval) {
 }
 
 print.summary.mxmodel <- function(x,...) {
-	if (!is.null(x$dataSummary)) {
+	if (length(x$dataSummary) > 0) {
 		print(x$dataSummary)
-		cat('\n')
 	}
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
 	}
-	if (!is.null(x$parameters)) {
+	if (length(x$parameters) > 0) {
 		print(x$parameters)
 		cat('\n')
 	}
@@ -265,9 +264,22 @@ setNumberObservations <- function(numObs, datalist, retval) {
 	return(retval)
 }
 
+summarizeDataObject <- function(dataObject) {
+	if (dataObject@type != "raw") {
+		result <- list()
+		result[[dataObject@type]] <- dataObject@observed
+		if (!single.na(dataObject@means)) {
+			result[['means']] <- dataObject@means
+		}
+		return(result)
+	} else {
+		return(summary(dataObject@observed))
+	}
+}
+
 generateDataSummary <- function(model, useSubmodels) {
 	datalist <- model@runstate$datalist
-	retval <- lapply(datalist, function(x) { summary(x@observed) })
+	retval <- lapply(datalist, summarizeDataObject)
 	if (useSubmodels && length(model@runstate$independents) > 0) {
 		submodelSummary <- lapply(model@runstate$independents, generateDataSummary, FALSE)
 		names(submodelSummary) <- NULL

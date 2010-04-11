@@ -19,6 +19,9 @@
 # There would also be a performance penalty associated with a 
 # recursive call to mxEval().
 mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
+	if (missing(model)) {
+		stop("'model' argument is mandatory in call to mxEval function")
+	}
 	model <- convertSquareBracketLabels(model)
 	inputExpression <- match.call()$expression
 	labelsData <- omxGenerateLabels(model)
