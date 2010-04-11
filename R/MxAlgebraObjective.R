@@ -16,15 +16,16 @@
 
 setClass(Class = "MxAlgebraObjective",
 	representation = representation(
-		algebra = "MxCharOrNumber"),
+		algebra = "MxCharOrNumber",
+		numObs = "numeric"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxAlgebraObjective",
-	function(.Object, algebra, 
-		data = as.integer(NA), name = 'objective') {
+	function(.Object, algebra, numObs, name = 'objective') {
 		.Object@name <- name
 		.Object@algebra <- algebra
-		.Object@data <- data
+		.Object@numObs <- numObs
+		.Object@data <- as.integer(NA)
 		return(.Object)
 	}
 )
@@ -64,16 +65,20 @@ setMethod("genericObjRename", signature("MxAlgebraObjective"),
 		return(.Object)
 })
 
-mxAlgebraObjective <- function(algebra) {
+mxAlgebraObjective <- function(algebra, numObs = NA) {
 	if (missing(algebra) || typeof(algebra) != "character") {
 		stop("Algebra argument is not a string (the name of the algebra)")
 	}
-	return(new("MxAlgebraObjective", algebra))
+	if (single.na(numObs)) {
+		numObs <- as.numeric(NA)
+	}
+	return(new("MxAlgebraObjective", algebra, numObs))
 }
 
 displayAlgebraObjective <- function(objective) {
 	cat("MxAlgebraObjective", omxQuotes(objective@name), '\n')
-	cat("@algebra\n", omxQuotes(objective@algebra), '\n')
+	cat("@algebra: ", omxQuotes(objective@algebra), '\n')
+	cat("@numObs: ", objective@numObs, '\n')
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")
 	} else {

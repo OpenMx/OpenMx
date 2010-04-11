@@ -99,9 +99,18 @@ observedStatistics <- function(model, useSubmodels, constraintOffset) {
 	return(retval)
 }
 
-numberObservations <- function(datalist) {
-	obs <- sapply(datalist, function(x) { x@numObs })
-	return(sum(as.numeric(obs)))
+objectiveNumberObservations <- function(objective) {
+	if (("numObs" %in% slotNames(objective)) && !single.na(objective@numObs)) {
+		return(objective@numObs)
+	} else {
+		return(0)
+	}
+}
+
+numberObservations <- function(datalist, objectives) {
+	dataObservations <- sapply(datalist, slot, name = "numObs")
+	objectiveObservations <- sapply(objectives, objectiveNumberObservations)
+	return(sum(as.numeric(dataObservations), as.numeric(objectiveObservations)))
 }
 
 computeFValue <- function(datalist, likelihood, chi) {
@@ -207,7 +216,7 @@ print.summary.mxmodel <- function(x,...) {
 		print(x$parameters)
 		cat('\n')
 	}
-	cat("Observed statistics: ", x$observedStatistics, '\n')
+	cat("observed statistics: ", x$observedStatistics, '\n')
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
 		for(i in 1:length(constraints)) {
@@ -218,12 +227,12 @@ print.summary.mxmodel <- function(x,...) {
 				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
 		}
 	}
-	cat("Estimated parameters: ", x$estimatedParameters, '\n')
-	cat("Degrees of freedom: ", x$degreesOfFreedom, '\n')
+	cat("estimated parameters: ", x$estimatedParameters, '\n')
+	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
-	cat("Saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
-	cat("numObs: ", x$numObs, '\n')
-	cat("Chi-Square: ", x$Chi, '\n')
+	cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
+	cat("number of observations: ", x$numObs, '\n')
+	cat("chi-square: ", x$Chi, '\n')
 	cat("p: ", x$p, '\n')
 	cat("AIC (Mx): ", x$AIC.Mx, '\n')
 	cat("BIC (Mx): ", x$BIC.Mx, '\n')
@@ -255,9 +264,9 @@ setLikelihoods <- function(model, saturatedLikelihood, retval) {
 	return(retval)
 }
 
-setNumberObservations <- function(numObs, datalist, retval) {
+setNumberObservations <- function(numObs, datalist, objectives, retval) {
 	if(is.null(numObs)) {
-		retval$numObs <- numberObservations(datalist)
+		retval$numObs <- numberObservations(datalist, objectives)
 	} else {
 		retval$numObs <- numObs
 	}
@@ -299,7 +308,7 @@ setMethod("summary", "MxModel",
 		retval <- list()
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- setLikelihoods(model, saturatedLikelihood, retval)
-		retval <- setNumberObservations(numObs, model@runstate$datalist, retval)
+		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
 		retval <- computeOptimizationStatistics(model, useSubmodels, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
 

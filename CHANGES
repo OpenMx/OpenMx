@@ -16,6 +16,7 @@ trunk
 * added R documentation for rvectorize() and cvectorize()
 * implemented eigenvalues and eigenvectors
 * checked in implementation of mergesort
+* added 'numObs' argument to mxAlgebraObjective()
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================
