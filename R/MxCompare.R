@@ -13,49 +13,48 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxCompare <- function(model, ..., digits = 3) {
-	if(missing(model) || !is(model, "MxModel")) {
-		stop("'model' argument be be a MxModel object")
+mxCompare <- function(base, comparison, digits = 3) {
+	if (missing(base)) {
+		stop("'base' argument be a MxModel object or list of MxModel objects")	
 	}
-	otherModels <- list(...)
-	otherModels <- unlist(otherModels)
-	if(!all(sapply(otherModels, is, "MxModel"))) {
-		stop("The '...' arguments must all be MxModel objects")
+	if (missing(comparison)) {
+		stop("'comparison' argument be a MxModel object or list of MxModel objects")	
 	}
-	resultsTable <- showFitStatistics(model, otherModels, digits)
-	rownames(resultsTable) <- sapply(1:nrow(resultsTable), compareGenerateName)
+	if (length(digits) != 1 || is.numeric(digits) == FALSE || is.na(digits) == TRUE) {
+		stop("'digits' argument must be a numeric value")
+	}
+	if (is.list(base)) {
+		base <- unlist(base)
+	} else {
+		base <- list(base)
+	}
+	if (is.list(comparison)) {
+		comparison <- unlist(comparison)
+	} else {
+		comparison <- list(comparison)
+	}
+	if(!all(sapply(base, is, "MxModel"))) {
+		stop("The 'base' argument must consist of MxModel objects")
+	}
+	if(!all(sapply(comparison, is, "MxModel"))) {
+		stop("The 'comparison' argument must consist of MxModel objects")
+	}
+	baseSummaries <- omxLapply(base, summary)	
+	compareSummaries <- omxLapply(comparison, summary)
+	resultsTable <- showFitStatistics(baseSummaries, compareSummaries, digits)
 	return(resultsTable)
 }
 
-showFitStatistics <- function(reference, otherModels, digits) {
-	refSummary <- summary(reference)
-	base <- collectBaseStatistics(refSummary, reference@name, digits)
-	if (length(otherModels) == 0) {
-		return(base)
-	} else {
-		base <- cbind(base, "diffLL" = NA, "diffdf" = NA, "p" = NA)
-		others <- lapply(otherModels, collectOtherStatistics, refSummary, digits)
-		others <- do.call(rbind, others)
-		retval <- rbind(base, others)
-		return(retval)
-	}
+showFitStatistics <- function(baseSummaries, compareSummaries, digits) {
+	statistics <- mapply(collectStatistics, baseSummaries, compareSummaries, digits)
+	statistics <- data.frame(t(statistics))
+	return(statistics)
 }
 
-collectBaseStatistics <- function(refSummary, refName, digits) {
-	stats <- data.frame(
-			refName,
-			refSummary$estimatedParameters,
-			signif(refSummary$Minus2LogLikelihood, digits),
-			refSummary$degreesOfFreedom,
-			signif(refSummary$AIC.Mx, digits))
-	names(stats) <- c("Name","ep","-2LL", "df", "AIC")
-	return(stats)
-}
-
-collectOtherStatistics <- function(otherModel, refSummary, digits) {
-	otherSummary <- summary(otherModel)
-	otherStats <- data.frame(
-		otherModel@name, 
+collectStatistics <- function(refSummary, otherSummary, digits) {
+	otherStats <- data.frame(stringsAsFactors = FALSE,
+		refSummary$modelName,
+		otherSummary$modelName,
 		otherSummary$estimatedParameters,
 		signif(otherSummary$Minus2LogLikelihood, digits),
 		otherSummary$degreesOfFreedom,
@@ -64,11 +63,6 @@ collectOtherStatistics <- function(otherModel, refSummary, digits) {
 		otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, 
 		signif(pchisq(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
 			otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, lower.tail=FALSE), digits))
-	names(otherStats) <- c("Name","ep","-2LL", "df", "AIC","diffLL","diffdf","p")
+	names(otherStats) <- c("base", "comparison", "ep", "minus2LL", "df", "AIC", "diffLL", "diffdf", "p")
 	return(otherStats)
-}
-
-
-compareGenerateName <- function(index) {
-	paste("Model", index, ":")
 }

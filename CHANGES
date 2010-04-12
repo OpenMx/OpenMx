@@ -17,6 +17,7 @@ trunk
 * implemented eigenvalues and eigenvectors
 * checked in implementation of mergesort
 * added 'numObs' argument to mxAlgebraObjective()
+* changed mxCompare() signature to mxCompare(base, comparison, digits = 3)
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================
