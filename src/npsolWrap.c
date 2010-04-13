@@ -637,7 +637,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
 	PROTECT(intervals = allocMatrix(REALSXP, currentState->numIntervals, 2)); // for optimizer
 	PROTECT(intervalCodes = allocMatrix(INTSXP, currentState->numIntervals, 2)); // for optimizer
-	PROTECT(NAmat = allocMatrix(REALSXP, 1,1)); // In case of missingness
+	PROTECT(NAmat = allocMatrix(REALSXP, 1, 1)); // In case of missingness
 	REAL(NAmat)[0] = R_NaReal;
 
 	/* Store outputs for return */
@@ -720,16 +720,18 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+				currentCI->lCode = inform;
 				if(inform > 0) {
 					currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-					currentCI->lCode = inform;
 				} else {
 					currentCI->min = R_NaReal;
-					currentCI->lCode = inform;
-					Rprintf("Calculation of Lower Interval %d failed: Bad inform value of %d\n", i, inform);
+					if(OMX_DEBUG) {
+						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
+							i, inform);
+					}
 				}
 				
-				if(OMX_DEBUG) {Rprintf("Found Lower bound %d.  Seeking upper.\n", i);}
+				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
 				// TODO: Repopulate original optimizer state in between CI calculations
 
 				/* Find upper limit */
@@ -737,18 +739,23 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+				currentCI->uCode = inform;
 				if(inform > 0) {
 					currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-					currentCI->uCode = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 				} else {
 					currentCI->max = R_NaReal;
-					currentCI->uCode = inform;
-					Rprintf("Calculation of Upper Interval %d failed: Bad inform value of %d\n", i, inform);
+					if(OMX_DEBUG) {
+						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
+							i, inform);
+					}
 				}
 				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
-		} else {					// Improper code. No intervals calculated.  // TODO: Throw a warning, allow force()
+		} else {					// Improper code. No intervals calculated.  
+									// TODO: Throw a warning, allow force()
+			if(OMX_DEBUG) {
 				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
+			}
 		}
 	}
 
@@ -757,7 +764,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numMats; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
 		omxRecompute(currentState->matrixList[k]);
-		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows, currentState->matrixList[k]->cols));
+		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows, 
+			currentState->matrixList[k]->cols));
 		for(l = 0; l < currentState->matrixList[k]->rows; l++)
 			for(j = 0; j < currentState->matrixList[k]->cols; j++)
 				REAL(nextMat)[j * currentState->matrixList[k]->rows + l] =
@@ -770,7 +778,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numAlgs; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
 		omxRecompute(currentState->algebraList[k]);
-		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, currentState->algebraList[k]->cols));
+		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, 
+			currentState->algebraList[k]->cols));
 		for(l = 0; l < currentState->algebraList[k]->rows; l++)
 			for(j = 0; j < currentState->algebraList[k]->cols; j++)
 				REAL(algebra)[j * currentState->algebraList[k]->rows + l] =
@@ -851,10 +860,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(currentState->numIntervals) {	// Populate CIs
 		int numInts = currentState->numIntervals;
 		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
+		double* interval = REAL(intervals);
+		int* intervalCode = INTEGER(intervalCodes);
 		for(int j = 0; j < numInts; j++) {
 			omxConfidenceInterval *oCI = &(currentState->intervalList[j]);
-			double* interval = REAL(intervals);
-			int* intervalCode = INTEGER(intervalCodes);
 			interval[j] = oCI->min;
 			interval[j + numInts] = oCI->max;
 			intervalCode[j] = oCI->lCode;
@@ -883,16 +892,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, 5, iterations);
 	SET_VECTOR_ELT(ans, 6, matrices);
 	SET_VECTOR_ELT(ans, 7, algebras);
-	if(currentState->numIntervals == 0) {
-		SET_VECTOR_ELT(ans, 8, NAmat);
-	} else {
-		SET_VECTOR_ELT(ans, 8, intervals);
-	}
-	if(currentState->numIntervals == 0) {
-		SET_VECTOR_ELT(ans, 9, NAmat);
-	} else {
-		SET_VECTOR_ELT(ans, 9, intervalCodes);
-	}
+	SET_VECTOR_ELT(ans, 8, intervals);
+	SET_VECTOR_ELT(ans, 9, intervalCodes);
 	if(numHessians == 0) {
 		SET_VECTOR_ELT(ans, 10, NAmat);
 	} else {

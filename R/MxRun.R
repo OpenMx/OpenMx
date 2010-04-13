@@ -89,7 +89,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 	model <- undoDataShare(model, dataList)
 	model@output <- processOptimizerOutput(silent, flatModel,
 		names(matrices), names(algebras),
-		names(parameters), unsafe, output)
+		names(parameters), names(intervalList), unsafe, output)
 	model <- populateRunStateInformation(model, parameters, matrices, 
 		objectives, data, flatModel@constraints, independents, defVars)
 	frontendStop <- Sys.time()
@@ -100,7 +100,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 }
 
 processOptimizerOutput <- function(silent, flatModel, matrixNames, 
-		algebraNames, parameterNames, unsafe, output) {
+		algebraNames, parameterNames, intervalNames, unsafe, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
@@ -124,8 +124,22 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
 	}
+	if (length(output$confidenceIntervals) > 0) {
+		dimnames(output$confidenceIntervals) <- list(intervalNames, c('lbound', 'ubound'))
+		dimnames(output$confidenceIntervalCodes) <- list(intervalNames, c('lbound', 'ubound'))
+		lowerWarnings <- which(output$confidenceIntervalCodes[,1] > 0)
+		upperWarnings <- which(output$confidenceIntervalCodes[,2] > 0)
+		if (length(lowerWarnings) > 0 && !silent) {
+			intervalWarnings("lower", flatModel@name, lowerWarnings, 
+				output$confidenceIntervalCodes[,1], intervalNames)
+		}
+		if (length(upperWarnings) > 0 && !silent) {
+			intervalWarnings("upper", flatModel@name, upperWarnings, 
+				output$confidenceIntervalCodes[,2], intervalNames)
+		}
+	}
     if (output$status[[1]] > 0 && !silent) {
-    	npsolWarnings(flatModel@name, output$status[[1]])
+    	npsolWarnings(paste("In model", omxQuotes(flatModel@name)), output$status[[1]])
     } else if (output$status[[1]] < 0) {
     	if (unsafe) {
     		warning(paste("The job for model", omxQuotes(flatModel@name),
@@ -138,6 +152,16 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 	    }
     }
 	return(output)
+}
+
+intervalWarnings <- function(type, modelname, indices, codes, intervalNames) {
+	for(i in 1:length(indices)) {
+		npsolWarnings(
+			paste("In model", omxQuotes(modelname), 
+			"while computing the", type, "bound for", 
+			omxQuotes(intervalNames[[indices[[i]]]])),
+			codes[[i]])
+	}
 }
 
 populateRunStateInformation <- function(model, parameters, matrices, 
@@ -177,18 +201,18 @@ npsolMessages <- list('1' = paste('The final iterate satisfies',
 		'The problem has no feasible solution.'),
 		'3' = paste('The nonlinear constraints and bonuds could not be satisfied.',
 		'The problem may have no feasible solution.'),
-		'4' = 'The Major iteration limit was reached (Mx status BLUE).',
-		'6' = paste('model does not satisfy the first-order optimality conditions',
+		'4' = 'The major iteration limit was reached (Mx status BLUE).',
+		'6' = paste('The model does not satisfy the first-order optimality conditions',
 		'to the required accuracy, and no improved point for the',
 		'merit function could be found during the final linesearch (Mx status RED)'),
 		'7' = paste('The function derivates returned by funcon or funobj',
 		'appear to be incorrect.'),
 		'9' = 'An input parameter was invalid')
 
-npsolWarnings <- function(name, status) {
+npsolWarnings <- function(prefix, status) {
 	message <- npsolMessages[[as.character(status)]]
 	if(!is.null(message)) {
-		warning(paste("In model", omxQuotes(name), 
+		warning(paste(prefix, 
 			"NPSOL returned a non-zero status code", 
 			paste(status, '.', sep = ''), message), call. = FALSE)
 	}
