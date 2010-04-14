@@ -156,11 +156,12 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 
 intervalWarnings <- function(type, modelname, indices, codes, intervalNames) {
 	for(i in 1:length(indices)) {
+		index <- indices[[i]]
 		npsolWarnings(
 			paste("In model", omxQuotes(modelname), 
 			"while computing the", type, "bound for", 
-			omxQuotes(intervalNames[[indices[[i]]]])),
-			codes[[i]])
+			omxQuotes(intervalNames[[index]])),
+			codes[[index]])
 	}
 }
 
