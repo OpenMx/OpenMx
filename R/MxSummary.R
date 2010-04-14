@@ -41,6 +41,11 @@ calculateConstraintsHelper <- function(constraint, model) {
 }
 
 observedStatisticsHelper <- function(objective, datalist, historySet) {
+	if ('numStats' %in% slotNames(objective)) {
+		if (!is.na(objective@numStats)) {
+			return(list(objective@numStats, historySet))
+		}
+	}
 	if (is.na(objective@data)) {
 		return(list(0, historySet))
 	}
@@ -195,11 +200,15 @@ parameterListHelper <- function(model, modelName) {
 	return(ptable)
 }
 
-computeOptimizationStatistics <- function(model, useSubmodels, retval) {
+computeOptimizationStatistics <- function(model, numStats, useSubmodels, retval) {
 	estimates <- model@output$estimate
 	retval[['constraints']] <- calculateConstraints(model, useSubmodels)
 	retval[['estimatedParameters']] <- nrow(retval$parameters)
-	retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
+	if (is.null(numStats)) {
+		retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
+	} else {
+		retval[['observedStatistics']] <- numStats
+	}
 	retval[['degreesOfFreedom']] <- retval$observedStatistics - retval$estimatedParameters
 	retval <- fitStatistics(model, useSubmodels, retval)
 	return(retval)
@@ -303,13 +312,14 @@ setMethod("summary", "MxModel",
 		model <- object
 		saturatedLikelihood <- match.call()$SaturatedLikelihood
 		numObs <- match.call()$numObs
+		numStats <- match.call()$numStats
 		useSubmodels <- match.call()$indep
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list()
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- setLikelihoods(model, saturatedLikelihood, retval)
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
-		retval <- computeOptimizationStatistics(model, useSubmodels, retval)
+		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
 
 		if (!is.null(model@output$status)) {

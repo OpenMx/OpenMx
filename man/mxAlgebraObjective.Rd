@@ -8,12 +8,13 @@
 }
 
 \usage{
-mxAlgebraObjective(algebra, numObs = NA)
+mxAlgebraObjective(algebra, numObs = NA, numStats = NA)
 }
 
 \arguments{
    \item{algebra}{A character string indicating the name of an \link{MxAlgebra} or \link{MxMatrix} object to use for optimization.}
    \item{numObs}{(optional) An adjustment to the total number of observations in the model.}
+   \item{numStats}{(optional) An adjustment to the total number of observed statistics in the model.}
 }
 
 \details{
