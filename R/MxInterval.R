@@ -51,7 +51,7 @@ modelAddIntervals <- function(model, intervals) {
 	}
 	iNames <- names(intervals)
 	for(i in 1:length(intervals)) {
-		model@intervals[[iNames]] <- intervals[[i]]
+		model@intervals[[iNames[[i]]]] <- intervals[[i]]
 	}
 	return(model)
 }
@@ -62,7 +62,7 @@ modelRemoveIntervals <- function(model, intervals) {
 	}
 	iNames <- names(intervals)
 	for(i in 1:length(intervals)) {		
-		model@intervals[[iNames]] <- NULL
+		model@intervals[[iNames[[i]]]] <- NULL
 	}
 	return(model)
 }
