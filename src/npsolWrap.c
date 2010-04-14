@@ -395,8 +395,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, currentState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->lbound = (int) intervalInfo[3];
-		oCI->ubound = (int) intervalInfo[4];
+		oCI->lbound = intervalInfo[3];
+		oCI->ubound = intervalInfo[4];
 		UNPROTECT(1);
 		oCI->max = R_NaReal;					// NAs, in case something goes wrong
 		oCI->min = R_NaReal;
@@ -711,10 +711,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
 			currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
 			for(int i = 0; i < currentState->numIntervals; i++) {
+				
+				memcpy(x, currentState->optimalValues, n * sizeof(double)); // Reset to previous optimum
+				
 				currentState->currentInterval = i;
 				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
 				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
-				currentCI->ubound += currentState->optimum;			// COnvert from offsets to targets
+				currentCI->ubound += currentState->optimum;			// Convert from offsets to targets
 				/* Find lower limit */
 				currentCI->calcLower = TRUE;
 				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
@@ -722,13 +725,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 				currentCI->lCode = inform;
 				currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				if(inform > 0 && OMX_DEBUG) {
+				if(inform != 0 && OMX_DEBUG) {
 					Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
 						i, inform);
 				}
 				
 				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
 				// TODO: Repopulate original optimizer state in between CI calculations
+				
+				memcpy(x, currentState->optimalValues, n * sizeof(double));
 
 				/* Find upper limit */
 				currentCI->calcLower = FALSE;
@@ -737,7 +742,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 				currentCI->uCode = inform;
 				currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				if(inform > 0 && OMX_DEBUG) {
+				if(inform != 0 && OMX_DEBUG) {
 					Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
 						i, inform);
 				}
@@ -1071,13 +1076,24 @@ void F77_SUB(limitObjectiveFunction)
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
 		omxConfidenceInterval *oCI = &(currentState->intervalList[currentState->currentInterval]);
+		
+		if(OMX_DEBUG) {
+			Rprintf("Finding Confidence Interval: lbound is %f, ubound is %f, estimate is %f, and element is %f.\n",
+				oCI->lbound, oCI->ubound, *f, omxMatrixElement(oCI->matrix, oCI->row, oCI->col));
+		}
 
 		if(oCI->calcLower) {
-			double diff = oCI->lbound - *f;											// Offset - likelihood
-			*f = diff * diff + omxMatrixElement(oCI->matrix, oCI->row, oCI->col);	// Minimize element, too.
+			double diff = oCI->lbound - *f;		// Offset - likelihood
+			*f = diff*diff + omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+				// Minimize element for lower bound.
 		} else {
-			double diff = oCI->ubound - *f;											// Offset - likelihood
-			*f = diff * diff - omxMatrixElement(oCI->matrix, oCI->row, oCI->col);	// Maximize element, too.
+			double diff = oCI->ubound - *f;			// Offset - likelihood
+			*f = diff*diff - omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+				// Maximize element for upper bound.
+		}
+		
+		if(OMX_DEBUG) {
+			Rprintf("Interval Objective in previous iteration was calculated to be %f.\n", *f);
 		}
 }
 

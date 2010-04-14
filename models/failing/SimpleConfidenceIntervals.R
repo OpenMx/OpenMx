@@ -122,7 +122,9 @@ twinACEModel <- mxModel("twinACE",
 		name="twin"
 	), 
 	mxAlgebraObjective("twin"),
-	omxInterval("common.A[1,1]", 3.84, 3.84)
+    omxInterval("common.A[1,1]", 3.84, 3.84),
+    omxInterval("common.C[1,1]", 3.84, 3.84),
+    omxInterval("common.E[1,1]", 3.84, 3.84)
 )	
 #Run ACE model
 # -----------------------------------------------------------------------
@@ -141,7 +143,49 @@ CIalower <- mxModel(twinACEFit, name = 'ACE_CIlower',
 runCIalower<-mxRun(CIalower, intervals=FALSE)
 runCIaupper<-mxRun(CIaupper, intervals=FALSE)
 
-# omxCheckCloseEnough(twinACEFit@output$estimate[["beta"]], 0.372, 0.001)
+CIcupper <- mxModel(twinACEFit, name = 'ACE_CIupper',
+		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
+		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.C,name="upperCIc"), 
+		mxAlgebraObjective("upperCIc"))
 
+CIclower <- mxModel(twinACEFit, name = 'ACE_CIlower',
+		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
+		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.C,name="lowerCIc"),
+		mxAlgebraObjective("lowerCIc"))
+
+runCIclower<-mxRun(CIclower, intervals=FALSE)
+runCIcupper<-mxRun(CIcupper, intervals=FALSE)
+
+CIeupper <- mxModel(twinACEFit, name = 'ACE_CIupper',
+		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
+		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.E,name="upperCIe"), 
+		mxAlgebraObjective("upperCIe"))
+
+CIelower <- mxModel(twinACEFit, name = 'ACE_CIlower',
+		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
+		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.E,name="lowerCIe"),
+		mxAlgebraObjective("lowerCIe"))
+
+runCIelower<-mxRun(CIelower, intervals=FALSE)
+runCIeupper<-mxRun(CIeupper, intervals=FALSE)
+
+
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[1,1], runCIalower@output$status[1], .1)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[1,2], runCIaupper@output$status[1], .1)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[1, 1], mxEval(common.A, runCIalower), .001)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[1, 2], mxEval(common.A, runCIaupper), .001)
+
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[2, 1], mxEval(common.C, runCIclower), .001)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[2, 2], mxEval(common.C, runCIcupper), .001)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[2,1], runCIclower@output$status[1], .1)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[2,2], runCIcupper@output$status[1], .1)
+
+
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[3,1], runCIelower@output$status[1], .1)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[3,2], runCIeupper@output$status[1], .1)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[3, 1], mxEval(common.E, runCIelower), .001)
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[3, 2], mxEval(common.E, runCIeupper), .001)
+
+twinACEFit@output$confidenceIntervalCodes
 
 
