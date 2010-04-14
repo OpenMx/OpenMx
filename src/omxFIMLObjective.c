@@ -98,12 +98,15 @@ typedef struct omxFIMLObjective {
 } omxFIMLObjective;
 
 void omxDestroyFIMLObjective(omxObjective *oo) {
-
+	omxFIMLObjective *argStruct = (omxFIMLObjective*) (oo->argStruct);
+	omxFreeMatrixData(argStruct->smallRow);
+	omxFreeMatrixData(argStruct->smallCov);
+	omxFreeMatrixData(argStruct->RCX);
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
 
-	omxFIMLObjective* ofo = (omxFIMLObjective *)(oo->argStruct);
+	omxFIMLObjective* ofo = (omxFIMLObjective *) (oo->argStruct);
 
 	omxRListElement* retVal;
 

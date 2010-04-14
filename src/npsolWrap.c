@@ -721,14 +721,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 				currentCI->lCode = inform;
-				if(inform > 0) {
-					currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				} else {
-					currentCI->min = R_NaReal;
-					if(OMX_DEBUG) {
-						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
-							i, inform);
-					}
+				currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+				if(inform > 0 && OMX_DEBUG) {
+					Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
+						i, inform);
 				}
 				
 				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
@@ -740,14 +736,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
 								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 				currentCI->uCode = inform;
-				if(inform > 0) {
-					currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				} else {
-					currentCI->max = R_NaReal;
-					if(OMX_DEBUG) {
-						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
-							i, inform);
-					}
+				currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+				if(inform > 0 && OMX_DEBUG) {
+					Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
+						i, inform);
 				}
 				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
