@@ -32,10 +32,9 @@ convertAlgebras <- function(flatModel, convertArguments) {
     for(i in 1:length(algebras)) {
         flatModel <- convertSingleAlgebra(algebras[[i]], flatModel, convertArguments)
     }
-    flatModel@matrices <- c(flatModel@matrices, flatModel@constMatrices)
-    names(flatModel@freeMatrices) <- lapply(flatModel@freeMatrices, function(x) { x@name })
-    names(flatModel@outsideMatrices) <- lapply(flatModel@outsideMatrices, function(x) { x@name })    
-    flatModel@matrices <- c(flatModel@matrices, flatModel@freeMatrices, flatModel@outsideMatrices)
+    names(flatModel@constMatrices) <- lapply(flatModel@constMatrices, slot, "name")
+    names(flatModel@freeMatrices) <- lapply(flatModel@freeMatrices, slot, "name")
+    flatModel@matrices <- c(flatModel@matrices, flatModel@constMatrices, flatModel@freeMatrices)
     return(flatModel)
 }
 
@@ -240,6 +239,7 @@ insertOutsideValue <- function(varname, flatModel) {
 }
 
 lookupNumericValue <- function(value, flatModel, convertArguments) {
+   asCharacter <- as.character(value)
    if (is.numeric(value)) {
         value <- as.matrix(value)
         for (i in 1:length(flatModel@constMatrices)) {
@@ -250,15 +250,15 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
                 return(as.symbol(flatModel@constMatrices[[i]]@name))
             }
         }
-    } else if (identical(as.character(value), "")) {
+    } else if (identical(asCharacter, "")) {
         for (i in 1:length(flatModel@constMatrices)) {
             constMatrix <- flatModel@constMatrices[[i]]@values
             if (nrow(constMatrix) == 0 && ncol(constMatrix) == 0) {
                 return(as.symbol(flatModel@constMatrices[[i]]@name))
             }
         }
-    } else if (as.character(value) %in% convertArguments$values) {
-        value <- as.matrix(convertArguments$startvals[[as.character(value)]])
+    } else if (asCharacter %in% convertArguments$values) {
+        value <- as.matrix(convertArguments$startvals[[asCharacter]])
         for (i in 1:length(flatModel@constMatrices)) {
             constMatrix <- flatModel@constMatrices[[i]]@values
             if (nrow(value) == nrow(constMatrix) &&
@@ -267,18 +267,23 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
                 return(as.symbol(flatModel@constMatrices[[i]]@name))
             }
         }
-    } else if (as.character(value) %in% convertArguments$parameters) {
-        matrix <- flatModel@freeMatrices[[as.character(value)]]
+    } else if (asCharacter %in% convertArguments$parameters) {
+        matrix <- flatModel@freeMatrices[[asCharacter]]
         return(as.symbol(matrix@name))
-	} else if (omxIsDefinitionVariable(as.character(value))) {
-        matrix <- flatModel@freeMatrices[[as.character(value)]]
+	} else if (omxIsDefinitionVariable(asCharacter)) {
+        matrix <- flatModel@freeMatrices[[asCharacter]]
         return(as.symbol(matrix@name))
-    } else if (!is.null(flatModel[[as.character(value)]])) {
-    	return(value)
-    } else if (as.character(value) %in% names(flatModel@outsideMatrices)) {
-        matrix <- flatModel@outsideMatrices[[as.character(value)]]
-        return(as.symbol(matrix@name))    
-    } else {
-        return(value)
+	} else if(exists(asCharacter, envir = globalenv()) && 
+		is.numeric(get(asCharacter, envir = globalenv()))) {
+		value <- as.matrix(get(asCharacter, envir = globalenv()))
+        for (i in 1:length(flatModel@constMatrices)) {
+            constMatrix <- flatModel@constMatrices[[i]]@values
+            if (nrow(value) == nrow(constMatrix) &&
+                ncol(value) == ncol(constMatrix) &&
+                all(value == constMatrix)) {
+                return(as.symbol(flatModel@constMatrices[[i]]@name))
+            }
+        }
     }
+    return(value)
 }

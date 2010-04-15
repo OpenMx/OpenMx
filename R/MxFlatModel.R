@@ -19,8 +19,7 @@ setClass(Class = "MxFlatModel",
 		objectives = "list",
 		datasets = "list",
 		constMatrices = "list",
-		freeMatrices = "list",
-		outsideMatrices = "list"
+		freeMatrices = "list"
 	),
 	contains = "MxModel")
 	
@@ -35,7 +34,6 @@ setMethod("initialize", "MxFlatModel",
 		.Object@datasets <- datasets
 		.Object@constMatrices <- list()
 		.Object@freeMatrices <- list()
-		.Object@outsideMatrices <- list()		
 		return(.Object)
 	}
 )
