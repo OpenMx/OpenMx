@@ -230,11 +230,27 @@ insertNumericValue <- function(value, flatModel) {
 
 insertOutsideValue <- function(varname, flatModel) {
     value <- as.matrix(get(varname, envir = globalenv()))
-    localName <- omxUntitledName()
-    identifier <- omxIdentifier(flatModel@name, localName)
-    matrix <- mxMatrix("Full", values = value, name = localName)
-    matrix@name <- identifier
-    flatModel@constMatrices[[varname]] <- matrix
+    if (length(flatModel@constMatrices) == 0) {
+	    localName <- omxUntitledName()
+	    identifier <- omxIdentifier(flatModel@name, localName)
+        matrix <- mxMatrix("Full", values = value, name = localName)
+	    matrix@name <- identifier
+    	flatModel@constMatrices[[varname]] <- matrix
+    } else {
+        for (i in 1:length(flatModel@constMatrices)) {
+            constMatrix <- flatModel@constMatrices[[i]]@values
+            if (nrow(value) == nrow(constMatrix) &&
+                ncol(value) == ncol(constMatrix) &&
+                all(value == constMatrix)) {
+                return(flatModel)
+            }
+        }
+        localName <- omxUntitledName()
+	    identifier <- omxIdentifier(flatModel@name, localName)
+        matrix <- mxMatrix("Full", values = value, name = localName)
+	    matrix@name <- identifier
+    	flatModel@constMatrices[[varname]] <- matrix
+    }
     return(flatModel)
 }
 
