@@ -29,11 +29,34 @@ setMethod("initialize", "MxInterval",
 	}
 )
 
+createNewInterval <- function(reference, lowerdelta, upperdelta) {
+	return(new("MxInterval", reference, lowerdelta, upperdelta))
+}
+
+expandSingleInterval <- function(interval) {
+	references <- interval@reference
+	if (length(references) == 1) {
+		return(interval)
+	} else {
+		return(lapply(references, createNewInterval, 
+			interval@lowerdelta, interval@upperdelta))
+	}
+}
+
+expandIntervals <- function(intervals) {
+	if (length(intervals) == 0) {
+		return(intervals)
+	}
+	retval <- lapply(intervals, expandSingleInterval)
+	retval <- unlist(retval)
+	return(retval)
+}
+
 omxInterval <- function(reference, lowerdelta, upperdelta) {
 	if (single.na(lowerdelta)) { lowerdelta <- as.numeric(NA) }
 	if (single.na(upperdelta)) { upperdelta <- as.numeric(NA) }
-	if (!is.character(reference) || length(reference) != 1 || is.na(reference)) {
-		stop("'reference' argument must be a character string")
+	if (!is.character(reference) || length(reference) < 1 || any(is.na(reference))) {
+		stop("'reference' argument must be a character vector")
 	}
 	if (!is.numeric(lowerdelta) || length(lowerdelta) != 1) {
 		stop("'lowerdelta' argument must be a numeric value")
@@ -41,8 +64,8 @@ omxInterval <- function(reference, lowerdelta, upperdelta) {
 	if (!is.numeric(upperdelta) || length(upperdelta) != 1) {
 		stop("'upperdelta' argument must be a numeric value")
 	}
-	retval <- new("MxInterval", reference, lowerdelta, upperdelta)
-	return(retval)	
+	retval <- createNewInterval(reference, lowerdelta, upperdelta)
+	return(retval)
 }
 
 modelAddIntervals <- function(model, intervals) {

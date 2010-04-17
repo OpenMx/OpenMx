@@ -122,13 +122,11 @@ twinACEModel <- mxModel("twinACE",
 		name="twin"
 	), 
 	mxAlgebraObjective("twin"),
-    omxInterval("common.A[1,1]", 3.84, 3.84),
-    omxInterval("common.C[1,1]", 3.84, 3.84),
-    omxInterval("common.E[1,1]", 3.84, 3.84)
+    omxInterval(c("common.A[1,1]", "common.C[1,1]", "common.E[1,1]"), 3.84, 3.84)
 )	
 #Run ACE model
 # -----------------------------------------------------------------------
-twinACEFit <- mxRun(twinACEModel, intervals = TRUE)
+twinACEFit <- mxRun(twinACEModel, intervals=TRUE)
 
 CIaupper <- mxModel(twinACEFit, name = 'A_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
@@ -140,8 +138,8 @@ CIalower <- mxModel(twinACEFit, name = 'A_CIlower',
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.A,name="lowerCIa"),
 		mxAlgebraObjective("lowerCIa"))
 
-runCIalower<-mxRun(CIalower, intervals=FALSE)
-runCIaupper<-mxRun(CIaupper, intervals=FALSE)
+runCIalower <- suppressWarnings(mxRun(CIalower, intervals=FALSE))
+runCIaupper <- suppressWarnings(mxRun(CIaupper, intervals=FALSE))
 
 CIcupper <- mxModel(twinACEFit, name = 'C_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
@@ -153,8 +151,8 @@ CIclower <- mxModel(twinACEFit, name = 'C_CIlower',
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.C,name="lowerCIc"),
 		mxAlgebraObjective("lowerCIc"))
 
-runCIclower<-mxRun(CIclower, intervals=FALSE)
-runCIcupper<-mxRun(CIcupper, intervals=FALSE)
+runCIclower <- suppressWarnings(mxRun(CIclower, intervals=FALSE))
+runCIcupper <- suppressWarnings(mxRun(CIcupper, intervals=FALSE))
 
 CIeupper <- mxModel(twinACEFit, name = 'E_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
@@ -166,8 +164,8 @@ CIelower <- mxModel(twinACEFit, name = 'E_CIlower',
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.E,name="lowerCIe"),
 		mxAlgebraObjective("lowerCIe"))
 
-runCIelower<-mxRun(CIelower, intervals=FALSE)
-runCIeupper<-mxRun(CIeupper, intervals=FALSE)
+runCIelower <- suppressWarnings(mxRun(CIelower, intervals=FALSE))
+runCIeupper <- suppressWarnings(mxRun(CIeupper, intervals=FALSE))
 
 
 omxCheckCloseEnough(twinACEFit@output$confidenceIntervalCodes[1,1], runCIalower@output$status[1], .1)

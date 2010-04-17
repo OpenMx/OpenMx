@@ -331,6 +331,7 @@ modelAddEntries <- function(model, entries) {
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
+	intervals     <- expandIntervals(intervals)
 	names(intervals) <- sapply(intervals, slot, "reference")
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- addSingleNamedEntity(model, namedEntities[[i]])
@@ -348,6 +349,7 @@ modelRemoveEntries <- function(model, entries) {
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
+	intervals     <- expandIntervals(intervals)	
 	names(intervals) <- sapply(intervals, slot, "reference")
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- removeSingleNamedEntity(model, namedEntities[[i]])
