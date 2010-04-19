@@ -29,8 +29,8 @@ obj2 <- mxMLObjective("mat2", dimnames = varNames)
 model1 <- mxModel("model1", data1, mat1, obj1)
 model2 <- mxModel("model2", data2, mat2, obj2)
 
-output1 <- mxRun(model1, silent = TRUE)
-output2 <- mxRun(model2, silent = TRUE)
+output1 <- mxRun(model1, suppressWarnings = TRUE)
+output2 <- mxRun(model2, suppressWarnings = TRUE)
 
 output1@output
 output2@output
@@ -39,6 +39,6 @@ alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
 obj <- mxAlgebraObjective("alg")
 
 model <- mxModel("both", alg, obj, model1, model2)
-model <- mxRun(model, silent = TRUE)
+model <- mxRun(model, suppressWarnings = TRUE)
 
 omxCheckCloseEnough(model@output$estimate, c(1, 2), 0.001)

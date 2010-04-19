@@ -38,12 +38,12 @@ matrixF <- mxMatrix("Iden", nrow=1, name="F")
 objective <- mxRAMObjective("A", "S", "F", dimnames = c('a'))
 
 #Models
-model1<-mxModel("first", matrixA, S1, matrixF, objective, data1)
-model2<-mxModel("second", matrixA, S2, matrixF, objective, data2)
+model1 <- mxModel("first", matrixA, S1, matrixF, objective, data1)
+model2 <- mxModel("second", matrixA, S2, matrixF, objective, data2)
 
 #Run them
-output1<-mxRun(model1, silent = TRUE)
-output2<-mxRun(model2, silent = TRUE)
+output1 <- mxRun(model1, suppressWarnings = TRUE)
+output2 <- mxRun(model2, suppressWarnings = TRUE)
 
 ###Starting the "Super" Model, which contains models 1 and 2
 #This will use the mxAlgebraObjective function
@@ -57,7 +57,7 @@ obj<-mxAlgebraObjective("alg")
 model<-mxModel("both", alg, obj, model1, model2)
 
 #run the "super" model
-output<-mxRun(model, silent = TRUE)
+output<-mxRun(model, suppressWarnings = TRUE)
 
 ###Check Results
 #Model 1: This should have a value of 1

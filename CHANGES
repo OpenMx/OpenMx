@@ -1,25 +1,40 @@
 trunk
 =====
-* implemented http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
+
+new features
+------------
+* implemented new ordinal data interface http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
 * added mxFactor() function (see ?mxFactor for help)
-* added directory to repository for nightly tests ("make nightly")
-* added error checking for mxBounds() with undefined parameter names
+* added R documentation for rvectorize() and cvectorize()
+* implemented eigenvalues and eigenvectors
+* added 'numObs', 'numStats' arguments to mxAlgebraObjective()
+* added 'numObs', 'numStats' arguments to summary()
+
+changes to interface
+--------------------
 * mxConstraint("A", "=", "B") is now written as mxConstraint(A == B)
-* performance improvement to namespace conversion
-* changing MxPath data structure from a list to an S4 object
 * renaming 'cov' argument to 'covariance' in omxMnor()
 * renaming 'lbounds' argument to 'lbound' in omxMnor()
 * renaming 'ubounds' argument to 'ubound' in omxMnor()
 * renaming 'cov' argument to 'covariance' in omxAllInt()
-* new signature for omxSetParameters(model, labels, free, values, lbound, ubound, indep)
+* argument 'silent = TRUE' to mxRun() will no longer suppress warnings
+* argument 'suppressWarnings = TRUE' to mxRun() will suppress warnings
+
+bug fixes
+---------
+* added error checking for mxBounds() with undefined parameter names
 * improving error messages in mxMatrix() function
-* added R documentation for rvectorize() and cvectorize()
-* implemented eigenvalues and eigenvectors
-* checked in implementation of mergesort
-* added 'numObs', 'numStats' arguments to mxAlgebraObjective()
-* added 'numObs', 'numStats' arguments to summary()
-* changed mxCompare() signature to mxCompare(base, comparison, digits = 3)
 * fixed aliasing bug in mxAlgebra() with external variables and constant values
+
+internal
+--------
+* added directory to repository for nightly tests ("make nightly")
+* performance improvement to namespace conversion
+* changing MxPath data structure from a list to an S4 object
+* new signature for omxSetParameters(model, labels, free, values, lbound, ubound, indep)
+* checked in implementation of mergesort
+* changed mxCompare() signature to mxCompare(base, comparison, digits = 3)
+
 
 Release 0.2.10-1172 (Mar 14, 2010)
 ==================================

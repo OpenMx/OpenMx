@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxRun(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
+mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, unsafe = FALSE)
 }
 
 \arguments{
@@ -16,13 +16,16 @@ mxRun(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
     \item{...}{Not used.  Forces remaining arguments to be specified by name.}
     \item{intervals}{A boolean indicating whether to compute the specified confidence intervals.}
     \item{silent}{A boolean indicating whether to print status to terminal.}
+    \item{suppressWarnings}{A boolean indicating whether to suppress warnings.}    
     \item{unsafe}{A boolean indicating whether to ignore errors.}
 }
 
 \details{
 The mxRun function is used to optimize free parameters in \link{MxModel} objects based on an objective function. MxModel objects included in the mxRun function must include an appropriate objective function.
 
-If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal, and a warning is not issued if NPSOL returns a non-zero status code.
+If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal.
+
+If the \sQuote{suppressWarnings} flag is TRUE, then model execution will not issue a warning if NPSOL returns a non-zero status code.
 
 If the \sQuote{unsafe} flag is TRUE, then any error conditions will throw a warning instead of an error.  It is strongly recommended to use this feature only for debugging purposes.
 

@@ -35,7 +35,7 @@ twolocus<-mxModel("twolocus", mxAlgebraObjective("NegativeLogLikelihood"),
 			)
 
 #run the model
-run<-mxRun(twolocus, silent=TRUE)
+run<-mxRun(twolocus, suppressWarnings=TRUE)
 run@matrices
 run@algebras
 

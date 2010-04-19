@@ -13,7 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE) {
+mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
+		suppressWarnings = FALSE, unsafe = FALSE) {
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -32,7 +33,8 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 	independents <- getAllIndependents(dshare)
 	indepTimeStart <- Sys.time()
 	independents <- omxLapply(independents, mxRun, 
-		intervals = intervals, silent = silent, unsafe = unsafe)
+		intervals = intervals, silent = silent, 
+		suppressWarnings = suppressWarnings, unsafe = unsafe)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if(is.null(model@objective) && 
@@ -87,7 +89,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)
 	model <- undoDataShare(model, dataList)
-	model@output <- processOptimizerOutput(silent, flatModel,
+	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), unsafe, output)
 	model <- populateRunStateInformation(model, parameters, matrices, 
@@ -99,7 +101,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, unsafe = FALSE)
 	return(model)
 }
 
-processOptimizerOutput <- function(silent, flatModel, matrixNames, 
+processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
 		algebraNames, parameterNames, intervalNames, unsafe, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
@@ -129,16 +131,16 @@ processOptimizerOutput <- function(silent, flatModel, matrixNames,
 		dimnames(output$confidenceIntervalCodes) <- list(intervalNames, c('lbound', 'ubound'))
 		lowerWarnings <- which(output$confidenceIntervalCodes[,1] > 0)
 		upperWarnings <- which(output$confidenceIntervalCodes[,2] > 0)
-		if (length(lowerWarnings) > 0 && !silent) {
+		if (length(lowerWarnings) > 0 && !suppressWarnings) {
 			intervalWarnings("lower", flatModel@name, lowerWarnings, 
 				output$confidenceIntervalCodes[,1], intervalNames)
 		}
-		if (length(upperWarnings) > 0 && !silent) {
+		if (length(upperWarnings) > 0 && !suppressWarnings) {
 			intervalWarnings("upper", flatModel@name, upperWarnings, 
 				output$confidenceIntervalCodes[,2], intervalNames)
 		}
 	}
-    if (output$status[[1]] > 0 && !silent) {
+    if (output$status[[1]] > 0 && !suppressWarnings) {
     	npsolWarnings(paste("In model", omxQuotes(flatModel@name)), output$status[[1]])
     } else if (output$status[[1]] < 0) {
     	if (unsafe) {

@@ -67,7 +67,7 @@ twinSatModel <- mxModel("twinSat",
 		mxFIMLObjective("expCovDZ", "expMeanDZ", selVars)),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxAlgebraObjective("twin"))
-twinSatFit <- mxRun(twinSatModel, silent=TRUE)
+twinSatFit <- mxRun(twinSatModel, suppressWarnings=TRUE)
 
 # Generate Saturated Model Output
 # -----------------------------------------------------------------------
@@ -83,14 +83,14 @@ LL_Sat <- mxEval(objective, twinSatFit)
 twinSatModelSub1 <- twinSatModel
 twinSatModelSub1$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, T, 0, "mMZ", name="expMeanMZ")
 twinSatModelSub1$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mDZ", name="expMeanDZ")
-twinSatFitSub1 <- mxRun(twinSatModelSub1, silent=TRUE)
+twinSatFitSub1 <- mxRun(twinSatModelSub1, suppressWarnings=TRUE)
 
 # Specify and Run Saturated SubModel 2 equating means across zygosity
 # -----------------------------------------------------------------------
 twinSatModelSub2 <- twinSatModelSub1
 twinSatModelSub2$MZ$expMeanMZ <- mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanMZ")
 twinSatModelSub2$DZ$expMeanDZ <- mxMatrix("Full", 1, 2, T, 0, "mean", name="expMeanDZ")
-twinSatFitSub2 <- mxRun(twinSatModelSub2, silent=TRUE)
+twinSatFitSub2 <- mxRun(twinSatModelSub2, suppressWarnings=TRUE)
 
 # Generate Saturated Model Comparison Output
 # -----------------------------------------------------------------------
@@ -133,7 +133,7 @@ twinACEModel <- mxModel("twinACE",
 
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxAlgebraObjective("twin"))
-twinACEFit <- mxRun(twinACEModel, silent=TRUE)
+twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
 
 # Generate ACE Model Output
 # -----------------------------------------------------------------------
@@ -162,7 +162,7 @@ LRT_ACE= LL_ACE - LL_Sat
 # ----------------------------------------------------------------------
 twinAEModel <- twinACEModel
 twinAEModel$twinACE$Y <- mxMatrix("Full", 1, 1, F, 0, "c", name="Y")  # drop c
-twinAEFit <- mxRun(twinAEModel, silent=TRUE)
+twinAEFit <- mxRun(twinAEModel, suppressWarnings=TRUE)
 
 # Generate ACE Model Output
 # -----------------------------------------------------------------------

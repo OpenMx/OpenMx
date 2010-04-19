@@ -77,5 +77,5 @@ twinACEModel <- mxModel("twinACE",
         mxAlgebraObjective("twin")
         )
 
-twinACEFit <- mxRun(twinACEModel, silent=TRUE)
+twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
 
