@@ -1,6 +1,6 @@
 Package: OpenMx
-Version: 0.2.10-1172
-Date: 2010-03-14
+Version: 0.3.0-1217
+Date: 2010-04-20
 Title: The OpenMx Statistical Modeling Package
 Author: Steven Boker, Michael Neale, Hermine Maes, Michael Wilde, Michael Spiegel, Timothy Brick, Jeffrey Spies, Ryne Estabrook, Sarah Kenny, Timothy Bates, Paras Mehta, John Fox
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
