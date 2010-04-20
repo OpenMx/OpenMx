@@ -1,4 +1,4 @@
-\name{Eigenvector/Eigenvalue}
+\name{eigenvec}
 \alias{eigenval}
 \alias{eigenvec}
 \alias{ieigenval}
@@ -16,14 +16,14 @@
 }
 
 \usage{
-eigenval(A)
-eigenvec(A)
-ieigenval(A)
-ieigenvec(A)
+eigenval(x)
+eigenvec(x)
+ieigenval(x)
+ieigenvec(x)
 }
 
 \arguments{
-   \item{A}{the square matrix whose eigenvalues/vectors are to be calculated.}
+   \item{x}{the square matrix whose eigenvalues/vectors are to be calculated.}
 }
 
 \details{
