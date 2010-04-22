@@ -111,6 +111,11 @@ matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 	values <- mxMatrix@values
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
+	if (arrows == 2) {
+		values[upper.tri(values)] <- 0
+		free[upper.tri(free)] <- FALSE
+		labels[upper.tri(labels)] <- as.character(NA)
+	}
 	select <- (values != 0) | (free) | (!is.na(labels))
 	if (length(select) > 0) {
  	    rowFactors <- row(values, as.factor=TRUE)
