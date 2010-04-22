@@ -107,7 +107,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
     mxRAMObjective("A","S","F","M")
 )
       
-growthCurveFit<-mxRun(growthCurveModel)
+growthCurveFit<-mxRun(growthCurveModel, suppressWarnings=TRUE)
 
 summary(growthCurveFit)
 growthCurveFit@output$estimate

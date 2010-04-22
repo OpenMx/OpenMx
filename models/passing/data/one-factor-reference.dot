@@ -1,0 +1,20 @@
+digraph "One Factor" {
+	 node [style=filled, fontname="Arial", fontsize=16];
+	 x1 [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x2 [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x3 [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x4 [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x5 [shape=box, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 G1 [shape=circle, fillcolor="#f4fd78"];
+	 G1 -> x1[dir=forward];
+	 G1 -> x2[dir=forward];
+	 G1 -> x3[dir=forward];
+	 G1 -> x4[dir=forward];
+	 G1 -> x5[dir=forward];
+	 x1 -> x1[dir=both, headport=s, tailport=s];
+	 x2 -> x2[dir=both, headport=s, tailport=s];
+	 x3 -> x3[dir=both, headport=s, tailport=s];
+	 x4 -> x4[dir=both, headport=s, tailport=s];
+	 x5 -> x5[dir=both, headport=s, tailport=s];
+	 G1 -> G1[dir=both, headport=n, tailport=n];
+}
