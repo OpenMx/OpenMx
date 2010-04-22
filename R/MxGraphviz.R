@@ -36,23 +36,32 @@ writeDotFile <- function(model, graph, dotFilename) {
 	}
 	if (length(graph@paths) > 0) {
 		for(i in 1:length(graph@paths)) {
-			outputArrow <- list()
 			path <- graph@paths[[i]]
-			outputArrow <- c(outputArrow, paste('\t', path$from, "->", path$to))
-			if (path$arrows == 1) {
-				outputArrow <- c(outputArrow, "[dir=forward]")
-			} else if (path$arrows == 2) {
-			    if (path$from == path$to && path$from %in% graph@latentVars) {
-					outputArrow <- c(outputArrow, "[dir=both, headport=n, tailport=n]")			
-				} else if (path$from == path$to) {
-					outputArrow <- c(outputArrow, "[dir=both, headport=s, tailport=s]")						
-				} else {
-					outputArrow <- c(outputArrow, "[dir=both]")					
+			allfrom <- path@from
+			allto <- path@to
+			allarrows <- path@arrows
+			maxlength <- max(length(allfrom), length(allto))
+			for(i in 0:(maxlength - 1)) {
+				outputArrow <- list()
+				from <- allfrom[i %% length(allfrom) + 1]
+				to <- allto[i %% length(allto) + 1]
+				arrows <- allarrows[i %% length(allarrows) + 1]
+				outputArrow <- c(outputArrow, paste('\t', from, "->", to))
+				if (arrows == 1) {
+					outputArrow <- c(outputArrow, "[dir=forward]")
+				} else if (arrows == 2) {
+				    if (from == to && from %in% graph@latentVars) {
+						outputArrow <- c(outputArrow, "[dir=both, headport=n, tailport=n]")			
+					} else if (from == to) {
+						outputArrow <- c(outputArrow, "[dir=both, headport=s, tailport=s]")						
+					} else {
+						outputArrow <- c(outputArrow, "[dir=both]")					
+					}
 				}
+				outputArrow <- c(outputArrow, ';')
+				outputArrow <- paste(outputArrow, collapse='')
+				outputLines <- c(outputLines, outputArrow)
 			}
-			outputArrow <- c(outputArrow, ';')
-			outputArrow <- paste(outputArrow, collapse='')
-			outputLines <- c(outputLines, outputArrow)
 		}
 	}
 	outputLines <- c(outputLines, '}\n')
