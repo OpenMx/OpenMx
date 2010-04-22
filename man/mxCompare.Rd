@@ -59,7 +59,8 @@ model2 <- mxModel("Two Factor", type="RAM",
 )
 fit2 = mxRun(model2)
 
-mxCompare(fit1, c(fit2,fit3), digits=3)
-#         base comparison ep minus2LL df  AIC diffLL diffdf p
-# 1 One Factor Two Factor 10    -2450  5 1200   1200      0 0
+mxCompare(fit1, c(fit1,fit2), digits=3)
+#         base comparison ep minus2LL df   AIC diffLL diffdf p
+# 1 One Factor One Factor 10    -3650  5 -2.62      0      0 0
+# 2 One Factor Two Factor 10    -2450  5  1200   1200      0 0
 }
