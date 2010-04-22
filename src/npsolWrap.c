@@ -69,7 +69,7 @@ omxState* currentState;			// Current State of optimization
 /* Functions for Export */
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 
@@ -166,7 +166,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP options, SEXP state) {
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
 	/* NPSOL Arguments */
 	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
@@ -718,16 +718,27 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
 				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
 				currentCI->ubound += currentState->optimum;			// Convert from offsets to targets
-				/* Find lower limit */
-				currentCI->calcLower = TRUE;
-				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-				currentCI->lCode = inform;
-				currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				if(inform != 0 && OMX_DEBUG) {
-					Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
-						i, inform);
+				/* Set up for the lower bound */
+				inform = -1;
+				int cycles = 5;										// Number of times to keep trying.
+				double value = INF;
+				while(inform != 0 && cycles >= 0) {
+					/* Find lower limit */
+					currentCI->calcLower = TRUE;
+					F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+									(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+									clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+
+					currentCI->lCode = inform;
+					if(f < value) {
+						currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					}
+					
+					if(inform != 0 && OMX_DEBUG) {
+						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
+							i, inform);
+					}
+					cycles--;
 				}
 				
 				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
@@ -735,16 +746,27 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				
 				memcpy(x, currentState->optimalValues, n * sizeof(double));
 
-				/* Find upper limit */
-				currentCI->calcLower = FALSE;
-				F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-								(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-								clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-				currentCI->uCode = inform;
-				currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				if(inform != 0 && OMX_DEBUG) {
-					Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
-						i, inform);
+				/* Reset for the upper bound */
+				value = INF;
+				inform = -1;
+				cycles = 5;
+				while(inform != 0 && cycles >= 0) {
+					/* Find upper limit */
+					currentCI->calcLower = FALSE;
+					F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+									(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
+									clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+
+					currentCI->uCode = inform;
+					if(f < value) {
+						currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					}
+					
+					if(inform != 0 && OMX_DEBUG) {
+						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
+							i, inform);
+					}
+					cycles--;
 				}
 				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
