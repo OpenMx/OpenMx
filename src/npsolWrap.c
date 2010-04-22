@@ -69,7 +69,7 @@ omxState* currentState;			// Current State of optimization
 /* Functions for Export */
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+	SEXP data, SEXP intervalList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 
@@ -166,7 +166,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
+	SEXP data, SEXP intervalList, SEXP options, SEXP state) {
 
 	/* NPSOL Arguments */
 	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
