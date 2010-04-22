@@ -4,7 +4,7 @@
 \title{Assign Model Parameters}
 
 \description{
-    Modify the attribues of parameters in a model.  This function cannot modify parameters that have NA labels.
+    Modify the attributes of parameters in a model.  This function cannot modify parameters that have NA labels.
 }
 
 \usage{
