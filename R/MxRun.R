@@ -14,7 +14,11 @@
 #   limitations under the License.
 
 mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
-		suppressWarnings = FALSE, unsafe = FALSE) {
+		suppressWarnings = FALSE, unsafe = FALSE,
+		chkpt.directory = ".", chkpt.prefix = "",
+		chkpt.units = c("minutes", "iterations"), chkpt.count = 0,
+		sock.server = NULL, sock.port = NULL,
+		sock.units = c("minutes", "iterations"), sock.count = 0) {
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -34,7 +38,11 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	indepTimeStart <- Sys.time()
 	independents <- omxLapply(independents, mxRun, 
 		intervals = intervals, silent = silent, 
-		suppressWarnings = suppressWarnings, unsafe = unsafe)
+		suppressWarnings = suppressWarnings, unsafe = unsafe,
+		chkpt.directory = chkpt.directory, chkpt.prefix = chkpt.prefix,
+		chkpt.units = chkpt.units, chkpt.count = chkpt.count,
+		sock.server = sock.server, sock.port = sock.port,
+		sock.units = sock.units, sock.count = sock.count)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if(is.null(model@objective) && 
@@ -74,6 +82,8 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters)
+	communication <- generateCommunicationList(model@name, chkpt.directory, chkpt.prefix,
+		chkpt.units, chkpt.count, sock.server, sock.port, sock.units, sock.count)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)

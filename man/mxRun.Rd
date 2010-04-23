@@ -8,7 +8,11 @@
 }
 
 \usage{
-mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, unsafe = FALSE)
+mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, 
+	unsafe = FALSE, chkpt.directory = ".", chkpt.prefix = "", 
+	chkpt.units = c("minutes", "iterations"), chkpt.count = 0, 
+	sock.server = NULL, sock.port = NULL, sock.units = c("minutes", "iterations"),
+	sock.count = 0)
 }
 
 \arguments{
@@ -18,6 +22,14 @@ mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, u
     \item{silent}{A boolean indicating whether to print status to terminal.}
     \item{suppressWarnings}{A boolean indicating whether to suppress warnings.}    
     \item{unsafe}{A boolean indicating whether to ignore errors.}
+	\item{chkpt.directory}{A character string indicating the checkpoint directory.}
+	\item{chkpt.prefix}{A character string indicating the filename prefix.}
+	\item{chkpt.units}{The measure of units for checkpointing.}
+	\item{chkpt.count}{The number of units that must transpire between checkpoints.}
+	\item{sock.server}{A character string for the server name.}
+	\item{sock.port}{A numeric value for the port on the server.}
+	\item{sock.units}{The measure of units for socket communication.}
+	\item{sock.count}{The number of units that must transpire between socket messages.}
 }
 
 \details{
