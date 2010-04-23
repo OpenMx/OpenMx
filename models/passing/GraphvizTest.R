@@ -30,10 +30,10 @@ run <- function() {
 	omxGraphviz(model1, "temp-files/one-factor-generated.dot")
 	generatedFile <- file("temp-files/one-factor-generated.dot", open="r")
 	referenceFile <- file("data/one-factor-reference.dot", open="r")
+	on.exit(c(close(generatedFile), close(referenceFile)))
 	generated <- readLines(generatedFile)
 	reference <- readLines(referenceFile)
 	omxCheckTrue(identical(generated, reference))
-	on.exit(c(close(generatedFile), close(referenceFile)))
 }
 
 run()
