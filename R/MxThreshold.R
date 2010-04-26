@@ -55,8 +55,12 @@ verifyThresholds <- function(flatModel, model, dataName, threshName) {
 		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), "for model", 
 			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
+	if (!is.data.frame(observed)) {
+		stop(paste("The observed data for model", 
+			omxQuotes(modelName), "is not a data.frame object"), call. = FALSE)
+	}
 	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
-		stop(paste("The observed data matrix for model", 
+		stop(paste("The observed data frame for model", 
 			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
 	}
 	threshNames <- dimnames(thresholds)[[2]]
