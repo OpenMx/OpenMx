@@ -3,6 +3,7 @@ trunk
 
 * new arguments to mxRun() for checkpointing and socket communication (don't work yet)
 * throw an error if FIML objective has thresholds but observed data is not a data.frame object.
+* bugfix for R version 2.11.0 is detecting as.symbol("") character as missing function parameter
 
 Release 0.3.0-1217 (Apr 20, 2010)
 =================================

@@ -50,7 +50,9 @@ evaluateTranslation <- function(formula, model, labelsData) {
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
-		formula <- translateSymbol(formula, model, labelsData)
+		if (!identical(as.character(formula), "")) {
+			formula <- translateSymbol(formula, model, labelsData)
+		}
 	} else if (len == 4 && identical(as.character(formula[1]), '[')) {
 		formula[-1] <- lapply(formula[-1], 
 			evaluateTranslation, model, labelsData)
@@ -95,7 +97,9 @@ computeTranslation <- function(formula, model, labelsData) {
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
-		formula <- computeSymbol(formula, model, labelsData)
+		if (!identical(as.character(formula), "")) {
+			formula <- computeSymbol(formula, model, labelsData)
+		}
 	} else if (len == 4 && identical(as.character(formula[1]), '[')) {
 		formula[-1] <- lapply(formula[-1], 
 			computeTranslation, model, labelsData)
