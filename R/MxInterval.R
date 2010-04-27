@@ -130,7 +130,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		retval <- list()
 		for(i in 1:rows) {
 			for(j in 1:cols) {
-				newName <- paste(reference, '[', rows, ',', cols, ']', sep = '')
+				newName <- paste(reference, '[', i, ',', j, ']', sep = '')
 				retval[[newName]] <- makeIntervalReference(
 					entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
 			}
@@ -139,11 +139,27 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 	} else if (hasSquareBrackets(reference)) {
 		components <- splitSubstitution(reference)
 		entityName <- components[[1]]
-		row <- as.numeric(components[[2]])
-		col <- as.numeric(components[[3]])
+		rows <- eval(parse(text = components[[2]]), envir = globalenv())
+		cols <- eval(parse(text = components[[3]]), envir = globalenv())
+		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
+			list(x = as.symbol(entityName))))
+		if (is.null(rows)) {
+			rows <- 1:nrow(entityValue)
+		}
+		if (is.null(cols)) {
+			cols <- 1:ncol(entityValue)
+		}
 		entityNumber <- omxLocateIndex(flatModel, entityName, 
 			paste("confidence interval", reference))
-		return(list(reference = makeIntervalReference(entityNumber, row, col, interval@lowerdelta, interval@upperdelta)))
+		retval <- list()
+		for(i in rows) {
+			for(j in cols) {
+				newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
+				retval[[newName]] <- makeIntervalReference(
+					entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+			}
+		}
+		return(retval)
 	} else {
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",

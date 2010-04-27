@@ -17,8 +17,13 @@ splitSubstitution <- function(input) {
 	split1 <- unlist(strsplit(input, "[\\[\\]]", perl = TRUE))
 	identifier <- split1[[1]]
 	split2 <- unlist(strsplit(split1[[2]], ",", fixed = TRUE))
-	row <- split2[[1]]
-	col <- split2[[2]]
+	if (length(split2) == 1) {
+		row <- ""
+		col <- ""
+	} else {
+		row <- split2[[1]]
+		col <- split2[[2]]
+	}
 	return(c(identifier, row, col))
 }
 
