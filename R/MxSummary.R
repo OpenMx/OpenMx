@@ -216,13 +216,20 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, retval)
 
 print.summary.mxmodel <- function(x,...) {
 	if (length(x$dataSummary) > 0) {
+		cat("data:\n")
 		print(x$dataSummary)
 	}
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
 	}
 	if (length(x$parameters) > 0) {
+		cat("free parameters:\n")
 		print(x$parameters)
+		cat('\n')
+	}
+	if (!is.null(x$CI)) {
+		cat("confidence intervals:\n")
+		print(x$CI)
 		cat('\n')
 	}
 	cat("observed statistics: ", x$observedStatistics, '\n')
@@ -321,7 +328,8 @@ setMethod("summary", "MxModel",
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
-
+		retval$CI <- model@output$confidenceIntervals
+		retval$CIcodes <- model@output$confidenceIntervalCodes
 		if (!is.null(model@output$status)) {
 			message <- npsolMessages[[as.character(model@output$status[[1]])]]
 			retval[['npsolMessage']] <- message
