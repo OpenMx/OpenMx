@@ -101,23 +101,49 @@ generateIntervalList <- function(flatModel, useIntervals, modelname, parameters)
 	if (!useIntervals) {
 		return(list())
 	}
-	return(lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters))
+	retval <- lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters)
+	names(retval) <- NULL
+	retval <- unlist(retval, recursive = FALSE)
+	return(retval)
 }
+
+
+makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
+	return(c(entityNumber, row - 1, col - 1, lower, upper))
+}
+
 
 
 generateIntervalListHelper <- function(interval, flatModel, modelname, parameters) {
 	pnames <- names(parameters)
 	reference <- interval@reference
+	entity <- flatModel[[reference]]
 	if(reference %in% pnames) {
-		return(c(parameters[[reference]][[3]], interval@lowerdelta, interval@upperdelta))
+		return(list(reference = c(parameters[[reference]][[3]], interval@lowerdelta, interval@upperdelta)))
+	} else if (!is.null(entity)) {
+		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
+			list(x = as.symbol(reference))))
+		rows <- nrow(entityValue)
+		cols <- ncol(entityValue)
+		entityNumber <- omxLocateIndex(flatModel, reference, 
+			paste("confidence interval", reference))
+		retval <- list()
+		for(i in 1:rows) {
+			for(j in 1:cols) {
+				newName <- paste(reference, '[', rows, ',', cols, ']', sep = '')
+				retval[[newName]] <- makeIntervalReference(
+					entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+			}
+		}
+		return(retval)
 	} else if (hasSquareBrackets(reference)) {
 		components <- splitSubstitution(reference)
 		entityName <- components[[1]]
 		row <- as.numeric(components[[2]])
 		col <- as.numeric(components[[3]])
 		entityNumber <- omxLocateIndex(flatModel, entityName, 
-			paste("confidence interval", interval@reference))
-		return(c(entityNumber, row - 1, col - 1, interval@lowerdelta, interval@upperdelta))		
+			paste("confidence interval", reference))
+		return(list(reference = makeIntervalReference(entityNumber, row, col, interval@lowerdelta, interval@upperdelta)))
 	} else {
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",
