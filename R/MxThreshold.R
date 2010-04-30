@@ -112,5 +112,18 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	if(!identical(ordered, TRUE)) {
 		stop("the 'ordered' argument must be TRUE")
 	}
-	return(factor(x, levels, labels, exclude, ordered))
+	if (is.data.frame(x)) {
+		if (is.list(levels)) {
+			return(data.frame(mapply(factor, x, levels, labels,
+				MoreArgs=list(exclude = exclude, ordered = ordered), SIMPLIFY=FALSE)))
+		} else {
+			return(data.frame(lapply(x, factor, levels, labels, exclude, ordered))) 
+		}
+	} else if (is.matrix(x)) {
+		stop(paste("argument 'x' to mxFactor()",
+		"is of illegal type matrix,",
+		"legal types are vectors or data.frames"))
+	} else {
+		return(factor(x, levels, labels, exclude, ordered))
+	}
 }
