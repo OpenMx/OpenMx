@@ -22,13 +22,8 @@ nthresh1 <- 1
 nthresh2 <- 12	
 data <- read.table("data/mddndzf.dat", na.string=".", 
 	col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
-data <- mxFactor(data, list(c(0 : nthresh2), c(0 : nthresh1), c(0 : nthresh2), c(0 : nthresh1)))
-# EITHER USE PREVIOUS LINE OR THE NEXT FOUR LINES
-# data[,1] <- mxFactor(data[,1], levels = c(0 : nthresh2))
-# data[,2] <- mxFactor(data[,2], levels = c(0 : nthresh1))
-# data[,3] <- mxFactor(data[,3], levels = c(0 : nthresh2))
-# data[,4] <- mxFactor(data[,4], levels = c(0 : nthresh1))
-
+data[,c(1,3)] <- mxFactor(data[,c(1,3)], c(0 : nthresh2))
+data[,c(2,4)] <- mxFactor(data[,c(2,4)], c(0 : nthresh1))
 
 diff <- nthresh2 - nthresh1
 nvar <- 4
