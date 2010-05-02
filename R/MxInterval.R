@@ -52,17 +52,33 @@ expandIntervals <- function(intervals) {
 	return(retval)
 }
 
+mxNormalInterval <- function(reference, lowerpercent, upperpercent) {
+	if (single.na(lowerpercent)) { 
+		lowerpercent <- as.numeric(NA)
+	} else if (!is.numeric(lowerpercent) && lowerpercent < 0 && 
+		lowerpercent > 1) {
+		stop("'lowerpercent' must be a numeric value between 0 and 1")
+	}
+	if (single.na(upperpercent)) { 
+		upperpercent <- as.numeric(NA)
+	} else if (!is.numeric(upperpercent) && upperpercent < 0 && 
+		upperpercent > 1) {
+		stop("'upperpercent' must be a numeric value between 0 and 1")
+	}
+	return(omxInterval(reference, qchisq(lowerpercent, 1), qchisq(upperpercent, 1)))
+}
+
 omxInterval <- function(reference, lowerdelta, upperdelta) {
 	if (single.na(lowerdelta)) { lowerdelta <- as.numeric(NA) }
 	if (single.na(upperdelta)) { upperdelta <- as.numeric(NA) }
 	if (!is.character(reference) || length(reference) < 1 || any(is.na(reference))) {
 		stop("'reference' argument must be a character vector")
 	}
-	if (!is.numeric(lowerdelta) || length(lowerdelta) != 1) {
-		stop("'lowerdelta' argument must be a numeric value")
+	if (!is.numeric(lowerdelta) || length(lowerdelta) != 1 || lowerdelta < 0) {
+		stop("'lowerdelta' argument must be a non-negative numeric value")
 	}
-	if (!is.numeric(upperdelta) || length(upperdelta) != 1) {
-		stop("'upperdelta' argument must be a numeric value")
+	if (!is.numeric(upperdelta) || length(upperdelta) != 1 || upperdelta < 0) {
+		stop("'upperdelta' argument must be a non-negative numeric value")
 	}
 	retval <- createNewInterval(reference, lowerdelta, upperdelta)
 	return(retval)
