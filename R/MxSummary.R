@@ -317,10 +317,11 @@ generateDataSummary <- function(model, useSubmodels) {
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		model <- object
-		saturatedLikelihood <- match.call()$SaturatedLikelihood
-		numObs <- match.call()$numObs
-		numStats <- match.call()$numStats
-		useSubmodels <- match.call()$indep
+		dotArguments <- list(...)
+		saturatedLikelihood <- dotArguments$SaturatedLikelihood
+		numObs <- dotArguments$numObs
+		numStats <- dotArguments$numStats
+		useSubmodels <- dotArguments$indep
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list()
 		retval$parameters <- parameterList(model, useSubmodels)
