@@ -52,20 +52,27 @@ expandIntervals <- function(intervals) {
 	return(retval)
 }
 
-mxNormalInterval <- function(reference, lowerpercent, upperpercent) {
-	if (single.na(lowerpercent)) { 
-		lowerpercent <- as.numeric(NA)
-	} else if (!is.numeric(lowerpercent) && lowerpercent < 0 && 
-		lowerpercent > 1) {
-		stop("'lowerpercent' must be a numeric value between 0 and 1")
+mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper')) {
+	if (!is.numeric(interval) || interval < 0 || interval > 1) {
+		stop("'interval' must be a numeric value between 0 and 1")
 	}
-	if (single.na(upperpercent)) { 
-		upperpercent <- as.numeric(NA)
-	} else if (!is.numeric(upperpercent) && upperpercent < 0 && 
-		upperpercent > 1) {
-		stop("'upperpercent' must be a numeric value between 0 and 1")
+	if (identical(type, c('both', 'lower', 'upper'))) {
+		type <- 'both'
 	}
-	return(omxInterval(reference, qchisq(lowerpercent, 1), qchisq(upperpercent, 1)))
+	if (!is.character(type) || length(type) != 1 || !(type %in% c('both', 'lower', 'upper'))) {
+		stop("'type' must be either 'both' or 'lower' or 'upper'")
+	}
+	if (type == 'both') {
+		lowerValue <- qchisq(interval, 1)
+		upperValue <- qchisq(interval, 1)
+	} else if (type == 'lower') {
+		lowerValue <- qchisq(interval, 1)
+		upperValue <- as.numeric(NA)
+	} else if (type == 'upper') {
+		lowerValue <- as.numeric(NA)
+		upperValue <- qchisq(interval, 1)
+	}
+	return(omxInterval(reference, lowerValue, upperValue))
 }
 
 omxInterval <- function(reference, lowerdelta, upperdelta) {
@@ -74,10 +81,10 @@ omxInterval <- function(reference, lowerdelta, upperdelta) {
 	if (!is.character(reference) || length(reference) < 1 || any(is.na(reference))) {
 		stop("'reference' argument must be a character vector")
 	}
-	if (!is.numeric(lowerdelta) || length(lowerdelta) != 1 || lowerdelta < 0) {
+	if (!is.na(lowerdelta) && (!is.numeric(lowerdelta) || length(lowerdelta) != 1 || lowerdelta < 0)) {
 		stop("'lowerdelta' argument must be a non-negative numeric value")
 	}
-	if (!is.numeric(upperdelta) || length(upperdelta) != 1 || upperdelta < 0) {
+	if (!is.na(upperdelta) && (!is.numeric(upperdelta) || length(upperdelta) != 1 || upperdelta < 0)) {
 		stop("'upperdelta' argument must be a non-negative numeric value")
 	}
 	retval <- createNewInterval(reference, lowerdelta, upperdelta)

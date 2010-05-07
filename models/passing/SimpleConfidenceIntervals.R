@@ -122,7 +122,7 @@ twinACEModel <- mxModel("twinACE",
 		name="twin"
 	), 
 	mxAlgebraObjective("twin"),
-    mxNormalInterval(c("common.A", "common.C[,]", "common.E[1,1]"), 0.95, 0.95)
+    mxCI(c("common.A", "common.C[,]", "common.E[1,1]"))
 )	
 #Run ACE model
 # -----------------------------------------------------------------------
