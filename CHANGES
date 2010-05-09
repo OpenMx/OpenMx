@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.3.1-1246 (May 09, 2010)
+=================================
 
 * new arguments to mxRun() for checkpointing and socket communication (doesn't work yet)
 * throw an error if FIML objective has thresholds but observed data is not a data.frame object.
