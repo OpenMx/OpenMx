@@ -227,7 +227,7 @@ print.summary.mxmodel <- function(x,...) {
 		print(x$parameters)
 		cat('\n')
 	}
-	if (!is.null(x$CI)) {
+	if (!is.null(x$CI) && length(x$CI) > 0) {
 		cat("confidence intervals:\n")
 		print(x$CI)
 		cat('\n')
