@@ -19,13 +19,14 @@
 }
 
 \usage{
-mxCompare(base, comparison, digits = 3)
+mxCompare(base, comparison, digits = 3, all = FALSE)
 }
 
 \arguments{
    \item{base}{an MxModel object or list of MxModel objects.}
    \item{comparison}{a MxModel object or list of MxModel objects.}
-   \item{digits}{a numeric setting table decimal precision.} 
+   \item{digits}{a numeric setting table decimal precision.}
+   \item{all}{A boolean value on whether to compare all bases with all comparisons.}
 }
 
 \seealso{
@@ -60,5 +61,5 @@ model2 <- mxModel("Two Factor", type="RAM",
 )
 fit2 <- mxRun(model2)
 
-mxCompare(fit1, c(fit1,fit2), digits=3)
+mxCompare(fit1, c(fit1, fit2), digits = 3)
 }
