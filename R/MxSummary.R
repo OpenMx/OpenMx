@@ -314,11 +314,38 @@ generateDataSummary <- function(model, useSubmodels) {
 	return(retval)
 }
 
+translateSaturatedLikelihood <- function(input) {
+	if (is.null(input)) {
+		return(input)
+	} else if (is.numeric(input)) {
+		return(input)
+	} else if (is(input, "MxModel")) {
+		if (is.null(input@objective)) {
+			stop(paste("Saturated model passed",
+				"to summary function does not",
+				"have top-level objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (length(input@objective@result) != 1) {
+			stop(paste("Saturated model passed to summary",
+				"function does not have a 1x1 matrix",
+				"result in objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		return(input@objective@result[1,1])
+	} else {
+		stop(paste("Illegal argument passed to",
+			"'SaturatedLikelihood' argument",
+			"of summary function in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+}
+
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		model <- object
 		dotArguments <- list(...)
-		saturatedLikelihood <- dotArguments$SaturatedLikelihood
+		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
 		numObs <- dotArguments$numObs
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep

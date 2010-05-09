@@ -24,7 +24,7 @@ The following named arguments are supported by the summary method:
 \describe{
 \item{numObs}{Numeric. Specify the total number of observations for the model.}
 \item{numStats}{Numeric. Specify the total number of observed statistics for the model.}
-\item{SaturatedLikelihood}{Numeric. Specify a saturated likelihood for testing.}
+\item{SaturatedLikelihood}{Numeric or MxModel object. Specify a saturated likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 }
 
