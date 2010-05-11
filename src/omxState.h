@@ -34,12 +34,20 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <time.h>
+#include <netdb.h>
+#include <unistd.h>
 #include "omxDefines.h"
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
+typedef struct omxCheckpoint omxCheckpoint;
+typedef enum omxCheckpointType omxCheckpointType;
 typedef struct omxOptimizerState omxOptimizerState;
 typedef struct omxConfidenceInterval omxConfidenceInterval;
 
@@ -71,6 +79,23 @@ struct omxOptimizerState {			// For hessian or confidence interval computation
 	short int alpha;				// Parameter multiplier
 	// Objective should be:  (3.84 - (-2LL))^2 + alpha * parameter
 	// Alpha should generally be +1 to minimize parameter -1 to maximize
+};
+
+enum omxCheckpointType {
+	OMX_FILE_CHECKPOINT = 0,
+	OMX_SOCKET_CHECKPOINT = 1,
+	OMX_CONNECTION_CHECKPOINT = 2
+};
+
+struct omxCheckpoint {
+	omxCheckpointType type;
+	time_t time;
+	int numIterations;
+	double lastCheckpoint;
+	FILE* file;					// TODO: Maybe make the connection piece a union instead.
+	int socket;
+	SEXP connection;
+	unsigned short int saveHessian;
 };
 
 struct omxConfidenceInterval {		// For Confidence interval request
@@ -111,6 +136,7 @@ struct omxState {													// The Current State of Optimization
 	/* Saved Optimum State */ // TODO: Rename saved optimum state
 	double* optimalValues;											// Values of the free parameters at the optimum value
 	double optimum;													// Objective value at last saved optimum
+	double* hessian;												// Current hessian storage
 	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
 	char optimumMsg[250];											// Status message of last saved optimum
 	omxOptimizerState* optimizerState;								// Current optimum parameters for limit computation
@@ -121,6 +147,15 @@ struct omxState {													// The Current State of Optimization
 /* Data members for use by Objective Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
+	
+	/* For Checkpointing */
+	int majorIteration;												// Major iteration number
+	int minorIteration;												// Minor iteration within major iteration
+	time_t startTime;												// Time of first computation
+	time_t endTime;													// 'Cause we might as well report it
+	omxCheckpoint* checkpointList;										// List of checkpoints
+	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
+	int numCheckpoints;												// Number of checkpoints
 	
 	int statusCode;													// Status code, if appropriate
 	char statusMsg[250];											// Status/Error message to report
@@ -140,6 +175,8 @@ struct omxState {													// The Current State of Optimization
 /* Advance a step */
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
+	
+	void omxSaveCheckpoint(omxState* os, double* x);					// Save out checkpoints
 	
 #endif /* _OMXSTATE_H_ */
 

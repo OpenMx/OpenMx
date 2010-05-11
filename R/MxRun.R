@@ -91,7 +91,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
-		algebras, data, intervalList, options, state, PACKAGE = "OpenMx")
+		algebras, data, intervalList, list(), options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- omxReplaceModels(model, independents)

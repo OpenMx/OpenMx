@@ -69,7 +69,7 @@ omxState* currentState;			// Current State of optimization
 /* Functions for Export */
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 
@@ -166,7 +166,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP options, SEXP state) {
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
 	/* NPSOL Arguments */
 	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
@@ -386,7 +386,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
     */
 	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
 	currentState->numIntervals = length(intervalList);
-	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numIntervals); }
+	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", currentState->numIntervals); }
 	currentState->intervalList = (omxConfidenceInterval*) R_alloc(currentState->numIntervals, sizeof(omxConfidenceInterval));
 	for(k = 0; k < currentState->numIntervals; k++) {
 		omxConfidenceInterval *oCI = &(currentState->intervalList[k]);
@@ -403,6 +403,76 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+
+	/* Process Checkpoint List */
+	/*
+	 checkpointList is a list().  Each element refers to one checkpointing request.
+	 Each interval request is a list of length 5.
+	 The first element is an iteger that specifies type: 0 = file, 1 = socket, 2=R_connection
+	 For a file, the next two are the directory(string)  and file name (string).
+	 For a socket, they are server (string) and port number (int).
+	 For a connection, the next one is the R_connection SEXP object.
+	 After that is an integer <type> specifier.  0 means minutes, 1 means iterations.
+	 The last element is an integer count, indicating the number of <type>s per checkpoint.
+    */
+	if(OMX_VERBOSE) { Rprintf("Processing Checkpoint Requests.\n");}
+	currentState->numCheckpoints = length(checkpointList);
+	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", currentState->numCheckpoints); }
+	currentState->checkpointList = (omxCheckpoint*) R_alloc(currentState->numCheckpoints, sizeof(omxCheckpoint));
+	for(k = 0; k < currentState->numCheckpoints; k++) {
+		omxCheckpoint *oC = &(currentState->checkpointList[k]);
+
+		oC->socket = -1;
+		oC->file = NULL;
+		oC->connection = NULL;
+		
+		char *pathName, *fileName, *serverName;
+
+		PROTECT(nextLoc = VECTOR_ELT(checkpointList, k));
+		int next = 0;
+		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
+		switch(oC->type) {
+			case OMX_FILE_CHECKPOINT:
+				pathName = CHAR(VECTOR_ELT(nextLoc, next++));
+				fileName = CHAR(VECTOR_ELT(nextLoc, next++));
+				char sep ='/';
+				char fullname[512];
+				sprintf(fullname, "%s%c%s", pathName, sep, fullname);
+				oC->file = fopen(fullname, "w");
+				oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
+				break;
+				
+			case OMX_SOCKET_CHECKPOINT:
+				serverName = CHAR(VECTOR_ELT(nextLoc, next++));
+				int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
+				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
+				oC->saveHessian = FALSE;
+				break;
+				
+			case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
+				oC->connection = VECTOR_ELT(nextLoc, next++);
+				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
+				oC->saveHessian = FALSE;
+				break;
+		}
+		
+		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
+		if(isCount) {
+			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
+			oC->lastCheckpoint = 0;
+		} else {
+			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0];
+			oC->lastCheckpoint = 0;
+		}
+		
+		UNPROTECT(2); /* nextLoc and nextVar */
+		
+		
+		
+	}
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+
 
 	/* Set up Optimization Memory Allocations */
 
@@ -948,6 +1018,14 @@ void F77_SUB(objectiveFunction)
 		double* f, double* g, int* nstate )
 {
 	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
+	
+	if(*mode == 1) {
+		currentState->majorIteration++;
+		currentState->minorIteration = 0;
+		if(currentState->numCheckpoints != 0) {	// If it's a new major iteration
+			omxSaveCheckpoint(currentState, x);		// Save a checkpoint
+		}
+	} else currentState->minorIteration++;
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
 	char errMsg[5] = "";
@@ -1043,7 +1121,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 
 	if(OMX_VERBOSE) {
 		Rprintf("--------------------------\n");
-		Rprintf("Call: %d\n", os->computeCount);
+		Rprintf("Call: %d.%d (%d)\n", os->majorIteration, os->minorIteration, os->computeCount);
 		Rprintf("Estimates: [");
 		for(int k = 0; k < os->numFreeParams; k++) {
 			Rprintf(" %f", x[k]);
