@@ -1,3 +1,7 @@
+trunk
+=====
+* added 'newlabels' argument to omxSetParameters() function
+
 Release 0.3.1-1246 (May 09, 2010)
 =================================
 

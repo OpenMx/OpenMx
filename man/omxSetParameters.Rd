@@ -8,15 +8,16 @@
 }
 
 \usage{
-omxSetParameters(model, labels, free = NA, values = NA,
-	lbound = NA, ubound = NA, indep = FALSE)
+omxSetParameters(model, labels, free = NULL, values = NULL,
+	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE)
 }
 
 \arguments{
    \item{model}{a MxModel object.}
-   \item{labels}{a character vector of parameter names.}
+   \item{labels}{a character vector of target parameter names.}
    \item{free}{a boolean vector of parameter free/fixed designations.} 
-   \item{values}{a numeric vector of parameter values.} 
+   \item{values}{a numeric vector of parameter values.}
+   \item{newlabels}{a character vector of new parameter names.} 
    \item{lbound}{a numeric vector of lower bound values.} 
    \item{ubound}{a numeric vector of upper bound values.} 
    \item{indep}{boolean. set parameters in independent submodels.}
@@ -31,5 +32,6 @@ omxSetParameters(model, labels, free = NA, values = NA,
 A <- mxMatrix('Full', 3, 3, labels = c('a','b', NA), free = TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
 model <- omxSetParameters(model, c('a', 'b'), values = c(1, 2))
+model <- omxSetParameters(model, c('a', 'b'), newlabels = c('b', 'a'))
 
 }
