@@ -68,7 +68,7 @@ generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		description <- list(0L, chkpt.directory, filename, type, chkpt.count)
-		retval <- append(retval, description)
+		retval[[length(retval) + 1]] <- description
 	}
 	if (!is.null(sock.server) && !is.null(sock.port)) {
 		if (!(is.character(sock.server) && length(sock.server) == 1)) {
@@ -104,7 +104,7 @@ generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		description <- list(1L, sock.server, as.integer(sock.port), type, sock.count)
-		retval <- append(retval, description)
+		retval[[length(retval) + 1]] <- description
 	}
 	return(retval)
 }
