@@ -91,8 +91,8 @@ struct omxCheckpoint {
 	omxCheckpointType type;
 	time_t time;
 	int numIterations;
-	double lastCheckpoint;
-	FILE* file;					// TODO: Maybe make the connection piece a union instead.
+	unsigned long int lastCheckpoint;	// FIXME: Cannot update at sub-second times.
+	FILE* file;						// TODO: Maybe make the connection piece a union instead.
 	int socket;
 	SEXP connection;
 	unsigned short int saveHessian;
@@ -153,7 +153,7 @@ struct omxState {													// The Current State of Optimization
 	int minorIteration;												// Minor iteration within major iteration
 	time_t startTime;												// Time of first computation
 	time_t endTime;													// 'Cause we might as well report it
-	omxCheckpoint* checkpointList;										// List of checkpoints
+	omxCheckpoint* checkpointList;									// List of checkpoints
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
 	
@@ -176,7 +176,7 @@ struct omxState {													// The Current State of Optimization
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
 	
-	void omxSaveCheckpoint(omxState* os, double* x);					// Save out checkpoints
+	void omxSaveCheckpoint(omxState* os, double* x, double* f);			// Save out checkpoints
 	
 #endif /* _OMXSTATE_H_ */
 

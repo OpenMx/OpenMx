@@ -23,6 +23,8 @@
 #include "omxDefines.h"
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -47,6 +49,9 @@ void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and ins
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
 unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, /*double v,*/ int r, omxState* currentState, double optimum);
+
+/* Outside R Functions */
+static int isDir(const char *path);
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -422,29 +427,53 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numCheckpoints; k++) {
 		omxCheckpoint *oC = &(currentState->checkpointList[k]);
 
+		/* Initialize Checkpoint object */
 		oC->socket = -1;
 		oC->file = NULL;
 		oC->connection = NULL;
+		oC->time = 0;
+		oC->numIterations = 0;
+		oC->lastCheckpoint = 0;
 		
-		char *pathName, *fileName, *serverName;
+		const char *pathName, *fileName, *serverName;
+		char cwd[1024], *success;
+		char fullPath[1024];
 
 		PROTECT(nextLoc = VECTOR_ELT(checkpointList, k));
 		int next = 0;
 		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
 			case OMX_FILE_CHECKPOINT:
-				pathName = CHAR(VECTOR_ELT(nextLoc, next++));
-				fileName = CHAR(VECTOR_ELT(nextLoc, next++));
+				success = getcwd(cwd, 1024);
+				if(!success) { error("Internal Filesystem Error.  Can't get working directory.\n"); }
+				pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
+				fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 				char sep ='/';
-				char fullname[512];
-				sprintf(fullname, "%s%c%s", pathName, sep, fullname);
+				char fullname[2048];
+				if(pathName[0] == sep) {		// Absolute *nix path
+					sprintf(fullPath, "%s", pathName);
+				} else if(pathName[0] == '~') {		// ~ path expansion
+					error("Unable to open directory %s for checkpoint storage.  Tilde-expansion not yet implemented.\n", pathName);
+				} else {
+					sprintf(fullPath, "%s%c%s", cwd, sep, pathName);
+				}
+				
+				if(!isDir(pathName)) {
+					error("Unable to open directory %s for checkpoint storage.\n", pathName);
+				}
+				
+				sprintf(fullname, "%s%c%s", fullPath, sep, fileName);
+				if(OMX_VERBOSE) { Rprintf("Opening File: %s\n", fullname); }
 				oC->file = fopen(fullname, "w");
+				if(!oC->file) {
+					error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
+				}
 				oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
 				break;
 				
 			case OMX_SOCKET_CHECKPOINT:
 				serverName = CHAR(VECTOR_ELT(nextLoc, next++));
-				int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
+				// int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0]; // Commented to suppress "unused variable" warning.
 				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
 				oC->saveHessian = FALSE;
 				break;
@@ -459,13 +488,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		if(isCount) {
 			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
-			oC->lastCheckpoint = 0;
 		} else {
-			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0];
-			oC->lastCheckpoint = 0;
+			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
+			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
 		}
 		
-		UNPROTECT(2); /* nextLoc and nextVar */
+		UNPROTECT(1); /* nextLoc */
 		
 		
 		
@@ -1017,19 +1045,19 @@ void F77_SUB(objectiveFunction)
 	(	int* mode, int* n, double* x,
 		double* f, double* g, int* nstate )
 {
+	unsigned short int checkpointNow = FALSE;
+	
 	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 	
 	if(*mode == 1) {
 		currentState->majorIteration++;
 		currentState->minorIteration = 0;
-		if(currentState->numCheckpoints != 0) {	// If it's a new major iteration
-			omxSaveCheckpoint(currentState, x);		// Save a checkpoint
-		}
+		checkpointNow = TRUE;					// Only checkpoint at major iterations.
 	} else currentState->minorIteration++;
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
 	char errMsg[5] = "";
-	omxRaiseError(currentState, 0, errMsg);						//Clear Error State
+	omxRaiseError(currentState, 0, errMsg);						// Clear Error State
 	/* Interruptible? */
 	R_CheckUserInterrupt();
     /* This allows for abitrary repopulation of the free parameters.
@@ -1070,6 +1098,10 @@ void F77_SUB(objectiveFunction)
 	}
 
 	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
+
+	if(checkpointNow && currentState->numCheckpoints != 0) {	// If it's a new major iteration
+		omxSaveCheckpoint(currentState, x, f);		// Check about saving a checkpoint
+	}
 
 }
 
@@ -1376,4 +1408,24 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 
 	return TRUE;
 
+}
+
+/*
+*  Acknowledgement:
+*  This function is duplicated from the function of the same name in the R source code.
+*  The function appears in src/main/sysutils.c
+*  Thanks to Michael Spiegel for finding it.
+*/
+static int isDir(const char *path)
+{
+    struct stat sb;
+    int isdir = 0;
+    if(!path) return 0;
+    if(stat(path, &sb) == 0) {
+        isdir = (sb.st_mode & S_IFDIR) > 0; /* is a directory */
+        /* We want to know if the directory is writable by this user,
+           which mode does not tell us */
+        isdir &= (access(path, W_OK) == 0);
+    }
+    return isdir;
 }

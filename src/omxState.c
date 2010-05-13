@@ -137,21 +137,21 @@
 		oo->computeCount++; 
 	};
 	
-	void omxSaveCheckpoint(omxState *os, double* x) {
+	void omxSaveCheckpoint(omxState *os, double* x, double* f) {
 		time_t now = time(NULL);
-		int soFar = (now - os->startTime) / 60;		// Translated into minutes
+		int soFar = now - os->startTime;		// Translated into minutes
 		int n;
 		for(int i = 0; i < os->numCheckpoints; i++) {
 			n = 0;
-			omxCheckpoint oC = os->checkpointList[i];
+			omxCheckpoint* oC = &(os->checkpointList[i]);
 			// Check based on time
-			if(oC.time != 0 && soFar - oC.lastCheckpoint >= oC.time) {
-				oC.lastCheckpoint = now;
+			if(oC->time > 0 && (soFar - oC->lastCheckpoint) >= oC->time) {
+				oC->lastCheckpoint = soFar;
 				n = 1;
 			}
 			// Or iterations
-			if(oC.numIterations != 0 && os->majorIteration - oC.lastCheckpoint >= oC.numIterations) {
-				oC.lastCheckpoint = os->majorIteration;
+			if(oC->numIterations > 0 && (os->majorIteration - oC->lastCheckpoint) >= oC->numIterations) {
+				oC->lastCheckpoint = os->majorIteration;
 				n = 1;
 			}
 
@@ -162,14 +162,13 @@
 					os->chkptText2 = (char*) Calloc(1.0+15.0*os->numFreeParams*
 														(os->numFreeParams + 1.0)/2.0, char);
 				}
-
 				char tempstring[25];
 				sprintf(tempstring, "%d", os->majorIteration);
 
-				if(strncmp(os->chkptText1, tempstring, strlen(tempstring))) {// Returns zero if they're the same.
-					struct tm * nowTime = localtime(&now);
+				if(strncmp(os->chkptText1, tempstring, strlen(tempstring))) {	// Returns zero if they're the same.
+					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
 					strftime(tempstring, 25, "%c", nowTime);
-					sprintf(os->chkptText1, "%d %s", os->majorIteration, tempstring);
+					sprintf(os->chkptText1, "%d %s %9.5f", os->majorIteration, tempstring, f[0]);
 					for(int j = 0; j < os->numFreeParams; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
@@ -186,25 +185,25 @@
 					}
 				}
 				
-				if(oC.type == OMX_FILE_CHECKPOINT) {
-					fprintf(oC.file, "%s", os->chkptText1);
-					if(oC.saveHessian) 
-						fprintf(oC.file, "%s", os->chkptText2);
-					fprintf(oC.file, "\n");
-					fflush(oC.file);
-				} else if(oC.type == OMX_SOCKET_CHECKPOINT) {
-					n = write(oC.socket, os->chkptText1, strlen(os->chkptText1));
+				if(oC->type == OMX_FILE_CHECKPOINT) {
+					fprintf(oC->file, "%s", os->chkptText1);
+					if(oC->saveHessian) 
+						fprintf(oC->file, "%s", os->chkptText2);
+					fprintf(oC->file, "\n");
+					fflush(oC->file);
+				} else if(oC->type == OMX_SOCKET_CHECKPOINT) {
+					n = write(oC->socket, os->chkptText1, strlen(os->chkptText1));
 					if(n != strlen(os->chkptText1)) warning("Error writing checkpoint.");
-					if(oC.saveHessian) {
-						n = write(oC.socket, os->chkptText2, strlen(os->chkptText2));
+					if(oC->saveHessian) {
+						n = write(oC->socket, os->chkptText2, strlen(os->chkptText2));
 						if(n != strlen(os->chkptText1)) warning("Error writing checkpoint.");
 					}
-					n = write(oC.socket, "\n", 1);
+					n = write(oC->socket, "\n", 1);
 					if(n != 1) warning("Error writing checkpoint.");
-				} else if(oC.type == OMX_CONNECTION_CHECKPOINT) {
+				} else if(oC->type == OMX_CONNECTION_CHECKPOINT) {
 					warning("NYI: R_connections are not yet implemented.");
-					oC.numIterations = 9999999;
-					oC.time = 99999999999;
+					oC->numIterations = 0;
+					oC->time = 0;
 				}
 			}
 		}
