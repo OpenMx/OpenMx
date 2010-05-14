@@ -16,6 +16,7 @@
 generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
 		chkpt.units, chkpt.count, sock.server, sock.port, sock.units, sock.count) {
 	retval <- list()
+	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
 	if (!is.numeric(chkpt.count) || chkpt.count < 0) {
 		stop(paste("'chkpt.count' argument to mxRun",
 			"must be a non-negative value in", 

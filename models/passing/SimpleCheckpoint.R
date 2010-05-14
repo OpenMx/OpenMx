@@ -41,6 +41,11 @@ factorModel <- mxModel("One Factor",
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 
-factorFit <- mxRun(factorModel, chkpt.directory = ".", chkpt.prefix = "", chkpt.units = "iterations", chkpt.count = 10)
-summary(factorFit)
+factorFit <- mxRun(factorModel, chkpt.directory = "temp-files", 
+	chkpt.prefix = "", chkpt.units = "iterations", chkpt.count = 10)
+
+factorRestore <- mxRestore(factorModel, chkpt.directory = "temp-files")
+
+omxCheckCloseEnough(mxEval(A, factorFit), mxEval(A, factorRestore), 0.001)
+omxCheckCloseEnough(mxEval(U, factorFit), mxEval(U, factorRestore), 0.001)
 
