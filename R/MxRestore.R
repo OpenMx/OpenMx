@@ -23,7 +23,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	}
 	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
 	chkpt.files <- list.files(chkpt.directory, full.names = FALSE, pattern = 
-		paste("^\\Q", chkpt.prefix, "\\E", sep = ''))
+		paste("^\\Q", chkpt.prefix, "\\E.*(\\.omx)$", sep = ''))
 	if(length(chkpt.files) == 0) {
 		return(model)
 	}
