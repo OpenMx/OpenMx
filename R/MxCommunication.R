@@ -13,48 +13,44 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
-		chkpt.units, chkpt.count, sock.server, sock.port, sock.units, sock.count) {
+generateCommunicationList <- function(modelname, checkpoint, useSocket, options) {
+	if (!checkpoint && !useSocket) return(list())
 	retval <- list()
-	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
-	if (!is.numeric(chkpt.count) || chkpt.count < 0) {
-		stop(paste("'chkpt.count' argument to mxRun",
-			"must be a non-negative value in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if (!is.numeric(sock.count) || sock.count < 0) {
-		stop(paste("'sock.count' argument to mxRun",
-			"must be a non-negative value in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if ((!is.null(sock.server) && is.null(sock.port)) ||
-		(is.null(sock.server) && !is.null(sock.port))) {
-		stop(paste("Both 'sock.server' and 'sock.port'",
-			"must be specified in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if ((chkpt.count == 0) && (!identical(chkpt.directory, ".") ||
-		!identical(chkpt.prefix, "") || !identical(chkpt.units, c("minutes", "iterations")))) {
-		stop(paste("'chkpt.count' argument to mxRun",
-			"must be specified to use checkpoints in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if (chkpt.count > 0) {
+	defaults <- getOption('mxCheckpointOptions')
+	if (checkpoint) {		
+		chkpt.directory <- options[['Checkpoint Directory']]
+		chkpt.prefix <- options[['Checkpoint Prefix']]
+		chkpt.units <- options[['Checkpoint Units']]
+		chkpt.count <- options[['Checkpoint Count']]
+		if (is.null(chkpt.directory)) chkpt.directory <- defaults[['Checkpoint Directory']]
+		if (is.null(chkpt.prefix)) chkpt.prefix <- defaults[['Checkpoint Prefix']]
+		if (is.null(chkpt.units)) chkpt.units <- defaults[['Checkpoint Minutes']]
+		if (is.null(chkpt.count) && identical(chkpt.units, 'minutes')) {
+			chkpt.count <- defaults[['Checkpoint Count Minutes']]
+		}
+		if (is.null(chkpt.count) && identical(chkpt.units, 'iterations')) {
+			chkpt.count <- defaults[['Checkpoint Count Iterations']]
+		}
+		if (is.null(chkpt.count)) chkpt.count <- .Machine$integer.max
+		chkpt.directory <- removeTrailingSeparator(chkpt.directory)
+
+		if (!is.numeric(chkpt.count) || chkpt.count < 0) {
+			stop(paste("'Checkpoint Count' model option",
+				"must be a non-negative value in", 
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
 		if (!(is.character(chkpt.prefix) && length(chkpt.prefix) == 1)) {
-			stop(paste("'chkpt.prefix' argument to mxRun",
+			stop(paste("'Checkpoint Prefix' model option",
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		if (!(is.character(chkpt.directory) && length(chkpt.directory) == 1)) {
-			stop(paste("'chkpt.directory' argument to mxRun",
+			stop(paste("'Checkpoint Directory' model option",
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (identical(chkpt.units, c("minutes", "iterations"))) {
-			chkpt.units <- "minutes"
-		}
 		if (!(is.character(chkpt.units) && length(chkpt.units) == 1)) {
-			stop(paste("'chkpt.units' argument to mxRun",
+			stop(paste("'Checkpoint Units' model option",
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
@@ -64,34 +60,56 @@ generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
 		} else if (chkpt.units == "iterations") {
 			type <- 1L
 		} else {
-			stop(paste("'chkpt.units' argument to mxRun",
+			stop(paste("'Checkpoint Units' model option",
 				"must be either 'minutes' or 'iterations' in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		description <- list(0L, chkpt.directory, filename, type, chkpt.count)
 		retval[[length(retval) + 1]] <- description
 	}
-	if (!is.null(sock.server) && !is.null(sock.port)) {
-		if (!(is.character(sock.server) && length(sock.server) == 1)) {
-			stop(paste("'sock.server' argument to mxRun",
+	if (useSocket) {
+		sock.server <- options[['Socket Server']]
+		sock.port <- options[['Socket Port']]
+		sock.units <- options[['Socket Units']]
+		sock.count <- options[['Socket Count']]
+		if (is.null(sock.server)) sock.directory <- defaults[['Socket Server']]
+		if (is.null(sock.port)) sock.prefix <- defaults[['Socket Port']]
+		if (is.null(sock.units)) sock.units <- defaults[['Socket Units']]
+		if (is.null(sock.count) && identical(sock.units, 'minutes')) {
+			sock.count <- defaults[['Socket Count Minutes']]
+		}
+		if (is.null(sock.count) && identical(sock.units, 'iterations')) {
+			sock.count <- defaults[['Socket Count Iterations']]
+		}
+		if (is.null(sock.count)) sock.count <- .Machine$integer.max
+
+		if (is.null(sock.server) || is.null(sock.port)) {
+			stop(paste("Both 'Socket Server' and 'Socket Port'",
+				"must be specified in", 
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (!is.numeric(sock.count) || sock.count < 0) {
+			stop(paste("'Socket Count' model option",
+				"must be a non-negative value in", 
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (!(is.character(sock.server) && length(sock.server) == 1 && sock.server != "")) {
+			stop(paste("'Socket Server' model option",
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		if (!(is.numeric(sock.port) && length(sock.port) == 1)) {
-			stop(paste("'sock.port' argument to mxRun",
+			stop(paste("'Socket Port' model option",
 				"must be a numeric value in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (identical(sock.units, c("minutes", "iterations"))) {
-			sock.units <- "minutes"
-		}
 		if (!(is.character(sock.units) && length(sock.units) == 1)) {
-			stop(paste("'sock.units' argument to mxRun",
+			stop(paste("'Socket Units' model option",
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		if (sock.count == 0) {
-			stop(paste("'sock.count' argument to mxRun",
+			stop(paste("'Socket Count' model option",
 				"must be a non-negative value in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
@@ -100,7 +118,7 @@ generateCommunicationList <- function(modelname, chkpt.directory, chkpt.prefix,
 		} else if (sock.units == "iterations") {
 			type <- 1L
 		} else {
-			stop(paste("'sock.units' argument to mxRun",
+			stop(paste("'Socket Units' model option",
 				"must be either 'minutes' or 'iterations' in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}

@@ -15,10 +15,7 @@
 
 mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
-		chkpt.directory = ".", chkpt.prefix = "",
-		chkpt.units = c("minutes", "iterations"), chkpt.count = 0,
-		sock.server = NULL, sock.port = NULL,
-		sock.units = c("minutes", "iterations"), sock.count = 0) {
+		checkpoint = FALSE, useSocket = FALSE) {
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -39,10 +36,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	independents <- omxLapply(independents, mxRun, 
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
-		chkpt.directory = chkpt.directory, chkpt.prefix = chkpt.prefix,
-		chkpt.units = chkpt.units, chkpt.count = chkpt.count,
-		sock.server = sock.server, sock.port = sock.port,
-		sock.units = sock.units, sock.count = sock.count)
+		checkpoint = checkpoint, useSocket = useSocket)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if(is.null(model@objective) && 
@@ -82,8 +76,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters)
-	communication <- generateCommunicationList(model@name, chkpt.directory, chkpt.prefix,
-		chkpt.units, chkpt.count, sock.server, sock.port, sock.units, sock.count)
+	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
 	options <- generateOptionsList(model@options)
@@ -152,7 +145,8 @@ processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
     if (output$status[[1]] > 0 && !suppressWarnings) {
     	npsolWarnings(paste("In model", omxQuotes(flatModel@name)), output$status[[1]])
-    } else if (output$status[[1]] < 0) {
+	}
+    if (output$status[[1]] < 0 || output$status[[2]] < 0) {
     	if (unsafe) {
     		warning(paste("The job for model", omxQuotes(flatModel@name),
 	            "exited abnormally with the error message:",

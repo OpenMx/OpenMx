@@ -41,8 +41,11 @@ factorModel <- mxModel("One Factor",
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 
-factorFit <- mxRun(factorModel, chkpt.directory = "temp-files", 
-	chkpt.prefix = "", chkpt.units = "iterations", chkpt.count = 10)
+factorModel <- mxOption(factorModel, "Checkpoint Directory", "temp-files")
+factorModel <- mxOption(factorModel, "Checkpoint Units", "iterations")
+factorModel <- mxOption(factorModel, "Checkpoint Count", 10)
+
+factorFit <- mxRun(factorModel, checkpoint = TRUE)
 
 factorRestore <- mxRestore(factorModel, chkpt.directory = "temp-files")
 

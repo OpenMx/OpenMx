@@ -15,7 +15,7 @@
 
 mxOption <- function(model, key, value, reset = FALSE) {
 	if (reset) {
-		model@options <- getOption('mxOptimizerOptions')
+		model@options <- list()
 		return(model)
 	}
 	model@options[[key]] <- value
@@ -42,9 +42,23 @@ npsolOptions <- list(
 	"Chi-square Confidence Intervals" = "No"	
 )
 
+checkpointOptions <- list(
+	"Checkpoint Directory" = ".", 
+	"Checkpoint Prefix" = "",
+	"Checkpoint Units" = "minutes", 
+	"Checkpoint Count Minutes" = 10,
+	"Checkpoint Count Iterations" = 100,
+	"Socket Server" = "", 
+	"Socket Port" = 8080,
+	"Socket Units" = "minutes", 
+	"Socket Count Minutes" = 0.08,
+	"Socket Count Iterations" = 1
+)
+
 # Convert the keys and values into strings
 generateOptionsList <- function(input) {
 	options <- getOption('mxOptimizerOptions')
+	input <- input[!(names(input) %in% names(checkpointOptions))]
 	if (length(input) > 0) {
 		keys <- sapply(names(input), as.character)
 		values <- sapply(input, as.character)

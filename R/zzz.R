@@ -15,7 +15,8 @@
 
 .onLoad <- function(libname, pkgname) {
    options('mxDefaultType' = 'raw', 
-   	'mxOptimizerOptions' = npsolOptions, 
+   	'mxOptimizerOptions' = npsolOptions,
+	'mxCheckpointOptions' = checkpointOptions, 
    	'mxRAMDefaultSingle' = 1.00, 
    	'mxRAMDefaultDouble' = 1.00,
 	'mxByrow' = FALSE,

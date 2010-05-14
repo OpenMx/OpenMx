@@ -24,7 +24,8 @@ The name of the option is the \sQuote{key} argument. Use value = NULL to remove
 an existing option. Before the model is submitted to the back-end, all keys and 
 values are converted into strings using the \link{as.character} function. To reset
 all options to their default values, use reset = TRUE. If reset = TRUE, then 'key'
-and 'value' are ignored. Use \code{getOption('mxOptimizerOptions')} to see the default optimizer options.
+and 'value' are ignored. Use \code{getOption('mxOptimizerOptions')} or 
+\code{getOption('mxCheckpointOptions')} to see the default optimizer options.
 
 OpenMx options
 
@@ -50,6 +51,19 @@ Verify level \tab [-1:3|Yes|No] \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r} \tab controls the accuracy with which a step is taken. \cr
 Derivative Level \tab [0-3] \tab see NPSOL manual. \cr
 Hessian \tab [Yes|No] \tab return the transformed Hessian (if \sQuote{No}) or the Hessian itself (if \sQuote{Yes}). \cr
+}
+
+Checkpointing options
+
+\tabular{rl}{
+Checkpoint Directory \tab the directory where to write checkpoint files \cr
+Checkpoint Prefix \tab the string prefix to add to all checkpoint filenames \cr
+Checkpoint Units \tab the type of units for checkpointing: 'minutes' or 'iterations' \cr
+Checkpoint Count \tab the number of units between checkpoint intervals \cr
+Socket Server \tab the server name for sending optimizer state information \cr
+Socket Port \tab the port on the server for sending optimizer state information \cr
+Socket Units \tab the type of units: 'minutes' or 'iterations' \cr
+Socket Count \tab the number of units between communication to the server \cr
 }
 
 }
