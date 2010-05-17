@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxState.cc
 *
 *  Created: Timothy R. Brick 	Date: 2009-06-05
@@ -31,7 +31,7 @@
 		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numData = 0;
-		state->matrixList = NULL;	
+		state->matrixList = NULL;
 		state->algebraList = NULL;
 		state->dataList = NULL;
 		state->objectiveMatrix = NULL;
@@ -58,11 +58,11 @@
 		strncpy(state->statusMsg, "", 1);
 	}
 
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, 
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList,
 						omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
 		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
 	}
-	
+
 	void omxFreeState(omxState *oo) {
 		int k;
 		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", oo->numAlgs);}
@@ -76,13 +76,13 @@
 			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, oo->matrixList[k]); }
 			omxFreeAllMatrixData(oo->matrixList[k]);
 		}
-		
+
 		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", oo->numData);}
 		for(k = 0; k < oo->numData; k++) {
 			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->dataList[k]); }
 			omxFreeData(oo->dataList[k]);
 		}
-		
+
 		if(OMX_DEBUG) { Rprintf("Freeing %d Checkpoints.\n", oo->numCheckpoints);}
 		for(k = 0; k < oo->numCheckpoints; k++) {
 			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->checkpointList[k]); }
@@ -106,15 +106,15 @@
 			}
 			// Checkpoint list itself is freed by R.
 		}
-		
+
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}
-	
+
 	void omxSaveState(omxState *os, double* freeVals, double minimum) {
 		if(os->optimalValues == NULL) {
 			os->optimalValues = (double*) R_alloc(os->numFreeParams, sizeof(double));
 		}
-		
+
 		for(int i = 0; i < os->numFreeParams; i++) {
 			os->optimalValues[i] = freeVals[i];
 		}
@@ -122,21 +122,21 @@
 		os->optimumStatus = os->statusCode;
 		strncpy(os->optimumMsg, os->statusMsg, 250);
 	}
-	
+
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {
 		oo->statusCode = errorCode;
 		strncpy(oo->statusMsg, errorMsg, 249);
 		oo->statusMsg[249] = '\0';
 	}
-	
-	void omxStateNextRow(omxState *oo) { 
-		oo->currentRow++; 
+
+	void omxStateNextRow(omxState *oo) {
+		oo->currentRow++;
 	};
-	void omxStateNextEvaluation(omxState *oo) { 
+	void omxStateNextEvaluation(omxState *oo) {
 		oo->currentRow = 0;
-		oo->computeCount++; 
+		oo->computeCount++;
 	};
-	
+
 	void omxSaveCheckpoint(omxState *os, double* x, double* f) {
 		time_t now = time(NULL);
 		int soFar = now - os->startTime;		// Translated into minutes
@@ -167,8 +167,8 @@
 
 				if(strncmp(os->chkptText1, tempstring, strlen(tempstring))) {	// Returns zero if they're the same.
 					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
-					strftime(tempstring, 25, "%c", nowTime);
-					sprintf(os->chkptText1, "%d %s %9.5f", os->majorIteration, tempstring, f[0]);
+					strftime(tempstring, 25, "%b %d %Y %I:%M:%S %p", nowTime);
+					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f[0]);
 					for(int j = 0; j < os->numFreeParams; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
@@ -184,10 +184,10 @@
 						}
 					}
 				}
-				
+
 				if(oC->type == OMX_FILE_CHECKPOINT) {
 					fprintf(oC->file, "%s", os->chkptText1);
-					if(oC->saveHessian) 
+					if(oC->saveHessian)
 						fprintf(oC->file, "%s", os->chkptText2);
 					fprintf(oC->file, "\n");
 					fflush(oC->file);

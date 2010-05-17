@@ -47,3 +47,4 @@ OneFactorModelDemo	One factor matrix model demo from front page of website
 BootstrapParallel	Bootstrap model with independent submodels
 OneLocusLikelihood	One Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
 TwoLocusLikelihood	Two Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
+SimpleCheckpoint	Saving optimizer state to a file

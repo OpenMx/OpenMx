@@ -434,57 +434,47 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		oC->time = 0;
 		oC->numIterations = 0;
 		oC->lastCheckpoint = 0;
-		
+
 		const char *pathName, *fileName, *serverName;
-		char cwd[1024], *success;
-		char fullPath[1024];
 
 		PROTECT(nextLoc = VECTOR_ELT(checkpointList, k));
 		int next = 0;
 		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
 			case OMX_FILE_CHECKPOINT:
-				success = getcwd(cwd, 1024);
-				if(!success) { error("Internal Filesystem Error.  Can't get working directory.\n"); }
 				pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
 				fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 				char sep ='/';
-				char fullname[2048];
-				if(pathName[0] == sep) {		// Absolute *nix path
-					sprintf(fullPath, "%s", pathName);
-				} else if(pathName[0] == '~') {		// ~ path expansion
-					error("Unable to open directory %s for checkpoint storage.  Tilde-expansion not yet implemented.\n", pathName);
-				} else {
-					sprintf(fullPath, "%s%c%s", cwd, sep, pathName);
-				}
-				
+
 				if(!isDir(pathName)) {
 					error("Unable to open directory %s for checkpoint storage.\n", pathName);
 				}
-				
-				sprintf(fullname, "%s%c%s", fullPath, sep, fileName);
+
+				char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
+				sprintf(fullname, "%s%c%s", pathName, sep, fileName);
 				if(OMX_VERBOSE) { Rprintf("Opening File: %s\n", fullname); }
 				oC->file = fopen(fullname, "w");
 				if(!oC->file) {
 					error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
 				}
+				Free(fullname);
 				oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
 				break;
-				
+
 			case OMX_SOCKET_CHECKPOINT:
 				serverName = CHAR(VECTOR_ELT(nextLoc, next++));
 				// int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0]; // Commented to suppress "unused variable" warning.
 				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
 				oC->saveHessian = FALSE;
 				break;
-				
+
 			case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
 				oC->connection = VECTOR_ELT(nextLoc, next++);
 				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
 				oC->saveHessian = FALSE;
 				break;
 		}
-		
+
 		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		if(isCount) {
 			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
@@ -492,11 +482,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
 			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
 		}
-		
+
 		UNPROTECT(1); /* nextLoc */
-		
-		
-		
+
+
+
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
@@ -809,9 +799,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
 			currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
 			for(int i = 0; i < currentState->numIntervals; i++) {
-				
+
 				memcpy(x, currentState->optimalValues, n * sizeof(double)); // Reset to previous optimum
-				
+
 				currentState->currentInterval = i;
 				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
 				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
@@ -831,17 +821,17 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					if(f < value) {
 						currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 					}
-					
+
 					if(inform != 0 && OMX_DEBUG) {
-						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n", 
+						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n",
 							i, inform);
 					}
 					cycles--;
 				}
-				
+
 				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
 				// TODO: Repopulate original optimizer state in between CI calculations
-				
+
 				memcpy(x, currentState->optimalValues, n * sizeof(double));
 
 				/* Reset for the upper bound */
@@ -859,16 +849,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					if(f < value) {
 						currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 					}
-					
+
 					if(inform != 0 && OMX_DEBUG) {
-						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n", 
+						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n",
 							i, inform);
 					}
 					cycles--;
 				}
 				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
-		} else {					// Improper code. No intervals calculated.  
+		} else {					// Improper code. No intervals calculated.
 									// TODO: Throw a warning, allow force()
 			if(OMX_DEBUG) {
 				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
@@ -881,7 +871,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numMats; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
 		omxRecompute(currentState->matrixList[k]);
-		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows, 
+		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows,
 			currentState->matrixList[k]->cols));
 		for(l = 0; l < currentState->matrixList[k]->rows; l++)
 			for(j = 0; j < currentState->matrixList[k]->cols; j++)
@@ -895,7 +885,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < currentState->numAlgs; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
 		omxRecompute(currentState->algebraList[k]);
-		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows, 
+		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows,
 			currentState->algebraList[k]->cols));
 		for(l = 0; l < currentState->algebraList[k]->rows; l++)
 			for(j = 0; j < currentState->algebraList[k]->cols; j++)
@@ -973,7 +963,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			}
 		}
 	}
-	
+
 	if(currentState->numIntervals) {	// Populate CIs
 		int numInts = currentState->numIntervals;
 		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
@@ -1046,9 +1036,9 @@ void F77_SUB(objectiveFunction)
 		double* f, double* g, int* nstate )
 {
 	unsigned short int checkpointNow = FALSE;
-	
+
 	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
-	
+
 	if(*mode == 1) {
 		currentState->majorIteration++;
 		currentState->minorIteration = 0;
@@ -1202,13 +1192,13 @@ SEXP getVar(SEXP str, SEXP env) {
 
 void F77_SUB(limitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
-		
+
 		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", currentState->currentInterval, (currentState->intervalList[currentState->currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
 		omxConfidenceInterval *oCI = &(currentState->intervalList[currentState->currentInterval]);
-		
+
 		if(OMX_DEBUG) {
 			Rprintf("Finding Confidence Interval: lbound is %f, ubound is %f, estimate is %f, and element is %f.\n",
 				oCI->lbound, oCI->ubound, *f, omxMatrixElement(oCI->matrix, oCI->row, oCI->col));
@@ -1223,7 +1213,7 @@ void F77_SUB(limitObjectiveFunction)
 			*f = diff*diff - omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 				// Maximize element for upper bound.
 		}
-		
+
 		if(OMX_DEBUG) {
 			Rprintf("Interval Objective in previous iteration was calculated to be %f.\n", *f);
 		}
@@ -1409,6 +1399,7 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 	return TRUE;
 
 }
+
 
 /*
 *  Acknowledgement:
