@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxState.h
 *
 *  Created: Timothy R. Brick 	Date: 2009-05-23
@@ -29,16 +29,26 @@
 #define _OMXSTATE_H_
 
 #include "R.h"
-#include <Rinternals.h> 
+#include <Rinternals.h>
 #include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include <sys/types.h>
+
+#ifdef WIN32
+
+#include <winsock.h>
+
+#else
+
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <time.h>
 #include <netdb.h>
+
+#endif
+
+#include <time.h>
 #include <unistd.h>
 #include "omxDefines.h"
 
@@ -132,7 +142,7 @@ struct omxState {													// The Current State of Optimization
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
-	
+
 	/* Saved Optimum State */ // TODO: Rename saved optimum state
 	double* optimalValues;											// Values of the free parameters at the optimum value
 	double optimum;													// Objective value at last saved optimum
@@ -147,7 +157,7 @@ struct omxState {													// The Current State of Optimization
 /* Data members for use by Objective Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
-	
+
 	/* For Checkpointing */
 	int majorIteration;												// Major iteration number
 	int minorIteration;												// Minor iteration within major iteration
@@ -156,7 +166,7 @@ struct omxState {													// The Current State of Optimization
 	omxCheckpoint* checkpointList;									// List of checkpoints
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
-	
+
 	int statusCode;													// Status code, if appropriate
 	char statusMsg[250];											// Status/Error message to report
 	double saturatedModel;											// Saturated model likelihood, where applicable
@@ -165,19 +175,19 @@ struct omxState {													// The Current State of Optimization
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state);									// Null Constructor
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective); 
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective);
 	void omxFreeState(omxState *oo);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
-	
-	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error 
+
+	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error
 																		// TODO: Move RaiseError to omxOptimizer.
-	
+
 /* Advance a step */
 	void omxStateNextRow(omxState *oo);									// Advance Row
 	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
-	
+
 	void omxSaveCheckpoint(omxState* os, double* x, double* f);			// Save out checkpoints
-	
+
 #endif /* _OMXSTATE_H_ */
 
 
