@@ -148,14 +148,21 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 			list(x = as.symbol(reference))))
 		rows <- nrow(entityValue)
 		cols <- ncol(entityValue)
+		if (is(entity, "MxMatrix")) {
+			free <- entity@free
+		} else {
+			free <- matrix(TRUE, rows, cols)
+		}
 		entityNumber <- omxLocateIndex(flatModel, reference, 
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in 1:rows) {
 			for(j in 1:cols) {
-				newName <- paste(reference, '[', i, ',', j, ']', sep = '')
-				retval[[newName]] <- makeIntervalReference(
-					entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+				if (free[i, j]) {
+					newName <- paste(reference, '[', i, ',', j, ']', sep = '')
+					retval[[newName]] <- makeIntervalReference(
+						entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+				}
 			}
 		}
 		return(retval)
@@ -172,14 +179,22 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		if (is.null(cols)) {
 			cols <- 1:ncol(entityValue)
 		}
+		entity <- flatModel[[entityName]]
+		if (is(entity, "MxMatrix")) {
+			free <- entity@free
+		} else {
+			free <- matrix(TRUE, rows, cols)
+		}
 		entityNumber <- omxLocateIndex(flatModel, entityName, 
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in rows) {
 			for(j in cols) {
-				newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
-				retval[[newName]] <- makeIntervalReference(
-					entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+				if (free[i, j]) {
+					newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
+					retval[[newName]] <- makeIntervalReference(
+						entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+				}
 			}
 		}
 		return(retval)
