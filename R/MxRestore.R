@@ -34,7 +34,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 		filename <- chkpt.files[[i]]
 		modelname <- substr(filename, nchar(chkpt.prefix) + 1, nchar(filename) - 4)
 		filepath <- paste(chkpt.directory, filename, sep = '/')
-		checkpoint <- read.table(filepath)
+		checkpoint <- read.table(filepath, header=TRUE, stringsAsFactors=FALSE, check.names=FALSE)
 		model <- restoreCheckpointModel(model, modelname, checkpoint, flatModel, pList)
 	}
 	return(model)
@@ -47,8 +47,7 @@ restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel, pLis
 		pList <- generateParameterList(flatModel)
 	}
 	if (modelname == model@name) {
-		lastrow <- as.numeric(checkpoint[nrow(checkpoint), ])
-		values <- lastrow[4:length(lastrow)]
+		values <- as.numeric(checkpoint[nrow(checkpoint), 4:ncol(checkpoint)])
 		model <- omxUpdateModelValues(model, flatModel, pList, values)
 	}
 	model@submodels <- lapply(model@submodels, restoreCheckpointModel, modelname, checkpoint, flatModel, pList)

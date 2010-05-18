@@ -323,6 +323,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		currentState->freeVarList[k].numLocations = numLocs;
 		currentState->freeVarList[k].location = (double**) R_alloc(numLocs, sizeof(double*));
 		currentState->freeVarList[k].matrices = (int*) R_alloc(numLocs, sizeof(int));
+		currentState->freeVarList[k].name = CHAR(STRING_ELT(GET_NAMES(varList), k));
 
 		/* Lower Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.

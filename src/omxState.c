@@ -161,6 +161,19 @@
 					os->chkptText1 = (char*) Calloc((24+15*os->numFreeParams), char);
 					os->chkptText2 = (char*) Calloc(1.0+15.0*os->numFreeParams*
 														(os->numFreeParams + 1.0)/2.0, char);
+					if (oC->type == OMX_FILE_CHECKPOINT) {
+						fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
+						for(int j = 0; j < os->numFreeParams; j++) {
+							if(strcmp(os->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
+								fprintf(oC->file, "%s", os->freeVarList[j].name);
+							} else {
+								fprintf(oC->file, "\"%s\"", os->freeVarList[j].name);
+							}
+							if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
+						}
+						fprintf(oC->file, "\n");
+						fflush(oC->file);
+					}
 				}
 				char tempstring[25];
 				sprintf(tempstring, "%d", os->majorIteration);

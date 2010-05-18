@@ -73,6 +73,7 @@ struct omxFreeVar {			// Free Variables
 	int numLocations;
 	double** location;		// And where they go.
 	int* matrices;			// Matrix numbers for dirtying.
+	const char* name;
 };
 
 struct omxConstraint {		// Free Variable Constraints
