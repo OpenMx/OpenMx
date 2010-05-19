@@ -39,7 +39,7 @@ npsolOptions <- list(
 	"Hessian" = "Yes",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"Chi-square Confidence Intervals" = "No"	
+	"CI Max Iterations" = "5"
 )
 
 checkpointOptions <- list(

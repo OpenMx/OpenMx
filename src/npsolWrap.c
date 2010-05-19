@@ -196,6 +196,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	omxMatrix** calculateHessians = NULL;
 	int calculateStdErrors = FALSE;
 	int numHessians = 0;
+	int ciMaxIterations = 5;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -630,17 +631,19 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		SEXP optionNames;
 		PROTECT(optionNames = GET_NAMES(options));
 		for(int i = 0; i < numOptions; i++) {
-			if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Calculate Hessian", 17)) {
+			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
+			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
+			if(!strncasecmp(nextOptionName, "Calculate Hessian", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found hessian option...");};
-				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
+				if(strncasecmp(nextOptionValue, "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
 					calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
 					calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
 					numHessians = 1;
 				}
-			} else if(!strncasecmp(CHAR(STRING_ELT(optionNames, i)), "Standard Errors", 17)) {
+			} else if(!strncasecmp(nextOptionName, "Standard Errors", 17)) {
 				if(OMX_DEBUG) { Rprintf("Found standard error option...");};
-				if(strncasecmp(STRING_VALUE(VECTOR_ELT(options, i)), "No", 2)) {
+				if(strncasecmp(nextOptionValue, "No", 2)) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
 					calculateStdErrors = TRUE;
 					if(calculateHessians == NULL) {
@@ -649,8 +652,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						numHessians = 1;
 					}
 				}
+			} else if(!strncasecmp(nextOptionName, "CI Max Iterations", 19)) { 
+				int newvalue = atoi(nextOptionValue);
+				if (newvalue > 0) ciMaxIterations = newvalue;
 			} else {
-				sprintf(optionCharArray, "%s %s", CHAR(STRING_ELT(optionNames, i)), STRING_VALUE(VECTOR_ELT(options, i)));
+				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
 				if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
 			}
@@ -809,9 +815,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				currentCI->ubound += currentState->optimum;			// Convert from offsets to targets
 				/* Set up for the lower bound */
 				inform = -1;
-				int cycles = 5;										// Number of times to keep trying.
+				// Number of times to keep trying.
+				int cycles = ciMaxIterations;
 				double value = INF;
-				while(inform != 0 && cycles >= 0) {
+				while(inform != 0 && cycles > 0) {
 					/* Find lower limit */
 					currentCI->calcLower = TRUE;
 					F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,

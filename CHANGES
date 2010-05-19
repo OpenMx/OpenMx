@@ -2,8 +2,9 @@ trunk
 =====
 * added 'newlabels' argument to omxSetParameters() function
 * now throwing errors to the user when detected from the backend in mxRun()
-* very basic checkpointing mechanism implemented
+* checkpointing mechanism implemented - mxRun(model, checkpoint = TRUE)
 * never computing confidence intervals for matrix cells where free = FALSE (all bets are off on algebras)
+* added mxOption(model, "CI Max Iterations", value) 
 
 Release 0.3.1-1246 (May 09, 2010)
 =================================
