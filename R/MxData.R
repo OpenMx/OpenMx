@@ -48,6 +48,9 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 		is.na(match(type, omxDataTypes))) {
 		stop(paste("Type must be one of:", paste(omxDataTypes, collapse=" ")))
 	}
+	if (type == "sscp") {
+		stop(paste("'sscp' is not yet implemented."))
+	}
 	if (!is.vector(means) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}

@@ -6,6 +6,7 @@ trunk
 * never computing confidence intervals for matrix cells where free = FALSE (all bets are off on algebras)
 * added mxOption(model, "CI Max Iterations", value) 
 * added documentation for mxRestore() function
+* default expected means vectors are no longer generated
 
 Release 0.3.1-1246 (May 09, 2010)
 =================================

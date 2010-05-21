@@ -67,6 +67,22 @@ setMethod("omxVerifyModel", "MxRAMModel",
                 "does not contain a RAM objective function.")
 			stop(msg, call. = FALSE)        	
         }
+        if (!is.null(model@data) && model@data@type == "raw" &&
+        	is.null(model$M)) {
+			msg <- paste("The RAM model", omxQuotes(model@name),
+                "contains raw data but has not specified any means paths.")
+			stop(msg, call. = FALSE)
+        }
+        if (!is.null(model@data) && !single.na(model@data@means) &&
+        	is.null(model$M)) {
+			msg <- paste("The RAM model", omxQuotes(model@name),
+                "contains an observed means vector",
+                "but has not specified any means paths.")
+			stop(msg, call. = FALSE)        	
+		}
+        if (length(model@submodels) > 0) {
+        	return(all(sapply(model@submodels, omxVerifyModel)))
+        }        
         return(TRUE)
     }
 )
@@ -377,7 +393,7 @@ createMatrixM <- function(model) {
 	names <- list(NULL, variables)
 	values <- matrix(0, 1, len)
 	labels <- matrix(as.character(NA), 1, len)
-	free <- matrix(c(rep.int(TRUE, length(model@manifestVars)),
+	free <- matrix(c(rep.int(FALSE, length(model@manifestVars)),
 		rep.int(FALSE, length(model@latentVars))), 1, len)
 	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "M")
 	dimnames(retval) <- names
@@ -515,12 +531,8 @@ replaceMethodRAM <- function(model, index, value) {
 	name <- pair[[2]]
 	if (namespace == model@name && name == "data") {
 		model@data <- value
-		if (requireMeansVector(value) && is.null(model[['M']])) {
-			model[['M']] <- createMatrixM(model)
-			if(!is.null(model@objective) && is(model@objective,"MxRAMObjective") &&
-				is.na(model@objective@M)) {
-					model@objective@M <- "M"
-			}
+		if (requireMeansVector(value)) {
+			model@objective@M <- "M"
 		}
 	} else {
 		model <- omxReplaceMethod(model, index, value)

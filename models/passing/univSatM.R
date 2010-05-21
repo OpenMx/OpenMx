@@ -95,6 +95,14 @@ univSatModel2 <- mxModel("univSat2",
         lbound=.01, 
         labels="vX"
     ),
+    mxPath(
+        from="one", 
+        to="X", 
+        arrows=1, 
+        free=T, 
+        values=0, 
+        labels="mX"
+    ),    
     mxData(
         observed=testData, 
         type="raw", 
@@ -112,6 +120,15 @@ univSatModel2s <- mxModel(univSatModel1,
         observed=testData, 
         type="raw"
     ),
+    mxPath(
+        from="one", 
+        to="X", 
+        arrows=1, 
+        free=T, 
+        values=0, 
+        labels="mX"
+    ),        
+    name="univSat2s",
     type="RAM"
     )
 univSatFit2s <- mxRun(univSatModel2s)

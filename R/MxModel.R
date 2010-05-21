@@ -391,3 +391,12 @@ removeSingleNamedEntity <- function(model, name) {
 	model[[name]] <- NULL
 	return(model)
 }
+
+setMethod("omxVerifyModel", "MxModel",
+    function(model) {
+        if (length(model@submodels) > 0) {
+        	return(all(sapply(model@submodels, omxVerifyModel)))
+        }
+        return(TRUE)
+    }
+)

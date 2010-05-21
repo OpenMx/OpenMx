@@ -139,6 +139,10 @@ bivSatModel2 <- mxModel("bivSat2",
         lbound=.01, 
         labels="covXY"
     ),
+    mxPath(from="one", 
+    	to=c("X", "Y"),
+        arrows=1, 
+        free=T), 
     mxData(
         observed=testData, 
         type="raw", 
@@ -159,7 +163,11 @@ bivSatModel2s <- mxModel(bivSatModel1,
         observed=testData, 
         type="raw", 
     ),
-    type="RAM"
+    mxPath(from="one", 
+    	to=c("X", "Y"),
+        arrows=1, 
+        free=T),     
+    name = "bivSat2s"
     )
 bivSatFit2s <- mxRun(bivSatModel2s)
 EM2s <- mxEval(M, bivSatFit2s)

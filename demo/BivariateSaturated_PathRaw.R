@@ -59,6 +59,11 @@ bivSatModel2 <- mxModel("bivSat2",
         lbound=.01, 
         labels="covXY"
     ),
+    mxPath(
+    	from="one",
+        to=c("X", "Y"),
+        arrows=1,
+        free=T),
     mxData(
         observed=testData, 
         type="raw", 

@@ -94,6 +94,13 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
+		if(!single.na(mxDataObject@means) && is.null(flatModel[[mMatrix]])) {
+			msg <- paste("The RAM objective",
+				"has an observed means vector but",
+				"no expected means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)		
+		}
 		checkNumericData(mxDataObject)
 		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
@@ -194,7 +201,7 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 		dimnames(fMatrix) <- list(c(), dims)
 		job[[fMatrixName]] <- fMatrix
 	}
-	if (!isS4(mMatrix) && is.na(mMatrix)) return(job)
+	if (!isS4(mMatrix) && (is.null(mMatrix) || is.na(mMatrix))) return(job)
 	if (!is.null(dimnames(mMatrix)) && !single.na(dims) &&
 		!identical(dimnames(mMatrix), list(NULL, dims))) {
 		msg <- paste("The M matrix associated",
@@ -219,9 +226,15 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			stop(msg, call.=FALSE)
 		}
 		job <- updateRAMdimnames(.Object, job, model@name)
-		if (flatJob@datasets[[.Object@data]]@type != 'raw' || 
-			is.na(.Object@M)) {
+		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
 			return(job)
+		}
+		if (is.na(.Object@M) || is.null(flatJob[[.Object@M]])) {
+			msg <- paste("The RAM objective",
+				"has raw data but is missing",
+				"an expected means vector in model",
+				omxQuotes(model@name))
+			stop(msg, call.=FALSE)			
 		}
 		dims <- dimnames(flatJob[[.Object@F]])
 		if (is.null(dims) || is.null(dims[[2]])) {
