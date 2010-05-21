@@ -12,8 +12,8 @@ omxCheckSetEquals(a, b)
 }
 
 \arguments{
-   \item{a}{The first vector to compare.}
-   \item{b}{The second vector to compare.}
+   \item{a}{the first vector to compare.}
+   \item{b}{the second vector to compare.}
 }
 
 \details{

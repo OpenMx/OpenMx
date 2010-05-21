@@ -12,8 +12,8 @@ omxCheckIdentical(a, b)
 }
 
 \arguments{
-   \item{a}{The first value to compare.}
-   \item{b}{The second value to compare.}
+   \item{a}{the first value to compare.}
+   \item{b}{the second value to compare.}
 }
 
 \details{

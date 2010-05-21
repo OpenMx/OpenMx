@@ -12,9 +12,9 @@ omxCheckCloseEnough(a, b, epsilon = 10^(-15))
 }
 
 \arguments{
-   \item{a}{A numeric vector or matrix.}
-   \item{b}{A numeric vector or matrix.}
-   \item{epsilon}{A non-negative tolerance threshold.}
+   \item{a}{a numeric vector or matrix.}
+   \item{b}{a numeric vector or matrix.}
+   \item{epsilon}{a non-negative tolerance threshold.}
 }
 
 \details{

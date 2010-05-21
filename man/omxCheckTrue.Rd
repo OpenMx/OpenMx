@@ -12,7 +12,7 @@ omxCheckTrue(a)
 }
 
 \arguments{
-   \item{a}{The value to test.}
+   \item{a}{the value to test.}
 }
 
 \details{

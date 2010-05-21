@@ -12,9 +12,9 @@ omxCheckWithinPercentError(a, b, percent = 0.1)
 }
 
 \arguments{
-   \item{a}{A numeric vector or matrix.}
-   \item{b}{A numeric vector or matrix.}
-   \item{percent}{A non-negative percentage.}
+   \item{a}{a numeric vector or matrix.}
+   \item{b}{a numeric vector or matrix.}
+   \item{percent}{a non-negative percentage.}
 }
 
 \details{
