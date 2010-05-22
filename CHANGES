@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.3.2-1263 (May 22, 2010)
+=================================
 * added 'newlabels' argument to omxSetParameters() function
 * now throwing errors to the user when detected from the backend in mxRun()
 * checkpointing mechanism implemented - mxRun(model, checkpoint = TRUE)
