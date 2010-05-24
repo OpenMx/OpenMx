@@ -142,7 +142,12 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 	reference <- interval@reference
 	entity <- flatModel[[reference]]
 	if(reference %in% pnames) {
-		return(list(reference = c(parameters[[reference]][[3]], interval@lowerdelta, interval@upperdelta)))
+		location <- parameters[[reference]][[3]]
+		location[[1]] <- - location[[1]] - 1
+		retval <- list()
+		retval[[reference]] <- c(location, 
+			interval@lowerdelta, interval@upperdelta)
+		return(retval)
 	} else if (!is.null(entity)) {
 		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
 			list(x = as.symbol(reference))))

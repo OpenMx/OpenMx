@@ -214,17 +214,35 @@ void omxAlgebraPrint(omxAlgebra* oa, char* d) {
 
 omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 	if(OMX_DEBUG) { Rprintf("Attaching pointer to matrix."); }
-	SEXP intMatrix;
+
 	int value = 0;
 	omxMatrix* output = NULL;
-	
-	PROTECT(intMatrix = AS_INTEGER(matrix));
-	value = INTEGER(intMatrix)[0];
-	if(value == NA_INTEGER) {
-		UNPROTECT(1);
+
+	if (IS_INTEGER(matrix)) {
+		SEXP intMatrix;
+		PROTECT(intMatrix = AS_INTEGER(matrix));
+		value = INTEGER(intMatrix)[0];
+		if(value == NA_INTEGER) {
+			UNPROTECT(1);
+			return NULL;
+		}
+		UNPROTECT(1); // intMatrix
+	} else if (IS_NUMERIC(matrix)) {
+		SEXP numericMatrix;
+		PROTECT(numericMatrix = AS_NUMERIC(matrix));
+		value = (int) REAL(numericMatrix)[0];
+		if(value == NA_INTEGER) {
+			UNPROTECT(1);
+			return NULL;
+		}
+		UNPROTECT(1); // numericMatrix		
+	} else {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Internal error: unknown type passed to omxNewMatrixFromMxIndex.");
+		omxRaiseError(os, -1, errstr);
+		free(errstr);
 		return NULL;
-	}
-	
+	}		
 	if(OMX_DEBUG) {Rprintf("  Pointer is %d.\n", value);}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.
 		output = *(os->algebraList + value);
@@ -232,7 +250,6 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		output = os->matrixList[~value];						// Value invert for matrices.
 	}
 	
-	UNPROTECT(1); // intMatrix
 	return output;
 }
 

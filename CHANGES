@@ -1,3 +1,9 @@
+Release 0.3.3-1264 (May 24, 2010)
+=================================
+* confidence interval frontend was requesting nonexistent matrices
+* omxNewMatrixFromMxMatrix() assumed input was always integer vector S-expression
+* confidence intervals mislabeling free parameter names
+
 Release 0.3.2-1263 (May 22, 2010)
 =================================
 * added 'newlabels' argument to omxSetParameters() function
