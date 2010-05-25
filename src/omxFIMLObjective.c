@@ -71,6 +71,7 @@ typedef struct omxFIMLObjective {
 
 	/* Structures determined from info in the MxFIMLObjective Object*/
 	omxDefinitionVar* defVars;	// A list of definition variables
+	double* oldDefs;			// Stores definition variables between rows
 	int numDefs;				// The length of the defVars list
 
 	/* Reserved memory for faster calculation */
@@ -133,9 +134,11 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	return retVal;
 }
 
-void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, int numDefs) {
+int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
 
 	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
+	
+	int numVarsFilled = 0;
 
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
@@ -143,17 +146,23 @@ void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, 
 			error("Internal error: definition variable population into incorrect data source");
 			continue; // don't populate from the wrong data frame
 		}
+		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
+		if(newDefVar == oldDefs[k]) continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
+		oldDefs[k] = newDefVar;
+		numVarsFilled++;
+
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG_ROWS) {
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
-			*(defVars[k].location[l]) = omxDoubleDataElement(data, row, defVars[k].column);
+			*(defVars[k].location[l]) = newDefVar;
 			omxMarkDirty(defVars[k].matrices[l]);
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
 				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
 			}
 		}
 	}
+	return numVarsFilled;
 }
 
 void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -172,36 +181,39 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	omxMatrix *cor, *smallThresh;
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
-	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor, *weights;
+	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor, *weights, *oldDefs;
 	int *Infin;
 	omxDefinitionVar* defVars;
+	int firstRow = 1;
 
 	// Locals, for readability.  Compiler should cut through this.
-	cov 		= ((omxFIMLObjective*)oo->argStruct)->cov;
-	means		= ((omxFIMLObjective*)oo->argStruct)->means;
-	smallRow 	= ((omxFIMLObjective*)oo->argStruct)->smallRow;
-	smallCov 	= ((omxFIMLObjective*)oo->argStruct)->smallCov;
-	smallMeans	= ((omxFIMLObjective*)oo->argStruct)->smallMeans;
-	RCX 		= ((omxFIMLObjective*)oo->argStruct)->RCX;
-	data		= ((omxFIMLObjective*)oo->argStruct)->data;
-	dataColumns	= ((omxFIMLObjective*)oo->argStruct)->dataColumns;
-	defVars		= ((omxFIMLObjective*)oo->argStruct)->defVars;
-	numDefs		= ((omxFIMLObjective*)oo->argStruct)->numDefs;
+	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
+	cov 		= ofo->cov;
+	means		= ofo->means;
+	smallRow 	= ofo->smallRow;
+	smallCov 	= ofo->smallCov;
+	smallMeans	= ofo->smallMeans;
+	RCX 		= ofo->RCX;
+	data		= ofo->data;
+	dataColumns	= ofo->dataColumns;
+	defVars		= ofo->defVars;
+	oldDefs		= ofo->oldDefs;
+	numDefs		= ofo->numDefs;
 
-	cor 		= ((omxFIMLObjective*)oo->argStruct)->cor;
-	corList 	= ((omxFIMLObjective*)oo->argStruct)->corList;
-	smallCor	= ((omxFIMLObjective*)oo->argStruct)->smallCor;
-	weights		= ((omxFIMLObjective*)oo->argStruct)->weights;
-	smallThresh	= ((omxFIMLObjective*)oo->argStruct)->smallThresh;
-	lThresh		= ((omxFIMLObjective*)oo->argStruct)->lThresh;
-	uThresh		= ((omxFIMLObjective*)oo->argStruct)->uThresh;
-	thresholdCols = ((omxFIMLObjective*)oo->argStruct)->thresholdCols;
-	returnRowLikelihoods = ((omxFIMLObjective*)oo->argStruct)->returnRowLikelihoods;
+	cor 		= ofo->cor;
+	corList 	= ofo->corList;
+	smallCor	= ofo->smallCor;
+	weights		= ofo->weights;
+	smallThresh	= ofo->smallThresh;
+	lThresh		= ofo->lThresh;
+	uThresh		= ofo->uThresh;
+	thresholdCols = ofo->thresholdCols;
+	returnRowLikelihoods = ofo->returnRowLikelihoods;
 
-	Infin		= ((omxFIMLObjective*)oo->argStruct)->Infin;
-	maxPts		= ((omxFIMLObjective*)oo->argStruct)->maxPts;
-	absEps		= ((omxFIMLObjective*)oo->argStruct)->absEps;
-	relEps		= ((omxFIMLObjective*)oo->argStruct)->relEps;
+	Infin		= ofo->Infin;
+	maxPts		= ofo->maxPts;
+	absEps		= ofo->absEps;
+	relEps		= ofo->relEps;
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
@@ -230,13 +242,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		// Handle Definition Variables.
 		if(numDefs != 0) {
 			if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
-			handleDefinitionVarList(data, row, defVars, numDefs);
-			omxRecompute(cov);
-			omxRecompute(means);
-			for(int j=0; j < data->cols; j++) {
-				if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-					omxRecompute(thresholdCols[j].matrix);
-					checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+			if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
+				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
+				// N.B. handling of definition var lists always happens, regardless of firstRow.
+				omxRecompute(cov);
+				omxRecompute(means);
+				for(int j=0; j < data->cols; j++) {
+					if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
+						omxRecompute(thresholdCols[j].matrix);
+						checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+					}
 				}
 			}
 			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
@@ -369,6 +384,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
             }
         }
+		if(firstRow) firstRow = 0;
 	}
 
     if(!returnRowLikelihoods) {
@@ -395,6 +411,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int onei = 1;
 	double Q = 0.0;
 	double determinant = 1.0;
+	double* oldDefs;
 	int numDefs;
 	int numCols, numRemoves;
 	int returnRowLikelihoods;
@@ -413,6 +430,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	data		= ofo->data;
 	dataColumns	= ofo->dataColumns;
 	defVars		= ofo->defVars;
+	oldDefs		= ofo->oldDefs;
 	numDefs		= ofo->numDefs;
     returnRowLikelihoods = ofo->returnRowLikelihoods;
 
@@ -427,6 +445,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int zeros[cov->cols];
 
 	sum = 0.0;
+	int firstRow = 1;
 
 	for(int row = 0; row < data->rows; row++) {
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
@@ -442,16 +461,19 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(numDefs != 0) {
 			// omxStateNextRow(oo->matrix->currentState);						// Advance Row
 			if(OMX_DEBUG_ROWS) {Rprintf("Handling definition vars and calculating cov and means for row %d.\n", oo->matrix->currentState->currentRow);}
-			handleDefinitionVarList(data, row, defVars, numDefs);
-			omxRecompute(cov);
-			omxRecompute(means);
+			if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) { 
+				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
+				omxRecompute(cov);
+				omxRecompute(means);
+			}
 		}
 
 		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
 		if(OMX_DEBUG_ROWS) {
 			char note[50];
 			sprintf(note, "Local Data Row %d", row);
-			omxPrint(smallRow, note); }
+			omxPrint(smallRow, note); 
+		}
 
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
@@ -527,6 +549,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
             sum += log(determinant) + Q + (log(2 * M_PI) * smallRow->cols);
             if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);}
         }
+		if(firstRow) firstRow = 0;
 	}
 
     if(!returnRowLikelihoods) {
@@ -623,6 +646,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	newObj->numDefs = length(nextMatrix);
 	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
+	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
@@ -636,6 +660,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
 		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
 		newObj->defVars[nextDef].matrices = (omxMatrix **) R_alloc(length(itemList) - 2, sizeof(omxMatrix*));
+		newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
 			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
