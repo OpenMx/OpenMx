@@ -28,8 +28,9 @@ splitSubstitution <- function(input) {
 }
 
 hasSquareBrackets <- function(input) {
-    match <- grep("[\\[\\]]", input, perl = TRUE, value = TRUE)
-    return(length(match) > 0)
+    match1 <- grep("[", input, fixed=TRUE)
+    match2 <- grep("]", input, fixed=TRUE)
+    return(length(match1) > 0 && length(match2) > 0)
 }
 
 convertSquareBracketLabels <- function(model) {

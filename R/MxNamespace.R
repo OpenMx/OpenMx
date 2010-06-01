@@ -74,6 +74,17 @@ omxVerifyReference <- function(reference, location) {
 			call. = FALSE)		
 		}
 	}
+	leftSquareBracket <- length(grep("[", reference, fixed=TRUE)) > 0
+	rightSquareBracket <- length(grep("]", reference, fixed=TRUE)) > 0
+	comma <- length(grep(",", reference, fixed=TRUE)) > 0
+	if ((leftSquareBracket && rightSquareBracket && comma) ||
+		(!leftSquareBracket && !rightSquareBracket && !comma)) {
+	} else {
+			stop(paste("The reference", omxQuotes(reference),
+				"in", location, "is illegal because it is",
+				"a partial square-bracket reference."),
+			call. = FALSE)
+	}
 }
 
 omxVerifyName <- function(name) {
@@ -473,6 +484,7 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 			datasource <- unlist(strsplit(dataname, omxSeparatorChar, fixed = TRUE))[[1]]
 			return(omxIdentifier(datasource, label))
 		}
+
 	}
 	return(omxConvertIdentifier(label, modelname, namespace))
 }

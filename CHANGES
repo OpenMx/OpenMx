@@ -1,3 +1,7 @@
+trunk
+=====
+* checking for partial square bracket references on input
+
 Release 0.3.3-1264 (May 24, 2010)
 =================================
 * confidence interval frontend was requesting nonexistent matrices
