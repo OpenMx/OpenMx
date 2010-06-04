@@ -177,14 +177,17 @@ calculateIdenticalRows <- function(sortdata) {
 	while(index <= nrow(sortdata)) {
 		offset <- 1
 		leftside <- sortdata[index, ]
-		rightside <- sortdata[index + offset, ]
-		rownames(leftside) <- NULL
-		rownames(rightside) <- NULL
-		while((index + offset) <= nrow(sortdata) && 
-			identical(leftside, rightside)) {
-			offset <- offset + 1
+		if (index + offset <= nrow(sortdata)) {
 			rightside <- sortdata[index + offset, ]
+			rownames(leftside) <- NULL
 			rownames(rightside) <- NULL
+			while(identical(leftside, rightside)) {
+				offset <- offset + 1
+				if (index + offset <= nrow(sortdata)) {
+					rightside <- sortdata[index + offset, ]
+					rownames(rightside) <- NULL
+				}
+			}
 		}
 		retval[[index]] <- as.integer(offset)
 		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
