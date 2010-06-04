@@ -80,13 +80,12 @@ ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
 # Second we extract the parameter estimates and matrix algebra results from the model
 Sigma<-run@matrices$Sigma@values
-Mu<-run@algebras$Mu@result
 M<-run@matrices$M@values
 beta<-run@matrices$beta@values
 
 # Third, we check to see if things are more or less equal
 omxCheckCloseEnough(ObsCovs,Sigma,.01)
 omxCheckCloseEnough(ObsMeansGroup1,as.vector(M+beta),.001)
-omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
+omxCheckCloseEnough(ObsMeansGroup2,as.vector(M),.001)
 
 

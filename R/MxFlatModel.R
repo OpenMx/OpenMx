@@ -71,19 +71,9 @@ flatReplaceMethod <- function(model, index, value) {
 	return(flatNamespaceSearchReplace(model, index, value))
 }
 
-convertDatasets <- function(flatModel, model) {
-	if (length(flatModel@objectives) > 0) {
-		for(i in 1:length(flatModel@objectives)) {
-			objective <- flatModel@objectives[[i]]
-			dataName <- objective@data
-			if (!is.na(dataName)) {
-				observed <- flatModel@datasets[[dataName]]@observed
-				if (is.data.frame(observed)) {
-					flatModel@datasets[[dataName]]@observed <- convertIntegerColumns(observed)
-				}
-			}
-		}	
-	}
+convertDatasets <- function(flatModel, defVars) {
+	flatModel@datasets <- lapply(flatModel@datasets, sortRawData, defVars)
+	flatModel@datasets <- lapply(flatModel@datasets, convertIntegerColumns)
 	return(flatModel)
 }
 

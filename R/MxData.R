@@ -22,6 +22,10 @@ setClass(Class = "MxNonNullData",
 		means  = "matrix",
 		type   = "character",
 		numObs = "numeric",
+		indexVector = "integer",
+		identicalDefVars = "integer",
+		identicalMissingness = "integer",
+		identicalRows = "integer",
 		name   = "character"))
 
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
@@ -78,9 +82,113 @@ convertIntegerSingleColumn <- function(column) {
 	}
 }
 
-convertIntegerColumns <- function(dframe) {
-	output <- data.frame(lapply(dframe, convertIntegerSingleColumn))
-	return(output)
+sortRawData <- function(mxData, defVars) {
+	if(mxData@type != "raw") {
+		return(mxData)	
+	}
+	observed <- mxData@observed
+	if (length(observed) == 0) {
+		mxData@indexVector <- as.integer(NA)
+		mxData@identicalDefVars <- as.integer(NA)
+		mxData@identicalMissingness <- as.integer(NA)
+		mxData@identicalRows <- as.integer(NA)			
+	} else {
+		observedNames <- colnames(observed)	
+		if (length(defVars) > 0) {
+			defKeys <- names(omxFilterDefinitionVariables(defVars, mxData@name))
+			defKeys <- sapply(defKeys, function(x) {
+				unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]
+			})
+			names(defKeys) <- NULL
+			defKeys <- defKeys[defKeys %in% observedNames]
+			defIndex <- match(defKeys, observedNames)
+			otherIndex <- setdiff(1:length(observedNames), defIndex)
+			sortkeys <- c(defIndex, otherIndex)
+		} else {
+			sortkeys <- c(1:length(observedNames))
+			defKeys <- character()
+		}
+		sortvectors <- lapply(sortkeys, function(x) {observed[,x] })
+		args <- c(sortvectors, 'na.last'=FALSE)
+		indexVector <- do.call('order', args)
+		sortdata <- observed[indexVector,,drop=FALSE]
+		mxData@observed <- sortdata
+		if (length(defKeys) > 0) {
+			identicalDefVars <- calculateIdenticalDefVars(sortdata, defKeys)
+		} else if (nrow(sortdata) > 1) {
+			identicalDefVars <- c(nrow(sortdata), rep.int(0L, nrow(sortdata) - 1))
+		} else {
+			identicalDefVars <- 1L
+		}
+		if (any(is.na(sortdata[1, ]))) {
+			identicalMissingness <- calculateIdenticalMissingness(sortdata)			
+		} else if (nrow(sortdata) > 1) {
+			identicalMissingness <- c(nrow(sortdata), rep.int(0L, nrow(sortdata) - 1))
+		} else {
+			identicalMissingness <- 1L
+		}
+		identicalRows <- calculateIdenticalRows(sortdata)
+		mxData@indexVector <- indexVector - 1L
+		mxData@identicalDefVars <- identicalDefVars
+		mxData@identicalMissingness <- identicalMissingness
+		mxData@identicalRows <- identicalRows
+	}
+	return(mxData)
+}
+
+calculateIdenticalDefVars <- function(sortdata, defKeys) {
+	index <- 1
+	retval <- integer()
+	while(index <= nrow(sortdata)) {
+		offset <- 1
+		while((index + offset) <= nrow(sortdata) && 
+			all(sortdata[index, defKeys] == sortdata[index + offset, defKeys])) {
+			offset <- offset + 1
+		}
+		retval[[index]] <- as.integer(offset)
+		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
+		index <- index + offset
+	}
+	return(retval)
+}
+
+calculateIdenticalMissingness <- function(sortdata) {
+	index <- 1
+	retval <- integer()
+	while(index <= nrow(sortdata)) {
+		offset <- 1
+		while((index + offset) <= nrow(sortdata) && 
+			all(is.na(sortdata[index, ]) == is.na(sortdata[index + offset, ]))) {
+			offset <- offset + 1
+		}
+		retval[[index]] <- as.integer(offset)
+		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
+		index <- index + offset
+	}
+	return(retval)
+}
+
+calculateIdenticalRows <- function(sortdata) {
+	index <- 1
+	retval <- integer()
+	while(index <= nrow(sortdata)) {
+		offset <- 1
+		while((index + offset) <= nrow(sortdata) && 
+			identical(sortdata[index, ], sortdata[index + offset, ])) {
+			offset <- offset + 1
+		}
+		retval[[index]] <- as.integer(offset)
+		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
+		index <- index + offset
+	}
+	return(retval)
+}
+
+convertIntegerColumns <- function(mxData) {
+	if (is.data.frame(mxData@observed)) {
+		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
+	}
+	return(mxData)
 }
 
 checkNumericData <- function(data) {

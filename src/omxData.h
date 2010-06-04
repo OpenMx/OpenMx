@@ -58,6 +58,10 @@ struct omxData {						// A matrix
 	int* location;						// Which of the following contains the data column
 	double** realData;					// The actual data objects if numeric
 	int** intData;						// The actual data objects if ordinal
+	int* indexVector;						// The "official" index into the data set
+	int* identicalDefs;					// Number of consecutive rows with identical def. vars
+	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
+	int* identicalRows;					// Number of consecutive rows with identical data
 	
 /* Useful Members */
 	int rows, cols;						// Matrix size 
@@ -77,8 +81,13 @@ struct omxData {						// A matrix
 	omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 	omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
 	omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
-	double omxDataNumObs(omxData *od);											// Returns number
-	unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Does what it says
+	int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
+	int omxDataNumIdenticalRows(omxData *od, int row);							// Returns the number of rows identical to this one in the data set
+	int omxDataNumIdenticalMissingness(omxData *od, int row);						// Returns the number of rows with definition variables and missingness identical to this one in the data set
+	int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number of rows with definition variables identical to this one in the data set
+	
+	double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
+	unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor
 	char* omxDataType(omxData *od);												// Returns the type field // TODO: Should this be an ENUM?
 
 /* Function wrappers that switch based on inclusion of algebras */

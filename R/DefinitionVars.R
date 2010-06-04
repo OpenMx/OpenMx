@@ -56,6 +56,7 @@ populateDefVarMatrix <- function(matrix, model) {
 	}
 	return(value)
 }
+
 defVariableIsMatch <- function(defName, dataName) {
 	components <- unlist(strsplit(defName, omxSeparatorChar, fixed = TRUE))
 	target <- paste(components[[1]], components[[2]], sep = '.')

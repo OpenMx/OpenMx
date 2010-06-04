@@ -42,6 +42,11 @@ omxData* omxInitData(omxData* od, omxState* os) {
 	od->intData = NULL;
 	od->realData = NULL;
 	od->currentState = os;
+	od->indexVector = NULL;
+	od->identicalDefs = NULL;
+	od->identicalMissingness = NULL;
+	od->identicalRows = NULL;
+	
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
 
 	return od;
@@ -57,7 +62,7 @@ omxData* omxNewDataFromMxDataPtr(SEXP dataObject, omxState* state) {
 omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	if(OMX_DEBUG) {Rprintf("Initializing data Element.\n");}
 	if(dataObject == NULL) {
-		error("Null Data Object detected.\n");
+		error("Null Data Object detected.  This is an internal error, and should be reported on the forums.\n");
 		// Badness has occurred.  This data object does not exist.
 		return NULL;
 	}
@@ -75,7 +80,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {Rprintf("Processing Data Type.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("type")));
-	if(dataLoc == NULL) {error("Data has no type.  Sorry.\n");}
+	if(dataLoc == NULL) { error("Data has no type.  Sorry.\nThis is an internal error, and should be reported on the forums.\n");}
 	PROTECT(dataVal = STRING_ELT(dataLoc,0));
 		strncpy(od->type, CHAR(dataVal), 249);
 		od->type[249] = '\0';
@@ -134,6 +139,29 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		UNPROTECT(1); // dataLoc
 	} else {
 		od->numObs = od->rows;
+		if(OMX_DEBUG) {Rprintf("Processing presort metadata.\n");}
+		/* For raw data, process sorting metadata. */
+		// Process unsorted indices:  // TODO: Generate reverse lookup table
+		PROTECT(dataLoc = GET_SLOT(dataObject, install("indexVector")));
+			od->indexVector = INTEGER(dataLoc);
+			if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
+		UNPROTECT(1);
+		// Process pre-computed identicality checks
+		if(OMX_DEBUG) {Rprintf("Processing definition variable identicality.\n");}
+		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalDefVars")));
+			od->identicalDefs = INTEGER(dataLoc);
+			if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
+		UNPROTECT(1);
+		if(OMX_DEBUG) {Rprintf("Processing missingness identicality.\n");}
+		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalMissingness")));
+			od->identicalMissingness = INTEGER(dataLoc);
+			if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
+		UNPROTECT(1);
+		if(OMX_DEBUG) {Rprintf("Processing row identicality.\n");}
+		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalRows")));
+			od->identicalRows = INTEGER(dataLoc);
+			if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
+		UNPROTECT(1);
 	}
 
 	return od;
@@ -267,6 +295,29 @@ omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 		}
 	}
 	return om;
+}
+
+int omxDataIndex(omxData *od, int row) {
+	if(od->indexVector != NULL)
+		return od->indexVector[row];
+	else return row;
+}
+
+int omxDataNumIdenticalRows(omxData *od, int row) {
+	if(od->identicalRows != NULL)
+		return od->identicalRows[row];
+	else return 1;
+}
+int omxDataNumIdenticalMissingness(omxData *od, int row) {
+	if(od->identicalMissingness != NULL)
+		return od->identicalMissingness[row];
+	else return 1;
+}
+
+int omxDataNumIdenticalDefs(omxData *od, int row){
+	if(od->identicalDefs != NULL)
+		return od->identicalDefs[row];
+	else return 1;
 }
 
 double omxDataNumObs(omxData *od) {

@@ -57,8 +57,6 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	model <- omxReplaceModels(model, frozen)
 	model <- convertSquareBracketLabels(model)
 	flatModel <- omxFlattenModel(model, namespace)
-	flatModel <- convertDatasets(flatModel, model)
-	data <- flatModel@datasets
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
 	oldFlatModel <- flatModel
 	flatModel <- constraintsToAlgebras(flatModel)
@@ -73,6 +71,8 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	startVals <- generateValueList(matrices, parameters)
 	defVars <- generateDefinitionList(flatModel)
 	objectives <- convertObjectives(flatModel, model, defVars)
+	flatModel <- convertDatasets(flatModel, defVars)
+	data <- flatModel@datasets
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters)

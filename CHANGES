@@ -1,6 +1,8 @@
 trunk
 =====
 * checking for partial square bracket references on input
+* fixed error reporting for non-positive-definite covariances in FIML
+* implemented initial sorting-based speedup for FIML objectives
 
 Release 0.3.3-1264 (May 24, 2010)
 =================================
