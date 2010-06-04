@@ -176,8 +176,8 @@ calculateIdenticalRows <- function(sortdata) {
 	retval <- integer()
 	while(index <= nrow(sortdata)) {
 		offset <- 1
-		leftside <- sortdata[index, ]
 		if (index + offset <= nrow(sortdata)) {
+			leftside <- sortdata[index, ]
 			rightside <- sortdata[index + offset, ]
 			rownames(leftside) <- NULL
 			rownames(rightside) <- NULL
