@@ -55,10 +55,15 @@ checkpointOptions <- list(
 	"Socket Count Iterations" = 1
 )
 
+otherOptions <- list(
+	"No Sort Data" = character()
+)
+
 # Convert the keys and values into strings
 generateOptionsList <- function(input) {
-	options <- getOption('mxOptimizerOptions')
-	input <- input[!(names(input) %in% names(checkpointOptions))]
+	options <- getOption('mxOptions')
+	options <- options[names(options) %in% names(npsolOptions)]
+	input <- input[names(input) %in% names(npsolOptions)]
 	if (length(input) > 0) {
 		keys <- sapply(names(input), as.character)
 		values <- sapply(input, as.character)

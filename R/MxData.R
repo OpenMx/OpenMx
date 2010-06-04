@@ -25,7 +25,7 @@ setClass(Class = "MxNonNullData",
 		indexVector = "integer",
 		identicalDefVars = "integer",
 		identicalMissingness = "integer",
-		identicalRows = "integer",
+		identicalRows = "integer",		
 		name   = "character"))
 
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
@@ -82,12 +82,15 @@ convertIntegerSingleColumn <- function(column) {
 	}
 }
 
-sortRawData <- function(mxData, defVars) {
+sortRawData <- function(mxData, defVars, modeloptions) {
 	if(mxData@type != "raw") {
 		return(mxData)	
 	}
 	observed <- mxData@observed
-	if (length(observed) == 0) {
+	nosort <- as.character(modeloptions[['No Sort Data']])
+	components <- unlist(strsplit(mxData@name, omxSeparatorChar, fixed = TRUE))
+	modelname <- components[[1]]	
+	if ((length(observed) == 0) || (modelname %in% nosort)) {
 		mxData@indexVector <- as.integer(NA)
 		mxData@identicalDefVars <- as.integer(NA)
 		mxData@identicalMissingness <- as.integer(NA)
@@ -190,6 +193,8 @@ convertIntegerColumns <- function(mxData) {
 	}
 	return(mxData)
 }
+
+
 
 checkNumericData <- function(data) {
 	if(is.matrix(data@observed) && !is.double(data@observed)) {

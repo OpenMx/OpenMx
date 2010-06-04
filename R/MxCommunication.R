@@ -16,7 +16,7 @@
 generateCommunicationList <- function(modelname, checkpoint, useSocket, options) {
 	if (!checkpoint && !useSocket) return(list())
 	retval <- list()
-	defaults <- getOption('mxCheckpointOptions')
+	defaults <- getOption('mxOptions')
 	if (checkpoint) {		
 		chkpt.directory <- options[['Checkpoint Directory']]
 		chkpt.prefix <- options[['Checkpoint Prefix']]

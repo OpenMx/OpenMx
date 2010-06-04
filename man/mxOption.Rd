@@ -24,8 +24,8 @@ The name of the option is the \sQuote{key} argument. Use value = NULL to remove
 an existing option. Before the model is submitted to the back-end, all keys and 
 values are converted into strings using the \link{as.character} function. To reset
 all options to their default values, use reset = TRUE. If reset = TRUE, then 'key'
-and 'value' are ignored. Use \code{getOption('mxOptimizerOptions')} or 
-\code{getOption('mxCheckpointOptions')} to see the default optimizer options.
+and 'value' are ignored. Use \code{getOption('mxOptions')} to see the default 
+optimizer options.
 
 OpenMx options
 
