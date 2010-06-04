@@ -186,6 +186,8 @@ calculateIdenticalRows <- function(sortdata) {
 				if (index + offset <= nrow(sortdata)) {
 					rightside <- sortdata[index + offset, ]
 					rownames(rightside) <- NULL
+				} else {
+					rightside <- NULL
 				}
 			}
 		}
