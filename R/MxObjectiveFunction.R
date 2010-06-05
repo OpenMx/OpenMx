@@ -36,7 +36,7 @@ setGeneric("genericObjFunConvert",
 })
 
 setGeneric("genericObjModelConvert",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 	return(standardGeneric("genericObjModelConvert"))
 })
 
@@ -61,12 +61,12 @@ setGeneric("genericObjRename",
 })
 
 setMethod("genericObjModelConvert", "MxBaseObjective",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		return(job)
 })
 
 setMethod("genericObjModelConvert", "NULL",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		return(job)
 })
 
@@ -112,23 +112,22 @@ convertObjectives <- function(flatModel, model, defVars) {
 	return(retval)
 }
 
-translateObjectives <- function(model, namespace) {
+translateObjectives <- function(model, namespace, flatModel) {
 	if(is.null(model@objective) && 
 		length(omxDependentModels(model)) == 0) {
 		return(model)
 	}
-	flatModel <- omxFlattenModel(model, namespace)
-	return(translateObjectivesHelper(model, model, flatModel))
+	return(translateObjectivesHelper(model, model, namespace, flatModel))
 }
 
-translateObjectivesHelper <- function(job, model, flatJob) {
+translateObjectivesHelper <- function(job, model, namespace, flatJob) {
 	flatObjective <- flatJob@objectives[[omxIdentifier(model@name, 'objective')]]
-	job <- genericObjModelConvert(flatObjective, job, model, flatJob)
+	job <- genericObjModelConvert(flatObjective, job, model, namespace, flatJob)
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			submodel <- model@submodels[[i]]
 			if (submodel@independent == FALSE) {
-				job <- translateObjectivesHelper(job, submodel, flatJob)
+				job <- translateObjectivesHelper(job, submodel, namespace, flatJob)
 			}
 		}
 	}

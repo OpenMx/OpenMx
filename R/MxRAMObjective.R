@@ -218,7 +218,7 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 }
 
 setMethod("genericObjModelConvert", "MxRAMObjective",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
@@ -243,14 +243,14 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				"does not have column names.")
 			stop(msg, call.=FALSE)
 		}
-		if (is.null(model[['I']])) {
+		if (availableName(model, namespace, 'I')) {
 			iName <- 'I'
 		} else {
 			iName <- omxUntitledName()
 		}
 		model <- mxModel(model, mxMatrix(type="Iden", 
 			nrow=nrow(flatJob[[.Object@A]]), name = iName))
-		if (is.null(model[['Z']])) {
+		if (availableName(model, namespace, 'Z')) {
 			zName <- 'Z'
 		} else {
 			zName <- omxUntitledName()
@@ -260,7 +260,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = zFormula, y = zName)))
 		model <- mxModel(model, algebra)
-		if (is.null(model[['covariance']])) {
+		if (availableName(model, namespace, 'covariance')) {
 			covName <- 'covariance'
 		} else {
 			covName <- omxUntitledName()
@@ -276,7 +276,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		meansFormula <- substitute(t(F %*% Z %*% t(M)),
 			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
 				M = as.symbol(.Object@M)))
-		if (is.null(model[['means']])) {
+		if (availableName(model, namespace, 'means')) {
 			meansName <- 'means'
 		} else {
 			meansName <- omxUntitledName()
@@ -288,7 +288,9 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
 			list(x = covName, y = meansName, z = .Object@thresholds)))
 		model@objective <- objective
+		class(model) <- 'MxModel'
 		job[[model@name]] <- model
+		job@transform <- TRUE
 		return(job)
 	}
 )

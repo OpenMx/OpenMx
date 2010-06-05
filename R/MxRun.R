@@ -16,17 +16,35 @@
 mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE) {
+	if(!silent) cat("Running", model@name, "\n")
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxRun does not accept values for the '...' argument")
 	}
-	if(!silent) cat("Running", model@name, "\n")
+	runHelper(model, frontendStart, intervals,
+		silent, suppressWarnings, unsafe,
+		checkpoint, useSocket)
+}
+
+runHelper <- function(model, frontendStart, 
+		intervals, silent, suppressWarnings, 
+		unsafe, checkpoint, useSocket) {
 	namespace <- omxGenerateNamespace(model)
+	flatModel <- omxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	omxCheckMatrices(model)
 	omxVerifyModel(model)
-	model <- translateObjectives(model, namespace)
+	translation <- translateObjectives(model, namespace, flatModel)
+	if (translation@transform) {
+		translation@transform <- FALSE
+		model <- runHelper(translation, frontendStart,
+			intervals, silent, suppressWarnings, unsafe,
+			checkpoint, useSocket)
+		return(model)
+	} else {
+		model <- translation
+	}
 	# Regenerate the namespace
 	namespace <- omxGenerateNamespace(model)
 	dataList <- generateDataList(model)
@@ -101,7 +119,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
 		backendElapsed, indepElapsed, frontendStop, independents)
-	return(model)
+	return(model)		
 }
 
 processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 

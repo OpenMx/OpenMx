@@ -27,6 +27,11 @@ explode <- function(string) {
 illegalChars <- "+-!~?:*/^%<>=&|$"
 illegalCharsVector <- explode(illegalChars)
 
+availableName <- function(model, namespace, name) {
+	return(is.null(model[[name]]) && 
+			!(name %in% namespace$parameters) &&
+			!(name %in% namespace$values))
+}
 
 omxVerifyReference <- function(reference, location) {
     if (isNumber(reference)) {

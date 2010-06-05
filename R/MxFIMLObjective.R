@@ -115,7 +115,7 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 })
 
 setMethod("genericObjModelConvert", "MxFIMLObjective",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
 		precision <- "Function Precision"
 		if(!single.na(.Object@thresholds) && 

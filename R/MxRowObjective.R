@@ -106,7 +106,7 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 })
 
 setMethod("genericObjModelConvert", "MxRowObjective",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		rowAlgebraName <- .Object@rowAlgebra
 		rowResultsName <- .Object@rowResults
 		reduceAlgebraName <- .Object@reduceAlgebra

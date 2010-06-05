@@ -99,7 +99,7 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 
 
 setMethod("genericObjModelConvert", "MxMLObjective",
-	function(.Object, job, model, flatJob) {
+	function(.Object, job, model, namespace, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The ML objective",
 				"does not have a dataset associated with it in model",
