@@ -18,6 +18,8 @@ require(snowfall)
 sfInit(parallel = TRUE, cpus = 8)
 sfLibrary(OpenMx)
 
+set.seed(10)
+
 # parameters for the simulation: lambda = factor loadings,
 # specifics = specific variances
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)

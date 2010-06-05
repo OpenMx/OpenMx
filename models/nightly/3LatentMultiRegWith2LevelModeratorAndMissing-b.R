@@ -27,6 +27,8 @@ numberSubjects <- 1000
 numberIndicators <- 12
 numberFactors <- 3
 
+set.seed(10)
+
 fixedBMatrixF <- matrix(c(.4, .2), 2, 1, byrow=TRUE)
 randomBMatrixF <- matrix(c(.3, .5), 2, 1, byrow=TRUE)
 XMatrixF <- matrix(rnorm(numberSubjects*2, mean=0, sd=1), numberSubjects, 2)
