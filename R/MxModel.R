@@ -27,7 +27,6 @@ setClass(Class = "MxModel",
 		submodels = "list",
 		objective = "MxObjective",
 		independent = "logical",
-		transform = "logical",
 		options = "list",
 		output = "list",
 		runstate="list"
@@ -47,7 +46,6 @@ setMethod("initialize", "MxModel",
 		.Object@submodels <- list()
 		.Object@objective <- NULL
 		.Object@independent <- FALSE
-		.Object@transform <- FALSE
 		.Object@options <- list()
 		.Object@output <- list()
 		.Object@runstate <- list()
@@ -291,6 +289,7 @@ checkVariables <- function(model, latentVars, manifestVars) {
 	}
 	if (length(unique(manifestVars)) != length(manifestVars)) {
 		stop("The manifest variables list contains duplicate elements",
+
 			call. = FALSE)
 	}
 }

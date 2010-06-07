@@ -290,7 +290,6 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		model@objective <- objective
 		class(model) <- 'MxModel'
 		job[[model@name]] <- model
-		job@transform <- TRUE
 		return(job)
 	}
 )
