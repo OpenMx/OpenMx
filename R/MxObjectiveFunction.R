@@ -21,7 +21,9 @@ setClass(Class = "MxBaseObjective",
 	representation = representation(
 		name = "character",
 		data = "MxCharOrNumber",
-		result = "matrix", "VIRTUAL"))
+		.translated = "logical",
+		result = "matrix", "VIRTUAL"),
+	prototype(.translated = FALSE))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
@@ -121,8 +123,15 @@ translateObjectives <- function(model, namespace, flatModel) {
 }
 
 translateObjectivesHelper <- function(job, model, namespace, flatJob) {
-	flatObjective <- flatJob@objectives[[omxIdentifier(model@name, 'objective')]]
-	job <- genericObjModelConvert(flatObjective, job, model, namespace, flatJob)
+	objectiveName <- omxIdentifier(model@name, 'objective')
+	flatObjective <- flatJob@objectives[[objectiveName]]
+	if (!is.null(flatObjective)) {
+		repeat {
+			job <- genericObjModelConvert(flatObjective, job, model, namespace, flatJob)
+			flatObjective <- flatJob@objectives[[objectiveName]]
+			if (is.null(flatObjective) || !flatObjective@.translated) break
+		}
+	}
 	if (length(model@submodels) > 0) {
 		for(i in 1:length(model@submodels)) {
 			submodel <- model@submodels[[i]]

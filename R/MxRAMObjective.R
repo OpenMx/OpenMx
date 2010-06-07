@@ -287,6 +287,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		model <- mxModel(model, algebra)
 		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
 			list(x = covName, y = meansName, z = .Object@thresholds)))
+		objective@.translated <- TRUE
 		model@objective <- objective
 		class(model) <- 'MxModel'
 		job[[model@name]] <- model
