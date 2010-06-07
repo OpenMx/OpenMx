@@ -29,7 +29,9 @@ setClass(Class = "MxModel",
 		independent = "logical",
 		options = "list",
 		output = "list",
-		runstate="list"
+		runstate="list",
+		.estimation="logical",
+		.postEstimation="logical"
 ))
 
 omxModelTypes[['raw']] <- "MxModel"
@@ -49,6 +51,8 @@ setMethod("initialize", "MxModel",
 		.Object@options <- list()
 		.Object@output <- list()
 		.Object@runstate <- list()
+		.Object@.estimation <- FALSE
+		.Object@.postEstimation <- FALSE
 		.Object <- omxInitModel(.Object)
 		return(.Object)
 	}

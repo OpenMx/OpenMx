@@ -51,7 +51,19 @@ runHelper <- function(model, frontendStart,
 	flatModel <- omxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	model <- convertSquareBracketLabels(model)
-	model <- translateObjectives(model, namespace, flatModel)
+	translation <- translateObjectives(model, namespace, flatModel)
+	if (slot(translation, ".estimation")) {
+		estimates <- runHelper(translation, frontendStart, 
+			intervals, silent, suppressWarnings, 
+			unsafe, checkpoint, useSocket)
+		# TODO: begin populate the model with free parameter estimates
+		# TODO: end populate the model with free parameter estimates
+		slot(model, ".postEstimation") <- TRUE 
+		model <- translateObjectives(model, namespace, flatModel)
+		slot(model, ".postEstimation") <- FALSE 
+	} else {
+		model <- translation
+	}
 	# Regenerate the namespace and flatModel
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)
