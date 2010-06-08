@@ -23,7 +23,7 @@ mxRename <- function(model, newname, oldname = NA) {
 	if( !(is.na(oldname) || is.character(oldname))) {
 		stop("'oldname' argument is not either NA or character string")
 	}	
-	omxVerifyName(newname)
+	omxVerifyName(newname, 0)
 	namespace <- omxGenerateNamespace(model)	
 	entities <- namespace$entities
 	parameters <- namespace$parameters

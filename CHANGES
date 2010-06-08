@@ -6,6 +6,7 @@ trunk
 * added 'No Sort Data' to mxOptions()
 * eliminated getOption('mxOptimizerOptions') and getOption('mxCheckpointOptions') 
 * added getOption('mxOptions')
+* error messages for illegal names provide function call information
 
 Release 0.3.3-1264 (May 24, 2010)
 =================================

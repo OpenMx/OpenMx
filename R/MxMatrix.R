@@ -236,7 +236,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (single.na(name)) {
 		name <- omxUntitledName()
 	}
-	omxVerifyName(name)
+	omxVerifyName(name, 0)
 	if (!is.character(name)) {
 		stop(paste("'name' argument must",
 			"be a character vector in", 
@@ -364,7 +364,7 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 				"dimensions in", deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 	}
-	lapply(labels, omxVerifyReference, paste("matrix", omxQuotes(name)))
+	lapply(labels, omxVerifyReference, -2)
 	if(any(is.na(free))) {
 		stop(paste("'free' argument to mxMatrix",
 			"cannot contain an NA in",

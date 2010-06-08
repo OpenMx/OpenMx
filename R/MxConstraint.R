@@ -38,7 +38,7 @@ mxConstraint <- function(expression, name = NA) {
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
-	omxVerifyName(name)
+	omxVerifyName(name, 0)
 	if (typeof(name) != "character") {
 		stop(paste("Name argument is not a string",
 		"(the name of the objective function)"))

@@ -56,7 +56,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA) {
 	if (is.na(name)) {
 		name <- omxUntitledName()
 	}
-	omxVerifyName(name)
+	omxVerifyName(name, 0)
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {

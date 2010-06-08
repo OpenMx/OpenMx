@@ -33,21 +33,24 @@ availableName <- function(model, namespace, name) {
 			!(name %in% namespace$values))
 }
 
-omxVerifyReference <- function(reference, location) {
+omxVerifyReference <- function(reference, stackNumber) {
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
-            "in", location, "is illegal because it can be interpreted",
+            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+			"is illegal because it can be interpreted",
             "as a number"), call. = FALSE)
     }
     if (identical(reference, "")) {
         stop(paste("The reference", omxQuotes(reference),
-            "in", location, "is illegal because references",
+            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+			"is illegal because references",
             "of zero length are not allowed"), call. = FALSE)
     }
 	if (!is.na(reference) && substring(reference, nchar(reference), 
 				nchar(reference)) == omxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", location, "is illegal because it contains a",
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"is illegal because it contains a",
 				omxQuotes(omxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
@@ -57,7 +60,8 @@ omxVerifyReference <- function(reference, location) {
 		component <- components[[i]]
 		if (nchar(component) == 0) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", location, "is illegal because it contains a",
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"is illegal because it contains a",
 				omxQuotes(omxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
@@ -68,13 +72,15 @@ omxVerifyReference <- function(reference, location) {
 		badChars <- illegalCharsVector[badCharacterMatch]
 		if(length(badChars) == 1) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", location, "is illegal because it contains the",
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"is illegal because it contains the",
 				omxQuotes(badChars[[1]]), 
 				"character."),
 			call. = FALSE)		
 		} else {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", location, "is illegal because it contains the characters",
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"is illegal because it contains the characters",
 				paste(omxQuotes(badChars), '.', sep = '')),
 			call. = FALSE)		
 		}
@@ -86,54 +92,63 @@ omxVerifyReference <- function(reference, location) {
 		(!leftSquareBracket && !rightSquareBracket && !comma)) {
 	} else {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", location, "is illegal because it is",
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"is illegal because it is",
 				"a partial square-bracket reference."),
 			call. = FALSE)
 	}
 }
 
-omxVerifyName <- function(name) {
+omxVerifyName <- function(name, stackNumber) {
     if (identical(name, "")) {
-        stop(paste("The empty string is an invalid name"), call. = FALSE)
+        stop(paste("The empty string is an invalid name in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
     }
     if (length(name) == 0) {
-        stop(paste("The string of zero length is an invalid name"),
+        stop(paste("The string of zero length is an invalid name in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
             call. = FALSE)
     }
     if (isNumber(name)) {
         stop(paste("The name", omxQuotes(name),
             "is illegal because it can be interpreted",
-            "as a number"), call. = FALSE)
+            "as a number in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
     }
 	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {
 		if (components[[1]] != "data") {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the",
-				omxQuotes(omxSeparatorChar), "character"),
+				omxQuotes(omxSeparatorChar), "character in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)			
 		}
 	} else if (length(components) > 2) {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains multiple",
-				omxQuotes(omxSeparatorChar), "characters"),
+				omxQuotes(omxSeparatorChar), "characters in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	if (name %in% names(omxReservedNames)) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it is a reserved name"),
+			"is illegal because it is a reserved name in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	components <- unlist(strsplit(name, '[', fixed = TRUE))
 	if (length(components) > 1) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it contains the '[' character"),
+			"is illegal because it contains the '[' character in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	components <- unlist(strsplit(name, ']', fixed = TRUE))
 	if (length(components) > 1) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it contains the ']' character"),
+			"is illegal because it contains the ']' character in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	badCharacterMatch <- illegalCharsVector %in% explode(name)
@@ -143,13 +158,15 @@ omxVerifyName <- function(name) {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the",
 				omxQuotes(badChars[[1]]), 
-				"character."),
+				"character in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)		
 		} else {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the characters",
-				paste(omxQuotes(badChars), '.', sep = '')),
-			call. = FALSE)		
+				paste(omxQuotes(badChars), sep = ''), "in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+			call. = FALSE)
 		}
 	}	
 	

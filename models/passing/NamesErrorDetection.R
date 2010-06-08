@@ -17,10 +17,12 @@
 require(OpenMx)
 omxCheckError(mxModel('abc -- def'), 
 	paste("The name 'abc -- def' is illegal because",
-	"it contains the '-' character."))
+	"it contains the '-' character in mxModel(\"abc -- def\")"))
 omxCheckError(mxAlgebra(A + B, name = 'abc + 123|'),
 	paste("The name 'abc + 123|' is illegal because",
-	"it contains the characters '+' and '|'."))
+	"it contains the characters '+' and '|' in",
+	"mxAlgebra(A + B, name = \"abc + 123|\")"))
 omxCheckError(mxMatrix('Full', 1, 1, labels = 'abc&def',
-	name = 'B'), paste("The reference 'abc&def' in matrix",
-	"'B' is illegal because it contains the '&' character."))
+	name = 'B'), paste("The reference 'abc&def' in",
+	"mxMatrix(\"Full\", 1, 1, labels = \"abc&def\", name = \"B\")",
+	"is illegal because it contains the '&' character."))
