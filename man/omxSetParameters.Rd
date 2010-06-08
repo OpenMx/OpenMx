@@ -31,7 +31,7 @@ omxSetParameters(model, labels, free = NULL, values = NULL,
 
 A <- mxMatrix('Full', 3, 3, labels = c('a','b', NA), free = TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
-model <- omxSetParameters(model, c('a', 'b'), values = c(1, 2))
-model <- omxSetParameters(model, c('a', 'b'), newlabels = c('b', 'a'))
+model <- omxSetParameters(model, c('a', 'b'), values = c(1, 2)) # set value of cells labelled "a" and "b" to 1 and 2 respectively
+model <- omxSetParameters(model, c('a', 'b'), newlabels = c('b', 'a')) # set label of cell labelled "a" to "b" and vice versa
 
 }
