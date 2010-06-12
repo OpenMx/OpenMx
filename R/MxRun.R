@@ -32,7 +32,6 @@ runHelper <- function(model, frontendStart,
 		unsafe, checkpoint, useSocket) {
 	omxCheckMatrices(model)
 	omxVerifyModel(model)
-	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	indepTimeStart <- Sys.time()
@@ -43,7 +42,8 @@ runHelper <- function(model, frontendStart,
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
-		return(processHollowModel(model, independents, dataList, frontendStart, indepElapsed))
+		return(processHollowModel(model, independents, 
+			list(), frontendStart, indepElapsed))
 	}
 	frozen <- lapply(independents, omxFreezeModel)
 	model <- omxReplaceModels(model, frozen)
@@ -101,7 +101,6 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- undoSquareBracketLabels(model)
-	model <- undoDataShare(model, dataList)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), unsafe, output)
