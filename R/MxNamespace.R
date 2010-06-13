@@ -491,7 +491,9 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (hasSquareBrackets(label)) {
 		components <- splitSubstitution(label)
 		identifier <- omxConvertLabel(components[[1]], modelname, dataname, namespace)
-		results <- paste(identifier, '[', components[[2]], ',', components[[3]], ']', sep = '')
+		row <- omxConvertLabel(components[[2]], modelname, dataname, namespace)
+		col <- omxConvertLabel(components[[3]], modelname, dataname, namespace)
+		results <- paste(identifier, '[', row, ',', col, ']', sep = '')
 		return(results)
 	}
 	components <- unlist(strsplit(label, omxSeparatorChar, fixed = TRUE))

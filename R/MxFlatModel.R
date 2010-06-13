@@ -71,12 +71,6 @@ flatReplaceMethod <- function(model, index, value) {
 	return(flatNamespaceSearchReplace(model, index, value))
 }
 
-convertDatasets <- function(flatModel, defVars, modeloptions) {
-	flatModel@datasets <- lapply(flatModel@datasets, sortRawData, defVars, modeloptions)
-	flatModel@datasets <- lapply(flatModel@datasets, convertIntegerColumns)
-	return(flatModel)
-}
-
 generateDefinitionLocations <- function(datasets) {
 	nameList <- lapply(datasets, 
 		function(x) { dimnames(x@observed)[[2]] })

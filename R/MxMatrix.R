@@ -425,6 +425,26 @@ matrixParameters <- function(free, labels, lbound, ubound,
 	return(result)
 }
 
+matchDefinitionVariable <- function(parameterName, defNames) {
+	if (hasSquareBrackets(parameterName)) {
+		components <- splitSubstitution(parameterName)
+		if (components[[2]] %in% defNames && components[[3]] %in% defNames) {
+			return(c(components[[2]], components[[3]]))
+		} else if (components[[2]] %in% defNames) {
+			return(components[[2]])
+		} else if (components[[3]] %in% defNames) {
+			return(components[[3]])
+		} else {
+			return(c())
+		}
+	}
+	if (parameterName %in% defNames) {
+		return(parameterName)
+	} else {
+		return(c())
+	}
+}
+
 # Definition variables is a list:
 # each entry of the list is a sublist of length 3 or more
 # first entry of the sublist: data number
@@ -443,16 +463,20 @@ matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) 
 		parameterName <- parameterNames[i]
 		row <- rows[i] - 1L
 		col <- cols[i] - 1L
-		if (parameterName %in% defNames) {
-			if (!is.null(result[[parameterName]])) {
-				original <- result[[parameterName]]
-				original[[length(original) + 1]] <- c(matrixNumber, row, col)
-				result[[parameterName]] <- original
-			} else {
-				dataNumber <- as.integer(defLocations[[parameterName]][[1]])
-				columnNumber <- as.integer(defLocations[[parameterName]][[2]])
-				result[[parameterName]] <- list(dataNumber, columnNumber, 
-						c(matrixNumber, row, col))
+		defVariables <- matchDefinitionVariable(parameterName, defNames)
+		if (length(defVariables) > 0) {
+			for(i in 1:length(defVariables)) {
+				defVariable <- defVariables[[i]]
+				if (!is.null(result[[defVariable]])) {
+					original <- result[[defVariable]]
+					original[[length(original) + 1]] <- c(matrixNumber, row, col)
+					result[[defVariable]] <- original
+				} else {
+					dataNumber <- as.integer(defLocations[[defVariable]][[1]])
+					columnNumber <- as.integer(defLocations[[defVariable]][[2]])
+					result[[defVariable]] <- list(dataNumber, columnNumber, 
+							c(matrixNumber, row, col))
+				}
 			}
 		}
 	}

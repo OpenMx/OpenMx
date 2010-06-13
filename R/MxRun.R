@@ -50,7 +50,9 @@ runHelper <- function(model, frontendStart,
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
-	model <- convertSquareBracketLabels(model)
+	omxCheckVariables(flatModel, namespace)
+	defVars <- generateDefinitionList(flatModel)
+	model <- convertDatasets(model, defVars, model@options)
 	translation <- translateObjectives(model, namespace, flatModel)
 	if (slot(translation, ".estimation")) {
 		estimates <- runHelper(translation, frontendStart, 
@@ -65,6 +67,7 @@ runHelper <- function(model, frontendStart,
 		model <- translation
 	}
 	# Regenerate the namespace and flatModel
+	model <- convertSquareBracketLabels(model)
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
@@ -81,7 +84,6 @@ runHelper <- function(model, frontendStart,
 	startVals <- generateValueList(matrices, parameters)
 	defVars <- generateDefinitionList(flatModel)		
 	objectives <- convertObjectives(flatModel, model, defVars)
-	flatModel <- convertDatasets(flatModel, defVars, model@options)
 	data <- flatModel@datasets
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)

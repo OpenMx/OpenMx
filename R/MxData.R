@@ -74,21 +74,27 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 
-convertIntegerSingleColumn <- function(column) {
-	if(!is.factor(column) && is.integer(column)) {
-		return(as.double(column))
-	} else {
-		return(column)
+convertDatasets <- function(model, defVars, modeloptions) {
+	model@data <- sortRawData(model@data, defVars, model@name, modeloptions)
+	model@data <- convertIntegerColumns(model@data)
+	if (length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, convertDatasets,
+			defVars, modeloptions)
 	}
+	return(model)
 }
 
-sortRawData <- function(mxData, defVars, modeloptions) {
-	if(mxData@type != "raw") {
+sortRawData <- function(mxData, defVars, modelname, modeloptions) {
+	if (is.null(mxData)) {
+		return(mxData)
+	}
+	if (mxData@type != "raw") {
 		return(mxData)	
 	}
 	observed <- mxData@observed
 	nosort <- as.character(modeloptions[['No Sort Data']])
-	components <- unlist(strsplit(mxData@name, omxSeparatorChar, fixed = TRUE))
+	fullname <- paste(modelname, 'data', sep = '.')
+	components <- unlist(strsplit(fullname, omxSeparatorChar, fixed = TRUE))
 	modelname <- components[[1]]	
 	if ((length(observed) == 0) || (modelname %in% nosort)) {
 		mxData@indexVector <- as.integer(NA)
@@ -98,7 +104,7 @@ sortRawData <- function(mxData, defVars, modeloptions) {
 	} else {
 		observedNames <- colnames(observed)	
 		if (length(defVars) > 0) {
-			defKeys <- names(omxFilterDefinitionVariables(defVars, mxData@name))
+			defKeys <- names(omxFilterDefinitionVariables(defVars, fullname))
 			defKeys <- sapply(defKeys, function(x) {
 				unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]
 			})
@@ -199,13 +205,20 @@ calculateIdenticalRows <- function(sortdata) {
 }
 
 convertIntegerColumns <- function(mxData) {
+	if (is.null(mxData)) return(mxData)
 	if (is.data.frame(mxData@observed)) {
 		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
 	}
 	return(mxData)
 }
 
-
+convertIntegerSingleColumn <- function(column) {
+	if(!is.factor(column) && is.integer(column)) {
+		return(as.double(column))
+	} else {
+		return(column)
+	}
+}
 
 checkNumericData <- function(data) {
 	if(is.matrix(data@observed) && !is.double(data@observed)) {
