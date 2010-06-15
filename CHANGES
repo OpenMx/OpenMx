@@ -8,6 +8,7 @@ trunk
 * added getOption('mxOptions')
 * error messages for illegal names provide function call information
 * added 'estimates' column to confidence intervals in summary() of model
+* fixed bug so checkpointing will work in R 2.9.x series
 
 Release 0.3.3-1264 (May 24, 2010)
 =================================
