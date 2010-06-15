@@ -314,6 +314,28 @@ generateDataSummary <- function(model, useSubmodels) {
 	return(retval)
 }
 
+omxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
+   if((length(name) != 1) || typeof(name) != "character") {
+      stop("'name' argument must be a character argument")
+   }
+   if(!is(model, "MxModel")) {
+      stop("'model' argument must be a MxModel object")
+   }
+   eval(substitute(mxEval(x, model, compute, show),
+      list(x = parse(text=name)[[1]])))
+}
+
+generateConfidenceIntervalTable <- function(model) {
+	base <- model@output$confidenceIntervals
+	if (length(base) == 0) return(matrix(0, 0, 3))
+	entities <- rownames(base)
+	estimates <- sapply(entities, omxEvalByName, model, compute=TRUE, show=FALSE)
+	retval <- cbind(base[, 'lbound'], estimates, base[, 'ubound'])
+	rownames(retval) <- entities
+	colnames(retval) <- c('lbound', 'estimates', 'ubound')
+	return(retval)
+}
+
 translateSaturatedLikelihood <- function(input) {
 	if (is.null(input)) {
 		return(input)
@@ -356,7 +378,7 @@ setMethod("summary", "MxModel",
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
-		retval$CI <- model@output$confidenceIntervals
+		retval$CI <- generateConfidenceIntervalTable(model)
 		retval$CIcodes <- model@output$confidenceIntervalCodes
 		if (!is.null(model@output$status)) {
 			message <- npsolMessages[[as.character(model@output$status[[1]])]]
