@@ -475,6 +475,11 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 	}
 }
 
+void omxTransposeMatrix(omxMatrix *mat) {
+	mat->colMajor = !mat->colMajor;
+	omxMatrixCompute(mat);
+}
+
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
 //	if(OMX_DEBUG_MATRIX) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}

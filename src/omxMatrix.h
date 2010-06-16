@@ -115,6 +115,7 @@ struct omxMatrix {						// A matrix
 	omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
+	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, char* d); 											// Pretty-print a (small) matrix

@@ -23,7 +23,7 @@ typedef struct {
 
 	omxMatrix *cov, *means, *I;
 	omxMatrix *A, *S, *F, *M;
-	omxMatrix *C, *X, *Y, *Z, *P, *V, *mCov;
+	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *mCov;
 
 	double logDetObserved;
 	double n;
@@ -57,6 +57,7 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 	omxFreeMatrixData(argStruct->X);
 	omxFreeMatrixData(argStruct->Y);
 	omxFreeMatrixData(argStruct->Z);
+	omxFreeMatrixData(argStruct->Ax);
 	omxFreeMatrixData(argStruct->P);
 	omxFreeMatrixData(argStruct->V);
 	omxFreeMatrixData(argStruct->mCov);
@@ -74,6 +75,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *X = ((omxRAMObjective*)oo->argStruct)->X;
 	omxMatrix *Y = ((omxRAMObjective*)oo->argStruct)->Y;
 	omxMatrix *Z = ((omxRAMObjective*)oo->argStruct)->Z;
+	omxMatrix *Ax= ((omxRAMObjective*)oo->argStruct)->Ax;
 	omxMatrix *M = ((omxRAMObjective*)oo->argStruct)->M;				// Expected means
 	omxMatrix *P = ((omxRAMObjective*)oo->argStruct)->P;				// Calculation space
 	omxMatrix *V = ((omxRAMObjective*)oo->argStruct)->V;				// Calculation space
@@ -95,8 +97,6 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		omxPrint(F, "F");
 	}
 
-	omxCopyMatrix(Z, A);
-
 	const char NoTrans = 'n';
 	double MinusOne = -1.0;
 	double fmean = 0.0;
@@ -109,21 +109,22 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	/* Z = (I-A)^-1 */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning RAM Objective Calculation.\n"); }
 
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
-//	omxPrint(Z, "Z");
-	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
-	if(k > 0) {
-		char errStr[250];
-		strncpy(errStr, "(I-A) is exactly singular.", 100);
-		omxRaiseError(oo->matrix->currentState, -1, errStr);			// Raise Error
-		return;
+	/* Taylor Expansion optimized I-A calculation */
+	if(I->colMajor != A->colMajor) {
+		omxTransposeMatrix(I);
 	}
-	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
+	omxCopyMatrix(Z, A);
+	/* Optimized I-A inversion */
+	F77_CALL(dgemm)(&NoTrans, A->majority, &(I->cols), &(I->rows), &(A->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &One, Z->data, &(Z->cols));  // Z = I + A = A^0 + A^1
+
+	for(int i = 1; i < (A->rows - 1); i++) { // TODO: Efficiently determne how many times to do this
+		omxCopyMatrix(Ax, I);
+		F77_CALL(dgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &One, Z->data, &(Z->cols), A->data, &(A->cols), &One, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
+		omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
+	}
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
-
+	
 	/* C = FZSZ'F' */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), One, F->data, (F->leading), Z->data, (Z->leading), Zero, Y->data, (Y->leading));}
 	F77_CALL(dgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &One, F->data, &(F->leading), Z->data, &(Z->leading), &Zero, Y->data, &(Y->leading)); 	// Y = FZ
@@ -271,6 +272,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 	newObj->Z = 	omxInitMatrix(NULL, k, k, TRUE, oo->matrix->currentState);
+	newObj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, oo->matrix->currentState);
 	newObj->Y = 	omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
 	newObj->X = 	omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
 	newObj->C = 	omxInitMatrix(NULL, l, l, TRUE, oo->matrix->currentState);
