@@ -845,7 +845,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				/* Reset for the upper bound */
 				value = INF;
 				inform = -1;
-				cycles = 5;
+				cycles = ciMaxIterations;
 				while(inform != 0 && cycles >= 0) {
 					/* Find upper limit */
 					currentCI->calcLower = FALSE;
@@ -868,6 +868,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			}
 		} else {					// Improper code. No intervals calculated.
 									// TODO: Throw a warning, allow force()
+			warning("Got an improper code while attempting calculation of confidence interval.");
 			if(OMX_DEBUG) {
 				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
 			}
@@ -1198,27 +1199,41 @@ SEXP getVar(SEXP str, SEXP env) {
    return(ans);
 }
 
+/* Objective function for confidence interval limit finding. 
+ * Replaces the standard objective function when finding confidence intervals. */
 void F77_SUB(limitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
-
+		
 		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", currentState->currentInterval, (currentState->intervalList[currentState->currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
 		omxConfidenceInterval *oCI = &(currentState->intervalList[currentState->currentInterval]);
+		
+		omxRecompute(oCI->matrix);
+		
+		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 
 		if(OMX_DEBUG) {
 			Rprintf("Finding Confidence Interval: lbound is %f, ubound is %f, estimate is %f, and element is %f.\n",
-				oCI->lbound, oCI->ubound, *f, omxMatrixElement(oCI->matrix, oCI->row, oCI->col));
+				oCI->lbound, oCI->ubound, *f, CIElement);
+		}
+
+		/* Catch boundary-passing condition */
+		if(isnan(CIElement) || isinf(CIElement)) {
+			omxRaiseError(currentState, -1, 
+				"Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			*mode = -1;
+			return;
 		}
 
 		if(oCI->calcLower) {
 			double diff = oCI->lbound - *f;		// Offset - likelihood
-			*f = diff*diff + omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+			*f = diff*diff + CIElement;
 				// Minimize element for lower bound.
 		} else {
 			double diff = oCI->ubound - *f;			// Offset - likelihood
-			*f = diff*diff - omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+			*f = diff*diff - CIElement;
 				// Maximize element for upper bound.
 		}
 
