@@ -209,6 +209,7 @@ convertIntegerColumns <- function(mxData) {
 	if (is.data.frame(mxData@observed)) {
 		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
 	}
+	mxData@numObs <- as.numeric(mxData@numObs)
 	return(mxData)
 }
 
