@@ -315,14 +315,22 @@ generateDataSummary <- function(model, useSubmodels) {
 }
 
 omxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
-   if((length(name) != 1) || typeof(name) != "character") {
+   if ((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
-   if(!is(model, "MxModel")) {
+   if (!is(model, "MxModel")) {
       stop("'model' argument must be a MxModel object")
    }
-   eval(substitute(mxEval(x, model, compute, show),
-      list(x = parse(text=name)[[1]])))
+   if (hasSquareBrackets(name)) {
+      components <- splitSubstitution(name)
+      eval(substitute(mxEval(x[y,z], model, compute, show),
+         list(x = as.name(components[[1]]), 
+            y = parse(text=components[[2]])[[1]],
+            z = parse(text=components[[3]])[[1]])))
+   } else {
+      eval(substitute(mxEval(x, model, compute, show),
+         list(x = as.name(name))))
+   }
 }
 
 generateConfidenceIntervalTable <- function(model) {

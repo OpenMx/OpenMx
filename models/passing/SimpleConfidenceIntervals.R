@@ -128,6 +128,8 @@ twinACEModel <- mxModel("twinACE",
 # -----------------------------------------------------------------------
 twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
+summary(twinACEFit)
+
 iterateMxRun <- function(model, maxIterations) {
 	return(iterateMxRunHelper(model, maxIterations, 0))
 }
