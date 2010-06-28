@@ -50,7 +50,9 @@ runHelper <- function(model, frontendStart,
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
-	omxCheckVariables(flatModel, namespace)
+	freeFixedValues <- omxCheckVariables(flatModel, namespace)
+	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
+		values=namespace$values, parameters=namespace$parameters))
 	defVars <- generateDefinitionList(flatModel)
 	model <- convertDatasets(model, defVars, model@options)
 	translation <- translateObjectives(model, namespace, flatModel)
