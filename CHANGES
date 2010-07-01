@@ -9,6 +9,8 @@ trunk
 * error messages for illegal names provide function call information
 * added 'estimates' column to confidence intervals in summary() of model
 * fixed bug so checkpointing will work in R 2.9.x series
+* fixed bug so mxRename() works on confidence interval specification
+* renaming 'estimates' column of confidence interval summary output to 'estimate'
 
 Release 0.3.3-1264 (May 24, 2010)
 =================================

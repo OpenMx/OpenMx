@@ -346,7 +346,15 @@ omxExtractNames <- function(lst) {
 	if (length(lst) == 0) {
 		return(character())
 	} else {
-		return(sapply(lst, function(x) { x@name } ))
+		return(sapply(lst, slot, 'name'))
+	}
+}
+
+omxExtractReferences <- function(lst) {
+	if (length(lst) == 0) {
+		return(character())
+	} else {
+		return(sapply(lst, slot, 'reference'))
 	}
 }
 

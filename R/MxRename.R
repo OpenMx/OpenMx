@@ -62,8 +62,10 @@ propagateModelName <- function(model, oldname, newname) {
 	model@matrices <- lapply(model@matrices, renameMatrix, oldname, newname)	
 	model@algebras <- lapply(model@algebras, renameAlgebra, oldname, newname)
 	model@constraints <- lapply(model@constraints, renameConstraint, oldname, newname)
+	model@intervals <- lapply(model@intervals, renameConfidenceIntervals, oldname, newname)
 	model@objective <- genericObjRename(model@objective, oldname, newname)
 	model@submodels <- lapply(model@submodels, propagateModelName, oldname, newname)
+	names(model@intervals) <- omxExtractReferences(model@intervals)
 	names(model@submodels) <- omxExtractNames(model@submodels)
 	return(model)
 }
@@ -99,6 +101,11 @@ renameSymbol <- function(symbol, oldname, newname) {
 renameAlgebra <- function(algebra, oldname, newname) {
 	algebra@formula <- renameFormula(algebra@formula, oldname, newname)
 	return(algebra)
+}
+
+renameConfidenceIntervals <- function(interval, oldname, newname) {
+	interval@reference <- renameReference(interval@reference, oldname, newname)
+	return(interval)
 }
 
 renameFormula <- function(formula, oldname, newname) {

@@ -340,7 +340,7 @@ generateConfidenceIntervalTable <- function(model) {
 	estimates <- sapply(entities, omxEvalByName, model, compute=TRUE, show=FALSE)
 	retval <- cbind(base[, 'lbound'], estimates, base[, 'ubound'])
 	rownames(retval) <- entities
-	colnames(retval) <- c('lbound', 'estimates', 'ubound')
+	colnames(retval) <- c('lbound', 'estimate', 'ubound')
 	return(retval)
 }
 
