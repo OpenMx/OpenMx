@@ -44,7 +44,8 @@ randomCov <- function(nObs, nVar, chl, dn) {
   return(thisCov)  
 }
 
-createNewModel <- function(model, modelname) {
+createNewModel <- function(index, prefix, model) {
+	modelname <- paste(prefix, index, sep='')
 	model@data@observed <- randomCov(nObs, nVar, chl, dn)
 	model@name <- modelname
 	return(model)
@@ -84,14 +85,12 @@ template <- mxModel(name="stErrSim",
 
 topModel <- mxModel(name = 'container')
 
-submodels <- lapply(1:nReps, function(x) {
-  createNewModel(template, paste('stErrSim', x, sep=''))
-})
+submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
 
 names(submodels) <- omxExtractNames(submodels)
 topModel@submodels <- submodels
 
-modelResults <- suppressWarnings(mxRun(topModel, silent=TRUE))
+modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
 results <- t(omxSapply(modelResults@submodels, getStats))
 
