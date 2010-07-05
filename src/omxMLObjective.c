@@ -187,7 +187,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		// P = means - smeans
 		if(OMX_DEBUG) {omxPrint(means, "means");}
 		if(OMX_DEBUG) {omxPrint(smeans, "smeans");}
-		F77_CALL(dgemm)(I->majority, smeans->majority, &(smeans->rows), &(smeans->cols), &(smeans->rows), &minusoned, I->data, &(I->leading), smeans->data, &(smeans->leading), &oned, P->data, &(P->leading));
+		F77_CALL(daxpy)(&(smeans->cols), &minusoned, smeans->data, &onei, P->data, &onei);  
 		// C = P * Cov
 		F77_CALL(dsymv)(&u, &(localCov->rows), &oned, localCov->data, &(localCov->leading), P->data, &onei, &zerod, C->data, &onei);
 		// P = C * P'
