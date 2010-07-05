@@ -182,12 +182,13 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 	if(means != NULL) {
 		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
-		omxRecompute(smeans);
+		omxRecompute(means);
 		omxCopyMatrix(P, means);
 		// P = means - smeans
 		if(OMX_DEBUG) {omxPrint(means, "means");}
 		if(OMX_DEBUG) {omxPrint(smeans, "smeans");}
-		F77_CALL(daxpy)(&(smeans->cols), &minusoned, smeans->data, &onei, P->data, &onei);  
+		F77_CALL(daxpy)(&(smeans->cols), &minusoned, smeans->data, &onei, P->data, &onei);
+		if(OMX_DEBUG) {omxPrint(P, "means - smeans");}
 		// C = P * Cov
 		F77_CALL(dsymv)(&u, &(localCov->rows), &oned, localCov->data, &(localCov->leading), P->data, &onei, &zerod, C->data, &onei);
 		// P = C * P'
