@@ -557,6 +557,7 @@ void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matri
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	unsigned short retval;
 	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
+	// TODO : Implement a dependency-tree-based dirtiness propagation system
 	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix 0x%x NeedsUpdate?", matrix);}
 
 	if(matrix == NULL) {
@@ -568,7 +569,7 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	} else if(matrix->lastCompute < matrix->currentState->computeCount) {
 		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last compute is less than current compute count. ");}
 		retval = TRUE;  	// No need to check args if oa's dirty.
-	} else if(matrix->lastRow < matrix->currentState->currentRow) {
+	} else if(matrix->lastRow != matrix->currentState->currentRow) {
 		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last row is less than current row. ");}
 		retval = TRUE;			// Ditto.
 	} else if(matrix->algebra != NULL) {
