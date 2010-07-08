@@ -22,8 +22,26 @@ omxGetParameters(model, indep = FALSE)
 
 \examples{
 
-A <- mxMatrix('Full', 3, 3, labels = c('a','b', NA), free = TRUE, name = 'A')
+A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, free = c(T,T,F,T), byrow=T, name = 'A')
 model <- mxModel(A, name = 'model')
-parameters <- omxGetParameters(model)
+omxGetParameters(model)
+
+# A11  A12 <NA> 
+#   1    2    4 
+
+A@labels
+#      [,1]  [,2] 
+# [1,] "A11" "A12"
+# [2,] "A21" NA   
+
+A@free
+#       [,1] [,2]
+# [1,]  TRUE TRUE
+# [2,] FALSE TRUE
+
+A@labels
+#      [,1]  [,2] 
+# [1,] "A11" "A12"
+# [2,] "A21" NA   
 
 }
