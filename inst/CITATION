@@ -1,0 +1,30 @@
+citHeader("To cite package 'OpenMx' in publications use:")
+     
+desc <- packageDescription("OpenMx")
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
+vers <- paste("R package version", desc$Version)
+     
+citEntry(entry="article",
+	title = paste("OpenMx: An Open Source Extended",
+		"Structural Equation Modeling Framework"),
+              author = personList(as.person("Steven Boker"),
+                                  as.person("Michael Neale"),
+                                  as.person("Hermine Maes"),
+                                  as.person("Michael Wilde"),
+                                  as.person("Michael Spiegel"),
+                                  as.person("Timothy Brick"),
+                                  as.person("Jeffrey Spies"),
+                                  as.person("Ryne Estabrook"),
+                                  as.person("Sarah Kenny"),
+                                  as.person("Timothy Bates"),
+                                  as.person("Paras Mehta"),
+                                  as.person("John Fox")),
+              journal = "Psychometrika",
+              publisher = "Psychometric Society",
+              textVersion = paste("Boker, S., Neale M., Maes,",
+              	"H., Wilde, M., Spiegel, M., Brick,",
+              	"T., Spies, J., Estabrook, R., Kenny,",
+              	"S., Bates, T., Mehta, P, & Fox J.",
+              	"(in press). OpenMx: An Open Source Extended",
+		"Structural Equation Modeling Framework. Psychometrika."),
+              note = "In press")
