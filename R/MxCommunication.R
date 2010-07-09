@@ -24,7 +24,7 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 		chkpt.count <- options[['Checkpoint Count']]
 		if (is.null(chkpt.directory)) chkpt.directory <- defaults[['Checkpoint Directory']]
 		if (is.null(chkpt.prefix)) chkpt.prefix <- defaults[['Checkpoint Prefix']]
-		if (is.null(chkpt.units)) chkpt.units <- defaults[['Checkpoint Minutes']]
+		if (is.null(chkpt.units)) chkpt.units <- defaults[['Checkpoint Units']]
 		if (is.null(chkpt.count) && identical(chkpt.units, 'minutes')) {
 			chkpt.count <- defaults[['Checkpoint Count Minutes']]
 		}

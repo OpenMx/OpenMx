@@ -36,7 +36,8 @@ With no extra options, a checkpoint file will be created in the current working 
 After a checkpoint file has been created, it can be loaded into a MxModel object using the ``mxRestore()`` function.  It is necessary to specify the checkpoint directory and checkpoint filename prefix if they were declared when the checkpoint file was created:
 
 .. code-block:: r
-
+	
+	factorFit <- mxRun(factorModel, checkpoint = TRUE)	
 	factorRestore <- mxRestore(factorModel, chkpt.directory = directory)
 
 The checkpoint directory will extend to independent submodels in a collection of models.  Each independent submodel will be saved in a separate file.  See ``?mxOption`` or ``getOption('mxOptions')`` for a list of options that modify the behavior of file checkpointing.  See ``?mxRestore`` for more information on restoring a checkpoint file.
