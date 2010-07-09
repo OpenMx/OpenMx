@@ -145,7 +145,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 	int i;
 	const char *objType;
 	SEXP objectiveClass;
-	char errorCode[51];
+	char errorCode[251];
 	omxObjective *obj = (omxObjective*) R_alloc(1, sizeof(omxObjective));
 	omxInitEmptyObjective(obj);
 
@@ -174,12 +174,19 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 
 	obj->initFun(obj, rObj);
 
-	if(obj->objectiveFun == NULL) {								// If initialization fails, error code goes in argStruct
-  		strncpy(errorCode, "No error code reported.", 25);		// If no error code is reported, we report that.
+	if(obj->objectiveFun == NULL) {// If initialization fails, error code goes in argStruct
+		if(om->currentState->statusCode != 0) {
+			strncpy(errorCode, om->currentState->statusMsg, 150); // Report a status error
+		} else {
+			// If no error code is reported, we report that.
+  			strncpy(errorCode, "No error code reported.", 25);
+		}
 		if(obj->argStruct != NULL) {
 			strncpy(errorCode, (char*)(obj->argStruct), 51);
 		}
-		error("Could not initialize objective function %s.  Error: %s\n", obj->objType, errorCode);
+		char newError[250];
+		sprintf(newError, "Could not initialize objective function %s.  Error: %s\n", obj->objType, errorCode);
+		omxRaiseError(om->currentState, -1, newError);
 	}
 	
 	obj->matrix->isDirty = TRUE;
