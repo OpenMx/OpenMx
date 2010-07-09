@@ -4,7 +4,9 @@
 \title{Assign First Available Values to Model Parameters}
 
 \description{
-    Sometimes you may have a free parameter with two different starting values in your model, and it may be sufficient to arbitrarily select one of those starting values for optimization.  OpenMx will not run a model until all instances of a free parameter have the same starting value.  This function will assign starting values to the free parameters of a model. It will select an arbitrary current value (the "first" value it finds, where "first" is not defined) for each free parameter and use that value.
+    Sometimes you may have a free parameter with two different starting values in your model. OpenMx will not run a model until all instances of a free parameter have the same starting value. It is often sufficient to arbitrarily select one of those starting values for optimization. 
+
+This function accomplishes that task of assigning valid starting values to the free parameters of a model. It selects an arbitrary current value (the "first" value it finds, where "first" is not defined) for each free parameter and uses that value for all instances of that parameter in the model.
 }
 
 \usage{
@@ -22,9 +24,24 @@ omxAssignFirstParameters(model, indep = FALSE)
 
 \examples{
 
-A <- mxMatrix('Full', 3, 3, values = c(1:9), 
-   	labels = c('a','b', NA), free = TRUE, name = 'A')
+A     <- mxMatrix('Full', 3, 3, values = c(1:9), labels = c('a','b', NA), free = TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
 model <- omxAssignFirstParameters(model)
+
+# Note: All cells with the same label now have the same start value. Note also that NAs are untouched.
+
+model@matrices$A
+
+# @labels
+#      [,1] [,2] [,3]
+# [1,] "a"  "a"  "a" 
+# [2,] "b"  "b"  "b" 
+# [3,] NA   NA   NA  
+# 
+# @values
+#      [,1] [,2] [,3]
+# [1,]    1    1    1
+# [2,]    2    2    2
+# [3,]    3    6    9
 
 }
