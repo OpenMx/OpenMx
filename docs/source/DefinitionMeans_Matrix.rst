@@ -180,6 +180,6 @@ It is possible to compare the estimates from this model to some summary statisti
     # Third, we check to see if things are more or less equal
     omxCheckCloseEnough(ObsCovs,Sigma,.01)
     omxCheckCloseEnough(ObsMeansGroup1,as.vector(M+beta),.001)
-    omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
+    omxCheckCloseEnough(ObsMeansGroup2,as.vector(M),.001)
 
 These models may also be specified using paths instead of matrices. See :ref:`definitionmeans-path-specification` for path specification of these models.

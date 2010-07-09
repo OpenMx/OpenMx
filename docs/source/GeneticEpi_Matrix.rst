@@ -207,7 +207,7 @@ Often, however, one is interested in specific parts of the output.  In the case 
 
     MZc <- mxEval(expCovMZ, twinACEFit)
     DZc <- mxEval(expCovDZ, twinACEFit)
-    M <- mxEval(expMeanMZ, twinACEFit)
+    M <- mxEval(expMean, twinACEFit)
     A <- mxEval(A, twinACEFit)
     C <- mxEval(C, twinACEFit)
     E <- mxEval(E, twinACEFit)

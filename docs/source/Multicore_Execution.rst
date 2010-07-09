@@ -11,7 +11,7 @@ To use the snowfall library, you must start your R environment with the followin
 
 	library(OpenMx)
 	library(snowfall)
-	sfInit(parallel = TRUE, cpus = ???)
+	sfInit(parallel = TRUE, cpus = 8)
 	sfLibrary(OpenMx)
 
 ``sfInit`` will initialize the snowfall cluster. You must specify either the number of CPUs on your machine or the cluster environment (see snowfall package documentation). ``sfLibrary`` exports the OpenMx library to the client nodes in the cluster. At the end of your script, use the command:
