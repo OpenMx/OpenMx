@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.4.0-1313 (June 09, 2010)
+==================================
 * checking for partial square bracket references on input
 * fixed error reporting for non-positive-definite covariances in FIML
 * implemented initial sorting-based speedup for FIML objectives
