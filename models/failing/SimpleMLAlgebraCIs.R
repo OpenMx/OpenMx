@@ -7,7 +7,7 @@ latents <- c("factor")
 nVar <- length(manifests)
 nFac <- length(latents)
 
-factorModel <- mxModel("One Factor",
+factorModel <- mxModel("One Factor ML",
     mxData(cov(demoOneFactor), type="cov", numObs=500),
     # mxData(demoOneFactor, type="raw"),
     mxMatrix("Full", 1, nVar, free=T, values=mean(demoOneFactor), name="M"),
@@ -18,25 +18,25 @@ factorModel <- mxModel("One Factor",
     mxMLObjective("C", dimnames=manifests),
     mxCI(c("P"))
 )
-factorFitCI <- mxRun(factorModel, intervals=TRUE)
+factorFitCI <- mxRun(factorModel, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 
-factorModelRaw <- mxModel(factorFitCI, mxData(demoOneFactor, type="raw"), mxFIMLObjective("C", "M", dimnames=manifests))
-factorFitRawCI <- mxRun(factorModelRaw, intervals=TRUE)
+factorModelRaw <- mxModel(factorFitCI, mxData(demoOneFactor, type="raw"), mxFIMLObjective("C", "M", dimnames=manifests), name = "One Factor FIML")
+factorFitRawCI <- mxRun(factorModelRaw, intervals=TRUE, suppressWarnings = TRUE)
 factorSummRawCI <- summary(factorFitRawCI)
 
-omxCheckCloseEnough(factorSummCI$CI["One Factor.P[1,1]",], c(.419, .446, .474), .005)
-omxCheckCloseEnough(factorSummCI$CI["One Factor.P[2,1]",], c(.508, .541, .575), .005)
-omxCheckCloseEnough(factorSummCI$CI["One Factor.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(factorSummCI$CI["One Factor.P[4,1]",], c(.687, .732, .778), .005)
-omxCheckCloseEnough(factorSummCI$CI["One Factor.P[5,1]",], c(.770, .820, .872), .005)
+omxCheckCloseEnough(factorSummCI$CI["One Factor ML.P[1,1]",], c(.419, .446, .474), .005)
+omxCheckCloseEnough(factorSummCI$CI["One Factor ML.P[2,1]",], c(.508, .541, .575), .005)
+omxCheckCloseEnough(factorSummCI$CI["One Factor ML.P[3,1]",], c(.575, .613, .651), .005)
+omxCheckCloseEnough(factorSummCI$CI["One Factor ML.P[4,1]",], c(.687, .732, .778), .005)
+omxCheckCloseEnough(factorSummCI$CI["One Factor ML.P[5,1]",], c(.770, .820, .872), .005)
 
 
-omxCheckCloseEnough(factorSummRawCI$CI["One Factor.P[1,1]",], c(.419, .446, .474), .005)
-omxCheckCloseEnough(factorSummRawCI$CI["One Factor.P[2,1]",], c(.508, .541, .575), .005)
-omxCheckCloseEnough(factorSummRawCI$CI["One Factor.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(factorSummRawCI$CI["One Factor.P[4,1]",], c(.687, .732, .778), .005)
-omxCheckCloseEnough(factorSummRawCI$CI["One Factor.P[5,1]",], c(.770, .820, .872), .005)
+omxCheckCloseEnough(factorSummRawCI$CI["One Factor FIML.P[1,1]",], c(.419, .446, .474), .005)
+omxCheckCloseEnough(factorSummRawCI$CI["One Factor FIML.P[2,1]",], c(.508, .541, .575), .005)
+omxCheckCloseEnough(factorSummRawCI$CI["One Factor FIML.P[3,1]",], c(.575, .613, .651), .005)
+omxCheckCloseEnough(factorSummRawCI$CI["One Factor FIML.P[4,1]",], c(.687, .732, .778), .005)
+omxCheckCloseEnough(factorSummRawCI$CI["One Factor FIML.P[5,1]",], c(.770, .820, .872), .005)
 
 # Compare to original MX Estimates
 #          5  Confidence intervals requested in group            1
