@@ -808,7 +808,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			for(int i = 0; i < currentState->numIntervals; i++) {
 
 				memcpy(x, currentState->optimalValues, n * sizeof(double)); // Reset to previous optimum
-
 				currentState->currentInterval = i;
 				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
 				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
@@ -818,6 +817,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				// Number of times to keep trying.
 				int cycles = ciMaxIterations;
 				double value = INF;
+				double objDiff = 1.e-4;		// TODO : Use function precision to determine CI jitter?
 				while(inform != 0 && cycles > 0) {
 					/* Find lower limit */
 					currentCI->calcLower = TRUE;
@@ -828,6 +828,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					currentCI->lCode = inform;
 					if(f < value) {
 						currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+						value = f;
 					}
 
 					if(inform != 0 && OMX_DEBUG) {
@@ -835,6 +836,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 							i, inform);
 					}
 					cycles--;
+					if(inform != 0) {
+						unsigned int jitter = TRUE;
+						for(int j = 0; j < n; j++) {
+							if(fabs(x[j] - currentState->optimalValues[j]) > objDiff){
+								jitter = FALSE;
+								break;
+							}
+						}
+						if(jitter) {
+							for(int j = 0; j < n; j++) {
+								x[j] = currentState->optimalValues[j] + objDiff;
+							}
+						}
+					}
 				}
 
 				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
@@ -863,6 +878,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 							i, inform);
 					}
 					cycles--;
+					if(inform != 0) {
+						unsigned int jitter = TRUE;
+						for(int j = 0; j < n; j++) {
+							if(fabs(x[j] - currentState->optimalValues[j]) > objDiff){
+								jitter = FALSE;
+								break;
+							}
+						}
+						if(jitter) {
+							for(int j = 0; j < n; j++) {
+								x[j] = currentState->optimalValues[j] + objDiff;
+							}
+						}
+					}
 				}
 				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
 			}
@@ -1136,7 +1165,7 @@ void F77_SUB(constraintFunction)
 
 	if(OMX_DEBUG) { Rprintf("-=======================================================-\n"); }
 
-return;
+	return;
 
 }
 
@@ -1215,7 +1244,7 @@ void F77_SUB(limitObjectiveFunction)
 		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 
 		if(OMX_DEBUG) {
-			Rprintf("Finding Confidence Interval: lbound is %f, ubound is %f, estimate is %f, and element is %f.\n",
+			Rprintf("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.\n",
 				oCI->lbound, oCI->ubound, *f, CIElement);
 		}
 

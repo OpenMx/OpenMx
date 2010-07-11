@@ -107,9 +107,9 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
     /* Recompute and recopy */
 	omxRecompute(cov);							// We assume data won't need to be recomputed
-	omxCopyMatrix(localCov, cov);						// But expected cov is destroyed in inversion
+	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
 
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(scov, "Observed Covariance is");
 		omxPrint(localCov, "Implied Covariance Is");
 	}
@@ -119,7 +119,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 //	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
 	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info);
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);
 	omxPrint(localCov, "After Decomp:");}
 	if(info > 0) {
 		char *errstr = calloc(250, sizeof(char));
@@ -138,21 +138,21 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	}
 	det *= det;
 
-	if(OMX_DEBUG) { Rprintf("Determinant of Expected Cov: %f\n", det); }
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Determinant of Expected Cov: %f\n", det); }
 	det = log(fabs(det));
-	if(OMX_DEBUG) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 
 	/* Calculate Expected^(-1) */
 //	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
 	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
-	if(OMX_DEBUG) { Rprintf("Info on Invert: %d\n", info); }
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", info); }
 
-	if(OMX_DEBUG) {omxPrint(cov, "Expected Covariance Matrix:");}
-	if(OMX_DEBUG) {omxPrint(localCov, "Inverted Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrint(cov, "Expected Covariance Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrint(localCov, "Inverted Matrix:");}
 
 	/* Calculate C = Observed * expected^(-1) */
 
-	if(OMX_DEBUG) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
+	if(OMX_DEBUG_ALGEBRA) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
 					(scov->rows), (localCov->cols), oned, scov->data, (localCov->leading),
 					localCov->data, (localCov->leading), zerod, localProd->data, (localProd->leading));}
 
@@ -176,25 +176,25 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 //		sum += localCov->data[info] * scov->data[info];
 //	}
 
-	if(OMX_DEBUG) {omxPrint(scov, "Observed Covariance Matrix:");}
-	if(OMX_DEBUG) {omxPrint(localCov, "Inverse Matrix:");}
-	if(OMX_DEBUG) {omxPrint(localProd, "Product Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrint(scov, "Observed Covariance Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrint(localCov, "Inverse Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrint(localProd, "Product Matrix:");}
 
 	if(means != NULL) {
-		if(OMX_DEBUG) { Rprintf("Means Likelihood Calculation"); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Means Likelihood Calculation"); }
 		omxRecompute(means);
 		omxCopyMatrix(P, means);
 		// P = means - smeans
-		if(OMX_DEBUG) {omxPrint(means, "means");}
-		if(OMX_DEBUG) {omxPrint(smeans, "smeans");}
+		if(OMX_DEBUG_ALGEBRA) {omxPrint(means, "means");}
+		if(OMX_DEBUG_ALGEBRA) {omxPrint(smeans, "smeans");}
 		F77_CALL(daxpy)(&(smeans->cols), &minusoned, smeans->data, &onei, P->data, &onei);
-		if(OMX_DEBUG) {omxPrint(P, "means - smeans");}
+		if(OMX_DEBUG_ALGEBRA) {omxPrint(P, "means - smeans");}
 		// C = P * Cov
 		F77_CALL(dsymv)(&u, &(localCov->rows), &oned, localCov->data, &(localCov->leading), P->data, &onei, &zerod, C->data, &onei);
 		// P = C * P'
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &onei, C->data, &onei);
 
-		if(OMX_DEBUG) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); }
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); }
 		if(fmean < 0.0) fmean = 0.0;
 	}
 

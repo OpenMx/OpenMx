@@ -114,14 +114,22 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		omxTransposeMatrix(I);
 	}
 	omxCopyMatrix(Z, A);
-	/* Optimized I-A inversion */
-	F77_CALL(dgemm)(&NoTrans, A->majority, &(I->cols), &(I->rows), &(A->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &One, Z->data, &(Z->cols));  // Z = I + A = A^0 + A^1
 
-	for(int i = 1; i < (A->rows - 1); i++) { // TODO: Efficiently determne how many times to do this
-		omxCopyMatrix(Ax, I);
-		F77_CALL(dgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &One, Z->data, &(Z->cols), A->data, &(A->cols), &One, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
-		omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
+	/* Z = (I-A)^-1 */
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning RAM Objective Calculation.\n"); }
+  
+	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
+
+	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
+	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+	if(k > 0) {
+	        char errStr[250];
+	        strncpy(errStr, "(I-A) is exactly singular.", 100);
+	        omxRaiseError(oo->matrix->currentState, -1, errStr);                    // Raise Error
+	        return;
 	}
+	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
 	
