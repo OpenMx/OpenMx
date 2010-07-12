@@ -67,6 +67,20 @@ setMethod("genericObjRename", signature("MxMLObjective"),
 		return(.Object)
 })
 
+verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
+	means <- flatModel[[meansName]]
+	if (!is.null(means)) {
+		if(any(is.na(mxDataObject@means))) {
+			msg <- paste("In model", omxQuotes(modelname),
+				"the ML objective function contains an expected means",
+				"vector but the model is missing some data",
+				"for the observed means.")
+			stop(msg, call. = FALSE)
+		}
+		meanDimnames <- dimnames(means)		
+	}
+}
+
 setMethod("genericObjFunConvert", signature("MxMLObjective"), 
 	function(.Object, flatModel, model, defVars) {
 		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
@@ -86,6 +100,7 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "ML")
 		checkNumericData(mxDataObject)
 		verifyExpectedNames(covariance, means, flatModel, modelname, "ML")
+		verifyMeans(means, mxDataObject, flatModel, modelname)
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
@@ -97,7 +112,6 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		return(.Object)
 })
 
-
 setMethod("genericObjModelConvert", "MxMLObjective",
 	function(.Object, job, model, namespace, flatJob) {
 		if(is.na(.Object@data)) {
@@ -106,6 +120,7 @@ setMethod("genericObjModelConvert", "MxMLObjective",
 				omxQuotes(model@name))
 			stop(msg, call. = FALSE)
 		}
+		
 		job <- updateObjectiveDimnames(.Object, job, model@name, "ML")
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
 			return(job)

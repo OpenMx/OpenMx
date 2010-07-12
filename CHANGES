@@ -1,6 +1,8 @@
 trunk
 =====
 * confidence interval optimizations now jitter if they can't get started
+* added error checking for dimensions of expected means in ML + FIML objectives
+* check for missing observed means when using (optional) expected means in ML
 
 Release 0.4.0-1313 (June 09, 2010)
 ==================================

@@ -179,10 +179,24 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		msg <- paste("The expected covariance matrix associated",
 			"with the", objectiveName, "objective in model", 
 			omxQuotes(modelname), "contains dimnames and",
-			"the objective function has specified dimnames")
+			"the objective function has specified dimnames.")
 		stop(msg, call.=FALSE)		
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
+		covMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(covName))))
+		if (nrow(covMatrix) != ncol(covMatrix)) {
+			msg <- paste("The expected covariance matrix associated",
+				"with the", objectiveName, "objective in model", 
+				omxQuotes(modelname), "is not a square matrix.")
+			stop(msg, call.=FALSE)		
+		}
+		if (nrow(covMatrix) != length(dims)) {
+			msg <- paste("The expected covariance matrix associated",
+				"with the", objectiveName, "objective in model", 
+				omxQuotes(modelname), "is not of the same length as the dimnames",
+				"provided by the objective function.")
+			stop(msg, call.=FALSE)		
+		}
 		dimnames(covariance) <- list(dims, dims)
 		job[[covName]] <- covariance
 	}
@@ -192,10 +206,25 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		msg <- paste("The expected means matrix associated",
 			"with the", objectiveName, "objective in model", 
 			omxQuotes(modelname), "contains dimnames and",
-			"the objective function has specified dimnames")
+			"the objective function has specified dimnames.")
 		stop(msg, call.=FALSE)	
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
+		meansMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), 
+			list(x = as.symbol(meansName))))
+		if (nrow(meansMatrix) != 1) {
+			msg <- paste("The expected means vector associated",
+				"with the", objectiveName, "objective in model", 
+				omxQuotes(modelname), "is not a 1 x n matrix.")
+			stop(msg, call.=FALSE)		
+		}
+		if (ncol(meansMatrix) != length(dims)) {
+			msg <- paste("The expected means vector associated",
+				"with the", objectiveName, "objective in model", 
+				omxQuotes(modelname), "is not of the same length as the dimnames",
+				"provided by the objective function.")
+			stop(msg, call.=FALSE)
+		}
 		dimnames(means) <- list(NULL, dims)
 		job[[meansName]] <- means
 	}
@@ -250,15 +279,15 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, object
 			stop(msg, call.=FALSE)
 	}
 	if (!isS4(means) && is.na(means)) return()
-	means <- dimnames(means)
-	if (is.null(means)) {
+	meanDimnames <- dimnames(means)
+	if (is.null(meanDimnames)) {
 			msg <- paste("The expected means matrix associated",
 				"with the", objectiveName, "objective function in model", 
 				omxQuotes(modelname), "does not contain dimnames.")
 			stop(msg, call.=FALSE)	
 	}
-	meanRows <- means[[1]]
-	meanCols <- means[[2]]
+	meanRows <- meanDimnames[[1]]
+	meanCols <- meanDimnames[[2]]
 	if (!is.null(meanRows) && length(meanRows) > 1) {
 		msg <- paste("The expected means matrix associated",
 			"with the", objectiveName, "objective in model", 

@@ -54,7 +54,7 @@ class1 <- mxModel("Class1",
 
 class2 <- mxModel("Class2", 
             mxMatrix("Iden", name = "R", nrow = nvar, ncol = nvar, free=FALSE),
-            mxMatrix("Full", name = "M", nrow = nvar, ncol = nvar, free=FALSE),
+            mxMatrix("Full", name = "M", nrow = 1, ncol = nvar, free=FALSE),
             mxMatrix("Full", name = "ThresholdsClass2", nrow = 1, ncol = nvar, 
             	dimnames = list("Threshold",nameList), free=TRUE),
             mxFIMLObjective(covariance="R", means="M", dimnames=nameList,
