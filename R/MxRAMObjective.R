@@ -21,7 +21,8 @@ setClass(Class = "MxRAMObjective",
 		F = "MxCharOrNumber",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
-		dims = "character"),
+		dims = "character",
+		depth = "integer"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
@@ -153,8 +154,31 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				"dimnames of the observed covariance matrix")
 			stop(msg, call. = FALSE)
 		}
+		.Object@depth <- generateRAMDepth(flatModel, aMatrix)
 		return(.Object)
 })
+
+generateRAMDepth <- function(flatModel, aMatrixName) {
+	mxObject <- flatModel[[aMatrixName]]
+	if (!is(mxObject, "MxMatrix")) {
+		return(as.integer(NA))
+	}
+	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
+	aValues[mxObject@free] <- 1
+	aValues[mxObject@values != 0] <- 1
+	return(generateDepthHelper(aValues, 0))
+}
+
+generateDepthHelper <- function(aValues, depth) {
+	if (depth == (nrow(aValues) * ncol(aValues))) {
+		return(as.integer(NA))
+	}
+	if (all(aValues == 0)) { 
+		return(as.integer(depth))
+	} else {
+		return(generateDepthHelper(aValues %*% aValues, depth + 1))
+	}
+}
 
 fMatrixTranslateNames <- function(fMatrix, modelName) {
 	retval <- character()

@@ -1,3 +1,7 @@
+trunk
+=====
+* calculating cycle depth of RAM objective functions
+
 Release 0.4.1-1320 (June 12, 2010)
 ==================================
 * confidence interval optimizations now jitter if they can't get started
