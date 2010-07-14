@@ -72,7 +72,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'expression' argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxAlgebraObjective} for an objective functions which takes an  MxAlgebra or MxMatrix object as the function to be minimized. 
+\link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'expression' argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{

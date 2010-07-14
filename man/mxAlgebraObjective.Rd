@@ -32,6 +32,10 @@ Returns a new MxAlgebraObjective object. MxAlgebraObjective objects should be in
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.}
 
+\seealso{
+\link{mxAlgebra} to create an algebra suitable as a reference function to be minimized. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \examples{
 # Create a matrix 'A' with no free parameters
 A <- mxMatrix('Full', nrow = 1, ncol = 1, values = c(0), name = 'A')
