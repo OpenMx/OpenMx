@@ -23,8 +23,9 @@ typedef struct {
 
 	omxMatrix *cov, *means, *I;
 	omxMatrix *A, *S, *F, *M;
-	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *mCov;
+	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *Mns;
 
+	int numIters;
 	double logDetObserved;
 	double n;
 	double* work;
@@ -60,7 +61,172 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 	omxFreeMatrixData(argStruct->Ax);
 	omxFreeMatrixData(argStruct->P);
 	omxFreeMatrixData(argStruct->V);
-	omxFreeMatrixData(argStruct->mCov);
+	// omxFreeMatrixData(argStruct->mCov);
+}
+
+/*
+ * omxCalculateRAMCovarianceAndMeans
+ * 			Just like it says on the tin.  Calculates the mean and covariance matrices
+ * for a RAM model.  M is the number of total variables, latent and manifest. N is
+ * the number of manifest variables.
+ *
+ * params:
+ * omxMatrix *A, *S, *F 	: matrices as specified in the RAM model.  MxM, MxM, and NxM
+ * omxMatrix *M				: vector containing model implied means. 1xM
+ * omxMatrix *Cov			: On output: model-implied manifest covariance.  NxN.
+ * omxMatrix *Means			: On output: model-implied manifest means.  1xN.
+ * int numIterations		: Precomputed number of iterations of taylor series expansion.
+ *				Specials: 0 for M-1 (max possible) or -1 for "compute" 
+ * omxMatrix *I				: Identity matrix.  If left NULL, will be populated.  MxM.
+ * omxMatrix *Z				: On output: Computed (I-A)^-1. MxM.
+ * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
+ */
+
+void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
+	
+	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
+	
+	double oned = 1.0, zerod=0.0, minusOned = -1.0;
+	int onei = 1;
+	
+	if(Ax == NULL) {
+		Ax = omxInitMatrix(Ax, A->rows, A->cols, A->colMajor, A->currentState);
+	}
+	
+	if(I == NULL) {
+		I = omxInitMatrix(I, A->rows, A->cols, A->colMajor, A->currentState);
+		for(int i = 0; i < I->rows; i++) {
+			omxSetMatrixElement(I, i, i, 1.0);
+			for(int j = (i+1); j < I->cols; j++) {
+				omxSetMatrixElement(I, i, j, 0.0);
+				omxSetMatrixElement(I, j, i, 0.0);
+			}
+		}
+	}
+
+	if(Z == NULL) {
+		Z = omxInitMatrix(Z, A->rows, A->cols, A->colMajor, A->currentState);
+	}
+
+	if(Y == NULL) {
+		Y = omxInitMatrix(Y, F->rows, A->cols, A->colMajor, A->currentState);
+	}
+
+	if(X == NULL) {
+		X = omxInitMatrix(X, F->rows, A->cols, A->colMajor, A->currentState);
+	}
+	
+	if(Cov == NULL) {
+		Cov = omxInitMatrix(Cov, F->rows, F->rows, A->colMajor, A->currentState);
+	}
+	
+	if(Cov == NULL) {
+		Cov = omxInitMatrix(Cov, F->rows, F->rows, A->colMajor, A->currentState);
+	}
+	
+	// if( (Cov->rows != Cov->cols)    || (A->rows != A->cols)
+	// 	|| (X->rows  != Cov->cols)  || (X->cols  != A->rows)
+	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
+	// 	|| (Ax->rows != Cov->cols)  || (Ax->cols != A->rows)
+	// 	|| (I->rows  != Cov->cols)  || (I->cols  != Cov->rows)
+	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
+	// 	|| (M != NULL && Means != NULL  && ( (M->cols  != Cov->cols)  || (M->rows  != 1)
+	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols)))
+	// 	) {
+	// 		error("Incorrect sizes somewhere.");
+	// }
+	
+	if(!R_finite(numIters)) {
+		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.
+		double work[lwork];
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using standard (general) inversion.\n"); }
+		
+
+		/* Z = (I-A)^-1 */
+		if(I->colMajor != A->colMajor) {
+			omxTransposeMatrix(I);
+		}
+		omxCopyMatrix(Z, A);
+
+		/* Z = (I-A)^-1 */
+		F77_CALL(dgemm)(I->majority, Z->majority, &(I->cols), &(I->rows), &(Z->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &minusOned, Z->data, &(Z->cols));
+
+		F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
+		if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+		if(k > 0) {
+		        char errStr[250];
+		        strncpy(errStr, "(I-A) is exactly singular.", 100);
+		        omxRaiseError(A->currentState, -1, errStr);                    // Raise Error
+		        return;
+		}
+		F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, &lwork, &k);
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
+
+		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
+		
+		return;
+		
+	} else {
+	
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using optimized expansion.\n"); }
+	
+		// TODO : Sanity check input sizes
+		if(numIters == 0) numIters = A->rows - 1;	// Use max.
+		if(numIters < 0) numIters = 2 * A->rows;	// Calculate and return
+	
+		/* Taylor Expansion optimized I-A calculation */
+		if(I->colMajor != A->colMajor) {
+			omxTransposeMatrix(I);
+		}
+	
+		omxCopyMatrix(Z, A);
+	
+		/* Optimized I-A inversion: Z = (I-A)^-1 */
+		F77_CALL(dgemm)(I->majority, A->majority, &(I->cols), &(I->rows), &(A->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &oned, Z->data, &(Z->cols));  // Z = I + A = A^0 + A^1
+
+		for(int i = 1; i <= numIters; i++) { // TODO: Efficiently determine how many times to do this
+			// The sequence goes like this: (I + A), I + (I + A) * A, I + (I + (I + A) * A) * A, ...
+			// Which means only one DGEMM per iteration.
+			if(OMX_DEBUG_ALGEBRA) { Rprintf("....RAM: Iteration #%d/%d\n", i, numIters);}
+			omxCopyMatrix(Ax, I);
+			F77_CALL(dgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
+			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
+		
+			unsigned short has_zeros = FALSE;
+			if(numIters > A->rows) {
+				for(int i = 0; i < Z->rows; i++) {
+					for(int j = 0; j < Z->cols; j++) {
+						if(fabs(omxMatrixElement(Z, i, j)) > EPSILON) {
+							has_zeros = TRUE;
+							break;
+						}
+					}
+					if(has_zeros) break;
+				}
+				if(!has_zeros) numIters = (i-1);
+				break;				// We're done here.
+			}
+		}
+	}
+		
+	/* Cov = FZSZ'F' */
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), onei, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
+	F77_CALL(dgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), onei, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
+	F77_CALL(dgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &oned, Y->data, &(Y->leading), S->data, &(S->leading), &zerod, X->data, &(X->leading)); 	// X = FZS
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), onei, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
+	F77_CALL(dgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &oned, X->data, &(X->leading), Y->data, &(Y->leading), &zerod, Cov->data, &(Cov->leading));
+	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
+	
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....RAM: Model-implied Covariance Matrix:");}
+	
+	if(M != NULL && Means != NULL) {
+		F77_CALL(dgemv)(Y->majority, &(Y->rows), &(Y->cols), &oned, Y->data, &(Y->leading), M->data, &onei, &zerod, Means->data, &onei);
+	}
+	
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....RAM: Model-implied Means Vector:");}
 }
 
 void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -79,10 +245,10 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *M = ((omxRAMObjective*)oo->argStruct)->M;				// Expected means
 	omxMatrix *P = ((omxRAMObjective*)oo->argStruct)->P;				// Calculation space
 	omxMatrix *V = ((omxRAMObjective*)oo->argStruct)->V;				// Calculation space
-	omxMatrix *mCov = ((omxRAMObjective*)oo->argStruct)->mCov;			// Calculation space
+	omxMatrix *Mns = ((omxRAMObjective*)oo->argStruct)->Mns;			// Calculation space
 	omxMatrix *means = ((omxRAMObjective*)oo->argStruct)->means;		// Observed means
+	int numIters = ((omxRAMObjective*)oo->argStruct)->numIters;			// Precalculated # of iterations
 	double Q = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
-	double* work = ((omxRAMObjective*)oo->argStruct)->work;
 	int* lwork = &(((omxRAMObjective*)oo->argStruct)->lwork);
 	double n = (((omxRAMObjective*)oo->argStruct)->n);
 
@@ -90,6 +256,8 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxRecompute(A);
 	omxRecompute(S);
 	omxRecompute(F);
+	if(M != NULL) 
+		omxRecompute(M);
 
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(A, "A");
@@ -97,60 +265,19 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		omxPrint(F, "F");
 	}
 
-	const char NoTrans = 'n';
-	double MinusOne = -1.0;
 	double fmean = 0.0;
+	double MinusOne = -1.0;
 	double Zero = 0.0;
 	double One = 1.0;
 	int OneI = 1;
-	int ipiv[I->rows], j, k;
-	char u = 'U';
-
-	/* Z = (I-A)^-1 */
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning RAM Objective Calculation.\n"); }
-
-	/* Taylor Expansion optimized I-A calculation */
-	if(I->colMajor != A->colMajor) {
-		omxTransposeMatrix(I);
-	}
-	omxCopyMatrix(Z, A);
-
-	/* Z = (I-A)^-1 */
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Beginning RAM Objective Calculation.\n"); }
-  
-	F77_CALL(dgemm)(&NoTrans, &NoTrans, &(I->cols), &(I->rows), &(Z->rows), &One, I->data, &(I->cols), I->data, &(I->cols), &MinusOne, Z->data, &(Z->cols));
-
-	F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
-	if(k > 0) {
-	        char errStr[250];
-	        strncpy(errStr, "(I-A) is exactly singular.", 100);
-	        omxRaiseError(oo->matrix->currentState, -1, errStr);                    // Raise Error
-	        return;
-	}
-	F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, lwork, &k);
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
-
-	if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
+	int j, k;
+	char u = 'U';	
 	
-	/* C = FZSZ'F' */
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), One, F->data, (F->leading), Z->data, (Z->leading), Zero, Y->data, (Y->leading));}
-	F77_CALL(dgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &One, F->data, &(F->leading), Z->data, &(Z->leading), &Zero, Y->data, &(Y->leading)); 	// Y = FZ
-
-	if(OMX_DEBUG_ALGEBRA) {omxPrint(Y, "Y=FZ");}
-
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), One, Y->data, (Y->leading), S->data, (S->leading), Zero, X->data, (X->leading));}
-	F77_CALL(dgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &One, Y->data, &(Y->leading), S->data, &(S->leading), &Zero, X->data, &(X->leading)); 	// X = FZS
-
-	if(OMX_DEBUG_ALGEBRA) {omxPrint(X, "X = FZS");}
-
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), One, X->data, (X->leading), Y->data, (Y->lagging), Zero, C->data, (C->leading));}
-	F77_CALL(dgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &One, X->data, &(X->leading), Y->data, &(Y->leading), &Zero, C->data, &(C->leading)); 	// C = FZSZ'F' (Because (FZ)' = Z'F')
+	/* C = F((I-A)^1)S((I-A)^1)'F'   Also, if there's an M, means = M((I-A)^-1)'F' */
+	omxCalculateRAMCovarianceAndMeans(A, S, F, M, C, Mns, numIters, I, Z, Y, X, Ax);
 
 	/* Val = sum(diag(tempCov %*% solve(PredictedCov))) + log(det(PredictedCov)) */
 	/* Alternately, Val = sum (tempCov .* PredictedCov^-1) + log(det(PredictedCov)) */
-
-	omxCopyMatrix(mCov, C);
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(C, "Model-Implied Covariance Matrix");}
 
@@ -193,13 +320,12 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Means Likelihood Calculation"); }
 		// For now, assume M has only one column.  If that changes, we need to multiply M by U, where U is an nx1 unit vector.
 		if(M->rows > 1) { error("NYI: Back-end currently only supports one row of means.");}
-		omxRecompute(Y);
-		// omxRecompute(C);
-		// omxRecompute(P);
-		omxRecompute(M);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "Model-implied Means Vector:");}
 		omxCopyMatrix(P, means);
 
-		F77_CALL(dgemv)(Y->majority, &(Y->rows), &(Y->cols), &MinusOne, Y->data, &(Y->leading), M->data, &OneI, &One, P->data, &OneI);
+		// P = Expected - Observed
+		F77_CALL(daxpy)(&(P->cols), &MinusOne, Mns->data, &OneI, P->data, &OneI);
+
 		// C = P * Cov^-1
 		F77_CALL(dsymv)(&u, &(C->rows), &One, C->data, &(C->leading), P->data, &OneI, &Zero, V->data, &OneI);
 		// P = C * P'
@@ -230,6 +356,8 @@ unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	int l, k;
+	
+	SEXP slotValue;
 
 	omxRAMObjective *newObj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	
@@ -273,6 +401,11 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
 	newObj->I = omxNewIdentityMatrix(newObj->A->rows, currentState);
 	omxRecompute(newObj->I);
+	
+	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
+	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
+	newObj->numIters = INTEGER(slotValue)[0];
+	UNPROTECT(1);
 
 	l = newObj->cov->rows;
 	k = newObj->A->cols;
@@ -284,7 +417,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	newObj->Y = 	omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
 	newObj->X = 	omxInitMatrix(NULL, l, k, TRUE, oo->matrix->currentState);
 	newObj->C = 	omxInitMatrix(NULL, l, l, TRUE, oo->matrix->currentState);
-	newObj->mCov = 	omxInitMatrix(NULL, l, l, TRUE, oo->matrix->currentState);
+	newObj->Mns = 	omxInitMatrix(NULL, 1, l, TRUE, oo->matrix->currentState);
 	newObj->P = 	omxInitMatrix(NULL, 1, l, TRUE, oo->matrix->currentState);
 	newObj->V = 	omxInitMatrix(NULL, 1, l, TRUE, oo->matrix->currentState);
 	newObj->lwork = k;

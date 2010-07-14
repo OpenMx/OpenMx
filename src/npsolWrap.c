@@ -317,7 +317,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	 list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
     */
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
-	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));				// Data for replacement of free vars
+	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
 	for(k = 0; k < n; k++) {
 		PROTECT(nextVar = VECTOR_ELT(varList, k));
 		int numLocs = length(nextVar) - 2;
@@ -801,9 +801,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 	}
 
+	/* Likelihood-based Confidence Interval Calculation */
 	if(currentState->numIntervals) {
-		if(REAL(code)[0] >= 0 && REAL(code)[0] <= 1) {
-			if(OMX_DEBUG) {Rprintf("Calculating likelihood-based confidence intervals.\n");}
+		if(inform == 0 || inform == 1 || inform == 6) {
+			if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
 			currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
 			for(int i = 0; i < currentState->numIntervals; i++) {
 
@@ -812,6 +813,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
 				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
 				currentCI->ubound += currentState->optimum;			// Convert from offsets to targets
+
 				/* Set up for the lower bound */
 				inform = -1;
 				// Number of times to keep trying.
@@ -852,7 +854,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					}
 				}
 
-				if(OMX_DEBUG) {Rprintf("Found lower bound %d.  Seeking upper.\n", i);}
+				if(OMX_DEBUG) { Rprintf("Found lower bound %d.  Seeking upper.\n", i); }
 				// TODO: Repopulate original optimizer state in between CI calculations
 
 				memcpy(x, currentState->optimalValues, n * sizeof(double));
@@ -861,6 +863,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				value = INF;
 				inform = -1;
 				cycles = ciMaxIterations;
+
 				while(inform != 0 && cycles >= 0) {
 					/* Find upper limit */
 					currentCI->calcLower = FALSE;
@@ -897,7 +900,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			}
 		} else {					// Improper code. No intervals calculated.
 									// TODO: Throw a warning, allow force()
-			warning("Got an improper code while attempting calculation of confidence interval.");
+			warning("Not calculating confidence intervals because of error status.");
 			if(OMX_DEBUG) {
 				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
 			}
@@ -1004,7 +1007,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	if(currentState->numIntervals) {	// Populate CIs
 		int numInts = currentState->numIntervals;
-		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
+		if(OMX_DEBUG) { Rprintf("Populating CIs for %d objectives.\n", numInts); }
 		double* interval = REAL(intervals);
 		int* intervalCode = INTEGER(intervalCodes);
 		for(int j = 0; j < numInts; j++) {

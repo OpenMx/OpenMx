@@ -414,7 +414,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n");}
+	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
@@ -424,13 +424,14 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	double oned = 1.0;
 	double zerod = 0.0;
 	int onei = 1;
+	double determinant;
 	double Q = 0.0;
-	double determinant = 1.0;
 	double* oldDefs;
 	int numDefs;
 	int numCols, numRemoves;
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
+	unsigned int covReset = FALSE;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
 	omxDefinitionVar* defVars;
@@ -443,7 +444,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	smallRow 	= ofo->smallRow;
 	smallCov 	= ofo->smallCov;
 	oldDefs		= ofo->oldDefs;
-	// oldInverse	= ofo->oldInverse;
 	RCX 		= ofo->RCX;
 	data		= ofo->data;
 	dataColumns	= ofo->dataColumns;
@@ -466,7 +466,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	for(int row = 0; row < data->rows; row++) {
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		determinant = 1.0;
 		Q = 0.0;
 
 		numCols = 0;
@@ -476,19 +475,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		// Handle Definition Variables.
 		if(numDefs != 0) {
-			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
+			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate
 				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
-					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
-					// N.B. handling of definition var lists always happens, regardless of firstRow.
+				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
+				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					omxRecompute(cov);
 					omxRecompute(means);
 				}
-				keepCov = omxDataNumIdenticalDefs(data, row);
-			}
-			if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-			keepCov--;
-			keepInverse--;
+			} else if(OMX_DEBUG_ROWS){ Rprintf("Identical def vars: Not repopulating"); }
 		}
 
 		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
@@ -497,7 +492,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			sprintf(note, "Local Data Row %d", row);
 			omxPrint(smallRow, note); 
 		}
-
+		
+		/* Censor row and censor and invert cov. matrix. */
 		// Determine how many rows/cols to remove.
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxMatrixElement(smallRow, 0, j);
@@ -515,58 +511,64 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 
 		if(cov->cols <= numRemoves) {
-            if(returnRowLikelihoods) {
-                omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1);
-            }
-            continue;
-        }
+			if(returnRowLikelihoods) {
+				omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1);
+			}
+			continue;
+		}
 
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 
-		omxResetAliasedMatrix(smallCov);						// Subsample covariance matrix
-		omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
+		if(keepInverse <= 0 || keepCov <= 0 || firstRow) { // If defs and missingness don't change, skip.
+			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
+			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
-		if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
+			if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
-		/* The Calculation */
-		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (t(dataRow) %*% (solve(ExpectedCov)) %*% dataRow)^(1/2) */
-		F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-		if(info != 0) {
-			if(!returnRowLikelihoods) {
-				char helperstr[200];
-				char *errstr = calloc(250, sizeof(char));
-				sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
-				if(oo->matrix->currentState->computeCount <= 0) {
-					sprintf(errstr, "%s at starting values.\n", helperstr);
+			/* Calculate derminant and inverse of Censored Cov matrix */
+			F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+			if(info != 0) {
+				if(!returnRowLikelihoods) {
+					char helperstr[200];
+					char *errstr = calloc(250, sizeof(char));
+					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+					if(oo->matrix->currentState->computeCount <= 0) {
+						sprintf(errstr, "%s at starting values.\n", helperstr);
+					} else {
+						sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+					}
+					omxRaiseError(oo->matrix->currentState, -1, errstr);
+					free(errstr);
+					return;
 				} else {
-					sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					continue;
 				}
-				omxRaiseError(oo->matrix->currentState, -1, errstr);
-				free(errstr);
-				return;
-			} else {
-				omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
-				continue;
 			}
-		}
-		for(int diag = 0; diag < (smallCov->rows); diag++) {
-			determinant *= omxMatrixElement(smallCov, diag, diag);
-		}
-		determinant = determinant * determinant;
+			// Calculate determinant: squared product of the diagonal of the decomposition
+			determinant = 1.0;
+			for(int diag = 0; diag < (smallCov->rows); diag++) {
+				determinant *= omxMatrixElement(smallCov, diag, diag);
+			}
+			determinant = determinant * determinant;
 
-		F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-		if(info != 0) {
-			if(!returnRowLikelihoods) {
-				char *errstr = calloc(250, sizeof(char));
-				sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
-				omxRaiseError(oo->matrix->currentState, -1, errstr);
-				free(errstr);
-				return;
-			} else {
-				omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
-				continue;
+			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+			if(info != 0) {
+				if(!returnRowLikelihoods) {
+					char *errstr = calloc(250, sizeof(char));
+					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
+					omxRaiseError(oo->matrix->currentState, -1, errstr);
+					free(errstr);
+					return;
+				} else {
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					continue;
+				}
 			}
 		}
+		
+		/* Calculate Row Likelihood */
+		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (t(dataRow) %*% (solve(ExpectedCov)) %*% dataRow)^(1/2) */
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 		
@@ -584,6 +586,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 		row += (numIdentical - 1);
 		if(firstRow) firstRow = 0;
+		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+		keepCov--;
+		keepInverse--;
 	}
 
     if(!returnRowLikelihoods) {

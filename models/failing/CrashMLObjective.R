@@ -109,6 +109,6 @@ multivariateRegModel <- mxModel("Multiple Regression Matrix Specification",
       
 multivariateRegFit<-mxRun(multivariateRegModel)
 
-#multivariateSummary <- summary(multivariateRegFit)
+multivariateSummary <- summary(multivariateRegFit)
 
 
