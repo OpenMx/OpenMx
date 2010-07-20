@@ -5,6 +5,8 @@ library(OpenMx)
 #sample size
 n <- 500
 
+set.seed(10)
+
 # generate data
 x <- rnorm(n, 3, 2)
 z <- rep(1:4, each=n/4)
