@@ -271,7 +271,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
         # covariance of x and z
         mxPath(
             from="x",
-            to="y",
+            to="z",
             arrows=2,
             free=TRUE,
             values=0.5,
@@ -313,7 +313,7 @@ Our second ``mxPath`` function specifies a two-headed arrow (covariance) between
     # covariance of x and z
     mxPath(
         from="x",
-        to="y",
+        to="z",
         arrows=2,
         free=TRUE,
         values=0.5,
@@ -383,7 +383,7 @@ Our code should look very similar to our previous two models. It includes the sa
         # covariance of x and z
         mxPath(
             from="x",
-            to="y",
+            to="z",
             arrows=2,
             free=TRUE,
             values=0.5,
