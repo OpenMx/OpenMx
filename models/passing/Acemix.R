@@ -84,7 +84,7 @@ twinACEModel <- mxModel("twinACE",
         mxAlgebra(-2*sum(log(pright%x%MZcorrect.objective + pwrong%x%MZincorrect.objective)) + 
                   -2*sum(log(pright%x%DZcorrect.objective + pwrong%x%DZincorrect.objective)), name="twin"), 
         mxAlgebraObjective("twin"))
-twinACEFit <- mxRun(twinACEModel)
+twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
 
 # Check results against hard-coded Mx1 estimates and likelihood
 estimates <- mxEval(as.vector(c(X, Y, Z, expMean[1,1])), twinACEFit)
