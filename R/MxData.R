@@ -207,7 +207,9 @@ calculateIdenticalRows <- function(sortdata) {
 convertIntegerColumns <- function(mxData) {
 	if (is.null(mxData)) return(mxData)
 	if (is.data.frame(mxData@observed)) {
+		dimnames <- dimnames(mxData@observed)	
 		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
+		dimnames(mxData@observed) <- dimnames
 	}
 	mxData@numObs <- as.numeric(mxData@numObs)
 	return(mxData)

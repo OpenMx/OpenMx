@@ -1,6 +1,7 @@
 trunk
 =====
 * calculating cycle depth of RAM objective functions
+* bugfix: preserve rownames when converting data.frame columns to numeric values
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================
