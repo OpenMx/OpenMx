@@ -47,7 +47,7 @@ setMethod("initialize", "IdenMatrix",
 		free <- matrix(FALSE, nrow, ncol)
 		lbound <- matrix(as.numeric(NA), nrow, ncol)
 		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, name))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name))
 	}
 )
 

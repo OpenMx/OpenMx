@@ -38,7 +38,7 @@ setMethod("initialize", "FullMatrix",
 		if (is.vector(ubound)) {
 			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name) 
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name) 
 		return(retval)
 	}
 )

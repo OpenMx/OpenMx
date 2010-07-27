@@ -54,7 +54,7 @@ setMethod("initialize", "DiagMatrix",
 			diag(tmp) <- ubound
 			ubound <- tmp
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
 		return(retval)
 	}
 )

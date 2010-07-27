@@ -69,16 +69,36 @@ setClass(Class = "MxMatrix",
 		lbound = "matrix", ubound = "matrix", "VIRTUAL"))		
 		
 setMethod("initialize", "MxMatrix",
-	function(.Object, labels, values, free, lbound, ubound, name) {
-		.Object@labels = labels
-		.Object@values = values
-		.Object@free = free
-		.Object@name = name
-		.Object@lbound = lbound
-		.Object@ubound = ubound
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, name) {
+		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
+		.Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
+		.Object <- populateMatrixSlot(.Object, "free", free, nrow, ncol)
+		.Object <- populateMatrixSlot(.Object, "lbound", lbound, nrow, ncol)
+		.Object <- populateMatrixSlot(.Object, "ubound", ubound, nrow, ncol)
+		.Object@name <- name
 		return(.Object)
 	}
-)		
+)	
+
+populateMatrixSlot <- function(object, slotName, vals, nr, nc) {
+    lendat <- length(vals);
+	if (lendat > 1 && (nr * nc) %% lendat != 0) {
+		if (((lendat > nr) && (lendat %/% nr) * nr != lendat) ||
+			((lendat < nr) && (nr %/% lendat) * lendat != nr))
+				warning(paste("data length", lendat, "is not a sub-multiple",
+					"or multiple of the number of rows", nr,
+					"for argument", omxQuotes(slotName), "in",
+					deparse(width.cutoff = 400L, sys.call(-10))), call. = FALSE)
+		else if (((lendat > nc) && (lendat %/% nc) * nc != lendat) ||
+			     ((lendat < nc) && (nc %/% lendat) * lendat != nc))
+				warning(paste("data length", lendat, "is not a sub-multiple",
+					"or multiple of the number of columns", nc,
+					"for argument", omxQuotes(slotName), "in", 
+					deparse(width.cutoff = 400L, sys.call(-10))), call. = FALSE)
+	}
+	slot(object, slotName) <- suppressWarnings(matrix(vals, nr, nc))
+	return(object)
+}
 
 setMethod("omxVerifyMatrix", "MxMatrix",
 	function(.Object) {
@@ -191,36 +211,35 @@ squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 
 
 matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
-	if (is.matrix(values)) {
-		nrow <- nrow(values)
-		ncol <- ncol(values)
-	} else if (is.matrix(labels)) {
-		nrow <- nrow(labels)
-		ncol <- ncol(labels)
-	} else if (is.matrix(free)) {
-		nrow <- nrow(free)
-		ncol <- ncol(free)	
-	} else if (is.matrix(lbound)) {
-		nrow <- nrow(lbound)
-		ncol <- ncol(lbound)
-	} else if (is.matrix(ubound)) {
-		nrow <- nrow(ubound)
-		ncol <- ncol(ubound)
-	} else if ((type == "Full") && ((is.na(nrow) && !is.na(ncol)) ||
-		(!is.na(nrow) && is.na(ncol)))) {
-		allLengths <- c(length(values), length(labels), 
-			length(free), length(lbound), length(ubound))
-		nonSingle <- allLengths[allLengths > 1]
-		if (length(nonSingle) > 0) {
-			first <- nonSingle[[1]]
-			if (all(sapply(nonSingle, function(x) { x == first }))) {
-				if (is.na(nrow)) {
-					nrow <- ceiling(first / ncol)
-				} else {
-					ncol <- ceiling(first / nrow)				
-				}
-			}		
+	inputs <- list(values, free, labels, lbound, ubound)
+	areMatrices <- sapply(inputs, is.matrix)
+	theMatrices <- inputs[areMatrices] 
+	if (length(theMatrices) > 1) {
+		matches <- sapply(theMatrices, function(x) { identical(dim(x), dim(theMatrices[[1]])) })
+		if (!all(matches)) {
+			if (is.na(nrow) && is.na(ncol)) {
+				stop(paste("Two or more matrix inputs have different dimensions.",
+					"Use the 'nrow' and 'ncol' arguments in",
+					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			}
+			if (!(type %in% squareMatrices) && (is.na(nrow) || is.na(ncol))) {
+				stop(paste("Two or more matrix inputs have different dimensions.",
+					"Use the 'nrow' and 'ncol' arguments in",
+					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			}
 		}
+	}
+	if (is.na(nrow) && is.na(ncol)) {
+		if(length(theMatrices) == 0) {
+			stop(paste("You must specify 'nrow' and 'ncol' arguments in",
+					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		nrow <- dim(theMatrices[[1]])[[1]]
+		ncol <- dim(theMatrices[[1]])[[2]]
+	}
+	if ((is.na(nrow) || is.na(ncol)) && (type %in% squareMatrices)) {
+		if (is.na(nrow)) nrow <- ncol
+		if (is.na(ncol)) ncol <- nrow
 	}
 	return(c(nrow, ncol))
 }
@@ -329,40 +348,6 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 		stop(paste("'ubound' argument to mxMatrix",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if (!(is.na(nrow) || (is.numeric(nrow) && length(nrow) == 1))) {
-		stop(paste("'nrow' argument to mxMatrix",
-			"must be either NA or a single value in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if (!(is.na(ncol) || (is.numeric(ncol) && length(ncol) == 1))) {
-		stop(paste("'ncol' argument to mxMatrix",
-			"must be either NA or a single value in",
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels) 
-		|| is.matrix(lbound) || is.matrix(ubound)) &&
-		(!is.na(nrow))) {
-		warning(paste("'nrow' is disregarded",
-			"for mxMatrix constructor in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if ((is.matrix(values) || is.matrix(free) || is.matrix(labels)
-		|| is.matrix(lbound) || is.matrix(ubound)) &&
-		(!is.na(ncol))) {
-		warning(paste("'ncol' is disregarded",
-			"for mxMatrix constructor in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	dimensions <- sapply(list(values, free, labels, lbound, ubound), dim)
-	dimensions <- dimensions[!sapply(dimensions, is.null)]
-	if (length(dimensions) > 1) {
-		allEqual <- sapply(dimensions, function(x) { x == dimensions[[1]] })
-		if(!all(allEqual)) {
-			stop(paste("Two matrices provided",
-				"to mxMatrix are not of identical",
-				"dimensions in", deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
 	}
 	lapply(labels, omxVerifyReference, -2)
 	if(any(is.na(free))) {

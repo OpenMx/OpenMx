@@ -2,6 +2,7 @@ trunk
 =====
 * calculating cycle depth of RAM objective functions
 * bugfix: preserve rownames when converting data.frame columns to numeric values
+* 'nrow' and 'ncol' arguments now supercede matrix dimensions in mxMatrix()
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================

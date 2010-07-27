@@ -73,7 +73,7 @@ setMethod("initialize", "SymmMatrix",
 		if (is.vector(ubound)) {
 			ubound <- populateSymmTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
 		return(retval)
 	}
 )
