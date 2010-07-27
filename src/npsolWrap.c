@@ -21,6 +21,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
+#include "npsolWrap.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -70,33 +71,6 @@ double *R, *cJac;				// Hessian (Approx) and Jacobian
 int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
 
 omxState* currentState;			// Current State of optimization
-
-/* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
-
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
-
-/* Set up R .Call info */
-R_CallMethodDef callMethods[] = {
-{"callNPSOL", (void*(*)())&callNPSOL, 10},
-{"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
-{NULL, NULL, 0}
-};
-
-void
-R_init_mylib(DllInfo *info)
-{
-/* Register routines, allocate resources. */
-R_registerRoutines(info, NULL, callMethods, NULL, NULL);
-}
-
-void
-R_unload_mylib(DllInfo *info)
-{
-/* Release resources. */
-}
 
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {

@@ -122,25 +122,15 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		indexVector <- do.call('order', args)
 		sortdata <- observed[indexVector,,drop=FALSE]
 		mxData@observed <- sortdata
-		if (length(defKeys) > 0) {
-			identicalDefVars <- calculateIdenticalDefVars(sortdata, defKeys)
-		} else if (nrow(sortdata) > 1) {
-			identicalDefVars <- c(nrow(sortdata), rep.int(0L, nrow(sortdata) - 1))
-		} else {
-			identicalDefVars <- 1L
-		}
-		if (any(is.na(sortdata[1, ]))) {
-			identicalMissingness <- calculateIdenticalMissingness(sortdata)			
-		} else if (nrow(sortdata) > 1) {
-			identicalMissingness <- c(nrow(sortdata), rep.int(0L, nrow(sortdata) - 1))
-		} else {
-			identicalMissingness <- 1L
-		}
-		identicalRows <- calculateIdenticalRows(sortdata)
+		selectMissing <- is.na(sortdata)
+		selectDefvars <- sortdata[, defKeys, drop=FALSE]
+		threeVectors <- .Call("findIdenticalRowsData", sortdata, 
+			selectMissing, selectDefvars, !any(selectMissing),
+			length(selectDefvars) == 0, PACKAGE = "OpenMx")
 		mxData@indexVector <- indexVector - 1L
-		mxData@identicalDefVars <- identicalDefVars
-		mxData@identicalMissingness <- identicalMissingness
-		mxData@identicalRows <- identicalRows
+		mxData@identicalRows <- threeVectors[[1]]
+		mxData@identicalMissingness <- threeVectors[[2]]
+		mxData@identicalDefVars <- threeVectors[[3]]
 	}
 	return(mxData)
 }

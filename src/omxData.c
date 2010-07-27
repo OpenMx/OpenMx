@@ -328,6 +328,188 @@ char* omxDataType(omxData *od) {
 	return od->type;
 }
 
+int elementEqualsDataframe(SEXP column, int offset1, int offset2) {
+	switch (TYPEOF(column)) {
+		case REALSXP:
+			if(ISNA(REAL(column)[offset1])) return ISNA(REAL(column)[offset2]);
+			if(ISNA(REAL(column)[offset2])) return ISNA(REAL(column)[offset1]);
+			return(REAL(column)[offset1] == REAL(column)[offset2]);
+		case LGLSXP:
+		case INTSXP:
+			return(INTEGER(column)[offset1] == INTEGER(column)[offset2]);		
+	}
+	return(0);
+}
+
+int testRowDataframe(SEXP data, int numcol, int i, int *row, int base) {
+	SEXP column;
+	int j, equal;
+
+	equal = TRUE;
+	for(j = 0; j < numcol && equal; j++) {
+		column = VECTOR_ELT(data, j);
+		equal = elementEqualsDataframe(column, base, i);
+	}
+	if (equal) {
+		row[i] = 0;
+		row[base]++;
+	} else {
+		base = i;
+		row[base] = 1;
+	}
+	return(base);
+}
+
+int elementEqualsMatrix(SEXP data, int row1, int row2, int numrow, int col) {
+	int coloffset = col * numrow;
+	switch (TYPEOF(data)) {
+		case REALSXP:
+			if(ISNA(REAL(data)[row1 + coloffset])) return ISNA(REAL(data)[row2 + coloffset]);
+			if(ISNA(REAL(data)[row2 + coloffset])) return ISNA(REAL(data)[row1 + coloffset]);
+			return(REAL(data)[row1 + coloffset] == REAL(data)[row2 + coloffset]);
+		case LGLSXP:
+		case INTSXP:
+			return(INTEGER(data)[row1 + coloffset] == INTEGER(data)[row2 + coloffset]);
+	}
+	return(0);
+}
+
+int testRowMatrix(SEXP data, int numrow, int numcol, int i, int *row, int base) {
+	int j, equal;
+
+	equal = TRUE;
+	for(j = 0; j < numcol && equal; j++) {
+		equal = elementEqualsMatrix(data, i, base, numrow, j);
+	}
+	if (equal) {
+		row[i] = 0;
+		row[base]++;
+	} else {
+		base = i;
+		row[base] = 1;
+	}
+	return(base);
+}
+
+SEXP findIdenticalMatrix(SEXP data, SEXP missing, SEXP defvars,
+	SEXP skipMissingExp, SEXP skipDefvarsExp) {
+
+	SEXP retval, identicalRows, identicalMissing, identicalDefvars;
+	int i, numrow, numcol, defvarcol;
+	int *irows, *imissing, *idefvars;
+	int baserows, basemissing, basedefvars;
+	int skipMissing, skipDefvars;
+
+	skipMissing = LOGICAL(skipMissingExp)[0];
+	skipDefvars = LOGICAL(skipDefvarsExp)[0];
+	numrow = nrows(data);
+	numcol = ncols(data);
+	defvarcol = ncols(defvars);
+	PROTECT(retval = allocVector(VECSXP, 3));
+	PROTECT(identicalRows = allocVector(INTSXP, numrow));
+	PROTECT(identicalMissing = allocVector(INTSXP, numrow));
+	PROTECT(identicalDefvars = allocVector(INTSXP, numrow));
+	irows = INTEGER(identicalRows);
+	imissing = INTEGER(identicalMissing);
+	idefvars = INTEGER(identicalDefvars);
+	if (skipMissing) {
+		imissing[0] = numrow;
+		for(i = 1; i < numrow; i++) {
+			imissing[i] = 0;
+		}
+	}
+	if (skipDefvars) {
+		idefvars[0] = numrow;
+		for(i = 1; i < numrow; i++) {
+			idefvars[i] = 0;
+		}
+	}
+	baserows = 0;
+	basemissing = 0;
+	basedefvars = 0;
+	irows[0] = 1;	
+	if (!skipMissing) imissing[0] = 1;
+	if (!skipDefvars) idefvars[0] = 1;
+	for(i = 1; i < numrow; i++) {
+		baserows = testRowMatrix(data, numrow, numcol, i, irows, baserows); 
+		if (!skipMissing) {
+			basemissing = testRowMatrix(missing, numrow, numcol, i, imissing, basemissing); 
+		}
+		if (!skipDefvars) {
+			basedefvars = testRowMatrix(defvars, numrow, defvarcol, i, idefvars, basedefvars);
+		}
+	}
+	SET_VECTOR_ELT(retval, 0, identicalRows);
+	SET_VECTOR_ELT(retval, 1, identicalMissing);
+	SET_VECTOR_ELT(retval, 2, identicalDefvars);
+	UNPROTECT(4); // retval, identicalRows, identicalMissing, identicalDefvars
+	return retval;
+}
+
+SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
+	SEXP skipMissingExp, SEXP skipDefvarsExp) {
+
+	SEXP retval, identicalRows, identicalMissing, identicalDefvars;
+	int i, numrow, numcol, defvarcol;
+	int *irows, *imissing, *idefvars;
+	int baserows, basemissing, basedefvars;
+	int skipMissing, skipDefvars;
+
+	skipMissing = LOGICAL(skipMissingExp)[0];
+	skipDefvars = LOGICAL(skipDefvarsExp)[0];
+	numrow = length(VECTOR_ELT(data, 0));
+	numcol = length(data);
+	defvarcol = length(defvars);
+	PROTECT(retval = allocVector(VECSXP, 3));
+	PROTECT(identicalRows = allocVector(INTSXP, numrow));
+	PROTECT(identicalMissing = allocVector(INTSXP, numrow));
+	PROTECT(identicalDefvars = allocVector(INTSXP, numrow));
+	irows = INTEGER(identicalRows);
+	imissing = INTEGER(identicalMissing);
+	idefvars = INTEGER(identicalDefvars);
+	if (skipMissing) {
+		imissing[0] = numrow;
+		for(i = 1; i < numrow; i++) {
+			imissing[i] = 0;
+		}
+	}
+	if (skipDefvars) {
+		idefvars[0] = numrow;
+		for(i = 1; i < numrow; i++) {
+			idefvars[i] = 0;
+		}
+	}
+	baserows = 0;
+	basemissing = 0;
+	basedefvars = 0;
+	irows[0] = 1;	
+	if (!skipMissing) imissing[0] = 1;
+	if (!skipDefvars) idefvars[0] = 1;
+	for(i = 1; i < numrow; i++) {
+		baserows = testRowDataframe(data, numcol, i, irows, baserows); 
+		if (!skipMissing) {
+			basemissing = testRowMatrix(missing, numrow, numcol, i, imissing, basemissing);
+		}
+		if (!skipDefvars) {
+			basedefvars = testRowDataframe(defvars, defvarcol, i, idefvars, basedefvars);
+		}
+	}
+	SET_VECTOR_ELT(retval, 0, identicalRows);
+	SET_VECTOR_ELT(retval, 1, identicalMissing);
+	SET_VECTOR_ELT(retval, 2, identicalDefvars);
+	UNPROTECT(4); // retval, identicalRows, identicalMissing, identicalDefvars
+	return retval;
+}
+
+SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
+	SEXP skipMissingness, SEXP skipDefvars) {
+	if (isMatrix(data)) {
+		return(findIdenticalMatrix(data, missing, defvars, skipMissingness, skipDefvars));
+	} else {
+		return(findIdenticalDataFrame(data, missing, defvars, skipMissingness, skipDefvars));
+	}
+}
+
 void omxPrintData(omxData *source, char* d) {
 	Rprintf("NYI: Data Printing not yet implemented.\n");
 }
