@@ -4,7 +4,12 @@
 \title{Fail-safe Factors}
 
 \description{
-   This is a wrapper for the R function \code{\link{factor}}. The \code{factor} function will skip missing levels {1,2,3,5} if they are not explicitly specified.  Use this function to force yourself to write out the levels.
+   This is a wrapper for the R function \code{\link{factor}}. 
+
+OpenMx requires ordinal data to be ordered. R's \code{factor} function doesn't enforce this, hence this wrapper exists to throw an error should you accidentally try and run with ordered = FALSE.
+
+Also, the \sQuote{levels} parameter is optional in R's \code{factor} function. However, relying on the data to specify the data is foolhardy for the following reasons: The \code{factor} function will skip levels missing from the data: Specifying these in levels leaves the list of levels complete. Data will often not explore the min and max level that the user knows are possible. For these reasons this function forces you to write out all possible levels explicitly.
+
 }
 
 \usage{
@@ -30,16 +35,20 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{
+myVar <- c("s", "t", "a", "t", "i", "s", "t", "i", "c", "s")
+ff    <- mxFactor(myVar, levels=letters)  # letters is a built in list of all lowercase letters of the alphabet
+ff
+# [1] s t a t i s t i c s
+# Levels: a < b < c < d < e < f < g < h < i < j < k < l < m < n < o < p < q < r < s < t < u < v < w < x < y < z
 
-ff <- mxFactor(substring("statistics", 1:10, 1:10), levels=letters)
 as.integer(ff)  # the internal codes
 
-factor(ff)      # drops the levels that do not occur.
-                # AVOID DOING THIS UNINTENTIONALLY.
+factor(ff)      # NOTE: drops the levels that do not occur.
+                # mxFactor prevents you doing this unintentionally.
 
+# This example works on a dataframe
 foo <- data.frame(x=c(1:3),y=c(4:6),z=c(7:9))
-mxFactor(foo, c(1:9)) # same levels applied to all columns
-mxFactor(foo, list(c(1:3), c(4:6), c(7:9))) # different levels to different columns
-
+mxFactor(foo, c(1:9))                       # Applys one set of levels to all three columns
+mxFactor(foo, list(c(1:3), c(4:6), c(7:9))) # Apply unique sets of levels to each variable
     
 }
