@@ -95,7 +95,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	nosort <- as.character(modeloptions[['No Sort Data']])
 	fullname <- paste(modelname, 'data', sep = '.')
 	components <- unlist(strsplit(fullname, omxSeparatorChar, fixed = TRUE))
-	modelname <- components[[1]]	
+	modelname <- components[[1]]
 	if ((length(observed) == 0) || (modelname %in% nosort)) {
 		mxData@indexVector <- as.integer(NA)
 		mxData@identicalDefVars <- as.integer(NA)
@@ -104,26 +104,29 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	} else {
 		observedNames <- colnames(observed)	
 		if (length(defVars) > 0) {
-			defKeys <- names(omxFilterDefinitionVariables(defVars, fullname))
-			defKeys <- sapply(defKeys, function(x) {
+			defkeys <- names(omxFilterDefinitionVariables(defVars, fullname))
+			defkeys <- sapply(defkeys, function(x) {
 				unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]
 			})
-			names(defKeys) <- NULL
-			defKeys <- defKeys[defKeys %in% observedNames]
-			defIndex <- match(defKeys, observedNames)
-			otherIndex <- setdiff(1:length(observedNames), defIndex)
-			sortkeys <- c(defIndex, otherIndex)
+			names(defkeys) <- NULL
+			defkeys <- defkeys[defkeys %in% observedNames]			
+			otherkeys <- setdiff(observedNames, defkeys)
+			nacount <- sapply(otherkeys, function(x) { sum(is.na(observed[,x])) })
+			otherkeys <- otherkeys[order(nacount, decreasing=TRUE)]
 		} else {
-			sortkeys <- c(1:length(observedNames))
-			defKeys <- character()
+			defkeys <- character()
+			otherkeys <- observedNames
+			nacount <- sapply(observedNames, function(x) { sum(is.na(observed[,x])) })
+			otherkeys <- otherkeys[order(nacount, decreasing=TRUE)]
 		}
-		sortvectors <- lapply(sortkeys, function(x) {observed[,x] })
-		args <- c(sortvectors, 'na.last'=FALSE)
+		defvectors <- lapply(defkeys, function(x) {observed[,x] })
+		othervectors <- lapply(otherkeys, function(x) {!is.na(observed[,x]) })
+		args <- c(defvectors, othervectors, 'na.last'=FALSE)
 		indexVector <- do.call('order', args)
 		sortdata <- observed[indexVector,,drop=FALSE]
 		mxData@observed <- sortdata
 		selectMissing <- is.na(sortdata)
-		selectDefvars <- sortdata[, defKeys, drop=FALSE]
+		selectDefvars <- sortdata[, defkeys, drop=FALSE]
 		threeVectors <- .Call("findIdenticalRowsData", sortdata, 
 			selectMissing, selectDefvars, !any(selectMissing),
 			length(selectDefvars) == 0, PACKAGE = "OpenMx")
@@ -133,65 +136,6 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@identicalDefVars <- threeVectors[[3]]
 	}
 	return(mxData)
-}
-
-calculateIdenticalDefVars <- function(sortdata, defKeys) {
-	index <- 1
-	retval <- integer()
-	while(index <= nrow(sortdata)) {
-		offset <- 1
-		while((index + offset) <= nrow(sortdata) && 
-			all(sortdata[index, defKeys] == sortdata[index + offset, defKeys])) {
-			offset <- offset + 1
-		}
-		retval[[index]] <- as.integer(offset)
-		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
-		index <- index + offset
-	}
-	return(retval)
-}
-
-calculateIdenticalMissingness <- function(sortdata) {
-	index <- 1
-	retval <- integer()
-	while(index <= nrow(sortdata)) {
-		offset <- 1
-		while((index + offset) <= nrow(sortdata) && 
-			all(is.na(sortdata[index, ]) == is.na(sortdata[index + offset, ]))) {
-			offset <- offset + 1
-		}
-		retval[[index]] <- as.integer(offset)
-		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
-		index <- index + offset
-	}
-	return(retval)
-}
-
-calculateIdenticalRows <- function(sortdata) {
-	index <- 1
-	retval <- integer()
-	while(index <= nrow(sortdata)) {
-		offset <- 1
-		if (index + offset <= nrow(sortdata)) {
-			leftside <- sortdata[index, ]
-			rightside <- sortdata[index + offset, ]
-			rownames(leftside) <- NULL
-			rownames(rightside) <- NULL
-			while(identical(leftside, rightside)) {
-				offset <- offset + 1
-				if (index + offset <= nrow(sortdata)) {
-					rightside <- sortdata[index + offset, ]
-					rownames(rightside) <- NULL
-				} else {
-					rightside <- NULL
-				}
-			}
-		}
-		retval[[index]] <- as.integer(offset)
-		if (offset > 1) { retval[(index + 1) : (index + offset - 1)] <- 0L }
-		index <- index + offset
-	}
-	return(retval)
 }
 
 convertIntegerColumns <- function(mxData) {
