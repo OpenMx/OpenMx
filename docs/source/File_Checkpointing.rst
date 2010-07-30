@@ -23,7 +23,7 @@ This section will cover how to periodically save the state of the optimizer to a
 
 	factorFit <- mxRun(factorModel, checkpoint = TRUE)
 
-With no extra options, a checkpoint file will be created in the current working directory with the filename: "<modelname>.omx". The checkpoint file is a data.frame object such that each row contains all the values of the free parameters at a particular instance in time.  By default, a row is added to the file every 10 minutes.  The directory of the checkpoint file, an optional prefix to the checkpoint filename, the decision to save based on minutes or optimizer iterations, and how many minutes or how many optimizer iterations can all be specified using the ``mxOption()`` function.  Below is an example that modifies some of the checkpoint options:
+With no extra options, a checkpoint file will be created in the current working directory with the filename: "<modelname>.omx". The checkpoint file is a data.frame object such that each row contains all the values of the free parameters at a particular instance in time. By default, a row is added to the file every 10 minutes.  The ``mxOption()`` function can be used to set the directory of the checkpoint file, an optional prefix to the checkpoint filename, the decision to save based on minutes or optimizer iterations, and the checkpoint interval in either minutes or optimizer iterations. Below is an example that modifies some of the checkpoint options:
 
 .. code-block:: r
 
