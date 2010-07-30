@@ -25,7 +25,7 @@ require(OpenMx)
 # Read the data and print descriptive statistics.
 
 numberSubjects <- 1000
-numberIndicators <- 40
+numberIndicators <- 80
 numberFactors <- 3
 
 BMatrix <- matrix(seq(-1,1, length.out=numberIndicators*numberFactors), numberFactors, numberIndicators, byrow=TRUE)
