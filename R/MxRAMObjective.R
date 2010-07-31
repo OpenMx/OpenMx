@@ -22,11 +22,12 @@ setClass(Class = "MxRAMObjective",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
+		vector = "logical",
 		depth = "integer"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
-	function(.Object, A, S, F, M, dims, thresholds,  
+	function(.Object, A, S, F, M, dims, thresholds, vector,
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
@@ -36,6 +37,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
+		.Object@vector <- vector
 		return(.Object)
 	}
 )
@@ -251,6 +253,12 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		}
 		job <- updateRAMdimnames(.Object, job, model@name)
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
+			if (.Object@vector) {
+				msg <- paste("The RAM objective",
+					"in model", omxQuotes(model@name), "has specified",
+					"'vector' = TRUE, but the observed data is not raw data")
+				stop(msg, call.=FALSE)
+			}
 			return(job)
 		}
 		if (is.na(.Object@M) || is.null(flatJob[[.Object@M]])) {
@@ -309,8 +317,9 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			list(x = meansFormula, y = meansName)))
 		dimnames(algebra) <- list(NULL, translatedNames)
 		model <- mxModel(model, algebra)
-		objective <- eval(substitute(mxFIMLObjective(covariance = x, means = y, thresholds = z),
-			list(x = covName, y = meansName, z = .Object@thresholds)))
+		objective <- eval(substitute(mxFIMLObjective(covariance = x, 
+			means = y, thresholds = z, vector = w),
+			list(x = covName, y = meansName, z = .Object@thresholds, w = .Object@vector)))
 		objective@.translated <- TRUE
 		model@objective <- objective
 		class(model) <- 'MxModel'
@@ -319,7 +328,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 	}
 )
 
-mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA) {
+mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE) {
 	if (missing(A) || typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
@@ -355,7 +364,10 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA) {
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
 	}
-	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds))
+	if (length(vector) > 1 || typeof(vector) != "logical") {
+		stop("Vector argument is not a logical value")
+	}
+	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds, vector))
 }
 
 displayRAMObjective <- function(objective) {
@@ -368,6 +380,7 @@ displayRAMObjective <- function(objective) {
 	} else {
 		cat("@M :", omxQuotes(objective@M), '\n')
 	}
+	cat("@vector :", objective@vector, '\n')
 	if (single.na(objective@dims)) {
 		cat("@dims : NA \n")
 	} else {

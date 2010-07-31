@@ -8,7 +8,7 @@
 }
 
 \usage{
-mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA)
+mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE)
 }
 
 
@@ -19,6 +19,7 @@ mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA)
    \item{M}{An optional character string indicating the name of the 'M' matrix.}
    \item{dimnames}{An optional character vector to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
+   \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
 }
 
 \details{

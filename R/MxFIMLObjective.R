@@ -348,8 +348,8 @@ mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA, v
 		stop("NA values are not allowed for dimnames vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
-		stop("Vector argument is not a logical value (return a vector or a scalar)")
-	}	
+		stop("Vector argument is not a logical value")
+	}
 	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds, vector))
 }
 
@@ -357,6 +357,7 @@ displayFIMLObjective <- function(objective) {
 	cat("MxFIMLObjective", omxQuotes(objective@name), '\n')
 	cat("@covariance :", omxQuotes(objective@covariance), '\n')
 	cat("@means :", omxQuotes(objective@means), '\n')
+	cat("@vector :", objective@vector, '\n')
 	if (single.na(objective@dims)) {
 		cat("@dims : NA \n")
 	} else {

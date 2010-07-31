@@ -25,7 +25,8 @@ setClass(Class = "MxNonNullData",
 		indexVector = "integer",
 		identicalDefVars = "integer",
 		identicalMissingness = "integer",
-		identicalRows = "integer",		
+		identicalRows = "integer",
+		.isSorted = "logical",		
 		name   = "character"))
 
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
@@ -37,6 +38,7 @@ setMethod("initialize", "MxNonNullData",
 		.Object@type <- type
 		.Object@numObs <- numObs
 		.Object@name <- name
+		.Object@.isSorted <- FALSE
 		return(.Object)
 	}
 )
@@ -84,12 +86,27 @@ convertDatasets <- function(model, defVars, modeloptions) {
 	return(model)
 }
 
+resetDataSortingFlags <- function(model) {
+	if (is.null(model@data)) {
+	} else if (model@data@type != "raw") {
+	} else {
+		model@data@.isSorted <- FALSE
+	}
+	if (length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, resetDataSortingFlags)
+	}
+	return(model)
+}
+
 sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	if (is.null(mxData)) {
 		return(mxData)
 	}
 	if (mxData@type != "raw") {
 		return(mxData)	
+	}
+	if (mxData@.isSorted) {
+		return(mxData)
 	}
 	observed <- mxData@observed
 	nosort <- as.character(modeloptions[['No Sort Data']])
@@ -100,7 +117,8 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@indexVector <- as.integer(NA)
 		mxData@identicalDefVars <- as.integer(NA)
 		mxData@identicalMissingness <- as.integer(NA)
-		mxData@identicalRows <- as.integer(NA)			
+		mxData@identicalRows <- as.integer(NA)
+		mxData@.isSorted <- TRUE
 	} else {
 		observedNames <- colnames(observed)	
 		if (length(defVars) > 0) {
@@ -109,18 +127,19 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 				unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]
 			})
 			names(defkeys) <- NULL
-			defkeys <- defkeys[defkeys %in% observedNames]			
-			otherkeys <- setdiff(observedNames, defkeys)
-			nacount <- sapply(otherkeys, function(x) { sum(is.na(observed[,x])) })
-			otherkeys <- otherkeys[order(nacount, decreasing=TRUE)]
+			defkeys <- defkeys[defkeys %in% observedNames]
+			defindex <- match(defkeys, observedNames)
+			otherindex <- setdiff(1:length(observedNames), defindex)
+			nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
+			otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		} else {
 			defkeys <- character()
-			otherkeys <- observedNames
-			nacount <- sapply(observedNames, function(x) { sum(is.na(observed[,x])) })
-			otherkeys <- otherkeys[order(nacount, decreasing=TRUE)]
+			otherindex <- c(1:length(observedNames))
+			nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
+			otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		}
 		defvectors <- lapply(defkeys, function(x) {observed[,x] })
-		othervectors <- lapply(otherkeys, function(x) {!is.na(observed[,x]) })
+		othervectors <- lapply(otherindex, function(x) {!is.na(observed[,x]) })
 		args <- c(defvectors, othervectors, 'na.last'=FALSE)
 		indexVector <- do.call('order', args)
 		sortdata <- observed[indexVector,,drop=FALSE]
@@ -134,6 +153,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@identicalRows <- threeVectors[[1]]
 		mxData@identicalMissingness <- threeVectors[[2]]
 		mxData@identicalDefVars <- threeVectors[[3]]
+		mxData@.isSorted <- TRUE
 	}
 	return(mxData)
 }

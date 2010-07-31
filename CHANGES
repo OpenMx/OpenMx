@@ -3,6 +3,8 @@ trunk
 * calculating cycle depth of RAM objective functions
 * bugfix: preserve rownames when converting data.frame columns to numeric values
 * 'nrow' and 'ncol' arguments now supercede matrix dimensions in mxMatrix()
+* add boolean argument 'vector' to mxRAMObjective() for returning the vector of likelihoods
+* added demo(OneFactorModel_LikelihoodVector) as example of 'vector=TRUE' in RAM model 
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================

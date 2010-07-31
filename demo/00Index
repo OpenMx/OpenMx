@@ -13,6 +13,7 @@ MultivariateRegression_MatrixCov	Multivariate regression using matrix (RAM) spec
 OneFactorMatrixDemo  One factor model from the matrix-style demo on the front page of the website.
 OneFactorPathDemo  One factor model from the path-style demo on the front page of the website.
 OneFactorModel_PathRaw	Common factor model using path-centric specification and raw data
+OneFactorModel_LikelihoodVector	Common factor model using path-centric specification and likelihood vector
 OneFactorModel_PathCov	Common factor model using path-centric specification and covariance data
 OneFactorModel_MatrixRaw	Common factor model using matrix (RAM) specification and raw data
 OneFactorModel_MatrixCov	Common factor model using matrix (RAM) specification and covariance data
