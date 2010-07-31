@@ -18,13 +18,14 @@
 library(OpenMx)
 
 options(width=100)
+set.seed(10)
 
 # ---------------------------------------------------------------------
 # Data for factor model.
 
 numberSubjects <- 1000
 numberFactors <- 3
-numberIndPerFactor <- 16
+numberIndPerFactor <- 4
 numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
 
 XMatrix <- matrix(rnorm(numberSubjects*numberFactors, mean=0, sd=1), numberSubjects, numberFactors)
@@ -105,7 +106,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=YFrame, type="raw")
+    mxData(observed=cov(YFrame), means=means(YFrame), type="cov")
     )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
