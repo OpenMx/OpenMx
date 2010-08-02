@@ -321,6 +321,8 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			means = y, thresholds = z, vector = w),
 			list(x = covName, y = meansName, z = .Object@thresholds, w = .Object@vector)))
 		objective@.translated <- TRUE
+		metadata <- new("MxRAMMetaData", .Object@A, .Object@S, .Object@F, .Object@M)
+		objective@metadata <- metadata
 		model@objective <- objective
 		class(model) <- 'MxModel'
 		job[[model@name]] <- model

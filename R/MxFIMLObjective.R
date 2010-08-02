@@ -23,7 +23,8 @@ setClass(Class = "MxFIMLObjective",
 		dims = "character",
 		dataColumns = "numeric",
 		thresholdColumns = "list",
-		vector = "logical"),
+		vector = "logical",
+		metadata = "MxBaseObjectiveMetaData"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
@@ -61,6 +62,14 @@ setMethod("genericObjFunNamespace", signature("MxFIMLObjective"),
 			modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds,
 			omxConvertIdentifier, modelname, namespace)
+		if (!is.null(.Object@metadata)) {
+			metadata <- .Object@metadata
+			metadata@A <-  omxConvertIdentifier(metadata@A, modelname, namespace)
+			metadata@S <-  omxConvertIdentifier(metadata@S, modelname, namespace)
+			metadata@F <-  omxConvertIdentifier(metadata@F, modelname, namespace)
+			metadata@M <-  omxConvertIdentifier(metadata@M, modelname, namespace)
+			.Object@metadata <- metadata
+		}
 		return(.Object)
 })
 
