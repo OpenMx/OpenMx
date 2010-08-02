@@ -21,6 +21,7 @@ modelIsHollow <- function(model) {
 }
 
 processHollowModel <- function(model, independents, dataList, frontendStart, indepElapsed) {
+	independents <- lapply(independents, undoDataShare, dataList)
 	model <- omxReplaceModels(model, independents)
 	model <- undoDataShare(model, dataList)
 	frontendStop <- Sys.time()

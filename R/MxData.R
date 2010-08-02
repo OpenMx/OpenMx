@@ -215,7 +215,6 @@ generateDataList <- function(model) {
 
 undoDataShare <- function(model, dataList) {
 	model@data <- dataList[[model@name]]
-	model@submodels <- omxLapply(model@submodels, undoDataShare, dataList)
 	return(model)
 }
 
