@@ -139,8 +139,9 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 			otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		}
 		defvectors <- lapply(defkeys, function(x) {observed[,x] })
-		othervectors <- lapply(otherindex, function(x) {!is.na(observed[,x]) })
-		args <- c(defvectors, othervectors, 'na.last'=FALSE)
+		othervectorsNA <- lapply(otherindex, function(x) {!is.na(observed[,x]) })
+		othervectors <- lapply(otherindex, function(x) {observed[,x] })
+		args <- c(defvectors, othervectorsNA, othervectors, 'na.last'=FALSE)
 		indexVector <- do.call('order', args)
 		sortdata <- observed[indexVector,,drop=FALSE]
 		mxData@observed <- sortdata
