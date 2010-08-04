@@ -574,12 +574,27 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 
-	for(int j = 0; j < numArgs; j++) {
-		for(int k = 0; k < matList[j]->cols; k++) {
-			for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
-				omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
+	int allArgumentsColMajor = result->colMajor;
+	for(int j = 0; j < numArgs && allArgumentsColMajor; j++) {
+		if (!matList[j]->colMajor) allArgumentsColMajor = 0;
+	}
+
+	if (allArgumentsColMajor) {
+		int offset = 0;
+		for(int j = 0; j < numArgs; j++) {	
+			omxMatrix* current = matList[j];
+			int size = current->rows * current->cols;	
+			memcpy(result->data + offset, current->data, size * sizeof(double));
+			offset += size;
+		}
+	} else {
+		for(int j = 0; j < numArgs; j++) {
+			for(int k = 0; k < matList[j]->cols; k++) {
+				for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
+					omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
+				}
+				currentCol++;
 			}
-			currentCol++;
 		}
 	}
 
@@ -609,12 +624,27 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		omxResizeMatrix(result, totalRows, totalCols, FALSE);
 	}
 
-	for(int j = 0; j < numArgs; j++) {
-		for(int k = 0; k < matList[j]->rows; k++) {
-			for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
-				omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
+	int allArgumentsRowMajor = !result->colMajor;
+	for(int j = 0; j < numArgs && allArgumentsRowMajor; j++) {
+		if (matList[j]->colMajor) allArgumentsRowMajor = 0;
+	}
+
+	if (allArgumentsRowMajor) {
+		int offset = 0;
+		for(int j = 0; j < numArgs; j++) {	
+			omxMatrix* current = matList[j];
+			int size = current->rows * current->cols;	
+			memcpy(result->data + offset, current->data, size * sizeof(double));
+			offset += size;
+		}
+	} else {
+		for(int j = 0; j < numArgs; j++) {
+			for(int k = 0; k < matList[j]->rows; k++) {
+				for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
+					omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
+				}
+				currentRow++;
 			}
-			currentRow++;
 		}
 	}
 

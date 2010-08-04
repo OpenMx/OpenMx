@@ -99,11 +99,12 @@ struct omxMatrix {						// A matrix
 	extern omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 	
 
-/* Getters 'n Setters */
-	double omxMatrixElement(omxMatrix *om, int row, int col);
-	double omxVectorElement(omxMatrix *om, int index);
-	void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
-	void omxSetVectorElement(omxMatrix *om, int index, double value);
+/* Getters 'n Setters (static functions declared below) */
+	// static inline double omxMatrixElement(omxMatrix *om, int row, int col);
+	// static inline double omxVectorElement(omxMatrix *om, int index);
+	// static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
+	// static inline void omxSetVectorElement(omxMatrix *om, int index, double value);
+
 	double omxAliasedMatrixElement(omxMatrix *om, int row, int col);			// Element from unaliased form of the same matrix
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
 	void omxMarkDirty(omxMatrix *om);
@@ -151,5 +152,55 @@ struct omxMatrix {						// A matrix
 	void omxMatrixCompute(omxMatrix *matrix);
 	void omxPrintMatrix(omxMatrix *source, char* d);                    // Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
+
+/* Inline functions and helper functions */
+
+void setMatrixError(int row, int col, int numrow, int numcol);
+void setVectorError(int index, int numrow, int numcol);
+void matrixElementError(int row, int col, int numrow, int numcol);
+void vectorElementError(int index, int numrow, int numcol);
+
+static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
+	if(row >= om->rows || col >= om->cols) {
+		setMatrixError(row + 1, col + 1, om->rows, om->cols);
+	}
+	int index = 0;
+	if(om->colMajor) {
+		index = col * om->rows + row;
+	} else {
+		index = row * om->cols + col;
+	}
+	om->data[index] = value;
+}
+
+static inline double omxMatrixElement(omxMatrix *om, int row, int col) {
+	int index = 0;
+	if(row >= om->rows || col >= om->cols) {
+		matrixElementError(row + 1, col + 1, om->rows, om->cols);
+	}
+	if(om->colMajor) {
+		index = col * om->rows + row;
+	} else {
+		index = row * om->cols + col;
+	}
+	return om->data[index];
+}
+
+static inline void omxSetVectorElement(omxMatrix *om, int index, double value) {
+	if(index < om->rows * om->cols) {
+		om->data[index] = value;
+	} else {
+		setVectorError(index, om->rows, om->cols);
+    }
+}
+
+static inline double omxVectorElement(omxMatrix *om, int index) {
+	if(index < om->rows * om->cols) {
+		return om->data[index];
+	} else {
+		vectorElementError(index, om->rows, om->cols);
+        return (NA_REAL);
+    }
+}
 
 #endif /* _OMXMATRIX_H_ */

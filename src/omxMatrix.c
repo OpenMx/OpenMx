@@ -282,27 +282,36 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 	return om->data + index;
 }
 
-double omxVectorElement(omxMatrix *om, int index) {
-	if(index < om->rows * om->cols) {
-		return om->data[index];
-	} else {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper index (%d) from (%d, %d) vector.", index, om->rows, om->cols);
-		error(errstr);
-		free(errstr);
-        return (NA_REAL);
-    }
+void vectorElementError(int index, int numrow, int numcol) {
+	char *errstr = calloc(250, sizeof(char));
+	sprintf(errstr, "Requested improper index (%d) from (%d, %d) vector.", 
+		index, numrow, numcol);
+	error(errstr);
+	free(errstr);
 }
 
-void omxSetVectorElement(omxMatrix *om, int index, double value) {
-	if(index < om->rows * om->cols) {
-		om->data[index] = value;
-	} else {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Setting improper index (%d) from (%d, %d) vector.", index, om->rows, om->cols);
-		error(errstr);
-		free(errstr);
-    }
+void setMatrixError(int row, int col, int numrow, int numcol) {
+	char *errstr = calloc(250, sizeof(char));
+	sprintf(errstr, "Attempted to set improper value (%d, %d) into (%d, %d) matrix.", 
+		row, col, numrow, numcol);
+	error(errstr);
+	free(errstr);
+}
+
+void matrixElementError(int row, int col, int numrow, int numcol) {
+	char *errstr = calloc(250, sizeof(char));
+	sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.",
+		row, col, numrow, numcol);
+	error(errstr);
+	free(errstr);
+}
+
+void setVectorError(int index, int numrow, int numcol) {
+	char *errstr = calloc(250, sizeof(char));
+	sprintf(errstr, "Setting improper index (%d) from (%d, %d) vector.", 
+		index, numrow, numcol);
+	error(errstr);
+	free(errstr);
 }
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
@@ -320,39 +329,6 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 		index = row * om->originalCols + col;
 	}
 	return om->data[index];
-
-}
-
-double omxMatrixElement(omxMatrix *om, int row, int col) {
-	int index = 0;
-	if(row >= om->rows || col >= om->cols) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->rows, om->cols);
-		error(errstr);
-		free(errstr);
-	}
-	if(om->colMajor) {
-		index = col * om->rows + row;
-	} else {
-		index = row * om->cols + col;
-	}
-	return om->data[index];
-}
-
-void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
-	if(row >= om->rows || col >= om->cols) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to set improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->rows, om->cols);
-		error(errstr);
-		free(errstr);
-	}
-	int index = 0;
-	if(om->colMajor) {
-		index = col * om->rows + row;
-	} else {
-		index = row * om->cols + col;
-	}
-	om->data[index] = value;
 }
 
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
