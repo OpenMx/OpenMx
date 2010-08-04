@@ -71,6 +71,7 @@ runHelper <- function(model, frontendStart,
 	}
 	# Regenerate the namespace and flatModel
 	model <- convertSquareBracketLabels(model)
+	model <- transformAlgebras(model)
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
