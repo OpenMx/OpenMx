@@ -6,6 +6,8 @@ trunk
 * add boolean argument 'vector' to mxRAMObjective() for returning the vector of likelihoods
 * added demo(OneFactorModel_LikelihoodVector) as example of 'vector=TRUE' in RAM model
 * cbind() and rbind() inside MxAlgebra expressions with all arguments as MxMatrix objects are themselves transformed into MxMatrix objects
+* bugfix with square bracket substitution
+* finishing implementing sorting of raw data in mxFIMLObjective()
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================

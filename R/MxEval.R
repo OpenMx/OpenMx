@@ -141,7 +141,7 @@ computeSymbol <- function(symbol, model, labelsData) {
 	} else if (is.null(lookup)) {
 		return(symbol)
 	} else if (is(lookup, "MxMatrix")) {
-		return(substitute(computeMatrixHelper(x, flatModel, labelsData), list(x = lookup)))
+		return(substitute(computeMatrixHelper(x, model, flatModel, labelsData), list(x = lookup)))
 	} else if (is(lookup, "MxAlgebra")) {
 		return(substitute(omxDimnames(eval(captureComputeTranslation(x, flatModel, labelsData)), y),
 			list(x = lookup@formula, y = lookup@.dimnames)))
@@ -162,7 +162,7 @@ omxComputeMatrix <- function(matrix, model) {
 	return(eval(substitute(mxEval(x, model, TRUE), list(x = as.symbol(matrix@name)))))
 }
 
-computeMatrixHelper <- function(matrix, flatModel, labelsData) {
+computeMatrixHelper <- function(matrix, model, flatModel, labelsData) {
 	labels <- matrix@labels
 	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
 	subs <- labels[select]
