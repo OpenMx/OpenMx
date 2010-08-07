@@ -66,6 +66,14 @@ Socket Units \tab the type of units: 'minutes' or 'iterations' \cr
 Socket Count \tab the number of units between communication to the server \cr
 }
 
+Model transformation options
+
+\tabular{rl}{
+No Sort Data \tab character vector of model names for which FIML data sorting is not performed \cr
+RAM Optimization \tab single logical value whether to enable or disable solve(I - A) optimization \cr
+RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr
+}
+
 }
 	
 \value{

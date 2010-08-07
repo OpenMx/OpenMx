@@ -8,6 +8,7 @@ trunk
 * cbind() and rbind() inside MxAlgebra expressions with all arguments as MxMatrix objects are themselves transformed into MxMatrix objects
 * bugfix with square bracket substitution
 * finishing implementing sorting of raw data in mxFIMLObjective()
+* added 'RAM Optimization' and 'RAM Max Depth' to model options.  See ?mxOption
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================

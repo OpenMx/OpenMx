@@ -56,7 +56,9 @@ checkpointOptions <- list(
 )
 
 otherOptions <- list(
-	"No Sort Data" = character()
+	"No Sort Data" = character(),
+	"RAM Optimization" = TRUE,
+	"RAM Max Depth" = NA
 )
 
 # Convert the keys and values into strings
