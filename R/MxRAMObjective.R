@@ -172,12 +172,12 @@ generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	maxdepth <- modeloptions[['RAM Max Depth']]
 	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
 		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
-		maxdepth <- nrow(mxObject) * ncol(mxObject) - 1
+		maxdepth <- nrow(mxObject) - 1
 	}
 	return(omxGetRAMDepth(mxObject, maxdepth))
 }
 
-omxGetRAMDepth <- function(A, maxdepth = nrow(A) * ncol(A) - 1) {
+omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
 	mxObject <- A
 	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
 	aValues[mxObject@free] <- 1
