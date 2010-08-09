@@ -1,6 +1,6 @@
-trunk
-=====
-* calculating cycle depth of RAM objective functions
+Release 0.5.0-1353 (August 08, 2010)
+====================================
+* calculating cycle length of RAM objective functions
 * bugfix: preserve rownames when converting data.frame columns to numeric values
 * 'nrow' and 'ncol' arguments now supercede matrix dimensions in mxMatrix()
 * add boolean argument 'vector' to mxRAMObjective() for returning the vector of likelihoods
@@ -9,6 +9,7 @@ trunk
 * bugfix with square bracket substitution
 * finishing implementing sorting of raw data in mxFIMLObjective()
 * added 'RAM Optimization' and 'RAM Max Depth' to model options.  See ?mxOption
+* added support for linux x86_64 with gcc 4.1.x
 
 Release 0.4.1-1320 (June 12, 2010)
 ==================================
