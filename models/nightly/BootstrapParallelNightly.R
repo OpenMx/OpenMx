@@ -124,4 +124,6 @@ omxCheckCloseEnough(sumResults[6,'mean'], 1.00, 0.1)
 omxCheckCloseEnough(sumResults[7,'mean'], 1.00, 0.1)
 omxCheckCloseEnough(sumResults[8,'mean'], 1.00, 0.1)
 
+detach("package:snowfall")
+detach("package:snow")
 
