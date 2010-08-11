@@ -278,18 +278,24 @@ omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 		om = omxInitMatrix(om, 1, od->cols, TRUE, od->currentState);
 	}
 
+	int numcols = om->cols;
 	if(od->dataMat != NULL) { // Matrix Object
-		for(int j = 0; j < om->cols; j++) {
-			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, omxVectorElement(colList, j)));
+		omxMatrix* dataMat = od->dataMat;
+		for(int j = 0; j < numcols; j++) {
+			omxSetMatrixElement(om, 0, j, omxMatrixElement(dataMat, row, 
+				omxVectorElement(colList, j)));
 		}
 	} else {		// Data Frame object
 		double dataElement;
-		for(int j = 0; j < om->cols; j++) {
-			int location = od->location[(int)omxVectorElement(colList, j)];
+		int* locations = od->location;
+		int** intDataColumns = od->intData;
+		double **realDataColumns = od->realData;
+		for(int j = 0; j < numcols; j++) {
+			int location = locations[(int)omxVectorElement(colList, j)];
 			if(location < 0) {
-				dataElement = (double) od->intData[~location][row];
+				dataElement = (double) intDataColumns[~location][row];
 			} else {
-				dataElement = od->realData[location][row];
+				dataElement = realDataColumns[location][row];
 			}
 			omxSetMatrixElement(om, 0, j, dataElement);
 		}
