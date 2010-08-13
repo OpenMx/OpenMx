@@ -1,6 +1,7 @@
 trunk
 =====
 * added error detection when multiple names are specified in mxMatrix(), mxAlgebra(), etc.
+* added 'transform' argument to mxCompare().  See ?mxCompare
 
 Release 0.5.0-1353 (August 08, 2010)
 ====================================

@@ -5,7 +5,24 @@
 
 \description{
     Compare the fit of one or more models to a base model.
-    The output is a table with one row per model comparison, and the following columns:
+    The output is a table with one row per model comparison.
+}
+
+\usage{
+mxCompare(base, comparison, ..., transform = signif, digits = 3, all = FALSE)
+}
+
+\arguments{
+   \item{base}{A MxModel object or list of MxModel objects.}
+   \item{comparison}{A MxModel object or list of MxModel objects.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{transform}{A function to transform numeric values.  May be replaced with \sQuote{round}.}
+   \item{digits}{A numeric setting table decimal precision. Used by \sQuote{transform} function.}
+   \item{all}{A boolean value on whether to compare all bases with all comparisons.}
+}
+
+\details{
+The following columns appear in the output:
 \describe{
 \item{base}{Name of the base model}
 \item{comparison}{Name of the comparison model}
@@ -16,17 +33,6 @@
 \item{diffLL}{Change in minus 2*log-likelihood}
 \item{diffdf}{Change in degrees of freedom}
 \item{p}{Significance level of the change in fitness function}}
-}
-
-\usage{
-mxCompare(base, comparison, digits = 3, all = FALSE)
-}
-
-\arguments{
-   \item{base}{an MxModel object or list of MxModel objects.}
-   \item{comparison}{a MxModel object or list of MxModel objects.}
-   \item{digits}{a numeric setting table decimal precision.}
-   \item{all}{A boolean value on whether to compare all bases with all comparisons.}
 }
 
 \seealso{
