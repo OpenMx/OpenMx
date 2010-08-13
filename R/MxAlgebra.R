@@ -53,7 +53,7 @@ setReplaceMethod("dimnames", "MxAlgebra",
 )
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA) {
-	if (is.na(name)) {
+	if (single.na(name)) {
 		name <- omxUntitledName()
 	}
 	omxVerifyName(name, 0)

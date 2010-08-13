@@ -1,3 +1,7 @@
+trunk
+=====
+* added error detection when multiple names are specified in mxMatrix(), mxAlgebra(), etc.
+
 Release 0.5.0-1353 (August 08, 2010)
 ====================================
 * calculating cycle length of RAM objective functions

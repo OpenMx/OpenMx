@@ -26,3 +26,16 @@ omxCheckError(mxMatrix('Full', 1, 1, labels = 'abc&def',
 	name = 'B'), paste("The reference 'abc&def' in",
 	"mxMatrix(\"Full\", 1, 1, labels = \"abc&def\", name = \"B\")",
 	"is illegal because it contains the '&' character."))
+omxCheckError(mxMatrix('Full', 1, 1, name = c('foo', 'bar', 'baz')),
+	paste("The 'name' argument must be a single character",
+	"argument in mxMatrix(\"Full\", 1, 1, name = c(\"foo\", \"bar\", \"baz\"))"))
+omxCheckError(mxAlgebra(1 + 2 + 3, name = c('foo', 'bar', 'baz')),
+	paste("The 'name' argument must be a single character",
+	"argument in mxAlgebra(1 + 2 + 3, name = c(\"foo\", \"bar\", \"baz\"))"))
+omxCheckError(mxConstraint(a == b, name = c('foo', 'bar', 'baz')),
+	paste("The 'name' argument must be a single character",
+	"argument in mxConstraint(a == b, name = c(\"foo\", \"bar\", \"baz\"))"))
+omxCheckError(mxModel(name = c('foo', 'bar', 'baz')),
+	paste("The 'name' argument must be a single character",
+	"argument in mxModel(name = c(\"foo\", \"bar\", \"baz\"))"))
+

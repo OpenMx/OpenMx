@@ -35,7 +35,7 @@ setMethod("initialize", "MxConstraint",
 )
 
 mxConstraint <- function(expression, name = NA) {
-	if (is.na(name)) {
+	if (single.na(name)) {
 		name <- omxUntitledName()
 	}
 	omxVerifyName(name, 0)

@@ -100,14 +100,19 @@ omxVerifyReference <- function(reference, stackNumber) {
 }
 
 omxVerifyName <- function(name, stackNumber) {
+    if (length(name) == 0) {
+        stop(paste("The empty character vector is an invalid name in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+            call. = FALSE)
+    }
+    if (length(name) > 1) {
+        stop(paste("The 'name' argument must be a single character argument in", 
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+            call. = FALSE)
+    }
     if (identical(name, "")) {
         stop(paste("The empty string is an invalid name in", 
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
-    }
-    if (length(name) == 0) {
-        stop(paste("The string of zero length is an invalid name in", 
-			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
-            call. = FALSE)
     }
     if (isNumber(name)) {
         stop(paste("The name", omxQuotes(name),
