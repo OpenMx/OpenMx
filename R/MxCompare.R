@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxCompare <- function(base, comparison, ..., transform = signif, digits = 3, all = FALSE) {
+mxCompare <- function(base, comparison, ..., all = FALSE) {
 	if (missing(base)) {
 		stop("'base' argument be a MxModel object or list of MxModel objects")	
 	}
@@ -23,9 +23,6 @@ mxCompare <- function(base, comparison, ..., transform = signif, digits = 3, all
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompare does not accept values for the '...' argument")
-	}
-	if (length(digits) != 1 || is.numeric(digits) == FALSE || is.na(digits) == TRUE) {
-		stop("'digits' argument must be a numeric value")
 	}
 	if (is.list(base)) {
 		base <- unlist(base)
@@ -45,21 +42,20 @@ mxCompare <- function(base, comparison, ..., transform = signif, digits = 3, all
 	}
 	baseSummaries <- omxLapply(base, summary)	
 	compareSummaries <- omxLapply(comparison, summary)
-	resultsTable <- showFitStatistics(baseSummaries, compareSummaries, transform, digits, all)
+	resultsTable <- showFitStatistics(baseSummaries, compareSummaries, all)
 	return(resultsTable)
 }
 
-showFitStatistics <- function(baseSummaries, compareSummaries, transform, digits, all) {
+showFitStatistics <- function(baseSummaries, compareSummaries, all) {
 	statistics <- list()
 	if(all) {
 		for(i in 1:length(baseSummaries)) {
 			nextBaseSummary <- baseSummaries[[i]]
-			statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary, 
-				transform, digits)
+			statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
 			for(j in 1:length(compareSummaries)) {
 				nextCompareSummary <- compareSummaries[[j]]
-				statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary,
-					nextCompareSummary, transform, digits)
+				statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary, 
+					nextCompareSummary)
 			}
 		}
 	} else {
@@ -71,11 +67,10 @@ showFitStatistics <- function(baseSummaries, compareSummaries, transform, digits
 			nextBaseSummary <- baseSummaries[[nextBaseSummaryIndex]]
 			nextCompareSummary <- compareSummaries[[nextCompareSummaryIndex]]
 			if (previousBaseSummaryIndex != nextBaseSummaryIndex) {
-				statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary,
-					transform, digits)
+				statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
 			}
 			statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary,
-				nextCompareSummary, transform, digits)
+				nextCompareSummary)
 			previousBaseSummaryIndex <- nextBaseSummaryIndex
 		}
 	}
@@ -83,14 +78,14 @@ showFitStatistics <- function(baseSummaries, compareSummaries, transform, digits
 	return(statistics)
 }
 
-collectBaseStatistics <- function(refSummary, transform, digits) {
+collectBaseStatistics <- function(refSummary) {
 	baseStats <- data.frame(stringsAsFactors = FALSE,
 		refSummary$modelName,
 		as.character(NA),
 		refSummary$estimatedParameters,
-		transform(refSummary$Minus2LogLikelihood, digits),
+		refSummary$Minus2LogLikelihood,
 		refSummary$degreesOfFreedom,
-		transform(refSummary$AIC.Mx, digits),
+		refSummary$AIC.Mx,
 		as.numeric(NA),
 		as.numeric(NA), 
 		as.numeric(NA))
@@ -98,18 +93,18 @@ collectBaseStatistics <- function(refSummary, transform, digits) {
 	return(baseStats)
 }
 
-collectStatistics <- function(refSummary, otherSummary, transform, digits) {
+collectStatistics <- function(refSummary, otherSummary) {
 	otherStats <- data.frame(stringsAsFactors = FALSE,
 		refSummary$modelName,
 		otherSummary$modelName,
 		otherSummary$estimatedParameters,
-		transform(otherSummary$Minus2LogLikelihood, digits),
+		otherSummary$Minus2LogLikelihood,
 		otherSummary$degreesOfFreedom,
-		transform(otherSummary$AIC.Mx, digits),
-		transform(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood, digits),
+		otherSummary$AIC.Mx,
+		otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
 		otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, 
-		transform(pchisq(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
-			otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, lower.tail=FALSE), digits))
+		pchisq(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
+			otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, lower.tail=FALSE))
 	names(otherStats) <- c("base", "comparison", "ep", "minus2LL", "df", "AIC", "diffLL", "diffdf", "p")
 	return(otherStats)
 }

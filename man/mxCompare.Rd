@@ -9,20 +9,18 @@
 }
 
 \usage{
-mxCompare(base, comparison, ..., transform = signif, digits = 3, all = FALSE)
+mxCompare(base, comparison, ..., all = FALSE)
 }
 
 \arguments{
    \item{base}{A MxModel object or list of MxModel objects.}
    \item{comparison}{A MxModel object or list of MxModel objects.}
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
-   \item{transform}{A function to transform numeric values.  May be replaced with \sQuote{round}.}
-   \item{digits}{A numeric setting table decimal precision. Used by \sQuote{transform} function.}
    \item{all}{A boolean value on whether to compare all bases with all comparisons.}
 }
 
 \details{
-The following columns appear in the output:
+Use options(\sQuote{digits}=N) to set the minimum number of significant digits to be printed in values. The following columns appear in the output:
 \describe{
 \item{base}{Name of the base model}
 \item{comparison}{Name of the comparison model}
@@ -67,5 +65,5 @@ model2 <- mxModel("Two Factor", type="RAM",
 )
 fit2 <- mxRun(model2)
 
-mxCompare(fit1, c(fit1, fit2), digits = 3)
+mxCompare(fit1, c(fit1, fit2))
 }
