@@ -34,9 +34,10 @@
 
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
-extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,	double *bl,	double *bu, void* funcon, void* funobj,
-						int *inform, int *iter, int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
-						double *x, int *iw,	int *leniw, double *w, int *lenw);
+extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
+							double *bl,	double *bu, void* funcon, void* funobj, int *inform, int *iter, 
+							int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
+							double *x, int *iw,	int *leniw, double *w, int *lenw);
 
 /* Objective Function */
 void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );				// For general computation
@@ -49,7 +50,8 @@ void F77_SUB(constraintFunction)(int *mode, int *ncnln, int *n, int *ldJ, int *n
 void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
-unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, /*double v,*/ int r, omxState* currentState, double optimum);
+unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, 
+										int r, omxState* currentState, double optimum);
 
 /* Outside R Functions */
 static int isDir(const char *path);

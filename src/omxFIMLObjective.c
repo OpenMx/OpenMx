@@ -255,18 +255,15 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 							checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
 						}
 					}
+					// Calculate correlation matrix from covariance
+					omxStandardizeCovMatrix(cov, corList, weights);
 				}
-				omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
-				keepCov = omxDataNumIdenticalDefs(data, row);
 			}
-			if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-			keepCov--;
-			keepInverse--;
 		}
 
 		int nextRow = 0;
 
-		// Filter down covariance matrix and calculate thresholds
+		// Filter down correlation matrix and calculate thresholds
 
 		for(int j = 0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
@@ -276,10 +273,10 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				// toRemove[j] = 1;
 				Infin[j] = -1;
 				continue;
-			} else {									// For joint, check here for continuousness
-				value--;								// Correct for C indexing: value is now the index of the upper bound.
-				// TODO: Subsample the corList and thresholds for speed. Doesn't look like that's much of a speedup.
-				// TODO: Check for high and low thresholds of NA
+			} else {			// For joint, check here for continuousness
+				value--;		// Correct for C indexing: value is now the index of the upper bound.
+				// Note : Tested subsampling of the corList and thresholds for speed. 
+				//			Doesn't look like that's much of a speedup.
 				double mean;
 				if(means == NULL) mean = 0;
 				else mean = omxVectorElement(means, var);
@@ -399,7 +396,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
             }
         }
 		row += (numIdentical - 1);		// Step forward by the number of identical rows
+
 		if(firstRow) firstRow = 0;
+		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+		keepCov--;
+		keepInverse--;
 	}
 
     if(!returnRowLikelihoods) {
@@ -431,7 +433,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int numCols, numRemoves;
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
-	unsigned int covReset = FALSE;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
 	omxDefinitionVar* defVars;
@@ -526,6 +527,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 			/* Calculate derminant and inverse of Censored Cov matrix */
+			// TODO : Speed this up.
 			F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 			if(info != 0) {
 				if(!returnRowLikelihoods) {
@@ -568,7 +570,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 		
 		/* Calculate Row Likelihood */
-		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (t(dataRow) %*% (solve(ExpectedCov)) %*% dataRow)^(1/2) */
+		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 		
@@ -577,6 +579,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(returnRowLikelihoods) {
 			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q);
+
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(oo->matrix, omxDataIndex(data, j), 0, sum);
 			}

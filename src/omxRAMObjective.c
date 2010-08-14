@@ -116,24 +116,19 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 		X = omxInitMatrix(X, F->rows, A->cols, A->colMajor, A->currentState);
 	}
 	
-	if(Cov == NULL) {
-		Cov = omxInitMatrix(Cov, F->rows, F->rows, A->colMajor, A->currentState);
+	if(Cov == NULL || Means == NULL) {
+		return; // We're not populating results, so why are we bothering, here?
 	}
 	
-	if(Cov == NULL) {
-		Cov = omxInitMatrix(Cov, F->rows, F->rows, A->colMajor, A->currentState);
-	}
-	
-	// if( (Cov->rows != Cov->cols)    || (A->rows != A->cols)
+	// if(   (Cov->rows != Cov->cols)  || (A->rows  != A->cols)  // Conformance check
 	// 	|| (X->rows  != Cov->cols)  || (X->cols  != A->rows)
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
 	// 	|| (Ax->rows != Cov->cols)  || (Ax->cols != A->rows)
 	// 	|| (I->rows  != Cov->cols)  || (I->cols  != Cov->rows)
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
-	// 	|| (M != NULL && Means != NULL  && ( (M->cols  != Cov->cols)  || (M->rows  != 1)
-	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols)))
-	// 	) {
-	// 		error("Incorrect sizes somewhere.");
+	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
+	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
+	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
 	if(!R_finite(numIters)) {
@@ -169,14 +164,14 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	} else {
 	
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using optimized expansion.\n"); }
-	
-		// TODO : Sanity check input sizes
-		if(numIters == 0) numIters = A->rows - 1;	// Use max.
-		if(numIters < 0) numIters = 2 * A->rows;	// Calculate and return
-	
+		
 		/* Taylor Expansion optimized I-A calculation */
 		if(I->colMajor != A->colMajor) {
 			omxTransposeMatrix(I);
+		}
+
+		if(I->colMajor != Ax->colMajor) {
+			omxTransposeMatrix(Ax);
 		}
 	
 		omxCopyMatrix(Z, A);
@@ -191,21 +186,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 			omxCopyMatrix(Ax, I);
 			F77_CALL(dgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
 			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
-		
-			unsigned short has_zeros = FALSE;
-			if(numIters > A->rows) {
-				for(int i = 0; i < Z->rows; i++) {
-					for(int j = 0; j < Z->cols; j++) {
-						if(fabs(omxMatrixElement(Z, i, j)) > EPSILON) {
-							has_zeros = TRUE;
-							break;
-						}
-					}
-					if(has_zeros) break;
-				}
-				if(!has_zeros) numIters = (i-1);
-				break;				// We're done here.
-			}
 		}
 	}
 		
@@ -405,6 +385,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
 	newObj->numIters = INTEGER(slotValue)[0];
+	if(OMX_DEBUG) { Rprintf("Using %d iterations.", newObj->numIters); }
 	UNPROTECT(1);
 
 	l = newObj->cov->rows;
