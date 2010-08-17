@@ -2,6 +2,8 @@ trunk
 =====
 * added error detection when multiple names are specified in mxMatrix(), mxAlgebra(), etc.
 * removed 'digits' argument from mxCompare.  Target behavior of argument was unclear.  See ?mxCompare
+* more informative error messages for 'dimnames' argument of objective functions
+* more informative error messages when constraints have wrong dimensions
 
 Release 0.5.0-1353 (August 08, 2010)
 ====================================

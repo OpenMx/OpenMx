@@ -202,8 +202,10 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		if (nrow(covMatrix) != length(dims)) {
 			msg <- paste("The expected covariance matrix associated",
 				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not of the same length as the dimnames",
-				"provided by the objective function.")
+				omxQuotes(modelname), "is not of the same length as the 'dimnames'",
+				"argument provided by the objective function. The 'dimnames' argument is",
+				"of length", length(dims), "and the expected covariance matrix",
+				"has", nrow(covMatrix), "rows and columns.")
 			stop(msg, call.=FALSE)		
 		}
 		dimnames(covariance) <- list(dims, dims)
@@ -230,8 +232,10 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		if (ncol(meansMatrix) != length(dims)) {
 			msg <- paste("The expected means vector associated",
 				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not of the same length as the dimnames",
-				"provided by the objective function.")
+				omxQuotes(modelname), "is not of the same length as the 'dimnames'",
+				"argument provided by the objective function. The 'dimnames' argument is",
+				"of length", length(dims), "and the expected means vector",
+				"has", ncol(meansMatrix), "columns.")
 			stop(msg, call.=FALSE)
 		}
 		dimnames(means) <- list(NULL, dims)

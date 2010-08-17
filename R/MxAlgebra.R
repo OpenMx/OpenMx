@@ -220,7 +220,9 @@ checkConstraintEvaluation <- function(model, flatModel, labelsData) {
 				omxQuotes(c(lhsName, rhsName)),
 				"in model", omxQuotes(model@name),
 				"are in constraint", omxQuotes(simplifyName(constraint@name, model@name)),
-				"and are not of identical dimensions"), call. = FALSE)
+				"and are not of identical dimensions. The left-hand side is",
+				nrow(lhs), "x", ncol(lhs), "and the right-hand side is",
+				nrow(rhs), "x", paste(ncol(rhs), ".", sep = '')), call. = FALSE)
 		}
 	}		
 }
