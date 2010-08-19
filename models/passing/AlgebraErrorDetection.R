@@ -44,13 +44,16 @@ model2 <- mxModel('model2', A, B, C, D, constraint2)
 model3 <- mxModel('model3', A, B, C, D, constraint3)
 omxCheckError(mxRun(model1), paste("The algebras/matrices",
 	"'A' and 'B' in model 'model1' are in constraint 'constraint1'",
-	"and are not of identical dimensions"))
+	"and are not of identical dimensions. The left-hand side is",
+	"1 x 1 and the right-hand side is 2 x 2."))
 omxCheckError(mxRun(model2), paste("The algebras/matrices",
 	"'C' and 'D' in model 'model2' are in constraint 'constraint2'",
-	"and are not of identical dimensions"))
+	"and are not of identical dimensions. The left-hand side is",
+	"1 x 1 and the right-hand side is 2 x 2."))
 omxCheckError(mxRun(model3), paste("The algebras/matrices",
 	"'1' and 'B' in model 'model3' are in constraint 'constraint3'",
-	"and are not of identical dimensions"))
+	"and are not of identical dimensions. The left-hand side is",
+	"1 x 1 and the right-hand side is 2 x 2."))
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
 model <- mxModel('model', A, B)

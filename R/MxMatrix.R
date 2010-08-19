@@ -252,6 +252,8 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
 	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
+	if (all.na(nrow)) { nrow <- as.numeric(nrow) }
+	if (all.na(ncol)) { ncol <- as.numeric(ncol) }
 	if (single.na(name)) {
 		name <- omxUntitledName()
 	}
@@ -306,7 +308,7 @@ as.numeric.preserve <- function(x, ...) {
 
 matrixCheckArgument <- function(arg, name) {
 	if (is.list(arg) || isS4(arg)) {
-		stop(paste(omxQuotes(name), "argument to mxMatrix",
+		stop(paste(omxQuotes(name), "argument to mxMatrix function",
 			"must be a scalar, a vector, or a matrix in",
 			deparse(width.cutoff = 400L, sys.call(-2))), call. = FALSE)
 	}
@@ -325,34 +327,44 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	matrixCheckArgument(lbound, 'lbound')
 	matrixCheckArgument(ubound, 'ubound')
 	if (!is.numeric(values)) {
-		stop(paste("'values' argument to mxMatrix",
+		stop(paste("'values' argument to mxMatrix function",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.logical(free)) {
-		stop(paste("'free' argument to mxMatrix",
+		stop(paste("'free' argument to mxMatrix function",
 			"must be of logical type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.character(labels)) {
-		stop(paste("'labels' argument to mxMatrix",
+		stop(paste("'labels' argument to mxMatrix function",
 			"must be of character type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.numeric(lbound)) {
-		stop(paste("'lbound' argument to mxMatrix",
+		stop(paste("'lbound' argument to mxMatrix function",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	if (!is.numeric(ubound)) {
-		stop(paste("'ubound' argument to mxMatrix",
+		stop(paste("'ubound' argument to mxMatrix function",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 	lapply(labels, omxVerifyReference, -2)
 	if(any(is.na(free))) {
-		stop(paste("'free' argument to mxMatrix",
+		stop(paste("'free' argument to mxMatrix function",
 			"cannot contain an NA in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+	if (length(nrow) != 1 || !is.numeric(nrow)) {
+		stop(paste("'nrow' argument to mxMatrix function",
+			"must be either NA or a single numeric value in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+	if (length(ncol) != 1 || !is.numeric(ncol)) {
+		stop(paste("'ncol' argument to mxMatrix function",
+			"must be either NA or a single numeric value in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }

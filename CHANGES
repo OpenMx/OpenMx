@@ -4,6 +4,7 @@ trunk
 * removed 'digits' argument from mxCompare.  Target behavior of argument was unclear.  See ?mxCompare
 * more informative error messages for 'dimnames' argument of objective functions
 * more informative error messages when constraints have wrong dimensions
+* improved error detected for 'nrow' and 'ncol' arguments of mxMatrix() function
 
 Release 0.5.0-1353 (August 08, 2010)
 ====================================
