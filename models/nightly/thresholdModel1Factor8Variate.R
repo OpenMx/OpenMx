@@ -12,7 +12,7 @@ require(MASS)
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
 # and model should be identified
 #
-nVariables<-3
+nVariables<-8
 nFactors<-1
 nThresholds<-3
 nSubjects<-500
