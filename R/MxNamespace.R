@@ -392,11 +392,36 @@ omxCheckNamespace <- function(model, namespace) {
 	}
 	overlap <- intersect(namespace$parameters, namespace$values)
 	if (length(overlap) > 0) {
+		select <- overlap[[1]]
+		freelocation <- omxLocateLabel(select, model, TRUE)
+		fixedlocation <- omxLocateLabel(select, model, FALSE)
 		stop(paste("In model", omxQuotes(model@name),
-			"the following are both free",
-			"and fixed parameters:",
-			omxQuotes(overlap)), call. = FALSE)
+			"the name", omxQuotes(select),
+			"is used as a free parameter in", omxQuotes(freelocation),
+			"and as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
 	}
+}
+
+omxLocateLabel <- function(label, model, parameter) {
+	if ((length(label) != 1) || !is.character(label) || is.na(label)) {
+		stop("'label' must be a character value")
+	}
+	if ((length(model) != 1) || !is(model, "MxModel")) {
+		stop("'model' must be a MxModel object")
+	}
+	if ((length(parameter) != 1) || !is.logical(parameter) || is.na(parameter)) {
+		stop("'parameter' must be either TRUE or FALSE")
+	}
+	values <- sapply(model@matrices, locateLabelHelper, model, label, parameter)	
+	values <- setdiff(values, '')
+	children <- sapply(model@submodels, omxLocateLabel, label = label, parameter = parameter)
+	return(as.character(c(values, children)))
+}
+
+locateLabelHelper <- function(matrix, model, label, parameter) {
+	result <- (matrix@free == parameter) & !is.na(matrix@labels) & (matrix@labels == label)
+	if(any(result)) return(omxIdentifier(model@name, matrix@name))
+	else return('')
 }
 
 legalGlobalReference <- function(name) {

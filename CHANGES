@@ -1,3 +1,7 @@
+trunk
+=====
+* improved error messages when identical label is applied to free and fixed parameters
+
 Release 0.5.1-1366 (August 22, 2010)
 ====================================
 * added error detection when multiple names are specified in mxMatrix(), mxAlgebra(), etc.
