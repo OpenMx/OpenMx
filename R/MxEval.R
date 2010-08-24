@@ -42,7 +42,15 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
         }
 		cat(deparse(showFormula, width.cutoff = 500L), '\n')
 	}
-	return(eval(formula))
+	result <- tryCatch(eval(formula),
+		error = function(x) {
+				stop(paste("Trying to evaluate", 
+					omxQuotes(deparse(inputExpression, width.cutoff = 500L)),
+					"in model", omxQuotes(model@name), 
+					"generated the error message:",
+					x$message), call. = FALSE)
+		})	
+	return(result)
 }
 
 evaluateTranslation <- function(formula, model, labelsData) {
