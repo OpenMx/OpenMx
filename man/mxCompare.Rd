@@ -65,5 +65,5 @@ model2 <- mxModel("Two Factor", type="RAM",
 )
 fit2 <- mxRun(model2)
 
-mxCompare(fit1, c(fit1, fit2))
+mxCompare(fit1, c(fit2))
 }
