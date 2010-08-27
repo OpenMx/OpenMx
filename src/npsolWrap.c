@@ -743,6 +743,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
+	REAL(evaluations)[0] = currentState->computeCount;
 
 	/* Fill Status code. */
 	SET_VECTOR_ELT(status, 0, code);
@@ -994,39 +995,47 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			intervalCode[j + numInts] = oCI->uCode;
 		}
 	}
+	
+	REAL(evaluations)[1] = currentState->computeCount;
 
-	SET_STRING_ELT(names, 0, mkChar("minimum"));
-	SET_STRING_ELT(names, 1, mkChar("estimate"));
-	SET_STRING_ELT(names, 2, mkChar("gradient"));
-	SET_STRING_ELT(names, 3, mkChar("hessianCholesky"));
-	SET_STRING_ELT(names, 4, mkChar("status"));
-	SET_STRING_ELT(names, 5, mkChar("iterations"));
-	SET_STRING_ELT(names, 6, mkChar("matrices"));
-	SET_STRING_ELT(names, 7, mkChar("algebras"));
-	SET_STRING_ELT(names, 8, mkChar("confidenceIntervals"));
-	SET_STRING_ELT(names, 9, mkChar("confidenceIntervalCodes"));
-	SET_STRING_ELT(names, 10, mkChar("calculatedHessian"));
-	SET_STRING_ELT(names, 11, mkChar("standardErrors"));
+	int nextEl = 0;
 
-	SET_VECTOR_ELT(ans, 0, minimum);
-	SET_VECTOR_ELT(ans, 1, estimate);
-	SET_VECTOR_ELT(ans, 2, gradient);
-	SET_VECTOR_ELT(ans, 3, hessian);
-	SET_VECTOR_ELT(ans, 4, status);
-	SET_VECTOR_ELT(ans, 5, iterations);
-	SET_VECTOR_ELT(ans, 6, matrices);
-	SET_VECTOR_ELT(ans, 7, algebras);
-	SET_VECTOR_ELT(ans, 8, intervals);
-	SET_VECTOR_ELT(ans, 9, intervalCodes);
+	SET_STRING_ELT(names, nextEl++, mkChar("minimum"));
+	SET_STRING_ELT(names, nextEl++, mkChar("estimate"));
+	SET_STRING_ELT(names, nextEl++, mkChar("gradient"));
+	SET_STRING_ELT(names, nextEl++, mkChar("hessianCholesky"));
+	SET_STRING_ELT(names, nextEl++, mkChar("status"));
+	SET_STRING_ELT(names, nextEl++, mkChar("iterations"));
+	SET_STRING_ELT(names, nextEl++, mkChar("evaluations"));
+	SET_STRING_ELT(names, nextEl++, mkChar("matrices"));
+	SET_STRING_ELT(names, nextEl++, mkChar("algebras"));
+	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervals"));
+	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervalCodes"));
+	SET_STRING_ELT(names, nextEl++, mkChar("calculatedHessian"));
+	SET_STRING_ELT(names, nextEl++, mkChar("standardErrors"));
+
+	int nextEl = 0;
+
+	SET_VECTOR_ELT(ans, nextEl++, minimum);
+	SET_VECTOR_ELT(ans, nextEl++, estimate);
+	SET_VECTOR_ELT(ans, nextEl++, gradient);
+	SET_VECTOR_ELT(ans, nextEl++, hessian);
+	SET_VECTOR_ELT(ans, nextEl++, status);
+	SET_VECTOR_ELT(ans, nextEl++, iterations);
+	SET_VECTOR_ELT(ans, nextEl++, iterations);
+	SET_VECTOR_ELT(ans, nextEl++, matrices);
+	SET_VECTOR_ELT(ans, nextEl++, algebras);
+	SET_VECTOR_ELT(ans, nextEl++, intervals);
+	SET_VECTOR_ELT(ans, nextEl++, intervalCodes);
 	if(numHessians == 0) {
-		SET_VECTOR_ELT(ans, 10, NAmat);
+		SET_VECTOR_ELT(ans, nextEl++, NAmat);
 	} else {
-		SET_VECTOR_ELT(ans, 10, calculatedHessian);
+		SET_VECTOR_ELT(ans, nextEl++, calculatedHessian);
 	}
 	if(!calculateStdErrors) {
-		SET_VECTOR_ELT(ans, 11, NAmat);
+		SET_VECTOR_ELT(ans, nextEl++, NAmat);
 	} else {
-		SET_VECTOR_ELT(ans, 11, stdErrors);
+		SET_VECTOR_ELT(ans, nextEl++, stdErrors);
 	}
 	namesgets(ans, names);
 
