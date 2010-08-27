@@ -15,7 +15,7 @@
 
 mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
-		checkpoint = FALSE, useSocket = FALSE) {
+		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE) {
 	if(!silent) cat("Running", model@name, "\n")
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
@@ -24,12 +24,12 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	}
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
-		checkpoint, useSocket)
+		checkpoint, useSocket, onlyFrontend)
 }
 
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
-		unsafe, checkpoint, useSocket) {
+		unsafe, checkpoint, useSocket, onlyFrontend) {
 	omxCheckMatrices(model)
 	omxVerifyModel(model)
 	dataList <- generateDataList(model)
@@ -39,7 +39,8 @@ runHelper <- function(model, frontendStart,
 	independents <- omxLapply(independents, mxRun, 
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
-		checkpoint = checkpoint, useSocket = useSocket)
+		checkpoint = checkpoint, useSocket = useSocket,
+		onlyFrontend = onlyFrontend)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
@@ -98,6 +99,7 @@ runHelper <- function(model, frontendStart,
 	options <- generateOptionsList(model@options)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
+	if (onlyFrontend) return(model)
 	output <- .Call("callNPSOL", objective, startVals, 
 		constraints, matrices, parameters, 
 		algebras, data, intervalList, communication, options, state, PACKAGE = "OpenMx")

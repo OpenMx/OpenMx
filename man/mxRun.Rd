@@ -9,7 +9,7 @@
 
 \usage{
 mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, 
-	unsafe = FALSE, checkpoint = FALSE, useSocket = FALSE)
+	unsafe = FALSE, checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE)
 }
 
 \arguments{
@@ -21,6 +21,7 @@ mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE,
     \item{unsafe}{A boolean indicating whether to ignore errors.}
 	\item{checkpoint}{A boolean indicating whether to periodically write parameter values to a file.}
 	\item{useSocket}{A boolean indicating whether to periodically write parameter values to a socket.}
+	\item{onlyFrontend}{A boolean indicating whether to run only front-end model transformations.}
 }
 
 \details{

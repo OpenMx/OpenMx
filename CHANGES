@@ -1,6 +1,7 @@
 trunk
 =====
 * improved error messages when identical label is applied to free and fixed parameters
+* added 'onlyFrontend' optional argument to mxRun() function.  See ?mxRun.
 
 Release 0.5.1-1366 (August 22, 2010)
 ====================================
