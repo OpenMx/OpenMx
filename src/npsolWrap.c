@@ -687,14 +687,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		handleFreeVarList(currentState, x, n);
 	}
 
-	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer, intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
+	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer, intervals, NAmat, intervalCodes, calculatedHessian, stdErrors, evaluations;
 
-	int numReturns = 12;
+	int numReturns = 13;
 
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
+	PROTECT(evaluations = NEW_NUMERIC(2));
 	PROTECT(matrices = NEW_LIST(currentState->numMats));
 	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
 
@@ -1014,7 +1015,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, nextEl++, mkChar("calculatedHessian"));
 	SET_STRING_ELT(names, nextEl++, mkChar("standardErrors"));
 
-	int nextEl = 0;
+	nextEl = 0;
 
 	SET_VECTOR_ELT(ans, nextEl++, minimum);
 	SET_VECTOR_ELT(ans, nextEl++, estimate);
