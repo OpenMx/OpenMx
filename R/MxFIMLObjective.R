@@ -112,6 +112,14 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
 		verifyThresholds(flatModel, model, dataName, threshName)
 		.Object@thresholds <- omxLocateIndex(flatModel, threshName, name)
+		if (!is.null(.Object@metadata)) {
+			metadata <- .Object@metadata
+			metadata@A <-  omxLocateIndex(flatModel, metadata@A, name)
+			metadata@S <-  omxLocateIndex(flatModel, metadata@S, name)
+			metadata@F <-  omxLocateIndex(flatModel, metadata@F, name)
+			metadata@M <-  omxLocateIndex(flatModel, metadata@M, name)
+			.Object@metadata <- metadata
+		}
 		.Object@thresholdColumns <- generateThresholdColumns(flatModel, 
 			model, dataName, threshName)
 		if (length(mxDataObject@observed) == 0) {
