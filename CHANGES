@@ -1,7 +1,8 @@
-trunk
-=====
+Release 0.5.2-1376 (August 29, 2010)
+====================================
 * improved error messages when identical label is applied to free and fixed parameters
 * added 'onlyFrontend' optional argument to mxRun() function.  See ?mxRun.
+* disabling cbind() and rbind() transformations as they are broken.
 
 Release 0.5.1-1366 (August 22, 2010)
 ====================================
