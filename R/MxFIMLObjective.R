@@ -234,7 +234,9 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		if (nrow(meansMatrix) != 1) {
 			msg <- paste("The expected means vector associated",
 				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not a 1 x n matrix.")
+				omxQuotes(modelname), "is not a 1 x n matrix.",
+				"It has dimensions", nrow(meansMatrix), "x", 
+				paste(ncol(meansMatrix), '.', sep=''))
 			stop(msg, call.=FALSE)		
 		}
 		if (ncol(meansMatrix) != length(dims)) {

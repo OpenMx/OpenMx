@@ -1,3 +1,7 @@
+trunk
+=====
+* improved error messages for non 1 x n means vectors in FIML and ML
+
 Release 0.5.2-1376 (August 29, 2010)
 ====================================
 * improved error messages when identical label is applied to free and fixed parameters

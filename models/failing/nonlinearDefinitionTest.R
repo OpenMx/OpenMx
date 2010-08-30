@@ -26,7 +26,7 @@ model <- mxModel("Non Linear Definition",
   mxMatrix("Full", 1, 1, F, 0, "data.z", name="D"),
   mxMatrix("Full", 1, 2, T, 0, c("mu_x", "beta0"), name="M"),
   mxAlgebra(B ^ D, name="bexp"),
-  mxAlgebra(IA %*% t(M), name="mu"),
+  mxAlgebra(M %*% t(IA), name="mu"),
   mxAlgebra(IA %*% S %*% t(IA), name="sigma"),
   mxFIMLObjective("sigma", "mu", dimnames=c("x", "y"))
 )
