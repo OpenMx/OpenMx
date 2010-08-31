@@ -58,7 +58,7 @@ twoFactorOrthoRaw1 <- mxModel("Two Factor Orthogonal FIML Model with Fixed Varia
     mxData(observed=factorExample1, type="raw")
     )
 
-twoFactorOrthoRaw1Out <- mxRun(twoFactorOrthoRaw1)
+twoFactorOrthoRaw1Out <- mxRun(twoFactorOrthoRaw1, suppressWarnings=TRUE)
 
 summary(twoFactorOrthoRaw1Out)
 
@@ -92,7 +92,7 @@ twoFactorOrthoRaw2 <- mxModel("Two Factor Orthogonal FIML Model with Fixed Loadi
     mxData(observed=factorExample1, type="raw")
     )
 
-twoFactorOrthoRaw2Out <- mxRun(twoFactorOrthoRaw2)
+twoFactorOrthoRaw2Out <- mxRun(twoFactorOrthoRaw2, suppressWarnings=TRUE)
 
 summary(twoFactorOrthoRaw2Out)
 

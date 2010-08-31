@@ -53,7 +53,7 @@ twoFactorOrthoCov1 <- mxModel("Two Factor Orthogonal Covariance Model with Fixed
     mxData(observed=cov(factorExample1), type="cov", numObs=500)
     )
 
-twoFactorOrthoCov1Out <- mxRun(twoFactorOrthoCov1)
+twoFactorOrthoCov1Out <- mxRun(twoFactorOrthoCov1, suppressWarnings=TRUE)
 
 summary(twoFactorOrthoCov1Out)
 
@@ -84,7 +84,7 @@ twoFactorOrthoCov2 <- mxModel("Two Factor Orthogonal Covariance Model with Fixed
     mxData(observed=cov(factorExample1), type="cov", numObs=500)
     )
 
-twoFactorOrthoCov2Out <- mxRun(twoFactorOrthoCov2)
+twoFactorOrthoCov2Out <- mxRun(twoFactorOrthoCov2, suppressWarnings=TRUE)
 
 summary(twoFactorOrthoCov2Out)
 

@@ -55,7 +55,7 @@ multiRegModel <- mxModel("FIML Multiple Regression of y on x1, x2, x3, and x4",
     mxData(observed=multiData1, type="raw")
     )
 
-multiRegModelOut <- mxRun(multiRegModel)
+multiRegModelOut <- mxRun(multiRegModel, suppressWarnings=TRUE)
 
 summary(multiRegModelOut)
 

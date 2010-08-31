@@ -53,7 +53,7 @@ multiRegModel <- mxModel("Multiple Regression of y on x1, x2, x3, and x4",
     mxData(observed=multiData1Cov, type="cov", numObs=500)
     )
 
-multiRegModelOut <- mxRun(multiRegModel)
+multiRegModelOut <- mxRun(multiRegModel, suppressWarnings=TRUE)
 
 summary(multiRegModelOut)
 

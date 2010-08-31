@@ -89,7 +89,7 @@ threeLatentOrthoRaw1 <- mxModel("threeLatentOrthogonal",
     mxData(observed=latentMultipleRegExample2, type="raw")
     )
 
-threeLatentOrthoRaw1Out <- mxRun(threeLatentOrthoRaw1)
+threeLatentOrthoRaw1Out <- mxRun(threeLatentOrthoRaw1, suppressWarnings=TRUE)
 
 summary(threeLatentOrthoRaw1Out)
 
@@ -101,7 +101,7 @@ threeLatentMediation1 <- mxModel(threeLatentOrthoRaw1,
     name="threeLatentMediation1"
     )
 
-threeLatentMediation1Out <- mxRun(threeLatentMediation1)
+threeLatentMediation1Out <- mxRun(threeLatentMediation1, suppressWarnings=TRUE)
 
 summary(threeLatentMediation1Out)
 

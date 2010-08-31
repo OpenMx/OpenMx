@@ -56,7 +56,7 @@ oneFactorRaw1 <- mxModel("Single Factor FIML Model with Fixed Variance",
     mxData(observed=factorExample1, type="raw")
     )
 
-oneFactorRaw1Out <- mxRun(oneFactorRaw1)
+oneFactorRaw1Out <- mxRun(oneFactorRaw1, suppressWarnings=TRUE)
 
 summary(oneFactorRaw1Out)
 
@@ -120,7 +120,7 @@ oneFactorRaw2 <- mxModel("Single Factor FIML Model with Fixed Loading",
     mxData(observed=factorExample1, type="raw")
     )
 
-oneFactorRaw2Out <- mxRun(oneFactorRaw2)
+oneFactorRaw2Out <- mxRun(oneFactorRaw2, suppressWarnings=TRUE)
 
 summary(oneFactorRaw2Out)
 

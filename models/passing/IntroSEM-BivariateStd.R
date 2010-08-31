@@ -46,7 +46,7 @@ biRegModel <- mxModel("Bivariate Regression of y on x1 and x2",
     mxData(observed=multiData1Cov, type="cov", numObs=500)
     )
 
-biRegModelOut <- mxRun(biRegModel)
+biRegModelOut <- mxRun(biRegModel, suppressWarnings=TRUE)
 
 summary(biRegModelOut)
 

@@ -79,7 +79,7 @@ threeFactorOrthoRaw1 <- mxModel("threeFactorOrthogonal",
     mxData(observed=factorScaleExample2, type="raw")
     )
 
-threeFactorOrthoRaw1Out <- mxRun(threeFactorOrthoRaw1)
+threeFactorOrthoRaw1Out <- mxRun(threeFactorOrthoRaw1, suppressWarnings=TRUE)
 
 summary(threeFactorOrthoRaw1Out)
 
@@ -94,7 +94,7 @@ threeFactorObliqueRaw1 <- mxModel(threeFactorOrthoRaw1,
     name="threeFactorOblique"
     )
 
-threeFactorObliqueRaw1Out <- mxRun(threeFactorObliqueRaw1)
+threeFactorObliqueRaw1Out <- mxRun(threeFactorObliqueRaw1, suppressWarnings=TRUE)
 
 summary(threeFactorObliqueRaw1Out)
 
@@ -115,7 +115,7 @@ threeFactorObliqueRaw2 <- mxModel(threeFactorOrthoRaw1,
     name="threeFactorOblique2"
     )
 
-threeFactorObliqueRaw2Out <- mxRun(threeFactorObliqueRaw2)
+threeFactorObliqueRaw2Out <- mxRun(threeFactorObliqueRaw2, suppressWarnings=TRUE)
 
 summary(threeFactorObliqueRaw2Out)
 
@@ -127,7 +127,7 @@ threeFactorObliqueRaw3 <- mxModel(threeFactorOrthoRaw1,
     name="threeFactorAllOne"
     )
 
-threeFactorObliqueRaw3Out <- mxRun(threeFactorObliqueRaw3)
+threeFactorObliqueRaw3Out <- mxRun(threeFactorObliqueRaw3, suppressWarnings=TRUE)
 
 summary(threeFactorObliqueRaw3Out)
 

@@ -53,7 +53,7 @@ oneFactorCov1 <- mxModel("Single Factor Covariance Model with Fixed Variance",
     mxData(observed=cov(factorExample1), type="cov", numObs=500)
     )
 
-oneFactorCov1Out <- mxRun(oneFactorCov1)
+oneFactorCov1Out <- mxRun(oneFactorCov1, suppressWarnings=TRUE)
 
 summary(oneFactorCov1Out)
 
@@ -106,7 +106,7 @@ oneFactorCov2 <- mxModel("Single Factor Covariance Model with Fixed Loading",
     mxData(observed=cov(factorExample1), type="cov", numObs=500)
     )
 
-oneFactorCov2Out <- mxRun(oneFactorCov2)
+oneFactorCov2Out <- mxRun(oneFactorCov2, suppressWarnings=TRUE)
 
 summary(oneFactorCov2Out)
 

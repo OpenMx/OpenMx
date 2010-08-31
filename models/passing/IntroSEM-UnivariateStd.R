@@ -39,7 +39,7 @@ uniRegModel <- mxModel("Univariate Regression of y on x1",
     mxData(observed=multiData1Cov, type="cov", numObs=500)
     )
 
-uniRegModelOut <- mxRun(uniRegModel)
+uniRegModelOut <- mxRun(uniRegModel, suppressWarnings=TRUE)
 
 summary(uniRegModelOut)
 

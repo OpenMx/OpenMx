@@ -50,7 +50,7 @@ biRegModelRaw <- mxModel("FIML Bivariate Regression of y on x1 and x2",
     mxData(observed=multiData1, type="raw")
     )
 
-biRegModelRawOut <- mxRun(biRegModelRaw)
+biRegModelRawOut <- mxRun(biRegModelRaw, suppressWarnings=TRUE)
 
 summary(biRegModelRawOut)
 

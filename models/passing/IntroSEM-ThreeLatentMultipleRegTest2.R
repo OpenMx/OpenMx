@@ -89,7 +89,7 @@ threeLatentOrthoRaw1 <- mxModel("threeLatentOrthogonal",
     mxData(observed=latentMultipleRegExample2, type="raw")
     )
 
-threeLatentOrthoRaw1Out <- mxRun(threeLatentOrthoRaw1)
+threeLatentOrthoRaw1Out <- mxRun(threeLatentOrthoRaw1, suppressWarnings=TRUE)
 
 summary(threeLatentOrthoRaw1Out)
 
@@ -105,7 +105,7 @@ threeLatentObliqueRaw1 <- mxModel(threeLatentOrthoRaw1,
     name="threeLatentOblique"
     )
 
-threeLatentObliqueRaw1Out <- mxRun(threeLatentObliqueRaw1)
+threeLatentObliqueRaw1Out <- mxRun(threeLatentObliqueRaw1, suppressWarnings=TRUE)
 
 summary(threeLatentObliqueRaw1Out)
 
@@ -121,7 +121,7 @@ threeLatentMultipleReg1 <- mxModel(threeLatentOrthoRaw1,
     name="threeLatentMultipleReg"
     )
 
-threeLatentMultipleReg1Out <- mxRun(threeLatentMultipleReg1)
+threeLatentMultipleReg1Out <- mxRun(threeLatentMultipleReg1, suppressWarnings=TRUE)
 
 summary(threeLatentMultipleReg1Out)
 
@@ -133,7 +133,7 @@ threeLatentMultipleReg2 <- mxModel(threeLatentMultipleReg1,
     name="threeLatentMultipleReg2"
     )
 
-threeLatentMultipleReg2Out <- mxRun(threeLatentMultipleReg2)
+threeLatentMultipleReg2Out <- mxRun(threeLatentMultipleReg2, suppressWarnings=TRUE)
 
 summary(threeLatentMultipleReg2Out)
 
@@ -145,7 +145,7 @@ threeLatentMultipleReg3 <- mxModel(threeLatentMultipleReg1,
     name="threeLatentMultipleReg3"
     )
 
-threeLatentMultipleReg3Out <- mxRun(threeLatentMultipleReg3)
+threeLatentMultipleReg3Out <- mxRun(threeLatentMultipleReg3, suppressWarnings=TRUE)
 
 summary(threeLatentMultipleReg3Out)
 
