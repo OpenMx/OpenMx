@@ -214,7 +214,7 @@ omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* currentState, char* co
 	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
 	newMatrix = omxNewMatrixFromMxIndex(slotValue, currentState);
 	if(newMatrix != NULL) omxRecompute(newMatrix);
-	else if(OMX_DEBUG) Rprintf("No M found.\n");
+	else if(OMX_DEBUG) Rprintf("No slot %s found.\n", slotName);
 	UNPROTECT(1);
 	return newMatrix;
 }

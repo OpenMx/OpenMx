@@ -24,6 +24,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
+#include "omxObjectiveMetadata.h"
 
 #ifndef _OMX_FIML_OBJECTIVE_
 #define _OMX_FIML_OBJECTIVE_ TRUE
@@ -31,6 +32,7 @@
 extern omxMatrix** matrixList;
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
 
+/* FIML Computation Structures */
 typedef struct omxDefinitionVar {		 	// Definition Var
 
 	int data, column;		// Where it comes from
@@ -46,6 +48,7 @@ typedef struct omxThresholdColumn {		 	// Threshold
 	int column;				// Which column has the thresholds
 	int numThresholds;		// And how many thresholds
 } omxThresholdColumn;
+
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
@@ -96,13 +99,34 @@ typedef struct omxFIMLObjective {
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions
 
+	/* Space for inner sub-objective */
+	void* subObjective;			// Inner Objective Object
+	void (*covarianceMeansFunction)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+								// Inner Objective Function
+	void (*destroySubObjective)(void* subObjective, omxObjectiveMetadataContainer* oomc);
+
 } omxFIMLObjective;
 
+
+/* FIML Function body */
 void omxDestroyFIMLObjective(omxObjective *oo) {
+	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
 	omxFIMLObjective *argStruct = (omxFIMLObjective*) (oo->argStruct);
+
 	omxFreeMatrixData(argStruct->smallRow);
 	omxFreeMatrixData(argStruct->smallCov);
 	omxFreeMatrixData(argStruct->RCX);
+	if(argStruct->subObjective != NULL) {
+		omxObjectiveMetadataContainer oomc = {argStruct->cov, argStruct->means,
+			 argStruct->subObjective, argStruct->covarianceMeansFunction,
+			 argStruct->destroySubObjective};
+		argStruct->destroySubObjective(argStruct->subObjective, &oomc);
+		argStruct->cov = oomc.cov;
+		argStruct->means = oomc.means;
+		argStruct->subObjective = oomc.subObjective;
+		argStruct->covarianceMeansFunction = oomc.covarianceMeansFunction;
+		argStruct->destroySubObjective = oomc.destroySubObjective;
+	}
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
@@ -186,6 +210,10 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	int *Infin;
 	omxDefinitionVar* defVars;
 	int firstRow = 1;
+	
+	void* subObjective;
+	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	
 
 	// Locals, for readability.  Compiler should cut through this.
 	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
@@ -215,11 +243,19 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	maxPts		= ofo->maxPts;
 	absEps		= ofo->absEps;
 	relEps		= ofo->relEps;
+	
+	subObjective = ofo->subObjective;
+	
+	covMeans	= ofo->covarianceMeansFunction;
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-		omxRecompute(cov);			// Only recompute this here if there are no definition vars
-		omxRecompute(means);
+		if(!(covMeans == NULL)) {
+			covMeans(subObjective, cov, means);
+		} else {
+			omxRecompute(cov);			// Only recompute this here if there are no definition vars
+			omxRecompute(means);
+		}
 		for(int j = 0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
 			if(thresholdCols[var].numThresholds > 0) { // Actually an ordinal column
@@ -248,8 +284,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					omxRecompute(cov);
-					omxRecompute(means);
+					if(!(covMeans == NULL)) {
+						covMeans(subObjective, cov, means);
+					} else {
+						omxRecompute(cov);
+						omxRecompute(means);
+					}
 					for(int j=0; j < dataColumns->cols; j++) {
 						int var = omxVectorElement(dataColumns, j);
 						if(thresholdCols[var].numThresholds > 0) { // Actually an ordinal column
@@ -434,6 +474,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
 	
+	void* subObjective;
+	
+	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
 	omxDefinitionVar* defVars;
 	omxData *data;
@@ -452,10 +496,18 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	numDefs		= ofo->numDefs;
     returnRowLikelihoods = ofo->returnRowLikelihoods;
 
+	subObjective = ofo->subObjective;
+
+	covMeans	= ofo->covarianceMeansFunction;
+
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-		omxRecompute(cov);			// Only recompute this here if there are no definition vars
-		omxRecompute(means);
+		if(!(covMeans == NULL)) {
+			covMeans(subObjective, cov, means);
+		} else {
+			omxRecompute(cov);			// Only recompute this here if there are no definition vars
+			omxRecompute(means);
+		}
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
@@ -481,8 +533,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
-					omxRecompute(cov);
-					omxRecompute(means);
+					if(!(covMeans == NULL)) {
+						covMeans(subObjective, cov, means);
+					} else {
+						omxRecompute(cov);
+						omxRecompute(means);
+					}
 				}
 			} else if(OMX_DEBUG_ROWS){ Rprintf("Identical def vars: Not repopulating"); }
 		}
@@ -611,19 +667,62 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
+	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix, objectiveClass;
 	int nextDef, index, hasOrdinal = FALSE;
 	int *nextInt;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
+	
+	newObj->subObjective = NULL;
+	
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("metadata")));
+	if(IS_S4_OBJECT(nextMatrix)) {
+		if(OMX_DEBUG) { Rprintf("Initializing subobjective metadata.\n"); }
+		// Metadata exists and must be processed.
+		PROTECT(objectiveClass = STRING_ELT(getAttrib(nextMatrix, install("class")), 0));
+		char const * objType;
+		objType = CHAR(objectiveClass);
+		
+		if(OMX_DEBUG) { Rprintf("Subobjective metadata is class %s.\n", objType); }
+		
+		omxObjectiveMetadataContainer oomc = {NULL, NULL, NULL, NULL, NULL};
+		omxObjectiveMetadataContainer *poomc = &oomc;
+		
+		for(int i = 0; i < numObjectiveMetadatas; i++) {
+			if(strncmp(objType, omxObjectiveMetadataTable[i].name, 50) == 0) {
+				omxObjectiveMetadataTable[i].initFunction(nextMatrix, poomc, oo->matrix->currentState);
+				break;
+			}
+		}
+		
+		if(oomc.cov != NULL) {
+			newObj->cov = oomc.cov;
+			newObj->means = oomc.means;
+			newObj->subObjective = oomc.subObjective;
+			newObj->covarianceMeansFunction = oomc.covarianceMeansFunction;
+			newObj->destroySubObjective = oomc.destroySubObjective;
+		}
+		
+		UNPROTECT(1); // objectiveClass
 
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
-	UNPROTECT(1);
+		if(newObj->subObjective == NULL) {
+			error("Unrecognized subObjective Metadata passed to back-end.");
+		}
+	} else {
 
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);
+		// No metadata.  Continue as usual.
+		newObj->subObjective = NULL;
+		newObj->covarianceMeansFunction = NULL;
+
+		PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
+		newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
+		UNPROTECT(1);	// UNPROTECT(means)
+
+		PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
+		newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		UNPROTECT(1);	// UNPROTECT(covariance)
+	}
+	UNPROTECT(1);	// UNPROTECT(metadata)
 
 	PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds"))); // see UNPROTECT(2)
 

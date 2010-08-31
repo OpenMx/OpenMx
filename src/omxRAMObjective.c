@@ -76,7 +76,6 @@ void omxDestroyRAMObjective(omxObjective *oo) {
  * omxMatrix *Cov			: On output: model-implied manifest covariance.  NxN.
  * omxMatrix *Means			: On output: model-implied manifest means.  1xN.
  * int numIterations		: Precomputed number of iterations of taylor series expansion.
- *				Specials: 0 for M-1 (max possible) or -1 for "compute" 
  * omxMatrix *I				: Identity matrix.  If left NULL, will be populated.  MxM.
  * omxMatrix *Z				: On output: Computed (I-A)^-1. MxM.
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
@@ -89,31 +88,8 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int onei = 1;
 	
-	if(Ax == NULL) {
-		Ax = omxInitMatrix(Ax, A->rows, A->cols, A->colMajor, A->currentState);
-	}
-	
-	if(I == NULL) {
-		I = omxInitMatrix(I, A->rows, A->cols, A->colMajor, A->currentState);
-		for(int i = 0; i < I->rows; i++) {
-			omxSetMatrixElement(I, i, i, 1.0);
-			for(int j = (i+1); j < I->cols; j++) {
-				omxSetMatrixElement(I, i, j, 0.0);
-				omxSetMatrixElement(I, j, i, 0.0);
-			}
-		}
-	}
-
-	if(Z == NULL) {
-		Z = omxInitMatrix(Z, A->rows, A->cols, A->colMajor, A->currentState);
-	}
-
-	if(Y == NULL) {
-		Y = omxInitMatrix(Y, F->rows, A->cols, A->colMajor, A->currentState);
-	}
-
-	if(X == NULL) {
-		X = omxInitMatrix(X, F->rows, A->cols, A->colMajor, A->currentState);
+	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
+		error("Internal Error: RAM Metadata imporperly populated.  Please report this to the OpenMx development team.");
 	}
 	
 	if(Cov == NULL || Means == NULL) {

@@ -18,15 +18,17 @@ setClass(Class = "MxRAMMetaData",
 		A = "MxCharOrNumber",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber",
-		M = "MxCharOrNumber"),
+		M = "MxCharOrNumber",
+		depth = "integer"),
 	contains = "MxBaseObjectiveMetaData")
 
 setMethod("initialize", "MxRAMMetaData",
-	function(.Object, A, S, F, M) {
+	function(.Object, A, S, F, M, depth) {
 		.Object@A <- A
 		.Object@S <- S
 		.Object@F <- F
 		.Object@M <- M
+		.Object@depth <- depth
 		return(.Object)
 	}
 )
