@@ -244,7 +244,6 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 	om->rows = om->originalRows;
 	om->cols = om->originalCols;
 	if(om->aliasedPtr != NULL) {
-		omxRecompute(om->aliasedPtr);
 		memcpy(om->data, om->aliasedPtr->data, om->rows*om->cols*sizeof(double));
 		om->colMajor = om->aliasedPtr->colMajor;
 	}
@@ -472,7 +471,6 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		oldRows = om->originalRows;
 		oldCols = om->originalCols;
 	} else {
-		omxRecompute(om->aliasedPtr);
 		oldRows = om->aliasedPtr->rows;
 		oldCols = om->aliasedPtr->cols;
 	}
