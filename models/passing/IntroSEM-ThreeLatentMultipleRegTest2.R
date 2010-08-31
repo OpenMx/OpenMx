@@ -225,7 +225,7 @@ expectMin <- 7726.295
 omxCheckCloseEnough(expectVal, threeLatentMultipleReg2Out@output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMultipleReg2Out@output$standardError), 0.001)
+    as.vector(threeLatentMultipleReg2Out@output$standardError), 0.01)
 
 omxCheckCloseEnough(expectMin, threeLatentMultipleReg2Out@output$minimum, 0.001)
 

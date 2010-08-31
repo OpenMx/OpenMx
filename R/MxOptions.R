@@ -61,8 +61,19 @@ otherOptions <- list(
 	"RAM Max Depth" = NA
 )
 
+generateOptionsList <- function(input, constraints) {
+	if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
+		input[["Standard Errors"]] <- "No"
+	}
+	if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
+		input[["Calculate Hessian"]] <- "No"
+	}
+	options <- combineDefaultOptions(input)
+	return(options)
+}
+
 # Convert the keys and values into strings
-generateOptionsList <- function(input) {
+combineDefaultOptions <- function(input) {
 	options <- getOption('mxOptions')
 	options <- options[names(options) %in% names(npsolOptions)]
 	input <- input[names(input) %in% names(npsolOptions)]
