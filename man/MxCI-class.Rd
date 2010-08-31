@@ -25,6 +25,8 @@ The lowerdelta and upperdelta slots give the changes in likelihoods used to defi
 
 Likelihood-based confidence intervals may be specified by including one or more MxCI objects in an \link{MxModel} object. Estimation of confidence intervals requires model optimization using the \link{mxRun} function with the \sQuote{intervals} argument set to TRUE. The calculation of likelihood-based confidence intervals can be computationally intensive, and may add a significant amount of time to model estimation when many confidence intervals are requested.
 
+}
+
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
