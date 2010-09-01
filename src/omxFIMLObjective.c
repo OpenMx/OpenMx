@@ -182,7 +182,7 @@ int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, d
 			*(defVars[k].location[l]) = newDefVar;
 			omxMarkDirty(defVars[k].matrices[l]);
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
-				error("Error NYI: Missing Definition Vars Not Yet Implemented.");
+				error("Error: NA value for a definition variable is Not Yet Implemented.");
 			}
 		}
 	}
