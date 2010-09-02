@@ -4,7 +4,7 @@ trunk
 * fixed a performance bug that was forcing too many recalculations of the covariance matrix in FIML optimizations.
 * defualt behavior is to disable standard error calculations when model contains nonlinear constraints
 * improved error messages for NA values in definition variables
-
+* added error message when expected covariance dimnames and threshold dimnames do not contain the same elements.
 
 Release 0.5.2-1376 (August 29, 2010)
 ====================================

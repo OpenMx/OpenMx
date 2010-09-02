@@ -32,7 +32,7 @@ generateThresholdColumns <- function(flatModel, model, dataName, threshName) {
 	return(retval)
 }
 
-verifyThresholds <- function(flatModel, model, dataName, threshName) {
+verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 	if (single.na(threshName)) {
 		return()
 	}
@@ -48,6 +48,8 @@ verifyThresholds <- function(flatModel, model, dataName, threshName) {
 			"for model", omxQuotes(modelName), 
 			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 	}
+	covariance <- eval(substitute(mxEval(x, model, compute=TRUE),
+		list(x = as.symbol(covName))))
 	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
 		list(x = as.symbol(threshName))))
 	observed <- flatModel@datasets[[dataName]]@observed
@@ -65,12 +67,30 @@ verifyThresholds <- function(flatModel, model, dataName, threshName) {
 	}
 	threshNames <- dimnames(thresholds)[[2]]
 	obsNames <- dimnames(observed)[[2]]
+	covNames <- dimnames(covariance)[[2]]
 	missingNames <- setdiff(threshNames, obsNames)
 	if (length(missingNames) > 0) {
-		stop(paste("The following column names in the threshold",
-			"matrix/algebra do not exist in the observed data matrix",
-			"for model", omxQuotes(modelName), 
-			":", omxQuotes(missingNames)), call. = FALSE)
+		stop(paste("The column name(s)", omxQuotes(missingNames), 
+			"appear in the thresholds matrix",
+			omxQuotes(simplifyName(threshName, modelName)), "but not",
+			"in the observed data.frame or matrix",
+			"in model", omxQuotes(modelName)), call. = FALSE)
+	}
+	missingNames <- setdiff(threshNames, covNames)
+	if (length(missingNames) > 0) {
+		stop(paste("The column name(s)", omxQuotes(missingNames), 
+			"appear in the thresholds matrix",
+			omxQuotes(simplifyName(threshName, modelName)), "but not",
+			"the expected covariance matrix", omxQuotes(simplifyName(covName, modelName)),
+			"in model", omxQuotes(modelName)), call. = FALSE)
+	}
+	missingNames <- setdiff(covNames, threshNames)
+	if (length(missingNames) > 0) {
+		stop(paste("The column name(s)", omxQuotes(missingNames), 
+			"appear in the expected covariance matrix",
+			omxQuotes(simplifyName(covName, modelName)), "but not",
+			"in the thresholds matrix", omxQuotes(simplifyName(threshName, modelName)),
+			"in model", omxQuotes(modelName)), call. = FALSE)
 	}
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]

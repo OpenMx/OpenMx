@@ -110,7 +110,7 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
-		verifyThresholds(flatModel, model, dataName, threshName)
+		verifyThresholds(flatModel, model, dataName, covName, threshName)
 		.Object@thresholds <- omxLocateIndex(flatModel, threshName, name)
 		if (!is.null(.Object@metadata)) {
 			metadata <- .Object@metadata
