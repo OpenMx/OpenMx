@@ -250,4 +250,3 @@ STARTSM <- mxModel("STARTS",
                   stationarityConstraint,
                   correlatedResiduals)
 startsModel <- mxRun(STARTSM)
-s
