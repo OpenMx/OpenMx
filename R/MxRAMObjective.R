@@ -164,11 +164,14 @@ generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	mxObject <- flatModel[[aMatrixName]]
 	if (!is(mxObject, "MxMatrix")) {
 		return(as.integer(NA))
-	} else if (!is.null(modeloptions[['RAM Optimization']]) && 
-		is.logical(modeloptions[['RAM Optimization']]) &&
-		all(!modeloptions[['RAM Optimization']])) {
+	}
+	if (identical(modeloptions[['RAM Inverse Optimization']], "No")) {
 		return(as.integer(NA))
 	}
+	if (is.null(modeloptions[['RAM Inverse Optimization']]) &&
+		identical(getOption('mxOptions')[['RAM Inverse Optimization']], "No")) {
+		return(as.integer(NA))
+	}	
 	maxdepth <- modeloptions[['RAM Max Depth']]
 	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
 		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
@@ -335,7 +338,8 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			means = y, thresholds = z, vector = w),
 			list(x = covName, y = meansName, z = .Object@thresholds, w = .Object@vector)))
 		objective@.translated <- TRUE
-		metadata <- new("MxRAMMetaData", .Object@A, .Object@S, .Object@F, .Object@M, generateRAMDepth(flatJob, .Object@A, model@options))
+		metadata <- new("MxRAMMetaData", .Object@A, .Object@S, .Object@F, 
+			.Object@M, generateRAMDepth(flatJob, .Object@A, job@options))
 		objective@metadata <- metadata
 		model@objective <- objective
 		class(model) <- 'MxModel'

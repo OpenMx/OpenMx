@@ -57,7 +57,7 @@ checkpointOptions <- list(
 
 otherOptions <- list(
 	"No Sort Data" = character(),
-	"RAM Optimization" = TRUE,
+	"RAM Inverse Optimization" = "Yes",
 	"RAM Max Depth" = NA
 )
 
