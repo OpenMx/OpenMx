@@ -29,8 +29,9 @@ Some of the functions provided by the OpenMx library can be bottlenecks. Iterati
 
 .. code-block:: r
 
+	topModel <- mxModel('container')
 	# generate a list of independent submodels
-	submodels <- # omxLapply(...)
+	submodels <-  omxLapply(1:100, generateNewSubmodels)
 	names(submodels) <- omxExtractNames(submodels)
 	topModel@submodels <- submodels
 

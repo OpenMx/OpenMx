@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2009 The OpenMx Project
+#   Copyright 2007-2010 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 library(OpenMx)
+source('inst/tools/dummyFunctions.R')
+dummies <- ls()
 
 options('mxPrintUnitTests' = FALSE)
 
@@ -41,7 +43,7 @@ errorRecover <- function(script, index) {
 		})
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
-			c('errors', 'errorRecover', 'null', 'files', 'directories')))
+			c('errors', 'errorRecover', 'null', 'files', 'directories', 'dummies', dummies)))
 }
 
 if (length(files) > 0) {
