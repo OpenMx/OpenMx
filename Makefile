@@ -89,7 +89,7 @@ common-buildppc: clean internal-build
 
 post-build:
 	rm -f $(RBUILD)/$(TARGET)
-	cd $(RBUILD); gunzip *.gz;\
+	cd $(RBUILD); gunzip *.tgz;\
 	tar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
 
