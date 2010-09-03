@@ -371,10 +371,14 @@ checkNameAlignment <- function(lst1, lst2) {
 }
 
 omxCheckNamespace <- function(model, namespace) {
+	checkNamespaceHelper(model, model, namespace)
+}
+
+checkNamespaceHelper <- function(model, topmodel, namespace) {
 	lapply(model@matrices, checkNamespaceMatrix, model, namespace)
 	lapply(model@algebras, checkNamespaceAlgebra, model, namespace)
 	lapply(model@constraints, checkNamespaceConstraint, model, namespace)
-	lapply(omxDependentModels(model), omxCheckNamespace, namespace)
+	lapply(omxDependentModels(model), checkNamespaceHelper, topmodel, namespace)
 	allEntities <- unique(unlist(namespace$entities))
 	overlap <- intersect(allEntities, namespace$parameters)
 	if (length(overlap) > 0) {
@@ -393,9 +397,9 @@ omxCheckNamespace <- function(model, namespace) {
 	overlap <- intersect(namespace$parameters, namespace$values)
 	if (length(overlap) > 0) {
 		select <- overlap[[1]]
-		freelocation <- omxLocateLabel(select, model, TRUE)
-		fixedlocation <- omxLocateLabel(select, model, FALSE)
-		stop(paste("In model", omxQuotes(model@name),
+		freelocation <- omxLocateLabel(select, topmodel, TRUE)
+		fixedlocation <- omxLocateLabel(select, topmodel, FALSE)
+		stop(paste("In model", omxQuotes(topmodel@name),
 			"the name", omxQuotes(select),
 			"is used as a free parameter in", omxQuotes(freelocation),
 			"and as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
@@ -414,8 +418,10 @@ omxLocateLabel <- function(label, model, parameter) {
 	}
 	values <- sapply(model@matrices, locateLabelHelper, model, label, parameter)	
 	values <- setdiff(values, '')
-	children <- sapply(model@submodels, omxLocateLabel, label = label, parameter = parameter)
-	return(as.character(c(values, children)))
+	children <- lapply(model@submodels, omxLocateLabel, label = label, parameter = parameter)
+	children <- unlist(children, recursive = TRUE)
+	retval <- as.character(c(values, children))
+	return(retval)
 }
 
 locateLabelHelper <- function(matrix, model, label, parameter) {
