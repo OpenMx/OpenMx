@@ -337,6 +337,7 @@ Rather than using the RAM approach the regression model with matrices can also b
             expression= Intercept + regCoef %*% X,
             name="expMean",
         ),
+
         mxAlgebra(
             expression= resVar,
             name="expCov"
@@ -419,7 +420,7 @@ Finally, we call up the results of the algebras as the arguments for the objecti
         covariance="expCov",
         means="expMean",
         dimnames=selVars
-    )
+    ))
     
 
 Multiple Regression

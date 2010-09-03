@@ -177,7 +177,7 @@ The first ``mxMatrix`` statement declares a ``Full`` **nVariables x nFactors** m
         lbound=-.99, 
         ubound=.99, 
         name="L"
-    ),
+    )
 
 Note that if ``nFactors>1``, we could add  a ``standardized`` ``mxMatrix`` to estimate the correlation between the factors.  Such a matrix automatically has 1's on the diagonal, fixing the factor variances to one and thus allowing all the factor loadings to be estimated.  In the current example, all the factor loadings are estimated which implies that the factor variance is fixed to 1.  Alternatively, we could add a ``symmetric`` **1x1** ``mxMatrix`` to estimates the variance of the factor, named "facVariances", when one of the factor loadings is fixed.
 
@@ -190,12 +190,12 @@ As our data are ordinal, we further need to constrain the variances of the obser
         nrow=nVariables, 
         ncol=1, 
         name="vectorofOnes"
-    ),
+    )
     # residuals
     mxAlgebra(
         expression=vectorofOnes - (diag2vec(L %*% t(L))) , 
         name="E"
-    ),
+    )
 
 When fitting to ordinal rather than continuous data, we estimate thresholds rather than means.  The matrix of thresholds is of size **nThresholds x nVariables** where ``nThresholds`` is one less than the number of categories for the ordinal variable.  We still specify a matrix of means, however, it is fixed to zero.  An alternative approach is to fix the first two thresholds (to zero and one), which allows us to estimate means and variances in a similar way to fitting to continuous data.  Let's first specify the model with zero means and free thresholds.
 
@@ -209,7 +209,7 @@ The means are specified as a ``Zero`` **1 x nVariables** matrix, called "M:varMe
         nrow=1, 
         ncol=nVariables, 
         name="M"
-    ),
+    )
     
 The mean of the factor(s) is also fixed to 1, which is implied by not including a matrix for it.  Alternatively, we could explicitly add a ``Full`` **1 x nFactors** ``mxMatrix`` with a fixed value of zero for the factor mean(s), named "facMeans".  
 
@@ -226,7 +226,7 @@ We estimate the ``Full`` **nThresholds x nVariables** matrix.  To make sure that
          lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
          dimnames=list(c(), fruitynames),
          name="thresholdDeviations"
-     ),
+     )
      mxMatrix(
          type="Lower",
          nrow=nThresholds,
@@ -234,12 +234,12 @@ We estimate the ``Full`` **nThresholds x nVariables** matrix.  To make sure that
          free=FALSE,
          values=1,
          name="unitLower"
-     ),
+     )
      # expected thresholds
      mxAlgebra(
          expression=unitLower %*% thresholdDeviations, 
          name="thresholdMatrix"
-     ),
+     )
 
 The final part of this model is the objective function.  The choice of fit function determines the required arguments.  Here we fit to raw ordinal data, thus we specify a matrix for the expected covariance matrix of the data, as well as the expected means and thresholds.  We use ``dimnames`` to map the model for means, thresholds and covariances onto the observed variables.
 
@@ -258,7 +258,7 @@ The model can now be run using the ``mxRun`` function, and the output of the mod
 
 .. code-block:: r
 
-    oneFactorFit <- mxRun(oneFactorModel)
+    oneFactorFit <- mxRun(oneFactorThresholdModel)
 
     oneFactorFit@output
 

@@ -122,7 +122,7 @@ The following code contains all of the components of our model.  Before specifyi
             labels=c("beta_1","beta_2")
         ), 
         mxData(
-            observed=data.frame(y,def), 
+            observed=data.frame(xy,def), 
             type="raw"
         )
     )

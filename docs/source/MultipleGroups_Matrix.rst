@@ -147,8 +147,7 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 means="EM2",
                 dimnames=selVars
             )
-        )
-    )   
+        ),
 
 
 We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``::

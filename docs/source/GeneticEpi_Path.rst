@@ -42,12 +42,12 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     summary(myTwinData)
     selVars <- c('bmi1','bmi2')
     aceVars <- c("A1","C1","E1","A2","C2","E2")
-    mzData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
-    dzData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
-    colMeans(mzData,na.rm=TRUE)
-    colMeans(dzData,na.rm=TRUE)
-    cov(mzData,use="complete")
-    cov(dzData,use="complete")
+    mzfData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
+    dzfData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
+    colMeans(mzfData,na.rm=TRUE)
+    colMeans(dzfData,na.rm=TRUE)
+    cov(mzfData,use="complete")
+    cov(dzfData,use="complete")
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -124,7 +124,7 @@ Let's go through the paths specification step by step.  First, we start with the
             values=1
         ),
         mxData(
-            observed=mzData, 
+            observed=mzfData, 
             type="raw"
         )
     )
@@ -138,7 +138,7 @@ Let's go through the paths specification step by step.  First, we start with the
             values=.5
         ),
         mxData(
-            observed=dzData, 
+            observed=dzfData, 
             type="raw"
         )
     )
@@ -170,7 +170,7 @@ We start by specifying paths for the variances and means of the latent variables
         arrows=2, 
         free=FALSE, 
         values=1
-    )
+    ),
 
 and single-headed arrows from the triangle (with a fixed value of one) to each of the latent variables, fixed at zero. 
 
@@ -183,7 +183,7 @@ and single-headed arrows from the triangle (with a fixed value of one) to each o
         arrows=1, 
         free=FALSE, 
         values=0
-    )
+    ),
 
 Next we specify paths for the means of the observed variables using single-headed arrows from ``one`` to each of the manifest variables.  These are set to be free and given a start value of 20.  As we use the same label (``mean``) for the two means, they are constrained to be equal.  Remember that R 'recycles'.
 
@@ -197,7 +197,7 @@ Next we specify paths for the means of the observed variables using single-heade
         free=TRUE, 
         values=20, 
         labels="mean"
-    )
+    ),
 
 The main paths of interest are those from each of the latent variables to the respective observed variable.  These are also estimated (thus all are set free), get a start value of 0.6 and appropriate labels.
 
@@ -211,7 +211,7 @@ The main paths of interest are those from each of the latent variables to the re
         free=TRUE, 
         values=0.6, 
         label=c("a","c","e")
-    )
+    ),
     # path coefficients for twin 2
     mxPath(
         from=c("A2","C2","E2"), 
@@ -220,7 +220,7 @@ The main paths of interest are those from each of the latent variables to the re
         free=TRUE, 
         values=0.6, 
         label=c("a","c","e")
-    )
+    ),
     
 As the common environmental factors are by definition the same for both twins, we fix the correlation between **C1** and **C2** to one.    
 
@@ -233,9 +233,9 @@ As the common environmental factors are by definition the same for both twins, w
         arrows=2, 
         free=FALSE, 
         values=1
-    )
+    ))
 
-We add the paths that are specific to the MZ group or the DZ group into the respective models, ``mzModel`` and ``dzModel``, which are combined in ``twinACEModel``.  So we have two ``mxModel`` statements following the ``ACEModel`` model statement.  Each of the two models have access to all the paths already defined given ``ACEModel`` is the first argument of ``mzModel`` and ``dzModel``.  In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  That concludes the specification of the model for the MZ's, thus we move to the ``mxData`` command that calls up the data.frame with the MZ raw data, ``mzData``, with the type specified explicitly.  We also give the model a name, ``MZ``, to refer back to it later when we need to add the objective functions.
+We add the paths that are specific to the MZ group or the DZ group into the respective models, ``mzModel`` and ``dzModel``, which are combined in ``twinACEModel``.  So we have two ``mxModel`` statements following the ``ACEModel`` model statement.  Each of the two models have access to all the paths already defined given ``ACEModel`` is the first argument of ``mzModel`` and ``dzModel``.  In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  That concludes the specification of the model for the MZ's, thus we move to the ``mxData`` command that calls up the data.frame with the MZ raw data, ``mzfData``, with the type specified explicitly.  We also give the model a name, ``MZ``, to refer back to it later when we need to add the objective functions.
 
 .. code-block:: r
 
@@ -249,12 +249,12 @@ We add the paths that are specific to the MZ group or the DZ group into the resp
             values=1
         ),
         mxData(
-            observed=mzData, 
+            observed=mzfData, 
             type="raw"
         )
     )
 
-The ``mxModel`` command for the DZ group is very similar, except that the the correlation between **A1** and **A2** is fixed to 0.5 and the DZ data, ``dzData`` are read in, and the model is named ``DZ``.  Note that OpenMx can handle constants in algebra.
+The ``mxModel`` command for the DZ group is very similar, except that the the correlation between **A1** and **A2** is fixed to 0.5 and the DZ data, ``dzfData`` are read in, and the model is named ``DZ``.  Note that OpenMx can handle constants in algebra.
 
 .. code-block:: r
 
@@ -268,7 +268,7 @@ The ``mxModel`` command for the DZ group is very similar, except that the the co
             values=.5
         ),
         mxData(
-            observed=dzData, 
+            observed=dzfData, 
             type="raw"
         )
     )
