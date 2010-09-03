@@ -227,12 +227,11 @@ Rather than adding the paths/matrices/algebras, objective function and data as a
     factorFit <- mxRun(factorModel)
     summary(factorFit)
 
-Note that lines 5 and 17 could have been combined with the following call: 
+Note that lines 5 and 16 could have been combined with the following call: 
 
 .. code-block:: r
 
     factorModel <- mxModel(
                     matrixA, matrixL, matrixU, algebraR, objective, data, name="One Factor")
 
------
 

@@ -340,16 +340,8 @@ Rather than specifying the model using RAM notation, we can also write the model
    :nowrap:
    
    \begin{eqnarray*} 
-   \mu_x = varMeans + (facLoadings * facMeans)'
-   \end{eqnarray*}
-
-
-
-.. math::
-    :nowrap:
-
-   \begin{eqnarray*} 
-   \sigma_x = facLoadings * facVariances * facLoadings' + resVariances
+   mu_x = varMeans + (facLoadings * facMeans)'
+   sigma_x = facLoadings * facVariances * facLoadings' + resVariances
    \end{eqnarray*}
 
 We start with displaying the complete script.  Note that we have used the succinct form of coding and that the ``mxData`` command did not change.

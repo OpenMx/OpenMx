@@ -250,10 +250,12 @@ Previous Mx users will likely be familiar with the look of the expected covarian
    :nowrap:
 
     \begin{eqnarray*}
-     covMZ = \left[ \begin{array}{r}  & a^2+c^2+e^2,  & a^2+c^2 \\ 
-                                      & a^2+c^2,      & a^2+c^2+e^2 \\ \end{array} \right]
-   & covDZ = \left[ \begin{array}{r}  & a^2+c^2+e^2,  & .5a^2+c^2 \\ 
-                                      & .5a^2+c^2,    & a^2+c^2+e^2 \\ \end{array} \right]
+     covMZ = \left[ \begin{array}{c c}  a^2+c^2+e^2 & a^2+c^2 \\ 
+                                        a^2+c^2     & a^2+c^2+e^2 \end{array} \right]
+    \end{eqnarray*}
+    \begin{eqnarray*}
+     covDZ = \left[ \begin{array}{c c}  a^2+c^2+e^2 & .5a^2+c^2 \\ 
+                                       .5a^2+c^2    & a^2+c^2+e^2 \end{array} \right]
     \end{eqnarray*}
 
 .. code-block:: r

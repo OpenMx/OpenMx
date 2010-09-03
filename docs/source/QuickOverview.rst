@@ -357,7 +357,7 @@ It has been standard in twin modeling to fit models to the raw data, as often da
 
 Let us start by simulating twin data followed by fitting a series of models.  The `code
 <http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateTwinAnalysis.R>`_
-includes both the twin data simulation and several OpenMx scripts to analyze the data.  We will describe each of the parts in turn and include the code for the specific part in the code blocks.  Note that a more extensive example is discussed later in :ref:`geneticepi-matrix-specification`.
+includes both the twin data simulation and several OpenMx scripts to analyze the data.  We will describe each of the parts in turn and include the code for the specific part in the code blocks.  Note that a more extensive example is discussed later in :ref:`geneticepidemiology-matrix-specification`.
 
 First, we simulate twin data using the ``mvrnorm`` R function.  If the additive genetic factors (**A**) account for 50% of the total variance and the shared environmental factors (**C**) for 30%, thus leaving 20% explained by specific environmental factors (**E**), then the expected MZ twin correlation is ``a^2 + c^2`` or 0.8 in this case, and the expected DZ twin correlation is 0.55, calculated as ``.5*a^2 + c^2``.  We simulate 1000 pairs of MZ and DZ twins each with zero means and a correlation matrix according to the values listed above.  We run some basic descriptive statistics on the simulated data, using regular R functions.
 
