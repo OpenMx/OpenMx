@@ -10,13 +10,19 @@ MxModel objects support the '$' operator, also known as the list indexing operat
 
 .. code-block:: r
 
-   model <- mxModel('topmodel', 
-      mxMatrix(type='Full', nrow=1, ncol=1, name='A'),
-      mxAlgebra(A, name='B'),
-      mxModel('submodel1', 
-         mxConstraint(topmodel1.A == topmodel1.B, name = 'C'),
-         mxModel('undersub1', mxData(diag(3), type='cov', numObs=10))),
-      mxModel('submodel2', mxAlgebraObjective('topmodel1.A')))
+    model <- mxModel('topmodel', 
+        mxMatrix(type='Full', nrow=1, ncol=1, name='A'),
+        mxAlgebra(A, name='B'),
+        mxModel('submodel1', 
+            mxConstraint(topmodel1.A == topmodel1.B, name = 'C'),
+            mxModel('undersub1', 
+                mxData(diag(3), type='cov', numObs=10)
+            )
+        ),
+        mxModel('submodel2', 
+            mxAlgebraObjective('topmodel1.A')
+        )
+    )
 
 Accessing Elements
 ^^^^^^^^^^^^^^^^^^
@@ -36,21 +42,28 @@ Modifying Elements
 
 The list indexing operator can also be used to modify the components of an existing model. There are three modes of using the list indexing operator to perform modifications, and they correspond to the three models for accessing elements.
 
-In the first mode, a submodel can be replaced using the unique name of the submodel::
+In the first mode, a submodel can be replaced using the unique name of the submodel, or even eliminated::
 
-   model$undersub1 <- NULL              # eliminate 'undersub1' and all children models
-   model$submodel1 <- mxModel(...)      # replace 'submodel1' with the contents of the mxModel() expression
+    # eliminate 'undersub1' and all children models
+    model$undersub1 <- NULL              
+    # replace 'submodel1' with the contents of the mxModel() expression
+    model$submodel1 <- mxModel(...)      
 
 In the second mode, the named entities of the parent model are modified using their names::
 
-   model$A <- NULL                      # eliminate matrix 'A'
-   model$D <- mxMatrix(...)             # create matrix 'D'
+    # eliminate matrix 'A'
+    model$A <- NULL                      
+    # create matrix 'D'
+    model$D <- mxMatrix(...)             
 
-In the third mode, a named entities of a submodel can be modified using the ``modelname.entityname`` format::
+In the third mode, named entities of a submodel can be modified using the ``modelname.entityname`` format::
 
-   model$submodel1.C <- NULL                   # eliminate constraint 'C' from submodel1
-   model$undersub1.D <- mxAlgebra(...)         # create algebra 'D' in undersub1
-   model$submodel1.undersub2 <- mxModel(...)   # create 'undersub2' as a child model of submodel1
+    # eliminate constraint 'C' from submodel1
+    model$submodel1.C <- NULL                   
+    # create algebra 'D' in undersub1
+    model$undersub1.D <- mxAlgebra(...)         
+    # create 'undersub2' as a child model of submodel1
+    model$submodel1.undersub2 <- mxModel(...)   
 
 Keep in mind that when using the list indexing operator to modify a named entity within a model, the name of the created or modified entity is always the name on the left-hand side of the ``<-`` operator.  This feature can be convenient, as it avoids the need to specify a name of the entity on the right-hand side of the ``<-`` operator.
 
@@ -61,9 +74,15 @@ The ``mxEval()`` function should be your primary tool for observing and manipula
 
 .. code-block:: r
 
-   model <- mxModel('topmodel', mxMatrix('Full', 1, 1, values=1, free=TRUE, labels='p1', name='A'),
-      mxModel('submodel1', mxMatrix('Full', 1, 1, values=2, free=FALSE, labels='p2', name='B')),
-      mxModel('submodel2', mxMatrix('Full', 1, 1, values=3, name = 'B')))
+    model <- mxModel('topmodel', 
+        mxMatrix('Full', 1, 1, values=1, free=TRUE, labels='p1', name='A'),
+        mxModel('submodel1', 
+            mxMatrix('Full', 1, 1, values=2, free=FALSE, labels='p2', name='B')
+        ),
+        mxModel('submodel2', 
+            mxMatrix('Full', 1, 1, values=3, name = 'B')
+        )
+    )
 
    modelOut <- mxRun(model)
    mxEval(A + submodel1.B + submodel2.B + p1 + p2, model)       # initial values

@@ -41,7 +41,7 @@ Our first step to running this model is to include the data to be analyzed. The 
 
 .. code-block:: r
 
-	data(myFADataRaw)
+    data(myFADataRaw)
     names(myFADataRaw)
 
     oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
@@ -62,7 +62,8 @@ Our first step to running this model is to include the data to be analyzed. The 
         c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
     )
 
-    oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"),c("x1","x2","x3","x4","x5","x6")]
+    oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"),
+                                c("x1","x2","x3","x4","x5","x6")]
 
     myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
 
@@ -71,7 +72,7 @@ Our first step to running this model is to include the data to be analyzed. The 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-Creating a path-centric factor model will use many of the same functions and arguments used in previous path-centric examples. However, the inclusion of latent variables adds a few extra pieces to our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we'll then run.
+Creating a path-centric factor model will use many of the same functions and arguments used in previous path-centric examples. However, the inclusion of latent variables adds a few extra pieces to our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -121,14 +122,14 @@ Creating a path-centric factor model will use many of the same functions and arg
         )
     ) # close model
 
-As with previous examples, this model begins with a name for the model and a ``type="RAM"`` argument. The name for the model may be omitted, or may be specified in any other place in the model using the ``name`` argument. Including ``type="RAM"`` allows the ``mxModel`` function to interpret the ``mxPath`` functions that follow and turn those paths into an expected covariance matrix and means vector for the ensuing data. The ``mxData`` function works just as in previous examples, and the raw data specification included in the code: 
+As with previous examples, this model begins with a name ("Common Factor Model Path Specification") for the model and a ``type="RAM"`` argument. The name for the model may be omitted, or may be specified in any other place in the model using the ``name`` argument. Including ``type="RAM"`` allows the ``mxModel`` function to interpret the ``mxPath`` functions that follow and turn those paths into an expected covariance matrix and means vector for the ensuing data. The ``mxData`` function works just as in previous examples, and the following raw data specification is included in the code: 
 
 .. code-block:: r
 
-    mxData(
-        observed=oneFactorRaw,
-        type="raw"
-    )
+        mxData(
+            observed=oneFactorRaw,
+            type="raw"
+        )
           
 can be replaced with a covariance matrix and means, like so:
 
@@ -143,7 +144,7 @@ can be replaced with a covariance matrix and means, like so:
             means=oneFactorMeans
         ),
           
-The first departure from our previous examples can be found in the addition of the ``latentVars`` argument after the ``manifestVars`` argument. The ``manifestVars`` argument includes the six variables in our observed data. The ``latentVars`` argument provides a name for the latent variable, so that it may be referenced in ``mxPath`` functions.
+The first departure from our previous examples can be found in the addition of the ``latentVars`` argument after the ``manifestVars`` argument. The ``manifestVars`` argument includes the six variables in our observed data. The ``latentVars`` argument provides names for the latent variables (here just one), so that it may be referenced in ``mxPath`` functions.
 
 .. code-block:: r
 
@@ -163,7 +164,7 @@ Our model is defined by four ``mxPath`` functions. The first defines the residua
         labels=c("e1","e2","e3","e4","e5","e6")
     ),
       
-We also must specify the variance of our latent variable. This code is identical to our residual variance code above, with the latent variable ``"F1"`` replacing our six manifest variables. 
+We also must specify the variance of our latent variable. This code is identical to our residual variance code above, with the latent variable ``"F1"`` replacing our six manifest variables.   Alternatively, both could be combined.
       
 .. code-block:: r
 
@@ -230,19 +231,20 @@ The common factor model can be extended to include multiple latent variables. Th
 .. image:: graph/TwoFactorModel.png
     :height: 2in
 
-Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we'll constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
+Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we will constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
 
-The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we'll select three x variables (``x1-x3``) and three y variables (``y1-y3``).
+The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we will select three *x* variables (``x1-x3``) and three *y* variables (``y1-y3``).
 
 .. code-block:: r
 
     twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
 
-    twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
+    twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),
+                                c("x1","x2","x3","y1","y2","y3")]
 
     twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
 
-Specifying the two factor model is virtually identical to the single factor case. The last three variables of our ``manifestVars`` argument have changed from ``"x4","x5","x6"`` to "y1","y2","y3", which is carried through references to the variables in later ``mxPath`` functions.
+Specifying the two factor model is virtually identical to the single factor case. The last three variables of our ``manifestVars`` argument have changed from ``"x4","x5","x6"`` to ``"y1","y2","y3"``, which is carried through references to the variables in later ``mxPath`` functions.
  
 .. code-block:: r
 
@@ -300,7 +302,7 @@ Specifying the two factor model is virtually identical to the single factor case
         )
     )
   
-We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` and ``latentVars`` arguments previously, so now we'll focus on the changes this model makes to the ``mxPath`` functions. The first and last ``mxPath`` functions, which detail residual variances and intercepts, accomodate the changes in manifest and latent variables but carry out identical functions to the common factor model.
+We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` and ``latentVars`` arguments previously, so now we will focus on the changes this model makes to the ``mxPath`` functions. The first and last ``mxPath`` functions, which detail residual variances and intercepts, accomodate the changes in manifest and latent variables but carry out identical functions to the common factor model.
 
 .. code-block:: r 
 

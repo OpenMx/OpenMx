@@ -101,10 +101,10 @@ Model specification is carried out using ``mxMatrix`` functions to create matric
     # means
     mxMatrix(
         type="Full", 
-        nrow = 1, 
-        ncol = 2, 
+        nrow=1, 
+        ncol=2, 
         free=TRUE, 
-        name = "M"
+        name="M"
     ),
     # regression coefficient
     mxMatrix(
@@ -163,21 +163,21 @@ It is possible to compare the estimates from this model to some summary statisti
 
     # Compare OpenMx estimates to summary statistics computed from raw data.
     # Note that to calculate the common variance, 
-    # group 1 has the 1 and 2 subtracted from every Xi and Yi in the sample
-    # data, so as to estimate variance of combined sample without the mean correction.
+    # group 1 has 1 and 2 subtracted from every Xi and Yi in the sample data,
+    # so as to estimate variance of combined sample without the mean correction.
  
-    # First we compute some summary statistics from the data
+    # First compute some summary statistics from data
     ObsCovs<-cov(rbind(group1 - rep(c(1,2),each=N), group2))
     ObsMeansGroup1<-c(mean(group1[,1]), mean(group1[,2]))
     ObsMeansGroup2<-c(mean(group2[,1]), mean(group2[,2]))
  
-    # Second we extract the parameter estimates and matrix algebra results from the model
+    # Second extract parameter estimates and matrix algebra results from model
     Sigma <- mxEval(Sigma, defMeansFit)
     Mu <- mxEval(Mu, defMeansFit)
     M <- mxEval(M, defMeansFit)
     beta <- mxEval(beta, defMeansFit)
  
-    # Third, we check to see if things are more or less equal
+    # Third, check to see if things are more or less equal
     omxCheckCloseEnough(ObsCovs,Sigma,.01)
     omxCheckCloseEnough(ObsMeansGroup1,as.vector(M+beta),.001)
     omxCheckCloseEnough(ObsMeansGroup2,as.vector(M),.001)

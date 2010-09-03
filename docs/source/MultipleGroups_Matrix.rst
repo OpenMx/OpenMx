@@ -3,7 +3,7 @@
 Multiple Groups, Matrix Specification
 =====================================
 
-An important aspect of structural equation modeling is the use of multiple groups to compare means and covariances structures between any two (or more) data groups, for example males and females, different ethnic groups, ages etc.  Other examples include groups which have different expected covariances matrices as a function of parameters in the model, and need to be evaluated together to estimated together for the parameters to be identified.
+An important aspect of structural equation modeling is the use of multiple groups to compare means and covariances structures between any two (or more) data groups, for example males and females, different ethnic groups, ages etc.  Other examples include groups which have different expected covariances matrices as a function of parameters in the model, and need to be evaluated together for the parameters to be identified.
 
 The example includes the heterogeneity model as well as its submodel, the homogeneity model and is available in the following file:
 
@@ -34,7 +34,7 @@ The path diagram of the heterogeneity model for a set of variables :math:`x` and
 Data
 ^^^^
 
-For this example we simulated two datasets ('xy1' and 'xy2') each with zero means and unit variances, one with a correlation of .5, and the other with a correlation of .4 with 1000 subjects each.  We use the ``mvrnorm`` function in the ``MASS`` package, which takes three arguments: ``Sample Size``, ``Means``, ``Covariance Matrix``).  We check the means and covariance matrix in R and provide ``dimnames`` for the dataframe.  See attached R code for simulation and data summary.
+For this example we simulated two datasets (``xy1`` and ``xy2``) each with zero means and unit variances, one with a correlation of 0.5, and the other with a correlation of 0.4 with 1000 subjects each.  We use the ``mvrnorm`` function in the ``MASS`` package, which takes three arguments: ``Sample Size``, ``Means``, ``Covariance Matrix``).  We check the means and covariance matrix in R and provide ``dimnames`` for the dataframe.  See attached R code for simulation and data summary.
 
 .. code-block:: r
 
@@ -42,11 +42,11 @@ For this example we simulated two datasets ('xy1' and 'xy2') each with zero mean
     require(MASS)
     #group 1
     set.seed(200)
-    rs=.5
+    rs=0.5
     xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
     set.seed(200)
     #group 2
-    rs=.4
+    rs=0.4
     xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 
     #Print Descriptive Statistics
@@ -63,7 +63,7 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 As before, we include the OpenMx package using a ``require`` statement.
-We first fit a heterogeneity model, allowing differences in both the mean and covariance structure of the two groups.  As we are interested whether the two structures can be equated, we have to specify the models for the two groups, named 'group1' and 'group2' within another model, named 'bivHet'.  The structure of the job thus look as follows, with two ``mxModel`` commands as arguments of another ``mxModel`` command.  ``mxModel`` commands are unlimited in the number of arguments.
+We first fit a heterogeneity model, allowing differences in both the mean and covariance structure of the two groups.  As we are interested whether the two structures can be equated, we have to specify the models for the two groups, named ``group1`` and ``group2`` within another model, named ``bivHet``.  The structure of the job thus look as follows, with two ``mxModel`` commands as arguments of another ``mxModel`` command.  Note that ``mxModel`` commands are unlimited in the number of arguments.
 
 .. code-block:: r
 
@@ -72,8 +72,8 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
     bivHetModel <- mxModel("bivHet",
          mxModel("group1"),
          mxModel("group2"),
-         mxAlgebra(group1.objective + group2.objective, name="h12"),
-         mxAlgebraObjective("h12")
+         mxAlgebra(group1.objective + group2.objective, name="minus2loglikelihood"),
+         mxAlgebraObjective("minus2loglikelihood")
     )
      
 For each of the groups, we fit a saturated model, using a Cholesky decomposition to generate the expected covariance matrix and a row vector for the expected means.  Note that we have specified different labels for all the free elements, in the two ``mxModel`` statements.  For more details, see example 1.
@@ -89,7 +89,7 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 ncol=2, 
                 free=T, 
                 values=.5,
-                labels=c("vX1", "cXY1", "vY1"),
+                labels=c("Ch11", "Ch21", "Ch31"),
                 name="Chol1"
             ), 
             mxAlgebra(
@@ -110,9 +110,9 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 type="raw"
             ), 
             mxFIMLObjective(
-                "EC1", 
-                "EM1",
-                selVars
+                covariance="EC1", 
+                means="EM1",
+                dimnames=selVars
             )
         ),
         mxModel("group2",
@@ -122,7 +122,7 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 ncol=2, 
                 free=T, 
                 values=.5,
-                labels=c("vX2", "cXY2", "vY2"),
+                labels=c("Ch12", "Ch22", "Ch32"),
                 name="Chol2"
             ), 
             mxAlgebra(
@@ -143,19 +143,21 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 type="raw"
             ), 
             mxFIMLObjective(
-                "EC2", 
-                "EM2",
-                selVars
+                covariance="EC2", 
+                means="EM2",
+                dimnames=selVars
             )
-        ),
+        )
+    )   
 
-As a result, we estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``::
+
+We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``::
 
     in group1
         $S
                 X      Y     
-        X   "vX1"     NA
-        Y  "cXY1"  "vY1" 
+        X  "Ch11"     NA
+        Y  "Ch21"  "Ch22" 
 
         $M
                 X      Y    
@@ -164,8 +166,8 @@ As a result, we estimate five parameters (two means, two variances, one covarian
     in group2
         $S
                 X      Y     
-        X   "vX2"     NA
-        Y  "cXY2"  "vY2" 
+        X  "Ch12"     NA
+        Y  "Ch22" "Ch32" 
 
         $M
                 X      Y    
@@ -177,9 +179,9 @@ To evaluate both models together, we use an ``mxAlgebra`` command that adds up t
 
         mxAlgebra(
             group1.objective + group2.objective, 
-            name="h12"
+            name="minus2loglikelihood"
         ),
-        mxAlgebraObjective("h12")
+        mxAlgebraObjective("minus2loglikelihood")
     )
 
 Model Fitting
@@ -209,23 +211,23 @@ Next, we fit a model in which the mean and covariance structure of the two group
 
 .. code-block:: r
 
-    #Fit Homnogeneity Model
+    #Fit Homogeneity Model
     bivHomModel <- bivHetModel
 
-As elements in matrices can be equated by assigning the same label, we now have to equate the labels of the free parameters in group1 to the labels of the corresponding elements in group2.  This can be done by referring to the relevant matrices using the ``ModelName[['MatrixName']]`` syntax, followed by ``@labels``.  Note that in the same way, one can refer to other arguments of the objects in the model.  Here we assign the labels from group1 to the labels of group2, separately for the Cholesky matrices used for the expected covariance matrices and for the expected means vectors.
+As elements in matrices can be equated by assigning the same label, we now have to equate the labels of the free parameters in group 1 to the labels of the corresponding elements in group 2.  This can be done by referring to the relevant matrices using the ``ModelName$MatrixName`` syntax, followed by ``@labels``.  Note that in the same way, one can refer to other arguments of the objects in the model.  Here we assign the labels from group1 to the labels of group2, separately for the Cholesky matrices used for the expected covariance matrices and for the expected means vectors.
 
 .. code-block:: r
 
-    bivHomModel[['group2.Chol2']]@labels <- bivHomModel[['group1.Chol1']]@labels
-    bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
+    bivHomModel$group2.Chol2@labels <- bivHomModel$group1.Chol1@labels
+    bivHomModel$group2.EM2@labels <- bivHomModel$group1.EM1@labels
 
 The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below::
 
     in group1
         $S
                 X      Y     
-        X   "vX1"     NA
-        Y  "cXY1"  "vY1" 
+        X  "Ch11"     NA
+        Y  "Ch21" "CH31" 
 
         $M
                 X      Y    
@@ -234,11 +236,11 @@ The specification for the submodel is reflected in the names of the labels which
     in group2
         $S
                 X      Y     
-        X   "vX1"     NA
-        Y  "cXY1"  "vY1" 
+        X  "Ch11"     NA
+        Y  "Ch21" "Ch31" 
 
         $M
-                X      Y    
+                X      Y     
         [1,] "mX1" "mY1"
 
 We can produce similar output for the submodel, i.e. expected means and covariances and likelihood, the only difference in the code being the model name.  Note that as a result of equating the labels, the expected means and covariances of the two groups should be the same.

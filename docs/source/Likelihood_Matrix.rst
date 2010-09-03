@@ -63,11 +63,14 @@ The individuals in this sample are considered to be statistically independent.  
     # Constraint for sum of allele frequencies to equal 1.0
         mxConstraint(P+Q+R == 1, name="SumAlleleFreqs"),
     # Matrix of observed data
-        mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
+        mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), 
+            name="ObservedFreqs"),
     # Algebra for predicted proportions
-        mxAlgebra( expression=rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), name="ExpectedFreqs"),
+        mxAlgebra( expression=rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), 
+            name="ExpectedFreqs"),
     # Algebra for -logLikelihood
-        mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
+        mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), 
+            name="NegativeLogLikelihood"),
     # User-defined objective
         mxAlgebraObjective("NegativeLogLikelihood")
     )
@@ -107,13 +110,19 @@ The R script to fit this model is very similar to that of the single locus model
         mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
         mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="S"),
     # Matrix of observed data
-        mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
+        mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), 
+            name="ObservedFreqs"),
     # Algebra for predicted proportions
         mxAlgebra( expression=1-P, name="Q"),
         mxAlgebra( expression=1-S, name="T"),
-        mxAlgebra(rbind ((P*P+2*P*Q)*T*T, (Q*Q)*(S*S+2*S*T), (P*P+2*P*Q)*(S*S+2*S*T), (Q*Q)*(T*T)), name="ExpectedFreqs"),
+        mxAlgebra(rbind (   (P*P+2*P*Q)*T*T, 
+                            (Q*Q)*(S*S+2*S*T), 
+                            (P*P+2*P*Q)*(S*S+2*S*T), 
+                            (Q*Q)*(T*T)), 
+            name="ExpectedFreqs"),
     # Algebra for -logLikelihood
-        mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
+        mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), 
+            name="NegativeLogLikelihood"),
     # User-defined objective
         mxAlgebraObjective("NegativeLogLikelihood")
     )

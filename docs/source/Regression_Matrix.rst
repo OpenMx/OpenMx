@@ -3,7 +3,7 @@
 Regression, Matrix Specification
 =====================================
 
-Our next example will show how regression can be carried out from structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one with raw data, and one where the data is supplied as a covariance matrix and vector of means. These examples are available in the following files:
+Our next example will show how regression can be carried out from structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one where the data is supplied as a covariance matrix and vector of means, and one with raw data. These examples are available in the following files:
 Parallel versions of this example, using matrix specification of models rather than paths, can be found here:
 
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_MatrixCov.R
@@ -43,7 +43,7 @@ In this model, the mean of *y* is dependent on both regression coefficients (and
 Data
 ^^^^
 
-Our first step to running this model is to put include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the read.table function. The data provided has a header row, indicating the names of the variables.
+Our first step to running this model is to include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the ``read.table`` function. The data provided has a header row, indicating the names of the variables.
 
 .. code-block:: r
 
@@ -55,7 +55,7 @@ The names of the variables provided by the header row can be displayed with the 
 
     names(myRegDataRaw)
 
-As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we'll select only the variables we want and place them back into our data object. That can be done with the R code below.
+As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we will select only the variables we want and place them back into our data object. That can be done with the R code below.
 
 .. We can refer to individual rows and columns of a data frame or matrix using square brackets, with selected rows referenced first and selected columns referenced second, separated by a comma. In the code below, we select all rows (there is no selection operator before the comma) and only columns x and y. As we are selecting multiple columns, we use the c() function to concatonate or connect those two names into one object.
 
@@ -63,9 +63,9 @@ As you can see, our data has four variables in it. However, our model only conta
 
     SimpleDataRaw <- myRegDataRaw[,c("x","y")]
 
-For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we'll include a vector of means in a separate object. Data is selected in the same way as before.
+For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are (in dimnames). As our model also references means, we will include a vector of means in a separate object. Data is selected in the same way as before.
 
-.. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we'll just select the second and third elements of that vector.
+.. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we will just select the second and third elements of that vector.
 
 .. code-block:: r
 
@@ -89,7 +89,7 @@ For covariance data, we do something very similar. We create an object to house 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we'll then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -106,7 +106,7 @@ The following code contains all of the components of our model. Before running a
             nrow=2, 
             ncol=2,
             free=c(F, F,
-                   F, F),
+                   T, F),
             values=c(0, 0,
                      1, 0),
             labels=c(NA,     NA,
@@ -182,7 +182,7 @@ The **A** matrix is created first. This matrix specifies all of the assymetric p
         nrow=2, 
         ncol=2,
         free=c(F, F,
-               F, F),
+               T, F),
         values=c(0, 0,
                  1, 0),
         labels=c(NA,     NA,
@@ -191,7 +191,7 @@ The **A** matrix is created first. This matrix specifies all of the assymetric p
         name="A"
     )
   
-The second ``mxMatrix`` function specifies the **S** matrix. This matrix specifies all of the symmetric paths or covariances among the variables. By definition, this matrix is symmetric. A free parameter in the **S** matrix represents a variance or covariance between the variables represented by the row and column that parameter is in. In the code below, two free parameters are specified. The free parameter in the first row and column of the **S** matrix is the variance of *x* (labeled ``"varx"``), while the free parameter in the second row and column is the residual variance of *y* (labeled ``"residual"``). This matrix is named ``"S"``.
+The second ``mxMatrix`` function specifies the **S** matrix. This matrix specifies all of the symmetric paths or covariances among the variables. By definition, this matrix is symmetric, but all elements are specified. A free parameter in the **S** matrix represents a variance or covariance between the variables represented by the row and column that parameter is in. In the code below, two free parameters are specified. The free parameter in the first row and column of the **S** matrix is the variance of *x* (labeled ``"varx"``), while the free parameter in the second row and column is the residual variance of *y* (labeled ``"residual"``). This matrix is named ``"S"``.
 
 .. code-block:: r
 
@@ -284,6 +284,143 @@ The ``@output`` slot contains a great deal of information, including parameter e
     uniRegFit@output
     summary(uniRegFit)
 
+Alternative Specification
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Rather than using the RAM approach the regression model with matrices can also be specified differently and more directly comparable to the regression equation.  This approach uses a special kind of variable, called a definition variable, which will be explained in more detail in :ref:`definitionmeans-matrix-specification`.  Below is the complete code.
+
+.. code-block:: r
+
+    selVars <- c("y")
+    
+    uniRegModel <- mxModel("Simple Regression Matrix Specification", 
+        mxData(
+            observed=SimpleDataRaw,
+            type="raw"
+        ),
+        mxMatrix(
+            type="Full",
+            nrow=1,
+            ncol=1,
+            free=FALSE, 
+            labels=c("data.x"), 
+            name="X"
+        ),
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=1,
+            free=T,
+            values=0,
+            labels="beta0",
+            name="Intercept"
+        ),
+        mxMatrix(
+            type="Full", 
+            nrow=1, 
+            ncol=1,
+            free=T,
+            values=1,
+            labels="beta1",
+            name="regCoef"
+        ),
+        mxMatrix(
+            type="Diag", 
+            nrow=1, 
+            ncol=1, 
+            values=1,
+            free=T,
+            labels="residual",
+            name="resVar"
+        ),
+        mxAlgebra( 
+            expression= Intercept + regCoef %*% X,
+            name="expMean",
+        ),
+        mxAlgebra(
+            expression= resVar,
+            name="expCov"
+        ),
+        mxFIMLObjective( 
+            covariance="expCov",
+            means="expMean",
+            dimnames=selVars
+        )
+    )
+
+Note the the ``mxData`` statement has not changed.  The first key change is that we put the variable *x* in a matrix X by using a special type of label assignment in an ``mxMatrix`` statement.  The matrix is a ``Full`` **1x1** fixed matrix.  The label has two parts: the first part is called ``data.`` which indicates that the name used in the second part (``x``) is a variable found in the dataset referred to in the ``mxData`` statement.  This variable can now be used as part of any algebra, and is no longer considered a dependent variable.
+
+.. code-block:: r
+
+    uniRegModel <- mxModel("Simple Regression Matrix Specification", 
+        mxData(
+            observed=SimpleDataRaw,
+            type="raw"
+        ),
+        mxMatrix(
+            type="Full",
+            nrow=1,
+            ncol=1,
+            free=FALSE, 
+            labels=c("data.x"), 
+            name="X"
+        ),
+
+Next, we specify three matrices, one for the intercept, one for the regression coefficient, and one for the residual variance.  In this example, the first two matrices are ``Full`` **1x1** matrices with a free element.  We give them labels consistent with their names in a regression equation, namely ``beta0`` and ``beta1``.  The third matrix is a ``Diag`` **1x1** matrix with a free element for the residual variance, named ``resVar``.
+
+.. code-block:: r
+
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=1,
+        free=T,
+        values=0,
+        labels="beta0",
+        name="Intercept"
+    ),
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=1,
+        free=T,
+        values=1,
+        labels="beta1",
+        name="regCoef"
+    ),
+    mxMatrix(
+        type="Diag", 
+        nrow=1, 
+        ncol=1, 
+        values=1,
+        free=T,
+        labels="residual",
+        name="resVar"
+    ),
+    
+Now we can explicitly specify the formula for the expected means and covariances using ``mxAlgebra`` statement.  Note that we here use the variable in the matrix **X** as part of the algebra.  We regress *y* on *x* in the means model and simply have the residual variance in the covariance model.
+
+.. code-block:: r
+
+    mxAlgebra( 
+         expression= Intercept + regCoef %*% X,
+         name="expMean",
+    ),
+    mxAlgebra(
+         expression= resVar,
+         name="expCov"
+    ),
+    
+Finally, we call up the results of the algebras as the arguments for the objective function.  The dimnames map the data to the model.  Note that ``selVars`` now includes only the *y* variable.
+
+.. code-block:: r
+
+    mxFIMLObjective( 
+        covariance="expCov",
+        means="expMean",
+        dimnames=selVars
+    )
+    
 
 Multiple Regression
 -------------------
@@ -312,7 +449,7 @@ We prepare our data the same way as before, selecting three variables instead of
 
     MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
-Now, we can move on to our code. It is identical in structure to our simple regression code, containing the same **A**, **S**, **F** and **M** matrices. With the addition of a third variables, the **A**, **S** and **F** matrices become 3x3, while the **M** matrix becomes a 1x3 matrix.
+Now, we can move on to our code. It is identical in structure to our simple regression code, containing the same **A**, **S**, **F** and **M** matrices. With the addition of a third variables, the **A**, **S** and **F** matrices become **3x3**, while the **M** matrix becomes a **1x3** matrix.
 
 .. code-block:: r
 
@@ -442,7 +579,7 @@ Data import for this analysis will actually be slightly simpler than before. The
 
     myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
-Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxRAMObjective`` again refers to the A, S, F and M matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order 4x4, and the **M** matrix now contains one row and four columns.
+Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxRAMObjective`` again refers to the **A**, **S**, **F** and **M** matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order 4x4, and the **M** matrix now contains one row and four columns.
 
 .. code-block:: r
 

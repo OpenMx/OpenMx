@@ -41,7 +41,7 @@ R has several built-in types of values that you are familiar with: numerics, int
 Path Model Specification
 ------------------------
 
-Below is a figure of a one factor model with five indicators.  The script reads data from disk, creates the one factor model, fits the model to the observed covariances, and prints a summary of the results.  Let's break down what is happening in each section of this example.
+Below is a figure of a one factor model with five indicators.  The script reads data from disk, creates the one factor model, fits the model to the observed covariances, and prints a summary of the results.  
 
 .. image:: graph/OneFactorFiveIndicators.png
     :height: 2in
@@ -88,27 +88,27 @@ The ``mxModel`` function is used to create a model.  By specifying the ``type`` 
 Path Creation
 ^^^^^^^^^^^^^
 
-Paths are created using the ``mxPath`` function. Multiple paths can be created with a single invocation of the ``mxPath`` function. The ``from`` argument specifies the path sources, and the ``to`` argument specifies the path sinks.  If the ``to`` argument is missing, then it is assumed to be identical to the 'from' argument. By default, the :math:`i^{th}` element of the 'from' argument is matched with the :math:`i^{th}` element of the 'to' argument, in order to create a path.  The ``arrows`` argument specifies whether the path is unidirectional (single-headed arrow, ``1``) or bidirectional (double-headed arrow, ``2``).  The next three arguments are vectors: ``free``, is a boolean vector that specifies whether a path is free or fixed; ``values`` is a numeric vector that specifies the starting value of the path; ``labels`` is a character vector that assigns a label to each free or fixed parameter.
+Paths are created using the ``mxPath`` function. Multiple paths can be created with a single invocation of the ``mxPath`` function. The ``from`` argument specifies the path sources, and the ``to`` argument specifies the path sinks.  If the ``to`` argument is missing, then it is assumed to be identical to the ``from`` argument. By default, the :math:`i^{th}` element of the ``from`` argument is matched with the :math:`i^{th}` element of the ``to`` argument, in order to create a path.  The ``arrows`` argument specifies whether the path is unidirectional (single-headed arrow, ``1``) or bidirectional (double-headed arrow, ``2``).  The next three arguments are vectors: ``free``, is a boolean vector that specifies whether a path is free or fixed; ``values`` is a numeric vector that specifies the starting value of the path; ``labels`` is a character vector that assigns a label to each free or fixed parameter.
 
 Objective Function Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using a path specification of the model, the objective function is ``RAM``. 
+When using a path specification of the model, the objective function is always ``RAM``. 
 
 Data Source Creation
 ^^^^^^^^^^^^^^^^^^^^
 
-A ``mxData`` function is used to construct a data source for the model. In this example, we are specifying a covariance matrix.  In addition to reading in the actual covariance matrix as the first (``observed``) argument, we specify the ``type`` and if required the number of observations (``numObs``).
+A ``mxData`` function is used to construct a data source for the model. In this example, we are specifying a covariance matrix.  In addition to reading in the actual covariance matrix as the first (``observed``) argument, we specify the ``type`` (one of ``cov``,``cor``,``sscp`` and ``raw``) and if required the number of observations (``numObs``).
 
 Model Population
 ^^^^^^^^^^^^^^^^
 
-The ``mxModel`` function is somewhat of a swiss-army knife.  The first argument to the ``mxModel`` function can be a ``name`` or previously defined model.  An ``mxModel`` can contain ``mxPath``, ``mxData``, ``mxObjective`` and other ``mxModel`` statements as arguments.
+The ``mxModel`` function is somewhat of a swiss-army knife.  The first argument to the ``mxModel`` function can be a ``name``, in case it is a newly generated model or a previously defined model.  In the latter case, the new model 'inherit's all the characteristics (arguments) of the old model, which can be changed with additional arguments.  An ``mxModel`` can contain ``mxPath``, ``mxData``, ``mxObjective`` and other ``mxModel`` statements as arguments.
 
 Model Execution
 ^^^^^^^^^^^^^^^^
 
-The ``mxRun`` function will run a model through the optimizer.  The return value of this function is an identical model, with all the free parameters in the cells of the matrices of the model assigned to their final values.  The summary function is a convenient method for displaying the highlights of a model after it has been executed.
+The ``mxRun`` function will run a model through the optimizer.  The return value of this function is an identical model, with all the free parameters in the elements of the matrices of the model assigned to their final values.  The summary function (``summary(modelname)``) is a convenient method for displaying the highlights of a model after it has been executed.
 
 
 
@@ -149,7 +149,7 @@ The ``data`` function can be used to read sample data that has been pre-packaged
 Model Creation
 ^^^^^^^^^^^^^^
 
-The basic unit of abstraction in the OpenMx library is the model.  A model serves as a container for a collection of matrices, algebras, objective functions, data sources, and nested sub-models.  In the parlance of R, a model is a value that belongs to the class MxModel that has been defined by the OpenMx library.  The following table indicates what classes are defined by the OpenMx library.
+The basic unit of abstraction in the OpenMx library is the model.  A model serves as a container for a collection of matrices, algebras, constraints, objective functions, data sources, and nested sub-models.  In the parlance of R, a model is a value that belongs to the class MxModel that has been defined by the OpenMx library.  The following table indicates what classes are defined by the OpenMx library.
 
 +--------------------+---------------------+
 | entity             | S4 class            |
@@ -170,33 +170,33 @@ All of the entities listed in the table are identified by the OpenMx library by 
 Matrix Creation
 ^^^^^^^^^^^^^^^
 
-The next three lines create three "MxMatrix" objects, using the ``mxMatrix`` function.  The first argument declares the ``type`` of the matrix, the second argument declares the number of rows in the matrix (``nrow``), and the third argument declares the number of columns (``ncol``).  The ``free`` argument specifies whether a cell is a free or fixed parameter.  The ``values`` argument specifies the starting values in the matrix. and the ``name`` argument specifies the name of the matrix. 
+The next three lines create three ``MxMatrix`` objects, using the ``mxMatrix`` function.  The first argument declares the ``type`` of the matrix, the second argument declares the number of rows in the matrix (``nrow``), and the third argument declares the number of columns (``ncol``).  The ``free`` argument specifies whether a element is a free or fixed parameter.  The ``values`` argument specifies the starting values for the elements in the matrix. and the ``name`` argument specifies the name of the matrix. 
 
-Each "MxMatrix" object is a container that stores five matrices of equal dimensions.  The five matrices stored in a "MxMatrix" object are: 'values, 'free', 'labels', 'lbound', and 'ubound'.  'Values' stores the current values of each cell in the matrix.  'Free' stores a boolean that determines whether a cell is free or fixed.  'Labels' stores a character label for each cell in the matrix. And 'lbound' and 'ubound' store the lower and upper bounds, respectively, for each cell that is a free parameter.  If a cell has no label, lower bound, or upper bound, then an NA value is stored in the cell of the respective matrix.
+Each ``MxMatrix`` object is a container that stores five matrices of equal dimensions.  The five matrices stored in a               ``MxMatrix`` object are: ``values``, ``free``, ``labels``, ``lbound``, and ``ubound``.  ``Values`` stores the current values of each element in the matrix.  ``Free`` stores a boolean that determines whether a element is free or fixed.  ``Labels`` stores a character label for each element in the matrix. And ``lbound`` and ``ubound`` store the lower and upper bounds, respectively, for each element that is a free parameter.  If a element has no label, lower bound, or upper bound, then an NA value is stored in the element of the respective matrix.
 
 Algebra Creation
 ^^^^^^^^^^^^^^^^
 
-An ``mxAlgebra`` function is used to construct an expression for the expected covariance algebra.  The first argument is the algebra expression that will be evaluated by the numerical optimizer.  The matrix operations and functions that are permitted in an MxAlgebra expression are listed in the help for the mxAlgebra function (``?mxAlgebra``).  The algebra expression refers to entities according to their names.
+An ``mxAlgebra`` function is used to construct an expression for any algebra, i.e. the expected covariance algebra.  The first argument (``expression``) is the algebra expression that will be evaluated by the numerical optimizer.  The matrix operations and functions that are permitted in an MxAlgebra expression are listed in the help for the mxAlgebra function (obtained by ``?mxAlgebra``).  The algebra expression refers to entities according to their names.
 
 Objective Function Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``MxObjective`` constructs an objective function for the model.  For this example, we are using a maximum likelihood objective function and specifying an expected covariance algebra and omitting an expected means algebra. The expected covariance algebra is referenced according to its name.  The objective function for a particular model is given the name "objective".  Consequently there is no need to specify a name for objective function objects. We need to assign ``dimnames`` for the rows and columns of the covariance matrix, such that a correspondence can be determined between the expected covariance matrix and the observed covariance matrix.
+``MxObjective`` constructs an objective function for the model.  For this example, we are using a maximum likelihood objective function and specifying an expected covariance algebra and omitting an expected means algebra. The expected covariance algebra is referenced according to its name.  The objective function for a particular model is given the name ``objective``.  Consequently there is no need to specify a name for objective function objects. We need to assign ``dimnames`` for the rows and columns of the covariance matrix, such that a correspondence can be determined between the expected and the observed mean vectors / covariance matrices.
 
 Data Source Creation
 ^^^^^^^^^^^^^^^^^^^^
-An ``mxData`` function provides a data source for the model. In this example, we are specifying a covariance matrix. The data source for a particular model is given the name "data". Consequently there is no need to specify a name for data objects.
+An ``mxData`` function provides a data source for the model. In this example, we are specifying a covariance matrix. The data source for a particular model is given the name ``data``. Consequently there is no need to specify a name for data objects.
 
 Model Population
 ^^^^^^^^^^^^^^^^
 
-The mxModel function is somewhat of a swiss-army knife.  If the first argument to the ``mxModel`` function is an existing model, then the result of the function call is a new model with the remaining arguments to the function call added or removed from the model (depending on the 'remove' argument, which defaults to FALSE).  Alternatively, we can give it a ``name`` and populate the model with three matrices, an algebra, an objective function, and a data source, which are all arguments of the ``mxModel``.  
+The mxModel function is somewhat of a swiss-army knife.  If the first argument to the ``mxModel`` function is an existing model, then the result of the function call is a new model with the remaining arguments to the function call added or removed from the model (depending on the 'remove' argument, which defaults to FALSE).  Alternatively, we can give it a ``name`` and populate the model with matrices, algebras, an objective function, and a data source, which are all arguments of the ``mxModel``.  
 
 Model Execution
 ^^^^^^^^^^^^^^^^
 
-The ``mxRun`` function will run a model through the optimizer.  The return value of this function is an identical model, with all the free parameters in the cells of the matrices of the model assigned to their final values.  The summary function is a convenient method for displaying the highlights of a model after it has been executed.
+The ``mxRun`` function will run a model through the optimizer.  The return value of this function is an identical model, with all the free parameters in the elements of the matrices of the model assigned to their final values.  The summary function (``summary(modelname)``) is a convenient method for displaying the highlights of a model after it has been executed.
 
 Alternative Formulation
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -221,9 +221,18 @@ Rather than adding the paths/matrices/algebras, objective function and data as a
     objective <- mxMLObjective(covariance="R", dimnames = names(demoOneFactor))
     data <- mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 
-    factorModel <- mxModel(factorModel, matrixA, matrixL, matrixU, algebraR, objective, data)
+    factorModel <- mxModel(
+                    factorModel, matrixA, matrixL, matrixU, algebraR, objective, data)
 
     factorFit <- mxRun(factorModel)
     summary(factorFit)
 
-Note that lines 5 and 17 could have been combined with the following call: ``factorModel <- mxModel(matrixA, matrixL, matrixU, algebraR, objective, data, name="One Factor")``.
+Note that lines 5 and 17 could have been combined with the following call: 
+
+.. code-block:: r
+
+    factorModel <- mxModel(
+                    matrixA, matrixL, matrixU, algebraR, objective, data, name="One Factor")
+
+-----
+

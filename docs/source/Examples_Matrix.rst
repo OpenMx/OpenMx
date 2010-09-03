@@ -14,4 +14,4 @@ Examples, Matrix Specification
    GeneticEpi_Matrix
    DefinitionMeans_Matrix
    Likelihood_Matrix
-
+   FactorAnalysisOrdinal_Matrix

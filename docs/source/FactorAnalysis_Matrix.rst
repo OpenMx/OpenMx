@@ -38,11 +38,11 @@ While 19 parameters are displayed in the equation and path diagram above (6 mani
 Data
 ^^^^
 
-Our first step to running this model is to put include the data to be analyzed. The data for this example contain nine variables. We'll select the six we want for this model using the selection operators used in previous examples. Both raw and covariance data are included below, but only one is required for any model.
+Our first step to running this model is to include the data to be analyzed. The data for this example contain nine variables. We'll select the six we want for this model using the selection operators used in previous examples. Both raw and covariance data are included below, but only one is required for any model.
 
 .. code-block:: r
 
-	data(myFADataRaw)
+    data(myFADataRaw)
     names(myFADataRaw)
 
     oneFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "x4", "x5", "x6")]
@@ -57,10 +57,10 @@ Our first step to running this model is to put include the data to be analyzed. 
           0.342, 0.273, 0.286, 0.330, 0.328, 0.323, 0.993, 0.472, 0.467,
           0.299, 0.282, 0.287, 0.290, 0.317, 0.341, 0.472, 0.978, 0.507,
           0.337, 0.287, 0.264, 0.274, 0.331, 0.349, 0.467, 0.507, 1.059),
-    nrow=9,
-    dimnames=list(
-        c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
-        c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
+        nrow=9,
+        dimnames=list(
+            c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
+            c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
     )
 
     oneFactorCov <- myFADataCov[c("x1","x2","x3","x4","x5","x6"), 
@@ -73,7 +73,7 @@ Our first step to running this model is to put include the data to be analyzed. 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we'll then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -153,8 +153,7 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,0,1,0,0,
                      0,0,0,0,0,1,0),
             byrow=TRUE,
-            name="F",
-			dimnames=list(NULL, c("x1", "x2", "x3", "x4", "x5", "x6", "f1"))
+            name="F"
         ),
         # means
         mxMatrix(
@@ -163,9 +162,7 @@ The following code contains all of the components of our model. Before running a
             ncol=7,
             values=c(1,1,1,1,1,1,0),
             free=c(T,T,T,T,T,T,F),
-            labels=c("meanx1","meanx2","meanx3",
-                     "meanx4","meanx5","meanx6",
-                     NA),
+            labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA),
             name="M"
         ),
         mxRAMObjective("A","S","F","M")
@@ -193,9 +190,9 @@ If we were to use a covariance matrix and vector of means as data, we would repl
         means=oneFactorMeans
     ) 
   
-Model specification is carried out using ``mxMatrix`` functions to create matrices for a RAM specified model. The **A** matrix specifies all of the assymetric paths or regressions in our model. In the common factor model, these parameters are the factor loadings. This matrix is square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). Regressions are specified in the **A** matrix by placing a free parameter in the row of the dependent variable and the column of independent variable. 
+Model specification is carried out using ``mxMatrix`` functions to create matrices for a RAM specified model. The **A** matrix specifies all of the asymmetric paths or regressions in our model. In the common factor model, these parameters are the factor loadings. This matrix is square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). Regressions are specified in the **A** matrix by placing a free parameter in the row of the dependent variable and the column of independent variable. 
 
-The common factor model requires that one parameter (typically either a factor loading or factor variance) be constrained to a constant value. In our model, we'll constrain the first factor loading to a value of 1, and let all other loadings be freely estimated. All factor loadings have a starting value of one and labels of ``"l1"`` - ``"l6"``.
+The common factor model requires that one parameter (typically either a factor loading or factor variance) be constrained to a constant value. In our model, we will constrain the first factor loading to a value of 1, and let all other loadings be freely estimated. All factor loadings have a starting value of one and labels of ``"l1"`` - ``"l6"``.
 
 .. code-block:: r
 
@@ -296,9 +293,7 @@ The last matrix of our model is the **M** matrix, which defines the means and in
         ncol=7,
         values=c(1,1,1,1,1,1,0),
         free=c(T,T,T,T,T,T,F),
-        labels=c("meanx1","meanx2","meanx3",
-                 "meanx4","meanx5","meanx6",
-                 NA),
+        labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA),
         name="M"
     )
 
@@ -320,7 +315,7 @@ The expected means are defined as:
    ExpMean = F * (I - A)^{-1} * M 
    \end{eqnarray*} 
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the ``A``, ``S``, ``F`` and ``M`` matrices in your model.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.
 
 .. code-block:: r
 
@@ -337,6 +332,57 @@ The model can now be run using the ``mxRun`` function, and the output of the mod
     oneFactorFit@output
 
     summary(oneFactorFit)
+    
+    
+Rather than specifying the model using RAM notation, we can also write the model explicitly with self-declared matrices, matching the formula for the expected mean and covariance structure of the one factor model:
+
+.. math::
+   :nowrap:
+   
+   \begin{eqnarray*} 
+   \mu_x = varMeans + (facLoadings * facMeans)'
+   \end{eqnarray*}
+
+
+
+.. math::
+    :nowrap:
+
+   \begin{eqnarray*} 
+   \sigma_x = facLoadings * facVariances * facLoadings' + resVariances
+   \end{eqnarray*}
+
+We start with displaying the complete script.  Note that we have used the succinct form of coding and that the ``mxData`` command did not change.
+
+.. code-block:: r
+
+    oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
+        mxData( observed=myFADataRaw, type="raw" ),
+        mxMatrix( type="Full", nrow=6, ncol=1, values=1, free=c(F,T,T,T,T,T), 
+            labels=c("l1","l2","l3","l4","l5","l6"), 
+            name="facLoadings" ),
+        mxMatrix( type="Symm", nrow=1, ncol=1, values=1, free=T, 
+            labels="varF1", 
+            name="facVariances" ),
+        mxMatrix( type="Diag", nrow=6, ncol=6, free=T, values=1, 
+            labels=c("e1","e2","e3","e4","e5","e6"), 
+            name="resVariances" ),
+        mxMatrix( type="Full", nrow=1, ncol=6, values=1, free=T,
+            labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6"), 
+            name="varMeans" ),
+        mxMatrix( type="Full", nrow=1, ncol=1, values=0, free=F, 
+            name="facMeans" ),
+        mxAlgebra( expression= facLoadings %&% facVariances + resVariances, 
+            name="expCov" ),
+        mxAlgebra(expression= varMeans + t(facLoadings %*% facMeans), 
+            name="expMean" ),
+        mxFIMLObjective( covariance="expCov", means="expMean", dimnames=manifestVars)
+    )
+    oneFactorFit<-mxRun(oneFactorModel)
+
+The first ``mxMatrix`` statement declares a ``Full`` **6x1** matrix of factor loadings to be estimated, called "facLoadings".  We fix the first factor loading to 1 for identification.  Even though we specify just one start value of 1 which is recycled for each of the elements in the matrix, it becomes the fixed value for the first factor loading and the start value for the other factor loadings.  The second ``mxMatrix`` is a ``symmetric`` **1x1** which estimates the variance of the factor, named "facVariances".  The third ``mxMatrix`` is a ``Diag`` **6x6** matrix for the residual variances, named "resVariances".  The fourth ``mxMatrix`` is a ``Full`` **1x6** matrix of free elements for the means of the observed variables, called "varMeans".  The fifth ``mxMatrix`` is a ``Full`` **1x1** matrix with a fixed value of zero for the factor mean, named "facMeans".  
+
+We then use two algebra statement to work out the expected mean and covariance matrices.  Note that the formula's for the expression of the expected covariance and the expected mean vector map directly on to the mathematical equations.  The arguments for the ``mxFIMLObjective`` now refer to these algebras for the expected covariance and expected means.  The ``dimnames`` are used to map them onto the observed variables.
 
 
 Two Factor Model
@@ -355,15 +401,16 @@ The common factor model can be extended to include multiple latent variables. Th
 .. image:: graph/TwoFactorModel.png
     :height: 2in
 
-Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we'll constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
+Our model contains 21 parameters (6 manifest variances, six manifest means, six factor loadings, two factor variances and one factor covariance), but each factor requires one identification constraint. Like in the common factor model above, we will constrain one factor loading for each factor to a value of one. As such, this model contains 19 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 8 degrees of freedom. 
 
-The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we'll select three x variables (``x1-x3``) and three y variables (``y1-y3``).
+The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we will select three x variables (``x1-x3``) and three y variables (``y1-y3``).d
 
 .. code-block:: r
 
     twoFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "y1", "y2", "y3")]
 
-    twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
+    twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),
+                                c("x1","x2","x3","y1","y2","y3")]
 
     twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
   

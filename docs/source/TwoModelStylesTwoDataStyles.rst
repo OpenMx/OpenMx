@@ -1,7 +1,7 @@
 Two Model Styles - Two Data Styles
 ==================================
 
-In this first detailed example, we introduce the different styles available to specify models and data, which were briefly discussed in the 'Beginners Guide'.  There are currently two supported approaches to specifying models: (i) path specification and (ii) matrix specification.  Each example is presented using both approaches, so you can get a sense of their advantage/disadvantages, and see which best fits your style.  In the 'path specification' model style you specify a model in terms of paths; the 'matrix specification' model style relies on matrices and matrix algebra to produce OpenMx code.  For either approach you must specify data, and the two supported styles are (a) summary format, i.e. covariance matrices and possibly means, and (b) raw data format.  We will illustrate both, as arguments of functions may differ.  Thus, we will describe each example four ways:
+In this first detailed example, we introduce the different styles available to specify models and data, which were briefly discussed in the 'Beginners Guide'.  There are currently two supported approaches to specifying models: (i) path specification and (ii) matrix specification.  Each example is presented using both approaches, so you can get a sense of their advantages/disadvantages, and see which best fits your style.  In the 'path specification' model style you specify a model in terms of paths; the 'matrix specification' model style relies on matrices and matrix algebra to produce OpenMx code.  For either approach you must specify data, and the two supported data styles are (a) summary format, i.e. covariance matrices and possibly means, and (b) raw data format.  We will illustrate both, as arguments of functions may differ.  Thus, we will describe each example four ways:
 
 * i.a Path Specification - Covariance Matrices (optionally including means)
 * i.b Path Specification - Raw Data
@@ -90,7 +90,7 @@ Each of of the commands are discussed separately beside excerpts of the OpenMx c
 
     univSatModel1 <- mxModel("univSat1", 
 
-When using the path specification, it is easiest to work from an existing path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see refs*), we have a box for the observed/manifest variable *x*, specified with the ``manifestVars`` argument, and one double arrow on the box to represent its variance, specified with the ``mxPath`` command.  The ``mxPath`` command indicates where the path originates: ``from=`` and where it ends: ``to``.  If the ``to=`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguishes one-head arrows (if ``arrows=1``) or two-headed arrows (if ``arrows=2``).  The ``free`` command is used to specify which elements are free or fixed with a ``TRUE`` or ``FALSE`` option.  If the ``mxPath`` command creates more than one path, a single ``T`` implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.
+When using the path specification, it is easiest to work from an existing path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see refs*), we have a box for the observed/manifest variable *x*, specified with the ``manifestVars`` argument, and one double headed arrow on the box to represent its variance, specified with the ``mxPath`` command.  The ``mxPath`` command indicates where the path originates ( ``from=``) and where it ends (``to``).  If the ``to=`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguishes one-headed arrows (if ``arrows=1``) from two-headed arrows (if ``arrows=2``).  The ``free`` command is used to specify which elements are free or fixed with a ``TRUE`` or ``FALSE`` option.  If the ``mxPath`` command creates more than one path, a single ``T`` implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for the ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.
 
 .. code-block:: r
 
@@ -155,7 +155,7 @@ The output of these objects like as follows::
         [1,] 2.220446e-16
 
 
-In addition to providing a covariance matrix as input data, we could add a means vector.  As this requires a few minor changes, lets highlight those.  We have one additional ``mxPath`` command for the means.  In the path diagram, the means are specified by a triangle which as a fixed value of one, reflected in the ``from="one"`` argument, with the ``to=`` argument referring to the variable which mean is estimated.
+In addition to providing a covariance matrix as input data, we could add a means vector.  As this requires a few minor changes, lets highlight those.  We have one additional ``mxPath`` command for the means.  In the path diagram, the means are specified by a triangle which as a fixed value of one, reflected in the ``from="one"`` argument, with the ``to=`` argument referring to the variable which mean is estimated.  Note that paths for means are always single headed.
 
 .. code-block:: r
 
@@ -169,22 +169,23 @@ In addition to providing a covariance matrix as input data, we could add a means
             labels="mX"
         ),
 
-The other required change is in the ``mxData`` command, which now takes a fourth argument ``means`` for the vector of observed means from the data calculated using the R ``mean`` command.
+The other required change is in the ``mxData`` command, which now takes a fourth argument ``means`` for the vector of observed means from the data, calculated using the R ``mean`` command.
 
 .. code-block:: r
 
         mxData(
-            observed=matrix(var(testData),1,1, dimnames = list(selVars, selVars)), 
+            observed=matrix(var(testData),1,1), 
             type="cov", 
             numObs=1000, 
             means=mean(testData)
-        ))
+        )
+    )
 
-When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be referred to in the output in a similar was as the expected variance before.
+When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be referred to in the output in a similar way as the expected variance before.
 
 .. code-block:: r
 
-		univSatFit1m <- mxRun(univSatModel1m)
+        univSatFit1m <- mxRun(univSatModel1m)
         EM1m <- mxEval(M, univSatFit1m) 
 
 
@@ -245,7 +246,7 @@ Covariance Matrices and Matrix-style Input
 
 The next example replicates these models using matrix-style coding.  The code to specify the model includes four commands, (i) ``mxModel``, (ii) ``mxMatrix``, (iii) ``mxData`` and (iv) ``mxMLObjective``.
 
-Starting with the model fitted to the summary covariance matrix, we need to create a matrix for the expected covariance matrix using the ``mxMatrix`` command.  The first argument is its ``type``: symmetric for a covariance matrix.  The second and third arguments are the number of rows (``nrow``) and columns (``ncol``) – one for a univariate model.  The ``free`` and ``values`` parameters work as in the path specification.  If only one element is given, it is applied to all elements of the matrix.  Alternatively, each element can be assigned its free/fixed status and starting value with a list command.  Note that in the current example, the matrix is a simple 1x1 matrix, but that will change rapidly in the following examples.  The ``mxData`` is identical to that used in path stlye models.  A different objective function is used, however, namely the ``mxMLObjective`` command which takes two arguments,  ``covariance`` to hold the expected covariance matrix (which we specified above using ``mxMatrix``  as ``expCov``), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.
+Starting with the model fitted to the summary covariance matrix, we need to create a matrix for the expected covariance matrix using the ``mxMatrix`` command.  The first argument is its ``type``, symmetric for a covariance matrix.  The second and third arguments are the number of rows (``nrow``) and columns (``ncol``) – one for a univariate model.  The ``free`` and ``values`` parameters work as in the path specification.  If only one element is given, it is applied to all elements of the matrix.  Alternatively, each element can be assigned its free/fixed status and starting value with a list command.  Note that in the current example, the matrix is a simple **1x1** matrix, but that will change rapidly in the following examples.  The ``mxData`` is identical to that used in path stlye models.  A different objective function is used, however, namely the ``mxMLObjective`` command which takes two arguments,  ``covariance`` to hold the expected covariance matrix (which we specified above using ``mxMatrix``  as ``expCov``), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.
 
 .. code-block:: r
 
@@ -271,7 +272,7 @@ Starting with the model fitted to the summary covariance matrix, we need to crea
 
     univSatFit3 <- mxRun(univSatModel3)
 
-A means vector can also be added as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is also required to specify the vector of expected means. In this case a matrix of ``type='Full'``, with ``1`` row and column, is assigned ``free=T`` with start value ``0``, and the name ``expMean``.  The second change is an additional argument ``mean`` to the ``mxMLObjective`` function for the expected mean, here ``expMean``.
+A means vector can also be added as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is required to specify the vector of expected means. In this case a matrix of ``type='Full'``, with ``1`` row and column, is assigned ``free=T`` with start value ``0``, and the name ``expMean``.  The second change is an additional argument ``mean`` to the ``mxMLObjective`` function for the expected mean, here ``expMean``.
 
 .. code-block:: r
 
@@ -279,7 +280,7 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
             type="Full", 
             nrow=1, 
             ncol=1, 
-            free=T, 
+            free=TRUE, 
             values=0, 
             name="expMean"
         )
@@ -299,7 +300,7 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
 Raw Data and Matrix-style Input
 -------------------------------
 
-Finally, if we want to use the matrix specification with raw data, we again specify matrices for the means and covariances using  ``mxMatrix()``. The ``mxData`` command now, however takes a matrix (or data.frame) of raw data and the ``mxFIMLObjective`` function replaces ``mxMLObjective`` to evaluate the likelihood of the data using FIML (Full information, maximum likelihood).  This function takes three arguments: the expected covariance matrix ``covariance``; the expected mean, ``means``; and a third for the ``dimnames``.
+Finally, if we want to use the matrix specification with raw data, we specify matrices for the means and covariances using  ``mxMatrix()``. The ``mxData`` command now, however takes a matrix (or data.frame) of raw data and the ``mxFIMLObjective`` function replaces ``mxMLObjective`` to evaluate the likelihood of the data using FIML (Full Information Maximum Likelihood).  This function takes three arguments: the expected covariance matrix ``covariance``; the expected mean vector, ``means``; and a third for the ``dimnames``.
 
 .. code-block:: r
 
@@ -347,7 +348,7 @@ The path diagram for our bivariate example includes two boxes for the observed v
 Data
 ^^^^
 
-The data used for the example were generated using the multivariate normal function (``mvrnorm`` in the R package MASS).  We have simulated data on two variables named 'X' and 'Y' with means of zero, variances of one and a covariance of .5 using the following R code, and saved is as ``testData``.  Note that we can now use the R function ``cov`` to generate the observed covariance matrix.
+The data used for the example were generated using the multivariate normal function (``mvrnorm`` in the R package MASS).  We have simulated data on two variables named 'X' and 'Y' with means of zero, variances of one and a covariance of 0.5 using the following R code, and saved is as ``testData``.  Note that we can now use the R function ``cov`` to generate the observed covariance matrix.
 
 .. code-block:: r
 
@@ -365,7 +366,7 @@ The data used for the example were generated using the multivariate normal funct
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The ``mxPath`` commands look as follows.  The first one specifies two-headed arrows from **X** and **Y** to themselves.  This command now generates two free parameters, each with start value of 1 and lower bound of .01, but with a different label indicating that these are separate free parameters.  Note that we could test whether the variances are equal by specifying a model with the same label for the two variances and comparing it with the current one.  The second ``mxPath`` command specifies a two-headed arrow from **X** to **Y**, which is also assigned 'free' and given a start value of .2 and a label.
+The ``mxPath`` commands look as follows.  The first one specifies two-headed arrows from **X** and **Y** to themselves.  This command now generates two free parameters, each with start value of 1 and lower bound of .01, but with a different label indicating that these are separate free parameters.  Note that we could test whether the variances are equal by specifying a model with the same label for the two variances and comparing it with the current model.  The second ``mxPath`` command specifies a two-headed arrow from **X** to **Y** for the covariance, which is also assigned 'free' and given a start value of .2 and a label.
 
 .. code-block:: r
 
@@ -400,9 +401,9 @@ When observed means are included in addition to the observed covariance matrix, 
             labels=c("meanX","meanY")
         )
 
-Changes for fitting to raw data just require the ``mxData`` command to read in the data directly with ``type=raw``.
+Changes required for fitting to raw data are to the ``mxData`` command to read in the data directly with ``type=raw``.
 
-Using matrices instead of paths, our ``mxMatrix`` command for the expected covariance matrix now specifies a 2x2 matrix with all elements free.  Start values have to be given only for the unique elements (diagonal elements plus upper or lower diagonal elements), in this case we provide a list with values of 1 for the variances and .5 for the covariance
+Using matrices instead of paths, our ``mxMatrix`` command for the expected covariance matrix now specifies a **2x2** matrix with all elements free.  Start values have to be given only for the unique elements (diagonal elements plus upper or lower diagonal elements), in this case we provide a list with values of 1 for the variances and 0.5 for the covariance
 
 .. code-block:: r
 
@@ -411,11 +412,11 @@ Using matrices instead of paths, our ``mxMatrix`` command for the expected covar
             nrow=2, 
             ncol=2, 
             free=T, 
-            values=c(1,.5,1), 
+            values=c(1,0.5,1), 
             name="expCov"
         )
 
-The optional expected means command specifies a 1x2 row vector with two free parameters, each given a 0 start value.
+The optional expected means command specifies a **1x2** row vector with two free parameters, each given a 0 start value.
 
 .. code-block:: r
 
@@ -428,7 +429,7 @@ The optional expected means command specifies a 1x2 row vector with two free par
             name="expMean"
         )
 
-Combining these two ``mxMatrix`` commands with the raw data, specified in the ``mxData`` command and the ``mxFIMLObjective`` command with the appropriate arguments is all that's need to fit a saturated bivariate model.  So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and specify ``type="Lower"``.  We then use an ``mxAlgebra`` command to multiply this matrix, named ``Chol`` with its transpose (R function ``t()``).
+Combining these two ``mxMatrix`` commands with the raw data, specified in the ``mxData`` command and the ``mxFIMLObjective`` command with the appropriate arguments is all that is needed to fit a saturated bivariate model.  So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and specify ``type="Lower"``.  We then use an ``mxAlgebra`` command to multiply this matrix, named ``Chol`` with its transpose (R function `t()`).
 
 .. code-block:: r
 
@@ -445,4 +446,4 @@ Combining these two ``mxMatrix`` commands with the raw data, specified in the ``
             name="expCov",
         )
 
-The following sections describe OpenMx examples in detail beginning with regression, factor analysis, time series analysis, multiple group models, including twin models, and analysis using definition variables. Again each is presented in both path and matrix styles and where relevant, contrasting data from covariance matrices versus raw data input are also illustrated.  Additional examples will be added as they are implemented in OpenMx.
+The following sections describe OpenMx examples in detail beginning with regression, factor analysis, time series analysis, multiple group models, including twin models, and analysis using definition variables.  Each is presented in both path and matrix styles and where relevant, contrasting data input from covariance matrices versus raw data input are also illustrated.  Additional examples will be added as they are implemented in OpenMx.

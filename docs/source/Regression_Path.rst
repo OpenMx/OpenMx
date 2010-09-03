@@ -3,7 +3,7 @@
 Regression, Path Specification
 ===============================
 
-This example will show how regression can be carried out from a path-centric structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one with raw data, and one where the data is supplied as a covariance matrix and vector of means. These examples are available in the following files:
+This example will show how regression can be carried out from a path-centric structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example available; one where the data is supplied as a covariance matrix and vector of means, and one with raw data. These examples are available in the following files:
 
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_PathCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_PathRaw.R
@@ -12,7 +12,7 @@ This example will show how regression can be carried out from a path-centric str
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_PathCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_PathRaw.R
 
-Parallel versions of this example, using matrix specification of models rather than paths, can be found here:
+Parallel versions of these examples, using matrix specification of models rather than paths, can be found here:
 
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_MatrixCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_MatrixRaw.R
@@ -21,6 +21,7 @@ Parallel versions of this example, using matrix specification of models rather t
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_MatrixCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_MatrixRaw.R
 
+and are discussed here (:ref:`regression-matrix-specification`).
 
 Simple Regression
 -----------------
@@ -37,24 +38,24 @@ We begin with a single dependent variable (*y*) and a single independent variabl
 .. image:: graph/SimpleRegression.png
     :height: 2.5in
 
-In this model, the mean of *y* is dependent on both regression coefficients (and by extension, the mean of *x*). The variance of *y* depends on both the residual variance and the product of the regression slope and the variance of *x*. This model contains five parameters from a structural modeling perspective :math:`\beta_{0}`, :math:`\beta_{1}`, :math:`\sigma^{2}_{\epsilon}`, and the mean and variance of *x*). We are modeling a covariance matrix with three degrees of freedom (two variances and one covariance) and a means vector with two degrees of freedom (two means). Because the model has as many parameters (5) as the data have degrees of freedom, this model is fully saturated.
+In this model, the mean of *y* is dependent on both regression coefficients (and by extension, the mean of *x*). The variance of *y* depends on both the residual variance (:math:`\sigma^{2}_{\epsilon}`) and the product of the regression slope (:math:`\beta_{1}`) and the variance of *x* (:math:`\sigma^{2}_{x}`).  This model contains five parameters from a structural modeling perspective :math:`\beta_{0}`, :math:`\beta_{1}`, :math:`\sigma^{2}_{\epsilon}`, and the mean and variance of *x*, :math:`\mu^{2}_x` and :math:`\sigma^{2}_x`. We are modeling a covariance matrix with three degrees of freedom (two variances and one covariance) and a means vector with two degrees of freedom (two means). Because the model has as many parameters (5) as the data have degrees of freedom, this model is fully saturated.
 
 Data
 ^^^^
 
-Our first step to running this model is to include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the read.table function. The data provided has a header row, indicating the names of the variables.
+Our first step to running this model is to include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the ``read.table`` function. The data provided has a header row, indicating the names of the variables.
 
 .. code-block:: r
 
     data(myRegDataRaw)
 
-The names of the variables provided by the header row can be displayed with the names() function.
+The names of the variables provided by the header row can be displayed with the ``names()`` function.
 
 .. code-block:: r
 
     names(myRegDataRaw)
 
-As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we'll select only the variables we want and place them back into our data object. That can be done with the R code below.
+As you can see, our data has four variables in it. However, our model only contains two variables, *x* and *y*. To use only them, we will select only the variables we want and place them back into our data object. That can be done with the R code below.
 
 .. We can refer to individual rows and columns of a data frame or matrix using square brackets, with selected rows referenced first and selected columns referenced second, separated by a comma. In the code below, we select all rows (there is no selection operator before the comma) and only columns x and y. As we are selecting multiple columns, we use the c() function to concatenate or connect those two names into one object.
 
@@ -62,9 +63,9 @@ As you can see, our data has four variables in it. However, our model only conta
 
 	SimpleDataRaw <- myRegDataRaw[,c("x","y")]
 
-For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we'll include a vector of means in a separate object. Data is selected in the same way as before.
+For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we will include a vector of means in a separate object. Data is selected in the same way as before.
 
-.. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we'll just select the second and third elements of that vector.
+.. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we will just select the second and third elements of that vector.
 
 .. code-block:: r
 
@@ -88,7 +89,7 @@ For covariance data, we do something very similar. We create an object to house 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we'll then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.  Note the difference in capitalization for the first letter.
 
 .. code-block:: r
 
@@ -129,11 +130,11 @@ The following code contains all of the components of our model. Before running a
         )
     ) # close model
 
-This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression Path Specification``.
+This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named "Simple Regression Path Specification".
 
 The next part of our code is the ``type`` argument. By setting ``type="RAM"``, we tell OpenMx that we are specifying a RAM model for covariances and means, and that we are doing so using the ``mxPath`` function. With this setting, OpenMx uses the specified paths to define the expected covariance and means of our data.
 
-The third component of our code creates an ``MxData`` object. The example above, reproduced here, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
+The third component of our code creates an ``MxData`` object. The example above, reproduced here in parts, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
 
 .. code-block:: r
 
@@ -207,7 +208,7 @@ Our model is now complete!
 Model Fitting
 ^^^^^^^^^^^^^
 
-We've created an ``MxModel`` object, and placed it into an object or variable named ``uniRegModel``. We can run this model by using the ``mxRun`` function, which is placed in the object ``uniRegFit`` in the code below. We then view the output by referencing the ``output`` slot, as shown here.
+We've created an ``MxModel`` object, and placed it into an object or variable named ``uniRegModel``. We can run this model by using the ``mxRun`` function, and the output is placed in the object ``uniRegFit`` in the code below. We then view the output by referencing the ``output`` slot, as shown here.
 
 .. code-block:: r
 
@@ -285,7 +286,7 @@ Now, we can move on to our code. It is identical in structure to our simple regr
             free=TRUE,
             values=1,
             labels=c("betax","betaz")
-            ), 
+        ), 
         # means and intercepts
         mxPath(
             from="one",
@@ -322,7 +323,7 @@ Our second ``mxPath`` function specifies a two-headed arrow (covariance) between
 
 The third and fourth ``mxPath`` functions mirror the second and third ``mxPath`` functions from our simple regression, defining the regressions of *y* on both *x* and *z* as well as the means and intercepts of our model.
 
-The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary`` function to run, view and summarize the completed model.
+The model is run and output is viewed just as before, using the ``mxRun`` function, and ``@output`` and the ``summary`` function to run, view and summarize the completed model.
 
 Multivariate Regression
 -----------------------
@@ -377,7 +378,7 @@ Our code should look very similar to our previous two models. It includes the sa
             from=c("w", "x", "y", "z"), 
             arrows=2,
             free=TRUE, 
-            values = c(1, 1, 1),
+            values = c(1, 1, 1, 1),
             labels=c("residualw", "varx", "residualy", "varz")
         ),
         # covariance of x and z
@@ -413,7 +414,7 @@ Our code should look very similar to our previous two models. It includes the sa
             to=c("w", "x", "y", "z"),
             arrows=1,
             free=TRUE,
-            values=c(1, 1),
+            values=c(1, 1, 1 , 1),
             labels=c("betaw", "meanx", "betay", "meanz")
         )
     ) # close model

@@ -13,7 +13,8 @@ This section will cover how to periodically save the state of the optimizer to a
 	manifestVars <- names(demoOneFactor)
 
 	factorModel <- mxModel("One Factor",
-	    mxMatrix(type="Full", nrow=5, ncol=1, values=0.2, free=TRUE, name="A", labels=letters[1:5]),
+	    mxMatrix(type="Full", nrow=5, ncol=1, values=0.2, free=TRUE, name="A", 
+	        labels=letters[1:5]),
 	    mxMatrix(type="Symm", nrow=1, ncol=1, values=1, free=FALSE, name="L"),
 	    mxMatrix(type="Diag", nrow=5, ncol=5, values=1, free=TRUE, name="U"),
 	    mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),

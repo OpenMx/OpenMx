@@ -8,7 +8,7 @@ This example will demonstrate a growth curve model using RAM specified matrices.
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixRaw.R
 
-Parallel versions of this example, using path-centric specification of models rather than paths, can be found here:
+Parallel versions of this example, using path-centric specification of models rather than matrices, can be found here:
 
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_PathCov.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_PathRaw.R
@@ -28,7 +28,7 @@ The latent growth curve model is a variation of the factor model for repeated me
 .. image:: graph/GrowthCurveModel.png
     :height: 2.5in
 
-The values and specification of the :math:`\lambda` parameters allow for alterations to the growth curve model. This example will utilize a linear growth curve model, so we will specify :math:`\lambda` to increase linearly with time. If the observations occur at regular intervals in time, then :math:`\lambda` can be specified with any values increasing at a constant rate. For this example, we'll use [0, 1, 2, 3, 4] so that the intercept represents scores at the first measurement occasion, and the slope represents the rate of change per measurement occasion. Any linear transformation of these values can be used for linear growth curve models.
+The values and specification of the :math:`\lambda` parameters allow for alterations to the growth curve model. This example will utilize a linear growth curve model, so we will specify :math:`\lambda` to increase linearly with time. If the observations occur at regular intervals in time, then :math:`\lambda` can be specified with any values increasing at a constant rate. For this example, we will use [0, 1, 2, 3, 4] so that the intercept represents scores at the first measurement occasion, and the slope represents the rate of change per measurement occasion. Any linear transformation of these values can be used for linear growth curve models.
 
 Our model for any number of variables contains 6 free parameters; two factor means, two factor variances, a factor covariance and a (constant) residual variance for the manifest variables. Our data contains five manifest variables, and so the covariance matrix and means vector contain 20 degrees of freedom. Thus, the linear growth curve model fit to these data has 14 degrees of freedom.
 
@@ -47,10 +47,10 @@ The first step to running our model is to import data. The code below is used to
           4.915, 5.825, 9.348,  7.727,  8.968,
           5.045, 6.181, 7.727, 10.821, 10.135,
           5.966, 7.252, 8.968, 10.135, 14.220),
-    nrow=5,
-    dimnames=list(
-        c("x1","x2","x3","x4","x5"),
-        c("x1","x2","x3","x4","x5"))
+        nrow=5,
+        dimnames=list(
+            c("x1","x2","x3","x4","x5"),
+            c("x1","x2","x3","x4","x5"))
     )
 
     myLongitudinalDataMeans <- c(9.864, 11.812, 13.612, 15.317, 17.178)
@@ -58,7 +58,7 @@ The first step to running our model is to import data. The code below is used to
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we'll then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -264,7 +264,7 @@ The expected means are defined as:
    ExpMean = F * (I - A)^{-1} * M 
    \end{eqnarray*} 
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the ``A``, ``S``, ``F`` and ``M`` matrices in your model.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
 

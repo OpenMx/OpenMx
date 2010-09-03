@@ -47,11 +47,11 @@ Our first step to running this model is to simulate the data to be analyzed. Eac
     library(MASS)    # to get hold of mvrnorm function 
 
     set.seed(200)    # to make the simulation repeatable
-    N=500    # sample size, per group
+    N <- 500    # sample size, per group
   
     Sigma <- matrix(c(1,.5,.5,1),2,2)
-    group1<-mvrnorm(N, c(1,2), Sigma)
-    group2<-mvrnorm(N, c(0,0), Sigma)
+    group1 <- mvrnorm(N, c(1,2), Sigma)
+    group2 <- mvrnorm(N, c(0,0), Sigma)
 
 We make use of the superb R function ``mvrnorm`` in order to simulate N=500 records of data for each group.  These observations correlate .5 and have a variance of 1, per the matrix Sigma.  The means of *x* and *y* in group 1 are 1.0 and 2.0, respectively; those in group 2 are both zero.  The output of the ``mvrnorm`` function calls are matrices with 500 rows and 2 columns, which are stored in group 1 and group 2.  Now we create the definition variable
 
@@ -59,10 +59,10 @@ We make use of the superb R function ``mvrnorm`` in order to simulate N=500 reco
 
     # Put the two groups together, create a definition variable, 
     # and make a list of which variables are to be analyzed (selVars)
-    xy<-rbind(group1,group2)
-    dimnames(xy)[2]<-list(c("x","y"))
-    def<-rep(c(1,0),each=N)
-    selVars<-c("x","y")
+    xy <- rbind(group1,group2)
+    dimnames(xy)[2] <- list(c("x","y"))
+    def <- rep(c(1,0),each=N)
+    selVars <- c("x","y")
 
 The objects ``xy`` and ``def`` might be combined in a data frame.  However, in this case we won't bother to do it externally, and simply paste them together in the ``mxData`` function call.
 
@@ -73,11 +73,68 @@ The following code contains all of the components of our model.  Before specifyi
 
 .. code-block:: r
 
-    require(OpenMx)
-    defMeansModel<-mxModel("Definition Means Path Specification", 
+    defMeansModel <- mxModel("Definition Means Path Specification", 
         type="RAM",
+        manifestVars=selVars,
+        latentVars  ="DefDummy",
+        # variances
+        mxPath(
+            from=c("x","y"), 
+            arrows=2, 
+            free= TRUE, 
+            values=1,  
+            labels=c("Varx","Vary")
+        ),
+        # covariances  
+        mxPath(
+            from="x", 
+            to="y", 
+            arrows=2, 
+            free= TRUE, 
+            values=.1, 
+            labels=c("Covxy")
+        ), 
+        # means      
+        mxPath(
+            from="one", 
+            to=c("x","y"), 
+            arrows=1, 
+            free= TRUE, 
+            values=1, 
+            labels=c("meanx","meany")
+        ), 
+        # definition value 
+        mxPath(
+            from="one", 
+            to="DefDummy", 
+            arrows=1, 
+            free= FALSE, 
+            values=1, 
+            labels="data.def"
+        ),    
+        # beta weights
+        mxPath(
+            from="DefDummy", 
+            to=c("x","y"), 
+            arrows=1, 
+            free= TRUE, 
+            values=1, 
+            labels=c("beta_1","beta_2")
+        ), 
+        mxData(
+            observed=data.frame(y,def), 
+            type="raw"
+        )
+    )
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.
+
+.. code-block:: r
+
+    require(OpenMx)
+    
+    defMeansModel<-mxModel("Definition Means Path Specification", 
+        type="RAM",
 
 The second line of the ``mxModel`` function call declares that we are going to be using RAM specification of the model, using directional and bidirectional path coefficients between the variables. 
 
@@ -86,7 +143,7 @@ The second line of the ``mxModel`` function call declares that we are going to b
     manifestVars=c("x","y"),
     latentVars="DefDummy",
 
-Model specification is carried out using two lists of variables, ``manifestVars`` and ``latentVars``.  Then ``mxPath`` functions are used to specify paths between them. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword "one", to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 from that of those with ``data.def`` values of zero.
+Model specification is carried out using two lists of variables, ``manifestVars`` and ``latentVars``.  Then ``mxPath`` functions are used to specify paths between them. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword ``one``, to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Definition variables are part of the data so the first part is always ``data.``.  The second part refers to the actual variable in the dataset whose values are modeled.  The Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 from that of those with ``data.def`` values of zero.
 
 .. code-block:: r
 
@@ -116,7 +173,7 @@ Model specification is carried out using two lists of variables, ``manifestVars`
         values=1, 
         labels=c("meanx","meany")
     ), 
-    # definition value 
+    # definition value
     mxPath(
         from="one", 
         to="DefDummy", 
@@ -157,7 +214,7 @@ Model Fitting
 
     defMeansFit@matrices
 
-The R object ``defmeansFit`` contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFi@matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix A, the two-headed arrows in S, and the mean vector single headed arrows in M.
+The R object ``defmeansFit`` contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFi@matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix **A**, the two-headed arrows in **S**, and the mean vector single headed arrows in **M**.
 
 .. code-block:: r
 
@@ -166,17 +223,17 @@ The R object ``defmeansFit`` contains matrices and algebras; here we are interes
     # so as to estimate variance of combined sample without 
     # the mean difference contributing to the variance estimate.
  
-    # First we compute some summary statistics from the data
+    # First compute some summary statistics from data
     ObsCovs <- cov(rbind(group1 - rep(c(1,2), each=N), group2))
     ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
     ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
-    # Second we extract the parameter estimates and matrix algebra results from the model
+    # Second extract parameter estimates and matrix algebra results from model
     Sigma <- mxEval(S[1:2,1:2], defMeansFit)
     Mu <- mxEval(M[1:2], defMeansFit)
     beta <- mxEval(A[1:2,3], defMeansFit)
 
-    # Third, we check to see if things are more or less equal
+    # Third, check to see if things are more or less equal
     omxCheckCloseEnough(ObsCovs,Sigma,.01)
     omxCheckCloseEnough(ObsMeansGroup1,as.vector(Mu+beta),.001)
     omxCheckCloseEnough(ObsMeansGroup2,as.vector(Mu),.001)
