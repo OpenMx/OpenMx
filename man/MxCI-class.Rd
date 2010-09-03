@@ -19,7 +19,7 @@ The MxCI class has the following slots:
 	upperdelta \tab - \tab A vector for means, or NA if missing \cr
   }
   
-The reference slot contains a character vector of named free parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebras]{MxAlgebras} on which confidence intervals are desired. Individual elements of \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebras]{MxAlgebras} may be listed as well, using the syntax \dQuote{matrix[row,col]} (see \link{Extract} for more information).
+The reference slot contains a character vector of named free parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} on which confidence intervals are desired. Individual elements of \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebras]{MxAlgebras} may be listed as well, using the syntax \dQuote{matrix[row,col]} (see \link{Extract} for more information).
 
 The lowerdelta and upperdelta slots give the changes in likelihoods used to define the confidence interval. The upper bound of the likelihood-based confidence interval is estimated by increasing the parameter estimate, leaving all other parameters free, until the model -2 log likelihood increased by \sQuote{upperdelta}. The lower bound of the confidence interval is estimated by decreasing the parameter estimate, leaving all other parameters free, until the model -2 log likelihood increased by \sQuote{lowerdata}.
 
