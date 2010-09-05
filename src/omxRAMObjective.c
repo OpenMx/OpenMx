@@ -135,8 +135,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
 		
-		return;
-		
 	} else {
 	
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using optimized expansion.\n"); }
