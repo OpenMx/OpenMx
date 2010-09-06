@@ -121,6 +121,11 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@.isSorted <- TRUE
 	} else {
 		observedNames <- colnames(observed)	
+		if (is.null(observedNames)) {
+			msg <- paste("The raw data set in model", omxQuotes(modelname),
+				"does not contain column names")
+			stop(msg, call. = FALSE)
+		}
 		if (length(defVars) > 0) {
 			defkeys <- names(omxFilterDefinitionVariables(defVars, fullname))
 			defkeys <- sapply(defkeys, function(x) {

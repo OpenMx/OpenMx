@@ -377,6 +377,8 @@ First, we simulate twin data using the ``mvrnorm`` R function.  If the additive 
     DataDZ <- mvrnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
 
     selVars <- c('t1','t2')
+	colnames(DataMZ) <- selVars
+	colnames(DataDZ) <- selVars
     describe(DataMZ)
     describe(DataDZ)
     colMeans(DataMZ,na.rm=TRUE)
@@ -501,7 +503,7 @@ Now, we are ready to specify the ACE model to test which sources of variance sig
                 name="expMean"), 
             # Matrices a, c, and e to store the a, c, and e path coefficients		
             mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a11", 
-                name="e"),
+                name="a"),
             mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c11", 
                 name="c"),
             mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e11", 
@@ -543,13 +545,13 @@ Relevant output can be generated with ``print`` or ``summary`` statements or spe
     LRT_ACE= LL_ACE - LL_Sat
 
     #Retrieve expected mean vector and expected covariance matrices
-        MZc <- mxEval(expCovMZ, twinACEFit)
-        DZc <- mxEval(expCovDZ, twinACEFit)
-        M   <- mxEval(expMean, twinACEFit)
+        MZc <- mxEval(ACE.expCovMZ, twinACEFit)
+        DZc <- mxEval(ACE.expCovDZ, twinACEFit)
+        M   <- mxEval(ACE.expMean, twinACEFit)
     #Retrieve the A, C, and E variance components
-        A <- mxEval(A, twinACEFit)
-        C <- mxEval(C, twinACEFit)
-        E <- mxEval(E, twinACEFit)
+        A <- mxEval(ACE.A, twinACEFit)
+        C <- mxEval(ACE.C, twinACEFit)
+        E <- mxEval(ACE.E, twinACEFit)
     #Calculate standardized variance components
         V <- (A+C+E)
         a2 <- A/V
@@ -565,9 +567,10 @@ Similarly to fitting submodels from the saturated model, we typically fit submod
 
 .. code-block:: r
 
-    twinAEModel <- mxModel(twinACEModel,
-        mxMatrix("Full", nrow=1, ncol=1, free=FALSE, values=0, label="c", name="Y")
-    )
+	twinAEModel <- mxRename(twinACEModel, "twinAE")
+	twinAEModel$ACE.c <- mxMatrix(type="Full", nrow=1, ncol=1, 
+		free=FALSE, values=.6, label="c11", name="c")
+
     twinAEFit <- mxRun(twinAEModel)
 
 We discuss twin analysis examples in more detail in the detailed example code.  We hope we have given you some idea of the features of OpenMx.
