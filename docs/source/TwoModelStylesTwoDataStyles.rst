@@ -65,6 +65,8 @@ The model estimates the mean and the variance of the variable X.  We call this m
 
 .. code-block:: r
 
+    require(OpenMx)
+    
     #example 1: Saturated Model with Cov Matrices and Path-Style Input
     univSatModel1 <- mxModel("univSat1",
         manifestVars= selVars,
@@ -119,9 +121,7 @@ With the path specification, the 'RAM' objective function is used by default, as
 
 .. code-block:: r
 
-        type="RAM"
-    )
-
+    
 Model Fitting
 ^^^^^^^^^^^^^
 
@@ -174,7 +174,7 @@ The other required change is in the ``mxData`` command, which now takes a fourth
 .. code-block:: r
 
         mxData(
-            observed=matrix(var(testData),1,1), 
+            observed=var(testData), 
             type="cov", 
             numObs=1000, 
             means=mean(testData)

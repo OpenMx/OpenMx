@@ -70,12 +70,16 @@ Our first step to running this model is to include the data to be analyzed. The 
 
     oneFactorMeans <- myFADataMeans[1:6]
 
+
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
+
+    manifestVars <- c("x1","x2","x3","x4","x5","x6")
+    latentVars <- "F1"
 
     oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
         mxData(
@@ -153,7 +157,8 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,0,1,0,0,
                      0,0,0,0,0,1,0),
             byrow=TRUE,
-            name="F"
+            name="F",
+            dimnames=list(manifestVars, c(manifestVars, latentVars))
         ),
         # means
         mxMatrix(

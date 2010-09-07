@@ -29,7 +29,7 @@ A twin analysis is a typical example of multiple groups, in this case MZ twins a
 Data
 ^^^^
 
-Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file 'myTwinData.txt'.  We use R to read the data into a data.frame and to create two subsets of the data for MZ females (mzfData) and DZ females (dzfData) respectively with the code below.  We also define the objects ``selVars`` for the variables selected for analysis, and ``aceVars`` for the latent variables to simplify the OpenMx code.
+Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file 'myTwinData.txt'.  We use R to read the data into a data.frame and to create two subsets of the data for MZ females (mzData) and DZ females (dzData) respectively with the code below.  We also define the objects ``selVars`` for the variables selected for analysis, and ``aceVars`` for the latent variables to simplify the OpenMx code.
 
 .. code-block:: r
 
@@ -347,7 +347,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
             values=1
         ),
         mxData(
-            observed=mzfData, 
+            observed=mzData, 
             type="raw"
         )
     )
@@ -360,7 +360,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
             values=.5
         ),
         mxData(
-            observed=dzfData, 
+            observed=dzData, 
             type="raw"
         )
     )        

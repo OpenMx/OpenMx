@@ -32,12 +32,12 @@ require(OpenMx)
 data(twinData)
 summary(twinData)
 selVars <- c('bmi1','bmi2')
-mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-colMeans(mzfData,na.rm=TRUE)
-colMeans(dzfData,na.rm=TRUE)
-cov(mzfData,use="complete")
-cov(dzfData,use="complete")
+mzData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
+dzData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
+colMeans(mzData,na.rm=TRUE)
+colMeans(dzData,na.rm=TRUE)
+cov(mzData,use="complete")
+cov(dzData,use="complete")
 
 #Fit ACE Model with RawData and Matrices Input
 # -----------------------------------------------------------------------
@@ -107,7 +107,7 @@ twinACEModel <- mxModel("twinACE",
 	),
 	mxModel("MZ",
 	    mxData(
-			observed=mzfData, 
+			observed=mzData, 
 			type="raw"
 		), 
 	    mxFIMLObjective(
@@ -118,7 +118,7 @@ twinACEModel <- mxModel("twinACE",
 	),
 	mxModel("DZ",
 	    mxData(
-			observed=dzfData, 
+			observed=dzData, 
 			type="raw"
 		), 
 	    mxFIMLObjective(

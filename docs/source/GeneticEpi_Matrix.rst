@@ -20,7 +20,7 @@ ACE Model: a Twin Analysis
 Data
 ^^^^
 
-Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file 'myTwinData.txt'.  We use R to read the data into a data.frame and to create two subsets of the data for MZ females (mzfData) and DZ females (dzfData) respectively with the code below.
+Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file 'myTwinData.txt'.  We use R to read the data into a data.frame and to create two subsets of the data for MZ females (mzData) and DZ females (dzData) respectively with the code below.
 
 .. code-block:: r
 
@@ -32,12 +32,12 @@ Let us assume you have collected data on a large sample of twin pairs for your p
                     'wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
     summary(myTwinData)
     selVars <- c('bmi1','bmi2')
-    mzfData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
-    dzfData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
-    colMeans(mzfData,na.rm=TRUE)
-    colMeans(dzfData,na.rm=TRUE)
-    cov(mzfData,use="complete")
-    cov(dzfData,use="complete")
+    mzData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
+    dzData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
+    colMeans(mzData,na.rm=TRUE)
+    colMeans(dfData,na.rm=TRUE)
+    cov(mzData,use="complete")
+    cov(dzData,use="complete")
 
 
 Model Specification
@@ -68,7 +68,7 @@ Let's go through each of the matrices step by step.  First, we start with the ``
                 ncol=1, 
                 free=TRUE, 
                 values=0.6, 
-                label="a11", 
+                labels="a11", 
                 name="a" 
             ),
             mxMatrix( 
@@ -77,7 +77,7 @@ Let's go through each of the matrices step by step.  First, we start with the ``
                 ncol=1, 
                 free=TRUE, 
                 values=0.6, 
-                label="c11", 
+                labels="c11", 
                 name="c" 
             ),
             mxMatrix( 
@@ -86,7 +86,7 @@ Let's go through each of the matrices step by step.  First, we start with the ``
                 ncol=1, 
                 free=TRUE, 
                 values=0.6, 
-                label="e11", 
+                labels="e11", 
                 name="e" 
             ),
         # Matrices A, C, and E compute variance components
@@ -261,18 +261,18 @@ Previous Mx users will likely be familiar with the look of the expected covarian
 .. code-block:: r
 
     # Algebra for expected variance/covariance matrix in MZ
-    mxAlgebra(
-        expression=rbind (cbind(A + C + E , A + C),
-                          cbind(A + C     , A + C + E)), 
-        name="expCovMZ"
-    ),
+        mxAlgebra(
+            expression=rbind (cbind(A + C + E , A + C),
+                              cbind(A + C     , A + C + E)), 
+            name="expCovMZ"
+        ),
     # Algebra for expected variance/covariance matrix in DZ
-    mxAlgebra(
-        expression=rbind (cbind(A + C + E     , 0.5 %x% A + C),
-                          cbind(0.5 %x% A + C , A + C + E)), 
-        name="expCovDZ"
+        mxAlgebra(
+            expression=rbind (cbind(A + C + E     , 0.5 %x% A + C),
+                              cbind(0.5 %x% A + C , A + C + E)), 
+            name="expCovDZ"
+        )
     )
-    ),
 
 As the expected covariance matrices are different for the two groups of twins, we specify two ``mxModel`` commands within the 'twinACE' mxModel command.  They are given a name, and arguments for the data and the objective function to be used to optimize the model.  We have set the model up for raw data, and thus will use the ``mxFIMLObjective`` function to evaluate it.  For each model, the ``mxData`` command calls up the appropriate data, and provides a type, here ``raw``, and the ``mxFIMLObjective`` command is given the names corresponding to the respective expected covariance matrices and mean vectors, specified above.  Given the objects ``expCovMZ``, ``expCovDZ`` and ``expMean`` were created in the mxModel named ``twinACE`` we need to use two-level names, starting with the model name separated from the object with a dot, i.e. ``twinACE.expCovMZ``.
 

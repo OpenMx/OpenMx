@@ -35,12 +35,12 @@ twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','
 summary(twinData)
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
-mzfData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-dzfData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-colMeans(mzfData,na.rm=TRUE)
-colMeans(dzfData,na.rm=TRUE)
-cov(mzfData,use="complete")
-cov(dzfData,use="complete")
+mzData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
+dzData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
+colMeans(mzData,na.rm=TRUE)
+colMeans(dzData,na.rm=TRUE)
+cov(mzData,use="complete")
+cov(dzData,use="complete")
 
 #Fit ACE Model with RawData and Path-Style Input
 # -----------------------------------------------------------------------
@@ -102,7 +102,7 @@ mzModel <- mxModel(ACEModel, name="MZ",
 		values=1
 	),
 	mxData(
-		observed=mzfData, 
+		observed=mzData, 
 		type="raw"
 	)
 )
@@ -115,7 +115,7 @@ dzModel <- mxModel(ACEModel, name="DZ",
     	values=.5
     ),
     mxData(
-    	observed=dzfData, 
+    	observed=dzData, 
     	type="raw"
     )
 )
@@ -194,7 +194,7 @@ mzModel <- mxModel(AEModel, name="MZ",
 		values=1
 	),
 	mxData(
-		observed=mzfData, 
+		observed=mzData, 
 		type="raw"
 	)
 )
@@ -207,7 +207,7 @@ dzModel <- mxModel(AEModel, name="DZ",
     	values=.5
     ),
     mxData(
-    	observed=dzfData, 
+    	observed=dzData, 
     	type="raw"
     )
 )    
