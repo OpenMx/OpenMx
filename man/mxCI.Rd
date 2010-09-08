@@ -65,10 +65,10 @@ model <- mxModel("Confidence Interval Example",
 	mxMLObjective("expectedCov", dimnames=c("a", "b")))
 
 # run the model	
-results <- mxRun(model, intervals=T)
+results <- mxRun(model, intervals=TRUE)
 
 # view confidence intervals
-print(results@output$confidenceIntervals)
+print(summary(results)$CI)
 
 # view all results
 summary(results)
