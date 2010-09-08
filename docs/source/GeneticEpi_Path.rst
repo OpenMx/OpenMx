@@ -42,12 +42,12 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     summary(myTwinData)
     selVars <- c('bmi1','bmi2')
     aceVars <- c("A1","C1","E1","A2","C2","E2")
-    mzfData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
-    dzfData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
-    colMeans(mzfData,na.rm=TRUE)
-    colMeans(dzfData,na.rm=TRUE)
-    cov(mzfData,use="complete")
-    cov(dzfData,use="complete")
+    mzData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
+    dzData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
+    colMeans(mzData,na.rm=TRUE)
+    colMeans(dzData,na.rm=TRUE)
+    cov(mzData,use="complete")
+    cov(dzData,use="complete")
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -124,7 +124,7 @@ Let's go through the paths specification step by step.  First, we start with the
             values=1
         ),
         mxData(
-            observed=mzfData, 
+            observed=mzData, 
             type="raw"
         )
     )
@@ -138,7 +138,7 @@ Let's go through the paths specification step by step.  First, we start with the
             values=.5
         ),
         mxData(
-            observed=dzfData, 
+            observed=dzData, 
             type="raw"
         )
     )
@@ -235,7 +235,7 @@ As the common environmental factors are by definition the same for both twins, w
         values=1
     ))
 
-We add the paths that are specific to the MZ group or the DZ group into the respective models, ``mzModel`` and ``dzModel``, which are combined in ``twinACEModel``.  So we have two ``mxModel`` statements following the ``ACEModel`` model statement.  Each of the two models have access to all the paths already defined given ``ACEModel`` is the first argument of ``mzModel`` and ``dzModel``.  In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  That concludes the specification of the model for the MZ's, thus we move to the ``mxData`` command that calls up the data.frame with the MZ raw data, ``mzfData``, with the type specified explicitly.  We also give the model a name, ``MZ``, to refer back to it later when we need to add the objective functions.
+We add the paths that are specific to the MZ group or the DZ group into the respective models, ``mzModel`` and ``dzModel``, which are combined in ``twinACEModel``.  So we have two ``mxModel`` statements following the ``ACEModel`` model statement.  Each of the two models have access to all the paths already defined given ``ACEModel`` is the first argument of ``mzModel`` and ``dzModel``.  In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  That concludes the specification of the model for the MZ's, thus we move to the ``mxData`` command that calls up the data.frame with the MZ raw data, ``mzData``, with the type specified explicitly.  We also give the model a name, ``MZ``, to refer back to it later when we need to add the objective functions.
 
 .. code-block:: r
 
@@ -249,12 +249,12 @@ We add the paths that are specific to the MZ group or the DZ group into the resp
             values=1
         ),
         mxData(
-            observed=mzfData, 
+            observed=mzData, 
             type="raw"
         )
     )
 
-The ``mxModel`` command for the DZ group is very similar, except that the the correlation between **A1** and **A2** is fixed to 0.5 and the DZ data, ``dzfData`` are read in, and the model is named ``DZ``.  Note that OpenMx can handle constants in algebra.
+The ``mxModel`` command for the DZ group is very similar, except that the the correlation between **A1** and **A2** is fixed to 0.5 and the DZ data, ``dzData`` are read in, and the model is named ``DZ``.  Note that OpenMx can handle constants in algebra.
 
 .. code-block:: r
 
@@ -268,7 +268,7 @@ The ``mxModel`` command for the DZ group is very similar, except that the the co
             values=.5
         ),
         mxData(
-            observed=dzfData, 
+            observed=dzData, 
             type="raw"
         )
     )

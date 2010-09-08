@@ -136,5 +136,5 @@ oneFactorThresholdModel <- mxModel("oneFactorThresholdModel",
     )
 )
 
-oneFactorThresholdFit <- mxRun(oneFactorThresholdModel)
+oneFactorThresholdFit <- mxRun(oneFactorThresholdModel, suppressWarnings=TRUE)
 summary(oneFactorThresholdFit)

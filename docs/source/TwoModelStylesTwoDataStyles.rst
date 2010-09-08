@@ -68,7 +68,8 @@ The model estimates the mean and the variance of the variable X.  We call this m
     require(OpenMx)
     
     #example 1: Saturated Model with Cov Matrices and Path-Style Input
-    univSatModel1 <- mxModel("univSat1",
+    univSatModel1 <- mxModel("univSat1", 
+		type="RAM",
         manifestVars= selVars,
         mxPath(
             from=c("X"), 
@@ -82,8 +83,7 @@ The model estimates the mean and the variance of the variable X.  We call this m
             observed=var(testData), 
             type="cov", 
             numObs=1000 
-        ),
-        type="RAM"
+        )
     )
 
 Each of of the commands are discussed separately beside excerpts of the OpenMx code.  We use the ``mxModel`` command to specify the model.  Its first argument is a name.  All arguments are separated by commas.
@@ -96,7 +96,8 @@ When using the path specification, it is easiest to work from an existing path d
 
 .. code-block:: r
 
-        manifestVars=selVars ,
+		type="RAM",
+        manifestVars=selVars,
         
         mxPath(
             from=c("X"), 
@@ -115,11 +116,9 @@ We specify which data the model is fitted to with the ``mxData`` command.  Its f
             observed=var(testData), 
             type="cov", 
             numObs=1000
-        ),
+        ))
 
 With the path specification, the 'RAM' objective function is used by default, as indicated by the ``type`` argument.  Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see refs].
-
-.. code-block:: r
 
     
 Model Fitting

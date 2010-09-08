@@ -201,7 +201,7 @@ We then use the reverse function ``vec2diag`` to put the residual variances on t
     mxAlgebra(
         expression=facLoadings %*% t(facLoadings) + vec2diag(resVariances), 
         name="expCovariances"
-    ),
+    )
     
 When fitting to ordinal rather than continuous data, we estimate thresholds rather than means.  The matrix of thresholds is of size **nThresholds x nVariables** where ``nThresholds`` is one less than the number of categories for the ordinal variable(s).  We still specify a matrix of means, however, it is fixed to zero.  An alternative approach is to fix the first two thresholds (to zero and one, see below), which allows us to estimate means and variances in a similar way to fitting to continuous data.  Let's first specify the model with zero means and free thresholds.
 
@@ -377,7 +377,7 @@ We will only highlight the changes from the previous model specification.  By fi
         lbound=-.99, 
         ubound=2, 
         name="facLoadings"
-    ),
+    )
     mxMatrix(
         type="Diag", 
         nrow=nVariables, 
@@ -385,11 +385,11 @@ We will only highlight the changes from the previous model specification.  By fi
         free=TRUE,
         values=0.9,
         name="resVariances"
-    ),
+    )
     mxAlgebra(
         expression=facLoadings %*% t(facLoadings) + resVariances, 
         name="expCovariances"
-    ),
+    )
     
 Next, we now estimate the means for the observed variables and thus change the ``expMeans`` matrix to a ``Full`` matrix, and set it free.  The most complicated change happens to the matrix of ``thresholdDeviations``.  Its type and dimensions stay the same.  However, we now fix the first two thresholds, but allow the remainder of the thresholds (in this case, just one) to be estimated.  We use the R ``rep`` function to make this happen.  The ``values`` statement now has the fixed value of 0 for the first threshold, the fixed value of 1 for the second threshold, and the start value of .2 for the remaining threshold(s).  Finally, no change is required for the ``lbound`` matrix, which is still necessary to keep the estimated increments (third threshold and possible more) positive.
 
@@ -401,7 +401,7 @@ Next, we now estimate the means for the observed variables and thus change the `
         ncol=nVariables,
         free=TRUE,
         name="expMeans"
-    ),
+    )
     mxMatrix(
         type="Full", 
         nrow=nThresholds, 
@@ -411,7 +411,7 @@ Next, we now estimate the means for the observed variables and thus change the `
         lbound=rep( c(-Inf,rep(.01,(nThresholds-1))), nVariables),
         dimnames=list(c(), fruitynames),
         name="thresholdDeviations"
-    ),
+    )
 
 These are all the changes required to fit the alternative specification, which should give the same likelihood and goodness-of-fit statistics as the original one.  We have added some matrices and algebra to calculate the 'standardized' thresholds and factor loadings which should be equal to those obtained with the original specification.  To standardize the thresholds, the respective mean is subtracted from the thresholds, by expanding the means matrix to the same size as the threshold matrix.  The result is divided by the corresponding standard deviation.  To standardize the factor loadings, they are pre-multiplied by the inverse of the standard deviations.
  
@@ -422,27 +422,27 @@ These are all the changes required to fit the alternative specification, which s
         nrow=nThresholds,
         ncol=1,
         name="columnofOnes"
-    ),
+    )
     mxAlgebra(
         expression=expMeans %x% columnofOnes,
         name="meansMatrix"
-    ),
+    )
     mxAlgebra(
         expression=sqrt(t(diag2vec(expCovariances))) %x% columnofOnes,
         name="variancesMatrix"
-    ),
+    )
     mxAlgebra(
         expression=(expThresholds - meansMatrix) / variancesMatrix,
         name="thresholdMatrix"
-    ),
+    )
     mxMatrix( 
         type="Iden", 
         nrow=nVariables, 
         ncol=nVariables, 
         name="Identity"
-    ),
+    )
     mxAlgebra(
         expression=solve(sqrt(Identity * expCovariances)) %*% facLoadings,
         name="facLoadingsMatrix"
-    ),
+    )
     

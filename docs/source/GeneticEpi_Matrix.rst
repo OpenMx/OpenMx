@@ -35,7 +35,7 @@ Let us assume you have collected data on a large sample of twin pairs for your p
     mzData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
     dzData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
     colMeans(mzData,na.rm=TRUE)
-    colMeans(dfData,na.rm=TRUE)
+    colMeans(dzData,na.rm=TRUE)
     cov(mzData,use="complete")
     cov(dzData,use="complete")
 
@@ -131,7 +131,7 @@ Let's go through each of the matrices step by step.  First, we start with the ``
         ),
         mxModel("MZ",
             mxData(
-                observed=mzfData, 
+                observed=mzData, 
                 type="raw"
             ), 
             mxFIMLObjective(
@@ -142,7 +142,7 @@ Let's go through each of the matrices step by step.  First, we start with the ``
         ),
         mxModel("DZ", 
             mxData(
-                observed=dzfData, 
+                observed=dzData, 
                 type="raw"
             ), 
             mxFIMLObjective(
@@ -272,7 +272,7 @@ Previous Mx users will likely be familiar with the look of the expected covarian
                               cbind(0.5 %x% A + C , A + C + E)), 
             name="expCovDZ"
         )
-    )
+    ),
 
 As the expected covariance matrices are different for the two groups of twins, we specify two ``mxModel`` commands within the 'twinACE' mxModel command.  They are given a name, and arguments for the data and the objective function to be used to optimize the model.  We have set the model up for raw data, and thus will use the ``mxFIMLObjective`` function to evaluate it.  For each model, the ``mxData`` command calls up the appropriate data, and provides a type, here ``raw``, and the ``mxFIMLObjective`` command is given the names corresponding to the respective expected covariance matrices and mean vectors, specified above.  Given the objects ``expCovMZ``, ``expCovDZ`` and ``expMean`` were created in the mxModel named ``twinACE`` we need to use two-level names, starting with the model name separated from the object with a dot, i.e. ``twinACE.expCovMZ``.
 
@@ -280,7 +280,7 @@ As the expected covariance matrices are different for the two groups of twins, w
 
     mxModel("MZ",
         mxData(
-            observed=mzfData, 
+            observed=mzData, 
             type="raw"
         ), 
         mxFIMLObjective(
@@ -291,7 +291,7 @@ As the expected covariance matrices are different for the two groups of twins, w
     ),
     mxModel("DZ", 
         mxData(
-            observed=dzfData, 
+            observed=dzData, 
             type="raw"
         ), 
         mxFIMLObjective(
@@ -348,26 +348,26 @@ To evaluate the significance of each of the model parameters, nested submodels a
 .. code-block:: r
 
     #Run AE model
-    twinAEModel <- mxModel(twinACEModel, 
-        # drop shared environmental path
+	twinAEModel <- mxRename(twinACEModel, "twinAE")
+    
+    # drop shared environmental path
+    twinAEModel$ACE.c <-  
         mxMatrix(
             type="Full", 
             nrow=1, 
             ncol=1, 
             free=F, 
             values=0, 
-            label="c11", 
-            name="c"
+            label="c11"
         )
-    )
     
     twinAEFit <- mxRun(twinAEModel)
 
-    MZc <- mxEval(expCovMZ, twinAEFit)
-    DZc <- mxEval(expCovDZ, twinAEFit)
-    A <- mxEval(A, twinAEFit)
-    C <- mxEval(C, twinAEFit)
-    E <- mxEval(E, twinAEFit)
+    MZc <- mxEval(ACE.expCovMZ, twinAEFit)
+    DZc <- mxEval(ACE.expCovDZ, twinAEFit)
+    A <- mxEval(ACE.A, twinAEFit)
+    C <- mxEval(ACE.C, twinAEFit)
+    E <- mxEval(ACE.E, twinAEFit)
     V <- (A+C+E)
     a2 <- A/V
     c2 <- C/V

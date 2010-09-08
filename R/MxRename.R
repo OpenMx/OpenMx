@@ -95,7 +95,11 @@ renameConstraint <- function(constraint, oldname, newname) {
 
 
 renameSymbol <- function(symbol, oldname, newname) {
-	return(as.symbol(renameReference(as.character(symbol), oldname, newname)))
+	if (is.numeric(symbol) || is.character(symbol)) {
+		return(symbol)
+	} else {
+		return(as.symbol(renameReference(as.character(symbol), oldname, newname)))
+	}
 }
 
 renameAlgebra <- function(algebra, oldname, newname) {

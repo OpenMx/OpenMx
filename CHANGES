@@ -5,6 +5,8 @@ trunk
 * defualt behavior is to disable standard error calculations when model contains nonlinear constraints
 * improved error messages for NA values in definition variables
 * added error message when expected covariance dimnames and threshold dimnames do not contain the same elements.
+* fixed a bug when mxRename() encounters a numeric or character literal.
+* new chapters added to OpenMx user guide.
 
 Release 0.5.2-1376 (August 29, 2010)
 ====================================
