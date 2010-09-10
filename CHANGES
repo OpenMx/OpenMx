@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.9.0-1417 (September 10, 2010)
+=======================================
 * improved error messages for non 1 x n means vectors in FIML and ML
 * fixed a performance bug that was forcing too many recalculations of the covariance matrix in FIML optimizations.
 * defualt behavior is to disable standard error calculations when model contains nonlinear constraints
@@ -7,6 +7,7 @@ trunk
 * added error message when expected covariance dimnames and threshold dimnames do not contain the same elements.
 * fixed a bug when mxRename() encounters a numeric or character literal.
 * new chapters added to OpenMx user guide.
+* fixed a bug in -2 log likelihood calculation with missing data
 
 Release 0.5.2-1376 (August 29, 2010)
 ====================================
