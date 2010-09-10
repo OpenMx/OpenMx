@@ -266,19 +266,21 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
-	sum = 0.0;
+    sum = 0.0;
+    int row = 0;
 
-	for(int row = 0; row < data->rows; row++) {
-		oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		logDet = 0.0;
-		Q = 0.0;
+    while(row < data->rows) {
+        // Rprintf("Row %d.\n", row); //:::DEBUG:::
+        oo->matrix->currentState->currentRow = row;		// Set to a new row.
+        logDet = 0.0;
+        Q = 0.0;
 
-		// Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
-		numCols = 0;
-		numRemoves = 0;
+        // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
+        numCols = 0;
+        numRemoves = 0;
 
-		// Handle Definition Variables.
-		if(numDefs != 0) {
+        // Handle Definition Variables.
+        if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
 				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
@@ -352,6 +354,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			if(returnRowLikelihoods) {
 			    omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1.0);
 			}
+    		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+            // Rprintf("Incrementing Row."); //:::DEBUG:::
+            row += 1;
+    		keepCov -= 1;
+    		keepInverse -= 1;
 			continue;
 		}
 
@@ -438,9 +446,10 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-		row += (numIdentical - 1);		// Step forward by the number of identical rows
-		keepCov-=numIdentical;
-		keepInverse-=numIdentical;
+        // Rprintf("Incrementing Row."); //:::DEBUG:::
+		row += numIdentical;		// Step forward by the number of identical rows
+		keepCov -= numIdentical;
+		keepInverse -= numIdentical;
 	}
 
     if(!returnRowLikelihoods) {
@@ -515,8 +524,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	sum = 0.0;
 	int firstRow = 1;
+    int row = 0;
 
-	for(int row = 0; row < data->rows; row++) {
+	while(row < data->rows) {
+        // Rprintf("Row %d.\n", row); //:::DEBUG:::
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
 		Q = 0.0;
 
@@ -570,6 +581,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			if(returnRowLikelihoods) {
 				omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1);
 			}
+			if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+            // Rprintf("Incrementing Row."); //:::DEBUG:::
+    		row += 1;
+    		keepCov -= 1;
+    		keepInverse -= 1;
 			continue;
 		}
 		
@@ -601,6 +618,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 					return;
 				} else {
 					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+                    // Rprintf("Incrementing Row."); //:::DEBUG:::
+                    row += 1;
+            		keepCov -= 1;
+            		keepInverse -= 1;
 					continue;
 				}
 			}
@@ -622,6 +645,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 					return;
 				} else {
 					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+                    // Rprintf("Incrementing Row."); //:::DEBUG:::
+                    row += 1;
+            		keepCov -= 1;
+            		keepInverse -= 1;
 					continue;
 				}
 			}
@@ -647,7 +676,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-		row += (numIdentical - 1);
+        // Rprintf("Incrementing Row."); //:::DEBUG:::
+		row += numIdentical;
 		keepCov -= numIdentical;
 		keepInverse -= numIdentical;
 	}
