@@ -89,7 +89,7 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	int onei = 1;
 	
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
-		error("Internal Error: RAM Metadata imporperly populated.  Please report this to the OpenMx development team.");
+		error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 	
 	if(Cov == NULL || Means == NULL) {

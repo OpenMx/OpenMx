@@ -435,13 +435,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
             }
         }
-		row += (numIdentical - 1);		// Step forward by the number of identical rows
-
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-		keepCov--;
-		keepInverse--;
+		row += (numIdentical - 1);		// Step forward by the number of identical rows
+		keepCov-=numIdentical;
+		keepInverse-=numIdentical;
 	}
 
     if(!returnRowLikelihoods) {
@@ -575,6 +574,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 		
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
+		
+		if(OMX_DEBUG_ROWS) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
 		if(keepInverse <= 0 || keepCov <= 0 || firstRow) { // If defs and missingness don't change, skip.
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
@@ -643,12 +644,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			sum += (log(determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);}
 		}
-		row += (numIdentical - 1);
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-		keepCov--;
-		keepInverse--;
+		row += (numIdentical - 1);
+		keepCov -= numIdentical;
+		keepInverse -= numIdentical;
 	}
 
     if(!returnRowLikelihoods) {
