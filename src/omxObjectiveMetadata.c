@@ -37,6 +37,11 @@ typedef struct omxRAMMetadata {
 
 void omxCallRAMSubObjective(void* subObjective, omxMatrix* cov, omxMatrix* means) {
 	omxRAMMetadata* oro = (omxRAMMetadata*)(subObjective);
+	
+	omxRecompute(oro->A);
+	omxRecompute(oro->S);
+	omxRecompute(oro->F);
+	omxRecompute(oro->M);
 
 	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, cov, means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
 }
