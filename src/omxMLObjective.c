@@ -222,11 +222,12 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
 
-	if(OMX_DEBUG) { Rprintf("Retreiving data.\n"); }
+	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
-	if(strncmp(omxDataType(dataMat), "cov", 3) != 0) {
+	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
+			if(OMX_DEBUG) { Rprintf("Raw Data: Converting to FIML.\n"); }
 			omxInitFIMLObjective(oo, rObj);
 			return;
 		}
@@ -234,6 +235,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 		sprintf(errstr, "ML Objective unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
+		if(OMX_DEBUG) { Rprintf("ML Objective unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
 		return;
 	}
 	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
