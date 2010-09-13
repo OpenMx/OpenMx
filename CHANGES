@@ -1,3 +1,7 @@
+Release 0.9.1-1421 (September 12, 2010)
+=======================================
+* fixed a bug in -2 LL calculation in RAM models with definition variables and raw data
+
 Release 0.9.0-1417 (September 10, 2010)
 =======================================
 * improved error messages for non 1 x n means vectors in FIML and ML
