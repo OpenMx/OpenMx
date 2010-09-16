@@ -1,3 +1,7 @@
+trunk
+=====
+* fixed a bug in mxRename() when encountering symbol of missingness
+
 Release 0.9.1-1421 (September 12, 2010)
 =======================================
 * fixed a bug in -2 LL calculation in RAM models with definition variables and raw data

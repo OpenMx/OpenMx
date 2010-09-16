@@ -119,8 +119,10 @@ renameFormula <- function(formula, oldname, newname) {
 	} else if (len == 1) {
 		formula <- renameSymbol(formula, oldname, newname)
 	} else {
-		formula[-1] <- lapply(formula[-1], 
-			renameFormula, oldname, newname)
+		tail <- formula[-1]
+		select <- sapply(tail, function(x) { !identical(as.character(x), '') })
+		tail[select] <- lapply(tail[select], renameFormula, oldname, newname)
+		formula[-1] <- tail
 	}
 	return(formula)
 }
