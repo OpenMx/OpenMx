@@ -1,6 +1,7 @@
 trunk
 =====
 * fixed a bug in mxRename() when encountering symbol of missingness
+* bugfix for crash when '*' is used instead of '%*%'
 
 Release 0.9.1-1421 (September 12, 2010)
 =======================================

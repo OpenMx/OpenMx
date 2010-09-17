@@ -565,6 +565,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
 			omxRaiseError(result->currentState, -1, errstr);
 			Free(errstr);
+			return;
 		}
 		totalCols += matList[j]->cols;
 	}
@@ -583,7 +584,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		int offset = 0;
 		for(int j = 0; j < numArgs; j++) {	
 			omxMatrix* current = matList[j];
-			int size = current->rows * current->cols;	
+			int size = current->rows * current->cols;
 			memcpy(result->data + offset, current->data, size * sizeof(double));
 			offset += size;
 		}
@@ -616,6 +617,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
 			omxRaiseError(result->currentState, -1, errstr);
 			Free(errstr);
+			return;
 		}
 		totalRows += matList[j]->rows;
 	}
