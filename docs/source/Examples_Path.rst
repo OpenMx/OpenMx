@@ -14,4 +14,5 @@ Examples, Path Specification
    MultipleGroups_Path
    GeneticEpi_Path
    DefinitionMeans_Path
+   GrowthMixtureModel_Path
 

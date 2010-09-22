@@ -93,7 +93,7 @@ class2 <- mxModel(class1,
         arrows=2,
         all=TRUE,
         free=TRUE, 
-        values=c(2, .3, .3, .5),
+        values=c(1, .5, .5, 1),
         labels=c("vari2", "cov2", "cov2", "vars2")
     ),
     # latent means
@@ -113,7 +113,8 @@ class1@objective@vector <- TRUE
 class2@objective@vector <- TRUE
      
 # make a matrix of class probabilities
-classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), values=.5, lbound=0.001,
+classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
+          values=.2, lbound=0.001, ubound=0.999,
           labels = c("pclass1", "pclass2[1,1]"), name="classProbs")
 
 classA <- mxAlgebra(1-pclass1, name="pclass2")

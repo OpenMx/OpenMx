@@ -15,3 +15,4 @@ Examples, Matrix Specification
    DefinitionMeans_Matrix
    Likelihood_Matrix
    FactorAnalysisOrdinal_Matrix
+   GrowthMixtureModel_Matrix
