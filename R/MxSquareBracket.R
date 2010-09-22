@@ -33,78 +33,20 @@ hasSquareBrackets <- function(input) {
     return(length(match1) > 0 && length(match2) > 0)
 }
 
-convertSquareBracketLabels <- function(model) {
-	if(length(model@matrices) > 0) {
-		for(i in 1:length(model@matrices)) {
-			model <- convertSquareBracketHelper(model, i)
-		}
+verifySquareBracket <- function(squareBracket, matrixName) {
+	components <- splitSubstitution(squareBracket)
+	row <- components[[2]]
+	col <- components[[3]]
+	rowmatch <- grep("^[0-9]+$", row)
+	colmatch <- grep("^[0-9]+$", col)
+	if (length(rowmatch) == 0 || length(colmatch) == 0) {
+		msg <- paste("Illegal label",
+			omxQuotes(squareBracket),
+			"detected in matrix", paste(omxQuotes(matrixName), '.', sep=''),
+			"Square brackets must contain numeric literals",
+			"when used inside of labels.")
+		stop(msg, call. = FALSE)
 	}
-	if(length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			if (model@submodels[[i]]@independent == FALSE) {
-				model@submodels[[i]] <- convertSquareBracketLabels(model@submodels[[i]])
-			}
-		}
-	}
-	return(model)
-}
-
-undoSquareBracketLabels <- function(model) {
-	if(length(model@matrices) > 0) {
-		for(i in 1:length(model@matrices)) {
-			model <- undoSquareBracketHelper(model, i)
-		}
-	}
-	if(length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			if (model@submodels[[i]]@independent == FALSE) {
-				model@submodels[[i]] <- undoSquareBracketLabels(model@submodels[[i]])
-			}
-		}
-	}
-	return(model)
-}
-
-convertSquareBracketHelper <- function(model, index) {
-	target <- model@matrices[[index]]
-	labels <- target@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
-	rows <- row(labels)[select]
-	cols <- col(labels)[select]
-	subs <- labels[select]
-	if (length(subs) > 0) {
-		for (i in 1:length(subs)) {
-			row <- rows[[i]]
-			col <- cols[[i]]
-			formula <- parse(text = subs[[i]])
-			name <- paste(target@name, '[', row, ',', col, ']', sep='')
-			algebra <- eval(substitute(mxAlgebra(x), list(x = formula[[1]])))
-			model[[name]] <- algebra
-			model@matrices[[index]]@labels[row,col] <- name
-		}
-	}
-	return(model)
-}
-
-undoSquareBracketHelper <- function(model, index) {
-	target <- model@matrices[[index]]
-	labels <- target@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
-	rows <- row(labels)[select]
-	cols <- col(labels)[select]
-	subs <- labels[select]
-	if (length(subs) > 0) {
-		for (i in 1:length(subs)) {
-			row <- rows[[i]]
-			col <- cols[[i]]
-			name <- paste(target@name, '[', row, ',', col, ']', sep='')
-			algebra <- model[[name]]
-			newlabel <- deparse(algebra@formula, width.cutoff = 500)
-			model@matrices[[index]]@labels[row,col] <- newlabel
-			model[[name]] <- NULL
-		}
-	}
-	return(model)
 }
 
 generateMatrixReferences <- function(model) {
@@ -124,11 +66,12 @@ generateMatrixReferences <- function(model) {
 		subs <- labels[select]
 		if (length(subs) > 0) {
 			for (j in 1:length(subs)) {
-				identifier <- subs[[j]]
-				fromrow <- 0L
-				fromcol <- 0L
-				torow <- as.integer(rows[j] - 1)
-				tocol <- as.integer(cols[j] - 1)
+				components <- splitSubstitution(subs[[j]])
+				identifier <- components[[1]]
+				fromrow <- as.integer(components[[2]]) - 1L
+				fromcol <- as.integer(components[[3]]) - 1L
+				torow <- as.integer(rows[j]) - 1L
+				tocol <- as.integer(cols[j]) - 1L
 				index <- omxLocateIndex(model, identifier, name)
 				len <- length(retval[[name]])
 				retval[[name]][[len + 1]] <- c(index, fromrow, fromcol, torow, tocol)

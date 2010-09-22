@@ -112,6 +112,9 @@ setMethod("omxVerifyMatrix", "MxMatrix",
 				omxQuotes(.Object@name), 
 				"have different dimensions"), call.=FALSE)
 		}
+		select <- !apply(.Object@labels, c(1,2), is.na) & apply(.Object@labels, c(1,2), hasSquareBrackets)
+		subs <- .Object@labels[select]
+		lapply(subs, verifySquareBracket, .Object@name)
 		if (omxSquareMatrix(.Object)) {
 			verifySquare(.Object)
 		}

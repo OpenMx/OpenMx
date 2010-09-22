@@ -52,7 +52,9 @@ C <- mxAlgebra(A + B, name = 'C')
 D <- mxMatrix('Full', 1, 1, labels = 'C[2,3]', name = 'D')
 model <- mxModel('model', A, B, C, D)
 omxCheckError(mxRun(model),
-	paste("The label 'C[2, 3]'",
+	paste("In label 'C[2,3]'",
 		"of matrix 'D'",
-		"in model 'model' generated the error message:",
+		"in model 'model' .",
+		"Trying to evaluate 'model.C[2L, 3L]' in model",
+		"'model' generated the error message:",
 		"subscript out of bounds"))

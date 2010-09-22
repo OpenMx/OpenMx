@@ -13,16 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# The mxEval funcion is NOT reentrant.  This is because the 
-# convertSquareBracketLabels() transformation can only occur once.
-# Recursive calls should use the helper function computeSymbol().
-# There would also be a performance penalty associated with a 
-# recursive call to mxEval().
 mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
 	if (missing(model)) {
 		stop("'model' argument is mandatory in call to mxEval function")
 	}
-	model <- convertSquareBracketLabels(model)
 	inputExpression <- match.call()$expression
 	labelsData <- omxGenerateLabels(model)
     if (compute) {
@@ -181,21 +175,24 @@ computeMatrixHelper <- function(matrix, model, flatModel, labelsData) {
 	}
 	for (i in 1:length(subs)) {
 		algname <- subs[[i]]
-		result <- tryCatch(eval(computeSymbol(as.symbol(algname), flatModel, labelsData)),
+		components <- splitSubstitution(algname) 
+		result <- tryCatch(
+				eval(substitute(mxEval(x[y,z], model, compute=TRUE),
+					list(x = as.symbol(components[[1]]), y = as.integer(components[[2]]),
+						z = as.integer(components[[3]])))),
 			error = function(x) {
 				algebra <- flatModel[[algname]]
-				stop(paste("The label", 
-					omxQuotes(simplifyName(deparse(algebra@formula, width.cutoff=500L), flatModel@name)),
+				stop(paste("In label", 
+					omxQuotes(simplifyName(algname, flatModel@name)),
 					"of matrix", omxQuotes(simplifyName(matrix@name, flatModel@name)),
-					"in model", omxQuotes(flatModel@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
+					"in model", omxQuotes(flatModel@name),
+					".", x$message), call. = FALSE)
 		})
 		result <- as.matrix(result)
 		if (nrow(result) != 1 || ncol(result) != 1) {
 			algebra <- flatModel[[algname]]
 			stop(paste("The label", 
-				omxQuotes(simplifyName(deparse(algebra@formula, width.cutoff=500L), flatModel@name)),
+				omxQuotes(simplifyName(algname, flatModel@name)),
 				"of matrix", omxQuotes(simplifyName(matrix@name, flatModel@name)),
 				"in model", omxQuotes(flatModel@name), 
 				"does not evaluate to a (1 x 1) matrix."), call. = FALSE)

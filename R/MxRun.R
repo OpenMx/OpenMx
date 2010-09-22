@@ -71,7 +71,6 @@ runHelper <- function(model, frontendStart,
 		model <- translation
 	}
 	# Regenerate the namespace and flatModel
-	model <- convertSquareBracketLabels(model)
 #	model <- transformAlgebras(model) # algebra transformation is broken
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)
@@ -109,7 +108,6 @@ runHelper <- function(model, frontendStart,
 	model <- omxReplaceModels(model, independents)
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
-	model <- undoSquareBracketLabels(model)
 	model <- resetDataSortingFlags(model)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),

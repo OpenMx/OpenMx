@@ -2,6 +2,7 @@ trunk
 =====
 * fixed a bug in mxRename() when encountering symbol of missingness
 * bugfix for crash when '*' is used instead of '%*%'
+* feature removal: square brackets in MxMatrix labels now accept only literal values
 
 Release 0.9.1-1421 (September 12, 2010)
 =======================================

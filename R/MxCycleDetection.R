@@ -100,7 +100,9 @@ addMatrixDetection <- function(matrix, dependencies) {
 	subs <- labels[select]
 	if (length(subs) > 0) {
 		for(i in 1:length(subs)) {
-			dependencies <- omxAddDependency(subs[[i]], matrix@name, dependencies)
+			components <- splitSubstitution(subs[[i]])
+			name <- components[[1]]
+			dependencies <- omxAddDependency(name, matrix@name, dependencies)
 		}
 	}
 	return(dependencies)
