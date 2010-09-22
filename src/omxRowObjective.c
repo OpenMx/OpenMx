@@ -29,17 +29,17 @@
 #define _OMX_ROW_OBJECTIVE_ TRUE
 
 // TODO: Migrate omxDefinitionVar struct to a more central location.
-typedef struct omxDefinitionVar {		 	// Definition Var
+ typedef struct omxDefinitionVar {		 	// Definition Var
 
-	int data, column;		// Where it comes from
-	omxData* source;		// Data source
-	int numLocations;		// Num locations
-	double** location;		// And where it goes
-	omxMatrix** matrices;	// Matrix numbers for dirtying
+ 	int data, column;		// Where it comes from
+ 	omxData* source;		// Data source
+ 	int numLocations;		// Num locations
+ 	double** location;		// And where it goes
+ 	omxMatrix** matrices;	// Matrix numbers for dirtying
 
-} omxDefinitionVar;
+ } omxDefinitionVar;
 
-extern void handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, int numDefs);
+ extern int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs);
 
 typedef struct omxRowObjective {
 
@@ -50,6 +50,7 @@ typedef struct omxRowObjective {
 	omxData*   data;				// The data
 
 	/* Structures determined from info in the MxRowObjective Object*/
+    double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.
 	omxDefinitionVar* defVars;	// A list of definition variables
 	int numDefs;				// The length of the defVars list
 
@@ -79,8 +80,7 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
 }
 
 void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
-
-	if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
+    if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
@@ -89,6 +89,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
 	omxDefinitionVar* defVars;
 	omxData *data;
+    double* oldDefs;
 
     omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
 
@@ -98,23 +99,25 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	data		= oro->data;
 	defVars		= oro->defVars;
 	numDefs		= oro->numDefs;
+    oldDefs     = oro->oldDefs;
 	
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
-		if(OMX_DEBUG) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
+		if(OMX_DEBUG_ROWS) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
 		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
 	}
 
 	if(numDefs == 0) {
-		if(OMX_DEBUG) {Rprintf("Precalculating row algebra for all rows.\n");}
+		if(OMX_DEBUG_ROWS) {Rprintf("Precalculating row algebra for all rows.\n");}
 		omxRecompute(rowAlgebra);		// Only recompute this here if there are no definition vars
-		if(OMX_DEBUG) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }
+		if(OMX_DEBUG_ROWS) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }
 	}
 
 	for(int row = 0; row < data->rows; row++) {
 
 		// Handle Definition Variables.
+        if(OMX_DEBUG_ROWS) { Rprintf("numDefs is %d", numDefs);}
 		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
-			handleDefinitionVarList(data, row, defVars, numDefs);
+			handleDefinitionVarList(data, row, defVars, oldDefs, numDefs);
 			omxStateNextRow(oo->matrix->currentState);						// Advance row
 			omxRecompute(rowAlgebra);										// Calculate this row
 		}
@@ -185,6 +188,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
+	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
