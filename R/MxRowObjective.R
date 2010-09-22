@@ -19,7 +19,8 @@ setClass(Class = "MxRowObjective",
 		rowAlgebra = "MxCharOrNumber",
 		rowResults = "MxCharOrNumber",
 		reduceAlgebra = "MxCharOrNumber",
-		definitionVars = "list"),
+		definitionVars = "list",
+		dims = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRowObjective",
@@ -31,6 +32,7 @@ setMethod("initialize", "MxRowObjective",
 		.Object@reduceAlgebra <- reduceAlgebra		
 		.Object@data <- data
 		.Object@definitionVars <- definitionVars
+		.Object@dims <- as.character(NA)
 		return(.Object)
 	}
 )
@@ -101,6 +103,9 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
+		}
+		if (single.na(.Object@dims)) {
+			.Object@dims <- colnames(mxDataObject@observed)
 		}
 		return(.Object)
 })
