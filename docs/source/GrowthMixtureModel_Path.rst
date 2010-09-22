@@ -51,7 +51,7 @@ Model Specification
 
 Specifying a mixture model can be categorized into two general phases. The first phase of model specification pertains to creating the models for each class. The second phase specifies the way those classes are mixed. In OpenMx, this is done using a model tree. Each class is created as a separate ``MxModel`` object, and those class-specific models are all placed into a larger or parent model. The parent model contains the class proportion parameter(s) and the data. 
 
-Creating the class-specific models is done the same way as every other model. We'll begin by specifying the model for the first class. The code below specifies a five-occasion linear growth curve, virtually identical to the one in the linear growth curve example referenced above. The only changes made to this model are the names of the free parameters; the means, variances and covariance of the intercept and slope terms are now followed by the number 1 to distinguish them from free parameters in the other class.
+Creating the class-specific models is done the same way as every other model. We'll begin by specifying the model for the first class using the ``mxPath`` function. The code below specifies a five-occasion linear growth curve, virtually identical to the one in the linear growth curve example referenced above. The only changes made to this model are the names of the free parameters; the means, variances and covariance of the intercept and slope terms are now followed by the number 1 to distinguish them from free parameters in the other class.
 
 .. code-block:: r
 
