@@ -1,6 +1,6 @@
 
 Growth Mixture Modeling, Path Specification
-====================
+===========================================
 
 This example will demonstrate how to specify a growth mixture model using path specification. Unlike other examples, this application will not be demonstrated with covariance data, as this model can only be fit to raw data. The script for this example can be found in the following file:
 
@@ -17,7 +17,7 @@ The latent growth curve used in this example is the same one fit in the latent g
 ** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixRaw.R
 
 Mixture Modeling
--------------
+----------------
 
 Mixture modeling is an approach where data are assumed to be governed by some type of mixture distribution. This includes a large class of models, including many varieties of mixture modeling, latent class analysis and related models with binary or categorical latent variables. This example will demonstrate a growth mixture model, where change over time is modeled with a linear growth curve and the distribution of latent intercepts and slopes is governed by a mixture of two distributions. The model can thus be described as a combination of two growth curves, weighted by a class proportion variable, as shown below.
 
@@ -137,6 +137,7 @@ We could create the model for our second class by copy and pasting the code abov
 We must make one other change to our class-specific models before creating the parent model that will contain them. The objective function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx objective functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed either as an argument in a function like ``mxRAMObjective`` or ``mxFIMLObjective`` or with the syntax below.
 
 .. code-block:: r
+
 	class1@objective@vector <- TRUE
 	class2@objective@vector <- TRUE
 	
@@ -145,6 +146,7 @@ While the class-specific models can be specified using either path or matrix spe
 The matrix in the object ``classP`` contains two elements representing the proportion of the sample in each of the two classes, while the object ``classA`` contains an ``MxAlgebra`` that scales this proportion as a probability. Placing bounds on the class probabilities matrix constrains each of the probabilities to be between zero and one, while the algebra defines the probability of being in class 2 to be 1 minus the probability of being in class 1. This ensures that the sum of the class probabilities is 1. Notice that the second element of the class probability matrix is constrained to be equal to the result of the ``mxAlgebra`` statement. The brackets in the ``mxMatrix`` function are required; the second element in the "classProbs" object is actually constrained to be equal to the first row and first column of the ``MxAlgebra`` object "pclass2", which evaluates to a 1 x 1 matrix.
 
 .. code-block:: r
+
 	classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
 	          values=.2, lbound=0.001, ubound=0.999,
 	          labels = c("pclass1", "pclass2[1,1]"), name="classProbs")
@@ -204,6 +206,7 @@ One way to access the starting values in a model is by using the ``omxGetParamet
 A companion function to ``omxGetParameters`` is ``omxSetParameters``, which can be used to alter one or more named parameters in a model. This function can be used to change the values, freedom and labels of any parameters in a model, returning an MxModel object with the specified changes. The code below shows how to change the residual variance starting value from 1.0 to 0.5. Note that the output of the ``omxSetParameters`` function is placed back into the object ``gmm``.
 
 .. code-block:: r
+
 		gmm <- omxSetParameters(gmm, labels="residual", values=0.5)
 
 The MxModel in the object ``gmm`` can now be run and the results compared with other sets of staring values. Starting values can also be sampled from distributions, allowing users to automate starting value generation, which is demonstrated below. The ``omxGetParameters`` function is used to find the names of the free parameters and define three matrices: a matrix ``input`` that holds the starting values for any run; a matrix ``output`` that holds the converged values of each parameter; and a matrix ``fit`` that contains the -2 log likelihoods and other relevant model fit statistics. Each of these matrices contains one row for every set of starting values. A ``for`` loop repeatedly generates starting values (from a set of uniform distributions using ``runif``), runs the model with those starting values and places the starting values, final estimates and fit statistics in the ``input``, ``output`` and ``fit`` matrices, respectively.
