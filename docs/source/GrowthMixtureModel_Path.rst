@@ -198,10 +198,10 @@ One way to access the starting values in a model is by using the ``omxGetParamet
 .. code-block:: r
 
         omxGetParameters(gmm)
-#            pclass1 residual    vari1     cov1    vars1   meani1   means1    vari2     cov2    vars2   meani2 
-#            	0.2      1.0      1.0      0.4      1.0      0.0     -1.0      1.0      0.5      1.0      5.0 
-#            means2 
-#            	1.0
+    #        pclass1 residual    vari1     cov1    vars1   meani1   means1    vari2     cov2    vars2   meani2 
+    #        	0.2      1.0      1.0      0.4      1.0      0.0     -1.0      1.0      0.5      1.0      5.0 
+    #        means2 
+    #        	1.0
 
 A companion function to ``omxGetParameters`` is ``omxSetParameters``, which can be used to alter one or more named parameters in a model. This function can be used to change the values, freedom and labels of any parameters in a model, returning an MxModel object with the specified changes. The code below shows how to change the residual variance starting value from 1.0 to 0.5. Note that the output of the ``omxSetParameters`` function is placed back into the object ``gmm``.
 
@@ -264,27 +264,27 @@ Viewing the contents of the ``fit`` matrix shows the -2 log likelihoods for each
 .. code-block:: r
 
 	fit
-#	   Minus2LL Status Iterations   pclass1
-#	1  8739.050      0         41 0.3991078
-#	2  8739.050      0         40 0.6008913
-#	3  8739.050      0         44 0.3991078
-#	4  8739.050      1         31 0.3991079
-#	5  8739.050      0         32 0.3991082
-#	6  8739.050      1         34 0.3991089
-#	7  8966.628      0         22 0.9990000
-#	8  8966.628      0         24 0.9990000
-#	9  8966.628      0         23 0.0010000
-#	10 8966.628      1         36 0.0010000
-#	11 8963.437      6         25 0.9990000
-#	12 8966.628      0         28 0.9990000
-#	13 8739.050      1         47 0.6008916
-#	14 8739.050      1         36 0.3991082
-#	15 8739.050      0         43 0.3991076
-#	16 8739.050      0         46 0.6008948
-#	17 8739.050      1         50 0.3991092
-#	18 8945.756      6         50 0.9902127
-#	19 8739.050      0         53 0.3991085
-#	20 8966.628      0         23 0.9990000
+    #	   Minus2LL Status Iterations   pclass1
+    #	1  8739.050      0         41 0.3991078
+    #	2  8739.050      0         40 0.6008913
+    #	3  8739.050      0         44 0.3991078
+    #	4  8739.050      1         31 0.3991079
+    #	5  8739.050      0         32 0.3991082
+    #	6  8739.050      1         34 0.3991089
+    #	7  8966.628      0         22 0.9990000
+    #	8  8966.628      0         24 0.9990000
+    #	9  8966.628      0         23 0.0010000
+    #	10 8966.628      1         36 0.0010000
+    #	11 8963.437      6         25 0.9990000
+    #	12 8966.628      0         28 0.9990000
+    #	13 8739.050      1         47 0.6008916
+    #	14 8739.050      1         36 0.3991082
+    #	15 8739.050      0         43 0.3991076
+    #	16 8739.050      0         46 0.6008948
+    #	17 8739.050      1         50 0.3991092
+    #	18 8945.756      6         50 0.9902127
+    #	19 8739.050      0         53 0.3991085
+    #	20 8966.628      0         23 0.9990000
 
 There are several things to note about the above results. First, the minimum -2 log likelihood was reached in 12 of 20 sets of staring values, all with NPSOL statuses of either zero (seven times) or one (five times). Additionally, the class probabilities are equivalent within five digits of precision, keeping in mind that no the model as specified contains no restriction as to which class is labeled "class 1" (probability equals .3991) and "class 2" (probability equals .6009). The other eight sets of starting values showed higher -2 log likelihood values and class probabilities at the set upper or lower bounds, indicating a local minimum. We can also view this information using R's ``table`` function.
 
@@ -292,11 +292,11 @@ There are several things to note about the above results. First, the minimum -2 
 
 	table(round(fit[,1], 3), fit[,2])
           
-#	           0 1 6
-#	  8739.05  7 5 0
-#	  8945.756 0 0 1
-#	  8963.437 0 0 1
-#	  8966.628 5 1 0
+    #	           0 1 6
+    #	  8739.05  7 5 0
+    #	  8945.756 0 0 1
+    #	  8963.437 0 0 1
+    #	  8966.628 5 1 0
 
 We should have a great deal of confidence that the solution with class probabilities of .399 and .601 is the correct one.
 

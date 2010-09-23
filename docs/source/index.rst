@@ -30,7 +30,10 @@ Reference
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+..
+  these three lines are commented out
+  * :ref:`genindex`
+  * :ref:`modindex`
+
 * :ref:`search`
 
