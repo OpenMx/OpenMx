@@ -34,7 +34,7 @@ for (i in 1: trials){
 		
 	temp1@name <- paste("Starting Values Set", i)
 		
-	temp2 <- mxRun(temp1, unsafe=TRUE)
+	temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE)
 	
 	input[i,] <- omxGetParameters(temp1)
 	output[i,] <- omxGetParameters(temp2)

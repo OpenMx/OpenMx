@@ -185,7 +185,7 @@ omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
 	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
 	aValues[mxObject@free] <- 1
 	aValues[mxObject@values != 0] <- 1
-	return(generateDepthHelper(aValues, aValues, 1, maxdepth))
+	return(generateDepthHelper(aValues, aValues, 0, maxdepth))
 }
 
 generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
@@ -193,7 +193,7 @@ generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
 		return(as.integer(NA))
 	}
 	if (all(currentProduct == 0)) { 
-		return(as.integer(depth-1))
+		return(as.integer(depth))
 	} else {
 		return(generateDepthHelper(aValues, currentProduct %*% aValues, depth + 1, maxdepth))
 	}
