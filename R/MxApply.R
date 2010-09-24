@@ -16,7 +16,9 @@
 omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
-	if ("package:snowfall" %in% libraries) {
+	if ("package:Swift" %in% libraries && identical(fun,mxRun)) {
+		return(swiftLapply(x, fun, ...))
+	} else if ("package:snowfall" %in% libraries) {
 		return(sfLapply(x, fun, ...))
 	} else {
 		return(lapply(x, fun, ...))
