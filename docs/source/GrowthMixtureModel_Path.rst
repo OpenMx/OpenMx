@@ -247,7 +247,7 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
 		
 				temp1@name <- paste("Starting Values Set", i)
 		
-				temp2 <- mxRun(temp1, unsafe=TRUE)
+				temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE)
 	
 				input[i,] <- omxGetParameters(temp1)
 				output[i,] <- omxGetParameters(temp2)
