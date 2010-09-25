@@ -11,17 +11,19 @@
 #   Hermine Maes -- 09 15 2010 updated with changes from EC88cc2TST5.R
 # -----------------------------------------------------------------------
 
-sink("ETC88.Ro", append=F, split=T)
 require(OpenMx)
 
 # Prepare Data
 # -----------------------------------------------------------------------!
-EtVars <- c('famid','e1','e2','e3','e4','e5','e6','e7','e8','e9','e10','e11','e12','e13','e14','e15','e16','e17','e18', 'a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11','a12','a13','a14','a15','a16','a17','a18')
-mzmData <- read.table("MZM", header=F, na.strings="-999",col.names=EtVars)
-dzmData <- read.table("DZM", header=F, na.strings="-999",col.names=EtVars)
-mzfData <- read.table("MZF", header=F, na.strings="-999",col.names=EtVars)
-dzfData <- read.table("DZF", header=F, na.strings="-999",col.names=EtVars)
-dzoData <- read.table("DZOS", header=F, na.strings="-999",col.names=EtVars)
+EtVars <- c('famid','e1','e2','e3','e4','e5','e6','e7','e8','e9','e10',
+	'e11','e12','e13','e14','e15','e16','e17','e18',
+	'a1','a2','a3','a4','a5','a6','a7','a8','a9',
+	'a10','a11','a12','a13','a14','a15','a16','a17','a18')
+data(mzmData)
+data(dzmData)
+data(mzfData)
+data(dzfData)
+data(dzoData)
 
 dataMZM <- mzmData[2:19]
 dataDZM <- dzmData[2:19]
@@ -352,7 +354,7 @@ etc88Model <- mxModel("et",
 # -----------------------------------------------------------------------
 etc88Model <- mxOption(etc88Model,"Standard Errors", "No")
 etc88Model <- mxOption(etc88Model,"Calculate Hessian", "No")
-etc88Fit <-  mxRun(etc88Model, checkpoint=TRUE)
+etc88Fit <-  mxRun(etc88Model)
 summary(etc88Fit)
 
 
@@ -469,5 +471,3 @@ omxCheckCloseEnough(etc88Fit@output$estimate[["r86"]],0.1701,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["r87"]],0.0906,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["r88"]],0.0521,0.001)
 
-sink()
-save.image("ETC88.Ri")

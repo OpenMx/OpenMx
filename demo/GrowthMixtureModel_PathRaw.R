@@ -135,7 +135,7 @@ gmm <- mxModel("Growth Mixture Model",
     algObj, obj
 	)      
 
-gmmFit <- mxRun(gmm)
+gmmFit <- mxRun(gmm, suppressWarnings=TRUE)
 
 summary(gmmFit)
 
