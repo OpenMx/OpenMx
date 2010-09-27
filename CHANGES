@@ -1,5 +1,6 @@
 trunk
 =====
+* added growth mixture models to user guide
 * added initial Swift hook in omxLapply() - currenly activated only for mxRun calls
 * fixed a bug in mxRename() when encountering symbol of missingness
 * bugfix for crash when '*' is used instead of '%*%'
