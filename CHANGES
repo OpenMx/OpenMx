@@ -1,5 +1,5 @@
-trunk
-=====
+Release 0.9.2-1446 (September 26, 2010)
+=======================================
 * added growth mixture models to user guide
 * added initial Swift hook in omxLapply() - currenly activated only for mxRun calls
 * fixed a bug in mxRename() when encountering symbol of missingness
