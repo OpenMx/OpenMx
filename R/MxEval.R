@@ -87,6 +87,8 @@ translateSymbol <- function(symbol, model, labelsData) {
 		return(substitute(model[[x]]@result, list(x = key)))
 	} else if (is(lookup, "MxObjective")) {
 		return(substitute(model[[x]]@result, list(x = key)))
+	} else if (is(lookup, "MxData")) {
+		return(substitute(model[[x]]@observed, list(x = key)))
 	} else {
 		stop(paste("Cannot evaluate the object",
 			omxQuotes(key), "in the model",

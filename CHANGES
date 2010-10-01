@@ -1,3 +1,7 @@
+stable-1.0 tag
+==============
+* bugfix for mxEval() and MxData objects
+
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
 * added missing entries to demo 00INDEX file
