@@ -54,3 +54,4 @@ GrowthMixtureModel_PathRaw	Growth mixture model using path specification and raw
 GrowthMixtureModelRandomStarts	Random starting value generation for growth mixture model
 OneFactorOrdinal_MatrixRaw	One factor model using matrix specification for ordinal data
 OneFactorOrdinal01_MatrixRaw	One factor model using matrix specification for ordinal data (alternative specification)
+
