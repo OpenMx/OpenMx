@@ -382,7 +382,7 @@ omxCheckCloseEnough(etc88Fit@output$estimate[["FC1"]],0.0064,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["MC2"]],-0.0062,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["FC2"]],-0.0194,0.001)
 
-omxCheckCloseEnough(etc88Fit@output$estimate[["r1 "]],0.7690,0.001)
+omxCheckCloseEnough(etc88Fit@output$estimate[["r1"]],0.7690,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["r2"]],0.5700,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["r3"]],0.7802,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["r4"]],0.5711,0.001)
