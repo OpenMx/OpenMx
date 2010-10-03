@@ -111,13 +111,14 @@ runHelper <- function(model, frontendStart,
 	model <- resetDataSortingFlags(model)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
-		names(parameters), names(intervalList), unsafe, output)
+		names(parameters), names(intervalList), output)
 	model <- populateRunStateInformation(model, parameters, matrices, 
 		objectives, data, flatModel@constraints, independents, defVars)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,
 		backendElapsed, indepElapsed, frontendStop, independents)
+	processErrorConditions(model, unsafe, suppressWarnings)
 	return(model)		
 }
 

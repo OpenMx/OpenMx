@@ -35,7 +35,7 @@ processHollowModel <- function(model, independents, dataList, frontendStart, ind
 
 
 processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
-		algebraNames, parameterNames, intervalNames, unsafe, output) {
+		algebraNames, parameterNames, intervalNames, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
@@ -73,21 +73,27 @@ processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 				output$confidenceIntervalCodes[,2], intervalNames)
 		}
 	}
+	return(output)
+}
+
+processErrorConditions <- function(model, unsafe, suppressWarnings) {
+	output <- model@output
     if (output$status[[1]] > 0 && !suppressWarnings) {
-    	npsolWarnings(paste("In model", omxQuotes(flatModel@name)), output$status[[1]])
+    	npsolWarnings(paste("In model", omxQuotes(model@name)), output$status[[1]])
 	}
     if (output$status[[1]] < 0 || output$status[[2]] < 0) {
     	if (unsafe) {
-    		warning(paste("The job for model", omxQuotes(flatModel@name),
+    		warning(paste("The job for model", omxQuotes(model@name),
 	            "exited abnormally with the error message:",
 	            output$status[[3]]), call. = FALSE)
     	} else {
-	        stop(paste("The job for model", omxQuotes(flatModel@name),
+			unlockErrorPool()
+			.errorPoolList[[model@name]] <<- model
+	        stop(paste("The job for model", omxQuotes(model@name),
 	            "exited abnormally with the error message:",
 	            output$status[[3]]), call. = FALSE)
 	    }
     }
-	return(output)
 }
 
 intervalWarnings <- function(type, modelname, indices, codes, intervalNames) {
