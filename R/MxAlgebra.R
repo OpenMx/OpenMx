@@ -160,7 +160,7 @@ checkMatrixEvaluation <- function(model, flatModel, labelsData) {
 	if(length(flatModel@matrices) == 0) { return() }
 	for(i in 1:length(flatModel@matrices)) {
 		matrix <- flatModel@matrices[[i]]
-		eval(computeSymbol(as.symbol(matrix@name), flatModel, labelsData))
+		evaluateMxObject(matrix@name, flatModel, labelsData)
 	}
 }
 
@@ -168,16 +168,9 @@ checkAlgebraEvaluation <- function(model, retval, flatModel, labelsData) {
 	if(length(flatModel@algebras) == 0) { return(retval) }
 	for(i in 1:length(flatModel@algebras)) {
 		algebra <- flatModel@algebras[[i]]
-		result <- tryCatch(eval(computeSymbol(as.symbol(algebra@name), flatModel, labelsData)), 
-			error = function(x) {
-				stop(paste("The algebra", 
-					omxQuotes(simplifyName(algebra@name, model@name)), 
-					"in model", omxQuotes(model@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
-		})
+		result <- evaluateMxObject(algebra@name, flatModel, labelsData)
 		algebra <- retval[[algebra@name]]
-		algebra@initial <- result
+		algebra@initial <- as.matrix(result)
 		retval[[algebra@name]] <- algebra
 	}
 	return(retval)
@@ -186,23 +179,11 @@ checkAlgebraEvaluation <- function(model, retval, flatModel, labelsData) {
 checkConstraintEvaluation <- function(model, flatModel, labelsData) {
 	if(length(flatModel@constraints) == 0) { return() }
 	for(i in 1:length(flatModel@constraints)) {
-		constraint <- flatModel@constraints[[i]]
-		lhs <- tryCatch(eval(computeSymbol(as.symbol(constraint@alg1), flatModel, labelsData)), 
-			error = function(x) {
-				stop(paste("The left hand side of constraint", 
-					omxQuotes(simplifyName(constraint@name, model@name)), 
-					"in model", omxQuotes(model@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
-		})
-		rhs <- tryCatch(eval(computeSymbol(as.symbol(constraint@alg2), flatModel, labelsData)), 
-			error = function(x) {
-				stop(paste("The right hand side of constraint", 
-					omxQuotes(simplifyName(constraint@name, model@name)), 
-					"in model", omxQuotes(model@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
-		})
+		constraint <- flatModel@constraints[[i]]		
+		lhsContext <- paste("the left-hand side of constraint", omxQuotes(constraint@name))
+		rhsContext <- paste("the right-hand side of constraint", omxQuotes(constraint@name))		
+		lhs <- evaluateAlgebraWithContext(flatModel[[constraint@alg1]], lhsContext, flatModel, labelsData)
+		rhs <- evaluateAlgebraWithContext(flatModel[[constraint@alg2]], rhsContext, flatModel, labelsData)
 		if (!all(dim(lhs) == dim(rhs))) {
 			lhsName <- constraint@formula[[2]]
 			rhsName <- constraint@formula[[3]]

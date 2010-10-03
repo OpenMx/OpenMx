@@ -18,9 +18,10 @@ foo <- mxAlgebra(A + B, 'foo')
 A <- mxMatrix('Full', 1, 2, name = 'A')
 B <- mxMatrix('Full', 2, 1, name = 'B')
 model <- mxModel('model', A, B, foo)
-omxCheckError(mxRun(model), paste("The algebra 'foo' in model",
-	"'model' generated the error message:",
-	"non-conformable arrays"))
+omxCheckError(mxRun(model), 
+	paste("The following error occurred while",
+	"evaluating the subexpression 'model.A + model.B'",
+	"during the evaluation of 'foo' in model 'model' : non-conformable arrays"))
 cycle <- mxAlgebra(cycle, 'cycle')
 model <- mxModel('model', cycle)
 omxCheckError(mxRun(model), paste("A cycle has been detected",
@@ -57,7 +58,7 @@ omxCheckError(mxRun(model3), paste("The algebras/matrices",
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
 model <- mxModel('model', A, B)
-omxCheckError(mxRun(model), paste("The label 'A[0,0]' of matrix 'B'",
+omxCheckError(mxRun(model), paste("The label 'model.A[0,0]' of matrix 'B'",
 	"in model 'model' does not evaluate to a (1 x 1) matrix."))
 kevin <- 'bacon'
 B <- mxAlgebra(A[kevin, ], name = 'B')

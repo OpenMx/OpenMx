@@ -123,17 +123,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 			stop(msg, call. = FALSE)
 		}
 		labelsData <- omxGenerateLabels(job)
-		flatModel <- flatJob # computeSymbol should be fixed to avoid this
-		result <- tryCatch(eval(computeSymbol(
-			as.symbol(rowAlgebraName), flatJob, labelsData)), 
-			error = function(x) {
-				stop(paste("The entity", 
-					omxQuotes(simplifyName(rowAlgebraName, model@name)), 
-					"in model", omxQuotes(model@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
-		})
-		rm(flatModel) # undo the hack induced by computeSymbol
+		result <- evaluateMxObject(rowAlgebraName, flatModel, labelsData)
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
 				omxQuotes(simplifyName(rowAlgebraName, model@name)), 
@@ -166,7 +156,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		if (is.na(reduceAlgebraName)) {
 			reduceAlgebraName <- omxUntitledName()
 			reduceAlgebra <- eval(substitute(mxAlgebra(x, reduceAlgebraName), 
-				list(x = as.symbol(rowResultsName))))
+				list(x = quote(as.symbol(rowResultsName)))))
 			job[[model@name]][[reduceAlgebraName]] <- reduceAlgebra		
 			job[[.Object@name]]@reduceAlgebra <- reduceAlgebraName
 			reduceAlgebraName <- omxIdentifier(model@name, reduceAlgebraName)
@@ -185,15 +175,8 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 setMethod("genericObjInitialMatrix", "MxRowObjective",
 	function(.Object, flatModel) {
 		reduceAlgebraName <- .Object@reduceAlgebra
-		labelsData <- omxGenerateLabels(flatModel)		
-		result <- tryCatch(eval(computeSymbol(as.symbol(reduceAlgebraName), flatModel, labelsData)), 
-			error = function(x) {
-				stop(paste("The entity", 
-					omxQuotes(simplifyName(reduceAlgebraName, flatModel@name)), 
-					"in model", omxQuotes(flatModel@name), 
-					"generated the error message:",
-					x$message), call. = FALSE)
-		})
+		labelsData <- omxGenerateLabels(flatModel)
+		result <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData)
 		return(result)
 	}
 )

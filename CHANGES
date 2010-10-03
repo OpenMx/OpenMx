@@ -2,6 +2,7 @@ trunk
 =====
 * added mxErrorPool() function and R documentation.
 * added Apache license information to all R documentation files.
+* new implementation of mxEval().  Still need to finish show = TRUE and definition variables
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
