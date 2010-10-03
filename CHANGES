@@ -1,6 +1,7 @@
 trunk
 =====
-* added mxErrorPool() function.  R documentation is coming soon.
+* added mxErrorPool() function and R documentation.
+* added Apache license information to all R documentation files.
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================

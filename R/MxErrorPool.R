@@ -23,30 +23,26 @@ unlockErrorPool <- function() {
 	}
 }
 
-mxErrorPool <- function(..., reset = FALSE) {
+mxErrorPool <- function(modelnames = NA, reset = FALSE) {
 	if (!is.logical(reset) || length(reset) != 1 || is.na(reset)) {
 		stop("'reset' argument must be either TRUE or FALSE")
+	} else if (!single.na(modelnames) && !is.character(modelnames)) {
+		stop("'modelnames' argument must be either NA or a chararacter vector")
 	} else if (reset) {
 		unlockErrorPool()
 		.errorPoolList <<- list()
 	}
-	args <- list(...)
-	if (length(args) == 0) {
-		retval <- .errorPoolList	
+	if (single.na(modelnames)) {
+		retval <- .errorPoolList
 	} else {
-		allchars <- sapply(args, is.character)
-		if (!all(allchars)) {
-			stop("All '...' values to mxErrorPool must be character vectors")
-		}
-		args <- unlist(args, use.names = FALSE)
 		retval <- list()
-		for(i in 1:length(args)) {
-			arg <- args[[i]]
-			value <- .errorPoolList[[arg]]
+		for(i in 1:length(modelnames)) {
+			name <- modelnames[[i]]
+			value <- .errorPoolList[[name]]
 			if (is.null(value)) {
-				retval[arg] <- list(NULL)
+				retval[name] <- list(NULL)
 			} else {
-				retval[arg] <- value
+				retval[name] <- value
 			}
 		}
 	}
