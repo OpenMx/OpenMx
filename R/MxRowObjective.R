@@ -123,7 +123,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 			stop(msg, call. = FALSE)
 		}
 		labelsData <- omxGenerateLabels(job)
-		result <- evaluateMxObject(rowAlgebraName, flatModel, labelsData)
+		result <- evaluateMxObject(rowAlgebraName, flatJob, labelsData)
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
 				omxQuotes(simplifyName(rowAlgebraName, model@name)), 
