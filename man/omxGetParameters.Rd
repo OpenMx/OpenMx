@@ -8,12 +8,17 @@
 }
 
 \usage{
-omxGetParameters(model, indep = FALSE)
+omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
 }
 
 \arguments{
    \item{model}{a MxModel object}
    \item{indep}{fetch parameters from independent submodels.}
+   \item{free}{fetch either free parameters or fixed parameters or both types.}
+}
+
+\details{
+  The argument \sQuote{free} dictates whether to return only free parameters or only fixed parameters or both free and fixed parameters. The function will return free parameters that have a label of NA.  But it will never return fixed parameters that have a label of NA. No distinction is made between ordinary labels, and definition variables, and square bracket constraints in labels.
 }
 
 \seealso{

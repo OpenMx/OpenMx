@@ -183,8 +183,12 @@ generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
 	mxObject <- A
 	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
+	defvars <- apply(mxObject@labels, c(1,2), omxIsDefinitionVariable)
+	squarebrackets <- apply(mxObject@labels, c(1,2), hasSquareBrackets)
 	aValues[mxObject@free] <- 1
 	aValues[mxObject@values != 0] <- 1
+	aValues[defvars] <- 1
+	aValues[squarebrackets] <- 1
 	return(generateDepthHelper(aValues, aValues, 0, maxdepth))
 }
 
