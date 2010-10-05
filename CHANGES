@@ -1,6 +1,10 @@
 stable-1.0 tag
 ==============
 * bugfix for mxEval() and MxData objects
+* handling definition variables for (I - A) ^ - 1 speedup
+* handling square bracket labels for (I - A) ^ - 1 speedup
+* added argument 'free' to omxGetParameters.  See ?omxGetParameters.
+* added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================

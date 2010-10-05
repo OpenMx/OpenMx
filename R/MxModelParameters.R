@@ -13,8 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-omxGetParameters <- function(model, indep = FALSE) {
-	parameters <- lapply(model@matrices, getParametersHelper)
+omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
+	if (identical(free, c(TRUE, FALSE, NA))) {
+		free <- TRUE
+	}
+	if (!is.logical(free) || length(free) != 1) {
+		stop("argument 'free' must be a 'TRUE', 'FALSE', or NA")
+	}
+	parameters <- lapply(model@matrices, getParametersHelper, free)
 	names(parameters) <- NULL
 	parameters <- unlist(parameters)
 	if(indep) {
@@ -22,7 +28,7 @@ omxGetParameters <- function(model, indep = FALSE) {
 	} else {
 		submodels <- omxDependentModels(model)
 	}
-	subparams <- lapply(submodels, omxGetParameters, indep)
+	subparams <- lapply(submodels, omxGetParameters, indep, free)
 	names(subparams) <- NULL
 	subparams <- unlist(subparams)
 	parameters <- c(parameters, subparams)
@@ -40,7 +46,8 @@ setParametersCheckVector <- function(values, test, argname, typename) {
 }
 
 omxSetParameters <- function(model, labels, free = NULL, values = NULL,
-	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE) {
+	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
+	strict = TRUE) {
 	if (missing(labels) || !is.character(labels) || length(labels) == 0) {
 		stop("'labels' argument must be a character vector")
 	}
@@ -49,6 +56,17 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	}
 	if (any(duplicated(labels))) {
 		stop("'labels' argument must not contain duplicate values")		
+	}
+	if (strict) {
+		pnames <- names(omxGetParameters(model, indep, NA))
+		missing <- setdiff(labels, pnames)
+		if (length(missing) > 0) {
+			msg <- paste("The following labels are",
+				"not present in the model",
+				"(use 'strict' = FALSE to ignore):",
+				omxQuotes(missing))
+			stop(msg)
+		}
 	}
 	setParametersCheckVector(free, is.logical, 'free', 'logical')
 	setParametersCheckVector(values, is.numeric, 'values', 'numeric')
@@ -77,21 +95,25 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 	return(model)
 }
 
-getParametersHelper <- function(amatrix) {
-	free <- amatrix@free
-	if (all(!free)) {
+getParametersHelper <- function(amatrix, selection) {
+	if (single.na(selection)) {
+		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
+	} else if (selection) {
+		select <- amatrix@free
+	} else {
+		select <- !amatrix@free & !apply(amatrix@labels, c(1,2), is.na)
+	}
+	if (all(!select)) {
 		return(numeric())
 	}
 	if (omxSymmetricMatrix(amatrix)) {
 		triangle <- upper.tri(free, diag=TRUE)
-		select <- free & triangle
-	} else {
-		select <- free
-	}
-	freeNames <- amatrix@labels[select]
-	freeValues <- amatrix@values[select]
-	names(freeValues) <- freeNames
-	return(freeValues[!duplicated(freeNames, incomparables = NA)])
+		select <- select & triangle
+	} 
+	theNames <- amatrix@labels[select]
+	theValues <- amatrix@values[select]
+	names(theValues) <- theNames
+	return(theValues[!duplicated(theNames, incomparables = NA)])
 }
 
 
