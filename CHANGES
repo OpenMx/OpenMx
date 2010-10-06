@@ -2,7 +2,7 @@ trunk
 =====
 * added mxErrorPool() function and R documentation.
 * added Apache license information to all R documentation files.
-* new implementation of mxEval().  Still need to finish show = TRUE and definition variables
+* new implementation of mxEval().  Still need to finish definition variables
 * handling definition variables for (I - A) ^ - 1 speedup
 * handling square bracket labels for (I - A) ^ - 1 speedup
 * added argument 'free' to omxGetParameters.  See ?omxGetParameters.

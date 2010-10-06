@@ -20,6 +20,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
 		stop("'model' argument is mandatory in call to mxEval function")
 	}
 	expression <- match.call()$expression
+	modelvariable <- match.call()$model
 	labelsData <- omxGenerateLabels(model)
 	env <- parent.frame()
     if (compute) {
@@ -27,28 +28,40 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE) {
         model <- omxFlattenModel(model, namespace)
         expression <- namespaceConvertFormula(expression, model@name, namespace)
 	}
-	return(evaluateExpression(expression, deparse(expression), model, labelsData, env, compute, TRUE))
+	result <- evaluateExpression(expression, deparse(expression), model, 
+		labelsData, env, compute, show = FALSE, outsideAlgebra = TRUE)
+	if (show) {
+		showResult <- evaluateExpression(expression, deparse(expression), model, 
+			labelsData, env, compute, show = TRUE, outsideAlgebra = TRUE)
+		showResult <- eval(substitute(substitute(x, list(.zzz = modelvariable)), list(x = showResult)))
+		print(deparse(showResult), width.cutoff = 450L)
+	}
+	return(result)
 }
 
-evaluateExpression <- function(formula, contextString, model, labelsData, env, compute, outsideAlgebra) {
+evaluateExpression <- function(formula, contextString, model, labelsData, env, compute, show, outsideAlgebra) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
 		if (!identical(as.character(formula), "")) {
-			formula <- evaluateSymbol(formula, contextString, model, labelsData, env, compute, outsideAlgebra)
+			formula <- evaluateSymbol(formula, contextString, model, 
+				labelsData, env, compute, show, outsideAlgebra)
 		}
 		return(formula)
 	}
 	originalFormula <- formula
 	formula[-1] <- lapply(formula[-1], 
-		evaluateExpression, contextString, model, labelsData, env, compute, outsideAlgebra)
+		evaluateExpression, contextString, model, labelsData, env, compute, show, outsideAlgebra)
 	if (len == 4 && identical(as.character(formula[1]), '[')) {
 		formula$drop <- FALSE
 	}
 	if (len == 3 && identical(as.character(formula[1]), '*')) {
 		formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
 		formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
+	}
+	if (show) {
+		return(formula)
 	}
 	result <- tryCatch(do.call(as.character(formula[[1]]), as.list(formula[-1]), envir = env),
 			error = function(x) {
@@ -70,7 +83,7 @@ evaluateExpression <- function(formula, contextString, model, labelsData, env, c
 	return(result)
 }
 
-evaluateSymbol <- function(symbol, contextString, model, labelsData, env, compute, outsideAlgebra) {
+evaluateSymbol <- function(symbol, contextString, model, labelsData, env, compute, show, outsideAlgebra) {
 	key <- deparse(symbol)
 	index <- match(key, dimnames(labelsData)[[1]])
 	if (!is.na(index)) {
@@ -80,27 +93,37 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData, env, comput
 		row <- labelsData[[index,"row"]]
 		col <- labelsData[[index,"col"]]
 		value <- model[[fullname]]@values[row,col]
-		return(value)
+		if (show) {
+			return(substitute(.zzz[[x]]@values[y,z], list(x = fullname, y = row, z = col)))
+		} else {
+			return(value)
+		}
 	}
 	lookup <- model[[key]]
 	if (omxIsDefinitionVariable(key)) {
 		return(definitionStartingValue(key, model))
 	} else if (is.null(lookup)) {
-		if (!outsideAlgebra && exists(key, envir = env)) {
+		if (!show && !outsideAlgebra && exists(key, envir = env)) {
 			return(as.matrix(get(key, envir = env)))
 		} else {
 			return(symbol)
 		}
 	} else if (is(lookup, "MxMatrix")) {
-		return(evaluateMatrix(lookup, model, labelsData, env, compute))
+		return(evaluateMatrix(lookup, model, labelsData, env, show, compute))
 	} else if (is(lookup, "MxAlgebra")) {
-		return(evaluateAlgebra(lookup, model, labelsData, env, compute))
+		return(evaluateAlgebra(lookup, model, labelsData, env, show, compute))
 	} else if (is(lookup, "MxData")) {
-		return(lookup@observed)
+		if (show) {
+			return(substitute(.zzz[[x]]@observed, list(x = key)))
+		} else {
+			return(lookup@observed)
+		}
 	} else if (is(lookup, "MxObjective")) {
         if (length(lookup@result) == 0) {
             return(genericObjInitialMatrix(lookup, model))
-        } else {
+        } else if (show) {
+			return(substitute(.zzz[[x]]@result, list(x = key)))
+		} else {
     		return(lookup@result)
         }
 	} else {
@@ -110,8 +133,10 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData, env, comput
 	}
 }
 
-evaluateMatrix <- function(matrix, model, labelsData, env, compute) {
-	if (compute) {
+evaluateMatrix <- function(matrix, model, labelsData, env, show, compute) {
+	if (show) {
+		return(substitute(.zzz[[x]]@values, list(x = matrix@name)))
+	} else if (compute) {
 		result <- computeMatrix(matrix, model, labelsData, env)
 	} else {
 		result <- matrix@values
@@ -139,7 +164,8 @@ computeMatrix <- function(matrix, model, labelsData, env) {
 			as.integer(components[[2]]), ',', as.integer(components[[3]]), ']', sep=''))[[1]]
 		contextString <- paste("label at row ", row, " and column ", col, " of matrix ", 
 			omxQuotes(simplifyName(matrix@name, model@name)), sep = '')
-		result <- evaluateExpression(expression, contextString, model, labelsData, env, TRUE, FALSE)
+		result <- evaluateExpression(expression, contextString, model, labelsData, env, 
+			compute=TRUE, show=FALSE, outsideAlgebra=FALSE)
 		result <- as.matrix(result)
 		if (nrow(result) != 1 || ncol(result) != 1) {
 			stop(paste("The label", 
@@ -153,10 +179,14 @@ computeMatrix <- function(matrix, model, labelsData, env) {
 	return(values)
 }
 
-evaluateAlgebra <- function(algebra, model, labelsData, env, compute) {
-	if (compute) {
-		result <- computeAlgebra(algebra, model, labelsData, env)
+evaluateAlgebra <- function(algebra, model, labelsData, env, show, compute) {
+	if (compute && show) {
+		return(computeAlgebra(algebra, model, labelsData, show = TRUE, env))
+	} else if (compute) {
+		result <- computeAlgebra(algebra, model, labelsData, show = FALSE, env)
 		result <- as.matrix(result)
+	} else if (show) {
+		return(substitute(.zzz[[x]]@result, list(x = algebra@name)))
 	} else {
 		result <- algebra@result
 	}
@@ -166,20 +196,22 @@ evaluateAlgebra <- function(algebra, model, labelsData, env, compute) {
 	return(result)
 }
 
-computeAlgebra <- function(algebra, model, labelsData, env) {
+computeAlgebra <- function(algebra, model, labelsData, show, env) {
 	contextString <- simplifyName(algebra@name, model@name)
-	result <- evaluateExpression(algebra@formula, contextString, model, labelsData, env, TRUE, FALSE)
+	result <- evaluateExpression(algebra@formula, contextString, model, labelsData, env, 
+		compute = TRUE, show, outsideAlgebra = FALSE)
 	return(result)
 }
 
 evaluateMxObject <- function(objname, flatModel, labelsData) {
 	return(eval(substitute(evaluateSymbol(x, objname, flatModel, 
-			labelsData, globalenv(), TRUE, FALSE),
+			labelsData, globalenv(), compute = TRUE, show = FALSE, outsideAlgebra = FALSE),
 			list(x = quote(as.symbol(objname))))))
 }
 
 evaluateAlgebraWithContext <- function(algebra, context, flatModel, labelsData) {
-	return(evaluateExpression(algebra@formula, context, flatModel, labelsData, globalenv(), TRUE, FALSE))
+	return(evaluateExpression(algebra@formula, context, flatModel, labelsData, globalenv(), 
+		compute = TRUE, show = FALSE, outsideAlgebra = FALSE))
 }
 
 assignDimnames <- function(object, values) {
