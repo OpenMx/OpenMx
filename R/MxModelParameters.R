@@ -45,6 +45,7 @@ setParametersCheckVector <- function(values, test, argname, typename) {
 	}
 }
 
+
 omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
 	strict = TRUE) {
@@ -73,14 +74,20 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	setParametersCheckVector(newlabels, is.character, 'newlabels', 'character')
 	setParametersCheckVector(lbound, is.numeric, 'lbound', 'numeric')
 	setParametersCheckVector(ubound, is.numeric, 'ubound', 'numeric')
-	model@matrices <- lapply(model@matrices, setParametersHelper, 
+	return(setParametersHelper(model, labels, free, values,
+		newlabels, lbound, ubound, indep))
+}
+
+setParametersHelper <- function(model, labels, free, values,
+	newlabels, lbound, ubound, indep) {
+	model@matrices <- lapply(model@matrices, setParametersMatrix, 
 		labels, free, values, newlabels, lbound, ubound)
 	if(indep) {
-		model@submodels <- lapply(model@submodels, omxSetParameters, 
+		model@submodels <- lapply(model@submodels, setParameterHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 	} else {
 		select <- omxDependentModels(model)
-		select <- lapply(select, omxSetParameters, 
+		select <- lapply(select, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 		model@submodels <- c(select, omxIndependentModels(model))
 	}
@@ -107,7 +114,7 @@ getParametersHelper <- function(amatrix, selection) {
 		return(numeric())
 	}
 	if (omxSymmetricMatrix(amatrix)) {
-		triangle <- upper.tri(free, diag=TRUE)
+		triangle <- upper.tri(select, diag=TRUE)
 		select <- select & triangle
 	} 
 	theNames <- amatrix@labels[select]
@@ -117,7 +124,7 @@ getParametersHelper <- function(amatrix, selection) {
 }
 
 
-setParametersHelper <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
+setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
 	labels <- amatrix@labels
 	locations <- which(labels %in% names)
 	indices <- match(labels[locations], names)
