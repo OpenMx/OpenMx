@@ -18,7 +18,9 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 		stop("'expression' argument is mandatory in call to mxEval function")
 	} else if (missing(model)) {
 		stop("'model' argument is mandatory in call to mxEval function")
-	}
+	} else if (!is.numeric(defvar.row) || length(defvar.row) != 1 || is.na(defvar.row)) {
+		stop("'defvar.row' argument must be a single numeric value")
+	}	
 	expression <- match.call()$expression
 	modelvariable <- match.call()$model
 	labelsData <- omxGenerateLabels(model)
@@ -36,7 +38,11 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	}
 	result <- evaluateExpression(expression, deparse(expression), model, 
 		labelsData, env, compute, show = FALSE, outsideAlgebra = TRUE, defvar.row)
-	return(result)
+	if (is.vector(result)) {
+		return(result)
+	} else {
+		return(eval(result, envir = env))
+	}
 }
 
 evaluateExpression <- function(formula, contextString, model, labelsData, env, compute, show, outsideAlgebra, defvar.row = 1) {
