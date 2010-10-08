@@ -60,18 +60,10 @@ processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 		names(output$algebras) <- algebraNames
 	}
 	if (length(output$confidenceIntervals) > 0) {
-		dimnames(output$confidenceIntervals) <- list(intervalNames, c('lbound', 'ubound'))
-		dimnames(output$confidenceIntervalCodes) <- list(intervalNames, c('lbound', 'ubound'))
-		lowerWarnings <- which(output$confidenceIntervalCodes[,1] > 0)
-		upperWarnings <- which(output$confidenceIntervalCodes[,2] > 0)
-		if (length(lowerWarnings) > 0 && !suppressWarnings) {
-			intervalWarnings("lower", flatModel@name, lowerWarnings, 
-				output$confidenceIntervalCodes[,1], intervalNames)
-		}
-		if (length(upperWarnings) > 0 && !suppressWarnings) {
-			intervalWarnings("upper", flatModel@name, upperWarnings, 
-				output$confidenceIntervalCodes[,2], intervalNames)
-		}
+		dimnames(output$confidenceIntervals) <- list(
+			intervalNames, c('lbound', 'ubound'))
+		dimnames(output$confidenceIntervalCodes) <- list(
+			intervalNames, c('lbound', 'ubound'))
 	}
 	return(output)
 }
@@ -94,17 +86,6 @@ processErrorConditions <- function(model, unsafe, suppressWarnings) {
 	            output$status[[3]]), call. = FALSE)
 	    }
     }
-}
-
-intervalWarnings <- function(type, modelname, indices, codes, intervalNames) {
-	for(i in 1:length(indices)) {
-		index <- indices[[i]]
-		npsolWarnings(
-			paste("In model", omxQuotes(modelname), 
-			"while computing the", type, "bound for", 
-			omxQuotes(intervalNames[[index]])),
-			codes[[index]])
-	}
 }
 
 populateRunStateInformation <- function(model, parameters, matrices, 
