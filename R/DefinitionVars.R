@@ -13,23 +13,33 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-definitionStartingValue <- function(defName, flatModel) {
+definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row = 1) {
 	components <- unlist(strsplit(defName, omxSeparatorChar, fixed = TRUE))
 	dataName <- paste(components[[1]], components[[2]], sep = '.')
-    dataSet <- flatModel@datasets[[dataName]]
+	dataSet <- flatModel@datasets[[dataName]]
 	if(is.null(dataSet)) {
-		stop(paste("Could not find the dataset", omxQuotes(dataName),
+		stop(paste("Could not find the dataset", 
+			omxQuotes(simplifyName(dataName, flatModel@name)),
 			"in model", omxQuotes(flatModel@name), 
-			"used by the definition variable", omxQuotes(defName)),
+			"used by the definition variable", 
+			omxQuotes(simplifyName(defName, flatModel@name))),
 			call. = FALSE)
 	}
 	if (!(components[[3]] %in% colnames(dataSet@observed))) {
 		stop(paste("Could not find the column name", omxQuotes(components[[3]]),
-			"in the dataset", omxQuotes(dataName), 
-			"used by the definition variable", omxQuotes(defName)),
+			"in the dataset", omxQuotes(simplifyName(dataName, flatModel@name)), 
+			"used by the definition variable", 
+			omxQuotes(simplifyName(defName, flatModel@name))),
 			call. = FALSE)
 	}
-	return(dataSet@observed[1, components[[3]]])
+	if (defvar.row < 1 || defvar.row > nrow(dataSet@observed)) {
+		stop(paste("Row number", omxQuotes(defvar.row),
+			"is out of bounds for definition variable",
+			omxQuotes(simplifyName(defName, flatModel@name)), 
+			"used in the context of",
+			omxQuotes(simplifyName(matrixName, flatModel@name))), call. = FALSE)
+	}
+	return(dataSet@observed[defvar.row, components[[3]]])
 }
 
 populateDefInitialValues <- function(flatModel) {
@@ -42,16 +52,16 @@ populateDefInitialValues <- function(flatModel) {
 	return(flatModel)
 }
 
-populateDefVarMatrix <- function(matrix, model) {
+populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	labels <- matrix@labels
 	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), omxIsDefinitionVariable)
+	if (all(!select)) { return(matrix@values) }
 	rows <- row(labels)[select]
 	cols <- col(labels)[select]
 	subs <- labels[select]
-	if (length(subs) == 0) { return(matrix@values) }
 	value <- matrix@values
 	for(i in 1:length(subs)) {
-		startValue <- definitionStartingValue(subs[[i]], model)
+		startValue <- definitionStartingValue(subs[[i]], matrix@name, model, defvar.row)
 		value[rows[[i]],cols[[i]]] <- startValue
 	}
 	return(value)

@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxEval(expression, model, compute = FALSE, show = FALSE)
+mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1)
 }
 
 \arguments{
@@ -31,6 +31,7 @@ mxEval(expression, model, compute = FALSE, show = FALSE)
    \item{model}{The model in which to evaluate the expression.}
    \item{compute}{If TRUE then compute the value of algebra expressions.}
    \item{show}{If TRUE then print the translated expression.}
+   \item{defvar.row}{The row number for definition variables when compute=TRUE.}
 }
 
 \details{

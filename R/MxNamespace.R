@@ -206,6 +206,8 @@ simplifyName <- function(flatName, modelName) {
 	components <- unlist(strsplit(flatName, omxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2 && components[[1]] == modelName) {
 		return(components[[2]])
+	} else if (length(components) == 3 && components[[1]] == modelName) {
+		return(paste(components[[2]], components[[3]], sep = '.'))
 	} else {
 		return(flatName)
 	}
