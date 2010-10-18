@@ -6,5 +6,8 @@ fi
 echo $PWD
 ${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
 ${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c
-cp inst/npsol/windows/x86/rtools2.10/libnpsol.dll inst
+if test "${R_ARCH}" = "/x64"; then
+cp inst/npsol/windows/x86_64/rtools2.12/libnpsol.dll inst;
+else cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst;
+fi
 rm -rf inst/npsol
