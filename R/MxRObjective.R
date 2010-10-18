@@ -19,15 +19,17 @@ setClass(Class = "MxRObjective",
 		objfun = "function",
 		model = "MxModel",
 		flatModel = "MxFlatModel",
-		parameters = "list"),
+		parameters = "list",
+		state = "list"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRObjective",
-	function(.Object, objfun, data = as.integer(NA), 
+	function(.Object, objfun, state, data = as.integer(NA), 
 		name = 'objective') {
 		.Object@objfun <- objfun
 		.Object@name <- name
 		.Object@data <- data
+		.Object@state <- state
 		return(.Object)
 	}
 )
@@ -47,14 +49,15 @@ setMethod("genericObjFunNamespace", signature("MxRObjective"),
 })
 
 
-mxRObjective <- function(objfun) {
+mxRObjective <- function(objfun, ...) {
 	if (!is.function(objfun)) {
 		stop("First argument 'objfun' must be of type function")
 	}
 	if (length(formals(objfun)) != 2) {
 		stop("The objective function must take exactly two arguments: a model and a persistant state")
 	}
-	return(new("MxRObjective", objfun))
+	state <- list(...)
+	return(new("MxRObjective", objfun, state))
 }
 
 displayRObjective <- function(objective) {

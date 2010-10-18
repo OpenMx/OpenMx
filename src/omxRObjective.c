@@ -14,10 +14,10 @@
  *  limitations under the License.
  */
 
-#include <R.h> 
-#include <Rinternals.h> 
+#include <R.h>
+#include <Rinternals.h>
 #include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
@@ -38,13 +38,13 @@ typedef struct {
 } omxRObjective;
 
 void omxDestroyRObjective(omxObjective *oo) {
-	
+
 	UNPROTECT(5); 			// objfun, model, flatModel, parameters, and state
 }
 
 void omxCallRObjective(omxObjective *oo) {
 
-	omxRObjective* rObjective = (omxRObjective*)oo->argStruct; 
+	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
 	SEXP theCall, theReturn;
 	PROTECT(theCall = allocVector(LANGSXP, 3));
 	SETCAR(theCall, rObjective->objfun);
@@ -67,7 +67,7 @@ unsigned short int omxNeedsUpdateRObjective(omxObjective* oo) {
 }
 
 void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
-	omxRObjective* rObjective = (omxRObjective*)oo->argStruct; 
+	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
 
 	SEXP theCall, estimate;
 
@@ -78,7 +78,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	}
 
 	PROTECT(theCall = allocVector(LANGSXP, 5));
-	
+
 	SETCAR(theCall, install("omxUpdateModelValues"));
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->flatModel);
@@ -109,9 +109,8 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
 	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
 	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));
-	PROTECT_WITH_INDEX(newObj->state = NEW_NUMERIC(1), &(newObj->stateIndex));
-	REAL(newObj->state)[0] = NA_REAL;
-	
+	PROTECT_WITH_INDEX(newObj->state = GET_SLOT(rObj, install("state")), &(newObj->stateIndex));
+
 	oo->objectiveFun = omxCallRObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRObjective;
