@@ -51,9 +51,13 @@ void omxCallRObjective(omxObjective *oo) {
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->state);
 	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
-	oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
-	if (LENGTH(theReturn) > 1) {
-		REPROTECT(rObjective->state = CADR(theReturn), rObjective->stateIndex);
+	if (LENGTH(theReturn) == 1) {
+		oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
+	} else if (LENGTH(theReturn) == 2) {
+		oo->matrix->data[0] = REAL(VECTOR_ELT(theReturn, 0))[0];
+		REPROTECT(rObjective->state = VECTOR_ELT(theReturn, 1), rObjective->stateIndex);
+	} else {
+		// throw an error
 	}
 
 	UNPROTECT(2); // theCall and theReturn
