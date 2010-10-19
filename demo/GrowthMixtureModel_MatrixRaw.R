@@ -22,6 +22,7 @@
 # Path style model input - Raw data input
 #
 # Revision History
+# 10 18 2010 - Changed the constraints used to identify mixture
 # -----------------------------------------------------------------------
 
 require(OpenMx)
@@ -59,13 +60,13 @@ class1 <- mxModel("Class1",
                F, F, F, F, T, F, F,
                F, F, F, F, F, T, T,
                F, F, F, F, F, T, T),
-        values=c(0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  1,0.5,
-                 0,0,0,0,0,0.5,  1),
+        values=c(1,0,0,0,0,  0,  0,
+                 0,1,0,0,0,  0,  0,
+                 0,0,1,0,0,  0,  0,
+                 0,0,0,1,0,  0,  0,
+                 0,0,0,0,1,  0,  0,
+                 0,0,0,0,0,  1,0.4,
+                 0,0,0,0,0,0.4,  1),
         labels=c("residual", NA, NA, NA, NA, NA, NA,
                  NA, "residual", NA, NA, NA, NA, NA,
                  NA, NA, "residual", NA, NA, NA, NA,
@@ -94,7 +95,7 @@ class1 <- mxModel("Class1",
     	type="Full",
     	nrow=1, 
     	ncol=7,
-        values=c(0,0,0,0,0,1,1),
+        values=c(0,0,0,0,0,0,-1),
         free=c(F,F,F,F,F,T,T),
         labels=c(NA,NA,NA,NA,NA,"meani1","means1"),
         name="M"
@@ -114,11 +115,11 @@ class2 <- mxModel(class1,
                F, F, F, F, T, F, F,
                F, F, F, F, F, T, T,
                F, F, F, F, F, T, T),
-        values=c(0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
+        values=c(1,0,0,0,0,  0,  0,
+                 0,1,0,0,0,  0,  0,
+                 0,0,1,0,0,  0,  0,
+                 0,0,0,1,0,  0,  0,
+                 0,0,0,0,1,  0,  0,
                  0,0,0,0,0,  1,0.5,
                  0,0,0,0,0,0.5,  1),
         labels=c("residual", NA, NA, NA, NA, NA, NA,
@@ -135,7 +136,7 @@ class2 <- mxModel(class1,
     	type="Full",
     	nrow=1, 
     	ncol=7,
-        values=c(0,0,0,0,0,1,1),
+        values=c(0,0,0,0,0,5,1),
         free=c(F,F,F,F,F,T,T),
         labels=c(NA,NA,NA,NA,NA,"meani2","means2"),
         name="M"
@@ -143,16 +144,15 @@ class2 <- mxModel(class1,
 	name="Class2"
 ) # close model
 
-     
 # make a matrix of class probabilities
 classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
-          values=.5, lbound=0.001, ubound=0.999,
-          labels = c("pclass1", "pclass2[1,1]"), name="classProbs")
+          values=1, lbound=0.001, 
+          labels = c("p1", "p2"), name="Props")
 
-classA <- mxAlgebra(1-pclass1, name="pclass2")
+classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
 
 algObj <- mxAlgebra(-2*sum(
-          log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 
+          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
           name="mixtureObj")
 
 obj <- mxAlgebraObjective("mixtureObj")
@@ -163,7 +163,7 @@ gmm <- mxModel("Growth Mixture Model",
         type="raw"
     ),
     class1, class2,
-    classP, classA,
+    classP, classS,
     algObj, obj
 	)      
 

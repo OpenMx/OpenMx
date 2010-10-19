@@ -114,15 +114,15 @@ class2@objective@vector <- TRUE
      
 # make a matrix of class probabilities
 classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
-          values=.2, lbound=0.001, ubound=0.999,
-          labels = c("pclass1", "pclass2[1,1]"), name="classProbs")
+          values=1, lbound=0.001, 
+          labels = c("p1", "p2"), name="Props")
 
-classA <- mxAlgebra(1-pclass1, name="pclass2")
+classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
 
 algObj <- mxAlgebra(-2*sum(
-          log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 
+          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
           name="mixtureObj")
-
+          
 obj <- mxAlgebraObjective("mixtureObj")
       
 gmm <- mxModel("Growth Mixture Model",
@@ -131,7 +131,7 @@ gmm <- mxModel("Growth Mixture Model",
         type="raw"
     ),
     class1, class2,
-    classP, classA,
+    classP, classS,
     algObj, obj
 	)      
 
