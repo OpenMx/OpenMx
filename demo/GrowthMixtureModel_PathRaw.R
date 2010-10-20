@@ -141,6 +141,7 @@ summary(gmmFit)
 
 gmmFit$classProbs
 
-#Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------
-#omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
+omxCheckCloseEnough(gmmFit@output$Minus2LogLikelihood, 8739.05, 0.01)
+omxCheckCloseEnough(max(mxEval(classProbs, gmmFit)), 0.6009, 0.01)
+omxCheckCloseEnough(min(mxEval(classProbs, gmmFit)), 0.3991, 0.01)
