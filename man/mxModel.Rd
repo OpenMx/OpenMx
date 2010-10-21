@@ -92,4 +92,39 @@ model[["A"]]
 #View the data associated with MxModel object 'model'
 model@data
 
+
+# An example Using OpenMx's Path Syntax
+library(MBESS) # We will use the classic Holzinger and Swineford (1939) dataset of abilty tests in 301 subjects
+data(HS.data)  #load the data
+
+Spatial   <- c("visual" ,"cubes"  ,"paper") # the manifest variables loading on each proposed latent variable
+Verbal    <- c("general" , "paragrap", "sentence")
+Math      <- c("numeric","series", "arithmet")
+
+latents   <- c("vis","math", "text")
+manifests <-  c(Spatial, Math,Verbal)
+
+model <- mxModel("Holzinger and Swineford (1939)", type="RAM", 
+	manifestVars = manifests, # list the measured variables (boxes)
+	latentVars   = latents,   # list the latent variables (circles)
+    # factor loadings from latents to  manifests
+	mxPath(from= "vis",  to=Spatial),# factor loadings
+    mxPath(from= "math", to=Math),   # factor loadings
+    mxPath(from= "text", to=Verbal), # factor loadings
+
+	# Allow latent variables to covary 
+	mxPath(from="vis" , to="math", arrows=2, free=T),
+	mxPath(from="vis" , to="text", arrows=2, free=T),
+	mxPath(from="math", to="text", arrows=2, free=T),
+
+    # Allow latent variables to have variance (first fixed  @ 1)
+	mxPath(from= latents  , arrows=2, free=c(F,T,T), values=1.0), 
+    # Manifest have residual variance
+	mxPath(from= manifests, arrows=2),   
+	# the data to be analysed
+    mxData(cov(HS.data[,manifests]), type="cov", numObs=301)
+)
+fit = mxRun(model) # run the model
+summary(fit) # examine the output: Fits statistics and (unstandardized) path loadings
+
 }
