@@ -23,11 +23,12 @@
 }
 
 \usage{
-mxRObjective(objfun)
+   mxRObjective(objfun, ...)
 }
 
 \arguments{
    \item{objfun}{A function that accepts two arguments.}
+   \item{...}{The initial state information to the objective function.}
 }
 
 \details{

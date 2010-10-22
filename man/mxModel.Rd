@@ -113,14 +113,14 @@ model <- mxModel("Holzinger and Swineford (1939)", type="RAM",
     mxPath(from= "text", to=Verbal), # factor loadings
 
 	# Allow latent variables to covary 
-	mxPath(from="vis" , to="math", arrows=2, free=T),
-	mxPath(from="vis" , to="text", arrows=2, free=T),
-	mxPath(from="math", to="text", arrows=2, free=T),
+	mxPath(from="vis" , to="math", arrows=2, free=TRUE),
+	mxPath(from="vis" , to="text", arrows=2, free=TRUE),
+	mxPath(from="math", to="text", arrows=2, free=TRUE),
 
     # Allow latent variables to have variance (first fixed  @ 1)
-	mxPath(from= latents  , arrows=2, free=c(F,T,T), values=1.0), 
+	mxPath(from=latents, arrows=2, free=c(FALSE,TRUE,TRUE), values=1.0), 
     # Manifest have residual variance
-	mxPath(from= manifests, arrows=2),   
+	mxPath(from=manifests, arrows=2),   
 	# the data to be analysed
     mxData(cov(HS.data[,manifests]), type="cov", numObs=301)
 )

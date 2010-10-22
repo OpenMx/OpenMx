@@ -83,7 +83,7 @@ setParametersHelper <- function(model, labels, free, values,
 	model@matrices <- lapply(model@matrices, setParametersMatrix, 
 		labels, free, values, newlabels, lbound, ubound)
 	if(indep) {
-		model@submodels <- lapply(model@submodels, setParameterHelper, 
+		model@submodels <- lapply(model@submodels, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 	} else {
 		select <- omxDependentModels(model)
