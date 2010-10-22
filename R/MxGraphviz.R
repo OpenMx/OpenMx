@@ -23,7 +23,7 @@ writeDotFile <-function (model, graph, dotFilename)
 	if (length(graph@manifestVars) > 0) {
         outputLines <-append(outputLines, " 	 /* Manifest Variables */")
 	    rankString  <-paste(graph@manifestVars, collapse="; ")
-		rankString  <-paste("{ rank = max;", rankString, "}", collapse="") # force manifests to bottom of graph
+		rankString  <-paste(" 	 { rank = max;", rankString, "}", collapse="") # force manifests to bottom of graph
 		outputLines <-append(outputLines, rankString)
         for (i in 1:length(graph@manifestVars)) {
             outputLines <- c(outputLines, paste("\t", graph@manifestVars[[i]], 
@@ -80,6 +80,7 @@ writeDotFile <-function (model, graph, dotFilename)
     cat(outputLines, file = dotFilename)
     return(invisible(outputLines))
 }
+
 omxGraphviz <- function(model, dotFilename = "") {
 	if (missing(model) || !is(model, "MxModel")) {
 		stop("The first argument is not an MxModel object")
