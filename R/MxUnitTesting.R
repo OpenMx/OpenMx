@@ -94,10 +94,11 @@ omxCheckSetEquals <- function(a, b) {
 
 omxCheckTrue <- function(a) {	
 	if (any(!a)) {
-		stop(paste(match.call()$a, "is not true"))
+		call <- deparse(match.call()$a)
+		stop(paste(call, "is not true"))
 	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), 
-			"is true.", '\n'))
+		call <- deparse(match.call()$a)
+		cat(paste(call, "is true.", '\n'))
 	}
 }
 
