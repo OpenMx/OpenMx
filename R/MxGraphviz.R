@@ -19,9 +19,9 @@ writeDotFile <-function (model, graph, dotFilename)
     outputLines <- list()
     graphName   <- paste("\"", model@name, "\"", sep = "")
     outputLines <- c(outputLines, paste("digraph", graphName, "{"))
-    outputLines <- c(outputLines, paste("\t", "node [style=filled, fontname=\"Ariel\", fontsize=16];"))
+    outputLines <- c(outputLines, paste("\t", "node [style=filled, fontname=\"Arial\", fontsize=16];"))
 	if (length(graph@manifestVars) > 0) {
-        outputLines <-append(outputLines, "/* Manifest Variables*/")
+        outputLines <-append(outputLines, " 	 /* Manifest Variables */")
 	    rankString  <-paste(graph@manifestVars, collapse="; ")
 		rankString  <-paste("{ rank = max;", rankString, "}", collapse="") # force manifests to bottom of graph
 		outputLines <-append(outputLines, rankString)
@@ -31,7 +31,7 @@ writeDotFile <-function (model, graph, dotFilename)
         }
     }
     if (length(graph@latentVars) > 0) {
-        outputLines <-append(outputLines, "/* Latent Variables*/")
+        outputLines <-append(outputLines, "/* Latent Variables */")
 		for (i in 1:length(graph@latentVars)) {
             outputLines <- c(outputLines, paste("\t", graph@latentVars[[i]], 
                 "[shape=circle, fillcolor=\"#f4fd78\"];"))
