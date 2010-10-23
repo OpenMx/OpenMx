@@ -270,6 +270,7 @@ insertPathRAM <- function(model, path) {
 	allfrom <- path@from
 	allto <- path@to
 	allarrows <- path@arrows
+	excludeself <- path@excludeself
 	if (length(allfrom) == 1 && (allfrom == "one")) {
 		model <- insertMeansPathRAM(model, path)
 		return(model)
@@ -287,6 +288,7 @@ insertPathRAM <- function(model, path) {
 		from <- allfrom[i %% length(allfrom) + 1]
 		to <- allto[i %% length(allto) + 1]
 		arrows <- allarrows[i %% length(allarrows) + 1]
+		if (excludeself && identical(from, to)) next
 		if (arrows == 1) {
 			A <- matrixSetPath(A, from, to, path, i, default1)
 			S <- matrixClearPath(S, from, to)
@@ -336,6 +338,7 @@ removePathRAM <- function(model, path) {
 	allfrom <- path@from
 	allto <- path@to
 	allarrows <- path@arrows
+	excludeself <- path@selfexlude
 	A <- model[['A']]
 	S <- model[['S']]
 	F <- model[['F']]
@@ -347,6 +350,7 @@ removePathRAM <- function(model, path) {
 		from <- allfrom[i %% length(allfrom) + 1]
 		to <- allto[i %% length(allto) + 1]
 		arrows <- allarrows[i %% length(allarrows) + 1]
+		if (excludeself && identical(from, to)) next
 		if (arrows == 1) {
 			A <- matrixClearPath(A, from, to)
 		} else if (arrows == 2) {

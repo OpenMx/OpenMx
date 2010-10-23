@@ -377,7 +377,7 @@ modelModifyFilter <- function(model, entries, action) {
 	}
 	if (any(unknownFilter)) {
 		stop(paste("Cannot", action, "the following item(s) into the model:", 
-			entries[unknownFilter]), call. = FALSE)
+			omxQuotes(entries[unknownFilter])), call. = FALSE)
 	}
 	return(list(entries[namedFilter], entries[boundsFilter], entries[intervalFilter]))
 }

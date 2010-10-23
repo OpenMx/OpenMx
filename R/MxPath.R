@@ -22,12 +22,13 @@ setClass(Class = "MxPath",
 		free = "logical",
 		labels = "character",
 		lbound = "numeric",
-		ubound = "numeric"
+		ubound = "numeric",
+		excludeself = "logical"
 ))
 
 setMethod("initialize", "MxPath",
 	function(.Object, from, to, arrows, values,
-		free, labels, lbound, ubound) {
+		free, labels, lbound, ubound, excludeself) {
 		.Object@from <- from
 		.Object@to <- to
 		.Object@arrows <- arrows
@@ -36,6 +37,7 @@ setMethod("initialize", "MxPath",
 		.Object@labels <- labels
 		.Object@lbound <- lbound
 		.Object@ubound <- ubound
+		.Object@excludeself <- excludeself
 		return(.Object)
 	}
 )
@@ -43,7 +45,7 @@ setMethod("initialize", "MxPath",
 # returns a list of paths
 generatePath <- function(from, to, 
 		all, arrows, values, free,
-		labels, lbound, ubound) {
+		labels, lbound, ubound, excludeself) {
 	if (single.na(to)) {
 		to <- from
 		loop <- TRUE
@@ -60,7 +62,7 @@ generatePath <- function(from, to,
 	}
 	pathCheckLengths(from, to, arrows, values, 
 		free, labels, lbound, ubound, loop)
-	return(new("MxPath", from, to, arrows, values, free, labels, lbound, ubound))
+	return(new("MxPath", from, to, arrows, values, free, labels, lbound, ubound, excludeself))
 }
 
 pathCheckLengths <- function(from, to, arrows, values, 
@@ -153,19 +155,21 @@ pathCheckVector <- function(value, valname, check, type) {
 }
 
 mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
-	values = NA, labels = NA, lbound = NA, ubound = NA) {
+	values = NA, labels = NA, lbound = NA, ubound = NA, excludeself = FALSE) {
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
-	if (length(all) != 1 || !is.logical(all)) {
+	if (length(all) != 1 || !is.logical(all) || is.na(all)) {
 		stop("The 'all' argument to mxPath must be either true or false.")
+	}
+	if (length(excludeself) != 1 || !is.logical(excludeself) || is.na(excludeself)) {
+		stop("The 'excludeself' argument to mxPath must be either true or false.")
 	}
 	if (all.na(to)) { to <- as.character(to) }
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
-	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
-	
+	if (all.na(ubound)) { ubound <- as.numeric(ubound) }	
 	pathCheckVector(from, 'from', is.character, 'character')
 	pathCheckVector(to, 'to', is.character, 'character')
 	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
@@ -176,7 +180,7 @@ mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
 	generatePath(from, to, all, arrows, 
 		values, free, labels, 
-		lbound, ubound)
+		lbound, ubound, excludeself)
 }
 
 displayPath <- function(object) {
@@ -189,6 +193,7 @@ displayPath <- function(object) {
 	cat("@labels: ", object@labels, '\n')
 	cat("@lbound: ", object@lbound, '\n')
 	cat("@ubound: ", object@ubound, '\n')
+	cat("@excludeself: ", object@excludeself, '\n')
 }
 
 setMethod("print", "MxPath", function(x,...) { displayPath(x) })

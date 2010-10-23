@@ -10,6 +10,7 @@ trunk
 * added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
 * eliminated warnings for confidence interval optimization codes
 * added "..." argument to mxRObjectiveFunction()
+* added 'excludeself' argument to mxPath() function
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================

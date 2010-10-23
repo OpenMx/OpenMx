@@ -26,7 +26,7 @@
 \usage{
 mxPath(from, to = NA, all = FALSE, arrows = 1,
 	free = TRUE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA)
+	lbound = NA, ubound = NA, excludeself = FALSE)
 }
 
 \arguments{
@@ -38,19 +38,22 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
    \item{values}{numeric vector. The starting values of the parameters.}
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
-   \item{ubound}{numeric vector. The upper bounds of free parameters.}   
+   \item{ubound}{numeric vector. The upper bounds of free parameters.}
+   \item{excludeself}{boolean value. Exlude any self paths.}
 }
 
 \details{
-The mxPath function creates \link{MxPath} objects, which are lists of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, which are included in the 'manifestVar' and 'latentVar' arguments of the \link{mxModel} function.
+The mxPath function creates \link{MxPath} objects, which are lists of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, which are included in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
 
-Paths are specified as going from one variable or set of variables to another variable or set of variables using the 'from' and 'to' arguments, respectively. Sets of variables may be input as a vector of variable names. If the 'all' argument is set to FALSE, then paths are created going from each entry in the 'from' vector to the corresponding position in the 'to' vector. If the 'to' and 'from' vectors are of different lengths when the 'all' argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length. If the 'all' argument is set to TRUE, all possible paths from the vector of 'from' variables to the vector of 'to' variables are created.
+Paths are specified as going from one variable or set of variables to another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. Sets of variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding position in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length. If the \sQuote{all} argument is set to TRUE, all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables are created.
 
-The 'free' argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
+The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
 
-The 'arrows' argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the 'to' variable on the 'from' variable, such that the arrow points to the 'to' variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the 'arrows' argument may take a vector of 1s and 2s to be applied to the set of created paths.
+The \sQuote{arrows} argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the \sQuote{to} variable on the \sQuote{from} variable, such that the arrow points to the \sQuote{to} variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the \sQuote{arrows} argument may take a vector of 1s and 2s to be applied to the set of created paths.
 
-The 'values' is a numeric vectors containing the starting values of the created paths. 'values' gives a starting value for estimation. The 'labels' argument specifies the names of the resulting \link{MxPath} object.  The 'lbound' and 'ubound' arguments specify lower and upper bounds for the created paths.
+The \sQuote{values} is a numeric vectors containing the starting values of the created paths. \sQuote{values} gives a starting value for estimation. The \sQuote{labels} argument specifies the names of the resulting \link{MxPath} object.  The \sQuote{lbound} and \sQuote{ubound} arguments specify lower and upper bounds for the created paths.
+
+If \sQuote{excludeself} is TRUE, then paths are not modified in those cases when the \sQuote{from} and \sQuote{to} field are the same.  These paths are untouched independent of the value of the \sQuote{all} argument, and independent of whether the call to the function \link{mxModel} is adding paths or removing paths.
 }
 
 \value{
