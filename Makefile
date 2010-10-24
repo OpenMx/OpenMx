@@ -28,11 +28,13 @@ help:
 	@echo ""	
 	@echo "BUILDS"
 	@echo ""
-	@echo "  build      create an OpenMx binary for unix systems (no cross-compilation)"
-	@echo "  build32    create an OpenMx binary for i386 systems"
-	@echo "  build64    create an OpenMx binary for x86_64 systems"
-	@echo "  buildppc   create an OpenMx binary for ppc systems"
-	@echo "  winbuild   create an OpenMx binary on windows systems"
+	@echo "  build        create an OpenMx binary for unix systems (no cross-compilation)"
+	@echo "  build32      create an OpenMx binary for i386 systems"
+	@echo "  build64      create an OpenMx binary for x86_64 systems"
+	@echo "  buildppc     create an OpenMx binary for ppc systems"
+	@echo "  winbuild     create an OpenMx binary on windows systems (no cross-compilation)"
+	@echo "  winbuild32   create an OpenMx binary on 32-bit windows systems"
+	@echo "  winbuild64   create an OpenMx binary on 64-bit windows systems"	
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
@@ -103,6 +105,12 @@ buildppc: common-buildppc post-build
 build: common-build post-build
 
 winbuild: common-build
+
+winbuild32: clean internal-build
+	cd $(RBUILD); $(REXEC) --arch i386 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+
+winbuild64: clean internal-build
+	cd $(RBUILD); $(REXEC) --arch x64 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
 
 install: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
