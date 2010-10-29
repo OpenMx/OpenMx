@@ -61,6 +61,7 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 	omxFreeMatrixData(argStruct->Ax);
 	omxFreeMatrixData(argStruct->P);
 	omxFreeMatrixData(argStruct->V);
+	omxFreeMatrixData(argStruct->Mns);
 	// omxFreeMatrixData(argStruct->mCov);
 }
 
