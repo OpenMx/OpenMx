@@ -113,7 +113,7 @@ modelRemoveIntervals <- function(model, intervals) {
 	return(model)
 }
 
-generateIntervalList <- function(flatModel, useIntervals, modelname, parameters) {
+generateIntervalList <- function(flatModel, useIntervals, modelname, parameters, useNames = FALSE) {
 	if (length(useIntervals) != 1 || 
 		typeof(useIntervals) != "logical" || 
 		is.na(useIntervals)) {
@@ -124,7 +124,7 @@ generateIntervalList <- function(flatModel, useIntervals, modelname, parameters)
 	if (!useIntervals) {
 		return(list())
 	}
-	retval <- lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters)
+	retval <- lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters, useNames)
 	names(retval) <- NULL
 	retval <- unlist(retval, recursive = FALSE)
 	return(retval)
@@ -135,9 +135,7 @@ makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
 	return(c(entityNumber, row - 1, col - 1, lower, upper))
 }
 
-
-
-generateIntervalListHelper <- function(interval, flatModel, modelname, parameters) {
+generateIntervalListHelper <- function(interval, flatModel, modelname, parameters, useNames) {
 	pnames <- names(parameters)
 	reference <- interval@reference
 	entity <- flatModel[[reference]]
@@ -145,8 +143,12 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		location <- parameters[[reference]][[3]]
 		location[[1]] <- - location[[1]] - 1
 		retval <- list()
-		retval[[reference]] <- c(location, 
-			interval@lowerdelta, interval@upperdelta)
+		if (useNames) {
+			retval[[reference]] <- c(reference, NA, NA, interval@lowerdelta, interval@upperdelta)
+		} else {
+			retval[[reference]] <- c(location, 
+				interval@lowerdelta, interval@upperdelta)
+		}
 		return(retval)
 	} else if (!is.null(entity)) {
 		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
@@ -165,8 +167,12 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 			for(j in 1:cols) {
 				if (free[i, j]) {
 					newName <- paste(reference, '[', i, ',', j, ']', sep = '')
-					retval[[newName]] <- makeIntervalReference(
-						entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+					if (useNames) {
+						retval[[newName]] <- c(reference, i, j, interval@lowerdelta, interval@upperdelta)
+					} else {
+						retval[[newName]] <- makeIntervalReference(
+							entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+					}
 				}
 			}
 		}
@@ -197,8 +203,12 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 			for(j in cols) {
 				if (free[i, j]) {
 					newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
-					retval[[newName]] <- makeIntervalReference(
-						entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+					if (useNames) {
+						retval[[newName]] <- c(entityName, i, j, interval@lowerdelta, interval@upperdelta)					
+					} else {
+						retval[[newName]] <- makeIntervalReference(
+							entityNumber, i, j, interval@lowerdelta, interval@upperdelta)
+					}
 				}
 			}
 		}
@@ -220,3 +230,69 @@ displayInterval <- function(object) {
 
 setMethod("print", "MxInterval", function(x,...) { displayInterval(x) })
 setMethod("show", "MxInterval", function(object) { displayInterval(object) })
+
+
+omxParallelCI <- function(model) {
+	if(missing(model) || !is(model, "MxModel")) {
+		stop("first argument must be a MxModel object")
+	}
+	namespace <- omxGenerateNamespace(model)
+	flatModel <- omxFlattenModel(model, namespace)	
+	parameters <- generateParameterList(flatModel)
+	intervals <- generateIntervalList(flatModel, TRUE, model@name, parameters, useNames = TRUE)
+	if (length(intervals) == 0) return(model)
+	template <- model
+	template@intervals <- list()
+	modelname <- model@name
+	container <- mxModel(paste(modelname, "container", sep = "_"))
+	submodels <- list()
+	for(i in 1:length(intervals)) {
+		interval <- intervals[[i]]
+		if (!is.na(interval[[4]])) {
+			submodels <- c(submodels, generateSubmodels(interval, template, modelname, "lower", i))
+		}
+		if (!is.na(interval[[5]])) {
+			submodels <- c(submodels, generateSubmodels(interval, template, modelname, "upper", i))
+		}		
+	}
+	container <- mxModel(container, submodels)
+	return(container)
+}
+
+generateSubmodels <- function(interval, template, modelname, type, num) {
+	name <- paste(modelname, "ci", num, type, sep="_")
+	minimum <- mxEval(objective, template)
+	template <- mxRename(template, paste(name, "child", sep = "_"))
+	if (is.na(interval[[2]]) && is.na(interval[[3]])) {
+		reference <- interval[[1]]
+	} else {
+		entity <- interval[[1]]
+		components <- unlist(strsplit(entity, omxSeparatorChar, fixed = TRUE))			
+		if (length(components) == 1) {
+			entity <- paste(template@name, entity, sep = ".")
+		} else {
+			entity <- renameReference(entity, modelname, template@name)
+		}
+		reference <- paste("`", entity, "`", "[", interval[[2]], ",", interval[[3]], "]", sep = "")
+	}
+	ci <- eval(substitute(mxAlgebra(x, name = 'ci'), 
+		list(x = parse(text = reference)[[1]])))
+	if (type == "lower") {
+		algebra <- eval(substitute(mxAlgebra((offset + minimum - value) ^ 2 + x, name = "algObjective"),
+			list(x = parse(text = reference)[[1]],
+				minimum = minimum[1,1],
+				value = as.symbol(paste(template@name, "objective", sep = ".")), 
+				offset = as.numeric(interval[[4]]))))
+	} else if (type == "upper") {
+		algebra <- eval(substitute(mxAlgebra((offset + minimum - value) ^ 2 - x, name = "algObjective"),
+			list(x = parse(text = reference)[[1]],
+				minimum = minimum[1,1],
+				value = as.symbol(paste(template@name, "objective", sep = ".")), 
+				offset = as.numeric(interval[[5]]))))	
+	} else {
+		stop(paste("Illegal type", type, "in generateSubmodels"))
+	}
+	objective <- mxAlgebraObjective("algObjective")
+	model <- mxModel(name, algebra, objective, ci, template, independent = TRUE)
+	return(model)
+}
