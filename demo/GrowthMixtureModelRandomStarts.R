@@ -5,7 +5,7 @@ demo(GrowthMixtureModel_MatrixRaw)
 ################################################################################
 
 # how many trials?
-trials <- 20
+trials <- 10
 
 # place all of the parameter names in a vector
 parNames <- names(omxGetParameters(gmm))
@@ -83,7 +83,7 @@ makeModel <- function(modelNumber){
 	return(temp)
 }
 	
-mySubs <- lapply(1:20, makeModel)
+mySubs <- lapply(1:trials, makeModel)
 	
 topModel@submodels <- mySubs
 
