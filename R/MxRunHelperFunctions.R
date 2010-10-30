@@ -14,10 +14,19 @@
 #   limitations under the License.
 
 modelIsHollow <- function(model) {
+	if (!isHollow(model)) {
+		return(FALSE)
+	}
+	submodels <- omxDependentModels(model)
+	if (length(submodels) == 0) return(TRUE)
+	children <- sapply(submodels, modelIsHollow)
+	return(all(children))	
+}
+
+isHollow <- function(model) {
 	return(is.null(model@objective) && 
 		length(model@matrices) == 0 && 
-		length(model@algebras) == 0 &&
-		length(omxDependentModels(model)) == 0)
+		length(model@algebras) == 0)
 }
 
 processHollowModel <- function(model, independents, dataList, frontendStart, indepElapsed) {

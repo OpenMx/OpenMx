@@ -104,10 +104,10 @@ runHelper <- function(model, frontendStart,
 		algebras, data, intervalList, communication, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
-	independents <- lapply(independents, undoDataShare, dataList)
-	model <- omxReplaceModels(model, independents)
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
+	independents <- lapply(independents, undoDataShare, dataList)	
+	model <- omxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),

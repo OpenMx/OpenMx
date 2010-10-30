@@ -67,9 +67,9 @@ table(round(fit[,1], 3), fit[,2])
 ################################################################################
 # Parallel Respecification
 ################################################################################
-require(snowfall)
-sfInit(parallel=TRUE, cpus=4)
-sfLibrary(OpenMx)
+#require(snowfall)
+#sfInit(parallel=TRUE, cpus=4)
+#sfLibrary(OpenMx)
 
 topModel <- mxModel("Top")	
 
@@ -100,7 +100,7 @@ fitStats <- function(model){
 }
 
 resultsFit <- t(omxSapply(results@submodels, fitStats))
-sfStop()
+#sfStop()
 
 
 ################################################################################

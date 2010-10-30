@@ -34,16 +34,14 @@ shareDataHelper <- function(model, default) {
 }
 
 getAllIndependents <- function(model) {
-	return(getIndependentsHelper(omxIndependentModels(model)))
-}
-
-getIndependentsHelper <- function(lst) {
-	if(length(lst) == 0) return(lst)
-	retval <- lapply(lst, getAllIndependents)
-	if(length(retval) > 0) {
-		retval <- unlist(retval, recursive = FALSE)
-	}
-	return(append(lst, retval))
+    submodels <- model@submodels
+    if(length(submodels) == 0) return(submodels)
+    select <- sapply(submodels, function(x) { x@independent })
+	retval <- submodels[select]
+	recursive <- lapply(submodels[!select], getAllIndependents)
+	recursive <- unlist(recursive, recursive = TRUE)
+	retval <- c(retval, recursive)
+    return(retval)
 }
 
 freezeMatrix <- function(mxMatrix) {
@@ -161,33 +159,37 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 omxDependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
-        retval <- retval[which(sapply(retval, function(x) { !x@independent }))]
+        retval <- retval[sapply(retval, function(x) { !x@independent })]
         return(retval)
 }
 
 omxIndependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
-        retval <- retval[which(sapply(retval, function(x) { x@independent }))]
+        retval <- retval[sapply(retval, function(x) { x@independent })]
         return(retval)
 }
 
 
 omxReplaceModels <- function(model, replacements) {
 	if (length(replacements) == 0) return(model)
-	mnames <- names(model@submodels)
-	rnames <- names(replacements)
-	if (setequal(mnames, rnames)) {
-		model@submodels <- replacements
-		return(model)
+	return(replaceModelsHelper(model, replacements, omxExtractNames(replacements)))
+}
+
+replaceSubmodels <- function(target, replacements, replaceNames) {
+	index <- match(target@name, replaceNames)
+	if (is.na(index)) {
+		return(target)
+	} else {
+		return(replacements[[index]])
 	}
-	inames <- intersect(mnames, rnames)
-	if (length(inames) > 0) {
-		for(i in 1:length(inames)) {
-			name <- inames[[i]]		
-			model@submodels[[name]] <- replacements[[name]]
-		}
-	}
-	model@submodels <- lapply(model@submodels, omxReplaceModels, replacements)	
+}
+
+replaceModelsHelper <- function(model, replacements, replaceNames) {
+	submodels <- model@submodels
+	if (length(submodels) == 0) return(model)
+	submodels <- lapply(submodels, replaceSubmodels, replacements, replaceNames)
+	submodels <- lapply(submodels, replaceModelsHelper, replacements, replaceNames)
+	model@submodels <- submodels
 	return(model)
 }

@@ -232,9 +232,12 @@ setMethod("print", "MxInterval", function(x,...) { displayInterval(x) })
 setMethod("show", "MxInterval", function(object) { displayInterval(object) })
 
 
-omxParallelCI <- function(model) {
+omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
+	}
+	if(length(model@output) == 0) {
+		stop("'model' argument to omxParallelCI must be a fitted model")
 	}
 	namespace <- omxGenerateNamespace(model)
 	flatModel <- omxFlattenModel(model, namespace)	
@@ -248,16 +251,55 @@ omxParallelCI <- function(model) {
 	submodels <- list()
 	for(i in 1:length(intervals)) {
 		interval <- intervals[[i]]
+		newmodel <- mxModel(paste("interval", i, sep = ""))		
 		if (!is.na(interval[[4]])) {
-			submodels <- c(submodels, generateSubmodels(interval, template, modelname, "lower", i))
+			newmodel <- mxModel(newmodel, generateSubmodels(interval, template, modelname, "lower", i))
 		}
 		if (!is.na(interval[[5]])) {
-			submodels <- c(submodels, generateSubmodels(interval, template, modelname, "upper", i))
-		}		
+			newmodel <- mxModel(newmodel, generateSubmodels(interval, template, modelname, "upper", i))
+		}
+		submodels <- c(submodels, newmodel)
 	}
 	container <- mxModel(container, submodels)
-	return(container)
+	if (!run) {
+		return(container)
+	}
+	container <- mxRun(container, suppressWarnings = suppressWarnings)	
+	tableCI <- matrix(as.numeric(NA), length(intervals), 2)
+	dimnames(tableCI) <- list(names(intervals), c('lbound', 'ubound'))	
+	for(i in 1:length(intervals)) {
+		interval <- intervals[[i]]
+		submodel <- container@submodels[[i]]
+		lowerInterval <- findSubmodel(submodel, "lower")
+		upperInterval <- findSubmodel(submodel, "upper")
+		if (!is.null(lowerInterval)) {
+			tableCI[i, 'lbound'] <- mxEval(ci, lowerInterval)[1,1]
+		}
+		if (!is.null(upperInterval)) {
+			tableCI[i, 'ubound'] <- mxEval(ci, upperInterval)[1,1]
+		}
+	}
+	model@output$confidenceIntervals <- tableCI
+	model@output$frontendTime <- container@output$frontendTime
+	model@output$backendTime <- container@output$backendTime
+	model@output$independentTime <- container@output$independentTime
+	model@output$wallTime <- container@output$wallTime
+	model@output$timestamp <- container@output$timestamp
+	model@output$cpuTime <- container@output$cpuTime
+	return(model)
 }
+
+findSubmodel <- function(model, suffix) {
+	submodels <- model@submodels
+	subnames <- names(submodels)
+	match <- grep(paste(suffix, "$", sep = ""), subnames)
+	if (length(match) == 0) {
+		return(NULL)
+	} else {
+		return(submodels[[match]])
+	}
+}
+
 
 generateSubmodels <- function(interval, template, modelname, type, num) {
 	name <- paste(modelname, "ci", num, type, sep="_")
