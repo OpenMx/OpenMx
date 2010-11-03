@@ -114,13 +114,20 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 				"data. Use mxFactor() on this column."), call. = FALSE)
 		}
 		values <- column[1:expectedThreshCount]
-		sortValues <- sort(values)
+		sortValues <- sort(values, na.last = TRUE)
 		if (!all(sortValues == values)) {
 			stop(paste("In model", 
 				omxQuotes(modelName),
 				"the thresholds in column",
-				omxQuotes(tName),
-				"are not in sorted order."), call. = FALSE)	
+				omxQuotes(tName), "of matrix/algebra",
+			        omxQuotes(simplifyName(threshName, modelName)),
+				"are not in ascending order.",
+                                "The current order is: ",
+                                omxQuotes(values), "and",
+				"ascending order is: ",
+				omxQuotes(sortValues),".",
+                                "Only the first", expectedThreshCount,
+                                "value(s) of this column are inspected."), call. = FALSE)	
 		}
 	}
 }

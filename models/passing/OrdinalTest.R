@@ -81,12 +81,12 @@ dataMatrix <- mxData(data, type='raw')
 model <- mxModel(model, objective, dataMatrix)
 
 # Run the job
-model <- mxRun(model)
+modelOut <- mxRun(model)
 
-estimates <- model@output$estimate
+estimates <- modelOut@output$estimate
 
 # Results from old Mx:
-omxCheckCloseEnough(mxEval(thresh, model)[,1], Mx1Threshold[,1], 0.01)
-omxCheckCloseEnough(mxEval(thresh, model)[1,2], Mx1Threshold[1,2], 0.01)
-omxCheckCloseEnough(mxEval(R, model), Mx1R, 0.01)
-omxCheckCloseEnough(model@output$Minus2LogLikelihood, 4081.48, 0.02)
+omxCheckCloseEnough(mxEval(thresh, modelOut)[,1], Mx1Threshold[,1], 0.01)
+omxCheckCloseEnough(mxEval(thresh, modelOut)[1,2], Mx1Threshold[1,2], 0.01)
+omxCheckCloseEnough(mxEval(R, modelOut), Mx1R, 0.01)
+omxCheckCloseEnough(modelOut@output$Minus2LogLikelihood, 4081.48, 0.02)

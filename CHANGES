@@ -13,6 +13,7 @@ trunk
 * added 'excludeself' argument to mxPath() function
 * fix memory leak in RAM objective function
 * removed dependency to MBESS library in R documentation
+* added more descriptive error message when thresholds are not sorted
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
