@@ -114,8 +114,8 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 				"data. Use mxFactor() on this column."), call. = FALSE)
 		}
 		values <- column[1:expectedThreshCount]
-		sortValues <- sort(values, na.last = TRUE)
-		if (!all(sortValues == values)) {
+		sortValues <- sort(values, na.last = NA)
+		if (!identical(sortValues, values)) {
 			stop(paste("In model", 
 				omxQuotes(modelName),
 				"the thresholds in column",
