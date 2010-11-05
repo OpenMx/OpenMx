@@ -1,5 +1,5 @@
-trunk
-=====
+Release 1.0.2-1497 (November 5, 2010)
+=====================================
 * missing <errno.h> include 
 * fix memory leak in RAM objective function
 * incorporated NaN unsafe matrix multiplication from R <= 2.11.1
