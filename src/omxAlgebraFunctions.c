@@ -30,6 +30,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 #include "merge.h"
+#include "omxBLAS.h"
 
 /* Helper Functions */
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
@@ -175,7 +176,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	/* The call itself */
-	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
+	F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
 	omxMatrixCompute(result);
 
@@ -288,11 +289,11 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: premul.\n");}
-	F77_CALL(dgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
+	F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
 	omxMatrixCompute(intermediate);
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: postmul.\n");}
 //	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
-	F77_CALL(dgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
+	F77_CALL(omxunsafedgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: clear.\n");}
 
 	omxFreeAllMatrixData(intermediate);
