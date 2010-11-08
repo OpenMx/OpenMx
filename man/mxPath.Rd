@@ -67,6 +67,24 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{
+# A simple Example: 1 factor Confirmatory Factor Analysis
+require(OpenMx)
+data(demoOneFactor)
+manifests <- names(demoOneFactor)
+latents <- c("G")
+factorModel <- mxModel("One Factor", type="RAM",
+      manifestVars = manifests,
+      latentVars = latents,
+      mxPath(from=latents, to=manifests),
+      mxPath(from=manifests, arrows=2),
+      mxPath(from=latents, arrows=2,free=F, values=1.0),
+      mxData(cov(demoOneFactor), type="cov",numObs=500)
+)
+factorFit <-mxRun(factorModel)
+summary(factorFit)
+
+
+# A more complex example using features of R to compress what would otherwise be a long and error-prone script
 
 myManifest <- sprintf("\%02d", c(1:100))
 myLatent <- c("G1", "G2", "G3", "G4", "G5")
