@@ -39,7 +39,7 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
    \item{ubound}{numeric vector. The upper bounds of free parameters.}
-   \item{excludeself}{boolean value. Exlude any self paths.}
+   \item{excludeself}{boolean value. Exclude any self paths.}
 }
 
 \details{
