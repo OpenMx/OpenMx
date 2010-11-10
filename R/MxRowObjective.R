@@ -168,6 +168,9 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
+		job@.newobjects <- TRUE
+		job@.newobjective <- FALSE
+		job@.newtree <- FALSE
 		return(job)
 	}
 )

@@ -139,6 +139,9 @@ setMethod("genericObjModelConvert", "MxFIMLObjective",
 			is.null(job@options[[precision]])) {
 			job <- mxOption(job, precision, 1e-9)
 		}
+		job@.newobjects <- TRUE
+		job@.newobjective <- FALSE
+		job@.newtree <- FALSE
 		return(job)
 	}
 )

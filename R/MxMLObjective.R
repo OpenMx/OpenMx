@@ -123,6 +123,9 @@ setMethod("genericObjModelConvert", "MxMLObjective",
 		
 		job <- updateObjectiveDimnames(.Object, job, model@name, "ML")
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
+			job@.newobjects <- TRUE
+			job@.newobjective <- FALSE
+			job@.newtree <- FALSE
 			return(job)
 		}
 		if (is.na(.Object@means)) {
@@ -133,6 +136,9 @@ setMethod("genericObjModelConvert", "MxMLObjective",
 		}
 		objective <- mxFIMLObjective(.Object@covariance, .Object@means, .Object@thresholds)
 		job[[model@name]][['objective']] <- objective
+		job@.newobjects <- TRUE
+		job@.newobjective <- TRUE
+		job@.newtree <- FALSE
 		return(job)
 	}
 )

@@ -21,9 +21,7 @@ setClass(Class = "MxBaseObjective",
 	representation = representation(
 		name = "character",
 		data = "MxCharOrNumber",
-		.translated = "logical",
-		result = "matrix", "VIRTUAL"),
-	prototype(.translated = FALSE))
+		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
@@ -64,11 +62,17 @@ setGeneric("genericObjRename",
 
 setMethod("genericObjModelConvert", "MxBaseObjective",
 	function(.Object, job, model, namespace, flatJob) {
+		job@.newobjects <- FALSE
+		job@.newobjective <- FALSE
+		job@.newtree <- FALSE
 		return(job)
 })
 
 setMethod("genericObjModelConvert", "NULL",
 	function(.Object, job, model, namespace, flatJob) {
+		job@.newobjects <- FALSE
+		job@.newobjective <- FALSE
+		job@.newtree <- FALSE
 		return(job)
 })
 
@@ -117,28 +121,44 @@ convertObjectives <- function(flatModel, model, defVars) {
 translateObjectives <- function(model, namespace, flatModel) {
 	if(is.null(model@objective) && 
 		length(omxDependentModels(model)) == 0) {
-		return(model)
+		return(list(model, namespace, flatModel))
 	}
-	return(translateObjectivesHelper(model, model, namespace, flatModel))
+	return(translateObjectivesHelper(model, namespace, flatModel))
 }
 
-translateObjectivesHelper <- function(job, model, namespace, flatJob) {
-	objectiveName <- omxIdentifier(model@name, 'objective')
-	flatObjective <- flatJob@objectives[[objectiveName]]
-	if (!is.null(flatObjective)) {
+translateObjectivesHelper <- function(job, namespace, flatJob) {
+	objectives <- flatJob@objectives
+	if (length(objectives) == 0) {
+		return(list(job, namespace, flatJob))
+	}
+	for(i in 1:length(objectives)) {
+		objective <- objectives[[i]]
+		objectivename <- objective@name
+		modelname <- unlist(strsplit(objective@name, omxSeparatorChar, fixed=TRUE))[[1]]
+		model <- job[[modelname]]
 		repeat {
-			job <- genericObjModelConvert(flatObjective, job, model, namespace, flatJob)
-			flatObjective <- flatJob@objectives[[objectiveName]]
-			if (is.null(flatObjective) || !flatObjective@.translated) break
-		}
-	}
-	if (length(model@submodels) > 0) {
-		for(i in 1:length(model@submodels)) {
-			submodel <- model@submodels[[i]]
-			if (submodel@independent == FALSE) {
-				job <- translateObjectivesHelper(job, submodel, namespace, flatJob)
+			if(is.null(objective)) { break }
+			# .newobjects is TRUE when new matrices or algebras are created
+			# .newobjective is TRUE when one objective function is transformed into another
+			# .newtree is TRUE when one objective function is transformed into multiple objective functions
+			job@.newobjects <- TRUE
+			job@.newobjective <- TRUE
+			job@.newtree <- TRUE
+			job <- genericObjModelConvert(objective, job, model, namespace, flatJob)
+			if (job@.newtree) {
+				namespace <- omxGenerateNamespace(job)
+				flatJob <- omxFlattenModel(job, namespace)
+				return(translateObjectivesHelper(job, namespace, flatJob))
 			}
+			if (job@.newobjects) {
+				namespace <- omxGenerateNamespace(job)
+				flatJob <- omxFlattenModel(job, namespace)
+			}
+			if (job@.newobjective) {
+				model <- job[[modelname]]
+				objective <- flatJob[[objectivename]]
+			} else { break }
 		}
 	}
-	return(job)
+	return(list(job, namespace, flatJob))
 }

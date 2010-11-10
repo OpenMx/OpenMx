@@ -14,7 +14,11 @@
 #   limitations under the License.
 
 mxVersion <- function() {
-	libMatrix <- installed.packages()
+	if (getRversion() >= "2.12.0") {
+		libMatrix <- installed.packages(subarch = NULL)
+	} else {
+		libMatrix <- installed.packages()
+	}
 	if(!("OpenMx" %in% rownames(libMatrix))) return(NA)
 	return(libMatrix['OpenMx', 'Version'])
 }
