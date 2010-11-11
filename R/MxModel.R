@@ -30,7 +30,6 @@ setClass(Class = "MxModel",
 		options = "list",
 		output = "list",
 		runstate="list",
-		.notranslation="logical",
 		.newobjects="logical",
 		.newobjective="logical",
 		.newtree="logical"
