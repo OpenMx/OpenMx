@@ -280,6 +280,9 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 					"'vector' = TRUE, but the observed data is not raw data")
 				stop(msg, call.=FALSE)
 			}
+			job@.newobjects <- TRUE
+			job@.newobjective <- FALSE
+			job@.newtree <- FALSE
 			return(job)
 		}
 		if (is.na(.Object@M) || is.null(flatJob[[.Object@M]])) {
@@ -341,13 +344,15 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		objective <- eval(substitute(mxFIMLObjective(covariance = x, 
 			means = y, thresholds = z, vector = w),
 			list(x = covName, y = meansName, z = .Object@thresholds, w = .Object@vector)))
-		objective@.translated <- TRUE
 		metadata <- new("MxRAMMetaData", .Object@A, .Object@S, .Object@F, 
 			.Object@M, generateRAMDepth(flatJob, .Object@A, job@options))
 		objective@metadata <- metadata
 		model@objective <- objective
 		class(model) <- 'MxModel'
 		job[[model@name]] <- model
+		job@.newobjects <- TRUE
+		job@.newobjective <- TRUE
+		job@.newtree <- FALSE
 		return(job)
 	}
 )

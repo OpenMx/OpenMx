@@ -30,8 +30,9 @@ setClass(Class = "MxModel",
 		options = "list",
 		output = "list",
 		runstate="list",
-		.estimation="logical",
-		.postEstimation="logical"
+		.newobjects="logical",
+		.newobjective="logical",
+		.newtree="logical"
 ))
 
 omxModelTypes[['raw']] <- "MxModel"
@@ -51,8 +52,9 @@ setMethod("initialize", "MxModel",
 		.Object@options <- list()
 		.Object@output <- list()
 		.Object@runstate <- list()
-		.Object@.estimation <- FALSE
-		.Object@.postEstimation <- FALSE
+		.Object@.newobjects <- FALSE
+		.Object@.newobjective <- FALSE
+		.Object@.newtree <- FALSE
 		.Object <- omxInitModel(.Object)
 		return(.Object)
 	}
