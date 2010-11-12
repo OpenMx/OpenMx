@@ -20,5 +20,6 @@
    	'mxRAMDefaultDouble' = 1.00,
 	'mxByrow' = FALSE,
 	'mxShowDimnames' = TRUE,
-   	'mxPrintUnitTests' = TRUE)
+   	'mxPrintUnitTests' = TRUE,
+	'swift.initialexpr' = "library(OpenMx)")
 }
