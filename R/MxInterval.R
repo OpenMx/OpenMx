@@ -232,7 +232,7 @@ setMethod("print", "MxInterval", function(x,...) { displayInterval(x) })
 setMethod("show", "MxInterval", function(object) { displayInterval(object) })
 
 
-omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE) {
+omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE, maxRetry = 5) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
@@ -264,9 +264,12 @@ omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE) {
 	if (!run) {
 		return(container)
 	}
-	container <- mxRun(container, suppressWarnings = suppressWarnings)	
+	container <- mxRun(container, suppressWarnings = suppressWarnings)
+	container <- rerunIntervals(container, NULL, 0, maxRetry, intervals, suppressWarnings)
 	tableCI <- matrix(as.numeric(NA), length(intervals), 2)
-	dimnames(tableCI) <- list(names(intervals), c('lbound', 'ubound'))	
+	tableCodes <- matrix(0, length(intervals), 2)
+	dimnames(tableCI) <- list(names(intervals), c('lbound', 'ubound'))
+	dimnames(tableCodes) <- list(names(intervals), c('lbound', 'ubound'))
 	for(i in 1:length(intervals)) {
 		interval <- intervals[[i]]
 		submodel <- container@submodels[[i]]
@@ -274,12 +277,15 @@ omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE) {
 		upperInterval <- findSubmodel(submodel, "upper")
 		if (!is.null(lowerInterval)) {
 			tableCI[i, 'lbound'] <- mxEval(ci, lowerInterval)[1,1]
+			tableCodes[i, 'lbound'] <- lowerInterval@output$status[[1]]
 		}
 		if (!is.null(upperInterval)) {
 			tableCI[i, 'ubound'] <- mxEval(ci, upperInterval)[1,1]
+			tableCodes[i, 'ubound'] <- upperInterval@output$status[[1]]
 		}
 	}
 	model@output$confidenceIntervals <- tableCI
+	model@output$confidenceIntervalCodes <- tableCodes
 	model@output$frontendTime <- container@output$frontendTime
 	model@output$backendTime <- container@output$backendTime
 	model@output$independentTime <- container@output$independentTime
@@ -287,6 +293,80 @@ omxParallelCI <- function(model, run = TRUE, suppressWarnings = TRUE) {
 	model@output$timestamp <- container@output$timestamp
 	model@output$cpuTime <- container@output$cpuTime
 	return(model)
+}
+
+needsJitter <- function(model1, model2) {
+	retval <- abs(model1@output$estimate - model2@output$estimate)
+	return(all(retval <= 10^-4))
+}
+
+jitterMatrix <- function(matrix) {
+	select <- matrix@free
+	pvalues <- matrix@values[select]
+	matrix@values[select] <- pvalues + 10^-4
+	return(matrix)
+}
+
+jitterModel <- function(model) {
+	model@matrices <- lapply(model@matrices, jitterMatrix)
+	if(length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, jitterModel)
+	}
+	return(model)
+}
+
+rerunIntervals <- function(container, previous, retry, maxRetry, intervals, suppressWarnings) {
+	if (retry >= maxRetry) {
+		return(container)
+	}
+	newmodel <- mxModel("container")
+	for(i in 1:length(intervals)) {
+                submodel <- container@submodels[[i]]
+                lowerInterval <- findSubmodel(submodel, "lower")
+                upperInterval <- findSubmodel(submodel, "upper")
+                if (!is.null(lowerInterval) && 
+		   lowerInterval@output$status[[1]] != 0) {
+			if (is.null(previous)) {
+				newmodel <- mxModel(newmodel, lowerInterval)
+			} else {
+				prevSubmodel <- previous@submodels[[i]]
+				prevLower <- findSubmodel(prevSubmodel, "lower")
+				if (needsJitter(lowerInterval, prevLower)) {
+					newmodel <- mxModel(newmodel, jitterModel(lowerInterval))
+				} else {
+					newmodel <- mxModel(newmodel, lowerInterval)
+				}
+			}
+                }
+                if (!is.null(lowerInterval) && 
+		   upperInterval@output$status[[1]] != 0) {
+			if (is.null(previous)) {
+				newmodel <- mxModel(newmodel, upperInterval)
+			} else {
+				prevSubmodel <- previous@submodels[[i]]
+				prevUpper <- findSubmodel(prevSubmodel, "upper")
+				if (needsJitter(upperInterval, prevUpper)) {
+					newmodel <- mxModel(newmodel, jitterModel(upperInterval))
+				} else {
+					newmodel <- mxModel(newmodel, upperInterval)
+				}
+			}
+		}
+	}
+	if (length(newmodel@submodels) == 0) return(container)
+	newmodel <- mxRun(newmodel, suppressWarnings = suppressWarnings)
+	nextcontainer <- container
+	nextoutput <- nextcontainer@output
+	nextoutput$frontendTime <- nextoutput$frontendTime + newmodel@output$frontendTime
+	nextoutput$backendTime <- nextoutput$backendTime + newmodel@output$backendTime
+	nextoutput$independentTime <- nextoutput$independentTime + newmodel@output$independentTime
+	nextoutput$wallTime <- nextoutput$wallTime + newmodel@output$wallTime
+	nextcontainer@output <- nextoutput
+	for(i in 1:length(newmodel@submodels)) {
+		submodel <- newmodel@submodels[[i]]
+		nextcontainer[[submodel@name]] <- submodel
+	}
+	return(rerunIntervals(nextcontainer, container, retry + 1, maxRetry, intervals, suppressWarnings))
 }
 
 findSubmodel <- function(model, suffix) {
