@@ -33,4 +33,9 @@ omxCheckCloseEnough(factorSummCI$CI["One Factor.P[2,1]",], c(.508, .541, .575), 
 omxCheckCloseEnough(factorSummCI$CI["One Factor.P[3,1]",], c(.575, .613, .651), .005)
 omxCheckCloseEnough(factorSummCI$CI["One Factor.P[4,1]",], c(.687, .732, .778), .005)
 omxCheckCloseEnough(factorSummCI$CI["One Factor.P[5,1]",], c(.770, .820, .872), .005)
+
+factorParallel <- omxParallelCI(factorFit)
+omxCheckCloseEnough(factorParallel@output$confidenceIntervals,
+	factorFitCI@output$confidenceIntervals, 0.001)
+
 # TODO : Compare to old Mx values.

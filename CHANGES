@@ -18,6 +18,7 @@ trunk
 * return NA in mxVersion() if "OpenMx" cannot be found
 * fix infinite loop in objective function transformations
 * added initialization to load OpenMx on swift workers
+* implemented omxParallelCI() to calculate confidence intervals in parallel
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================

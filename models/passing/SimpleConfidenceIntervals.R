@@ -126,6 +126,7 @@ twinACEModel <- mxModel("twinACE",
 )	
 #Run ACE model
 # -----------------------------------------------------------------------
+twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
 twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
 summary(twinACEFit)
@@ -195,5 +196,7 @@ omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[2, 2], mxEval(common.C
 omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[3, 1], mxEval(common.E, runCIelower), .001)
 omxCheckCloseEnough(twinACEFit@output$confidenceIntervals[3, 2], mxEval(common.E, runCIeupper), .001)
 
+twinACEparallel <- omxParallelCI(twinACENoIntervals)
 
-
+omxCheckCloseEnough(twinACEFit@output$confidenceIntervals, 
+	twinACEparallel@output$confidenceIntervals, .001)
