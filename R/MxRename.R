@@ -65,6 +65,7 @@ propagateModelName <- function(model, oldname, newname) {
 	model@intervals <- lapply(model@intervals, renameConfidenceIntervals, oldname, newname)
 	model@objective <- genericObjRename(model@objective, oldname, newname)
 	model@submodels <- lapply(model@submodels, propagateModelName, oldname, newname)
+	model@output <- renameModelOutput(model@output, oldname, newname)
 	names(model@intervals) <- omxExtractReferences(model@intervals)
 	names(model@submodels) <- omxExtractNames(model@submodels)
 	return(model)
@@ -80,6 +81,23 @@ renameReference <- function(reference, oldname, newname) {
 	} else {
 		return(reference)
 	}
+}
+
+renameModelOutput <- function(output, oldname, newname) {
+	if(is.null(output)) {
+		return(output)
+	}
+	if(!is.null(output$confidenceIntervals)) {
+		names <- dimnames(output$confidenceIntervals)
+		rownames <- lapply(names[[1]], renameReference, oldname, newname)
+		dimnames(output$confidenceIntervals) <- list(rownames, names[[2]])
+	}
+	if(!is.null(output$confidenceIntervalCodes)) {
+		names <- dimnames(output$confidenceIntervalCodes)
+		rownames <- lapply(names[[1]], renameReference, oldname, newname)
+		dimnames(output$confidenceIntervalCodes) <- list(rownames, names[[2]])
+	}
+	return(output)
 }
 
 renameMatrix <- function(matrix, oldname, newname) {
