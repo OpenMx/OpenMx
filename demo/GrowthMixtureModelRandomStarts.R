@@ -87,7 +87,7 @@ mySubs <- lapply(1:trials, makeModel)
 	
 topModel@submodels <- mySubs
 
-results <- mxRun(topModel)
+results <- mxRun(topModel, suppressWarnings=TRUE)
 
 fitStats <- function(model){
 	retval <- c(
