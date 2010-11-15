@@ -155,6 +155,9 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		cols <- ncol(entityValue)
 		if (is(entity, "MxMatrix")) {
 			free <- entity@free
+			if (omxSymmetricMatrix(entity)) {
+				free[lower.tri(free, diag=FALSE)] <- FALSE
+			}
 		} else {
 			free <- matrix(TRUE, rows, cols)
 		}
