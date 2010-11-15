@@ -19,6 +19,7 @@ trunk
 * fix infinite loop in objective function transformations
 * added initialization to load OpenMx on swift workers
 * implemented omxParallelCI() to calculate confidence intervals in parallel
+* only calculating CIs for upper triangle of symmetric matrices
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
