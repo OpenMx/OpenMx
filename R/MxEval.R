@@ -67,6 +67,10 @@ evaluateExpression <- function(formula, contextString, model, labelsData, env, c
 		formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
 		formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
 	}
+	if (len == 3 && identical(as.character(formula[1]), '^')) {
+		formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
+		formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
+	}
 	if (show) {
 		return(formula)
 	}
