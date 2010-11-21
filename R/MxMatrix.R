@@ -66,7 +66,8 @@ setClass(Class = "MxMatrix",
 	representation = representation(
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
-		lbound = "matrix", ubound = "matrix", "VIRTUAL"))		
+		lbound = "matrix", ubound = "matrix",
+		display = "character", "VIRTUAL"))		
 		
 setMethod("initialize", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, name) {

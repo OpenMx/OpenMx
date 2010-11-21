@@ -102,26 +102,28 @@ insertFixedValue <- function(valName, startvals, flatModel) {
 }
 
 insertFreeParameter <- function(paramName, startvals, flatModel) {
-    value <- as.matrix(startvals[[paramName]])
     if (!(paramName %in% names(flatModel@freeMatrices))) {
         localName <- omxUntitledName()
         identifier <- omxIdentifier(flatModel@name, localName)
+	    value <- as.matrix(startvals[[paramName]])
         matrix <- mxMatrix("Full", values = value, labels = paramName,
             free = TRUE, name = localName)
         matrix@name <- identifier
+		matrix@display <- paramName
         flatModel@freeMatrices[[paramName]] <- matrix
     }
     return(flatModel)
 }
 
 insertDefinitionVariable <- function(defName, flatModel) {
-    value <- as.matrix(0)
     if (!(defName %in% names(flatModel@freeMatrices))) {
         localName <- omxUntitledName()
         identifier <- omxIdentifier(flatModel@name, localName)
+	    value <- as.matrix(0)
         matrix <- mxMatrix("Full", values = value, labels = defName,
             free = FALSE, name = localName)
         matrix@name <- identifier
+		matrix@display <- defName
         flatModel@freeMatrices[[defName]] <- matrix
     }
     return(flatModel)
@@ -203,26 +205,28 @@ translateRowColName <- function(symbol, argname, model, rowcol) {
 }
 
 insertNumericValue <- function(value, flatModel) {
-    value <- as.matrix(value)
     if (length(flatModel@constMatrices) == 0) {
         localName <- omxUntitledName()
         identifier <- omxIdentifier(flatModel@name, localName)
-        matrix <- mxMatrix("Full", values = value, name = localName)
+        matrix <- mxMatrix("Full", values = as.matrix(value), name = localName)
         matrix@name <- identifier
+		matrix@display <- as.character(value)
         flatModel@constMatrices[[identifier]] <- matrix
     } else {
+		valuematrix <- as.matrix(value)
         for (i in 1:length(flatModel@constMatrices)) {
             constMatrix <- flatModel@constMatrices[[i]]@values
-            if (nrow(value) == nrow(constMatrix) &&
-                ncol(value) == ncol(constMatrix) &&
-                all(value == constMatrix)) {
+            if (nrow(valuematrix) == nrow(constMatrix) &&
+                ncol(valuematrix) == ncol(constMatrix) &&
+                all(valuematrix == constMatrix)) {
                 return(flatModel)
             }
         }
         localName <- omxUntitledName()
         identifier <- omxIdentifier(flatModel@name, localName)
-        matrix <- mxMatrix("Full", values = value, name = localName)
+        matrix <- mxMatrix("Full", values = valuematrix, name = localName)
         matrix@name <- identifier
+		matrix@display <- as.character(value)
         flatModel@constMatrices[[identifier]] <- matrix
     }
     return(flatModel)
@@ -235,6 +239,7 @@ insertOutsideValue <- function(varname, flatModel) {
 	    identifier <- omxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
+		matrix@display <- varname
     	flatModel@constMatrices[[varname]] <- matrix
     } else {
         for (i in 1:length(flatModel@constMatrices)) {
@@ -249,6 +254,7 @@ insertOutsideValue <- function(varname, flatModel) {
 	    identifier <- omxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
+		matrix@display <- varname
     	flatModel@constMatrices[[varname]] <- matrix
     }
     return(flatModel)

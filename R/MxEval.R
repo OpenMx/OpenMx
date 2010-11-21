@@ -45,6 +45,26 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	}
 }
 
+translateErrorSymbol <- function(symbol, model) {
+	charsymbol <- as.character(symbol)
+	object <- model[[charsymbol]]
+	if (!is.null(object) && is(object, "MxMatrix") && length(object@display) == 1) {
+		return(as.symbol(object@display))
+	} else {
+		return(symbol)
+	}
+}
+
+translateErrorFormula <- function(formula, model) {
+	if(length(formula) == 1) {
+		formula <- translateErrorSymbol(formula, model)
+	} else {
+		formula <- lapply(formula, translateErrorFormula, model)
+		formula <- as.call(formula)
+	}
+	return(formula)
+}
+
 evaluateExpression <- function(formula, contextString, model, labelsData, env, compute, show, outsideAlgebra, defvar.row = 1) {
 	len <- length(formula)
 	if (len == 0) {
@@ -82,6 +102,7 @@ evaluateExpression <- function(formula, contextString, model, labelsData, env, c
 	}
 	result <- tryCatch(do.call(as.character(formula[[1]]), as.list(formula[-1]), envir = env),
 			error = function(x) {
+				originalFormula <- translateErrorFormula(originalFormula, model)
 				formulaString <- deparse(originalFormula)
 				if(identical(formulaString, contextString)) {
 					msg <- paste("The following error occurred while",
