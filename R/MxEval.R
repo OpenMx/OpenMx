@@ -62,6 +62,12 @@ evaluateExpression <- function(formula, contextString, model, labelsData, env, c
 			env, compute, show, outsideAlgebra, defvar.row)
 	if (len == 4 && identical(as.character(formula[1]), '[')) {
 		formula$drop <- FALSE
+		if(is.matrix(formula[[3]]) && nrow(formula[[3]]) == 0 && ncol(formula[[3]]) == 0) {
+			formula[[3]] <- TRUE
+		}
+		if(is.matrix(formula[[4]]) && nrow(formula[[4]]) == 0 && ncol(formula[[4]]) == 0) {
+			formula[[4]] <- TRUE
+		}
 	}
 	if (len == 3 && identical(as.character(formula[1]), '*')) {
 		formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))

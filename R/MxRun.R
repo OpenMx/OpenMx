@@ -62,13 +62,12 @@ runHelper <- function(model, frontendStart,
 	namespace <- triple[[2]]
 	flatModel <- triple[[3]]
 	freeFixedValues <- omxCheckVariables(flatModel, namespace)
-	oldFlatModel <- flatModel
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	cycleDetection(flatModel)
 	flatModel <- populateDefInitialValues(flatModel)
-	flatModel <- checkEvaluation(model, flatModel, oldFlatModel)
+	flatModel <- checkEvaluation(model, flatModel)
 	parameters <- generateParameterList(flatModel)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
