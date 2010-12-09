@@ -173,23 +173,24 @@ omxIndependentModels <- function(model) {
 
 omxReplaceModels <- function(model, replacements) {
 	if (length(replacements) == 0) return(model)
-	return(replaceModelsHelper(model, replacements, omxExtractNames(replacements)))
+	names(replacements) <- omxExtractNames(replacements)
+	return(replaceModelsHelper(model, replacements))
 }
 
-replaceSubmodels <- function(target, replacements, replaceNames) {
-	index <- match(target@name, replaceNames)
-	if (is.na(index)) {
+replaceSubmodels <- function(target, replacements) {
+	retval <- replacements[[target@name]]
+	if (is.null(retval)) {
 		return(target)
 	} else {
-		return(replacements[[index]])
+		return(retval)
 	}
 }
 
-replaceModelsHelper <- function(model, replacements, replaceNames) {
+replaceModelsHelper <- function(model, replacements) {
 	submodels <- model@submodels
 	if (length(submodels) == 0) return(model)
-	submodels <- lapply(submodels, replaceSubmodels, replacements, replaceNames)
-	submodels <- lapply(submodels, replaceModelsHelper, replacements, replaceNames)
+	submodels <- lapply(submodels, replaceSubmodels, replacements)
+	submodels <- lapply(submodels, replaceModelsHelper, replacements)
 	model@submodels <- submodels
 	return(model)
 }

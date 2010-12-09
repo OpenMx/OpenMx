@@ -109,6 +109,10 @@ populateRunStateInformation <- function(model, parameters, matrices,
 	return(model)
 }
 
+getCpuTime <- function(model) {
+	return(model@output$cpuTime)
+}
+
 calculateTiming <- function(output, frontend,
 	backend, indep, timestamp, independents) {
 	output$frontendTime <- frontend
@@ -118,7 +122,7 @@ calculateTiming <- function(output, frontend,
 	output$timestamp <- timestamp
 	if("package:snowfall" %in% search() && length(independents) > 0) {
 		output$cpuTime <- frontend + backend + sum(sapply(independents,
-			function(x) { x@output$cpuTime }))
+			getCpuTime))
 	} else {
 		output$cpuTime <- output$wallTime
 	}
