@@ -21,6 +21,7 @@ trunk
 * implemented omxParallelCI() to calculate confidence intervals in parallel
 * only calculating CIs for upper triangle of symmetric matrices
 * cleanup appearance of transient MxMatrix objects in error messages
+* fix bug with very large number of omxUntitledName() objects
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
