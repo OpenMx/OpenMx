@@ -2,6 +2,7 @@ trunk
 =====
 * added initialization to load OpenMx on swift workers
 * only calculating CIs for upper triangle on symmetric matrices
+* fix bug with very large number of omxUntitledName() objects
 
 Release 1.0.3-1505 (November 10, 2010)
 ======================================

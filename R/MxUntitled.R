@@ -36,7 +36,8 @@ omxUntitledNumber <- function() {
 }
 
 omxUntitledName <- function() {
-	name <- paste("untitled", omxUntitledNumber(), sep="")
+	name <- paste("untitled", format(omxUntitledNumber(), digits = 20),
+		sep="")
 	return(name)
 }
 
