@@ -22,6 +22,7 @@ trunk
 * only calculating CIs for upper triangle of symmetric matrices
 * cleanup appearance of transient MxMatrix objects in error messages
 * fix bug with very large number of omxUntitledName() objects
+* added optional argument CPUS=n to "make test" target
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
