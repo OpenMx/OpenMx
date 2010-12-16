@@ -19,7 +19,7 @@ omxLapply <- function(x, fun, ...) {
 	if ("package:Swift" %in% libraries && identical(fun,mxRun)) {
 		return(swiftLapply(x, fun, ...))
 	} else if ("package:snowfall" %in% libraries) {
-		return(sfLapply(x, fun, ...))
+		return(sfClusterApplyLB(x, fun, ...))
 	} else {
 		return(lapply(x, fun, ...))
 	}
