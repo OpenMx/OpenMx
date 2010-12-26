@@ -121,7 +121,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {Rprintf("And %d rows.\n", od->rows);}
 	} else {
 		if(OMX_DEBUG) {Rprintf("Data contains a matrix.\n");}
-		od->dataMat = omxNewMatrixFromMxMatrix(dataLoc, od->currentState);
+		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
 		od->cols = od->dataMat->cols;
 		od->rows = od->dataMat->rows;
 	}
@@ -129,7 +129,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
-		od->meansMat = omxNewMatrixFromMxMatrix(dataLoc, od->currentState);
+		od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
 	UNPROTECT(1); // dataLoc
 
 	if(strncmp(od->type, "raw", 3) != 0) {

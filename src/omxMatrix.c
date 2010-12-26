@@ -27,6 +27,9 @@
 **********************************************************/
 #include "omxMatrix.h"
 
+// forward declarations
+omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state);
+
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
 void omxPrintMatrix(omxMatrix *source, char* header) {
@@ -340,37 +343,52 @@ unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
 };
 
 omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
-/* Creates and populates an omxMatrix with details from an R Matrix. */
-
+/* Creates and populates an omxMatrix with details from an R MxMatrix object. */
 	omxMatrix *om = NULL;
 	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	return omxFillMatrixFromMxMatrix(om, mxMatrix, state);
+}
 
+omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state) {
+/* Creates and populates an omxMatrix with details from an R matrix object. */
+	omxMatrix *om = NULL;
+	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
+	return omxFillMatrixFromRPrimitive(om, rObject, state);
 }
 
 omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* state) {
 /* Populates the fields of a omxMatrix with details from an R Matrix. */
+	if(inherits(mxMatrix, "MxMatrix")) {
+		if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
+		SEXP matrix;
+		PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
+		om = fillMatrixHelperFunction(om, matrix, state);
+		UNPROTECT(1);
+	} else {
+		error("Recieved unknown matrix type in omxFillMatrixFromMxMatrix.");
+	}
+	return(om);
+}
+
+omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state) {
+/* Populates the fields of a omxMatrix with details from an R object. */
+	if(!isMatrix(rObject) && !isVector(rObject)) { // Sanity Check
+		error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
+	}
+	return(fillMatrixHelperFunction(om, rObject, state));
+}
+
+
+
+omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state) {
 
 	SEXP matrixDims;
-	SEXP matrix = mxMatrix;
 	int* dimList;
-	unsigned short int isMxMatrix = FALSE;
 
 	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
 
 	if(om == NULL) {
 		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
-	}
-
-	if(!isMatrix(mxMatrix) && !isVector(mxMatrix)) { // Sanity Check
-		if(OMX_DEBUG) { Rprintf("R matrix is an object of some sort.\n"); }
-		if(inherits(mxMatrix, "MxMatrix")) {
-			if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
-			PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
-			isMxMatrix = TRUE; // So we remember to unprotect.
-		} else {
-			error("Recieved unknown matrix type.");
-		}
 	}
 
 	om->data = REAL(AS_NUMERIC(matrix));	// TODO: Class-check first?
@@ -386,7 +404,7 @@ omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* sta
 		om->rows = 1;
 		om->cols = length(matrix);
 	}
-	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) mxMatrix.\n", om->rows, om->cols); }
+	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) matrix or MxMatrix.\n", om->rows, om->cols); }
 
 	om->localData = FALSE;
 	om->colMajor = TRUE;
@@ -406,10 +424,6 @@ omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* sta
 
 	if(OMX_DEBUG) {
 		omxPrintMatrix(om, "Finished importing matrix");
-	}
-
-	if(isMxMatrix) {
-		UNPROTECT(1); // matrix
 	}
 
 	return om;

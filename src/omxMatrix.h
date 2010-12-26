@@ -94,6 +94,7 @@ struct omxMatrix {						// A matrix
 
 /* Matrix Creation Functions */
 	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 			// Create an omxMatrix from an R MxMatrix
+	omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState *state); 			// Create an omxMatrix from an R object
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size
 	extern omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);	// Create a matrix/algebra from a matrix pointer
 	extern omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
@@ -114,6 +115,7 @@ struct omxMatrix {						// A matrix
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 							unsigned short keepMemory);									// Resize, with or without re-initialization
 	omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix
+	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state); 	// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
 	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.

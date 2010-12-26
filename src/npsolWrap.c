@@ -102,7 +102,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 	for(k = 0; k < length(matList); k++) {
 		PROTECT(nextMat = VECTOR_ELT(matList, k));		// This is the matrix + populations
-		currentState->matrixList[k] = omxNewMatrixFromMxMatrix(nextMat, currentState);
+		currentState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, currentState);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
@@ -213,7 +213,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(k = 0; k < length(matList); k++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		currentState->matrixList[k] = omxNewMatrixFromMxMatrix(nextMat, currentState);
+		currentState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, currentState);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
@@ -240,7 +240,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
 		} else {															// This is an algebra spec.
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
-			omxFillMatrixFromMxMatrix(currentState->algebraList[j],
+			omxFillMatrixFromRPrimitive(currentState->algebraList[j],
 				nextAlg, currentState);
 			UNPROTECT(1);	// nextAlg
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
