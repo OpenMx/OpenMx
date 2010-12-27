@@ -3,6 +3,7 @@ trunk
 * added initialization to load OpenMx on swift workers
 * only calculating CIs for upper triangle on symmetric matrices
 * fix bug with very large number of omxUntitledName() objects
+* incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
 
 Release 1.0.3-1505 (November 10, 2010)
 ======================================
@@ -13,7 +14,7 @@ Release 1.0.2-1497 (November 5, 2010)
 =====================================
 * missing <errno.h> include 
 * fix memory leak in RAM objective function
-* incorporated NaN unsafe matrix multiplication from R <= 2.11.1
+* incorporated NaN unsafe matrix-matrix multiplication (dgemm) from R <= 2.11.1
 
 Release 1.0.1-1464 (October 8, 2010)
 ====================================
