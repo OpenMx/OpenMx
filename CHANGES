@@ -14,7 +14,8 @@ trunk
 * fix memory leak in RAM objective function
 * removed dependency to MBESS library in R documentation
 * added more descriptive error message when thresholds are not sorted
-* checking in a dgemm that does R 2.11.1 unsafe NaN transformations
+* incorporated NaN unsafe matrix-matrix multiplication (dgemm) from R <= 2.11.1
+* incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
 * return NA in mxVersion() if "OpenMx" cannot be found
 * fix infinite loop in objective function transformations
 * added initialization to load OpenMx on swift workers
