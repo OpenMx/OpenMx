@@ -119,6 +119,7 @@ struct omxMatrix {						// A matrix
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
 	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.
+	void omxToggleRowColumnMajor(omxMatrix *mat);								// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, char* d); 											// Pretty-print a (small) matrix

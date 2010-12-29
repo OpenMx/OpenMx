@@ -464,6 +464,38 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 	}
 }
 
+void omxToggleRowColumnMajor(omxMatrix *mat) {
+
+	int i, j;
+	int nrows = mat->rows;
+	int ncols = mat->cols;
+	
+	double *newdata = (double*) Calloc(nrows * ncols, double);
+	double *olddata = mat->data;
+
+	if (mat->colMajor) {
+		for(i = 0; i < ncols; i++) {
+			for(j = 0; j < nrows; j++) {
+				newdata[i + ncols * j] = olddata[i * nrows + j];
+			}
+		}
+	} else {
+		for(i = 0; i < nrows; i++) {
+			for(j = 0; j < ncols; j++) {
+				newdata[i + nrows * j] = olddata[i * ncols + j];
+			}
+		}
+	}
+
+	if (mat->localData) {
+		Free(mat->data);
+	}
+
+	mat->localData = TRUE;
+	mat->data = newdata;
+	mat->colMajor = !mat->colMajor;
+}
+
 void omxTransposeMatrix(omxMatrix *mat) {
 	mat->colMajor = !mat->colMajor;
 	omxMatrixCompute(mat);

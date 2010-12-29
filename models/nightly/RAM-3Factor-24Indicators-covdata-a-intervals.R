@@ -41,10 +41,8 @@ cor(XMatrix)
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-YFrame <- data.frame(YMatrix)
-
-round(cor(YFrame), 3)
-round(cov(YFrame), 3)
+round(cor(YMatrix), 3)
+round(cov(YMatrix), 3)
 
 indicators <- paste("X", 1:numberIndicators, sep="")
 totalVars <- numberIndicators + numberFactors
@@ -107,8 +105,8 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
     mxCI(c('A', 'S')),
-    mxData(observed=cov(YFrame), means=mean(YFrame), 
-	numObs=nrow(YFrame), type="cov")
+    mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean), 
+	numObs=nrow(YMatrix), type="cov")
 )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)

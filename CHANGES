@@ -25,6 +25,7 @@ trunk
 * fix bug with very large number of omxUntitledName() objects
 * added optional argument CPUS=n to "make test" target
 * change snowfall interface to use sfClusterApplyLB()
+* storing raw data in row-major order, and copying contiguous data rows
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================

@@ -39,11 +39,17 @@
 #include "omxDefines.h"
 
 typedef struct omxData omxData;
+typedef struct omxContiguousData omxContiguousData;
 
 #include "omxAlgebra.h"
 #include "omxObjective.h"
 #include "omxState.h"
 
+struct omxContiguousData {
+	int isContiguous;
+	int start;
+	int length;
+};
 
 struct omxData {						// A matrix
 										//TODO: Improve encapsulation
@@ -70,10 +76,11 @@ struct omxData {						// A matrix
 };
 
 /* Initialize and Destroy */
-	omxData* omxInitData();															// Set up a data object
-	omxData* omxNewDataFromMxDataPtr(SEXP dataObject, omxState* state);				// Retrieves a data object from the state
+	omxData* omxInitData();						// Set up a data object
+	omxData* omxNewDataFromMxDataPtr(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
 	omxData* omxNewDataFromMxData(omxData* od, SEXP dataObject, omxState* state);	// Fills the object from a data SEXP
-	void omxFreeData(omxData* od);													// Release any held data.
+	void omxFreeData(omxData* od);					// Release any held data.
+	void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList);
 
 /* Getters 'n Setters */
 	double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one data object as a double
@@ -81,6 +88,7 @@ struct omxData {						// A matrix
 	omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 	omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
 	omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
+	omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 	int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
 	int omxDataNumIdenticalRows(omxData *od, int row);							// Returns the number of rows identical to this one in the data set
 	int omxDataNumIdenticalMissingness(omxData *od, int row);						// Returns the number of rows with definition variables and missingness identical to this one in the data set

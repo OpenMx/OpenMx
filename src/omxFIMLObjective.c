@@ -69,6 +69,7 @@ typedef struct omxFIMLObjective {
 	omxMatrix* dataColumns;		// The order of columns in the data matrix
 	omxMatrix* dataRow;			// One row of data
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
+	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
 //	double* zeros;
 
@@ -266,8 +267,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
-    sum = 0.0;
-    int row = 0;
+	sum = 0.0;
+	int row = 0;
 
     while(row < data->rows) {
         // Rprintf("Row %d.\n", row); //:::DEBUG:::
@@ -478,6 +479,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	double Q = 0.0;
 	double* oldDefs;
 	int numDefs;
+	int isContiguous, contiguousStart, contiguousLength;
 	int numCols, numRemoves;
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
@@ -502,7 +504,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	dataColumns	= ofo->dataColumns;
 	defVars		= ofo->defVars;
 	numDefs		= ofo->numDefs;
-    returnRowLikelihoods = ofo->returnRowLikelihoods;
+	returnRowLikelihoods = ofo->returnRowLikelihoods;
+	isContiguous    = ofo->contiguous.isContiguous;
+	contiguousStart = ofo->contiguous.start;
+	contiguousLength = ofo->contiguous.length;
 
 	subObjective = ofo->subObjective;
 
@@ -524,7 +529,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	sum = 0.0;
 	int firstRow = 1;
-    int row = 0;
+	int row = 0;
 
 	while(row < data->rows) {
         // Rprintf("Row %d.\n", row); //:::DEBUG:::
@@ -533,8 +538,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		numCols = 0;
 		numRemoves = 0;
-		omxResetAliasedMatrix(smallRow); 									// Resize smallrow
-		omxDataRow(data, row, dataColumns, smallRow);						// Populate data row
+		omxResetAliasedMatrix(smallRow); 			// Resize smallrow
+		if (isContiguous) {
+			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
+		} else {
+			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
+		}
 
 		// Handle Definition Variables.
 		if(numDefs != 0) {
@@ -813,6 +822,8 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState);
 	if(OMX_DEBUG) {omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
+
+	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));

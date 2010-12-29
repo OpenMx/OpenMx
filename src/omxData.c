@@ -122,6 +122,10 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	} else {
 		if(OMX_DEBUG) {Rprintf("Data contains a matrix.\n");}
 		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
+		
+		if (od->dataMat->colMajor && strncmp(od->type, "raw", 3) == 0) { 
+			omxToggleRowColumnMajor(od->dataMat);
+		}
 		od->cols = od->dataMat->cols;
 		od->rows = od->dataMat->rows;
 	}
@@ -268,6 +272,42 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 	}
 
 	return om;
+}
+
+
+void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList) {
+
+	contiguous->isContiguous = 0;
+
+	if (data->dataMat == NULL) return;
+	omxMatrix* dataMat = data->dataMat;
+	if (dataMat->colMajor) return;
+	int colListLength = colList->cols;
+	double previous = omxVectorElement(colList, 0);
+	contiguous->start = (int) previous;
+	contiguous->length = colListLength;
+	for(int i = 1; i < colListLength; i++) {
+		double next = omxVectorElement(colList, i);
+		if (next != (previous + 1.0)) return;
+		previous = next; 
+	}
+	contiguous->isContiguous = 1;
+}
+
+omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om) {
+
+	if(row > od->rows) return NULL;	// Sanity check
+
+	if(om == NULL) {
+		om = omxInitMatrix(om, 1, od->cols, TRUE, od->currentState);
+	}
+	
+	int numcols = od->cols;
+	omxMatrix* dataMat = od->dataMat;
+	double *dest = om->data;
+	double *source = dataMat->data + row * numcols + start;
+	memcpy(dest, source, sizeof(double) * length);
+	return(om);
 }
 
 omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {

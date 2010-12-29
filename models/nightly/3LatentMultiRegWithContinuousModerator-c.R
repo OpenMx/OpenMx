@@ -47,12 +47,13 @@ cor(cbind(XMatrix,Z[,1]))
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-latentMultiRegModerated1 <- data.frame(YMatrix,Z=Z[,1])
+latentMultiRegModerated1 <- cbind(YMatrix,Z=Z[,1])
 
 round(cor(latentMultiRegModerated1), 3)
 round(cov(latentMultiRegModerated1), 3)
 
-latentMultiRegModerated1$Z <- latentMultiRegModerated1$Z - mean(latentMultiRegModerated1$Z)
+latentMultiRegModerated1[,'Z'] <- latentMultiRegModerated1[,
+'Z'] - mean(latentMultiRegModerated1[,'Z'])
 
 numberFactors <- 3
 numberIndicators <- 12
