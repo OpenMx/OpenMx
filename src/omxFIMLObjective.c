@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2009 The OpenMx Project
+ *  Copyright 2007-2010 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -571,20 +571,18 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		
 		/* Censor row and censor and invert cov. matrix. */
 		// Determine how many rows/cols to remove.
+		bzero(zeros, sizeof(int) * dataColumns->cols);
+		bzero(toRemove, sizeof(int) * dataColumns->cols);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxMatrixElement(smallRow, 0, j);
 			if(isnan(dataValue) || dataValue == NA_REAL) {
 				numRemoves++;
 				toRemove[j] = 1;
-			} else {
-				if(means != NULL) {
-					omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
-				}
-				numCols++;
-				toRemove[j] = 0;
+			} else if(means != NULL) {
+				omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
 			}
-			zeros[j] = 0;
 		}
+		numCols = dataColumns->cols - numRemoves;
 
 		if(cov->cols <= numRemoves) {
 			if(returnRowLikelihoods) {
