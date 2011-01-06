@@ -571,8 +571,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		
 		/* Censor row and censor and invert cov. matrix. */
 		// Determine how many rows/cols to remove.
-		bzero(zeros, sizeof(int) * dataColumns->cols);
-		bzero(toRemove, sizeof(int) * dataColumns->cols);
+		memset(zeros, 0, sizeof(int) * dataColumns->cols);
+		memset(toRemove, 0, sizeof(int) * dataColumns->cols);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxMatrixElement(smallRow, 0, j);
 			if(isnan(dataValue) || dataValue == NA_REAL) {
