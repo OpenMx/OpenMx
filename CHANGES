@@ -1,5 +1,5 @@
-trunk
-=====
+Pre-Release 999.0.0-1527 (January 6, 2011)
+==========================================
 * added mxErrorPool() function and R documentation.
 * added Apache license information to all R documentation files.
 * new implementation of mxEval().
