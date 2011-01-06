@@ -77,9 +77,10 @@ pdf:
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
-	cd $(RBUILD); gunzip *.gz; tar -xf *.tar
+	cd $(RBUILD); tar -zxf *.tgz
 	mv build/OpenMx/html build/html
 	cp build/html/* docs/source/static/Rdoc
+	cp build/demo/* docs/source/static/demo
 	cd docs; make clean; make html
 
 common-build: clean internal-build
