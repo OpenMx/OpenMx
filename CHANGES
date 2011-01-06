@@ -26,6 +26,7 @@ trunk
 * added optional argument CPUS=n to "make test" target
 * change snowfall interface to use sfClusterApplyLB()
 * storing raw data in row-major order, and copying contiguous data rows
+* fix bug in mxModel() when using remove = TRUE
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
