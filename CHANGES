@@ -4,6 +4,7 @@ trunk
 * only calculating CIs for upper triangle on symmetric matrices
 * fix bug with very large number of omxUntitledName() objects
 * incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
+* fix bug in mxModel() when using remove = TRUE
 
 Release 1.0.3-1505 (November 10, 2010)
 ======================================

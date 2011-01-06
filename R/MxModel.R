@@ -366,22 +366,42 @@ modelRemoveEntries <- function(model, entries) {
 	return(model)
 }
 
+actionCorrespondingPredicate <- c('add' = 'into', 'remove' = 'from')
+
 modelModifyFilter <- function(model, entries, action) {
 	boundsFilter <- sapply(entries, is, "MxBounds")
 	intervalFilter <- sapply(entries, is, "MxInterval")
-	namedFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
+	namedEntityFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
+	characterFilter <- sapply(entries, is.character)
 	pathFilter <- sapply(entries, is, "MxPath")
-	unknownFilter <- !(boundsFilter | namedFilter | intervalFilter)
+	unknownFilter <- !(boundsFilter | namedEntityFilter | intervalFilter | characterFilter)
 	if (any(pathFilter)) {
 		stop(paste("The model type of model",
 			omxQuotes(model@name), "does not recognize paths."),
 			call. = FALSE)
 	}
 	if (any(unknownFilter)) {
-		stop(paste("Cannot", action, "the following item(s) into the model:", 
+		stop(paste("Cannot", action, "the following item(s)", 
+			actionCorrespondingPredicate[[action]], "the model:", 
 			omxQuotes(entries[unknownFilter])), call. = FALSE)
 	}
-	return(list(entries[namedFilter], entries[boundsFilter], entries[intervalFilter]))
+	if (any(namedEntityFilter) && action == 'remove') {
+		stop(paste("Cannot use named entities when remove = TRUE.",
+			"Instead give the name of the entity when removing it.",
+			"See http://openmx.psyc.virginia.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
+	}
+	if (any(characterFilter) && action == 'add') {
+		stop(paste("Cannot use character vectors when remove = FALSE.",
+			"Instead supply the named entity to the mxModel() function:",
+			omxQuotes(entries[characterFilter])))
+	}
+	if (identical(action, 'add')) {
+		return(list(entries[namedEntityFilter], entries[boundsFilter], entries[intervalFilter]))
+	} else if (identical(action, 'remove')) {
+		return(list(entries[characterFilter], entries[boundsFilter], entries[intervalFilter]))
+	} else {
+		stop(paste("Internal error, unidentified action:", omxQuotes(action)))
+	}
 }
 
 addSingleNamedEntity <- function(model, entity) {
