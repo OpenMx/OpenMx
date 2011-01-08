@@ -24,11 +24,12 @@ setClass(Class = "MxFIMLObjective",
 		dataColumns = "numeric",
 		thresholdColumns = "list",
 		vector = "logical",
+		threshnames = "character",
 		metadata = "MxBaseObjectiveMetaData"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
-	function(.Object, covariance, means, dims, thresholds, vector, 
+	function(.Object, covariance, means, dims, thresholds, vector, threshnames,
 		data = as.integer(NA), definitionVars = list(), name = 'objective') {
 		.Object@name <- name
 		.Object@covariance <- covariance
@@ -38,6 +39,7 @@ setMethod("initialize", "MxFIMLObjective",
 		.Object@thresholds <- thresholds
 		.Object@dims <- dims
 		.Object@vector <- vector
+		.Object@threshnames <- threshnames
 		return(.Object)
 	}
 )
@@ -134,6 +136,7 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 setMethod("genericObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, namespace, flatJob) {
 		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
+		job <- updateThresholdDimnames(.Object, job, model@name)
 		precision <- "Function Precision"
 		if(!single.na(.Object@thresholds) && 
 			is.null(job@options[[precision]])) {
@@ -171,6 +174,43 @@ setMethod("genericObjInitialMatrix", "MxFIMLObjective",
 		}
 })
 
+updateThresholdDimnames <- function(flatObjective, job, modelname) {
+	threshName <- flatObjective@thresholds
+	if (is.na(threshName)) {
+		return(job)
+	}
+	thresholds <- job[[threshName]]
+	if (is.null(thresholds)) {
+		stop(paste("Unknown thresholds name", 
+			omxQuotes(simplifyName(thresholds, modelname)),
+			"detected in the objective function",
+			"of model", omxQuotes(modelname)), call. = FALSE)
+	}
+	dims <- flatObjective@threshnames
+	if (!is.null(colnames(thresholds)) && !single.na(dims) && 
+		!identical(colnames(thresholds), dims)) {
+		msg <- paste("The thresholds matrix associated",
+			"with the FIML objective in model", 
+			omxQuotes(modelname), "contains column names and",
+			"the objective function has specified non-identical threshnames.")
+		stop(msg, call.=FALSE)		
+	}
+	if (is.null(colnames(thresholds)) && !single.na(dims)) {
+		threshMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(threshName))))
+		if (ncol(threshMatrix) != length(dims)) {
+			msg <- paste("The thresholds matrix associated",
+				"with the FIML objective in model", 
+				omxQuotes(modelname), "is not of the same length as the 'threshnames'",
+				"argument provided by the objective function. The 'threshnames' argument is",
+				"of length", length(dims), "and the expected covariance matrix",
+				"has", ncol(threshMatrix), "columns.")
+			stop(msg, call.=FALSE)		
+		}
+		dimnames(thresholds) <- list(NULL, dims)
+		job[[threshName]] <- thresholds
+	}
+	return(job)
+}
 
 updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName) {
 	covName <- flatObjective@covariance
@@ -352,31 +392,42 @@ generateDataColumns <- function(flatModel, covName, dataName) {
 }
 
 
-mxFIMLObjective <- function(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE) {
+mxFIMLObjective <- function(covariance, means, dimnames = NA, 
+						thresholds = NA, vector = FALSE, threshnames = dimnames) {
 	if (missing(covariance) || typeof(covariance) != "character") {
-		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
+		stop("'covariance' argument is not a string (the name of the expected covariance matrix)")
 	}
 	if (missing(means) || typeof(means) != "character") {
-		stop("Means argument is not a string (the name of the expected means vector)")
+		stop("'means' argument is not a string (the name of the expected means vector)")
 	}
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
+	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
-		stop("Dimnames argument is not a character vector")
+		stop("'dimnames' argument is not a character vector")
+	}
+	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
+		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
-		stop("Thresholds argument must be a single matrix or algebra name")
+		stop("'thresholds' argument must be a single matrix or algebra name")
 	}
 	if (length(dimnames) == 0) {
-		stop("Dimnames argument cannot be an empty vector")
+		stop("'dimnames' argument cannot be an empty vector")
+	}
+	if (length(threshnames) == 0) {
+		stop("'threshnames' argument cannot be an empty vector")
 	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
-		stop("NA values are not allowed for dimnames vector")
+		stop("NA values are not allowed for 'dimnames' vector")
+	}
+	if (length(threshnames) > 1 && any(is.na(threshnames))) {
+		stop("NA values are not allowed for 'threshnames' vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
-		stop("Vector argument is not a logical value")
+		stop("'vector' argument is not a logical value")
 	}
-	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds, vector))
+	return(new("MxFIMLObjective", covariance, means, dimnames, thresholds, vector, threshnames))
 }
 
 displayFIMLObjective <- function(objective) {
@@ -388,12 +439,17 @@ displayFIMLObjective <- function(objective) {
 		cat("@dims : NA \n")
 	} else {
 		cat("@dims :", omxQuotes(objective@dims), '\n')
-	}	
+	}
 	if (single.na(objective@thresholds)) {
 		cat("@thresholds : NA \n")
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
-	}	
+	}
+	if (single.na(objective@threshnames)) {
+		cat("@threshnames : NA \n")
+	} else {
+		cat("@threshnames :", omxQuotes(objective@threshnames), '\n')
+	}
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")
 	} else {

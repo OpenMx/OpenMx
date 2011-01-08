@@ -66,7 +66,6 @@ model <- mxModel(model, mxMatrix("Full",
             free = c(rep(c( rep(TRUE, nthresh2), 
                             rep(TRUE, nthresh1), rep(FALSE, diff)
                             ), 2)), 
-            dimnames = list(c(), nameList), 
             labels = rep(c(paste("neur", 1:nthresh2, sep=""),
                         paste("mddd4l", 1:nthresh1, sep=""), rep(NA, diff))
                         )))

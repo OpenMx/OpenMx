@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE)
+mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
 }
 
 
@@ -33,6 +33,7 @@ mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA, vector = FALS
    \item{dimnames}{An optional character vector to be assigned to the dimnames of the covariance and means algebras.}
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
    \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
+   \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
 }
 
 \details{
