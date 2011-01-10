@@ -21,8 +21,8 @@ setMethod("omxSquareMatrix", "DiagMatrix",
 	function(.Object) { return(TRUE) }
 )
 
-setMethod("initialize", "DiagMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "DiagMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for diagonal matrix constructor", call. = FALSE)
 		}
@@ -54,7 +54,7 @@ setMethod("initialize", "DiagMatrix",
 			diag(tmp) <- ubound
 			ubound <- tmp
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
 		return(retval)
 	}
 )

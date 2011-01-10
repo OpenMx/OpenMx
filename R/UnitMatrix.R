@@ -18,8 +18,8 @@ setClass(Class = "UnitMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 	
-setMethod("initialize", "UnitMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "UnitMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for unit matrix constructor", call. = FALSE)
 		}
@@ -40,7 +40,8 @@ setMethod("initialize", "UnitMatrix",
 		free <- matrix(FALSE, nrow, ncol)
 		lbound <- matrix(as.numeric(NA), nrow, ncol)
 		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name))
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
+		return(retval)
 	}
 )
 

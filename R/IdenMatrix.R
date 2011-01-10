@@ -22,8 +22,8 @@ setMethod("omxSquareMatrix", "IdenMatrix",
 	function(.Object) { return(TRUE) }
 )	
 
-setMethod("initialize", "IdenMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "IdenMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for identity matrix construction", call. = FALSE)
 		}
@@ -47,7 +47,7 @@ setMethod("initialize", "IdenMatrix",
 		free <- matrix(FALSE, nrow, ncol)
 		lbound <- matrix(as.numeric(NA), nrow, ncol)
 		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...))
 	}
 )
 

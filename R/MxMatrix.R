@@ -57,6 +57,11 @@ setGeneric("omxSquareMatrix", function(.Object) {
 	return(standardGeneric("omxSquareMatrix"))
 })
 
+setGeneric("omxCreateMatrix", 
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+		return(standardGeneric("omxCreateMatrix"))
+})
+
 #
 # The Matrix package returns a non-symmetric matrix
 # when you modify a symmetric matrix.
@@ -67,10 +72,10 @@ setClass(Class = "MxMatrix",
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
 		lbound = "matrix", ubound = "matrix",
-		display = "character", "VIRTUAL"))		
+		display = "character", "VIRTUAL"))
 		
-setMethod("initialize", "MxMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, name) {
+setMethod("omxCreateMatrix", "MxMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, name, ...) {
 		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "free", free, nrow, ncol)
@@ -292,8 +297,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	lbound <- as.numeric.preserve(lbound)
 	ubound <- as.numeric.preserve(ubound)
 	typeName <- paste(type, "Matrix", sep="")
-	newMatrix <- new(typeName, name, values, free, labels, 
-			lbound, ubound, nrow, ncol, byrow)
+	newMatrix <- new(typeName)
+	newMatrix <- omxCreateMatrix(newMatrix, labels, values, 
+		free, lbound, ubound, nrow, ncol, byrow, name)
 	if(length(dimnames) == 1 && is.na(dimnames)) {
 	} else {
 		dimnames(newMatrix) <- dimnames

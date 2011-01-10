@@ -50,8 +50,8 @@ populateSymmTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 	
-setMethod("initialize", "SymmMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "SymmMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for symmmetric matrix constructor", call. = FALSE)
 		}
@@ -73,7 +73,7 @@ setMethod("initialize", "SymmMatrix",
 		if (is.vector(ubound)) {
 			ubound <- populateSymmTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
 		return(retval)
 	}
 )

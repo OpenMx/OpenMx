@@ -49,8 +49,8 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 	return(output)
 }
 	
-setMethod("initialize", "LowerMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "LowerMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for lower matrix constructor", call. = FALSE)
 		}
@@ -72,7 +72,7 @@ setMethod("initialize", "LowerMatrix",
 		if (is.vector(ubound)) {
 			ubound <- populateLowerTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
 		return(retval)
 	}
 )

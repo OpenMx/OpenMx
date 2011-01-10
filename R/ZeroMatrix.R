@@ -18,8 +18,8 @@ setClass(Class = "ZeroMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("initialize", "ZeroMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "ZeroMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for zero matrix constructor", call. = FALSE)
 		}
@@ -40,7 +40,7 @@ setMethod("initialize", "ZeroMatrix",
 		free <- matrix(FALSE, nrow, ncol)
 		lbound <- matrix(as.numeric(NA), nrow, ncol)
 		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name))
 	}
 )
 

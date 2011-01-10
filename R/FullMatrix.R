@@ -18,8 +18,8 @@ setClass(Class = "FullMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("initialize", "FullMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "FullMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (single.na(values)) {
 			values <- 0
 		}
@@ -38,7 +38,7 @@ setMethod("initialize", "FullMatrix",
 		if (is.vector(ubound)) {
 			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name) 
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) 
 		return(retval)
 	}
 )

@@ -52,8 +52,8 @@ populateStandTriangle <- function(input, n, default, byrow, strname) {
 	return(output)
 }
 	
-setMethod("initialize", "StandMatrix",
-	function(.Object, name, values, free, labels, lbound, ubound, nrow, ncol, byrow) {
+setMethod("omxCreateMatrix", "StandMatrix",
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for standardized matrix constructor", call. = FALSE)
 		}
@@ -75,7 +75,7 @@ setMethod("initialize", "StandMatrix",
 		if (is.vector(ubound)) {
 			ubound <- populateStandTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, name)
+		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
 		return(retval)
 	}
 )
