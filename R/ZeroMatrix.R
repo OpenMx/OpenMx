@@ -40,7 +40,7 @@ setMethod("omxCreateMatrix", "ZeroMatrix",
 		free <- matrix(FALSE, nrow, ncol)
 		lbound <- matrix(as.numeric(NA), nrow, ncol)
 		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...))
 	}
 )
 
