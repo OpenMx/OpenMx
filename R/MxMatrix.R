@@ -75,7 +75,7 @@ setClass(Class = "MxMatrix",
 		display = "character", "VIRTUAL"))
 		
 setMethod("omxCreateMatrix", "MxMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "free", free, nrow, ncol)
