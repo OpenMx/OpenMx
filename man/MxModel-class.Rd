@@ -33,6 +33,7 @@
 	algebras \tab - \tab A list of \link{MxAlgebra} objects \cr
 	submodels \tab - \tab A list of MxModel objects \cr
 	constraints \tab - \tab A list of MxConstraint objects \cr
+	intervals \tab - \tab A list of confidence intervals requested in MxCI objects \cr
 	bounds \tab - \tab A list of MxBounds objects \cr
 	latentVars \tab - \tab A list of latent variables \cr
 	manifestVars \tab - \tab A list of manifest variables \cr
@@ -52,6 +53,8 @@ The \sQuote{algebras} slot contains a list of the \link{MxAlgebra} objects inclu
 The \sQuote{submodels} slot contains references to all of the MxModel objects included as submodels of this MxModel object. Models held as arguments in other models are considered to be submodels. These objects are listed by name. Two objects may not share the same name. If a new submodel is added to an MxModel object with the same name as an existing submodel, the added version replaces the previous version. When a model containing other models is executed using \link{mxRun}, all included submodels are executed as well. If the submodels are dependent on one another, they are treated as one larger model for purposes of estimation.
 
 The \sQuote{constraints} slot contains a list of the \link{MxConstraint} objects included in the model. These objects are listed by name. Two objects may not share the same name. If a new \link{MxConstraint} is added to an MxModel object with the same name as an \link{MxConstraint} object in that model, the added version replaces the previous version. All \link{MxMatrix} objects referenced in the included \link{MxConstraint} objects must be included in the \sQuote{matrices} slot prior to estimation. There is no imposed limit on the number of \link{MxAlgebra} objects that may be added here.
+
+The \sQuote{intervals} slot contains a list of the confidence intervals requested by included \link{MxCI} objects. These objects are listed by the free parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} referenced in the \link{MxCI} objects, not the list of \link{MxCI} objects themselves. If a new \link{MxCI} object is added to an MxModel object referencing one or more free parameters \link[=MxMatrix]{MxMatrices} or \link[=MxAlgebra]{MxAlgebras} previously listed in the \sQuote{intervals} slot, the new confidence interval(s) replace the existing ones. All listed confidence intervals must refer to free parameters \link[=MxMatrix]{MxMatrices} or \link[=MxAlgebra]{MxAlgebras} in the model.
 
 The \sQuote{bounds} slot contains a list of the \link{MxBounds} objects included in the model. These objects are listed by name. Two objects may not share the same name. If a new \link{MxBounds} is added to an MxModel object with the same name as an \link{MxBounds} object in that model, the added version replaces the previous version. All \link{MxMatrix} objects referenced in the included \link{MxBounds} objects must be included in the \sQuote{matrices} slot prior to estimation. There is no imposed limit on the number of \link{MxAlgebra} objects that may be added here.
 
