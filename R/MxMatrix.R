@@ -45,21 +45,21 @@ verifySquare <- function(.Object) {
 	}
 }
 
-setGeneric("omxVerifyMatrix", function(.Object) { 
-	return(standardGeneric("omxVerifyMatrix")) 
+setGeneric("imxVerifyMatrix", function(.Object) { 
+	return(standardGeneric("imxVerifyMatrix")) 
 } )
 
-setGeneric("omxSymmetricMatrix", function(.Object) {
-	return(standardGeneric("omxSymmetricMatrix"))
+setGeneric("imxSymmetricMatrix", function(.Object) {
+	return(standardGeneric("imxSymmetricMatrix"))
 })
 
-setGeneric("omxSquareMatrix", function(.Object) {
-	return(standardGeneric("omxSquareMatrix"))
+setGeneric("imxSquareMatrix", function(.Object) {
+	return(standardGeneric("imxSquareMatrix"))
 })
 
-setGeneric("omxCreateMatrix", 
+setGeneric("imxCreateMatrix", 
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
-		return(standardGeneric("omxCreateMatrix"))
+		return(standardGeneric("imxCreateMatrix"))
 })
 
 #
@@ -74,7 +74,7 @@ setClass(Class = "MxMatrix",
 		lbound = "matrix", ubound = "matrix",
 		display = "character", "VIRTUAL"))
 		
-setMethod("omxCreateMatrix", "MxMatrix",
+setMethod("imxCreateMatrix", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
@@ -106,7 +106,7 @@ populateMatrixSlot <- function(object, slotName, vals, nr, nc) {
 	return(object)
 }
 
-setMethod("omxVerifyMatrix", "MxMatrix",
+setMethod("imxVerifyMatrix", "MxMatrix",
 	function(.Object) {
 		if (!all(dim(.Object@labels) == dim(.Object@values))) {
 			stop(paste("Labels and values matrices of", 
@@ -121,17 +121,17 @@ setMethod("omxVerifyMatrix", "MxMatrix",
 		select <- !apply(.Object@labels, c(1,2), is.na) & apply(.Object@labels, c(1,2), hasSquareBrackets)
 		subs <- .Object@labels[select]
 		lapply(subs, verifySquareBracket, .Object@name)
-		if (omxSquareMatrix(.Object)) {
+		if (imxSquareMatrix(.Object)) {
 			verifySquare(.Object)
 		}
 	}
 )
 
-setMethod("omxSymmetricMatrix", "MxMatrix",
+setMethod("imxSymmetricMatrix", "MxMatrix",
 	function(.Object) { return(FALSE) }
 )
 
-setMethod("omxSquareMatrix", "MxMatrix",
+setMethod("imxSquareMatrix", "MxMatrix",
 	function(.Object) { return(FALSE) }
 )
 
@@ -264,9 +264,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (all.na(nrow)) { nrow <- as.numeric(nrow) }
 	if (all.na(ncol)) { ncol <- as.numeric(ncol) }
 	if (single.na(name)) {
-		name <- omxUntitledName()
+		name <- imxUntitledName()
 	}
-	omxVerifyName(name, 0)
+	imxVerifyName(name, 0)
 	if (!is.character(name)) {
 		stop(paste("'name' argument must",
 			"be a character vector in", 
@@ -298,13 +298,13 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	ubound <- as.numeric.preserve(ubound)
 	typeName <- paste(type, "Matrix", sep="")
 	newMatrix <- new(typeName)
-	newMatrix <- omxCreateMatrix(newMatrix, labels, values, 
+	newMatrix <- imxCreateMatrix(newMatrix, labels, values, 
 		free, lbound, ubound, nrow, ncol, byrow, name)
 	if(length(dimnames) == 1 && is.na(dimnames)) {
 	} else {
 		dimnames(newMatrix) <- dimnames
 	}
-	omxVerifyMatrix(newMatrix)
+	imxVerifyMatrix(newMatrix)
 	return(newMatrix)
 }
 
@@ -361,7 +361,7 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
-	lapply(labels, omxVerifyReference, -2)
+	lapply(labels, imxVerifyReference, -2)
 	if(any(is.na(free))) {
 		stop(paste("'free' argument to mxMatrix function",
 			"cannot contain an NA in",
@@ -410,7 +410,7 @@ matrixParameters <- function(free, labels, lbound, ubound,
 				result[[length(result)]] <- original
 			}
 			names(result)[[length(result)]] <- as.character(NA)
-		} else if (length(grep(omxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
+		} else if (length(grep(imxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
@@ -500,7 +500,7 @@ generateParameterListHelper <- function(mxMatrix,
 	labels <- mxMatrix@labels
 	lbound <- mxMatrix@lbound
 	ubound <- mxMatrix@ubound
-	isSymmetric <- omxSymmetricMatrix(mxMatrix)
+	isSymmetric <- imxSymmetricMatrix(mxMatrix)
 	result <- matrixParameters(free, labels, lbound,
 		ubound, result, matrixNumber, isSymmetric)
 	return(result)

@@ -17,7 +17,7 @@ modelIsHollow <- function(model) {
 	if (!isHollow(model)) {
 		return(FALSE)
 	}
-	submodels <- omxDependentModels(model)
+	submodels <- imxDependentModels(model)
 	if (length(submodels) == 0) return(TRUE)
 	children <- sapply(submodels, modelIsHollow)
 	return(all(children))	
@@ -31,7 +31,7 @@ isHollow <- function(model) {
 
 processHollowModel <- function(model, independents, dataList, frontendStart, indepElapsed) {
 	independents <- lapply(independents, undoDataShare, dataList)
-	model <- omxReplaceModels(model, independents)
+	model <- imxReplaceModels(model, independents)
 	model <- undoDataShare(model, dataList)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed

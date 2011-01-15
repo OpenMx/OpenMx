@@ -13,8 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-omxModelTypes <- list()
+imxModelTypes <- list()
 
 mxTypes <- function() {
-	return(names(omxModelTypes))
+	return(names(imxModelTypes))
 }

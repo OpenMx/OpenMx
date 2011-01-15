@@ -24,19 +24,19 @@ unlockCounter <- function() {
 	}
 }
 
-omxUntitledNumberReset <- function() {
+imxUntitledNumberReset <- function() {
 	unlockCounter()
 	.untitledCounter <<- 0
 }
 
-omxUntitledNumber <- function() {
+imxUntitledNumber <- function() {
 	unlockCounter()
 	.untitledCounter <<- .untitledCounter + 1
 	return(.untitledCounter)	
 }
 
-omxUntitledName <- function() {
-	name <- paste("untitled", format(omxUntitledNumber(), digits = 20),
+imxUntitledName <- function() {
+	name <- paste("untitled", format(imxUntitledNumber(), digits = 20),
 		sep="")
 	return(name)
 }

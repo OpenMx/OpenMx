@@ -52,7 +52,7 @@ setMethod("genericObjDependencies", signature("MxRowObjective"),
 	sources <- c(.Object@reduceAlgebra)
 	sources <- sources[!is.na(sources)]
 	if (length(sources) > 0) {
-		dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	}
 	return(dependencies)
 })
@@ -60,14 +60,14 @@ setMethod("genericObjDependencies", signature("MxRowObjective"),
 
 setMethod("genericObjFunNamespace", signature("MxRowObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@rowAlgebra <- omxConvertIdentifier(.Object@rowAlgebra, 
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@rowAlgebra <- imxConvertIdentifier(.Object@rowAlgebra, 
 			modelname, namespace)
-		.Object@rowResults <- omxConvertIdentifier(.Object@rowResults, 
+		.Object@rowResults <- imxConvertIdentifier(.Object@rowResults, 
 			modelname, namespace)
-		.Object@reduceAlgebra <- omxConvertIdentifier(.Object@reduceAlgebra, 
+		.Object@reduceAlgebra <- imxConvertIdentifier(.Object@reduceAlgebra, 
 			modelname, namespace)
-		.Object@data <- omxConvertIdentifier(.Object@data, 
+		.Object@data <- imxConvertIdentifier(.Object@data, 
 			modelname, namespace)
 		return(.Object)
 })
@@ -82,7 +82,7 @@ setMethod("genericObjRename", signature("MxRowObjective"),
 
 setMethod("genericObjFunConvert", signature("MxRowObjective"), 
 	function(.Object, flatModel, model, defVars) {
-		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
+		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
 			msg <- paste("The MxRowObjective objective function",
@@ -96,11 +96,11 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
-		.Object@definitionVars <- omxFilterDefinitionVariables(defVars, .Object@data)
-		.Object@rowAlgebra <- omxLocateIndex(flatModel, .Object@rowAlgebra, name)
-		.Object@rowResults <- omxLocateIndex(flatModel, .Object@rowResults, name)
-		.Object@reduceAlgebra <- omxLocateIndex(flatModel, .Object@reduceAlgebra, name)
-		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
+		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, .Object@data)
+		.Object@rowAlgebra <- imxLocateIndex(flatModel, .Object@rowAlgebra, name)
+		.Object@rowResults <- imxLocateIndex(flatModel, .Object@rowResults, name)
+		.Object@reduceAlgebra <- imxLocateIndex(flatModel, .Object@reduceAlgebra, name)
+		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
@@ -122,7 +122,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
-		labelsData <- omxGenerateLabels(job)
+		labelsData <- imxGenerateLabels(job)
 		result <- evaluateMxObject(rowAlgebraName, flatJob, labelsData)
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
@@ -140,7 +140,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		rows <- nrow(mxDataObject@observed)
 		cols <- ncol(result)
 		if (is.na(rowResultsName)) {
-			rowResultsName <- omxUntitledName()			
+			rowResultsName <- imxUntitledName()			
 		}
 		rowResults <- job[[model@name]][[rowResultsName]]
 		if (!is.null(rowResults)) {
@@ -151,15 +151,15 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		}
 		rowResults <- mxMatrix('Full', nrow = rows, ncol = cols)
 		job[[model@name]][[rowResultsName]] <- rowResults
-		pair <- omxReverseIdentifier(model, rowResultsName)
+		pair <- imxReverseIdentifier(model, rowResultsName)
 		job[[.Object@name]]@rowResults <- pair[[2]]
 		if (is.na(reduceAlgebraName)) {
-			reduceAlgebraName <- omxUntitledName()
+			reduceAlgebraName <- imxUntitledName()
 			reduceAlgebra <- eval(substitute(mxAlgebra(x, reduceAlgebraName), 
 				list(x = quote(as.symbol(rowResultsName)))))
 			job[[model@name]][[reduceAlgebraName]] <- reduceAlgebra		
 			job[[.Object@name]]@reduceAlgebra <- reduceAlgebraName
-			reduceAlgebraName <- omxIdentifier(model@name, reduceAlgebraName)
+			reduceAlgebraName <- imxIdentifier(model@name, reduceAlgebraName)
 		}
 		reduceAlgebra <- job[[reduceAlgebraName]]
 		if (is.null(reduceAlgebra)) {
@@ -178,7 +178,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 setMethod("genericObjInitialMatrix", "MxRowObjective",
 	function(.Object, flatModel) {
 		reduceAlgebraName <- .Object@reduceAlgebra
-		labelsData <- omxGenerateLabels(flatModel)
+		labelsData <- imxGenerateLabels(flatModel)
 		result <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData)
 		return(result)
 	}
@@ -190,9 +190,9 @@ mxRowObjective <- function(rowAlgebra, rowResults = NA, reduceAlgebra = NA) {
 	}
 	if (single.na(rowResults)) {
 		rowResults <- as.character(NA)	
-	} else if (length(unlist(strsplit(rowResults, omxSeparatorChar, fixed = TRUE))) > 1) {
+	} else if (length(unlist(strsplit(rowResults, imxSeparatorChar, fixed = TRUE))) > 1) {
 		stop(paste("the 'rowResults' argument cannot contain the", 
-			omxQuotes(omxSeparatorChar), 
+			omxQuotes(imxSeparatorChar), 
 			"character"))
 	}
 	if (!(is.vector(rowResults) && 

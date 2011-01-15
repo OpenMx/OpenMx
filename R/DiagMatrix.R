@@ -17,11 +17,11 @@ setClass(Class = "DiagMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSquareMatrix", "DiagMatrix",
+setMethod("imxSquareMatrix", "DiagMatrix",
 	function(.Object) { return(TRUE) }
 )
 
-setMethod("omxCreateMatrix", "DiagMatrix",
+setMethod("imxCreateMatrix", "DiagMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for diagonal matrix constructor", call. = FALSE)
@@ -59,7 +59,7 @@ setMethod("omxCreateMatrix", "DiagMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "DiagMatrix",
+setMethod("imxVerifyMatrix", "DiagMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values

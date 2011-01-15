@@ -42,7 +42,7 @@ transformAlgebraHelper <- function(model, job) {
 
 addBindMatrices <- function(model, topBindMatrices, subBindMatrices) {
 	model@algebras[names(topBindMatrices)] <- NULL
-	names(subBindMatrices) <- omxExtractNames(subBindMatrices)
+	names(subBindMatrices) <- imxExtractNames(subBindMatrices)
 	model@matrices <- c(model@matrices, topBindMatrices, subBindMatrices)
 	return(model)
 }
@@ -134,8 +134,8 @@ allArgsMatrices <- function(formula, model, job) {
 isArgMatrix <- function(arg, model, job) {
 	if (length(arg) > 1) return(FALSE)
 	arg <- as.character(arg)
-	if (omxIsDefinitionVariable(arg)) return(FALSE)
-	components <- unlist(strsplit(arg, omxSeparatorChar, fixed = TRUE))
+	if (imxIsDefinitionVariable(arg)) return(FALSE)
+	components <- unlist(strsplit(arg, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {
 		object <- job[[arg]]
 		if(is.null(object)) return(FALSE)
@@ -200,7 +200,7 @@ generateSubBindMatrix <- function(bindExpression, model, job) {
 
 findMatrix <- function(symbol, model, job) {
 	name <- as.character(symbol)
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {
 		return(job[[name]])
 	} else {

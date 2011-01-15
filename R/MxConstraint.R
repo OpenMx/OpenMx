@@ -36,9 +36,9 @@ setMethod("initialize", "MxConstraint",
 
 mxConstraint <- function(expression, name = NA) {
 	if (single.na(name)) {
-		name <- omxUntitledName()
+		name <- imxUntitledName()
 	}
-	omxVerifyName(name, 0)
+	imxVerifyName(name, 0)
 	if (typeof(name) != "character") {
 		stop(paste("Name argument is not a string",
 		"(the name of the objective function)"))
@@ -50,7 +50,7 @@ mxConstraint <- function(expression, name = NA) {
 			call. = FALSE)
 	}
 	relation <- as.character(formula[[1]])
-	if (!(relation %in% omxConstraintRelations)) {
+	if (!(relation %in% imxConstraintRelations)) {
 		stop(paste("A constraint must be of the form:",
 			omxQuotes("exp1 [<, ==, >] exp2")),
 			call. = FALSE)
@@ -65,13 +65,13 @@ convertConstraints <- function(flatModel) {
 
 
 convertSingleConstraint <- function(constraint, flatModel) {
-	index1 <- omxLocateIndex(flatModel, constraint@alg1,
+	index1 <- imxLocateIndex(flatModel, constraint@alg1,
 		constraint@name)
-	index2 <- omxLocateIndex(flatModel, constraint@alg2,
+	index2 <- imxLocateIndex(flatModel, constraint@alg2,
 		constraint@name)
-	index3 <- match(constraint@relation, omxConstraintRelations)
+	index3 <- match(constraint@relation, imxConstraintRelations)
 	if(is.na(index3)) {
-		clist <- paste(omxConstraintRelations, 
+		clist <- paste(imxConstraintRelations, 
 				collapse = ",")		
 		msg <- paste("The relation for constraint", 
 			omxQuotes(constraint@name),
@@ -82,7 +82,7 @@ convertSingleConstraint <- function(constraint, flatModel) {
 	return(list(index1,index2,index3 - 1))
 }
 
-omxConstraintRelations <- c("<", "==", ">")
+imxConstraintRelations <- c("<", "==", ">")
 
 
 

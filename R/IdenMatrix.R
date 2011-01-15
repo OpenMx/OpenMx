@@ -18,11 +18,11 @@ setClass(Class = "IdenMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSquareMatrix", "IdenMatrix",
+setMethod("imxSquareMatrix", "IdenMatrix",
 	function(.Object) { return(TRUE) }
 )	
 
-setMethod("omxCreateMatrix", "IdenMatrix",
+setMethod("imxCreateMatrix", "IdenMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for identity matrix construction", call. = FALSE)
@@ -51,7 +51,7 @@ setMethod("omxCreateMatrix", "IdenMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "IdenMatrix",
+setMethod("imxVerifyMatrix", "IdenMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		if(!all(.Object@free == FALSE)) {

@@ -18,11 +18,11 @@ setClass(Class = "SymmMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "SymmMatrix",
+setMethod("imxSymmetricMatrix", "SymmMatrix",
 	function(.Object) { return(TRUE) }
 )
 
-setMethod("omxSquareMatrix", "SymmMatrix",
+setMethod("imxSquareMatrix", "SymmMatrix",
 	function(.Object) { return(TRUE) }
 )
 
@@ -50,7 +50,7 @@ populateSymmTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 	
-setMethod("omxCreateMatrix", "SymmMatrix",
+setMethod("imxCreateMatrix", "SymmMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for symmmetric matrix constructor", call. = FALSE)
@@ -78,7 +78,7 @@ setMethod("omxCreateMatrix", "SymmMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "SymmMatrix",
+setMethod("imxVerifyMatrix", "SymmMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values

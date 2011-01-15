@@ -156,7 +156,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		} else {
 			free <- matrix(TRUE, rows, cols)
 		}
-		entityNumber <- omxLocateIndex(flatModel, reference, 
+		entityNumber <- imxLocateIndex(flatModel, reference, 
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in 1:rows) {
@@ -188,7 +188,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 		} else {
 			free <- matrix(TRUE, rows, cols)
 		}
-		entityNumber <- omxLocateIndex(flatModel, entityName, 
+		entityNumber <- imxLocateIndex(flatModel, entityName, 
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in rows) {
@@ -237,7 +237,7 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 		cols <- ncol(entityValue)
 		if (is(entity, "MxMatrix")) {
 			free <- entity@free
-			if (omxSymmetricMatrix(entity)) {
+			if (imxSymmetricMatrix(entity)) {
 				free[lower.tri(free, diag=FALSE)] <- FALSE
 			}
 		} else {
@@ -274,7 +274,7 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 		entity <- model[[entityName]]
 		if (is(entity, "MxMatrix")) {
 			free <- entity@free
-			if (omxSymmetricMatrix(entity)) {
+			if (imxSymmetricMatrix(entity)) {
 				free[lower.tri(free, diag=FALSE)] <- FALSE
 			}
 		} else {

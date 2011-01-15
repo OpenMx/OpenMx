@@ -72,7 +72,7 @@ generateMatrixReferences <- function(model) {
 				fromcol <- as.integer(components[[3]]) - 1L
 				torow <- as.integer(rows[j]) - 1L
 				tocol <- as.integer(cols[j]) - 1L
-				index <- omxLocateIndex(model, identifier, name)
+				index <- imxLocateIndex(model, identifier, name)
 				len <- length(retval[[name]])
 				retval[[name]][[len + 1]] <- c(index, fromrow, fromcol, torow, tocol)
 			}

@@ -17,14 +17,14 @@ namespaceSearch <- function(model, name) {
 	if (is.na(name) || is.null(name) || identical(name, "")) {
 		return(NULL)
 	}
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
 		submodel <- namespaceModelSearch(model, name)
 		if (!is.null(submodel)) {
 			return(submodel)
 		}
 	}
-	tuple <- omxReverseIdentifier(model, name)
+	tuple <- imxReverseIdentifier(model, name)
 	return(namespaceSearchHelper(model, tuple[[1]], tuple[[2]]))
 }
 
@@ -36,7 +36,7 @@ namespaceSearchReplace <- function(model, name, value) {
 		stop(paste("Right-hand side of assignment",
 		"operator has illegal value", omxQuotes(value)), call. = FALSE)
 	}
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
 		submodel <- namespaceModelSearch(model, name)
 		if (!is.null(submodel)) {
@@ -44,7 +44,7 @@ namespaceSearchReplace <- function(model, name, value) {
 			return(model)
 		}
 	}
-	tuple <- omxReverseIdentifier(model, name)
+	tuple <- imxReverseIdentifier(model, name)
 	return(namespaceSearchReplaceHelper(model, tuple[[1]], tuple[[2]], value))
 }
 
@@ -73,9 +73,9 @@ namespaceModelSearch <- function(model, name) {
 namespaceLocalSearch <- function(model, name) {
 	if (name == model@name) {
 		return(model)
-	} else if (name %in% names(omxReservedNames) && 
-		!is.null(omxReservedNames[[name]]@search)) {
-		return(omxReservedNames[[name]]@search(model))
+	} else if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@search)) {
+		return(imxReservedNames[[name]]@search(model))
 	}
 	first <- model@matrices[[name]]
 	second <- model@algebras[[name]]
@@ -118,7 +118,7 @@ namespaceSearchHelper <- function(model, namespace, name) {
 		} else {
 			stop(paste("There are two named entities",
 				"that matched to the identifier",
-				omxQuotes(omxIdentifier(namespace, name))),
+				omxQuotes(imxIdentifier(namespace, name))),
 				call. = FALSE)
 		}
 	}
@@ -160,16 +160,16 @@ localNamespaceSearchReplace <- function(model, name, value) {
 			value@name <- name
 		}
 		return(value)
-	} else if (name %in% names(omxReservedNames) && 
-		!is.null(omxReservedNames[[name]]@replace)) {
-		return(omxReservedNames[[name]]@replace(model, value))
+	} else if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@replace)) {
+		return(imxReservedNames[[name]]@replace(model, value))
 	}
 	current <- namespaceLocalSearch(model, name)
 	if (is.null(current) && is.null(value)) {
 		return(model)
 	}
 	if(!is.null(current) && !is.null(value) && 
-			!omxSameType(current, value)) {
+			!imxSameType(current, value)) {
 		stop(paste("There already exists an object", 
 				omxQuotes(name), 
 				"in this model of different type"), call. = FALSE)

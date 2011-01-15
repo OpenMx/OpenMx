@@ -46,7 +46,7 @@ printOptions <- function(options) {
 
 displayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
-	cat("type :", omxTypeName(model), '\n')
+	cat("type :", imxTypeName(model), '\n')
 	cat("@matrices :", omxQuotes(names(model@matrices)), '\n')
 	cat("@algebras :", omxQuotes(names(model@algebras)), '\n')
 	cat("@constraints :", omxQuotes(names(model@constraints)), '\n')

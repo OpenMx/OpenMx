@@ -20,7 +20,7 @@
 # 5/30/2007
 
 
-omxOriginalMx <- function(mx.filename, output.directory) {
+imxOriginalMx <- function(mx.filename, output.directory) {
 	original.directory <- getwd()
 	result <- tryCatch(originalMxHelper(mx.filename, output.directory),
 		finally=setwd(original.directory))

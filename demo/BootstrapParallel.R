@@ -87,7 +87,7 @@ topModel <- mxModel(name = 'container')
 
 submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
 
-names(submodels) <- omxExtractNames(submodels)
+names(submodels) <- imxExtractNames(submodels)
 topModel@submodels <- submodels
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)

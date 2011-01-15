@@ -18,7 +18,7 @@ setClass(Class = "UnitMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 	
-setMethod("omxCreateMatrix", "UnitMatrix",
+setMethod("imxCreateMatrix", "UnitMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for unit matrix constructor", call. = FALSE)
@@ -45,7 +45,7 @@ setMethod("omxCreateMatrix", "UnitMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "UnitMatrix",
+setMethod("imxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
 		if(!all(.Object@free == FALSE)) { 

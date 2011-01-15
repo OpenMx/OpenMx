@@ -41,8 +41,8 @@ convertAlgebras <- function(flatModel, convertArguments) {
 constraintsToAlgebrasHelper <- function(constraint, flatModel) {
 	leftHandSide <- constraint@formula[[2]]
 	rightHandSide <- constraint@formula[[3]]
-	leftHandName <- omxUntitledName()
-	rightHandName <- omxUntitledName()
+	leftHandName <- imxUntitledName()
+	rightHandName <- imxUntitledName()
 	leftHandAlgebra <- new("MxAlgebra", NA, leftHandName)
 	rightHandAlgebra <- new("MxAlgebra", NA, rightHandName)
 	leftHandAlgebra@formula <- leftHandSide
@@ -74,7 +74,7 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
             flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
         } else if (charFormula %in% convertArguments$parameters) {
             flatModel <- insertFreeParameter(charFormula, convertArguments$startvals, flatModel)
-		} else if (omxIsDefinitionVariable(charFormula)) {
+		} else if (imxIsDefinitionVariable(charFormula)) {
              flatModel <- insertDefinitionVariable(charFormula, flatModel)
         } else if (!is.null(flatModel[[charFormula]])) {
              # do not translate this symbol
@@ -103,8 +103,8 @@ insertFixedValue <- function(valName, startvals, flatModel) {
 
 insertFreeParameter <- function(paramName, startvals, flatModel) {
     if (!(paramName %in% names(flatModel@freeMatrices))) {
-        localName <- omxUntitledName()
-        identifier <- omxIdentifier(flatModel@name, localName)
+        localName <- imxUntitledName()
+        identifier <- imxIdentifier(flatModel@name, localName)
 	    value <- as.matrix(startvals[[paramName]])
         matrix <- mxMatrix("Full", values = value, labels = paramName,
             free = TRUE, name = localName)
@@ -117,8 +117,8 @@ insertFreeParameter <- function(paramName, startvals, flatModel) {
 
 insertDefinitionVariable <- function(defName, flatModel) {
     if (!(defName %in% names(flatModel@freeMatrices))) {
-        localName <- omxUntitledName()
-        identifier <- omxIdentifier(flatModel@name, localName)
+        localName <- imxUntitledName()
+        identifier <- imxIdentifier(flatModel@name, localName)
 	    value <- as.matrix(0)
         matrix <- mxMatrix("Full", values = value, labels = defName,
             free = FALSE, name = localName)
@@ -206,8 +206,8 @@ translateRowColName <- function(symbol, argname, model, rowcol) {
 
 insertNumericValue <- function(value, flatModel) {
     if (length(flatModel@constMatrices) == 0) {
-        localName <- omxUntitledName()
-        identifier <- omxIdentifier(flatModel@name, localName)
+        localName <- imxUntitledName()
+        identifier <- imxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = as.matrix(value), name = localName)
         matrix@name <- identifier
 		matrix@display <- as.character(value)
@@ -222,8 +222,8 @@ insertNumericValue <- function(value, flatModel) {
                 return(flatModel)
             }
         }
-        localName <- omxUntitledName()
-        identifier <- omxIdentifier(flatModel@name, localName)
+        localName <- imxUntitledName()
+        identifier <- imxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = valuematrix, name = localName)
         matrix@name <- identifier
 		matrix@display <- as.character(value)
@@ -235,8 +235,8 @@ insertNumericValue <- function(value, flatModel) {
 insertOutsideValue <- function(varname, flatModel) {
     value <- as.matrix(get(varname, envir = globalenv()))
     if (length(flatModel@constMatrices) == 0) {
-	    localName <- omxUntitledName()
-	    identifier <- omxIdentifier(flatModel@name, localName)
+	    localName <- imxUntitledName()
+	    identifier <- imxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
 		matrix@display <- varname
@@ -250,8 +250,8 @@ insertOutsideValue <- function(varname, flatModel) {
                 return(flatModel)
             }
         }
-        localName <- omxUntitledName()
-	    identifier <- omxIdentifier(flatModel@name, localName)
+        localName <- imxUntitledName()
+	    identifier <- imxIdentifier(flatModel@name, localName)
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
 		matrix@display <- varname
@@ -292,7 +292,7 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
     } else if (asCharacter %in% convertArguments$parameters) {
         matrix <- flatModel@freeMatrices[[asCharacter]]
         return(as.symbol(matrix@name))
-	} else if (omxIsDefinitionVariable(asCharacter)) {
+	} else if (imxIsDefinitionVariable(asCharacter)) {
         matrix <- flatModel@freeMatrices[[asCharacter]]
         return(as.symbol(matrix@name))
 	} else if(exists(asCharacter, envir = globalenv()) && 

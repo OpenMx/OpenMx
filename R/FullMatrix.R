@@ -18,7 +18,7 @@ setClass(Class = "FullMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxCreateMatrix", "FullMatrix",
+setMethod("imxCreateMatrix", "FullMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (single.na(values)) {
 			values <- 0
@@ -43,7 +43,7 @@ setMethod("omxCreateMatrix", "FullMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "FullMatrix",
+setMethod("imxVerifyMatrix", "FullMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 	}

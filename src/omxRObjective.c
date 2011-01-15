@@ -83,7 +83,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 
 	PROTECT(theCall = allocVector(LANGSXP, 5));
 
-	SETCAR(theCall, install("omxUpdateModelValues"));
+	SETCAR(theCall, install("imxUpdateModelValues"));
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->flatModel);
 	SETCADDDR(theCall, rObjective->parameters);

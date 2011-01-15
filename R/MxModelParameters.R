@@ -26,7 +26,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
 	if(indep) {
 		submodels <- model@submodels
 	} else {
-		submodels <- omxDependentModels(model)
+		submodels <- imxDependentModels(model)
 	}
 	subparams <- lapply(submodels, omxGetParameters, indep, free)
 	names(subparams) <- NULL
@@ -86,10 +86,10 @@ setParametersHelper <- function(model, labels, free, values,
 		model@submodels <- lapply(model@submodels, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 	} else {
-		select <- omxDependentModels(model)
+		select <- imxDependentModels(model)
 		select <- lapply(select, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
-		model@submodels <- c(select, omxIndependentModels(model))
+		model@submodels <- c(select, imxIndependentModels(model))
 	}
 	return(model)
 }
@@ -113,7 +113,7 @@ getParametersHelper <- function(amatrix, selection) {
 	if (all(!select)) {
 		return(numeric())
 	}
-	if (omxSymmetricMatrix(amatrix)) {
+	if (imxSymmetricMatrix(amatrix)) {
 		triangle <- upper.tri(select, diag=TRUE)
 		select <- select & triangle
 	} 

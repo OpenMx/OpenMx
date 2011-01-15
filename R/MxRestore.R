@@ -28,8 +28,8 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	if(length(chkpt.files) == 0) {
 		return(model)
 	}
-	namespace <- omxGenerateNamespace(model)
-	flatModel <- omxFlattenModel(model, namespace)
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace)
 	pList <- generateParameterList(flatModel)
 	for(i in 1:length(chkpt.files)) {
 		filename <- chkpt.files[[i]]
@@ -43,13 +43,13 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 
 restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel, pList) {
 	if (model@independent) {
-		namespace <- omxGenerateNamespace(model)
-		flatModel <- omxFlattenModel(model, namespace)
+		namespace <- imxGenerateNamespace(model)
+		flatModel <- imxFlattenModel(model, namespace)
 		pList <- generateParameterList(flatModel)
 	}
 	if (modelname == model@name) {
 		values <- as.numeric(checkpoint[nrow(checkpoint), 4:ncol(checkpoint)])
-		model <- omxUpdateModelValues(model, flatModel, pList, values)
+		model <- imxUpdateModelValues(model, flatModel, pList, values)
 	}
 	model@submodels <- lapply(model@submodels, restoreCheckpointModel, modelname, checkpoint, flatModel, pList)
 	return(model)

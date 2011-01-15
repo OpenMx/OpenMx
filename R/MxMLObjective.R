@@ -39,22 +39,22 @@ setMethod("genericObjDependencies", signature("MxMLObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
-	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
 })
 
 
 setMethod("genericObjFunNamespace", signature("MxMLObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@covariance <- omxConvertIdentifier(.Object@covariance, 
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
 			modelname, namespace)
-		.Object@means <- omxConvertIdentifier(.Object@means, 
+		.Object@means <- imxConvertIdentifier(.Object@means, 
 			modelname, namespace)
-		.Object@data <- omxConvertIdentifier(.Object@data, 
+		.Object@data <- imxConvertIdentifier(.Object@data, 
 			modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
-			omxConvertIdentifier, modelname, namespace)			
+			imxConvertIdentifier, modelname, namespace)			
 		return(.Object)
 })
 
@@ -83,14 +83,14 @@ verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
 
 setMethod("genericObjFunConvert", signature("MxMLObjective"), 
 	function(.Object, flatModel, model, defVars) {
-		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
+		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		covariance <- .Object@covariance
 		means <- .Object@means
 		data <- .Object@data
 		dims <- .Object@dims
 		thresholds <- .Object@thresholds
-		covarianceIndex <- omxLocateIndex(flatModel, covariance, name)
+		covarianceIndex <- imxLocateIndex(flatModel, covariance, name)
 		if(is.na(data)) {
 			msg <- paste("In model", omxQuotes(modelname),
 				"the ML objective does not have a dataset specified")
@@ -101,8 +101,8 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		checkNumericData(mxDataObject)
 		verifyExpectedNames(covariance, means, flatModel, modelname, "ML")
 		verifyMeans(means, mxDataObject, flatModel, modelname)
-		meansIndex <- omxLocateIndex(flatModel, means, name)
-		dIndex <- omxLocateIndex(flatModel, data, name)
+		meansIndex <- imxLocateIndex(flatModel, means, name)
+		dIndex <- imxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
 		.Object@data <- dIndex

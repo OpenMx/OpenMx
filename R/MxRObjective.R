@@ -44,7 +44,7 @@ setMethod("genericObjFunConvert", signature("MxRObjective"),
 
 setMethod("genericObjFunNamespace", signature("MxRObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
+		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)
 })
 

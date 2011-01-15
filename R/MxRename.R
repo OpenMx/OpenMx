@@ -23,8 +23,8 @@ mxRename <- function(model, newname, oldname = NA) {
 	if( !(is.na(oldname) || is.character(oldname))) {
 		stop("'oldname' argument is not either NA or character string")
 	}	
-	omxVerifyName(newname, 0)
-	namespace <- omxGenerateNamespace(model)	
+	imxVerifyName(newname, 0)
+	namespace <- imxGenerateNamespace(model)	
 	entities <- namespace$entities
 	parameters <- namespace$parameters
 	values <- namespace$values
@@ -66,8 +66,8 @@ propagateModelName <- function(model, oldname, newname) {
 	model@objective <- genericObjRename(model@objective, oldname, newname)
 	model@submodels <- lapply(model@submodels, propagateModelName, oldname, newname)
 	model@output <- renameModelOutput(model@output, oldname, newname)
-	names(model@intervals) <- omxExtractReferences(model@intervals)
-	names(model@submodels) <- omxExtractNames(model@submodels)
+	names(model@intervals) <- imxExtractReferences(model@intervals)
+	names(model@submodels) <- imxExtractNames(model@submodels)
 	return(model)
 }
 
@@ -75,9 +75,9 @@ renameReference <- function(reference, oldname, newname) {
 	if (is.na(reference)) {
 		return(reference)
 	}
-	components <- unlist(strsplit(reference, omxSeparatorChar, fixed = TRUE))	
+	components <- unlist(strsplit(reference, imxSeparatorChar, fixed = TRUE))	
 	if (length(components) == 2 && components[[1]] == oldname) {
-		return(paste(newname, components[[2]], sep = omxSeparatorChar))
+		return(paste(newname, components[[2]], sep = imxSeparatorChar))
 	} else {
 		return(reference)
 	}

@@ -35,7 +35,7 @@ setClass(Class = "MxModel",
 		.newtree="logical"
 ))
 
-omxModelTypes[['raw']] <- "MxModel"
+imxModelTypes[['raw']] <- "MxModel"
 
 setMethod("initialize", "MxModel",
 	function(.Object, name = character()) {
@@ -55,26 +55,26 @@ setMethod("initialize", "MxModel",
 		.Object@.newobjects <- FALSE
 		.Object@.newobjective <- FALSE
 		.Object@.newtree <- FALSE
-		.Object <- omxInitModel(.Object)
+		.Object <- imxInitModel(.Object)
 		return(.Object)
 	}
 )
 
 # Begin declaration of generics
 
-setGeneric("omxInitModel", function(model) {
-	return(standardGeneric("omxInitModel")) } )
+setGeneric("imxInitModel", function(model) {
+	return(standardGeneric("imxInitModel")) } )
 
-setGeneric("omxModelBuilder", function(model, lst, name, 
+setGeneric("imxModelBuilder", function(model, lst, name, 
 	manifestVars, latentVars, remove, independent) {
-	return(standardGeneric("omxModelBuilder")) } )
+	return(standardGeneric("imxModelBuilder")) } )
 
-setGeneric("omxTypeName", function(model) { 
-	return(standardGeneric("omxTypeName")) 
+setGeneric("imxTypeName", function(model) { 
+	return(standardGeneric("imxTypeName")) 
 })
 
-setGeneric("omxVerifyModel", function(model) {
-    return(standardGeneric("omxVerifyModel"))
+setGeneric("imxVerifyModel", function(model) {
+    return(standardGeneric("imxVerifyModel"))
 })
 
 # End declaration of generics
@@ -125,37 +125,37 @@ setMethod("names", "MxModel",
 
 setMethod("[[", "MxModel",
 	function(x, i, j, ..., drop = FALSE) {
-		return(omxExtractMethod(x, i))
+		return(imxExtractMethod(x, i))
 	}
 )
 
 setReplaceMethod("[[", "MxModel",
 	function(x, i, j, value) {
-		return(omxReplaceMethod(x, i, value))
+		return(imxReplaceMethod(x, i, value))
 	}
 )
 
 setMethod("$", "MxModel",
 	function(x, name) {
-		return(omxExtractMethod(x, name))
+		return(imxExtractMethod(x, name))
 	}
 )
 
 setReplaceMethod("$", "MxModel",
 	function(x, name, value) {
-		return(omxReplaceMethod(x, name, value))
+		return(imxReplaceMethod(x, name, value))
 	}
 )
 
-omxExtractMethod <- function(model, index) {
+imxExtractMethod <- function(model, index) {
 	return(namespaceSearch(model, index))
 }
 
-omxReplaceMethod <- function(model, index, value) {
+imxReplaceMethod <- function(model, index, value) {
 	return(namespaceSearchReplace(model, index, value))
 }
 
-omxSameType <- function(a, b) {
+imxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
 			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||
 			(is(a, "MxAlgebra") && is(b, "MxAlgebra")) ||
@@ -173,14 +173,14 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
 	lst <- unlist(lst)
-	model <- omxModelBuilder(model, lst, name, manifestVars,
+	model <- imxModelBuilder(model, lst, name, manifestVars,
 		latentVars, remove, independent)
 	return(model)
 }
 
 firstArgument <- function(model, name) {
 	first <- NULL
-	defaultType <- omxModelTypes[[getOption("mxDefaultType")]]
+	defaultType <- imxModelTypes[[getOption("mxDefaultType")]]
 	if (is(model, "MxModel")) {
 	} else {
 		if (single.na(model)) {
@@ -192,9 +192,9 @@ firstArgument <- function(model, name) {
 			first <- list(model)
 		}
 		if (length(name) > 0 && is.na(name)) {
-			name <- omxUntitledName()
+			name <- imxUntitledName()
 		}
-		omxVerifyName(name, -1)
+		imxVerifyName(name, -1)
 		model <- new(defaultType, name)
 	}
 	return(list(first, model, name))
@@ -202,19 +202,19 @@ firstArgument <- function(model, name) {
 
 typeArgument <- function(model, type) {
 	if (!is.na(type)) {
-		if (is.null(omxModelTypes[[type]])) {
+		if (is.null(imxModelTypes[[type]])) {
 			stop(paste("The model type", omxQuotes(type), 
 				"is not in the the list of acceptable types:",
-				omxQuotes(names(omxModelTypes))), call. = FALSE)
+				omxQuotes(names(imxModelTypes))), call. = FALSE)
 		}
-		typename <- omxModelTypes[[type]]
+		typename <- imxModelTypes[[type]]
 		class(model) <- typename
-		model <- omxInitModel(model)
+		model <- imxInitModel(model)
 	}
 	return(model)
 }
 
-omxGenericModelBuilder <- function(model, lst, name, 
+imxGenericModelBuilder <- function(model, lst, name, 
 	manifestVars, latentVars, remove, independent) {
 	model <- variablesArgument(model, manifestVars, latentVars, remove)
 	model <- listArgument(model, lst, remove)
@@ -302,17 +302,17 @@ checkVariables <- function(model, latentVars, manifestVars) {
 
 # Begin implementation of generics
 
-setMethod("omxModelBuilder", "MxModel", omxGenericModelBuilder)
+setMethod("imxModelBuilder", "MxModel", imxGenericModelBuilder)
 
-setMethod("omxInitModel", "MxModel", function(model) { 
+setMethod("imxInitModel", "MxModel", function(model) { 
 	return(model)
 })
 
-setMethod("omxTypeName", "MxModel", function(model) { 
+setMethod("imxTypeName", "MxModel", function(model) { 
 	return("default")
 })
 
-setMethod("omxVerifyModel", "MxModel", function(model) {
+setMethod("imxVerifyModel", "MxModel", function(model) {
     return(TRUE)
 })
 
@@ -419,10 +419,10 @@ removeSingleNamedEntity <- function(model, name) {
 	return(model)
 }
 
-setMethod("omxVerifyModel", "MxModel",
+setMethod("imxVerifyModel", "MxModel",
     function(model) {
         if (length(model@submodels) > 0) {
-        	return(all(sapply(model@submodels, omxVerifyModel)))
+        	return(all(sapply(model@submodels, imxVerifyModel)))
         }
         return(TRUE)
     }

@@ -58,7 +58,7 @@ generatePath <- function(from, to,
 	missingvalues <- is.na(values)
 	values[missingvalues] <- 0
 	if(!is.null(labels)) { 
-		lapply(labels, omxVerifyReference, -1)
+		lapply(labels, imxVerifyReference, -1)
 	}
 	pathCheckLengths(from, to, arrows, values, 
 		free, labels, lbound, ubound, loop)
@@ -102,7 +102,7 @@ generateSinglePath <- function(from, to,
 	return(result)
 }
 
-omxIsPath <- function(value) {
+imxIsPath <- function(value) {
 	return(is.list(value) && 
 		!is.null(value[['from']]) &&
 		!is.null(value[['to']]))

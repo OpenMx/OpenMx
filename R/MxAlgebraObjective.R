@@ -34,7 +34,7 @@ setMethod("initialize", "MxAlgebraObjective",
 
 setMethod("genericObjDependencies", signature("MxAlgebraObjective"),
 	function(.Object, dependencies) {
-	dependencies <- omxAddDependency(.Object@algebra, .Object@name, dependencies)
+	dependencies <- imxAddDependency(.Object@algebra, .Object@name, dependencies)
 	return(dependencies)
 })
 
@@ -43,12 +43,12 @@ setMethod("genericObjFunConvert", signature("MxAlgebraObjective"),
 		name <- .Object@name
 		algebra <- .Object@algebra
 		if (is.na(algebra)) {
-			modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
+			modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 			msg <- paste("The algebra name cannot be NA",
 			"for the algebra objective of model", omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
-		algebraIndex <- omxLocateIndex(flatModel, algebra, name)
+		algebraIndex <- imxLocateIndex(flatModel, algebra, name)
 		.Object@algebra <- algebraIndex
 		.Object@data <- as.integer(NA)
 		return(.Object)
@@ -56,8 +56,8 @@ setMethod("genericObjFunConvert", signature("MxAlgebraObjective"),
 
 setMethod("genericObjFunNamespace", signature("MxAlgebraObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@algebra <- omxConvertIdentifier(.Object@algebra, modelname, namespace)
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace)
 		return(.Object)
 })
 

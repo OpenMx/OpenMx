@@ -314,7 +314,7 @@ generateDataSummary <- function(model, useSubmodels) {
 	return(retval)
 }
 
-omxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
+imxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
    if ((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
@@ -337,7 +337,7 @@ generateConfidenceIntervalTable <- function(model) {
 	base <- model@output$confidenceIntervals
 	if (length(base) == 0) return(matrix(0, 0, 3))
 	entities <- rownames(base)
-	estimates <- sapply(entities, omxEvalByName, model, compute=TRUE, show=FALSE)
+	estimates <- sapply(entities, imxEvalByName, model, compute=TRUE, show=FALSE)
 	retval <- cbind(base[, 'lbound'], estimates, base[, 'ubound'])
 	rownames(retval) <- entities
 	colnames(retval) <- c('lbound', 'estimate', 'ubound')

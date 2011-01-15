@@ -23,11 +23,11 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	}	
 	expression <- match.call()$expression
 	modelvariable <- match.call()$model
-	labelsData <- omxGenerateLabels(model)
+	labelsData <- imxGenerateLabels(model)
 	env <- parent.frame()
 	if (compute) {
-		namespace <- omxGenerateNamespace(model)
-		model <- omxFlattenModel(model, namespace)
+		namespace <- imxGenerateNamespace(model)
+		model <- imxFlattenModel(model, namespace)
 		expression <- namespaceConvertFormula(expression, model@name, namespace)
 	}
 	if (show) {
@@ -128,7 +128,7 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 	if (!is.na(index)) {
 		targetmodel <- labelsData[[index,"model"]]
 		matrix <- labelsData[[index,"matrix"]]
-		fullname <- omxIdentifier(targetmodel, matrix)
+		fullname <- imxIdentifier(targetmodel, matrix)
 		row <- labelsData[[index,"row"]]
 		col <- labelsData[[index,"col"]]
 		value <- model[[fullname]]@values[row,col]
@@ -139,7 +139,7 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 		}
 	}
 	lookup <- model[[key]]
-	if (omxIsDefinitionVariable(key)) {
+	if (imxIsDefinitionVariable(key)) {
 		return(definitionStartingValue(key, contextString, model, defvar.row))
 	} else if (is.null(lookup)) {
 		if (!show && !outsideAlgebra && exists(key, envir = env)) {
@@ -259,7 +259,7 @@ assignDimnames <- function(object, values) {
 	return(values)
 }
 
-omxGenerateLabels <- function(model) {
+imxGenerateLabels <- function(model) {
 	return(generateLabelsHelper(model, data.frame()))
 }
 
@@ -284,7 +284,7 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	cols <- col(labels)[!is.na(labels)]
 	if (length(select) > 0) {
 		for(i in 1:length(select)) {
-			if(!omxIsDefinitionVariable(select[[i]]) && !hasSquareBrackets(select[[i]])) {
+			if(!imxIsDefinitionVariable(select[[i]]) && !hasSquareBrackets(select[[i]])) {
 				labelsData[select[[i]], "model"] <- modelName
 				labelsData[select[[i]], "matrix"] <- matrix@name
 				labelsData[select[[i]], "row"] <- rows[[i]]

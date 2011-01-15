@@ -18,9 +18,9 @@ flatNamespaceSearch <- function(model, name) {
 		return(NULL)
 	}
 	if (model@name == name) return(model)
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
-		name <- omxIdentifier(model@name, name)
+		name <- imxIdentifier(model@name, name)
 	}
 	return(doFlatNamespaceSearch(model, name))
 }
@@ -36,9 +36,9 @@ flatNamespaceSearchReplace <- function(model, name, value) {
 	if (model@name == name) {
 		return(flatNamespaceModelSearchReplace(name, value))
 	}
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
-		name <- omxIdentifier(model@name, name)
+		name <- imxIdentifier(model@name, name)
 	}
 	return(doFlatNamespaceSearchReplace(model, name, value))
 }
@@ -47,9 +47,9 @@ flatNamespaceSearchReplace <- function(model, name, value) {
 # Check for a named entity within the flat model
 #
 doFlatNamespaceSearch <- function(model, name) {
-	if (name %in% names(omxReservedNames) && 
-		!is.null(omxReservedNames[[name]]@search)) {
-		return(omxReservedNames[[name]]@search(model))
+	if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@search)) {
+		return(imxReservedNames[[name]]@search(model))
 	}
 	first <- model@matrices[[name]]
 	second <- model@algebras[[name]]
@@ -89,16 +89,16 @@ flatNamespaceModelSearchReplace <- function(name, value) {
 # Replace a named entity within the flat model
 #
 doFlatNamespaceSearchReplace <- function(model, name, value) {
-	if (name %in% names(omxReservedNames) && 
-		!is.null(omxReservedNames[[name]]@replace)) {
-		return(omxReservedNames[[name]]@replace(model, value))
+	if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@replace)) {
+		return(imxReservedNames[[name]]@replace(model, value))
 	}
 	current <- doFlatNamespaceSearch(model, name)
 	if (is.null(current) && is.null(value)) {
 		return(model)
 	}
 	if(!is.null(current) && !is.null(value) && 
-			!omxSameType(current, value)) {
+			!imxSameType(current, value)) {
 		stop(paste("There already exists an object", 
 				omxQuotes(name), 
 				"in this model of different type"), call. = FALSE)

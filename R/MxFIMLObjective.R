@@ -48,28 +48,28 @@ setMethod("genericObjDependencies", signature("MxFIMLObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
-	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
 })
 
 
 setMethod("genericObjFunNamespace", signature("MxFIMLObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@covariance <- omxConvertIdentifier(.Object@covariance, 
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
 			modelname, namespace)
-		.Object@means <- omxConvertIdentifier(.Object@means, 
+		.Object@means <- imxConvertIdentifier(.Object@means, 
 			modelname, namespace)
-		.Object@data <- omxConvertIdentifier(.Object@data, 
+		.Object@data <- imxConvertIdentifier(.Object@data, 
 			modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds,
-			omxConvertIdentifier, modelname, namespace)
+			imxConvertIdentifier, modelname, namespace)
 		if (!is.null(.Object@metadata)) {
 			metadata <- .Object@metadata
-			metadata@A <-  omxConvertIdentifier(metadata@A, modelname, namespace)
-			metadata@S <-  omxConvertIdentifier(metadata@S, modelname, namespace)
-			metadata@F <-  omxConvertIdentifier(metadata@F, modelname, namespace)
-			metadata@M <-  omxConvertIdentifier(metadata@M, modelname, namespace)
+			metadata@A <-  imxConvertIdentifier(metadata@A, modelname, namespace)
+			metadata@S <-  imxConvertIdentifier(metadata@S, modelname, namespace)
+			metadata@F <-  imxConvertIdentifier(metadata@F, modelname, namespace)
+			metadata@M <-  imxConvertIdentifier(metadata@M, modelname, namespace)
 			.Object@metadata <- metadata
 		}
 		return(.Object)
@@ -86,7 +86,7 @@ setMethod("genericObjRename", signature("MxFIMLObjective"),
 
 setMethod("genericObjFunConvert", signature("MxFIMLObjective"), 
 	function(.Object, flatModel, model, defVars) {
-		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]
+		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
 			msg <- paste("The FIML objective",
@@ -106,20 +106,20 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		covName <- .Object@covariance
 		dataName <- .Object@data
 		threshName <- .Object@thresholds
-		.Object@definitionVars <- omxFilterDefinitionVariables(defVars, .Object@data)
-		.Object@means <- omxLocateIndex(flatModel, .Object@means, name)
-		.Object@covariance <- omxLocateIndex(flatModel, .Object@covariance, name)
-		.Object@data <- omxLocateIndex(flatModel, .Object@data, name)
+		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, .Object@data)
+		.Object@means <- imxLocateIndex(flatModel, .Object@means, name)
+		.Object@covariance <- imxLocateIndex(flatModel, .Object@covariance, name)
+		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
 		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
 		verifyThresholds(flatModel, model, dataName, covName, threshName)
-		.Object@thresholds <- omxLocateIndex(flatModel, threshName, name)
+		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 		if (!is.null(.Object@metadata)) {
 			metadata <- .Object@metadata
-			metadata@A <-  omxLocateIndex(flatModel, metadata@A, name)
-			metadata@S <-  omxLocateIndex(flatModel, metadata@S, name)
-			metadata@F <-  omxLocateIndex(flatModel, metadata@F, name)
-			metadata@M <-  omxLocateIndex(flatModel, metadata@M, name)
+			metadata@A <-  imxLocateIndex(flatModel, metadata@A, name)
+			metadata@S <-  imxLocateIndex(flatModel, metadata@S, name)
+			metadata@F <-  imxLocateIndex(flatModel, metadata@F, name)
+			metadata@M <-  imxLocateIndex(flatModel, metadata@M, name)
 			.Object@metadata <- metadata
 		}
 		.Object@thresholdColumns <- generateThresholdColumns(flatModel, 
@@ -155,7 +155,7 @@ setMethod("genericObjInitialMatrix", "MxFIMLObjective",
 		if (flatObjective@vector == FALSE) {
 			return(matrix(as.double(NA), 1, 1))
 		} else {
-			modelname <- omxReverseIdentifier(flatModel, flatObjective@name)[[1]]
+			modelname <- imxReverseIdentifier(flatModel, flatObjective@name)[[1]]
 			name <- flatObjective@name
 			if(is.na(flatObjective@data)) {
 				msg <- paste("The FIML objective",

@@ -29,8 +29,8 @@ superModel <- mxModel('superModel')
 data <- mxData(matrix(0, dimnames = list(c(), c('A'))), type = 'raw')
 superModel <- mxModel(superModel, model1, model2, data)
 
-namespace <- omxGenerateNamespace(superModel)
-flatModel <- omxFlattenModel(superModel, namespace)
+namespace <- imxGenerateNamespace(superModel)
+flatModel <- imxFlattenModel(superModel, namespace)
 
 omxCheckSetEquals(namespace$entities$superModel, c('model1', 'model2', 'data'))
 omxCheckSetEquals(namespace$entities$model1, c('A'))

@@ -43,7 +43,7 @@ setMethod("initialize", "MxNonNullData",
 	}
 )
 
-omxDataTypes <- c("raw", "cov", "cor", "sscp")
+imxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 mxData <- function(observed, type, means = NA, numObs = NA) {
 	if (length(means) == 1 && is.na(means)) means <- NA_real_
@@ -51,8 +51,8 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
 	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
-		is.na(match(type, omxDataTypes))) {
-		stop(paste("Type must be one of:", paste(omxDataTypes, collapse=" ")))
+		is.na(match(type, imxDataTypes))) {
+		stop(paste("Type must be one of:", paste(imxDataTypes, collapse=" ")))
 	}
 	if (type == "sscp") {
 		stop(paste("'sscp' is not yet implemented."))
@@ -70,7 +70,7 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 		verifyCovarianceMatrix(observed)
 	}
 	numObs <- as.numeric(numObs)
-	lapply(dimnames(observed)[[2]], omxVerifyName, -1)
+	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	return(new("MxNonNullData", observed, means, type, numObs))
@@ -111,7 +111,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	observed <- mxData@observed
 	nosort <- as.character(modeloptions[['No Sort Data']])
 	fullname <- paste(modelname, 'data', sep = '.')
-	components <- unlist(strsplit(fullname, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(fullname, imxSeparatorChar, fixed = TRUE))
 	modelname <- components[[1]]
 	if ((length(observed) == 0) || (modelname %in% nosort)) {
 		mxData@indexVector <- as.integer(NA)
@@ -127,9 +127,9 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 			stop(msg, call. = FALSE)
 		}
 		if (length(defVars) > 0) {
-			defkeys <- names(omxFilterDefinitionVariables(defVars, fullname))
+			defkeys <- names(imxFilterDefinitionVariables(defVars, fullname))
 			defkeys <- sapply(defkeys, function(x) {
-				unlist(strsplit(x, omxSeparatorChar, fixed = TRUE))[[3]]
+				unlist(strsplit(x, imxSeparatorChar, fixed = TRUE))[[3]]
 			})
 			names(defkeys) <- NULL
 			defkeys <- defkeys[defkeys %in% observedNames]

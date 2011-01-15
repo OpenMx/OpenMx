@@ -18,11 +18,11 @@ setClass(Class = "StandMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "StandMatrix",
+setMethod("imxSymmetricMatrix", "StandMatrix",
 	function(.Object) { return(TRUE) }
 )
 
-setMethod("omxSquareMatrix", "StandMatrix",
+setMethod("imxSquareMatrix", "StandMatrix",
 	function(.Object) { return(TRUE) }
 )
 
@@ -52,7 +52,7 @@ populateStandTriangle <- function(input, n, default, byrow, strname) {
 	return(output)
 }
 	
-setMethod("omxCreateMatrix", "StandMatrix",
+setMethod("imxCreateMatrix", "StandMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for standardized matrix constructor", call. = FALSE)
@@ -80,7 +80,7 @@ setMethod("omxCreateMatrix", "StandMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "StandMatrix",
+setMethod("imxVerifyMatrix", "StandMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values

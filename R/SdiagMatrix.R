@@ -18,11 +18,11 @@ setClass(Class = "SdiagMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "SdiagMatrix",
+setMethod("imxSymmetricMatrix", "SdiagMatrix",
 	function(.Object) { return(FALSE) }
 )
 
-setMethod("omxSquareMatrix", "SdiagMatrix",
+setMethod("imxSquareMatrix", "SdiagMatrix",
 	function(.Object) { return(TRUE) }
 )
 
@@ -49,7 +49,7 @@ populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 	return(output)
 }
 	
-setMethod("omxCreateMatrix", "SdiagMatrix",
+setMethod("imxCreateMatrix", "SdiagMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for subdiagonal matrix constructor", call. = FALSE)
@@ -77,7 +77,7 @@ setMethod("omxCreateMatrix", "SdiagMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "SdiagMatrix",
+setMethod("imxVerifyMatrix", "SdiagMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values

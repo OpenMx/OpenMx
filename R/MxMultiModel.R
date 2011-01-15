@@ -71,7 +71,7 @@ freezeObjective <- function(model) {
 	return(model)
 }
 
-omxFreezeModel <- function(model) {
+imxFreezeModel <- function(model) {
 	model <- freezeObjective(model)
 	model@matrices <- lapply(model@matrices, freezeMatrix)
 	algebras <- lapply(model@algebras, freezeAlgebra)
@@ -79,11 +79,11 @@ omxFreezeModel <- function(model) {
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
 	model@constraints <- list()
-	model@submodels <- lapply(model@submodels, omxFreezeModel)
+	model@submodels <- lapply(model@submodels, imxFreezeModel)
 	return(model)
 }
 
-omxFlattenModel <- function(model, namespace) {
+imxFlattenModel <- function(model, namespace) {
 	flatModel <- new("MxFlatModel", model, list(), list())
 	name <- model@name
 	model@objective <- namespaceConvertObjective(model@objective, name, namespace)
@@ -100,9 +100,9 @@ omxFlattenModel <- function(model, namespace) {
 	flatModel@algebras <- lapply(model@algebras, namespaceConvertAlgebra, name, namespace)
 	flatModel@constraints <- lapply(model@constraints, namespaceConvertConstraint, name, namespace)
 	flatModel@intervals <- lapply(model@intervals, namespaceConvertInterval, name, namespace)
-	names(flatModel@matrices) <- omxExtractNames(flatModel@matrices)
-	names(flatModel@algebras) <- omxExtractNames(flatModel@algebras)
-	names(flatModel@constraints) <- omxExtractNames(flatModel@constraints)
+	names(flatModel@matrices) <- imxExtractNames(flatModel@matrices)
+	names(flatModel@algebras) <- imxExtractNames(flatModel@algebras)
+	names(flatModel@constraints) <- imxExtractNames(flatModel@constraints)
 	flatModel <- flattenModelHelper(model, flatModel, defaultData, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
@@ -143,9 +143,9 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 			}
 			submodel@algebras <- lapply(submodel@algebras, namespaceConvertAlgebra, name, namespace)
 			submodel@constraints <- lapply(submodel@constraints, namespaceConvertConstraint, name, namespace)
-			names(submodel@matrices) <- omxExtractNames(submodel@matrices)
-			names(submodel@algebras) <- omxExtractNames(submodel@algebras)
-			names(submodel@constraints) <- omxExtractNames(submodel@constraints)
+			names(submodel@matrices) <- imxExtractNames(submodel@matrices)
+			names(submodel@algebras) <- imxExtractNames(submodel@algebras)
+			names(submodel@constraints) <- imxExtractNames(submodel@constraints)
 			flatModel@matrices    <- append(flatModel@matrices, submodel@matrices)
 			flatModel@algebras    <- append(flatModel@algebras, submodel@algebras)
 			flatModel@constraints <- append(flatModel@constraints, 
@@ -156,14 +156,14 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 	return(flatModel)
 }
 
-omxDependentModels <- function(model) {
+imxDependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
         retval <- retval[sapply(retval, function(x) { !x@independent })]
         return(retval)
 }
 
-omxIndependentModels <- function(model) {
+imxIndependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
         retval <- retval[sapply(retval, function(x) { x@independent })]
@@ -171,9 +171,9 @@ omxIndependentModels <- function(model) {
 }
 
 
-omxReplaceModels <- function(model, replacements) {
+imxReplaceModels <- function(model, replacements) {
 	if (length(replacements) == 0) return(model)
-	names(replacements) <- omxExtractNames(replacements)
+	names(replacements) <- imxExtractNames(replacements)
 	return(replaceModelsHelper(model, replacements))
 }
 

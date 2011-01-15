@@ -18,11 +18,11 @@ setClass(Class = "LowerMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxSymmetricMatrix", "LowerMatrix",
+setMethod("imxSymmetricMatrix", "LowerMatrix",
 	function(.Object) { return(FALSE) }
 )
 
-setMethod("omxSquareMatrix", "LowerMatrix",
+setMethod("imxSquareMatrix", "LowerMatrix",
 	function(.Object) { return(TRUE) }
 )
 
@@ -49,7 +49,7 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 	return(output)
 }
 	
-setMethod("omxCreateMatrix", "LowerMatrix",
+setMethod("imxCreateMatrix", "LowerMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
 			stop("Non-square matrix attempted for lower matrix constructor", call. = FALSE)
@@ -77,7 +77,7 @@ setMethod("omxCreateMatrix", "LowerMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "LowerMatrix",
+setMethod("imxVerifyMatrix", "LowerMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values

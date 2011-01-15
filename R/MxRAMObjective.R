@@ -46,20 +46,20 @@ setMethod("genericObjDependencies", signature("MxRAMObjective"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
-	dependencies <- omxAddDependency(sources, .Object@name, dependencies)
+	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
 })
 
 setMethod("genericObjFunNamespace", signature("MxRAMObjective"), 
 	function(.Object, modelname, namespace) {
-		.Object@name <- omxIdentifier(modelname, .Object@name)
-		.Object@A <- omxConvertIdentifier(.Object@A, modelname, namespace)
-		.Object@S <- omxConvertIdentifier(.Object@S, modelname, namespace)
-		.Object@F <- omxConvertIdentifier(.Object@F, modelname, namespace)
-		.Object@M <- omxConvertIdentifier(.Object@M, modelname, namespace)
-		.Object@data <- omxConvertIdentifier(.Object@data, modelname, namespace)
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)
+		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace)
+		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace)
+		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace)
+		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
-			omxConvertIdentifier, modelname, namespace)
+			imxConvertIdentifier, modelname, namespace)
 		return(.Object)
 })
 
@@ -76,7 +76,7 @@ setMethod("genericObjRename", signature("MxRAMObjective"),
 
 setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
 	function(.Object, flatModel, model, defVars) {
-		modelname <- omxReverseIdentifier(model, .Object@name)[[1]]	
+		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
@@ -105,11 +105,11 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			stop(msg, call. = FALSE)		
 		}
 		checkNumericData(mxDataObject)
-		.Object@A <- omxLocateIndex(flatModel, aMatrix, name)
-		.Object@S <- omxLocateIndex(flatModel, sMatrix, name)
-		.Object@F <- omxLocateIndex(flatModel, fMatrix, name)
-		.Object@M <- omxLocateIndex(flatModel, mMatrix, name)
-		.Object@data <- as.integer(omxLocateIndex(flatModel, data, name))
+		.Object@A <- imxLocateIndex(flatModel, aMatrix, name)
+		.Object@S <- imxLocateIndex(flatModel, sMatrix, name)
+		.Object@F <- imxLocateIndex(flatModel, fMatrix, name)
+		.Object@M <- imxLocateIndex(flatModel, mMatrix, name)
+		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "RAM")
 		fMatrix <- flatModel[[fMatrix]]@values
 		if (is.null(dimnames(fMatrix))) {
@@ -183,7 +183,7 @@ generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
 	mxObject <- A
 	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
-	defvars <- apply(mxObject@labels, c(1,2), omxIsDefinitionVariable)
+	defvars <- apply(mxObject@labels, c(1,2), imxIsDefinitionVariable)
 	squarebrackets <- apply(mxObject@labels, c(1,2), hasSquareBrackets)
 	aValues[mxObject@free] <- 1
 	aValues[mxObject@values != 0] <- 1
@@ -302,14 +302,14 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'I')) {
 			iName <- 'I'
 		} else {
-			iName <- omxUntitledName()
+			iName <- imxUntitledName()
 		}
 		model <- mxModel(model, mxMatrix(type="Iden", 
 			nrow=nrow(flatJob[[.Object@A]]), name = iName))
 		if (availableName(model, namespace, 'Z')) {
 			zName <- 'Z'
 		} else {
-			zName <- omxUntitledName()
+			zName <- imxUntitledName()
 		}
 		zFormula <- substitute(solve(I - A),
 			list(I = as.symbol(iName), A = as.symbol(.Object@A)))
@@ -319,7 +319,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'covariance')) {
 			covName <- 'covariance'
 		} else {
-			covName <- omxUntitledName()
+			covName <- imxUntitledName()
 		}
 		covFormula <- substitute(F %*% Z %*% S %*% t(Z) %*% t(F),
 			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
@@ -335,7 +335,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'means')) {
 			meansName <- 'means'
 		} else {
-			meansName <- omxUntitledName()
+			meansName <- imxUntitledName()
 		}
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = meansFormula, y = meansName)))

@@ -32,10 +32,10 @@ setMethod("initialize", "MxReservedName",
 	}
 )
 
-omxReservedNames <- list()
+imxReservedNames <- list()
 
-omxReservedNames[['data']] <- new("MxReservedName", "data", NULL, NULL)
+imxReservedNames[['data']] <- new("MxReservedName", "data", NULL, NULL)
 
-omxReservedNames[['objective']] <- new("MxReservedName", "objective", NULL, NULL)
+imxReservedNames[['objective']] <- new("MxReservedName", "objective", NULL, NULL)
 
-omxReservedNames[['likelihood']] <- new("MxReservedName", "likelihood")
+imxReservedNames[['likelihood']] <- new("MxReservedName", "likelihood")

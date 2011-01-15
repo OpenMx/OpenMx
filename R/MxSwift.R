@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-omxGenSwift <- function(tc, sites, sfile) {
+imxGenSwift <- function(tc, sites, sfile) {
 	cmdline <- paste("swift -tc.file ",tc," -sites.file ",sites," ",sfile)
 	system(cmdline)
 }

@@ -54,9 +54,9 @@ setReplaceMethod("dimnames", "MxAlgebra",
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA) {
 	if (single.na(name)) {
-		name <- omxUntitledName()
+		name <- imxUntitledName()
 	}
-	omxVerifyName(name, 0)
+	imxVerifyName(name, 0)
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {
@@ -145,7 +145,7 @@ substituteOperators <- function(algebra) {
 }
 
 checkEvaluation <- function(model, flatModel) {
-	labelsData <- omxGenerateLabels(model)
+	labelsData <- imxGenerateLabels(model)
 	checkMatrixEvaluation(model, flatModel, labelsData)
 	flatModel <- checkAlgebraEvaluation(model, flatModel, labelsData)
 	checkConstraintEvaluation(model, flatModel, labelsData)

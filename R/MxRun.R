@@ -31,7 +31,7 @@ runHelper <- function(model, frontendStart,
 		intervals, silent, suppressWarnings, 
 		unsafe, checkpoint, useSocket, onlyFrontend) {
 	omxCheckMatrices(model)
-	omxVerifyModel(model)
+	imxVerifyModel(model)
 	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
@@ -47,12 +47,12 @@ runHelper <- function(model, frontendStart,
 		return(processHollowModel(model, independents, 
 			dataList, frontendStart, indepElapsed))
 	}
-	frozen <- lapply(independents, omxFreezeModel)
-	model <- omxReplaceModels(model, frozen)
-	namespace <- omxGenerateNamespace(model)
-	flatModel <- omxFlattenModel(model, namespace)	
+	frozen <- lapply(independents, imxFreezeModel)
+	model <- imxReplaceModels(model, frozen)
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
-	freeFixedValues <- omxCheckVariables(flatModel, namespace)
+	freeFixedValues <- imxCheckVariables(flatModel, namespace)
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
 	defVars <- generateDefinitionList(flatModel)
@@ -61,7 +61,7 @@ runHelper <- function(model, frontendStart,
 	model <- triple[[1]]
 	namespace <- triple[[2]]
 	flatModel <- triple[[3]]
-	freeFixedValues <- omxCheckVariables(flatModel, namespace)
+	freeFixedValues <- imxCheckVariables(flatModel, namespace)
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
 		values=namespace$values, parameters=namespace$parameters))
@@ -93,7 +93,7 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	independents <- lapply(independents, undoDataShare, dataList)	
-	model <- omxReplaceModels(model, independents)
+	model <- imxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),

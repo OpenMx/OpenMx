@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row = 1) {
-	components <- unlist(strsplit(defName, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(defName, imxSeparatorChar, fixed = TRUE))
 	dataName <- paste(components[[1]], components[[2]], sep = '.')
 	dataSet <- flatModel@datasets[[dataName]]
 	if(is.null(dataSet)) {
@@ -54,7 +54,7 @@ populateDefInitialValues <- function(flatModel) {
 
 populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	labels <- matrix@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), omxIsDefinitionVariable)
+	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), imxIsDefinitionVariable)
 	if (all(!select)) { return(matrix@values) }
 	rows <- row(labels)[select]
 	cols <- col(labels)[select]
@@ -68,12 +68,12 @@ populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 }
 
 defVariableIsMatch <- function(defName, dataName) {
-	components <- unlist(strsplit(defName, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(defName, imxSeparatorChar, fixed = TRUE))
 	target <- paste(components[[1]], components[[2]], sep = '.')
 	return(identical(target, dataName))
 }
 
-omxFilterDefinitionVariables <- function(defVars, dataName) {
+imxFilterDefinitionVariables <- function(defVars, dataName) {
 	if (length(defVars) == 0) return(defVars)
 	dvNames <- names(defVars)	
 	filter <- sapply(dvNames, defVariableIsMatch, dataName)

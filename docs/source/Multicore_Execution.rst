@@ -32,7 +32,7 @@ Some of the functions provided by the OpenMx library can be bottlenecks. Iterati
 	topModel <- mxModel('container')
 	# generate a list of independent submodels
 	submodels <-  omxLapply(1:100, generateNewSubmodels)
-	names(submodels) <- omxExtractNames(submodels)
+	names(submodels) <- imxExtractNames(submodels)
 	topModel@submodels <- submodels
 
 An Example
@@ -114,7 +114,7 @@ The following script can be found with ``demo(BootstrapParallel)``
 
 	submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
 
-	names(submodels) <- omxExtractNames(submodels)
+	names(submodels) <- imxExtractNames(submodels)
 	topModel@submodels <- submodels
 
 	modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)

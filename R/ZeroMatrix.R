@@ -18,7 +18,7 @@ setClass(Class = "ZeroMatrix",
 	representation = representation(),
 	contains = "MxMatrix")
 
-setMethod("omxCreateMatrix", "ZeroMatrix",
+setMethod("imxCreateMatrix", "ZeroMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for zero matrix constructor", call. = FALSE)
@@ -44,7 +44,7 @@ setMethod("omxCreateMatrix", "ZeroMatrix",
 	}
 )
 
-setMethod("omxVerifyMatrix", "ZeroMatrix",
+setMethod("imxVerifyMatrix", "ZeroMatrix",
 	function(.Object) {
 		callNextMethod(.Object)	
 		if(!all(.Object@free == FALSE)) { 

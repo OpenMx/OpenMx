@@ -95,11 +95,11 @@ getObjectiveIndex <- function(flatModel) {
 	if(is.null(objective)) {
 		return(NULL)
 	} else {
-		return(omxLocateIndex(flatModel, objective@name, flatModel@name))
+		return(imxLocateIndex(flatModel, objective@name, flatModel@name))
 	}
 }
 
-omxUpdateModelValues <- function(model, flatModel, pList, values) {
+imxUpdateModelValues <- function(model, flatModel, pList, values) {
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),
@@ -188,7 +188,7 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
 	return(model)
 }
 
-omxLocateIndex <- function(model, name, referant) {
+imxLocateIndex <- function(model, name, referant) {
 	if (is.na(name)) { return(as.integer(name)) }
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
@@ -213,7 +213,7 @@ omxLocateIndex <- function(model, name, referant) {
 
 omxCheckMatrices <- function(model) {
 	matrices <- model@matrices
-	lapply(matrices, omxVerifyMatrix)
-	submodels <- omxDependentModels(model)
+	lapply(matrices, imxVerifyMatrix)
+	submodels <- imxDependentModels(model)
 	lapply(submodels, omxCheckMatrices)
 }

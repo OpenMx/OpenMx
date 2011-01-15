@@ -62,7 +62,7 @@ vec2diag <- function(x) {
 	}
 }
 
-omxLookupSymbolTable <- function(name) {
+imxLookupSymbolTable <- function(name) {
 	index <- which(omxSymbolTable["R.name"] == name)
 	if(length(index) == 0) {
 		stop(paste("Internal error, function",
@@ -108,7 +108,7 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     
     retVal <- .Call("omxCallAlgebra", 
     	list(covariance, means, lbound, ubound), 
-    	omxLookupSymbolTable("omxMnor"), 
+    	imxLookupSymbolTable("omxMnor"), 
     	NA)
     return(as.matrix(as.numeric(retVal)))
     
@@ -139,7 +139,7 @@ omxAllInt <- function(covariance, means, ...) {
     
     retVal <- .Call("omxCallAlgebra", 
         c(list(covariance, means), thresholdMats),         # Flatten args into a single list
-        omxLookupSymbolTable("omxAllInt"), 
+        imxLookupSymbolTable("omxAllInt"), 
         NA)
     
     return(as.matrix(as.numeric(retVal)))
@@ -154,7 +154,7 @@ eigenvec <- function(x) {
     
     retval <- .Call("omxCallAlgebra", 
         list(x),         # Flatten args into a single list
-        omxLookupSymbolTable("eigenvec"), 
+        imxLookupSymbolTable("eigenvec"), 
         NA)
         
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
@@ -168,7 +168,7 @@ ieigenvec <- function(x) {
     
     retval <- .Call("omxCallAlgebra", 
         list(x),         # Flatten args into a single list
-        omxLookupSymbolTable("ieigenvec"), 
+        imxLookupSymbolTable("ieigenvec"), 
         NA)
         
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
@@ -182,7 +182,7 @@ eigenval <- function(x) {
     
     retval <- .Call("omxCallAlgebra", 
         list(x),         # Flatten args into a single list
-        omxLookupSymbolTable("eigenval"), 
+        imxLookupSymbolTable("eigenval"), 
         NA)
 
     return(as.matrix(as.numeric(retval)))
@@ -196,7 +196,7 @@ ieigenval <- function(x) {
     
     retval <- .Call("omxCallAlgebra", 
         list(x),         # Flatten args into a single list
-        omxLookupSymbolTable("ieigenval"), 
+        imxLookupSymbolTable("ieigenval"), 
         NA)
         
     return(as.matrix(as.numeric(retval)))

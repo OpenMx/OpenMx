@@ -102,7 +102,7 @@ addMatrixDetection <- function(matrix, dependencies) {
 		for(i in 1:length(subs)) {
 			components <- splitSubstitution(subs[[i]])
 			name <- components[[1]]
-			dependencies <- omxAddDependency(name, matrix@name, dependencies)
+			dependencies <- imxAddDependency(name, matrix@name, dependencies)
 		}
 	}
 	return(dependencies)
@@ -117,7 +117,7 @@ addAlgebraDetection <- function(algebra, dependencies) {
 
 addFormulaDetection <- function(formula, sink, dependencies) {
 	if (length(formula) == 1) {
-		dependencies <- omxAddDependency(as.character(formula), sink, dependencies)
+		dependencies <- imxAddDependency(as.character(formula), sink, dependencies)
 	} else {
 		for (i in 2:length(formula)) {
 			dependencies <- addFormulaDetection(formula[[i]], sink, dependencies)
@@ -126,7 +126,7 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 	return(dependencies)
 }
 
-omxAddDependency <- function(source, sink, dependencies) {
+imxAddDependency <- function(source, sink, dependencies) {
 	dependencies <- addNode(source, dependencies)
 	dependencies <- addNode(sink, dependencies)
 	dependencies <- addEdge(source, sink, dependencies)

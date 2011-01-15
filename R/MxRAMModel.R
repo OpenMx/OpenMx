@@ -17,15 +17,15 @@ setClass(Class = "MxRAMModel",
 	representation = representation(),
 	contains = "MxModel")
 
-omxModelTypes[['RAM']] <- "MxRAMModel"
+imxModelTypes[['RAM']] <- "MxRAMModel"
 
 # Define generic functions
 
-setMethod("omxTypeName", "MxRAMModel", 
+setMethod("imxTypeName", "MxRAMModel", 
 	function(model) { "RAM" }
 )
 
-setMethod("omxInitModel", "MxRAMModel", 
+setMethod("imxInitModel", "MxRAMModel", 
 	function(model) {
 		if (is.null(model[['A']])) {
 			model[['A']] <- createMatrixA(model)
@@ -41,7 +41,7 @@ setMethod("omxInitModel", "MxRAMModel",
 	}
 )
 
-setMethod("omxModelBuilder", "MxRAMModel", 
+setMethod("imxModelBuilder", "MxRAMModel", 
 	function(model, lst, name, 
 		manifestVars, latentVars, remove, independent) {
 		model <- variablesArgumentRAM(model, manifestVars, latentVars, remove)
@@ -52,7 +52,7 @@ setMethod("omxModelBuilder", "MxRAMModel",
 	}
 )
 
-setMethod("omxVerifyModel", "MxRAMModel",
+setMethod("imxVerifyModel", "MxRAMModel",
     function(model) {
         if ((length(model$A) == 0) ||
              (length(model$S) == 0) ||
@@ -81,7 +81,7 @@ setMethod("omxVerifyModel", "MxRAMModel",
 			stop(msg, call. = FALSE)        	
 		}
         if (length(model@submodels) > 0) {
-        	return(all(sapply(model@submodels, omxVerifyModel)))
+        	return(all(sapply(model@submodels, imxVerifyModel)))
         }        
         return(TRUE)
     }
@@ -530,7 +530,7 @@ addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, mod
 }
 
 replaceMethodRAM <- function(model, index, value) {
-	pair <- omxReverseIdentifier(model, index)
+	pair <- imxReverseIdentifier(model, index)
 	namespace <- pair[[1]]
 	name <- pair[[2]]
 	if (namespace == model@name && name == "data") {
@@ -539,7 +539,7 @@ replaceMethodRAM <- function(model, index, value) {
 			model@objective@M <- "M"
 		}
 	} else {
-		model <- omxReplaceMethod(model, index, value)
+		model <- imxReplaceMethod(model, index, value)
 	}
 	return(model)
 }

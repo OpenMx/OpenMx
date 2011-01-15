@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-omxSeparatorChar <- '.'
+imxSeparatorChar <- '.'
 
 isNumber <- function(input) {
     match <- grep("^[0-9]+[.]*[0-9]*(L|((E|e)[-+]?[0-9]+))?$", input, perl = TRUE, value = TRUE)
@@ -33,7 +33,7 @@ availableName <- function(model, namespace, name) {
 			!(name %in% namespace$values))
 }
 
-omxVerifyReference <- function(reference, stackNumber) {
+imxVerifyReference <- function(reference, stackNumber) {
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
             "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
@@ -47,22 +47,22 @@ omxVerifyReference <- function(reference, stackNumber) {
             "of zero length are not allowed"), call. = FALSE)
     }
 	if (!is.na(reference) && substring(reference, nchar(reference), 
-				nchar(reference)) == omxSeparatorChar) {
+				nchar(reference)) == imxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
 				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
 				"is illegal because it contains a",
-				omxQuotes(omxSeparatorChar), 
+				omxQuotes(imxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
 	}
-	components <- unlist(strsplit(reference, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(reference, imxSeparatorChar, fixed = TRUE))
 	for(i in 1:length(components)) {
 		component <- components[[i]]
 		if (nchar(component) == 0) {
 			stop(paste("The reference", omxQuotes(reference),
 				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
 				"is illegal because it contains a",
-				omxQuotes(omxSeparatorChar), 
+				omxQuotes(imxSeparatorChar), 
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
 		}
@@ -99,7 +99,7 @@ omxVerifyReference <- function(reference, stackNumber) {
 	}
 }
 
-omxVerifyName <- function(name, stackNumber) {
+imxVerifyName <- function(name, stackNumber) {
     if (length(name) == 0) {
         stop(paste("The empty character vector is an invalid name in", 
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
@@ -120,23 +120,23 @@ omxVerifyName <- function(name, stackNumber) {
             "as a number in", 
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
     }
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2) {
 		if (components[[1]] != "data") {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the",
-				omxQuotes(omxSeparatorChar), "character in", 
+				omxQuotes(imxSeparatorChar), "character in", 
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)			
 		}
 	} else if (length(components) > 2) {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains multiple",
-				omxQuotes(omxSeparatorChar), "characters in", 
+				omxQuotes(imxSeparatorChar), "characters in", 
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
-	if (name %in% names(omxReservedNames)) {
+	if (name %in% names(imxReservedNames)) {
 		stop(paste("The name", omxQuotes(name),
 			"is illegal because it is a reserved name in", 
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
@@ -177,8 +177,8 @@ omxVerifyName <- function(name, stackNumber) {
 	
 }
 
-omxIsDefinitionVariable <- function(name) {
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+imxIsDefinitionVariable <- function(name) {
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2 && components[[1]] == 'data') {
 		return(TRUE)
 	} else if (length(components) > 2 && components[[2]] == 'data') {
@@ -189,7 +189,7 @@ omxIsDefinitionVariable <- function(name) {
 }
 
 isLocalDefinitionVariable <- function(name) {
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2 && components[[1]] == 'data') {
 		return(TRUE)
 	} else {
@@ -198,12 +198,12 @@ isLocalDefinitionVariable <- function(name) {
 }
 
 
-omxIdentifier <- function(namespace, name) {
-	return(paste(namespace, name, sep = omxSeparatorChar))
+imxIdentifier <- function(namespace, name) {
+	return(paste(namespace, name, sep = imxSeparatorChar))
 }
 
 simplifyName <- function(flatName, modelName) {
-	components <- unlist(strsplit(flatName, omxSeparatorChar, fixed = TRUE))
+	components <- unlist(strsplit(flatName, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2 && components[[1]] == modelName) {
 		return(components[[2]])
 	} else if (length(components) == 3 && components[[1]] == modelName) {
@@ -213,8 +213,8 @@ simplifyName <- function(flatName, modelName) {
 	}
 }
 
-omxReverseIdentifier <- function(model, name) {
-	components <- unlist(strsplit(name, omxSeparatorChar, fixed = TRUE))
+imxReverseIdentifier <- function(model, name) {
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if(length(components) < 2) {
 		namespace <- model@name
 	} else if (length(components) == 2) {
@@ -241,13 +241,13 @@ omxReverseIdentifier <- function(model, name) {
 	return(c(namespace, name))
 }
 
-omxGenerateNamespace <- function(model) {
+imxGenerateNamespace <- function(model) {
 	entities <- list()
 	result <- generateLocalNamespace(model)
 	entities[[model@name]] <- result[[1]]
 	parameters <- result[[2]]
 	values <- result[[3]]
-	results <- omxLapply(model@submodels, omxGenerateNamespace)
+	results <- omxLapply(model@submodels, imxGenerateNamespace)
 	if (length(results) > 0) {
 		for (i in 1:length(results)) {
 			subentities <- results[[i]][['entities']]
@@ -316,7 +316,7 @@ namespaceGetValues <- function(model) {
 	values <- sapply(model@matrices, function(x) {
 			labels <- x@labels
 			labels <- unique(labels[!is.na(labels) & !x@free])
-			defVars <- sapply(labels, omxIsDefinitionVariable)
+			defVars <- sapply(labels, imxIsDefinitionVariable)
 			labels <- labels[!defVars]
 			subs <- sapply(labels, hasSquareBrackets)
 			labels <- labels[!subs]
@@ -330,7 +330,7 @@ namespaceGetValues <- function(model) {
 namespaceGetEntities <- function(model, slotname, thisEntities) {
 	entities <- slot(model, slotname)
 	entityNames <- names(entities)
-	checkNameAlignment(entityNames, omxExtractNames(entities))
+	checkNameAlignment(entityNames, imxExtractNames(entities))
 	entityIntersect <- intersect(entityNames, thisEntities)
 	if (length(entityIntersect) > 0) {
 		stop(namespaceErrorMessage(entityIntersect), call. = FALSE)
@@ -349,7 +349,7 @@ namespaceErrorMessage <- function(rlist) {
 	}
 }
 
-omxExtractNames <- function(lst) {
+imxExtractNames <- function(lst) {
 	if (length(lst) == 0) {
 		return(character())
 	} else {
@@ -357,7 +357,7 @@ omxExtractNames <- function(lst) {
 	}
 }
 
-omxExtractReferences <- function(lst) {
+imxExtractReferences <- function(lst) {
 	if (length(lst) == 0) {
 		return(character())
 	} else {
@@ -380,7 +380,7 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	lapply(model@matrices, checkNamespaceMatrix, model, namespace)
 	lapply(model@algebras, checkNamespaceAlgebra, model, namespace)
 	lapply(model@constraints, checkNamespaceConstraint, model, namespace)
-	lapply(omxDependentModels(model), checkNamespaceHelper, topmodel, namespace)
+	lapply(imxDependentModels(model), checkNamespaceHelper, topmodel, namespace)
 	allEntities <- unique(unlist(namespace$entities))
 	overlap <- intersect(allEntities, namespace$parameters)
 	if (length(overlap) > 0) {
@@ -399,8 +399,8 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	overlap <- intersect(namespace$parameters, namespace$values)
 	if (length(overlap) > 0) {
 		select <- overlap[[1]]
-		freelocation <- omxLocateLabel(select, topmodel, TRUE)
-		fixedlocation <- omxLocateLabel(select, topmodel, FALSE)
+		freelocation <- imxLocateLabel(select, topmodel, TRUE)
+		fixedlocation <- imxLocateLabel(select, topmodel, FALSE)
 		stop(paste("In model", omxQuotes(topmodel@name),
 			"the name", omxQuotes(select),
 			"is used as a free parameter in", omxQuotes(freelocation),
@@ -408,7 +408,7 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	}
 }
 
-omxLocateLabel <- function(label, model, parameter) {
+imxLocateLabel <- function(label, model, parameter) {
 	if ((length(label) != 1) || !is.character(label) || is.na(label)) {
 		stop("'label' must be a character value")
 	}
@@ -420,7 +420,7 @@ omxLocateLabel <- function(label, model, parameter) {
 	}
 	values <- sapply(model@matrices, locateLabelHelper, model, label, parameter)	
 	values <- setdiff(values, '')
-	children <- lapply(model@submodels, omxLocateLabel, label = label, parameter = parameter)
+	children <- lapply(model@submodels, imxLocateLabel, label = label, parameter = parameter)
 	children <- unlist(children, recursive = TRUE)
 	retval <- as.character(c(values, children))
 	return(retval)
@@ -428,7 +428,7 @@ omxLocateLabel <- function(label, model, parameter) {
 
 locateLabelHelper <- function(matrix, model, label, parameter) {
 	result <- (matrix@free == parameter) & !is.na(matrix@labels) & (matrix@labels == label)
-	if(any(result)) return(omxIdentifier(model@name, matrix@name))
+	if(any(result)) return(imxIdentifier(model@name, matrix@name))
 	else return('')
 }
 
@@ -444,18 +444,18 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 	entities <- getEntities(namespace)
 	parameters <- getParameters(namespace)
     values <- getValues(namespace)
-	identifier <- omxReverseIdentifier(model, identifier)
+	identifier <- imxReverseIdentifier(model, identifier)
 	space <- identifier[[1]]
 	name <- identifier[[2]]
 	if ( !(name %in% entities[[space]]) &&
-		 !(omxIsDefinitionVariable(name)) &&
+		 !(imxIsDefinitionVariable(name)) &&
 		 !(hasSquareBrackets(name)) &&
 		 !(name %in% parameters) &&
          !(name %in% values) &&
          !(legalGlobalReference(name)) &&
-		 !(name %in% names(omxReservedNames))) {
+		 !(name %in% names(imxReservedNames))) {
 		stop(paste("Unknown reference", 
-			omxQuotes(simplifyName(omxIdentifier(space, name), model@name)),
+			omxQuotes(simplifyName(imxIdentifier(space, name), model@name)),
 			"detected in the entity", omxQuotes(entity),
 			"in model", omxQuotes(model@name)), call. = FALSE)
 	}
@@ -515,35 +515,35 @@ checkNamespaceMatrix <- function(matrix, model, namespace) {
 	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, matrix@name, namespace) })
 }
 
-omxConvertSubstitution <- function(substitution, modelname, namespace) {
+imxConvertSubstitution <- function(substitution, modelname, namespace) {
 	pieces <- splitSubstitution(substitution)
-	identifier <- omxConvertIdentifier(pieces[[1]], modelname, namespace)
+	identifier <- imxConvertIdentifier(pieces[[1]], modelname, namespace)
 	result <- paste(identifier, '[', pieces[[2]], ',', pieces[[3]], ']', sep = '')
 	return(result)
 }
 
-omxConvertIdentifier <- function(identifier, modelname, namespace) {
+imxConvertIdentifier <- function(identifier, modelname, namespace) {
     isLocalEntity <- as.character(identifier) %in% namespace$entities[[modelname]]
     if (isLocalEntity) {
-		return(omxIdentifier(modelname, identifier))
+		return(imxIdentifier(modelname, identifier))
 	} else if (isLocalDefinitionVariable(as.character(identifier))) {
-		return(omxIdentifier(modelname, identifier))
+		return(imxIdentifier(modelname, identifier))
     } else {
 		return(identifier)
 	}
 }
 
-omxConvertLabel <- function(label, modelname, dataname, namespace) {
+imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (hasSquareBrackets(label)) {
 		components <- splitSubstitution(label)
-		identifier <- omxConvertLabel(components[[1]], modelname, dataname, namespace)
-		row <- omxConvertLabel(components[[2]], modelname, dataname, namespace)
-		col <- omxConvertLabel(components[[3]], modelname, dataname, namespace)
+		identifier <- imxConvertLabel(components[[1]], modelname, dataname, namespace)
+		row <- imxConvertLabel(components[[2]], modelname, dataname, namespace)
+		col <- imxConvertLabel(components[[3]], modelname, dataname, namespace)
 		results <- paste(identifier, '[', row, ',', col, ']', sep = '')
 		return(results)
 	}
-	components <- unlist(strsplit(label, omxSeparatorChar, fixed = TRUE))
-	if (omxIsDefinitionVariable(label)) {
+	components <- unlist(strsplit(label, imxSeparatorChar, fixed = TRUE))
+	if (imxIsDefinitionVariable(label)) {
 		if (length(components) == 3) {
 			return(label)
 		} else if (is.null(dataname)) {
@@ -551,28 +551,28 @@ omxConvertLabel <- function(label, modelname, dataname, namespace) {
 				"been declared in model", omxQuotes(modelname),
 				"that does not contain a data set"), call. = FALSE)
 		} else {
-			datasource <- unlist(strsplit(dataname, omxSeparatorChar, fixed = TRUE))[[1]]
-			return(omxIdentifier(datasource, label))
+			datasource <- unlist(strsplit(dataname, imxSeparatorChar, fixed = TRUE))[[1]]
+			return(imxIdentifier(datasource, label))
 		}
 
 	}
-	return(omxConvertIdentifier(label, modelname, namespace))
+	return(imxConvertIdentifier(label, modelname, namespace))
 }
 
 namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
-	matrix@name <- omxIdentifier(modelname, matrix@name)
+	matrix@name <- imxIdentifier(modelname, matrix@name)
 	free <- matrix@free
 	labels <- matrix@labels
 	select <- (!free) & (!is.na(labels))
 	if (any(select)) {
 		refNames <- labels[select]
-		matrix@labels[select] <- sapply(refNames, omxConvertLabel, modelname, dataname, namespace)
+		matrix@labels[select] <- sapply(refNames, imxConvertLabel, modelname, dataname, namespace)
 	}
 	return(matrix)
 }
 
 namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
-	algebra@name <- omxIdentifier(modelname, algebra@name)
+	algebra@name <- imxIdentifier(modelname, algebra@name)
 	algebra@formula <- namespaceConvertFormula(algebra@formula, modelname, namespace)
 	return(algebra)
 }
@@ -585,7 +585,7 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
         } else if (is.numeric(formula)) {
         } else if (identical(as.character(formula), "")) {
         } else {
-            result <- omxConvertIdentifier(formula, modelname, namespace)
+            result <- imxConvertIdentifier(formula, modelname, namespace)
             if (is.symbol(formula) && is.character(result)) {
                 formula <- as.symbol(result)
             } else {
@@ -601,13 +601,13 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
 }
 
 namespaceConvertConstraint <- function(constraint, modelname, namespace) {
-	constraint@name <- omxIdentifier(modelname, constraint@name)
+	constraint@name <- imxIdentifier(modelname, constraint@name)
 	constraint@formula <- namespaceConvertFormula(constraint@formula, modelname, namespace)
 	return(constraint)
 }
 
 namespaceConvertInterval <- function(interval, modelname, namespace) {
-	interval@reference <- omxConvertLabel(interval@reference, modelname, NULL, namespace)
+	interval@reference <- imxConvertLabel(interval@reference, modelname, NULL, namespace)
 	return(interval)
 }
 
@@ -620,7 +620,7 @@ namespaceConvertObjective <- function(objective, modelname, namespace) {
 
 namespaceConvertData <- function(data, modelname) {
 	if (!is.null(data)) {
-		data@name <- omxIdentifier(modelname, data@name)
+		data@name <- imxIdentifier(modelname, data@name)
 	}
 	return(data)
 }

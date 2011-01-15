@@ -81,7 +81,7 @@ generateDefinitionLocations <- function(datasets) {
 			if(length(colNames) > 0) {
 				dataName <- datasets[[i]]@name
 				for(j in 1:length(colNames)) {
-					name <- omxIdentifier(dataName, colNames[[j]])
+					name <- imxIdentifier(dataName, colNames[[j]])
 					result[[name]] <- c(i - 1, j - 1)
 				}
 			}	
@@ -90,7 +90,7 @@ generateDefinitionLocations <- function(datasets) {
 	return(result)
 }
 
-omxCheckVariables <- function(flatModel, namespace) {
+imxCheckVariables <- function(flatModel, namespace) {
 	datasets <- flatModel@datasets
 	if(length(flatModel@matrices) > 0) {
 		startVals <- list()
@@ -135,7 +135,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 			ubound <- ubounds[[i]]
 			row <- rows[[i]]
 			col <- cols[[i]]
-			if (omxIsDefinitionVariable(label)) {
+			if (imxIsDefinitionVariable(label)) {
 				if (isFree) {
 					stop(paste("The definition variable", omxQuotes(label),
 						"has been assigned to a free parameter",

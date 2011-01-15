@@ -120,7 +120,7 @@ convertObjectives <- function(flatModel, model, defVars) {
 
 translateObjectives <- function(model, namespace, flatModel) {
 	if(is.null(model@objective) && 
-		length(omxDependentModels(model)) == 0) {
+		length(imxDependentModels(model)) == 0) {
 		return(list(model, namespace, flatModel))
 	}
 	return(translateObjectivesHelper(model, namespace, flatModel))
@@ -134,7 +134,7 @@ translateObjectivesHelper <- function(job, namespace, flatJob) {
 	for(i in 1:length(objectives)) {
 		objective <- objectives[[i]]
 		objectivename <- objective@name
-		modelname <- unlist(strsplit(objective@name, omxSeparatorChar, fixed=TRUE))[[1]]
+		modelname <- unlist(strsplit(objective@name, imxSeparatorChar, fixed=TRUE))[[1]]
 		model <- job[[modelname]]
 		repeat {
 			if(is.null(objective)) { break }
@@ -146,13 +146,13 @@ translateObjectivesHelper <- function(job, namespace, flatJob) {
 			job@.newtree <- TRUE
 			job <- genericObjModelConvert(objective, job, model, namespace, flatJob)
 			if (job@.newtree) {
-				namespace <- omxGenerateNamespace(job)
-				flatJob <- omxFlattenModel(job, namespace)
+				namespace <- imxGenerateNamespace(job)
+				flatJob <- imxFlattenModel(job, namespace)
 				return(translateObjectivesHelper(job, namespace, flatJob))
 			}
 			if (job@.newobjects) {
-				namespace <- omxGenerateNamespace(job)
-				flatJob <- omxFlattenModel(job, namespace)
+				namespace <- imxGenerateNamespace(job)
+				flatJob <- imxFlattenModel(job, namespace)
 			}
 			if (job@.newobjective) {
 				model <- job[[modelname]]
