@@ -21,10 +21,11 @@ citEntry(entry="article",
                                   as.person("John Fox")),
               journal = "Psychometrika",
               publisher = "Psychometric Society",
+              year = 2011,
               textVersion = paste("Boker, S., Neale M., Maes,",
               	"H., Wilde, M., Spiegel, M., Brick,",
               	"T., Spies, J., Estabrook, R., Kenny,",
               	"S., Bates, T., Mehta, P, & Fox J.",
               	"(in press). OpenMx: An Open Source Extended",
 		"Structural Equation Modeling Framework. Psychometrika."),
-              note = "In press")
+              note = "In press. Article available as an Online First publication from www.springerlink.com/content/112911.")
