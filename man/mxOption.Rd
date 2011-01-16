@@ -64,7 +64,7 @@ Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violatio
 Major iterations \tab \var{i} \tab the maximum number of major iterations before termination. \cr
 Verify level \tab [-1:3|Yes|No] \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r} \tab controls the accuracy with which a step is taken. \cr
-Derivative Level \tab [0-3] \tab see NPSOL manual. \cr
+Derivative level \tab [0-3] \tab see NPSOL manual. \cr
 Hessian \tab [Yes|No] \tab return the transformed Hessian (if \sQuote{No}) or the Hessian itself (if \sQuote{Yes}). \cr
 }
 
