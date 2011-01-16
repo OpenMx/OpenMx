@@ -56,6 +56,7 @@ npsolOptions <- list(
 	"Print file" = "0",
 	"Summary file" = "0",
 	"Function precision" = "1e-14",
+	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "1.0e-05",
 	"Major iterations" = "1000",
@@ -72,13 +73,11 @@ checkpointOptions <- list(
 	"Checkpoint Directory" = ".", 
 	"Checkpoint Prefix" = "",
 	"Checkpoint Units" = "minutes", 
-	"Checkpoint Count Minutes" = 10,
-	"Checkpoint Count Iterations" = 100,
+	"Checkpoint Count" = c("minutes" = 10, "iterations" = 100),
 	"Socket Server" = "", 
 	"Socket Port" = 8080,
 	"Socket Units" = "minutes", 
-	"Socket Count Minutes" = 0.08,
-	"Socket Count Iterations" = 1
+	"Socket Count" = c("minutes" = 0.08, "iterations" = 1)
 )
 
 otherOptions <- list(

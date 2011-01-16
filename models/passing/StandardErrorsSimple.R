@@ -36,7 +36,7 @@ factorModel <- mxModel("test SE", type="RAM",
       mxPath(from="one", to=manifests),
       mxData(known, type="raw")
 )
-factorModel <- mxOption(factorModel, "StandardErrors", "Yes")
+factorModel <- mxOption(factorModel, "Standard Errors", "Yes")
 test.summary <- summary(mxRun(factorModel, suppressWarnings=TRUE))
 
 omxCheckCloseEnough(test.summary$parameters$Std.Error[[2]], stdErr(known$test), 0.001)

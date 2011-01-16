@@ -137,7 +137,7 @@ setMethod("genericObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, namespace, flatJob) {
 		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
 		job <- updateThresholdDimnames(.Object, job, model@name)
-		precision <- "Function Precision"
+		precision <- "Function precision"
 		if(!single.na(.Object@thresholds) && 
 			is.null(job@options[[precision]])) {
 			job <- mxOption(job, precision, 1e-9)

@@ -241,7 +241,7 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
     mxAlgebraObjective("minus2sumloglikelihood")
 )
 
-univHetACEModelNIQmfFv <- mxOption(univHetACEModelNIQmfFv, "Function Precision", 1e-10) 
+univHetACEModelNIQmfFv <- mxOption(univHetACEModelNIQmfFv, "Function precision", 1e-10) 
 univHetACEFitNIQmfFv <- mxRun(univHetACEModelNIQmfFv)
 omxCheckCloseEnough(univHetACEFitNIQmfFv@output$minimum, 
 	univHetACEFitNIQmfFv@output$Minus2LogLikelihood, 0.0001)

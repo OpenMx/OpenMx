@@ -25,11 +25,11 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 		if (is.null(chkpt.directory)) chkpt.directory <- defaults[['Checkpoint Directory']]
 		if (is.null(chkpt.prefix)) chkpt.prefix <- defaults[['Checkpoint Prefix']]
 		if (is.null(chkpt.units)) chkpt.units <- defaults[['Checkpoint Units']]
-		if (is.null(chkpt.count) && identical(chkpt.units, 'minutes')) {
-			chkpt.count <- defaults[['Checkpoint Count Minutes']]
-		}
-		if (is.null(chkpt.count) && identical(chkpt.units, 'iterations')) {
-			chkpt.count <- defaults[['Checkpoint Count Iterations']]
+		if (is.null(chkpt.count)) {
+			chkpt.count <- defaults[['Checkpoint Count']]
+			if (length(chkpt.count) == 2) {
+				chkpt.count <- chkpt.count[[chkpt.units]]
+			}
 		}
 		if (is.null(chkpt.count)) chkpt.count <- .Machine$integer.max
 		chkpt.directory <- removeTrailingSeparator(chkpt.directory)
@@ -75,11 +75,11 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 		if (is.null(sock.server)) sock.directory <- defaults[['Socket Server']]
 		if (is.null(sock.port)) sock.prefix <- defaults[['Socket Port']]
 		if (is.null(sock.units)) sock.units <- defaults[['Socket Units']]
-		if (is.null(sock.count) && identical(sock.units, 'minutes')) {
-			sock.count <- defaults[['Socket Count Minutes']]
-		}
-		if (is.null(sock.count) && identical(sock.units, 'iterations')) {
-			sock.count <- defaults[['Socket Count Iterations']]
+		if (is.null(sock.count)) {
+			sock.count <- default[['Socket Count']]
+			if (length(sock.count) == 2) {
+				sock.count <- sock.count[[sock.units]]
+			}
 		}
 		if (is.null(sock.count)) sock.count <- .Machine$integer.max
 
