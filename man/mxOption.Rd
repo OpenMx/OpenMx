@@ -58,8 +58,8 @@ Print level \tab \var{i} \tab the value of \var{i} controls the amount of printo
 Minor print level \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the minor iterations \cr
 Print file \tab \var{i} \tab for \var{i} > 0 a full log is sent to the file with logical unit number \var{i}. \cr
 Summary file \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
-Function Precision \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
-Infinite Bound Size \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
+Function precision \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
+Infinite bound size \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
 Major iterations \tab \var{i} \tab the maximum number of major iterations before termination. \cr
 Verify level \tab [-1:3|Yes|No] \tab see NPSOL manual. \cr

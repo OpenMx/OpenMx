@@ -4,6 +4,7 @@ trunk
 * eliminated "initialize" method for MxMatrix objects
 * added "omxCreateMatrix" method for MxMatrix objects
 * renaming majority of omx* functions to imx* functions. See http://openmx.psyc.virginia.edu/thread/761
+* added error checking to mxOption() function
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

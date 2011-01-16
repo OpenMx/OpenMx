@@ -14,9 +14,35 @@
 #   limitations under the License.
 
 mxOption <- function(model, key, value, reset = FALSE) {
+	if (length(model) != 1 || !is(model, "MxModel")) {
+		stop("argument 'model' must be an MxModel object")
+	}
+	if (length(reset) != 1 || !is.logical(reset)) {
+		stop("argument 'reset' must be TRUE or FALSE")
+	}
 	if (reset) {
 		model@options <- list()
 		return(model)
+	}
+	if (length(key) != 1 || !is.character(key)) {
+		stop("argument 'key' must be a character string")
+	}
+	if (length(value) > 1) {
+		stop("argument 'value' must be either NULL or of length 1")
+	}
+	optionsNames <- names(getOption('mxOptions'))
+	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
+		ignore.case=TRUE)
+	if(length(match) == 0) {
+		stop(paste("argument 'key' has a value",
+			omxQuotes(key), "that cannot be found in",
+			"getOption('mxOptions')"))
+	}
+	if (!identical(optionsNames[[match]], key)) {
+		stop(paste("argument 'key' has a value",
+			omxQuotes(key), "but the option is named",
+			omxQuotes(optionsNames[[match]]), ": please correct",
+			"the capitalization."))
 	}
 	model@options[[key]] <- value
 	return(model)
@@ -29,13 +55,13 @@ npsolOptions <- list(
 	"Minor print level" = "0",
 	"Print file" = "0",
 	"Summary file" = "0",
-	"Function Precision" = "1e-14",
-	"Infinite Bound Size" = "1.0e+15",
+	"Function precision" = "1e-14",
+	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "1.0e-05",
 	"Major iterations" = "1000",
 	"Verify level" = "3",
 	"Line search tolerance" = "0.3",
-	"Derivative Level" = "0",
+	"Derivative level" = "0",
 	"Hessian" = "Yes",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
