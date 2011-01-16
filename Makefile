@@ -80,6 +80,7 @@ html: internal-build
 	rm -f build/$(TARGET)
 	cd $(RBUILD); tar -zxf *.tgz
 	mv build/OpenMx/html build/html
+	mv build/OpenMx/demo build/demo
 	cp build/html/* docs/source/static/Rdoc
 	cp build/demo/* docs/source/static/demo
 	cd docs; make clean; make html
