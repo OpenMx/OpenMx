@@ -1,5 +1,5 @@
-trunk
-=====
+Release 1.0.4-1540 (January 16, 2011)
+=====================================
 * added initialization to load OpenMx on swift workers
 * only calculating CIs for upper triangle on symmetric matrices
 * fix bug with very large number of omxUntitledName() objects
