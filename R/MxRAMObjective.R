@@ -302,14 +302,14 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'I')) {
 			iName <- 'I'
 		} else {
-			iName <- imxUntitledName()
+			iName <- paste('I', imxUntitledName(), sep = '_')
 		}
 		model <- mxModel(model, mxMatrix(type="Iden", 
 			nrow=nrow(flatJob[[.Object@A]]), name = iName))
 		if (availableName(model, namespace, 'Z')) {
 			zName <- 'Z'
 		} else {
-			zName <- imxUntitledName()
+			zName <- paste('Z', imxUntitledName(), sep = '_')
 		}
 		zFormula <- substitute(solve(I - A),
 			list(I = as.symbol(iName), A = as.symbol(.Object@A)))
@@ -319,7 +319,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'covariance')) {
 			covName <- 'covariance'
 		} else {
-			covName <- imxUntitledName()
+			covName <- paste('covariance', imxUntitledName(), sep = '_')
 		}
 		covFormula <- substitute(F %*% Z %*% S %*% t(Z) %*% t(F),
 			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
@@ -335,7 +335,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		if (availableName(model, namespace, 'means')) {
 			meansName <- 'means'
 		} else {
-			meansName <- imxUntitledName()
+			meansName <- paste('means', imxUntitledName(), sep = '_')
 		}
 		algebra <- eval(substitute(mxAlgebra(x, y),
 			list(x = meansFormula, y = meansName)))
