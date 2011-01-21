@@ -6,6 +6,7 @@ trunk
 * renaming majority of omx* functions to imx* functions. See http://openmx.psyc.virginia.edu/thread/761
 * added error checking to mxOption() function
 * added "Optimality tolerance" to mxOption() selection
+* added 'lbound' and 'ubound' columns to summary() output of free parameters
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

@@ -177,6 +177,8 @@ parameterListHelper <- function(model, modelName) {
 			mLocation <- parameters[[i]][[3]][[1]] + 1
 			mRow <- parameters[[i]][[3]][[2]] + 1
 			mCol <- parameters[[i]][[3]][[3]] + 1
+			lbound <- parameters[[i]][[1]]
+			ubound <- parameters[[i]][[2]]
 			aMatrix <- matrices[[mLocation]][[1]]
 			if (getOption('mxShowDimnames')) {
 				if (!is.null(rownames(aMatrix))) {
@@ -195,6 +197,8 @@ parameterListHelper <- function(model, modelName) {
 			ptable[i, 'col'] <- mCol
 			ptable[i, 'Estimate'] <- estimates[[i]]
 			ptable[i, 'Std.Error'] <- errorEstimates[[i]]
+			ptable[i, 'lbound'] <- lbound
+			ptable[i, 'ubound'] <- ubound
 		}
 	}
 	return(ptable)
@@ -224,7 +228,10 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	if (length(x$parameters) > 0) {
 		cat("free parameters:\n")
-		print(x$parameters)
+		params <- x$parameters
+		params$lbound[is.na(params$lbound)] <- ""
+		params$ubound[is.na(params$ubound)] <- ""
+		print(params)
 		cat('\n')
 	}
 	if (!is.null(x$CI) && length(x$CI) > 0) {
