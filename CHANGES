@@ -7,6 +7,7 @@ trunk
 * added error checking to mxOption() function
 * added "Optimality tolerance" to mxOption() selection
 * added 'lbound' and 'ubound' columns to summary() output of free parameters
+* added asterisks to the 'lbound' and 'ubound' columns when feasibility tolerance is met
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

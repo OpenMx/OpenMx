@@ -229,8 +229,12 @@ print.summary.mxmodel <- function(x,...) {
 	if (length(x$parameters) > 0) {
 		cat("free parameters:\n")
 		params <- x$parameters
+		params$lbound <- mapply(highlightBounds, params$lbound, params$lboundMet)
+		params$ubound <- mapply(highlightBounds, params$ubound, params$uboundMet)
 		params$lbound[is.na(params$lbound)] <- ""
 		params$ubound[is.na(params$ubound)] <- ""
+		params$lboundMet <- NULL
+		params$uboundMet <- NULL
 		print(params)
 		cat('\n')
 	}
@@ -340,6 +344,41 @@ imxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
    }
 }
 
+boundsMet <- function(model, retval){
+	params <- retval$parameters
+	lbound <- params$lbound
+	ubound <- params$ubound
+	estimate <- params$Estimate
+	threshold <- model@options[["Feasibility tolerance"]]
+	if (is.null(threshold)){
+		threshold <- getOption("mxOptions")[["Feasibility tolerance"]]
+	}
+	threshold <- as.numeric(threshold)
+	lboundMet <- mapply(compareBounds, estimate, lbound, MoreArgs=list(threshold))
+	uboundMet <- mapply(compareBounds, estimate, ubound, MoreArgs=list(threshold))
+	params$lboundMet <- lboundMet
+	params$uboundMet <- uboundMet
+	retval$parameters <- params
+	return(retval)
+}
+
+compareBounds <- function(estimate, bound, threshold){
+	if (is.na(bound)){
+		return(FALSE)
+	}
+	absDelta <- abs(estimate - bound)
+	return (absDelta < threshold)
+}
+
+highlightBounds <- function(bound, boundMet){
+	if (boundMet){
+		return(paste(bound, "*", sep=""))
+	}
+	else {
+		return(bound)
+	}
+}
+
 generateConfidenceIntervalTable <- function(model) {
 	base <- model@output$confidenceIntervals
 	if (length(base) == 0) return(matrix(0, 0, 3))
@@ -389,6 +428,7 @@ setMethod("summary", "MxModel",
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list()
 		retval$parameters <- parameterList(model, useSubmodels)
+		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, retval)
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, retval)
