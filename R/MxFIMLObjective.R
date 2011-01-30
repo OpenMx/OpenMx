@@ -372,12 +372,12 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, object
 
 generateDataColumns <- function(flatModel, covName, dataName) {
 	retval <- c()
-	definitionNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
+	dataColumnNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
 	covariance <- flatModel[[covName]]
 	covNames <- dimnames(covariance)[[2]]
 	for(i in 1:length(covNames)) {
 		targetName <- covNames[[i]]
-		index <- match(targetName, definitionNames)
+		index <- match(targetName, dataColumnNames)
 		if(is.na(index)) {
 			msg <- paste("The column name", omxQuotes(targetName),
 				"in the expected covariance matrix",

@@ -42,12 +42,14 @@ xdat <- data.frame(a=rnorm(10), b=1:10) # Make data set
 rmod <- mxModel(
 		name = 'EZRowObjectiveTest',
 		mxData(observed=xdat, type='raw'),
-		mxAlgebra(data.a + data.b, name='Fred'),
-		mxAlgebra(sum(G), name='R'),
+		mxAlgebra(sum(filteredDataRow), name='rowAlgebra'),
+		mxAlgebra(sum(rowResults), name='reduceAlgebra'),
 		mxRowObjective(
-			rowAlgebra='Fred',
-			rowResults='G',
-			reduceAlgebra='R')
+			rowAlgebra='rowAlgebra',
+			dimnames = c('a', 'b'),
+			filteredDataRow = 'filteredDataRow',
+			rowResults='rowResults',
+			reduceAlgebra='reduceAlgebra')
 )
 #rmodns <- mxOption(rmod, 'No Sort Data', c('a', 'b'))
 #rmodnsRun <- mxRun(rmodns)
@@ -61,7 +63,7 @@ rmodRun <- mxRun(rmod)
 #  Row algebras are evaluated row-wise
 #  Results of the row-wise evaluation are stored in the row results
 
-hardAdd <- rmodRun@matrices$G@values
+hardAdd <- mxEval(rowAlgebra, rmodRun)
 # 'G' should be the same as
 ezAdd <- as.matrix(xdat$a + xdat$b, ncol=1)
 
@@ -72,7 +74,7 @@ omxCheckCloseEnough(hardAdd, ezAdd, 10^(-6))
 # Check that the reduce algebra works
 #  Reduce algebras combine the elements of the row results
 
-hardTotal <- rmodRun@algebras$R@result
+hardTotal <- mxEval(reduceAlgebra, rmodRun)
 # 'R' should be the same as
 ezTotal <- sum( xdat$a + xdat$b )
 
