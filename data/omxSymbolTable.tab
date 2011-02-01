@@ -44,3 +44,4 @@
 42		"Real Eigenvalues"	"eigenval"		1			"omxRealEigenvalues"
 43		"Imaginary Eigenvectors"	"ieigenvec"		1			"omxImaginaryEigenvectors"
 44		"Imaginary Eigenvalues"	"ieigenval"		1			"omxImaginaryEigenvalues"
+45		"Unary negation"	"!"		1			"omxUnaryNegation"

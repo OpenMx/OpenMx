@@ -8,6 +8,7 @@ trunk
 * added "Optimality tolerance" to mxOption() selection
 * added 'lbound' and 'ubound' columns to summary() output of free parameters
 * added asterisks to the 'lbound' and 'ubound' columns when feasibility tolerance is met
+* added "!" operator to the set of available mxAlgebra() operators
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

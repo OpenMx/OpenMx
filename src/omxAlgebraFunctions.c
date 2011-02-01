@@ -330,6 +330,30 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
+void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Unary Negation.\n");}
+
+	omxMatrix* inMat = matList[0];
+
+	int rows = inMat->rows;
+	int cols = inMat->cols;
+
+	if((rows != result->rows) || (cols!= result->cols)){
+		omxResizeMatrix(result, rows, cols, FALSE);
+	}
+	int vec_length = rows * cols;
+	for (int i=0; i<vec_length; i++){
+		double ith_value = omxVectorElement(inMat, i);
+		if (ith_value == 0.0){
+			omxSetVectorElement(result, i, 1.0);
+		}
+		else {
+			omxSetVectorElement(result, i, 0.0);
+		}
+	}
+}
+
 void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 

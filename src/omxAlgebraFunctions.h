@@ -32,6 +32,7 @@ void checkIncreasing(omxMatrix* om, int column);
 
 /* Functional Wrappers */
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result);
