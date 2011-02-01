@@ -159,8 +159,8 @@ model <- mxModel(model, mxAlgebra(ieigenvec(H), name='test42b'))
 model <- mxModel(model, mxAlgebra(ieigenval(A), name='test43'))
 model <- mxModel(model, mxAlgebra(ieigenval(G), name='test43a'))
 model <- mxModel(model, mxAlgebra(ieigenval(H), name='test43b'))
-model <- mxModel(model, mxAlgebra(!(Z), name ='test44a'))
-model <- mxModel(model, mxAlgebra(!!(Z), name = 'test44b'))
+model <- mxModel(model, mxAlgebra(omxNot(Z), name ='test44a'))
+model <- mxModel(model, mxAlgebra(omxNot(omxNot(Z)), name = 'test44b'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -282,5 +282,5 @@ omxCheckCloseEnough(model[['test42b']]@result, mxEval(Im(eigen(H)$vectors), mode
 omxCheckCloseEnough(model[['test43']]@result,  as.matrix(mxEval(Im(eigen(A)$values), model)), 0.001)
 omxCheckCloseEnough(model[['test43a']]@result, as.matrix(mxEval(Im(eigen(G)$values), model)), 0.001)
 omxCheckCloseEnough(model[['test43b']]@result, as.matrix(mxEval(Im(eigen(H)$values), model)), 0.001)
-omxCheckCloseEnough(model[['test44a']]@result, mxEval(!Z, model), 0.001)
-omxCheckCloseEnough(model[['test44b']]@result, mxEval(!!Z, model), 0.001)
+omxCheckCloseEnough(model[['test44a']]@result, mxEval(omxNot(Z), model), 0.001)
+omxCheckCloseEnough(model[['test44b']]@result, mxEval(omxNot(omxNot(Z)), model), 0.001)

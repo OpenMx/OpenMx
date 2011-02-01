@@ -76,6 +76,11 @@ imxLookupSymbolTable <- function(name) {
 	return(as.integer(index - 1))
 }
 
+omxNot <- function(x) {
+	retval <- as.matrix(!x)
+	return(apply(retval, c(1,2), as.numeric))
+}
+
 omxMnor <- function(covariance, means, lbound, ubound) {
     
     covariance <- as.matrix(covariance)
