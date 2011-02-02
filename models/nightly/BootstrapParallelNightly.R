@@ -93,7 +93,7 @@ submodels <- lapply(1:nReps, function(x) {
   createNewModel(template, paste('stErrSim', x, sep=''))
 })
 
-names(submodels) <- omxExtractNames(submodels)
+names(submodels) <- imxExtractNames(submodels)
 topModel@submodels <- submodels
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
