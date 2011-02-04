@@ -44,12 +44,7 @@ rmod <- mxModel(
 		mxData(observed=xdat, type='raw'),
 		mxAlgebra(sum(filteredDataRow), name='rowAlgebra'),
 		mxAlgebra(sum(rowResults), name='reduceAlgebra'),
-		mxRowObjective(
-			rowAlgebra='rowAlgebra',
-			dimnames = c('a', 'b'),
-			filteredDataRow = 'filteredDataRow',
-			rowResults='rowResults',
-			reduceAlgebra='reduceAlgebra')
+		mxRowObjective('rowAlgebra', 'reduceAlgebra', dimnames = c('a', 'b'))
 )
 #rmodns <- mxOption(rmod, 'No Sort Data', c('a', 'b'))
 #rmodnsRun <- mxRun(rmodns)

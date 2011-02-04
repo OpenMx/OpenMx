@@ -176,24 +176,23 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		}
 
 		# Create the existence vector
-		if (is.na(existenceVectorName)) {
-			existenceVectorName <- imxIdentifier(model@name, imxUntitledName())
-		}
-		existenceVector <- job[[existenceVectorName]]
-		if (!is.null(existenceVector)) {
-			msg <- paste("The existenceVector cannot have name", 
-				omxQuotes(simplifyName(existenceVectorName, model@name)), 
-				"because this entity already exists in the model")
-			stop(msg, call. = FALSE)
-		}
-		existenceVector <- mxMatrix('Full', nrow = 1, ncol = length(dimnames), values = 1)
-		job[[existenceVectorName]] <- existenceVector
-		flatJob[[existenceVectorName]] <- existenceVector
-		pair <- imxReverseIdentifier(model, existenceVectorName)
-		if (model@name == pair[[1]]) {
-			job[[.Object@name]]@existenceVector <- pair[[2]]
-		} else {
-			job[[.Object@name]]@existenceVector <- existenceVectorName
+		if (!is.na(existenceVectorName)) {
+			existenceVector <- job[[existenceVectorName]]
+			if (!is.null(existenceVector)) {
+				msg <- paste("The existenceVector cannot have name", 
+					omxQuotes(simplifyName(existenceVectorName, model@name)), 
+					"because this entity already exists in the model")
+				stop(msg, call. = FALSE)
+			}
+			existenceVector <- mxMatrix('Full', nrow = 1, ncol = length(dimnames), values = 1)
+			job[[existenceVectorName]] <- existenceVector
+			flatJob[[existenceVectorName]] <- existenceVector
+			pair <- imxReverseIdentifier(model, existenceVectorName)
+			if (model@name == pair[[1]]) {
+				job[[.Object@name]]@existenceVector <- pair[[2]]
+			} else {
+				job[[.Object@name]]@existenceVector <- existenceVectorName
+			}
 		}
 
 		# Locate the row algebra
@@ -244,14 +243,6 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		}
 
 		# Locate the reduce algebra
-		if (is.na(reduceAlgebraName)) {
-			reduceAlgebraName <- imxUntitledName()
-			reduceAlgebra <- eval(substitute(mxAlgebra(x, reduceAlgebraName), 
-				list(x = quote(as.symbol(rowResultsName)))))
-			job[[model@name]][[reduceAlgebraName]] <- reduceAlgebra
-			job[[.Object@name]]@reduceAlgebra <- reduceAlgebraName
-			reduceAlgebraName <- imxIdentifier(model@name, reduceAlgebraName)
-		}
 		reduceAlgebra <- job[[reduceAlgebraName]]
 		if (is.null(reduceAlgebra)) {
 			msg <- paste("The reduceAlgebra with name", 
@@ -291,9 +282,13 @@ checkStringArgument <- function(arg, name) {
 	return(arg)
 }
 
-mxRowObjective <- function(rowAlgebra, dimnames, rowResults = NA, filteredDataRow = NA, existenceVector = NA, reduceAlgebra = NA) {
+mxRowObjective <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults", 
+	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector") {
 	if (missing(rowAlgebra) || typeof(rowAlgebra) != "character") {
 		stop("the 'rowAlgebra' argument is not a string (the name of the row-by-row algebra)")
+	}
+	if (missing(reduceAlgebra) || typeof(reduceAlgebra) != "character") {
+		stop("the 'reduceAlgebra' argument is not a string (the name of the reduction algebra)")
 	}
 	if (missing(dimnames) || typeof(dimnames) != "character") {
 		stop("the 'dimnames' argument is not a string (the column names from the data set)")
@@ -304,14 +299,6 @@ mxRowObjective <- function(rowAlgebra, dimnames, rowResults = NA, filteredDataRo
 	rowResults <- checkStringArgument(rowResults, "rowResults")
 	filteredDataRow <- checkStringArgument(filteredDataRow, "filteredDataRow")
 	existenceVector <- checkStringArgument(existenceVector, "existenceVector")
-	if (single.na(reduceAlgebra)) {
-		reduceAlgebra <- as.character(NA)
-	}
-	if (!(is.vector(reduceAlgebra) && 
-		(typeof(reduceAlgebra) == 'character') && 
-		(length(reduceAlgebra) == 1))) {
-		stop("the 'reduceAlgebra' argument is not a string (the name of the reduction algebra)")
-	}
 	return(new("MxRowObjective", rowAlgebra, rowResults, filteredDataRow, existenceVector, reduceAlgebra, dimnames))
 }
 
