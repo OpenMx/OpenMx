@@ -133,11 +133,18 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	saturated <- retval[['SaturatedLikelihood']]
 	chi <- likelihood - saturated
 	DoF <- retval$degreesOfFreedom
+	satDoF <- retval$satDegreesOfFreedom
+	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
 	retval[['Chi']] <- chi
 	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
-	retval[['BIC.Mx']] <- 0.5 * (Fvalue - DoF * log(retval[['numObs']]))
+	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
+	retval[['AIC.p']] <- Fvalue + 2 * nParam
+	retval[['BIC.p']] <- (Fvalue + nParam * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
+	retval[['sBIC']] <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) # why was the original formula multiplied by 0.5?
+	retval[['CFI']] <- "Put CFI Forumla Here."
+	retval[['TLI']] <- "Put TLI Forumla Here."
 	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		is.nan(rmseaSquared) || (rmseaSquared < 0)) {
@@ -261,9 +268,14 @@ print.summary.mxmodel <- function(x,...) {
 	cat("number of observations: ", x$numObs, '\n')
 	cat("chi-square: ", x$Chi, '\n')
 	cat("p: ", x$p, '\n')
-	cat("AIC (Mx): ", x$AIC.Mx, '\n')
-	cat("BIC (Mx): ", x$BIC.Mx, '\n')
-	cat("adjusted BIC:", '\n')
+	cat("Information Criteria: \n")
+		IC <- data.frame(df=c(x$AIC.Mx, x$BIC.Mx), par=c(x$AIC.p, x$BIC.p), Sample=c('', x$sBIC))
+		dimnames(IC) <- list(c("AIC:", "BIC:"), c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted"))
+		print(IC)
+	cat("\n")
+	# cat("adjusted BIC:", '\n')
+	cat("CFI:", x$CFI, '\n')
+	cat("TLI:", x$TLI, '\n')
 	cat("RMSEA: ", x$RMSEA, '\n')
 	cat("timestamp:", format(x$timestamp), '\n')
 	cat("frontend time:", format(x$frontendTime), '\n')
@@ -272,6 +284,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("wall clock time:", format(x$wallTime), '\n')
 	cat("cpu time:", format(x$cpuTime), '\n')
 	cat("openmx version number:", format(x$mxVersion), '\n')
+	print(x$test)
 	cat('\n')
 }
 
@@ -417,11 +430,39 @@ translateSaturatedLikelihood <- function(input) {
 	}
 }
 
+translateSaturatedDoF <- function(input) {
+	if (is.null(input)) {
+		return(input)
+	} else if (is.numeric(input)) {
+		return(input)
+	} else if (is(input, "MxModel")) {
+		if (is.null(input@objective)) {
+			stop(paste("Saturated model passed",
+				"to summary function does not",
+				"have top-level objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (length(input@objective@result) != 1) {
+			stop(paste("Saturated model passed to summary",
+				"function does not have a 1x1 matrix",
+				"result in objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		return(summary(input)$degreesOfFreedom) # I know this isn't correct; easier than parsing undocumented functions
+	} else {
+		stop(paste("Illegal argument passed to",
+			"'SaturatedLikelihood' argument",
+			"of summary function in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+}
+
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		model <- object
 		dotArguments <- list(...)
 		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
+		saturatedDoF <- translateSaturatedDof(dotArguments$SaturatedDoF)
 		numObs <- dotArguments$numObs
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
