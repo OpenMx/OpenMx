@@ -222,8 +222,12 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
-	if(OMX_DEBUG_MATRIX) { Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", om->rows, om->cols, nrows, ncols, keepMemory); }
-	if(keepMemory == FALSE) {
+	if(OMX_DEBUG_MATRIX) { 
+		Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", 
+			om->rows, om->cols, 
+			nrows, ncols, keepMemory);
+	}
+	if((keepMemory == FALSE) && (om->rows != nrows || om->cols != ncols)) {
 		if(OMX_DEBUG_MATRIX) { Rprintf(" and regenerating memory to do it"); }
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
