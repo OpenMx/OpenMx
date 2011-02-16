@@ -140,11 +140,14 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
 	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
-	retval[['AIC.p']] <- Fvalue + 2 * nParam
-	retval[['BIC.p']] <- (Fvalue + nParam * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
-	retval[['sBIC']] <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) # why was the original formula multiplied by 0.5?
+	AIC.p <- Fvalue + 2 * nParam
+	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
+	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) # why was the original formula multiplied by 0.5?
 	retval[['CFI']] <- "Put CFI Forumla Here."
 	retval[['TLI']] <- "Put TLI Forumla Here."
+	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), Sample=c(as.numeric(NA), sBIC))
+	dimnames(IC) <- list(c("AIC", "BIC"), c("dfPenalty", "parametersPenalty", "sampleSizeAdjusted"))
+	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		is.nan(rmseaSquared) || (rmseaSquared < 0)) {
@@ -269,9 +272,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("chi-square: ", x$Chi, '\n')
 	cat("p: ", x$p, '\n')
 	cat("Information Criteria: \n")
-		IC <- data.frame(df=c(x$AIC.Mx, x$BIC.Mx), par=c(x$AIC.p, x$BIC.p), Sample=c('', x$sBIC))
-		dimnames(IC) <- list(c("AIC:", "BIC:"), c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted"))
-		print(IC)
+	print(x$informationCriteria)
 	cat("\n")
 	# cat("adjusted BIC:", '\n')
 	cat("CFI:", x$CFI, '\n')
@@ -284,7 +285,6 @@ print.summary.mxmodel <- function(x,...) {
 	cat("wall clock time:", format(x$wallTime), '\n')
 	cat("cpu time:", format(x$cpuTime), '\n')
 	cat("openmx version number:", format(x$mxVersion), '\n')
-	print(x$test)
 	cat('\n')
 }
 
@@ -462,7 +462,7 @@ setMethod("summary", "MxModel",
 		model <- object
 		dotArguments <- list(...)
 		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
-		saturatedDoF <- translateSaturatedDof(dotArguments$SaturatedDoF)
+		saturatedDoF <- translateSaturatedDoF(dotArguments$SaturatedDoF)
 		numObs <- dotArguments$numObs
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
