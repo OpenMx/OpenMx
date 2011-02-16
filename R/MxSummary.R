@@ -145,8 +145,8 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) # why was the original formula multiplied by 0.5?
 	retval[['CFI']] <- "Put CFI Forumla Here."
 	retval[['TLI']] <- "Put TLI Forumla Here."
-	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), Sample=c(as.numeric(NA), sBIC))
-	dimnames(IC) <- list(c("AIC", "BIC"), c("dfPenalty", "parametersPenalty", "sampleSizeAdjusted"))
+	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
+	rownames(IC) <- c("AIC", "BIC")
 	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
@@ -272,7 +272,9 @@ print.summary.mxmodel <- function(x,...) {
 	cat("chi-square: ", x$Chi, '\n')
 	cat("p: ", x$p, '\n')
 	cat("Information Criteria: \n")
-	print(x$informationCriteria)
+	IC <- x$informationCriteria
+	colnames(IC) <- c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted")
+	print(IC)
 	cat("\n")
 	# cat("adjusted BIC:", '\n')
 	cat("CFI:", x$CFI, '\n')
