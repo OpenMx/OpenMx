@@ -299,13 +299,13 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
 	covariance <- flatModel[[covName]]
-    if (!identical(dim(covariance), dim(data))) {
+	if (is(covariance, "MxMatrix") && !identical(dim(covariance), dim(data))) {
 		msg <- paste("The dimensions for the expected covariance matrix",
-				"and the observed covariance matrix",
-				"in the", objectiveName, "objective in model",
-				omxQuotes(modelname), "are not identical.")
-        stop(msg, call. = FALSE)
-    }
+			"and the observed covariance matrix",
+			"in the", objectiveName, "objective in model",
+			omxQuotes(modelname), "are not identical.")
+		stop(msg, call. = FALSE)
+	}
 	if (!identical(dimnames(covariance), dimnames(data))) {
 		msg <- paste("The dimnames for the expected covariance matrix",
 			"and the observed covariance matrix",

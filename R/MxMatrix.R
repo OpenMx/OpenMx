@@ -147,6 +147,12 @@ setMethod("ncol", "MxMatrix",
 	}
 )
 
+setMethod("dim", "MxMatrix",
+	function(x) {
+		return(dim(x@values))
+	}
+)
+
 setMethod("length", "MxMatrix",
 	function(x) {
 	    return(nrow(x) * ncol(x))
