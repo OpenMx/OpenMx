@@ -110,7 +110,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		.Object@F <- imxLocateIndex(flatModel, fMatrix, name)
 		.Object@M <- imxLocateIndex(flatModel, mMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
-		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "RAM")
+		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
 		fMatrix <- flatModel[[fMatrix]]@values
 		if (is.null(dimnames(fMatrix))) {
 			msg <- paste("The F matrix of model",

@@ -43,7 +43,8 @@ myFADataCov<-matrix(
 		c("x1","x2","x3","x4","x5","x6"))
 )
 
-myFADataMeans<-c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010)
+myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010)
+names(myFADataMeans) <- c("x1","x2","x3","x4","x5","x6")
 
 #Create an MxModel object
 # -----------------------------------------------------------------------

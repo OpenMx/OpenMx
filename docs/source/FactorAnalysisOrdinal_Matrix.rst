@@ -72,8 +72,8 @@ Our first step to running this model is to include the data to be analyzed. The 
 
     # Step 5: name the variables
 
-    fruitynames<-paste("banana",1:nVariables,sep="")
-    names(ordinalData)<-fruitynames
+    bananaNames <- paste("banana",1:nVariables,sep="")
+    names(ordinalData) <- bananaNames
     
 
 Model Specification
@@ -121,7 +121,7 @@ The following code contains all of the components of our model. Before running a
             free=TRUE, 
             values=.2,
             lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
-            dimnames=list(c(), fruitynames),
+            dimnames=list(c(), bananaNames),
             name="thresholdDeviations"
         ),
         mxMatrix(
@@ -143,7 +143,7 @@ The following code contains all of the components of our model. Before running a
         mxFIMLObjective(
             covariance="expCovariances", 
             means="expMeans", 
-            dimnames=fruitynames, 
+            dimnames=bananaNames, 
             thresholds="expThresholds"
         )
     )
@@ -230,7 +230,7 @@ We estimate the ``Full`` **nThresholds x nVariables** matrix.  To make sure that
          free=TRUE, 
          values=.2,
          lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
-         dimnames=list(c(), fruitynames),
+         dimnames=list(c(), bananaNames),
          name="thresholdDeviations"
      )
      mxMatrix(
@@ -254,7 +254,7 @@ The final part of this model is the objective function.  The choice of fit funct
     mxFIMLObjective(
         covariance="expCovariances", 
         means="expMeans", 
-        dimnames=fruitynames, 
+        dimnames=bananaNames, 
         thresholds="expThresholds"
     )
 
@@ -309,7 +309,7 @@ As indicate above, the model can be re-parameterized such that means and varianc
             free=rep( c(F,F,rep(T,(nThresholds-2))), nVariables), 
             values=rep( c(0,1,rep(.2,(nThresholds-2))), nVariables),
             lbound=rep( c(-Inf,rep(.01,(nThresholds-1))), nVariables),
-            dimnames=list(c(), fruitynames),
+            dimnames=list(c(), bananaNames),
             name="thresholdDeviations"
         ),
         mxMatrix(
@@ -359,7 +359,7 @@ As indicate above, the model can be re-parameterized such that means and varianc
         mxFIMLObjective(
             covariance="expCovariances", 
             means="expMeans", 
-            dimnames=fruitynames, 
+            dimnames=bananaNames, 
             thresholds="expThresholds"
         )
     )
@@ -409,7 +409,7 @@ Next, we now estimate the means for the observed variables and thus change the `
         free=rep( c(F,F,rep(T,(nThresholds-2))), nVariables), 
         values=rep( c(0,1,rep(.2,(nThresholds-2))), nVariables),
         lbound=rep( c(-Inf,rep(.01,(nThresholds-1))), nVariables),
-        dimnames=list(c(), fruitynames),
+        dimnames=list(c(), bananaNames),
         name="thresholdDeviations"
     )
 

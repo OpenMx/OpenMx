@@ -29,6 +29,7 @@ myLongitudinalDataCov <- matrix(
 	)
 
 myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+names(myLongitudinalDataMean) <- c("x1","x2","x3","x4","x5")
 
 growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification", 
     mxData(myLongitudinalDataCov, 

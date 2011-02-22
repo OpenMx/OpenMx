@@ -11,6 +11,8 @@ trunk
 * added "omxNot" operator to the set of available mxAlgebra() operators
 * added "omxSelectRows", "omxSelectCols", and "omxSelectRowsAndCols" as mxAlgebra operators()
 * updated interface of mxRowObjective
+* in ML objective: expected covariance matrix and observed covariance matrix must have identical dimnames
+* in RAM and ML objectives: the observed means vector must have column names
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

@@ -100,7 +100,7 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call. = FALSE)
 		}
-		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "FIML")
+		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "FIML")
 		checkNumericData(mxDataObject)
 		meansName <- .Object@means
 		covName <- .Object@covariance
@@ -297,7 +297,18 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 	return(job)
 }
 
-verifyObservedNames <- function(data, type, flatModel, modelname, objectiveName) {
+verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
+	covariance <- flatModel[[covName]]
+	if (!identical(dimnames(covariance), dimnames(data))) {
+		msg <- paste("The dimnames for the expected covariance matrix",
+			"and the observed covariance matrix",
+			"in the", objectiveName, "objective in model",
+			omxQuotes(modelname), "are not identical.")
+		stop(msg, call. = FALSE)		
+	}
+}
+
+verifyObservedNames <- function(data, means, type, flatModel, modelname, objectiveName) {
 	dataNames <- dimnames(data)
 	if(is.null(dataNames)) {
 		msg <- paste("The observed data associated with the",
@@ -305,13 +316,27 @@ verifyObservedNames <- function(data, type, flatModel, modelname, objectiveName)
 			omxQuotes(modelname), "does not contain dimnames.")
 		stop(msg, call. = FALSE)
 	}
-	if ((type == "cov" || type == "cor") && (length(dataNames) < 2 ||
-		is.null(dataNames[[1]]) || is.null(dataNames[[2]]) || 
-		!identical(dataNames[[1]], dataNames[[2]]))) {
-                msg <- paste("The dataset associated with the", objectiveName,
-                                "objective in model", omxQuotes(modelname),
-                                "does not contain identical row and column non-NULL dimnames.")
-                stop(msg, call. = FALSE)
+	if (type == "cov" || type == "cor") {
+		if (length(dataNames) < 2 ||
+			is.null(dataNames[[1]]) || is.null(dataNames[[2]]) || 
+			!identical(dataNames[[1]], dataNames[[2]])) {
+				msg <- paste("The dataset associated with the", objectiveName,
+					"objective in model", omxQuotes(modelname),
+    	            "does not contain identical row and column non-NULL dimnames.")
+			stop(msg, call. = FALSE)
+		}
+		if (!single.na(means) && is.null(dimnames(means))) {
+			msg <- paste("In model", omxQuotes(modelname), 
+				", the observed means vector does not contain column names.",
+				"Use the name() function to assign names to the means vector.")
+			stop(msg, call. = FALSE)
+		}
+		if (!single.na(means) && !identical(dataNames[[1]], dimnames(means)[[2]])) {
+			msg <- paste("The observed covariance or correlation matrix associated with the", objectiveName,
+				"objective in model", omxQuotes(modelname),
+				"does not contain identical dimnames to the observed means vector.")
+			stop(msg, call. = FALSE)
+		}
 	} else if ((type == "raw") && (length(dataNames) < 2 || is.null(dataNames[[2]]))) {
 		msg <- paste("The dataset associated with the", objectiveName,
 				"objective in model", omxQuotes(modelname),

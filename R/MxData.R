@@ -46,7 +46,7 @@ setMethod("initialize", "MxNonNullData",
 imxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 mxData <- function(observed, type, means = NA, numObs = NA) {
-	if (length(means) == 1 && is.na(means)) means <- NA_real_
+	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
@@ -71,8 +71,10 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
+	meanNames <- names(means)
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
+	colnames(means) <- meanNames
 	return(new("MxNonNullData", observed, means, type, numObs))
 }
 

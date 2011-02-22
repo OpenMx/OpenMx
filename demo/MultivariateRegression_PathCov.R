@@ -40,7 +40,8 @@ myRegDataCov<-matrix(
 		c("w","x","y","z"))
 )
 	
-myRegDataMeans<-c(2.582, 0.054, 2.574, 4.061)
+myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+names(myRegDataMeans) <- c("w","x","y","z")
 	
 #Create an MxModel object
 # -----------------------------------------------------------------------

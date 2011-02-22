@@ -29,7 +29,8 @@ myDataCov<-matrix(
 	c("x1","x2","x3","x4","x5"))
 	)
 	
-myDataMeans<-c(3.054, 1.385, 0.680, 0.254, -0.027)
+myDataMeans <- c(3.054, 1.385, 0.680, 0.254, -0.027)
+names(myDataMeans) <- c("x1","x2","x3","x4","x5")
 
 model<-mxModel("Autoregressive Model Path", 
       type="RAM",

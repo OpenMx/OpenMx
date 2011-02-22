@@ -89,7 +89,7 @@ univSatModel3m <- mxModel("univSat3m",
         observed=var(testData), 
         type="cov", 
         numObs=1000,
-        means=mean(testData) 
+        means=colMeans(testData) 
     ),
     mxMLObjective(
         covariance="expCov", 

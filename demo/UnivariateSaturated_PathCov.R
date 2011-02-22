@@ -88,7 +88,7 @@ univSatModel1m <- mxModel("univSat1m",
 		observed=var(testData), 
 		type="cov", 
 		numObs=1000, 
-		means=mean(testData)
+		means=colMeans(testData)
 	),
     type="RAM"
 )

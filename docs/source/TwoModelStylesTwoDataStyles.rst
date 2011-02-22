@@ -176,7 +176,7 @@ The other required change is in the ``mxData`` command, which now takes a fourth
             observed=var(testData), 
             type="cov", 
             numObs=1000, 
-            means=mean(testData)
+            means=colMeans(testData)
         )
     )
 
@@ -287,7 +287,7 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
             observed=var(testData), 
             type="cov", 
             numObs=1000, 
-            means=mean(testData)
+            means=colMeans(testData)
         )
         mxMLObjective(
             covariance="expCov",

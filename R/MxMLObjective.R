@@ -97,9 +97,10 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[data]]
-		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "ML")
+		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "ML")
 		checkNumericData(mxDataObject)
 		verifyExpectedNames(covariance, means, flatModel, modelname, "ML")
+		verifyExpectedObservedNames(mxDataObject@observed, covariance, flatModel, modelname, "ML")
 		verifyMeans(means, mxDataObject, flatModel, modelname)
 		meansIndex <- imxLocateIndex(flatModel, means, name)
 		dIndex <- imxLocateIndex(flatModel, data, name)

@@ -54,6 +54,7 @@ The first step to running our model is to import data. The code below is used to
     )
 
     myLongitudinalDataMeans <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+    names(myLongitudinalDataMeans) <- c("x1","x2","x3","x4","x5")
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^

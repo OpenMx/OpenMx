@@ -83,6 +83,7 @@ For covariance data, we do something very similar. We create an object to house 
     SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]    
 
     myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+    names(myRegDataMeans) <- c("w","x","y","z")
 
     SimpleDataMeans <- myRegDataMeans[c(2,3)]
     
@@ -337,6 +338,7 @@ Rather than using the RAM approach the regression model with matrices can also b
             expression= Intercept + regCoef %*% X,
             name="expMean",
         ),
+
 
         mxAlgebra(
             expression= resVar,

@@ -41,6 +41,7 @@ myRegDataCov <- matrix(
 )
  
 myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+names(myRegDataMeans) <- c("w","x","y","z") 
 
 MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
 MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
