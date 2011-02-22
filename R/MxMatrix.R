@@ -181,12 +181,13 @@ setMethod("[", "MxMatrix",
 		type <- class(x)[[1]]
 		nrow <- nrow(labels)
 		ncol <- ncol(labels)
+		dnames <- dimnames(x)
 		newMatrix <- tryCatch(suppressWarnings(
-			new(type, name, values, free, labels, 
-				lbound, ubound, nrow, ncol, FALSE)),
-				error = function(e) new("FullMatrix", name, 
-					values, free, labels, lbound, ubound, 
-					nrow, ncol, FALSE))
+			mxMatrix(type, nrow, ncol, free, values, labels, 
+				lbound, ubound, FALSE, dnames, name)),
+				error = function(e) mxMatrix("Full",
+					nrow, ncol, free, values, labels,
+					lbound, ubound, FALSE, dnames, name)) 
 		return(newMatrix)
 	}
 )
@@ -223,7 +224,6 @@ setReplaceMethod("dimnames", "MxMatrix",
 
 matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
-
 
 matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, ncol) {
 	inputs <- list(values, free, labels, lbound, ubound)

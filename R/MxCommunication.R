@@ -76,7 +76,7 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 		if (is.null(sock.port)) sock.prefix <- defaults[['Socket Port']]
 		if (is.null(sock.units)) sock.units <- defaults[['Socket Units']]
 		if (is.null(sock.count)) {
-			sock.count <- default[['Socket Count']]
+			sock.count <- defaults[['Socket Count']]
 			if (length(sock.count) == 2) {
 				sock.count <- sock.count[[sock.units]]
 			}

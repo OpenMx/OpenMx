@@ -64,12 +64,12 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 xdat <- data.frame(a=rnorm(10), b=1:10) # Make data set
 amod <- mxModel(
 		    mxData(observed=xdat, type='raw'),
-		    mxAlgebra(data.a + data.b, name='Fred'),
-		    mxAlgebra(sum(G), name='R'),
+		    mxAlgebra(sum(filteredDataRow), name = 'rowAlgebra'),
+		    mxAlgebra(sum(rowResults), name = 'reduceAlgebra'),
 		    mxRowObjective(
-			    rowAlgebra='Fred',
-			    rowResults='G',
-			    reduceAlgebra='R')
+			    rowAlgebra='rowAlgebra',
+			    reduceAlgebra='reduceAlgebra',
+			    dimnames=c('a','b'))
 )
 
 # Model that find the parameter that minimizes the sum of the
@@ -77,12 +77,12 @@ amod <- mxModel(
 bmod <- mxModel(
 		    mxData(observed=xdat, type='raw'),
 		    mxMatrix(values=.75, ncol=1, nrow=1, free=TRUE, name='B'),
-		    mxAlgebra((data.a - B)^2, name='RALG'),
-		    mxAlgebra(sum(Res), name='Red'),
+		    mxAlgebra((filteredDataRow - B) ^ 2, name='rowAlgebra'),
+		    mxAlgebra(sum(rowResults), name='reduceAlgebra'),
 		    mxRowObjective(
-			    rowAlgebra='RALG',
-			    rowResults='Res',
-			    reduceAlgebra='Red')
+			    rowAlgebra='rowAlgebra',
+			    reduceAlgebra='reduceAlgebra',
+			    dimnames=c('a'))
 )
 
 

@@ -103,8 +103,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \examples{
 model <- mxModel()
 
-model <- mxOption(model, "Function Precision", 1e-5)
+model <- mxOption(model, "Function precision", 1e-5)
 model <- mxOption(model, "Standard Errors", "Yes")
-model <- mxOption(model, "Function Precision", NULL)
+model <- mxOption(model, "Function precision", NULL)
 
 }
