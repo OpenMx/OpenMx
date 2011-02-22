@@ -64,6 +64,7 @@ void checkIncreasing(omxMatrix* om, int column) {
 		if(current <= previous) {
 			char *errstr = Calloc(250, char);
 			sprintf(errstr, "Thresholds are not strictly increasing.");
+			//TODO: Count 'em all, then throw an error that lists which ones.
 			omxRaiseError(om->currentState, -1, errstr);
 			Free(errstr);
 		}
@@ -1986,5 +1987,168 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 
 	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
 	omxMatrixCompute(result);
+
+}
+
+void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
+    if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Select Rows.\n");}
+
+	omxMatrix* inMat = matList[0];
+	omxMatrix* selector = matList[1];
+
+	int rows = inMat->rows;
+    int selectLength = selector->rows * selector->cols;
+    int toRemove[rows], zeros[rows];
+    int numRemoves = 0;
+    
+    if((selector->cols != 1) && selector->rows !=1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Selector must have a single row or a single column.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+
+	if(selectLength != rows) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Non-conformable matrices for row selection.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+	
+	if(result->aliasedPtr != inMat) {
+        omxAliasMatrix(result, inMat);
+	}
+	
+    omxResetAliasedMatrix(result);
+	
+    for(int index = 0; index < selectLength; index++) {
+        zeros[index] = 0;
+        if(omxVectorElement(selector, index) == 0) {
+            numRemoves++;
+            toRemove[index] = 1;
+        } else {
+            toRemove[index] = 0;
+        }
+    }
+    
+    if(numRemoves >= rows) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Attempted to select zero columns.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+    
+    omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove, zeros);
+
+}
+
+void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
+    if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Select Columns.\n");}
+
+	omxMatrix* inMat = matList[0];
+	omxMatrix* selector = matList[1];
+
+	int cols = inMat->cols;
+    int selectLength = selector->rows * selector->cols;
+    int toRemove[cols], zeros[cols];
+    int numRemoves = 0;
+
+    if((selector->cols != 1) && selector->rows !=1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Selector must have a single row or a single column.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+
+	if(selectLength != cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Non-conformable matrices for row selection.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+	
+	if(result->aliasedPtr != inMat) {
+        omxAliasMatrix(result, inMat);
+	}
+	
+    omxResetAliasedMatrix(result);
+	
+    for(int index = 0; index < selectLength; index++) {
+        zeros[index] = 0;
+        if(omxVectorElement(selector, index) == 0) {
+            numRemoves++;
+            toRemove[index] = 1;
+        } else {
+            toRemove[index] = 0;
+        }
+    }
+    
+    if(numRemoves >= cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Attempted to select zero columns.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+    
+    omxRemoveRowsAndColumns(result, 0, numRemoves, zeros, toRemove);
+    
+}
+
+void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
+    if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Select Rows And Cols.\n");}
+
+	omxMatrix* inMat = matList[0];
+	omxMatrix* selector = matList[1];
+
+	int rows = inMat->rows;
+	int cols = inMat->cols;
+    int selectLength = selector->rows * selector->cols;
+    int toRemove[cols];
+    int numRemoves = 0;
+
+    if((selector->cols != 1) && selector->rows !=1) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Selector must have a single row or a single column.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+
+	if(rows != cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Can only select rows and columns from square matrices.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+	if(selectLength != cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Non-conformable matrices for row selection.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+	
+	if(result->aliasedPtr != inMat) {
+        omxAliasMatrix(result, inMat);
+	}
+	
+    omxResetAliasedMatrix(result);
+	
+    for(int index = 0; index < selectLength; index++) {
+        if(omxVectorElement(selector, index) == 0) {
+            numRemoves++;
+            toRemove[index] = 1;
+        } else {
+            toRemove[index] = 0;
+        }
+    }
+    
+    if(numRemoves >= cols) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Attempted to select zero columns.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);        
+    }
+    
+    omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove, toRemove);
 
 }

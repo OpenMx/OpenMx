@@ -58,7 +58,7 @@ rmodRun <- mxRun(rmod)
 #  Row algebras are evaluated row-wise
 #  Results of the row-wise evaluation are stored in the row results
 
-hardAdd <- mxEval(rowAlgebra, rmodRun)
+hardAdd <- mxEval(rowResults, rmodRun)
 # 'G' should be the same as
 ezAdd <- as.matrix(xdat$a + xdat$b, ncol=1)
 

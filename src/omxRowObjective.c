@@ -47,12 +47,20 @@ typedef struct omxRowObjective {
 	omxMatrix* rowAlgebra;		// Row-by-row algebra
 	omxMatrix* rowResults;		// Aggregation of row algebra results
 	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
-	omxData*   data;				// The data
+    omxMatrix* filteredDataRow; // Data row minus NAs
+    omxMatrix* existenceVector; // Set of NAs
+    omxMatrix* dataColumns;		// The order of columns in the data matrix
+
+    /* Contiguous data note for contiguity speedup */
+	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
 	/* Structures determined from info in the MxRowObjective Object*/
-    double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.
+    double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.         // NYI: This element currently unused.
 	omxDefinitionVar* defVars;	// A list of definition variables
 	int numDefs;				// The length of the defVars list
+	omxMatrix* dataRow;         // One row of data, kept for aliasing only
+	omxData*   data;			// The data
+    
 
 } omxRowObjective;
 
@@ -86,31 +94,43 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 	int numDefs;
 
-	omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
+    omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
+    omxMatrix *filteredDataRow, *dataRow, *existenceVector;
+    omxMatrix *dataColumns;
 	omxDefinitionVar* defVars;
 	omxData *data;
+	int isContiguous, contiguousStart, contiguousLength;
     double* oldDefs;
+    int numCols, numRemoves;
 
     omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
 
-	rowAlgebra	  = oro->rowAlgebra;	 // Locals, for readability.  Should compile out.
-	rowResults	  = oro->rowResults;
-	reduceAlgebra = oro->reduceAlgebra;
-	data		= oro->data;
-	defVars		= oro->defVars;
-	numDefs		= oro->numDefs;
-    oldDefs     = oro->oldDefs;
+	rowAlgebra	    = oro->rowAlgebra;	 // Locals, for readability.  Should compile out.
+	rowResults	    = oro->rowResults;
+	reduceAlgebra   = oro->reduceAlgebra;
+	data		    = oro->data;
+	defVars		    = oro->defVars;
+	numDefs		    = oro->numDefs;
+    oldDefs         = oro->oldDefs;
+    dataColumns     = oro->dataColumns;
+    dataRow         = oro->dataRow;
+    filteredDataRow = oro->filteredDataRow;
+    existenceVector = oro->existenceVector;
+    
+    isContiguous    = oro->contiguous.isContiguous;
+	contiguousStart = oro->contiguous.start;
+	contiguousLength = oro->contiguous.length;
+	
 	
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
 		if(OMX_DEBUG_ROWS) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
 		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
 	}
-
-	if(numDefs == 0) {
-		if(OMX_DEBUG_ROWS) {Rprintf("Precalculating row algebra for all rows.\n");}
-		omxRecompute(rowAlgebra);		// Only recompute this here if there are no definition vars
-		if(OMX_DEBUG_ROWS) { omxPrintMatrix(rowAlgebra, "All Rows Identical:"); }
-	}
+		
+    numCols = dataColumns->cols;
+	int toRemove[dataColumns->cols];
+	int zeros[dataColumns->cols];
+	memset(zeros, 0, sizeof(int) * dataColumns->cols);  // Shouldn't be required.
 
 	for(int row = 0; row < data->rows; row++) {
 
@@ -118,9 +138,44 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
         if(OMX_DEBUG_ROWS) { Rprintf("numDefs is %d", numDefs);}
 		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
 			handleDefinitionVarList(data, row, defVars, oldDefs, numDefs);
-			omxStateNextRow(oo->matrix->currentState);						// Advance row
-			omxRecompute(rowAlgebra);										// Calculate this row
 		}
+
+		omxStateNextRow(oo->matrix->currentState);						// Advance row
+		
+        // Populate data row
+		numRemoves = 0;
+	
+		if (isContiguous) {
+			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, dataRow);
+		} else {
+			omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
+		}
+		
+		for(int j = 0; j < dataColumns->cols; j++) {
+			double dataValue = omxMatrixElement(dataRow, 0, j);
+			if(isnan(dataValue) || dataValue == NA_REAL) {
+				numRemoves++;
+				toRemove[j] = 1;
+                omxSetMatrixElement(existenceVector, 0, j, 0);
+			} else {
+			    toRemove[j] = 0;
+                omxSetMatrixElement(existenceVector, 0, j, 1);
+			}
+		}		
+		// TODO: Determine if this is the correct response.
+		
+		if(numRemoves == numCols) {
+		    char *errstr = calloc(250, sizeof(char));
+			sprintf(errstr, "Row %d completely missing.  omxRowObjective cannot have completely missing rows.", omxDataIndex(data, row));
+			omxRaiseError(oo->matrix->currentState, -1, errstr);
+			free(errstr);
+			return;
+		}
+
+		omxResetAliasedMatrix(filteredDataRow); 			// Reset the row
+		omxRemoveRowsAndColumns(filteredDataRow, 0, numRemoves, zeros, toRemove);
+
+		omxRecompute(rowAlgebra);							// Compute this row
 
 		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
 	}
@@ -165,6 +220,31 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	}
 	UNPROTECT(1);// nextMatrix
 
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("filteredDataRow")));
+	newObj->filteredDataRow = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	if(newObj->filteredDataRow == NULL) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "No row results matrix in omxRowObjective.");
+		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
+	}
+	// Create the original data row from which to filter.
+    newObj->dataRow = omxInitMatrix(NULL, newObj->filteredDataRow->rows, newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
+    omxAliasMatrix(newObj->filteredDataRow, newObj->dataRow);
+	UNPROTECT(1);// nextMatrix
+
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("existenceVector")));
+	newObj->existenceVector = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+    // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
+	if(newObj->existenceVector == NULL) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "No existance matrix in omxRowObjective.");
+		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
+	}
+	UNPROTECT(1);// nextMatrix
+
+
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowResults")));
 	newObj->rowResults = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowResults == NULL) {
@@ -184,6 +264,13 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		free(errstr);
 	}
 	UNPROTECT(1);// nextMatrix
+	
+	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
+	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState);
+	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
+	UNPROTECT(1);
+	
 
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
@@ -215,6 +302,9 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		UNPROTECT(1); // unprotect itemList
 	}
 	UNPROTECT(1); // unprotect nextMatrix
+	
+	/* Set up data columns */
+	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
 	oo->objectiveFun = omxCallRowObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRowObjective;

@@ -45,3 +45,6 @@
 43		"Imaginary Eigenvectors"	"ieigenvec"		1			"omxImaginaryEigenvectors"
 44		"Imaginary Eigenvalues"	"ieigenval"		1			"omxImaginaryEigenvalues"
 45		"Unary negation"	"omxNot"		1			"omxUnaryNegation"
+46		"Row Selection"	"omxSelectRows"		2		"omxSelectRows"
+47		"Column Selection"	"omxSelectCols"		2		"omxSelectCols"
+48		"Row And Column Selection"	"omxSelectRowsAndCols"		2		"omxSelectRowsAndCols"

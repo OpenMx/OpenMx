@@ -76,4 +76,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result);
 #endif
