@@ -100,6 +100,7 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		verifyObservedNames(mxDataObject@observed, mxDataObject@type, flatModel, modelname, "ML")
 		checkNumericData(mxDataObject)
 		verifyExpectedNames(covariance, means, flatModel, modelname, "ML")
+		verifyExpectedObservedNames(mxDataObject@observed, covariance, flatModel, modelname, "ML")
 		verifyMeans(means, mxDataObject, flatModel, modelname)
 		meansIndex <- omxLocateIndex(flatModel, means, name)
 		dIndex <- omxLocateIndex(flatModel, data, name)
