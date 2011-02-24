@@ -142,9 +142,11 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	if (is.data.frame(x)) {
 		if (is.list(levels)) {
 			return(data.frame(mapply(factor, x, levels, labels,
-				MoreArgs=list(exclude = exclude, ordered = ordered), SIMPLIFY=FALSE)))
+				MoreArgs=list(exclude = exclude, ordered = ordered), SIMPLIFY=FALSE),
+				check.names = FALSE))
 		} else {
-			return(data.frame(lapply(x, factor, levels, labels, exclude, ordered))) 
+			return(data.frame(lapply(x, factor, levels, labels, exclude, ordered),
+				check.names = FALSE)) 
 		}
 	} else if (is.matrix(x)) {
 		stop(paste("argument 'x' to mxFactor()",
