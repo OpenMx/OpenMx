@@ -190,6 +190,12 @@ model <- mxModel(model, mxAlgebra(omxSelectRows(O[,1:2],N%x%5),    name='test45g
 model <- mxModel(model, mxAlgebra(omxSelectCols(O[1:2,],N%x%5),    name='test46g'))
 model <- mxModel(model, mxAlgebra(omxSelectRows(O[,1:2],t(N)%x%5), name='test45h'))
 model <- mxModel(model, mxAlgebra(omxSelectCols(O[1:2,],t(N)%x%5), name='test46h'))
+model <- mxModel(model, mxAlgebra(mean(A), name='test48a'))
+model <- mxModel(model, mxAlgebra(mean(B), name='test48b'))
+model <- mxModel(model, mxAlgebra(mean(C), name='test48c'))
+model <- mxModel(model, mxAlgebra(mean(t(C)), name='test48d'))
+model <- mxModel(model, mxAlgebra(mean(-C), name='test48e'))
+
 model <- mxRun(model)
 
 # Check passing tests
@@ -340,3 +346,9 @@ omxCheckCloseEnough(model[['test45g']]@result, mxEval(omxSelectRows(O[,1:2],N%x%
 omxCheckCloseEnough(model[['test46g']]@result, mxEval(omxSelectCols(O[1:2,],N%x%5), model), 0.001)
 omxCheckCloseEnough(model[['test45h']]@result, mxEval(omxSelectRows(O[,1:2],t(N)%x%5), model), 0.001)
 omxCheckCloseEnough(model[['test46h']]@result, mxEval(omxSelectCols(O[1:2,],t(N)%x%5), model), 0.001)
+omxCheckCloseEnough(model[['test48a']]@result, mxEval(mean(A), model), 0.001)
+omxCheckCloseEnough(model[['test48b']]@result, mxEval(mean(B), model), 0.001)
+omxCheckCloseEnough(model[['test48c']]@result, mxEval(mean(C), model), 0.001)
+omxCheckCloseEnough(model[['test48d']]@result, mxEval(mean(t(C)), model), 0.001)
+omxCheckCloseEnough(model[['test48e']]@result, mxEval(mean(-C), model), 0.001)
+

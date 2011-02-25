@@ -893,7 +893,28 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result) 
 	omxSetMatrixElement(result, 0, 0, product);
 }
 
-void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result){
+void omxMatrixArithmeticMean(omxMatrix** matList, int numArgs, omxMatrix* result) {
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Minimum Element.\n");}
+	
+	/* Consistency check: */
+	if(result->rows != 1 || result->cols != 1) {
+		omxResizeMatrix(result, 1, 1, FALSE);
+	}
+
+	omxMatrix *input = matList[0];
+	int matLength = input->rows * input->cols;
+	if (matLength == 0) return;
+	double mean = omxVectorElement(input, 0);
+	for(int i = 1; i < matLength; i++) {
+		double val = omxVectorElement(input, i);
+		mean += (val - mean) / (i + 1);	
+	}
+
+	omxSetMatrixElement(result, 0, 0, mean);
+}
+
+void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Minimum Element.\n");}
 

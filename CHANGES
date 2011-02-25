@@ -8,11 +8,12 @@ trunk
 * added "Optimality tolerance" to mxOption() selection
 * added 'lbound' and 'ubound' columns to summary() output of free parameters
 * added asterisks to the 'lbound' and 'ubound' columns when feasibility tolerance is met
-* added "omxNot" operator to the set of available mxAlgebra() operators
+* added "omxNot" function to the set of available mxAlgebra() function
 * added "omxSelectRows", "omxSelectCols", and "omxSelectRowsAndCols" as mxAlgebra operators()
 * updated interface of mxRowObjective
 * in ML objective: expected covariance matrix and observed covariance matrix must have identical dimnames
 * in RAM and ML objectives: the observed means vector must have column names
+* added "mean" function to the set of available mxAlgebra() functions
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

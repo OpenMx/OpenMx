@@ -50,6 +50,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxMatrixArithmeticMean(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result);
