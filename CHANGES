@@ -1,6 +1,7 @@
 repository
 ==========
 * added error checking in ML objective to match expected covariance and observed covariance matrices
+* updated BootstrapParallel.R demo to use mxData() instead of model@data
 
 Release 1.0.4-1540 (January 16, 2011)
 =====================================

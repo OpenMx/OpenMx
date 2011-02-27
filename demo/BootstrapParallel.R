@@ -46,8 +46,9 @@ randomCov <- function(nObs, nVar, chl, dn) {
 
 createNewModel <- function(index, prefix, model) {
 	modelname <- paste(prefix, index, sep='')
-	model@data@observed <- randomCov(nObs, nVar, chl, dn)
-	model@name <- modelname
+	data <- mxData(randomCov(nObs, nVar, chl, dn), type="cov", numObs=nObs)
+	model <- mxModel(model, data)
+	model <- mxModel(model, name = modelname)
 	return(model)
 }
 
