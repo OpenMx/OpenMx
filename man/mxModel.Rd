@@ -34,7 +34,7 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
  	\item{latentVars}{A list of latent variables to be included in the model.}
  	\item{remove}{logical. If TRUE, elements listed in this statement are removed from the original model. If FALSE, elements listed in this statement are added to the original model.}
  	\item{independent}{logical. If TRUE then the model is independent.}
- 	\item{type}{character vector. The name of the model type to assign to this model.}
+ 	\item{type}{character vector. The name of the model type to assign to this model. As of openMx 1.0, valid types include "RAM" and "raw"}
  	\item{name}{An optional character vector indicating the name of the object.}
 }
  	
