@@ -29,10 +29,17 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
 
 A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
+
+# Request all free paraemters in model
 omxGetParameters(model)
 
 # A11  A12 <NA> 
 #   1    2    4 
+
+# Request fixed paraemters from model
+omxGetParameters(model, free=F)
+# A21 
+#   3
 
 A@labels
 #      [,1]  [,2] 
