@@ -30,5 +30,5 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{mxConstraint} for the function that creates MxConstraint objects. \link{MxAlgebra} and \link{MxMatrix} for objects which may be entered as arguments in the 'alg' and 'alg2' arguments, and \link{mxAlgebra} and \link{mxMatrix} for the functions that create them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{mxConstraint} for the function that creates MxConstraint objects.
 }

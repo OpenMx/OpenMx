@@ -23,7 +23,7 @@ The mxConstraint function should not be used to constrain free parameters, eithe
 }
 
 \value{
-Returns an \link{MxConstraint} object. If used as an argument in an \link{MxModel} object, the objects referenced in the 'alg1' and 'alg2' arguments must also be included prior to optimization.
+Returns an \link{MxConstraint} object.
 }
 
 \references{
@@ -31,7 +31,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{MxConstraint} for the S4 class created by mxConstraint. \link{MxAlgebra} and \link{MxMatrix} for objects which may be entered as arguments in the 'alg' and 'alg2' arguments, and \link{mxAlgebra} and \link{mxMatrix} for the functions that create them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{MxConstraint} for the S4 class created by mxConstraint. 
 }
 
 \examples{
