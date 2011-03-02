@@ -14,6 +14,7 @@ trunk
 * in ML objective: expected covariance matrix and observed covariance matrix must have identical dimnames
 * in RAM and ML objectives: the observed means vector must have column names
 * added "mean" function to the set of available mxAlgebra() functions
+* added slots "expCov" and "expMean" to the MxRAMObjective function
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

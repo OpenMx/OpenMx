@@ -172,18 +172,22 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
 	for(i in 1:length(entNames)) {
 		name <- entNames[[i]]
 		candidate <- model[[name]]
-		if (!is.null(candidate) && (length(values[[i]]) > 0)
-			&& !is.nan(values[[i]])) {
+		value <- values[[i]]
+		if (!is.null(candidate) && (length(value) > 0)
+			&& !is.nan(value)) {
 			if (is(candidate,"MxAlgebra") || is(candidate,"MxObjective")) {
-				model[[name]]@result <- as.matrix(values[[i]])
 				if (is(candidate, "MxAlgebra")) {
-					dimnames(model[[name]]@result) <- dimnames(model[[name]])
+					dimnames(value) <- dimnames(candidate)
+					candidate@result <- value
+				} else {
+					candidate <- genericObjReadAttributes(candidate, value)
 				}
 			} else if(is(candidate, "MxMatrix")) {
-				dimnames(values[[i]]) <- dimnames(model[[name]])
-				model[[name]]@values <- values[[i]]
+				dimnames(value) <- dimnames(candidate)
+				candidate@values <- value
 			}
 		}
+		model[[name]] <- candidate
 	}
 	return(model)
 }

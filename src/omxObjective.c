@@ -96,6 +96,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->objectiveFun = NULL;
 	oo->needsUpdateFun = NULL;
 	oo->getStandardErrorFun = NULL;
+    oo->populateAttrFun = NULL;
 	oo->setFinalReturns = NULL;
 	oo->gradientFun = NULL;
 	oo->argStruct = NULL;

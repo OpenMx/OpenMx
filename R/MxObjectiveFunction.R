@@ -50,6 +50,11 @@ setGeneric("genericObjInitialMatrix",
 	return(standardGeneric("genericObjInitialMatrix"))
 })
 
+setGeneric("genericObjReadAttributes",
+	function(.Object, values) {
+	return(standardGeneric("genericObjReadAttributes"))
+})
+
 setGeneric("genericObjNewEntities",
 	function(.Object) {
 	return(standardGeneric("genericObjNewEntities"))
@@ -84,6 +89,13 @@ setMethod("genericObjDependencies", "MxBaseObjective",
 setMethod("genericObjDependencies", "NULL",
 	function(.Object, dependencies) {
 		return(dependencies)
+})
+
+setMethod("genericObjReadAttributes", "MxBaseObjective",
+	function(.Object, values) {
+		dimnames(values) <- dimnames(.Object)
+		.Object@result <- values
+		return(.Object)
 })
 
 setMethod("genericObjNewEntities", "MxBaseObjective",

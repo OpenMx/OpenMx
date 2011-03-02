@@ -23,6 +23,8 @@ setClass(Class = "MxRAMObjective",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		vector = "logical",
+		expCov = "matrix",
+		expMean = "matrix",
 		depth = "integer"),
 	contains = "MxBaseObjective")
 
@@ -157,6 +159,17 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			stop(msg, call. = FALSE)
 		}
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
+		return(.Object)
+})
+
+setMethod("genericObjReadAttributes", signature("MxRAMObjective"),
+	function(.Object, values) {
+		.Object@expCov <- attr(values, "expCov", exact = TRUE)
+		.Object@expMean <- attr(values, "expMean", exact = TRUE)
+		dimnames(values) <- dimnames(.Object)
+		attr(values, "expCov") <- NULL
+		attr(values, "expMean") <- NULL
+		.Object@result <- values
 		return(.Object)
 })
 
@@ -426,6 +439,18 @@ displayRAMObjective <- function(objective) {
 		cat("@result:\n")
 	}
 	print(objective@result)
+	if (length(objective@expCov) == 0) {
+		cat("@expCov: ")
+	} else {
+		cat("@expCov:\n")
+	}
+	print(objective@expCov)
+	if (length(objective@expMean) == 0) {
+		cat("@expMean: ")
+	} else {
+		cat("@expMean:\n")
+	}
+	print(objective@expMean)
 	invisible(objective)
 }
 

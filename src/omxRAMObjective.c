@@ -49,6 +49,30 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 	return retVal;
 }
 
+void omxPopulateRAMAttributes(omxObjective *oo, SEXP algebra) {
+	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
+	omxMatrix *expCovInt = argStruct->C;			// Expected covariance
+	omxMatrix *expMeanInt = argStruct->M;			// Expected means
+	SEXP expCovExt, expMeanExt;
+	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	for(int row = 0; row < expCovInt->rows; row++)
+		for(int col = 0; col < expCovInt->cols; col++)
+			REAL(expCovExt)[col * expCovInt->rows + row] =
+				omxMatrixElement(expCovInt, row, col);
+	if (expMeanInt != NULL) {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		for(int row = 0; row < expMeanInt->rows; row++)
+			for(int col = 0; col < expMeanInt->cols; col++)
+				REAL(expMeanExt)[col * expMeanInt->rows + row] =
+					omxMatrixElement(expMeanInt, row, col);
+	} else {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+	}
+	setAttrib(algebra, install("expCov"), expCovExt);
+	setAttrib(algebra, install("expMean"), expMeanExt);
+	UNPROTECT(2);
+}
+
 void omxDestroyRAMObjective(omxObjective *oo) {
 	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
 
@@ -193,7 +217,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *A = ((omxRAMObjective*)oo->argStruct)->A;
 	omxMatrix *S = ((omxRAMObjective*)oo->argStruct)->S;
 	omxMatrix *F = ((omxRAMObjective*)oo->argStruct)->F;
-	omxMatrix *C = ((omxRAMObjective*)oo->argStruct)->C;
+	omxMatrix *C = ((omxRAMObjective*)oo->argStruct)->C;                // Expected covariance
 	omxMatrix *X = ((omxRAMObjective*)oo->argStruct)->X;
 	omxMatrix *Y = ((omxRAMObjective*)oo->argStruct)->Y;
 	omxMatrix *Z = ((omxRAMObjective*)oo->argStruct)->Z;
@@ -407,6 +431,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	oo->destructFun = omxDestroyRAMObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
+	oo->populateAttrFun = omxPopulateRAMAttributes;
 	oo->repopulateFun = NULL;
 
 	oo->argStruct = (void*) newObj;

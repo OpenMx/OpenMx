@@ -236,7 +236,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	for(int j = 0; j < currentState->numAlgs; j++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, j));		// The next algebra or objective to process
 		if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
-		if(IS_S4_OBJECT(nextAlgTuple)) {												// This is an objective object.
+		if(IS_S4_OBJECT(nextAlgTuple)) {									// This is an objective object.
 			omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
 		} else {															// This is an algebra spec.
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
@@ -892,13 +892,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	for(k = 0; k < currentState->numMats; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
-		omxRecompute(currentState->matrixList[k]);
-		PROTECT(nextMat = allocMatrix(REALSXP, currentState->matrixList[k]->rows,
-			currentState->matrixList[k]->cols));
-		for(l = 0; l < currentState->matrixList[k]->rows; l++)
-			for(j = 0; j < currentState->matrixList[k]->cols; j++)
-				REAL(nextMat)[j * currentState->matrixList[k]->rows + l] =
-					omxMatrixElement(currentState->matrixList[k], l, j);
+		omxMatrix* nextMatrix = currentState->matrixList[k];
+		omxRecompute(nextMatrix);
+		PROTECT(nextMat = allocMatrix(REALSXP, nextMatrix->rows, nextMatrix->cols));
+		for(l = 0; l < nextMatrix->rows; l++)
+			for(j = 0; j < nextMatrix->cols; j++)
+				REAL(nextMat)[j * nextMatrix->rows + l] =
+					omxMatrixElement(nextMatrix, l, j);
 		SET_VECTOR_ELT(matrices, k, nextMat);
 
 		UNPROTECT(1);	/* nextMat */
@@ -906,13 +906,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	for(k = 0; k < currentState->numAlgs; k++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-		omxRecompute(currentState->algebraList[k]);
-		PROTECT(algebra = allocMatrix(REALSXP, currentState->algebraList[k]->rows,
-			currentState->algebraList[k]->cols));
-		for(l = 0; l < currentState->algebraList[k]->rows; l++)
-			for(j = 0; j < currentState->algebraList[k]->cols; j++)
-				REAL(algebra)[j * currentState->algebraList[k]->rows + l] =
-					omxMatrixElement(currentState->algebraList[k], l, j);
+		omxMatrix* nextAlgebra = currentState->algebraList[k];
+		omxRecompute(nextAlgebra);
+		PROTECT(algebra = allocMatrix(REALSXP, nextAlgebra->rows, nextAlgebra->cols));
+		if (nextAlgebra->objective != NULL && nextAlgebra->objective->populateAttrFun != NULL) {
+			nextAlgebra->objective->populateAttrFun(nextAlgebra->objective, algebra);
+		}
+		for(l = 0; l < nextAlgebra->rows; l++)
+			for(j = 0; j < nextAlgebra->cols; j++)
+				REAL(algebra)[j * nextAlgebra->rows + l] =
+					omxMatrixElement(nextAlgebra, l, j);
 		SET_VECTOR_ELT(algebras, k, algebra);
 
 		UNPROTECT(1);	/* algebra */

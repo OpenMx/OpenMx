@@ -65,6 +65,7 @@ struct omxObjective {					// An objective
 	unsigned short int (*needsUpdateFun)(omxObjective* oo);						// To calculate recomputation
 	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
+	void (*populateAttrFun)(omxObjective* oo, SEXP algebra);					// Add attributes to the result algebra object
 
 	void* argStruct;															// Arguments needed for objective function
 	char* objType;																// Type of Objective Function
