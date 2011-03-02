@@ -28,9 +28,8 @@
 # -----------------------------------------------------------------------
 
 require(OpenMx)
-# setwd("~/bin/OpenMx/trunk/models/passing/data/")
-dataMZ <-read.table("sim1.mz",header=F)
-dataDZ <-read.table("sim1.dz",header=F)
+dataMZ <-read.table("data/sim1.mz",header=F)
+dataDZ <-read.table("data/sim1.dz",header=F)
 dataMZ <- dataMZ[,1:2] # discard unused data column
 dataDZ <- dataDZ[,1:2]
 selVars<-c("T1","T2")
