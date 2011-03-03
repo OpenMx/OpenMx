@@ -29,24 +29,25 @@
 }
 
 \usage{
-mxRowObjective(rowAlgebra, rowResults = NA, reduceAlgebra = NA)
+mxRowObjective(rowAlgebra, reduceAlgebra, dimnames,
+   rowResults = "rowResults", filteredDataRow = "filteredDataRow",
+   existenceVector = "existenceVector")
 }
 
 
 \arguments{
    \item{rowAlgebra}{A character string indicating the name of the algebra to be evaluated row-wise.}
-   \item{rowResults}{A character string indicating the name of the algebra that stores the results of the row algebra.}
    \item{reduceAlgebra}{A character string indicating the name of the algebra that collapses the row results into a single number which is then optimized.}
+   \item{dimnames}{A character vector of names corresponding to columns be extracted from the data set.}
+   \item{rowResults}{The name of the auto-generated "rowResults" matrix.  See details.}
+   \item{filteredDataRow}{The name of the auto-generated "filteredDataRow" matrix. See details.}
+   \item{existenceVector}{The name of the auto-generated "existenceVector" matrix. See details.}
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRowObjective function evaluates a user-defined \link{MxAlgebra} object called the 'rowAlgebra' in a row-wise fashion.  It then stores results of the row-wise evaluation in another \link{MxAlgebra} object called the 'rowResults'.  Finally, the mxRowObjective function collapses the row results into a single number which is then used for optimization.  The \link{MxAlgebra} object named by the 'reduceAlgebra' collapses the row results into a single number.  Any free parameters found in the 'rowAlgebra' will be optimized to minimize the result of the 'reduceAlgebra'.
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRowObjective function evaluates a user-defined \link{MxAlgebra} object called the \sQuote{rowAlgebra} in a row-wise fashion.  It then stores results of the row-wise evaluation in another \link{MxAlgebra} object called the \sQuote{rowResults}.  Finally, the mxRowObjective function collapses the row results into a single number which is then used for optimization.  The \link{MxAlgebra} object named by the \sQuote{reduceAlgebra} collapses the row results into a single number.
 
-All arguments to the mxRowObjective function are required.  There are no optional arguments.
-
-mxRowObjective evaluates with respect to several \link{MxAlgebra} objects. The \link{MxAlgebra} objects need to be referenced in the mxRowObjective function, and also must be included in the \link{MxModel} object.  Missing values are not currently permitted in the associated \link{MxAlgebra} objects.  \link{MxData} objects can be indirectly referenced by mxRowObjective by placing all or part of the \link{MxData} object into an \link{MxAlgebra} object and referencing the \link{MxAlgebra} object.
-
-To evaluate, place MxRowObjective objects, referenced \link{MxAlgebra} objects, and optional \link{MxData}, \link{MxMatrix}, \link{MxBounds}, and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be referenced using the \link{Extract} functionality.
+The \sQuote{filteredDataRow} is populated in a row-by-row fashion with all the non-missing data from the current row.  You cannot assume that the length of the filteredDataRow matrix remains constant (unless you have no missing data). The \sQuote{existenceVector} is populated in a row-by-row fashion with a value of 1.0 in column j if a non-missing value is present in the data set in column j, and a value of 0.0 otherwise. Use the functions \link{omxSelectRowRows}, \link{omxSelectCols}, and \link{omxSelectRowsAndCols} to shrink other matrices so that their dimensions will be conformable to the size of \sQuote{filteredDataRow}. 
 }
 
 \value{
