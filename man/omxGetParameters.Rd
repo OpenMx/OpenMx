@@ -37,7 +37,7 @@ omxGetParameters(model)
 #   1    2    4 
 
 # Request fixed paraemters from model
-omxGetParameters(model, free=F)
+omxGetParameters(model, free=FALSE)
 # A21 
 #   3
 
