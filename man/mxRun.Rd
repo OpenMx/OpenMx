@@ -34,10 +34,10 @@ mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE,
     \item{silent}{A boolean indicating whether to print status to terminal.}
     \item{suppressWarnings}{A boolean indicating whether to suppress warnings.}    
     \item{unsafe}{A boolean indicating whether to ignore errors.}
-	\item{checkpoint}{A boolean indicating whether to periodically write parameter values to a file.}
-	\item{useSocket}{A boolean indicating whether to periodically write parameter values to a socket.}
-	\item{onlyFrontend}{A boolean indicating whether to run only front-end model transformations.}
-	\item{useOptimizer}{A boolean indicating whether to run only the log-likelihood of the current free parameter values but not move any of the free parameters.}
+    \item{checkpoint}{A boolean indicating whether to periodically write parameter values to a file.}
+    \item{useSocket}{A boolean indicating whether to periodically write parameter values to a socket.}
+    \item{onlyFrontend}{A boolean indicating whether to run only front-end model transformations.}
+    \item{useOptimizer}{A boolean indicating whether to run only the log-likelihood of the current free parameter values but not move any of the free parameters.}
 }
 
 \details{

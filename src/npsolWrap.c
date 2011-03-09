@@ -146,6 +146,11 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 }
 
 
+int matchCaseInsensitive(const char *source, int lenSource, const char *target) {
+	int lenTarget = strlen(target);
+	return((lenSource == lenTarget)	&& (strncasecmp(source, target, lenSource) == 0));
+}
+
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
@@ -611,17 +616,19 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-			if(!strncasecmp(nextOptionName, "Calculate Hessian", 17)) {
+			int lenName = strlen(nextOptionName);
+			int lenValue = strlen(nextOptionValue);
+			if(matchCaseInsensitive(nextOptionName, lenName, "Calculate Hessian")) {
 				if(OMX_DEBUG) { Rprintf("Found hessian option...");};
-				if(strncasecmp(nextOptionValue, "No", 2)) {
+				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
 					calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
 					calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
 					numHessians = 1;
 				}
-			} else if(!strncasecmp(nextOptionName, "Standard Errors", 17)) {
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
 				if(OMX_DEBUG) { Rprintf("Found standard error option...");};
-				if(strncasecmp(nextOptionValue, "No", 2)) {
+				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
 					calculateStdErrors = TRUE;
 					if(calculateHessians == NULL) {
@@ -630,12 +637,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 						numHessians = 1;
 					}
 				}
-			} else if(!strncasecmp(nextOptionName, "CI Max Iterations", 19)) { 
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "CI Max Iterations")) { 
 				int newvalue = atoi(nextOptionValue);
 				if (newvalue > 0) ciMaxIterations = newvalue;
-			} else if(!strncasecmp(nextOptionName, "useOptimizer", 15)) {
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "useOptimizer")) {
 				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
-				if(!strncasecmp(nextOptionValue, "No", 2)) {
+				if(matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
 					disableOptimizer = 1;
 				}
