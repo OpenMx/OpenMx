@@ -1,5 +1,5 @@
-repository
-==========
+Release 1.0.5-1575 (March 8, 2011)
+==================================
 * added error checking in ML objective to match expected covariance and observed covariance matrices
 * updated BootstrapParallel.R demo to use mxData() instead of model@data
 * added the dataset from the Psychometrika article (www.springerlink.com/content/dg37445107026711)
