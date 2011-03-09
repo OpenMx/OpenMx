@@ -15,7 +15,8 @@
 
 mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
-		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE) {
+		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
+		useOptimizer = TRUE){
 	if(!silent) cat("Running", model@name, "\n")
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
@@ -24,12 +25,12 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 	}
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
-		checkpoint, useSocket, onlyFrontend)
+		checkpoint, useSocket, onlyFrontend, useOptimizer)
 }
 
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
-		unsafe, checkpoint, useSocket, onlyFrontend) {
+		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer) {
 	omxCheckMatrices(model)
 	imxVerifyModel(model)
 	dataList <- generateDataList(model)
@@ -40,7 +41,7 @@ runHelper <- function(model, frontendStart,
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
-		onlyFrontend = onlyFrontend)
+		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
@@ -81,6 +82,7 @@ runHelper <- function(model, frontendStart,
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
+	model@options$useOptimizer = useOptimizer
 	options <- generateOptionsList(model@options, constraints)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed

@@ -174,6 +174,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int calculateStdErrors = FALSE;
 	int numHessians = 0;
 	int ciMaxIterations = 5;
+	int disableOptimizer = 0;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -221,6 +222,24 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		UNPROTECT(2); // nextLoc and nextMat
 	}
 
+	/*      Set NPSOL option useOptimizer  (Maybe separate this into a different function?) */
+        /* Option That Disables The Optimizer */
+        int disOptimizerNumOptions = length(options);
+        SEXP disOptimizerOptionNames;
+        PROTECT(disOptimizerOptionNames = GET_NAMES(options));
+        for(int i = 0; i < disOptimizerNumOptions; i++) {
+               const char *nextOptionName = CHAR(STRING_ELT(disOptimizerOptionNames, i));
+               const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
+               //if(OMX_DEBUG) { Rprintf("\n Looping next Option Name %s next Option Value %s \n", nextOptionName, nextOptionValue);}
+               if(!strncasecmp(nextOptionName, "useOptimizer", 15))  {
+                   if(OMX_DEBUG) {Rprintf("Found useOptimizer option...");}
+                   if(!strncasecmp(nextOptionValue, "No", 2)){
+                       if(OMX_DEBUG) {Rprintf("Disabling optimizer.\n");}
+                       disableOptimizer = 1;
+                   }
+               }	
+	     }
+		 UNPROTECT(1); // disOptimizerOptionNames
 	/* Process Algebras Here */
 	currentState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
@@ -681,12 +700,26 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			Rprintf("Set.\n");
 		}
 
-		F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-						(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
-						clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+		if (disableOptimizer) {
+			int mode = 0, nstate = -1;		
+			if(currentState->objectiveMatrix != NULL) {
+				F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
+			};
+
+			inform = 0;
+			iter = 0;
+
+			omxStateNextEvaluation(currentState);	// Advance for a final evaluation.		
+		} else {
+			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+							(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
+							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
+		}
 		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
+		
 		handleFreeVarList(currentState, x, n);
-	}
+		
+	} // END OF PERFORM OPTIMIZATION CASE
 
 	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations;
 	SEXP evaluations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer;
@@ -1168,17 +1201,23 @@ void F77_SUB(constraintFunction)
 /* Sub Free Vars Into Appropriate Slots */
 void handleFreeVarList(omxState* os, double* x, int numVars) {
 
+	if(OMX_DEBUG) {
+		Rprintf("Processing Free Parameter Estimates.\n");
+		Rprintf("Number of free parameters is %d.\n", numVars);
+	}
+
+	if(numVars == 0) return;
+
 	omxFreeVar* freeVarList = os->freeVarList;
 	omxMatrix** matrixList = os->matrixList;
 
-	if(OMX_DEBUG) {Rprintf("Processing Free Parameter Estimates.\n");}
 	os->computeCount++;
 
 	if(OMX_VERBOSE) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d.%d (%d)\n", os->majorIteration, os->minorIteration, os->computeCount);
 		Rprintf("Estimates: [");
-		for(int k = 0; k < os->numFreeParams; k++) {
+		for(int k = 0; k < numVars; k++) {
 			Rprintf(" %f", x[k]);
 		}
 		Rprintf("] \n");
@@ -1186,7 +1225,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 	}
 
 	/* Fill in Free Var Estimates */
-	for(int k = 0; k < os->numFreeParams; k++) {
+	for(int k = 0; k < numVars; k++) {
 		// if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
 		for(int l = 0; l < freeVarList[k].numLocations; l++) {
 			*(freeVarList[k].location[l]) = x[k];

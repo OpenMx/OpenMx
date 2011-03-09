@@ -66,7 +66,8 @@ npsolOptions <- list(
 	"Hessian" = "Yes",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"CI Max Iterations" = "5"
+	"CI Max Iterations" = "5",
+	"useOptimizer" = "Yes"
 )
 
 checkpointOptions <- list(
@@ -93,6 +94,16 @@ generateOptionsList <- function(input, constraints) {
 	if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
 		input[["Calculate Hessian"]] <- "No"
 	}
+	if (is.null(input[["useOptimizer"]])){
+		input[["useOptimizer"]] <- "Yes"
+	}
+	else if (!(input[["useOptimizer"]])) {
+		input[["useOptimizer"]] <- "No"
+	}
+	else {
+		input[["useOptimizer"]] <- "Yes"
+	}
+        # input[["useOptimizer"]] <- "WAHOO"
 	options <- combineDefaultOptions(input)
 	return(options)
 }
