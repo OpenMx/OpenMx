@@ -222,24 +222,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		UNPROTECT(2); // nextLoc and nextMat
 	}
 
-	/*      Set NPSOL option useOptimizer  (Maybe separate this into a different function?) */
-        /* Option That Disables The Optimizer */
-        int disOptimizerNumOptions = length(options);
-        SEXP disOptimizerOptionNames;
-        PROTECT(disOptimizerOptionNames = GET_NAMES(options));
-        for(int i = 0; i < disOptimizerNumOptions; i++) {
-               const char *nextOptionName = CHAR(STRING_ELT(disOptimizerOptionNames, i));
-               const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-               //if(OMX_DEBUG) { Rprintf("\n Looping next Option Name %s next Option Value %s \n", nextOptionName, nextOptionValue);}
-               if(!strncasecmp(nextOptionName, "useOptimizer", 15))  {
-                   if(OMX_DEBUG) {Rprintf("Found useOptimizer option...");}
-                   if(!strncasecmp(nextOptionValue, "No", 2)){
-                       if(OMX_DEBUG) {Rprintf("Disabling optimizer.\n");}
-                       disableOptimizer = 1;
-                   }
-               }	
-	     }
-		 UNPROTECT(1); // disOptimizerOptionNames
 	/* Process Algebras Here */
 	currentState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
@@ -651,6 +633,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			} else if(!strncasecmp(nextOptionName, "CI Max Iterations", 19)) { 
 				int newvalue = atoi(nextOptionValue);
 				if (newvalue > 0) ciMaxIterations = newvalue;
+			} else if(!strncasecmp(nextOptionName, "useOptimizer", 15)) {
+				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
+				if(!strncasecmp(nextOptionValue, "No", 2)) {
+					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
+					disableOptimizer = 1;
+				}
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
