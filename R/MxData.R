@@ -135,6 +135,9 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 			})
 			names(defkeys) <- NULL
 			defkeys <- defkeys[defkeys %in% observedNames]
+			if (length(defkeys) == 0) {
+				defkeys <- character()
+			}
 			defindex <- match(defkeys, observedNames)
 			otherindex <- setdiff(1:length(observedNames), defindex)
 			nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
