@@ -1,3 +1,7 @@
+Release 1.0.6-1581 (March 10, 2011)
+===================================
+* Bug fix corner case in sorting data with definition variables
+
 Release 1.0.5-1575 (March 8, 2011)
 ==================================
 * added error checking in ML objective to match expected covariance and observed covariance matrices
