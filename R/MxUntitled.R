@@ -36,7 +36,7 @@ imxUntitledNumber <- function() {
 }
 
 imxUntitledName <- function() {
-	name <- paste("untitled", format(imxUntitledNumber(), digits = 20),
+	name <- paste("untitled", format(imxUntitledNumber(), scientific = FALSE),
 		sep="")
 	return(name)
 }
