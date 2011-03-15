@@ -94,26 +94,27 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 	}
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
-		column <- thresholds[,i]
-		if (!is.ordered(observed[,tName])) {
+		tColumn <- thresholds[,i]
+		observedColumn <- observed[,tName]
+		if (!is.ordered(observedColumn)) {
 			stop(paste("In model",
 				omxQuotes(modelName),
 				"column",
-				omxQuotes(threshNames[[i]]),
+				omxQuotes(tName),
 				"is not an ordered factor.",
 				"Use mxFactor() on this column."), call. = FALSE)
 		}
-		expectedThreshCount <- length(levels(observed[,tName])) - 1
+		expectedThreshCount <- length(levels(observedColumn)) - 1
 		if (nrow(thresholds) < expectedThreshCount) {
 			stop(paste("In model",
 				omxQuotes(modelName),
 				"the number of thresholds in column",
-				omxQuotes(threshNames[[i]]),
+				omxQuotes(tName),
 				"is less than the (l - 1), where l is equal",
 				"to the number of levels in the ordinal",
 				"data. Use mxFactor() on this column."), call. = FALSE)
 		}
-		values <- column[1:expectedThreshCount]
+		values <- tColumn[1:expectedThreshCount]
 		sortValues <- sort(values, na.last = NA)
 		if (!identical(sortValues, values)) {
 			stop(paste("In model", 
