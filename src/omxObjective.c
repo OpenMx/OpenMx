@@ -112,7 +112,8 @@ void omxInitEmptyObjective(omxObjective *oo) {
 void omxFreeObjectiveArgs(omxObjective *oo) {
 	/* Completely destroy the objective function tree */
 	free(oo->objType);
-	oo->destructFun(oo);
+	if(oo->destructFun != NULL)
+		oo->destructFun(oo);
 	oo->matrix = NULL;
 	
 }

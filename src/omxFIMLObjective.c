@@ -114,9 +114,9 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
 	omxFIMLObjective *argStruct = (omxFIMLObjective*) (oo->argStruct);
 
-	omxFreeMatrixData(argStruct->smallRow);
-	omxFreeMatrixData(argStruct->smallCov);
-	omxFreeMatrixData(argStruct->RCX);
+	if(argStruct->smallRow != NULL) omxFreeMatrixData(argStruct->smallRow);
+	if(argStruct->smallCov != NULL) omxFreeMatrixData(argStruct->smallCov);
+	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
 	if(argStruct->subObjective != NULL) {
 		omxObjectiveMetadataContainer oomc = {argStruct->cov, argStruct->means,
 			 argStruct->subObjective, argStruct->covarianceMeansFunction,
@@ -683,7 +683,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-        // Rprintf("Incrementing Row."); //:::DEBUG:::
+
 		row += numIdentical;
 		keepCov -= numIdentical;
 		keepInverse -= numIdentical;
@@ -711,6 +711,13 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 	
 	newObj->subObjective = NULL;
+	
+	/* Set default Objective calls to FIML Objective Calls */
+	oo->objectiveFun = omxCallFIMLObjective;
+	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
+	oo->destructFun = omxDestroyFIMLObjective;
+	oo->repopulateFun = NULL;
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("metadata")));
 	if(IS_S4_OBJECT(nextMatrix)) {
@@ -863,12 +870,6 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 //	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
-
-	oo->objectiveFun = omxCallFIMLObjective;
-	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
-	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
-	oo->destructFun = omxDestroyFIMLObjective;
-	oo->repopulateFun = NULL;
 
 //	Rprintf("Checking 0x%d.", newObj->data);
 	if(OMX_DEBUG) { Rprintf("Checking %d.", omxDataColumnIsFactor(newObj->data, 0)); }

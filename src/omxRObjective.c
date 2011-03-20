@@ -109,18 +109,21 @@ omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns)
 void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing R objective function.\n"); }
 	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
-	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));
-	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
-	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
-	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));
-	PROTECT_WITH_INDEX(newObj->state = GET_SLOT(rObj, install("state")), &(newObj->stateIndex));
-
+	
+	/* Set Objective Calls to R Objective Calls */
 	oo->objectiveFun = omxCallRObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRObjective;
 	oo->destructFun = omxDestroyRObjective;
 	oo->repopulateFun = omxRepopulateRObjective;
 	oo->argStruct = (void*) newObj;
+	
+	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));
+	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
+	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
+	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));
+	PROTECT_WITH_INDEX(newObj->state = GET_SLOT(rObj, install("state")), &(newObj->stateIndex));
+
 }
 
 

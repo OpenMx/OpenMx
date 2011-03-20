@@ -124,9 +124,14 @@
 	}
 
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {
+		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s", errorCode, errorMsg);}
+		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
 		oo->statusCode = errorCode;
 		strncpy(oo->statusMsg, errorMsg, 249);
 		oo->statusMsg[249] = '\0';
+		if(oo->computeCount <= 0 && errorCode < 0) {
+			oo->statusCode--;			// Decrement status for init errors.
+		}
 	}
 
 	void omxStateNextRow(omxState *oo) {

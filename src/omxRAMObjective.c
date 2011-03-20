@@ -78,15 +78,15 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 
 	oo->matrix->currentState->saturatedModel = argStruct->logDetObserved;
 
-	omxFreeMatrixData(argStruct->I);
-	omxFreeMatrixData(argStruct->C);
-	omxFreeMatrixData(argStruct->X);
-	omxFreeMatrixData(argStruct->Y);
-	omxFreeMatrixData(argStruct->Z);
-	omxFreeMatrixData(argStruct->Ax);
-	omxFreeMatrixData(argStruct->P);
-	omxFreeMatrixData(argStruct->V);
-	omxFreeMatrixData(argStruct->Mns);
+	if(argStruct->I   != NULL) omxFreeMatrixData(argStruct->I);
+	if(argStruct->C   != NULL) omxFreeMatrixData(argStruct->C);
+	if(argStruct->X   != NULL) omxFreeMatrixData(argStruct->X);
+	if(argStruct->Y   != NULL) omxFreeMatrixData(argStruct->Y);
+	if(argStruct->Z   != NULL) omxFreeMatrixData(argStruct->Z);
+	if(argStruct->Ax  != NULL) omxFreeMatrixData(argStruct->Ax);
+	if(argStruct->P   != NULL) omxFreeMatrixData(argStruct->P);
+	if(argStruct->V   != NULL) omxFreeMatrixData(argStruct->V);
+	if(argStruct->Mns != NULL) omxFreeMatrixData(argStruct->Mns);
 	// omxFreeMatrixData(argStruct->mCov);
 }
 
@@ -345,6 +345,14 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function.\n"); }
 
+	/* Set Objective Functions to RAM Objective Functions*/
+	oo->objectiveFun = omxCallRAMObjective;
+	oo->destructFun = omxDestroyRAMObjective;
+	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
+	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
+	oo->populateAttrFun = omxPopulateRAMAttributes;
+	oo->repopulateFun = NULL;
+
 	// Read the observed covariance matrix from the data argument.
 	omxData* dataElt = omxNewDataFromDataSlot(rObj, currentState, "data");
 	newObj->cov = omxDataMatrix(dataElt, NULL);
@@ -425,14 +433,6 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
 	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * (newObj->n - 1);
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
-
-	/* Register functions */
-	oo->objectiveFun = omxCallRAMObjective;
-	oo->destructFun = omxDestroyRAMObjective;
-	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
-	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
-	oo->populateAttrFun = omxPopulateRAMAttributes;
-	oo->repopulateFun = NULL;
 
 	oo->argStruct = (void*) newObj;
 

@@ -48,13 +48,14 @@ typedef struct omxMLObjective {
 
 void omxDestroyMLObjective(omxObjective *oo) {
 
+	if(OMX_DEBUG) {Rprintf("Freeing ML Objective.");}
 	omxMLObjective* omlo = ((omxMLObjective*)oo->argStruct);
 
-	omxFreeMatrixData(omlo->localCov);
-	omxFreeMatrixData(omlo->localProd);
-	omxFreeMatrixData(omlo->P);
-	omxFreeMatrixData(omlo->C);
-	omxFreeMatrixData(omlo->I);
+	if(omlo->localCov != NULL)	omxFreeMatrixData(omlo->localCov);
+	if(omlo->localProd != NULL)	omxFreeMatrixData(omlo->localProd);
+	if(omlo->P != NULL)			omxFreeMatrixData(omlo->P);
+	if(omlo->C != NULL)			omxFreeMatrixData(omlo->C);
+	if(omlo->I != NULL)			omxFreeMatrixData(omlo->I);
 }
 
 omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns) {
@@ -221,6 +222,15 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	double det=1.0;
 	char u = 'U';
 	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
+	
+	/* Set Objective Calls to ML Objective Calls */
+	oo->objectiveFun = omxCallMLObjective;
+	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
+	oo->destructFun = omxDestroyMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
+	oo->repopulateFun = NULL;
+	oo->argStruct = (void*) newObj;
+
 
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
@@ -286,7 +296,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info != 0) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite. Collinearity may be an issue.\n");
+		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite.\n");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 		return;
@@ -301,13 +311,6 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
 
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
-
-	oo->objectiveFun = omxCallMLObjective;
-	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
-	oo->destructFun = omxDestroyMLObjective;
-	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
-	oo->repopulateFun = NULL;
-	oo->argStruct = (void*) newObj;
 
 }
 
