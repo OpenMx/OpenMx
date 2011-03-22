@@ -81,32 +81,58 @@ omxNot <- function(x) {
 	return(apply(retval, c(1,2), as.numeric))
 }
 
-omxGreaterThan <- function(x, y){
-	retval <- as.matrix(x > y)
-	return(apply(retval, c(1,2), as.numeric))
+equalDimensions <- function(x, y) {
+	if (!identical(dim(x), dim(y))) {
+		msg <- paste("Arguments 'x' and 'y'",
+			"are not of identical dimensions",
+			"in", deparse(width.cutoff = 400L, sys.call(-1)))
+		stop(msg, call. = FALSE)
+	}
+}
+
+omxGreaterThan <- function(x, y) {
+	x <- as.matrix(x)
+	y <- as.matrix(y)
+	equalDimensions(x, y)
+	return(apply(x > y, c(1,2), as.numeric))
 }
 
 omxLessThan <- function(x, y){
-	return(omxGreaterThan(y , x))
+	x <- as.matrix(x)
+	y <- as.matrix(y)
+	equalDimensions(x, y)
+	return(apply(x < y, c(1,2), as.numeric))
 }
 
 omxAnd <- function(x, y){
-	retval <- as.matrix(x & y)
-	return(apply(retval, c(1,2), as.numeric))
+	x <- as.matrix(x)
+	y <- as.matrix(y)
+	equalDimensions(x, y)
+	return(apply(x & y, c(1,2), as.numeric))
 }
 
 omxOr <- function(x, y){
-	retval <- as.matrix(x | y)
-	return(apply(retval, c(1,2), as.numeric))
+	x <- as.matrix(x)
+	y <- as.matrix(y)
+	equalDimensions(x, y)
+	return(apply(x | y, c(1,2), as.numeric))
 }
 
-omxApproxEquals <- function(x,y, epsilon){
-	
-	return (omxLessThan(abs(x - y), epsilon ))
+omxApproxEquals <- function(x, y, epsilon){
+	x <- as.matrix(x)
+	y <- as.matrix(y)
+	epsilon <- as.matrix(epsilon)
+	equalDimensions(x, y)
+	if (!identical(dim(x), dim(epsilon))) {
+		msg <- paste("Argument 'epsilon'",
+                        "is not of the same dimensions",
+			"as 'x' and 'y'")
+                stop(msg)
+        }
+	return(omxLessThan(abs(x - y), epsilon))
 }
 
 omxMnor <- function(covariance, means, lbound, ubound) {
-    
     covariance <- as.matrix(covariance)
     means <- as.matrix(means)
     lbound <- as.matrix(lbound)

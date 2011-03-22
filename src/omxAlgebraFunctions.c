@@ -629,7 +629,7 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
                 omxResizeMatrix(result, rows, cols, FALSE);
     }
 
-	if (first->colMajor == second->colMajor) {
+	if (first->colMajor == second->colMajor && second->colMajor == epsilon->colMajor) {
         	for(int i = 0; i < size; i++) {
                 double ith_value = omxVectorElement(first, i) -
                         		   omxVectorElement(second, i);
