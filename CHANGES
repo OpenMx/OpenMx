@@ -16,6 +16,8 @@ trunk
 * added "mean" function to the set of available mxAlgebra() functions
 * added slots "expCov" and "expMean" to the MxRAMObjective function
 * added useOptimizer option to mxRun.
+* added error checking in frontend and backend for non-positive-definite observed covariance matrices
+
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================
 * added mxErrorPool() function and R documentation.

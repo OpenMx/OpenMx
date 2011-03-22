@@ -14,11 +14,21 @@
 #   limitations under the License.
 
 require(OpenMx)
+
 data <- matrix(-1, dimnames=list(c("x"), c("x")))
+omxCheckError(mxData(data, type="cov", numObs = 50),
+	paste("The observed covariance matrix is not",
+	"a positive-definite matrix"))
+
+data <- matrix(1, dimnames=list(c("x"), c("x")))
 model <- mxModel('ErrorModel', 
     mxMatrix("Full", 1, 1, F, 1, name="cov", 
                 dimnames=list(c("x"), c("x"))),
     mxData(data, type="cov", numObs = 50),
     mxMLObjective("cov")
 )
-omxCheckError(mxRun(model), paste("The job for model \'ErrorModel\' exited abnormally with the error message: Observed Covariance Matrix is non-positive-definite."))
+model$data@observed[1,1] <- -1
+omxCheckError(mxRun(model), 
+	paste("The job for model 'ErrorModel' exited",
+		"abnormally with the error message:",
+		"Observed Covariance Matrix is non-positive-definite."))
