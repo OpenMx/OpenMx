@@ -211,6 +211,11 @@ verifyCovarianceMatrix <- function(covMatrix) {
 			"is not a symmetric matrix")
 		stop(msg, call. = FALSE)
 	}
+	if (any(eigen(covMatrix)$values <= 0)) {
+		msg <- paste("The observed covariance matrix",
+			"is not a positive-definite matrix")
+		stop(msg, call. = FALSE)
+	}
 }
 
 generateDataList <- function(model) {
