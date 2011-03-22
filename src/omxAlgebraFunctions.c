@@ -403,6 +403,272 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrixCompute(result);
 }
 
+void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result){
+		if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Binary Or.\n");}
+	        omxMatrix* first = matList[0];
+		    omxMatrix* second = matList[1];
+
+		if(first->cols != second->cols || first->rows != second->rows) {
+	        	char *errstr = Calloc(250, char);
+	        	sprintf(errstr, "Non-conformable matrices in Binary Or.");
+	        	omxRaiseError(result->currentState, -1, errstr);
+	        	Free(errstr);
+		}
+
+		int rows = first->rows;
+		int cols = first->cols;
+		int size = rows * cols;
+
+	    if((rows != result->rows) || (cols != result->cols)){
+	        	omxResizeMatrix(result, rows, cols, FALSE);
+	    }
+
+		if (first->colMajor == second->colMajor) {
+	        	for(int i = 0; i < size; i++) {
+					double ith_first  = omxVectorElement(first, i);
+					double ith_second =omxVectorElement(second, i);
+					if ((ith_first == 0.0) && (ith_second == 0.0)){
+						omxSetVectorElement(result, i, 0.0);
+					}
+					else {
+						omxSetVectorElement(result, i, 1.0);
+					}
+	        	}
+	        result->colMajor = first->colMajor;
+	        omxMatrixCompute(result);
+		} else {
+	        	for(int i = 0; i < rows; i++) {
+	                	for(int j = 0; j < cols; j++) {
+							double ith_first  = omxMatrixElement(first, i, j);
+							double ith_second = omxMatrixElement(second, i, j);
+	                        	if ((ith_first == 0.0) && (ith_second == 0.0)){
+	                                	omxSetMatrixElement(result, i, j, 0.0);
+	                        	}
+	                        	else {
+	                                	omxSetMatrixElement(result, i, j, 1.0);
+	                        	}
+	                	}
+	        	}
+		}
+}
+
+void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
+		if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Binary And.\n");}
+	        omxMatrix* first = matList[0];
+		    omxMatrix* second = matList[1];
+
+		if(first->cols != second->cols || first->rows != second->rows) {
+	        	char *errstr = Calloc(250, char);
+	        	sprintf(errstr, "Non-conformable matrices in Binary And.");
+	        	omxRaiseError(result->currentState, -1, errstr);
+	        	Free(errstr);
+		}
+
+		int rows = first->rows;
+		int cols = first->cols;
+		int size = rows * cols;
+
+	    if((rows != result->rows) || (cols != result->cols)){
+	             omxResizeMatrix(result, rows, cols, FALSE);
+	    }
+
+		if (first->colMajor == second->colMajor) {
+	        	for(int i = 0; i < size; i++) {
+					double ith_first  = omxVectorElement(first, i);
+					double ith_second =omxVectorElement(second, i);
+					if ((ith_first == 0.0) || (ith_second == 0.0)){
+						omxSetVectorElement(result, i, 0.0);
+					}
+					else {
+						omxSetVectorElement(result, i, 1.0);
+					}
+	        	}
+	        result->colMajor = first->colMajor;
+	        omxMatrixCompute(result);
+		} else {
+	        	for(int i = 0; i < rows; i++) {
+	                	for(int j = 0; j < cols; j++) {
+							double ith_first  = omxMatrixElement(first, i, j);
+							double ith_second = omxMatrixElement(second, i, j);
+	                        	if ((ith_first == 0.0) || (ith_second == 0.0)){
+	                                	omxSetMatrixElement(result, i, j, 0.0);
+	                        	}
+	                        	else {
+	                                	omxSetMatrixElement(result, i, j, 1.0);
+	                        	}
+	                	}
+	        	}
+		}
+}
+
+void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
+		if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Binary Less Than.\n");}
+	        omxMatrix* first = matList[0];
+		    omxMatrix* second = matList[1];
+
+		if(first->cols != second->cols || first->rows != second->rows) {
+	        	char *errstr = Calloc(250, char);
+	        	sprintf(errstr, "Non-conformable matrices in Binary Less Than.");
+	        	omxRaiseError(result->currentState, -1, errstr);
+	        	Free(errstr);
+		}
+
+		int rows = first->rows;
+		int cols = first->cols;
+		int size = rows * cols;
+
+	    if((rows != result->rows) || (cols != result->cols)){
+	             omxResizeMatrix(result, rows, cols, FALSE);
+	    }
+
+		if (first->colMajor == second->colMajor) {
+	        	for(int i = 0; i < size; i++) {
+	                	double ith_value = omxVectorElement(first, i) -
+	                        		   omxVectorElement(second, i);
+						if (ith_value < 0.0){
+							omxSetVectorElement(result, i, 1.0);
+						}
+						else {
+							omxSetVectorElement(result, i, 0.0);
+						}
+	        	}
+	        result->colMajor = first->colMajor;
+	        omxMatrixCompute(result);
+		} else {
+	        	for(int i = 0; i < rows; i++) {
+	                	for(int j = 0; j < cols; j++) {
+	 				double ith_value = omxMatrixElement(first, i, j) -
+	                                   omxMatrixElement(second, i, j);
+
+	                        	if (ith_value < 0.0){
+	                                	omxSetMatrixElement(result, i, j, 1.0);
+	                        	}
+	                        	else {
+	                                	omxSetMatrixElement(result, i, j, 0.0);
+	                        	}
+	                	}
+	        	}
+		}
+}
+
+void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+        if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Binary Greater Than.\n");}
+ 
+        omxMatrix* first = matList[0];
+	    omxMatrix* second = matList[1];
+
+	if(first->cols != second->cols || first->rows != second->rows) {
+        	char *errstr = Calloc(250, char);
+        	sprintf(errstr, "Non-conformable matrices in Binary Greater Than.");
+        	omxRaiseError(result->currentState, -1, errstr);
+        	Free(errstr);
+	}
+
+	int rows = first->rows;
+	int cols = first->cols;
+	int size = rows * cols;
+
+        if((rows != result->rows) || (cols != result->cols)){
+                omxResizeMatrix(result, rows, cols, FALSE);
+        }
+
+	if (first->colMajor == second->colMajor) {
+        	for(int i = 0; i < size; i++) {
+                	double ith_value = omxVectorElement(first, i) -
+                        		   omxVectorElement(second, i);
+			if (ith_value > 0.0){
+				omxSetVectorElement(result, i, 1.0);
+			}
+			else {
+				omxSetVectorElement(result, i, 0.0);
+			}
+        	}
+        result->colMajor = first->colMajor;
+        omxMatrixCompute(result);
+	} else {
+        	for(int i = 0; i < rows; i++) {
+                	for(int j = 0; j < cols; j++) {
+ 				double ith_value = omxMatrixElement(first, i, j) -
+                                           	   omxMatrixElement(second, i, j);
+
+                        	if (ith_value > 0.0){
+                                	omxSetMatrixElement(result, i, j, 1.0);
+                        	}
+                        	else {
+                                	omxSetMatrixElement(result, i, j, 0.0);
+                        	}
+                	}
+        	}
+	}
+}
+
+void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	
+       if (OMX_DEBUG_ALGEBRA) {Rprintf("ALGEBRA: Binary Approx. Equals.\n");}
+ 
+        omxMatrix* first  = matList[0];
+	    omxMatrix* second = matList[1];
+		omxMatrix* epsilon = matList[2]; 
+		
+	if(first->cols != second->cols  || first->rows != second->rows || 
+	   first->cols != epsilon->cols || first->rows != epsilon->rows) {
+        	char *errstr = Calloc(250, char);
+        	sprintf(errstr, "Non-conformable matrices in Binary Approx Equals.");
+        	omxRaiseError(result->currentState, -1, errstr);
+        	Free(errstr);
+	}
+
+	int rows = first->rows;
+	int cols = first->cols;
+	int size = rows * cols;
+	double negativeOne = -1.0;
+
+    if((rows != result->rows) || (cols != result->cols)){
+                omxResizeMatrix(result, rows, cols, FALSE);
+    }
+
+	if (first->colMajor == second->colMajor) {
+        	for(int i = 0; i < size; i++) {
+                double ith_value = omxVectorElement(first, i) -
+                        		   omxVectorElement(second, i);
+				double epsilon_value = omxVectorElement(epsilon, i);
+				
+				if (ith_value < 0.0){
+					ith_value = ith_value * negativeOne;
+				}
+				if (ith_value < epsilon_value){
+					omxSetVectorElement(result, i, 1.0);
+				}
+				else {
+					omxSetVectorElement(result, i, 0.0);
+				}
+        	}
+        result->colMajor = first->colMajor;
+        omxMatrixCompute(result);
+	} else {
+        	for(int i = 0; i < rows; i++) {
+                	for(int j = 0; j < cols; j++) {
+ 						    double ith_value = omxMatrixElement(first, i, j) -
+                                           	   omxMatrixElement(second, i, j);
+
+							double epsilon_value = omxMatrixElement(epsilon, i, j);
+							if (ith_value < 0.0){
+								ith_value = ith_value * negativeOne;
+							}
+                        	if (ith_value < epsilon_value){
+                                	omxSetMatrixElement(result, i, j, 1.0);
+                        	}
+                        	else {
+                                	omxSetMatrixElement(result, i, j, 0.0);
+                        	}
+                	}
+        	}
+	}
+
+}
+
 void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 

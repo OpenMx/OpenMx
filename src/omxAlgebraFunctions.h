@@ -33,6 +33,11 @@ void checkIncreasing(omxMatrix* om, int column);
 /* Functional Wrappers */
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result);

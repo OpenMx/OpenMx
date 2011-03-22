@@ -81,6 +81,30 @@ omxNot <- function(x) {
 	return(apply(retval, c(1,2), as.numeric))
 }
 
+omxGreaterThan <- function(x, y){
+	retval <- as.matrix(x > y)
+	return(apply(retval, c(1,2), as.numeric))
+}
+
+omxLessThan <- function(x, y){
+	return(omxGreaterThan(y , x))
+}
+
+omxAnd <- function(x, y){
+	retval <- as.matrix(x & y)
+	return(apply(retval, c(1,2), as.numeric))
+}
+
+omxOr <- function(x, y){
+	retval <- as.matrix(x | y)
+	return(apply(retval, c(1,2), as.numeric))
+}
+
+omxApproxEquals <- function(x,y, epsilon){
+	
+	return (omxLessThan(abs(x - y), epsilon ))
+}
+
 omxMnor <- function(covariance, means, lbound, ubound) {
     
     covariance <- as.matrix(covariance)
