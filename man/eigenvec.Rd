@@ -23,7 +23,7 @@
 
 \description{
    \code{eigenval} computes the real parts of the eigenvalues of a square matrix.
-   \code{eigenval} computes the real parts of the eigenvectors of a square matrix.
+   \code{eigenvec} computes the real parts of the eigenvectors of a square matrix.
    \code{ieigenval} computes the imaginary parts of the eigenvalues of a square matrix.
    \code{ieigenvec} computes the imaginary parts of the eigenvectors of a square matrix.
    \code{eigenval} and \code{ieigenval} return nx1 matrices containing the real or imaginary parts of the eigenvalues, sorted in decreasing order of the modulus of the complex eigenvalue.  For eigenvalues without an imaginary part, this is equivalent to sorting in decreasing order of the absolute value of the eigenvalue. (See \code{\link{Mod}} for more info.)
