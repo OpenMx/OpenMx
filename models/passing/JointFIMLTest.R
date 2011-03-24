@@ -12,12 +12,12 @@ require(MASS)
 # is the sum of the ordinal likelihood and the continuous likelihood.
 # All estimates on both sides should match.
 
-nOrdinalVariables<-2
-nContinuousVariables<-2
-nVariables<-nOrdinalVariables + nContinuousVariables
-nFactors<-2
-nThresholds<-1
-nSubjects<-200
+nOrdinalVariables <- 2
+nContinuousVariables <- 2
+nVariables <- nOrdinalVariables + nContinuousVariables
+nFactors <- 2
+nThresholds <- 1
+nSubjects <- 200
 useOptimizer <- FALSE
 
 loadings <- matrix(c(.7,.7, 0, 0, 0, 0, .7, .7),nrow=nVariables,ncol=nFactors)
@@ -34,29 +34,29 @@ continuousData <- data.frame(matrix(mvrnorm(n=nSubjects,mu,sigma), nrow=nSubject
 
 # Step 2: chop continuous variables into ordinal data 
 # with nThresholds+1 approximately equal categories, based on 1st variable
-quants<-quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
-ordinalData<-matrix(0,nrow=nSubjects,ncol=nVariables)
-for(i in 1:nVariables)
-{
-ordinalData[,i] <- cut(as.vector(continuousData[,i]),c(-Inf,quants,Inf))
+quants <- quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
+ordinalData <- matrix(0,nrow=nSubjects,ncol=nVariables)
+for(i in 1:nVariables) {
+   ordinalData[,i] <- cut(as.vector(continuousData[,i]),c(-Inf,quants,Inf))
 }
 
 # Step 3: make the ordinal variables into R factors and make a joint data frame with both variables in it, innit?
 ordinalData <- mxFactor(as.data.frame(ordinalData),levels=c(1:(nThresholds+1)))
-jointData <- data.frame(ordinalData[,1:nOrdinalVariables],continuousData[,(nOrdinalVariables+1):nVariables])
+jointData <- data.frame(continuousData[,(nOrdinalVariables+1):nVariables],
+	ordinalData[,1:nOrdinalVariables])
 
-ordinalNames<-paste("IamOrdinal",1:nOrdinalVariables,sep="")
-continuousNames<-paste("IamContinuous",1:nContinuousVariables,sep="")
-jointNames<-c(ordinalNames,continuousNames)
-minOrd <- 1
-maxOrd <- nOrdinalVariables
-minCont <- nOrdinalVariables + 1
-maxCont <- nOrdinalVariables + nContinuousVariables
-ordCols <- 1:nOrdinalVariables
-contCols <- nOrdinalVariables + 1:nContinuousVariables
-names(jointData)<-jointNames
-names(continuousData)<-jointNames   # TODO: Change names appropriately.
-names(ordinalData)<-jointNames
+ordinalNames <- paste("IamOrdinal", 1:nOrdinalVariables, sep="")
+continuousNames <- paste("IamContinuous", 1:nContinuousVariables, sep="")
+jointNames <- c(continuousNames, ordinalNames)
+minOrd <- 1 + nContinuousVariables
+maxOrd <- nOrdinalVariables + nContinuousVariables
+minCont <- 1
+maxCont <- nContinuousVariables
+ordCols <- 1:nOrdinalVariables + nContinuousVariables
+contCols <- 1:nContinuousVariables
+names(jointData) <- jointNames
+names(continuousData) <- jointNames
+names(ordinalData) <- jointNames 
 
 # Step 4: Set up actual models, simulation 1
 
@@ -151,11 +151,12 @@ ordinalCrossData[,i] <- cut(as.vector(continuousCrossData[,i]),c(-Inf,quants,Inf
 
 # Step 4: make the ordinal variables into R factors and make a joint data frame with both variables in it, innit?
 ordinalCrossData <- mxFactor(as.data.frame(ordinalCrossData),levels=c(1:(nThresholds+1)))
-jointCrossData <- data.frame(ordinalCrossData[,1:nOrdinalVariables],continuousCrossData[,(nOrdinalVariables+1):nVariables])
+jointCrossData <- data.frame(continuousCrossData[,(nOrdinalVariables+1):nVariables],
+	ordinalCrossData[,1:nOrdinalVariables])
 
-names(jointCrossData)<-jointNames
-names(continuousCrossData)<-jointNames   # TODO: Change names appropriately.
-names(ordinalCrossData)<-jointNames
+names(jointCrossData) <- jointNames
+names(continuousCrossData) <- jointNames
+names(ordinalCrossData) <- jointNames
 
 # Step 5: Set up actual models, simulation 2
 
@@ -234,7 +235,7 @@ contModel       <- mxOption(contModel,       "Standard Errors", "No")
 
 ordinal    <- summary(thresholdModelRun <- mxRun(thresholdModel))$Minus2LogLikelihood
 continuous <- summary(continuousModelRun <- mxRun(continuousModel))$Minus2LogLikelihood
-joint      <- summary(jointModelRun <- mxRun(jointModel, unsafe=TRUE))$Minus2LogLikelihood
+joint      <- summary(jointModelRun <- mxRun(jointModel))$Minus2LogLikelihood
 
 ord <- summary(mxRun(ordModel))$Minus2LogLikelihood
 cont <- summary(mxRun(contModel) )$Minus2LogLikelihood
@@ -245,7 +246,7 @@ indepJoint <- summary(mxRun(independentModel))$Minus2LogLikelihood
 # Isbetween will be negative if the signs don't match; that is, if joint is not between
 isbetween <- sign(ordinal - joint) * sign(joint - continuous)
 
-omxCheckCloseEnough(isbetween, 1, .1)
+omxCheckEquals(isbetween, 1)
 omxCheckCloseEnough(indepJoint, ord+cont, .000001)
 
 
