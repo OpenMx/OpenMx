@@ -31,6 +31,7 @@
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxObjective.h"
+#include "omxBackendHelperFunctions.h"
 //#include "omxSymbolTable.h"
 
 /* NPSOL-related functions */
@@ -145,12 +146,6 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	return ans;
 }
 
-
-int matchCaseInsensitive(const char *source, int lenSource, const char *target) {
-	int lenTarget = strlen(target);
-	return((lenSource == lenTarget)	&& (strncasecmp(source, target, lenSource) == 0));
-}
-
 SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
@@ -175,7 +170,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	
     int errOut = 0;                 // Error state: Clear
 
-	SEXP nextLoc, nextMat, nextAlgTuple, nextAlg, nextVar;
+	SEXP nextLoc, nextMat, nextVar;
 
 	omxMatrix** calculateHessians = NULL;
 	int calculateStdErrors = FALSE;
@@ -198,87 +193,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
 	/* Retrieve Data Objects */
-	if(OMX_DEBUG) { Rprintf("Processing %d data source(s).\n", length(data));}
-	currentState->numData = length(data);
-	currentState->dataList = (omxData**) R_alloc(length(data), sizeof(omxData*));
-
-	for(k = 0; k < length(data); k++) {
-		PROTECT(nextLoc = VECTOR_ELT(data, k));			// Retrieve the data object
-		currentState->dataList[k] = omxNewDataFromMxData(NULL, nextLoc, currentState);
-		if(OMX_DEBUG) {
-			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
-				currentState->dataList[k], currentState->dataList[k]->rows, currentState->dataList[k]->cols);
-		}
-		UNPROTECT(1); // nextMat
-		if(currentState->statusCode < 0) {
-            errOut = TRUE;
-            currentState->numData = k+1;
-            break;
-		}
-	}
+	if(!errOut) errOut = omxProcessMxDataEntities(data);
     
 	/* Retrieve All Matrices From the MatList */
-
-	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
-	if(!errOut) {
-    	currentState->numMats = length(matList);
-    	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
-
-    	for(k = 0; k < length(matList); k++) {
-    		PROTECT(nextLoc = VECTOR_ELT(matList, k));		// This is the matrix + populations
-    		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-    		currentState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, currentState);
-    		if(OMX_DEBUG) {
-    			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
-    				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
-    		}
-    		UNPROTECT(2); // nextLoc and nextMat
-    		if(currentState->statusCode < 0) {
-				if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth matrix.\n", k+1);}
-                errOut = TRUE;
-                currentState->numMats = k+1;
-                break;
-    		}
-    	}
-	}
+	if(!errOut) errOut = omxProcessMxMatrixEntities(matList);
 
 	/* Process Algebras Here */
-	if(!errOut) {
-		currentState->numAlgs = length(algList);
-		SEXP algListNames = getAttrib(algList, R_NamesSymbol);
-
-		l = 1;
-		if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", currentState->numAlgs, length(algList)); }
-		currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
-
-		for(int j = 0; j < currentState->numAlgs; j++) {
-			currentState->algebraList[j] = omxInitMatrix(NULL, 0,0, TRUE, currentState);
-		}
-
-		for(int j = 0; j < currentState->numAlgs; j++) {
-			PROTECT(nextAlgTuple = VECTOR_ELT(algList, j));		// The next algebra or objective to process
-			if(OMX_DEBUG) { Rprintf("Intializing algebra %d at location 0x%0x.\n", j, currentState->algebraList + j); }
-			if(IS_S4_OBJECT(nextAlgTuple)) {		// This is an objective object.
-				omxFillMatrixFromMxObjective(currentState->algebraList[j], nextAlgTuple);
-			} else {								// This is an algebra spec.
-				PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
-				omxFillMatrixFromRPrimitive(currentState->algebraList[j],
-					nextAlg, currentState);
-				UNPROTECT(1);	// nextAlg
-				PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
-				omxFillMatrixFromMxAlgebra(currentState->algebraList[j],
-					nextAlg, CHAR(STRING_ELT(algListNames, j)));
-				UNPROTECT(1);	// nextAlg
-			}
-			UNPROTECT(1);	// nextAlgTuple
-			if(currentState->statusCode < 0) {
-				if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth algebra.\n", k+1);}
-	            errOut = TRUE;
-	            currentState->numAlgs = j+1;
-	            break;
-			}
-		}
-	}
+	if(!errOut) errOut = omxProcessMxAlgebraEntities(algList);
 
 	if(!errOut) {
 		if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}

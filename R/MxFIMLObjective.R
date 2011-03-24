@@ -428,7 +428,7 @@ generateDataColumns <- function(flatModel, covName, dataName) {
 
 
 mxFIMLObjective <- function(covariance, means, dimnames = NA, 
-						thresholds = NA, vector = FALSE, threshnames = dimnames) {
+	thresholds = NA, vector = FALSE, threshnames = dimnames) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("'covariance' argument is not a string (the name of the expected covariance matrix)")
 	}
