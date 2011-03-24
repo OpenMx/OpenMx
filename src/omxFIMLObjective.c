@@ -567,7 +567,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     int info;
     double determinant;
     double oned = 1.0, zerod = 0.0, minusoned = -1.0;
-    int onei = 1, zeroi = 0;
+    int onei = 1;
 
     while(row < data->rows) {
         if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
@@ -1188,9 +1188,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
 	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix, objectiveClass;
-    SEXP levelList;
 	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
-	int *nextInt;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 	
 	newObj->subObjective = NULL;
