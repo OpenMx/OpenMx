@@ -18,8 +18,14 @@
 #include <Rinternals.h>
 #include <Rdefines.h>
 
+#include <sys/stat.h>
+
 #include "omxDefines.h"
 #include "omxState.h"
+#include "omxNPSOLSpecific.h"
+
+/* Outside R Functions */
+static int isDir(const char *path);
 
 extern omxState* currentState;		
 
@@ -115,5 +121,187 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 		}
 	}
 	return(errOut);
+}
+
+int omxInitialMatrixAlgebraCompute() {
+	int errOut = FALSE;
+	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
+	omxStateNextEvaluation(currentState);
+
+	for(int index = 0; index < currentState->numMats; index++) {
+		omxRecompute(currentState->matrixList[index]);
+	}
+
+	for(int index = 0; index < currentState->numAlgs; index++) {
+		omxRecompute(currentState->algebraList[index]);
+	}
+	return(errOut);
+}
+
+int omxProcessObjectiveFunction(SEXP objective, int *n) {
+	int errOut = FALSE;
+	if(!isNull(objective)) {
+		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
+		currentState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, currentState);
+	} else {
+		currentState->objectiveMatrix = NULL;
+		*n = 0;
+		currentState->numFreeParams = *n;
+	}
+	return(errOut);
+}
+
+/*
+checkpointList is a list().  Each element refers to one checkpointing request.
+Each interval request is a list of length 5.
+The first element is an integer that specifies type: 0 = file, 1 = socket, 2=R_connection
+For a file, the next two are the directory(string)  and file name (string).
+For a socket, they are server (string) and port number (int).
+For a connection, the next one is the R_connection SEXP object.
+After that is an integer <type> specifier.  0 means minutes, 1 means iterations.
+The last element is an integer count, indicating the number of <type>s per checkpoint.
+*/
+void omxProcessCheckpointOptions(SEXP checkpointList) {
+	if(OMX_VERBOSE) { Rprintf("Processing Checkpoint Requests.\n");}
+	currentState->numCheckpoints = length(checkpointList);
+	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", currentState->numCheckpoints); }
+	currentState->checkpointList = (omxCheckpoint*) R_alloc(currentState->numCheckpoints, sizeof(omxCheckpoint));
+	SEXP nextLoc;
+
+	for(int index = 0; index < currentState->numCheckpoints; index++) {
+		omxCheckpoint *oC = &(currentState->checkpointList[index]);
+
+		/* Initialize Checkpoint object */
+		oC->socket = -1;
+		oC->file = NULL;
+		oC->connection = NULL;
+		oC->time = 0;
+		oC->numIterations = 0;
+		oC->lastCheckpoint = 0;
+
+		const char *pathName, *fileName, *serverName;
+
+		PROTECT(nextLoc = VECTOR_ELT(checkpointList, index));
+		int next = 0;
+		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
+		switch(oC->type) {
+		case OMX_FILE_CHECKPOINT:
+			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
+			fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
+			char sep ='/';
+
+			if(!isDir(pathName)) {
+				error("Unable to open directory %s for checkpoint storage.\n", pathName);
+			}
+
+			char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
+			sprintf(fullname, "%s%c%s", pathName, sep, fileName);
+			if(OMX_VERBOSE) { Rprintf("Opening File: %s\n", fullname); }
+			oC->file = fopen(fullname, "w");
+			if(!oC->file) {
+				error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
+			}
+			Free(fullname);
+			oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
+			break;
+
+		case OMX_SOCKET_CHECKPOINT:
+			serverName = CHAR(VECTOR_ELT(nextLoc, next++));
+			// int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0]; // Commented to suppress "unused variable" warning.
+			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
+			oC->saveHessian = FALSE;
+			break;
+
+		case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
+			oC->connection = VECTOR_ELT(nextLoc, next++);
+			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
+			oC->saveHessian = FALSE;
+			break;
+		}
+
+		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
+		if(isCount) {
+			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
+		} else {
+			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
+			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
+		}
+
+		UNPROTECT(1); /* nextLoc */
+
+	}
+}
+
+/*
+varList is a list().  Each element of this list corresponds to one free parameter.
+Each free parameter is a list.  The first element of this list is the lower bound.
+The second element of the list is the upper bound.  The remaining elements of this
+list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
+*/
+void omxProcessFreeVarList(SEXP varList, int n) {
+	SEXP nextVar, nextLoc;
+	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
+	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
+	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
+		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
+		int numLocs = length(nextVar) - 2;
+		currentState->freeVarList[freeVarIndex].numLocations = numLocs;
+		currentState->freeVarList[freeVarIndex].location = (double**) R_alloc(numLocs, sizeof(double*));
+		currentState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
+		currentState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
+
+		/* Lower Bound */
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
+		currentState->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
+		if(ISNA(currentState->freeVarList[freeVarIndex].lbound)) currentState->freeVarList[freeVarIndex].lbound = NEG_INF;
+		if(currentState->freeVarList[freeVarIndex].lbound == 0.0) currentState->freeVarList[freeVarIndex].lbound = 0.0;
+		UNPROTECT(1); // NextLoc
+		/* Upper Bound */
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
+		currentState->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
+		if(ISNA(currentState->freeVarList[freeVarIndex].ubound)) currentState->freeVarList[freeVarIndex].ubound = INF;
+		if(currentState->freeVarList[freeVarIndex].ubound == 0.0) currentState->freeVarList[freeVarIndex].ubound = -0.0;
+		UNPROTECT(1); // NextLoc
+
+		if(OMX_DEBUG) { 
+			Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", freeVarIndex, 
+				currentState->freeVarList[freeVarIndex].lbound, 
+				currentState->freeVarList[freeVarIndex].ubound, numLocs);
+		}
+		for(int locIndex = 0; locIndex < currentState->freeVarList[freeVarIndex].numLocations; locIndex++) {
+			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+2));
+			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
+
+			int theMat = theVarList[0];			// Matrix is zero-based indexed.
+			int theRow = theVarList[1];			// Row is zero-based.
+			int theCol = theVarList[2];			// Column is zero-based.
+
+			double* locationMatrixElement = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
+			currentState->freeVarList[freeVarIndex].location[locIndex] = locationMatrixElement;
+			currentState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
+			UNPROTECT(1); // nextLoc
+		}
+		UNPROTECT(1); // nextVar
+	}
+}
+
+/*
+*  Acknowledgement:
+*  This function is duplicated from the function of the same name in the R source code.
+*  The function appears in src/main/sysutils.c
+*  Thanks to Michael Spiegel for finding it.
+*/
+static int isDir(const char *path)
+{
+    struct stat sb;
+    int isdir = 0;
+    if(!path) return 0;
+    if(stat(path, &sb) == 0) {
+        isdir = (sb.st_mode & S_IFDIR) > 0; /* is a directory */
+        /* We want to know if the directory is writable by this user,
+           which mode does not tell us */
+        isdir &= (access(path, W_OK) == 0);
+    }
+    return isdir;
 }
 

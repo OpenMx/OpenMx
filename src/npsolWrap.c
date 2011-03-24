@@ -25,12 +25,12 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxObjective.h"
+#include "omxNPSOLSpecific.h"
 #include "omxBackendHelperFunctions.h"
 //#include "omxSymbolTable.h"
 
@@ -54,14 +54,6 @@ SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
 unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, 
 										int r, omxState* currentState, double optimum);
-
-/* Outside R Functions */
-static int isDir(const char *path);
-
-/* NPSOL-specific globals */
-const double NPSOL_BIGBND = 1e20;
-const double NEG_INF = -2e20;
-const double INF = 2e20;
 
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
@@ -201,28 +193,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Process Algebras Here */
 	if(!errOut) errOut = omxProcessMxAlgebraEntities(algList);
 
-	if(!errOut) {
-		if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
-		omxStateNextEvaluation(currentState);
-
-		for(k = 0; k < currentState->numMats; k++) {
-			omxRecompute(currentState->matrixList[k]);
-		}
-
-		for(k = 0; k < currentState->numAlgs; k++) {
-			omxRecompute(currentState->algebraList[k]);
-		}
-	}
+	/* Initial Matrix and Algebra Calculations */
+	if(!errOut) errOut = omxInitialMatrixAlgebraCompute();
 	
 	/* Process Objective Function */
-	if(!isNull(objective) & !errOut) {
-		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
-		currentState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, currentState);
-	} else {
-		currentState->objectiveMatrix = NULL;
-		n = 0;
-		currentState->numFreeParams = n;
-	}
+	if(!errOut) errOut = omxProcessObjectiveFunction(objective, &n);
 
 	// TODO: Make calculateHessians an option instead.
 
@@ -241,52 +216,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	/* Process Free Var List */
-	/*
-	 varList is a list().  Each element of this list corresponds to one free parameter.
-	 Each free parameter is a list.  The first element of this list is the lower bound.
-	 The second element of the list is the upper bound.  The remaining elements of this
-	 list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
-    */
-	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
-	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
-	for(k = 0; k < n; k++) {
-		PROTECT(nextVar = VECTOR_ELT(varList, k));
-		int numLocs = length(nextVar) - 2;
-		currentState->freeVarList[k].numLocations = numLocs;
-		currentState->freeVarList[k].location = (double**) R_alloc(numLocs, sizeof(double*));
-		currentState->freeVarList[k].matrices = (int*) R_alloc(numLocs, sizeof(int));
-		currentState->freeVarList[k].name = CHAR(STRING_ELT(GET_NAMES(varList), k));
-
-		/* Lower Bound */
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
-		currentState->freeVarList[k].lbound = REAL(nextLoc)[0];
-		if(ISNA(currentState->freeVarList[k].lbound)) currentState->freeVarList[k].lbound = NEG_INF;
-		if(currentState->freeVarList[k].lbound == 0.0) currentState->freeVarList[k].lbound = 0.0;
-		UNPROTECT(1); // NextLoc
-		/* Upper Bound */
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
-		currentState->freeVarList[k].ubound = REAL(nextLoc)[0];
-		if(ISNA(currentState->freeVarList[k].ubound)) currentState->freeVarList[k].ubound = INF;
-		if(currentState->freeVarList[k].ubound == 0.0) currentState->freeVarList[k].ubound = -0.0;
-		UNPROTECT(1); // NextLoc
-
-		if(OMX_DEBUG) { Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", k, currentState->freeVarList[k].lbound, currentState->freeVarList[k].ubound, numLocs); }
-		for(l = 0; l < currentState->freeVarList[k].numLocations; l++) {
-			PROTECT(nextLoc = VECTOR_ELT(nextVar, l+2));
-			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
-
-			int theMat = theVarList[0];			// Matrix is zero-based indexed.
-			int theRow = theVarList[1];			// Row is zero-based.
-			int theCol = theVarList[2];			// Column is zero-based.
-
-			currentState->freeVarList[k].location[l] = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
-			currentState->freeVarList[k].matrices[l] = theMat;
-			UNPROTECT(1); // nextLoc
-		}
-		UNPROTECT(1); // nextVar
-	}
-
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
+	omxProcessFreeVarList(varList, n);
 
 	/* Processing Constraints */
 	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
@@ -343,84 +273,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
 
 	/* Process Checkpoint List */
-	/*
-	 checkpointList is a list().  Each element refers to one checkpointing request.
-	 Each interval request is a list of length 5.
-	 The first element is an iteger that specifies type: 0 = file, 1 = socket, 2=R_connection
-	 For a file, the next two are the directory(string)  and file name (string).
-	 For a socket, they are server (string) and port number (int).
-	 For a connection, the next one is the R_connection SEXP object.
-	 After that is an integer <type> specifier.  0 means minutes, 1 means iterations.
-	 The last element is an integer count, indicating the number of <type>s per checkpoint.
-    */
-	if(OMX_VERBOSE) { Rprintf("Processing Checkpoint Requests.\n");}
-	currentState->numCheckpoints = length(checkpointList);
-	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", currentState->numCheckpoints); }
-	currentState->checkpointList = (omxCheckpoint*) R_alloc(currentState->numCheckpoints, sizeof(omxCheckpoint));
-	for(k = 0; k < currentState->numCheckpoints; k++) {
-		omxCheckpoint *oC = &(currentState->checkpointList[k]);
-
-		/* Initialize Checkpoint object */
-		oC->socket = -1;
-		oC->file = NULL;
-		oC->connection = NULL;
-		oC->time = 0;
-		oC->numIterations = 0;
-		oC->lastCheckpoint = 0;
-
-		const char *pathName, *fileName, *serverName;
-
-		PROTECT(nextLoc = VECTOR_ELT(checkpointList, k));
-		int next = 0;
-		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
-		switch(oC->type) {
-			case OMX_FILE_CHECKPOINT:
-				pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
-				fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
-				char sep ='/';
-
-				if(!isDir(pathName)) {
-					error("Unable to open directory %s for checkpoint storage.\n", pathName);
-				}
-
-				char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
-				sprintf(fullname, "%s%c%s", pathName, sep, fileName);
-				if(OMX_VERBOSE) { Rprintf("Opening File: %s\n", fullname); }
-				oC->file = fopen(fullname, "w");
-				if(!oC->file) {
-					error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
-				}
-				Free(fullname);
-				oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
-				break;
-
-			case OMX_SOCKET_CHECKPOINT:
-				serverName = CHAR(VECTOR_ELT(nextLoc, next++));
-				// int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0]; // Commented to suppress "unused variable" warning.
-				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
-				oC->saveHessian = FALSE;
-				break;
-
-			case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
-				oC->connection = VECTOR_ELT(nextLoc, next++);
-				Rprintf("Warning NYI: Socket checkpointing Not Yet Implemented.\n");
-				oC->saveHessian = FALSE;
-				break;
-		}
-
-		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
-		if(isCount) {
-			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
-		} else {
-			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
-			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
-		}
-
-		UNPROTECT(1); /* nextLoc */
-		
-	}
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+	omxProcessCheckpointOptions(checkpointList);
 
   } // End if(errOut)
 
@@ -1430,25 +1283,4 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 
 	return TRUE;
 
-}
-
-
-/*
-*  Acknowledgement:
-*  This function is duplicated from the function of the same name in the R source code.
-*  The function appears in src/main/sysutils.c
-*  Thanks to Michael Spiegel for finding it.
-*/
-static int isDir(const char *path)
-{
-    struct stat sb;
-    int isdir = 0;
-    if(!path) return 0;
-    if(stat(path, &sb) == 0) {
-        isdir = (sb.st_mode & S_IFDIR) > 0; /* is a directory */
-        /* We want to know if the directory is writable by this user,
-           which mode does not tell us */
-        isdir &= (access(path, W_OK) == 0);
-    }
-    return isdir;
 }
