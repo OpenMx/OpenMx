@@ -35,7 +35,7 @@ mxAlgebra(expression, name = NA, dimnames = NA)
 \details{
 The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxAlgebraObjective} function. The \code{mxAlgebraObjective} function must reference the \code{MxAlgebra} object to be evaluated by name.
 
-The following operations are supported in mxAlgebra:
+The following operators are supported in mxAlgebra:
 \describe{
 \item{\code{solve()}}{Inversion}
 \item{\code{t()}}{Transposition}
@@ -76,6 +76,12 @@ The following functions are supported in mxAlgebra:
 \item{\code{\link{vechs}}}{Strict half-vectorization}
 \item{\code{\link{vec2diag}}}{Create a diagonal matrix}
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix}
+\item{\code{\link{omxNot}}}{Perform unary negation on a matrix}
+\item{\code{\link{omxAnd}}}{Perform binary and on two matrices}
+\item{\code{\link{omxOr}}}{Perform binary or on two matrices}
+\item{\code{\link{omxGreaterThan}}}{Perform binary greater on two matrices}
+\item{\code{\link{omxLessThan}}}{Perform binary less than on two matrices}
+\item{\code{\link{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
 }}
 
 \value{
