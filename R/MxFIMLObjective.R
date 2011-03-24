@@ -22,7 +22,8 @@ setClass(Class = "MxFIMLObjective",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		dataColumns = "numeric",
-		thresholdColumns = "list",
+		thresholdColumns = "numeric",
+		thresholdLevels = "numeric",
 		vector = "logical",
 		threshnames = "character",
 		metadata = "MxBaseObjectiveMetaData"),
@@ -122,8 +123,9 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 			metadata@M <-  imxLocateIndex(flatModel, metadata@M, name)
 			.Object@metadata <- metadata
 		}
-		.Object@thresholdColumns <- generateThresholdColumns(flatModel, 
-			model, dataName, threshName)
+		retval <- generateThresholdColumns(flatModel, model, covName, dataName, threshName)
+		.Object@thresholdColumns <- retval[[1]] 
+		.Object@thresholdLevels <- retval[[2]]
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
@@ -187,28 +189,29 @@ updateThresholdDimnames <- function(flatObjective, job, modelname) {
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	dims <- flatObjective@threshnames
-	if (!is.null(colnames(thresholds)) && !single.na(dims) && 
-		!identical(colnames(thresholds), dims)) {
-		msg <- paste("The thresholds matrix associated",
-			"with the FIML objective in model", 
-			omxQuotes(modelname), "contains column names and",
-			"the objective function has specified non-identical threshnames.")
-		stop(msg, call.=FALSE)		
-	}
-	if (is.null(colnames(thresholds)) && !single.na(dims)) {
-		threshMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(threshName))))
-		if (ncol(threshMatrix) != length(dims)) {
-			msg <- paste("The thresholds matrix associated",
-				"with the FIML objective in model", 
-				omxQuotes(modelname), "is not of the same length as the 'threshnames'",
-				"argument provided by the objective function. The 'threshnames' argument is",
-				"of length", length(dims), "and the expected covariance matrix",
-				"has", ncol(threshMatrix), "columns.")
-			stop(msg, call.=FALSE)		
-		}
-		dimnames(thresholds) <- list(NULL, dims)
-		job[[threshName]] <- thresholds
-	}
+    # Commented out for Joint Objective testing.
+    if (!is.null(colnames(thresholds)) && !single.na(dims) && 
+      !identical(colnames(thresholds), dims)) {
+      msg <- paste("The thresholds matrix associated",
+          "with the FIML objective in model", 
+          omxQuotes(modelname), "contains column names and",
+          "the objective function has specified non-identical threshnames.")
+      stop(msg, call.=FALSE)      
+    }
+    if (is.null(colnames(thresholds)) && !single.na(dims)) {
+      threshMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(threshName))))
+      if (ncol(threshMatrix) != length(dims)) {
+          msg <- paste("The thresholds matrix associated",
+              "with the FIML objective in model", 
+              omxQuotes(modelname), "is not of the same length as the 'threshnames'",
+              "argument provided by the objective function. The 'threshnames' argument is",
+              "of length", length(dims), "and the expected covariance matrix",
+              "has", ncol(threshMatrix), "columns.")
+          stop(msg, call.=FALSE)      
+      }
+      dimnames(thresholds) <- list(NULL, dims)
+      job[[threshName]] <- thresholds
+    }
 	return(job)
 }
 

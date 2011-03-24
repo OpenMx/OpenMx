@@ -68,7 +68,8 @@ struct omxData {						// A matrix
 	int* identicalDefs;					// Number of consecutive rows with identical def. vars
 	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
 	int* identicalRows;					// Number of consecutive rows with identical data
-	
+  int numFactor, numNumeric;  // Number of ordinal and continuous columns
+  short isDynamic;             // Reserved for when there's actually dynamic data.
 /* Useful Members */
 	int rows, cols;						// Matrix size 
 
@@ -97,6 +98,9 @@ struct omxData {						// A matrix
 	double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 	unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor
 	char* omxDataType(omxData *od);												// Returns the type field // TODO: Should this be an ENUM?
+	
+  int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
+  int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrintData(omxData *source, char* d); 									// Pretty-print a (hopefully small) data object

@@ -645,7 +645,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			int lenName = strlen(nextOptionName);
 			int lenValue = strlen(nextOptionValue);
 			if(matchCaseInsensitive(nextOptionName, lenName, "Calculate Hessian")) {
-				if(OMX_DEBUG) { Rprintf("Found hessian option...");};
+				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
 				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
 					calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
@@ -653,7 +653,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					numHessians = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
-				if(OMX_DEBUG) { Rprintf("Found standard error option...");};
+				if(OMX_DEBUG) { Rprintf("Found standard error option...Value: %s. ", nextOptionValue);};
 				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
 					calculateStdErrors = TRUE;

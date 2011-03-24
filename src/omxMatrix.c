@@ -507,6 +507,7 @@ void omxTransposeMatrix(omxMatrix *mat) {
 
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
+    // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
 //	if(OMX_DEBUG_MATRIX) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
 
 	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
@@ -557,9 +558,6 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Matrix 0x%x re-aliasing to 0x%x.\n", om, om->aliasedPtr);}
 						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
 					}
-					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) {
-						omxPrint(om, "Now Reads: (:::DEBUG:::)");
-			  		}
 					nextRow++;
 				}
 			}

@@ -46,6 +46,9 @@ omxData* omxInitData(omxData* od, omxState* os) {
 	od->identicalDefs = NULL;
 	od->identicalMissingness = NULL;
 	od->identicalRows = NULL;
+    od->numFactor = 0;
+    od->numNumeric = 0;
+    od->isDynamic = FALSE;
 	
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
 
@@ -105,6 +108,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
 				od->intData[numInts] = INTEGER(od->columns[j]);
 				od->location[j] = ~(numInts++);
+                od->numFactor++;
 			} else if (isInteger(od->columns[j])) {
 				char *errstr = calloc(250, sizeof(char));
 				sprintf(errstr, "Internal error: Column %d is in integer format.", j);
@@ -114,6 +118,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
 				od->realData[numReals] = REAL(od->columns[j]);
 				od->location[j] = (numReals++);
+				od->numNumeric++;
 			}
 			UNPROTECT(1); // columns[j]
 		}
@@ -128,6 +133,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		}
 		od->cols = od->dataMat->cols;
 		od->rows = od->dataMat->rows;
+        od->numNumeric = od->cols;
 	}
 	UNPROTECT(1); // dataLoc
 
@@ -277,25 +283,28 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList) {
 
-	contiguous->isContiguous = 0;
+	contiguous->isContiguous = FALSE;   // Assume not contiguous
 
-	if (data->dataMat == NULL) return;
+	if (data->dataMat == NULL) return; // Data has no matrix elements, so skip.
+
 	omxMatrix* dataMat = data->dataMat;
-	if (dataMat->colMajor) return;
-	int colListLength = colList->cols;
-	double previous = omxVectorElement(colList, 0);
-	contiguous->start = (int) previous;
-	contiguous->length = colListLength;
-	for(int i = 1; i < colListLength; i++) {
-		double next = omxVectorElement(colList, i);
-		if (next != (previous + 1.0)) return;
-		previous = next; 
+	if (dataMat->colMajor) return;      // If data matrix is column-major, there's no continuity
+	
+	int colListLength = colList->cols;              // # of columns in the cov matrix
+	double start = omxVectorElement(colList, 0);    // Data col of first column of the covariance
+	contiguous->start = (int) start;                // That's our starting point.
+	contiguous->length = colListLength;             // And the length is ncol(cov)
+	
+	for(int i = 1; i < colListLength; i++) {        // Make sure that the col list is 
+		double next = omxVectorElement(colList, i); // contiguously increasing in column number
+		if (next != (start + i)) return;            // If it isn't, it's not contiguous data
 	}
-	contiguous->isContiguous = 1;
+	
+	contiguous->isContiguous = TRUE;    // Passed.  This is contiguous.
 }
 
 omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om) {
-
+    // TODO: Might be better to combine this with omxDataRow to make a single accessor omxDataRow with a second signature that accepts an omxContiguousData argument.
 	if(row > od->rows) return NULL;	// Sanity check
 
 	if(om == NULL) {
@@ -369,6 +378,15 @@ int omxDataNumIdenticalDefs(omxData *od, int row){
 double omxDataNumObs(omxData *od) {
 	return od->numObs;
 }
+
+int omxDataNumFactor(omxData *od) {
+	return od->numFactor;
+}
+
+int omxDataNumNumeric(omxData *od) {
+	return od->numNumeric;
+}
+
 
 char* omxDataType(omxData *od) {
 	return od->type;
