@@ -286,6 +286,120 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 }
 
 /*
+	intervalList is a list().  Each element refers to one confidence interval request.
+	Each interval request is a length 5 vector of REAL.
+	The first three elements are the matrixPointer, Row, and Column of the element
+	for which bounds are to be calculated, and are cast to ints here for speed.
+	The last two are the upper and lower boundaries for the confidence space (respectively).
+*/
+void omxProcessConfidenceIntervals(SEXP intervalList)  {
+	SEXP nextVar;
+	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
+	currentState->numIntervals = length(intervalList);
+	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", currentState->numIntervals); }
+	currentState->intervalList = (omxConfidenceInterval*) R_alloc(currentState->numIntervals, sizeof(omxConfidenceInterval));
+	for(int index = 0; index < currentState->numIntervals; index++) {
+		omxConfidenceInterval *oCI = &(currentState->intervalList[index]);
+		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
+		double* intervalInfo = REAL(nextVar);
+		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, currentState);	// Expects an R object
+		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
+		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
+		oCI->lbound = intervalInfo[3];
+		oCI->ubound = intervalInfo[4];
+		UNPROTECT(1);
+		oCI->max = R_NaReal;					// NAs, in case something goes wrong
+		oCI->min = R_NaReal;
+	}
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+}
+
+int omxProcessConstraints(SEXP constraints)  {
+	int ncnln = 0; 
+	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
+	omxMatrix *arg1, *arg2;
+	SEXP nextVar, nextLoc;
+	currentState->numConstraints = length(constraints);
+	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numConstraints); }
+	currentState->conList = (omxConstraint*) R_alloc(currentState->numConstraints, sizeof(omxConstraint));
+	ncnln = 0;
+	for(int constraintIndex = 0; constraintIndex < currentState->numConstraints; constraintIndex++) {
+		PROTECT(nextVar = VECTOR_ELT(constraints, constraintIndex));
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
+		arg1 = omxNewMatrixFromMxIndex(nextLoc, currentState);
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
+		arg2 = omxNewMatrixFromMxIndex(nextLoc, currentState);
+		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
+		currentState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
+		UNPROTECT(4);
+		omxMatrix *args[2] = {arg1, arg2};
+		currentState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, currentState); // 10 = binary subtract
+		omxRecompute(currentState->conList[constraintIndex].result);
+		int nrows = currentState->conList[constraintIndex].result->rows;
+		int ncols = currentState->conList[constraintIndex].result->cols;
+		currentState->conList[constraintIndex].size = nrows * ncols;
+		ncnln += currentState->conList[constraintIndex].size;
+	}
+	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
+	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
+	return(ncnln);
+}
+
+void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
+	/* Set min and max limits */
+	for(int index = 0; index < n; index++) {
+		bl[index] = currentState->freeVarList[index].lbound;				// -Infinity'd be -10^20.
+		bu[index] = currentState->freeVarList[index].ubound;				// Infinity would be at 10^20.
+	}
+
+	for(int index = n; index < n+nclin; index++) {						// At present, nclin == 0.
+		bl[index] = NEG_INF; 							// Linear constraints have no bounds.
+		bu[index] = INF;								// Because there are no linear constraints.
+	}												    // But if there were, they would go here.
+
+	int index = n + nclin;
+	for(int constraintIndex = 0; constraintIndex < currentState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
+		if(OMX_DEBUG) { Rprintf("Constraint %d: ", constraintIndex);}
+		switch(currentState->conList[constraintIndex].opCode) {
+		case 0:									// Less than: Must be strictly less than 0.
+			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
+			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+				bl[index] = NEG_INF;
+				bu[index] = -0.0;
+				index++;
+			}
+			break;
+		case 1:									// Equal: Must be roughly equal to 0.
+			if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
+			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+				bl[index] = -0.0;
+				bu[index] = 0.0;
+				index++;
+			}
+			break;
+		case 2:									// Greater than: Must be strictly greater than 0.
+			if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
+			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+				if(OMX_DEBUG) { Rprintf("\tBounds set for constraint %d.%d.\n", constraintIndex, offset);}
+				bl[index] = 0.0;
+				bu[index] = INF;
+				index++;
+			}
+			break;
+		default:
+			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
+			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+				bl[index] = NEG_INF;
+				bu[index] = INF;
+				index++;
+			}
+			break;
+		}
+	}
+}
+
+/*
 *  Acknowledgement:
 *  This function is duplicated from the function of the same name in the R source code.
 *  The function appears in src/main/sysutils.c

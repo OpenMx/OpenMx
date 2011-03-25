@@ -14,10 +14,68 @@
  *  limitations under the License.
  */
 
+#include "R.h"
+#include <Rinternals.h>
+#include <Rdefines.h>
+
 #include "omxNPSOLSpecific.h"
+#include "omxMatrix.h"
+#include "npsolWrap.h"
+#include "omxBackendHelperFunctions.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
 const double NEG_INF = -2e20;
 const double INF = 2e20;
+
+/* NPSOL-related functions */
+extern void F77_SUB(npoptn)(char* string, int length);
+
+void omxSetNPSOLOpts(SEXP options, omxMatrix*** calculateHessians, int *numHessians, int *calculateStdErrors, 
+	int *ciMaxIterations, int *disableOptimizer) {
+		char optionCharArray[250] = "";			// For setting options
+		int numOptions = length(options);
+		SEXP optionNames;
+		PROTECT(optionNames = GET_NAMES(options));
+		for(int i = 0; i < numOptions; i++) {
+			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
+			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
+			int lenName = strlen(nextOptionName);
+			int lenValue = strlen(nextOptionValue);
+			if(matchCaseInsensitive(nextOptionName, lenName, "Calculate Hessian")) {
+				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
+				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
+					*calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
+					*calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
+					*numHessians = 1;
+				}
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
+				if(OMX_DEBUG) { Rprintf("Found standard error option...Value: %s. ", nextOptionValue);};
+				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
+					*calculateStdErrors = TRUE;
+					if(calculateHessians == NULL) {
+						*calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
+						*calculateHessians[0] = currentState->objectiveMatrix;
+						*numHessians = 1;
+					}
+				}
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "CI Max Iterations")) { 
+				int newvalue = atoi(nextOptionValue);
+				if (newvalue > 0) *ciMaxIterations = newvalue;
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "useOptimizer")) {
+				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
+				if(matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
+					*disableOptimizer = 1;
+				}
+			} else {
+				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
+				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+				if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
+			}
+		}
+		UNPROTECT(1); // optionNames
+}
 

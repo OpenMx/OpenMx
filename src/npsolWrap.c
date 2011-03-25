@@ -35,7 +35,6 @@
 //#include "omxSymbolTable.h"
 
 /* NPSOL-related functions */
-extern void F77_SUB(npoptn)(char* string, int length);
 extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
 							double *bl,	double *bu, void* funcon, void* funobj, int *inform, int *iter, 
 							int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
@@ -54,6 +53,23 @@ SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str
 SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
 unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double functionPrecision, 
 										int r, omxState* currentState, double optimum);
+
+/* Set up R .Call info */
+R_CallMethodDef callMethods[] = {
+{"callNPSOL", (void*(*)())&callNPSOL, 10},
+{"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
+{"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 1},
+{NULL, NULL, 0}
+};
+
+void R_init_mylib(DllInfo *info) {
+/* Register routines, allocate resources. */
+R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+}
+
+void R_unload_mylib(DllInfo *info) {
+/* Release resources. */
+}
 
 /* Globals for function evaluation */
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
@@ -154,15 +170,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Helpful variables */
 
-	char optionCharArray[250] = "";			// For setting options
-
-	int j, k, l, m;					// Index Vars
+	int j, k, l;					// Index Vars
 
 	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 	
     int errOut = 0;                 // Error state: Clear
 
-	SEXP nextLoc, nextMat, nextVar;
+	SEXP nextLoc, nextMat;
 
 	omxMatrix** calculateHessians = NULL;
 	int calculateStdErrors = FALSE;
@@ -219,58 +233,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	omxProcessFreeVarList(varList, n);
 
 	/* Processing Constraints */
-	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
-	omxMatrix *arg1, *arg2;
-	currentState->numConstraints = length(constraints);
-	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numConstraints); }
-	currentState->conList = (omxConstraint*) R_alloc(currentState->numConstraints, sizeof(omxConstraint));
-	ncnln = 0;
-	for(k = 0; k < currentState->numConstraints; k++) {
-		PROTECT(nextVar = VECTOR_ELT(constraints, k));
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxNewMatrixFromMxIndex(nextLoc, currentState);
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxNewMatrixFromMxIndex(nextLoc, currentState);
-		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
-		currentState->conList[k].opCode = INTEGER(nextLoc)[0];
-		UNPROTECT(4);
-		omxMatrix *args[2] = {arg1, arg2};
-		currentState->conList[k].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, currentState); // 10 = binary subtract
-		omxRecompute(currentState->conList[k].result);
-		currentState->conList[k].size = currentState->conList[k].result->rows * currentState->conList[k].result->cols;
-		ncnln += currentState->conList[k].size;
-	}
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
+	ncnln = omxProcessConstraints(constraints);
 	funcon = F77_SUB(constraintFunction);
 
 	/* Process Confidence Interval List */
-	/*
-	 intervalList is a list().  Each element refers to one confidence interval request.
-	 Each interval request is a length 5 vector of REAL.
-	 The first three elements are the matrixPointer, Row, and Column of the element
-	 for which bounds are to be calculated, and are cast to ints here for speed.
-	 The last two are the upper and lower boundaries for the confidence space (respectively).
-    */
-	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
-	currentState->numIntervals = length(intervalList);
-	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", currentState->numIntervals); }
-	currentState->intervalList = (omxConfidenceInterval*) R_alloc(currentState->numIntervals, sizeof(omxConfidenceInterval));
-	for(k = 0; k < currentState->numIntervals; k++) {
-		omxConfidenceInterval *oCI = &(currentState->intervalList[k]);
-		PROTECT(nextVar = VECTOR_ELT(intervalList, k));
-		double* intervalInfo = REAL(nextVar);
-		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, currentState);	// Expects an R object
-		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
-		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->lbound = intervalInfo[3];
-		oCI->ubound = intervalInfo[4];
-		UNPROTECT(1);
-		oCI->max = R_NaReal;					// NAs, in case something goes wrong
-		oCI->min = R_NaReal;
-	}
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+	omxProcessConfidenceIntervals(intervalList);
 
 	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
@@ -340,58 +307,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Set up actual run */
 
-		/* Set min and max limits */
-		for(k = 0; k < n; k++) {
-			bl[k] = currentState->freeVarList[k].lbound;				// -Infinity'd be -10^20.
-			bu[k] = currentState->freeVarList[k].ubound;				// Infinity would be at 10^20.
-		}
+		omxSetupBoundsAndConstraints(bl, bu, n, nclin);
 
-		for(; k < n+nclin; k++) {						// At present, nclin == 0.
-			bl[k] = NEG_INF; 							// Linear constraints have no bounds.
-			bu[k] = INF;								// Because there are no linear constraints.
-		}												// But if there were, they would go here.
-
-		for(l = 0; l < currentState->numConstraints; l++) {					// Nonlinear constraints:
-			if(OMX_DEBUG) { Rprintf("Constraint %d: ", l);}
-			switch(currentState->conList[l].opCode) {
-				case 0:									// Less than: Must be strictly less than 0.
-					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
-					for(m = 0; m < currentState->conList[l].size; m++) {
-						bl[k] = NEG_INF;
-						bu[k] = -0.0;
-						k++;
-					}
-					break;
-				case 1:									// Equal: Must be roughly equal to 0.
-					if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
-					for(m = 0; m < currentState->conList[l].size; m++) {
-						bl[k] = -0.0;
-						bu[k] = 0.0;
-						k++;
-					}
-					break;
-				case 2:									// Greater than: Must be strictly greater than 0.
-					if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
-					for(m = 0; m < currentState->conList[l].size; m++) {
-						if(OMX_DEBUG) { Rprintf("\tBounds set for constraint %d.%d.\n", l, m);}
-						bl[k] = 0.0;
-						bu[k] = INF;
-						k++;
-					}
-					break;
-				default:
-					if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
-					for(m = 0; m < currentState->conList[l].size; m++) {
-						bl[k] = NEG_INF;
-						bu[k] = INF;
-						k++;
-					}
-					break;
-			}
-		}
-
-
-		/* Initialize Starting Values */
+	/* Initialize Starting Values */
 		if(OMX_VERBOSE) {
 			Rprintf("--------------------------\n");
 			Rprintf("Starting Values (%d) are:\n", n);
@@ -408,51 +326,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			Rprintf("Setting up optimizer...");
 		}
 
-		/* 	Set NPSOL options  (Maybe separate this into a different function?) */
-		/* Options That Change The Optimizer */
-		int numOptions = length(options);
-		SEXP optionNames;
-		PROTECT(optionNames = GET_NAMES(options));
-		for(int i = 0; i < numOptions; i++) {
-			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
-			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-			int lenName = strlen(nextOptionName);
-			int lenValue = strlen(nextOptionValue);
-			if(matchCaseInsensitive(nextOptionName, lenName, "Calculate Hessian")) {
-				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
-					calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
-					calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
-					numHessians = 1;
-				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
-				if(OMX_DEBUG) { Rprintf("Found standard error option...Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
-					calculateStdErrors = TRUE;
-					if(calculateHessians == NULL) {
-						calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
-						calculateHessians[0] = currentState->objectiveMatrix;
-						numHessians = 1;
-					}
-				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "CI Max Iterations")) { 
-				int newvalue = atoi(nextOptionValue);
-				if (newvalue > 0) ciMaxIterations = newvalue;
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "useOptimizer")) {
-				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
-				if(matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
-					disableOptimizer = 1;
-				}
-			} else {
-				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
-				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-				if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
-			}
-		}
-		UNPROTECT(1); // optionNames
+		/* 	Set NPSOL options */
+		omxSetNPSOLOpts(options, &calculateHessians, &numHessians, &calculateStdErrors, &ciMaxIterations, &disableOptimizer);
 
 	/*  F77_CALL(npsol)
 		(	int *n,					-- Number of variables
