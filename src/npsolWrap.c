@@ -31,7 +31,7 @@
 #include "omxAlgebra.h"
 #include "omxObjective.h"
 #include "omxNPSOLSpecific.h"
-#include "omxBackendHelperFunctions.h"
+#include "omxImportFrontendState.h"
 //#include "omxSymbolTable.h"
 
 /* NPSOL-related functions */

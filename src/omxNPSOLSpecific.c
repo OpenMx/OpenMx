@@ -21,7 +21,7 @@
 #include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
 #include "npsolWrap.h"
-#include "omxBackendHelperFunctions.h"
+#include "omxImportFrontendState.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;

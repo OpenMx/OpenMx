@@ -1,5 +1,5 @@
-#ifndef _OMX_BACKEND_HELPER_FUNCTIONS_H
-#define _OMX_BACKEND_HELPER_FUNCTIONS_H
+#ifndef _OMX_IMPORT_FRONTEND_STATE_H
+#define _OMX_IMPORT_FRONTEND_STATE_H
 
 
 int matchCaseInsensitive(const char *source, int lenSource, const char *target);
@@ -14,4 +14,4 @@ void omxProcessConfidenceIntervals(SEXP intervalList);
 int omxProcessConstraints(SEXP constraints);
 void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin);
 
-#endif // #define _OMX_BACKEND_HELPER_FUNCTIONS_H
+#endif // #define _OMX_IMPORT_FRONTEND_STATE_H
