@@ -32,6 +32,7 @@
 #include "omxObjective.h"
 #include "omxNPSOLSpecific.h"
 #include "omxImportFrontendState.h"
+#include "omxExportBackendState.h"
 //#include "omxSymbolTable.h"
 
 /* NPSOL-related functions */
@@ -170,13 +171,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Helpful variables */
 
-	int j, k, l;					// Index Vars
+	int k, l;					// Index Vars
 
 	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 	
-    int errOut = 0;                 // Error state: Clear
+	int errOut = 0;                 // Error state: Clear
 
-	SEXP nextLoc, nextMat;
+	SEXP nextLoc;
 
 	omxMatrix** calculateHessians = NULL;
 	int calculateStdErrors = FALSE;
@@ -392,7 +393,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	} // END OF PERFORM OPTIMIZATION CASE
 
 	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations;
-	SEXP evaluations, ans=NULL, names=NULL, algebras, algebra, matrices, optimizer;
+	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, optimizer;
 	SEXP intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
 
 	int numReturns = 13;
@@ -592,119 +593,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	handleFreeVarList(currentState, currentState->optimalValues, n);  // Restore to optima for final compute
-	if(!errOut) {
-		for(k = 0; k < currentState->numMats; k++) {
-			if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", k); }
-			omxMatrix* nextMatrix = currentState->matrixList[k];
-			omxRecompute(nextMatrix);
-			PROTECT(nextMat = allocMatrix(REALSXP, nextMatrix->rows, nextMatrix->cols));
-			for(l = 0; l < nextMatrix->rows; l++)
-				for(j = 0; j < nextMatrix->cols; j++)
-					REAL(nextMat)[j * nextMatrix->rows + l] =
-						omxMatrixElement(nextMatrix, l, j);
-			SET_VECTOR_ELT(matrices, k, nextMat);
+	if(!errOut) omxFinalAlgebraCalculation(matrices, algebras); 
 
-			UNPROTECT(1);	/* nextMat */
-		}
-
-		for(k = 0; k < currentState->numAlgs; k++) {
-			if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", k); }
-			omxMatrix* nextAlgebra = currentState->algebraList[k];
-			omxRecompute(nextAlgebra);
-			PROTECT(algebra = allocMatrix(REALSXP, nextAlgebra->rows, nextAlgebra->cols));
-			if (nextAlgebra->objective != NULL && nextAlgebra->objective->populateAttrFun != NULL) {
-				nextAlgebra->objective->populateAttrFun(nextAlgebra->objective, algebra);
-			}
-			for(l = 0; l < nextAlgebra->rows; l++)
-				for(j = 0; j < nextAlgebra->cols; j++)
-					REAL(algebra)[j * nextAlgebra->rows + l] =
-						omxMatrixElement(nextAlgebra, l, j);
-			SET_VECTOR_ELT(algebras, k, algebra);
-
-			UNPROTECT(1);	/* algebra */
-		}
-		if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
-	}
-
-	omxMatrix* om = currentState->objectiveMatrix;
-	if(om != NULL) {					// In the event of a no-objective run.
-		omxObjective* oo = om->objective;
-		if(OMX_DEBUG) { Rprintf("Checking for additional objective info.\n"); }
-
-		if(oo != NULL && oo->setFinalReturns != NULL) {
-			if(OMX_DEBUG) { Rprintf("Expecting objective Info....");}
-			int numEls;
-			SEXP oElement;
-			omxRListElement* orle = oo->setFinalReturns(oo, &numEls);
-			PROTECT(ans = allocVector(VECSXP, numReturns + numEls));
-			PROTECT(names = allocVector(STRSXP, numReturns + numEls));
-			if(numEls != 0) {
-				if(OMX_DEBUG) { Rprintf("Adding %d sets of objective Info....", numEls);}
-				for(int i = 0; i < numEls; i++) {
-					PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
-					for(int j = 0; j < orle[i].numValues; j++)
-						REAL(oElement)[j] = orle[i].values[j];
-					SET_STRING_ELT(names, i+numReturns, mkChar(orle[i].label));
-					SET_VECTOR_ELT(ans, i+numReturns, oElement);
-					UNPROTECT(1); // oElement
-				}
-			}
-		} else {
-			PROTECT(ans = allocVector(VECSXP, numReturns));
-			PROTECT(names = allocVector(STRSXP, numReturns));
-		}
-		if(OMX_DEBUG) { Rprintf("Done.\n");}
-	} else {
-		PROTECT(ans = allocVector(VECSXP, numReturns));
-		PROTECT(names = allocVector(STRSXP, numReturns));
-	}
+	omxPopulateObjectiveFunction(numReturns, &ans, &names);
 
 	if(numHessians) {
-		if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
-		for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
-			omxObjective* oo = calculateHessians[j]->objective;
-			if(oo->hessian == NULL) {
-				if(OMX_DEBUG) { Rprintf("Objective %d has no hessian. Aborting.\n", j);}
-				continue;
-			}
-
-			if(OMX_DEBUG) { Rprintf("Objective %d has hessian at 0x%x.\n", j, oo->hessian);}
-
-			double* hessian  = REAL(calculatedHessian);
-			double* stdError = REAL(stdErrors);
-			for(int k = 0; k < n * n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
-				hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
-			}
-			if(OMX_DEBUG) {Rprintf("Done.\n", k);}
-			if(calculateStdErrors) {
-				if(oo->stdError == NULL) {
-					for(int k = 0; k < n; k++) {
-						if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
-						stdError[k] = R_NaReal;
-					}
-				} else {
-					for(int k = 0; k < n; k++) {
-						if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-						stdError[k] = oo->stdError[k];
-					}
-				}
-			}
-		}
+		omxPopulateHessians(numHessians, calculateHessians, calculatedHessian, stdErrors, calculateStdErrors, n);
 	}
 
 	if(currentState->numIntervals) {	// Populate CIs
-		int numInts = currentState->numIntervals;
-		if(OMX_DEBUG) { Rprintf("Populating CIs for %d objectives.\n", numInts); }
-		double* interval = REAL(intervals);
-		int* intervalCode = INTEGER(intervalCodes);
-		for(int j = 0; j < numInts; j++) {
-			omxConfidenceInterval *oCI = &(currentState->intervalList[j]);
-			interval[j] = oCI->min;
-			interval[j + numInts] = oCI->max;
-			intervalCode[j] = oCI->lCode;
-			intervalCode[j + numInts] = oCI->uCode;
-		}
+		omxPopulateConfidenceIntervals(intervals, intervalCodes);
 	}
 	
 	REAL(evaluations)[1] = currentState->computeCount;

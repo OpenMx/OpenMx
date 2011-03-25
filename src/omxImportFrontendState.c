@@ -19,6 +19,7 @@
 #include <Rdefines.h>
 
 #include <sys/stat.h>
+#include <errno.h>
 
 #include "omxDefines.h"
 #include "omxState.h"
