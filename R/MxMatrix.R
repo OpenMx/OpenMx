@@ -181,7 +181,7 @@ setMethod("[", "MxMatrix",
 		type <- class(x)[[1]]
 		nrow <- nrow(labels)
 		ncol <- ncol(labels)
-		dnames <- dimnames(x)
+		dnames <- dimnames(values)
 		newMatrix <- tryCatch(suppressWarnings(
 			mxMatrix(type, nrow, ncol, free, values, labels, 
 				lbound, ubound, FALSE, dnames, name)),
