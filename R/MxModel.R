@@ -148,6 +148,15 @@ setReplaceMethod("$", "MxModel",
 )
 
 imxExtractMethod <- function(model, index) {
+	if (is.null(index)) {
+		return(NULL)
+    }
+	if (!(length(index) == 1 && is.character(index))) {
+		msg <- paste("The argument to the '$' or '['",
+			"operator applied on a MxModel object",
+			"must be a single character string")
+		stop(msg, call. = FALSE)
+	}
 	return(namespaceSearch(model, index))
 }
 

@@ -18,6 +18,8 @@ trunk
 * added useOptimizer option to mxRun.
 * added error checking in frontend and backend for non-positive-definite observed covariance matrices
 * added "omxGreaterThan", "omxLessThan", "omxApproxEquals", "omxAnd", and "omxOr" operators to the set of mxAlgebra() operators
+* error checking for model[[1]] or model[[TRUE]]
+
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================
 * added mxErrorPool() function and R documentation.
