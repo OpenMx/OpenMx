@@ -34,6 +34,10 @@ typedef struct {
 
 } omxRAMObjective;
 
+
+// Forward declarations
+void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
+
 omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturns) {
 	*numReturns = 2;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
@@ -51,8 +55,26 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 
 void omxPopulateRAMAttributes(omxObjective *oo, SEXP algebra) {
 	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
+    omxMatrix *I = argStruct->I;
+    omxMatrix *A = argStruct->A;
+    omxMatrix *S = argStruct->S;
+    omxMatrix *F = argStruct->F;
+    omxMatrix *Mns = argStruct->Mns;
+    int numIters = argStruct->numIters;
+    omxMatrix *X = argStruct->X;
+    omxMatrix *Y = argStruct->Y;
+    omxMatrix *Z = argStruct->Z;
+    omxMatrix *Ax= argStruct->Ax;
 	omxMatrix *expCovInt = argStruct->C;			// Expected covariance
 	omxMatrix *expMeanInt = argStruct->M;			// Expected means
+
+    omxRecompute(A);
+    omxRecompute(S);
+    omxRecompute(F);
+    if(expMeanInt != NULL) omxRecompute(expMeanInt);
+
+    omxCalculateRAMCovarianceAndMeans(A, S, F, expMeanInt, expCovInt, Mns, numIters, I, Z, Y, X, Ax);
+
 	SEXP expCovExt, expMeanExt;
 	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
@@ -217,7 +239,7 @@ void omxCallRAMObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	omxMatrix *A = ((omxRAMObjective*)oo->argStruct)->A;
 	omxMatrix *S = ((omxRAMObjective*)oo->argStruct)->S;
 	omxMatrix *F = ((omxRAMObjective*)oo->argStruct)->F;
-	omxMatrix *C = ((omxRAMObjective*)oo->argStruct)->C;                // Expected covariance
+	omxMatrix *C = ((omxRAMObjective*)oo->argStruct)->C; 
 	omxMatrix *X = ((omxRAMObjective*)oo->argStruct)->X;
 	omxMatrix *Y = ((omxRAMObjective*)oo->argStruct)->Y;
 	omxMatrix *Z = ((omxRAMObjective*)oo->argStruct)->Z;
