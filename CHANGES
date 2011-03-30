@@ -19,6 +19,7 @@ trunk
 * added error checking in frontend and backend for non-positive-definite observed covariance matrices
 * added "omxGreaterThan", "omxLessThan", "omxApproxEquals", "omxAnd", and "omxOr" operators to the set of mxAlgebra() operators
 * error checking for model[[1]] or model[[TRUE]]
+* error checking in the front-end whether more than 20 ordinal columns are present in a data set
 
 Pre-Release 999.0.0-1527 (January 6, 2011)
 ==========================================

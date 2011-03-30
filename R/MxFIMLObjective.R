@@ -103,6 +103,7 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		}
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "FIML")
 		checkNumericData(mxDataObject)
+		checkNumberOrdinalColumns(mxDataObject)
 		meansName <- .Object@means
 		covName <- .Object@covariance
 		dataName <- .Object@data
