@@ -83,15 +83,96 @@ setParametersHelper <- function(model, labels, free, values,
 	model@matrices <- lapply(model@matrices, setParametersMatrix, 
 		labels, free, values, newlabels, lbound, ubound)
 	if(indep) {
+		if (length(model@submodels) == 0) {
+			return(model)
+		}
 		model@submodels <- lapply(model@submodels, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 	} else {
 		select <- imxDependentModels(model)
+		if (length(select) == 0) {
+			return(model)
+		}
 		select <- lapply(select, setParametersHelper, 
 			labels, free, values, newlabels, lbound, ubound, indep)
 		model@submodels <- c(select, imxIndependentModels(model))
 	}
 	return(model)
+}
+
+extractFirst <- function(x) {
+	return(x[[1]])
+}
+
+extractSecond <- function(x) {
+	return(x[[2]])
+}
+
+omxNameAnonymousParameters <- function(model, indep = FALSE) {
+	rows <- lapply(model@matrices, getAnonymousRows)
+    cols <- lapply(model@matrices, getAnonymousCols)
+    newnames <- mapply(getAnonymousNames, rows)
+	model@matrices <- mapply(assignAnonymousNames, model@matrices, rows, cols, newnames)
+	newnames <- unlist(newnames)
+	if(indep) {
+		if (length(model@submodels) == 0) {
+			return(list(model, newnames))
+		}
+		pairs <- lapply(model@submodels, omxNameAnonymousParameters, indep)
+		submodels <- lapply(pairs, extractFirst)
+		subnames <- unlist(lapply(pairs, extractSecond))
+		names(submodels) <- names(model@submodels)
+		model@submodels <- submodels
+		newnames <- c(newnames, subnames)
+	} else {
+		select <- imxDependentModels(model)
+		if (length(select) == 0) {
+			return(list(model, newnames))
+		}
+		pairs <- lapply(select, omxNameAnonymousParameters, indep)
+        submodels <- lapply(pairs, extractFirst)
+        subnames <- unlist(lapply(pairs, extractSecond))
+        names(submodels) <- names(select)
+		model@submodels <- c(select, imxIndependentModels(model))
+        newnames <- c(newnames, subnames)
+	}
+	return(list(model, newnames))
+}
+
+getAnonymousRows <- function(matrix) {
+	select <- matrix@free & is.na(matrix@labels)
+	if (imxSymmetricMatrix(matrix)) {
+		select <- select & upper.tri(matrix@labels, diag=TRUE)
+	}
+	return(row(matrix@free)[select])
+}
+
+getAnonymousCols <- function(matrix) {
+	select <- matrix@free & is.na(matrix@labels)
+	if (imxSymmetricMatrix(matrix)) {
+		select <- select & upper.tri(matrix@labels, diag=TRUE)
+	}
+	return(col(matrix@free)[select])
+}
+
+assignAnonymousNames <- function(matrix, rows, cols, newnames) {
+	symmetry <- imxSymmetricMatrix(matrix)
+	if (length(rows) > 0) {
+		for(i in 1:length(rows)) {
+			row <- rows[[i]]
+			col <- cols[[i]]
+			newname <- newnames[[i]]
+			matrix@labels[row,col] <- newname
+			if (symmetry) {
+				matrix@labels[col,row] <- newname
+			}
+		}
+	}
+	return(matrix)
+}
+
+getAnonymousNames <- function(rows) {
+	return(replicate(length(rows), imxUntitledName()))
 }
 
 omxAssignFirstParameters <- function(model, indep = FALSE) {
