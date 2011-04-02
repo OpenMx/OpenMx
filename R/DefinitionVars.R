@@ -54,11 +54,16 @@ populateDefInitialValues <- function(flatModel) {
 
 populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	labels <- matrix@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), imxIsDefinitionVariable)
-	if (all(!select)) { return(matrix@values) }
-	rows <- row(labels)[select]
-	cols <- col(labels)[select]
-	subs <- labels[select]
+	notNA <- !is.na(labels)
+	if (!any(notNA)) { return(matrix@values) }
+	rows <- row(labels)[notNA]
+	cols <- col(labels)[notNA]
+	subs <- labels[notNA]
+	select <- sapply(subs, imxIsDefinitionVariable)
+	if (!any(select)) { return(matrix@values) }
+	rows <- rows[select]
+	cols <- cols[select]
+	subs <- subs[select]
 	value <- matrix@values
 	for(i in 1:length(subs)) {
 		startValue <- definitionStartingValue(subs[[i]], matrix@name, model, defvar.row)
