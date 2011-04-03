@@ -265,13 +265,7 @@ omxSelectRows <- function(x, selector) {
     if(nrow(x) != ncol(selector)) {
         stop("selector must have one column for each row of x")
     }
-    retval <- x[as.logical(selector), ]
-    
-    if(is.vector(retval)) {                 # One remaining row = vector = column
-        retval <- t(as.matrix(retval))      # so we'll need to transpose it
-    }
-    
-    return(retval)
+    return(x[as.logical(selector), , drop=FALSE])
 }
 
 omxSelectCols <- function(x, selector) {
@@ -281,10 +275,8 @@ omxSelectCols <- function(x, selector) {
     }
     if(ncol(x) != ncol(selector)) {
         stop("selector must have one column for each column of x")
-    }
-    
-    return(as.matrix(x[, as.logical(selector)]))
-    
+    }    
+    return(x[, as.logical(selector), drop=FALSE])    
 }
 
 omxSelectRowsAndCols <- function(x, selector) {
@@ -296,6 +288,5 @@ omxSelectRowsAndCols <- function(x, selector) {
         stop("selector must have one column for each row and column of x")
     }
     selector <- as.logical(selector)
-    return(as.matrix(x[selector, selector]))
-    
+    return(x[selector, selector, drop=FALSE])    
 }
