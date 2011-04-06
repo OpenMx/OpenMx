@@ -101,41 +101,47 @@ generateAlgebraHelper <- function(algebra, matrixNames, algebraNames) {
 	names(algebraNumbers) <- algebraNames
 	retval <- eval(substitute(substitute(e, matrixNumbers), list(e = retval)))
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
-	retval <- substituteOperators(as.list(retval))
+	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
 	return(list(algebra@initial, retval))
 }
 
-substituteOperators <- function(algebra) {
+substituteOperators <- function(algebra, name) {
 	if ((length(algebra) == 1) && (is.list(algebra))) {
 		algebra <- list(0L, algebra[[1]])
 	} else if ((length(algebra) > 1) && (!is.numeric(algebra[[1]]))) {
 		if (as.character(algebra[[1]]) == '(') {
-			return(substituteOperators(as.list(algebra[[2]])))
+			return(substituteOperators(as.list(algebra[[2]]), name))
 		}
 		names <- omxSymbolTable["R.name"] == as.character(algebra[[1]])
         variableSymbols <- omxSymbolTable["Number.of.arguments"] == -1
 		result <- omxSymbolTable[names & variableSymbols, "Num"]
 		if (length(result) > 1) {
-				stop(paste("Ambiguous function with name", algebra[[1]],
-					"and", (length(algebra) - 1), "arguments"))
+				msg <- paste("In algebra", omxQuotes(name), 
+					"ambiguous function with name", algebra[[1]],
+					"and", (length(algebra) - 1), "arguments.")
+				stop(msg, call. = FALSE)
 		} else if(length(result) == 1) {
 			head <- as.integer(result[[1]])
-			tail <- lapply(algebra[-1], substituteOperators)
+			tail <- lapply(algebra[-1], substituteOperators, name)
 			result <- append(tail, head, after=0)
 			return(result)
 		} else {
 			length <- omxSymbolTable["Number.of.arguments"] == (length(algebra) - 1)
 			result <- omxSymbolTable[names & length, "Num"]
 			if (length(result) == 0) {
-				stop(paste("Could not find function with name", algebra[[1]],
-					"and", (length(algebra) - 1), "arguments"))
+				msg <- paste("In algebra", omxQuotes(name),
+					"could not find function with name", algebra[[1]],
+					"and", (length(algebra) - 1), "arguments.")
+				stop(msg, call. = FALSE)
 			} else if (length(result) > 1) {
-				stop(paste("Ambiguous function with name", algebra[[1]],
-					"and", (length(algebra) - 1), "arguments"))
+				msg <- paste("In algebra", omxQuotes(name),
+					"ambiguous function with name", algebra[[1]],
+					"and", (length(algebra) - 1), "arguments.")
+				stop(msg, call. = FALSE)
 			} else {
 				head <- as.integer(result[[1]])
-			    tail <- lapply(algebra[-1], substituteOperators)
+			    tail <- lapply(algebra[-1], substituteOperators, name)
 				result <- append(tail, head, after=0)
 				return(result)
 			}
