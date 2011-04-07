@@ -1,5 +1,5 @@
-trunk
-=====
+Pre-Release 999.0.0-1609 (April 7, 2011)
+========================================
 * added argument 'threshnames' to mxFIMLObjective()
 * eliminated "initialize" method for MxMatrix objects
 * added "omxCreateMatrix" method for MxMatrix objects

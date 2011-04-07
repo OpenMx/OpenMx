@@ -24,7 +24,8 @@
 
 \usage{
 mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE, 
-	unsafe = FALSE, checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE)
+	unsafe = FALSE, checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
+	useOptimizer = TRUE)
 }
 
 \arguments{
