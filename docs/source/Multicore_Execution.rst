@@ -100,7 +100,7 @@ The following script can be found with ``demo(BootstrapParallel)``
 	dimnames(results)[[2]] <- dnr
 
 	# instantiate MxModel
-	template <- mxModel(name="stErrSim",
+	template <- mxModel("stErrSim",
                        mxMatrix(name="lambda", type="Full", nrow=4, ncol=1,
                                 free=TRUE, values=c(.8, .5, .7, 0)),
                        mxMatrix(name="specifics", type="Diag", nrow=4,
@@ -111,9 +111,9 @@ The following script can be found with ``demo(BootstrapParallel)``
                        mxMLObjective(covariance='preCov'),
                        independent = TRUE)
 
-	topModel <- mxModel(name = 'container')
+	topModel <- mxModel("container")
 
-	submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
+	submodels <- lapply(1:nReps, createNewModel, "stErrSim", template)
 
 	names(submodels) <- omxExtractNames(submodels)
 	topModel@submodels <- submodels
