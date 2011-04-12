@@ -19,7 +19,7 @@
 \title{Create MxMatrix Object}
 
 \description{
-  This functions creates a new \link{MxMatrix} object.
+  This function creates a new \link{MxMatrix} object.
 }
 
 \usage{
