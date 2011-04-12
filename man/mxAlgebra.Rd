@@ -70,7 +70,7 @@ The following functions are supported in mxAlgebra:
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}
-\item{\code{\link{{eigenval}}}{Eigenvalues of a square matrix. Usage: eigenval(x); eigenvec(x); ieigenval(x); ieigenvec(x)}
+\item{\code{\link{eigenval}}}{Eigenvalues of a square matrix. Usage: eigenval(x); eigenvec(x); ieigenval(x); ieigenvec(x)}
 \item{\code{\link{rvectorize}}}{Vectorize by row}
 \item{\code{\link{cvectorize}}}{Vectorize by column}
 \item{\code{\link{vech}}}{Half-vectorization}
@@ -120,9 +120,9 @@ mxEval(D, fit)
 
 # Numbers in mxAlgebras are upgraded to 1x1 matrices
 # Example of Kronecker powering (%^%) and multiplication (%*%)
-A  <- mxMatrix(type="Full",nrow=3,ncol=3, value=c(1:9), name="A")
-m1 <- mxModel("kron",A, mxAlgebra(A %^% 2, name="KroneckerPower"))
-mxRun(m1)@algebras$KroneckerPower
+A  <- mxMatrix(type="Full", nrow=3, ncol=3, value=c(1:9), name="A")
+m1 <- mxModel("kron", A, mxAlgebra(A \%^\% 2, name="KroneckerPower"))
+mxRun(m1)$KroneckerPower
 # Running kron 
 # mxAlgebra 'KroneckerPower' 
 # @formula:  A %^% 2 
