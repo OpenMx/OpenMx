@@ -54,3 +54,5 @@
 52		"Binary And"	"omxAnd"			2			"omxBinaryAnd"
 53		"Binary Or"	"omxOr"				2			"omxBinaryOr"
 54		"Binary Approximate Equals"	"omxApproxEquals"	3			"omxBinaryApproxEquals"
+55		"Matrix Exponential"				"omxExponential"	1			"omxExponential"
+56		"Matrix Exponential order"		"omxExponential"	2			"omxExponentialOrder"

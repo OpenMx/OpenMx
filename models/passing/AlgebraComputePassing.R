@@ -15,6 +15,7 @@
 
 
 require(OpenMx)
+require(Matrix) # using expm for testing
 
 A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
 B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
@@ -24,7 +25,7 @@ E <- mxMatrix(values = 1:10, nrow = 5, ncol = 2, name = 'E')
 G <- mxMatrix(values = c(0, -1, 1, -1), nrow=2, ncol=2, name='G')
 H <- mxMatrix(values = c(-9.0912244, 11.1561436, 12.9500773, -0.8400564, -5.2556798, -1.3265166, -4.8423977, -14.4462163, -15.3022383, 17.1928667, -2.4835399, -18.1943775, 2.8587299, 18.6432244, -13.5789122, -2.2622090), nrow=4, ncol=4, name='H')
 # For Mnor
-J <- mxMatrix("Full", values=rbind(c(1, 0, 0), c(1, 0, 0)), free=F, name="J")
+I <- mxMatrix("Iden", nrow = 5, ncol = 5, name="I")
 L <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,-Inf), free=F, name="L")
 M <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,0), free=F, name="M")
 N <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,1,0), free=F, name="N")
@@ -37,7 +38,7 @@ dimnames(A) <- list(letters[1:5], letters[22:26])
 dimnames(B) <- dimnames(A)
 dimnames(C) <- list(letters[1:6], letters[22:26])
 
-model <- mxModel(A, B, C, D, E, G, H, V, M, N, O, L, U, Z, EPSILON, name = 'model')
+model <- mxModel(A, B, C, D, E, G, H, I, V, M, N, O, L, U, Z, EPSILON, name = 'model')
 zeta <- 'z'
 alpha <- 'a'
 two <- 2
@@ -217,7 +218,12 @@ model <- mxModel(model, mxAlgebra(omxApproxEquals(B,A, EPSILON), name ='test53b'
 model <- mxModel(model, mxAlgebra(omxApproxEquals(A,A, EPSILON), name ='test53c'))
 model <- mxModel(model, mxAlgebra(omxApproxEquals(B,B, EPSILON), name ='test53d'))
 model <- mxModel(model, mxAlgebra(omxApproxEquals(A,B,t(EPSILON)), name ='test53e'))
-
+model <- mxModel(model, mxAlgebra(omxExponential(A), name = 'test55a'))
+model <- mxModel(model, mxAlgebra(omxExponential(t(A)), name = 'test55b'))
+model <- mxModel(model, mxAlgebra(omxExponential(B), name = 'test55c'))
+model <- mxModel(model, mxAlgebra(omxExponential(t(B)), name = 'test55d'))
+model <- mxModel(model, mxAlgebra(omxExponential(I), name = 'test55e'))
+model <- mxModel(model, mxAlgebra(omxExponential(t(I)), name = 'test55f'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -394,3 +400,16 @@ omxCheckCloseEnough(model[['test53b']]@result, mxEval(omxApproxEquals(B,A, EPSIL
 omxCheckCloseEnough(model[['test53c']]@result, mxEval(omxApproxEquals(A,A, EPSILON), model), 0.001)
 omxCheckCloseEnough(model[['test53d']]@result, mxEval(omxApproxEquals(B,B, EPSILON), model), 0.001)
 omxCheckCloseEnough(model[['test53e']]@result, mxEval(omxApproxEquals(A,B,t(EPSILON)), model), 0.001)
+omxCheckCloseEnough(model[['test55a']]@result, mxEval(omxExponential(A), model), 0.001)
+omxCheckCloseEnough(model[['test55b']]@result, mxEval(omxExponential(t(A)), model), 0.001)
+omxCheckCloseEnough(model[['test55c']]@result, mxEval(omxExponential(B), model), 0.001)
+omxCheckCloseEnough(model[['test55d']]@result, mxEval(omxExponential(t(B)), model), 0.001)
+omxCheckCloseEnough(model[['test55e']]@result, mxEval(omxExponential(I), model), 0.001)
+omxCheckCloseEnough(model[['test55f']]@result, mxEval(omxExponential(t(I)), model), 0.001)
+omxCheckCloseEnough(model[['test55a']]@result, mxEval(as.matrix(expm(A)), model), 0.001)
+omxCheckCloseEnough(model[['test55b']]@result, mxEval(as.matrix(expm(t(A))), model), 0.001)
+omxCheckCloseEnough(model[['test55c']]@result, mxEval(as.matrix(expm(B)), model), 0.001)
+omxCheckCloseEnough(model[['test55d']]@result, mxEval(as.matrix(expm(t(B))), model), 0.001)
+omxCheckCloseEnough(model[['test55e']]@result, mxEval(as.matrix(expm(I)), model), 0.001)
+omxCheckCloseEnough(model[['test55f']]@result, mxEval(as.matrix(expm(t(I))), model), 0.001)
+
