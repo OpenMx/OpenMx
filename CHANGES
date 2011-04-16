@@ -1,3 +1,7 @@
+trunk
+=====
+* turn off jiggling of free parameters with starting values of 0.0 when useOptimizer=FALSE
+
 Pre-Release 999.0.0-1609 (April 7, 2011)
 ========================================
 * added argument 'threshnames' to mxFIMLObjective()

@@ -306,19 +306,22 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		istate	= (int*) R_alloc (nctotl, sizeof ( int ) );
 		iw		= (int*) R_alloc (leniw, sizeof ( int ));
 
-	/* Set up actual run */
+		/* Set up actual run */
 
 		omxSetupBoundsAndConstraints(bl, bu, n, nclin);
+		
+		/* 	Set NPSOL options */
+		omxSetNPSOLOpts(options, &calculateHessians, &numHessians, &calculateStdErrors, &ciMaxIterations, &disableOptimizer);
 
-	/* Initialize Starting Values */
+		/* Initialize Starting Values */
 		if(OMX_VERBOSE) {
 			Rprintf("--------------------------\n");
 			Rprintf("Starting Values (%d) are:\n", n);
 		}
 		for(k = 0; k < n; k++) {
 			x[k] = REAL(startVals)[k];
-			if(x[k] == 0.0) {
-				x[k] += .1;
+			if((x[k] == 0.0) && !disableOptimizer) {
+				x[k] += 0.1;
 			}
 			if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
@@ -326,9 +329,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			Rprintf("--------------------------\n");
 			Rprintf("Setting up optimizer...");
 		}
-
-		/* 	Set NPSOL options */
-		omxSetNPSOLOpts(options, &calculateHessians, &numHessians, &calculateStdErrors, &ciMaxIterations, &disableOptimizer);
 
 	/*  F77_CALL(npsol)
 		(	int *n,					-- Number of variables
