@@ -69,7 +69,7 @@ help:
 internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RFILES) $(RDFILES)
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) --resave-data=no ..
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .

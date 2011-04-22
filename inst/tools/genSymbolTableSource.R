@@ -12,7 +12,7 @@ header <- paste(
 	sep = "\n"
 )
 
-table <- read.table('data/omxSymbolTable.tab', header = TRUE,
+table <- read.table('data/omxSymbolTable.tab.gz', header = TRUE,
 	stringsAsFactors = FALSE)
 
 strings <- apply(table, 1, function(x) {
