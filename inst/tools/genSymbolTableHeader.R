@@ -1,4 +1,5 @@
-table <- read.table('data/omxSymbolTable.tab', header = TRUE)
+gzFile <- 
+table <- read.table('data/omxSymbolTable.tab.gz', header = TRUE)
 
 numEntries <- dim(table)[[1]]
 
