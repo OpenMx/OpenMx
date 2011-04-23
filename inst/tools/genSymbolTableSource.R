@@ -12,7 +12,12 @@ header <- paste(
 	sep = "\n"
 )
 
-table <- read.table('data/omxSymbolTable.tab.gz', header = TRUE,
+symbolTable <- 'data/omxSymbolTable.tab'
+if (file.access(symbolTable) < 0) {
+	symbolTable <- 'data/omxSymbolTable.tab.gz'
+} 
+
+table <- read.table(symbolTable, header = TRUE,
 	stringsAsFactors = FALSE)
 
 strings <- apply(table, 1, function(x) {
