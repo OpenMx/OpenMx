@@ -53,38 +53,35 @@ setMethod("imxModelBuilder", "MxRAMModel",
 )
 
 setMethod("imxVerifyModel", "MxRAMModel",
-    function(model) {
-        if ((length(model$A) == 0) ||
-             (length(model$S) == 0) ||
-             (length(model$F) == 0)) {
-			msg <- paste("The RAM model", omxQuotes(model@name),
+	function(model) {
+		if ((length(model$A) == 0) ||
+			(length(model$S) == 0) ||
+			(length(model$F) == 0)) {
+				msg <- paste("The RAM model", omxQuotes(model@name),
                 "does not contain any paths.")
-			stop(msg, call. = FALSE)
-        }
-        objective <- model$objective
-        if (!is.null(objective) && !is(objective, "MxRAMObjective")) {
-			msg <- paste("The RAM model", omxQuotes(model@name),
-                "does not contain a RAM objective function.")
-			stop(msg, call. = FALSE)        	
-        }
-        if (!is.null(model@data) && model@data@type == "raw" &&
-        	is.null(model$M)) {
-			msg <- paste("The RAM model", omxQuotes(model@name),
-                "contains raw data but has not specified any means paths.")
-			stop(msg, call. = FALSE)
-        }
-        if (!is.null(model@data) && !single.na(model@data@means) &&
-        	is.null(model$M)) {
-			msg <- paste("The RAM model", omxQuotes(model@name),
-                "contains an observed means vector",
-                "but has not specified any means paths.")
-			stop(msg, call. = FALSE)        	
+				stop(msg, call. = FALSE)
 		}
-        if (length(model@submodels) > 0) {
-        	return(all(sapply(model@submodels, imxVerifyModel)))
-        }        
-        return(TRUE)
-    }
+		objective <- model$objective
+		if (!is.null(objective) && is(objective, "MxRAMObjective")) {
+			if (!is.null(model@data) && model@data@type == "raw" &&
+   	    	is.null(model$M)) {
+				msg <- paste("The RAM model", omxQuotes(model@name),
+        	       "contains raw data but has not specified any means paths.")
+				stop(msg, call. = FALSE)
+			}
+			if (!is.null(model@data) && !single.na(model@data@means) &&
+				is.null(model$M)) {
+				msg <- paste("The RAM model", omxQuotes(model@name),
+					"contains an observed means vector",
+					"but has not specified any means paths.")
+				stop(msg, call. = FALSE)        	
+			}
+		}
+		if (length(model@submodels) > 0) {
+			return(all(sapply(model@submodels, imxVerifyModel)))
+		}
+		return(TRUE)
+	}
 )
 
 

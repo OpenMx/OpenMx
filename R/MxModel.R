@@ -35,7 +35,7 @@ setClass(Class = "MxModel",
 		.newtree="logical"
 ))
 
-imxModelTypes[['raw']] <- "MxModel"
+imxModelTypes[['default']] <- "MxModel"
 
 setMethod("initialize", "MxModel",
 	function(.Object, name = character()) {

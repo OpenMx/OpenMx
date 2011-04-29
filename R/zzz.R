@@ -14,12 +14,12 @@
 #   limitations under the License.
 
 .onLoad <- function(libname, pkgname) {
-   options('mxDefaultType' = 'raw', 
+   options('mxDefaultType' = 'default', 
 	'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions),
-   	'mxRAMDefaultSingle' = 1.00, 
-   	'mxRAMDefaultDouble' = 1.00,
+	'mxRAMDefaultSingle' = 1.00, 
+	'mxRAMDefaultDouble' = 1.00,
 	'mxByrow' = FALSE,
 	'mxShowDimnames' = TRUE,
-   	'mxPrintUnitTests' = TRUE,
+	'mxPrintUnitTests' = TRUE,
 	'swift.initialexpr' = "library(OpenMx)")
 }
