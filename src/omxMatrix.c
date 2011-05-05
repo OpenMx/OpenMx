@@ -155,8 +155,6 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 	omxCopyMatrix(dest, src);
 	dest->aliasedPtr = src;					// Alias now follows back matrix precisely.
-	dest->algebra = NULL;					// Have to look at how this effect interacts with populating
-	dest->objective = NULL;					// 		matrix values to other locations.
 }
 
 void omxFreeMatrixData(omxMatrix * om) {
