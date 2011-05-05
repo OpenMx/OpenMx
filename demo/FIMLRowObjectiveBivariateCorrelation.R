@@ -26,6 +26,7 @@
 #   Ross Gore -- 2011.04.10 modified to implement FIML via mxRowObjective
 #   Mike Hunter -- 2011.04.11 debugged Gore implementation above
 #   Mike Hunter -- 2011.05.03 Renamed from BivariateCorrelation.R to FIMLRowObjectiveBivariateCorrelation.R
+#   Mike Hunter -- 2011.05.05 modified to use omxSelect* functions
 # -----------------------------------------------------------------------
 
 require(OpenMx)
@@ -42,17 +43,22 @@ dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
 
-# Make some mxAlgebras to test mxRowObjective
-# -----------------------------------------------------------------------
+
+# Fit Saturated Model with Raw Data and Matrix-style Input.
+# Estimate with Full Information Maximum Likelihood (FIML).
+# FIML is implemented as an mxRowObjective function.
+# FIML for one row of data is 2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row-Mean)
+#  where Cov is the filtered expected covariance matrix
+#        Row is the filtered data row
+#        Mean is the filtered expected means row vector
+#        solve(*) is the inverse of *
+#        t(*) is the transpose of *
+#        det(*) is the determinant of *
+# FIML for a whole data set is the sum of all the FIML rows.
 
 
-# Fit Saturated Model with Raw Data and Matrix-style Input
 # -----------------------------------------------------------------------
-# I (Michael Hunter) have edited this model to not use
-# 	omxSelect* functions.  In this condition it works wonderfully,
-# 	but cannot handle missing data.
-# As of Mon Apr 11 19:52:21 EDT 2011 I believe the problem is with
-# 	the mxRowObjective populating the existenceVector.
+
 bivCorModel <- mxModel("bivCor",
     mxMatrix(
         type="Full", 
@@ -75,24 +81,24 @@ bivCorModel <- mxModel("bivCor",
         name="expCov", 
     ),
 	mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
- 	#mxAlgebra(
-	#	expression=omxSelectRowsAndCols(expCov, existenceVector),
-	#	name="filteredExpCov",
-	#),
-	#mxAlgebra(
-	#	expression=omxSelectCols(expMean, existenceVector), #existenceVector
-	#	name="filteredExpMean",
-	#),
+ 	mxAlgebra(
+		expression=omxSelectRowsAndCols(expCov, existenceVector),
+		name="filteredExpCov",
+	),
 	mxAlgebra(
-		expression=log2pi %*% 2 + log(det(expCov)), #filteredExpCov
+		expression=omxSelectCols(expMean, existenceVector),
+		name="filteredExpMean",
+	),
+	mxAlgebra(
+		expression=log2pi %*% 2 + log(det(filteredExpCov)),
 		name ="firstHalfCalc",
 	),
 	mxAlgebra(
-		expression=(filteredDataRow - expMean) %&% solve(expCov), #filteredExpCov
+		expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
 		name = "secondHalfCalc",
 	),
 	mxAlgebra(
-		expression=(firstHalfCalc+secondHalfCalc),
+		expression=(firstHalfCalc + secondHalfCalc),
 		name="rowAlgebra",
 	),
 	mxAlgebra(
@@ -117,29 +123,6 @@ bivCorFit <- mxRun(bivCorModel)
 EM <- mxEval(expMean, bivCorFit)
 EC <- mxEval(expCov, bivCorFit)
 LL <- mxEval(objective, bivCorFit)
-
-
-# Specify SubModel testing Covariance=Zero
-# -----------------------------------------------------------------------
-bivCorModelSub <-mxModel(bivCorModel, name = "bivCorSub",
-    mxMatrix(
-        type="Diag", 
-        nrow=2, 
-        ncol=2,
-		values=c(1,1), 
-        free=TRUE, 
-        name="Chol"
-    )
-)
-
-# Run Model and Generate Output
-# -----------------------------------------------------------------------
-bivCorFitSub <- mxRun(bivCorModelSub)
-EMs <- mxEval(expMean, bivCorFitSub)
-ECs <- mxEval(expCov, bivCorFitSub)
-LLs <- mxEval(objective, bivCorFitSub)
-Chi= LLs-LL;
-LRT= rbind(LL,LLs,Chi); LRT
 
 
 # Mx Answers of Saturated Model Hard-coded
