@@ -4,123 +4,94 @@ transFormModelDatappml <- function(model){
 	###############
 	#checks are ordered from fast to slow
 	#is the model a RAM model?
-	#write(model@name,file='C:/Users/jkarch/Desktop/result/tried.res',append=TRUE)
-	if(is.null(model$A)|| is.null(model$S) || is.null(model$F) ){
-		print("model is not a RAM model")
-	#	write(model@name,file='C:/Users/jkarch/Desktop/result/otRAM.res',append=TRUE)
+	if(is.null(model$A)|| is.null(model$S) || is.null(model$F)) {
 		return(model)
 	}
 	#transformation seems not really valuable in the situation of cov data
 	#and is not written in this way to this point
-	if(model@data@type != "raw"){
-		#&& model@data@type != "cov"
-		print("no raw data")
-	#	write(model@name,file='C:/Users/jkarch/Desktop/result/noRAWCov.res',append=TRUE)
+	if(model@data@type != "raw") {
 		return(model)
 	}
 	#are all regression loadings fixed?
-	if(length(which(model$A@free == TRUE)) > 0){
-		print("loadings of the A matrix not fixed")
-	#write(model@name,file='C:/Users/jkarch/Desktop/result/noFixedLambda.res',append=TRUE)
+	if(any(model$A@free)) {
 		return(model)	
 	}
 	#do all errors have the same label?
 	clabels <- array(0,0)
 	fakeLatents <- array(0,0)
-	manHasVar <- matrix(data=FALSE,length(model@manifestVars),1)
-	rownames(manHasVar) = model@manifestVars
+	manHasVar <- matrix(FALSE,length(model@manifestVars),1)
+	rownames(manHasVar) <- model@manifestVars
 	#gather all labels from the direct errors
-	for(manifestVar in model@manifestVars){
-		if (model$S@values[manifestVar,manifestVar] !=0){
+	for(manifestVar in model@manifestVars) {
+		if (model$S@values[manifestVar,manifestVar] !=0) {
 			manHasVar[manifestVar,1] <- TRUE
-			clabels=append(clabels,model$S@labels[manifestVar,manifestVar])
-		}
-		
+			clabels <- append(clabels,model$S@labels[manifestVar,manifestVar])
+		}		
 	}
 	#get all fakeLatens and their label
 	for(latentVar in model@latentVars){
 		#does the latentVar only have one pointer? => fakeLatent
 		tmp <- which(model$A@values[model@manifestVars,latentVar] != 0)
-		if (length(tmp) == 1){
+		if (length(tmp) == 1) {
 			#the regression weight has to be one
-			if ((model$A@values[tmp,latentVar] == 1) && (manHasVar[tmp,1] == FALSE)){
+			if ((model$A@values[tmp,latentVar] == 1) && !manHasVar[tmp,1]) {
 				fakeLatents <- append(fakeLatents,latentVar)
-			}
-			else{
-				print("fakeLatent with regression weight != 0 or already has a double header error")
-	   #			write(model@name,file='C:/Users/jkarch/Desktop/result/ErrorFault.res',append=TRUE)
+			} else {
 				return(model)
 			}
 		}
 	}
 	for(fakeLatent in fakeLatents){
-		clabels=append(clabels,model$S@labels[fakeLatent,fakeLatent])
+		clabels <- append(clabels,model$S@labels[fakeLatent,fakeLatent])
 	}
 	#not every manifest error variance has the same label
-	if (length(unique(clabels)) != 1){
-		print("non-homogenous error")
-		#write(model@name,file='C:/Users/jkarch/Desktop/result/ErrorFault2.res',append=TRUE)
+	if (length(unique(clabels)) != 1) {
 		return(model)
 	}
 	#no latent is allowed to point at another latent
-	if (length(which(model$A@values[model@latentVars,model@latentVars]!=0))  != 0 ){
-		print('no latent is allowed to point at another latent')
-		#write(model@name,file='C:/Users/jkarch/Desktop/result/LatReg.res',append=TRUE)
+	if (any(model$A@values[model@latentVars,model@latentVars] != 0)) {
 		return(model)
 	}
+
+	###################
+	#TRANSFORM SECTION#
+	###################
+	#get loadings from latents to manifest from A,S,F
+	#transorm A to E
+	E <- solve(diag(nrow(model$A)) - model$A@values)
+	#select only these columns of A which are real latents
+	realLatents <- model@latentVars[is.na(pmatch(model@latentVars,fakeLatents))]
+	#get loadings matrix:= The part of A which goes from the latents to the manifests
+	lambda <- as.matrix(E[model@manifestVars,realLatents])
+	qrDecom <- qr(lambda)
+	#check if loadings matrix is of full rank
+	k <- length(realLatents)
+	if (qrDecom$rank != dim(lambda)[2] || k != qrDecom$rank){
+		return(model)
+	}
+	#last check passed
+
 	#ensure that every free parameter has a unique label
 	pair <- omxNameAnonymousParameters(model)
 	model <- pair[[1]]
 	oldLabels <- pair[[2]]
 	
 	
-	###################
-	#TRANSFORM SECTION#
-	###################
-	#get loadings from latents to manifest from A,S,F
-	#transorm A to E
-	E <- solve(diag(dim(model$A@values)[1]) - model$A@values)
-	#select only these columns of A which are real latents
-	realLatents = model@latentVars[is.na(pmatch(model@latentVars,fakeLatents))]
-	#get loadings matrix:= The part of A which goes from the latents to the manifests
-	lambda <- as.matrix(E[model@manifestVars,realLatents])
-	qrDecom = qr(lambda)
-	#check if loadings matrix is of full rank
-	k <- length(realLatents)
-	if (qrDecom$rank != dim(lambda)[2] || k != qrDecom$rank){
-		print("lambda has not more rows than columns or not of full rank")
-		#write(model@name,file='C:/Users/jkarch/Desktop/result/ErrorFault.LambaNotFull',append=TRUE)
-		return(model)
-	}
-	#last check passed
-	print("USING PPML")
-	#write(model@name,file='C:/Users/jkarch/Desktop/result/modelsApplicated.res',append=TRUE)
+
 	#calcualte upper triangle matrix
 	#orthotogonal
 	Q <- t(qr.Q(qrDecom,complete=TRUE))
 	#transform loadings matrixn
 	lambda <- Q %*% lambda
 	#set all rows from k+1 to zero
-	lambda[(k+1):dim(lambda)[1],] = 0
+	lambda[(k+1):dim(lambda)[1],] <- 0
 	#insert new loadings matrix in A
 	model$A@values[model@manifestVars,realLatents] <- lambda
 	#tranform data or cov
 	if(model$data@type == "raw"){
-		model$data@observed = as.matrix(model@data@observed) %*% t(Q)
+		model$data@observed <- as.matrix(model@data@observed) %*% t(Q)
 		colnames(model$data@observed) <- model@manifestVars
-	}else if (model$data@type == "cov"){
-		model$data@observed = t(Q) %*% as.matrix(model@data@observed) %*% Q
-		if (!single.na(model$data@means)) {
-			model$data@means <- model$data@means %*% t(Q)
-		}
-		colnames(model$data@observed) <- model@manifestVars
-		rownames(model$data@observed) <- model@manifestVars
-	}else{
-		throw("Should never happend")
 	}
-	
-	
-
 	
 	###############
 	#SPLIT SECTION#
@@ -150,14 +121,8 @@ transFormModelDatappml <- function(model){
 	selectManifests <- model@manifestVars[is.na(pmatch(model@manifestVars,selectManifests))]
 	rightmodel <- selectSubModelFData(model,selectLatents,selectManifests)
 	rightmodel <- mxRename(rightmodel,'rightmodel')
-	#browser()
 	
 	#reunite the two submodel
-	# leftmodel$data <- model$data
-	# rightmodel$data <- model$data
-	# leftmodel$data@observed <- leftmodel$data@observed[,1:k]
-	# rightmodel$data@observed <- rightmodel$data@observed[,(k+1):dim(rightmodel$data@observed)[2]]
-	#browser()
 	result <-  mxModel('PPMLModel', leftmodel, rightmodel)
 	if (model$data@type == 'raw') {
 		result$data <- model$data
@@ -182,7 +147,7 @@ jlRun <- function(model){
 #		jk3nq@virginia.edu
 #@idea>		Timo von Oertzen
 #		timo@virginia.edu
-selectSubModelFData <- function(model,selectLatents,selectManifests){
+selectSubModelFData <- function(model, selectLatents, selectManifests) {
 	Aindices <- append(selectManifests, selectLatents)
 	#build the two new models
 	submodel <- model
@@ -207,10 +172,9 @@ selectSubModelFData <- function(model,selectLatents,selectManifests){
 	}
 	dimnames(submodel$F)[[2]] <-list(Aindices)[[1]]
 	if(model@data@type == "raw"){
-		print("was in raw")
 		submodel$data <- NULL
 #		submodel@data@observed <- as.matrix(submodel@data@observed[,selectManifests])
-	}else if (model@data@type == "cov"){
+	} else if (model@data@type == "cov") {
 		submodel@data@observed <- as.matrix(submodel@data@observed[selectManifests,selectManifests])
 #		submodel@data@numObs <- submodel@data@numObs / 2
 		colnames(submodel$data@observed) <- selectManifests
@@ -218,8 +182,6 @@ selectSubModelFData <- function(model,selectLatents,selectManifests){
 		if (!single.na(submodel@data@means)){
 			submodel@data@means <- t(as.matrix(submodel@data@means[1,selectManifests]))
 		}
-	}else{
-		throw("Should never happend")
 	}
 	return(submodel)
 }
