@@ -1,10 +1,20 @@
-transFormModelDatappml <- function(model){
+omxTransformModelPPML <- function(model) {
 	###############
 	#CHECK SECTION#
 	###############
 	#checks are ordered from fast to slow
 	#is the model a RAM model?
-	if(is.null(model$A)|| is.null(model$S) || is.null(model$F)) {
+	objective <- model$objective
+	if(is.null(objective) || !is(objective, "MxRAMObjective")) {
+		return(model)
+	}
+	Aname <- objective$A
+	Sname <- objective$S
+	Fname <- objective$F
+	Amatrix <- model[[Aname]]
+	Smatrix <- model[[Sname]]
+	Fmatrix <- model[[Fname]]
+	if(!is(Amatrix, "MxMatrix") || !is(Smatrix, "MxMatrix") || !is(Fmatrix, "MxMatrix")) {
 		return(model)
 	}
 	#transformation seems not really valuable in the situation of cov data
@@ -13,7 +23,7 @@ transFormModelDatappml <- function(model){
 		return(model)
 	}
 	#are all regression loadings fixed?
-	if(any(model$A@free)) {
+	if(any(Amatrix@free)) {
 		return(model)	
 	}
 	#do all errors have the same label?
@@ -23,7 +33,7 @@ transFormModelDatappml <- function(model){
 	rownames(manHasVar) <- model@manifestVars
 	#gather all labels from the direct errors
 	for(manifestVar in model@manifestVars) {
-		if (model$S@values[manifestVar,manifestVar] !=0) {
+		if (Smatrix@values[manifestVar,manifestVar] !=0) {
 			manHasVar[manifestVar,1] <- TRUE
 			clabels <- append(clabels,model$S@labels[manifestVar,manifestVar])
 		}		
@@ -31,10 +41,10 @@ transFormModelDatappml <- function(model){
 	#get all fakeLatens and their label
 	for(latentVar in model@latentVars){
 		#does the latentVar only have one pointer? => fakeLatent
-		tmp <- which(model$A@values[model@manifestVars,latentVar] != 0)
+		tmp <- which(Amatrix@values[model@manifestVars,latentVar] != 0)
 		if (length(tmp) == 1) {
 			#the regression weight has to be one
-			if ((model$A@values[tmp,latentVar] == 1) && !manHasVar[tmp,1]) {
+			if ((Amatrix@values[tmp,latentVar] == 1) && !manHasVar[tmp,1]) {
 				fakeLatents <- append(fakeLatents,latentVar)
 			} else {
 				return(model)
@@ -42,14 +52,14 @@ transFormModelDatappml <- function(model){
 		}
 	}
 	for(fakeLatent in fakeLatents){
-		clabels <- append(clabels,model$S@labels[fakeLatent,fakeLatent])
+		clabels <- append(clabels, Smatrix@labels[fakeLatent,fakeLatent])
 	}
 	#not every manifest error variance has the same label
 	if (length(unique(clabels)) != 1) {
 		return(model)
 	}
 	#no latent is allowed to point at another latent
-	if (any(model$A@values[model@latentVars,model@latentVars] != 0)) {
+	if (any(Amatrix@values[model@latentVars,model@latentVars] != 0)) {
 		return(model)
 	}
 
@@ -58,11 +68,11 @@ transFormModelDatappml <- function(model){
 	###################
 	#get loadings from latents to manifest from A,S,F
 	#transorm A to E
-	E <- solve(diag(nrow(model$A)) - model$A@values)
+	E <- solve(diag(nrow(Amatrix)) - Amatrix@values)
 	#select only these columns of A which are real latents
-	realLatents <- model@latentVars[is.na(pmatch(model@latentVars,fakeLatents))]
+	realLatents <- model@latentVars[is.na(pmatch(model@latentVars, fakeLatents))]
 	#get loadings matrix:= The part of A which goes from the latents to the manifests
-	lambda <- as.matrix(E[model@manifestVars,realLatents])
+	lambda <- as.matrix(E[model@manifestVars, realLatents])
 	qrDecom <- qr(lambda)
 	#check if loadings matrix is of full rank
 	k <- length(realLatents)
@@ -80,13 +90,14 @@ transFormModelDatappml <- function(model){
 
 	#calcualte upper triangle matrix
 	#orthotogonal
-	Q <- t(qr.Q(qrDecom,complete=TRUE))
+	Q <- t(qr.Q(qrDecom, complete = TRUE))
 	#transform loadings matrixn
 	lambda <- Q %*% lambda
 	#set all rows from k+1 to zero
-	lambda[(k+1):dim(lambda)[1],] <- 0
+	lambda[(k + 1) : nrow(lambda), ] <- 0
 	#insert new loadings matrix in A
-	model$A@values[model@manifestVars,realLatents] <- lambda
+	Amatrix@values[model@manifestVars,realLatents] <- lambda
+	model[[Aname]] <- Amatrix
 	#tranform data or cov
 	if(model$data@type == "raw"){
 		model$data@observed <- as.matrix(model@data@observed) %*% t(Q)
@@ -103,24 +114,20 @@ transFormModelDatappml <- function(model){
 	#all "REAL" latents + fake latents which point into the selectManifests
 	#remember that we checked that each fakeLatent column in A only has 1 non zero entry
 	#which is one
-	#browser()
-	#R sucks therefore check, if the column only consits of one row
-	toCheck <- model$A@values[selectManifests,fakeLatents]
-	if(!is.vector(toCheck)){
-		indices <- colSums(model$A@values[selectManifests,fakeLatents])
-	}else{
-		indices <- toCheck
-	}
+	indices <- colSums(Amatrix@values[selectManifests, fakeLatents, drop = FALSE])
+
 	selectFake <- fakeLatents[which(indices == 1)]
-	selectLatents <- append(realLatents,selectFake)
-	leftmodel <- selectSubModelFData(model,selectLatents,selectManifests)
-	leftmodel <- mxRename(leftmodel,'leftmodel')
+	selectLatents <- append(realLatents, selectFake)	
+	leftmodel <- mxRename(model, 'leftmodel')	
+	leftmodel <- selectSubModelFData(leftmodel, selectLatents, selectManifests)
+
 	
 	#rightmodel
-	selectLatents <- model@latentVars[is.na(pmatch(model@latentVars,selectLatents))]
-	selectManifests <- model@manifestVars[is.na(pmatch(model@manifestVars,selectManifests))]
-	rightmodel <- selectSubModelFData(model,selectLatents,selectManifests)
-	rightmodel <- mxRename(rightmodel,'rightmodel')
+	selectLatents <- model@latentVars[is.na(pmatch(model@latentVars, selectLatents))]
+	selectManifests <- model@manifestVars[is.na(pmatch(model@manifestVars, selectManifests))]
+	rightmodel <- mxRename(model, 'rightmodel')	
+	rightmodel <- selectSubModelFData(rightmodel, selectLatents, selectManifests)
+
 	
 	#reunite the two submodel
 	result <-  mxModel('PPMLModel', leftmodel, rightmodel)
@@ -138,7 +145,7 @@ transFormModelDatappml <- function(model){
 }
 
 jlRun <- function(model){
-	model <- transFormModelDatappml(model)
+	model <- omxTransformModelPPML(model)
 	return(mxRun(model))
 }
 	
@@ -159,7 +166,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 	submodel$S <- model$S[Aindices,Aindices]
 	dimnames(submodel$S)[[1]] <- list(Aindices)[[1]]
 	dimnames(submodel$S)[[2]] <- list(Aindices)[[1]]
-	 submodel$F <- model$F[selectManifests,Aindices]
+	submodel$F <- model$F[selectManifests,Aindices]
 	dimnames(submodel$F)[[1]] <- list(selectManifests)[[1]]
 	dimnames(submodel$F)[[2]] <- list(Aindices)[[1]]
 	if(!is.null(submodel$M)){
