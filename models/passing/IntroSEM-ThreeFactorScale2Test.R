@@ -234,12 +234,12 @@ expectSE <- c(0.087632, 0.085805, 0.094044, 0.097024, 0.098053, 0.08524,
 
 expectMin <- 7837.312
 
-omxCheckCloseEnough(expectVal, threeFactorObliqueRaw3Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeFactorObliqueRaw3Out@output$estimate, 0.005)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeFactorObliqueRaw3Out@output$standardError), 0.001)
+    as.vector(threeFactorObliqueRaw3Out@output$standardError), 0.005)
 
-omxCheckCloseEnough(expectMin, threeFactorObliqueRaw3Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeFactorObliqueRaw3Out@output$minimum, 0.005)
 
 
 
