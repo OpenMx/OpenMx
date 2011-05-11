@@ -569,6 +569,18 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     double oned = 1.0, zerod = 0.0, minusoned = -1.0;
     int onei = 1;
 
+    if(numDefs == 0) {
+        if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
+        if(!(covMeans == NULL)) {
+            covMeans(subObjective, cov, means);
+        } else {
+            omxRecompute(cov);			// Only recompute this here if there are no definition vars
+            omxRecompute(means);
+        }
+        if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
+        if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
+    }
+
     while(row < data->rows) {
         if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
@@ -678,22 +690,23 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 			omxResetAliasedMatrix(ordCov);				// Re-sample covariance matrix for ordinal
 			omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
 			omxResetAliasedMatrix(ordContCov);				// Re-sample covariance between ordinal and continuous
+            F77_CALL(daxpy)(&(smallRow->cols), &minusoned, smallMeans->data, &onei, smallRow->data, &onei);
 			omxRemoveRowsAndColumns(ordContCov, numContRemoves, numOrdRemoves, contRemove, ordRemove);
 
             /* :::DEBUG::: */
-            if(OMX_DEBUG) { Rprintf("Removed %d continuous and %d ordinal cols from length %d(%d) data row.\n", numContRemoves, numOrdRemoves, dataColumns->cols, cov->cols);}
-			if(OMX_DEBUG) { omxPrint(cov, "Original Covariance Matrix"); }
-			if(OMX_DEBUG) { 
+            if(OMX_DEBUG_ROWS) { Rprintf("Removed %d continuous and %d ordinal cols from length %d(%d) data row.\n", numContRemoves, numOrdRemoves, dataColumns->cols, cov->cols);}
+			if(OMX_DEBUG_ROWS) { omxPrint(cov, "Original Covariance Matrix"); }
+			if(OMX_DEBUG_ROWS) { 
 				omxPrint(smallCov, "Continuous Covariance Matrix"); 
 				}
-            if(OMX_DEBUG) { 
+            if(OMX_DEBUG_ROWS) { 
 				omxPrint(smallRow, "Continuous elements");
 				}
-			if(OMX_DEBUG) { omxPrint(ordCov, "Ordinal Covariance Matrix"); }
-			if(OMX_DEBUG) { 
+			if(OMX_DEBUG_ROWS) { omxPrint(ordCov, "Ordinal Covariance Matrix"); }
+			if(OMX_DEBUG_ROWS) { 
 				omxPrint(ordRow, "Ordinal elements");
 				}
-			if(OMX_DEBUG) { 
+			if(OMX_DEBUG_ROWS) { 
 				omxPrint(ordContCov, "Ordinal/Continuous Covariance Matrix");
 				 }
             /* :::DEBUG::: */

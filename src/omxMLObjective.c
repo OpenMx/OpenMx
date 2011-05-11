@@ -59,9 +59,17 @@ void omxDestroyMLObjective(omxObjective *oo) {
 }
 
 omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns) {
-	*numReturns = 2;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
-
+	*numReturns = 3;
+	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
+	char u = 'U';
+	char r = 'R';
+	double sum = 0;
+	double det = 1;
+    double oned = 1.0, zerod = 0.0;
+	omxMatrix* cov = ((omxMLObjective*)oo->argStruct)->observedCov;
+	int ncols = ((omxMLObjective*)oo->argStruct)->observedCov->cols;
+	omxMatrix* diag = omxInitTemporaryMatrix(NULL, ncols, ncols, TRUE, oo->matrix->currentState);
+    
 	retVal[0].numValues = 1;
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
@@ -70,7 +78,30 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal[1].numValues = 1;
 	retVal[1].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
-	retVal[1].values[0] = (((omxMLObjective*)oo->argStruct)->logDetObserved + ((omxMLObjective*)oo->argStruct)->observedCov->cols) * (((omxMLObjective*)oo->argStruct)->n - 1);
+	retVal[1].values[0] = (((omxMLObjective*)oo->argStruct)->logDetObserved + ncols) * (((omxMLObjective*)oo->argStruct)->n - 1);
+
+	retVal[2].numValues = 1;
+	retVal[2].values = (double*) R_alloc(1, sizeof(double));
+	strncpy(retVal[2].label, "IndependenceLikelihood", 20);
+	// Independence model assumes all-zero manifest covariances.
+	for(int i = 0; i < ncols; i++) {
+		double value = omxMatrixElement(cov, i, i);
+		omxSetMatrixElement(diag, i, i, 1./value);
+		det *= value;
+	}
+    det = log(det);
+    omxPrint(diag, "Diag:");
+	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
+	F77_CALL(dsymm)(&r, &u, &(diag->rows), &(diag->cols),
+					&oned, diag->data, &(diag->leading),
+ 					cov->data, &(cov->leading),
+					&zerod, diag->data, &(diag->leading));
+	for(int i = 0; i < ncols; i++) {
+		sum += omxMatrixElement(diag, i, i);
+	}
+	omxPrint(cov, "Observed:");
+	retVal[2].values[0] = (sum + det) * (((omxMLObjective*)oo->argStruct)->n - 1);
+    omxFreeMatrixData(diag);
 
 	return retVal;
 }
