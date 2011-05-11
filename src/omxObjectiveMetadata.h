@@ -48,4 +48,6 @@ typedef struct omxObjectiveMetadata {
 
 const omxObjectiveMetadata omxObjectiveMetadataTable[numObjectiveMetadatas];
 
+void omxInitRAMMetaData(SEXP rObj,  omxObjectiveMetadataContainer* omc, omxState* currentState);
+
 #endif /* _OMX_OBJECTIVE_METADATA_ */

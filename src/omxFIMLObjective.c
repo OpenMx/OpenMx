@@ -25,100 +25,10 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxObjectiveMetadata.h"
-
-#ifndef _OMX_FIML_OBJECTIVE_
-#define _OMX_FIML_OBJECTIVE_ TRUE
+#include "omxFIMLObjective.h"
 
 extern omxMatrix** matrixList;
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
-
-/* FIML Computation Structures */
-typedef struct omxDefinitionVar {		 	// Definition Var
-
-	int data, column;		// Where it comes from
-	omxData* source;		// Data source
-	int numLocations;		// Num locations
-	double** location;		// And where it goes
-	omxMatrix** matrices;	// Matrix numbers for dirtying
-
-} omxDefinitionVar;
-
-typedef struct omxThresholdColumn {		 	// Threshold
-	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
-	int column;				// Which column has the thresholds
-	int numThresholds;		// And how many thresholds
-} omxThresholdColumn;
-
-
-typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
-	double Minus2LL;		// Minus 2 Log Likelihood
-	double Mahalanobis;		// Square root of Mahalanobis distance Q = (row - means) %*% solve(sigma) %*% (row - means)
-	double Z;				// Z-score of Mahalnobis.  This is ((Q/n )^(1/3) - 1 + 2/(9n)) (9n/2)^(.5)
-	double Nrows;			// Number of rows in the data set--Unclear why this is returned
-	double Ncols;			// Number of columns in the (censored) data set
-	int finalMissed;		// Whether or not likelihood was calculable in the final case
-	int modelNumber;		// Not used
-} omxFIMLRowOutput;
-
-typedef struct omxFIMLObjective {
-
-	/* Parts of the R  MxFIMLObjective Object */
-	omxMatrix* cov;				// Covariance Matrix
-	omxMatrix* means;			// Vector of means
-	omxData* data;				// The data
-	omxMatrix* dataColumns;		// The order of columns in the data matrix
-	omxMatrix* dataRow;			// One row of data
-	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
-
-//	double* zeros;
-
-	/* Structures determined from info in the MxFIMLObjective Object*/
-	omxDefinitionVar* defVars;	// A list of definition variables
-	double* oldDefs;			// Stores definition variables between rows
-	int numDefs;				// The length of the defVars list
-
-	/* Reserved memory for faster calculation */
-	omxMatrix* smallRow;		// Memory reserved for operations on each data row
-	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
-	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
-
-	omxMatrix* RCX;				// Memory reserved for computationxs
-		
-	/* Structures for FIMLOrdinalObjective Objects */
-	omxMatrix* cor;				// To calculate correlation matrix from covariance
-	double* weights;			// Covariance weights to shift parameter estimates
-	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
-	omxThresholdColumn* thresholdCols;		// List of column thresholds
-	
-	/* Structures for JointFIMLObjective */
-	omxMatrix* ordRow;		    // Memory reserved for ordinal data row
-	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
-	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    
-    omxMatrix* ordContCov;      // Memory reserved for ordinal/continuous covariance
-	omxMatrix* halfCov;         // Memory reserved for computations
-    omxMatrix* reduceCov;       // Memory reserved for computations
-    
-    
-
-	/* Argument space for SADMVN function */
-	double* lThresh;			// Specific list of lower thresholds
-	double* uThresh;			// Specific list of upper thresholds
-	double* corList;			// SADMVN-specific list of correlations
-	double* smallCor;			// Reduced SADMVN-specific list of correlations
-	int* Infin;					// Which thresholds to use
-	int maxPts;					// From MxOptions (?)
-	double absEps;				// From MxOptions
-	double relEps;				// From MxOptions
-
-	/* Space for inner sub-objective */
-	void* subObjective;			// Inner Objective Object
-	void (*covarianceMeansFunction)(void* subObjective, omxMatrix* cov, omxMatrix* means);
-								// Inner Objective Function
-	void (*destroySubObjective)(void* subObjective, omxObjectiveMetadataContainer* oomc);
-
-} omxFIMLObjective;
-
 
 /* FIML Function body */
 void omxDestroyFIMLObjective(omxObjective *oo) {
@@ -1200,8 +1110,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix, objectiveClass;
-	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
+	SEXP nextMatrix, objectiveClass;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 	
 	newObj->subObjective = NULL;
@@ -1262,6 +1171,17 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	}
 	UNPROTECT(1);	// UNPROTECT(metadata)
 	
+	initFIMLObjectiveHelper(oo, rObj, newObj);
+
+	oo->argStruct = (void*) newObj;
+	if(OMX_DEBUG) { Rprintf("FIML Initialization Completed."); }
+}
+
+void initFIMLObjectiveHelper(omxObjective* oo, SEXP rObj, omxFIMLObjective *newObj) {
+
+	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
+	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
+
 	numCols = newObj->cov->rows;
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
@@ -1411,9 +1331,4 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 		oo->objectiveFun = omxCallJointFIMLObjective;
 	}
-
-	oo->argStruct = (void*) newObj;
-	if(OMX_DEBUG) { Rprintf("FIML Initialization Completed."); }
 }
-
-#endif /* _OMX_FIML_OBJECTIVE_ */

@@ -16,27 +16,16 @@
 
 #include "omxObjective.h"
 #include "omxBLAS.h"
-
-#ifndef _OMX_RAM_OBJECTIVE_
-#define _OMX_RAM_OBJECTIVE_ TRUE
-
-typedef struct {
-
-	omxMatrix *cov, *means, *I;
-	omxMatrix *A, *S, *F, *M;
-	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *Mns;
-
-	int numIters;
-	double logDetObserved;
-	double n;
-	double* work;
-	int lwork;
-
-} omxRAMObjective;
-
+#include "omxObjectiveMetadata.h"
+#include "omxFIMLObjective.h"
+#include "omxRAMObjective.h"
 
 // Forward declarations
 void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
+
+void omxInitRAMObjectiveWithSummaryData(omxObjective* oo, SEXP rObj);
+void omxInitRAMObjectiveWithRawData(omxObjective* oo, SEXP rObj);
+
 
 omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturns) {
 	*numReturns = 2;
@@ -53,7 +42,33 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 	return retVal;
 }
 
-void omxPopulateRAMAttributes(omxObjective *oo, SEXP algebra) {
+void omxPopulateRAMAttributesRawData(omxObjective *oo, SEXP algebra) {
+	omxFIMLObjective *argStruct = ((omxFIMLObjective*)oo->argStruct);
+	SEXP expCovExt, expMeanExt;
+	omxMatrix *expCovInt, *expMeanInt;
+	expCovInt = argStruct->cov;
+	expMeanInt = argStruct->means;
+	
+	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	for(int row = 0; row < expCovInt->rows; row++)
+		for(int col = 0; col < expCovInt->cols; col++)
+			REAL(expCovExt)[col * expCovInt->rows + row] =
+				omxMatrixElement(expCovInt, row, col);
+	if (expMeanInt != NULL) {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		for(int row = 0; row < expMeanInt->rows; row++)
+			for(int col = 0; col < expMeanInt->cols; col++)
+				REAL(expMeanExt)[col * expMeanInt->rows + row] =
+					omxMatrixElement(expMeanInt, row, col);
+	} else {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+	}
+	setAttrib(algebra, install("expCov"), expCovExt);
+	setAttrib(algebra, install("expMean"), expMeanExt);
+	UNPROTECT(2);
+}
+
+void omxPopulateRAMAttributesSummaryData(omxObjective *oo, SEXP algebra) {
 	omxRAMObjective *argStruct = ((omxRAMObjective*)oo->argStruct);
     omxMatrix *I = argStruct->I;
     omxMatrix *A = argStruct->A;
@@ -356,7 +371,19 @@ unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 }
 
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
+	
+	omxState* currentState = oo->matrix->currentState;	
 
+	omxData* dataElt = omxNewDataFromDataSlot(rObj, currentState, "data");	
+	if(strncmp(dataElt->type, "raw", 3) == 0) {
+		omxInitRAMObjectiveWithRawData(oo, rObj);
+	} else {
+		omxInitRAMObjectiveWithSummaryData(oo, rObj);
+	}	
+}
+
+void omxInitRAMObjectiveWithSummaryData(omxObjective* oo, SEXP rObj) {
+	
 	int l, k;
 	
 	SEXP slotValue;
@@ -365,14 +392,14 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxState* currentState = oo->matrix->currentState;
 
-	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function with covariance/correlation data.\n"); }
 
 	/* Set Objective Functions to RAM Objective Functions*/
 	oo->objectiveFun = omxCallRAMObjective;
 	oo->destructFun = omxDestroyRAMObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRAMObjective;
 	oo->needsUpdateFun = omxNeedsUpdateRAMObjective;
-	oo->populateAttrFun = omxPopulateRAMAttributes;
+	oo->populateAttrFun = omxPopulateRAMAttributesSummaryData;
 	oo->repopulateFun = NULL;
 
 	// Read the observed covariance matrix from the data argument.
@@ -456,9 +483,35 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	newObj->logDetObserved = (log(det * det) + newObj->cov->rows) * (newObj->n - 1);
 	if(OMX_DEBUG) { Rprintf("Log Determinant %f + %f = : %f\n", log(fabs(det)), sum, newObj->logDetObserved); }
 
-	oo->argStruct = (void*) newObj;
-
+	oo->argStruct = (void*) newObj;	
 }
 
+void omxInitRAMObjectiveWithRawData(omxObjective* oo, SEXP rObj) {
 
-#endif /* _OMX_RAM_OBJECTIVE_ */
+	if(OMX_DEBUG) { Rprintf("Initializing RAM objective function with raw data.\n"); }
+
+	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
+		
+	/* Set default Objective calls to FIML Objective Calls */
+	oo->objectiveFun = omxCallFIMLObjective;
+	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
+	oo->destructFun = omxDestroyFIMLObjective;
+	oo->populateAttrFun = omxPopulateRAMAttributesRawData;	
+	oo->repopulateFun = NULL;
+	
+	omxObjectiveMetadataContainer oomc = {NULL, NULL, NULL, NULL, NULL};
+	omxObjectiveMetadataContainer *poomc = &oomc;
+	
+	omxInitRAMMetaData(rObj, poomc, oo->matrix->currentState);
+	
+	newObj->cov = oomc.cov;
+	newObj->means = oomc.means;
+	newObj->subObjective = oomc.subObjective;
+	newObj->covarianceMeansFunction = oomc.covarianceMeansFunction;
+	newObj->destroySubObjective = oomc.destroySubObjective;
+
+	initFIMLObjectiveHelper(oo, rObj, newObj);
+	
+	oo->argStruct = (void*) newObj;	
+}
