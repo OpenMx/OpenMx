@@ -1110,7 +1110,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
-	SEXP nextMatrix, objectiveClass;
+	SEXP nextMatrix;
 	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
 	
 	newObj->subObjective = NULL;
