@@ -299,9 +299,9 @@ Often, however, one is interested in specific parts of the output.  In the case 
 
 .. code-block:: r
 
-    MZc <- mxEval(MZ.covariance, twinACEFit)    # expected covariance matrix for MZ's
-    DZc <- mxEval(DZ.covariance, twinACEFit)    # expected covariance matrix for DZ's
-    M <- mxEval(MZ.means, twinACEFit)    # expected mean
+    MZc <- twinACEFit$MZ.objective@expCov    # expected covariance matrix for MZ's
+    DZc <- twinACEFit$DZ.objective@expCov    # expected covariance matrix for DZ's
+    M <- twinACEFit$MZ.objective@expMean    # expected mean
     A <- mxEval(a*a, twinACEFit)    # additive genetic variance, a^2
     C <- mxEval(c*c, twinACEFit)    # shared environmental variance, c^2
     E <- mxEval(e*e, twinACEFit)    # unique environmental variance, e^2
@@ -375,9 +375,9 @@ To evaluate the significance of each of the model parameters, nested submodels a
     twinAEFit <- mxRun(twinAEModel)
     
     
-    MZc <- mxEval(MZ.covariance, twinAEFit)
-    DZc <- mxEval(DZ.covariance, twinAEFit)
-    M <- mxEval(MZ.means, twinAEFit)
+    MZc <- twinAEFit$MZ.objective@expCov
+    DZc <- twinAEFit$DZ.objective@expCov
+    M <- twinAEFit$MZ.objective@expMean
     A <- mxEval(a*a, twinAEFit)
     C <- mxEval(c*c, twinAEFit)
     E <- mxEval(e*e, twinAEFit)

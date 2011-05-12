@@ -134,8 +134,7 @@ The following code contains all of the components of our model. Before running a
             type="Iden",  
             nrow=2, 
             ncol=2,
-            name="F",
-            dimnames=list(c("x","y"),c("x","y"))
+            name="F"
         ),
         # means
         mxMatrix(
@@ -146,7 +145,8 @@ The following code contains all of the components of our model. Before running a
             values=c(0, 0),
             labels=c("meanx", "beta0"),
             name="M"),
-        mxRAMObjective("A", "S", "F", "M")
+        mxRAMObjective("A", "S", "F", "M",
+            dimnames=c("x","y"))
     )
       
 This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression Matrix Specification``.

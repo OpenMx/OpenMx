@@ -173,7 +173,7 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
 .. code-block:: r
 
 	algObj <- mxAlgebra(-2*sum(
-	          log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 
+	          log(pclass1 %x% Class1.objective + pclass2 %x% Class2.objective)), 
 	          name="mixtureObj")
 
 	obj <- mxAlgebraObjective("mixtureObj")

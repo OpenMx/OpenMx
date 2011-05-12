@@ -158,8 +158,7 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,0,1,0,0,
                      0,0,0,0,0,1,0),
             byrow=TRUE,
-            name="F",
-            dimnames=list(manifestVars, c(manifestVars, latentVars))
+            name="F"
         ),
         # means
         mxMatrix(
@@ -171,7 +170,8 @@ The following code contains all of the components of our model. Before running a
             labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M")
+        mxRAMObjective("A","S","F","M",
+            dimnames=c(manifestVars, latentVars))
     )
 
 This ``mxModel`` function can be split into several parts. First, we give the model a name. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Common Factor Model Matrix Specification"``.

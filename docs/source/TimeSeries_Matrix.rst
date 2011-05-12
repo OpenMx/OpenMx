@@ -127,8 +127,7 @@ The following code contains all of the components of our model. Before running a
                      0,0,0,1,0,0,0,
                      0,0,0,0,1,0,0),
             byrow=T,
-            name="F",
-			dimnames=list(NULL, c("x1","x2","x3","x4","x5","",""))
+            name="F"
         ),
         # means
             mxMatrix(
@@ -140,7 +139,8 @@ The following code contains all of the components of our model. Before running a
             labels=c(NA,NA,NA,NA,NA,"meani","means"),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M")
+        mxRAMObjective("A","S","F","M",
+			dimnames=c("x1","x2","x3","x4","x5","",""))
     )
 
 The model begins with a name, in this case "Linear Growth Curve Model Matrix Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entites in the referenced model object. 

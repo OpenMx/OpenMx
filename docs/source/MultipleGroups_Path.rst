@@ -196,14 +196,14 @@ The ``mxRun`` command is required to actually evaluate the model.  Note that we 
 
     bivHetFit <- mxRun(bivHetModel)
 
-A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specification, respectively in the matrices **M** and **S** for the two groups.  OpenMx also puts the values for the expected means and covariances in the ``means`` and ``covariance`` objects.  We also print the likelihood of the data given the model.  The ``mxEval`` command takes any R expression, followed by the fitted model name.  Given that the model ``bivHetFit`` included two models (group1 and group2), we need to use the two level names, i.e. ``group1.means`` to refer to the objects in the correct model.
+A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specification, respectively in the matrices **M** and **S** for the two groups.  OpenMx also puts the values for the expected means and covariances in the ``means`` and ``covariance`` objects.  We also print the likelihood of the data given the model.
 
 .. code-block:: r
 
-    EM1Het <- mxEval(group1.means, bivHetFit)
-    EM2Het <- mxEval(group2.means, bivHetFit)
-    EC1Het <- mxEval(group1.covariance, bivHetFit)
-    EC2Het <- mxEval(group2.covariance, bivHetFit)
+    EM1Het <- bivHetFit$group1.objective@expMean
+    EM2Het <- bivHetFit$group2.objective@expMean
+    EC1Het <- bivHetFit$group1.objective@expCov
+    EC2Het <- bivHetFit$group2.objective@expCov
     LLHet <- mxEval(objective, bivHetFit)
 
 
@@ -259,10 +259,10 @@ We can produce similar output for the submodel, i.e. expected means and covarian
 .. code-block:: r
 
     bivHomFit <- mxRun(bivHomModel)
-        EM1Hom <- mxEval(group1.means, bivHomFit)
-        EM2Hom <- mxEval(group2.means, bivHomFit)
-        EC1Hom <- mxEval(group1.covariance, bivHomFit)
-        EC2Hom <- mxEval(group2.covariance, bivHomFit)
+        EM1Hom <- bivHomFit$group1.objective@expMean
+        EM2Hom <- bivHomFit$group2.objective@expMean
+        EC1Hom <- bivHomFit$group1.objective@expCov
+        EC2Hom <- bivHomFit$group2.objective@expCov
         LLHom <- mxEval(objective, bivHomFit)
         
 
