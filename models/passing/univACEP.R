@@ -62,9 +62,9 @@ twinACEModel <- mxModel("twinACE", MZ, DZ,
 twinACEFit <- mxRun(twinACEModel)
 summary(twinACEFit)
 
-MZc <- mxEval(MZ.covariance, twinACEFit)
-DZc <- mxEval(DZ.covariance, twinACEFit)
-M   <- mxEval(MZ.means, twinACEFit)
+MZc <- twinACEFit$MZ.objective@expCov
+DZc <- twinACEFit$DZ.objective@expCov
+M   <- twinACEFit$MZ.objective@expMean
 A   <- mxEval(a*a, twinACEFit)
 C   <- mxEval(c*c, twinACEFit)
 E   <- mxEval(e*e, twinACEFit)
@@ -114,9 +114,9 @@ model <- mxModel("twinAE", MZ, DZ,
 fit <- mxRun(model)
 summary(fit)
 
-MZc <- mxEval(MZ.covariance, fit)
-DZc <- mxEval(DZ.covariance, fit)
-M   <- mxEval(MZ.means, fit)
+MZc <- fit$MZ.objective@expCov
+DZc <- fit$DZ.objective@expCov
+M   <- fit$MZ.objective@expMean
 A   <- mxEval(a*a, fit)
 C   <- mxEval(c*c, fit)
 E   <- mxEval(e*e, fit)

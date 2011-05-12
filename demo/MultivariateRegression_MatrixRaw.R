@@ -80,8 +80,7 @@ multivariateRegModel <- mxModel("Multiple Regression Matrix Specification",
     	type="Iden",
     	nrow=4, 
     	ncol=4,
-        name="F",
-        dimnames=list(c("w", "x", "y", "z"),c("w", "x", "y", "z"))
+        name="F"
     ),
     mxMatrix(
     	type="Full", 
@@ -92,7 +91,8 @@ multivariateRegModel <- mxModel("Multiple Regression Matrix Specification",
         labels=c("betaw","meanx","betay","meanz"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M")
+    mxRAMObjective("A","S","F","M",
+		dimnames=c("w", "x", "y", "z"))
 )
       
 multivariateRegFit<-mxRun(multivariateRegModel)

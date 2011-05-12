@@ -25,6 +25,10 @@ setClass(Class = "MxRAMObjective",
 		vector = "logical",
 		expCov = "matrix",
 		expMean = "matrix",
+		definitionVars = "list",
+		dataColumns = "numeric",
+		thresholdColumns = "numeric",
+		thresholdLevels = "numeric",
 		depth = "integer"),
 	contains = "MxBaseObjective")
 
@@ -40,6 +44,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
 		.Object@vector <- vector
+		.Object@definitionVars <- list()
 		return(.Object)
 	}
 )
@@ -50,6 +55,31 @@ setMethod("genericObjDependencies", signature("MxRAMObjective"),
 	sources <- sources[!is.na(sources)]
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
+})
+
+setMethod("genericObjInitialMatrix", "MxRAMObjective",
+	function(.Object, flatModel) {
+		flatObjective <- flatModel@objectives[[.Object@name]]
+		if (flatObjective@vector == FALSE) {
+			return(matrix(as.double(NA), 1, 1))
+		} else {
+			modelname <- imxReverseIdentifier(flatModel, flatObjective@name)[[1]]
+			name <- flatObjective@name
+			if(is.na(flatObjective@data)) {
+				msg <- paste("The RAM objective",
+				"does not have a dataset associated with it in model",
+				omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			mxDataObject <- flatModel@datasets[[flatObjective@data]]
+			if (mxDataObject@type != 'raw') {
+				msg <- paste("The dataset associated with the RAM objective", 
+					"in model", omxQuotes(modelname), "is not raw data.")
+				stop(msg, call. = FALSE)
+			}
+			rows <- nrow(mxDataObject@observed)
+			return(matrix(as.double(NA), rows, 1))
+		}
 })
 
 setMethod("genericObjFunNamespace", signature("MxRAMObjective"), 
@@ -92,7 +122,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
-		if(!is.na(mMatrix) && single.na(mxDataObject@means)) {
+		if(!is.na(mMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
 			msg <- paste("The RAM objective",
 				"has an expected means vector but",
 				"no observed means vector in model",
@@ -117,7 +147,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		if (is.null(dimnames(fMatrix))) {
 			msg <- paste("The F matrix of model",
 				omxQuotes(modelname), "does not contain dimnames")
-			stop(msg, call. = FALSE)		
+			stop(msg, call. = FALSE)
 		}
 		if (is.null(dimnames(fMatrix)[[2]])) {
 			msg <- paste("The F matrix of model",
@@ -126,12 +156,12 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 		}
 		mMatrix <- flatModel[[mMatrix]]		
 		if(!is.null(mMatrix)) {
-			means <- dimnames(mMatrix@values)
+			means <- dimnames(mMatrix)
 			if (is.null(means)) {
 				msg <- paste("The M matrix associated",
 				"with the RAM objective function in model", 
 				omxQuotes(modelname), "does not contain dimnames.")
-				stop(msg, call.=FALSE)	
+				stop(msg, call. = FALSE)	
 			}
 			meanRows <- means[[1]]
 			meanCols <- means[[2]]
@@ -139,7 +169,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				msg <- paste("The M matrix associated",
 				"with the RAM objective in model", 
 				omxQuotes(modelname), "is not a 1 x N matrix.")
-				stop(msg, call.=FALSE)
+				stop(msg, call. = FALSE)
 			}
 			if (!identical(dimnames(fMatrix)[[2]], meanCols)) {
 				msg <- paste("The column names of the F matrix",
@@ -147,18 +177,36 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 					"in model", 
 					omxQuotes(modelname), "do not contain identical",
 					"names.")
-				stop(msg, call.=FALSE)
+				stop(msg, call. = FALSE)
 			}
 		}
 		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
-		if (!identical(translatedNames, rownames(mxDataObject@observed))) {
-			msg <- paste("The names of the manifest",
-				"variables in the F matrix of model",
-				omxQuotes(modelname), "does not match the",
-				"dimnames of the observed covariance matrix")
-			stop(msg, call. = FALSE)
-		}
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
+		if (mxDataObject@type == 'raw') {
+			threshName <- .Object@thresholds
+			checkNumberOrdinalColumns(mxDataObject)
+			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
+			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
+			verifyThresholds(flatModel, model, data, translatednames, threshName)
+			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)
+			.Object@thresholdColumns <- retval[[1]]
+			.Object@thresholdLevels <- retval[[2]]
+			if (length(mxDataObject@observed) == 0) {
+				.Object@data <- as.integer(NA)
+			}
+			if (single.na(.Object@dims)) {
+				.Object@dims <- translatedNames
+			}
+		} else {
+			if (!identical(translatedNames, rownames(mxDataObject@observed))) {
+				msg <- paste("The names of the manifest",
+					"variables in the F matrix of model",
+					omxQuotes(modelname), "does not match the",
+					"dimnames of the observed covariance matrix")
+				stop(msg, call. = FALSE)
+			}
+		}
 		return(.Object)
 })
 
@@ -298,73 +346,21 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			job@.newtree <- FALSE
 			return(job)
 		}
-		if (is.na(.Object@M) || is.null(flatJob[[.Object@M]])) {
+		if (is.na(.Object@M) || is.null(job[[.Object@M]])) {
 			msg <- paste("The RAM objective",
 				"has raw data but is missing",
 				"an expected means vector in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
-		dims <- dimnames(flatJob[[.Object@F]])
-		if (is.null(dims) || is.null(dims[[2]])) {
-			msg <- paste("The F matrix in model",
-				omxQuotes(model@name),
-				"does not have column names.")
-			stop(msg, call.=FALSE)
+		job <- updateThresholdDimnames(.Object, job, model@name)
+		precision <- "Function precision"
+		if(!single.na(.Object@thresholds) && 
+			is.null(job@options[[precision]])) {
+			job <- mxOption(job, precision, 1e-9)
 		}
-		if (availableName(model, namespace, 'I')) {
-			iName <- 'I'
-		} else {
-			iName <- paste('I', imxUntitledName(), sep = '_')
-		}
-		model <- mxModel(model, mxMatrix(type="Iden", 
-			nrow=nrow(flatJob[[.Object@A]]), name = iName))
-		if (availableName(model, namespace, 'Z')) {
-			zName <- 'Z'
-		} else {
-			zName <- paste('Z', imxUntitledName(), sep = '_')
-		}
-		zFormula <- substitute(solve(I - A),
-			list(I = as.symbol(iName), A = as.symbol(.Object@A)))
-		algebra <- eval(substitute(mxAlgebra(x, y),
-			list(x = zFormula, y = zName)))
-		model <- mxModel(model, algebra)
-		if (availableName(model, namespace, 'covariance')) {
-			covName <- 'covariance'
-		} else {
-			covName <- paste('covariance', imxUntitledName(), sep = '_')
-		}
-		covFormula <- substitute(F %*% Z %*% S %*% t(Z) %*% t(F),
-			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
-				S = as.symbol(.Object@S)))
-		algebra <- eval(substitute(mxAlgebra(x, y),
-			list(x = covFormula, y = covName)))
-		translatedNames <- fMatrixTranslateNames(flatJob[[.Object@F]]@values, model@name)
-		dimnames(algebra) <- list(translatedNames, translatedNames)
-		model <- mxModel(model, algebra)
-		meansFormula <- substitute(t(F %*% Z %*% t(M)),
-			list(F = as.symbol(.Object@F), Z = as.symbol(zName),
-				M = as.symbol(.Object@M)))
-		if (availableName(model, namespace, 'means')) {
-			meansName <- 'means'
-		} else {
-			meansName <- paste('means', imxUntitledName(), sep = '_')
-		}
-		algebra <- eval(substitute(mxAlgebra(x, y),
-			list(x = meansFormula, y = meansName)))
-		dimnames(algebra) <- list(NULL, translatedNames)
-		model <- mxModel(model, algebra)
-		objective <- eval(substitute(mxFIMLObjective(covariance = x, 
-			means = y, thresholds = z, vector = w),
-			list(x = covName, y = meansName, z = .Object@thresholds, w = .Object@vector)))
-		metadata <- new("MxRAMMetaData", .Object@A, .Object@S, .Object@F, 
-			.Object@M, generateRAMDepth(flatJob, .Object@A, job@options))
-		objective@metadata <- metadata
-		model@objective <- objective
-		class(model) <- 'MxModel'
-		job[[model@name]] <- model
 		job@.newobjects <- TRUE
-		job@.newobjective <- TRUE
+		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
 		return(job)
 	}

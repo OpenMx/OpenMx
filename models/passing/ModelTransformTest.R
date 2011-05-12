@@ -72,9 +72,9 @@ test <- mxModel("test",
 	mxData(data, "raw"),
 	mxMatrix("Symm", 1, 1, FALSE, 1, name="S"),
 	mxMatrix("Full", 1, 1, name="A"),
-	mxMatrix("Iden", 1, dimnames=list(c("Y"), c("Y")), name="F"),
+	mxMatrix("Iden", 1, name="F"),
 	mxMatrix("Full", 1, 1, FALSE, m, name="M"),
-	mxRAMObjective("A", "S", "F", "M")
+	mxRAMObjective("A", "S", "F", "M", dimnames=c("Y"))
 	)
 	
 # runs fine

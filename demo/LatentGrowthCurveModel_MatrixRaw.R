@@ -92,7 +92,6 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
                  0,0,0,1,0,0,0,
                  0,0,0,0,1,0,0),
         byrow=T,
-        dimnames=list(NULL, c(names(myLongitudinalData), "intercept", "slope")),
         name="F"
     ),
     mxMatrix(
@@ -104,7 +103,8 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
         labels=c(NA,NA,NA,NA,NA,"meani","means"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M")
+    mxRAMObjective("A","S","F","M",
+		dimnames = c(names(myLongitudinalData), "intercept", "slope"))
 )
       
 growthCurveFit<-mxRun(growthCurveModel, suppressWarnings=TRUE)

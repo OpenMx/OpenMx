@@ -125,11 +125,11 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
     mxAlgebraObjective("h12")
 )
 
-bivHetFit <- mxRun(bivHetModel)
-    EM1Het <- mxEval(group1.means, bivHetFit)
-    EM2Het <- mxEval(group2.means, bivHetFit)
-    EC1Het <- mxEval(group1.covariance, bivHetFit)
-    EC2Het <- mxEval(group2.covariance, bivHetFit)
+    bivHetFit <- mxRun(bivHetModel)
+    EM1Het <- bivHetFit$group1.objective@expMean
+    EM2Het <- bivHetFit$group2.objective@expMean
+    EC1Het <- bivHetFit$group1.objective@expCov
+    EC2Het <- bivHetFit$group2.objective@expCov
     LLHet <- mxEval(objective, bivHetFit)
 
 #Fit Homnogeneity Model
@@ -137,11 +137,12 @@ bivHetFit <- mxRun(bivHetModel)
 bivHomModel <- bivHetModel
     bivHomModel[['group2.S']]@labels <- bivHomModel[['group1.S']]@labels
     bivHomModel[['group2.M']]@labels <- bivHomModel[['group1.M']]@labels
-bivHomFit <- mxRun(bivHomModel)
-    EM1Hom <- mxEval(group1.means, bivHomFit)
-    EM2Hom <- mxEval(group2.means, bivHomFit)
-    EC1Hom <- mxEval(group1.covariance, bivHomFit)
-    EC2Hom <- mxEval(group2.covariance, bivHomFit)
+
+    bivHomFit <- mxRun(bivHomModel)
+    EM1Hom <- bivHomFit$group1.objective@expMean
+    EM2Hom <- bivHomFit$group2.objective@expMean
+    EC1Hom <- bivHomFit$group1.objective@expCov
+    EC2Hom <- bivHomFit$group2.objective@expCov
     LLHom <- mxEval(objective, bivHomFit)
 
     Chi= LLHom-LLHet

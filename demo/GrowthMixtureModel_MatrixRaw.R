@@ -88,7 +88,6 @@ class1 <- mxModel("Class1",
                  0,0,0,1,0,0,0,
                  0,0,0,0,1,0,0),
         byrow=T,
-        dimnames=list(NULL, c(names(myGrowthMixtureData), "intercept", "slope")),
         name="F"
     ),
     mxMatrix(
@@ -100,7 +99,8 @@ class1 <- mxModel("Class1",
         labels=c(NA,NA,NA,NA,NA,"meani1","means1"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M", vector=TRUE)
+    mxRAMObjective("A","S","F","M", vector=TRUE, 
+		dimnames = c(names(myGrowthMixtureData), "intercept", "slope"))
 ) # close model
 
 class2 <- mxModel(class1,

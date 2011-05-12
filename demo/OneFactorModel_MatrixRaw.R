@@ -112,8 +112,7 @@ oneFactorModel <- mxModel("Common Factor Model Matrix Specification",
 		         0,0,0,0,1,0,0,
 		         0,0,0,0,0,1,0),
 		byrow=TRUE,
-		name="F",
-       dimnames=list(manifestVars, c(manifestVars, latentVars))
+		name="F"
 	),
 	mxMatrix(
 		type="Full", 
@@ -126,7 +125,8 @@ oneFactorModel <- mxModel("Common Factor Model Matrix Specification",
 		         NA),
 		name="M"
 	),
-	mxRAMObjective("A","S","F","M")
+	mxRAMObjective("A","S","F","M",
+		dimnames=c(manifestVars, latentVars))
 )
       
 oneFactorFit<-mxRun(oneFactorModel)

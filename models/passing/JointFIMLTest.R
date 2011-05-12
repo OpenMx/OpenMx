@@ -232,10 +232,13 @@ ordModel        <- mxOption(ordModel,        "Standard Errors", "No")
 contModel       <- mxOption(contModel,       "Standard Errors", "No")
 
 # Step 12: Run 'em.
+thresholdModelRun <- mxRun(thresholdModel)
+continuousModelRun <- mxRun(continuousModel)
+jointModelRun <- mxRun(jointModel)
 
-ordinal    <- summary(thresholdModelRun <- mxRun(thresholdModel))$Minus2LogLikelihood
-continuous <- summary(continuousModelRun <- mxRun(continuousModel))$Minus2LogLikelihood
-joint      <- summary(jointModelRun <- mxRun(jointModel))$Minus2LogLikelihood
+ordinal    <- summary(thresholdModelRun)$Minus2LogLikelihood
+continuous <- summary(continuousModelRun)$Minus2LogLikelihood
+joint      <- summary(jointModelRun)$Minus2LogLikelihood
 
 ord <- summary(mxRun(ordModel))$Minus2LogLikelihood
 cont <- summary(mxRun(contModel) )$Minus2LogLikelihood

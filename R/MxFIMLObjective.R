@@ -25,8 +25,7 @@ setClass(Class = "MxFIMLObjective",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
 		vector = "logical",
-		threshnames = "character",
-		metadata = "MxBaseObjectiveMetaData"),
+		threshnames = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxFIMLObjective",
@@ -65,14 +64,6 @@ setMethod("genericObjFunNamespace", signature("MxFIMLObjective"),
 			modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds,
 			imxConvertIdentifier, modelname, namespace)
-		if (!is.null(.Object@metadata)) {
-			metadata <- .Object@metadata
-			metadata@A <-  imxConvertIdentifier(metadata@A, modelname, namespace)
-			metadata@S <-  imxConvertIdentifier(metadata@S, modelname, namespace)
-			metadata@F <-  imxConvertIdentifier(metadata@F, modelname, namespace)
-			metadata@M <-  imxConvertIdentifier(metadata@M, modelname, namespace)
-			.Object@metadata <- metadata
-		}
 		return(.Object)
 })
 
@@ -108,30 +99,24 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		covName <- .Object@covariance
 		dataName <- .Object@data
 		threshName <- .Object@thresholds
+		covariance <- flatModel[[covName]]
+		covNames <- colnames(covariance)
 		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, .Object@data)
 		.Object@means <- imxLocateIndex(flatModel, .Object@means, name)
 		.Object@covariance <- imxLocateIndex(flatModel, .Object@covariance, name)
 		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
-		.Object@dataColumns <- generateDataColumns(flatModel, covName, dataName)
-		verifyThresholds(flatModel, model, dataName, covName, threshName)
+		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
+		verifyThresholds(flatModel, model, dataName, covNames, threshName)
 		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-		if (!is.null(.Object@metadata)) {
-			metadata <- .Object@metadata
-			metadata@A <-  imxLocateIndex(flatModel, metadata@A, name)
-			metadata@S <-  imxLocateIndex(flatModel, metadata@S, name)
-			metadata@F <-  imxLocateIndex(flatModel, metadata@F, name)
-			metadata@M <-  imxLocateIndex(flatModel, metadata@M, name)
-			.Object@metadata <- metadata
-		}
-		retval <- generateThresholdColumns(flatModel, model, covName, dataName, threshName)
+		retval <- generateThresholdColumns(flatModel, model, covNames, dataName, threshName)
 		.Object@thresholdColumns <- retval[[1]] 
 		.Object@thresholdLevels <- retval[[2]]
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
 		if (single.na(.Object@dims)) {
-			.Object@dims <- rownames(flatModel[[covName]])
+			.Object@dims <- covNames
 		}
 		return(.Object)
 })
@@ -406,11 +391,9 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, object
 	}
 }
 
-generateDataColumns <- function(flatModel, covName, dataName) {
+generateDataColumns <- function(flatModel, covNames, dataName) {
 	retval <- c()
 	dataColumnNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
-	covariance <- flatModel[[covName]]
-	covNames <- dimnames(covariance)[[2]]
 	for(i in 1:length(covNames)) {
 		targetName <- covNames[[i]]
 		index <- match(targetName, dataColumnNames)

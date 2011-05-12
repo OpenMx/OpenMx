@@ -13,10 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-generateThresholdColumns <- function(flatModel, model, covName, dataName, threshName) {
-	covariance <- eval(substitute(mxEval(x, model, compute=TRUE),
-		list(x = as.symbol(covName))))
-	covarianceLength <- ncol(covariance)
+generateThresholdColumns <- function(flatModel, model, covarianceColumnNames, dataName, threshName) {
+	covarianceLength <- length(covarianceColumnNames)
 	thresholdColumns <- replicate(covarianceLength, as.integer(NA))
 	thresholdLevels <- replicate(covarianceLength, as.integer(NA))
 	if (single.na(threshName)) {
@@ -25,7 +23,6 @@ generateThresholdColumns <- function(flatModel, model, covName, dataName, thresh
 	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
 		list(x = as.symbol(threshName))))
 	thresholdColumnNames <- dimnames(thresholds)[[2]]
-	covarianceColumnNames <- dimnames(covariance)[[2]]
 	datasource <- flatModel@datasets[[dataName]]@observed
 	for(i in 1:length(thresholdColumnNames)) {
 		oneThresholdName <- thresholdColumnNames[[i]]
@@ -37,7 +34,7 @@ generateThresholdColumns <- function(flatModel, model, covName, dataName, thresh
 	return(list(thresholdColumns, thresholdLevels))
 }
 
-verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
+verifyThresholds <- function(flatModel, model, dataName, covNames, threshName) {
 	if (single.na(threshName)) {
 		return()
 	}
@@ -53,8 +50,6 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 			"for model", omxQuotes(modelName), 
 			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 	}
-	covariance <- eval(substitute(mxEval(x, model, compute=TRUE),
-		list(x = as.symbol(covName))))
 	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
 		list(x = as.symbol(threshName))))
 	observed <- flatModel@datasets[[dataName]]@observed
@@ -72,7 +67,6 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 	}
 	threshNames <- dimnames(thresholds)[[2]]
 	obsNames <- dimnames(observed)[[2]]
-	covNames <- dimnames(covariance)[[2]]
 	missingNames <- setdiff(threshNames, obsNames)
 	if (length(missingNames) > 0) {
 		stop(paste("The column name(s)", omxQuotes(missingNames), 
@@ -86,17 +80,8 @@ verifyThresholds <- function(flatModel, model, dataName, covName, threshName) {
 		stop(paste("The column name(s)", omxQuotes(missingNames), 
 			"appear in the thresholds matrix",
 			omxQuotes(simplifyName(threshName, modelName)), "but not",
-			"the expected covariance matrix", omxQuotes(simplifyName(covName, modelName)),
-			"in model", omxQuotes(modelName)), call. = FALSE)
+			"the manifest variables of model", omxQuotes(modelName)), call. = FALSE)
 	}
-	missingNames <- setdiff(covNames, threshNames)
-    # if (length(missingNames) > 0) {
-    #   stop(paste("The column name(s)", omxQuotes(missingNames), 
-    #       "appear in the expected covariance matrix",
-    #       omxQuotes(simplifyName(covName, modelName)), "but not",
-    #       "in the thresholds matrix", omxQuotes(simplifyName(threshName, modelName)),
-    #       "in model", omxQuotes(modelName)), call. = FALSE)
-    # }
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
 		tColumn <- thresholds[,i]

@@ -119,8 +119,7 @@ twoFactorModel <- mxModel("Two Factor Model Matrix Specification",
                  0,0,0,0,1,0,0,0,
                  0,0,0,0,0,1,0,0),
         byrow=T,
-        name="F",
-        dimnames=list(manifestVars ,c(manifestVars, latentVars))
+        name="F"
     ),
     mxMatrix(
     	type="Full", 
@@ -131,7 +130,8 @@ twoFactorModel <- mxModel("Two Factor Model Matrix Specification",
         labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA,NA),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M")
+    mxRAMObjective("A","S","F","M",
+		dimnames=c(manifestVars, latentVars))
 )
       
 twoFactorFit <- mxRun(twoFactorModel)

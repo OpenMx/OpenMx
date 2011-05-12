@@ -1122,54 +1122,17 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->repopulateFun = NULL;
 	
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("metadata")));
-	if(IS_S4_OBJECT(nextMatrix)) {
-		if(OMX_DEBUG) { Rprintf("Initializing subobjective metadata.\n"); }
-		// Metadata exists and must be processed.
-		PROTECT(objectiveClass = STRING_ELT(getAttrib(nextMatrix, install("class")), 0));
-		char const * objType;
-		objType = CHAR(objectiveClass);
-		
-		if(OMX_DEBUG) { Rprintf("Subobjective metadata is class %s.\n", objType); }
-		
-		omxObjectiveMetadataContainer oomc = {NULL, NULL, NULL, NULL, NULL};
-		omxObjectiveMetadataContainer *poomc = &oomc;
-		
-		for(int i = 0; i < numObjectiveMetadatas; i++) {
-			if(strncmp(objType, omxObjectiveMetadataTable[i].name, 50) == 0) {
-				omxObjectiveMetadataTable[i].initFunction(nextMatrix, poomc, oo->matrix->currentState);
-				break;
-			}
-		}
-		
-		if(oomc.cov != NULL) {
-			newObj->cov = oomc.cov;
-			newObj->means = oomc.means;
-			newObj->subObjective = oomc.subObjective;
-			newObj->covarianceMeansFunction = oomc.covarianceMeansFunction;
-			newObj->destroySubObjective = oomc.destroySubObjective;
-		}
-		
-		UNPROTECT(1); // objectiveClass
+	newObj->subObjective = NULL;
+	newObj->covarianceMeansFunction = NULL;
 
-		if(newObj->subObjective == NULL) {
-			error("Unrecognized subObjective Metadata passed to back-end.");
-		}
-	} else {
-		// No metadata.  Continue as usual.
-		newObj->subObjective = NULL;
-		newObj->covarianceMeansFunction = NULL;
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
+	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
+	UNPROTECT(1);	// UNPROTECT(means)
 
-		PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-		newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-		if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
-		UNPROTECT(1);	// UNPROTECT(means)
-
-		PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-		newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-		UNPROTECT(1);	// UNPROTECT(covariance)
-	}
-	UNPROTECT(1);	// UNPROTECT(metadata)
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
+	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);	// UNPROTECT(covariance)
 	
 	initFIMLObjectiveHelper(oo, rObj, newObj);
 

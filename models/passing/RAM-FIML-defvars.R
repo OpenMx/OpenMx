@@ -25,9 +25,9 @@ test <- mxModel("test", type="default",
 	mxMatrix("Full", ncol=1, nrow=1, free=F, values=0,   labels="data.vi", name="V"),
 	mxMatrix("Full", ncol=1, nrow=1, free=T, values=0.1, lbound=0.0000001, name="Tau"),
 	mxMatrix("Full", ncol=1, nrow=1, free=T, values=0,   name="M"),
-	mxMatrix("Iden", ncol=1, nrow=1, dimnames=list(c("yi"), c("yi")), name="F"),
+	mxMatrix("Iden", ncol=1, nrow=1, name="F"),
 	mxAlgebra(V+Tau, name="S"),
-	mxRAMObjective("A", "S", "F", "M"),
+	mxRAMObjective("A", "S", "F", "M", dimnames=c("yi")),
 	mxData(observed=my.df, type="raw")
 )
 out <- mxRun(test, suppressWarnings=TRUE)
