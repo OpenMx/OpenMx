@@ -523,10 +523,14 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 }
 
 imxConvertIdentifier <- function(identifier, modelname, namespace) {
-    isLocalEntity <- as.character(identifier) %in% namespace$entities[[modelname]]
+	charidentifier <- as.character(identifier)
+	if (is.na(charidentifier)) {
+		return(identifier)
+	}
+    isLocalEntity <- charidentifier %in% namespace$entities[[modelname]]
     if (isLocalEntity) {
 		return(imxIdentifier(modelname, identifier))
-	} else if (isLocalDefinitionVariable(as.character(identifier))) {
+	} else if (isLocalDefinitionVariable(charidentifier)) {
 		return(imxIdentifier(modelname, identifier))
     } else {
 		return(identifier)
