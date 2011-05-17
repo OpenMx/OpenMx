@@ -82,7 +82,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 
 	retVal[2].numValues = 1;
 	retVal[2].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[2].label, "IndependenceLikelihood", 20);
+	strncpy(retVal[2].label, "IndependenceLikelihood", 22);
 	// Independence model assumes all-zero manifest covariances.
 	for(int i = 0; i < ncols; i++) {
 		double value = omxMatrixElement(cov, i, i);
@@ -90,7 +90,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 		det *= value;
 	}
     det = log(det);
-    omxPrint(diag, "Diag:");
+    if(OMX_DEBUG) { omxPrint(diag, "Diag:"); }
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
 	F77_CALL(dsymm)(&r, &u, &(diag->rows), &(diag->cols),
 					&oned, diag->data, &(diag->leading),
@@ -99,7 +99,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	for(int i = 0; i < ncols; i++) {
 		sum += omxMatrixElement(diag, i, i);
 	}
-	omxPrint(cov, "Observed:");
+	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 	retVal[2].values[0] = (sum + det) * (((omxMLObjective*)oo->argStruct)->n - 1);
     omxFreeMatrixData(diag);
 
