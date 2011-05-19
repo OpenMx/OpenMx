@@ -166,18 +166,11 @@ setMethod("[", "MxMatrix",
 		} else {
 			name <- x@name
 		}
-		labels <- as.matrix(x@labels[i,j])
-		values <- as.matrix(x@values[i,j])		
-		free <- as.matrix(x@free[i,j])
-		lbound <- as.matrix(x@lbound[i,j])
-		ubound <- as.matrix(x@ubound[i,j])
-		if(!missing(i) && missing(j) && length(i) == 1) {
-			labels <- t(labels)
-			values <- t(values)
-			free <- t(free)
-			lbound <- t(lbound)
-			ubound <- t(ubound)
-		}
+		labels <- as.matrix(x@labels[i, j, drop = drop])
+		values <- as.matrix(x@values[i, j, drop = drop])		
+		free <- as.matrix(x@free[i, j, drop = drop])
+		lbound <- as.matrix(x@lbound[i, j, drop = drop])
+		ubound <- as.matrix(x@ubound[i, j, drop = drop])
 		type <- class(x)[[1]]
 		nrow <- nrow(labels)
 		ncol <- ncol(labels)

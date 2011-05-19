@@ -4,6 +4,7 @@ trunk
 * allow non-RAM objective functions in RAM model
 * change model type names to 'default' and 'RAM'
 * no longer explicitly transforming RAM + raw data models into FIML models
+* fixed bug in MxMatrix indexing operator
 
 Pre-Release 999.0.0-1609 (April 7, 2011)
 ========================================
