@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2010 The OpenMx Project
+#   Copyright 2007-2011 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -38,11 +38,11 @@ deparseDimnames <- function(dimnames) {
 		", ", colnames, ")", sep = ""))
 }
 
-setGeneric("mxDeparse", function(object, indent = '   ') { 
-	return(standardGeneric("mxDeparse")) 
+setGeneric("imxDeparse", function(object, indent = '   ') { 
+	return(standardGeneric("imxDeparse")) 
 })
 
-setMethod("mxDeparse", "MxAlgebra",
+setMethod("imxDeparse", "MxAlgebra",
 	function(object, indent = '   ') {
 		return(paste("mxAlgebra", "(", 
 			deparse(object@formula), ", name = ",
@@ -50,7 +50,7 @@ setMethod("mxDeparse", "MxAlgebra",
 	}
 )
 
-setMethod("mxDeparse", "MxConstraint",
+setMethod("imxDeparse", "MxConstraint",
 	function(object, indent = '   ') {
 		return(paste("mxConstraint", "(",
 			omxQuotes(object@alg1), ", ",
@@ -61,7 +61,7 @@ setMethod("mxDeparse", "MxConstraint",
 	}
 )
 
-setMethod("mxDeparse", "MxData",
+setMethod("imxDeparse", "MxData",
 	function(object, indent = '   ') {
 		if (is.na(object@means)) {
 			means <- "NA"
@@ -81,7 +81,7 @@ setMethod("mxDeparse", "MxData",
 	}
 )
 
-setMethod("mxDeparse", "matrix",
+setMethod("imxDeparse", "matrix",
 	function(object, indent = '   ') {
 		if (nrow(object) == 0 || ncol(object) == 0) {
 			return(paste("matrix(nrow = ",
@@ -101,7 +101,7 @@ setMethod("mxDeparse", "matrix",
 	}
 )
 
-setMethod("mxDeparse", "ZeroMatrix",
+setMethod("imxDeparse", "ZeroMatrix",
 	function(object, indent = '   ') {
 		return(paste("mxMatrix(type = 'Zero', nrow = ",
 			nrow(object), ", ncol = ",
@@ -110,7 +110,7 @@ setMethod("mxDeparse", "ZeroMatrix",
 	}
 )
 
-setMethod("mxDeparse", "UnitMatrix",
+setMethod("imxDeparse", "UnitMatrix",
 	function(object, indent = '   ') {
 		return(paste("mxMatrix(type = 'Unit', nrow = ",
 			nrow(object), ", ncol = ",
@@ -119,7 +119,7 @@ setMethod("mxDeparse", "UnitMatrix",
 	}
 )
 
-setMethod("mxDeparse", "IdenMatrix",
+setMethod("imxDeparse", "IdenMatrix",
 	function(object, indent = '   ') {
 		return(paste("mxMatrix(type = 'Iden', nrow = ",
 			nrow(object), ", ncol = ",
@@ -145,7 +145,7 @@ matrixNAdefault <- function(object, location, retval) {
 	return(retval)
 }
 
-setMethod("mxDeparse", "MxMatrix",
+setMethod("imxDeparse", "MxMatrix",
 	function(object, indent = '   ') {
 		type <- sub("Matrix", "", class(object)[[1]], fixed = TRUE)
 		retval <- paste("mxMatrix(", omxQuotes(type), sep = "")
