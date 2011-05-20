@@ -131,24 +131,28 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	datalist <- model@runstate$datalist
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
+	independence <- retval[['IndependenceLikelihood']]
 	chi <- likelihood - saturated
 	DoF <- retval$degreesOfFreedom
-	satDoF <- retval$satDegreesOfFreedom
+	satDoF <- retval$saturatedDoF
+	indDoF <- retval$independenceDoF
 	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
 	retval[['Chi']] <- chi
 	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
-	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
+	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
 	AIC.p <- Fvalue + 2 * nParam
-	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) # why was the original formula multiplied by 0.5?
-	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) # why was the original formula multiplied by 0.5?
-	retval[['CFI']] <- "Put CFI Forumla Here."
-	retval[['TLI']] <- "Put TLI Forumla Here."
+	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) 
+	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) 
+	retval[['CFI']] <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
+	retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
+	retval[['satDoF']] <- satDoF
+	retval[['indDoF']] <- indDoF
 	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
 	rownames(IC) <- c("AIC", "BIC")
 	retval[['informationCriteria']] <- IC
-	rmseaSquared <- (chi / DoF - 1) / retval[['numObs']]
+	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		is.nan(rmseaSquared) || (rmseaSquared < 0)) {
 		retval[['RMSEA']] <- NA
@@ -214,8 +218,57 @@ parameterListHelper <- function(model, modelName) {
 	return(ptable)
 }
 
-computeOptimizationStatistics <- function(model, numStats, useSubmodels, retval) {
+computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval) {
+	# get estimated parameters
 	estimates <- model@output$estimate
+	# should saturated/independence models include means?
+	if(length(model@runstate$datalist)==1){
+		type <- model@runstate$datalist[[1]]@type
+		means <- model@runstate$datalist[[1]]@means
+		# if there's raw data, then use means in saturated/independence models
+		if(type=="raw"){
+			useMeans <- TRUE
+		} else {
+		# if there's not raw data, only use means if they're present
+			if((dim(means)[2]==1)&is.na(means[1,1])){
+				useMeans <- FALSE
+			} else{
+				useMeans <- TRUE	
+			}
+		}
+		# number of variables
+		nvar <- dim(model@runstate$datalist[[1]]@observed)[2]
+	# if there are multiple or zero datalists, then do nothing
+	} else {
+		useMeans <- NA	
+		nvar <- 0
+	}
+		# how many thresholds does each variable have (needed for saturated and independence DoF calculation)
+	# grab the objective
+	obj <- model@runstate$objective
+	# grab the thresholdLevels object and expected means; punt if there is more than one objective
+	if (length(obj)==1){
+		if ("thresholdLevels" %in% slotNames(obj[[1]])){
+			thresholdLevels <- obj[[1]]@thresholdLevels
+		} else {
+			thresholdLevels <- rep(NA, nvar)
+		}
+	} else {
+		thresholdLevels <- NULL	
+	}
+	# number of continuous variables, provided there is just one objective
+	if (!is.null(thresholdLevels)){
+		continuous <- sum(is.na(thresholdLevels))
+	} else{
+		continuous <- NA
+	}
+	# number of thresholds in the model
+	if (!is.null(thresholdLevels)){
+		thresh <- sum(thresholdLevels, na.rm=TRUE)
+	} else{
+		thresh <- NA
+	}
+	# constraints, parameters, model degrees of freedom
 	retval[['constraints']] <- calculateConstraints(model, useSubmodels)
 	retval[['estimatedParameters']] <- nrow(retval$parameters)
 	if (is.null(numStats)) {
@@ -224,6 +277,27 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, retval)
 		retval[['observedStatistics']] <- numStats
 	}
 	retval[['degreesOfFreedom']] <- retval$observedStatistics - retval$estimatedParameters
+	# calculate or populate saturated degrees of freedom
+	if(is.null(saturatedDoF)) {
+		retval[['saturatedDoF']] <- retval$observedStatistics - (nvar * (nvar-1) / 2 + continuous*(1+useMeans) + thresh)
+	} else {
+		retval[['saturatedDoF']] <- saturatedDoF
+	}
+	# calculate or populate independence degrees of freedom
+	if(is.null(independenceDoF)) {
+		# indDoF = 1 df per continuous variable variance + 1 df per continuous mean + 1 df per threshold
+		retval[['independenceDoF']] <- retval$observedStatistics - (continuous*(1+useMeans) + thresh)
+	} else {
+		retval[['independenceDoF']] <- independenceDoF
+	}
+	# set NULLs to NAs
+	if (is.null(retval$saturatedDoF)) {
+		retval$SaturatedDoF <- NA
+	}
+	if (is.null(retval$independenceDoF)) {
+		retval$IndependenceDoF <- NA
+	}
+	# calculate fit statistics
 	retval <- fitStatistics(model, useSubmodels, retval)
 	return(retval)
 }
@@ -279,6 +353,8 @@ print.summary.mxmodel <- function(x,...) {
 	# cat("adjusted BIC:", '\n')
 	cat("CFI:", x$CFI, '\n')
 	cat("TLI:", x$TLI, '\n')
+	cat("satDoF", x$satDoF, "\n")
+	cat("indDoF", x$indDoF, "\n")
 	cat("RMSEA: ", x$RMSEA, '\n')
 	cat("timestamp:", format(x$timestamp), '\n')
 	cat("frontend time:", format(x$frontendTime), '\n')
@@ -290,18 +366,30 @@ print.summary.mxmodel <- function(x,...) {
 	cat('\n')
 }
 
-setLikelihoods <- function(model, saturatedLikelihood, retval) {
+setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, retval) {
+	# populate saturated -2 log likelihood
 	if(is.null(saturatedLikelihood)) {
 		retval$SaturatedLikelihood <- model@output$SaturatedLikelihood
 	} else {
-		retval$SaturatedLikelihood <- saturatedLikelihood		
+		retval$SaturatedLikelihood <- saturatedLikelihood
 	}
+	# populate independence -2 log likelihood	
+	if(is.null(independenceLikelihood)) {
+		retval$IndependenceLikelihood <- model@output$IndependenceLikelihood
+	} else {
+		retval$IndependenceLikelihood <- independenceLikelihood
+	}
+	# populate model -2 log likelihood
 	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	# set NULLs to NAs
 	if (is.null(retval$SaturatedLikelihood)) {
 		retval$SaturatedLikelihood <- NA
 	}
 	if (is.null(retval$Minus2LogLikelihood)) {
 		retval$Minus2LogLikelihood <- NA
+	}
+	if (is.null(retval$IndependenceLikelihood)) {
+		retval$IndependenceLikelihood <- NA
 	}
 	return(retval)
 }
@@ -450,7 +538,7 @@ translateSaturatedDoF <- function(input) {
 				"result in objective function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		return(summary(input)$degreesOfFreedom) # I know this isn't correct; easier than parsing undocumented functions
+		return(summary(input)$degreesOfFreedom)
 	} else {
 		stop(paste("Illegal argument passed to",
 			"'SaturatedLikelihood' argument",
@@ -459,12 +547,68 @@ translateSaturatedDoF <- function(input) {
 	}
 }
 
+translateIndependenceLikelihood <- function(input) {
+	if (is.null(input)) {
+		return(input)
+	} else if (is.numeric(input)) {
+		return(input)
+	} else if (is(input, "MxModel")) {
+		if (is.null(input@objective)) {
+			stop(paste("Independence model passed",
+				"to summary function does not",
+				"have top-level objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (length(input@objective@result) != 1) {
+			stop(paste("Independence model passed to summary",
+				"function does not have a 1x1 matrix",
+				"result in objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		return(input@objective@result[1,1])
+	} else {
+		stop(paste("Illegal argument passed to",
+			"'IndependenceLikelihood' argument",
+			"of summary function in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+}
+
+translateIndependenceDoF <- function(input) {
+	if (is.null(input)) {
+		return(input)
+	} else if (is.numeric(input)) {
+		return(input)
+	} else if (is(input, "MxModel")) {
+		if (is.null(input@objective)) {
+			stop(paste("Independence model passed",
+				"to summary function does not",
+				"have top-level objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		if (length(input@objective@result) != 1) {
+			stop(paste("Independence model passed to summary",
+				"function does not have a 1x1 matrix",
+				"result in objective function in",
+				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+		}
+		return(summary(input)$degreesOfFreedom) 	} else {
+		stop(paste("Illegal argument passed to",
+			"'IndependenceLikelihood' argument",
+			"of summary function in",
+			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+	}
+}
+
+
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		model <- object
 		dotArguments <- list(...)
 		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
 		saturatedDoF <- translateSaturatedDoF(dotArguments$SaturatedDoF)
+		independenceLikelihood <- translateIndependenceLikelihood(dotArguments$IndependenceLikelihood)
+		independenceDoF <- translateIndependenceDoF(dotArguments$IndependenceDoF)
 		numObs <- dotArguments$numObs
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
@@ -472,9 +616,9 @@ setMethod("summary", "MxModel",
 		retval <- list()
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- boundsMet(model, retval)
-		retval <- setLikelihoods(model, saturatedLikelihood, retval)
+		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
-		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, retval)
+		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
 		retval$CI <- generateConfidenceIntervalTable(model)
 		retval$CIcodes <- model@output$confidenceIntervalCodes
