@@ -38,7 +38,7 @@ omxSelectCols(mxMatrixToBeFiltered, selectorMatrix)
 
 \details{
 
-omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a mxMarix specificed by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the mxMatrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from an mxMatrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. 
+omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a mxMarix specified by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the mxMatrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from an mxMatrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. 
 }
 
 \value{
