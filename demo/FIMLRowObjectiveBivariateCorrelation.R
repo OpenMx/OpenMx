@@ -27,27 +27,30 @@
 #   Mike Hunter -- 2011.04.11 debugged Gore implementation above
 #   Mike Hunter -- 2011.05.03 Renamed from BivariateCorrelation.R to FIMLRowObjectiveBivariateCorrelation.R
 #   Mike Hunter -- 2011.05.05 modified to use omxSelect* functions
+#   Mike Hunter -- 2011.05.26 Adjusted spacing & comments for readability.
 # -----------------------------------------------------------------------
 
 require(OpenMx)
 
-# Simulate Data: two standardized variables X & Y with correlation of .5
 # -----------------------------------------------------------------------
+# Simulate Data: two standardized variables X & Y with correlation of .5
+
 require(MASS)
 set.seed(200)
-rs=.5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
-testData <- xy
-selVars <- c('X','Y')
-dimnames(testData) <- list(NULL, selVars)
+rs <- .5
+xy <- mvrnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
+testData <- as.data.frame(xy)
+testVars <- c('X','Y')
+names(testData) <- testVars
 summary(testData)
 cov(testData)
 
 
 # Fit Saturated Model with Raw Data and Matrix-style Input.
 # Estimate with Full Information Maximum Likelihood (FIML).
-# FIML is implemented as an mxRowObjective function.
-# FIML for one row of data is 2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row-Mean)
+# FIML is implemented here as an mxRowObjective function for pedagogical reasons only.
+# FIML for one row of data is
+#   2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row - Mean)
 #  where Cov is the filtered expected covariance matrix
 #        Row is the filtered data row
 #        Mean is the filtered expected means row vector
@@ -59,7 +62,11 @@ cov(testData)
 
 # -----------------------------------------------------------------------
 
-bivCorModel <- mxModel("bivCor",
+bivCorModel <- mxModel(name="FIML BivCor",
+    mxData(
+        observed=testData, 
+        type="raw",
+    ),
     mxMatrix(
         type="Full", 
         nrow=1, 
@@ -80,41 +87,37 @@ bivCorModel <- mxModel("bivCor",
         expression=Chol %*% t(Chol), 
         name="expCov", 
     ),
-	mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
- 	mxAlgebra(
-		expression=omxSelectRowsAndCols(expCov, existenceVector),
-		name="filteredExpCov",
-	),
-	mxAlgebra(
-		expression=omxSelectCols(expMean, existenceVector),
-		name="filteredExpMean",
-	),
-	mxAlgebra(
-		expression=log2pi %*% 2 + log(det(filteredExpCov)),
-		name ="firstHalfCalc",
-	),
-	mxAlgebra(
-		expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
-		name = "secondHalfCalc",
-	),
-	mxAlgebra(
-		expression=(firstHalfCalc + secondHalfCalc),
-		name="rowAlgebra",
-	),
-	mxAlgebra(
-		expression=sum(rowResults),
-		name = "reduceAlgebra",
-	),
-	mxRowObjective(
-		rowAlgebra='rowAlgebra',
-		reduceAlgebra='reduceAlgebra',
-		dimnames=c('X','Y'),
-	),
-    mxData(
-        observed=testData, 
-        type="raw",
+    mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
+    mxAlgebra(
+        expression=omxSelectRowsAndCols(expCov, existenceVector),
+        name="filteredExpCov",
+    ),
+    mxAlgebra(
+        expression=omxSelectCols(expMean, existenceVector),
+        name="filteredExpMean",
+    ),
+    mxAlgebra(
+        expression=log2pi %*% 2 + log(det(filteredExpCov)),
+        name ="firstHalfCalc",
+    ),
+    mxAlgebra(
+        expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
+        name = "secondHalfCalc",
+    ),
+    mxAlgebra(
+        expression=(firstHalfCalc + secondHalfCalc),
+        name="rowAlgebra",
+    ),
+    mxAlgebra(
+        expression=sum(rowResults),
+        name = "reduceAlgebra",
+    ),
+    mxRowObjective(
+        rowAlgebra='rowAlgebra',
+        reduceAlgebra='reduceAlgebra',
+        dimnames=c('X','Y'),
     )
-)	
+)
 
 
 # Run Model and Generate Output
@@ -127,13 +130,13 @@ LL <- mxEval(objective, bivCorFit)
 
 # Mx Answers of Saturated Model Hard-coded
 # -----------------------------------------------------------------------
-Mx.EM <- matrix(c(0.03211656, -0.004883885), 1, 2)
-Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), 2, 2)
+Mx.EM <- matrix(c(0.03211656, -0.004883885), nrow=1, ncol=2)
+Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), nrow=2, ncol=2)
 Mx.LL <- 5415.772
 
 # Compare OpenMx Results to Mx Results 
 # -----------------------------------------------------------------------
 #LL: likelihood; EC: expected covariance, EM: expected means
-omxCheckCloseEnough(LL,Mx.LL,.001)
-omxCheckCloseEnough(EC,Mx.EC,.001)
-omxCheckCloseEnough(EM,Mx.EM,.001)
+omxCheckCloseEnough(LL, Mx.LL, .001)
+omxCheckCloseEnough(EC, Mx.EC, .001)
+omxCheckCloseEnough(EM, Mx.EM, .001)
