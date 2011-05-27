@@ -141,6 +141,7 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
 					name, submodel@data@name, namespace)
 			}
+			submodel@intervals <- lapply(submodel@intervals, namespaceConvertInterval, name, namespace)
 			submodel@algebras <- lapply(submodel@algebras, namespaceConvertAlgebra, name, namespace)
 			submodel@constraints <- lapply(submodel@constraints, namespaceConvertConstraint, name, namespace)
 			names(submodel@matrices) <- imxExtractNames(submodel@matrices)
@@ -149,7 +150,8 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 			flatModel@matrices    <- append(flatModel@matrices, submodel@matrices)
 			flatModel@algebras    <- append(flatModel@algebras, submodel@algebras)
 			flatModel@constraints <- append(flatModel@constraints, 
-				submodel@constraints) 
+				submodel@constraints)
+			flatModel@intervals   <- append(flatModel@intervals, submodel@intervals)
 			flatModel <- flattenModelHelper(submodel, flatModel, defaultData, namespace)
 		}
 	}
