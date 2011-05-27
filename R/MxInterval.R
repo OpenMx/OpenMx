@@ -294,6 +294,12 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 	return(retval)
 }
 
+removeAllIntervals <- function(model) {
+	model@intervals <- list()
+	model@submodels <- lapply(model@submodels, removeAllIntervals)
+	return(model)
+}
+
 omxParallelCI <- function(model, run = TRUE) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
@@ -301,11 +307,13 @@ omxParallelCI <- function(model, run = TRUE) {
 	if(length(model@output) == 0) {
 		stop("'model' argument to omxParallelCI must be a fitted model")
 	}
-	intervals <- model@intervals
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace)
+	intervals <- flatModel@intervals
 	if (length(intervals) == 0) return(model)
 	intervals <- expandConfidenceIntervals(model, intervals)
 	template <- model
-	template@intervals <- list()
+	template <- removeAllIntervals(template)
 	modelname <- model@name
 	container <- mxModel(paste(modelname, "container", sep = "_"))
 	submodels <- list()
