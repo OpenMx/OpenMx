@@ -10,3 +10,4 @@ Advanced Concepts
 
    File_Checkpointing
    Multicore_Execution
+   FIML_RowObjective

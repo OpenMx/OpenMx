@@ -1,10 +1,10 @@
 trunk
-======
+=====
 * added omxSelectRowsAndCols, omxSelectRows and omxSelectCols documentation
 * fixed model flattening to keep track of confidence intervals in submodels
 
 Beta Release 999.0.0-1661 (May 20, 2011)
-======================================
+========================================
 * turn off jiggling of free parameters with starting values of 0.0 when useOptimizer=FALSE
 * allow non-RAM objective functions in RAM model
 * change model type names to 'default' and 'RAM'

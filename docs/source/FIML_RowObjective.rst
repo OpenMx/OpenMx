@@ -1,3 +1,10 @@
+.. _fiml-rowobjective:
+
+..
+    build with the following in OpenMx/trunk/docs/source
+    sphinx-build -b html . ../build/html
+
+
 Full Information Maximum Likelihood, Row Objective Specification
 ================================================================
 
@@ -134,8 +141,15 @@ Model Specification
         mxAlgebra(
             expression=Chol %*% t(Chol), 
             name="expCov", 
-        ),
-        mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
+        )
+    )
+
+Filtering
+^^^^^^^^^
+
+.. code-block:: r
+
+    bivCorModel <- mxModel(model=bivCorModel,
         mxAlgebra(
             expression=omxSelectRowsAndCols(expCov, existenceVector),
             name="filteredExpCov",
@@ -143,7 +157,16 @@ Model Specification
         mxAlgebra(
             expression=omxSelectCols(expMean, existenceVector),
             name="filteredExpMean",
-        ),
+        )
+    )
+
+Row Objective Specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: r
+
+    bivCorModel <- mxModel(model=bivCorModel,
+        mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
         mxAlgebra(
             expression=log2pi %*% 2 + log(det(filteredExpCov)),
             name ="firstHalfCalc",
@@ -168,9 +191,10 @@ Model Specification
     )
 
 
-Row Objective Specification
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 Model Fitting
 ^^^^^^^^^^^^^
+
+.. code-block:: r
+
+    bivCorFit <- mxRun(bivCorModel)
 
