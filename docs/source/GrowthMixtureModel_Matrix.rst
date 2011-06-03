@@ -120,6 +120,7 @@ Creating the class-specific models is done the same way as every other model. We
 	        values=c(0,0,0,0,0,1,1),
 	        free=c(F,F,F,F,F,T,T),
 	        labels=c(NA,NA,NA,NA,NA,"meani1","means1"),
+	        dimnames=list(NULL, c(names(myGrowthMixtureData), "intercept", "slope")),
 	        name="M"
 	    ),
 	    mxRAMObjective("A","S","F","M", vector=TRUE)
@@ -165,6 +166,7 @@ We could create the model for our second class by copy and pasting the code abov
 	        values=c(0,0,0,0,0,1,1),
 	        free=c(F,F,F,F,F,T,T),
 	        labels=c(NA,NA,NA,NA,NA,"meani2","means2"),
+	        dimnames=list(NULL, c(names(myGrowthMixtureData), "intercept", "slope")),
 	        name="M"
 	    ),
 		name="Class2"
@@ -185,7 +187,7 @@ This method for specifying class probabilities consists of two parts. In the fir
 
 	classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
 	          values=1, lbound=0.001, 
-	          labels = c("p1", "ps"), name="Props")
+	          labels = c("p1", "p2"), name="Props")
 
 We still need probabilities, which require the second step shown below. Dividing the class proportion matrix above by its sum will rescale the proportions into probabilities. This is slightly more difficult that it appears at first, as the k x 1 matrix of class proportions and the scalar sum of that matrix aren't conformable to either matrix or element-wise operations. Instead, we can use a Kronecker product of the class proportion matrix and the inverse of the sum of that matrix. This operation is carried out by the ``mxAlgebra`` function placed in the object ``classS`` below.
 
@@ -209,8 +211,8 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
 .. code-block:: r
 
 	algObj <- mxAlgebra(-2*sum(
-	          log(pclass1 %x% Class1.objective + pclass2 %x% Class2.objective)), 
-	          name="mixtureObj")
+          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
+          name="mixtureObj")
 
 	obj <- mxAlgebraObjective("mixtureObj")
 	
