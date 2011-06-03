@@ -149,7 +149,7 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
-	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c("", sBIC))
+	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
 	rownames(IC) <- c("AIC", "BIC")
 	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
