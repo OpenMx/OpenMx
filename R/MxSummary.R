@@ -149,7 +149,7 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
-	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
+	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c("", sBIC))
 	rownames(IC) <- c("AIC", "BIC")
 	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
@@ -349,7 +349,7 @@ print.summary.mxmodel <- function(x,...) {
 	IC <- x$informationCriteria
 	colnames(IC) <- c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted")
 	print(IC)
-	cat("\n")
+	# cat("\n")
 	# cat("adjusted BIC:", '\n')
 	cat("CFI:", x$CFI, '\n')
 	cat("TLI:", x$TLI, '\n')
