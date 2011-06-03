@@ -29,15 +29,16 @@ Full information maximum likelihood is almost universally abbreviated FIML, and 
 
 Although there is a loss of information between a raw data set and an observed covariance matrix, in structural equation modeling we are often only modeling the observed covariance matrix and the observed means.  Therefore, we are usually not concerned with the loss of information.  However, when some raw data is missing, the loss of information in computing the observed covariance matrix is a cause of concern.  The intelligent handling of missing data is a primary reason to use FIML over other estimation techniques.  The method by which FIML handles missing data involves filtering out missing values when they are present, and using only the data that are not missing in a given row.
 
+Likelihood of a Row of Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 If *X* is the entire data set then the minus two log likelihood of row *i* of the data is 
 
 .. math::
-    :nowrap:
+    :label: fiml
     
-    \begin{eqnarray}
     \mathcal{L}_i = 
     2 \ln(2 \pi) + \ln( | \Sigma_i | ) ) + (X_i - M_i) \Sigma_i^{-1}  (X_i - M_i)^{\sf T}
-    \end{eqnarray}
 
 where
 
@@ -57,16 +58,83 @@ where
 
 * :math:`(*)^{\sf T}` is the transpose of :math:`*`
 
-There are several important things to note about Equation (1).
+Equation :eq:`fiml` is identically equal to :math:`-2` times the logarithm of the probability density function of the multivariate normal distribution.  The minus two log likelihood is quite literally minus two times the log of the probability of the data given the model.
+
+There are several important things to note about Equation :eq:`fiml`.
 
 First, the model-implied means vector and the model-implied covariance matrix are for the the manifest variables only.  Although your structural equation model may involve both latent and manifest variables, the latent variables are only present to explain the means and covariances of the observed variables in a meaningful and parsimonious way.  The free parameters of your model are adjusted to make the model-implied means vector and the model-implied covariance matrix as close as possible to the observed means vector and the observed covariance matrix.
 
-Second, there are several references to filtered vectors and matrices.  Filtering is how FIML handles missing data.
+Filtering
+*********
 
-1.  Filtering
-2.  Manifest variables only
-3.  Inverse of a non-positive definite matrix
-4.  Quadratic product
+Second, there are several references to filtered vectors and matrices.  Filtering is how FIML handles missing data.  All filtering is performed based on the pattern of missingness observed in a given row of data.  If the observed values of a given row, :math:`i`, of data are :math:`x_i=(1, 14, NA, 2, NA, NA)` where :math:`NA` denotes a missing value, then the filtered data row is :math:`X_i=(1, 14, 2)`.  The filtered data row is merely the original data row with the missing entries removed.  For this row, entries 3, 5, and 6 are removed. Alternatively, entries 1, 2, and 4 are kept.
+
+The filtered, model-implied means row vector is similar.  If the original model-implied means row vector is :math:`M=(2, 15, 0, 3, 1, 2)`, then the filtered model-implied means row vector for row :math:`i` is :math:`M_i=(2, 15, 3)`, keeping only entries 1, 2, and 4.
+
+The filtered, model-implied covariance matrix is marginally more complicated.  It must be selected on both rows and columns.  If :math:`\Sigma` is the model-implied covariance matrix and :math:`\Sigma` is given by
+
+.. math::
+    :nowrap:
+    
+    $ \Sigma = \left( \begin{array}{cccccc}
+    1  &  3  &  1  &  2  &  1  &  2\\
+    3  & 13  &  3  &  6  &  3  &  6\\
+    1  &  3  &  2  &  2  &  3  &  2\\
+    2  &  6  &  2  &  8  &  2  &  4\\
+    1  &  3  &  3  &  2  & 14  &  2\\
+    2  &  6  &  2  &  4  &  2  &  5\\
+    \end{array} \right)$
+
+then the filtered covariance matrix selects rows 1, 2, and 4
+
+.. math::
+    :nowrap:
+    
+    $ \Sigma = \left( \begin{array}{cccccc}
+    {\bf 1}  &  {\bf 3}  &  {\bf 1}  &  {\bf 2}  &  {\bf 1}  &  {\bf 2}\\
+    {\bf 3}  & {\bf 13}  &  {\bf 3}  &  {\bf 6}  &  {\bf 3}  &  {\bf 6}\\
+    1  &  3  &  2  &  2  &  3  &  2\\
+    {\bf 2}  &  {\bf 6}  &  {\bf 2}  &  {\bf 8}  &  {\bf 2}  &  {\bf 4}\\
+    1  &  3  &  3  &  2  & 14  &  2\\
+    2  &  6  &  2  &  4  &  2  &  5\\
+    \end{array} \right)$
+
+and columns 1, 2, and 4.
+
+.. math::
+    :nowrap:
+    
+    $ \Sigma = \left( \begin{array}{cccccc}
+    {\bf 1}  &  {\bf 3}  &  1  &  {\bf 2}  &  1  &  2\\
+    {\bf 3}  & {\bf 13}  &  3  &  {\bf 6}  &  3  &  6\\
+    {\bf 1}  &  {\bf 3}  &  2  &  {\bf 2}  &  3  &  2\\
+    {\bf 2}  &  {\bf 6}  &  2  &  {\bf 8}  &  2  &  4\\
+    {\bf 1}  &  {\bf 3}  &  3  &  {\bf 2}  & 14  &  2\\
+    {\bf 2}  &  {\bf 6}  &  2  &  {\bf 4}  &  2  &  5\\
+    \end{array} \right)$
+
+The selection on both rows and columns yields the following filtered expected covariance matrix.
+
+.. math::
+    :nowrap:
+    
+    $ \Sigma_i = \left( \begin{array}{ccc}
+    1 & 3 & 2\\
+    3 & 13 & 6\\
+    2 & 6 & 8\\
+    \end{array} \right)$
+
+In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row objective implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/repoview/1/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/repoview/1/trunk/src/omxFIMLObjective.c .
+
+Quadratic Products
+******************
+
+There is one final note to discuss about Equation :eq:`fiml`.
+
+Positive definite matrices
+
+Likelihood of the Entire Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The minus two log likelihood of the entire data set is the sum of the minus two log likelihoods of the rows.
 

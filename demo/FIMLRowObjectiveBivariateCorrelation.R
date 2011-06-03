@@ -60,7 +60,7 @@ cov(testData)
 # FIML for a whole data set is the sum of all the FIML rows.
 
 
-# -----------------------------------------------------------------------
+#-----------------------------------------------------------------------
 
 bivCorModel <- mxModel(name="FIML BivCor",
     mxData(
@@ -76,17 +76,25 @@ bivCorModel <- mxModel(name="FIML BivCor",
         name="expMean"
     ), 
     mxMatrix(
-        type="Lower", 
+        type="Symm",
         nrow=2, 
-        ncol=2, 
+        ncol=2,
+        values=c(.21, .2, .2, .21),
         free=TRUE,
-        values=.2, 
-        name="Chol"
-    ), 
-    mxAlgebra(
-        expression=Chol %*% t(Chol), 
-        name="expCov", 
+        name='expCov'
     ),
+    #mxMatrix(
+    #    type="Lower", 
+    #    nrow=2, 
+    #    ncol=2, 
+    #    free=TRUE,
+    #    values=.2, 
+    #    name="Chol"
+    #), 
+    #mxAlgebra(
+    #    expression=Chol %*% t(Chol), 
+    #    name="expCov", 
+    #),
     mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
     mxAlgebra(
         expression=omxSelectRowsAndCols(expCov, existenceVector),
