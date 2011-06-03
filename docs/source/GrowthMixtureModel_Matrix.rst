@@ -193,7 +193,7 @@ We still need probabilities, which require the second step shown below. Dividing
 
 .. code-block:: r
 
-	classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
+	classS <- mxAlgebra(Props %x% (1 / sum(Props)), name="classProbs")
 	
 There are several alternatives to the two functions above that merit discussion. While the``mxConstraint`` function would appear at first to be a simpler way to specify the class probabilities, but using the ``mxConstraint`` function complicates this type of model estimation. When all k class probabilities are freely estimated then constrained, then the class probability parameters are collinear, creating a parameter covariance matrix that is not of full rank. This prevents OpenMx from calculating standard errors for any model parameters. Additionally, there are multiple ways to use algebras different than the one above to specify the class proportion and/or class probability parameters, each varying in complexity and utility. While specifying models with two classes can be done slightly more simply than presented here, the above method is equally appropriate for all numbers of classes.
 
@@ -211,7 +211,7 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
 .. code-block:: r
 
 	algObj <- mxAlgebra(-2*sum(
-          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
+          log(classProbs[1,1] %x% Class1.objective + classProbs[2,1] %x% Class2.objective)), 
           name="mixtureObj")
 
 	obj <- mxAlgebraObjective("mixtureObj")
