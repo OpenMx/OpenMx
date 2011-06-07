@@ -319,8 +319,8 @@ omxParallelCI <- function(model, run = TRUE) {
 	submodels <- list()
 	for(i in 1:length(intervals)) {
 		interval <- intervals[[i]]
-		newmodel <- mxRename(template, paste("interval", i, sep = ""))
-		newmodel <- mxModel(newmodel, interval, independent = TRUE)
+		newmodel <- mxModel(template, interval, independent = TRUE)
+		newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
 		submodels <- c(submodels, newmodel)
 	}
 	container <- mxModel(container, submodels)
