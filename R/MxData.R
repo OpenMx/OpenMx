@@ -69,6 +69,9 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	if (type == "cov") {
 		verifyCovarianceMatrix(observed)
 	}
+	if (type == "cor") {
+		verifyCorrelationMatrix(observed)
+	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	meanNames <- names(means)
@@ -230,6 +233,34 @@ verifyCovarianceMatrix <- function(covMatrix) {
 		msg <- paste("The observed covariance matrix",
 			"is not a positive-definite matrix")
 		stop(msg, call. = FALSE)
+	}
+}
+
+verifyCorrelationMatrix <- function(corMatrix) {
+	if(nrow(corMatrix) != ncol(corMatrix)) {
+		msg <- paste("The observed correlation matrix",
+			"is not a square matrix")
+		stop(msg, call. = FALSE)
+	}
+	if (any(is.na(corMatrix))) {
+		msg <- paste("The observed correlation matrix",
+			"contains NA values")
+		stop(msg, call. = FALSE)	
+	}
+	if (!all(corMatrix == t(corMatrix))) {
+		msg <- paste("The observed correlation matrix",
+			"is not a symmetric matrix")
+		stop(msg, call. = FALSE)
+	}
+	if (any(eigen(corMatrix)$values <= 0)) {
+		msg <- paste("The observed correlation matrix",
+			"is not a positive-definite matrix")
+		stop(msg, call. = FALSE)
+	}
+	if (!all(diag(corMatrix) == 1)) {
+		msg <- paste("The observed correlation matrix",
+			"is not 1's along the diagonal")
+		stop(msg, call. = FALSE)	
 	}
 }
 
