@@ -20,6 +20,11 @@ omxCheckError(mxData(data, type="cov", numObs = 50),
 	paste("The observed covariance matrix is not",
 	"a positive-definite matrix"))
 
+data <- matrix(-1, dimnames=list(c("x"), c("x")))
+omxCheckError(mxData(data, type="cor", numObs = 50),
+	paste("The observed correlation matrix is not",
+	"a positive-definite matrix"))
+
 data <- matrix(1, dimnames=list(c("x"), c("x")))
 model <- mxModel('ErrorModel', 
     mxMatrix("Full", 1, 1, F, 1, name="cov", 
