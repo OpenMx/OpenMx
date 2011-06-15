@@ -1,9 +1,10 @@
 trunk
 =====
-* added verifyCorrelationMatrix to mxData. See http://openmx.psyc.virginia.edu/issue/2011/06/error-checking-correlation-matrices
 * added omxSelectRowsAndCols, omxSelectRows and omxSelectCols documentation
 * fixed model flattening to keep track of confidence intervals in submodels
 * fixed a bug in omxParallelCI() introduced by previous change
+* added verifyCorrelationMatrix to mxData. See http://openmx.psyc.virginia.edu/issue/2011/06/error-checking-correlation-matrices
+* added error checking for dimnames on MxMatrix and MxAlgebra objects
 
 Beta Release 999.0.0-1661 (May 20, 2011)
 ========================================

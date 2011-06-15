@@ -254,7 +254,38 @@ evaluateAlgebraWithContext <- function(algebra, context, flatModel, labelsData) 
 		compute = TRUE, show = FALSE, outsideAlgebra = FALSE))
 }
 
+getEntityType <- function(object) {
+	if(is(object, "MxMatrix")) {
+		entity <- "MxMatrix"
+	} else if(is(object, "MxAlgebra")) {
+		entity <- "MxAlgebra"
+	} else if(is(object, "MxObjective")) {
+		entity <- "MxObjective"
+	} else {
+		entity <- "entity"
+	}
+	return(entity)
+}
+
 assignDimnames <- function(object, values) {
+	newnames <- dimnames(object)
+	if (!is.null(newnames)) {
+		if (length(newnames) != 2) {
+			entity <- getEntityType(object)
+			msg <- paste("The 'dimnames' argument to", entity,
+				omxQuotes(object@name), "must have a length of 2")
+			stop(msg, call. = FALSE)
+		}
+		if (!is.null(newnames[[1]]) && length(newnames[[1]]) != nrow(values) || 
+			!is.null(newnames[[2]]) && length(newnames[[2]]) != ncol(values)) {
+			entity <- getEntityType(object)
+			msg <- paste("The", entity, omxQuotes(object@name), 
+				"has specified dimnames with dimensions",
+				length(newnames[[1]]), "x", length(newnames[[2]]), "but the", entity,
+					"is of dimensions", nrow(values), "x", ncol(values))
+			stop(msg, call. = FALSE)
+		}
+	}
 	dimnames(values) <- dimnames(object)
 	return(values)
 }

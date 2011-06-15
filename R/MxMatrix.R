@@ -206,6 +206,21 @@ setMethod("dimnames", "MxMatrix",
 
 setReplaceMethod("dimnames", "MxMatrix",
 	function(x, value) {
+		if (!is.null(value)) {
+			if (length(value) != 2) {
+				msg <- paste("The 'dimnames' argument to MxMatrix",
+					omxQuotes(x@name), "must have a length of 2")
+				stop(msg, call. = FALSE)
+			}
+			if (!is.null(value[[1]]) && length(value[[1]]) != nrow(x) || 
+				!is.null(value[[2]]) && length(value[[2]]) != ncol(x)) {
+				msg <- paste("The MxMatrix object", omxQuotes(x@name), 
+					"has specified dimnames with dimensions",
+					length(value[[1]]), "x", length(value[[2]]), "but the matrix",
+					"is of dimensions", nrow(x), "x", ncol(x))
+				stop(msg, call. = FALSE)
+			}
+		}
 		dimnames(x@values) <- value
 		dimnames(x@free) <- value
 		dimnames(x@labels) <- value
