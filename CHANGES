@@ -5,7 +5,7 @@ trunk
 * fixed a bug in omxParallelCI() introduced by previous change
 * added verifyCorrelationMatrix to mxData. See http://openmx.psyc.virginia.edu/issue/2011/06/error-checking-correlation-matrices
 * added error checking for dimnames on MxMatrix and MxAlgebra objects
-
+* reformated comments and heading style for all demos
 Beta Release 999.0.0-1661 (May 20, 2011)
 ========================================
 * turn off jiggling of free parameters with starting values of 0.0 when useOptimizer=FALSE
