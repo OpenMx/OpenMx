@@ -13,26 +13,34 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: LatentGrowthModel_PathRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 09 17 2010 
+# Author: Ryne Estabrook
+# Date: 2010.09.17 
 #
-# Growth Mixture Model
-# Path style model input - Raw data input
+# ModelType: Growth Mixture
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-# 10 18 2010 - Changed the constraints used to identify mixture
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Growth Mixture Model
+#      Path style model input - Raw data input
+#
+# RevisionHistory:
+#      Ryne Estabrook -- 2010.10.18 Changed constraints used to identify mixture
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Libraries
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
+
 data(myGrowthMixtureData)
+#Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
+
 class1 <- mxModel("Class1", 
     mxMatrix(
         type="Full",
@@ -102,6 +110,8 @@ class1 <- mxModel("Class1",
     mxRAMObjective("A","S","F","M", vector=TRUE, 
 		dimnames = c(names(myGrowthMixtureData), "intercept", "slope"))
 ) # close model
+#Create an MxModel object
+# -----------------------------------------------------------------------------
 
 class2 <- mxModel(class1,
 	mxMatrix(
@@ -143,13 +153,19 @@ class2 <- mxModel(class1,
     ),
 	name="Class2"
 ) # close model
+#Create an MxModel object
+# -----------------------------------------------------------------------------
 
-# make a matrix of class probabilities
+
 classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
           values=1, lbound=0.001, 
           labels = c("p1", "p2"), name="Props")
 
 classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
+# make a matrix of class probabilities
+# -----------------------------------------------------------------------------
+
+
 
 algObj <- mxAlgebra(-2*sum(
           log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
@@ -173,7 +189,9 @@ summary(gmmFit)
 
 gmmFit$classProbs
 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(gmmFit@output$Minus2LogLikelihood, 8739.05, 0.01)
 omxCheckCloseEnough(max(mxEval(classProbs, gmmFit)), 0.6009, 0.01)
 omxCheckCloseEnough(min(mxEval(classProbs, gmmFit)), 0.3991, 0.01)
+# Check results to see if they are within specified bounds
+# -----------------------------------------------------------------------------

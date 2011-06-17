@@ -15,20 +15,27 @@
 
 # -----------------------------------------------------------------------
 # Program: UnivariateSaturated_MatrixRaw.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Univariate Saturated model to estimate means and variances
-# Matrix style model input - Raw data input
+# ModelType: Saturated
+# DataType: Simulated
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
+# Purpose: 
+#      Univariate Saturated model to estimate means and variances
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
 # -----------------------------------------------------------------------
 
 require(OpenMx)
-
-#Simulate Data
+# Load Library
 # -----------------------------------------------------------------------
+
+
 set.seed(100)
 x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x)
@@ -37,9 +44,9 @@ dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 mean(testData)
 var(testData)
-
-#examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# Simulate Data
 # -----------------------------------------------------------------------
+
 univSatModel4 <- mxModel("univSat4",
     mxMatrix(
         type="Symm", 
@@ -72,20 +79,23 @@ univSatFit4 <- mxRun(univSatModel4)
 EM4 <- mxEval(expMean, univSatFit4)
 EC4 <- mxEval(expCov, univSatFit4)
 LL4 <- mxEval(objective, univSatFit4);
+# examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------
 
 
-#Mx answers hard-coded
-#example Mx..1: Saturated Model with Raw Data
 Mx.EM2 <- 0.01680516
 Mx.EC2 <- 1.061050
 Mx.LL2 <- 2897.135
-
-
-#Compare OpenMx results to Mx results 
+# Mx answers hard-coded
+# example Mx..1: Saturated Model with Raw Data
 # -----------------------------------------------------------------------
-# (LL: likelihood; EC: expected covariance, EM: expected means)
-#4:RawMat
+
+
 omxCheckCloseEnough(LL4,Mx.LL2,.001)
 omxCheckCloseEnough(EC4,Mx.EC2,.001)
 omxCheckCloseEnough(EM4,Mx.EM2,.001)
-
+# 4:RawMat
+# -------------------------------------
+# Compare OpenMx results to Mx results 
+# (LL: likelihood; EC: expected covariance, EM: expected means)
+# -----------------------------------------------------------------------

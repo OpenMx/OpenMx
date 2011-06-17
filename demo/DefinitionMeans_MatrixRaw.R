@@ -13,19 +13,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: DefinitionMeans_MatrixRaw.R  
-#  Author: Mike Neale
-#    Date: 08 01 2009 
+# Author: Mike Neale
+# Date: 2009.08.01 
 #
-# Definition Means model to estimate moderation effect of measured variable 
-# Matrix style model input - Raw data input
+# ModelType: Means
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
-
-require(OpenMx)
+# Purpose: 
+#      Definition Means model to estimate moderation effect of measured variable 
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field
+# -----------------------------------------------------------------------------
 
 #This script is used to test the definition variable functionality in OpenMx
 #The definition variable in this example is dichotomous, and describes two different groups
@@ -34,9 +38,12 @@ require(OpenMx)
 #The group with a definition value of 0 has means af zero for x and y 
 #The definition variable is used to define a mean deviation of the group with definition value 1
 
-#Simulate data
-# -----------------------------------------------------------------------
+
+require(OpenMx)
 library(MASS)
+# Load Library
+# -----------------------------------------------------------------------------
+
 set.seed(200)
 N=500
 Sigma <- matrix(c(1,.5,.5,1),2,2)
@@ -45,11 +52,12 @@ group2<-mvrnorm(N, c(0,0), Sigma)
 
 y<-rbind(group1,group2)           # Bind both groups together by rows
 dimnames(y)[2]<-list(c("x","y")); # Add names
-def    <-rep(c(1,0),each=N);      # Add a definition variable 2n in length for group status
+def    <-rep(c(1,0),each=N);      # Add a definition variable 2n in 
+								  # length for group status
 selVars<-c("x","y")               # Make a selection variables object
+# Simulate data
+# -----------------------------------------------------------------------------
 
-#Define model
-# -----------------------------------------------------------------------
 defMeansModel <- mxModel("Definition  Means Matrix Specification", 
     mxMatrix(
     	type="Symm", 
@@ -96,30 +104,42 @@ defMeansModel <- mxModel("Definition  Means Matrix Specification",
     	dimnames=selVars
     )
 )
+# Define model
+# -----------------------------------------------------------------------------
 
-# Run the model
-# -----------------------------------------------------------------------
+
 defMeansFit <- mxRun(defMeansModel)
+# Run the model
+# -----------------------------------------------------------------------------
 
 defMeansFit@matrices
 defMeansFit@algebras
 
 
-#Compare OpenMx estimates to summary statistics from raw data, 
-# -----------------------------------------------------------------------
-# Remember to knock off 1 and 2 from group 1's data
-# so as to estimate variance of combined sample without the mean correction.
-# First we compute some summary statistics from the data
+
 ObsCovs <- cov(rbind(group1 - rep(c(1,2), each=N), group2))
 ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
 ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
+# Remember to knock off 1 and 2 from group 1's data
+# so as to estimate variance of combined 
+# sample without the mean correction.
+# First we compute some summary 
+# statistics from the data
+# -------------------------------------
 
-# Second we extract the parameter estimates and matrix algebra results from the model
 Sigma <- mxEval(Sigma, defMeansFit)
 M <- mxEval(M, defMeansFit)
 beta <- mxEval(beta, defMeansFit)
+# Second we extract the parameter 
+# estimates and matrix algebra results 
+# from the model
+# -------------------------------------
 
-# Third, we check to see if things are more or less equal
 omxCheckCloseEnough(ObsCovs, Sigma, .01)
 omxCheckCloseEnough(ObsMeansGroup1, as.vector(M+beta), .001)
 omxCheckCloseEnough(ObsMeansGroup2, as.vector(M), .001)
+# Third, we check to see if things are 
+# more or less equal
+# -------------------------------------
+# Compare OpenMx estimates to summary statistics from raw data,
+# -----------------------------------------------------------------------------

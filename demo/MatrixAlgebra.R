@@ -13,21 +13,27 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: MatrixAlgebra.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Matrix Algebra in OpenMx: Basic matrix algebra operations
+# ModelType: Algebra
+# DataType: Ordinal
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Matrix Algebra in OpenMx: Basic matrix algebra operations
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data and Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-# Specify Model Matrices and Algebra
-# -----------------------------------------------------------------------
 algebraExercises <- mxModel(
 	mxMatrix(
     	type="Full", 
@@ -64,10 +70,13 @@ algebraExercises <- mxModel(
         name='q5'		# outer product
     )
 )
+# Specify Model Matrices and Algebra
+# -----------------------------------------------------------------------------
 
-# Run Model and Generate Output
-# -----------------------------------------------------------------------
+
 answers <- mxRun(algebraExercises)
 answers@algebras
-result <- mxEval(list(q1,q2,q3,q4,q5),answers)	
 
+result <- mxEval(list(q1,q2,q3,q4,q5),answers)	
+# Run Model and Generate Output
+# -----------------------------------------------------------------------------

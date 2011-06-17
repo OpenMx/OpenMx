@@ -15,24 +15,30 @@
 
 # -----------------------------------------------------------------------
 # Program: LatentGrowthModel_MatrixRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Latent Growth model to estimate means and (co)variances of slope and intercept
-# Matrix style model input - Raw data input
+# ModelType: Growth Curve
+# DataType: Longitudinal
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
+# Purpose: 
+#      Latent Growth model to estimate means and (co)variances of slope and intercept
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata 
 # -----------------------------------------------------------------------
 
 require(OpenMx)
-
-#Prepare Data
+# Load Libraries
 # -----------------------------------------------------------------------
+
 data(myLongitudinalData)
-
-#Create an MxModel object
+# Prepare Data
 # -----------------------------------------------------------------------
+
 growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
     mxData(
     	observed=myLongitudinalData, 
@@ -106,17 +112,20 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
     mxRAMObjective("A","S","F","M",
 		dimnames = c(names(myLongitudinalData), "intercept", "slope"))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------
       
 growthCurveFit<-mxRun(growthCurveModel, suppressWarnings=TRUE)
 
 summary(growthCurveFit)
 growthCurveFit@output$estimate
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["means"]], 1.813, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["vari"]], 3.878, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["vars"]], 0.258, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["cov"]], 0.460, 0.01)
 omxCheckCloseEnough(growthCurveFit@output$estimate[["residual"]], 2.316, 0.01)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------

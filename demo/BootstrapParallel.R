@@ -13,29 +13,52 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
+# -----------------------------------------------------------------------
+# Program: BootstrapParallel.R  
+# Author: Unknown
+#  Date: 9999.99.99 
+#
+# ModelType: Parallel
+# DataType: Continuous
+# Field: None
+#
+# Purpose:
+#      Bootstrap parallel models
+#
+# RevisionHistory:
+#      Ross Gore -- 2011.06.16 updated & reformatted
+# -----------------------------------------------------------------------
+
 require(OpenMx)
 
-# parameters for the simulation: lambda = factor loadings,
-# specifics = specific variances
+
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
 nReps <- 10
 nVar <- nrow(lambda)
 specifics <- diag(nVar)
 chl <- chol(lambda %*% t(lambda) + specifics)
+# parameters for the simulation: lambda = factor loadings,
+# specifics = specific variances
+# -----------------------------------------------------------------------------
 
-# indices for parameters and hessian estimate in results
+
 pStrt <- 3
 pEnd <- pStrt + 2*nVar - 1
 hStrt <- pEnd + 1
 hEnd <- hStrt + 2*nVar - 1
+# indices for parameters and hessian estimate in results
+# -----------------------------------------------------------------------------
 
-# dimension names for OpenMx
+
 dn <- list()
 dn[[1]] <- paste("Var", 1:4, sep="")
 dn[[2]] <- dn[[1]]
+# dimension names for OpenMx
+# -----------------------------------------------------------------------------
 
-# function to get a covariance matrix
+
 randomCov <- function(nObs, nVar, chl, dn) {
   x <- matrix(rnorm(nObs*nVar), nObs, nVar)
   x <- x %*% chl
@@ -43,6 +66,8 @@ randomCov <- function(nObs, nVar, chl, dn) {
   dimnames(thisCov) <- dn
   return(thisCov)  
 }
+# function to get a covariance matrix
+# -----------------------------------------------------------------------------
 
 createNewModel <- function(index, prefix, model) {
 	modelname <- paste(prefix, index, sep='')
@@ -61,18 +86,21 @@ getStats <- function(model) {
 }
 
 
-# initialize obsCov for MxModel
-obsCov <- randomCov(nObs, nVar, chl, dn)
 
-# results matrix: get results for each simulation
+obsCov <- randomCov(nObs, nVar, chl, dn)
+# initialize obsCov for MxModel
+# -----------------------------------------------------------------------------
+
 results <- matrix(0, nReps, hEnd)
 dnr <- c("inform", "maxAbsG", paste("lambda", 1:nVar, sep=""),
          paste("specifics", 1:nVar, sep=""),
          paste("hessLambda", 1:nVar, sep=""),
          paste("hessSpecifics", 1:nVar, sep=""))
 dimnames(results)[[2]] <- dnr
+# results matrix: get results for each simulation
+# -----------------------------------------------------------------------------
 
-# instantiate MxModel
+
 template <- mxModel("stErrSim",
                        mxMatrix(name="lambda", type="Full", nrow=4, ncol=1,
                                 free=TRUE, values=c(.8, .5, .7, 0)),
@@ -83,6 +111,8 @@ template <- mxModel("stErrSim",
                        mxData(observed=obsCov, type="cov", numObs=nObs),
                        mxMLObjective(covariance='preCov'),
                        independent = TRUE)
+# instantiate MxModel
+# -----------------------------------------------------------------------------
 
 topModel <- mxModel("container")
 
@@ -95,10 +125,11 @@ modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
 results <- t(omxSapply(modelResults@submodels, getStats))
 
-# get rid of bad covergence results
-results2 <- data.frame(results[which(results[,1] <= 1),])
 
-# summarize the results
+results2 <- data.frame(results[which(results[,1] <= 1),])
+# get rid of bad covergence results
+# -----------------------------------------------------------------------------
+
 means <- mean(results2)
 stdevs <- sd(results2)
 sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
@@ -107,8 +138,10 @@ sumResults$mean <- means[pStrt:pEnd]
 sumResults$obsStDev <- stdevs[pStrt:pEnd]
 sumResults$meanHessEst <- means[hStrt:hEnd]
 sumResults$sqrt2meanHessEst <- sqrt(2) * sumResults$meanHessEst
+# summarize the results
+# -----------------------------------------------------------------------------
 
-# print results
 print(sumResults)
-
+# print results
+# -----------------------------------------------------------------------------
 

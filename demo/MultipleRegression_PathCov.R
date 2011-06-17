@@ -13,22 +13,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: MultipleRegression_PathCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Multiple Regression model to estimate effect of independent on dependent variables
-# Path style model input - Covariance matrix data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Multiple Regression model to estimate effect of 
+#      independent on dependent variables
+#      Path style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data and Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -45,9 +52,9 @@ names(myRegDataMeans) <- c("w","x","y","z")
 
 MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
 MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 multiRegModel <- mxModel("Multiple Regression Path Specification", 
       type="RAM",
       mxData(
@@ -57,7 +64,6 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           means=MultipleDataMeans
       ),
       manifestVars=c("x", "y", "z"),
-      # variance paths
       mxPath(
           from=c("x", "y", "z"), 
           arrows=2,
@@ -65,7 +71,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values = c(1, 1, 1),
           labels=c("varx", "residual", "varz")
       ),
-      # covariance of x and z
+      # variance paths
+      # -------------------------------------
       mxPath(
           from="x",
           to="z",
@@ -74,7 +81,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=0.5,
           labels="covxz"
       ), 
-      # regression weights
+      # covariance of x and z
+      # -------------------------------------
       mxPath(
           from=c("x","z"),
           to="y",
@@ -83,7 +91,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=1,
           labels=c("betax","betaz")
       ), 
-      # means and intercepts
+      # regression weights
+      # -------------------------------------
       mxPath(
           from="one",
           to=c("x", "y", "z"),
@@ -92,15 +101,18 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=c(1, 1),
           labels=c("meanx", "beta0", "meanz")
       )
+      # means and intercepts
+      # -------------------------------------
 ) # close model
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 multiRegFit<-mxRun(multiRegModel)
 
 summary(multiRegFit)
 multiRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6312, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4243, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2265, 0.001)
@@ -110,3 +122,5 @@ omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8360, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

@@ -14,28 +14,34 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: SimpleRegression_MatrixRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Simple Regression model to estimate effect of independent on dependent variables
-# Matrix style model input - Raw data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Simple Regression model to estimate effect of 
+#      independent on dependent variables
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 10 08 2009 updated & reformatted
+#      Ross Gore -- 06 06 2011	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 data(myRegDataRaw)
-
 SimpleDataRaw <- myRegDataRaw[,c("x","y")]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 uniRegModel <- mxModel("Simple Regression Matrix Specification", 
     mxData(
         observed=SimpleDataRaw,
@@ -84,16 +90,25 @@ uniRegModel <- mxModel("Simple Regression Matrix Specification",
     mxRAMObjective("A", "S", "F", "M",
 		dimnames=c("x","y"))
 )
-      
+# Create an MxModel object
+# -----------------------------------------------------------------------------
+     
 uniRegFit<-mxRun(uniRegModel)
+# Fit the model with mxRun
+# -----------------------------------------------------------------------------
 
 summary(uniRegFit)
-uniRegFit@output
+# Print a summary of the results
+# -----------------------------------------------------------------------------
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+uniRegFit@output
+# Print the outputs populated by mxRun
+# -----------------------------------------------------------------------------
+
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.5478, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.4831, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.6652, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.1053, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

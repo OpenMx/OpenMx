@@ -14,22 +14,28 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: BivariateCorrelation.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Optimization Example in OpenMx: Testing significance of correlation
+# ModelType: Saturated
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Optimization Example in OpenMx: Testing significance of correlation
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
-
-# Simulate Data: two standardized variables X & Y with correlation of .5
-# -----------------------------------------------------------------------
 require(MASS)
+# Load Library
+# -----------------------------------------------------------------------------
+
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
@@ -38,10 +44,10 @@ selVars <- c('X','Y')
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
+# Simulate Data: two standardized variables X & Y with correlation of .5
+# -----------------------------------------------------------------------------
 
 
-# Fit Saturated Model with Raw Data and Matrix-style Input
-# -----------------------------------------------------------------------
 bivCorModel <- mxModel("bivCor",
     mxMatrix(
         type="Full", 
@@ -72,17 +78,18 @@ bivCorModel <- mxModel("bivCor",
         means="expMean",
         dimnames=selVars)
     )
+# Fit Saturated Model with Raw Data and Matrix-style Input
+# -----------------------------------------------------------------------------
 
-# Run Model and Generate Output
-# -----------------------------------------------------------------------
+
 bivCorFit <- mxRun(bivCorModel)
 EM <- mxEval(expMean, bivCorFit)
 EC <- mxEval(expCov, bivCorFit)
 LL <- mxEval(objective, bivCorFit)
+# Run Model and Generate Output
+# -----------------------------------------------------------------------------
 
 
-# Specify SubModel testing Covariance=Zero
-# -----------------------------------------------------------------------
 bivCorModelSub <-mxModel(bivCorModel,
     mxMatrix(
         type="Diag", 
@@ -92,26 +99,29 @@ bivCorModelSub <-mxModel(bivCorModel,
         name="Chol"
     )
 )
+# Specify SubModel testing Covariance=Zero
+# -----------------------------------------------------------------------------
 
-# Run Model and Generate Output
-# -----------------------------------------------------------------------
+
 bivCorFitSub <- mxRun(bivCorModelSub)
 EMs <- mxEval(expMean, bivCorFitSub)
 ECs <- mxEval(expCov, bivCorFitSub)
 LLs <- mxEval(objective, bivCorFitSub)
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
+# Run Model and Generate Output
+# -----------------------------------------------------------------------------
 
 
-# Mx Answers of Saturated Model Hard-coded
-# -----------------------------------------------------------------------
 Mx.EM <- matrix(c(0.03211656, -0.004883885), 1, 2)
 Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), 2, 2)
 Mx.LL <- 5415.772
+# Mx Answers of Saturated Model Hard-coded
+# -----------------------------------------------------------------------------
 
-# Compare OpenMx Results to Mx Results 
-# -----------------------------------------------------------------------
-#LL: likelihood; EC: expected covariance, EM: expected means
 omxCheckCloseEnough(LL,Mx.LL,.001)
 omxCheckCloseEnough(EC,Mx.EC,.001)
 omxCheckCloseEnough(EM,Mx.EM,.001)
+# Compare OpenMx Results to Mx Results 
+# LL: likelihood; EC: expected covariance, EM: expected means
+# -----------------------------------------------------------------------------

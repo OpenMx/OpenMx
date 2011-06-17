@@ -13,28 +13,36 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: MultipleRegression_MatrixRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Multiple Regression model to estimate effect of independent on dependent variables
-# Matrix style model input - Raw data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Multiple Regression model to estimate effect of 
+#      independent on dependent variables
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 data(myRegDataRaw)
 
 MultipleDataRaw<-myRegDataRaw[,c("x","y","z")]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
+
 multiRegModel <- mxModel("Multiple Regression Matrix Specification", 
     mxData(
     	observed=MultipleDataRaw,
@@ -90,14 +98,15 @@ multiRegModel <- mxModel("Multiple Regression Matrix Specification",
     mxRAMObjective("A","S","F","M",
        dimnames=c("x","y","z"))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 multiRegFit<-mxRun(multiRegModel)
 
 summary(multiRegFit)
 multiRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6332, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4246, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2260, 0.001)
@@ -107,3 +116,5 @@ omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8275, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2862, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0611, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

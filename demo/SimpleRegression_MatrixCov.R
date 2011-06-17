@@ -14,22 +14,28 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: SimpleRegression_MatrixCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Simple Regression model to estimate effect of independent on dependent variables
-# Matrix style model input - Covariance matrix data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Simple Regression model to estimate effect of independent on dependent variables
+#      Matrix style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -46,9 +52,9 @@ myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 names(myRegDataMeans) <- c("w","x","y","z")
 
 SimpleDataMeans <- myRegDataMeans[c(2,3)]
+# Prepare Data
+# -----------------------------------------------------------------------------
 	
-#Create an MxModel object
-# -----------------------------------------------------------------------
 uniRegModel <- mxModel("Simple Regression Matrix Specification", 
     mxData(
       observed=SimpleDataCov, 
@@ -98,16 +104,19 @@ uniRegModel <- mxModel("Simple Regression Matrix Specification",
         name="M"),
     mxRAMObjective("A", "S", "F", "M", dimnames = c("x", "y"))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 uniRegFit <- mxRun(uniRegModel)
 
 summary(uniRegFit)
 uniRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.54776, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.48312, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.672, 0.01)
 omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.05412, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.11654, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

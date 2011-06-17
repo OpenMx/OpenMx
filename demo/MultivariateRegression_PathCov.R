@@ -13,22 +13,31 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Program: MultivariateRegression_PathCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Multivariate Regression model to estimate effect of independent on dependent variables
-# Path style model input - Covariance matrix data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Multivariate Regression model to estimate effect of 
+#      independent on dependent variables
+#      Path style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
+
+
 myRegDataCov<-matrix(
 	c(0.808,-0.110, 0.089, 0.361,
 	 -0.110, 1.116, 0.539, 0.289,
@@ -42,9 +51,10 @@ myRegDataCov<-matrix(
 	
 myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 names(myRegDataMeans) <- c("w","x","y","z")
+# Prepare Data
+# -----------------------------------------------------------------------------
 	
-#Create an MxModel object
-# -----------------------------------------------------------------------
+
 multivariateRegModel <- mxModel("MultiVariate Regression Path Specification", 
     type="RAM",
     mxData(
@@ -54,7 +64,6 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         means=myRegDataMeans
     ),
     manifestVars=c("w", "x", "y", "z"),
-    # variance paths
     mxPath(
         from=c("w", "x", "y", "z"), 
         arrows=2,
@@ -62,7 +71,8 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         values = c(1, 1, 1, 1),
         labels=c("residualw", "varx", "residualy", "varz")
     ),
-    # covariance of x and z
+    # variance paths
+    # -------------------------------------
     mxPath(
         from="x",
         to="z",
@@ -71,7 +81,8 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         values=0.5,
         labels="covxz"
     ), 
-    # regression weights for y
+    # covariance of x and z
+    # -------------------------------------
     mxPath(
         from=c("x","z"),
         to="y",
@@ -80,7 +91,8 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         values=1,
         labels=c("betayx","betayz")
     ), 
-    # regression weights for w
+    # regression weights for y
+    # -------------------------------------
     mxPath(
         from=c("x","z"),
         to="w",
@@ -89,7 +101,8 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         values=1,
         labels=c("betawx","betawz")
     ), 
-    # means and intercepts
+    # regression weights for w
+    # -------------------------------------
     mxPath(
         from="one",
         to=c("w", "x", "y", "z"),
@@ -98,15 +111,18 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
         values=c(1, 1),
         labels=c("betaw", "meanx", "betay", "meanz")
     )
+    # means and intercepts
+    # -------------------------------------
 ) # close model
+# Create an MxModel object
+# -----------------------------------------------------------------------------
   
 multivariateRegFit <- mxRun(multivariateRegModel)
 
 summary(multivariateRegFit)
 multivariateRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["betay"]], 1.6312, 0.001)
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["betayx"]], 0.4243, 0.001)
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["betayz"]], 0.2265, 0.001)
@@ -120,3 +136,5 @@ omxCheckCloseEnough(multivariateRegFit@output$estimate[["varz"]], 0.8360, 0.001)
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
 omxCheckCloseEnough(multivariateRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

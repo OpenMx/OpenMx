@@ -13,64 +13,78 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneFactorOrdinal_MatrixRaw.R  
-#  Author: Michael Neale
-#    Date: 08 14 2010 
+# Author: Michael Neale
+# Date: 2010.08.14 
 #
-# One Factor model to estimate factor loadings, residual variances and means
-# Matrix style model input - Raw data input - Ordinal data
+# ModelType: Factor
+# DataType: Ordinal
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 09 07 2010 updated & reformatted
-# -----------------------------------------------------------------------#
+# Purpose:
+#      One Factor model to estimate factor loadings, 
+#      residual variances and means
+#      Matrix style model input - Raw data input - Ordinal data
+#
+# RevisionHistory:
+#      Hermine Maes -- 2010.09.07 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
-# Simulate Data
-# -----------------------------------------------------------------------
-
-# Step 1: load libraries
 require(OpenMx)
 require(MASS)
-#
-# Step 2: set up simulation parameters 
-# Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
-# and model should be identified
-#
+# Load libraries
+# -----------------------------------------------------------------------------
+
 nVariables<-5
 nFactors<-1
 nThresholds<-3
 nSubjects<-500
 isIdentified<-function(nVariables,nFactors) as.logical(1+sign((nVariables*(nVariables-1)/2) -  nVariables*nFactors + nFactors*(nFactors-1)/2))
-# if this function returns FALSE then model is not identified, otherwise it is.
-isIdentified(nVariables,nFactors)
+
+isIdentified(nVariables,nFactors) # if this function returns FALSE then model is not identified, otherwise it is.
+# Set up simulation parameters: 
+# nVariables>=3, nThresholds>=1, 
+# nSubjects>=nVariables*nThresholds 
+# and model should be identified
+# -------------------------------------
 
 loadings <- matrix(.7,nrow=nVariables,ncol=nFactors)
 residuals <- 1 - (loadings * loadings)
 sigma <- loadings %*% t(loadings) + vec2diag(residuals)
 mu <- matrix(0,nrow=nVariables,ncol=1)
-# Step 3: simulate multivariate normal data
+
 set.seed(1234)
 continuousData <- mvrnorm(n=nSubjects,mu,sigma)
+# Simulate multivariate normal data
+# -------------------------------------
 
-# Step 4: chop continuous variables into ordinal data 
-# with nThresholds+1 approximately equal categories, based on 1st variable
 quants<-quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
 ordinalData<-matrix(0,nrow=nSubjects,ncol=nVariables)
 for(i in 1:nVariables)
 {
 ordinalData[,i] <- cut(as.vector(continuousData[,i]),c(-Inf,quants,Inf))
 }
+# Chop continuous variables into 
+# ordinal data with nThresholds+1 
+# approximately equal categories, 
+# based on 1st variable
+# -------------------------------------
 
-# Step 5: make the ordinal variables into R factors
 ordinalData <- mxFactor(as.data.frame(ordinalData),levels=c(1:(nThresholds+1)))
+# Make the ordinal variables into 
+# R factors
+# -------------------------------------
 
-# Step 6: name the variables
 fruitynames<-paste("banana",1:nVariables,sep="")
 names(ordinalData)<-fruitynames
+# Name the variables
+# -------------------------------------
 
+# Simulate Data
+# -----------------------------------------------------------------------------
 
-# Fit Factor Model with Raw Ordinal Data and Matrices Input
-# -----------------------------------------------------------------------
 oneFactorThresholdModel <- mxModel("oneFactorThresholdModel",
     mxMatrix(
         type="Full", 
@@ -135,6 +149,13 @@ oneFactorThresholdModel <- mxModel("oneFactorThresholdModel",
         thresholds="expThresholds"
     )
 )
+# Create Factor Model with Raw Ordinal Data and Matrices Input
+# -----------------------------------------------------------------------------
 
 oneFactorThresholdFit <- mxRun(oneFactorThresholdModel, suppressWarnings=TRUE)
+# Fit the model with mxRun
+# -----------------------------------------------------------------------------
+
 summary(oneFactorThresholdFit)
+# Print a summary of the results
+# -----------------------------------------------------------------------------

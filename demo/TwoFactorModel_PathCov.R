@@ -16,20 +16,26 @@
 
 # -----------------------------------------------------------------------
 # Program: TwoFactorModel_PathCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Two Factor model to estimate factor loadings, residual variances and means
-# Path style model input - Covariance matrix data input
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+# 	Two Factor model to estimate factor loadings, residual variances and means
+# 	Path style model input - Covariance matrix data input
+#
+# RevisionHistory:
+# 	Hermine Maes -- 2009.10.08 updated & reformatted
+# 	Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 myFADataCov <- matrix(
       c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
         0.642, 1.025, 0.608, 0.668, 0.643, 0.676, 0.273, 0.282, 0.287,
@@ -52,9 +58,9 @@ myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967
 names(myFADataMeans) <- c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")
   
 twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
     mxData(
     	observed=twoFactorCov, 
@@ -64,7 +70,6 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
     ),
     manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
     latentVars=c("F1","F2"),
-    # residual variances
     mxPath(
     	from=c("x1", "x2", "x3", "y1", "y2", "y3"),
         arrows=2, 
@@ -72,7 +77,8 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
         values=1,
         labels=c("e1","e2","e3","e4","e5","e6")
     ),
-    # latent variances and covaraince
+	# residual variances
+	# -------------------------------------
     mxPath(
     	from=c("F1","F2"),
         arrows=2,
@@ -82,7 +88,8 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
                 .5, 1),
         labels=c("varF1", "cov", "cov", "varF2")
     ), 
-    # factor loadings for x variables
+	# latent variances and covaraince
+	# -------------------------------------
     mxPath(
     	from="F1",
         to=c("x1","x2","x3"),
@@ -91,7 +98,8 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
         values=c(1,1,1),
         labels=c("l1","l2","l3")
     ),
-    # factor loadings for y variables
+	# factor loadings for x variables
+	# -------------------------------------
     mxPath(
     	from="F2",
         to=c("y1","y2","y3"),
@@ -100,7 +108,8 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
         values=c(1,1,1),
         labels=c("l4","l5","l6")
     ),
-    # means
+	# factor loadings for y variables
+	# -------------------------------------
     mxPath(
     	from="one",
         to=c("x1","x2","x3","y1","y2","y3","F1","F2"),
@@ -109,15 +118,17 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
         values=c(1,1,1,1,1,1,0,0),
         labels=c("meanx1","meanx2","meanx3","meany1","meany2","meany3",NA,NA)
     )
+	# means
+	# -------------------------------------
 ) # close model
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 twoFactorFit <- mxRun(twoFactorModel)
 
 summary(twoFactorFit)
 twoFactorFit@output$estimate
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.9720, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.9310, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l5"]], 1.0498, 0.01)
@@ -137,3 +148,5 @@ omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx3"]], 2.986, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany1"]], 2.955, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany2"]], 2.956, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meany3"]], 2.967, 0.01)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

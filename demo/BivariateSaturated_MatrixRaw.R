@@ -14,23 +14,29 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: BivariateSaturated_MatrixRaw.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Bivariate Saturated model to estimate means and (co)variances
-# Matrix style model input - Raw data input
+# ModelType: Saturated
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Bivariate Saturated model to estimate means and (co)variances
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
-
-#Simulate Data
-# -----------------------------------------------------------------------
 require(MASS)
+# Load Libraries
+# -----------------------------------------------------------------------------
+
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
@@ -39,9 +45,9 @@ selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
+# Simulate Data
+# -----------------------------------------------------------------------------
 
-#examples 4: Saturated Model with Raw Data and Matrix-Style Input
-# -----------------------------------------------------------------------
 bivSatModel4 <- mxModel("bivSat4",
 	mxMatrix(
 	    type="Symm", 
@@ -76,19 +82,21 @@ EM4 <- mxEval(expMean, bivSatFit4)
 EC4 <- mxEval(expCov, bivSatFit4)
 LL4 <- mxEval(objective,bivSatFit4)
 omxCheckEquals(bivSatSummary4$observedStatistics, sum(!is.na(testData)))
+# examples 4: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
-#Mx answers hard-coded
-# -----------------------------------------------------------------------
-#example Mx..2: Saturated Model with Raw Data
 Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
 Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
 Mx.LL2 <- 5415.772
+# example Mx..2: Saturated Model with Raw Data
+# Mx answers hard-coded
+# -----------------------------------------------------------------------------
 
-
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
-# (LL: likelihood; EC: expected covariance, EM: expected means)
-#4:RawMat
 omxCheckCloseEnough(LL4,Mx.LL2,.001)
 omxCheckCloseEnough(EC4,Mx.EC2,.001)
 omxCheckCloseEnough(EM4,Mx.EM2,.001)
+# 4:RawMat
+# -------------------------------------
+# Compare OpenMx results to Mx results 
+# (LL: likelihood; EC: expected covariance, EM: expected means)
+# -----------------------------------------------------------------------------

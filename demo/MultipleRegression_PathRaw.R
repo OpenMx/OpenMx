@@ -15,28 +15,34 @@
 
 require(OpenMx)
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: MultipleRegression_PathRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Multiple Regression model to estimate effect of independent on dependent variables
-# Path style model input - Raw data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Multiple Regression model to estimate effect of independent on dependent variables
+#      Path style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 data(myRegDataRaw)
 
 myRegDataRaw<-myRegDataRaw[,c("x","y","z")]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 multiRegModel <- mxModel("Multiple Regression Path Specification", 
       type="RAM",
       mxData(
@@ -44,7 +50,6 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           type="raw"
       ),
       manifestVars=c("x", "y", "z"),
-      # variance paths
       mxPath(
           from=c("x", "y", "z"), 
           arrows=2,
@@ -52,7 +57,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values = c(1, 1, 1),
           labels=c("varx", "residual", "varz")
       ),
-      # covariance of x and z
+      # variance paths
+	  # -------------------------------------	
       mxPath(
           from="x",
           to="z",
@@ -61,7 +67,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=0.5,
           labels="covxz"
       ), 
-      # regression weights
+      # covariance of x and z
+	  # -------------------------------------
       mxPath(
           from=c("x","z"),
           to="y",
@@ -70,7 +77,8 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=1,
           labels=c("betax","betaz")
       ), 
-      # means and intercepts
+      # regression weights
+      # -------------------------------------
       mxPath(
           from="one",
           to=c("x", "y", "z"),
@@ -79,15 +87,18 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
           values=c(1, 1),
           labels=c("meanx", "beta0", "meanz")
       )
+      # means and intercepts
+      # -------------------------------------
   ) # close model
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 multiRegFit<-mxRun(multiRegModel)
 
 summary(multiRegFit)
 multiRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6332, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4246, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2260, 0.001)
@@ -97,3 +108,5 @@ omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8275, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2862, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0611, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

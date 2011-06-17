@@ -13,22 +13,28 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: UnivariateSaturated_MatrixCov.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Univariate Saturated model to estimate means and variances
-# Matrix style model input - Covariance matrix data input
+# ModelType: Saturated
+# DataType: Simulated
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Univariate Saturated model to estimate means and variances
+#      Matrix style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Simulate Data
-# -----------------------------------------------------------------------
 set.seed(100)
 x <- rnorm (1000, 0, 1)
 testData <- as.matrix(x)
@@ -37,9 +43,10 @@ dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 mean(testData)
 var(testData)
+# Simulate Data
+# -----------------------------------------------------------------------------
 
-#example 3: Saturated Model with Cov Matrices and Matrix-Style Input
-# -----------------------------------------------------------------------
+
 univSatModel3 <- mxModel("univSat3",
     mxMatrix(
         type="Symm", 
@@ -65,9 +72,9 @@ EC3 <- mxEval(expCov, univSatFit3)
 LL3 <- mxEval(objective, univSatFit3)
 SL3 <- univSatFit3@output$SaturatedLikelihood
 Chi3 <- LL3-SL3
+# example 3: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
-#example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
-# -----------------------------------------------------------------------
 univSatModel3m <- mxModel("univSat3m",
     mxMatrix(
         type="Symm", 
@@ -104,27 +111,37 @@ EC3m <- mxEval(expCov, univSatFit3m)
 LL3m <- mxEval(objective, univSatFit3m);
 SL3m <- univSatFit3m@output$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
+# example 3m: Saturated Model with Cov Matrices & Means 
+# and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
 
-#Mx answers hard-coded
-# -----------------------------------------------------------------------
-#example Mx..1: Saturated Model with Cov Matrices
+
 Mx.EC1 <-  1.062112
 Mx.LL1 <- -1.474434e-17
+# example Mx..1: Saturated Model with 
+# Cov Matrices
+# -------------------------------------
 
-#example Mx..1m: Saturated Model with Cov Matrices & Means
 Mx.EM1m <- 0.01680509
 Mx.EC1m <- 1.062112
 Mx.LL1m <- -1.108815e-13
+# example Mx..1m: Saturated Model with 
+# Cov Matrices & Means
+# -------------------------------------
+# Mx answers hard-coded
+# -----------------------------------------------------------------------------
 
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
-# (LL: likelihood; EC: expected covariance, EM: expected means)
 ##3:CovMat
+# -------------------------------------
 omxCheckCloseEnough(Chi3,Mx.LL1,.001)
 omxCheckCloseEnough(EC3,Mx.EC1,.001)
 #3m:CovMPat 
+# -------------------------------------
 omxCheckCloseEnough(Chi3m,Mx.LL1m,.001)
 omxCheckCloseEnough(EC3m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
+# Compare OpenMx results to Mx results 
+# (LL: likelihood; EC: expected covariance, EM: expected means)
+# -----------------------------------------------------------------------------

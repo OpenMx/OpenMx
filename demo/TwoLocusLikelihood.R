@@ -13,47 +13,65 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: TwoLocusLikelihood.R  
-#  Author: Michael Neale
-#    Date: 11 23 2009 
+# Author: Michael Neale
+# Date: 2009.11.23 
 #
-# Two Locus Likelihood model to estimate allele frequencies
-#     Bernstein data on ABO blood-groups
-#     c.f. Edwards, AWF (1972)  Likelihood.  Cambridge Univ Press, pp. 39-41
+# ModelType: Locus Likelihood
+# DataType: Frequencies
+# Field: Human Behavior Genetics
 #
-# Revision History
-#   Hermine Maes -- 02 22 2010 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose:
+#      Two Locus Likelihood model to estimate allele frequencies
+#      Bernstein data on ABO blood-groups
+#      c.f. Edwards, AWF (1972)  Likelihood.  Cambridge Univ Press, pp. 39-41
+#
+# RevisionHistory:
+#      Hermine Maes -- 2010.02.22 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field
+# -----------------------------------------------------------------------------
 
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
 TwoLocusModel <- mxModel("TwoLocus",
-# Matrices for allele frequencies, p and s
+	
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="S"),
-# Matrix of observed data
+	# Matrices for allele frequencies, p and s
+	# -------------------------------------
     mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
-# Algebra for predicted proportions
+	# Matrix of observed data
+	# -------------------------------------
     mxAlgebra( expression=1-P, name="Q"),
     mxAlgebra( expression=1-S, name="T"),
     mxAlgebra(rbind ((P*P+2*P*Q)*T*T, (Q*Q)*(S*S+2*S*T), (P*P+2*P*Q)*(S*S+2*S*T), (Q*Q)*(T*T)), name="ExpectedFreqs"),
-# Algebra for -logLikelihood
+	# Algebra for predicted proportions
+	# -------------------------------------
     mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
-# User-defined objective
+	# Algebra for -logLikelihood
+	# -------------------------------------
     mxAlgebraObjective("NegativeLogLikelihood")
+	# User-defined objective
+	# -------------------------------------	
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
 
 TwoLocusFit<-mxRun(TwoLocusModel, suppressWarnings=TRUE)
 TwoLocusFit@matrices
 TwoLocusFit@algebras
 
-# Compare OpenMx estimates to original Mx's estimates
+
 estimates <- c(
     TwoLocusFit@matrices$P@values, 
     TwoLocusFit@matrices$S@values, 
     TwoLocusFit@algebras$NegativeLogLikelihood@result)
 Mx1Estimates<-c(0.2915,0.1543,647.894)
-omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 
+omxCheckCloseEnough(estimates,Mx1Estimates,.01)
+# Compare OpenMx estimates to original Mx's estimates
+# -----------------------------------------------------------------------------

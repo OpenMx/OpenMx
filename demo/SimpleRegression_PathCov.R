@@ -14,22 +14,29 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: SimpleRegression_PathCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Simple Regression model to estimate effect of independent on dependent variables
-# Path style model input - Covariance matrix data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Simple Regression model to estimate effect of independent 
+#      on dependent variables
+#      Path style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -48,9 +55,9 @@ SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]
 SimpleDataMeans <- myRegDataMeans[c(2,3)]
 	
 myRegDataMeans<-c(0.05416, 2.57393)
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
  uniRegModel <- mxModel("Simple Regression Path Specification", 
     type="RAM",
     mxData(
@@ -60,7 +67,6 @@ myRegDataMeans<-c(0.05416, 2.57393)
         means=SimpleDataMeans 
     ),
     manifestVars=c("x", "y"),
-    # variance paths
     mxPath(
         from=c("x", "y"), 
         arrows=2,
@@ -68,7 +74,8 @@ myRegDataMeans<-c(0.05416, 2.57393)
         values = c(1, 1),
         labels=c("varx", "residual")
     ),
-    # regression weights
+    # variance paths
+    # -------------------------------------
     mxPath(
         from="x",
         to="y",
@@ -77,7 +84,8 @@ myRegDataMeans<-c(0.05416, 2.57393)
         values=1,
         labels="beta1"
     ), 
-    # means and intercepts
+    # regression weights
+    # -------------------------------------
     mxPath(
         from="one",
         to=c("x", "y"),
@@ -86,18 +94,21 @@ myRegDataMeans<-c(0.05416, 2.57393)
         values=c(1, 1),
         labels=c("meanx", "beta0")
     )
+    # means and intercepts
+    # -------------------------------------
 ) # close model
-
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 uniRegFit <- mxRun(uniRegModel)
 
 summary(uniRegFit)
 uniRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.54776, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.48312, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.672, 0.01)
 omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.05412, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.11654, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

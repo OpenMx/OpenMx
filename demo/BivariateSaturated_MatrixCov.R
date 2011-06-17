@@ -13,23 +13,31 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: BivariateSaturated_MatrixCov.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Bivariate Saturated model to estimate means and (co)variances
-# Matrix style model input - Covariance matrix data input
+# ModelType: Saturated
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Bivariate Saturated model to estimate means and (co)variances
+#      Matrix style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
-
-#Simulate Data
-# -----------------------------------------------------------------------
 require(MASS)
+# Load Libraries
+# -----------------------------------------------------------------------------
+
+
+
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
@@ -38,9 +46,10 @@ selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 covData <- cov(testData)
+# Simulate Data
+# -----------------------------------------------------------------------------
 
-#example 3: Saturated Model with Cov Matrices and Matrix-Style Input
-# -----------------------------------------------------------------------
+
 bivSatModel3 <- mxModel("bivSat3",
     mxMatrix(
         type="Symm", 
@@ -68,9 +77,10 @@ bivSatSummary3 <- summary(bivSatFit3)
 SL3 <- bivSatSummary3$SaturatedLikelihood
 omxCheckEquals(bivSatSummary3$observedStatistics, nrow(covData) * (ncol(covData) + 1) / 2)
 Chi3 <- LL3-SL3
+# example 3: Saturated Model with Cov Matrices and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
-#example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
-# -----------------------------------------------------------------------
+
 bivSatModel3m <- mxModel("bivSat3m",
     mxMatrix(
         type="Symm", 
@@ -107,27 +117,38 @@ EC3m <- mxEval(expCov, bivSatFit3m)
 LL3m <- mxEval(objective,bivSatFit3m)
 SL3m <- summary(bivSatFit3m)$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
+# example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
 
-#Mx answers hard-coded
-# -----------------------------------------------------------------------
-#example Mx..1: Saturated Model with Cov Matrices
+
 Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1 <- -2.258885e-13
+# example Mx..1: Saturated Model with 
+# Cov Matrices
+# -------------------------------------
 
-#example Mx..1m: Saturated Model with Cov Matrices & Means
+
 Mx.EM1m <- matrix(c(0.03211648, -0.004883811),1,2)
 Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
 Mx.LL1m <- -5.828112e-14
+# example Mx..1m: Saturated Model with 
+# Cov Matrices & Means
+# -------------------------------------
+# Mx answers hard-coded
+# -----------------------------------------------------------------------------
 
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
-# (LL: likelihood; EC: expected covariance, EM: expected means)
-#3:CovMat
 omxCheckCloseEnough(Chi3,Mx.LL1,.001)
 omxCheckCloseEnough(EC3,Mx.EC1,.001)
-#3m:CovMPat 
+# 3:CovMat
+# -------------------------------------
+
 omxCheckCloseEnough(Chi3m,Mx.LL1m,.001)
 omxCheckCloseEnough(EC3m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
+# 3m:CovMPat 
+# -------------------------------------
+# Compare OpenMx results to Mx results 
+# (LL: likelihood; EC: expected covariance, EM: expected means)
+# -----------------------------------------------------------------------------

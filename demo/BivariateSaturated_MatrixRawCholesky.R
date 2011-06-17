@@ -14,24 +14,30 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: BivariateSaturated_MatrixRawCholesky.R  
-#  Author: Hermine Maes
-#    Date: 08 01 2009 
+# Author: Hermine Maes
+# Date: 2009.08.01 
 #
-# Bivariate Saturated model to estimate means and (co)variances 
-# using Cholesky Decomposition
-# Matrix style model input - Raw data input
+# ModelType: Saturated
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Bivariate Saturated model to estimate means and (co)variances 
+#      using Cholesky Decomposition
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field metadata     
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
-
-#Simulate Data
-# -----------------------------------------------------------------------
 require(MASS)
+# Load Libraries
+# -----------------------------------------------------------------------------
+
 set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
@@ -40,9 +46,9 @@ selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
 cov(testData)
+# Simulate Data
+# -----------------------------------------------------------------------------
 
-#example 6: Saturated Model with Raw Data and Matrix-Style Input
-# -----------------------------------------------------------------------
 bivSatModel6 <- mxModel("bivSat6",
     mxMatrix(
 		type="Full", 
@@ -79,18 +85,22 @@ bivSatFit6 <- mxRun(bivSatModel6)
 EM <- mxEval(expMean, bivSatFit6)
 EC <- mxEval(expCov, bivSatFit6)
 LL <- mxEval(objective,bivSatFit6)
+# example 6: Saturated Model with Raw Data and Matrix-Style Input
+# -----------------------------------------------------------------------------
 
-#Mx answers hard-coded
-# -----------------------------------------------------------------------
-#example Mx..2: Saturated Model with Raw Data
 Mx.EM <- matrix(c(0.03211188, -0.004889211),1,2)
 Mx.EC <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
 Mx.LL <- 5415.772
+# Mx answers hard-coded
+# -------------------------------------
+# example Mx..2: Saturated Model with Raw Data
+# -----------------------------------------------------------------------------
 
-# Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
-# (LL: likelihood; EC: expected covariance, EM: expected means)
-#6: RawMat Cholesky
 omxCheckCloseEnough(LL,Mx.LL,.001)
 omxCheckCloseEnough(EC,Mx.EC,.001)
 omxCheckCloseEnough(EM,Mx.EM,.001)
+# 6: RawMat Cholesky
+# -------------------------------------
+# Compare OpenMx results to Mx results 
+# (LL: likelihood; EC: expected covariance, EM: expected means)
+# -----------------------------------------------------------------------------

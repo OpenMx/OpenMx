@@ -14,28 +14,33 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: FIMLRowObjectiveBivariateCorrelation.R
-#  Author: Hermine Maes -- See Revision History
-#    Date: 08 01 2009 
+# Author: Hermine Maes 
+# Date: 2009.08.01 
 #
-# Optimization Example in OpenMx: Testing significance of correlation
+# Purpose: 
+#      Optimization Example in OpenMx: Testing significance of correlation
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-#   Ross Gore -- 2011.04.10 modified to implement FIML via mxRowObjective
-#   Mike Hunter -- 2011.04.11 debugged Gore implementation above
-#   Mike Hunter -- 2011.05.03 Renamed from BivariateCorrelation.R to FIMLRowObjectiveBivariateCorrelation.R
-#   Mike Hunter -- 2011.05.05 modified to use omxSelect* functions
-#   Mike Hunter -- 2011.05.26 Adjusted spacing & comments for readability.
-# -----------------------------------------------------------------------
+# ModelType: Saturated
+# DataType: Simulated Continuous
+# Field: None 
+#
+# RevisionHistory:
+#	HermineMaes -- 2009.10.08 updated & reformatted
+#	RossGore -- 2011.04.10 modified to implement FIML via mxRowObjective
+#	MikeHunter -- 2011.04.11 debugged Gore implementation above
+#	MikeHunter -- 2011.05.03 Renamed from BivariateCorrelation.R to 
+#                                        FIMLRowObjectiveBivariateCorrelation.R
+#	MikeHunter -- 2011.05.05 modified to use omxSelect* functions
+#	MikeHunter -- 2011.05.26 Adjusted spacing & comments for readability.
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
-
-# -----------------------------------------------------------------------
-# Simulate Data: two standardized variables X & Y with correlation of .5
-
 require(MASS)
+# Load Library
+# -----------------------------------------------------------------------------
+
 set.seed(200)
 rs <- .5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
@@ -44,23 +49,8 @@ testVars <- c('X','Y')
 names(testData) <- testVars
 summary(testData)
 cov(testData)
-
-
-# Fit Saturated Model with Raw Data and Matrix-style Input.
-# Estimate with Full Information Maximum Likelihood (FIML).
-# FIML is implemented here as an mxRowObjective function for pedagogical reasons only.
-# FIML for one row of data is
-#   2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row - Mean)
-#  where Cov is the filtered expected covariance matrix
-#        Row is the filtered data row
-#        Mean is the filtered expected means row vector
-#        solve(*) is the inverse of *
-#        t(*) is the transpose of *
-#        det(*) is the determinant of *
-# FIML for a whole data set is the sum of all the FIML rows.
-
-
-#-----------------------------------------------------------------------
+# Simulate Data: two standardized variables X & Y with correlation of .5
+# -----------------------------------------------------------------------------
 
 bivCorModel <- mxModel(name="FIML BivCor",
     mxData(
@@ -126,25 +116,36 @@ bivCorModel <- mxModel(name="FIML BivCor",
         dimnames=c('X','Y'),
     )
 )
+# Fit Saturated Model with Raw Data and Matrix-style Input.
+# Estimate with Full Information Maximum Likelihood (FIML).
+# FIML is implemented here as an mxRowObjective function for pedagogical reasons only.
+# FIML for one row of data is
+#   2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row - Mean)
+#  where Cov is the filtered expected covariance matrix
+#        Row is the filtered data row
+#        Mean is the filtered expected means row vector
+#        solve(*) is the inverse of *
+#        t(*) is the transpose of *
+#        det(*) is the determinant of *
+# FIML for a whole data set is the sum of all the FIML rows.
+# -----------------------------------------------------------------------------
 
-
-# Run Model and Generate Output
-# -----------------------------------------------------------------------
 bivCorFit <- mxRun(bivCorModel)
 EM <- mxEval(expMean, bivCorFit)
 EC <- mxEval(expCov, bivCorFit)
 LL <- mxEval(objective, bivCorFit)
+# Run Model and Generate Output
+# -----------------------------------------------------------------------------
 
-
-# Mx Answers of Saturated Model Hard-coded
-# -----------------------------------------------------------------------
 Mx.EM <- matrix(c(0.03211656, -0.004883885), nrow=1, ncol=2)
 Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), nrow=2, ncol=2)
 Mx.LL <- 5415.772
+# Mx Answers of Saturated Model Hard-coded
+# -----------------------------------------------------------------------------
 
-# Compare OpenMx Results to Mx Results 
-# -----------------------------------------------------------------------
-#LL: likelihood; EC: expected covariance, EM: expected means
 omxCheckCloseEnough(LL, Mx.LL, .001)
 omxCheckCloseEnough(EC, Mx.EC, .001)
 omxCheckCloseEnough(EM, Mx.EM, .001)
+# Compare OpenMx Results to Mx Results 
+# LL: likelihood; EC: expected covariance, EM: expected means
+# -----------------------------------------------------------------------------

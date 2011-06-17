@@ -14,23 +14,36 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program:  SimpleCheckpoint.R
-#  Author: Timothy R. Brick
-#    Date: 05 12 2010 
+# Author: Timothy R. Brick
+# Date: 2010.05.12 
 #
-# OpenMx one factor matrix model demo for front page of website
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
+#
+# Purpose: 
+#      OpenMx one factor matrix model demo for front page of website
 # 
-# Revision History
-#   Steven M. Boker -- 07 30 2009 created as OneFactorMatrixDemo.R
-#   Hermine Maes -- 02 22 2010 updated & reformatted
-#   Timothy R. Brick -- 05 12 2010 added checkpointing
-# -----------------------------------------------------------------------
+# RevisionHistory:
+#      Steven M. Boker -- 2009.07.30 created as OneFactorMatrixDemo.R
+#      Hermine Maes -- 2010.02.22 updated & reformatted
+#      Timothy R. Brick -- 2010.05.12 added checkpointing
+#      Ross Gore -- 2011.06.07	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
 data(demoOneFactor)
+# Prepare Data
+# -----------------------------------------------------------------------------
+
 manifestVars <- names(demoOneFactor)
+# Prepare the manifest variables
+# -----------------------------------------------------------------------------
 
 factorModel <- mxModel("One Factor",
     mxMatrix(type="Full", nrow=5, ncol=1, values=0.2, free=TRUE, name="A", labels=letters[1:5]),
@@ -40,17 +53,28 @@ factorModel <- mxModel("One Factor",
     mxMLObjective(covariance="R", dimnames=manifestVars),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
+# Create an MxModel object using a matrix model specification
+# -----------------------------------------------------------------------------
 
 directory <- tempdir()
+# Get a temporary directory for checkpointing
+# -----------------------------------------------------------------------------
 
 factorModel <- mxOption(factorModel, "Checkpoint Directory", directory)
 factorModel <- mxOption(factorModel, "Checkpoint Units", "iterations")
 factorModel <- mxOption(factorModel, "Checkpoint Count", 10)
+# Prepare the model for the checkpointing
+# -----------------------------------------------------------------------------
 
 factorFit <- mxRun(factorModel, checkpoint = TRUE)
+# Fit the model to the observed covariances
+# -----------------------------------------------------------------------------
 
 factorRestore <- mxRestore(factorModel, chkpt.directory = directory)
+# Load the last saved state from the checkpoint file 
+# -----------------------------------------------------------------------------
 
 omxCheckCloseEnough(mxEval(A, factorFit), mxEval(A, factorRestore), 0.001)
 omxCheckCloseEnough(mxEval(U, factorFit), mxEval(U, factorRestore), 0.001)
-
+# Compare non-checkpointed results to checkpointed results 
+# -----------------------------------------------------------------------------

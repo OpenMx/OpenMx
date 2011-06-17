@@ -13,22 +13,38 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneFactorPathDemo.R  
-#  Author: Steve Boker
-#    Date: 08 01 2009 
+# Author: Steve Boker
+# Date: 2009.08.01 
 #
-# OpenMx one factor path model demo for front page of website
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
+#
+# Purpose: 
+#      OpenMx one factor path model demo for front page of website
 # 
-# Revision History
-#   Hermine Maes -- 02 22 2010 updated & reformatted
-# -----------------------------------------------------------------------
+# RevisionHistory:
+#      Hermine Maes -- 2010.02.22 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
 data(demoOneFactor)
+# Prepare Data
+# -----------------------------------------------------------------------------
+
 manifests <- names(demoOneFactor)
+# Prepare Manifests Data
+# -----------------------------------------------------------------------------
+
 latents <- c("G")
+# Prepare Latents Data
+# -----------------------------------------------------------------------------
 
 factorModel <- mxModel("One Factor", 
     type="RAM",
@@ -39,6 +55,13 @@ factorModel <- mxModel("One Factor",
     mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
 
 factorFit <- mxRun(factorModel)
+# Fit the model to the observed covariances with mxRun
+# -----------------------------------------------------------------------------
+
 summary(factorFit)
+# Print a summary of the results
+# -----------------------------------------------------------------------------

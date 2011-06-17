@@ -14,30 +14,36 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: SimpleRegression_PathRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Simple Regression model to estimate effect of independent on dependent variables
-# Path style model input - Raw data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Simple Regression model to estimate effect of independent on dependent variables
+#      Path style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 data(myRegDataRaw)
 
 names(myRegDataRaw)
 
 myRegDataRaw <- myRegDataRaw[,c("x","y")]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 uniRegModel <- mxModel("Simple Regression Path Specification", 
       type="RAM",
       mxData(
@@ -45,14 +51,14 @@ uniRegModel <- mxModel("Simple Regression Path Specification",
       		type="raw"
       ),
       manifestVars=c("x","y"),
-      # variances
       mxPath(from=c("x","y"), 
             arrows=2,
             free=TRUE, 
             values = c(1,1),
             labels=c("varx","residual")
       ), 
-      # regression weight
+	  # variances
+      # -------------------------------------
       mxPath(from="x",
             to="y",
             arrows=1,
@@ -60,7 +66,8 @@ uniRegModel <- mxModel("Simple Regression Path Specification",
             values=1,
             label="beta1"
       ), 
-      # means
+      # regression weight
+      # -------------------------------------
       mxPath(from="one",
             to=c("x","y"),
             arrows=1,
@@ -68,18 +75,22 @@ uniRegModel <- mxModel("Simple Regression Path Specification",
             values=c(1,1),
             labels=c("meanx","beta0")
       ) 
+      # means
+      # -------------------------------------
 ) # close model
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 uniRegFit <- mxRun(uniRegModel, suppressWarnings=TRUE)
 
 summary(uniRegFit)
 uniRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.5478, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.4831, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.6652, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
 omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.1053, 0.001)
-
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

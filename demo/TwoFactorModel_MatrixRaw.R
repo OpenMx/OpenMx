@@ -14,31 +14,37 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: TwoFactorModel_MatrixRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Two Factor model to estimate factor loadings, residual variances and means
-# Matrix style model input - Raw data input
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Two Factor model to estimate factor loadings, residual variances and means
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 data(myFADataRaw)
+# Prepare Data
+# -----------------------------------------------------------------------------
 
 manifestVars <- c("x1","x2","x3","y1","y2","y3")
 latentVars <- c("F1","F2")
 
 twoFactorRaw <- myFADataRaw[,manifestVars]
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 twoFactorModel <- mxModel("Two Factor Model Matrix Specification", 
     type="RAM",
     mxData(
@@ -133,14 +139,15 @@ twoFactorModel <- mxModel("Two Factor Model Matrix Specification",
     mxRAMObjective("A","S","F","M",
 		dimnames=c(manifestVars, latentVars))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 twoFactorFit <- mxRun(twoFactorModel)
 
 summary(twoFactorFit)
 twoFactorFit@output$estimate
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l2"]], 0.9723, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l3"]], 0.9313, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["l5"]], 1.0498, 0.01)
@@ -160,3 +167,5 @@ omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx3"]], 2.9861, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx4"]], 2.9554, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx5"]], 2.9562, 0.01)
 omxCheckCloseEnough(twoFactorFit@output$estimate[["meanx6"]], 2.9673, 0.01)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

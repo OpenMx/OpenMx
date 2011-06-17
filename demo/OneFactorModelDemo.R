@@ -14,20 +14,30 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneFactorMatrixDemo.R  
-#  Author: Steve Boker
-#    Date: 08 01 2009 
+# Author: Steve Boker
+# Date: 2009.08.01 
 #
-# OpenMx one factor matrix model demo from front page of website
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
+#
+# Purpose: 
+#      OpenMx one factor matrix model demo from front page of website
 # 
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
 data(demoOneFactor)
+# Prepare Data
+# -----------------------------------------------------------------------------
 
 factorModel <- mxModel(name ="One Factor",
     mxMatrix(type="Full", nrow=5, ncol=1, free=T, values=0.2, name="A"),
@@ -36,6 +46,13 @@ factorModel <- mxModel(name ="One Factor",
     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
     mxMLObjective(covariance="R", dimnames=names(demoOneFactor)),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500))
+# Create an MxModel object
+# -----------------------------------------------------------------------------
 
 factorModelFit <- mxRun(factorModel)
+# Fit the model to the observed covariances with mxRun
+# -----------------------------------------------------------------------------
+
 summary(factorModelFit)
+# Print a summary of the results
+# -----------------------------------------------------------------------------

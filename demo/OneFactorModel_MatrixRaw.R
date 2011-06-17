@@ -14,31 +14,38 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneFactorModel_MatrixRaw.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# One Factor model to estimate factor loadings, residual variances and means
-# Matrix style model input - Raw data input
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      One Factor model to estimate factor loadings, residual variances and means
+#      Matrix style model input - Raw data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
+
 data(myFADataRaw)
+# Prepare Data
+# -----------------------------------------------------------------------------
 
 manifestVars <- c("x1","x2","x3","x4","x5","x6")
 latentVars <- "F1"
 
 myFADataRaw <- myFADataRaw[,manifestVars]
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
 	mxData(
 		observed=myFADataRaw, 
@@ -128,14 +135,14 @@ oneFactorModel <- mxModel("Common Factor Model Matrix Specification",
 	mxRAMObjective("A","S","F","M",
 		dimnames=c(manifestVars, latentVars))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 oneFactorFit<-mxRun(oneFactorModel)
 
 summary(oneFactorFit)
 oneFactorFit@output$estimate
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l2"]], 0.999, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l3"]], 0.959, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["l4"]], 1.028, 0.01)
@@ -154,3 +161,5 @@ omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx3"]], 2.986, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx4"]], 3.053, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx5"]], 3.016, 0.01)
 omxCheckCloseEnough(oneFactorFit@output$estimate[["meanx6"]], 3.010, 0.01)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------

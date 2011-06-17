@@ -13,43 +13,57 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneLocusLikelihood.R  
-#  Author: Michael Neale
-#    Date: 11 23 2009 
+# Author: Michael Neale
+# Date: 2009.11.23 
 #
-# One Locus Likelihood model to estimate allele frequencies
-#     Bernstein data on ABO blood-groups
-#     c.f. Edwards, AWF (1972)  Likelihood.  Cambridge Univ Press, pp. 39-41
+# ModelType: Locus Likelihood
+# DataType: Frequencies
+# Field: Human Behavior Genetics
 #
-# Revision History
-#   Hermine Maes -- 02 22 2010 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      One Locus Likelihood model to estimate allele frequencies
+#      Bernstein data on ABO blood-groups
+#      c.f. Edwards, AWF (1972)  Likelihood.  Cambridge Univ Press, pp. 39-41
+#
+# RevisionHistory:
+#      Hermine Maes -- 2010.02.22 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
     
 OneLocusModel <- mxModel("OneLocus",
-# Matrices for allele frequencies, p, q and r
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="Q"),
     mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="R"),
+    # Matrices for allele frequencies, p, q and r
+    # -------------------------------------
     mxConstraint(P+Q+R == 1, name = "EqualityConstraint"),
-# Matrix of observed data
     mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
-# Algebra for predicted proportions
+	# Matrix of observed data
+    # -------------------------------------
     mxAlgebra( expression=rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), name="ExpectedFreqs"),
-# Algebra for -logLikelihood
+	# Algebra for predicted proportions
+    # -------------------------------------
     mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
-# User-defined objective
-    mxAlgebraObjective("NegativeLogLikelihood")
+    # Algebra for -logLikelihood
+    # -------------------------------------
+    mxAlgebraObjective("NegativeLogLikelihood") 
+    # User-defined objective
+     # -------------------------------------
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
 
 OneLocusFit <- mxRun(OneLocusModel)
 OneLocusFit@matrices
 OneLocusFit@algebras
 
 
-# Compare OpenMx estimates to original Mx's estimates
 estimates <- c(
     OneLocusFit@matrices$P@values, 
     OneLocusFit@matrices$Q@values, 
@@ -57,5 +71,6 @@ estimates <- c(
     OneLocusFit@algebras$NegativeLogLikelihood@result)
 Mx1Estimates<-c(0.2931,0.1552,0.5517,627.851)
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)
-
+# Compare OpenMx estimates to original Mx's estimates
+# -----------------------------------------------------------------------------
 

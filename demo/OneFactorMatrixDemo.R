@@ -14,21 +14,35 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Program: OneFactorMatrixDemo.R  
-#  Author: Steve Boker
-#    Date: 07 30 2009 
+# Author: Steve Boker
+# Date: 2009.07.30 
 #
-# OpenMx one factor matrix model demo for front page of website
+# ModelType: Factor
+# DataType: Continuous
+# Field: None
+#
+# Purpose:
+#      OpenMx one factor matrix model demo for front page of website
 # 
-# Revision History
-#   Hermine Maes -- 02 22 2010 updated & reformatted
-# -----------------------------------------------------------------------
+# RevisionHistory:
+#      Hermine Maes -- 2010.02.22 updated & reformatted
+#      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Library
+# -----------------------------------------------------------------------------
 
 data(demoOneFactor)
+# Prepare Data
+# -----------------------------------------------------------------------------
+
+
 manifestVars <- names(demoOneFactor)
+# Prepare Manifests Data
+# -----------------------------------------------------------------------------
 
 factorModel <- mxModel("One Factor",
     mxMatrix(type="Full", nrow=5, ncol=1, values=0.2, free=TRUE, name="A"),
@@ -38,7 +52,13 @@ factorModel <- mxModel("One Factor",
     mxMLObjective(covariance="R", dimnames=manifestVars),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
 
 factorFit <- mxRun(factorModel)
-summary(factorFit)
+# Fit the model to the observed covariances with mxRun
+# -----------------------------------------------------------------------------
 
+summary(factorFit)
+# Print a summary of the results
+# -----------------------------------------------------------------------------

@@ -1,16 +1,52 @@
+#
+#   Copyright 2007-2010 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+# -----------------------------------------------------------------------
+# Program: GrowthMixtureModelRandomStarts.R  
+# Author: Unknown
+# Date: 9999.99.99 
+#
+# ModelType: Growth Mixture
+# DataType: Continuous
+# Field: None
+#
+# Purpose: 
+#      Growth mixture model with random starts
+# 
+#
+# RevisionHistory:
+#      Ross Gore -- 2011.06.16 updated & reformatted
+# -----------------------------------------------------------------------
+
+
 demo(GrowthMixtureModel_MatrixRaw)
 
-################################################################################
-# Serial Respecification
-################################################################################
 
-# how many trials?
+
+
 trials <- 10
+# how many trials?
+# -------------------------------------
 
-# place all of the parameter names in a vector
+
 parNames <- names(omxGetParameters(gmm))
+# place all of the parameter 
+# names in a vector
+# -------------------------------------
 
-# make a matrix to hold all of the 
+
 input <- matrix(NA, trials, length(parNames))
 dimnames(input) <- list(c(1: trials), c(parNames))
 
@@ -19,26 +55,34 @@ dimnames(output) <- list(c(1: trials), c(parNames))
 
 fit <- matrix(NA, trials, 5)
 dimnames(fit) <- list(c(1: trials), c("Minus2LL", "Status", "Iterations", "pclass1", "time"))
+# make matrices to hold everything
+# -------------------------------------
 
-# populate the class probabilities
 input[,"p1"] <- runif(trials, 0.1, 0.9)
 input[,"p1"] <- input[,"p1"]/(1-input[,"p1"])
+# populate the class probabilities
+# -------------------------------------
 
-# populate the variances
+
 v <- c("vari1", "vars1", "vari2", "vars2", "residual")
 input[,v] <- runif(trials*5, 0, 10)
+# populate the variances
+# -------------------------------------
 
-# populate the means
+
 m <- c("meani1", "means1", "meani2", "means2")
 input[,m] <- runif(trials*4, -5, 5)
+# populate the means
+# -------------------------------------
 
-# populate the covariances
+
 r <- runif(trials*2, -0.9, 0.9)
 scale <- c(
     sqrt(input[,"vari1"]*input[,"vars1"]),
     sqrt(input[,"vari2"]*input[,"vars2"]))
 input[,c("cov1", "cov2")] <- r * scale
-
+# populate the covariances
+# -------------------------------------
 
 for (i in 1: trials){
 	temp1 <- omxSetParameters(gmm,
@@ -63,10 +107,12 @@ for (i in 1: trials){
 fit
 table(round(fit[,1], 3), fit[,2])
 
+# Serial Respecification
+# -----------------------------------------------------------------------------
 
-################################################################################
-# Parallel Respecification
-################################################################################
+
+
+
 #require(snowfall)
 #sfInit(parallel=TRUE, cpus=4)
 #sfLibrary(OpenMx)
@@ -102,18 +148,23 @@ fitStats <- function(model){
 resultsFit <- t(omxSapply(results@submodels, fitStats))
 #sfStop()
 
+# Parallel Respecification
+# -----------------------------------------------------------------------------
 
-################################################################################
-# Compare Model Estimation Times
-################################################################################
 
-# Serial Time, in seconds (ignoring the overhead caused by the for loop)
 sum(fit[,5])
+# Serial Time, in seconds (ignoring the overhead caused by the for loop)
+# -------------------------------------
 
-# Parallel Time, in seconds
 results@output$wallTime
+# Parallel Time, in seconds
+# -------------------------------------
 
-################################################################################
-# Reload OpenMx to offload the snowfall OpenMx library
-################################################################################
+# Compare Model Estimation Times
+# -----------------------------------------------------------------------------
+
+
 library(OpenMx)
+
+# Reload OpenMx to offload the snowfall OpenMx library
+# -----------------------------------------------------------------------------

@@ -15,20 +15,27 @@
 
 # -----------------------------------------------------------------------
 # Program: MultipleRegression_MatrixCov.R  
-#  Author: Ryne Estabrook
-#    Date: 08 01 2009 
+# Author: Ryne Estabrook
+# Date: 2009.08.01 
 #
-# Multiple Regression model to estimate effect of independent on dependent variables
-# Matrix style model input - Covariance matrix data input
+# ModelType: Regression
+# DataType: Continuous
+# Field: None
 #
-# Revision History
-#   Hermine Maes -- 10 08 2009 updated & reformatted
-# -----------------------------------------------------------------------
+# Purpose: 
+#      Multiple Regression model to estimate effect of independent 
+#      on dependent variables
+#      Matrix style model input - Covariance matrix data input
+#
+# RevisionHistory:
+#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Ross Gore -- 2011.06.15 added Model, Data & Field
+# -----------------------------------------------------------------------------
 
 require(OpenMx)
+# Load Libraries
+# -----------------------------------------------------------------------------
 
-#Prepare Data
-# -----------------------------------------------------------------------
 myRegDataCov <- matrix(
     c(0.808,-0.110, 0.089, 0.361,
      -0.110, 1.116, 0.539, 0.289,
@@ -39,15 +46,16 @@ myRegDataCov <- matrix(
       c("w","x","y","z"),
       c("w","x","y","z"))
 )
+
  
 myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 names(myRegDataMeans) <- c("w","x","y","z") 
 
 MultipleDataCov <- myRegDataCov[c("x","y","z"),c("x","y","z")]	
 MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
+# Prepare Data
+# -----------------------------------------------------------------------------
 
-#Create an MxModel object
-# -----------------------------------------------------------------------
 multiRegModel<-mxModel("Multiple Regression Matrix Specification", 
       mxData(
       		observed=MultipleDataCov, 
@@ -98,14 +106,15 @@ multiRegModel<-mxModel("Multiple Regression Matrix Specification",
       ),
       mxRAMObjective("A","S","F","M",dimnames=c('x','y','z'))
 )
+# Create an MxModel object
+# -----------------------------------------------------------------------------
       
 multiRegFit <- mxRun(multiRegModel)
 
 summary(multiRegFit)
 multiRegFit@output
 
-#Compare OpenMx results to Mx results 
-# -----------------------------------------------------------------------
+
 omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6312, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4243, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2265, 0.001)
@@ -115,3 +124,5 @@ omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8360, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
 omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
+# Compare OpenMx results to Mx results 
+# -----------------------------------------------------------------------------
