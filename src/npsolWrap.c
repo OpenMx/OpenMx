@@ -243,7 +243,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
 
-  } // End if(errOut)
+  } else { // End if(errOut)
+    error(currentState->statusMsg);
+  }
 
 	/* Set up Optimization Memory Allocations */
 	if(n == 0) {			// Special Case for the evaluation-only condition

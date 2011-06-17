@@ -34,6 +34,4 @@ model <- mxModel('ErrorModel',
 )
 model$data@observed[1,1] <- -1
 omxCheckError(mxRun(model), 
-	paste("The job for model 'ErrorModel' exited",
-		"abnormally with the error message:",
-		"Observed Covariance Matrix is non-positive-definite."))
+		"Observed Covariance Matrix is non-positive-definite.")
