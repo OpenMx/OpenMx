@@ -1,3 +1,25 @@
+library(OpenMx)
+library(mvtnorm)
+jointDataCov <- rbind(  c( 2, .3, .6,  .9, .6),
+                        c(.3,  4, .4,  .3, .9),
+                        c(.6, .4,  5,  1.2, .0),
+                        c(.9, .3, 1.2,  1,  .4),
+                        c(.6, .9, .0,  .4,  3))
+                        
+jointData <- data.frame(rmvnorm(2, c(8, 0, 2, 0, 7, 0), jointDataCov))
+names(jointData) <- paste("z", 1:6, sep="")
+jointData[,2] <- as.integer(jointData[,2] > 0)
+tester = jointData[,4]
+jointData[, 4] <- 0
+jointData[(tester > -.35), 4] <- 1
+jointData[(tester > .15), 4] <- 2
+jointData[(tester > .75), 4] <- 3
+
+tester = jointData[,5]
+jointData[,5] <- 0
+jointData[(tester > -.8) ,5] <- 1
+jointData[(tester > -.3),5] <- 2
+
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
@@ -45,12 +67,12 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 jointResults1 <- mxRun(jointModel1, unsafe=TRUE)
 
 jointModel2 <- mxModel("ContinuousOrdinalData",
-	mxData(jointData, "raw"),
-	satCov, means, thresh,
-	mxFIMLObjective("C", "M",
-		dimnames=names(jointData),
-		thresholds="T",
-		threshnames=c("z2", "z4", "z5"))
-	)
-	
+  mxData(jointData, "raw"),
+  satCov, means, thresh,
+  mxFIMLObjective("C", "M",
+      dimnames=names(jointData),
+      thresholds="T",
+      threshnames=c("z2", "z4", "z5"))
+  )
+  
 jointResults2 <- mxRun(jointModel2, unsafe=TRUE)

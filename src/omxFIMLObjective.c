@@ -473,7 +473,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     int row = 0;
     int ordRemove[cov->cols], contRemove[cov->cols];
     int zeros[cov->cols];
-    char u = 'U';
+    char u = 'U', l = 'L';
     int info;
     double determinant;
     double oned = 1.0, zerod = 0.0, minusoned = -1.0;
@@ -696,17 +696,28 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         halfCov->rows = smallCov->rows;
         halfCov->cols = ordContCov->cols;
         omxMatrixCompute(halfCov);
-        reduceCov->rows = ordContCov->rows;
-        reduceCov->cols = ordContCov->rows;
+        reduceCov->rows = ordContCov->cols;
+        reduceCov->cols = ordContCov->cols;
         omxMatrixCompute(reduceCov);
-
+        
         F77_CALL(dsymv)(&u, &(ordContCov->rows), &oned, ordContCov->data, (&ordContCov->cols), RCX->data, &onei, &zerod, RCX->data, &onei);                             // RCX is the influence of the continuous on the thresholds
-        F77_CALL(dgemm)((smallCov->majority), (ordContCov->majority), &(smallCov->rows), &(smallCov->cols), &(ordContCov->rows), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
-        F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->rows), &(ordContCov->cols), &(halfCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is  cont/ord %&% contCov^-1
+        F77_CALL(dsymm)(&l, &u, &(smallCov->rows), &(ordContCov->cols), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
+        F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->cols), &(halfCov->cols), &(ordContCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is cont/ord^T %*% (contCov^-1 %*% cont/ord)
         int vlen = reduceCov->rows * reduceCov->cols;
         // FIXME: This assumes that ordCov and reducCov have the same row/column majority.
-        F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov)
+        F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov) %*% cont/ord
         F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), smallRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
+
+        // 
+        // if(OMX_DEBUG_ROWS) {
+        //     omxPrint(smallCov, "smallCov"); //:::DEBUG:::
+        //     omxPrint(ordContCov, "OrdCont"); //:::DEBUG:::
+        //     omxPrint(RCX, "RCX"); //:::DEBUG:::
+        //     omxPrint(halfCov, "halfCov"); //:::DEBUG:::
+        //     omxPrint(ordCov, "ordCov"); //:::DEBUG:::
+        //     omxPrint(reduceCov, "reduceCov"); //:::DEBUG:::
+        //     omxPrint(means, "Means"); //:::DEBUG:::
+        // }
 
 		// TODO: Implement all-ordinal-missing case
         // if(numOrdRemoves < dataColumns->cols) {    // Ordinal all missing.
@@ -715,8 +726,9 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         //         } else {
 
 		    // Calculate correlation matrix from covariance
+		    if(OMX_DEBUG) {omxPrint(ordCov, "Cov matrix for standardization."); } //:::DEBUG:::
 		    omxStandardizeCovMatrix(ordCov, corList, weights);
-
+		    
             int count = 0;
     		for(int j = 0; j < dataColumns->cols; j++) {
                 if(ordRemove[j]) continue;         // NA or non-ordinal
@@ -732,13 +744,16 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     			double weight = weights[count];
                 offset += omxVectorElement(RCX, j);          // Offset adjustment now covers mahalnobis adjustment as well
     			if(value == 0) { 									// Lowest threshold = -Inf
-    			    // Rprintf("0 %d = %d, %x, %d, %3.3f, %3.3f.\n", j, count, thresholdCols[j].matrix, thresholdCols[j].column, offset, weight); //:::DEBUG::::
+                    // Rprintf("0 %d = %d, %x, %d, %3.3f, %3.3f.\n", j, count, thresholdCols[j].matrix, thresholdCols[j].column, offset, weight); //:::DEBUG::::
+                    // Rprintf("%d(%d) Zeroed.", j, count); //:::DEBUG:::
     				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - offset) / weight;
     				uThresh[count] = lThresh[count];
     				Infin[count] = 0;
     			} else {
+                    // Rprintf("%d(%d) NonZeroed.", j, count); //:::DEBUG:::
     				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - offset) / weight;
     				if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
+                        // Rprintf("Twoed."); //:::DEBUG:::
     					double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - offset) / weight;
     					uThresh[count] = tmp;
     					Infin[count] = 2;
@@ -752,7 +767,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     				uThresh[count] = lThresh[count];
     				Infin[count] = 1;
     			}
-    			if(OMX_DEBUG) { Rprintf("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d)\n", row, count, j, value, lThresh[count], uThresh[count], Infin[count]);} // :::DEBUG:::
+    			if(OMX_DEBUG) { Rprintf("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d)\n", row, count, j, value, lThresh[count], uThresh[count], Infin[count]);}
+                // omxPrint(thresholdCols[j].matrix, "Thresholds"); // :::DEBUG:::
                 count++;
     		}
 
