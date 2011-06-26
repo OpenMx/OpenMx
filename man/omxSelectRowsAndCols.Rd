@@ -21,28 +21,28 @@
 \title{Filter rows and columns from an mxMatrix}
 
 \description{
-   This function filters rows and columns from an mxMatrix using a single row or column R matrix as a selector. 
+   This function filters rows and columns from a matrix using a single row or column R matrix as a selector. 
 }
 
 \usage{
-omxSelectRowsAndCols(mxMatrixToBeFiltered, selectorMatrix)
-omxSelectRows(mxMatrixToBeFiltered, selectorMatrix)
-omxSelectCols(mxMatrixToBeFiltered, selectorMatrix)
+omxSelectRowsAndCols(x, selector)
+omxSelectRows(x, selector)
+omxSelectCols(x, selector)
 }
 
 
 \arguments{
-   \item{mxMatrixToBeFiltered}{A mxMatrix}
-   \item{selectorMatrix}{A single row or single column R matrix indicating which values should be filtered from the mxMatrix.}
+   \item{x}{the matrix to be filtered}
+   \item{selector}{A single row or single column R matrix indicating which values should be filtered from the mxMatrix.}
 }
 
 \details{
 
-omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a mxMatrix specified by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the mxMatrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from an mxMatrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. 
+omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a target matrix specified by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the target matrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from a target matrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. 
 }
 
 \value{
-Returns a new \link{MxMatrix} object with the filtered data.
+Returns a new matrix with the filtered data.
 }
 
 \references{
@@ -52,10 +52,9 @@ The function is most often used when filtering data for missingness. This can be
 \examples{
 loadings <- c(1, -0.625, 0.1953125, 1, -0.375, 0.0703125, 1, -0.375, 0.0703125)
 loadings <- matrix(loadings, 3, 3, byrow= TRUE)
-loadingsMatrix <- mxMatrix("Full", free=FALSE, values=loadings, name="loadingsMatrix", byrow=TRUE)
 existenceList <- c(1, 0, 1)
 existenceList <- matrix(existenceList, 1, 3, byrow= TRUE)
-rowsAndCols <- omxSelectRowsAndCols(loadingsMatrix, existenceList)
-rows <- omxSelectRows(loadingsMatrix, existenceList)
-cols <- omxSelectCols(loadingsMatrix, existenceList)
+rowsAndCols <- omxSelectRowsAndCols(loadings, existenceList)
+rows <- omxSelectRows(loadings, existenceList)
+cols <- omxSelectCols(loadings, existenceList)
 }

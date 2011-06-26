@@ -187,7 +187,7 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 			checkNumberOrdinalColumns(mxDataObject)
 			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-			verifyThresholds(flatModel, model, data, translatednames, threshName)
+			verifyThresholds(flatModel, model, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)
 			.Object@thresholdColumns <- retval[[1]]

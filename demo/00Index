@@ -55,4 +55,5 @@ GrowthMixtureModelRandomStarts	Random starting value generation for growth mixtu
 OneFactorOrdinal_MatrixRaw	One factor model using matrix specification for ordinal data
 OneFactorOrdinal01_MatrixRaw	One factor model using matrix specification for ordinal data (alternative specification)
 FIMLRowObjectiveBivariateCorrelation	Implementing Full Information Maximum Likelihood using the MxRowObjective function
+RowObjectiveSimpleExamples	Basic examples of using the row-wise objective function (MxRowObjective)
 
