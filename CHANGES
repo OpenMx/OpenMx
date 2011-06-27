@@ -1,5 +1,5 @@
-trunk
-=====
+Improved Beta Release 999.0.0-1690 (June 27, 2011)
+==================================================
 * added omxSelectRowsAndCols, omxSelectRows and omxSelectCols documentation
 * fixed model flattening to keep track of confidence intervals in submodels
 * fixed a bug in omxParallelCI() introduced by previous change
