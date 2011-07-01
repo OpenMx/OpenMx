@@ -160,6 +160,14 @@ mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	if (length(all) != 1 || !is.logical(all)) {
 		stop("The 'all' argument to mxPath must be either true or false.")
 	}
+    if (all == TRUE) {
+        msg <- paste("The 'all' argument to mxPath",
+            "has been deprecated. It will be replaced",
+            "with a safer interface in OpenMx 1.2.",
+            "See ?mxPath for more information on",
+            "some potential problems when using all = TRUE.")
+        warning(msg)
+    }
 	if (all.na(to)) { to <- as.character(to) }
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
