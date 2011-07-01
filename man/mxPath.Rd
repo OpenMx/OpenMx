@@ -26,7 +26,7 @@
 \usage{
 mxPath(from, to = NA, all = FALSE, arrows = 1,
 	free = TRUE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA, excludeself = FALSE)
+	lbound = NA, ubound = NA)
 }
 
 \arguments{
@@ -39,7 +39,6 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
    \item{ubound}{numeric vector. The upper bounds of free parameters.}
-   \item{excludeself}{boolean value. Exclude any self paths.}
 }
 
 \details{
@@ -53,7 +52,6 @@ The \sQuote{arrows} argument specifies the type of paths created. A value of 1 i
 
 The \sQuote{values} is a numeric vectors containing the starting values of the created paths. \sQuote{values} gives a starting value for estimation. The \sQuote{labels} argument specifies the names of the resulting \link{MxPath} object.  The \sQuote{lbound} and \sQuote{ubound} arguments specify lower and upper bounds for the created paths.
 
-If \sQuote{excludeself} is TRUE, then paths are not modified in those cases when the \sQuote{from} and \sQuote{to} field are the same.  These paths are untouched independent of the value of the \sQuote{all} argument, and independent of whether the call to the function \link{mxModel} is adding paths or removing paths.
 }
 
 \value{
