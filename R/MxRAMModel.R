@@ -332,7 +332,6 @@ insertPathRAM <- function(path, A, S) {
 	alllabels <- path@labels
 	alllbound <- path@lbound
 	allubound <- path@ubound
-	excludeself <- path@excludeself
 	maxlength <- max(length(allfrom), length(allto))
 	A_free <- A@free
 	A_values <- A@values
@@ -353,7 +352,6 @@ insertPathRAM <- function(path, A, S) {
 		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
-		if (excludeself && identical(from, to)) next
 		if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
@@ -449,7 +447,6 @@ removePathRAM <- function(path, A, S) {
 	allfrom <- path@from
 	allto <- path@to
 	allarrows <- path@arrows
-	excludeself <- path@excludeself
 	maxlength <- max(length(allfrom), length(allto))
 	A_free <- A@free
 	A_values <- A@values
@@ -461,7 +458,6 @@ removePathRAM <- function(path, A, S) {
 		from <- allfrom[i %% length(allfrom) + 1]
 		to <- allto[i %% length(allto) + 1]
 		arrows <- allarrows[i %% length(allarrows) + 1]
-		if (excludeself && identical(from, to)) next
 		if (arrows == 1) {
 			A_values[to, from] <- 0
 			A_labels[to, from] <- as.character(NA)
