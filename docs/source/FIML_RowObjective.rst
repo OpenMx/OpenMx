@@ -14,7 +14,7 @@ Full Information Maximum Likelihood, Row Objective Specification
 
 This example will show how full information maximum likelihood can be implemented using a row-by-row evaluation of a likelihood function.  This example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
 
-*    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/FIMLRowObjectiveBivariateCorrelation.R
+*    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
 
 There is a parallel version of this example that uses the standard full information maximum likelihood implementation here:
 
@@ -133,9 +133,17 @@ In practical implementations of FIML, the data are first sorted based on their p
 Quadratic Products
 ******************
 
-There is one final note to discuss about Equation :eq:`fiml`.
+There is one final note to discuss about Equation :eq:`fiml`.  A very important component to Equation :eq:`fiml` is :math:`(X_i - M_i) \Sigma_i^{-1}  (X_i - M_i)^{\sf T}`.  It is a quadratic form.  Any expression of the form :math:`x A x^{\sf T}` where :math:`x` is a row-vector and :math:`A` is a matrix is called a *quadratic form*.  Equivalently, a quadratic form can be stated as :math:`x^{\sf T} A x` where :math:`x` is a column-vector.  In mathematical circles it is typical to express quadratic forms in terms of columns vectors as :math:`x^{\sf T} A x`, whereas in statistical circles it is common to express quadratic forms in terms of row vectors as :math:`x A x^{\sf T}`.  The difference is completely arbitrary and due to tradition and convenience.  Quadratic forms arise in many disciplines: in engineering as linear quadratic regulators, in physics as potential and kinetic energy, and in economics as utility functions.  Quadratic form appear in many optimization problems, so it is no surprise that they appear in the FIML equation.
 
-Positive definite matrices
+A quadratic form :math:`x A x^{\sf T}` can also be thought of as a quadratic product of :math:`x` and :math:`A`, so that :math:`x \bigotimes A = x A x^{\sf T}`.
+
+The particular quadratic form in Equation :eq:`fiml` has a special meaning and interpretation.  It is the squared Mahalanobis distance from the data row :math:`X_i` to the mean vector :math:`M_i` in the multivariate space defined by the covariance matrix :math:`\Sigma_i`.  Intuitively, the Mahalanobis distance from the mean vector tells you how far an observation is from the center of the distribution, taking into account the spread of the distribution in all directions.
+
+For well-behaved covariance matrices, the value of the quadratic form in equation :eq:`fiml` (i.e. the squared Mahalanobis distance) is always greater than or equal to zero, and equal to zero only when the observation row vector is exactly equal to the mean vector.  The likelihood functions in maximum likelihood (ML) and in FIML are not defined when this is not the case.  In general for any row-vector :math:`x` and square, symmetric matrix :math:`A`, if :math:`x A x^{\sf T} > 0` for any :math:`x \neq 0`, then the quadratic form :math:`x A x^{\sf T}` and the matrix :math:`A` are called *positive definite*.
+
+Because ML and FIML are not defined when the model-implied covariance matrix is not positive definite, frequent and often cryptic error message that users of any structural equation modeling program receive is something like ERROR: EXPECTED COVARIANCE MATRIX IS NOT POSITIVE DEFINITE.  A number of different problems could induce this error.  The model may be unidentified; a variable may have zero variance, i.e. be a constant; one variable might be a linear combination of another variable or equal to another variable; the starting values might imply an impossible covariance matrix; a variable may have zero or negative error (i.e. residual) variance.  In any case, it is a good idea to check your model specification for theoretical and typographical errors, and if you are expecting a parameter like an error variance to be greater than zero then set zero as that parameter's lower bound.
+
+Now that the FIML equation for a single row of data has been discussed, it is relevant to see how the full information maximum likelihood of the entire data set is computed.
 
 Likelihood of the Entire Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -187,9 +195,12 @@ Now the data has been generated and we can specify the saturated model.
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
+We generate an ``mxModel``, give it data, and two ``mxMatrix`` objects.  The first ``mxMatrix`` is a row-vector or completely free parameters and is the model-implied means vector.  Because we are specifying the saturated model, the means are freely estimated.  The second ``mxMatrix`` gives the model-implied covariance matrix.  Because we are specifying the saturated model, the covariance matrix is freely estimated, however it is still constrained to by symmetric and the starting values are picked so that the variances on the diagonal are in general larger than the covariances.
+
 .. code-block:: r
 
-    bivCorModel <- mxModel(name="FIML BivCor",
+    bivCorModelSpec <- mxModel(
+        name="FIML Saturated Bivariate",
         mxData(
             observed=testData, 
             type="raw",
@@ -203,25 +214,24 @@ Model Specification
             name="expMean"
         ), 
         mxMatrix(
-            type="Lower", 
+            type="Symm",
             nrow=2, 
-            ncol=2, 
+            ncol=2,
+            values=c(.21, .2, .2, .21),
             free=TRUE,
-            values=.2, 
-            name="Chol"
-        ), 
-        mxAlgebra(
-            expression=Chol %*% t(Chol), 
-            name="expCov", 
+            name='expCov'
         )
     )
 
 Filtering
 ^^^^^^^^^
 
+We create a new ``mxModel`` that has everything from the previous model.  We then create ``mxAlgebra`` objects that filter the expected means vector and the expected covariance matrix.  We also create an ``mxAlgebra`` that keeps track of the number of variables that are not missing in a given row.
+
 .. code-block:: r
 
-    bivCorModel <- mxModel(model=bivCorModel,
+    bivCorFiltering <- mxModel(
+        model=bivCorModelSpec,
         mxAlgebra(
             expression=omxSelectRowsAndCols(expCov, existenceVector),
             name="filteredExpCov",
@@ -229,24 +239,45 @@ Filtering
         mxAlgebra(
             expression=omxSelectCols(expMean, existenceVector),
             name="filteredExpMean",
+        ),
+        mxAlgebra(
+            expression=sum(existenceVector),
+            name="numVar_i")
+    )
+
+Calculations
+^^^^^^^^^^^^
+
+We create a new ``mxModel`` that has everything from the previous models.  
+
+.. code-block:: r
+
+    bivCorCalc <- mxModel(
+        model=bivCorFiltering,
+        mxAlgebra(
+            expression = log(2*pi),
+            name = "log2pi"
+        ),
+        mxAlgebra(
+            expression=log2pi %*% numVar_i + log(det(filteredExpCov)),
+            name ="firstHalfCalc",
+        ),
+        mxAlgebra(
+            expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
+            name = "secondHalfCalc",
         )
     )
 
 Row Objective Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+We create a new ``mxModel`` that has everything from the previous models.  
+
+
 .. code-block:: r
 
-    bivCorModel <- mxModel(model=bivCorModel,
-        mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
-        mxAlgebra(
-            expression=log2pi %*% 2 + log(det(filteredExpCov)),
-            name ="firstHalfCalc",
-        ),
-        mxAlgebra(
-            expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
-            name = "secondHalfCalc",
-        ),
+    bivCorRowObj <- mxModel(
+        model=bivCorCalc,
         mxAlgebra(
             expression=(firstHalfCalc + secondHalfCalc),
             name="rowAlgebra",
@@ -261,6 +292,9 @@ Row Objective Specification
             dimnames=c('X','Y'),
         )
     )
+    
+    bivCorTotal <- bivCorRowObj
+
 
 
 Model Fitting
@@ -268,5 +302,5 @@ Model Fitting
 
 .. code-block:: r
 
-    bivCorFit <- mxRun(bivCorModel)
+    bivCorFit <- mxRun(bivCorTotal)
 

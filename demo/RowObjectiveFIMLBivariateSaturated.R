@@ -34,6 +34,7 @@
 #                                        FIMLRowObjectiveBivariateCorrelation.R
 #	MikeHunter -- 2011.05.05 modified to use omxSelect* functions
 #	MikeHunter -- 2011.05.26 Adjusted spacing & comments for readability.
+#   MikeHunter -- 2011.06.30 Adjusted model structure to match docs file in User's Guide and corrected formula error.
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -50,9 +51,12 @@ names(testData) <- testVars
 summary(testData)
 cov(testData)
 # Simulate Data: two standardized variables X & Y with correlation of .5
+
+
 # -----------------------------------------------------------------------------
 
-bivCorModel <- mxModel(name="FIML BivCor",
+bivCorModelSpec <- mxModel(
+    name="FIML Saturated Bivariate",
     mxData(
         observed=testData, 
         type="raw",
@@ -72,20 +76,11 @@ bivCorModel <- mxModel(name="FIML BivCor",
         values=c(.21, .2, .2, .21),
         free=TRUE,
         name='expCov'
-    ),
-    #mxMatrix(
-    #    type="Lower", 
-    #    nrow=2, 
-    #    ncol=2, 
-    #    free=TRUE,
-    #    values=.2, 
-    #    name="Chol"
-    #), 
-    #mxAlgebra(
-    #    expression=Chol %*% t(Chol), 
-    #    name="expCov", 
-    #),
-    mxMatrix("Full", 1, 1, values = log(2*pi), name = "log2pi"),
+    )
+)
+
+bivCorFiltering <- mxModel(
+    model=bivCorModelSpec,
     mxAlgebra(
         expression=omxSelectRowsAndCols(expCov, existenceVector),
         name="filteredExpCov",
@@ -95,13 +90,28 @@ bivCorModel <- mxModel(name="FIML BivCor",
         name="filteredExpMean",
     ),
     mxAlgebra(
-        expression=log2pi %*% 2 + log(det(filteredExpCov)),
+        expression=sum(existenceVector),
+        name="numVar_i")
+)
+
+bivCorCalc <- mxModel(
+    model=bivCorFiltering,
+    mxAlgebra(
+        expression = log(2*pi),
+        name = "log2pi"
+    ),
+    mxAlgebra(
+        expression=log2pi %*% numVar_i + log(det(filteredExpCov)),
         name ="firstHalfCalc",
     ),
     mxAlgebra(
         expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
         name = "secondHalfCalc",
-    ),
+    )
+)
+
+bivCorRowObj <- mxModel(
+    model=bivCorCalc,
     mxAlgebra(
         expression=(firstHalfCalc + secondHalfCalc),
         name="rowAlgebra",
@@ -116,6 +126,9 @@ bivCorModel <- mxModel(name="FIML BivCor",
         dimnames=c('X','Y'),
     )
 )
+
+bivCorTotal <- bivCorRowObj
+
 # Fit Saturated Model with Raw Data and Matrix-style Input.
 # Estimate with Full Information Maximum Likelihood (FIML).
 # FIML is implemented here as an mxRowObjective function for pedagogical reasons only.
@@ -130,7 +143,7 @@ bivCorModel <- mxModel(name="FIML BivCor",
 # FIML for a whole data set is the sum of all the FIML rows.
 # -----------------------------------------------------------------------------
 
-bivCorFit <- mxRun(bivCorModel)
+bivCorFit <- mxRun(bivCorTotal)
 EM <- mxEval(expMean, bivCorFit)
 EC <- mxEval(expCov, bivCorFit)
 LL <- mxEval(objective, bivCorFit)
