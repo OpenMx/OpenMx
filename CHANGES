@@ -1,6 +1,7 @@
 trunk
 =====
 * removed 'excludeself' argument from mxPath() function
+* added deprecation warning for argument 'all'=TRUE in mxPath()
 
 Beta Release 999.0.0-1690 (June 27, 2011)
 =========================================
