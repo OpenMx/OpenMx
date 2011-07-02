@@ -32,7 +32,7 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 \arguments{
    \item{from}{character vector. these are the sources of the new paths.}
    \item{to}{character vector. these are the sinks of the new paths.}
-   \item{all}{boolean value. If TRUE, then connect all sources to all sinks.}
+   \item{all}{ \emph{DEPRECATED} boolean value. If TRUE, then connect all sources to all sinks.}
    \item{arrows}{numeric value. Must be either 1 (for single-headed) or 2 (for double-headed arrows).}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
    \item{values}{numeric vector. The starting values of the parameters.}
