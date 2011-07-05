@@ -32,8 +32,8 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 \arguments{
    \item{from}{character vector. these are the sources of the new paths.}
    \item{to}{character vector. these are the sinks of the new paths.}
-   \item{all}{boolean value. If TRUE, then connect all sources to all sinks.}
-   \item{arrows}{numeric value. Must be either 1 for single-headed or 2 for double-headed arrows.}
+   \item{all}{ \emph{[DEPRECATED]} boolean value. If TRUE, then connect all sources to all sinks.}
+   \item{arrows}{numeric value. Must be either 1 (for single-headed) or 2 (for double-headed arrows).}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
    \item{values}{numeric vector. The starting values of the parameters.}
    \item{labels}{character vector. The names of the paths.}
@@ -42,9 +42,14 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 }
 
 \details{
-The mxPath function creates \link{MxPath} objects, which are lists of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, which are included in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
+The mxPath function creates \link{MxPath} objects, which are lists of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear  in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
 
-Paths are specified as going from one variable or set of variables to another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. Sets of variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding position in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length. If the \sQuote{all} argument is set to TRUE, all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables are created.
+Paths are specified as going from one variable or set of variables to another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
+
+Multiple variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding position in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length. If the \sQuote{all} argument is set to TRUE, all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables are created.
+
+note: The current implementation of \sQuote{all} has unsafe features. Its use is now deprecated, and will be replaced by a new mechanism which supports safe and controlled generation of desired combinations of paths. This will be available in OpenMx 1.2. The function \code{\link{combn}} can help with explicitly specifying all pairwise combinations. See this URL for more details on \sQuote{all}:
+   http://openmx.psyc.virginia.edu/wiki/deprecation-mxpathall-true-argument.
 
 The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
 
@@ -64,6 +69,11 @@ McArdle, J. J. and MacDonald, R. P. (1984). Some algebraic properties of the Ret
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
+\seealso{
+\link{mxMatrix} for a matrix-based approach to path specification; \link{mxModel} for the container in which mxPaths are embedded. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
+
 \examples{
 # A simple Example: 1 factor Confirmatory Factor Analysis
 require(OpenMx)
@@ -81,26 +91,38 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <-mxRun(factorModel)
 summary(factorFit)
 
-
 # A more complex example using features of R to compress what would otherwise be a long and error-prone script
 
-myManifest <- sprintf("\%02d", c(1:100))
-myLatent <- c("G1", "G2", "G3", "G4", "G5")
-model <- mxModel(type = "RAM", manifestVars = myManifest, latentVars = myLatent)
+myManifest <- sprintf("\%02d", c(1:100))  # list of 100 variable names: "01"  "02"  "03"...
+myLatent   <- c("G1", "G2", "G3", "G4", "G5") # the latent variables for the model
+# Start building the model: Define its type, and add the manifest and latent variable name lists
+model     <- mxModel(type = "RAM", manifestVars = myManifest, latentVars = myLatent)
 
+# Create covariances between the latent variables and add to the model
+# Here we use combn to create the covariances
+# nb: To create the variances and covariances in one operation you could use 
+# expand.grid(myLatent,myLatent) to specify from and to
+
+uniquePairs <- combn(myLatent,2)
+covariances <- mxPath(from = uniquePairs[1,], to=uniquePairs[2,], arrows = 2, free = TRUE, values = 1)
+model       <- mxModel(model, covariances) 
+
+# Create variances for the latent variables
+variances   <- mxPath(from myLatent, to=myLatent, arrows = 2, free = TRUE, values = 1)
+model       <- mxModel(model, variances) # add variances to the model
+
+# Make a list of paths from each packet of 20 manifests to one of the 5 latent variables
+# nb: The first loading to each latent is fixed to 1 to scale its variance.
 singles <- list()
 for (i in 1:5) {
     j <- i*20
-    singles <- c(singles, mxPath(from = myLatent[i], 
-                            to = myManifest[(j - 19) : j], 
-                            arrows = 1,
-                            free = c(FALSE, rep(TRUE, 19)), 
-                            values = c(1, rep(0.75, 19))))
+    singles <- append(singles, mxPath(
+						from = myLatent[i], to = myManifest[(j - 19):j], 
+                        arrows = 1,
+                        free   = c(FALSE, rep(TRUE, 19)), 
+                        values = c(1, rep(0.75, 19))))
 }
-model <- mxModel(model, singles)
 
-doubles <- mxPath(from = myLatent, all = TRUE, arrows = 2,
-    free = TRUE, values = 1)
+model <- mxModel(model, singles) # add single-headed paths to the model
 
-model <- mxModel(model, doubles)
 }
