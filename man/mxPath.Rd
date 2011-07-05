@@ -30,8 +30,8 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 }
 
 \arguments{
-   \item{from}{character vector. these are the sources of the new paths.}
-   \item{to}{character vector. these are the sinks of the new paths.}
+   \item{from}{character vector. These are the sources of the new paths.}
+   \item{to}{character vector. These are the sinks of the new paths.}
    \item{all}{ \emph{[DEPRECATED]} boolean value. If TRUE, then connect all sources to all sinks.}
    \item{arrows}{numeric value. Must be either 1 (for single-headed) or 2 (for double-headed arrows).}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
@@ -42,13 +42,13 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 }
 
 \details{
-The mxPath function creates \link{MxPath} objects, which are lists of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear  in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
+The mxPath function creates \link{MxPath} objects. These consist of a list of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
 
-Paths are specified as going from one variable or set of variables to another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
+Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
 
-Multiple variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding position in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length. If the \sQuote{all} argument is set to TRUE, all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables are created.
+Multiple variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding entry in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length.
 
-note: The current implementation of \sQuote{all} has unsafe features. Its use is now deprecated, and will be replaced by a new mechanism which supports safe and controlled generation of desired combinations of paths. This will be available in OpenMx 1.2. The function \code{\link{combn}} can help with explicitly specifying all pairwise combinations. See this URL for more details on \sQuote{all}:
+note: The current implementation of \sQuote{all} has unsafe features. Its use is now deprecated, and will be replaced by a new mechanism which supports safe and controlled generation of desired combinations of paths. This will be available in OpenMx 1.2. To generate all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables, you should currently use combn and expand.table as helpers. The function \code{\link{combn}} can help with explicitly specifying all pairwise combinations. See this URL for more details on \sQuote{all}:
    http://openmx.psyc.virginia.edu/wiki/deprecation-mxpathall-true-argument.
 
 The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
@@ -79,10 +79,10 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 require(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
-latents <- c("G")
+latents   <- c("G")
 factorModel <- mxModel("One Factor", type="RAM",
       manifestVars = manifests,
-      latentVars = latents,
+      latentVars   = latents,
       mxPath(from=latents, to=manifests),
       mxPath(from=manifests, arrows=2),
       mxPath(from=latents, arrows=2,free=FALSE, values=1.0),
