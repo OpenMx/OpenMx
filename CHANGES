@@ -1,4 +1,4 @@
-Release 1.0.7-1705 (July 6, 2011)
+Release 1.0.7-1706 (July 6, 2011)
 =================================
 * error checking in front-end for non-positive-definite observed covariance matrices
 * fix bug in MxMatrix indexing operator
