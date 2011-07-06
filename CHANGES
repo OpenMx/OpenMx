@@ -1,5 +1,5 @@
-svn
-===
+Further Imp. Beta Release 999.0.0-1707 (July 7, 2011)
+=====================================================
 * removed 'excludeself' argument from mxPath() function
 * added deprecation warning for argument 'all'=TRUE in mxPath()
 
