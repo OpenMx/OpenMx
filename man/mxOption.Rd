@@ -84,6 +84,7 @@ Socket Count \tab the number of units between communication to the server \cr
 Model transformation options
 
 \tabular{rl}{
+Error Checking \tab "Yes" or "No" on whether model consistency checks are performed in the OpenMx front-end
 No Sort Data \tab character vector of model names for which FIML data sorting is not performed \cr
 RAM Inverse Optimization \tab "Yes" or "No" whether to enable solve(I - A) optimization \cr
 RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr

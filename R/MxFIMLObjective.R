@@ -123,7 +123,8 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 
 setMethod("genericObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, namespace, flatJob) {
-		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML")
+		disableChecking <- identical(job@options[['Error Checking']], 'No')
+		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML", disableChecking)
 		job <- updateThresholdDimnames(.Object, job, model@name)
 		precision <- "Function precision"
 		if(!single.na(.Object@thresholds) && 
@@ -201,7 +202,7 @@ updateThresholdDimnames <- function(flatObjective, job, modelname) {
 	return(job)
 }
 
-updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName) {
+updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName, unsafe = FALSE) {
 	covName <- flatObjective@covariance
 	meansName <- flatObjective@means
 	if (is.na(meansName)) {
@@ -232,21 +233,23 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		stop(msg, call.=FALSE)		
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
-		covMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(covName))))
-		if (nrow(covMatrix) != ncol(covMatrix)) {
-			msg <- paste("The expected covariance matrix associated",
-				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not a square matrix.")
-			stop(msg, call.=FALSE)		
-		}
-		if (nrow(covMatrix) != length(dims)) {
-			msg <- paste("The expected covariance matrix associated",
-				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not of the same length as the 'dimnames'",
-				"argument provided by the objective function. The 'dimnames' argument is",
-				"of length", length(dims), "and the expected covariance matrix",
-				"has", nrow(covMatrix), "rows and columns.")
-			stop(msg, call.=FALSE)		
+		if (!unsafe) {
+			covMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(covName))))
+			if (nrow(covMatrix) != ncol(covMatrix)) {
+				msg <- paste("The expected covariance matrix associated",
+					"with the", objectiveName, "objective in model", 
+					omxQuotes(modelname), "is not a square matrix.")
+				stop(msg, call.=FALSE)		
+			}
+			if (nrow(covMatrix) != length(dims)) {
+				msg <- paste("The expected covariance matrix associated",
+					"with the", objectiveName, "objective in model", 
+					omxQuotes(modelname), "is not of the same length as the 'dimnames'",
+					"argument provided by the objective function. The 'dimnames' argument is",
+					"of length", length(dims), "and the expected covariance matrix",
+					"has", nrow(covMatrix), "rows and columns.")
+				stop(msg, call.=FALSE)		
+			}
 		}
 		dimnames(covariance) <- list(dims, dims)
 		job[[covName]] <- covariance
@@ -261,24 +264,26 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 		stop(msg, call.=FALSE)	
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
-		meansMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), 
-			list(x = as.symbol(meansName))))
-		if (nrow(meansMatrix) != 1) {
-			msg <- paste("The expected means vector associated",
-				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not a 1 x n matrix.",
-				"It has dimensions", nrow(meansMatrix), "x", 
-				paste(ncol(meansMatrix), '.', sep=''))
-			stop(msg, call.=FALSE)		
-		}
-		if (ncol(meansMatrix) != length(dims)) {
-			msg <- paste("The expected means vector associated",
-				"with the", objectiveName, "objective in model", 
-				omxQuotes(modelname), "is not of the same length as the 'dimnames'",
-				"argument provided by the objective function. The 'dimnames' argument is",
-				"of length", length(dims), "and the expected means vector",
-				"has", ncol(meansMatrix), "columns.")
-			stop(msg, call.=FALSE)
+		if (!unsafe) {
+			meansMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), 
+				list(x = as.symbol(meansName))))
+			if (nrow(meansMatrix) != 1) {
+				msg <- paste("The expected means vector associated",
+					"with the", objectiveName, "objective in model", 
+					omxQuotes(modelname), "is not a 1 x n matrix.",
+					"It has dimensions", nrow(meansMatrix), "x", 
+					paste(ncol(meansMatrix), '.', sep=''))
+				stop(msg, call.=FALSE)		
+			}
+			if (ncol(meansMatrix) != length(dims)) {
+				msg <- paste("The expected means vector associated",
+					"with the", objectiveName, "objective in model", 
+					omxQuotes(modelname), "is not of the same length as the 'dimnames'",
+					"argument provided by the objective function. The 'dimnames' argument is",
+					"of length", length(dims), "and the expected means vector",
+					"has", ncol(meansMatrix), "columns.")
+				stop(msg, call.=FALSE)
+			}
 		}
 		dimnames(means) <- list(NULL, dims)
 		job[[meansName]] <- means
