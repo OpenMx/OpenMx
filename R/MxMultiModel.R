@@ -87,20 +87,15 @@ imxFlattenModel <- function(model, namespace) {
 	flatModel <- new("MxFlatModel", model, list(), list())
 	name <- model@name
 	model@objective <- namespaceConvertObjective(model@objective, name, namespace)
-	model@data <- namespaceConvertData(model@data, name)
+	defaultData <- namespaceConvertData(model@data, name)
 	flatModel@objective <- model@objective
-	defaultData <- model@data
 	flatModel@data <- defaultData
-	if (is.null(defaultData)) {
-		defaultDataName <- NULL
-	} else {
-		defaultDataName <- defaultData@name
-	}
-	flatModel@matrices <- lapply(model@matrices, namespaceConvertMatrix, name, defaultDataName, namespace)
-	names(flatModel@matrices) <- imxExtractNames(flatModel@matrices)	
+	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
 	flatModel@algebras <- collectComponents(model, namespace, "algebras", namespaceConvertAlgebra)
 	flatModel@constraints <- collectComponents(model, namespace, "constraints", namespaceConvertConstraint)	
-	flatModel@intervals <- collectComponents(model, namespace, "intervals", namespaceConvertInterval)		
+	flatModel@intervals <- collectComponents(model, namespace, "intervals", namespaceConvertInterval)
+	flatModel@datasets <- collectDatasets(model)
+	model@data <- defaultData
 	flatModel <- flattenModelHelper(model, flatModel, defaultData, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
@@ -117,12 +112,67 @@ collectComponents <- function(model, namespace, slotName, convertFunction) {
 collectComponentsHelper <- function(model, namespace, slotName, convertFunction) {
 	components <- lapply(slot(model, slotName), convertFunction, model@name, namespace)
 	if (length(model@submodels) > 0) {
-		submodel_components <- lapply(model@submodels, collectComponents, namespace, slotName, convertFunction)
+		submodel_components <- lapply(model@submodels, collectComponentsHelper, namespace, slotName, convertFunction)
 		submodel_components <- unlist(submodel_components, recursive = FALSE, use.names = FALSE)
 		components <- append(components, submodel_components)
 	}
 	return(components)
 }
+
+collectDatasets <- function(model) {
+	datasets <- collectDatasetsHelper(model)
+	names(datasets) <- imxExtractNames(datasets)
+	return(datasets)
+}
+
+
+collectDatasetsHelper <- function(model) {
+	modeldata <- model@data
+	if (!is.null(modeldata)) {
+		modeldata <- namespaceConvertData(modeldata, model@name)
+		retval <- list(modeldata)
+	} else {
+		retval <- list()
+	}
+	if (length(model@submodels) > 0) {
+		submodel_datasets <- lapply(model@submodels, collectDatasetsHelper)		
+		submodel_datasets <- unlist(submodel_datasets, recursive = FALSE, use.names = FALSE)
+		retval <- append(retval, submodel_datasets)
+	}
+	return(retval)
+}
+
+collectMatrices <- function(model, namespace, defaultData) {
+	matrices <- collectMatricesHelper(model, namespace, defaultData)
+	names(matrices) <- imxExtractNames(matrices)
+	return(matrices)
+}
+
+collectMatricesHelper <- function(model, namespace, defaultData) {
+	modeldata <- namespaceConvertData(model@data, model@name)
+	if (is.null(defaultData)) {
+		defaultData <- modeldata
+	} 
+	if (is.null(defaultData)) {
+		defaultDataName <- NULL
+	} else {
+		defaultDataName <- defaultData@name
+	}
+	if (is.null(modeldata)) {
+		retval <- lapply(model@matrices, namespaceConvertMatrix,
+			model@name, defaultDataName, namespace)
+	} else {
+		retval <- lapply(model@matrices, namespaceConvertMatrix,
+			model@name, modeldata@name, namespace)
+	}
+	if (length(model@submodels) > 0) {
+		submodel_matrices <- lapply(model@submodels, collectMatricesHelper, namespace, defaultData)		
+		submodel_matrices <- unlist(submodel_matrices, recursive = FALSE, use.names = FALSE)
+		retval <- append(retval, submodel_matrices)
+	}
+	return(retval)
+}
+
 
 flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 	if (!is.null(model@objective)) {
@@ -133,9 +183,6 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 		}
 		flatModel@objectives[[model@objective@name]] <- model@objective
 	}
-	if (!is.null(model@data)) {
-		flatModel@datasets[[model@data@name]] <- model@data
-	}
 	if (is.null(defaultData)) {
 		defaultData <- model@data
 	}
@@ -145,20 +192,6 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 			name <- submodel@name
 			submodel@data <- namespaceConvertData(submodel@data, name)
 			submodel@objective <- namespaceConvertObjective(submodel@objective, name, namespace)
-			if (is.null(defaultData)) {
-				defaultDataName <- NULL
-			} else {
-				defaultDataName <- defaultData@name
-			}
-			if (is.null(submodel@data)) {
-				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
-					name, defaultDataName, namespace)
-			} else {
-				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
-					name, submodel@data@name, namespace)
-			}
-			names(submodel@matrices) <- imxExtractNames(submodel@matrices)
-			flatModel@matrices    <- append(flatModel@matrices, submodel@matrices)
 			flatModel <- flattenModelHelper(submodel, flatModel, defaultData, namespace)
 		}
 	}
