@@ -97,15 +97,31 @@ imxFlattenModel <- function(model, namespace) {
 		defaultDataName <- defaultData@name
 	}
 	flatModel@matrices <- lapply(model@matrices, namespaceConvertMatrix, name, defaultDataName, namespace)
-	flatModel@algebras <- lapply(model@algebras, namespaceConvertAlgebra, name, namespace)
-	flatModel@constraints <- lapply(model@constraints, namespaceConvertConstraint, name, namespace)
-	flatModel@intervals <- lapply(model@intervals, namespaceConvertInterval, name, namespace)
-	names(flatModel@matrices) <- imxExtractNames(flatModel@matrices)
-	names(flatModel@algebras) <- imxExtractNames(flatModel@algebras)
-	names(flatModel@constraints) <- imxExtractNames(flatModel@constraints)
+	names(flatModel@matrices) <- imxExtractNames(flatModel@matrices)	
+	flatModel@algebras <- collectComponents(model, namespace, "algebras", namespaceConvertAlgebra)
+	flatModel@constraints <- collectComponents(model, namespace, "constraints", namespaceConvertConstraint)	
+	flatModel@intervals <- collectComponents(model, namespace, "intervals", namespaceConvertInterval)		
 	flatModel <- flattenModelHelper(model, flatModel, defaultData, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
+}
+
+collectComponents <- function(model, namespace, slotName, convertFunction) {
+	components <- collectComponentsHelper(model, namespace, slotName, convertFunction)
+	if (slotName != "intervals") {
+		names(components) <- imxExtractNames(components)
+	}
+	return(components)
+}
+
+collectComponentsHelper <- function(model, namespace, slotName, convertFunction) {
+	components <- lapply(slot(model, slotName), convertFunction, model@name, namespace)
+	if (length(model@submodels) > 0) {
+		submodel_components <- lapply(model@submodels, collectComponents, namespace, slotName, convertFunction)
+		submodel_components <- unlist(submodel_components, recursive = FALSE, use.names = FALSE)
+		components <- append(components, submodel_components)
+	}
+	return(components)
 }
 
 flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
@@ -141,17 +157,8 @@ flattenModelHelper <- function(model, flatModel, defaultData, namespace) {
 				submodel@matrices <- lapply(submodel@matrices, namespaceConvertMatrix,
 					name, submodel@data@name, namespace)
 			}
-			submodel@intervals <- lapply(submodel@intervals, namespaceConvertInterval, name, namespace)
-			submodel@algebras <- lapply(submodel@algebras, namespaceConvertAlgebra, name, namespace)
-			submodel@constraints <- lapply(submodel@constraints, namespaceConvertConstraint, name, namespace)
 			names(submodel@matrices) <- imxExtractNames(submodel@matrices)
-			names(submodel@algebras) <- imxExtractNames(submodel@algebras)
-			names(submodel@constraints) <- imxExtractNames(submodel@constraints)
 			flatModel@matrices    <- append(flatModel@matrices, submodel@matrices)
-			flatModel@algebras    <- append(flatModel@algebras, submodel@algebras)
-			flatModel@constraints <- append(flatModel@constraints, 
-				submodel@constraints)
-			flatModel@intervals   <- append(flatModel@intervals, submodel@intervals)
 			flatModel <- flattenModelHelper(submodel, flatModel, defaultData, namespace)
 		}
 	}
