@@ -121,13 +121,14 @@ setMethod("genericObjModelConvert", "MxMLObjective",
 				omxQuotes(model@name))
 			stop(msg, call. = FALSE)
 		}
-		
-		job <- updateObjectiveDimnames(.Object, job, model@name, "ML")
+		pair <- updateObjectiveDimnames(.Object, job, flatJob, model@name, "ML")
+		job <- pair[[1]]
+		flatJob <- pair[[2]]
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
-			job@.newobjects <- TRUE
+			job@.newobjects <- FALSE
 			job@.newobjective <- FALSE
 			job@.newtree <- FALSE
-			return(job)
+			return(list(job, flatJob))
 		}
 		if (is.na(.Object@means)) {
 			msg <- paste("In model", omxQuotes(model@name),
@@ -140,7 +141,7 @@ setMethod("genericObjModelConvert", "MxMLObjective",
 		job@.newobjects <- TRUE
 		job@.newobjective <- TRUE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 	}
 )
 

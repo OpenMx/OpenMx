@@ -124,17 +124,22 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 setMethod("genericObjModelConvert", "MxFIMLObjective",
 	function(.Object, job, model, namespace, flatJob) {
 		disableChecking <- identical(job@options[['Error Checking']], 'No')
-		job <- updateObjectiveDimnames(.Object, job, model@name, "FIML", disableChecking)
-		job <- updateThresholdDimnames(.Object, job, model@name)
+		pair <- list(job, flatJob)
+		pair <- updateObjectiveDimnames(.Object, pair[[1]], pair[[2]], 
+			model@name, "FIML", disableChecking)
+		pair <- updateThresholdDimnames(.Object, pair[[1]], pair[[2]], model@name)
+		job <- pair[[1]]
+		flatJob <- pair[[2]]
 		precision <- "Function precision"
 		if(!single.na(.Object@thresholds) && 
 			is.null(job@options[[precision]])) {
 			job <- mxOption(job, precision, 1e-9)
+			flatJob <- mxOption(flatJob, precision, 1e-9)
 		}
-		job@.newobjects <- TRUE
+		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 	}
 )
 
@@ -163,10 +168,10 @@ setMethod("genericObjInitialMatrix", "MxFIMLObjective",
 		}
 })
 
-updateThresholdDimnames <- function(flatObjective, job, modelname) {
+updateThresholdDimnames <- function(flatObjective, job, flatJob, modelname) {
 	threshName <- flatObjective@thresholds
 	if (is.na(threshName)) {
-		return(job)
+		return(list(job, flatJob))
 	}
 	thresholds <- job[[threshName]]
 	if (is.null(thresholds)) {
@@ -177,32 +182,36 @@ updateThresholdDimnames <- function(flatObjective, job, modelname) {
 	}
 	dims <- flatObjective@threshnames
     # Commented out for Joint Objective testing.
-    if (!is.null(colnames(thresholds)) && !single.na(dims) && 
-      !identical(colnames(thresholds), dims)) {
-      msg <- paste("The thresholds matrix associated",
-          "with the FIML objective in model", 
-          omxQuotes(modelname), "contains column names and",
-          "the objective function has specified non-identical threshnames.")
-      stop(msg, call.=FALSE)      
-    }
-    if (is.null(colnames(thresholds)) && !single.na(dims)) {
-      threshMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(threshName))))
-      if (ncol(threshMatrix) != length(dims)) {
-          msg <- paste("The thresholds matrix associated",
-              "with the FIML objective in model", 
-              omxQuotes(modelname), "is not of the same length as the 'threshnames'",
-              "argument provided by the objective function. The 'threshnames' argument is",
-              "of length", length(dims), "and the expected covariance matrix",
-              "has", ncol(threshMatrix), "columns.")
-          stop(msg, call.=FALSE)      
-      }
-      dimnames(thresholds) <- list(NULL, dims)
-      job[[threshName]] <- thresholds
-    }
-	return(job)
+	if (!is.null(colnames(thresholds)) && !single.na(dims) && 
+		!identical(colnames(thresholds), dims)) {
+		msg <- paste("The thresholds matrix associated",
+		"with the FIML objective in model", 
+		omxQuotes(modelname), "contains column names and",
+		"the objective function has specified non-identical threshnames.")
+		stop(msg, call.=FALSE)      
+	}
+	if (is.null(colnames(thresholds)) && !single.na(dims)) {
+		threshMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(threshName))))
+		if (ncol(threshMatrix) != length(dims)) {
+			msg <- paste("The thresholds matrix associated",
+			"with the FIML objective in model", 
+			omxQuotes(modelname), "is not of the same length as the 'threshnames'",
+			"argument provided by the objective function. The 'threshnames' argument is",
+			"of length", length(dims), "and the expected covariance matrix",
+			"has", ncol(threshMatrix), "columns.")
+			stop(msg, call.=FALSE)      
+		}
+		flatThresholds <- flatJob[[threshName]]
+		dimnames(thresholds) <- list(NULL, dims)
+		dimnames(flatThresholds) <- list(NULL, dims)
+		job[[threshName]] <- thresholds
+		flatJob[[threshName]] <- flatThresholds
+	}
+	return(list(job, flatJob))
 }
 
-updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName, unsafe = FALSE) {
+updateObjectiveDimnames <- function(flatObjective, job, flatJob,
+		modelname, objectiveName, unsafe = FALSE) {
 	covName <- flatObjective@covariance
 	meansName <- flatObjective@means
 	if (is.na(meansName)) {
@@ -234,7 +243,8 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
 		if (!unsafe) {
-			covMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), list(x = as.symbol(covName))))
+			covMatrix <- eval(substitute(mxEval(x, job, compute=TRUE), 
+				list(x = as.symbol(covName))))
 			if (nrow(covMatrix) != ncol(covMatrix)) {
 				msg <- paste("The expected covariance matrix associated",
 					"with the", objectiveName, "objective in model", 
@@ -251,10 +261,13 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 				stop(msg, call.=FALSE)		
 			}
 		}
+		flatCovariance <- flatJob[[covName]]
 		dimnames(covariance) <- list(dims, dims)
+		dimnames(flatCovariance) <- list(dims, dims)
 		job[[covName]] <- covariance
+		flatJob[[covName]] <- flatCovariance
 	}
-	if (!isS4(means) && is.na(means)) return(job)
+	if (!isS4(means) && is.na(means)) return(list(job, flatJob))
 	if (!is.null(dimnames(means)) && !single.na(dims) &&
 		!identical(dimnames(means), list(NULL, dims))) {
 		msg <- paste("The expected means matrix associated",
@@ -285,10 +298,13 @@ updateObjectiveDimnames <- function(flatObjective, job, modelname, objectiveName
 				stop(msg, call.=FALSE)
 			}
 		}
+		flatMeans <- flatJob[[meansName]]
 		dimnames(means) <- list(NULL, dims)
+		dimnames(flatMeans) <- list(NULL, dims)
 		job[[meansName]] <- means
+		flatJob[[meansName]] <- flatMeans
 	}
-	return(job)
+	return(list(job, flatJob))
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {

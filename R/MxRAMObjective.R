@@ -281,7 +281,7 @@ fMatrixTranslateNames <- function(fMatrix, modelName) {
 	return(retval)
 }
 
-updateRAMdimnames <- function(flatObjective, job, modelname) {
+updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
 	fMatrixName <- flatObjective@F
 	mMatrixName <- flatObjective@M
 	if (is.na(mMatrixName)) {
@@ -306,10 +306,13 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 		stop(msg, call.=FALSE)		
 	}
 	if (is.null(dimnames(fMatrix)) && !single.na(dims)) {
+		fMatrixFlat <- flatJob[[fMatrixName]]
 		dimnames(fMatrix) <- list(c(), dims)
+		dimnames(fMatrixFlat) <- list(c(), dims)
 		job[[fMatrixName]] <- fMatrix
+		flatJob[[fMatrixName]] <- fMatrixFlat
 	}
-	if (!isS4(mMatrix) && (is.null(mMatrix) || is.na(mMatrix))) return(job)
+	if (!isS4(mMatrix) && (is.null(mMatrix) || is.na(mMatrix))) return(list(job, flatJob))
 	if (!is.null(dimnames(mMatrix)) && !single.na(dims) &&
 		!identical(dimnames(mMatrix), list(NULL, dims))) {
 		msg <- paste("The M matrix associated",
@@ -319,10 +322,13 @@ updateRAMdimnames <- function(flatObjective, job, modelname) {
 		stop(msg, call.=FALSE)	
 	}
 	if (is.null(dimnames(mMatrix)) && !single.na(dims)) {
+		mMatrixFlat <- flatJob[[mMatrixName]]
 		dimnames(mMatrix) <- list(NULL, dims)
+		dimnames(mMatrixFlat) <- list(NULL, dims)
 		job[[mMatrixName]] <- mMatrix
+		flatJob[[mMatrixName]] <- mMatrixFlat
 	}
-	return(job)
+	return(list(job, flatJob))
 }
 
 setMethod("genericObjModelConvert", "MxRAMObjective",
@@ -333,7 +339,9 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
-		job <- updateRAMdimnames(.Object, job, model@name)
+		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
+		job <- pair[[1]]
+		flatJob <- pair[[2]]
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
 			if (.Object@vector) {
 				msg <- paste("The RAM objective",
@@ -341,10 +349,10 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 					"'vector' = TRUE, but the observed data is not raw data")
 				stop(msg, call.=FALSE)
 			}
-			job@.newobjects <- TRUE
+			job@.newobjects <- FALSE
 			job@.newobjective <- FALSE
 			job@.newtree <- FALSE
-			return(job)
+			return(list(job, flatJob))
 		}
 		if (is.na(.Object@M) || is.null(job[[.Object@M]])) {
 			msg <- paste("The RAM objective",
@@ -353,16 +361,19 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
-		job <- updateThresholdDimnames(.Object, job, model@name)
+		pair <- updateThresholdDimnames(.Object, job, flatJob, model@name)
+		job <- pair[[1]]
+		flatJob <- pair[[2]]
 		precision <- "Function precision"
 		if(!single.na(.Object@thresholds) && 
 			is.null(job@options[[precision]])) {
 			job <- mxOption(job, precision, 1e-9)
+			flatJob <- mxOption(flatJob, precision, 1e-9)
 		}
-		job@.newobjects <- TRUE
+		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 	}
 )
 

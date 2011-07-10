@@ -53,19 +53,18 @@ runHelper <- function(model, frontendStart,
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
-	freeFixedValues <- imxCheckVariables(flatModel, namespace)
-	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
-		values=namespace$values, parameters=namespace$parameters))
+	convertArguments <- imxCheckVariables(flatModel, namespace)
+	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel)
 	model <- convertDatasets(model, defVars, model@options)
+	flatModel@datasets <- collectDatasets(model)	
 	triple <- translateObjectives(model, namespace, flatModel)
 	model <- triple[[1]]
 	namespace <- triple[[2]]
 	flatModel <- triple[[3]]
-	freeFixedValues <- imxCheckVariables(flatModel, namespace)
+	convertArguments <- imxCheckVariables(flatModel, namespace)
 	flatModel <- constraintsToAlgebras(flatModel)
-	flatModel <- convertAlgebras(flatModel, list(startvals=freeFixedValues, 
-		values=namespace$values, parameters=namespace$parameters))
+	flatModel <- convertAlgebras(flatModel, convertArguments)
 	cycleDetection(flatModel)
 	flatModel <- populateDefInitialValues(flatModel)
 	flatModel <- checkEvaluation(model, flatModel)

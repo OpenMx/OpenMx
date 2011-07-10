@@ -92,6 +92,11 @@ generateDefinitionLocations <- function(datasets) {
 
 imxCheckVariables <- function(flatModel, namespace) {
 	datasets <- flatModel@datasets
+	retval <- list()
+	retval$parameters <- namespace$parameters
+	retval$values <- namespace$values
+	retval$startvals <- list()
+	retval$bounds <- list()
 	if(length(flatModel@matrices) > 0) {
 		startVals <- list()
 		freeVars <- list()
@@ -105,10 +110,10 @@ imxCheckVariables <- function(flatModel, namespace) {
 			fixedVars <- result[[3]]
 			bounds <- result[[4]]
 		}
-        return(startVals)
-	} else {
-        return(list())
-    }
+		retval$startvals <- startVals
+		retval$bounds <- bounds
+	}
+	return(retval)
 }
 
 checkVariablesHelper <- function(matrix, startVals, freeVars,

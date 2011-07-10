@@ -253,7 +253,7 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		job@.newobjects <- TRUE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 	}
 )
 

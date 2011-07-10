@@ -73,7 +73,8 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
         } else if (charFormula %in% convertArguments$values) {
             flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
         } else if (charFormula %in% convertArguments$parameters) {
-            flatModel <- insertFreeParameter(charFormula, convertArguments$startvals, flatModel)
+            flatModel <- insertFreeParameter(charFormula, convertArguments$startvals,
+		convertArguments$bounds, flatModel)
 		} else if (imxIsDefinitionVariable(charFormula)) {
              flatModel <- insertDefinitionVariable(charFormula, flatModel)
         } else if (!is.null(flatModel[[charFormula]])) {
@@ -101,15 +102,17 @@ insertFixedValue <- function(valName, startvals, flatModel) {
     return(flatModel)
 }
 
-insertFreeParameter <- function(paramName, startvals, flatModel) {
+insertFreeParameter <- function(paramName, startvals, bounds, flatModel) {
     if (!(paramName %in% names(flatModel@freeMatrices))) {
         localName <- imxUntitledName()
         identifier <- imxIdentifier(flatModel@name, localName)
-	    value <- as.matrix(startvals[[paramName]])
+	value <- as.matrix(startvals[[paramName]])
+	lbound <- as.matrix(bounds[[paramName]][[1]])
+	ubound <- as.matrix(bounds[[paramName]][[2]])
         matrix <- mxMatrix("Full", values = value, labels = paramName,
-            free = TRUE, name = localName)
+            free = TRUE, lbound = lbound, ubound = ubound, name = localName)
         matrix@name <- identifier
-		matrix@display <- paramName
+	matrix@display <- paramName
         flatModel@freeMatrices[[paramName]] <- matrix
     }
     return(flatModel)

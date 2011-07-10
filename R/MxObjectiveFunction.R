@@ -70,7 +70,7 @@ setMethod("genericObjModelConvert", "MxBaseObjective",
 		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 })
 
 setMethod("genericObjModelConvert", "NULL",
@@ -78,7 +78,7 @@ setMethod("genericObjModelConvert", "NULL",
 		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
-		return(job)
+		return(list(job, flatJob))
 })
 
 setMethod("genericObjDependencies", "MxBaseObjective",
@@ -156,7 +156,9 @@ translateObjectivesHelper <- function(job, namespace, flatJob) {
 			job@.newobjects <- TRUE
 			job@.newobjective <- TRUE
 			job@.newtree <- TRUE
-			job <- genericObjModelConvert(objective, job, model, namespace, flatJob)
+			pair <- genericObjModelConvert(objective, job, model, namespace, flatJob)
+			job <- pair[[1]]
+			flatJob <- pair[[2]]
 			if (job@.newtree) {
 				namespace <- imxGenerateNamespace(job)
 				flatJob <- imxFlattenModel(job, namespace)
