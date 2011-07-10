@@ -66,8 +66,24 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{
-#Create a model that includes data, matrices A, S and F, and an objective function
+# Create and run the 1-factor CFA on the openmx.psyc.virginia.edu front page
 \dontrun{
+require(OpenMx)
+data(demoOneFactor)  # load the demoOneFactor dataframe
+manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
+latents   <- c("G")  # define 1 latent variable
+model <- mxModel("One Factor", type="RAM",
+	manifestVars = manifests,
+	latentVars   = latents,
+	mxPath(from=latents  , to=manifests),
+	mxPath(from=manifests, arrows=2),
+	mxPath(from=latents  , arrows=2, free=FALSE, values=1.0),
+	mxData(cov(demoOneFactor), type="cov", numObs=500)
+)
+model <- mxRun(model) #run model, returning the result
+summary(model) #show summary of the fitted model
+
+#Create a model that includes data, matrices A, S and F, and an objective function
 data <- mxData(mydata, type="cov", numObs = 100)
 objective <- mxRAMObjective('A', 'S', 'F')
 model <- mxModel("mymodel", A, S, F, data, objective)
@@ -75,7 +91,7 @@ model <- mxModel("mymodel", A, S, F, data, objective)
 #Use mxRun to optimize the free parameters in the matrices A and S
 model <- mxRun(model)
 
-#print the output
-model@output
+# print the output
+model@output  #can be directly access by slot name instead of via summary()
 }
 }
