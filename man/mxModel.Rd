@@ -65,7 +65,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{MxModel} for the S4 class created by mxMatrix. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{MxModel} for the S4 class created by mxMatrix. Many options in a model can be set via \link{mxOption} (such as calculating the Hessian). 
+More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 	
 \examples{

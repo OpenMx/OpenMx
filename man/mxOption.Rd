@@ -76,7 +76,7 @@ Checkpoint Prefix \tab the string prefix to add to all checkpoint filenames \cr
 Checkpoint Units \tab the type of units for checkpointing: 'minutes' or 'iterations' \cr
 Checkpoint Count \tab the number of units between checkpoint intervals \cr
 Socket Server \tab the server name for sending optimizer state information \cr
-Socket Port \tab the port on the server for sending optimizer state information \cr
+Socket Port  \tab the port on the server for sending optimizer state information \cr
 Socket Units \tab the type of units: 'minutes' or 'iterations' \cr
 Socket Count \tab the number of units between communication to the server \cr
 }
@@ -85,7 +85,7 @@ Model transformation options
 
 \tabular{rl}{
 Error Checking \tab "Yes" or "No" on whether model consistency checks are performed in the OpenMx front-end \cr
-No Sort Data \tab character vector of model names for which FIML data sorting is not performed \cr
+No Sort Data   \tab character vector of model names for which FIML data sorting is not performed \cr
 RAM Inverse Optimization \tab "Yes" or "No" whether to enable solve(I - A) optimization \cr
 RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr
 }
@@ -100,12 +100,20 @@ Returns the model with the optimizer option either set or cleared.
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
 
+\seealso{
+\link{mxModel} all uses of mxOption are via an mxModel whose options are set or cleared. 
+}
+
 
 \examples{
-model <- mxModel()
+model <- mxModel() # make a model to use for example
+model@options # show the model options (none yet)
+options()$mxOptions # list all mxOptions (global settings)
 
-model <- mxOption(model, "Function precision", 1e-5)
-model <- mxOption(model, "Standard Errors", "Yes")
-model <- mxOption(model, "Function precision", NULL)
+model <- mxOption(model, "Function precision", 1e-5) # set the precision
+model <- mxOption(model, "Function precision", NULL) # clear model-specific precision (defaults to global setting)
+model <- mxOption(model, "Calculate Hessian", "No")  # may optimize for speed 
+model <- mxOption(model, "Standard Errors"  , "No")  # may optimize for speed 
+model@options # see the list of options you set
 
 }
