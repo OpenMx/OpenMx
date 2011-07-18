@@ -14,15 +14,6 @@
 #   limitations under the License.
 
 imxDiff <- function(a, b, slots = c("setequal", "intersect")) {
-	if (!isS4(a) && !isS4(b)) {
-		stop("first and second arguments are not S4 arguments")
-	}
-	if (!isS4(a)) {
-		stop("first argument is not S4 argument")
-	}
-	if (!isS4(b)) {
-		stop("second argument is not S4 argument")
-	}
 	if (identical(slots, c("setequal", "intersect"))) {
 		slots <- "setequal"
 	}
@@ -30,6 +21,35 @@ imxDiff <- function(a, b, slots = c("setequal", "intersect")) {
 		|| is.na(slots) || !(slots %in% c("setequal", "intersect"))) {
 		stop("'slots' argument must be one of c(\"setequal\", \"intersect\")")
 	}
+	if (isS4(a) && isS4(b)) {
+		diffS4Objects(a, b, slots)
+	} else if (is.list(a) && is.list(b)) {
+		diffLists(a, b, slots)
+	} else {
+		stop("arguments 'a' and 'b' must be either both S4 objects or both lists")
+	}
+}
+
+diffLists <- function(a, b, slots) {
+	aSlotNames <- names(a)
+	bSlotNames <- names(b)
+	if (slots == "setequal" && !setequal(aSlotNames, bSlotNames)) {
+		msg <- paste("The 'slots' argument is 'setequal' and the two",
+			"lists do not have setequal names.")
+		stop(msg)
+	}
+	if (slots == "setequal") {
+		compareNames <- aSlotNames
+	} else {
+		compareNames <- intersect(aSlotNames, bSlotNames)
+	}
+	aValues <- a[compareNames]
+	bValues <- b[compareNames]
+	results <- mapply(identical, aValues, bValues)
+	return(compareNames[!results])
+}
+
+diffS4Objects <- function(a, b, slots) {
 	aSlotNames <- slotNames(class(a))
 	bSlotNames <- slotNames(class(b))
 	if (slots == "setequal" && !setequal(aSlotNames, bSlotNames)) {
@@ -37,12 +57,6 @@ imxDiff <- function(a, b, slots = c("setequal", "intersect")) {
 			"objects do not have setequal slot names.")
 		stop(msg)
 	}
-	diffHelper(a, b, slots)
-}
-
-diffHelper <- function(a, b, slots) {
-	aSlotNames <- slotNames(class(a))
-	bSlotNames <- slotNames(class(b))
 	if (slots == "setequal") {
 		compareNames <- aSlotNames
 	} else {
