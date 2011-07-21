@@ -15,12 +15,12 @@
 
 
 # -----------------------------------------------------------------------------
-# Program: FIMLRowObjectiveBivariateCorrelation.R
+# Program: RowObjectiveFIMLBivariateSaturated.R
 # Author: Hermine Maes 
 # Date: 2009.08.01 
 #
 # Purpose: 
-#      Optimization Example in OpenMx: Testing significance of correlation
+#      Demonstrate an mxRowObjective function implementation of FIML
 #
 # ModelType: Saturated
 # DataType: Simulated Continuous
