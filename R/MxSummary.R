@@ -40,7 +40,7 @@ calculateConstraintsHelper <- function(constraint, model) {
 	}
 }
 
-observedStatisticsHelper <- function(objective, datalist, historySet) {
+observedStatisticsHelper <- function(model, objective, datalist, historySet) {
 	if ('numStats' %in% slotNames(objective)) {
 		if (!is.na(objective@numStats)) {
 			return(list(objective@numStats, historySet))
@@ -49,7 +49,11 @@ observedStatisticsHelper <- function(objective, datalist, historySet) {
 	if (is.na(objective@data)) {
 		return(list(0, historySet))
 	}
-	data <- datalist[[objective@data + 1]]
+	if (is.numeric(objective@data)) {
+		data <- datalist[[objective@data + 1]]
+	} else {
+		data <- model[[objective@data]] 
+	}
 	if (data@type == 'cov' || data@type == 'sscp') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
@@ -92,7 +96,7 @@ observedStatistics <- function(model, useSubmodels, constraintOffset) {
 	if (length(objectives) > 0) {
 		historySet <- character()
 		for(i in 1:length(objectives)) {
-			result <- observedStatisticsHelper(objectives[[i]], datalist, historySet)
+			result <- observedStatisticsHelper(model, objectives[[i]], datalist, historySet)
 			retval <- retval + result[[1]]
 			historySet <- result[[2]]
 		}
