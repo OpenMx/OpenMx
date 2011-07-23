@@ -331,13 +331,14 @@ Jor82Ex1 <- mxModel(
 # Fit the model
 ex1Run <- mxRun(Jor82Ex1)
 
-# summary(ex1Run)
+summary(ex1Run)
+
 
 
 #------------------------------------------------------------------------------
 # Fitted Results
 
-# The paper (Joreskog & Sorbom, 1982) reports correlation across
+# The paper (Joreskog & Sorbom, 1982) reports correlation sacross
 #  variables and standard deviations within variables
 #  for the residual covariance matrices.
 # This takes a covariance matrix (the matrix estimated,
@@ -369,7 +370,7 @@ PSp <- diag(c(0.78, 0.53))
 
 # Note: Because the published paper only reports
 #  two decimals of precision, the comparison can only
-#  be made down to two decimal places (i.e. epsilon=0.01
+#  be made down to two decimal places (i.e. epsilon=0.01)
 
 omxCheckCloseEnough(TDf, TDp, epsilon=0.01)
 omxCheckCloseEnough(LXf, LXp, epsilon=0.01)
