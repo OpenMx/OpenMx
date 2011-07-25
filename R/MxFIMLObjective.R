@@ -21,6 +21,7 @@ setClass(Class = "MxFIMLObjective",
 		definitionVars = "list",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
+        likelihoods = "numeric",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
@@ -40,6 +41,7 @@ setMethod("initialize", "MxFIMLObjective",
 		.Object@dims <- dims
 		.Object@vector <- vector
 		.Object@threshnames <- threshnames
+		.Object@likelihoods <- numeric()
 		return(.Object)
 	}
 )
@@ -166,6 +168,14 @@ setMethod("genericObjInitialMatrix", "MxFIMLObjective",
 			rows <- nrow(mxDataObject@observed)
 			return(matrix(as.double(NA), rows, 1))
 		}
+})
+
+setMethod("genericObjReadAttributes", signature("MxFIMLObjective"),
+	function(.Object, values) {
+		.Object@likelihoods <- attr(values, "likelihoods", exact = TRUE)
+		attr(values, "likelihoods") <- NULL
+		.Object@result <- values
+		return(.Object)
 })
 
 updateThresholdDimnames <- function(flatObjective, job, flatJob, modelname) {
@@ -490,6 +500,7 @@ displayFIMLObjective <- function(objective) {
 	} else {
 		cat("@threshnames :", omxQuotes(objective@threshnames), '\n')
 	}
+	cat("@likelihoods: ", length(objective@likelihoods) > 0, '\n')
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")
 	} else {

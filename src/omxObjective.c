@@ -106,7 +106,6 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->stdError = NULL;
 	oo->hessian = NULL;
 	oo->gradient = NULL;
-	
 }
 
 void omxFreeObjectiveArgs(omxObjective *oo) {

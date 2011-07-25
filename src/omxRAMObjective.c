@@ -78,10 +78,12 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 
 void omxPopulateRAMAttributesRawData(omxObjective *oo, SEXP algebra) {
 	omxFIMLObjective *argStruct = ((omxFIMLObjective*)oo->argStruct);
-	SEXP expCovExt, expMeanExt;
-	omxMatrix *expCovInt, *expMeanInt;
+	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
+	omxMatrix *expCovInt, *expMeanInt, *rowLikelihoodsInt;
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
+	rowLikelihoodsInt = argStruct->rowLikelihoods;
+
 	
 	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
@@ -97,9 +99,15 @@ void omxPopulateRAMAttributesRawData(omxObjective *oo, SEXP algebra) {
 	} else {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
 	}
+	PROTECT(rowLikelihoodsExt = allocVector(REALSXP, rowLikelihoodsInt->rows));
+	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
-	UNPROTECT(2);
+	setAttrib(algebra, install("likelihoods"), rowLikelihoodsExt);
+
+	UNPROTECT(3);
 }
 
 void omxPopulateRAMAttributesSummaryData(omxObjective *oo, SEXP algebra) {
@@ -138,10 +146,11 @@ void omxPopulateRAMAttributesSummaryData(omxObjective *oo, SEXP algebra) {
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
-	}
+	}   
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
-	UNPROTECT(2);
+    setAttrib(algebra, install("likelihoods"), PROTECT(allocVector(REALSXP, 0)));
+	UNPROTECT(3);
 }
 
 void omxDestroyRAMObjective(omxObjective *oo) {

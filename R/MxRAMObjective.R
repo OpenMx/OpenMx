@@ -23,6 +23,7 @@ setClass(Class = "MxRAMObjective",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		vector = "logical",
+        likelihoods = "numeric",
 		expCov = "matrix",
 		expMean = "matrix",
 		definitionVars = "list",
@@ -45,6 +46,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@thresholds <- thresholds
 		.Object@vector <- vector
 		.Object@definitionVars <- list()
+        .Object@likelihoods <- numeric()
 		return(.Object)
 	}
 )
@@ -214,9 +216,11 @@ setMethod("genericObjReadAttributes", signature("MxRAMObjective"),
 	function(.Object, values) {
 		.Object@expCov <- attr(values, "expCov", exact = TRUE)
 		.Object@expMean <- attr(values, "expMean", exact = TRUE)
+		.Object@likelihoods <- attr(values, "likelihoods", exact = TRUE)
 		dimnames(values) <- dimnames(.Object)
 		attr(values, "expCov") <- NULL
 		attr(values, "expMean") <- NULL
+		attr(values, "likelihoods") <- NULL
 		.Object@result <- values
 		return(.Object)
 })
@@ -440,6 +444,7 @@ displayRAMObjective <- function(objective) {
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
 	}
+	cat("@likelihoods: ", length(objective@likelihoods) > 0, '\n')
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")
 	} else {

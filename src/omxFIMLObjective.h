@@ -54,6 +54,7 @@ typedef struct omxFIMLObjective {
 	omxData* data;				// The data
 	omxMatrix* dataColumns;		// The order of columns in the data matrix
 	omxMatrix* dataRow;			// One row of data
+    omxMatrix* rowLikelihoods;  // The row-by-row likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
