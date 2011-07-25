@@ -41,7 +41,7 @@ data(myLongitudinalData)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-gcm01 <- mxModel(
+growthCurveModel <- mxModel(
     name="Linear Growth Curve Model Path Specification", 
     type="RAM",
     mxData(
@@ -52,8 +52,8 @@ gcm01 <- mxModel(
     latentVars=c("intercept","slope")
 )
 
-gcm02 <- mxModel(
-    model = gcm01,
+growthCurveModel <- mxModel(
+    model = growthCurveModel,
     # residual variances
     mxPath(
     	from=c("x1","x2","x3","x4","x5"), 
@@ -64,8 +64,8 @@ gcm02 <- mxModel(
     )
 )
 
-gcm03 <- mxModel(
-    model=gcm02,
+growthCurveModel <- mxModel(
+    model = growthCurveModel,
     # latent variances and covariance
     mxPath(
     	from=c("intercept","slope"), 
@@ -77,8 +77,8 @@ gcm03 <- mxModel(
     )
 )
 
-gcm04 <- mxModel(
-    model=gcm03,
+growthCurveModel <- mxModel(
+    model = growthCurveModel,
     # intercept loadings
     mxPath(
     	from="intercept",
@@ -89,8 +89,8 @@ gcm04 <- mxModel(
     )
 )
 
-gcm05 <- mxModel(
-    model=gcm04,
+growthCurveModel <- mxModel(
+    model= growthCurveModel,
     # slope loadings
     mxPath(
     	from="slope",
@@ -101,8 +101,8 @@ gcm05 <- mxModel(
     )
 )
 
-gcm06 <- mxModel(
-    model=gcm05,
+growthCurveModel <- mxModel(
+    model = growthCurveModel,
     # manifest means
     mxPath(from="one",
         to=c("x1", "x2", "x3", "x4", "x5"),
@@ -112,8 +112,8 @@ gcm06 <- mxModel(
     )
 )
 
-gcm07 <- mxModel(
-    model=gcm06,
+growthCurveModel <- mxModel(
+    model = growthCurveModel,
     # latent means
     mxPath(from="one",
         to=c("intercept", "slope"),
@@ -123,8 +123,6 @@ gcm07 <- mxModel(
         labels=c("meani", "means")
     )
 )
-
-growthCurveModel <- gcm07
 
 # -----------------------------------------------------------------------------
       
