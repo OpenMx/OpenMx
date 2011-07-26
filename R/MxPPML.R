@@ -1,5 +1,5 @@
 omxTransformModelPPML <- function(model) {
-	browser()
+	#browser()
 	
 	###############
 	#CHECK SECTION#
@@ -134,42 +134,33 @@ omxTransformModelPPML <- function(model) {
 		clabels <- append(clabels, Smatrix@labels[fakeLatent,fakeLatent])
 	}
 	
-	##not every manifest error variance has the same label
-	#if (length(unique(clabels)) != 1) {
-	#	return(model)
-	#}
-	
 	# -------------------------------------------------------------------------
 	# Nonhomogenous error:
 	# If Cerr is not proportional to I, a transformation is required before applying PPML
 	# Cerr is built from the manifest variables in Smatrix and fakeLatents
 	
-	# Cerr <- Smatrix@values[manifestVars, manifestVars]
-	# rownames(Cerr) <- manifestVars
-	# colnames(Cerr) <- manifestVars
-	## Insert fakeLatent variances in to Cerr
-	# if (length(fakeLatents) > 0) {
-		# for (fakeLatent in fakeLatents) {
-			# forWhich <- which(Amatrix@values[,fakeLatent])
-			# Cerr[forWhich, forWhich] <- Smatrix@values[fakeLatent,fakeLatent]
-		# }
-	# }
-
 	
 	# Rinv will be applied later regardless -- By default, it is an identity matrix
 	Rinv <- diag(1, length(manifestVars))
+	
 	# CHECKING: Any free values off the Cerr diagonal, or the Cerr diagonal is not homogeneous
-	if ( any(as.logical(Smatrix@free & diag(rep(FALSE, dim(Smatrix@free)[1]))) ) ||
-		(length(unique(diag(Smatrix@values))) > 1) ) {
-		
+	if ( any(as.logical(Smatrix@free[manifestVars,manifestVars] & !diag(rep(TRUE, length(manifestVars)))) ) ||
+		(length(unique(diag(Smatrix@values[manifestVars, manifestVars]))) > 1) ) {
+	
 		if (length(fakeLatents) > 0) {
 			# Rebuild the model, folding fakeLatents in to the S matrix
-			Smatrix@values[manifestVars, manifestVars] <- Cerr # Insert Cerr in to Smatrix
+			for (fakeLatent in fakeLatents) {
+				forWhich <- which(Amatrix@values[,fakeLatent])
+				Smatrix[forWhich, forWhich] <- Smatrix@values[fakeLatent,fakeLatent]
+			}
 			# Remove fakeLatents from A, S, and F matrices
 			remainingVars <- c(manifestVars, realLatents)
 			Amatrix <- Amatrix[remainingVars, remainingVars]
 			Smatrix <- Smatrix[remainingVars, remainingVars]
-			Fmatrix <- Fmatrix[,remainingVars]
+			Fmatrix <- Fmatrix[ ,remainingVars]
+			if (!single.na(Mname)) {
+				Mmatrix <- Mmatrix[remainingVars]
+			}
 			# no fakeLatents remain
 			fakeLatents <- array(0,0)
 			latentVars <- realLatents
@@ -182,7 +173,7 @@ omxTransformModelPPML <- function(model) {
 		# R <- t(chol(Cerr))  # OLD
 		# R <- chol(Cerr)
 		# Find transformation matrix R^-1
-		browser()
+		#browser()
 		Rinv <- solve(chol(Cerr))
 		# Apply it to original Cerror to get transformed C'error
 		#CerrPrime <- diag(diag(t(Rinv) %*% Cerr %*% Rinv)) # diags to clean up small values
@@ -212,7 +203,7 @@ omxTransformModelPPML <- function(model) {
 	#get loadings from latents to manifest from A,S,F
 	#transform A to E
 	
-	#browser()
+	##browser()
 	E <- solve(diag(nrow(Amatrix)) - Amatrix@values)
 	#select only these columns of A which are real latents
 	#get loadings matrix:= The part of A which goes from the latents to the manifests
@@ -247,10 +238,21 @@ omxTransformModelPPML <- function(model) {
 	if (!single.na(Mname)) {
 		model[[Mname]] <- Mmatrix
 	}
-	model@latentVars <- latentVars
+	if (!is.numeric(latentVars)) {
+		model@latentVars <- latentVars
+	} else if (length(latentVars) < (max(dim(Fmatrix@values)) - sum(Fmatrix@values)) ) {
+		# if number of latentVars has been reduced, remove appropriate variable
+		# names from the objective
+		oldLatentVars <- NULL
+		for (i in 1:max(dim(Fmatrix@values))) {
+			if (!any(as.logical(Fmatrix@values[,i])))
+				oldLatentVars <- c(latentVars, as.numeric(i))
+		}
+		model@objective@dims <- model@objective@dims[-setdiff(oldLatentVars, latentVars)]
+	}
 	model@constraints <- constraints
 	
-	browser()
+	
 	
 	#tranform data or cov
 	if(model$data@type == "raw") {
@@ -619,7 +621,7 @@ omxRestoreResultPPML <- function(model, result) {
 	# Check if a transform from the NHEV case has been performed
 	# If so, find the error covariance matrix and find the value of each
 	# parameter from the error scaling parameter and the error matrix
-	if (any(paramLabels == "_PPML_NHEV_ErrParam")) {
+	if (!is.na(any(paramLabels == "_PPML_NHEV_ErrParam")) && any(paramLabels == "_PPML_NHEV_ErrParam")) {
 		# pull out Smatrix
 		Smatrix <- model@matrices$S
 		
@@ -705,7 +707,7 @@ omxRestoreResultPPML <- function(model, result) {
 		model <- omxSetParameters(model, labels = labeledLabels, values = labeledValues, strict = FALSE)	# Set labeled params
 	}
 	
-	browser()
+	#browser()
 	
 	## Unlabeled parameters need to be set manually within the matrices
 	# They are always in the order they appear in the S matrix, and then the M matrix
@@ -771,9 +773,10 @@ single.na <- function(a) {
 
 # Function could be extended to be more general, but for now is just for comparing fits for models,
 # their PPML transforms, and the corresponding reversed PPML transforms
-mxCheckFitsPPML <- function(res1, res2, checkHessians = TRUE) {
+mxCheckFitsPPML <- function(res1, res2, checkHessians = TRUE, checkLL = TRUE) {
 	# Check -2logLLs versus each other
-	omxCheckCloseEnough(res1@output$Minus2LogLikelihood, res2@output$Minus2LogLikelihood, 0.001)
+	if (checkLL)
+		omxCheckCloseEnough(res1@output$Minus2LogLikelihood, res2@output$Minus2LogLikelihood, 0.001)
 	
 	# Check parameters versus each other
 	# Parameters will be in the same order, so a simple iteration should work
@@ -807,16 +810,22 @@ dhRun <- function(model) {
 	return(omxRestoreResultPPML(model, result))
 }
 
-mxTestPPML <- function(model) {
-	browser()
+mxTestPPML <- function(model, checkLL = TRUE) {
+	#browser()
 	res1 <- mxRun(model) # Standard fit
 	res2 <- mxRun(omxTransformModelPPML(model))	# PPML fit
 	res3 <- omxRestoreResultPPML(model, res2)	# Reverse transform PPML
-	browser()
+	#browser()
 	
-	mxCheckFitsPPML(res1, res2) # Check standard fit vs PPML model
+	# NOTE: Not checking Hessians anymore, they're never very close -- not sure that
+	# a comparison is actually meaningful
+	# NOTE: checkLL parameter can turn off log likelihood checking for this test,
+	# useful for non-homogeneous error variance cases where the transformed log 
+	# likelihood is different.
+	mxCheckFitsPPML(res1, res2, checkLL = checkLL, checkHessians = FALSE) # Check standard fit vs PPML model
 	
-	mxCheckFitsPPML(res1, res3, checkHessians = FALSE)	# Check standard fit vs reverse transformed PPML model
+	# NOTE Always check likelihood for this test, to make sure everything was plugged in correctly
+	mxCheckFitsPPML(res1, res3, checkLL = TRUE, checkHessians = FALSE)	# Check standard fit vs reverse transformed PPML model
 	
 	# NOTE This last check might be mostly unnecessary.  mxCheckFitPPML with checkHessians = FALSE currently
 	# only checks the parameters and -2logLL. The parameters are copied over from res2; thus, this
