@@ -30,12 +30,6 @@ imxTransformModelPPML <- function(model) {
 		return(model)
 	}
 	
-	# BASIC: Model must have manifestvars and latentvars and more manifests than latents
-	if ( sum(Fmatrix@values) == 0 || sum(Fmatrix@values) == max(dim(Fmatrix@values))
-		|| sum(Fmatrix@values) <= (max(dim(Fmatrix@values)) - sum(Fmatrix@values)) ) {
-		return(model)
-	}
-	
 	if(!(model@data@type == "raw" || model@data@type == "cov")) {
 		return(model)
 	}
@@ -64,25 +58,7 @@ imxTransformModelPPML <- function(model) {
 		manifestVars <- model@manifestVars
 		latentVars <- model@latentVars
 	}
-	
-	#only free parameters in the error matrix are on the diagonal?  IN DEVELOPMENT
-	#if (any(Smatrix@free[manifestVars, manifestVars] & diag(rep(FALSE,length(manifestVars))))) {
-	#	return(model)
-	#}
-	
-	#do all errors have the same label?
-	clabels <- array(0,0)
-	manHasVar <- matrix(FALSE,length(manifestVars),1)
-	rownames(manHasVar) <- manifestVars
-	#gather all labels from the direct errors
-	for(manifestVar in manifestVars) {
-		#if (Smatrix@values[manifestVar,manifestVar] !=0) {
-		if (Smatrix@free[manifestVar,manifestVar]) { # NOTE: Does this make sense?
-			manHasVar[manifestVar,1] <- TRUE
-			clabels <- append(clabels,Smatrix@labels[manifestVar,manifestVar])
-		}		
-	}
-	
+		
 	# Classify latents
 	fakeLatents <- array(0,0)
 	rootLatents <- array(0,0)
@@ -100,7 +76,7 @@ imxTransformModelPPML <- function(model) {
 				# At this point, latent has to be a fakeLatent or PPML aborts
 				# If it points to a manifest and the loading is not 1, or if the manifest
 				# already has a variance, the model is not a valid model for PPML
-				if ((Amatrix@values[loads,latentVar] == 1) && !manHasVar[loads,1]) {
+				if ((Amatrix@values[loads,latentVar] == 1) && !Smatrix@free[loads, loads]) {
 					fakeLatents <- append(fakeLatents,latentVar)
 					next; # Root and Fake categories are mutually exclusive
 				} else {
@@ -129,9 +105,14 @@ imxTransformModelPPML <- function(model) {
 	realLatents <- latentVars[is.na(pmatch(latentVars, fakeLatents))]
 	nonRootLatents <- latentVars[is.na(pmatch(latentVars, c(fakeLatents, rootLatents)))]
 	
-	#gather all labels from the fakeLatents
-	for(fakeLatent in fakeLatents){
-		clabels <- append(clabels, Smatrix@labels[fakeLatent,fakeLatent])
+	# BASIC: Model must have manifestvars and latentvars and more manifests than latents
+	#if ( sum(Fmatrix@values) == 0 || sum(Fmatrix@values) == max(dim(Fmatrix@values))
+	#	|| sum(Fmatrix@values) <= (max(dim(Fmatrix@values)) - sum(Fmatrix@values)) ) {
+	#	return(model)
+	#}
+	if (length(realLatents) == 0 || length(manifestVars) == 0 || 
+		length(realLatents) >= length(manifestVars)) {
+		return(model)
 	}
 	
 	# -------------------------------------------------------------------------
@@ -146,12 +127,13 @@ imxTransformModelPPML <- function(model) {
 	# CHECKING: Any free values off the Cerr diagonal, or the Cerr diagonal is not homogeneous
 	if ( any(as.logical(Smatrix@free[manifestVars,manifestVars] & !diag(rep(TRUE, length(manifestVars)))) ) ||
 		(length(unique(diag(Smatrix@values[manifestVars, manifestVars]))) > 1) ) {
-	
 		if (length(fakeLatents) > 0) {
 			# Rebuild the model, folding fakeLatents in to the S matrix
 			for (fakeLatent in fakeLatents) {
-				forWhich <- which(Amatrix@values[,fakeLatent])
-				Smatrix[forWhich, forWhich] <- Smatrix@values[fakeLatent,fakeLatent]
+				forWhich <- which(Amatrix@values[ ,fakeLatent] != 0)
+				Smatrix@values[forWhich, forWhich] <- Smatrix@values[fakeLatent,fakeLatent]
+				Smatrix@free[forWhich, forWhich] <- TRUE
+				Smatrix@labels[forWhich, forWhich] <- Smatrix@labels[fakeLatent,fakeLatent]
 			}
 			# Remove fakeLatents from A, S, and F matrices
 			remainingVars <- c(manifestVars, realLatents)
@@ -167,6 +149,8 @@ imxTransformModelPPML <- function(model) {
 		}
 		
 		bCERetVal <- buildCErr(Smatrix, manifestVars, constraints)
+		if (is.null(bCERetVal))
+			return(model)
 		Cerr <- bCERetVal[[1]]
 		relevantConstraints <- bCERetVal[[2]]
 		
@@ -309,9 +293,9 @@ imxTransformModelPPML <- function(model) {
 	selectManifests <- manifestVars[is.na(pmatch(manifestVars, selectManifests))]
 	rightmodel <- mxRename(model, 'rightmodel')	
 	rightmodel <- selectSubModelFData(rightmodel, selectLatents, selectManifests)
-
+	
 	#reunite the two submodel
-	result <-  mxModel('PPMLModel', leftmodel, rightmodel)
+	result <-  mxModel(paste('(PPML Transformed)', model@name), leftmodel, rightmodel)
 	
 	if (model$data@type == 'raw') {
 		result$data <- model$data
@@ -322,7 +306,6 @@ imxTransformModelPPML <- function(model) {
 	expression <- paste("mxAlgebra(", objectives, ", name = 'TotObj')", sep = "")
 	algebra <- eval(parse(text=expression))
 	objective <- mxAlgebraObjective("TotObj")
-
 	result <- mxModel(result, objective, algebra)
 	return(result)
 }
@@ -375,11 +358,17 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 		# to create the appropriate covariance matrix for the submodel
 		submodel@data@observed <- as.matrix(submodel@data@observed[selectManifests,selectManifests])
 	
-		# Restore dimnames to the new covariance matrix, if path specified
+		# Restore dimnames to the new covariance matrix
 		if (!(is.numeric(selectManifests) && is.numeric(selectLatents))) {
+			# path specified
 			colnames(submodel$data@observed) <- selectManifests
 			rownames(submodel$data@observed) <- selectManifests
-		}
+		} else {
+			# matrix specified
+			colnames(submodel$data@observed) <- colnames(model$data@observed)[selectManifests]
+			rownames(submodel$data@observed) <- rownames(model$data@observed)[selectManifests]
+		}	
+		
 		# If means data exists, pull out the appropriate manifest variables
 		if (!single.na(submodel@data@means)){
 			submodel@data@means <- t(as.matrix(submodel@data@means[1,selectManifests]))
@@ -389,6 +378,10 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 }
 
 buildCErr <- function(Smatrix, manifestVars, constraints) {
+	# BASIC: If there are no constraints, then the model is not valid for PPML
+	if (length(constraints) == 0)
+		return(NULL)
+
 	# Build Cerr
 	# Get labels
 	errLabels <- setdiff(unique(as.vector(Smatrix@labels[manifestVars,manifestVars])), NA)
@@ -399,6 +392,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 	conFactors <- as.numeric(array(0,0))
 	
 	relevantConstraints <- as.character(array(0,0))
+	
 	for (constraint in constraints) {
 		# NOTE: Necessary to get a length check on the constraint?
 		
@@ -414,7 +408,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 		hasIrrelevantLabelLeft <- FALSE
 		hasIrrelevantLabelRight <- FALSE
 		# Left side
-		# NOTE: Constraint checking algorithm should only return(model) if the
+		# NOTE: Constraint checking algorithm should only return(NULL) if the
 		# constraint involves at least one relevant label. Otherwise, it can 
 		# just ignore the constraint.
 		for (term in 1:length(constraint@formula[[2]])) {
@@ -423,14 +417,14 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 				if (any(as.character(constraint@formula[[2]][[term]]) == errLabels)) {
 					if (hasRelevantLabelLeft || hasIrrelevantLabelLeft) {
 						# Only one label per side allowed
-						return(model)
+						return(NULL)
 					}
 					hasRelevantLabelLeft <- TRUE
 				} else {
 					hasIrrelevantLabelLeft <- TRUE
 					if (hasRelevantLabelLeft) {
 						# Can't have irrelevant and relevant labels in the same constraint
-						return(model)
+						return(NULL)
 					}
 				}
 			}
@@ -442,22 +436,22 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 				if (any(as.character(constraint@formula[[3]][[term]]) == errLabels)) {
 					if (hasIrrelevantLabelLeft) {
 						# Can't have an irrelevant label on left and relevant on right
-						return(model)
+						return(NULL)
 					}
 					if (hasIrrelevantLabelRight || hasRelevantLabelRight) {
 						# Can't have more than one label on a side
-						return(model)
+						return(NULL)
 					}
 					hasRelevantLabelRight <- TRUE
 				} else {
 					hasIrrelevantLabelRight <- TRUE
 					if (hasRelevantLabelLeft) {
 						# Can't have a relevant label left and an irrelevant right
-						return(model)
+						return(NULL)
 					}
 					if (hasRelevantLabelRight) {
 						# Can't have two labels on one side
-						return(model)
+						return(NULL)
 					}
 				}
 			}
@@ -473,7 +467,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 		# If the constraint is not an equality constraint, the model
 		# is not in the correct form
 		if (constraint@formula[[1]] != '==') {
-			return(model)
+			return(NULL)
 		}
 		
 		# Left and right hand sides must be of length 3 or 1
@@ -481,7 +475,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 		# NOTE: Could fold in to below loop
 		if (!( (length(constraint@formula[[2]]) == 1 || length(constraint@formula[[2]]) == 3) &&
 			(length(constraint@formula[[3]]) == 1 || length(constraint@formula[[3]]) == 3) ) ) {
-			return(model)
+			return(NULL)
 		}
 		
 		newFactor <- 1
@@ -496,7 +490,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 				# Length 3
 				if (constraint@formula[[side]][[1]] != '*') {
 					# Relationship must be multiplicative
-					return(model)
+					return(NULL)
 				}
 				if (is.character(constraint@formula[[side]][[2]]) && is.numeric(constraint@formula[[side]][[3]]) ){
 					newLabel[side-1] <- as.character(constraint@formula[[side]][[2]])
@@ -516,7 +510,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 					# Something is wrong, not a numeric times a label
 					# NOTE: this will occur in cases where you have the label multiplied by
 					# the product of two numeric factors (i.e., 0.1*0.2*Err)
-					return(model)
+					return(NULL)
 				}
 			}
 		}
@@ -540,7 +534,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 						if (errValueSet[otherLabel]) {
 							if (errValues[otherLabel] != errValues[i] * conFactors[j]) {
 								# inconsistency
-								return(model)
+								return(NULL)
 							}
 							errConUsed[j] <- TRUE
 						} else {
@@ -553,7 +547,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 						if (errValueSet[otherLabel]) {
 							if (errValues[otherLabel] != errValues[i] / conFactors[j]) {
 								# inconsistency
-								return(model)
+								return(NULL)
 							}
 							errConUsed[j] <- TRUE
 						} else {
@@ -573,7 +567,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 						if (errValueSet[otherLabel]) {
 							if (errValueSet[i] && (errValues[i] != (errValues[otherLabel] / conFactors[j])) ) {
 								# inconsistency detection after initially set
-								return(model)
+								return(NULL)
 							}
 							errValues[i] <- errValues[otherLabel] / conFactors[j]
 							errValueSet[i] <- TRUE
@@ -584,7 +578,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 						if (errValueSet[otherLabel]) {
 							if (errValueSet[i] && (errValues[i] != (errValues[otherLabel] * conFactors[j])) ) {
 								# inconsistency detection after initially set
-								return(model)
+								return(NULL)
 							}
 							errValues[i] <- errValues[otherLabel] * conFactors[j]
 							errValueSet[i] <- TRUE
@@ -599,7 +593,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 	if (any(!errValueSet)) {
 		# Unconstrained free parameter in the symmetric matrix, model is not of the
 		# proper form
-		return(model)
+		return(NULL)
 	}
 	
 	# Create Cerr
@@ -814,6 +808,8 @@ imxTestPPML <- function(model, checkLL = TRUE) {
 	#browser()
 	res1 <- mxRun(model) # Standard fit
 	res2 <- mxRun(imxTransformModelPPML(model))	# PPML fit
+	omxCheckTrue( (length(grep("(PPML Transformed)", res2@name, fixed = TRUE)) > 0) )
+	omxCheckTrue( is(res2@objective, "MxAlgebraObjective") )
 	res3 <- imxRestoreResultPPML(model, res2)	# Reverse transform PPML
 	#browser()
 	

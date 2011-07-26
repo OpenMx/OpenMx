@@ -36,6 +36,9 @@ factorModel <- mxModel("Two Factor NHEV",
 res1 <- mxRun(factorModel)
 # Get results from PPMLed model
 res2 <- mxRun(imxTransformModelPPML(factorModel))
+# Make sure transform was applied
+omxCheckTrue( (length(grep("(PPML Transformed)", res2@name, fixed = TRUE)) > 0) )
+omxCheckTrue( is(res2@objective, "MxAlgebraObjective") )
 # Check error param, latent variances
 omxCheckCloseEnough(res2@output$estimate['_PPML_NHEV_ErrParam'], res1@output$estimate['E1'], .001)
 omxCheckCloseEnough(res2@output$estimate[2], res1@output$estimate[3], .001)
