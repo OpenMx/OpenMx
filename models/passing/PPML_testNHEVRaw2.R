@@ -40,13 +40,13 @@ factorModel <- mxModel("Two Factor NHEV",
 # Get results from un-PPMLed model
 res1 <- mxRun(factorModel)
 # Get results from PPMLed model
-res2 <- mxRun(omxTransformModelPPML(factorModel))
+res2 <- mxRun(imxTransformModelPPML(factorModel))
 # Check error param, latent variances
 omxCheckCloseEnough(res2@output$estimate['_PPML_NHEV_ErrParam'], res1@output$estimate['E1'], .001)
 omxCheckCloseEnough(res2@output$estimate[2], res1@output$estimate[5], .001)
 omxCheckCloseEnough(res2@output$estimate[3], res1@output$estimate[6], .001)
 # Get restored results
-res3 <- omxRestoreResultPPML(factorModel, res1)
+res3 <- imxRestoreResultPPML(factorModel, res1)
 # Check log likelihood, error variances, latent variances
 omxCheckCloseEnough(res3@output$minimum, res1@output$minimum, .001)
 omxCheckCloseEnough(res3@output$estimate['E1'], res1@output$estimate['E1'], .001)

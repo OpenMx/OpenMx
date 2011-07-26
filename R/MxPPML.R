@@ -1,4 +1,4 @@
-omxTransformModelPPML <- function(model) {
+imxTransformModelPPML <- function(model) {
 	#browser()
 	
 	###############
@@ -610,7 +610,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 	return(list(Cerr, relevantConstraints))
 }
 
-omxRestoreResultPPML <- function(model, result) {
+imxRestoreResultPPML <- function(model, result) {
 	paramLabels <- names(result@output$estimate)		# Get list of parameter labels (some are unknown***, NA)
 	paramValues <- as.vector(result@output$estimate)	# Get corresponding list of values
 	
@@ -773,7 +773,7 @@ single.na <- function(a) {
 
 # Function could be extended to be more general, but for now is just for comparing fits for models,
 # their PPML transforms, and the corresponding reversed PPML transforms
-mxCheckFitsPPML <- function(res1, res2, checkHessians = TRUE, checkLL = TRUE) {
+imxCheckFitsPPML <- function(res1, res2, checkHessians = TRUE, checkLL = TRUE) {
 	# Check -2logLLs versus each other
 	if (checkLL)
 		omxCheckCloseEnough(res1@output$Minus2LogLikelihood, res2@output$Minus2LogLikelihood, 0.001)
@@ -800,21 +800,21 @@ mxCheckFitsPPML <- function(res1, res2, checkHessians = TRUE, checkLL = TRUE) {
 }
 
 jlRun <- function(model){
-	model <- omxTransformModelPPML(model)
+	model <- imxTransformModelPPML(model)
 	return(mxRun(model))
 }
 
 dhRun <- function(model) {
-	PPMLmodel <- omxTransformModelPPML(model)
+	PPMLmodel <- imxTransformModelPPML(model)
 	result <- mxRun(PPMLmodel)
-	return(omxRestoreResultPPML(model, result))
+	return(imxRestoreResultPPML(model, result))
 }
 
-mxTestPPML <- function(model, checkLL = TRUE) {
+imxTestPPML <- function(model, checkLL = TRUE) {
 	#browser()
 	res1 <- mxRun(model) # Standard fit
-	res2 <- mxRun(omxTransformModelPPML(model))	# PPML fit
-	res3 <- omxRestoreResultPPML(model, res2)	# Reverse transform PPML
+	res2 <- mxRun(imxTransformModelPPML(model))	# PPML fit
+	res3 <- imxRestoreResultPPML(model, res2)	# Reverse transform PPML
 	#browser()
 	
 	# NOTE: Not checking Hessians anymore, they're never very close -- not sure that
@@ -822,10 +822,10 @@ mxTestPPML <- function(model, checkLL = TRUE) {
 	# NOTE: checkLL parameter can turn off log likelihood checking for this test,
 	# useful for non-homogeneous error variance cases where the transformed log 
 	# likelihood is different.
-	mxCheckFitsPPML(res1, res2, checkLL = checkLL, checkHessians = FALSE) # Check standard fit vs PPML model
+	imxCheckFitsPPML(res1, res2, checkLL = checkLL, checkHessians = FALSE) # Check standard fit vs PPML model
 	
 	# NOTE Always check likelihood for this test, to make sure everything was plugged in correctly
-	mxCheckFitsPPML(res1, res3, checkLL = TRUE, checkHessians = FALSE)	# Check standard fit vs reverse transformed PPML model
+	imxCheckFitsPPML(res1, res3, checkLL = TRUE, checkHessians = FALSE)	# Check standard fit vs reverse transformed PPML model
 	
 	# NOTE This last check might be mostly unnecessary.  mxCheckFitPPML with checkHessians = FALSE currently
 	# only checks the parameters and -2logLL. The parameters are copied over from res2; thus, this

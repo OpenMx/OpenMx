@@ -22,4 +22,4 @@ factorModel <- mxModel("Two Factor",
       mxData(dataTest, type="cov",
             numObs=100))
 
-mxTestPPML(factorModel)
+imxTestPPML(factorModel)
