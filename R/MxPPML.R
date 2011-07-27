@@ -124,9 +124,22 @@ imxTransformModelPPML <- function(model) {
 	# Rinv will be applied later regardless -- By default, it is an identity matrix
 	Rinv <- diag(1, length(manifestVars))
 	
+	# Assemble diagonal variances to check if NHEV transform is necessary
+	diagVars <- rep(0,length(manifestVars))
+	for (mvi in 1:length(manifestVars)) {
+		if (Smatrix@free[mvi, mvi]) {
+			diagVars[mvi] <- Smatrix@values[mvi, mvi]
+		}
+	}
+	
+	for (fakeLatent in fakeLatents) {
+		diagVars[which(Amatrix@values[ ,fakeLatent] != 0)] <- Smatrix@values[fakeLatent, fakeLatent]
+	}
+	
 	# CHECKING: Any free values off the Cerr diagonal, or the Cerr diagonal is not homogeneous
 	if ( any(as.logical(Smatrix@free[manifestVars,manifestVars] & !diag(rep(TRUE, length(manifestVars)))) ) ||
-		(length(unique(diag(Smatrix@values[manifestVars, manifestVars]))) > 1) ) {
+		(length(unique(diagVars)) > 1) ) {
+		#(length(unique(diag(Smatrix@values[manifestVars, manifestVars]))) > 1) ) {
 		if (length(fakeLatents) > 0) {
 			# Rebuild the model, folding fakeLatents in to the S matrix
 			for (fakeLatent in fakeLatents) {
