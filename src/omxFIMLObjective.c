@@ -946,21 +946,22 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
     omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
 
-	cov 		= ofo->cov;		// Locals, for readability.  Should compile out.
+	// Locals, for readability.  Should compile out.
+	cov 		= ofo->cov;
 	means		= ofo->means;
 	smallRow 	= ofo->smallRow;
 	smallCov 	= ofo->smallCov;
 	oldDefs		= ofo->oldDefs;
 	RCX 		= ofo->RCX;
-	data		= ofo->data;
-	dataColumns	= ofo->dataColumns;
-	defVars		= ofo->defVars;
-	numDefs		= ofo->numDefs;
-	returnRowLikelihoods = ofo->returnRowLikelihoods;
-    rowLikelihoods = ofo->rowLikelihoods;
-	isContiguous    = ofo->contiguous.isContiguous;
-	contiguousStart = ofo->contiguous.start;
-	contiguousLength = ofo->contiguous.length;
+	data		= ofo->data;                            //  read-only
+	dataColumns	= ofo->dataColumns;                     //  read-only
+	defVars		= ofo->defVars;                         //  read-only
+	numDefs		= ofo->numDefs;                         //  read-only
+	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
+    rowLikelihoods = ofo->rowLikelihoods;               // write-only
+	isContiguous    = ofo->contiguous.isContiguous;     //  read-only
+	contiguousStart = ofo->contiguous.start;            //  read-only
+	contiguousLength = ofo->contiguous.length;          //  read-only
 
 	subObjective = ofo->subObjective;
 
@@ -995,7 +996,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
 		} else {
-			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
+			omxDataRow(data, row, redataColumns, smallRow);	// Populate data row
 		}
 
 		// Handle Definition Variables.
