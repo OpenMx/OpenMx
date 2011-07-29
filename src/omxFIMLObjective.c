@@ -996,7 +996,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
 		} else {
-			omxDataRow(data, row, redataColumns, smallRow);	// Populate data row
+			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
 		}
 
 		// Handle Definition Variables.
