@@ -22,12 +22,13 @@ setClass(Class = "MxPath",
 		free = "logical",
 		labels = "character",
 		lbound = "numeric",
-		ubound = "numeric"
+		ubound = "numeric",
+		connect = "character"
 ))
 
 setMethod("initialize", "MxPath",
 	function(.Object, from, to, arrows, values,
-		free, labels, lbound, ubound) {
+		free, labels, lbound, ubound, connect) {
 		.Object@from <- from
 		.Object@to <- to
 		.Object@arrows <- arrows
@@ -36,31 +37,75 @@ setMethod("initialize", "MxPath",
 		.Object@labels <- labels
 		.Object@lbound <- lbound
 		.Object@ubound <- ubound
+		.Object@connect <- connect
 		return(.Object)
 	}
 )
 
 # returns a list of paths
 generatePath <- function(from, to, 
-		all, arrows, values, free,
+		connect, arrows, values, free,
 		labels, lbound, ubound) {
+		
+	# save exactly what the user typed to pass to mxModel for creation
+	unalteredTo <- to
+	unalteredFrom <- from
+		
+	# check if user employed the loop shortcut by only specifying from	
 	if (single.na(to)) {
-		to <- from
 		loop <- TRUE
+		to <- from
 	} else {
 		loop <- FALSE
 	}
-	if (all) {
+	
+	# now expand the paths to check for errors
+	bivariate <- FALSE
+	self      <- FALSE
+	
+	# intepret 'connect' argument
+	if ((connect[1]=="unique.pairs" )|(connect[1]=="unique.bivariate")){bivariate <- TRUE}
+	if ((connect[1]=="all.bivariate")|(connect[1]=="unique.bivariate")){self <- TRUE}
+	
+	# if a variable is a connect = "single" then it does not need to be expanded
+	if ((connect[1] !="single")){ 
+	
 		from <- rep(from, each=length(to))
+		to   <- rep(to, length(from)/length(to))
+
+		exclude <- rep(FALSE, length(from))
+
+		# if 'excluderedundant', then exclude b,a if a,b is present
+		if (bivariate){
+			sortedPairs <- t(apply(matrix(c(from, to), ncol = 2), 1, sort))
+			exclude <- exclude | duplicated(sortedPairs)
+		}
+
+		# if 'excludeself', then exclude x,x paths
+		if (self){
+			exclude <- exclude | (from==to)
+		}
+		
+		from <- from[!exclude]
+		to   <- to[!exclude]
+		
+	} 	
+	
+	# check for a missing to or from
+	pathCheckToAndFrom(from, to)
+	
+	# check for length mismatches
+	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
+	
+	# create a new MxPath in the MxModel
+	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect))
+}
+
+pathCheckToAndFrom <- function(from, to){
+	# check for a missing to or from
+	if (any(is.na(from)) || any(is.na(to))) {
+		stop("The \'from\' field or the \'to\' field contains an NA", call. = FALSE)
 	}
-	missingvalues <- is.na(values)
-	values[missingvalues] <- 0
-	if(!is.null(labels)) { 
-		lapply(labels, imxVerifyReference, -1)
-	}
-	pathCheckLengths(from, to, arrows, values, 
-		free, labels, lbound, ubound, loop)
-	return(new("MxPath", from, to, arrows, values, free, labels, lbound, ubound))
 }
 
 pathCheckLengths <- function(from, to, arrows, values, 
@@ -152,27 +197,58 @@ pathCheckVector <- function(value, valname, check, type) {
 	}
 }
 
-mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
-	values = NA, labels = NA, lbound = NA, ubound = NA) {
+mxPath <- function(from, to = NA, 
+	connect = c("single", "all.pairs", "unique.pairs", 
+	            "all.bivariate", "unique.bivariate"), arrows = 1, 
+	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ...) {
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
-	if (length(all) != 1 || !is.logical(all) || is.na(all)) {
-		stop("The 'all' argument to mxPath must be either true or false.")
+	if ((connect == TRUE) || (connect == FALSE)) {
+		msg <- paste("The 'all' argument to mxPath ",
+			"has been deprecated. It has been replaced ",
+			"with the safer interface 'connect' in OpenMx 1.2. ",
+			"See ?mxPath for more information.")
+		stop(msg)
 	}
-	if (all == TRUE) {
-		msg <- paste("The 'all' argument to mxPath",
-			"has been deprecated. It will be replaced",
-			"with a safer interface in OpenMx 1.2.",
-			"See ?mxPath for more information on",
-			"some potential problems when using all = TRUE.")
-		warning(msg)
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+				extraArgument <- garbageArguments[[1]]
+				if (extraArgument==TRUE || extraArgument==FALSE){
+				stop("The 'all' argument to mxPath ",
+					"has been deprecated. It has been replaced ",
+					"with the safer interface 'connect' in OpenMx 1.2. ",
+					"See ?mxPath for more information.")
+				}
+				else{
+            		stop("mxPath does not accept values for the '...' argument. See ?mxPath for more information.")
+				}	
+    }
+	if (is.vector(connect) && length(connect) > 0 && 
+	    connect[1]=="all.pairs" && arrows==2) {
+		msg <- paste("'connect=all.pairs' argument cannot be used with 'arrows=2' Please use 'connect=unique.pairs'.")
+		stop(msg)
+	}
+	if (is.vector(connect) && length(connect) > 0 && 
+	    connect[1]=="all.bivariate" && arrows==2) {
+		msg <- paste("'connect=all.bivariate' argument cannot be used with 'arrows=2'. Please use 'connect=unique.bivariate'.")
+		stop(msg)
+	}
+	if (is.vector(connect) && length(connect) == 5 && 
+	    connect[1] == "single" && connect[2] == "all.pairs" &&
+	    connect[3] == "unique.pairs" && connect[4] == "all.bivariate" &&
+	    connect[5] == "unique.bivariate") {
+		 # if the value of 'connect' is the vector of 5 values,
+		 # then make it equal to "single"
+		connect = "single"
 	}
 	if (all.na(to)) { to <- as.character(to) }
+	if (all.na(from)) { from <- as.character(from) }
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
-	if (all.na(ubound)) { ubound <- as.numeric(ubound) }	
+	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
+	if (all.na(connect)) { connect <- as.character(connect) } 	
 	pathCheckVector(from, 'from', is.character, 'character')
 	pathCheckVector(to, 'to', is.character, 'character')
 	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
@@ -181,7 +257,7 @@ mxPath <- function(from, to = NA, all = FALSE, arrows = 1, free = TRUE,
 	pathCheckVector(values, 'values', is.numeric, 'numeric')
 	pathCheckVector(lbound, 'lbound', is.numeric, 'numeric')
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
-	generatePath(from, to, all, arrows, 
+	generatePath(from, to, connect, arrows,
 		values, free, labels, 
 		lbound, ubound)
 }

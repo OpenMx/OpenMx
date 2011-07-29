@@ -56,10 +56,10 @@ class1 <- mxModel("Class1",
     mxPath(
     	from=c("intercept","slope"), 
         arrows=2,
-        all=TRUE,
+		connect="unique.pairs",
         free=TRUE, 
-        values=c(1, .4, .4, 1),
-        labels=c("vari1", "cov1", "cov1", "vars1")
+        values=c(1, .4, 1),
+        labels=c("vari1", "cov1", "vars1")
     ),
     # intercept loadings
     mxPath(
@@ -99,10 +99,10 @@ class2 <- mxModel(class1,
     mxPath(
     	from=c("intercept","slope"), 
         arrows=2,
-        all=TRUE,
+		connect="unique.pairs",
         free=TRUE, 
-        values=c(1, .5, .5, 1),
-        labels=c("vari2", "cov2", "cov2", "vars2")
+        values=c(1, .5, 1),
+        labels=c("vari2", "cov2", "vars2")
     ),
     # latent means
     mxPath(from="one",

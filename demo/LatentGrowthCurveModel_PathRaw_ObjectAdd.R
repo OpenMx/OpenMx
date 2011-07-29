@@ -56,10 +56,10 @@ gcResid <- mxPath(
 gcLatCov <- mxPath(
     	from=c("intercept","slope"), 
         arrows=2,
-        all=TRUE,
+		connect="unique.pairs",
         free=TRUE, 
-        values=c(1, 1, 1, 1),
-        labels=c("vari", "cov", "cov", "vars")
+        values=c(1, 1, 1),
+        labels=c("vari", "cov", "vars")
 )
 
 # intercept loadings

@@ -76,11 +76,11 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
     mxPath(
     	from=c("F1","F2"),
         arrows=2,
-        all=TRUE, 
+#        all=TRUE, 
+        connect="unique.pairs",
         free=TRUE,
-        values=c(1, .5,
-                .5, 1),
-        labels=c("varF1", "cov", "cov", "varF2")
+        values=c(1, .5, 1),
+        labels=c("varF1", "cov", "varF2")
     ), 
     # factor loadings for x variables
     mxPath(
@@ -121,7 +121,8 @@ elimination <- mxModel(elimination, remove = TRUE,
     mxPath(
         from=c("F1","F2"),
         arrows=2,
-        all=TRUE
+#        all=TRUE
+        connect="unique.pairs"
     ),
 	mxPath(
         from="F1",

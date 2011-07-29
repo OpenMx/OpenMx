@@ -195,7 +195,6 @@ addEntriesRAM <- function(model, entries) {
 	}
 	filter <- sapply(entries, is, "MxPath")
 	paths <- entries[filter]
-	checkPaths(model, paths)
 	if (length(paths) > 0) {
 		model <- insertAllPathsRAM(model, paths)
 	}
@@ -274,8 +273,21 @@ insertAllPathsRAM <- function(model, paths) {
 	M <- model[['M']]
 	if (is.null(A)) { A <- createMatrixA(model) }
 	if (is.null(S)) { S <- createMatrixS(model) }
+	newPaths <- paths
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
+		loop <- FALSE
+		missingvalues <- is.na(path@values)
+		path@values[missingvalues] <- 0
+
+		if(!is.null(path@labels)) { 
+			lapply(path@labels, imxVerifyReference, -1)
+		}
+		
+		if (single.na(path@to)) {
+			path@to <- path@from
+		}
+		
 		if (length(path@from) == 1 && (path@from == "one")) {
 			if (is.null(M)) {
 				M <- createMatrixM(model) 
@@ -285,16 +297,47 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 			M <- insertMeansPathRAM(path, M)
 		} else {
+			bivariate <- FALSE
+			self      <- FALSE
+			# intepret 'path@connect' argument
+			if ((path@connect[1]=="unique.pairs" )|(path@connect[1]=="unique.bivariate")){bivariate <- TRUE}
+			if ((path@connect[1]=="all.bivariate")|(path@connect[1]=="unique.bivariate")){self <- TRUE}
+			
+			# if path@connect!="single", expand from and to
+			if ((path@connect[1] !="single")){ 
+				path@from <- rep(path@from, each=length(path@to))
+				path@to   <- rep(path@to, length(path@from)/length(path@to))
+
+				exclude <- rep(FALSE, length(path@from))
+
+				# if 'excluderedundant', then exclude b,a if a,b is present
+				if (bivariate){
+					sortedPairs <- t(apply(matrix(c(path@from, path@to), ncol = 2), 1, sort))
+					exclude <- exclude | duplicated(sortedPairs)
+				}
+
+				# if 'excludeself', then exclude x,x paths
+				if (self){
+					exclude <- exclude | (path@from==path@to)
+				}
+				path@from <- path@from[!exclude]
+				path@to   <- path@to[!exclude]
+				
+			}
 			retval <- insertPathRAM(path, A, S)
 			A <- retval[[1]]
-			S <- retval[[2]]
-		}
+			S <- retval[[2]]	
+		}	
+		paths[[i]] <- path
 	}
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) {
 		model[['M']] <- M
 	}
+	# once we have expanded all the paths we can check them for RAM Model errors
+	checkPaths(model, paths)
+	
 	return(model)
 }
 
@@ -306,9 +349,42 @@ removeAllPathsRAM <- function(model, paths) {
 	if (is.null(S)) { S <- createMatrixS(model) }
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
-		if (length(path@from) == 1 && (path@from == "one")) {
+		
+		missingvalues <- is.na(path@values)
+		path@values[missingvalues] <- 0
+
+		if(!is.null(path@labels)) { 
+			lapply(path@labels, imxVerifyReference, -1)
+		}
+
+		if (single.na(path@to)) {path@to <- path@from}
+		
+		if (length(path@from) == 1 && (path@from == "one")) {		
 			M <- removeMeansPathRAM(path, M)
 		} else {
+			if ((path@connect[1] !="single")){ 
+			bivariate <- FALSE
+			self      <- FALSE
+			if ((path@connect[1]=="unique.pairs" )|(path@connect[1]=="unique.bivariate")){bivariate <- TRUE}
+			if ((path@connect[1]=="all.bivariate")|(path@connect[1]=="unique.bivariate")){self <- TRUE}
+				path@from <- rep(path@from, each=length(path@to))
+				path@to   <- rep(path@to, length(path@from)/length(path@to))
+
+				exclude <- rep(FALSE, length(path@from))
+
+				# if 'excluderedundant', then exclude b,a if a,b is present
+				if (bivariate){
+					sortedPairs <- t(apply(matrix(c(path@from, path@to), ncol = 2), 1, sort))
+					exclude <- exclude | duplicated(sortedPairs)
+				}
+				# if 'excludeself', then exclude x,x paths
+				if (self){
+					exclude <- exclude | (path@from==path@to)
+				}
+				path@from <- path@from[!exclude]
+				path@to   <- path@to[!exclude]
+				
+			}
 			retval <- removePathRAM(path, A, S)
 			A <- retval[[1]]
 			S <- retval[[2]]
@@ -351,7 +427,7 @@ insertPathRAM <- function(path, A, S) {
 		nextfree <- allfree[[i %% length(allfree) + 1]]
 		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
 		nextubound <- allubound[[i %% length(allubound) + 1]]
-		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
+		nextlbound <- alllbound[[i %% length(alllbound) + 1]]		
 		if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
@@ -446,6 +522,8 @@ insertMeansPathRAM <- function(path, M) {
 removePathRAM <- function(path, A, S) {
 	allfrom <- path@from
 	allto <- path@to
+	print(path@from)
+	print(path@to)
 	allarrows <- path@arrows
 	maxlength <- max(length(allfrom), length(allto))
 	A_free <- A@free
@@ -637,3 +715,4 @@ replaceMethodRAM <- function(model, index, value) {
 	}
 	return(model)
 }
+

@@ -42,7 +42,7 @@ data <- mxData(covMatrix, 'cov', numObs = 100)
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, data)
 
-print(model)
+#print(model)
 
 # Run the job
 modelOut <- mxRun(model)
@@ -53,4 +53,4 @@ omxCheckCloseEnough(expectedParameters,
 	modelOut@output$estimate, 
 	epsilon = 10 ^ -4)
 
-print(modelOut)
+#print(modelOut)

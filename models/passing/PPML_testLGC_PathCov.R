@@ -48,10 +48,10 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Path Specification",
     # latent variances and covariance
     mxPath(from=c("intercept","slope"), 
         arrows=2,
-        all=TRUE,
+        connect="unique.pairs",
         free=TRUE, 
-        values=c(1, 1, 1, 1),
-        labels=c("vari", "cov", "cov", "vars")),
+        values=c(1, 1, 1),
+        labels=c("vari", "cov", "vars")),
     # intercept loadings
     mxPath(from="intercept",
         to=c("x1","x2","x3","x4","x5"),

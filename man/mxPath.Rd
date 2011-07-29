@@ -24,7 +24,8 @@
 }
 
 \usage{
-mxPath(from, to = NA, all = FALSE, arrows = 1,
+%mxPath(from, to = NA, all = FALSE, arrows = 1,
+mxPath(from, to = NA, connect = "single", arrows = 1,
 	free = TRUE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA)
 }
@@ -32,13 +33,26 @@ mxPath(from, to = NA, all = FALSE, arrows = 1,
 \arguments{
    \item{from}{character vector. These are the sources of the new paths.}
    \item{to}{character vector. These are the sinks of the new paths.}
-   \item{all}{ \emph{[DEPRECATED]} boolean value. If TRUE, then connect all sources to all sinks.}
+   \item{connect}{String. Specifies the type of source to sink connection: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate".}
    \item{arrows}{numeric value. Must be either 1 (for single-headed) or 2 (for double-headed arrows).}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
    \item{values}{numeric vector. The starting values of the parameters.}
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
    \item{ubound}{numeric vector. The upper bounds of free parameters.}
+   \item{...}{Not used.  Allows OpenMx to catch the use of the deprecated \sQuote{all} argument.}
+}
+
+\note{
+The previous implementation of \sQuote{all} had unsafe features. Its use is now deprecated, and has been replaced by the new mechanism \sQuote{connect} which supports safe and controlled generation of desired combinations of paths. \sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
+
+	\describe{
+	\item{"all.pairs":}{(a,a), (a,b), (a,c), (b,a), (b,b), (b,c), (c,a), (c,b), (c,c).} 
+	\item{"unique.pairs":}{(a,a), (a,b), (a,c), (b,b), (b,c), (c,c). }
+	\item{"all.bivariate":}{(a,b), (a,c), (b,a), (b,c), (c,a), (c,b).} 
+	\item{"unique.bivariate":}{(a,b), (a,c), (b,c).} 
+	\item{"single":}{(a,a), (b,b), (c,c).}	
+	}
 }
 
 \details{
@@ -46,11 +60,10 @@ The mxPath function creates \link{MxPath} objects. These consist of a list of pa
 
 Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
 
-Multiple variables may be input as a vector of variable names. If the \sQuote{all} argument is set to FALSE, then paths are created going from each entry in the \sQuote{from} vector to the corresponding entry in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{all} argument is set to FALSE, the shorter vector is repeated to make the vectors of equal length.
+Multiple variables may be input as a vector of variable names. If the \sQuote{connect} argument is set to "single", then paths are created going from each entry in the \sQuote{from} vector to the corresponding entry in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{connect} argument is set to "single", the shorter vector is repeated to make the vectors of equal length.
 
-note: The current implementation of \sQuote{all} has unsafe features. Its use is now deprecated, and will be replaced by a new mechanism which supports safe and controlled generation of desired combinations of paths. This will be available in OpenMx 1.2. To generate all possible paths from the vector of \sQuote{from} variables to the vector of \sQuote{to} variables, you should currently use combn and expand.table as helpers. The function \code{\link{combn}} can help with explicitly specifying all pairwise combinations. See this URL for more details on \sQuote{all}:
-   http://openmx.psyc.virginia.edu/wiki/deprecation-mxpathall-true-argument.
 
+	
 The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
 
 The \sQuote{arrows} argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the \sQuote{to} variable on the \sQuote{from} variable, such that the arrow points to the \sQuote{to} variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the \sQuote{arrows} argument may take a vector of 1s and 2s to be applied to the set of created paths.
