@@ -121,7 +121,7 @@ int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, d
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
 				omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
 				error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
-				return;
+				return numVarsFilled;
 			}
 		}
 	}
@@ -298,7 +298,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
 			}
-            omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 1.0);
     		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
     		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
             row += numIdentical;
@@ -367,7 +366,9 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 		if(inform == 2) {
 			if(!returnRowLikelihoods) {
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+				for(int nid = 0; nid < numIdentical; nid++) {
+					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+				}
 				char helperstr[200];
 				char *errstr = calloc(250, sizeof(char));
 				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
@@ -384,7 +385,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 				}
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
         		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
         		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                 if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
@@ -627,7 +627,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 					}
 					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
 				}
-   			    omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 1.0);
         		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
         		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                 if(OMX_DEBUG) { Rprintf("All elements missing.  Skipping row."); } // WAS: OMX_DEBUG_ROWS
@@ -696,7 +695,9 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
 			if(info != 0) {
 				if(!returnRowLikelihoods) {
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
 					char helperstr[200];
 					char *errstr = calloc(250, sizeof(char));
 					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
@@ -713,7 +714,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
@@ -734,7 +734,9 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 			if(info != 0) {
 				if(!returnRowLikelihoods) {
 					char *errstr = calloc(250, sizeof(char));
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
 					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
 					omxRaiseError(oo->matrix->currentState, -1, errstr);
 					free(errstr);
@@ -744,7 +746,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
@@ -911,7 +912,9 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
     		if(inform == 2) {
     			if(!returnRowLikelihoods) {
-    				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+    				for(int nid = 0; nid < numIdentical; nid++) {
+    					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+    				}
     				char helperstr[200];
     				char *errstr = calloc(250, sizeof(char));
     				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
@@ -928,7 +931,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
     					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
     				}
-    				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
@@ -1125,7 +1127,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1);
 			}
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 1);
 			if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
     		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
             // Rprintf("Incrementing Row."); //:::DEBUG:::
@@ -1152,7 +1153,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 				if(!returnRowLikelihoods) {
 					char helperstr[200];
 					char *errstr = calloc(250, sizeof(char));
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
 					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
 					if(oo->matrix->currentState->computeCount <= 0) {
 						sprintf(errstr, "%s at starting values.\n", helperstr);
@@ -1167,7 +1170,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
@@ -1189,7 +1191,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			if(info != 0) {
 				if(!returnRowLikelihoods) {
 					char *errstr = calloc(250, sizeof(char));
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
 					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
 					omxRaiseError(oo->matrix->currentState, -1, errstr);
 					free(errstr);
@@ -1199,7 +1203,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row), 0, 0.0);
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
