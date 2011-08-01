@@ -89,8 +89,11 @@ int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, d
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
 		if(defVars[k].source != data) {
-			error("Internal error: definition variable population into incorrect data source");
-			continue; // don't populate from the wrong data frame
+            omxRaiseError(data->currentState, -1,
+                   "Internal error: definition variable population into incorrect data source");
+            error("Internal error: definition variable population into incorrect data source"); // Kept for historical reasons
+            continue; //Do not populate this variable.
+
 		}
 		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
 		if(newDefVar == oldDefs[k]) continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
@@ -104,7 +107,9 @@ int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, d
 			*(defVars[k].location[l]) = newDefVar;
 			omxMarkDirty(defVars[k].matrices[l]);
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
-				error("Error: NA value for a definition variable is Not Yet Implemented.");
+                omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
+                error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
+                return numVarsFilled;
 			}
 		}
 	}
@@ -193,6 +198,10 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
     while(row < data->rows) {
         if(OMX_DEBUG_ROWS) {Rprintf("Row %d.\n", row);}
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
+        int numIdentical = omxDataNumIdenticalRows(data, row);
+        if(numIdentical == 0) numIdentical = 1;
+        // N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+        // it should never be the case.
         logDet = 0.0;
         Q = 0.0;
 
@@ -268,14 +277,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		}
 		
 		if(numRemoves >= smallCov->rows) {
-			if(returnRowLikelihoods) {
-			    omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1.0);
+			for(int nid = 0; nid < numIdentical; nid++) {
+				if(returnRowLikelihoods) {
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1.0);
+				}
 			}
     		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
     		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-            row += 1;
-    		keepCov -= 1;
-    		keepInverse -= 1;
+            row += numIdentical;
+    		keepCov -= numIdentical;
+    		keepInverse -= numIdentical;
 			continue;
 		}
 
@@ -338,10 +349,31 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		if(OMX_DEBUG_ROWS) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
 		if(inform == 2) {
-			error("Improper input to sadmvn.");
+			if(!returnRowLikelihoods) {
+				char helperstr[200];
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+				if(oo->matrix->currentState->computeCount <= 0) {
+					sprintf(errstr, "%s at starting values.\n", helperstr);
+				} else {
+					sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+				}
+				omxRaiseError(oo->matrix->currentState, -1, errstr);
+				free(errstr);
+				return;
+			} else {
+				for(int nid = 0; nid < numIdentical; nid++) {
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+				}
+        		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+        		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+                if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+                row += numIdentical;
+        		keepCov -= numIdentical;
+        		keepInverse -= numIdentical;
+				continue;
+			}
 		}
-
-		int numIdentical = omxDataNumIdenticalRows(data, row);
 
 		if(returnRowLikelihoods) {
 			if(OMX_DEBUG_ROWS) { 
@@ -494,8 +526,10 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     while(row < data->rows) {
         if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
-        logDet = 0.0;
-        Q = 0.0;
+		int numIdentical = omxDataNumIdenticalRows(data, row);
+		if(numIdentical == 0) numIdentical = 1; 
+		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+		// it should never be the case.
 
         // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
         numCols = 0;
@@ -558,15 +592,17 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
     		if(numOrdRemoves >= dataColumns->cols && numContRemoves >=  dataColumns->cols) {
     		    // All elements missing.  Skip row.
-    			if(returnRowLikelihoods) {
-    			    omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1.0);
-    			}
+				for(int nid = 0; nid < numIdentical; nid++) {	
+					if(returnRowLikelihoods) {
+						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1.0);
+					}
+				}
         		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
         		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                 if(OMX_DEBUG) { Rprintf("All elements missing.  Skipping row."); } // WAS: OMX_DEBUG_ROWS
-                row += 1;
-        		keepCov -= 1;
-        		keepInverse -= 1;
+                row += numIdentical;
+        		keepCov -= numIdentical;
+        		keepInverse -= numIdentical;
     			continue;
     		}
 
@@ -641,13 +677,15 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 					free(errstr);
 					return;
 				} else {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
-                    row += 1;
-            		keepCov -= 1;
-            		keepInverse -= 1;
+                    row += numIdentical;
+            		keepCov -= numIdentical;
+            		keepInverse -= numIdentical;
 					continue;
 				}
 			}
@@ -667,13 +705,15 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 					free(errstr);
 					return;
 				} else {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
-                    row += 1;
-            		keepCov -= 1;
-            		keepInverse -= 1;
+                    row += numIdentical;
+            		keepCov -= numIdentical;
+            		keepInverse -= numIdentical;
 					continue;
 				}
 			}
@@ -833,12 +873,33 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 			} 
 
     		if(inform == 2) {
-    			error("Improper input to sadmvn.");
+    			if(!returnRowLikelihoods) {
+    				char helperstr[200];
+    				char *errstr = calloc(250, sizeof(char));
+    				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+    				if(oo->matrix->currentState->computeCount <= 0) {
+    					sprintf(errstr, "%s at starting values.\n", helperstr);
+    				} else {
+    					sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+    				}
+    				omxRaiseError(oo->matrix->currentState, -1, errstr);
+    				free(errstr);
+    				return;
+    			} else {
+    				for(int nid = 0; nid < numIdentical; nid++) {
+    					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+    				}
+            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+                    if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+                    row += numIdentical;
+            		keepCov -= numIdentical;
+            		keepInverse -= numIdentical;
+    				continue;
+    			}
     		}
         // }
         
-		int numIdentical = omxDataNumIdenticalRows(data, row);
-
 		if(returnRowLikelihoods) {
 		    if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q) * likelihood;
@@ -953,6 +1014,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	while(row < data->rows) {
         // Rprintf("Row %d.\n", row); //:::DEBUG:::
 		oo->matrix->currentState->currentRow = row;		// Set to a new row.
+
+		int numIdentical = omxDataNumIdenticalRows(data, row);
+		if(numIdentical == 0) numIdentical = 1; 
+		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+		// it should never be the case.
 		Q = 0.0;
 
 		numCols = 0;
@@ -1004,15 +1070,17 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		numCols = dataColumns->cols - numRemoves;
 
 		if(cov->cols <= numRemoves) {
-			if(returnRowLikelihoods) {
-				omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 1);
+			for(int nid = 0; nid < numIdentical; nid++) {
+				if(returnRowLikelihoods) {
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1);
+				}
 			}
 			if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
     		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
             // Rprintf("Incrementing Row."); //:::DEBUG:::
-    		row += 1;
-    		keepCov -= 1;
-    		keepInverse -= 1;
+    		row += numIdentical;
+    		keepCov -= numIdentical;
+    		keepInverse -= numIdentical;
 			continue;
 		}
 		
@@ -1043,13 +1111,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 					free(errstr);
 					return;
 				} else {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
-                    row += 1;
-            		keepCov -= 1;
-            		keepInverse -= 1;
+                    row += numIdentical;
+            		keepCov -= numIdentical;
+            		keepInverse -= numIdentical;
 					continue;
 				}
 			}
@@ -1070,13 +1140,15 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 					free(errstr);
 					return;
 				} else {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row), 0, 0.0);
+					for(int nid = 0; nid < numIdentical; nid++) {
+						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
             		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     // Rprintf("Incrementing Row."); //:::DEBUG:::
-                    row += 1;
-            		keepCov -= 1;
-            		keepInverse -= 1;
+                    row += numIdentical;
+            		keepCov -= numIdentical;
+            		keepInverse -= numIdentical;
 					continue;
 				}
 			}
@@ -1086,7 +1158,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
-		int numIdentical = omxDataNumIdenticalRows(data, row);
 
 		if(returnRowLikelihoods) {
 			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
@@ -1143,7 +1214,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->means == NULL) { error("No means model in FIML evaluation.");}
+	if(newObj->means == NULL) { 
+		omxRaiseError(oo->matrix->currentState, -1, "No means model in FIML evaluation.");
+	}
 	UNPROTECT(1);	// UNPROTECT(means)
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
