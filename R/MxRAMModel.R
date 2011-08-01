@@ -273,19 +273,15 @@ insertAllPathsRAM <- function(model, paths) {
 	M <- model[['M']]
 	if (is.null(A)) { A <- createMatrixA(model) }
 	if (is.null(S)) { S <- createMatrixS(model) }
-	newPaths <- paths
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
-		loop <- FALSE
+	
 		missingvalues <- is.na(path@values)
 		path@values[missingvalues] <- 0
-
-		if(!is.null(path@labels)) { 
-			lapply(path@labels, imxVerifyReference, -1)
-		}
 		
 		if (single.na(path@to)) {
 			path@to <- path@from
+			paths[[i]] <- path
 		}
 		
 		if (length(path@from) == 1 && (path@from == "one")) {
@@ -299,12 +295,16 @@ insertAllPathsRAM <- function(model, paths) {
 		} else {
 			bivariate <- FALSE
 			self      <- FALSE
-			# intepret 'path@connect' argument
-			if ((path@connect[1]=="unique.pairs" )|(path@connect[1]=="unique.bivariate")){bivariate <- TRUE}
-			if ((path@connect[1]=="all.bivariate")|(path@connect[1]=="unique.bivariate")){self <- TRUE}
+			# interpret 'path@connect' argument
+			if ((path@connect == "unique.pairs" ) || (path@connect == "unique.bivariate")){
+				bivariate <- TRUE
+			}
+			if ((path@connect == "all.bivariate") || (path@connect == "unique.bivariate")){
+				self <- TRUE
+			}
 			
 			# if path@connect!="single", expand from and to
-			if ((path@connect[1] !="single")){ 
+			if ((path@connect != "single")){ 
 				path@from <- rep(path@from, each=length(path@to))
 				path@to   <- rep(path@to, length(path@from)/length(path@to))
 
@@ -327,16 +327,14 @@ insertAllPathsRAM <- function(model, paths) {
 			retval <- insertPathRAM(path, A, S)
 			A <- retval[[1]]
 			S <- retval[[2]]	
-		}	
-		paths[[i]] <- path
+		}
 	}
+	checkPaths(model, paths)
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) {
 		model[['M']] <- M
 	}
-	# once we have expanded all the paths we can check them for RAM Model errors
-	checkPaths(model, paths)
 	
 	return(model)
 }
@@ -348,25 +346,26 @@ removeAllPathsRAM <- function(model, paths) {
 	if (is.null(A)) { A <- createMatrixA(model) }
 	if (is.null(S)) { S <- createMatrixS(model) }
 	for(i in 1:length(paths)) {
+
 		path <- paths[[i]]
-		
-		missingvalues <- is.na(path@values)
-		path@values[missingvalues] <- 0
 
-		if(!is.null(path@labels)) { 
-			lapply(path@labels, imxVerifyReference, -1)
+		if (single.na(path@to)) {
+			path@to <- path@from
+			paths[[i]] <- path
 		}
-
-		if (single.na(path@to)) {path@to <- path@from}
 		
 		if (length(path@from) == 1 && (path@from == "one")) {		
 			M <- removeMeansPathRAM(path, M)
 		} else {
-			if ((path@connect[1] !="single")){ 
-			bivariate <- FALSE
-			self      <- FALSE
-			if ((path@connect[1]=="unique.pairs" )|(path@connect[1]=="unique.bivariate")){bivariate <- TRUE}
-			if ((path@connect[1]=="all.bivariate")|(path@connect[1]=="unique.bivariate")){self <- TRUE}
+			if ((path@connect != "single")) { 
+				bivariate <- FALSE
+				self      <- FALSE
+				if ((path@connect == "unique.pairs" ) || (path@connect == "unique.bivariate")){
+					bivariate <- TRUE
+				}
+				if ((path@connect == "all.bivariate") || (path@connect == "unique.bivariate")){
+					self <- TRUE
+				}
 				path@from <- rep(path@from, each=length(path@to))
 				path@to   <- rep(path@to, length(path@from)/length(path@to))
 
@@ -390,6 +389,7 @@ removeAllPathsRAM <- function(model, paths) {
 			S <- retval[[2]]
 		}
 	}
+	checkPaths(model, paths)
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) {

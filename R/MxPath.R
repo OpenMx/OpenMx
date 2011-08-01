@@ -63,12 +63,16 @@ generatePath <- function(from, to,
 	bivariate <- FALSE
 	self      <- FALSE
 	
-	# intepret 'connect' argument
-	if ((connect[1]=="unique.pairs" )|(connect[1]=="unique.bivariate")){bivariate <- TRUE}
-	if ((connect[1]=="all.bivariate")|(connect[1]=="unique.bivariate")){self <- TRUE}
+	# interpret 'connect' argument
+	if ((connect == "unique.pairs" ) || (connect == "unique.bivariate")){
+		bivariate <- TRUE
+	}
+	if ((connect == "all.bivariate") || (connect == "unique.bivariate")){
+		self <- TRUE
+	}
 	
 	# if a variable is a connect = "single" then it does not need to be expanded
-	if ((connect[1] !="single")){ 
+	if ((connect != "single")){ 
 	
 		from <- rep(from, each=length(to))
 		to   <- rep(to, length(from)/length(to))
@@ -87,12 +91,14 @@ generatePath <- function(from, to,
 		}
 		
 		from <- from[!exclude]
-		to   <- to[!exclude]
-		
+		to   <- to[!exclude]		
 	} 	
 	
 	# check for a missing to or from
 	pathCheckToAndFrom(from, to)
+
+	# check the labels for illegal references
+	lapply(labels, imxVerifyReference, -1)
 	
 	# check for length mismatches
 	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
@@ -204,7 +210,7 @@ mxPath <- function(from, to = NA,
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
-	if ((connect == TRUE) || (connect == FALSE)) {
+	if (is.logical(connect) && !single.na(connect)) {
 		msg <- paste("The 'all' argument to mxPath ",
 			"has been deprecated. It has been replaced ",
 			"with the safer interface 'connect' in OpenMx 1.2. ",
@@ -212,35 +218,46 @@ mxPath <- function(from, to = NA,
 		stop(msg)
 	}
 	garbageArguments <- list(...)
+	extraArgument <- garbageArguments[['all']]
+	if (!is.null(extraArgument)) {
+		stop("The 'all' argument to mxPath ",
+			"has been deprecated. It has been replaced ",
+			"with the safer interface 'connect' in OpenMx 1.2. ",
+			"See ?mxPath for more information.")
+	}
 	if (length(garbageArguments) > 0) {
-				extraArgument <- garbageArguments[[1]]
-				if (extraArgument==TRUE || extraArgument==FALSE){
-				stop("The 'all' argument to mxPath ",
-					"has been deprecated. It has been replaced ",
-					"with the safer interface 'connect' in OpenMx 1.2. ",
-					"See ?mxPath for more information.")
-				}
-				else{
-            		stop("mxPath does not accept values for the '...' argument. See ?mxPath for more information.")
-				}	
+		msg <- paste("mxPath does not accept values",
+				"for the '...' argument.",
+				"See ?mxPath for more information.")
+   		stop(msg)
     }
-	if (is.vector(connect) && length(connect) > 0 && 
-	    connect[1]=="all.pairs" && arrows==2) {
-		msg <- paste("'connect=all.pairs' argument cannot be used with 'arrows=2' Please use 'connect=unique.pairs'.")
+	if (identical(connect, c("single", "all.pairs", "unique.pairs", 
+	            "all.bivariate", "unique.bivariate"))) {
+		connect <- "single"
+	}
+	if (length(connect) != 1 || single.na(connect)) {
+		msg <- paste("'connect' must be one of",
+				"'single', 'all.pairs', 'unique.pairs',",
+	            "'all.bivariate', or 'unique.bivariate'")
 		stop(msg)
 	}
-	if (is.vector(connect) && length(connect) > 0 && 
-	    connect[1]=="all.bivariate" && arrows==2) {
-		msg <- paste("'connect=all.bivariate' argument cannot be used with 'arrows=2'. Please use 'connect=unique.bivariate'.")
+	if (identical(connect, "all.pairs") && identical(arrows, 2)) {
+		msg <- paste("'connect=all.pairs' argument cannot",
+					"be used with 'arrows=2.',",
+					"Please use 'connect=unique.pairs'.")
 		stop(msg)
 	}
-	if (is.vector(connect) && length(connect) == 5 && 
-	    connect[1] == "single" && connect[2] == "all.pairs" &&
-	    connect[3] == "unique.pairs" && connect[4] == "all.bivariate" &&
-	    connect[5] == "unique.bivariate") {
-		 # if the value of 'connect' is the vector of 5 values,
-		 # then make it equal to "single"
-		connect = "single"
+	if (identical(connect, "all.bivariate") && identical(arrows, 2)) {
+		msg <- paste("'connect=all.bivariate' argument cannot",
+					"be used with 'arrows=2'.",
+					"Please use 'connect=unique.bivariate'.")
+		stop(msg)
+	}
+	if (!identical(connect, "single") && length(arrows) != 1) {
+		msg <- paste("multiple values for the 'arrows' argument are",
+				"not allowed when the 'connect' argument",
+				"is not equal to 'single'")
+		stop(msg)
 	}
 	if (all.na(to)) { to <- as.character(to) }
 	if (all.na(from)) { from <- as.character(from) }
