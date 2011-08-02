@@ -28,8 +28,6 @@
 #include "omxFIMLObjective.h"
 #include "omxSadmvnWrapper.h"
 
-extern omxMatrix** matrixList;
-
 /* FIML Function body */
 void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
