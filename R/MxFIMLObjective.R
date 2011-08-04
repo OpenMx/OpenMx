@@ -170,7 +170,7 @@ updateThresholdDimnames <- function(flatObjective, job, modelname) {
 	thresholds <- job[[threshName]]
 	if (is.null(thresholds)) {
 		stop(paste("Unknown thresholds name", 
-			omxQuotes(simplifyName(thresholds, modelname)),
+			omxQuotes(simplifyName(threshName, modelname)),
 			"detected in the objective function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
