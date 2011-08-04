@@ -91,7 +91,13 @@ class1 <- mxModel("Class1",
         free=TRUE,
         values=c(0, -1),
         labels=c("meani1", "means1")
-    )
+    ),
+    # enable the likelihood vector
+    mxRAMObjective(A = "A",
+        S = "S",
+        F = "F",
+        M = "M",
+        vector = TRUE)
 ) # close model
 
 class2 <- mxModel(class1,
@@ -117,9 +123,6 @@ class2 <- mxModel(class1,
 # Create an MxModel object
 # -----------------------------------------------------------------------------
 
-
-class1@objective@vector <- TRUE
-class2@objective@vector <- TRUE
 # request that individual likelihoods are used
 # required for correct parameterization of class probabilities
 # -----------------------------------------------------------------------------     

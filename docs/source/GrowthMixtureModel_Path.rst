@@ -53,6 +53,8 @@ Specifying a mixture model can be categorized into two general phases. The first
 
 Creating the class-specific models is done the same way as every other model. We'll begin by specifying the model for the first class using the ``mxPath`` function. The code below specifies a five-occasion linear growth curve, virtually identical to the one in the linear growth curve example referenced above. The only changes made to this model are the names of the free parameters; the means, variances and covariance of the intercept and slope terms are now followed by the number 1 to distinguish them from free parameters in the other class.
 
+The objective function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx objective functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed either as an argument in a function like ``mxRAMObjective`` or ``mxFIMLObjective``. If we recall that OpenMx stores path specifications in RAM matrix representations, then we can overwrite the default ``mxRAMObjective`` call with ``A``, ``S``, ``F``, and ``M`` matrices and specify that ``vector = TRUE``.
+
 .. code-block:: r
 
 	class1 <- mxModel("Class1", 
@@ -71,10 +73,10 @@ Creating the class-specific models is done the same way as every other model. We
 	    mxPath(
 	    	from=c("intercept","slope"), 
 	        arrows=2,
-	        all=TRUE,
+	        connect="unique.pairs",
 	        free=TRUE, 
-	        values=c(1, .4, .4, 1),
-	        labels=c("vari1", "cov1", "cov1", "vars1")
+	        values=c(1, .4, 1),
+	        labels=c("vari1", "cov1", "vars1")
 	    ),
 	    # intercept loadings
 	    mxPath(
@@ -106,7 +108,13 @@ Creating the class-specific models is done the same way as every other model. We
 	        free=TRUE,
 	        values=c(0, -1),
 	        labels=c("meani1", "means1")
-	    )
+	    ),
+	    # enable the likelihood vector
+	    mxRAMObjective(A = "A",
+	        S = "S",
+	        F = "F",
+	        M = "M",
+	        vector = TRUE)
 	) # close model
 	
 We could create the model for our second class by copy and pasting the code above, but that can yield needlessly long scripts. We can also use the ``mxModel`` function to edit an existing model object, allowing us to change only the parameters that vary across classes. The ``mxModel`` call below begins with an existing ``MxModel`` object (``class1``) rather than a model name. The subsequent ``mxPath`` functions add new paths to the model, replacing any existing paths that describe the same relationship. As we did not give the model a name at the beginning of the ``mxModel`` function, we must use the ``name`` argument to identify this model by name.
@@ -118,10 +126,10 @@ We could create the model for our second class by copy and pasting the code abov
 	    mxPath(
 	    	from=c("intercept","slope"), 
 	        arrows=2,
-	        all=TRUE,
+	        connect="unique.pairs",
 	        free=TRUE, 
-	        values=c(1, .5, .5, 1),
-	        labels=c("vari2", "cov2", "cov2", "vars2")
+	        values=c(1, .5, 1),
+	        labels=c("vari2", "cov2", "vars2")
 	    ),
 	    # latent means
 	    mxPath(from="one",
@@ -133,13 +141,6 @@ We could create the model for our second class by copy and pasting the code abov
 	    ),
 		name="Class2"
 	) # close model
-
-We must make one other change to our class-specific models before creating the parent model that will contain them. The objective function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx objective functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed either as an argument in a function like ``mxRAMObjective`` or ``mxFIMLObjective`` or with the syntax below.
-
-.. code-block:: r
-
-	class1@objective@vector <- TRUE
-	class2@objective@vector <- TRUE
 	
 While the class-specific models can be specified using either path or matrix specification, the class proportion parameters must be specified using a matrix, though it can be specified a number of different ways. The challenge of specifying class probabilities lies in their inherent constraint: class probabilities must be non-negative and sum to unity. The code below demonstrates one method of specifying class proportion parameters and rescaling them as probabilities. 
 
