@@ -44,7 +44,15 @@ mxPath(from, to = NA, connect = "single", arrows = 1,
 }
 
 \note{
-The previous implementation of \sQuote{all} had unsafe features. Its use is now deprecated, and has been replaced by the new mechanism \sQuote{connect} which supports safe and controlled generation of desired combinations of paths. \sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
+The previous implementation of \sQuote{all} had unsafe features. Its use is now deprecated, and has been replaced by the new mechanism \sQuote{connect} which supports safe and controlled generation of desired combinations of paths. 
+}
+
+\details{
+The mxPath function creates \link{MxPath} objects. These consist of a list of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
+
+Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
+
+\sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
 
 	\describe{
 	\item{"all.pairs":}{(a,a), (a,b), (a,c), (b,a), (b,b), (b,c), (c,a), (c,b), (c,c).} 
@@ -53,15 +61,8 @@ The previous implementation of \sQuote{all} had unsafe features. Its use is now 
 	\item{"unique.bivariate":}{(a,b), (a,c), (b,c).} 
 	\item{"single":}{(a,a), (b,b), (c,c).}	
 	}
-}
-
-\details{
-The mxPath function creates \link{MxPath} objects. These consist of a list of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
-
-Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
-
+	
 Multiple variables may be input as a vector of variable names. If the \sQuote{connect} argument is set to "single", then paths are created going from each entry in the \sQuote{from} vector to the corresponding entry in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{connect} argument is set to "single", the shorter vector is repeated to make the vectors of equal length.
-
 
 	
 The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.

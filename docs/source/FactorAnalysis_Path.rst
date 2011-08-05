@@ -269,10 +269,10 @@ Specifying the two factor model is virtually identical to the single factor case
         mxPath(
             from=c("F1","F2"),
             arrows=2,
-            all=TRUE,
+            connect="unique.pairs",
             free=TRUE,
-            values=c(1, .5,.5, 1),
-            labels=c("varF1","cov","cov","varF2")
+            values=c(1, .5,1),
+            labels=c("varF1","cov","varF2")
         ),
         # factor loadings for x variables
         mxPath(
@@ -325,7 +325,7 @@ We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` an
         labels=c("meanx1", "meanx2", "meanx3", "meany1","meany2","meany3",NA,NA)
     )
   
-The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function specifies the variances and covariance of the two latent variables. Like previous examples, we've omitted the ``to`` argument for this set of two-headed paths. Unlike previous examples, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from F1 to F1 (the variance of F1), from F1 to F2 (the covariance of the latent variables), from F2 to F1 (again, the covariance), and from F2 to F2 (the variance of F2). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
+The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function specifies the variances and covariance of the two latent variables. Like previous examples, we've omitted the ``to`` argument for this set of two-headed paths. Unlike previous examples, we've set the ``connect`` argument to ``unique.pairs``, which creates all unique paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all unique paths from and to our two latent variables. This results in three paths: from F1 to F1 (the variance of F1), from F1 to F2 (the covariance of the latent variables), and from F2 to F2 (the variance of F2). 
 
 .. code-block:: r 
 
@@ -333,10 +333,10 @@ The second, third and fourth ``mxPath`` functions provide some changes to the mo
     mxPath(
          from=c("F1","F2"),
         arrows=2,
-        all=TRUE,
+        connect="unique.pairs",
         free=TRUE,
-        values=c(1, .5,.5, 1),
-        labels=c("varF1","cov","cov","varF2")
+        values=c(1, .5, 1),
+        labels=c("varF1","cov","varF2")
     )
   
 The third and fourth ``mxPath`` functions define the factor loadings for each of the latent variables. We've split these loadings into two functions, one for each latent variable. The first loading for each latent variable is fixed to a value of one, just as in the previous example.

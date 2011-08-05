@@ -86,10 +86,10 @@ Before running a model, the OpenMx library must be loaded into R using either th
         mxPath(
             from=c("intercept","slope"), 
             arrows=2,
-            all=TRUE,
+            connect="unique.pairs",
             free=TRUE, 
-            values=c(1, 1, 1, 1),
-            labels=c("vari", "cov", "cov", "vars")
+            values=c(1, 1, 1),
+            labels=c("vari", "cov", "vars")
         ),
         # intercept loadings
         mxPath(
@@ -154,7 +154,7 @@ There are six ``mxPath`` functions in this model. The first two specify the vari
         labels=c("residual","residual","residual","residual","residual")
     )
       
-Next are the variances and covariance of the two latent variables. Like the last function, we've omitted the ``to`` argument for this set of two-headed paths. However, we've set the ``all`` argument to ``TRUE``, which creates all possible paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all possible paths from and to our two latent variables. This results in four paths: from intercept to intercept (the variance of the interecpts), from intercept to slope (the covariance of the latent variables), from slope to intercept (again, the covariance), and from slope to slope (the variance of the slopes). As the covariance is both the second and third path on this list, the second and third elements of both the ``values`` argument (.5) and the ``labels`` argument (``"cov"``) are the same.
+Next are the variances and covariance of the two latent variables. Like the last function, we've omitted the ``to`` argument for this set of two-headed paths. However, we've set the ``connect`` argument to ``unique``, which creates all unique paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all unique paths from and to our two latent variables. This results in three paths: from intercept to intercept (the variance of the interecpts), from intercept to slope (the covariance of the latent variables), and from slope to slope (the variance of the slopes). 
       
 .. code-block:: r
 
@@ -162,10 +162,10 @@ Next are the variances and covariance of the two latent variables. Like the last
     mxPath(
         from=c("intercept","slope"), 
         arrows=2,
-        all=TRUE,
+        connect="unique.pairs",
         free=TRUE, 
-        values=c(1, 1, 1, 1),
-        labels=c("vari", "cov", "cov", "vars")
+        values=c(1, 1, 1),
+        labels=c("vari", "cov", "vars")
     )
       
 The third and fourth ``mxPath`` functions specify the factor loadings. As these are defined to be a constant value of 1 for the intercept factor and the set [0, 1, 2, 3, 4] for the slope factor, these functions have no free parameters.       
