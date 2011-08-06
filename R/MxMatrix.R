@@ -87,20 +87,27 @@ setMethod("imxCreateMatrix", "MxMatrix",
 )	
 
 populateMatrixSlot <- function(object, slotName, vals, nr, nc) {
-    lendat <- length(vals);
+    lendat <- length(vals)
+#	if (is.matrix(vals) && (nrow(vals) != nr || ncol(vals) != nc)) {
+#		msg <- paste("Input matrix for argument", omxQuotes(slotName),
+#			"is a", nrow(vals), "by", ncol(vals), "matrix and should",
+#			"be a", nr, "by", nc, "matrix in",
+#			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")))
+#		stop(msg, call. = FALSE)
+#    }
 	if (lendat > 1 && (nr * nc) %% lendat != 0) {
 		if (((lendat > nr) && (lendat %/% nr) * nr != lendat) ||
 			((lendat < nr) && (nr %/% lendat) * lendat != nr))
 				warning(paste("data length", lendat, "is not a sub-multiple",
 					"or multiple of the number of rows", nr,
 					"for argument", omxQuotes(slotName), "in",
-					deparse(width.cutoff = 400L, sys.call(-10))), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 		else if (((lendat > nc) && (lendat %/% nc) * nc != lendat) ||
 			     ((lendat < nc) && (nc %/% lendat) * lendat != nc))
 				warning(paste("data length", lendat, "is not a sub-multiple",
 					"or multiple of the number of columns", nc,
 					"for argument", omxQuotes(slotName), "in", 
-					deparse(width.cutoff = 400L, sys.call(-10))), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	slot(object, slotName) <- suppressWarnings(matrix(vals, nr, nc))
 	return(object)

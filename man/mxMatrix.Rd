@@ -67,7 +67,7 @@ Objects created by the mxMatrix function are of a specific \sQuote{type}, which 
 \sQuote{Zero}   \tab matrices may be either rectangular or square, and contain no free parameters. All elements in matrices of this type have a value of 0 for all elements. \cr
 }
 
-When \sQuote{type} is either \sQuote{Lower}, \sQuote{Sdiag}, \sQuote{Symm}, or \sQuote{Stand}, and the arguments to \sQuote{free}, \sQuote{values}, \sQuote{labels}, \sQuote{lbound}, or \sQuote{ubound} are vectors with enough elements to populate exactly one half of the matrix, then \code{mxMatrix()} populates the lower triangle of the matrix (and transposes the lower triangle if the matrix is symmetric).
+When \sQuote{type} is \sQuote{Lower} or \sQuote{Symm}, then the arguments to \sQuote{free}, \sQuote{values}, \sQuote{labels}, \sQuote{lbound}, or \sQuote{ubound} may be vectors of length \eqn{N * (N + 1) / 2}, where N is the number of rows and columns of the matrix. When \sQuote{type} is \sQuote{Sdiag} or \sQuote{Stand}, then the arguments to \sQuote{free}, \sQuote{values}, \sQuote{labels}, \sQuote{lbound}, or \sQuote{ubound} may be vectors of length \eqn{N * (N - 1) / 2}. 
 
 }
 
