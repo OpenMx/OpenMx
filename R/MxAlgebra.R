@@ -52,6 +52,8 @@ setReplaceMethod("dimnames", "MxAlgebra",
 	}
 )
 
+
+
 mxAlgebra <- function(expression, name = NA, dimnames = NA) {
 	if (single.na(name)) {
 		name <- imxUntitledName()
@@ -59,10 +61,27 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA) {
 	imxVerifyName(name, 0)
 	retval <- new("MxAlgebra", NA, name)
 	retval@formula <- match.call()$expression
+    algebraErrorChecking(retval@formula, "mxAlgebra")
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {
 		dimnames(retval) <- dimnames
 	}
 	return(retval)	
+}
+
+algebraErrorChecking <- function(formula, context) {
+	if(length(formula) < 2) {
+		return()
+	}
+	operator <- as.character(formula[[1]])
+	if (identical(operator, "(")) {
+	} else if (operator %in% omxSymbolTable[,'R.name']) {
+	} else {
+		msg <- paste("Unknown matrix operator or function",
+			omxQuotes(operator), "in",
+			deparse(width.cutoff = 400L, imxLocateFunction(context)))
+		stop(msg, call. = FALSE)
+	}
+	lapply(formula[-1], algebraErrorChecking)
 }
 
 defStringsAsFactors <- getOption('stringsAsFactors')

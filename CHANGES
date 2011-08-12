@@ -1,5 +1,6 @@
 trunk
 =====
+* catching unknown matrix operator or function in mxAlgebra() or mxConstraint() declaration
 * updated user guide examples and documentation to reflect new mxPath 'connect' argument.
 * removed 'all' argument from mxPath function and replaced it with 'connect' argument. Also updated demos that used 'all' argument and documentation.
 * removed 'excludeself' argument from mxPath() function

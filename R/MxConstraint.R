@@ -55,6 +55,8 @@ mxConstraint <- function(expression, name = NA) {
 			omxQuotes("exp1 [<, ==, >] exp2")),
 			call. = FALSE)
 	}
+    algebraErrorChecking(formula[[2]], "mxConstraint")
+    algebraErrorChecking(formula[[3]], "mxConstraint")
 	return(new("MxConstraint", name, formula))
 }
 
