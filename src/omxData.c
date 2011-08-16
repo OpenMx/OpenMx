@@ -405,21 +405,25 @@ int elementEqualsDataframe(SEXP column, int offset1, int offset2) {
 	return(0);
 }
 
-int testRowDataframe(SEXP data, int numcol, int i, int *row, int base) {
+int testRowDataframe(SEXP data, int numrow, int numcol, int i, int *row, int base) {
 	SEXP column;
-	int j, equal;
+	int j, equal = TRUE;
 
-	equal = TRUE;
-	for(j = 0; j < numcol && equal; j++) {
-		column = VECTOR_ELT(data, j);
-		equal = elementEqualsDataframe(column, base, i);
-	}
-	if (equal) {
-		row[i] = 0;
-		row[base]++;
+	if (i == numrow) {
+		equal = FALSE;
 	} else {
+		for(j = 0; j < numcol && equal; j++) {
+			column = VECTOR_ELT(data, j);
+			equal = elementEqualsDataframe(column, base, i);
+		}
+	}
+
+	if (!equal) {
+		int gap = i - base;
+		for(j = 0; j < gap; j++) {
+			row[base + j] = gap - j;
+		}
 		base = i;
-		row[base] = 1;
 	}
 	return(base);
 }
@@ -439,18 +443,22 @@ int elementEqualsMatrix(SEXP data, int row1, int row2, int numrow, int col) {
 }
 
 int testRowMatrix(SEXP data, int numrow, int numcol, int i, int *row, int base) {
-	int j, equal;
+	int j, equal = TRUE;
 
-	equal = TRUE;
-	for(j = 0; j < numcol && equal; j++) {
-		equal = elementEqualsMatrix(data, i, base, numrow, j);
-	}
-	if (equal) {
-		row[i] = 0;
-		row[base]++;
+	if (i == numrow) {
+		equal = FALSE;
 	} else {
+		for(j = 0; j < numcol && equal; j++) {
+			equal = elementEqualsMatrix(data, i, base, numrow, j);
+		}
+	}
+
+	if (!equal) {
+		int gap = i - base;
+		for(j = 0; j < gap; j++) {
+			row[base + j] = gap - j;
+		}
 		base = i;
-		row[base] = 1;
 	}
 	return(base);
 }
@@ -477,24 +485,19 @@ SEXP findIdenticalMatrix(SEXP data, SEXP missing, SEXP defvars,
 	imissing = INTEGER(identicalMissing);
 	idefvars = INTEGER(identicalDefvars);
 	if (skipMissing) {
-		imissing[0] = numrow;
-		for(i = 1; i < numrow; i++) {
-			imissing[i] = 0;
-		}
+        for(i = 0; i < numrow; i++) {
+            imissing[i] = numrow - i;
+        }
 	}
 	if (skipDefvars) {
-		idefvars[0] = numrow;
-		for(i = 1; i < numrow; i++) {
-			idefvars[i] = 0;
+		for(i = 0; i < numrow; i++) {
+			idefvars[i] = numrow - i;
 		}
 	}
 	baserows = 0;
 	basemissing = 0;
 	basedefvars = 0;
-	irows[0] = 1;	
-	if (!skipMissing) imissing[0] = 1;
-	if (!skipDefvars) idefvars[0] = 1;
-	for(i = 1; i < numrow; i++) {
+	for(i = 1; i <= numrow; i++) {
 		baserows = testRowMatrix(data, numrow, numcol, i, irows, baserows); 
 		if (!skipMissing) {
 			basemissing = testRowMatrix(missing, numrow, numcol, i, imissing, basemissing); 
@@ -532,30 +535,25 @@ SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
 	imissing = INTEGER(identicalMissing);
 	idefvars = INTEGER(identicalDefvars);
 	if (skipMissing) {
-		imissing[0] = numrow;
-		for(i = 1; i < numrow; i++) {
-			imissing[i] = 0;
-		}
+        for(i = 0; i < numrow; i++) {
+            imissing[i] = numrow - i;
+        }
 	}
 	if (skipDefvars) {
-		idefvars[0] = numrow;
-		for(i = 1; i < numrow; i++) {
-			idefvars[i] = 0;
+		for(i = 0; i < numrow; i++) {
+			idefvars[i] = numrow - i;
 		}
 	}
 	baserows = 0;
 	basemissing = 0;
 	basedefvars = 0;
-	irows[0] = 1;	
-	if (!skipMissing) imissing[0] = 1;
-	if (!skipDefvars) idefvars[0] = 1;
-	for(i = 1; i < numrow; i++) {
-		baserows = testRowDataframe(data, numcol, i, irows, baserows); 
+	for(i = 1; i <= numrow; i++) {
+		baserows = testRowDataframe(data, numrow, numcol, i, irows, baserows); 
 		if (!skipMissing) {
 			basemissing = testRowMatrix(missing, numrow, numcol, i, imissing, basemissing);
 		}
 		if (!skipDefvars) {
-			basedefvars = testRowDataframe(defvars, defvarcol, i, idefvars, basedefvars);
+			basedefvars = testRowDataframe(defvars, numrow, defvarcol, i, idefvars, basedefvars);
 		}
 	}
 	SET_VECTOR_ELT(retval, 0, identicalRows);
