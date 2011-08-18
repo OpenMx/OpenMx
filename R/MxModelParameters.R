@@ -69,6 +69,12 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 			stop(msg)
 		}
 	}
+	if (is.vector(lbound) && length(lbound) > 0 && all(sapply(lbound, is.na))) {
+		lbound <- as.numeric(lbound)
+	}
+	if (is.vector(ubound) && length(ubound) > 0 && all(sapply(ubound, is.na))) {
+		ubound <- as.numeric(ubound)
+	}
 	setParametersCheckVector(free, is.logical, 'free', 'logical')
 	setParametersCheckVector(values, is.numeric, 'values', 'numeric')
 	setParametersCheckVector(newlabels, is.character, 'newlabels', 'character')
