@@ -77,12 +77,15 @@ The following functions are supported in mxAlgebra:
 \item{\code{\link{vechs}}}{Strict half-vectorization}
 \item{\code{\link{vec2diag}}}{Create a diagonal matrix}
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix}
+\item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
+\item{\code{\link{omxAllInt}}}{All cells Multivariate Normal Integration}
 \item{\code{\link{omxNot}}}{Perform unary negation on a matrix}
 \item{\code{\link{omxAnd}}}{Perform binary and on two matrices}
 \item{\code{\link{omxOr}}}{Perform binary or on two matrices}
 \item{\code{\link{omxGreaterThan}}}{Perform binary greater on two matrices}
 \item{\code{\link{omxLessThan}}}{Perform binary less than on two matrices}
 \item{\code{\link{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
+\item{\code{\link{omxExponential}}}{Matrix Exponential}
 }}
 
 \value{
