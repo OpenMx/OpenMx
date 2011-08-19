@@ -880,13 +880,23 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     }
 }
 
-void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
-	// Requires: Data, means, covariances.
-	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
+/**
+ * The localobj reference is used to access read-only variables,
+ * or variables that can be modified but whose state cannot be
+ * accessed from other threads.
+ *
+ * The sharedobj reference is used to access write-only variables,
+ * where the memory writes of any two threads are non-overlapping.
+ * No synchronization mechanisms are employed to maintain consistency
+ * of sharedobj references.
+ */
+double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowend) {
 
-	double sum;
+    omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
+    omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
+
+	double sum = 0.0;
 	char u = 'U';
 	int info = 0;
 	double oned = 1.0;
@@ -900,7 +910,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	int numCols, numRemoves;
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
-	
+
 	void* subObjective;
 	
 	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
@@ -910,50 +920,34 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	omxDefinitionVar* defVars;
 	omxData *data;
 
-    omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
-
 	// Locals, for readability.  Should compile out.
-	cov 		= ofo->cov;
-	means		= ofo->means;
-	smallRow 	= ofo->smallRow;
-	smallCov 	= ofo->smallCov;
-	oldDefs		= ofo->oldDefs;
-	RCX 		= ofo->RCX;
-	data		= ofo->data;                            //  read-only
-	dataColumns	= ofo->dataColumns;                     //  read-only
-	defVars		= ofo->defVars;                         //  read-only
-	numDefs		= ofo->numDefs;                         //  read-only
+	cov 		     = ofo->cov;
+	means		     = ofo->means;
+	smallRow 	     = ofo->smallRow;
+	smallCov 	     = ofo->smallCov;
+	oldDefs		     = ofo->oldDefs;
+	RCX 		     = ofo->RCX;
+	data		     = ofo->data;                       //  read-only
+	dataColumns	     = ofo->dataColumns;                //  read-only
+	defVars		     = ofo->defVars;                    //  read-only
+	numDefs		     = ofo->numDefs;                    //  read-only
 	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-    rowLikelihoods = ofo->rowLikelihoods;               // write-only
-	isContiguous    = ofo->contiguous.isContiguous;     //  read-only
-	contiguousStart = ofo->contiguous.start;            //  read-only
+    rowLikelihoods   = shared_ofo->rowLikelihoods;      // write-only
+	isContiguous     = ofo->contiguous.isContiguous;    //  read-only
+	contiguousStart  = ofo->contiguous.start;           //  read-only
 	contiguousLength = ofo->contiguous.length;          //  read-only
+	covMeans	     = ofo->covarianceMeansFunction;
+	subObjective     = ofo->subObjective;
 
-	subObjective = ofo->subObjective;
-
-	covMeans	= ofo->covarianceMeansFunction;
-
-	if(numDefs == 0) {
-		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-		if(!(covMeans == NULL)) {
-			covMeans(subObjective, cov, means);
-		} else {
-			omxRecompute(cov);			// Only recompute this here if there are no definition vars
-			omxRecompute(means);
-		}
-		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
-		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
-	}
 	int toRemove[cov->cols];
 	int zeros[cov->cols];
 
-	sum = 0.0;
 	int firstRow = 1;
-	int row = 0;
+    int row = rowbegin;
 
-	while(row < data->rows) {
+	while(row < rowend) {
         // Rprintf("Row %d.\n", row); //:::DEBUG:::
-		oo->matrix->currentState->currentRow = row;		// Set to a new row.
+		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
@@ -1013,7 +1007,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(cov->cols <= numRemoves) {
 			for(int nid = 0; nid < numIdentical; nid++) {
 				if(returnRowLikelihoods) {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1);
+					omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 1);
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1);
 			}
@@ -1047,17 +1041,17 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
 					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
-					if(oo->matrix->currentState->computeCount <= 0) {
+					if(localobj->matrix->currentState->computeCount <= 0) {
 						sprintf(errstr, "%s at starting values.\n", helperstr);
 					} else {
-						sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+						sprintf(errstr, "%s at iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
 					}
-					omxRaiseError(oo->matrix->currentState, -1, errstr);
+					omxRaiseError(localobj->matrix->currentState, -1, errstr);
 					free(errstr);
-					return;
+					return(sum);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
@@ -1085,12 +1079,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
 					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
-					omxRaiseError(oo->matrix->currentState, -1, errstr);
+					omxRaiseError(localobj->matrix->currentState, -1, errstr);
 					free(errstr);
-					return;
+					return(sum);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
@@ -1114,7 +1108,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q);
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(oo->matrix, omxDataIndex(data, j), 0, sum);
+				omxSetMatrixElement(localobj->matrix, omxDataIndex(data, j), 0, sum);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
 			}
 		} else {
@@ -1124,7 +1118,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 			sum += (log(determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			if(OMX_DEBUG_ROWS) {
-				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
+				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", localobj->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
 			}
 		}
 		if(firstRow) firstRow = 0;
@@ -1135,6 +1129,52 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		keepCov -= numIdentical;
 		keepInverse -= numIdentical;
 	}
+	return(sum);
+}
+
+
+void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+
+	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
+	// Requires: Data, means, covariances.
+	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
+
+	double sum;
+	int numDefs, returnRowLikelihoods;	
+	void* subObjective;
+	
+	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	
+	omxMatrix *cov, *means;//, *oldInverse;
+	omxData *data;
+
+    omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+
+	// Locals, for readability.  Should compile out.
+	cov 		= ofo->cov;
+	means		= ofo->means;
+	data		= ofo->data;                            //  read-only
+	numDefs		= ofo->numDefs;                         //  read-only
+	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
+	subObjective = ofo->subObjective;
+
+	covMeans	= ofo->covarianceMeansFunction;
+
+	if(numDefs == 0) {
+		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
+		if(!(covMeans == NULL)) {
+			covMeans(subObjective, cov, means);
+		} else {
+			omxRecompute(cov);			// Only recompute this here if there are no definition vars
+			omxRecompute(means);
+		}
+		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
+		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
+	}
+
+    // In sequential implementation, the same reference is used
+    // for the local objective function and the shared objective function.
+    sum = omxFIMLSingleIteration(oo, oo, 0, data->rows);
 
     if(!returnRowLikelihoods) {
 	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
