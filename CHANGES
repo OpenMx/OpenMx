@@ -1,5 +1,6 @@
 trunk
 =====
+* bug fix for omxSetParameters with lbound or ubound of NA.
 * Updated mxAlgebra man pages to include omxMnor, omxAllInt, omxExponential.
 * catching unknown matrix operator or function in mxAlgebra() or mxConstraint() declaration
 * updated user guide examples and documentation to reflect new mxPath 'connect' argument.
