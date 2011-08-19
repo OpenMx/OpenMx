@@ -177,7 +177,7 @@ lisrelCov <- function(LambdaX, LambdaY, ThetaEpsilon, ThetaDelta, ThetaDeltaEpsi
 # Objective Function
 
 lisrelML <- function(miCov, obsCov){
-    ret <- log(det(miCov)) + tr(obsCov %*% solve(miCov))
+    ret <- suppressWarnings(log(det(miCov))) + tr(obsCov %*% solve(miCov))
     return(ret)
 }
 
@@ -187,7 +187,7 @@ lisrelML <- function(miCov, obsCov){
 # x is the output of lisrelML
 
 lisrelMLRescale <- function(x, obsCov){
-    ret <- x - log(det(obsCov)) - ncol(obsCov)
+    ret <- x - suppressWarnings(log(det(obsCov))) - ncol(obsCov)
     return(ret)
 }
 

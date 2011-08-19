@@ -98,4 +98,4 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
     mxRAMObjective("A","S","F","M",dimnames=c("x1","x2","x3","x4","x5","intercept","slope"))
 )
 
-imxTestPPML(growthCurveModel)
+suppressWarnings(imxTestPPML(growthCurveModel))

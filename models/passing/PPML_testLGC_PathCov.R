@@ -80,4 +80,4 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Path Specification",
     ) # close model
       
 
-imxTestPPML(growthCurveModel)
+suppressWarnings(imxTestPPML(growthCurveModel))

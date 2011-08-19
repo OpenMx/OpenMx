@@ -22,4 +22,4 @@ factorModel <- mxModel("Two Factor Multilayer",
       mxData(dataTest, type="cov",
             numObs=100))
 
-imxTestPPML(factorModel)
+suppressWarnings(imxTestPPML(factorModel))

@@ -23,9 +23,6 @@ setClass(Class = "MxRAMObjective",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		vector = "logical",
-        likelihoods = "numeric",
-		expCov = "matrix",
-		expMean = "matrix",
 		definitionVars = "list",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
@@ -46,7 +43,6 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@thresholds <- thresholds
 		.Object@vector <- vector
 		.Object@definitionVars <- list()
-        .Object@likelihoods <- numeric()
 		return(.Object)
 	}
 )
@@ -209,19 +205,6 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				stop(msg, call. = FALSE)
 			}
 		}
-		return(.Object)
-})
-
-setMethod("genericObjReadAttributes", signature("MxRAMObjective"),
-	function(.Object, values) {
-		.Object@expCov <- attr(values, "expCov", exact = TRUE)
-		.Object@expMean <- attr(values, "expMean", exact = TRUE)
-		.Object@likelihoods <- attr(values, "likelihoods", exact = TRUE)
-		dimnames(values) <- dimnames(.Object)
-		attr(values, "expCov") <- NULL
-		attr(values, "expMean") <- NULL
-		attr(values, "likelihoods") <- NULL
-		.Object@result <- values
 		return(.Object)
 })
 
@@ -444,25 +427,25 @@ displayRAMObjective <- function(objective) {
 	} else {
 		cat("@thresholds :", omxQuotes(objective@thresholds), '\n')
 	}
-	cat("@likelihoods: ", length(objective@likelihoods) > 0, '\n')
+	cat("@info$likelihoods: ", length(objective@info$likelihoods) > 0, '\n')
 	if (length(objective@result) == 0) {
 		cat("@result: (not yet computed) ")
 	} else {
 		cat("@result:\n")
 	}
 	print(objective@result)
-	if (length(objective@expCov) == 0) {
-		cat("@expCov: ")
+	if (length(objective@info$expCov) == 0) {
+		cat("@info$expCov: ")
 	} else {
-		cat("@expCov:\n")
+		cat("@info$expCov:\n")
 	}
-	print(objective@expCov)
-	if (length(objective@expMean) == 0) {
-		cat("@expMean: ")
+	print(objective@info$expCov)
+	if (length(objective@info$expMean) == 0) {
+		cat("@info$expMean: ")
 	} else {
-		cat("@expMean:\n")
+		cat("@info$expMean:\n")
 	}
-	print(objective@expMean)
+	print(objective@info$expMean)
 	invisible(objective)
 }
 

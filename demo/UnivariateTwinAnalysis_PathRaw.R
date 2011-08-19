@@ -140,9 +140,9 @@ twinACEFit <- mxRun(twinACEModel)
 # Run ACE model
 # -----------------------------------------------------------------------------
 
-MZc <- twinACEFit$MZ.objective@expCov
-DZc <- twinACEFit$DZ.objective@expCov
-M <- twinACEFit$MZ.objective@expMean
+MZc <- twinACEFit$MZ.objective@info$expCov
+DZc <- twinACEFit$DZ.objective@info$expCov
+M <- twinACEFit$MZ.objective@info$expMean
 A <- mxEval(a*a, twinACEFit)
 C <- mxEval(c*c, twinACEFit)
 E <- mxEval(e*e, twinACEFit)
@@ -232,9 +232,9 @@ twinAEFit <- mxRun(twinAEModel)
 #Run AE model
 # -----------------------------------------------------------------------------
 
-MZc <- twinAEFit$MZ.objective@expCov
-DZc <- twinAEFit$DZ.objective@expCov
-M <- twinAEFit$MZ.objective@expMean
+MZc <- twinAEFit$MZ.objective@info$expCov
+DZc <- twinAEFit$DZ.objective@info$expCov
+M <- twinAEFit$MZ.objective@info$expMean
 A <- mxEval(a*a, twinAEFit)
 C <- mxEval(c*c, twinAEFit)
 E <- mxEval(e*e, twinAEFit)

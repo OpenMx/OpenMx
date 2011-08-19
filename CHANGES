@@ -1,5 +1,7 @@
 trunk
 =====
+* new interface such that 'objective@info$expMean', 'objective@info$expCov'
+      and 'objective@info$likelihoods' are available in FIML or RAM objective functions.
 * bug fix for omxSetParameters with lbound or ubound of NA.
 * Updated mxAlgebra man pages to include omxMnor, omxAllInt, omxExponential.
 * catching unknown matrix operator or function in mxAlgebra() or mxConstraint() declaration

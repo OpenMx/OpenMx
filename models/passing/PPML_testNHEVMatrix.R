@@ -70,9 +70,9 @@ factorModel <- mxModel("Two Factor NHEV, Matrix Specification",
 )
 
 # Get results from un-PPMLed model
-res1 <- mxRun(factorModel)
+res1 <- mxRun(factorModel, suppressWarnings = TRUE)
 # Get results from PPMLed model
-res2 <- mxRun(imxTransformModelPPML(factorModel))
+res2 <- mxRun(imxTransformModelPPML(factorModel), suppressWarnings = TRUE)
 # Make sure transform was applied
 omxCheckTrue( (length(grep("(PPML Transformed)", res2@name, fixed = TRUE)) > 0) )
 omxCheckTrue( is(res2@objective, "MxAlgebraObjective") )

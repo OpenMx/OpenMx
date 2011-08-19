@@ -21,6 +21,7 @@ setClass(Class = "MxBaseObjective",
 	representation = representation(
 		name = "character",
 		data = "MxCharOrNumber",
+        info = "list",
 		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
@@ -93,8 +94,14 @@ setMethod("genericObjDependencies", "NULL",
 
 setMethod("genericObjReadAttributes", "MxBaseObjective",
 	function(.Object, values) {
+        attr <- attributes(values)
+        attributes(values) <- list('dim' = attr$dim)
+
 		dimnames(values) <- dimnames(.Object)
+        attr$dim <- NULL
+
 		.Object@result <- values
+        .Object@info <- attr
 		return(.Object)
 })
 

@@ -74,7 +74,7 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 		threshnames=c("z2", "z4", "z5"))
 	)
 	
-jointResults1 <- mxRun(jointModel1, unsafe=TRUE)
+jointResults1 <- mxRun(jointModel1, unsafe=TRUE, suppressWarnings=TRUE)
 
 jointModel2 <- mxModel("ContinuousOrdinalData",
   mxData(jointData, "raw"),
@@ -85,7 +85,7 @@ jointModel2 <- mxModel("ContinuousOrdinalData",
       threshnames=c("z2", "z4", "z5"))
   )
   
-jointResults2 <- mxRun(jointModel2, unsafe=TRUE)
+jointResults2 <- mxRun(jointModel2, unsafe=TRUE, suppressWarnings=TRUE)
 
 # check that the likelihoods are the same as originally reported
 omxCheckCloseEnough(jointResults1@output$Minus2LogLikelihood, 2701.748, 0.001)
