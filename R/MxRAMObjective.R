@@ -27,11 +27,12 @@ setClass(Class = "MxRAMObjective",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
-		depth = "integer"),
+		depth = "integer",
+		threshnames = "character"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
-	function(.Object, A, S, F, M, dims, thresholds, vector,
+	function(.Object, A, S, F, M, dims, thresholds, vector, threshnames,
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@A <- A
@@ -43,6 +44,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@thresholds <- thresholds
 		.Object@vector <- vector
 		.Object@definitionVars <- list()
+		.Object@threshnames <- threshnames
 		return(.Object)
 	}
 )
@@ -364,7 +366,8 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 	}
 )
 
-mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE) {
+mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE,
+									threshnames = dimnames) {
 	if (missing(A) || typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
@@ -388,8 +391,12 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vect
 	if (is.na(M)) M <- as.integer(NA)
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
+	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
+	}
+	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
+		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
 		stop("Thresholds argument must be a single matrix or algebra name")
@@ -397,13 +404,19 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vect
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
+	if (length(threshnames) == 0) {
+		stop("'threshnames' argument cannot be an empty vector")
+	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
+	}
+	if (length(threshnames) > 1 && any(is.na(threshnames))) {
+		stop("NA values are not allowed for 'threshnames' vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
-	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds, vector))
+	return(new("MxRAMObjective", A, S, F, M, dimnames, thresholds, vector, threshnames))
 }
 
 displayRAMObjective <- function(objective) {
