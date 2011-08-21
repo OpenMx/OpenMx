@@ -52,7 +52,7 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 	
 	retVal[2].numValues = 1;
 	retVal[2].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[2].label, "IndependenceLikelihood", 22);
+	strncpy(retVal[2].label, "IndependenceLikelihood", 23);
 	// Independence model assumes all-zero manifest covariances.
 	for(int i = 0; i < ncols; i++) {
 		double value = omxMatrixElement(cov, i, i);

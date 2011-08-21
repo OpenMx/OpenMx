@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2010 The OpenMx Project
+#   Copyright 2007-2011 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,6 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+imxMpiWrap <- function(fun) {
+	function(...) {
+		require(OpenMx, quietly = TRUE)
+		return(fun(...))
+	}
+}
+
 omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
@@ -20,6 +27,8 @@ omxLapply <- function(x, fun, ...) {
 		return(swiftLapply(x, fun, ...))
 	} else if ("package:snowfall" %in% libraries) {
 		return(sfClusterApplyLB(x, fun, ...))
+	} else if ("package:Rmpi" %in% libraries) {
+		return(mpi.parLapply(x, imxMpiWrap(fun), ...))
 	} else {
 		return(lapply(x, fun, ...))
 	}
