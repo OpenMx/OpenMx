@@ -1,4 +1,4 @@
-.. _ordinal-specification:
+.. _ordinal-specification-matrix:
 
 Ordinal and Joint Ordinal-Continuous Model Specification
 ========================================================
@@ -36,18 +36,18 @@ Threshold matrices may be specified using the ``mxMatrix`` function, just like a
 
 .. code-block:: r
 
-    mxMatrix(
-         type="Full", 
-         nrow=2, 
-         ncol=3,
-         free=c(TRUE,  TRUE,  TRUE,
-                FALSE, FALSE, TRUE), 
-         values=c(-1,  0,  -.5,
-                  NA, NA, 1.2),
-         dimnames=list(c(), c('z1', 'z2', 'z3')),
-		 byRow=TRUE,
-         name="thresh"
-     )
+	mxMatrix(
+		type="Full", 
+		nrow=2, 
+		ncol=3,
+		free=c(TRUE,  TRUE,  TRUE,
+			FALSE, FALSE, TRUE), 
+		values=c(-1,  0,  -.5,
+			NA, NA, 1.2),
+		dimnames=list(c(), c('z1', 'z2', 'z3')),
+		byRow=TRUE,
+		name="thresh"
+	)
 
 In this example, variables 'z1' and 'z2' are binary, with a single freely estimated threshold for each variable with starting values of -1 and 0, respectively. The meaning of these thresholds will depend on the mean and variance of these variables; as we are freely estimating thresholds for binary variables, the mean and variances of these variables should be constrained to fixed values. The third column of the thresholds matrix represents variable 'z3', which contains two thresholds and thus three categories. These two thresholds are assigned free parameters with staring values of -0.5 and 1.2, and the mean and variance of this variable should also be constrained to fixed values for identification. For variables with multiple thresholds, starting values should be monotonically increasing in each column such that the first column represents the first threshold and lowest value and the last column represents the last threshold and highest value.
 
@@ -65,7 +65,7 @@ Factors are a type of variable included in an R data frame. Unlike numeric or co
 .. code-block:: r
 	
 	oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
-	
+
 Including Thresholds in Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -78,7 +78,6 @@ Regardless of the number of continuous numeric variables included in a model, th
 .. code-block:: r
 	
 	mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
-
 
 Example: Common Factor Model for Ordinal Data
 ---------------------------------------------
@@ -101,95 +100,95 @@ Model specification can be achieved by appending the above threshold matrix and 
 	
 .. code-block:: r
 
-    oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
-        mxData(oneFactorOrd, type="raw"),
-        # asymmetric paths
-        mxMatrix(
-            type="Full", 
-            nrow=4, 
-            ncol=4,
-            values=c(0,0,0,1,
-                     0,0,0,1,
-                     0,0,0,1,
-                     0,0,0,0),
-            free=c(F, F, F, T,
-                   F, F, F, T,
-                   F, F, F, T,
-                   F, F, F, F),
-            labels=c(NA,NA,NA,"l1",
-                     NA,NA,NA,"l2",
-                     NA,NA,NA,"l3",
-                     NA,NA,NA,NA),
-            byrow=TRUE,
-            name="A"
-        ),
-        # symmetric paths
-        mxMatrix(
-            type="Symm",
-            nrow=4,
-            ncol=4, 
-            values=c(1,0,0,0,0,0,0,
-                     0,1,0,0,0,0,0,
-                     0,0,1,0,0,0,0,
-                     0,0,0,1,0,0,0,
-                     0,0,0,0,1,0,0,
-                     0,0,0,0,0,1,0,
-                     0,0,0,0,0,0,1),
-            free=c(T, F, F, F,
-                   F, T, F, F,
-                   F, F, T, F,
-                   F, F, F, F),
-            labels=c("e1", NA,   NA,    NA,
-                     NA, "e2",   NA,    NA,
-                     NA,   NA, "e3",    NA,
-                     NA,   NA,   NA, "varF1"),
-            byrow=TRUE,
-            name="S"
-        ),
-        # filter matrix
-        mxMatrix(
-            type="Full", 
-            nrow=3, 
-            ncol=4,
-            free=FALSE,
-            values=c(1,0,0,0,
-                     0,1,0,0,
-                     0,0,1,0),
-            byrow=TRUE,
-            name="F"
-        ),
-        # means
-        mxMatrix(
-            type="Full", 
-            nrow=1, 
-            ncol=4,
-            values=0,
-            free=FALSE,
-            labels=c("meanz1","meanz2","meanz3",NA),
-            name="M"
-        ),
+	oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
+		mxData(oneFactorOrd, type="raw"),
+		# asymmetric paths
 		mxMatrix(
-	         type="Full", 
-	         nrow=2, 
-	         ncol=3,
-	         free=c(TRUE,  TRUE,  TRUE,
-	                FALSE, FALSE, TRUE), 
-	         values=c(-1,  0,  -.5,
-	                  NA, NA, 1.2),
-	         byrow=TRUE,
-	         name="thresh"
-	    ),
+			type="Full", 
+			nrow=4, 
+			ncol=4,
+			values=c(0,0,0,1,
+				0,0,0,1,
+				0,0,0,1,
+				0,0,0,0),
+			free=c(F, F, F, T,
+				F, F, F, T,
+				F, F, F, T,
+				F, F, F, F),
+			labels=c(NA,NA,NA,"l1",
+				NA,NA,NA,"l2",
+				NA,NA,NA,"l3",
+				NA,NA,NA,NA),
+			byrow=TRUE,
+			name="A"
+		),
+		# symmetric paths
+		mxMatrix(
+			type="Symm",
+			nrow=4,
+			ncol=4, 
+			values=c(1,0,0,0,0,0,0,
+				0,1,0,0,0,0,0,
+				0,0,1,0,0,0,0,
+				0,0,0,1,0,0,0,
+				0,0,0,0,1,0,0,
+				0,0,0,0,0,1,0,
+				0,0,0,0,0,0,1),
+			free=c(T, F, F, F,
+				F, T, F, F,
+				F, F, T, F,
+				F, F, F, F),
+			labels=c("e1", NA,   NA,    NA,
+				NA, "e2",   NA,    NA,
+				NA,   NA, "e3",    NA,
+				NA,   NA,   NA, "varF1"),
+			byrow=TRUE,
+			name="S"
+		),
+		# filter matrix
+		mxMatrix(
+			type="Full", 
+			nrow=3, 
+			ncol=4,
+			free=FALSE,
+			values=c(1,0,0,0,
+				0,1,0,0,
+				0,0,1,0),
+			byrow=TRUE,
+			name="F"
+		),
+		# means
+		mxMatrix(
+			type="Full", 
+			nrow=1, 
+			ncol=4,
+			values=0,
+			free=FALSE,
+			labels=c("meanz1","meanz2","meanz3",NA),
+			name="M"
+		),
+		mxMatrix(
+			type="Full", 
+			nrow=2, 
+			ncol=3,
+			free=c(TRUE,  TRUE,  TRUE,
+				FALSE, FALSE, TRUE), 
+			values=c(-1,  0,  -.5,
+				NA, NA, 1.2),
+			byrow=TRUE,
+			name="thresh"
+		),
 		mxRAMObjective("A", "S", "F", "M", 
 			dimnames=c("z1", "z2", "z3", "F1"),
 			thresholds="thresh",
 			threshnames=c("z1, "z2", "z3"))
-    ) # close model
+	) # close model
 
 This model may then be optimized using the ``mxRun`` command.
 
 .. code-block:: r
 
-    oneFactorResults <- mxRun(oneFactorModel)
+	oneFactorResults <- mxRun(oneFactorModel)
 
 Example: Common Factor Model for Joint Ordinal-Continuous Data
 --------------------------------------------------------------
@@ -198,7 +197,7 @@ Models with both continuous and ordinal variables may be specified just like any
 
 .. code-block:: r
 
-    require(OpenMx)
+	require(OpenMx)
 
 	oneFactorJoint <- myFADataRaw[,c("x1", "x2", "x3", "z1", "z2", "z3")]
 	
@@ -206,114 +205,113 @@ Models with both continuous and ordinal variables may be specified just like any
 	oneFactorJoint$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 	oneFactorJoint$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-    oneFactorJointModel <- mxModel("Common Factor Model Matrix Specification", 
-        mxData(observed=oneFactorJoint, type="raw"),
-        # asymmetric paths
-        mxMatrix(
-            type="Full", 
-            nrow=7, 
-            ncol=7,
-            values=c(0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,1,
-                     0,0,0,0,0,0,0),
-            free=c(F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, T,
-                   F, F, F, F, F, F, F),
-            labels=c(NA,NA,NA,NA,NA,NA,"l1",
-                     NA,NA,NA,NA,NA,NA,"l2",
-                     NA,NA,NA,NA,NA,NA,"l3",
-                     NA,NA,NA,NA,NA,NA,"l4",
-                     NA,NA,NA,NA,NA,NA,"l5",
-                     NA,NA,NA,NA,NA,NA,"l6",
-                     NA,NA,NA,NA,NA,NA,NA),
-            byrow=TRUE,
-            name="A"
-        ),
-        # symmetric paths
-        mxMatrix(
-            type="Symm",
-            nrow=7,
-            ncol=7, 
-            values=c(1,0,0,0,0,0,0,
-                     0,1,0,0,0,0,0,
-                     0,0,1,0,0,0,0,
-                     0,0,0,1,0,0,0,
-                     0,0,0,0,1,0,0,
-                     0,0,0,0,0,1,0,
-                     0,0,0,0,0,0,1),
-            free=c(T, F, F, F, F, F, F,
-                   F, T, F, F, F, F, F,
-                   F, F, T, F, F, F, F,
-                   F, F, F, F, F, F, F,
-                   F, F, F, F, F, F, F,
-                   F, F, F, F, F, F, F,
-                   F, F, F, F, F, F, F),
-            labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
-                     NA, "e2",   NA,   NA,   NA,   NA,   NA,
-                     NA,   NA, "e3",   NA,   NA,   NA,   NA,
-                     NA,   NA,   NA, "e4",   NA,   NA,   NA,
-                     NA,   NA,   NA,   NA, "e5",   NA,   NA,
-                     NA,   NA,   NA,   NA,   NA, "e6",   NA,
-                     NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
-            byrow=TRUE,
-            name="S"
-        ),
-        # filter matrix
-        mxMatrix(
-            type="Full", 
-            nrow=6, 
-            ncol=7,
-            free=FALSE,
-            values=c(1,0,0,0,0,0,0,
-                     0,1,0,0,0,0,0,
-                     0,0,1,0,0,0,0,
-                     0,0,0,1,0,0,0,
-                     0,0,0,0,1,0,0,
-                     0,0,0,0,0,1,0),
-            byrow=TRUE,
-            name="F"
-        ),
-        # means
-        mxMatrix(
-            type="Full", 
-            nrow=1, 
-            ncol=7,
-            values=c(1,1,1,0,0,0,0),
-            free=c(T,T,T,F,F,F),
-            labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3",NA),
-            name="M"
-        ),
+	oneFactorJointModel <- mxModel("Common Factor Model Matrix Specification", 
+		mxData(observed=oneFactorJoint, type="raw"),
+		# asymmetric paths
 		mxMatrix(
-	         type="Full", 
-	         nrow=2, 
-	         ncol=3,
-	         free=c(TRUE,  TRUE,  TRUE,
-	                FALSE, FALSE, TRUE), 
-	         values=c(-1,  0,  -.5,
-	                  NA, NA, 1.2),
-	         byrow=TRUE,
-	         name="thresh"
-	    ),
+			type="Full", 
+			nrow=7, 
+			ncol=7,
+			values=c(0,0,0,0,0,0,1,
+				0,0,0,0,0,0,1,
+				0,0,0,0,0,0,1,
+				0,0,0,0,0,0,1,
+				0,0,0,0,0,0,1,
+				0,0,0,0,0,0,1,
+				0,0,0,0,0,0,0),
+			free=c(F, F, F, F, F, F, T,
+				F, F, F, F, F, F, T,
+				F, F, F, F, F, F, T,
+				F, F, F, F, F, F, T,
+				F, F, F, F, F, F, T,
+				F, F, F, F, F, F, T,
+				F, F, F, F, F, F, F),
+			labels=c(NA,NA,NA,NA,NA,NA,"l1",
+				NA,NA,NA,NA,NA,NA,"l2",
+				NA,NA,NA,NA,NA,NA,"l3",
+				NA,NA,NA,NA,NA,NA,"l4",
+				NA,NA,NA,NA,NA,NA,"l5",
+				NA,NA,NA,NA,NA,NA,"l6",
+				NA,NA,NA,NA,NA,NA,NA),
+			byrow=TRUE,
+			name="A"
+		),
+		# symmetric paths
+		mxMatrix(
+			type="Symm",
+			nrow=7,
+			ncol=7, 
+			values=c(1,0,0,0,0,0,0,
+				0,1,0,0,0,0,0,
+				0,0,1,0,0,0,0,
+				0,0,0,1,0,0,0,
+				0,0,0,0,1,0,0,
+				0,0,0,0,0,1,0,
+				0,0,0,0,0,0,1),
+			free=c(T, F, F, F, F, F, F,
+				F, T, F, F, F, F, F,
+				F, F, T, F, F, F, F,
+				F, F, F, F, F, F, F,
+				F, F, F, F, F, F, F,
+				F, F, F, F, F, F, F,
+				F, F, F, F, F, F, F),
+			labels=c("e1", NA,   NA,   NA,   NA,   NA,   NA,
+				NA, "e2",   NA,   NA,   NA,   NA,   NA,
+				NA,   NA, "e3",   NA,   NA,   NA,   NA,
+				NA,   NA,   NA, "e4",   NA,   NA,   NA,
+				NA,   NA,   NA,   NA, "e5",   NA,   NA,
+				NA,   NA,   NA,   NA,   NA, "e6",   NA,
+				NA,   NA,   NA,   NA,   NA,   NA, "varF1"),
+			byrow=TRUE,
+			name="S"
+		),
+		# filter matrix
+		mxMatrix(
+			type="Full", 
+			nrow=6, 
+			ncol=7,
+			free=FALSE,
+			values=c(1,0,0,0,0,0,0,
+				0,1,0,0,0,0,0,
+				0,0,1,0,0,0,0,
+				0,0,0,1,0,0,0,
+				0,0,0,0,1,0,0,
+				0,0,0,0,0,1,0),
+			byrow=TRUE,
+			name="F"
+		),
+		# means
+		mxMatrix(
+			type="Full", 
+			nrow=1, 
+			ncol=7,
+			values=c(1,1,1,0,0,0,0),
+			free=c(T,T,T,F,F,F),
+			labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3",NA),
+			name="M"
+		),
+		mxMatrix(
+			type="Full", 
+			nrow=2, 
+			ncol=3,
+			free=c(TRUE,  TRUE,  TRUE,
+				FALSE, FALSE, TRUE), 
+			values=c(-1,  0,  -.5,
+				NA, NA, 1.2),
+			byrow=TRUE,
+			name="thresh"
+		),
 		mxRAMObjective("A", "S", "F", "M", 
 			dimnames=c("x1","x2","x3","z1", "z2", "z3", "F1"),
 			thresholds="thresh",
 			threshnames=c("z1, "z2", "z3"))
-    ) # close model
+	) # close model
 
 This model may then be optimized using the ``mxRun`` command.
 
 .. code-block:: r
 
-    oneFactorJointResults <- mxRun(oneFactorJointModel)
-
+	oneFactorJointResults <- mxRun(oneFactorJointModel)
 
 Technical Details
 -----------------

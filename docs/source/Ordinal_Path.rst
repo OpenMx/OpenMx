@@ -1,4 +1,4 @@
-.. _ordinal-specification:
+.. _ordinal-specification-path:
 
 Ordinal and Joint Ordinal-Continuous Model Specification
 ========================================================
@@ -36,18 +36,18 @@ Threshold matrices may be specified using the ``mxMatrix`` function, just like a
 
 .. code-block:: r
 
-    mxMatrix(
-         type="Full", 
-         nrow=2, 
-         ncol=3,
-         free=c(TRUE,  TRUE,  TRUE,
-                FALSE, FALSE, TRUE), 
-         values=c(-1,  0,  -.5,
-                  NA, NA, 1.2),
-         dimnames=list(c(), c('z1', 'z2', 'z3')),
-		 byRow=TRUE,
-         name="thresh"
-     )
+	mxMatrix(
+		type="Full", 
+		nrow=2, 
+		ncol=3,
+		free=c(TRUE,  TRUE,  TRUE,
+			FALSE, FALSE, TRUE), 
+		values=c(-1,  0,  -.5,
+			NA, NA, 1.2),
+		dimnames=list(c(), c('z1', 'z2', 'z3')),
+		byrow=TRUE,
+		name="thresh"
+	)
 
 In this example, variables 'z1' and 'z2' are binary, with a single freely estimated threshold for each variable with starting values of -1 and 0, respectively. The meaning of these thresholds will depend on the mean and variance of these variables; as we are freely estimating thresholds for binary variables, the mean and variances of these variables should be constrained to fixed values. The third column of the thresholds matrix represents variable 'z3', which contains two thresholds and thus three categories. These two thresholds are assigned free parameters with staring values of -0.5 and 1.2, and the mean and variance of this variable should also be constrained to fixed values for identification. For variables with multiple thresholds, starting values should be monotonically increasing in each column such that the first column represents the first threshold and lowest value and the last column represents the last threshold and highest value.
 
@@ -65,7 +65,7 @@ Factors are a type of variable included in an R data frame. Unlike numeric or co
 .. code-block:: r
 	
 	oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
-	
+
 Including Thresholds in Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -78,7 +78,6 @@ Regardless of the number of continuous numeric variables included in a model, th
 .. code-block:: r
 	
 	mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
-
 
 Example: Common Factor Model for Ordinal Data
 ---------------------------------------------
@@ -101,68 +100,68 @@ Model specification can be achieved by appending the above threshold matrix and 
 	
 .. code-block:: r
 
-    oneFactorModel <- mxModel("Common Factor Model Path Specification", 
-        type="RAM",
-        mxData(
-            observed=oneFactorOrd,
-            type="raw"
-        ),
-        manifestVars=c("z1","z2","z3"),
-        latentVars="F1",
-        # residual variances
-        mxPath(
-            from=c("z1","z2","z3"),
-            arrows=2,
-            free=FALSE,
-            values=c(1,1,1),
-            labels=c("e1","e2","e3")
-        ),
-        # latent variance
-        mxPath(
-            from="F1",
-            arrows=2,
-            free=TRUE,
-            values=1,
-            labels ="varF1"
-        ),
-        # factor loadings
-        mxPath(
-            from="F1",
-            to=c("z1","z2","z3"),
-            arrows=1,
-            free=c(FALSE,TRUE,TRUE),
-            values=c(1,1,1),
-            labels=c("l1","l2","l3")
-        ),
-        # means
-        mxPath(
-            from="one",
-            to=c("z1","z2","z3","F1"),
-            arrows=1,
-            free=FALSE,
-            values=0,
-            labels=c("meanz1","meanz2","meanz3","meanF")
-        ),
+	oneFactorModel <- mxModel("Common Factor Model Path Specification", 
+		type="RAM",
+		mxData(
+			observed=oneFactorOrd,
+			type="raw"
+		),
+		manifestVars=c("z1","z2","z3"),
+		latentVars="F1",
+		# residual variances
+		mxPath(
+			from=c("z1","z2","z3"),
+			arrows=2,
+			free=FALSE,
+			values=c(1,1,1),
+			labels=c("e1","e2","e3")
+		),
+		# latent variance
+		mxPath(
+			from="F1",
+			arrows=2,
+			free=TRUE,
+			values=1,
+			labels ="varF1"
+		),
+		# factor loadings
+		mxPath(
+			from="F1",
+			to=c("z1","z2","z3"),
+			arrows=1,
+			free=c(FALSE,TRUE,TRUE),
+			values=c(1,1,1),
+			labels=c("l1","l2","l3")
+		),
+		# means
+		mxPath(
+			from="one",
+			to=c("z1","z2","z3","F1"),
+			arrows=1,
+			free=FALSE,
+			values=0,
+			labels=c("meanz1","meanz2","meanz3","meanF")
+		),
 		mxMatrix(
-	         type="Full", 
-	         nrow=2, 
-	         ncol=3,
-	         free=c(TRUE,  TRUE,  TRUE,
-	                FALSE, FALSE, TRUE), 
-	         values=c(-1,  0,  -.5,
-	                  NA, NA, 1.2),
-	         dimnames=list(c(), c('z1', 'z2', 'z3')),
-			 byrow=TRUE,
-	         name="thresh"
-	    ),
+			type="Full", 
+			nrow=2, 
+			ncol=3,
+			free=c(TRUE,  TRUE,  TRUE,
+				FALSE, FALSE, TRUE), 
+			values=c(-1,  0,  -.5,
+			NA, NA, 1.2),
+			dimnames=list(c(), c('z1', 'z2', 'z3')),
+			byrow=TRUE,
+			name="thresh"
+		),
 		mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
-    ) # close model
+	) # close model
 
 This model may then be optimized using the ``mxRun`` command.
 
 .. code-block:: r
 
-    oneFactorResults <- mxRun(oneFactorModel)
+	oneFactorResults <- mxRun(oneFactorModel)
 
 Example: Common Factor Model for Joint Ordinal-Continuous Data
 --------------------------------------------------------------
@@ -179,68 +178,68 @@ Models with both continuous and ordinal variables may be specified just like any
 	oneFactorJoint$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 	oneFactorJoint$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-    oneFactorJointModel <- mxModel("Common Factor Model Path Specification", 
-        type="RAM",
-        mxData(
-            observed=oneFactorJoint,
-            type="raw"
-        ),
-        manifestVars=c("x1", "x2", "x3", "z1","z2","z3"),
-        latentVars="F1",
-        # residual variances
-        mxPath(
-            from=c("z1","z2","z3"),
-            arrows=2,
-            free=c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
-            values=1,
-            labels=c("e1","e2","e3","e4","e5","e6")
-        ),
-        # latent variance
-        mxPath(
-            from="F1",
-            arrows=2,
-            free=FALSE,
-            values=1,
-            labels ="varF1"
-        ),
-        # factor loadings
-        mxPath(
-            from="F1",
-            to=c("x1", "x2", "x3", "z1","z2","z3"),
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels=c("l1","l2","l3","l4","l5","l6")
-        ),
-        # means
-        mxPath(
-            from="one",
-            to=c("x1", "x2", "x3","z1","z2","z3","F1"),
-            arrows=1,
-            free=c(TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE),
-            values=0,
-            labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
-        ),
+	oneFactorJointModel <- mxModel("Common Factor Model Path Specification", 
+		type="RAM",
+		mxData(
+			observed=oneFactorJoint,
+			type="raw"
+		),
+		manifestVars=c("x1", "x2", "x3", "z1","z2","z3"),
+		latentVars="F1",
+		# residual variances
+		mxPath(
+			from=c("z1","z2","z3"),
+			arrows=2,
+			free=c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
+			values=1,
+			labels=c("e1","e2","e3","e4","e5","e6")
+		),
+		# latent variance
+		mxPath(
+			from="F1",
+			arrows=2,
+			free=FALSE,
+			values=1,
+			labels ="varF1"
+		),
+		# factor loadings
+		mxPath(
+			from="F1",
+			to=c("x1", "x2", "x3", "z1","z2","z3"),
+			arrows=1,
+			free=TRUE,
+			values=1,
+			labels=c("l1","l2","l3","l4","l5","l6")
+		),
+		# means
+		mxPath(
+			from="one",
+			to=c("x1", "x2", "x3","z1","z2","z3","F1"),
+			arrows=1,
+			free=c(TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE),
+			values=0,
+			labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
+		),
 		mxMatrix(
-	         type="Full", 
-	         nrow=2, 
-	         ncol=3,
-	         free=c(TRUE,  TRUE,  TRUE,
-	                FALSE, FALSE, TRUE), 
-	         values=c(-1,  0,  -.5,
-	                  NA, NA, 1.2),
-	         dimnames=list(c(), c('z1', 'z2', 'z3')),
-			 byrow=TRUE,
-	         name="thresh"
-	    ),
+			type="Full", 
+			nrow=2, 
+			ncol=3,
+			free=c(TRUE,  TRUE,  TRUE,
+			FALSE, FALSE, TRUE), 
+			values=c(-1,  0,  -.5,
+				NA, NA, 1.2),
+			dimnames=list(c(), c('z1', 'z2', 'z3')),
+			byrow=TRUE,
+			name="thresh"
+		),
 		mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
-    ) # close model
+	) # close model
 
 This model may then be optimized using the ``mxRun`` command.
 
 .. code-block:: r
 
-    oneFactorJointResults <- mxRun(oneFactorJointModel)
+	oneFactorJointResults <- mxRun(oneFactorJointModel)
 
 
 Technical Details
