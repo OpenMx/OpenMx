@@ -32,7 +32,8 @@ setClass(Class = "MxModel",
 		runstate="list",
 		.newobjects="logical",
 		.newobjective="logical",
-		.newtree="logical"
+		.newtree="logical",
+        .resetdata="logical"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -55,6 +56,7 @@ setMethod("initialize", "MxModel",
 		.Object@.newobjects <- FALSE
 		.Object@.newobjective <- FALSE
 		.Object@.newtree <- FALSE
+		.Object@.resetdata <- FALSE
 		.Object <- imxInitModel(.Object)
 		return(.Object)
 	}

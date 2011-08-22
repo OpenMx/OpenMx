@@ -29,10 +29,25 @@ isHollow <- function(model) {
 		length(model@algebras) == 0)
 }
 
-processHollowModel <- function(model, independents, dataList, frontendStart, indepElapsed) {
-	independents <- lapply(independents, undoDataShare, dataList)
+checkResetData <- function(model) {
+	if (model@.resetdata) {
+		model@data <- NULL
+		model@.resetdata <- FALSE
+	}
+	return(model)
+}
+
+processParentData <- function(model, parentData) {
+	if (is.null(model@data) && !is.null(parentData)) {
+		model@data <- parentData
+		model@.resetdata <- TRUE
+	}
+	return(model)
+}
+
+processHollowModel <- function(model, independents, frontendStart, indepElapsed) {
+    independents <- lapply(independents, checkResetData)
 	model <- imxReplaceModels(model, independents)
-	model <- undoDataShare(model, dataList)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	model@output <- calculateTiming(model@output, frontendElapsed, 

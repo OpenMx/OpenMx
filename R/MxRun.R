@@ -30,9 +30,24 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
-		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer) {
+		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
 	omxCheckMatrices(model)
 	imxVerifyModel(model)
+	model <- processParentData(model, parentData)
+	if (modelIsHollow(model)) {
+		independents <- getAllIndependents(model)
+		indepTimeStart <- Sys.time()
+	    independents <- omxLapply(independents, runHelper,
+		frontendStart = frontendStart, 
+		intervals = intervals, silent = silent, 
+		suppressWarnings = suppressWarnings, unsafe = unsafe,
+		checkpoint = checkpoint, useSocket = useSocket,
+		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer, parentData = model@data)
+		indepTimeStop <- Sys.time()
+		indepElapsed <- indepTimeStop - indepTimeStart
+		return(processHollowModel(model, independents, 
+			frontendStart, indepElapsed))
+	}
 	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
