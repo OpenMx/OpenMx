@@ -180,7 +180,7 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
 					dimnames(value) <- dimnames(candidate)
 					candidate@result <- value
 				} else {
-					candidate <- genericObjReadAttributes(candidate, value)
+					candidate <- objectiveReadAttributes(candidate, value)
 				}
 			} else if(is(candidate, "MxMatrix")) {
 				dimnames(value) <- dimnames(candidate)

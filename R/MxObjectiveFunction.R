@@ -51,11 +51,6 @@ setGeneric("genericObjInitialMatrix",
 	return(standardGeneric("genericObjInitialMatrix"))
 })
 
-setGeneric("genericObjReadAttributes",
-	function(.Object, values) {
-	return(standardGeneric("genericObjReadAttributes"))
-})
-
 setGeneric("genericObjNewEntities",
 	function(.Object) {
 	return(standardGeneric("genericObjNewEntities"))
@@ -90,19 +85,6 @@ setMethod("genericObjDependencies", "MxBaseObjective",
 setMethod("genericObjDependencies", "NULL",
 	function(.Object, dependencies) {
 		return(dependencies)
-})
-
-setMethod("genericObjReadAttributes", "MxBaseObjective",
-	function(.Object, values) {
-        attr <- attributes(values)
-        attributes(values) <- list('dim' = attr$dim)
-
-		dimnames(values) <- dimnames(.Object)
-        attr$dim <- NULL
-
-		.Object@result <- values
-        .Object@info <- attr
-		return(.Object)
 })
 
 setMethod("genericObjNewEntities", "MxBaseObjective",
@@ -182,4 +164,16 @@ translateObjectivesHelper <- function(job, namespace, flatJob) {
 		}
 	}
 	return(list(job, namespace, flatJob))
+}
+
+objectiveReadAttributes <- function(objective, values) {
+        attr <- attributes(values)
+        attributes(values) <- list('dim' = attr$dim)
+
+		dimnames(values) <- dimnames(objective)
+        attr$dim <- NULL
+
+		objective@result <- values
+        objective@info <- attr
+		return(objective)
 }
