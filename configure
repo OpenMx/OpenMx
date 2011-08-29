@@ -555,6 +555,7 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+arch_specific_compiler_flags
 arch_specific_linker_flags
 compiler_specific_flags
 npsol_dir
@@ -2633,10 +2634,12 @@ case "${host_os}" in
 linux-gnu*)
     omx_platform=linux
     arch_specific_linker_flags=""
+    arch_specific_compiler_flags=""
     ;;
 darwin*)
     omx_platform=osx
     arch_specific_linker_flags=""
+    arch_specific_compiler_flags=""
     ;;
 *) as_fn_error $? "host os is not recognized: ${host_os}" "$LINENO" 5  ;;
 esac
@@ -2821,6 +2824,7 @@ fi
 
 
 npsol_dir="../${npsol_library}"
+
 
 
 

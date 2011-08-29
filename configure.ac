@@ -28,10 +28,12 @@ case "${host_os}" in
 linux-gnu*) 
     omx_platform=linux 
     arch_specific_linker_flags=""
+    arch_specific_compiler_flags=""
     ;;
 darwin*) 
     omx_platform=osx 
     arch_specific_linker_flags=""
+    arch_specific_compiler_flags=""
     ;;
 *) AC_MSG_ERROR(host os is not recognized: ${host_os}) ;;
 esac
@@ -64,6 +66,7 @@ npsol_dir="../${npsol_library}"
 AC_SUBST(npsol_dir)
 AC_SUBST(compiler_specific_flags)
 AC_SUBST(arch_specific_linker_flags)
+AC_SUBST(arch_specific_compiler_flags)
 AC_CONFIG_FILES([src/Makevars])
 
 AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h])

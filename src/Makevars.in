@@ -4,6 +4,7 @@ NPSOL_DIR=@npsol_dir@
 # Currently this sets -Wall if compiler is gcc
 COMPILER_SPECIFIC_FLAGS=@compiler_specific_flags@
 ARCH_SPECIFIC_LINKER_FLAGS=@arch_specific_linker_flags@
+ARCH_SPECIFIC_COMPILER_FLAGS=@arch_specific_compiler_flags@
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR) $(ARCH_SPECIFIC_LINKER_FLAGS)
 
@@ -14,4 +15,4 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR) $(ARCH_SPEC
 # DEBUGGING_FLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
 # DEBUGGING_FLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 
-PKG_CFLAGS=$(COMPILER_SPECIFIC_FLAGS) $(DEBUGGING_FLAGS)
+PKG_CFLAGS=$(COMPILER_SPECIFIC_FLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUGGING_FLAGS)
