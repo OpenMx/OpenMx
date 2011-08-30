@@ -32,8 +32,8 @@ linux-gnu*)
     ;;
 darwin*) 
     omx_platform=osx 
-    arch_specific_linker_flags=""
-    arch_specific_compiler_flags=""
+    arch_specific_linker_flags="-mmacosx-version-min=10.4"
+    arch_specific_compiler_flags="-mmacosx-version-min=10.4"
     ;;
 *) AC_MSG_ERROR(host os is not recognized: ${host_os}) ;;
 esac
