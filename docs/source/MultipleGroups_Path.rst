@@ -200,10 +200,10 @@ A variety of output can be printed.  We chose here to print the expected means a
 
 .. code-block:: r
 
-    EM1Het <- bivHetFit$group1.objective@expMean
-    EM2Het <- bivHetFit$group2.objective@expMean
-    EC1Het <- bivHetFit$group1.objective@expCov
-    EC2Het <- bivHetFit$group2.objective@expCov
+    EM1Het <- bivHetFit$group1.objective@info$expMean
+    EM2Het <- bivHetFit$group2.objective@info$expMean
+    EC1Het <- bivHetFit$group1.objective@info$expCov
+    EC2Het <- bivHetFit$group2.objective@info$expCov
     LLHet <- mxEval(objective, bivHetFit)
 
 
@@ -259,10 +259,10 @@ We can produce similar output for the submodel, i.e. expected means and covarian
 .. code-block:: r
 
     bivHomFit <- mxRun(bivHomModel)
-        EM1Hom <- bivHomFit$group1.objective@expMean
-        EM2Hom <- bivHomFit$group2.objective@expMean
-        EC1Hom <- bivHomFit$group1.objective@expCov
-        EC2Hom <- bivHomFit$group2.objective@expCov
+        EM1Hom <- bivHomFit$group1.objective@info$expMean
+        EM2Hom <- bivHomFit$group2.objective@info$expMean
+        EC1Hom <- bivHomFit$group1.objective@info$expCov
+        EC2Hom <- bivHomFit$group2.objective@info$expCov
         LLHom <- mxEval(objective, bivHomFit)
         
 

@@ -63,7 +63,12 @@ In addition to specifying the thresholds matrix as shown above, users must ident
 Factors are a type of variable included in an R data frame. Unlike numeric or continuous variables, which must include only numeric and missing values, observed values for factors are treated as character strings. All factors contain a ``levels`` argument, which lists the possible values for a factor. Ordered factors contain information about the ordering of possible levels. Both R and OpenMx have tools for manipulating factors in data frames. The R functions ``factor()`` and ``as.factor()`` (and companions ``ordered()`` and ``as.ordered()``) can be used to specify ordered factors. OpenMx includes a helper function ``mxFactor()`` which more directly prepares ordinal variables as ordered factors in preparation for inclusion in OpenMx models. The code below demonstrates the ``mxFactor()`` function, replacing the variable ``z2`` that was initially read as a continuous variable and treating it as an ordinal variable with two levels.
 
 .. code-block:: r
+
 	
+	data(myFADataRaw)
+	
+	oneFactorOrd <- myFADataRaw[,c("z1", "z2", "z3")]
+
 	oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 
 Including Thresholds in Models
@@ -76,7 +81,7 @@ You must specify dimnames (dimension names) for your thresholds matrix that corr
 Regardless of the number of continuous numeric variables included in a model, the thresholds matrix should only contain as many columns as there are ordinal variables in a model. All ordered factors included in an analysis must contain a column in the thresholds matrix, and all columns in the thresholds matrix must correspond to an ordered factor. The code below specifies an ``mxRAMObjective`` to include a thresholds matrix names ``''thresh''``. When models are built using ``type='RAM'``, the ``dimnames`` argument may be omitted, as the requisite dimnames for the ``A``, ``S``, ``F`` and ``M`` matrices are generated from the ``manifestVars`` and ``latentVars`` lists. However, the dimnames for the threshold matrix should be included using the ``dimnames`` argument in ``mxMatrix``.
 
 .. code-block:: r
-	
+
 	mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
 
 Example: Common Factor Model for Ordinal Data
@@ -95,9 +100,9 @@ All of the raw data examples through the documentation may be converted to ordin
 	oneFactorOrd$z1 <- mxFactor(oneFactorOrd$z1, levels=c(0, 1))
 	oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 	oneFactorOrd$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
-	
+
 Model specification can be achieved by appending the above threshold matrix and objective function to either the path or matrix common factor examples. The path example below has been altered by changing the variable names from ``x1-x6`` to ``z1-z3``, adding the threshold matrix and objective function, and identifying the ordinal variables by constraining their means to be zero and their residual variances to be one.
-	
+
 .. code-block:: r
 
 	oneFactorModel <- mxModel("Common Factor Model Path Specification", 
@@ -178,7 +183,6 @@ Models with both continuous and ordinal variables may be specified just like any
 	oneFactorJoint$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 	oneFactorJoint$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-<<<<<<< .mine
     oneFactorJointModel <- mxModel("Common Factor Model Path Specification", 
         type="RAM",
         mxData(
@@ -221,50 +225,6 @@ Models with both continuous and ordinal variables may be specified just like any
             values=0,
             labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
         ),
-=======
-	oneFactorJointModel <- mxModel("Common Factor Model Path Specification", 
-		type="RAM",
-		mxData(
-			observed=oneFactorJoint,
-			type="raw"
-		),
-		manifestVars=c("x1", "x2", "x3", "z1","z2","z3"),
-		latentVars="F1",
-		# residual variances
-		mxPath(
-			from=c("z1","z2","z3"),
-			arrows=2,
-			free=c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
-			values=1,
-			labels=c("e1","e2","e3","e4","e5","e6")
-		),
-		# latent variance
-		mxPath(
-			from="F1",
-			arrows=2,
-			free=FALSE,
-			values=1,
-			labels ="varF1"
-		),
-		# factor loadings
-		mxPath(
-			from="F1",
-			to=c("x1", "x2", "x3", "z1","z2","z3"),
-			arrows=1,
-			free=TRUE,
-			values=1,
-			labels=c("l1","l2","l3","l4","l5","l6")
-		),
-		# means
-		mxPath(
-			from="one",
-			to=c("x1", "x2", "x3","z1","z2","z3","F1"),
-			arrows=1,
-			free=c(TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE),
-			values=0,
-			labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
-		),
->>>>>>> .r1769
 		mxMatrix(
 			type="Full", 
 			nrow=2, 
@@ -285,7 +245,6 @@ This model may then be optimized using the ``mxRun`` command.
 .. code-block:: r
 
 	oneFactorJointResults <- mxRun(oneFactorJointModel)
-
 
 Technical Details
 -----------------
