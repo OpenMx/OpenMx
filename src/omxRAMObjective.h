@@ -20,8 +20,8 @@
 
 typedef struct {
 
-	omxMatrix *cov, *means, *I;
-	omxMatrix *A, *S, *F, *M;
+	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrix *A, *S, *F, *M, *I;
 	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *Mns;
 
 	int numIters;
@@ -29,6 +29,10 @@ typedef struct {
 	double n;
 	double* work;
 	int lwork;
+    
+    int usePPML;
+	omxData *ppmlData;
+	omxMatrix *ppmlCov, *ppmlMeans;
 
 } omxRAMObjective;
 

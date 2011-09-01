@@ -146,7 +146,7 @@ void omxPopulateRAMAttributesSummaryData(omxObjective *oo, SEXP algebra) {
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
-	}   
+	}
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
     setAttrib(algebra, install("likelihoods"), PROTECT(allocVector(REALSXP, 0)));
@@ -167,6 +167,8 @@ void omxDestroyRAMObjective(omxObjective *oo) {
 	if(argStruct->P   != NULL) omxFreeMatrixData(argStruct->P);
 	if(argStruct->V   != NULL) omxFreeMatrixData(argStruct->V);
 	if(argStruct->Mns != NULL) omxFreeMatrixData(argStruct->Mns);
+
+	if(argStruct->ppmlData != NULL) omxFreeData(argStruct->ppmlData);
 	// omxFreeMatrixData(argStruct->mCov);
 }
 
@@ -476,6 +478,27 @@ void omxInitRAMObjectiveWithSummaryData(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
 	newObj->F = omxNewMatrixFromIndexSlot(rObj, currentState, "F");
 	omxRecompute(newObj->F);
+
+	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
+	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
+	newObj->usePPML = INTEGER(slotValue)[0]; 
+	UNPROTECT(1);
+
+	if(newObj->usePPML) {
+		PROTECT(slotValue = GET_SLOT(rObj, install("ppmlData")));
+		newObj->ppmlData = omxNewDataFromMxData(NULL, slotValue, currentState);
+		UNPROTECT(1);
+
+		newObj->cov = omxDataMatrix(newObj->ppmlData, NULL);
+
+		if(OMX_DEBUG) { Rprintf("Processing PPML observed means.\n"); }
+		newObj->ppmlMeans = omxDataMeans(newObj->ppmlData, 0, NULL);
+		if(OMX_DEBUG && newObj->means == NULL) { Rprintf("RAM: No PPML Observed Means.\n"); }
+	} else {
+		newObj->ppmlData  = NULL;
+		newObj->ppmlCov   = NULL;
+		newObj->ppmlMeans = NULL;
+	}
 
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }

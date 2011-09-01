@@ -28,7 +28,9 @@ setClass(Class = "MxRAMObjective",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
 		depth = "integer",
-		threshnames = "character"),
+		threshnames = "character",
+		usePPML = "logical",
+		ppmlData = "MxData"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRAMObjective",
@@ -45,6 +47,7 @@ setMethod("initialize", "MxRAMObjective",
 		.Object@vector <- vector
 		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
+		.Object@usePPML <- FALSE
 		return(.Object)
 	}
 )
