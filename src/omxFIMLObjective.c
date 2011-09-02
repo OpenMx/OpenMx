@@ -578,7 +578,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     				Infin[j] = -1;
     				if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Not a factor.\n", row, j);}
     				continue;
-    			} else if(omxDataColumnIsFactor(data, j)) {             // Ordinal column.
+    			} else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
                     numContRemoves++;
                     ordRemove[j] = 0;
                     contRemove[j] = 1;
@@ -772,9 +772,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             int count = 0;
     		for(int j = 0; j < dataColumns->cols; j++) {
                 if(ordRemove[j]) continue;         // NA or non-ordinal
-    		    // FIXME: Once we connect ordinal columns to thresholds, use var to correct indexing.
-                // int var = omxVectorElement(ordColumns, j);
-    			int value = omxIntDataElement(data, row, j); //  TODO: Compare with extraction from dataRow.
+                int var = omxVectorElement(ordColumns, j);
+    			int value = omxIntDataElement(data, row, var); //  TODO: Compare with extraction from dataRow.
                 // Rprintf("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
     	        value--;		// Correct for C indexing: value is now the index of the upper bound.
                 // Rprintf("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
