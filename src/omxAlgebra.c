@@ -57,8 +57,17 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
+	if(OMX_DEBUG) { 
+	    Rprintf("Freeing algebra at 0x%0x with %d args.\n", 
+	        oa, oa->numArgs); 
+	}
+	
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
+	    if(OMX_DEBUG) { 
+    	    Rprintf("Freeing argument %d at 0x%0x.\n", 
+    	        j, oa->args[j]);
+    	}
 		omxFreeAllMatrixData(oa->args[j]);
 		oa->args[j] = NULL;
 	}
@@ -223,6 +232,7 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(intMatrix = AS_INTEGER(matrix));
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
+	    	if(OMX_DEBUG) {Rprintf("  Null integer matrix.  Skipping.\n");}
 			UNPROTECT(1);
 			return NULL;
 		}
@@ -232,6 +242,7 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
+	    	if(OMX_DEBUG) {Rprintf("   Null numeric matrix.  Skipping.\n");}
 			UNPROTECT(1);
 			return NULL;
 		}

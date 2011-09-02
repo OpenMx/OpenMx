@@ -32,6 +32,8 @@
 #define EPSILON 1e-16
 #define TRUE 1
 #define FALSE 0
+#define OMX_ERROR           -1
+#define OMX_DEVELOPER_ERROR -2
 
 #ifdef DEBUGMX
 #define OMX_DEBUG 1

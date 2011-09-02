@@ -99,8 +99,10 @@ void omxInitEmptyObjective(omxObjective *oo) {
     oo->populateAttrFun = NULL;
 	oo->setFinalReturns = NULL;
 	oo->gradientFun = NULL;
+    oo->sharedArgs = NULL;
 	oo->argStruct = NULL;
-	oo->objType = (char*) calloc(251, sizeof(char*));
+	oo->subObjective = NULL;
+	oo->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*));
 	oo->objType[0] = '\0';
 	oo->matrix = NULL;
 	oo->stdError = NULL;
@@ -109,16 +111,30 @@ void omxInitEmptyObjective(omxObjective *oo) {
 }
 
 void omxFreeObjectiveArgs(omxObjective *oo) {
+    if(oo==NULL) return;
+    
 	/* Completely destroy the objective function tree */
-	free(oo->objType);
-	if(oo->destructFun != NULL)
-		oo->destructFun(oo);
-	oo->matrix = NULL;
-	
+    if(OMX_DEBUG) {Rprintf("Freeing objective object at 0x%x with subobjective 0x%x.\n", oo, oo->subObjective);}
+	if(oo->matrix != NULL) {
+	    if(oo->objType != NULL) {
+	        free(oo->objType);
+            oo->objType = NULL;
+        }
+	    if(oo->subObjective != NULL) {
+		    omxFreeObjectiveArgs(oo->subObjective);
+	    }
+	    if(oo->destructFun != NULL) {
+            if(OMX_DEBUG) {Rprintf("Calling objective destructor for 0x%x.\n", oo);}
+		    oo->destructFun(oo);
+	    }
+	    oo->matrix = NULL;
+    }
 }
 
 void omxObjectiveCompute(omxObjective *oo) {
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->matrix->isDirty?"Yes":"No"));}
+	if(OMX_DEBUG_ALGEBRA) { 
+	    Rprintf("Objective compute: 0x%0x (needed: %s).\n", oo, (oo->matrix->isDirty?"Yes":"No"));
+	}
 
 	oo->objectiveFun(oo);
 
@@ -126,13 +142,46 @@ void omxObjectiveCompute(omxObjective *oo) {
 		omxMatrixCompute(oo->matrix);
 }
 
+void omxDuplicateObjective(omxObjective *tgt, const omxObjective *src, unsigned int duplicateUnshared) {
+	
+	tgt->initFun 				= src->initFun;
+	tgt->destructFun 			= src->destructFun;
+	tgt->repopulateFun 			= src->repopulateFun;
+	tgt->objectiveFun 			= src->objectiveFun;
+	tgt->needsUpdateFun 		= src->needsUpdateFun;
+	tgt->getStandardErrorFun 	= src->getStandardErrorFun;
+    tgt->populateAttrFun 		= src->populateAttrFun;
+	tgt->setFinalReturns 		= src->setFinalReturns;
+	tgt->gradientFun 			= src->gradientFun;
+    tgt->sharedArgs             = src->sharedArgs;
+    tgt->matrix      			= src->matrix;
+	tgt->subObjective	 		= src->subObjective;
+	tgt->stdError				= src->stdError;
+	tgt->hessian 				= src->hessian;
+	tgt->gradient 				= src->gradient;
+	
+	if(tgt->objType == NULL) tgt->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*)); // Double-check
+    strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
+
+	if(duplicateUnshared == TRUE && src->duplicateUnsharedArgs != NULL) {
+	    // Duplicate function should replace any shared args from above as well
+	    src->duplicateUnsharedArgs(tgt, src);
+    }
+
+}
+
 unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 {
-	if(OMX_DEBUG_MATRIX) {Rprintf("omxObjectiveNeedsUpdate:");}
-	unsigned short needsIt = TRUE;   		// Defaults to TRUE if unspecified
+	if(OMX_DEBUG_MATRIX) { Rprintf("omxObjectiveNeedsUpdate:"); }
+	unsigned short needsIt = TRUE;     // Defaults to TRUE if unspecified
 	if(!(oo->needsUpdateFun == NULL)) {
 		if(OMX_DEBUG_MATRIX) {Rprintf("Calling update function 0x%x:", oo->needsUpdateFun);}
 		needsIt = oo->needsUpdateFun(oo);
+		if(!needsIt && !(oo->subObjective == NULL)) {
+			needsIt = omxObjectiveNeedsUpdate(oo->subObjective);
+		}
+	} else if(!(oo->subObjective == NULL)) {
+		needsIt = omxObjectiveNeedsUpdate(oo->subObjective);
 	}
 	
 	if(OMX_DEBUG_MATRIX) {Rprintf("%s\n", (needsIt?"Yes":"No"));}
@@ -140,13 +189,21 @@ unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 	return needsIt;
 }
 
+void omxSetObjectiveType(omxObjective* oo, const char* newName) {
+	if(oo->objType == NULL) {
+		oo->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*));
+		oo->objType[0] = '\0';
+	}
+	
+	strncpy(oo->objType, newName, MAX_STRING_LEN);
+}
 
 void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 
 	int i;
 	const char *objType;
 	SEXP objectiveClass;
-	char errorCode[251];
+	char errorCode[MAX_STRING_LEN];
 	omxObjective *obj = (omxObjective*) R_alloc(1, sizeof(omxObjective));
 	omxInitEmptyObjective(obj);
 
@@ -158,12 +215,12 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 	/* Get Objective Type */
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
 	objType = CHAR(objectiveClass);
-	obj->objType[250] = '\0';
-	strncpy(obj->objType, objType, 250);
+	obj->objType[MAX_STRING_LEN] = '\0';
+	strncpy(obj->objType, objType, MAX_STRING_LEN);
 	
 	/* Switch based on objective type. */ 
 	for(i = 0; i < omxObjectiveTableLength; i++) {
-		if(strncmp(objType, omxObjectiveSymbolTable[i].name, 250) == 0) {
+		if(strncmp(objType, omxObjectiveSymbolTable[i].name, MAX_STRING_LEN) == 0) {
 			obj->initFun = omxObjectiveSymbolTable[i].initFun;
 			break;
 		}
@@ -185,8 +242,9 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 		if(obj->argStruct != NULL) {
 			strncpy(errorCode, (char*)(obj->argStruct), 51);
 		}
-		char newError[250];
-		sprintf(newError, "Could not initialize objective function %s.  Error: %s\n", obj->objType, errorCode);
+		char newError[MAX_STRING_LEN];
+		sprintf(newError, "Could not initialize objective function %s.  Error: %s\n", 
+		    obj->objType, errorCode);
 		omxRaiseError(om->currentState, -1, newError);
 	}
 	

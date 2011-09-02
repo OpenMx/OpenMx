@@ -24,7 +24,6 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxObjectiveMetadata.h"
 #include "omxFIMLObjective.h"
 
 

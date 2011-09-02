@@ -24,7 +24,6 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxObjectiveMetadata.h"
 #include "omxFIMLObjective.h"
 #include "omxSadmvnWrapper.h"
 
@@ -37,17 +36,43 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(argStruct->smallCov != NULL) omxFreeMatrixData(argStruct->smallCov);
 	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
     if(argStruct->rowLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLikelihoods);
-	if(argStruct->subObjective != NULL) {
-		omxObjectiveMetadataContainer oomc = {argStruct->cov, argStruct->means,
-			 argStruct->subObjective, argStruct->covarianceMeansFunction,
-			 argStruct->destroySubObjective};
-		argStruct->destroySubObjective(argStruct->subObjective, &oomc);
-		argStruct->cov = oomc.cov;
-		argStruct->means = oomc.means;
-		argStruct->subObjective = oomc.subObjective;
-		argStruct->covarianceMeansFunction = oomc.covarianceMeansFunction;
-		argStruct->destroySubObjective = oomc.destroySubObjective;
+	if(oo->subObjective == NULL) {
+		if(argStruct->cov != NULL) omxFreeMatrixData(argStruct->cov);
+		if(argStruct->means != NULL) omxFreeMatrixData(argStruct->means);
 	}
+}
+
+void omxPopulateFIMLAttributes(omxObjective *oo, SEXP algebra) {
+	omxFIMLObjective *argStruct = ((omxFIMLObjective*)oo->argStruct);
+	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
+	omxMatrix *expCovInt, *expMeanInt, *rowLikelihoodsInt;
+	expCovInt = argStruct->cov;
+	expMeanInt = argStruct->means;
+	rowLikelihoodsInt = argStruct->rowLikelihoods;
+
+	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	for(int row = 0; row < expCovInt->rows; row++)
+		for(int col = 0; col < expCovInt->cols; col++)
+			REAL(expCovExt)[col * expCovInt->rows + row] =
+				omxMatrixElement(expCovInt, row, col);
+	if (expMeanInt != NULL) {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		for(int row = 0; row < expMeanInt->rows; row++)
+			for(int col = 0; col < expMeanInt->cols; col++)
+				REAL(expMeanExt)[col * expMeanInt->rows + row] =
+					omxMatrixElement(expMeanInt, row, col);
+	} else {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+	}
+	PROTECT(rowLikelihoodsExt = allocVector(REALSXP, rowLikelihoodsInt->rows));
+	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+
+	setAttrib(algebra, install("expCov"), expCovExt);
+	setAttrib(algebra, install("expMean"), expMeanExt);
+	setAttrib(algebra, install("likelihoods"), rowLikelihoodsExt);
+
+	UNPROTECT(3);
 }
 
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
@@ -77,18 +102,6 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	}
 
 	return retVal;
-}
-
-void omxPopulateFIMLAttributes(omxObjective *oo, SEXP algebra) {
-	omxFIMLObjective *argStruct = ((omxFIMLObjective*)oo->argStruct);
-	SEXP rowLikelihoodsExt;
-	omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
-	
-	PROTECT(rowLikelihoodsExt = allocVector(REALSXP, rowLikelihoodsInt->rows));
-	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
-		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
-	setAttrib(algebra, install("likelihoods"), rowLikelihoodsExt);
-	UNPROTECT(1);
 }
 
 int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
@@ -149,9 +162,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	omxDefinitionVar* defVars;
 	int firstRow = 1;
 	
-	void* subObjective;
-	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
-	
+	omxObjective* subObjective;	
 
 	// Locals, for readability.  Compiler should cut through this.
 	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
@@ -183,14 +194,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	absEps		= ofo->absEps;
 	relEps		= ofo->relEps;
 	
-	subObjective = ofo->subObjective;
+	subObjective = oo->subObjective;
 	
-	covMeans	= ofo->covarianceMeansFunction;
-
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-		if(!(covMeans == NULL)) {
-			covMeans(subObjective, cov, means);
+		if(!(subObjective == NULL)) {
+			omxObjectiveCompute(subObjective);
 		} else {
 			omxRecompute(cov);			// Only recompute this here if there are no definition vars
 			omxRecompute(means);
@@ -229,8 +238,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(covMeans == NULL)) {
-						covMeans(subObjective, cov, means);
+					if(!(subObjective == NULL)) {
+						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);
 						omxRecompute(means);
@@ -412,8 +421,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	omxDefinitionVar* defVars;
 	int firstRow = 1;
 	
-	void* subObjective;
-	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	omxObjective* subObjective;
 	
 
 	// Locals, for readability.  Compiler should cut through this.
@@ -452,14 +460,12 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	absEps		= ofo->absEps;
 	relEps		= ofo->relEps;
 	
-	subObjective = ofo->subObjective;
-	
-	covMeans	= ofo->covarianceMeansFunction;
+	subObjective = oo->subObjective;
 
 	// if(numDefs == 0) {
 	//         if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-	//         if(!(covMeans == NULL)) {
-	//             covMeans(subObjective, cov, means);
+	//         if(!(subObjective == NULL)) {
+	//             omxObjectiveCompute(subObjective);
 	//         } else {
 	//             omxRecompute(cov);          // Only recompute this here if there are no definition vars
 	//             omxRecompute(means);
@@ -484,8 +490,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
     if(numDefs == 0) {
         if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-        if(!(covMeans == NULL)) {
-            covMeans(subObjective, cov, means);
+        if(!(subObjective == NULL)) {
+            omxObjectiveCompute(subObjective);
         } else {
             omxRecompute(cov);			// Only recompute this here if there are no definition vars
             omxRecompute(means);
@@ -495,7 +501,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     }
 
     while(row < data->rows) {
-        if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
+        // if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
@@ -517,8 +523,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow || 1) { // TODO: Implement sorting-based speedups here.
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(covMeans == NULL)) {
-						covMeans(subObjective, cov, means);
+					if(!(subObjective == NULL)) {
+						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);
 						omxRecompute(means);
@@ -592,9 +598,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             // TODO: Data handling is confusing.  Maybe set two self-aliased row-reduction "datacolumns" elements?
             omxResetAliasedMatrix(smallRow);				// Reset smallRow
             omxDataRow(data, row, dataColumns, smallRow);						        // Populate data row
-            if(OMX_DEBUG) { // :::DEBUG:::
-				omxPrint(smallRow, "Original Data elements");
-			} // :::DEBUG:::
+
             omxResetAliasedMatrix(ordRow);                                              // Propagate to ordinal row
             omxRemoveRowsAndColumns(ordRow, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
     		omxRemoveRowsAndColumns(smallRow, 0, numContRemoves, zeros, contRemove); 	// Reduce the row to just continuous.
@@ -615,21 +619,21 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 			omxRemoveRowsAndColumns(ordContCov, numContRemoves, numOrdRemoves, contRemove, ordRemove);
 
             /* :::DEBUG::: */
-            if(OMX_DEBUG_ROWS) { Rprintf("Removed %d continuous and %d ordinal cols from length %d(%d) data row.\n", numContRemoves, numOrdRemoves, dataColumns->cols, cov->cols);}
-			if(OMX_DEBUG_ROWS) { omxPrint(cov, "Original Covariance Matrix"); }
-			if(OMX_DEBUG_ROWS) { 
-				omxPrint(smallCov, "Continuous Covariance Matrix"); 
-				}
-            if(OMX_DEBUG_ROWS) { 
-				omxPrint(smallRow, "Continuous elements");
-				}
-			if(OMX_DEBUG_ROWS) { omxPrint(ordCov, "Ordinal Covariance Matrix"); }
-			if(OMX_DEBUG_ROWS) { 
-				omxPrint(ordRow, "Ordinal elements");
-				}
-			if(OMX_DEBUG_ROWS) { 
-				omxPrint(ordContCov, "Ordinal/Continuous Covariance Matrix");
-				 }
+            //             if(OMX_DEBUG_ROWS) { Rprintf("Removed %d continuous and %d ordinal cols from length %d(%d) data row.\n", numContRemoves, numOrdRemoves, dataColumns->cols, cov->cols);}
+            // if(OMX_DEBUG_ROWS) { omxPrint(cov, "Original Covariance Matrix"); }
+            // if(OMX_DEBUG_ROWS) { 
+            //  omxPrint(smallCov, "Continuous Covariance Matrix"); 
+            //  }
+            //             if(OMX_DEBUG_ROWS) { 
+            //  omxPrint(smallRow, "Continuous elements");
+            //  }
+            // if(OMX_DEBUG_ROWS) { omxPrint(ordCov, "Ordinal Covariance Matrix"); }
+            // if(OMX_DEBUG_ROWS) { 
+            //  omxPrint(ordRow, "Ordinal elements");
+            //  }
+            // if(OMX_DEBUG_ROWS) { 
+            //  omxPrint(ordContCov, "Ordinal/Continuous Covariance Matrix");
+            //   }
             /* :::DEBUG::: */
             
             // if(smallCov->cols < 1) {     // TODO: Implement catch for all-continuous-missing case
@@ -706,8 +710,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);                          // RCX is the continuous-column mahalanobis distance.
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
-	
-		if(OMX_DEBUG) {Rprintf("Continuous, row %d: %3.3f %3.3f (%d cols)", row, determinant, Q, smallRow->cols);} // :::DEBUG:::
 		
 		// Reserve: 1) Inverse continuous covariance (smallCov)
 		//          2) Columnwise Mahalanobis distance (contCov^-1)%*%(Data - Means) (RCX)
@@ -892,7 +894,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
  * of sharedobj references.
  */
 double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowend) {
-
+    
     omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
     omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
 
@@ -911,9 +913,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
 
-	void* subObjective;
-	
-	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	omxObjective* subObjective;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
     omxMatrix *rowLikelihoods;
@@ -936,8 +936,8 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	isContiguous     = ofo->contiguous.isContiguous;    //  read-only
 	contiguousStart  = ofo->contiguous.start;           //  read-only
 	contiguousLength = ofo->contiguous.length;          //  read-only
-	covMeans	     = ofo->covarianceMeansFunction;
-	subObjective     = ofo->subObjective;
+
+	subObjective = localobj->subObjective;
 
 	int toRemove[cov->cols];
 	int zeros[cov->cols];
@@ -946,7 +946,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
     int row = rowbegin;
 
 	while(row < rowend) {
-        // Rprintf("Row %d.\n", row); //:::DEBUG:::
+        if (OMX_DEBUG_ROWS) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
@@ -972,8 +972,8 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(covMeans == NULL)) {
-						covMeans(subObjective, cov, means);
+					if(!(subObjective == NULL)) {
+						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);
 						omxRecompute(means);
@@ -1141,9 +1141,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	double sum;
 	int numDefs, returnRowLikelihoods;	
-	void* subObjective;
-	
-	void (*covMeans)(void* subObjective, omxMatrix* cov, omxMatrix* means);
+	omxObjective* subObjective;
 	
 	omxMatrix *cov, *means;//, *oldInverse;
 	omxData *data;
@@ -1156,14 +1154,12 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	data		= ofo->data;                            //  read-only
 	numDefs		= ofo->numDefs;                         //  read-only
 	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-	subObjective = ofo->subObjective;
-
-	covMeans	= ofo->covarianceMeansFunction;
+	subObjective = oo->subObjective;
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-		if(!(covMeans == NULL)) {
-			covMeans(subObjective, cov, means);
+		if(!(subObjective == NULL)) {
+			omxObjectiveCompute(subObjective);
 		} else {
 			omxRecompute(cov);			// Only recompute this here if there are no definition vars
 			omxRecompute(means);
@@ -1193,11 +1189,37 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
 
 	SEXP nextMatrix;
-	omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
+    omxMatrix *cov, *means;
 	
-	newObj->subObjective = NULL;
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
+	means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	if(means == NULL) { 
+		omxRaiseError(oo->matrix->currentState, -1, "No means model in FIML evaluation.");
+	}
+	UNPROTECT(1);	// UNPROTECT(means)
+
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
+	cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);	// UNPROTECT(covariance)
 	
-	/* Set default Objective calls to FIML Objective Calls */
+	omxCreateFIMLObjective(oo, rObj, cov, means);
+
+	if(OMX_DEBUG) { Rprintf("FIML Initialization Completed."); }
+}
+
+void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
+
+	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
+	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
+
+    omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
+
+	numCols = cov->rows;
+	
+    newObj->cov = cov;
+    newObj->means = means;
+    
+    /* Set default Objective calls to FIML Objective Calls */
 	oo->objectiveFun = omxCallFIMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
@@ -1205,32 +1227,6 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	oo->populateAttrFun = omxPopulateFIMLAttributes;
 	oo->repopulateFun = NULL;
 	
-	newObj->subObjective = NULL;
-	newObj->covarianceMeansFunction = NULL;
-
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	newObj->means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(newObj->means == NULL) { 
-		omxRaiseError(oo->matrix->currentState, -1, "No means model in FIML evaluation.");
-	}
-	UNPROTECT(1);	// UNPROTECT(means)
-
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	newObj->cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);	// UNPROTECT(covariance)
-	
-	initFIMLObjectiveHelper(oo, rObj, newObj);
-
-	oo->argStruct = (void*) newObj;
-	if(OMX_DEBUG) { Rprintf("FIML Initialization Completed."); }
-}
-
-void initFIMLObjectiveHelper(omxObjective* oo, SEXP rObj, omxFIMLObjective *newObj) {
-
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
-	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
-
-	numCols = newObj->cov->rows;
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
@@ -1341,6 +1337,7 @@ void initFIMLObjectiveHelper(omxObjective* oo, SEXP rObj, omxFIMLObjective *newO
 //	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
 	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
+    oo->argStruct = (void*)newObj;
 
 	if(numOrdinal > 0 && numContinuous <= 0) {
 		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }

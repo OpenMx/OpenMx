@@ -86,8 +86,6 @@ typedef struct omxFIMLObjective {
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
     
-    
-
 	/* Argument space for SADMVN function */
 	double* lThresh;			// Specific list of lower thresholds
 	double* uThresh;			// Specific list of upper thresholds
@@ -98,12 +96,6 @@ typedef struct omxFIMLObjective {
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions
 
-	/* Space for inner sub-objective */
-	void* subObjective;			// Inner Objective Object
-	void (*covarianceMeansFunction)(void* subObjective, omxMatrix* cov, omxMatrix* means);
-								// Inner Objective Function
-	void (*destroySubObjective)(void* subObjective, omxObjectiveMetadataContainer* oomc);
-
 } omxFIMLObjective;
 
 void omxCallFIMLObjective(omxObjective *oo);
@@ -111,6 +103,9 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo);
 unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo);
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns);
 void omxDestroyFIMLObjective(omxObjective *oo);
-void initFIMLObjectiveHelper(omxObjective* oo, SEXP rObj, omxFIMLObjective *newObj);
+void omxPopulateFIMLObjective(omxObjective *oo, SEXP algebra);
+void omxInitFIMLObjective(omxObjective* oo, SEXP rObj);
+void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+
 
 #endif /* _OMXFIMLOBJECTIVE_H_ */

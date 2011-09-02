@@ -48,9 +48,16 @@ void omxFinalAlgebraCalculation(SEXP matrices, SEXP algebras) {
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
 		omxRecompute(nextAlgebra);
 		PROTECT(algebra = allocMatrix(REALSXP, nextAlgebra->rows, nextAlgebra->cols));
-		if (nextAlgebra->objective != NULL && nextAlgebra->objective->populateAttrFun != NULL) {
-			nextAlgebra->objective->populateAttrFun(nextAlgebra->objective, algebra);
-		}
+		/* If an objective, populate attributes.  Will skip if not objective. */
+        for(omxObjective* currentObj = nextAlgebra->objective; currentObj != NULL; 
+            currentObj = currentObj->subObjective) {
+		        if(OMX_DEBUG) { Rprintf("Algebra %d is an objective.\n", index); }                
+                if(currentObj->populateAttrFun != NULL) {
+    		        if(OMX_DEBUG) { Rprintf("Algebra %d has attribute population.\n", index); }                    
+	                currentObj->populateAttrFun(currentObj, algebra);
+                }
+		    }
+		if(OMX_DEBUG) { Rprintf("Final Calculation of Algebra %d Complete.\n", index); }
 		for(int row = 0; row < nextAlgebra->rows; row++) {
 			for(int col = 0; col < nextAlgebra->cols; col++) {
 				REAL(algebra)[col * nextAlgebra->rows + row] =

@@ -36,4 +36,12 @@ typedef struct {
 
 } omxRAMObjective;
 
+void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
+    omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
+    omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
+
+void omxInitRAMObjective(omxObjective* oo, SEXP rObj);
+
+void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
+
 #endif /* _OMXRAMOBJECTIVE_H_ */

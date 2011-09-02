@@ -140,7 +140,21 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
 		od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
+		if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
+		    (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
+		        !isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
+                    omxFreeMatrixData(od->meansMat); // Clear just-allocated memory.
+                    od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
+                // FIXME: The above check may cause problems for dynamic data if the means
+                //          originally is a 1x1 that has not yet been calculated.  This should be
+                //          adjusted.
+            }
 	UNPROTECT(1); // dataLoc
+	
+	if(OMX_DEBUG) {
+	        if(od->meansMat == NULL) {Rprintf("No means found.\n");}
+            else {omxPrint(od->meansMat, "Means Matrix is:");}
+        }
 
 	if(strncmp(od->type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
@@ -253,6 +267,8 @@ unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 }
 
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
+
+    if(od->meansMat == NULL) return NULL;
 
 	if(colList == NULL) {
 		if(om == NULL) return od->meansMat;

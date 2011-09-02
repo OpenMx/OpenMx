@@ -169,8 +169,13 @@ void omxFreeMatrixData(omxMatrix * om) {
 }
 
 void omxFreeAllMatrixData(omxMatrix *om) {
+    
+    if(om == NULL) return;
 
-	if(OMX_DEBUG) { Rprintf("Freeing matrix at 0x%0x with data = %0x and algebra %0x.\n", om, om->data, om->algebra); }
+	if(OMX_DEBUG) { 
+	    Rprintf("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and objective 0x%x.\n", 
+	        om, om->data, om->algebra); 
+	}
 
 	if(om->localData && om->data != NULL) {
 		Free(om->data);

@@ -23,6 +23,8 @@
 #include "omxAlgebraFunctions.h"
 
 extern void omxInitFIMLObjective(omxObjective* oo, SEXP rObj); // Included in case ML gets a raw data object.
+extern void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 
 #ifndef _OMX_ML_OBJECTIVE_
 #define _OMX_ML_OBJECTIVE_ TRUE
@@ -123,27 +125,36 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C, *I;
 
-
+	omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
+	
     /* Locals for readability.  Compiler should cut through this. */
-	scov 		= ((omxMLObjective*)oo->argStruct)->observedCov;
-	smeans		= ((omxMLObjective*)oo->argStruct)->observedMeans;
-	cov			= ((omxMLObjective*)oo->argStruct)->expectedCov;
-	means 		= ((omxMLObjective*)oo->argStruct)->expectedMeans;
-	localCov 	= ((omxMLObjective*)oo->argStruct)->localCov;
-	localProd 	= ((omxMLObjective*)oo->argStruct)->localProd;
-	P		 	= ((omxMLObjective*)oo->argStruct)->P;
-	C		 	= ((omxMLObjective*)oo->argStruct)->C;
-	I		 	= ((omxMLObjective*)oo->argStruct)->I;
-	double n 	= ((omxMLObjective*)oo->argStruct)->n;
-	double Q	= ((omxMLObjective*)oo->argStruct)->logDetObserved;
+	scov 		= omo->observedCov;
+	smeans		= omo->observedMeans;
+	cov			= omo->expectedCov;
+	means 		= omo->expectedMeans;
+	localCov 	= omo->localCov;
+	localProd 	= omo->localProd;
+	P		 	= omo->P;
+	C		 	= omo->C;
+	I		 	= omo->I;
+	double n 	= omo->n;
+	double Q	= omo->logDetObserved;
+	omxObjective* subObjective = oo->subObjective;
 
     /* Recompute and recopy */
-	omxRecompute(cov);							// We assume data won't need to be recomputed
+	if(!(subObjective == NULL)) {
+        omxObjectiveCompute(subObjective);
+	} else {
+		omxRecompute(cov);
+		omxRecompute(means);
+	}
+
 	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
 
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(scov, "Observed Covariance is");
 		omxPrint(localCov, "Implied Covariance Is");
+		omxPrint(cov, "Original Covariance Is");
 	}
 
 	/* Calculate |expected| */
@@ -244,32 +255,93 @@ unsigned short int omxNeedsUpdateMLObjective(omxObjective* oo) {
 	return 0;
 }
 
-void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
+void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
+    if(OMX_DEBUG) { Rprintf("Populating ML Attributes.\n"); }
 
-	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
+	omxMLObjective *argStruct = ((omxMLObjective*)oo->argStruct);
+	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
+	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
-	SEXP nextMatrix;
-	int info=0;
-	double det=1.0;
-	char u = 'U';
-	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
+	SEXP expCovExt, expMeanExt;
+	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	for(int row = 0; row < expCovInt->rows; row++)
+		for(int col = 0; col < expCovInt->cols; col++)
+			REAL(expCovExt)[col * expCovInt->rows + row] =
+				omxMatrixElement(expCovInt, row, col);
+
+	if (expMeanInt != NULL) {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		for(int row = 0; row < expMeanInt->rows; row++)
+			for(int col = 0; col < expMeanInt->cols; col++)
+				REAL(expMeanExt)[col * expMeanInt->rows + row] =
+					omxMatrixElement(expMeanInt, row, col);
+	} else {
+		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+	}   
+	setAttrib(algebra, install("expCov"), expCovExt);
+	setAttrib(algebra, install("expMean"), expMeanExt);
+	UNPROTECT(2);
+
+}
+
+void omxSetMLObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to ML Objective Calls */
 	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
-	oo->repopulateFun = NULL;
-	oo->argStruct = (void*) newObj;
+	oo->populateAttrFun = omxPopulateMLAttributes;
+	
+}
 
+void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 
+	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
+
+	SEXP nextMatrix;
+	omxMatrix *cov, *means;
+	
+	/* Read and set expected means and variances */
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
+	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
+	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
+		if(OMX_DEBUG) {
+			Rprintf("ML: No Expected Means.\n");
+		}
+		means = NULL;
+	} else {
+		means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		if(OMX_DEBUG) { Rprintf("Means matrix created at 0x%x.\n", means); }
+	}
+	UNPROTECT(1);
+
+	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
+	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
+	cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	UNPROTECT(1);
+	
+	omxCreateMLObjective(oo, rObj, cov, means);
+	
+}
+
+void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
+	
+	SEXP nextMatrix;
+	int info = 0;
+	double det = 1.0;
+	char u = 'U';
+	
+	omxSetMLObjectiveCalls(oo);
+	
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
 			if(OMX_DEBUG) { Rprintf("Raw Data: Converting to FIML.\n"); }
-			omxInitFIMLObjective(oo, rObj);
+            UNPROTECT(1); // Cleanup before sending to omxCreateFIML.
+			omxCreateFIMLObjective(oo, rObj, cov, means);
 			return;
 		}
 		char *errstr = calloc(250, sizeof(char));
@@ -279,6 +351,18 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 		if(OMX_DEBUG) { Rprintf("ML Objective unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
 		return;
 	}
+	
+	if(cov == NULL) {
+		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
+			"Developer Error in ML-based objective object: ML-based subobjectives must specify a model-implied covariance matrix.\nIf you are not developing a new objective type, you should probably post this to the OpenMx forums.");
+		return;
+	}
+
+	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
+
+	newObj->expectedCov = cov;
+	newObj->expectedMeans = means;
+
 	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
 	newObj->observedCov = omxDataMatrix(dataMat, NULL);
 	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
@@ -287,23 +371,20 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
 	newObj->n = omxDataNumObs(dataMat);
 	UNPROTECT(1); // nextMatrix
-
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
-	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("ML: No Expected Means.\n");
-		}
-		newObj->expectedMeans = NULL;
-	} else {
-		newObj->expectedMeans = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	
+	// Error Checking: Observed/Expected means must agree.  
+	// ^ is XOR: true when one is false and the other is not.
+	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
+	    if(newObj->expectedMeans != NULL) {
+		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			    "Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+		    return;
+	    } else {
+		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			    "Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+		    return;	        
+	    }
 	}
-	UNPROTECT(1);
-
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
-	newObj->expectedCov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);
 
 	/* Temporary storage for calculation */
 	int rows = newObj->observedCov->rows;
@@ -320,7 +401,6 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 
 	newObj->lwork = newObj->expectedCov->rows;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
-
 
 	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
@@ -342,6 +422,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
 
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
+    oo->argStruct = (void*)newObj;
 
 }
 
