@@ -35,7 +35,7 @@ mxCompare(base, comparison, ..., all = FALSE)
 }
 
 \details{
-Use options(\sQuote{digits}=N) to set the minimum number of significant digits to be printed in values. The following columns appear in the output:
+Use options('digits' = N) to set the minimum number of significant digits to be printed in values. The following columns appear in the output:
 \describe{
 \item{base}{Name of the base model}
 \item{comparison}{Name of the comparison model}
@@ -49,7 +49,7 @@ Use options(\sQuote{digits}=N) to set the minimum number of significant digits t
 }
 
 \seealso{
-\code{\link{mxModel}} 
+\code{\link{mxModel}};  \code{\link{options}} (use options('mxOptions') to see all the OpenMx-specific options) 
 }
 
 \examples{
@@ -60,25 +60,31 @@ latents <- c("G1")
 model1 <- mxModel("One Factor", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
-      mxPath(from=latents, to=manifests),
-      mxPath(from=manifests, arrows=2),
-      mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-      mxData(cov(demoOneFactor), type="cov",numObs=500)
+      mxPath(from = latents, to=manifests),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxData(cov(demoOneFactor), type = "cov", numObs = 500)
 )
 
 fit1 <- mxRun(model1)
 
-latents <- c("G1","G2")
-model2 <- mxModel("Two Factor", type="RAM",
+latents <- c("G1", "G2")
+model2 <- mxModel(name="Two Factor", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
-      mxPath(from=latents[1], to=manifests[1:3]),
-      mxPath(from=latents[2], to=manifests[4:5]),
-      mxPath(from=manifests, arrows=2),
-      mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-      mxData(cov(demoOneFactor), type="cov",numObs=500)
+      mxPath(from = latents[1], to=manifests[1:3]),
+      mxPath(from = latents[2], to=manifests[4:5]),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxData(cov(demoOneFactor), type = "cov", numObs=500)
 )
 fit2 <- mxRun(model2)
 
 mxCompare(fit1, c(fit2))
+
+# vary precision of the output (no effect for this example)
+oldPrecision = as.numeric(options('digits')) 
+options('digits' = 3)
+mxCompare(fit1, c(fit2))
+options('digits' = oldPrecision)
 }
