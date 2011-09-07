@@ -85,7 +85,8 @@ otherOptions <- list(
 	"Error Checking" = "Yes",
 	"No Sort Data" = character(),
 	"RAM Inverse Optimization" = "Yes",
-	"RAM Max Depth" = NA
+	"RAM Max Depth" = NA,
+	"Number of Cores" = 1
 )
 
 generateOptionsList <- function(input, constraints, useOptimizer) {
