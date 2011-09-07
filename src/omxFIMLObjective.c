@@ -494,7 +494,15 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             omxObjectiveCompute(subObjective);
         } else {
             omxRecompute(cov);			// Only recompute this here if there are no definition vars
-            omxRecompute(means);
+            omxRecompute(means); 
+            // MCN Also do the threshold formulae!
+             for(int j=0; j < dataColumns->cols; j++) {
+ 				int var = omxVectorElement(dataColumns, j);
+ 				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+ 					omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+ 					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
+ 				}
+ 			}
         }
         if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
         if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
