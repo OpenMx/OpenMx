@@ -431,7 +431,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	int returnRowLikelihoods = 0;
 	int keepCov = 0, keepInverse = 0;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *ordColumns;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
 	omxMatrix *cor, *smallThresh;
     omxMatrix *ordMeans, *ordCov, *ordRow;
     omxMatrix *halfCov, *reduceCov, *ordContCov;
@@ -518,6 +518,14 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         } else {
             omxRecompute(cov);			// Only recompute this here if there are no definition vars
             omxRecompute(means);
+            // MCN Also do the threshold formulae!
+            for(int j=0; j < dataColumns->cols; j++) {
+                int var = omxVectorElement(dataColumns, j);
+                if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+                    omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+                    checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
+                }
+            }
         }
         if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
         if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
@@ -772,7 +780,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             int count = 0;
     		for(int j = 0; j < dataColumns->cols; j++) {
                 if(ordRemove[j]) continue;         // NA or non-ordinal
-                int var = omxVectorElement(ordColumns, j);
+                int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var); //  TODO: Compare with extraction from dataRow.
                 // Rprintf("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
     	        value--;		// Correct for C indexing: value is now the index of the upper bound.

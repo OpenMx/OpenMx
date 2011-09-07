@@ -1,3 +1,8 @@
+trunk
+=====
+* fixed several bugs in joint ordinal-continuous integration
+* fixed several typos in User Guide
+
 Release  1.1.0-1764 (August 22, 2011)
 =====================================
 * Joint and Ordinal documentation included and up to date.
