@@ -57,9 +57,9 @@ unsigned short omxEstimateHessian(omxMatrix** matList, int numHessians, double f
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = {
-{"callNPSOL", (void*(*)())&callNPSOL, 10},
+{"callNPSOL", (void*(*)())&callNPSOL, 11},
 {"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
-{"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 1},
+{"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 5},
 {NULL, NULL, 0}
 };
 
