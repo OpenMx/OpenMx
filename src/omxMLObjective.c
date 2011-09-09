@@ -1,4 +1,4 @@
-/*
+ /*
  *  Copyright 2007-2009 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,7 +113,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
-	double sum = 0.0, det = 1.0;
+	double sum = 0.0, det = 0.0;
 	char u = 'U';
 	char r = 'R';
 	int info = 0;
@@ -176,13 +176,14 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		return;																		// Leave output untouched
 	}
 
+	//det = log(det)	// TVO: changed multiplication of det to first log and the summing up; this line should just set det to zero.
 	for(info = 0; info < localCov->cols; info++) { 	    	// |cov| is the square of the product of the diagonal elements of U from the LU factorization.
-		det *= localCov->data[info+localCov->rows*info];
+		det += log(fabs(localCov->data[info+localCov->rows*info])); // TVO: changed * to + and added fabs command
 	}
-	det *= det;
+	det *= 2.0;		// TVO: instead of det *= det;
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Determinant of Expected Cov: %f\n", det); }
-	det = log(fabs(det));
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Determinant of Expected Cov: %f\n", exp(det)); }
+	// TVO: removed det = log(fabs(det))
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
 
 	/* Calculate Expected^(-1) */
