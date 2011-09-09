@@ -409,7 +409,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	int returnRowLikelihoods = 0;
 	int keepCov = 0, keepInverse = 0;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns, *ordColumns;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
 	omxMatrix *cor, *smallThresh;
 	omxMatrix *rowLikelihoods;
     omxMatrix *ordMeans, *ordCov, *ordRow;
