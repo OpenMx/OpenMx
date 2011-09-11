@@ -4,7 +4,7 @@ RBUILD = build
 RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2dvi
-TARGET = OpenMx_1.1.0-1764.tar.gz
+TARGET = OpenMx_1.1.0-1783.tar.gz
 PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
@@ -78,7 +78,7 @@ pdf:
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
-	cd $(RBUILD); tar -zxf *.tgz
+	cd $(RBUILD); gnutar -zxf *.tgz
 	mv build/OpenMx/html build/html
 	mv build/OpenMx/demo build/demo
 	cp build/html/* docs/source/static/Rdoc
@@ -100,7 +100,7 @@ common-buildppc: clean internal-build
 post-build:
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *;\
-	tar --delete --file=`ls` OpenMx/npsol;\
+	gnutar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
 
 
