@@ -632,6 +632,8 @@ GCC_VERSION
 AWK
 npsol_dir
 compiler_specific_flags
+arch_specific_linker_flags
+arch_specific_compiler_flags
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -2714,8 +2716,16 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
 case "${host_os}" in
-linux-gnu*) omx_platform=linux ;;
-darwin*) omx_platform=osx ;;
+linux-gnu*)
+    omx_platform=linux
+    arch_specific_linker_flags=""
+    arch_specific_compiler_flags=""
+    ;;
+darwin*)
+    omx_platform=osx
+    arch_specific_linker_flags="-mmacosx-version-min=10.4"
+    arch_specific_compiler_flags="-mmacosx-version-min=10.4"
+    ;;
 *) { { echo "$as_me:$LINENO: error: host os is not recognized: ${host_os}" >&5
 echo "$as_me: error: host os is not recognized: ${host_os}" >&2;}
    { (exit 1); exit 1; }; } ;;
@@ -2915,6 +2925,8 @@ fi
 
 
 npsol_dir="../${npsol_library}"
+
+
 
 
 ac_config_files="$ac_config_files src/Makevars"
@@ -3615,11 +3627,13 @@ GCC_VERSION!$GCC_VERSION$ac_delim
 AWK!$AWK$ac_delim
 npsol_dir!$npsol_dir$ac_delim
 compiler_specific_flags!$compiler_specific_flags$ac_delim
+arch_specific_linker_flags!$arch_specific_linker_flags$ac_delim
+arch_specific_compiler_flags!$arch_specific_compiler_flags$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 58; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 60; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
