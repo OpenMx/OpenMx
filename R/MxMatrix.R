@@ -250,19 +250,19 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 			if (is.na(nrow) && is.na(ncol)) {
 				stop(paste("Two or more matrix inputs have different dimensions.",
 					"Use the 'nrow' and 'ncol' arguments in",
-					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 			}
 			if (!(type %in% squareMatrices) && (is.na(nrow) || is.na(ncol))) {
 				stop(paste("Two or more matrix inputs have different dimensions.",
 					"Use the 'nrow' and 'ncol' arguments in",
-					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 			}
 		}
 	}
 	if (is.na(nrow) && is.na(ncol)) {
 		if(length(theMatrices) == 0) {
 			stop(paste("You must specify 'nrow' and 'ncol' arguments in",
-					deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 		}
 		nrow <- dim(theMatrices[[1]])[[1]]
 		ncol <- dim(theMatrices[[1]])[[2]]
@@ -291,7 +291,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (!is.character(name)) {
 		stop(paste("'name' argument must",
 			"be a character vector in", 
-			deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol, name)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
@@ -302,7 +302,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 			stop(paste("Either 'nrow' or 'ncol'",
 				"must be specified on a",
 				"square matrix in", 
-				deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 		} else if (is.na(nrow)) {
 			nrow <- ncol
 		} else if (is.na(ncol)) {
@@ -312,7 +312,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 		stop(paste("Both 'nrow' and 'ncol'",
 					"must be specified on a",
 					"non-square matrix in",
-					deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	values <- as.numeric.preserve(values)
 	lbound <- as.numeric.preserve(lbound)
@@ -341,7 +341,7 @@ matrixCheckArgument <- function(arg, name) {
 	if (is.list(arg) || isS4(arg)) {
 		stop(paste(omxQuotes(name), "argument to mxMatrix function",
 			"must be a scalar, a vector, or a matrix in",
-			deparse(width.cutoff = 400L, sys.call(-2))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 }
 
@@ -350,7 +350,7 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	if (is.na(match(type, matrixTypes))) {
 		stop(paste("Type must be one of:", 
 			paste(matrixTypes, collapse=" "),
-			"in", deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			"in", deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	matrixCheckArgument(values, 'values')
 	matrixCheckArgument(free, 'free')
@@ -360,43 +360,43 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	if (!is.numeric(values)) {
 		stop(paste("'values' argument to mxMatrix function",
 			"must be of numeric type in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (!is.logical(free)) {
 		stop(paste("'free' argument to mxMatrix function",
 			"must be of logical type in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (!is.character(labels)) {
 		stop(paste("'labels' argument to mxMatrix function",
 			"must be of character type in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (!is.numeric(lbound)) {
 		stop(paste("'lbound' argument to mxMatrix function",
 			"must be of numeric type in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (!is.numeric(ubound)) {
 		stop(paste("'ubound' argument to mxMatrix function",
 			"must be of numeric type in", 
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	lapply(labels, imxVerifyReference, -2)
 	if(any(is.na(free))) {
 		stop(paste("'free' argument to mxMatrix function",
 			"cannot contain an NA in",
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (length(nrow) != 1 || !is.numeric(nrow)) {
 		stop(paste("'nrow' argument to mxMatrix function",
 			"must be either NA or a single numeric value in",
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	if (length(ncol) != 1 || !is.numeric(ncol)) {
 		stop(paste("'ncol' argument to mxMatrix function",
 			"must be either NA or a single numeric value in",
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 }
 
