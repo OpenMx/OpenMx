@@ -682,11 +682,12 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 			}
 
 			// Calculate determinant: squared product of the diagonal of the decomposition
-			determinant = 1.0;
+			// For speed, use sum of logs rather than log of product.
+			determinant = 0.0;
 			for(int diag = 0; diag < (smallCov->rows); diag++) {
-				determinant *= omxMatrixElement(smallCov, diag, diag);
+				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
 			}
-			determinant = determinant * determinant;
+            // determinant = determinant * determinant;  // Delayed.
 			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 			if(info != 0) {
 				if(!returnRowLikelihoods) {
@@ -842,8 +843,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         // }
 
 		if(returnRowLikelihoods) {
-		    if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
-			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q) * likelihood;
+		    if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
             
 			if(OMX_DEBUG_ROWS) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
@@ -851,18 +852,18 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
 			}
 		} else {
-            double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q) * likelihood;            
+            double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;            
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, val);
 			}
 			logDet = -2 * log(likelihood);       // -2 Log of ordinal likelihood
-            logDet += (log(determinant) + Q + (log(2 * M_PI) * smallRow->cols));    // -2 Log of continuous likelihood
+            logDet += ((2 * determinant) + Q + (log(2 * M_PI) * smallRow->cols));    // -2 Log of continuous likelihood
             // logDet *= numIdentical;
 
             sum += logDet;
 			
 			if(OMX_DEBUG_ROWS) { 
-				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), -2  * log(likelihood), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
+				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), -2  * log(likelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
 			} 
 
 			if(OMX_DEBUG_ROWS) {
@@ -1072,11 +1073,13 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 			}
 			
 			// Calculate determinant: squared product of the diagonal of the decomposition
-			determinant = 1.0;
+			// For speed, we'll take the sum of the logs, rather than the log of the product
+			determinant = 0.0;
 			for(int diag = 0; diag < (smallCov->rows); diag++) {
-				determinant *= omxMatrixElement(smallCov, diag, diag);
+				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
+                // if(OMX_DEBUG_ROWS) { Rprintf("Next det is: %3.3d\n", determinant);} //:::DEBUG:::
 			}
-			determinant = determinant * determinant;
+            // determinant = determinant * determinant; // Delayed for now.
 			
 			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 			if(info != 0) {
@@ -1111,21 +1114,21 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
 		if(returnRowLikelihoods) {
-			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/sqrt(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q));}
-			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q);
+			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(localobj->matrix, omxDataIndex(data, j), 0, sum);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
 			}
 		} else {
-			double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/sqrt(determinant)) * exp(-.5 * Q);
+			double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, val);
 			}
-			sum += (log(determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
+			sum += ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			if(OMX_DEBUG_ROWS) {
-				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", localobj->matrix->currentState->currentRow, log(determinant), Q, (log(2 * M_PI) * smallRow->cols), log(determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
+				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
 			}
 		}
 		if(firstRow) firstRow = 0;
