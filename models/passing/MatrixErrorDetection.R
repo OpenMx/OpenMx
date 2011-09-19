@@ -56,3 +56,95 @@ omxCheckError(mxRun(model),
 	"evaluating the subexpression 'model.C[2, 3]' during",
 	"the evaluation of 'label at row 1 and column 1 of matrix 'D''",
 	"in model 'model' : subscript out of bounds"))
+# Error check for values parameter
+loadings <- c(1, -0.625, 0.1953125, 1,  "h", 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Full", free=FALSE, values=loadings, name="L", byrow=TRUE),
+        paste("'values' argument to mxMatrix function must be of numeric type",
+              "in mxMatrix(\"Full\", free = FALSE, values = loadings,",
+              "name = \"L\", byrow = TRUE)"))
+# Error check for free parameter
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Full", free="FALSE", values=loadings, name="L", byrow=TRUE),
+        paste("'free' argument to mxMatrix function must be of logical type",
+              "in mxMatrix(\"Full\", free = \"FALSE\", values = loadings,",
+              "name = \"L\", byrow = TRUE)"))
+# Error check for type parameter
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("wrong", free=FALSE, values=loadings, name="L", byrow=TRUE),
+        paste("Type must be one of: Diag Full Iden Lower Stand Sdiag Symm Unit Zero",
+              "in mxMatrix(\"wrong\", free = FALSE, values = loadings,",
+              "name = \"L\", byrow = TRUE)"))
+#Error check both nrow and ncol are na
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+omxCheckError(mxMatrix("Full", free=FALSE, values=loadings, name="L", byrow=TRUE),
+        paste("You must specify 'nrow' and 'ncol' arguments in mxMatrix(\"Full\",",
+              "free = FALSE, values = loadings, name = \"L\", byrow = TRUE)"))
+#Error check upper values of a lower matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 3, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Lower", free=FALSE, values=loadings, name="L", byrow=TRUE),
+        paste("Upper triangle of values matrix in lower matrix 'L' is not all zeros!",
+              "mxMatrix(\"Lower\", free = FALSE, values = loadings,", 
+              "name = \"L\", byrow = TRUE)"))
+#Error check squareness of a Lower matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Lower", free=FALSE, values=loadings, name="L", byrow=TRUE),
+		paste("Non-square matrix attempted for lower matrix constructor",
+			  "mxMatrix(\"Lower\", free = FALSE, values = loadings,", 
+			  "name = \"L\", byrow = TRUE)"))
+#Error check squareness of a Symmetrical matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Symm", free=FALSE, values=loadings, name="L", byrow=TRUE),
+	    paste("Non-square matrix attempted for symmmetric matrix constructor",
+			  "mxMatrix(\"Symm\", free = FALSE, values = loadings,", 
+			  "name = \"L\", byrow = TRUE)"))
+#Error check squareness of a Diagonal matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Diag", free=FALSE, values=loadings, name="L", byrow=TRUE),
+		paste("Non-square matrix attempted for diagonal matrix constructor",
+			  "mxMatrix(\"Diag\", free = FALSE, values = loadings,", 
+			  "name = \"L\", byrow = TRUE)"))	
+#Error check squareness of a Standardized matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Stand", free=FALSE, values=loadings, name="L", byrow=TRUE),
+		paste("Non-square matrix attempted for standardized matrix constructor",
+			  "mxMatrix(\"Stand\", free = FALSE, values = loadings,", 
+			  "name = \"L\", byrow = TRUE)"))		
+#Error check squareness of a subdiagonal matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 2, 3, byrow = TRUE)
+omxCheckError(mxMatrix("Sdiag", free=FALSE, values=loadings, name="L", byrow=TRUE),
+		paste("Non-square matrix attempted for subdiagonal matrix constructor",
+		      "mxMatrix(\"Sdiag\", free = FALSE, values = loadings,", 
+			  "name = \"L\", byrow = TRUE)"))
+#Warning Check ignore values warning for Identity Matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 3, 3, byrow = TRUE)
+omxCheckWarning(mxMatrix("Iden", free=FALSE, values=loadings, name="L", byrow=TRUE),
+        paste("Ignoring values matrix for identity matrix construction",
+              "mxMatrix(\"Iden\", free = FALSE, values = loadings,",
+              "name = \"L\", byrow = TRUE)"))
+#Warning Check ignore values warning for Identity Matrix
+loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125, 1,  -0.625, 0.1953125)
+loadings <- matrix(loadings, 3, 3, byrow = TRUE)
+omxCheckWarning(mxMatrix("Zero", free=FALSE, values=loadings, name="L", byrow=TRUE),
+	    paste("Ignoring values matrix for zero matrix constructor",
+			  "mxMatrix(\"Zero\", free = FALSE, values = loadings,",
+			  "name = \"L\", byrow = TRUE)"))
+#Warning Check ignore free matrix for Zero Matrix
+omxCheckWarning(mxMatrix("Zero", free = TRUE, name = "L", nrow = 3, ncol = 3, byrow = TRUE),
+	    paste("Ignoring free matrix for zero matrix constructor",
+			  "mxMatrix(\"Zero\", free = TRUE,",
+			  "name = \"L\", nrow = 3, ncol = 3, byrow = TRUE)"))
+#Warning Check ignore free matrix for Identity Matrix
+omxCheckWarning(mxMatrix("Iden", free = TRUE, name = "L", nrow = 3, ncol = 3, byrow = TRUE),
+		paste("Ignoring free matrix for identity matrix construction",
+			  "mxMatrix(\"Iden\", free = TRUE,",
+			  "name = \"L\", nrow = 3, ncol = 3, byrow = TRUE)"))			

@@ -43,8 +43,8 @@ populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 	} else {
 		stop(paste(
 			"Illegal number of elements (", len,
-			") for ", strname, " matrix of subdiagonal matrix constructor", sep=""),
-			call. = FALSE)
+			") for ", strname, " matrix of subdiagonal matrix constructor", sep="",
+			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	return(output)
 }
@@ -52,7 +52,8 @@ populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 setMethod("imxCreateMatrix", "SdiagMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for subdiagonal matrix constructor", call. = FALSE)
+			stop("Non-square matrix attempted for subdiagonal matrix constructor ",
+			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), call. = FALSE)
 		}
 		if (single.na(values)) {
 			values <- 0
@@ -87,23 +88,33 @@ setMethod("imxVerifyMatrix", "SdiagMatrix",
 		ubound <- .Object@ubound
 		if (!all(values[upper.tri(values, TRUE)]  == 0)) {
 			stop(paste("Upper triangle or diagonal of values matrix in subdiagonal matrix", omxQuotes(.Object@name), 
-				"is not all zeros!"), call. = FALSE)
+				"is not all zeros!", 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+				call. = FALSE)
 		}
 		if (!all(free[upper.tri(free, TRUE)] == FALSE)) {
 			stop(paste("Upper triangle or diagonal of free matrix in subdiagonal matrix", omxQuotes(.Object@name), 
-				"is not all fixed!"), call. = FALSE)
+				"is not all fixed!", 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+				call. = FALSE)
 		}
 		if (!all(is.na(labels[upper.tri(labels, TRUE)]))) {
 			stop(paste("Upper triangle or diagonal of labels matrix in subdiagonal matrix", omxQuotes(.Object@name), 
-				"is not all NAs!"), call. = FALSE)
+				"is not all NAs!", 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+				call. = FALSE)
 		}
 		if (!all(is.na(lbound[upper.tri(labels, TRUE)]))) {
 			stop(paste("Upper triangle or diagonal of lbound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
-				"is not all NAs!"), call. = FALSE)
+				"is not all NAs!", 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+				call. = FALSE)
 		}
 		if (!all(is.na(ubound[upper.tri(labels, TRUE)]))) {
 			stop(paste("Upper triangle or diagonal of ubound matrix in subdiagonal matrix", omxQuotes(.Object@name), 
-				"is not all NAs!"), call. = FALSE)
+				"is not all NAs!", 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+				call. = FALSE)
 		}
 	}
 )

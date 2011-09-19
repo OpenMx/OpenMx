@@ -149,6 +149,24 @@ trim <- function(input) {
 	return(input)
 }
 
+omxCheckWarning <- function(expression, message) {
+	inputExpression <- match.call()$expression
+	checkWarningState <- FALSE
+	tryCatch(eval(inputExpression), warning = function(x) {
+		if(trim(x$message) != trim(message)) {
+			stop(paste("An warning was thrown with the wrong message:",
+				x$message), call. = FALSE)
+		} else { checkWarningState <<- TRUE }
+	})
+	if (!checkWarningState) {
+		stop(paste("No warning was observed for the expression",
+			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
+	} else if (getOption("mxPrintUnitTests")) {
+		cat(paste("The expected warning was observed for the expression",
+			deparse(inputExpression, width.cutoff = 500L), '\n'))
+	}
+}
+
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	checkErrorState <- FALSE
