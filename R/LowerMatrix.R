@@ -43,7 +43,7 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 	} else {
 		stop(paste(
 			"Illegal number of elements (", len,
-			") for ", strname, " matrix of lower matrix constructor", sep="",
+			") for ", strname, " matrix in the construction of ", sep="",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	return(output)
@@ -52,8 +52,8 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 setMethod("imxCreateMatrix", "LowerMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for lower matrix constructor ",
-			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
+			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
+			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
                              call. = FALSE)
 		}
 		if (single.na(values)) {

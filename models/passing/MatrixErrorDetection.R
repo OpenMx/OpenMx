@@ -93,35 +93,35 @@ omxCheckError(mxMatrix("Lower", free=FALSE, values=loadings, name="L", byrow=TRU
 loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
 loadings <- matrix(loadings, 2, 3, byrow = TRUE)
 omxCheckError(mxMatrix("Lower", free=FALSE, values=loadings, name="L", byrow=TRUE),
-		paste("Non-square matrix attempted for lower matrix constructor",
+		paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			  "mxMatrix(\"Lower\", free = FALSE, values = loadings,", 
 			  "name = \"L\", byrow = TRUE)"))
 #Error check squareness of a Symmetrical matrix
 loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
 loadings <- matrix(loadings, 2, 3, byrow = TRUE)
 omxCheckError(mxMatrix("Symm", free=FALSE, values=loadings, name="L", byrow=TRUE),
-	    paste("Non-square matrix attempted for symmmetric matrix constructor",
+	    paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			  "mxMatrix(\"Symm\", free = FALSE, values = loadings,", 
 			  "name = \"L\", byrow = TRUE)"))
 #Error check squareness of a Diagonal matrix
 loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
 loadings <- matrix(loadings, 2, 3, byrow = TRUE)
 omxCheckError(mxMatrix("Diag", free=FALSE, values=loadings, name="L", byrow=TRUE),
-		paste("Non-square matrix attempted for diagonal matrix constructor",
+		paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			  "mxMatrix(\"Diag\", free = FALSE, values = loadings,", 
 			  "name = \"L\", byrow = TRUE)"))	
 #Error check squareness of a Standardized matrix
 loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
 loadings <- matrix(loadings, 2, 3, byrow = TRUE)
 omxCheckError(mxMatrix("Stand", free=FALSE, values=loadings, name="L", byrow=TRUE),
-		paste("Non-square matrix attempted for standardized matrix constructor",
+		paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			  "mxMatrix(\"Stand\", free = FALSE, values = loadings,", 
 			  "name = \"L\", byrow = TRUE)"))		
 #Error check squareness of a subdiagonal matrix
 loadings <- c(1, -0.625, 0.1953125, 1,  -0.625, 0.1953125)
 loadings <- matrix(loadings, 2, 3, byrow = TRUE)
 omxCheckError(mxMatrix("Sdiag", free=FALSE, values=loadings, name="L", byrow=TRUE),
-		paste("Non-square matrix attempted for subdiagonal matrix constructor",
+		paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 		      "mxMatrix(\"Sdiag\", free = FALSE, values = loadings,", 
 			  "name = \"L\", byrow = TRUE)"))
 #Warning Check ignore values warning for Identity Matrix

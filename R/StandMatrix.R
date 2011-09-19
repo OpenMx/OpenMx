@@ -56,8 +56,8 @@ populateStandTriangle <- function(input, n, default, byrow, strname) {
 setMethod("imxCreateMatrix", "StandMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for standardized matrix constructor ",
-			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
+			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
+			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
                              call. = FALSE)
 		}
 		if (single.na(values)) {

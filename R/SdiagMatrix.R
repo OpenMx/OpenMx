@@ -52,8 +52,9 @@ populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 setMethod("imxCreateMatrix", "SdiagMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for subdiagonal matrix constructor ",
-			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), call. = FALSE)
+			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
+			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
+                             call. = FALSE)
 		}
 		if (single.na(values)) {
 			values <- 0
