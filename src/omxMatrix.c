@@ -223,6 +223,23 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	return newMat;
 }
 
+omxMatrix* omxDuplicateMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
+    omxMatrix* newMat;
+    
+    if(src == NULL) return NULL;
+    newMat = omxInitMatrix(tgt, src->rows, src->cols, FALSE, newState);
+    omxCopyMatrix(newMat, src);
+    if(src->algebra != NULL) {
+        omxDuplicateAlgebraMatrix(newMat, src, newState, fullCopy);
+    }
+    if(src->objective != NULL) {
+        omxDuplicateObjectiveMatrix(newMat, src, newState, fullCopy);
+    }
+    
+    return newMat;
+    
+}
+
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { 

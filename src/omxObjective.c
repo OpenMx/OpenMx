@@ -110,6 +110,22 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->gradient = NULL;
 }
 
+omxObjective* omxCreateSubObjective(omxObjective *oo) {
+
+	if(OMX_DEBUG) {Rprintf("Creating SubObjective Object....\n");}
+    if(oo == NULL) {
+	 	if(OMX_DEBUG) {Rprintf("Got Null objective.  Returning.");}
+		return NULL;
+	}
+    omxObjective* subObjective = (omxObjective*) Calloc(1, omxObjective);
+    omxInitEmptyObjective(subObjective);
+	omxDuplicateObjective(subObjective, oo, oo->matrix->currentState, FALSE);
+	oo->subObjective = subObjective;
+	
+    return subObjective;
+
+}
+
 void omxFreeObjectiveArgs(omxObjective *oo) {
     if(oo==NULL) return;
     
@@ -142,24 +158,49 @@ void omxObjectiveCompute(omxObjective *oo) {
 		omxMatrixCompute(oo->matrix);
 }
 
-void omxDuplicateObjective(omxObjective *tgt, const omxObjective *src, unsigned int duplicateUnshared) {
+void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState, short duplicateUnshared) {
+
+    if(tgt == NULL || src == NULL) return;
+    if(src->objective == NULL) {
+        return;
+    }
+    
+    omxObjective* target = tgt->objective;
+    omxObjective* source = src->objective;
+
+	tgt->objective = omxDuplicateObjective(target, source, newState, duplicateUnshared);
+
+}
+
+omxObjective* omxDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState, short duplicateUnshared) {
+
+	if(OMX_DEBUG) {Rprintf("Duplicating objective 0x%x into 0x%x.", src, tgt);}
+
+	if(src == NULL) {
+		return NULL;
+	}
 	
+	if(tgt == NULL) {
+        tgt = (omxObjective*) R_alloc(1, sizeof(omxObjective));
+        omxInitEmptyObjective(tgt);
+    }
+
 	tgt->initFun 				= src->initFun;
 	tgt->destructFun 			= src->destructFun;
 	tgt->repopulateFun 			= src->repopulateFun;
 	tgt->objectiveFun 			= src->objectiveFun;
-	tgt->needsUpdateFun 		= src->needsUpdateFun;
+	tgt->needsUpdateFun			= src->needsUpdateFun;
 	tgt->getStandardErrorFun 	= src->getStandardErrorFun;
-    tgt->populateAttrFun 		= src->populateAttrFun;
+	tgt->populateAttrFun 		= src->populateAttrFun;
 	tgt->setFinalReturns 		= src->setFinalReturns;
 	tgt->gradientFun 			= src->gradientFun;
-    tgt->sharedArgs             = src->sharedArgs;
-    tgt->matrix      			= src->matrix;
+	tgt->sharedArgs				= src->sharedArgs;
+	tgt->matrix      			= src->matrix;
 	tgt->subObjective	 		= src->subObjective;
 	tgt->stdError				= src->stdError;
 	tgt->hessian 				= src->hessian;
 	tgt->gradient 				= src->gradient;
-	
+
 	if(tgt->objType == NULL) tgt->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*)); // Double-check
     strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
 
@@ -167,6 +208,8 @@ void omxDuplicateObjective(omxObjective *tgt, const omxObjective *src, unsigned 
 	    // Duplicate function should replace any shared args from above as well
 	    src->duplicateUnsharedArgs(tgt, src);
     }
+	
+	return tgt;
 
 }
 
@@ -226,8 +269,10 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 		}
 	}
 
-	if(i == omxObjectiveTableLength) { 
-		error("Objective type %s not supported.\n", obj->objType);
+	if(i == omxObjectiveTableLength) {
+		char newError[MAX_STRING_LEN];
+		sprintf(newError, "Objective function %s not implemented.\n", obj->objType);
+		omxRaiseError(om->currentState, -1, newError);
 	}
 
 	obj->initFun(obj, rObj);

@@ -51,7 +51,42 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	oa->numArgs = 0;
 	oa->matrix = om;
 	om->algebra = oa;
+	oa->name = NULL;
 	
+}
+
+void omxDuplicateAlgebraMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
+    // Assumes the matrices themselves have already been duplicated.
+    if(src->algebra == NULL) {
+        tgt->algebra = NULL;
+        return;
+    }
+
+    omxAlgebra *tgtAlg = tgt->algebra;
+    omxAlgebra *srcAlg = src->algebra;
+
+    if(tgtAlg == NULL) {
+        omxInitAlgebraWithMatrix(NULL, tgt);
+		tgtAlg = tgt->algebra;
+    }
+
+	tgt->algebra = omxDuplicateAlgebra(tgtAlg, srcAlg, newState, fullCopy);
+
+}
+
+omxAlgebra* omxDuplicateAlgebra(omxAlgebra* tgt, omxAlgebra* src, omxState* newState, short fullCopy) {
+
+	if(src == NULL || tgt == NULL) { return NULL; }
+
+    tgt->funWrapper = src->funWrapper;  // N.B.: This should work across processes and threads, but might have problems with more complicated structures.
+    tgt->numArgs = src->numArgs;
+    for(int k = 0; k < tgt->numArgs; k++) {
+	    tgt->args[k] = omxLookupDuplicateElement(newState, src->args[k]);
+    }
+
+	tgt->name = src->name;  // Name strings are constant.
+
+	return tgt;
 }
 
 void omxFreeAlgebraArgs(omxAlgebra *oa) {

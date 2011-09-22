@@ -41,8 +41,8 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 	omxRAMObjective* argStruct = (omxRAMObjective*)(oo->argStruct);
 
 	/* We allocated 'em, so we destroy 'em. */
-	if(argStruct->means != NULL)
-        omxFreeMatrixData(argStruct->cov);
+	if(argStruct->cov != NULL)
+		omxFreeMatrixData(argStruct->cov);
 
 	if(argStruct->means != NULL)
 		omxFreeMatrixData(argStruct->means);
@@ -54,7 +54,7 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 	omxFreeMatrixData(argStruct->Ax);
 
 	if(argStruct->ppmlData != NULL) 
-	omxFreeData(argStruct->ppmlData);
+		omxFreeData(argStruct->ppmlData);
 	
 }
 
@@ -293,15 +293,11 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Create and register subobjective */
 
-	omxObjective *subObjective = (omxObjective*) R_alloc(1, sizeof(omxObjective));
-    omxInitEmptyObjective(subObjective);
-	omxDuplicateObjective(subObjective, oo, FALSE);
-	oo->subObjective = subObjective;
+    omxObjective *subObjective = omxCreateSubObjective(oo);
 	
 	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
-	subObjective->argStruct = RAMobj;
 	
-	/* Set Subobjective Calls */
+	/* Set Subobjective Calls and Structures */
 	subObjective->objectiveFun = omxCallRAMObjective;
 	subObjective->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	subObjective->destructFun = omxDestroyRAMObjective;
@@ -360,20 +356,20 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	k = RAMobj->A->cols;
 
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
-			
+
 	RAMobj->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	
+
 	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
 
 	if(RAMobj->M != NULL) {
 		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
 	} else RAMobj->means  = 	NULL;
-	
+
 	/* Create parent objective */
-	
+
 	omxCreateMLObjective(oo, rObj, RAMobj->cov, RAMobj->means);
 	
 }

@@ -31,8 +31,13 @@
 		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numData = 0;
+        state->numChildren = 0;
 		state->matrixList = NULL;
 		state->algebraList = NULL;
+        state->childList = NULL;
+        state->parentState = NULL;
+        state->parentMatrix = NULL;
+        state->parentAlgebra = NULL;
 		state->dataList = NULL;
 		state->objectiveMatrix = NULL;
 		state->hessian = NULL;
@@ -63,6 +68,31 @@
 		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
 	}
 
+    omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
+        if(os == NULL || element == NULL) return NULL;
+        if(os->parentState == NULL) return element; // FIXME: Not sure if this is the correct behavior.
+
+        for(int i = 0; i < os->numMats; i++) {
+            if(os->parentMatrix[i] == element) {
+                if(os->matrixList[i] != NULL)   // Not sure of failure behavior here.
+                    return(os->matrixList[i]);
+                else
+                    omxRaiseError(os, -2, "Initialization Copy Error: Matrix required but not yet processed.");
+            }
+        }
+
+        for(int i = 0; i < os->numAlgs; i++) {
+            if(os->parentAlgebra[i] == element) {
+                if(os->algebraList[i] != NULL)   // Not sure of proper failure behavior here.
+                    return(os->algebraList[i]);
+                else
+                    omxRaiseError(os, -2, "Initialization Copy Error: Algebra required but not yet processed.");
+            }
+        }
+
+        return NULL;
+    }
+
 	void omxFreeState(omxState *oo) {
 		int k;
 		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", oo->numAlgs);}
@@ -82,6 +112,12 @@
 			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->dataList[k]); }
 			omxFreeData(oo->dataList[k]);
 		}
+
+        if(OMX_DEBUG) {Rprintf("Freeing %d Children.\n", oo->numChildren);}
+        for(k = 0; k < oo->numChildren; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Child State %d at 0x%x.\n", k, oo->childList[k]); }
+			omxFreeState(oo->childList[k]);            
+        }
 
 		if(OMX_DEBUG) { Rprintf("Freeing %d Checkpoints.\n", oo->numCheckpoints);}
 		for(k = 0; k < oo->numCheckpoints; k++) {

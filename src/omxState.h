@@ -128,10 +128,15 @@ struct omxState {													// The Current State of Optimization
 /* Model and Optimizer Pointers */
 
 //	omxOptimizer* optimizer;										// Current Optimizer
-	int numMats, numAlgs, numData;									// Number of matrices, algebras, and data elements
+	int numMats, numAlgs, numData, numChildren;						// Number of matrices, algebras, and data elements
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
 	omxData** dataList;												// Data Objects
+    omxState** childList;                                           // List of child states
+    omxState* parentState;                                          // Parent State
+    omxMatrix** parentMatrix;                                       // Parent's Matrix List
+    omxMatrix** parentAlgebra;                                      // Parent's Algebra List
+                                                                    // TODO: Need a way to deal with unregistered matrices
 	omxMatrix* objectiveMatrix;										// Objective Algebra
 
 	/* May want to farm these out to the omxObjective object. */
@@ -179,7 +184,10 @@ struct omxState {													// The Current State of Optimization
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective);
 	void omxFreeState(omxState *oo);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
-
+    void omxDuplicateState(omxState *tgt, omxState* src, unsigned short fullCopy); 
+                                                                        // Duplicates the current state object
+    omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
+    
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error
 																		// TODO: Move RaiseError to omxOptimizer.
 
