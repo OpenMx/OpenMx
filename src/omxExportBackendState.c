@@ -106,35 +106,33 @@ void omxPopulateObjectiveFunction(int numReturns, SEXP *ans, SEXP *names) {
 	}
 }
 
-void omxPopulateHessians(int numHessians, omxMatrix** calculateHessians, 
+void omxPopulateHessians(int numHessians, omxMatrix* currentObjective, 
 		SEXP calculatedHessian, SEXP stdErrors, int calculateStdErrors, int n) {
 	if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
-	for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
-		omxObjective* oo = calculateHessians[j]->objective;
-		if(oo->hessian == NULL) {
-			if(OMX_DEBUG) { Rprintf("Objective %d has no hessian. Aborting.\n", j);}
-			continue;
-		}
+	omxObjective* oo = currentObjective->objective;
+	if(oo->hessian == NULL) {
+		if(OMX_DEBUG) { Rprintf("Objective 0 has no hessian. Aborting.\n");}
+		return;
+	}
 
-		if(OMX_DEBUG) { Rprintf("Objective %d has hessian at 0x%x.\n", j, oo->hessian);}
+	if(OMX_DEBUG) { Rprintf("Objective 0 has hessian at 0x%x.\n", oo->hessian);}
 
-		double* hessian  = REAL(calculatedHessian);
-		double* stdError = REAL(stdErrors);
-		for(int k = 0; k < n * n; k++) {
-			if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
-			hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
-		}
-		if(calculateStdErrors) {
-			if(oo->stdError == NULL) {
-				for(int k = 0; k < n; k++) {
-					if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
-					stdError[k] = R_NaReal;
-				}
-			} else {
-				for(int k = 0; k < n; k++) {
-					if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-					stdError[k] = oo->stdError[k];
-				}
+	double* hessian  = REAL(calculatedHessian);
+	double* stdError = REAL(stdErrors);
+	for(int k = 0; k < n * n; k++) {
+		if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
+		hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
+	}
+	if(calculateStdErrors) {
+		if(oo->stdError == NULL) {
+			for(int k = 0; k < n; k++) {
+				if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
+				stdError[k] = R_NaReal;
+			}
+		} else {
+			for(int k = 0; k < n; k++) {
+				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
+				stdError[k] = oo->stdError[k];
 			}
 		}
 	}

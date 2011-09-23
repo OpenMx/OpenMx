@@ -31,8 +31,9 @@ const double INF = 2e20;
 /* NPSOL-related functions */
 extern void F77_SUB(npoptn)(char* string, int length);
 
-void omxSetNPSOLOpts(SEXP options, omxMatrix*** calculateHessians, int *numHessians, int *calculateStdErrors, 
+void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
 	int *ciMaxIterations, int *disableOptimizer) {
+
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
 		SEXP optionNames;
@@ -46,8 +47,6 @@ void omxSetNPSOLOpts(SEXP options, omxMatrix*** calculateHessians, int *numHessi
 				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
 				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
-					*calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
-					*calculateHessians[0] = currentState->objectiveMatrix;		// TODO: move calculateHessians default
 					*numHessians = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
@@ -55,11 +54,7 @@ void omxSetNPSOLOpts(SEXP options, omxMatrix*** calculateHessians, int *numHessi
 				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
 					*calculateStdErrors = TRUE;
-					if(calculateHessians == NULL) {
-						*calculateHessians = (omxMatrix**) R_alloc(1, sizeof(omxMatrix*));
-						*calculateHessians[0] = currentState->objectiveMatrix;
-						*numHessians = 1;
-					}
+					*numHessians = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, lenName, "CI Max Iterations")) { 
 				int newvalue = atoi(nextOptionValue);

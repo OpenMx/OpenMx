@@ -22,8 +22,7 @@
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND, NEG_INF, INF;
 
-void omxSetNPSOLOpts(SEXP options, omxMatrix*** calculateHessians, 
-	int *numHessians, int *calculateStdErrors, int *ciMaxIterations, 
-	int *disableOptimizer);
+void omxSetNPSOLOpts(SEXP options, int *numHessians, 
+	int *calculateStdErrors, int *ciMaxIterations, int *disableOptimizer);
 
 #endif // #define _OMX_NPSOL_SPECIFIC_H

@@ -12,6 +12,7 @@ trunk
 * eliminated flattenModelHelper() and replaced with functions that use lapply()
 * changed signature of genericObjModelConvert() to return list(job, flatJob) in order to improve performance
 * added '@likelihoods' slot for MxFIMLObjective and MxRAMObjective (when using raw data)
+* added support for OpenMP in hessian calculation
 
 Beta Release 999.0.0-1690 (June 27, 2011)
 =========================================
