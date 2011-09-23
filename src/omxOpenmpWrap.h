@@ -14,20 +14,30 @@
  *  limitations under the License.
  */
 
-#ifndef _NPSOLWRAP_H
-#define _NPSOLWRAP_H
+#ifndef _OMX_OPENMP_WRAP_H
+#define _OMX_OPENMP_WRAP_H
 
-#include "omxState.h"
+#include "Rconfig.h"
 
-/* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
-SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingness, SEXP skipDefvars);
+#ifdef SUPPORT_OPENMP
 
-extern omxState* currentState;
+#include <omp.h>
 
-#endif // #define _NPSOLWRAP_H
+static inline int omx_omp_get_thread_num(void) {
+   return(omp_get_thread_num());
+}
+
+#else
+
+static inline int omx_omp_get_thread_num(void) {
+   return(0);
+}
+
+
+#endif // #ifdef SUPPORT_OPENMP
+
+
+
+
+#endif // #ifndef _OMX_OPENMP_WRAP_H

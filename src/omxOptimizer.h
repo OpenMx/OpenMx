@@ -14,20 +14,13 @@
  *  limitations under the License.
  */
 
-#ifndef _NPSOLWRAP_H
-#define _NPSOLWRAP_H
+#ifndef _OMXOPTIMIZER_H
+#define _OMXOPTIMIZER_H
 
-#include "omxState.h"
+void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 
-/* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
+SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
 
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
-SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingness, SEXP skipDefvars);
 
-extern omxState* currentState;
-
-#endif // #define _NPSOLWRAP_H
+#endif // _OMXOPTIMIZER_H

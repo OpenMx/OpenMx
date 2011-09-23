@@ -14,20 +14,23 @@
  *  limitations under the License.
  */
 
-#ifndef _NPSOLWRAP_H
-#define _NPSOLWRAP_H
+/***********************************************************
+* 
+*  omxMatrix.h
+*
+*  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
+*
+*	Contains header information for the omxMatrix class
+*   omxDataMatrices hold necessary information to simplify
+* 	dealings between the OpenMX back end and BLAS.
+*
+**********************************************************/
 
-#include "omxState.h"
+#ifndef _OMXHESSIAN_CALCULATION_H
+#define _OMXHESSIAN_CALCULATION_H
 
-/* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+unsigned short omxEstimateHessian(int numHessians, double functionPrecision, 
+	int r, omxState* currentState);
 
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
-SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingness, SEXP skipDefvars);
 
-extern omxState* currentState;
-
-#endif // #define _NPSOLWRAP_H
+#endif // _OMXHESSIAN_CALCULATION_H
