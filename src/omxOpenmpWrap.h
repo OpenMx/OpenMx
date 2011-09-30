@@ -20,7 +20,7 @@
 #include "Rconfig.h"
 
 
-#ifdef SUPPORT_OPENMP
+#ifdef _OPENMP
 
 #include <omp.h>
 
@@ -35,7 +35,7 @@ static inline int omx_omp_get_thread_num(void) {
 }
 
 
-#endif // #ifdef SUPPORT_OPENMP
+#endif // #ifdef _OPENMP
 
 
 
