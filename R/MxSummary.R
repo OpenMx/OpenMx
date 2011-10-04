@@ -254,6 +254,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 	if (length(obj)==1){
 		if ("thresholdLevels" %in% slotNames(obj[[1]])){
 			thresholdLevels <- obj[[1]]@thresholdLevels
+			if (length(thresholdLevels)==0){thresholdLevels <- rep(NA, nvar)}
 		} else {
 			thresholdLevels <- rep(NA, nvar)
 		}
