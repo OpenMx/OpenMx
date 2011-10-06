@@ -73,6 +73,7 @@ struct omxFreeVar {			// Free Variables
 	int numLocations;
 	double** location;		// And where they go.
 	int* matrices;			// Matrix numbers for dirtying.
+	int *row, *col;			// Locations for copying.
 	const char* name;
 };
 
@@ -136,7 +137,8 @@ struct omxState {													// The Current State of Optimization
     omxState* parentState;                                          // Parent State
     omxMatrix** parentMatrix;                                       // Parent's Matrix List
     omxMatrix** parentAlgebra;                                      // Parent's Algebra List
-                                                                    // TODO: Need a way to deal with unregistered matrices
+	omxConstraint* parentConList;									// Parent's Constraint List
+                                                                    // TODO: Need a way to deal with unregistered matrices that have free vars
 	omxMatrix* objectiveMatrix;										// Objective Algebra
 
 	/* May want to farm these out to the omxObjective object. */

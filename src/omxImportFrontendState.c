@@ -249,6 +249,8 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 		currentState->freeVarList[freeVarIndex].numLocations = numLocs;
 		currentState->freeVarList[freeVarIndex].location = (double**) R_alloc(numLocs, sizeof(double*));
 		currentState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
+		currentState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
+		currentState->freeVarList[freeVarIndex].col		 = (int*) R_alloc(numLocs, sizeof(int));
 		currentState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
 
 		/* Lower Bound */
@@ -280,6 +282,8 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 			double* locationMatrixElement = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
 			currentState->freeVarList[freeVarIndex].location[locIndex] = locationMatrixElement;
 			currentState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
+			currentState->freeVarList[freeVarIndex].row[locIndex] = theRow;
+			currentState->freeVarList[freeVarIndex].col[locIndex] = theCol;
 			UNPROTECT(1); // nextLoc
 		}
 		UNPROTECT(1); // nextVar

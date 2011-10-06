@@ -31,6 +31,7 @@
 		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numData = 0;
+		state->numFreeParams = 0;
         state->numChildren = 0;
 		state->matrixList = NULL;
 		state->algebraList = NULL;
@@ -38,6 +39,7 @@
         state->parentState = NULL;
         state->parentMatrix = NULL;
         state->parentAlgebra = NULL;
+		state->parentConList= NULL;
 		state->dataList = NULL;
 		state->objectiveMatrix = NULL;
 		state->hessian = NULL;
@@ -67,6 +69,98 @@
 						omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
 		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
 	}
+	
+	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {
+		tgt->numMats 			= src->numMats;
+		tgt->numAlgs 			= src->numAlgs;
+		tgt->numData 			= src->numData;
+		tgt->numChildren 		= 0;
+		
+		// Duplicate matrices and algebras and build parentLists.
+		tgt->parentState 		= src;
+		tgt->parentMatrix 		= src->matrixList;
+		tgt->parentAlgebra 		= src->algebraList;
+		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
+		for(int j = 0; j < tgt->numMats; j++) {
+			// TODO: Smarter inference for which matrices to duplicate
+			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], NULL, tgt, fullCopy);
+		}
+		
+		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
+		for(int j = 0; j < tgt->numAlgs; j++) {
+			// TODO: Smarter inference for which algebras to duplicate
+			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], NULL, tgt, fullCopy);
+		}
+		
+		tgt->parentConList 		= src->conList;
+		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
+		for(int j = 0; j < tgt->numConstraints; j++) {
+			tgt->conList[j].size   = src->conList[j].size;
+			tgt->conList[j].opCode = src->conList[j].opCode;
+			tgt->conList[j].lbound = src->conList[j].lbound;
+			tgt->conList[j].ubound = src->conList[j].ubound;
+			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, NULL, tgt, fullCopy);
+		}
+		
+		tgt->childList 			= NULL;
+
+		tgt->dataList			= src->dataList;
+		tgt->objectiveMatrix	= omxLookupDuplicateElement(tgt, src->objectiveMatrix);
+		tgt->hessian 			= src->hessian;
+
+		tgt->numFreeParams			= src->numFreeParams;
+		tgt->freeVarList 		= (omxFreeVar*) R_alloc(tgt->numFreeParams, sizeof(omxFreeVar));
+		for(int j = 0; j < tgt->numFreeParams; j++) {
+			tgt->freeVarList[j].lbound			= src->freeVarList[j].lbound;
+			tgt->freeVarList[j].ubound			= src->freeVarList[j].ubound;
+			tgt->freeVarList[j].numLocations	= src->freeVarList[j].numLocations;
+			
+			int nLocs 							= tgt->freeVarList[j].numLocations;
+			tgt->freeVarList[j].matrices		= (int*) R_alloc(nLocs, sizeof(int));
+			tgt->freeVarList[j].row				= (int*) R_alloc(nLocs, sizeof(int));
+			tgt->freeVarList[j].col				= (int*) R_alloc(nLocs, sizeof(int));
+			tgt->freeVarList[j].location		= (double**) R_alloc(nLocs, sizeof(double*));
+
+			for(int k = 0; k < nLocs; k++) {
+				int theMat 						= src->freeVarList[j].matrices[k];
+				int theRow 						= src->freeVarList[j].row[k];
+				int theCol						= src->freeVarList[j].col[k];
+
+				tgt->freeVarList[j].matrices[k] = theMat;
+				tgt->freeVarList[j].row[k]		= theRow;
+				tgt->freeVarList[j].col[k]		= theCol;
+				
+				tgt->freeVarList[j].location[k] = omxLocationOfMatrixElement(tgt->matrixList[theMat], theRow, theCol);
+				
+				tgt->freeVarList[j].name		= src->freeVarList[j].name;
+			}
+		}
+		
+		tgt->optimizerState 					= (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+		tgt->optimizerState->currentParameter	= src->optimizerState->currentParameter;
+		tgt->optimizerState->offset				= src->optimizerState->offset;
+		tgt->optimizerState->alpha				= src->optimizerState->alpha;
+		
+		tgt->optimalValues 		= src->optimalValues;
+		tgt->optimum 			= 9999999999;
+                                  
+		tgt->majorIteration 	= 0;
+		tgt->minorIteration 	= 0;
+		tgt->startTime 			= src->startTime;
+		tgt->endTime			= 0;
+		
+		// TODO: adjust checkpointing based on parallelization method
+		tgt->numCheckpoints 	= src->numCheckpoints;
+		tgt->checkpointList 	= src->checkpointList;
+		tgt->chkptText1 		= src->chkptText1;
+		tgt->chkptText2 		= src->chkptText2;
+                                  
+		tgt->computeCount 		= 0;
+		tgt->currentRow 		= 0;
+
+		tgt->statusCode 		= 0;
+		strncpy(tgt->statusMsg, "", 1);
+	}
 
     omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
         if(os == NULL || element == NULL) return NULL;
@@ -87,6 +181,15 @@
                     return(os->algebraList[i]);
                 else
                     omxRaiseError(os, -2, "Initialization Copy Error: Algebra required but not yet processed.");
+            }
+        }
+
+        for(int i = 0; i < os->numConstraints; i++) {
+            if(os->parentConList[i].result == element) {
+				if(os->conList[i].result != NULL)   // Not sure of proper failure behavior here.
+                    return(os->conList[i].result);
+                else
+                    omxRaiseError(os, -2, "Initialization Copy Error: Constraint required but not yet processed.");
             }
         }
 
