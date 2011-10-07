@@ -28,6 +28,7 @@
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, int numThreads) {
+		int i;
 		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numData = 0;
@@ -35,6 +36,10 @@
 		if (numThreads > 1) {
 			state->numChildren = numThreads;
 			state->childList = (omxState**) Calloc(numThreads, omxState*);
+			for(i = 0; i < numThreads; i++) {
+				state->childList[i] = (omxState*) R_alloc(1, sizeof(omxState));
+				omxInitState(state->childList[i], 1);
+			}
 		} else {
 	        state->numChildren = 0;
 			state->childList = NULL;
@@ -88,23 +93,24 @@
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		for(int j = 0; j < tgt->numMats; j++) {
 			// TODO: Smarter inference for which matrices to duplicate
-			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], NULL, tgt, fullCopy);
+			tgt->matrixList[j] = omxDuplicateMatrix(NULL, src->matrixList[j], tgt, fullCopy);
 		}
 		
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 		for(int j = 0; j < tgt->numAlgs; j++) {
 			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], NULL, tgt, fullCopy);
+			tgt->algebraList[j] = omxDuplicateMatrix(NULL, src->algebraList[j], tgt, fullCopy);
 		}
 		
 		tgt->parentConList 		= src->conList;
+		tgt->numConstraints     = src->numConstraints;
 		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
 		for(int j = 0; j < tgt->numConstraints; j++) {
 			tgt->conList[j].size   = src->conList[j].size;
 			tgt->conList[j].opCode = src->conList[j].opCode;
 			tgt->conList[j].lbound = src->conList[j].lbound;
 			tgt->conList[j].ubound = src->conList[j].ubound;
-			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, NULL, tgt, fullCopy);
+			tgt->conList[j].result = omxDuplicateMatrix(NULL, src->conList[j].result, tgt, fullCopy);
 		}
 		
 		tgt->childList 			= NULL;
