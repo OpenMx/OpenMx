@@ -96,7 +96,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState);
+	omxInitState(currentState, 1);
 	currentState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
@@ -179,6 +179,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int numHessians = 0;
 	int ciMaxIterations = 5;
 	int disableOptimizer = 0;
+	int numThreads = 1;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -188,9 +189,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	n = length(startVals);
 
+	/* 	Set NPSOL options */
+	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
+		&ciMaxIterations, &disableOptimizer, &numThreads);
+
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState);
+	omxInitState(currentState, numThreads);
 	currentState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
@@ -305,10 +310,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 		/* Set up actual run */
 
-		omxSetupBoundsAndConstraints(bl, bu, n, nclin);
-		
-		/* 	Set NPSOL options */
-		omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, &ciMaxIterations, &disableOptimizer);
+		omxSetupBoundsAndConstraints(bl, bu, n, nclin);		
 
 		/* Initialize Starting Values */
 		if(OMX_VERBOSE) {

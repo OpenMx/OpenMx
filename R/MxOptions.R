@@ -67,7 +67,8 @@ npsolOptions <- list(
 	"Hessian" = "Yes",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"CI Max Iterations" = "5"
+	"CI Max Iterations" = "5",
+	"Number of Cores" = 1
 )
 
 checkpointOptions <- list(
@@ -85,8 +86,7 @@ otherOptions <- list(
 	"Error Checking" = "Yes",
 	"No Sort Data" = character(),
 	"RAM Inverse Optimization" = "Yes",
-	"RAM Max Depth" = NA,
-	"Number of Cores" = 1
+	"RAM Max Depth" = NA
 )
 
 generateOptionsList <- function(input, constraints, useOptimizer) {

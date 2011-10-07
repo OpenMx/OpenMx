@@ -32,7 +32,7 @@ const double INF = 2e20;
 extern void F77_SUB(npoptn)(char* string, int length);
 
 void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
-	int *ciMaxIterations, int *disableOptimizer) {
+	int *ciMaxIterations, int *disableOptimizer, int *numThreads) {
 
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
@@ -65,6 +65,9 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
 					*disableOptimizer = 1;
 				}
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "Number of Cores")) {
+				*numThreads = atoi(nextOptionValue);
+				if(OMX_DEBUG) { Rprintf("Found Number of Cores option (# = %d)...\n", *numThreads);};
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
