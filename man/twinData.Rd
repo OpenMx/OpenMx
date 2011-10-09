@@ -46,7 +46,7 @@ Zygosity is coded as follows:
 }
 \examples{
 data(twinData)
-str(twinData) ; plot(wt1, wt2, data=twinData)
+str(twinData) ; plot(wt1~wt2, data=twinData)
 mzData <- as.matrix(subset(myTwinData, zyg==1, c(bmi1,bmi2)))
 dzData <- as.matrix(subset(myTwinData, zyg==3, c(bmi1,bmi2)))
 }
