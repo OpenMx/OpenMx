@@ -174,7 +174,7 @@ void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState*
 
 	if(fullCopy) {
 		if(source->createUnsharedDuplicate == NULL) {
-			omxFillMatrixFromMxObjective(target, source->rObj);
+			omxFillMatrixFromMxObjective(tgt, source->rObj);
 		} else {
 			tgt->objective = omxCreateDuplicateObjective(target, source, newState);
 			src->objective->createUnsharedDuplicate(target, source, newState);

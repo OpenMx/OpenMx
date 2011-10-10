@@ -159,10 +159,12 @@
 			}
 		}
 		
-		tgt->optimizerState 					= (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
-		tgt->optimizerState->currentParameter	= src->optimizerState->currentParameter;
-		tgt->optimizerState->offset				= src->optimizerState->offset;
-		tgt->optimizerState->alpha				= src->optimizerState->alpha;
+		if (src->optimizerState) {
+			tgt->optimizerState 					= (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+			tgt->optimizerState->currentParameter	= src->optimizerState->currentParameter;
+			tgt->optimizerState->offset				= src->optimizerState->offset;
+			tgt->optimizerState->alpha				= src->optimizerState->alpha;
+		}
 		
 		tgt->optimalValues 		= src->optimalValues;
 		tgt->optimum 			= 9999999999;
