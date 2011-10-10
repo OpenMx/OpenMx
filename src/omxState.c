@@ -80,6 +80,18 @@
 		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
 	}
 	
+	omxState* omxGetState(omxState* os, int stateNumber) {
+		// TODO: Need to implement a smarter way to enumerate children
+		if(stateNumber == 0) return os;
+		if((stateNumber-1) < os->numChildren) {
+			return(os->childList[stateNumber-1]);
+		} else {
+			// TODO: Account for unequal numbers of grandchild states
+			int subState = (stateNumber - os->numChildren - 1);
+			return omxGetState(os->childList[subState % os->numChildren], subState / os->numChildren);
+		}
+	}
+	
 	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {
 		tgt->numMats 			= src->numMats;
 		tgt->numAlgs 			= src->numAlgs;

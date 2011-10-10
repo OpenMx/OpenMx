@@ -150,7 +150,8 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	/* The call itself */
-	F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
+	omxDGEMM(FALSE, FALSE, 1.0, preMul, postMul, 0.0, result);
+	// F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
 	omxMatrixCompute(result);
 

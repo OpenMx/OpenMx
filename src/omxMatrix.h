@@ -37,6 +37,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
+#include "omxBLAS.h"
 
 typedef struct omxMatrix omxMatrix;
 
@@ -119,32 +120,13 @@ struct omxMatrix {						// A matrix
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
 	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.
-	void omxToggleRowColumnMajor(omxMatrix *mat);								// Transform row-major into col-major and vice versa 
+	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, char* d); 											// Pretty-print a (small) matrix
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
 	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
 	void omxCompute(omxMatrix *matrix);													// Recompute the matrix no matter what.
-
-/* BLAS Wrappers */
-
-	void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
-					double* alpha, omxMatrix* a, omxMatrix *b, double* beta, omxMatrix* result);
-	void omxDGEMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
-					omxMatrix* vec, double* beta, omxMatrix*result, int* info);		// where B is treated as a vector
-
-	void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
-					omxMatrix* vec, double* beta, omxMatrix*result, int* info);		// only A is symmetric, and B is a vector
-
-	void omxDSYMM(unsigned short int symmOnLeft, double* alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
-					omxMatrix *b, double* beta, omxMatrix* result);					// One of A or B is symmetric
-
-	void omxDGETRF(omxMatrix* mat, int* ipiv, int* info);							// LUP decomposition of mat
-	void omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int* info);				// Invert mat from LUP decomposition
-
-	void omxDPOTRF(omxMatrix* mat, int* info);										// Cholesky decomposition of mat
-	void omxDPOTRI(omxMatrix* mat, int* info);										// Invert mat from Cholesky
 
 /* Aliased Matrix Functions */
 	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.
@@ -162,6 +144,9 @@ void setMatrixError(int row, int col, int numrow, int numcol);
 void setVectorError(int index, int numrow, int numcol);
 void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
+
+
+/* BLAS Wrappers */
 
 static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 	if(row >= om->rows || col >= om->cols) {
@@ -205,5 +190,73 @@ static inline double omxVectorElement(omxMatrix *om, int index) {
         return (NA_REAL);
     }
 }
+
+static inline void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
+				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
+	int nrow = (transposeA?a->cols:a->rows);
+	int nmid = (transposeA?a->rows:a->cols);
+	int ncol = (transposeB?b->rows:b->cols);
+	F77_CALL(omxunsafedgemm)((transposeA?a->minority:a->majority), (transposeB?b->minority:b->majority), 
+							&(nrow), &(ncol), &(nmid),
+							&alpha, a->data, &(a->leading), 
+							b->data, &(b->leading),
+							&beta, result->data, &(result->leading));
+
+	if(!result->colMajor) omxToggleRowColumnMajor(result);
+}
+
+static inline void omxDGEMV(unsigned short int transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+				omxMatrix* vec, double beta, omxMatrix*result) {							// where B is treated as a vector
+	int onei = 1;
+	int nrows = (transposeMat?mat->cols:mat->rows);
+	int ncols = (transposeMat?mat->rows:mat->cols);
+	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
+	if(!result->colMajor) omxToggleRowColumnMajor(result);
+}
+
+static inline void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+				omxMatrix* vec, double* beta, omxMatrix*result){							// only A is symmetric, and B is a vector
+
+	if(!result->colMajor) omxToggleRowColumnMajor(result);
+}
+
+static inline void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
+				omxMatrix *b, double beta, omxMatrix* result, unsigned short int fillMat) {	// One of A or B is symmetric
+
+	char r='R', l = 'L';
+	char u='U';
+	F77_CALL(dsymm)((symmOnLeft?&l:&r), &u, &(result->rows), &(result->cols),
+					&alpha, a->data, &(a->leading),
+ 					b->data, &(b->leading),
+					&beta, result->data, &(result->leading));
+
+	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	
+	if(fillMat) {
+		for(int j = 0; j < result->rows; j++)
+			for(int k = j+1; k < result->cols; k++)
+				omxSetMatrixElement(result, j, k, omxMatrixElement(result, k, j));
+	}
+}
+
+static inline int omxDGETRF(omxMatrix* mat, int* ipiv) {										// LUP decomposition of mat
+	int info = 0;
+	F77_CALL(dgetrf)(&(mat->rows), &(mat->cols), mat->data, &(mat->leading), ipiv, &info);
+	return info;
+}
+
+static inline int omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int lwork) {				// Invert mat from LUP decomposition
+	int info = 0;
+	F77_CALL(dgetri)(&(mat->rows), mat->data, &(mat->leading), ipiv, work, &lwork, &info);
+	return info;
+}
+
+static inline void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
+	// ERROR: NYI.
+}
+static inline void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
+	// ERROR: NYI
+}
+
 
 #endif /* _OMXMATRIX_H_ */

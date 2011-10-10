@@ -95,6 +95,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	int errOut = 0;
 
 	/* Create new omxState for current state storage and initialize it. */
+	
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
 	omxInitState(currentState, 1);
 	currentState->numFreeParams = n;

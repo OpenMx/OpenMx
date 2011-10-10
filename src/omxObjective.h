@@ -66,16 +66,19 @@ struct omxObjective {					// An objective
 	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 	void (*populateAttrFun)(omxObjective* oo, SEXP algebra);					// Add attributes to the result algebra object
-    void* (*duplicateUnsharedArgs)(omxObjective*, const omxObjective*);         // Duplicate unshared args for thread safety
+    void* (*createUnsharedDuplicate)(omxObjective*, const omxObjective*, omxState*);		// Duplicate unshared args for thread safety
+    void* (*createSharedDuplicate)(omxObjective*, const omxObjective*, omxState*);			// Duplicate all args for thread safety
 	
 	omxObjective* subObjective;													// Subobjective structure in case it is needed.
 	
+	SEXP rObj;																	// Original r Object Pointer
     void* sharedArgs;                                                           // Common argument structure
 	void* argStruct;															// Arguments needed for objective function
 	char* objType;																// Type of Objective Function
 	double* hessian;															// Hessian details
 	double* gradient;															// Gradient details
 	double* stdError;															// Standard Error estimates
+	unsigned short int isPrepopulated;											// Object has had some values prepopulated to allow object sharing
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this objective function
 
@@ -92,9 +95,9 @@ struct omxObjective {					// An objective
 	void omxObjectiveCompute(omxObjective *oo);
 	unsigned short int omxObjectiveNeedsUpdate(omxObjective *oo);
 	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.
-    void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState, short duplicateUnshared);
-    omxObjective* omxDuplicateObjective(omxObjective *target, const omxObjective *source, omxState* targetState, short duplicateUnshared);
-                                                                            // Duplicates the Objective object for parallelization
+    void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState, short fullCopy);
+	omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState);
+	
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
 	
 	/* Helper functions */
