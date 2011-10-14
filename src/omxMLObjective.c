@@ -61,14 +61,9 @@ void omxDestroyMLObjective(omxObjective *oo) {
 omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns) {
 	*numReturns = 3;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
-	char u = 'U';
-	char r = 'R';
-	double sum = 0;
-	double det = 1;
-    double oned = 1.0, zerod = 0.0;
+	double det = 0.0;
 	omxMatrix* cov = ((omxMLObjective*)oo->argStruct)->observedCov;
 	int ncols = ((omxMLObjective*)oo->argStruct)->observedCov->cols;
-	omxMatrix* diag = omxInitTemporaryMatrix(NULL, ncols, ncols, TRUE, oo->matrix->currentState);
     
 	retVal[0].numValues = 1;
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
@@ -84,24 +79,19 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal[2].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[2].label, "IndependenceLikelihood", 23);
 	// Independence model assumes all-zero manifest covariances.
-	for(int i = 0; i < ncols; i++) {
-		double value = omxMatrixElement(cov, i, i);
-		omxSetMatrixElement(diag, i, i, 1./value);
-		det *= value;
-	}
-    det = log(det);
-    if(OMX_DEBUG) { omxPrint(diag, "Diag:"); }
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
-	F77_CALL(dsymm)(&r, &u, &(diag->rows), &(diag->cols),
-					&oned, diag->data, &(diag->leading),
- 					cov->data, &(cov->leading),
-					&zerod, diag->data, &(diag->leading));
+	// expected is the diagonal of the observed.  Inverse expected is 1/each diagonal value.
+	// Therefore the diagonal elements of observed * expected^-1 are each 1.
+	// So the trace of the matrix is the same as the number of columns.
+	// The determinant of a diagonal matrix is the product of the diagonal elements.
+	// Since these are the same in the expected as in the observed, we can get 'em direct.
 	for(int i = 0; i < ncols; i++) {
-		sum += omxMatrixElement(diag, i, i);
+		// We sum logs instead of logging the product.
+		det += log(omxMatrixElement(cov, i, i));
 	}
+	if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxMLObjective*)oo->argStruct)->n, (ncols + det) * (((omxMLObjective*)oo->argStruct)->n - 1)); }
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-	retVal[2].values[0] = (sum + det) * (((omxMLObjective*)oo->argStruct)->n - 1);
-    omxFreeMatrixData(diag);
+	retVal[2].values[0] = (ncols + det) * (((omxMLObjective*)oo->argStruct)->n - 1);
 
 	return retVal;
 }
