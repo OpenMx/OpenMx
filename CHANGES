@@ -1,4 +1,8 @@
-Release  1.1.0-1784 (September 11, 2011)
+Release  1.1.2
+==============
+* fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+
+Release  1.1.1-1784 (September 11, 2011)
 ========================================
 * fixed several bugs in joint ordinal-continuous integration
 * fixed several typos in User Guide
