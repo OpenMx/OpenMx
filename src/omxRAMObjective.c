@@ -58,57 +58,6 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 	
 }
 
-omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturns) {
-	*numReturns = 3;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
-
-	char u = 'U';
-	char r = 'R';
-	double sum = 0;
-	double det = 1;
-    double oned = 1.0, zerod = 0.0;
-	omxMatrix* cov = ((omxRAMObjective*)oo->argStruct)->cov;
-	int ncols = ((omxRAMObjective*)oo->argStruct)->cov->cols;
-	omxMatrix* diag = omxInitTemporaryMatrix(NULL, ncols, ncols, TRUE, oo->matrix->currentState);
-	
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
-
-	retVal[1].numValues = 1;
-	retVal[1].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
-	retVal[1].values[0] = ((omxRAMObjective*)oo->argStruct)->logDetObserved;
-	
-	retVal[2].numValues = 1;
-	retVal[2].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[2].label, "IndependenceLikelihood", 23);
-	// Independence model assumes all-zero manifest covariances.
-	for(int i = 0; i < ncols; i++) {
-		double value = omxMatrixElement(cov, i, i);
-		omxSetMatrixElement(diag, i, i, 1./value);
-		det *= value;
-	}
-    det = log(det);
-    if(OMX_DEBUG) { omxPrint(diag, "Diag:"); }
-	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
-
-	// F77_CALL(dsymm)(&r, &u, &(diag->rows), &(diag->cols),
-	// 				&oned, diag->data, &(diag->leading),
-	//  					cov->data, &(cov->leading),
-	// 				&zerod, diag->data, &(diag->leading));
-	omxDSYMM(FALSE, 1.0, diag, cov, 0.0, diag, FALSE);
-	for(int i = 0; i < ncols; i++) {
-		sum += omxMatrixElement(diag, i, i);
-	}
-	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-	retVal[2].values[0] = (sum + det) * (((omxRAMObjective*)oo->argStruct)->n - 1);
-    omxFreeMatrixData(diag);
-	
-	return retVal;
-}
-
 void omxPopulateRAMAttributes(omxObjective *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating RAM Attributes.\n"); }
 
@@ -314,7 +263,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->objectiveFun = omxCallRAMObjective;
 	subObjective->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	subObjective->destructFun = omxDestroyRAMObjective;
-	subObjective->setFinalReturns = omxSetFinalReturnsRAMObjective;
+	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = omxPopulateRAMAttributes;
 	subObjective->argStruct = (void*) RAMobj;
 	
