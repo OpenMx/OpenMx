@@ -33,7 +33,6 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 
 	char u = 'U';
 	char r = 'R';
-	double sum = 0;
 	double det = 0.0;
     double oned = 1.0, zerod = 0.0;
 	omxMatrix* cov = ((omxRAMObjective*)oo->argStruct)->cov;
@@ -63,7 +62,7 @@ omxRListElement* omxSetFinalReturnsRAMObjective(omxObjective *oo, int *numReturn
 		// We sum logs instead of logging the product.
 		det += log(omxMatrixElement(cov, i, i));
 	}
-	retVal[2].values[0] = (sum + det) * (((omxRAMObjective*)oo->argStruct)->n - 1);
+	retVal[2].values[0] = (ncols + det) * (((omxRAMObjective*)oo->argStruct)->n - 1);
 	
 	return retVal;
 }
