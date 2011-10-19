@@ -186,7 +186,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
 		
 	double oned = 1.0, zerod=0.0;
-	int onei = 1;
 	
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
 		error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");

@@ -148,16 +148,15 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	double Q = 0.0;
 	double logDet = 0;
 	int numDefs;
-	int numCols, numRemoves = 0;
+	int numRemoves = 0;
 	int returnRowLikelihoods = 0;
 	int keepCov = 0, keepInverse = 0;
 
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
-	omxMatrix *cor, *smallThresh;
+	omxMatrix *cov, *means, *smallCov, *dataColumns;
     omxMatrix *rowLikelihoods;
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
-	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor, *weights, *oldDefs;
+	double *lThresh, *uThresh, *corList, *weights, *oldDefs;
 	int *Infin;
 	omxDefinitionVar* defVars;
 	int firstRow = 1;
@@ -168,21 +167,15 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
 	cov 		= ofo->cov;
 	means		= ofo->means;
-	smallRow 	= ofo->smallRow;
 	smallCov 	= ofo->smallCov;
-	smallMeans	= ofo->smallMeans;
-	RCX 		= ofo->RCX;
 	data		= ofo->data;
 	dataColumns	= ofo->dataColumns;
 	defVars		= ofo->defVars;
 	oldDefs		= ofo->oldDefs;
 	numDefs		= ofo->numDefs;
 
-	cor 		= ofo->cor;
 	corList 	= ofo->corList;
-	smallCor	= ofo->smallCor;
 	weights		= ofo->weights;
-	smallThresh	= ofo->smallThresh;
 	lThresh		= ofo->lThresh;
 	uThresh		= ofo->uThresh;
 	thresholdCols = ofo->thresholdCols;
@@ -190,9 +183,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
     rowLikelihoods = ofo->rowLikelihoods;
 
 	Infin		= ofo->Infin;
-	maxPts		= ofo->maxPts;
-	absEps		= ofo->absEps;
-	relEps		= ofo->relEps;
 	
 	subObjective = oo->subObjective;
 	
@@ -228,7 +218,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
         Q = 0.0;
 
         // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
-        numCols = 0;
         numRemoves = 0;
 
         // Handle Definition Variables.
@@ -405,18 +394,17 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	double Q = 0.0;
 	double logDet = 0;
 	int numDefs;
-	int numCols, numOrdRemoves = 0, numContRemoves=0;
+	int numOrdRemoves = 0, numContRemoves=0;
 	int returnRowLikelihoods = 0;
 	int keepCov = 0, keepInverse = 0;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
-	omxMatrix *cor, *smallThresh;
 	omxMatrix *rowLikelihoods;
     omxMatrix *ordMeans, *ordCov, *ordRow;
     omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
-	double *lThresh, *uThresh, maxPts, absEps, relEps, *corList, *smallCor, *weights, *oldDefs;
+	double *lThresh, *uThresh, *corList, *weights, *oldDefs;
 	int *Infin;
 	omxDefinitionVar* defVars;
 	int firstRow = 1;
@@ -444,11 +432,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	oldDefs		= ofo->oldDefs;
 	numDefs		= ofo->numDefs;
 
-	cor 		= ofo->cor;
 	corList 	= ofo->corList;
-	smallCor	= ofo->smallCor;
 	weights		= ofo->weights;
-	smallThresh	= ofo->smallThresh;
 	lThresh		= ofo->lThresh;
 	uThresh		= ofo->uThresh;
 	thresholdCols = ofo->thresholdCols;
@@ -456,9 +441,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	rowLikelihoods = ofo->rowLikelihoods;
 
 	Infin		= ofo->Infin;
-	maxPts		= ofo->maxPts;
-	absEps		= ofo->absEps;
-	relEps		= ofo->relEps;
 	
 	subObjective = oo->subObjective;
 
@@ -520,7 +502,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         Q = 0.0;
 
         // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
-        numCols = 0;
         numOrdRemoves = 0;
         numContRemoves = 0;
 
@@ -917,7 +898,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	double* oldDefs;
 	int numDefs;
 	int isContiguous, contiguousStart, contiguousLength;
-	int numCols, numRemoves;
+	int numRemoves;
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
 
@@ -964,7 +945,6 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		
 		Q = 0.0;
 
-		numCols = 0;
 		numRemoves = 0;
 		omxResetAliasedMatrix(smallRow); 			// Resize smallrow
 		if (isContiguous) {
@@ -1010,7 +990,6 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 				omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
 			}
 		}
-		numCols = dataColumns->cols - numRemoves;
 
 		if(cov->cols <= numRemoves) {
 			for(int nid = 0; nid < numIdentical; nid++) {

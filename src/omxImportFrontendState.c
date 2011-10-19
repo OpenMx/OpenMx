@@ -180,7 +180,8 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 		oC->numIterations = 0;
 		oC->lastCheckpoint = 0;
 
-		const char *pathName, *fileName, *serverName;
+		const char *pathName, *fileName;
+		const char __attribute__((unused)) *serverName;
 
 		PROTECT(nextLoc = VECTOR_ELT(checkpointList, index));
 		int next = 0;
@@ -208,7 +209,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 
 		case OMX_SOCKET_CHECKPOINT:
 			serverName = CHAR(VECTOR_ELT(nextLoc, next++));
-			// int portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0]; // Commented to suppress "unused variable" warning.
+			int __attribute__((unused)) portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
 			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			oC->saveHessian = FALSE;
 			break;

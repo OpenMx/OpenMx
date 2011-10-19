@@ -113,7 +113,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	int onei = 1;
 	double fmean = 0.0;
 
-	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C, *I;
+	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C;
 
 	omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
 	
@@ -126,7 +126,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	localProd 	= omo->localProd;
 	P		 	= omo->P;
 	C		 	= omo->C;
-	I		 	= omo->I;
 	double n 	= omo->n;
 	double Q	= omo->logDetObserved;
 	omxObjective* subObjective = oo->subObjective;

@@ -226,7 +226,10 @@ void doHessianCalculation(int numParams, int numChildren,
 	int *diags = Calloc(numOffDiagonal, int);
 	int *offDiags = Calloc(numOffDiagonal, int);
 	int offset = 0;
-    int parallelism = (numChildren == 0) ? 1 : numChildren;
+	// gcc does not detect the usage of the following variable
+	// in the omp parallel pragma, and marks the variable as
+	// unused, so the attribute is placed to silence the warning.
+    int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
 
 	// There must be a way to avoid constructing the
 	// diags and offDiags arrays and replace them with functions
