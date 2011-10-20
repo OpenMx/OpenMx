@@ -267,7 +267,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
-	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState);
+	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
 	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
 	

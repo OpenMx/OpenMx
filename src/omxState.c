@@ -107,13 +107,7 @@
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList[j] = omxDuplicateMatrix(NULL, src->matrixList[j], tgt, fullCopy);
 		}
-		
-		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
-		for(int j = 0; j < tgt->numAlgs; j++) {
-			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList[j] = omxDuplicateMatrix(NULL, src->algebraList[j], tgt, fullCopy);
-		}
-		
+				
 		tgt->parentConList 		= src->conList;
 		tgt->numConstraints     = src->numConstraints;
 		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
@@ -124,6 +118,13 @@
 			tgt->conList[j].ubound = src->conList[j].ubound;
 			tgt->conList[j].result = omxDuplicateMatrix(NULL, src->conList[j].result, tgt, fullCopy);
 		}
+
+		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
+		for(int j = 0; j < tgt->numAlgs; j++) {
+			// TODO: Smarter inference for which algebras to duplicate
+			tgt->algebraList[j] = omxDuplicateMatrix(NULL, src->algebraList[j], tgt, fullCopy);
+		}
+
 		
 		tgt->childList 			= NULL;
 
@@ -191,23 +192,14 @@
         if(os == NULL || element == NULL) return NULL;
         if(os->parentState == NULL) return element; // FIXME: Not sure if this is the correct behavior.
 
-        for(int i = 0; i < os->numMats; i++) {
-            if(os->parentMatrix[i] == element) {
-                if(os->matrixList[i] != NULL)   // Not sure of failure behavior here.
-                    return(os->matrixList[i]);
-                else
-                    omxRaiseError(os, -2, "Initialization Copy Error: Matrix required but not yet processed.");
-            }
-        }
-
-        for(int i = 0; i < os->numAlgs; i++) {
-            if(os->parentAlgebra[i] == element) {
-                if(os->algebraList[i] != NULL)   // Not sure of proper failure behavior here.
-                    return(os->algebraList[i]);
-                else
-                    omxRaiseError(os, -2, "Initialization Copy Error: Algebra required but not yet processed.");
-            }
-        }
+		if (element->hasMatrixNumber) {
+			int matrixNumber = element->matrixNumber;
+			if (matrixNumber >= 0) {
+				return(os->matrixList[matrixNumber]);
+			} else {
+				return(os->algebraList[-matrixNumber - 1]);
+			}
+		}
 
         for(int i = 0; i < os->numConstraints; i++) {
             if(os->parentConList[i].result == element) {

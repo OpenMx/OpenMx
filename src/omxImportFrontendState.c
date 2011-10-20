@@ -69,7 +69,7 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 	for(int index = 0; index < length(matList); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		currentState->matrixList[index] = omxNewMatrixFromRPrimitive(nextMat, currentState);
+		currentState->matrixList[index] = omxNewMatrixFromRPrimitive(nextMat, currentState, 1, index);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				currentState->matrixList[index], currentState->matrixList[index]->rows, currentState->matrixList[index]->cols);
@@ -102,11 +102,11 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or objective to process
 		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, currentState->algebraList + index); }
 		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is an objective object.
-			omxFillMatrixFromMxObjective(currentState->algebraList[index], nextAlgTuple);
+			omxFillMatrixFromMxObjective(currentState->algebraList[index], nextAlgTuple, 1, -index - 1);
 		} else {								// This is an algebra spec.
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
 			omxFillMatrixFromRPrimitive(currentState->algebraList[index],
-				nextAlg, currentState);
+				nextAlg, currentState, 1, -index - 1);
 			UNPROTECT(1);	// nextAlg
 			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(currentState->algebraList[index],

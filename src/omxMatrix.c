@@ -28,7 +28,8 @@
 #include "omxMatrix.h"
 
 // forward declarations
-omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state);
+omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
+	unsigned short hasMatrixNumber, int matrixNumber);
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
@@ -132,6 +133,8 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->currentState = orig->currentState;
 	dest->lastCompute = orig->lastCompute;
 	dest->lastRow = orig->lastRow;
+	dest->hasMatrixNumber = orig->hasMatrixNumber;
+	dest->matrixNumber = orig->matrixNumber;
 
 	if(dest->rows == 0 || dest->cols == 0) {
 		omxFreeMatrixData(dest);
@@ -373,11 +376,12 @@ omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
 	return omxFillMatrixFromMxMatrix(om, mxMatrix, state);
 }
 
-omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state) {
+omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
+	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	omxMatrix *om = NULL;
 	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
-	return omxFillMatrixFromRPrimitive(om, rObject, state);
+	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
 }
 
 omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* state) {
@@ -386,7 +390,7 @@ omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* sta
 		if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
 		SEXP matrix;
 		PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
-		om = fillMatrixHelperFunction(om, matrix, state);
+		om = fillMatrixHelperFunction(om, matrix, state, 0, 0);
 		UNPROTECT(1);
 	} else {
 		error("Recieved unknown matrix type in omxFillMatrixFromMxMatrix.");
@@ -394,17 +398,19 @@ omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* sta
 	return(om);
 }
 
-omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state) {
+omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,
+	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Populates the fields of a omxMatrix with details from an R object. */
 	if(!isMatrix(rObject) && !isVector(rObject)) { // Sanity Check
 		error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
 	}
-	return(fillMatrixHelperFunction(om, rObject, state));
+	return(fillMatrixHelperFunction(om, rObject, state, hasMatrixNumber, matrixNumber));
 }
 
 
 
-omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state) {
+omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
+	unsigned short hasMatrixNumber, int matrixNumber) {
 
 	SEXP matrixDims;
 	int* dimList;
@@ -441,6 +447,9 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state)
 	om->currentState = state;
 	om->lastCompute = -1;
 	om->lastRow = -1;
+	om->hasMatrixNumber = hasMatrixNumber;
+	om->matrixNumber = matrixNumber;
+
 
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
 	omxMatrixCompute(om);

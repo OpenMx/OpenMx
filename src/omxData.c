@@ -126,7 +126,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {Rprintf("And %d rows.\n", od->rows);}
 	} else {
 		if(OMX_DEBUG) {Rprintf("Data contains a matrix.\n");}
-		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
+		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 		
 		if (od->dataMat->colMajor && strncmp(od->type, "raw", 3) == 0) { 
 			omxToggleRowColumnMajor(od->dataMat);
@@ -139,7 +139,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
-		od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState);
+		od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 		if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
 		    (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
 		        !isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {

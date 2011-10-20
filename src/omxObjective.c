@@ -174,7 +174,7 @@ void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState*
 
 	if(fullCopy) {
 		if(source->createUnsharedDuplicate == NULL) {
-			omxFillMatrixFromMxObjective(tgt, source->rObj);
+			omxFillMatrixFromMxObjective(tgt, source->rObj, src->hasMatrixNumber, src->matrixNumber);
 		} else {
 			tgt->objective = omxCreateDuplicateObjective(target, source, newState);
 			src->objective->createUnsharedDuplicate(target, source, newState);
@@ -256,7 +256,8 @@ void omxSetObjectiveType(omxObjective* oo, const char* newName) {
 	strncpy(oo->objType, newName, MAX_STRING_LEN);
 }
 
-void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
+void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
+	unsigned short hasMatrixNumber, int matrixNumber) {
 
 	int i;
 	const char *objType;
@@ -269,6 +270,8 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj) {
 	obj->matrix = om;
 	omxResizeMatrix(om, 1, 1, FALSE);					// Objective matrices MUST be 1x1.
 	om->objective = obj;
+	om->hasMatrixNumber = hasMatrixNumber;
+	om->matrixNumber = matrixNumber;
 	
 	/* Get Objective Type */
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));

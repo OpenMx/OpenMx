@@ -87,7 +87,8 @@ struct omxObjective {					// An objective
 /* Initialize and Destroy */
 	void omxInitEmptyObjective(omxObjective *oo);
 	omxObjective* omxCreateSubObjective(omxObjective *oo);					// Generate a subobjective object
-	void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP mxobj);			// Create an objective function from an R MxObjective object
+	void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP mxobj, 
+		unsigned short hasMatrixNumber, int matrixNumber);					// Create an objective function from an R MxObjective object
 	void omxFreeObjectiveArgs(omxObjective* objective);						// Frees all args
 	void omxGetObjectiveStandardErrors(omxObjective *oo);					// Get Standard Errors
 

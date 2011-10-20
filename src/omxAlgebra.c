@@ -80,6 +80,7 @@ omxAlgebra* omxDuplicateAlgebra(omxAlgebra* tgt, omxAlgebra* src, omxState* newS
 
     tgt->funWrapper = src->funWrapper;  // N.B.: This should work across processes and threads, but might have problems with more complicated structures.
     tgt->numArgs = src->numArgs;
+	tgt->args = (omxMatrix**) R_alloc(tgt->numArgs, sizeof(omxMatrix*));
     for(int k = 0; k < tgt->numArgs; k++) {
 	    tgt->args[k] = omxLookupDuplicateElement(newState, src->args[k]);
     }
