@@ -35,6 +35,8 @@
 #define OMX_ERROR           -1
 #define OMX_DEVELOPER_ERROR -2
 
+#define OMXINLINE inline
+
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
 #define OMX_VERBOSE 1

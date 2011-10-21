@@ -105,10 +105,10 @@ struct omxMatrix {						// A matrix
     omxMatrix* omxDuplicateMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy);
 
 /* Getters 'n Setters (static functions declared below) */
-	// static inline double omxMatrixElement(omxMatrix *om, int row, int col);
-	// static inline double omxVectorElement(omxMatrix *om, int index);
-	// static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
-	// static inline void omxSetVectorElement(omxMatrix *om, int index, double value);
+	// static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col);
+	// static OMXINLINE double omxVectorElement(omxMatrix *om, int index);
+	// static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
+	// static OMXINLINE void omxSetVectorElement(omxMatrix *om, int index, double value);
 
 	double omxAliasedMatrixElement(omxMatrix *om, int row, int col);			// Element from unaliased form of the same matrix
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
@@ -142,7 +142,7 @@ struct omxMatrix {						// A matrix
 	void omxPrintMatrix(omxMatrix *source, char* d);                    // Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 
-/* Inline functions and helper functions */
+/* OMXINLINE functions and helper functions */
 
 void setMatrixError(int row, int col, int numrow, int numcol);
 void setVectorError(int index, int numrow, int numcol);
@@ -152,7 +152,7 @@ void vectorElementError(int index, int numrow, int numcol);
 
 /* BLAS Wrappers */
 
-static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
+static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 	if(row >= om->rows || col >= om->cols) {
 		setMatrixError(row + 1, col + 1, om->rows, om->cols);
 	}
@@ -165,7 +165,7 @@ static inline void omxSetMatrixElement(omxMatrix *om, int row, int col, double v
 	om->data[index] = value;
 }
 
-static inline double omxMatrixElement(omxMatrix *om, int row, int col) {
+static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->rows || col >= om->cols) {
 		matrixElementError(row + 1, col + 1, om->rows, om->cols);
@@ -178,7 +178,7 @@ static inline double omxMatrixElement(omxMatrix *om, int row, int col) {
 	return om->data[index];
 }
 
-static inline void omxSetVectorElement(omxMatrix *om, int index, double value) {
+static OMXINLINE void omxSetVectorElement(omxMatrix *om, int index, double value) {
 	if(index < om->rows * om->cols) {
 		om->data[index] = value;
 	} else {
@@ -186,7 +186,7 @@ static inline void omxSetVectorElement(omxMatrix *om, int index, double value) {
     }
 }
 
-static inline double omxVectorElement(omxMatrix *om, int index) {
+static OMXINLINE double omxVectorElement(omxMatrix *om, int index) {
 	if(index < om->rows * om->cols) {
 		return om->data[index];
 	} else {
@@ -195,7 +195,7 @@ static inline double omxVectorElement(omxMatrix *om, int index) {
     }
 }
 
-static inline void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
 	int nrow = (transposeA?a->cols:a->rows);
 	int nmid = (transposeA?a->rows:a->cols);
@@ -209,7 +209,7 @@ static inline void omxDGEMM(unsigned short int transposeA, unsigned short int tr
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static inline void omxDGEMV(unsigned short int transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix*result) {							// where B is treated as a vector
 	int onei = 1;
 	int nrows = (transposeMat?mat->cols:mat->rows);
@@ -218,13 +218,13 @@ static inline void omxDGEMV(unsigned short int transposeMat, double alpha, omxMa
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static inline void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double* beta, omxMatrix*result){							// only A is symmetric, and B is a vector
 
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static inline void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
 				omxMatrix *b, double beta, omxMatrix* result, unsigned short int fillMat) {	// One of A or B is symmetric
 
 	char r='R', l = 'L';
@@ -243,22 +243,22 @@ static inline void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatr
 	}
 }
 
-static inline int omxDGETRF(omxMatrix* mat, int* ipiv) {										// LUP decomposition of mat
+static OMXINLINE int omxDGETRF(omxMatrix* mat, int* ipiv) {										// LUP decomposition of mat
 	int info = 0;
 	F77_CALL(dgetrf)(&(mat->rows), &(mat->cols), mat->data, &(mat->leading), ipiv, &info);
 	return info;
 }
 
-static inline int omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int lwork) {				// Invert mat from LUP decomposition
+static OMXINLINE int omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int lwork) {				// Invert mat from LUP decomposition
 	int info = 0;
 	F77_CALL(dgetri)(&(mat->rows), mat->data, &(mat->leading), ipiv, work, &lwork, &info);
 	return info;
 }
 
-static inline void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
+static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
 	// ERROR: NYI.
 }
-static inline void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
+static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
 	// ERROR: NYI
 }
 

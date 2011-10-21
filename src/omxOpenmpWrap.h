@@ -18,19 +18,20 @@
 #define _OMX_OPENMP_WRAP_H
 
 #include "Rconfig.h"
+#include "omxDefines.h"
 
 
 #ifdef _OPENMP
 
 #include <omp.h>
 
-static inline int omx_omp_get_thread_num(void) {
+static OMXINLINE int omx_omp_get_thread_num(void) {
    return(omp_get_thread_num());
 }
 
 #else
 
-static inline int omx_omp_get_thread_num(void) {
+static OMXINLINE int omx_omp_get_thread_num(void) {
    return(0);
 }
 
