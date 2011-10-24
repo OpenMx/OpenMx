@@ -1,5 +1,5 @@
-Release  1.1.2
-==============
+Release  1.1.2-1818 (October 24, 2011)
+=================================
 * fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
 * fixed bug in independence model likelihood calculation for ML objective
 * included support for gcc 4.5 and 4.6 under 32-bit x86
