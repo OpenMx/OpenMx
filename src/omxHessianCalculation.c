@@ -96,6 +96,7 @@ void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work,
 	double functionPrecision   = hess_work->functionPrecision; // read-only
 	double f0                  = hess_work->f0;                // read-only
 	int    r                   = hess_work->r;                 // read-only
+    omxState *currentState     = objectiveMatrix->currentState;
 
 
 	/* Part the first: Gradient and diagonal */
@@ -159,6 +160,7 @@ void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work,
 	double functionPrecision   = hess_work->functionPrecision; // read-only
 	double f0                  = hess_work->f0;                // read-only
 	int    r                   = hess_work->r;                 // read-only
+    omxState *currentState     = objectiveMatrix->currentState;
 
 	double iOffset = fabs(functionPrecision*optima[i]);
 	if(fabs(iOffset) < eps) iOffset += eps;

@@ -28,6 +28,4 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 	SEXP skipMissingness, SEXP skipDefvars);
 
-extern omxState* currentState;
-
 #endif // #define _NPSOLWRAP_H

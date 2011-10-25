@@ -25,7 +25,7 @@
 #include "omxNPSOLSpecific.h"
 #include "npsolWrap.h"
 
-void omxFinalAlgebraCalculation(SEXP matrices, SEXP algebras) {
+void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras) {
 	SEXP nextMat, algebra;
 	for(int index = 0; index < currentState->numMats; index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", index); }
@@ -71,7 +71,7 @@ void omxFinalAlgebraCalculation(SEXP matrices, SEXP algebras) {
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 }
 
-void omxPopulateObjectiveFunction(int numReturns, SEXP *ans, SEXP *names) {
+void omxPopulateObjectiveFunction(omxState *currentState, int numReturns, SEXP *ans, SEXP *names) {
 	omxMatrix* om = currentState->objectiveMatrix;
 	if(om != NULL) {					// In the event of a no-objective run.
 		omxObjective* oo = om->objective;
@@ -138,7 +138,7 @@ void omxPopulateHessians(int numHessians, omxMatrix* currentObjective,
 	}
 }
 
-void omxPopulateConfidenceIntervals(SEXP intervals, SEXP intervalCodes) {
+void omxPopulateConfidenceIntervals(omxState* currentState, SEXP intervals, SEXP intervalCodes) {
 	int numInts = currentState->numIntervals;
 	if(OMX_DEBUG) { Rprintf("Populating CIs for %d objectives.\n", numInts); }
 	double* interval = REAL(intervals);

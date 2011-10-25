@@ -79,6 +79,22 @@ double *g;						// Gradient Pointer
 double *R, *cJac;				// Hessian (Approx) and Jacobian
 int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
 
+/*
+ * If you try to export the following variable to other
+ * files, I will send a plague of locusts upon your house.
+
+ * I would prefer this global variable didn't exist at all,
+ * except that the NPSOL API appears to be non thread-safe. See
+ * the function "F77_SUB(objectiveFunction)" to convince
+ * yourself of this fact.
+ *
+ * It may be possible to create multiple copies of "objectiveFunction"
+ * in memory, but even then we are unsure if the NPSOL internals
+ * are thread-safe.
+ *
+ * So for now, we can't perform any shared memory
+ * parallel computations that invoke the optimizer. -mspiegel
+ */
 omxState* currentState;			// Current State of optimization
 
 /* Main functions */
@@ -593,9 +609,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	handleFreeVarList(currentState, currentState->optimalValues, n);  // Restore to optima for final compute
-	if(!errOut) omxFinalAlgebraCalculation(matrices, algebras); 
+	if(!errOut) omxFinalAlgebraCalculation(currentState, matrices, algebras); 
 
-	omxPopulateObjectiveFunction(numReturns, &ans, &names);
+	omxPopulateObjectiveFunction(currentState, numReturns, &ans, &names);
 
 	if(numHessians) {
 		omxPopulateHessians(numHessians, currentState->objectiveMatrix, 
@@ -603,7 +619,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	if(currentState->numIntervals) {	// Populate CIs
-		omxPopulateConfidenceIntervals(intervals, intervalCodes);
+		omxPopulateConfidenceIntervals(currentState, intervals, intervalCodes);
 	}
 	
 	REAL(evaluations)[1] = currentState->computeCount;

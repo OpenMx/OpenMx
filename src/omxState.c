@@ -181,8 +181,8 @@
 		tgt->chkptText1 		= src->chkptText1;
 		tgt->chkptText2 		= src->chkptText2;
                                   
-		tgt->computeCount 		= 0;
-		tgt->currentRow 		= 0;
+		tgt->computeCount 		= src->computeCount;
+		tgt->currentRow 		= src->currentRow;
 
 		tgt->statusCode 		= 0;
 		strncpy(tgt->statusMsg, "", 1);
