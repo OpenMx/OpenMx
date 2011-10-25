@@ -126,7 +126,7 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 		if(I->colMajor != A->colMajor) {
 			omxTransposeMatrix(I);
 		}
-		omxCopyMatrix(Z, A);
+		omxCopyMatrix(Z, A, TRUE);
 
 		/* Z = (I-A)^-1 */
 		// F77_CALL(omxunsafedgemm)(I->majority, Z->majority, &(I->cols), &(I->rows), &(Z->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &minusOned, Z->data, &(Z->cols));
@@ -160,7 +160,7 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 			omxTransposeMatrix(Ax);
 		}
 	
-		omxCopyMatrix(Z, A);
+		omxCopyMatrix(Z, A, TRUE);
 	
 		/* Optimized I-A inversion: Z = (I-A)^-1 */
 		// F77_CALL(omxunsafedgemm)(I->majority, A->majority, &(I->cols), &(I->rows), &(A->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &oned, Z->data, &(Z->cols));  // Z = I + A = A^0 + A^1
@@ -170,13 +170,13 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 			// The sequence goes like this: (I + A), I + (I + A) * A, I + (I + (I + A) * A) * A, ...
 			// Which means only one DGEMM per iteration.
 			if(OMX_DEBUG_ALGEBRA) { Rprintf("....RAM: Iteration #%d/%d\n", i, numIters);}
-			omxCopyMatrix(Ax, I);
+			omxCopyMatrix(Ax, I, TRUE);
 			// F77_CALL(omxunsafedgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
 			omxDGEMM(FALSE, FALSE, oned, A, Z, oned, Ax);
 			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
 		}
 		if(origZ != Z) { 	// Juggling has caused Ax and Z to swap
-			omxCopyMatrix(Z, Ax);
+			omxCopyMatrix(Z, Ax, TRUE);
 		}
 	}
 }

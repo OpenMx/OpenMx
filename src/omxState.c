@@ -96,6 +96,7 @@
 		tgt->numMats 			= src->numMats;
 		tgt->numAlgs 			= src->numAlgs;
 		tgt->numData 			= src->numData;
+		tgt->dataList			= src->dataList;
 		tgt->numChildren 		= 0;
 		
 		// Duplicate matrices and algebras and build parentLists.
@@ -128,7 +129,6 @@
 		
 		tgt->childList 			= NULL;
 
-		tgt->dataList			= src->dataList;
 		tgt->objectiveMatrix	= omxLookupDuplicateElement(tgt, src->objectiveMatrix);
 		tgt->hessian 			= src->hessian;
 

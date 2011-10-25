@@ -138,7 +138,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 		omxRecompute(means);
 	}
 
-	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
+	omxCopyMatrix(localCov, cov, TRUE);				// But expected cov is destroyed in inversion
 
 	if(OMX_DEBUG_ALGEBRA) {
 		omxPrint(scov, "Observed Covariance is");
@@ -216,7 +216,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	if(means != NULL) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Means Likelihood Calculation"); }
 		omxRecompute(means);
-		omxCopyMatrix(P, means);
+		omxCopyMatrix(P, means, TRUE);
 		// P = means - smeans
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(means, "means");}
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(smeans, "smeans");}
@@ -387,7 +387,7 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 
 	for(int i = 0; i < rows; i++) omxSetMatrixElement(newObj->I, i, i, 1.0);
 
-	omxCopyMatrix(newObj->localCov, newObj->observedCov);
+	omxCopyMatrix(newObj->localCov, newObj->observedCov, TRUE);
 
 	newObj->lwork = newObj->expectedCov->rows;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
@@ -411,7 +411,7 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 	newObj->logDetObserved = log(det);
 	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
 
-	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
+	omxCopyMatrix(newObj->localCov, newObj->expectedCov, TRUE);
     oo->argStruct = (void*)newObj;
 
 }

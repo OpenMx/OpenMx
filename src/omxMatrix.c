@@ -113,7 +113,7 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 }
 
-void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
+void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig, int copyState) {
 	/* Duplicate a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
 	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
@@ -130,7 +130,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
 	dest->originalColMajor = dest->colMajor;
-	dest->currentState = orig->currentState;
+	if (copyState) dest->currentState = orig->currentState;
 	dest->lastCompute = orig->lastCompute;
 	dest->lastRow = orig->lastRow;
 	dest->hasMatrixNumber = orig->hasMatrixNumber;
@@ -156,7 +156,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 }
 
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
-	omxCopyMatrix(dest, src);
+	omxCopyMatrix(dest, src, TRUE);
 	dest->aliasedPtr = src;					// Alias now follows back matrix precisely.
 }
 
@@ -231,7 +231,7 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState
     
     if(src == NULL) return NULL;
     newMat = omxInitMatrix(tgt, src->rows, src->cols, FALSE, newState);
-    omxCopyMatrix(newMat, src);
+    omxCopyMatrix(newMat, src, FALSE);
     if(src->algebra != NULL) {
         omxDuplicateAlgebraMatrix(newMat, src, newState, fullCopy);
     }

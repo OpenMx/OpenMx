@@ -123,7 +123,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 	if(oa->funWrapper == NULL) { 			// No-op algebra: only for algebra-is-a-matrix condition.
 		if(oa->numArgs == 1) {
 			if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->args[0], "No-op Matrix"); }
-			omxCopyMatrix(oa->matrix, oa->args[0]);
+			omxCopyMatrix(oa->matrix, oa->args[0], TRUE);
 		} else {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}

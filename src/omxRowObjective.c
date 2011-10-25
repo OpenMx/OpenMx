@@ -182,7 +182,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 	omxRecompute(reduceAlgebra);
 
-	omxCopyMatrix(oo->matrix, reduceAlgebra);
+	omxCopyMatrix(oo->matrix, reduceAlgebra, TRUE);
 
 }
 
