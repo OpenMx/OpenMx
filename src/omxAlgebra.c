@@ -56,6 +56,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 }
 
 void omxDuplicateAlgebraMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
+
     // Assumes the matrices themselves have already been duplicated.
     if(src->algebra == NULL) {
         tgt->algebra = NULL;
@@ -63,16 +64,13 @@ void omxDuplicateAlgebraMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newStat
     }
 
     omxAlgebra *tgtAlg = tgt->algebra;
-    omxAlgebra *srcAlg = src->algebra;
 
     if(tgtAlg == NULL) {
         omxInitAlgebraWithMatrix(NULL, tgt);
-		tgtAlg = tgt->algebra;
     }
-
-	tgt->algebra = omxDuplicateAlgebra(tgtAlg, srcAlg, newState, fullCopy);
-
 }
+
+
 
 omxAlgebra* omxDuplicateAlgebra(omxAlgebra* tgt, omxAlgebra* src, omxState* newState, short fullCopy) {
 
@@ -151,7 +149,10 @@ int omxAlgebraNeedsUpdate(omxAlgebra *oa)
 omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
 
 	omxMatrix *om = omxInitMatrix(NULL, 0, 0, TRUE, os);
-	
+
+	om->hasMatrixNumber = 0;
+	om->matrixNumber = 0;	
+
 	omxFillMatrixFromMxAlgebra(om, alg, name);
 	
 	return om;

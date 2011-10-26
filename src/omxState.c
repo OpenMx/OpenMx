@@ -126,6 +126,14 @@
 			tgt->algebraList[j] = omxDuplicateMatrix(NULL, src->algebraList[j], tgt, fullCopy);
 		}
 
+		for(int j = 0; j < tgt->numAlgs; j++) {
+			omxMatrix *srcMatrix = src->algebraList[j];
+			omxMatrix *tgtMatrix = tgt->algebraList[j];
+			if(srcMatrix->algebra != NULL) {
+				omxDuplicateAlgebra(tgtMatrix->algebra, srcMatrix->algebra, tgt, fullCopy);
+		    }
+		}
+
 		
 		tgt->childList 			= NULL;
 
@@ -195,9 +203,9 @@
 		if (element->hasMatrixNumber) {
 			int matrixNumber = element->matrixNumber;
 			if (matrixNumber >= 0) {
-				return(os->matrixList[matrixNumber]);
+				return(os->algebraList[matrixNumber]);
 			} else {
-				return(os->algebraList[-matrixNumber - 1]);
+				return(os->matrixList[-matrixNumber - 1]);
 			}
 		}
 

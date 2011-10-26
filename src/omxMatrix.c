@@ -114,7 +114,7 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 }
 
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig, int copyState) {
-	/* Duplicate a matrix.  NOTE: Matrix maintains its algebra bindings. */
+	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
 	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
 
