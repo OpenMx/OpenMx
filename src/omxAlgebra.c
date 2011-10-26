@@ -56,36 +56,9 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 }
 
 void omxDuplicateAlgebraMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
-
-    // Assumes the matrices themselves have already been duplicated.
-    if(src->algebra == NULL) {
-        tgt->algebra = NULL;
-        return;
-    }
-
-    omxAlgebra *tgtAlg = tgt->algebra;
-
-    if(tgtAlg == NULL) {
-        omxInitAlgebraWithMatrix(NULL, tgt);
-    }
-}
-
-
-
-omxAlgebra* omxDuplicateAlgebra(omxAlgebra* tgt, omxAlgebra* src, omxState* newState, short fullCopy) {
-
-	if(src == NULL || tgt == NULL) { return NULL; }
-
-    tgt->funWrapper = src->funWrapper;  // N.B.: This should work across processes and threads, but might have problems with more complicated structures.
-    tgt->numArgs = src->numArgs;
-	tgt->args = (omxMatrix**) R_alloc(tgt->numArgs, sizeof(omxMatrix*));
-    for(int k = 0; k < tgt->numArgs; k++) {
-	    tgt->args[k] = omxLookupDuplicateElement(newState, src->args[k]);
-    }
-
-	tgt->name = src->name;  // Name strings are constant.
-
-	return tgt;
+	
+	omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->algebra->name);
+	
 }
 
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
@@ -213,7 +186,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 		}
 		UNPROTECT(1); /* algebraElt */
 	}
-	oa->name = name;
+	oa->name        = name;
+	oa->sexpAlgebra = algebra;
 
 	UNPROTECT(1);	/* algebraOperator */
 

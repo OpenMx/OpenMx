@@ -106,7 +106,7 @@
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		for(int j = 0; j < tgt->numMats; j++) {
 			// TODO: Smarter inference for which matrices to duplicate
-			tgt->matrixList[j] = omxDuplicateMatrix(NULL, src->matrixList[j], tgt, fullCopy);
+			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], tgt, fullCopy);
 		}
 				
 		tgt->parentConList 		= src->conList;
@@ -117,23 +117,14 @@
 			tgt->conList[j].opCode = src->conList[j].opCode;
 			tgt->conList[j].lbound = src->conList[j].lbound;
 			tgt->conList[j].ubound = src->conList[j].ubound;
-			tgt->conList[j].result = omxDuplicateMatrix(NULL, src->conList[j].result, tgt, fullCopy);
+			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt, fullCopy);
 		}
 
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 		for(int j = 0; j < tgt->numAlgs; j++) {
 			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList[j] = omxDuplicateMatrix(NULL, src->algebraList[j], tgt, fullCopy);
+			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], tgt, fullCopy);
 		}
-
-		for(int j = 0; j < tgt->numAlgs; j++) {
-			omxMatrix *srcMatrix = src->algebraList[j];
-			omxMatrix *tgtMatrix = tgt->algebraList[j];
-			if(srcMatrix->algebra != NULL) {
-				omxDuplicateAlgebra(tgtMatrix->algebra, srcMatrix->algebra, tgt, fullCopy);
-		    }
-		}
-
 		
 		tgt->childList 			= NULL;
 

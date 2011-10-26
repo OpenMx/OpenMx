@@ -50,6 +50,7 @@ struct omxAlgebra {						// A matrix
 	int numArgs;						// Length of args
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
+    SEXP sexpAlgebra;               // The SEXP MxAlgebra object
 	const char* name;				// The name of the algebra (for debugging)
 
 };
@@ -75,7 +76,6 @@ struct omxAlgebra {						// A matrix
 	void omxAlgebraCompute(omxAlgebra *oa);
 	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
     void omxDuplicateAlgebraMatrix(omxMatrix *tgt, omxMatrix* src, omxState* tgtState, short fullCopy);
-    omxAlgebra* omxDuplicateAlgebra(omxAlgebra *tgt, omxAlgebra* src, omxState* tgtState, short fullCopy);
 
 	void omxAlgebraPrint(omxAlgebra *source, char* d);					// Pretty-print a (small) matrix
 
