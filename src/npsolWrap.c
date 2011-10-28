@@ -22,6 +22,7 @@
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include "npsolWrap.h"
+#include "omxOpenmpWrap.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -203,6 +204,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 //	if(!isVector(startVals)) error ("startVals must be a vector");
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
+
+	omx_omp_init();
 
 	n = length(startVals);
 

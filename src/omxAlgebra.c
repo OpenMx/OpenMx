@@ -52,13 +52,17 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	oa->matrix = om;
 	om->algebra = oa;
 	oa->name = NULL;
-	
+
 }
 
-void omxDuplicateAlgebraMatrix(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
-	
-	omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->algebra->name);
-	
+void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
+
+    if(src->algebra != NULL) {
+		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->algebra->name);
+    } else if(src->objective != NULL) {
+        omxDuplicateObjectiveMatrix(tgt, src, newState, fullCopy);
+    }
+
 }
 
 void omxFreeAlgebraArgs(omxAlgebra *oa) {

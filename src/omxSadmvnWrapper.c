@@ -25,7 +25,17 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLObjective.h"
+#include "omxOpenmpWrap.h"
 
+#ifdef _OPENMP
+
+omp_lock_t sadmvn_lock;
+
+#else
+
+void* sadmvn_lock = NULL;
+
+#endif
 
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
 
@@ -61,7 +71,9 @@ void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov,
    	uThresh[1] = 0;
    	Infin[1] = 0;
    	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
+	omx_omp_set_lock(&sadmvn_lock);
    	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, &absEps, &relEps, &Error, likelihood, inform);
+	omx_omp_unset_lock(&sadmvn_lock);
 
    	if(OMX_DEBUG && !oo->matrix->currentState->currentRow) {
    		char infinCodes[3][20];

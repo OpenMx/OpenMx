@@ -95,7 +95,7 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 	currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
 
 	for(int index = 0; index < currentState->numAlgs; index++) {
-		currentState->algebraList[index] = omxInitMatrix(NULL, 0,0, TRUE, currentState);
+		currentState->algebraList[index] = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 	}
 
 	for(int index = 0; index < currentState->numAlgs; index++) {

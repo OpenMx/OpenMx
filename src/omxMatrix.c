@@ -232,12 +232,6 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState, short fullCopy
     if(src == NULL) return NULL;
     newMat = omxInitMatrix(NULL, src->rows, src->cols, FALSE, newState);
     omxCopyMatrix(newMat, src, FALSE);
-    if(src->algebra != NULL) {
-        omxDuplicateAlgebraMatrix(newMat, src, newState, fullCopy);
-    }
-    if(src->objective != NULL) {
-        omxDuplicateObjectiveMatrix(newMat, src, newState, fullCopy);
-    }
     
     return newMat;    
 }

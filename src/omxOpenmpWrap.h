@@ -19,7 +19,8 @@
 
 #include "Rconfig.h"
 #include "omxDefines.h"
-
+#include "omxSadmvnWrapper.h"
+#include "omxRObjective.h"
 
 #ifdef _OPENMP
 
@@ -29,11 +30,30 @@ static OMXINLINE int omx_omp_get_thread_num(void) {
    return(omp_get_thread_num());
 }
 
+static OMXINLINE void omx_omp_init() {
+   omp_init_lock(&sadmvn_lock);
+   omp_init_lock(&robjective_lock);
+}
+
+static OMXINLINE void omx_omp_set_lock(omp_lock_t* lock) {
+   omp_set_lock(lock);
+}
+
+static OMXINLINE void omx_omp_unset_lock(omp_lock_t* lock) {
+   omp_unset_lock(lock);
+}
+
 #else
 
 static OMXINLINE int omx_omp_get_thread_num(void) {
    return(0);
 }
+
+static OMXINLINE void omx_omp_init() {}
+
+static OMXINLINE void omx_omp_set_lock(void** __attribute__((unused)) lock) {}
+
+static OMXINLINE void omx_omp_unset_lock(void** __attribute__((unused)) lock) {}
 
 
 #endif // #ifdef _OPENMP

@@ -75,7 +75,7 @@ struct omxAlgebra {						// A matrix
 	void omxAlgebraRecompute(omxAlgebra *oa);
 	void omxAlgebraCompute(omxAlgebra *oa);
 	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
-    void omxDuplicateAlgebraMatrix(omxMatrix *tgt, omxMatrix* src, omxState* tgtState, short fullCopy);
+	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState, short fullCopy);
 
 	void omxAlgebraPrint(omxAlgebra *source, char* d);					// Pretty-print a (small) matrix
 

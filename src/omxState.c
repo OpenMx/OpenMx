@@ -121,10 +121,16 @@
 		}
 
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
+
 		for(int j = 0; j < tgt->numAlgs; j++) {
 			// TODO: Smarter inference for which algebras to duplicate
 			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], tgt, fullCopy);
 		}
+
+		for(int j = 0; j < tgt->numAlgs; j++) {
+			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt, fullCopy);
+		}
+
 		
 		tgt->childList 			= NULL;
 

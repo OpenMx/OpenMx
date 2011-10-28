@@ -21,21 +21,18 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
+#include "omxRObjective.h"
+#include "omxOpenmpWrap.h"
 
-#ifndef _OMX_R_OBJECTIVE_
-#define _OMX_R_OBJECTIVE_ TRUE
+#ifdef _OPENMP
 
-typedef struct {
+omp_lock_t robjective_lock;
 
-	SEXP objfun;
-	SEXP model;
-	PROTECT_INDEX modelIndex;
-	SEXP flatModel;
-	SEXP parameters;
-	SEXP state;
-	PROTECT_INDEX stateIndex;
+#else
 
-} omxRObjective;
+void* robjective_lock = NULL;
+
+#endif
 
 void omxDestroyRObjective(omxObjective *oo) {
 
@@ -43,6 +40,7 @@ void omxDestroyRObjective(omxObjective *oo) {
 }
 
 void omxCallRObjective(omxObjective *oo) {
+	omx_omp_set_lock(&robjective_lock);
 
 	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
 	SEXP theCall, theReturn;
@@ -50,7 +48,9 @@ void omxCallRObjective(omxObjective *oo) {
 	SETCAR(theCall, rObjective->objfun);
 	SETCADR(theCall, rObjective->model);
 	SETCADDR(theCall, rObjective->state);
+
 	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
+
 	if (LENGTH(theReturn) == 1) {
 		oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
 	} else if (LENGTH(theReturn) == 2) {
@@ -62,7 +62,7 @@ void omxCallRObjective(omxObjective *oo) {
 
 	UNPROTECT(2); // theCall and theReturn
 
-
+	omx_omp_unset_lock(&robjective_lock);
 }
 
 // I have no idea what I'm supposed to do here...
@@ -71,6 +71,8 @@ unsigned short int omxNeedsUpdateRObjective(omxObjective* oo) {
 }
 
 void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
+	omx_omp_set_lock(&robjective_lock);
+
 	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
 
 	SEXP theCall, estimate;
@@ -92,6 +94,7 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	REPROTECT(rObjective->model = eval(theCall, R_GlobalEnv), rObjective->modelIndex);
 
 	UNPROTECT(2); // theCall, estimate
+	omx_omp_unset_lock(&robjective_lock);
 }
 
 omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns) {
@@ -127,4 +130,3 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 }
 
 
-#endif /* _OMX_R_OBJECTIVE_ */
