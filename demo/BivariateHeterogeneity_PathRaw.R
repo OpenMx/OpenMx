@@ -88,7 +88,9 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
             to=selVars, 
             arrows=1, 
             free=T, 
-            values=0, 
+            values=c(0.1, -0.1),
+            ubound=c(NA, 0.0),
+            lbound=c(0.0, NA),
             labels=c("mX1", "mY1")
         ),
         mxData(
@@ -121,7 +123,9 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
             to=selVars, 
             arrows=1, 
             free=T, 
-            values=0, 
+            values=c(0.1, -0.1),
+            ubound=c(NA, 0.0),
+            lbound=c(0.0, NA),
             labels=c("mX2", "mY2")
         ),
         mxData(
