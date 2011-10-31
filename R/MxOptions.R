@@ -135,8 +135,11 @@ generateOptionsList <- function(input, constraints, useOptimizer) {
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}
-	if (options[["Number of Cores"]] == 0) {
-		options[["Number of Cores"]] <- omxDetectCores()
+	if (is.null(options[["Number of Cores"]]) || 
+			options[["Number of Cores"]] == 0) {
+		detect <- omxDetectCores()
+		if(is.na(detect)) detect <- 1
+		options[["Number of Cores"]] <- detect 
 	}
 	return(options)
 }
