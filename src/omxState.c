@@ -181,10 +181,10 @@
 		tgt->endTime			= 0;
 		
 		// TODO: adjust checkpointing based on parallelization method
-		tgt->numCheckpoints 	= src->numCheckpoints;
-		tgt->checkpointList 	= src->checkpointList;
-		tgt->chkptText1 		= src->chkptText1;
-		tgt->chkptText2 		= src->chkptText2;
+		tgt->numCheckpoints     = 0;
+		tgt->checkpointList 	= NULL;
+		tgt->chkptText1 		= NULL;
+		tgt->chkptText2 		= NULL;
                                   
 		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;

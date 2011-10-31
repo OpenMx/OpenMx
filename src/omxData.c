@@ -226,7 +226,7 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 
 	if(od->dataMat != NULL) {		// Data was entered as a matrix.
 		if(om != NULL) {			// It stays as such
-			omxCopyMatrix(om, od->dataMat, TRUE);
+			omxCopyMatrix(om, od->dataMat);
 			return om;
 		}
 		return od->dataMat;
@@ -272,7 +272,7 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 
 	if(colList == NULL) {
 		if(om == NULL) return od->meansMat;
-		omxCopyMatrix(om, od->meansMat, TRUE);
+		omxCopyMatrix(om, od->meansMat);
 		return om;
 	}
 
@@ -281,7 +281,7 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 	if(colList == NULL || cols == 0 || cols > od->cols) {
 		cols = od->cols;
 		if(om == NULL) return od->meansMat;
-		omxCopyMatrix(om, od->meansMat, TRUE);
+		omxCopyMatrix(om, od->meansMat);
 		return om;
 	}
 

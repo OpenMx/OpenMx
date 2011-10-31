@@ -98,7 +98,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 	if(oa->funWrapper == NULL) { 			// No-op algebra: only for algebra-is-a-matrix condition.
 		if(oa->numArgs == 1) {
 			if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->args[0], "No-op Matrix"); }
-			omxCopyMatrix(oa->matrix, oa->args[0], TRUE);
+			omxCopyMatrix(oa->matrix, oa->args[0]);
 		} else {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}
@@ -271,7 +271,7 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 	}		
 	if(OMX_DEBUG) {Rprintf("  Pointer is %d.\n", value);}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.
-		output = *(os->algebraList + value);
+		output = os->algebraList[value];
 	} else {												// Pre-existing matrix.  A-ok.
 		output = os->matrixList[~value];						// Value invert for matrices.
 	}

@@ -14,7 +14,10 @@
 #   limitations under the License.
 
 mxOption <- function(model, key, value, reset = FALSE) {
-	if (length(model) != 1 || !is(model, "MxModel")) {
+    if (length(model) == 0 && is.null(model)) {
+        return(processDefaultOptionList(key, value, reset))
+    }
+	if (length(model) > 1 || !is(model, "MxModel")) {
 		stop("argument 'model' must be an MxModel object")
 	}
 	if (length(reset) != 1 || !is.logical(reset)) {
@@ -48,6 +51,36 @@ mxOption <- function(model, key, value, reset = FALSE) {
 	return(model)
 }
 
+processDefaultOptionList <- function(key, value, reset) {
+	if (length(reset) != 1 || !is.logical(reset)) {
+		stop("argument 'reset' must be TRUE or FALSE")
+	}
+	if (length(key) != 1 || !is.character(key)) {
+		stop("argument 'key' must be a character string")
+	}
+	if (length(value) != 1) {
+		stop("argument 'value' must be of length 1")
+	}
+	defaultOptions <- getOption('mxOptions')
+	optionsNames <- names(defaultOptions)
+	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
+		ignore.case=TRUE)
+	if(length(match) == 0) {
+		stop(paste("argument 'key' has a value",
+			omxQuotes(key), "that cannot be found in",
+			"getOption('mxOptions')"))
+	}
+	if (!identical(optionsNames[[match]], key)) {
+		stop(paste("argument 'key' has a value",
+			omxQuotes(key), "but the option is named",
+			omxQuotes(optionsNames[[match]]), ": please correct",
+			"the capitalization and re-run mxOption()."))
+	}
+	defaultOptions[[key]] <- value
+	options('mxOptions' = defaultOptions)
+	return(invisible(defaultOptions))
+}
+
 # Names and values must all be strings
 npsolOptions <- list(
 	"Nolist" = "",
@@ -68,7 +101,7 @@ npsolOptions <- list(
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
-	"Number of Cores" = 1
+	"Number of Cores" = 0
 )
 
 checkpointOptions <- list(
@@ -101,6 +134,9 @@ generateOptionsList <- function(input, constraints, useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
 	} else {
 		options[["useOptimizer"]] <- "No"
+	}
+	if (options[["Number of Cores"]] == 0) {
+		options[["Number of Cores"]] <- omxDetectCores()
 	}
 	return(options)
 }

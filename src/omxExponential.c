@@ -83,7 +83,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	int length = nrow * ncol;
 
 	omxMatrix *normInMat = omxInitTemporaryMatrix(NULL, nrow, ncol, 1, inMat->currentState);
-	omxCopyMatrix(normInMat, inMat, TRUE);
+	omxCopyMatrix(normInMat, inMat);
 
 	double multipleOfTwo = pow(2.0, j);
 	for(int i = 0; i < length; i++) {
@@ -105,7 +105,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 		omxSetVectorElement(normInMat, i, omxVectorElement(inMat, i) / multipleOfTwo);
 	}
 
-	omxCopyMatrix(tempA, normInMat, TRUE);
+	omxCopyMatrix(tempA, normInMat);
 	double constant = 0.5;
 
 
@@ -114,7 +114,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 		F77_CALL(omxunsafedgemm)((normInMat->majority), (tempA->majority), &(normInMat->rows), 
 			&(tempA->cols), &(normInMat->cols), &one, normInMat->data, &(normInMat->leading), 
 			tempA->data, &(tempA->leading), &zero, tempResult->data, &(tempResult->leading));
-		omxCopyMatrix(tempA, tempResult, TRUE);
+		omxCopyMatrix(tempA, tempResult);
 		for(int i = 0; i < length; i++) {
 			omxSetVectorElement(tempResult, i, omxVectorElement(tempResult, i) * constant);
 		}
@@ -145,10 +145,10 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 			F77_CALL(omxunsafedgemm)((N->majority), (N->majority), &nrow, 
 				&nrow, &nrow, &one, N->data, &(N->leading), 
 				N->data, &(N->leading), &zero, result->data, &(result->leading));
-			omxCopyMatrix(N, result, TRUE);		
+			omxCopyMatrix(N, result);		
 		}
 	} else {
-		omxCopyMatrix(result, N, TRUE);
+		omxCopyMatrix(result, N);
 	}
 
 	omxFreeAllMatrixData(normInMat);

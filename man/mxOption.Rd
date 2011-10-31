@@ -27,7 +27,7 @@ mxOption(model, key, value, reset = FALSE)
 }
 
 \arguments{
-\item{model}{An \link{MxModel} object}
+\item{model}{An \link{MxModel} object or NULL}
 \item{key}{The name of the option.}
 \item{value}{The value of the option.}
 \item{reset}{If TRUE then reset all options to their defaults.}
@@ -39,7 +39,8 @@ The name of the option is the \sQuote{key} argument. Use value = NULL to remove
 an existing option. Before the model is submitted to the back-end, all keys and 
 values are converted into strings using the \link{as.character} function. To reset
 all options to their default values, use reset = TRUE. If reset = TRUE, then 'key'
-and 'value' are ignored. Use \code{getOption('mxOptions')} to see the default 
+and 'value' are ignored. To set the default optimizer options, use the value 
+NULL for the \sQuote{model} argument. Use \code{getOption('mxOptions')} to see the default 
 optimizer options.
 
 OpenMx options

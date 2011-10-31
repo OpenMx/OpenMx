@@ -83,7 +83,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix* inMat = matList[0];
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 	result->colMajor = !result->colMajor;
 	int rowtemp = result->rows;
 	result->rows = result->cols;
@@ -103,7 +103,7 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	double work[lwork];
 	int l = 0;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
 	if(l != 0) {
 		char *errstr = Calloc(250, char);
@@ -1041,7 +1041,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	calcMat = omxInitTemporaryMatrix(NULL, rows, cols, TRUE, inMat->currentState);
-	omxCopyMatrix(calcMat, inMat, TRUE);
+	omxCopyMatrix(calcMat, inMat);
 
 	int ipiv[rows];
 
@@ -1235,7 +1235,7 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1306,7 +1306,7 @@ void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1324,7 +1324,7 @@ void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1342,7 +1342,7 @@ void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1360,7 +1360,7 @@ void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1378,7 +1378,7 @@ void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1396,7 +1396,7 @@ void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1414,7 +1414,7 @@ void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1432,7 +1432,7 @@ void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1447,7 +1447,7 @@ void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int max = inMat->cols * inMat->rows;
 
-	omxCopyMatrix(result, inMat, TRUE);
+	omxCopyMatrix(result, inMat);
 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
@@ -1985,7 +1985,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0], TRUE);				// FIXME: Much memory badness here.
+	omxCopyMatrix(B, matList[0]);				// FIXME: Much memory badness here.
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
 	/* Conformability Check! */
@@ -2054,7 +2054,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0], TRUE);				// FIXME: Much memory badness here.
+	omxCopyMatrix(result, matList[0]);				// FIXME: Much memory badness here.
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
 
@@ -2133,7 +2133,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0], TRUE);				// FIXME: Potential memory badness here.
+	omxCopyMatrix(B, matList[0]);				// FIXME: Potential memory badness here.
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
 	/* Conformability Check! */
@@ -2204,7 +2204,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0], TRUE);				// FIXME: Potential Much memory badness here.
+	omxCopyMatrix(result, matList[0]);				// FIXME: Potential Much memory badness here.
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
 	/* Conformability Check! */

@@ -122,7 +122,7 @@ struct omxMatrix {						// A matrix
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
-	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src, int copyState);					// Copy across another matrix.
+	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
 	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
