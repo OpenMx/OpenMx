@@ -14,6 +14,8 @@ trunk
 * added '@likelihoods' slot for MxFIMLObjective and MxRAMObjective (when using raw data)
 * added support for OpenMP in hessian calculation
 * fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+* added more descriptive error message to mxOption()
+* catching illegal references of the form "mzData.ageT1mz"
 
 Beta Release 999.0.0-1690 (June 27, 2011)
 =========================================
