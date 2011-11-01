@@ -1,3 +1,8 @@
+trunk
+=====
+* added more descriptive error message to mxOption()
+* catching illegal references of the form "mzData.ageT1mz"
+
 Release  1.1.2-1818 (October 24, 2011)
 =================================
 * fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104

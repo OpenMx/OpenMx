@@ -42,7 +42,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		stop(paste("argument 'key' has a value",
 			omxQuotes(key), "but the option is named",
 			omxQuotes(optionsNames[[match]]), ": please correct",
-			"the capitalization."))
+			"the capitalization and re-run mxOption()."))
 	}
 	model@options[[key]] <- value
 	return(model)

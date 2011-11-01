@@ -67,6 +67,33 @@ imxVerifyReference <- function(reference, stackNumber) {
 			call. = FALSE)
 		}
 	}
+	if (length(components) == 2) {
+		if ((components[[1]] != "data") && !hasSquareBrackets(reference)) {
+			stop(paste("The reference", omxQuotes(reference),
+				"is illegal because it contains the",
+				omxQuotes(imxSeparatorChar), "character in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
+				". To write a definition variable use", 
+				omxQuotes(paste("data", components[[2]], sep = "."))),
+			call. = FALSE)
+		}
+	} else if (length(components) == 3) {
+		if ((components[[2]] != "data")) {
+			stop(paste("The reference", omxQuotes(reference),
+				"is illegal because it contains the",
+				omxQuotes(imxSeparatorChar), "character",
+				"but it is not a valid definition variable in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+			call. = FALSE)
+		}
+	} else if (length(components) > 3) {
+			stop(paste("The reference", omxQuotes(reference),
+				"is illegal because it contains the",
+				omxQuotes(imxSeparatorChar), "character",
+				"but it is not a valid definition variable in", 
+				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+			call. = FALSE)
+	}
 	badCharacterMatch <- illegalCharsVector %in% explode(reference)
 	if(any(badCharacterMatch)) {
 		badChars <- illegalCharsVector[badCharacterMatch]
