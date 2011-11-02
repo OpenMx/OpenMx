@@ -133,6 +133,7 @@ setMethod("genericObjModelConvert", "MxFIMLObjective",
 		precision <- "Function precision"
 		if(!single.na(.Object@thresholds) && 
 			is.null(job@options[[precision]])) {
+			job@.forcesequential <- TRUE
 			job <- mxOption(job, precision, 1e-9)
 			flatJob <- mxOption(flatJob, precision, 1e-9)
 		}

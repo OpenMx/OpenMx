@@ -120,6 +120,7 @@ convertObjectives <- function(flatModel, model, defVars) {
 }
 
 translateObjectives <- function(model, namespace, flatModel) {
+	model@.forcesequential <- FALSE
 	if(is.null(model@objective) && 
 		length(imxDependentModels(model)) == 0) {
 		return(list(model, namespace, flatModel))

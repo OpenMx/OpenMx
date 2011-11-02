@@ -25,16 +25,12 @@
 #ifdef _OPENMP
 
 #include <omp.h>
-#define R_INTERFACE_PTRS 1
-#define CSTACK_DEFNS 1
-#include "Rinterface.h"
 
 static OMXINLINE int omx_omp_get_thread_num(void) {
    return(omp_get_thread_num());
 }
 
 static OMXINLINE void omx_omp_init() {
-   R_CStackLimit = (uintptr_t) -1;
    omp_init_lock(&sadmvn_lock);
    omp_init_lock(&robjective_lock);
 }

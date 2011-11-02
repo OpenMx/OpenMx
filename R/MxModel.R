@@ -29,11 +29,12 @@ setClass(Class = "MxModel",
 		independent = "logical",
 		options = "list",
 		output = "list",
-		runstate="list",
-		.newobjects="logical",
-		.newobjective="logical",
-		.newtree="logical",
-        .resetdata="logical"
+		runstate = "list",
+		.forcesequential = "logical",
+		.newobjects = "logical",
+		.newobjective = "logical",
+		.newtree = "logical",
+        .resetdata = "logical"
 ))
 
 imxModelTypes[['default']] <- "MxModel"

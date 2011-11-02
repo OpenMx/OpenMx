@@ -48,6 +48,14 @@ setMethod("genericObjFunNamespace", signature("MxRObjective"),
 		return(.Object)
 })
 
+setMethod("genericObjModelConvert", signature("MxRObjective"), 
+	function(.Object, job, model, namespace, flatJob) {
+		job@.forcesequential <- TRUE
+		job@.newobjects <- FALSE
+		job@.newobjective <- FALSE
+		job@.newtree <- FALSE
+		return(list(job, flatJob))
+})
 
 mxRObjective <- function(objfun, ...) {
 	if (!is.function(objfun)) {

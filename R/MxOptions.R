@@ -122,7 +122,8 @@ otherOptions <- list(
 	"RAM Max Depth" = NA
 )
 
-generateOptionsList <- function(input, constraints, useOptimizer) {
+generateOptionsList <- function(model, constraints, useOptimizer) {
+	input <- model@options
 	if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
 		input[["Standard Errors"]] <- "No"
 	}
@@ -135,10 +136,12 @@ generateOptionsList <- function(input, constraints, useOptimizer) {
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}
-	if (is.null(options[["Number of Cores"]]) || 
+	if (model@.forcesequential) {
+		options[["Number of Cores"]] <- 1L 
+	} else if (is.null(options[["Number of Cores"]]) || 
 			options[["Number of Cores"]] == 0) {
 		detect <- omxDetectCores()
-		if(is.na(detect)) detect <- 1
+		if(is.na(detect)) detect <- 1L
 		options[["Number of Cores"]] <- detect 
 	}
 	return(options)
