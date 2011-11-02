@@ -182,7 +182,7 @@ struct omxState {													// The Current State of Optimization
 };
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, int numChildren);				// Constructor
+	void omxInitState(omxState* state, omxState *parentState, int numChildren); // Constructor
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective);
 	void omxFreeState(omxState *oo);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.

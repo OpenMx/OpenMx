@@ -24,8 +24,9 @@ typedef struct omxDefinitionVar {		 	// Definition Var
 	int data, column;		// Where it comes from
 	omxData* source;		// Data source
 	int numLocations;		// Num locations
-	double** location;		// And where it goes
-	omxMatrix** matrices;	// Matrix numbers for dirtying
+	int* rows;				// row positions
+	int* cols;				// column positions
+	int* matrices;			// matrix numbers
 
 } omxDefinitionVar;
 
@@ -97,6 +98,9 @@ typedef struct omxFIMLObjective {
 	double relEps;				// From MxOptions
 
 } omxFIMLObjective;
+
+int handleDefinitionVarList(omxData* data, omxState *state, int row, 
+	omxDefinitionVar* defVars, double* oldDefs, int numDefs);
 
 void omxCallFIMLObjective(omxObjective *oo);
 void omxCallFIMLOrdinalObjective(omxObjective *oo);

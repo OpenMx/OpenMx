@@ -104,7 +104,7 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	return retVal;
 }
 
-int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
+int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
 
 	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
 	
@@ -127,8 +127,12 @@ int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, d
 			if(OMX_DEBUG_ROWS) {
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
-			*(defVars[k].location[l]) = newDefVar;
-			omxMarkDirty(defVars[k].matrices[l]);
+			int matrixNumber = defVars[k].matrices[l];
+			int row = defVars[k].rows[l];
+			int col = defVars[k].cols[l];
+			omxMatrix *matrix = state->matrixList[matrixNumber];
+			omxSetMatrixElement(matrix, row, col, newDefVar);
+			omxMarkDirty(matrix);
 			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
 				omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
 				error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
@@ -224,7 +228,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
 				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
+				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					if(!(subObjective == NULL)) {
@@ -509,7 +513,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
 				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow || 1) { // TODO: Implement sorting-based speedups here.
+				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow || 1) { // TODO: Implement sorting-based speedups here.
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					if(!(subObjective == NULL)) {
@@ -882,7 +886,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
  * No synchronization mechanisms are employed to maintain consistency
  * of sharedobj references.
  */
-double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowend) {
+double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
     
     omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
     omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
@@ -934,7 +938,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	int firstRow = 1;
     int row = rowbegin;
 
-	while(row < rowend) {
+	while(row < data->rows && (row - rowbegin) < rowcount) {
         if (OMX_DEBUG_ROWS) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
@@ -957,7 +961,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate
 				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, row, defVars, oldDefs, numDefs) || firstRow) {
+				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					if(!(subObjective == NULL)) {
@@ -1128,7 +1132,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
-	double sum;
+	double sum = 0.0;
 	int numDefs, returnRowLikelihoods;	
 	omxObjective* subObjective;
 	
@@ -1136,6 +1140,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	omxData *data;
 
     omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+	omxMatrix* objMatrix  = oo->matrix;
+	omxState* parentState = objMatrix->currentState;
+	int numChildren = parentState->numChildren;
 
 	// Locals, for readability.  Should compile out.
 	cov 		= ofo->cov;
@@ -1157,9 +1164,33 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
 
-    // In sequential implementation, the same reference is used
-    // for the local objective function and the shared objective function.
-    sum = omxFIMLSingleIteration(oo, oo, 0, data->rows);
+    
+    int parallelism = (numChildren == 0) ? 1 : numChildren;
+
+    if (parallelism > 1) {
+    	int stride = (data->rows / parallelism);
+	    int* sums = malloc(parallelism * sizeof(int));
+
+		for(int i = 0; i < parallelism; i++) {
+			omxUpdateState(parentState->childList[i], parentState);
+		}
+
+		#pragma omp parallel for num_threads(parallelism) 
+		for(int i = 0; i < parallelism; i++) {
+			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxObjective *childObjective = childMatrix->objective;
+			sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
+		}
+
+		for(int i = 0; i < parallelism; i++) {
+			sum += sums[i];
+		}
+
+		free(sums);
+
+	} else {
+    	sum = omxFIMLSingleIteration(oo, oo, 0, data->rows);
+	}
 
     if(!returnRowLikelihoods) {
 	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
@@ -1301,15 +1332,15 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
 		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
-		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
-		newObj->defVars[nextDef].matrices = (omxMatrix **) R_alloc(length(itemList) - 2, sizeof(omxMatrix*));
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 2, sizeof(int));
 		newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
-			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
-				oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]],
-				INTEGER(nextItem)[1], INTEGER(nextItem)[2]);
-			newObj->defVars[nextDef].matrices[index-2] = oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]];
+			newObj->defVars[nextDef].matrices[index-2] = INTEGER(nextItem)[0];
+			newObj->defVars[nextDef].rows[index-2] = INTEGER(nextItem)[1];
+			newObj->defVars[nextDef].cols[index-2] = INTEGER(nextItem)[2];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList

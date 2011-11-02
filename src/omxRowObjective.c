@@ -24,45 +24,8 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-
-#ifndef _OMX_ROW_OBJECTIVE_
-#define _OMX_ROW_OBJECTIVE_ TRUE
-
-// TODO: Migrate omxDefinitionVar struct to a more central location.
- typedef struct omxDefinitionVar {		 	// Definition Var
-
- 	int data, column;		// Where it comes from
- 	omxData* source;		// Data source
- 	int numLocations;		// Num locations
- 	double** location;		// And where it goes
- 	omxMatrix** matrices;	// Matrix numbers for dirtying
-
- } omxDefinitionVar;
-
- extern int handleDefinitionVarList(omxData* data, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs);
-
-typedef struct omxRowObjective {
-
-	/* Parts of the R  MxRowObjective Object */
-	omxMatrix* rowAlgebra;		// Row-by-row algebra
-	omxMatrix* rowResults;		// Aggregation of row algebra results
-	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
-    omxMatrix* filteredDataRow; // Data row minus NAs
-    omxMatrix* existenceVector; // Set of NAs
-    omxMatrix* dataColumns;		// The order of columns in the data matrix
-
-    /* Contiguous data note for contiguity speedup */
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
-
-	/* Structures determined from info in the MxRowObjective Object*/
-    double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.         // NYI: This element currently unused.
-	omxDefinitionVar* defVars;	// A list of definition variables
-	int numDefs;				// The length of the defVars list
-	omxMatrix* dataRow;         // One row of data, kept for aliasing only
-	omxData*   data;			// The data
-    
-
-} omxRowObjective;
+#include "omxRowObjective.h"
+#include "omxFIMLObjective.h"
 
 void omxDestroyRowObjective(omxObjective *oo) {
 
@@ -137,7 +100,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		// Handle Definition Variables.
         if(OMX_DEBUG_ROWS) { Rprintf("numDefs is %d", numDefs);}
 		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
-			handleDefinitionVarList(data, row, defVars, oldDefs, numDefs);
+			handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs);
 		}
 
 		omxStateNextRow(oo->matrix->currentState);						// Advance row
@@ -289,14 +252,15 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
 		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
-		newObj->defVars[nextDef].location = (double **) R_alloc(length(itemList) - 2, sizeof(double*));
-		newObj->defVars[nextDef].matrices = (omxMatrix **) R_alloc(length(itemList) - 2, sizeof(omxMatrix*));
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+
 		for(index = 2; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
-			newObj->defVars[nextDef].location[index-2] = omxLocationOfMatrixElement(
-				oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]],
-				INTEGER(nextItem)[1], INTEGER(nextItem)[2]);
-			newObj->defVars[nextDef].matrices[index-2] = oo->matrix->currentState->matrixList[INTEGER(nextItem)[0]];
+			newObj->defVars[nextDef].matrices[index-2] = INTEGER(nextItem)[0];
+			newObj->defVars[nextDef].rows[index-2]     = INTEGER(nextItem)[1];
+			newObj->defVars[nextDef].cols[index-2]     = INTEGER(nextItem)[2];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList
@@ -315,4 +279,4 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	oo->argStruct = (void*) newObj;
 }
 
-#endif /* _OMX_ROW_OBJECTIVE_ */
+

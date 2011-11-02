@@ -114,7 +114,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	/* Create new omxState for current state storage and initialize it. */
 	
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState, 1);
+	omxInitState(currentState, NULL, 1);
 	currentState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
@@ -215,7 +215,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState, numThreads);
+	omxInitState(currentState, NULL, numThreads);
 	currentState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
@@ -229,8 +229,13 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	if(!errOut) errOut = omxProcessMxAlgebraEntities(algList);
 
 	/* Initial Matrix and Algebra Calculations */
-	if(!errOut) errOut = omxInitialMatrixAlgebraCompute();
-	
+    if(!errOut) {
+		// disable parallelism until omxDuplicateState() can be invoked
+    	currentState->numChildren = 0;
+		errOut = omxInitialMatrixAlgebraCompute();
+    	currentState->numChildren = (numThreads > 1) ? numThreads : 0;	
+	}
+
 	/* Process Objective Function */
 	if(!errOut) errOut = omxProcessObjectiveFunction(objective, &n);
 

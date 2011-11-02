@@ -27,7 +27,7 @@
 #include "omxState.h"
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, int numThreads) {
+	void omxInitState(omxState* state, omxState *parentState, int numThreads) {
 		int i;
 		state->numMats = 0;
 		state->numAlgs = 0;
@@ -38,7 +38,7 @@
 			state->childList = (omxState**) Calloc(numThreads, omxState*);
 			for(i = 0; i < numThreads; i++) {
 				state->childList[i] = (omxState*) R_alloc(1, sizeof(omxState));
-				omxInitState(state->childList[i], 1);
+				omxInitState(state->childList[i], state, 1);
 			}
 		} else {
 	        state->numChildren = 0;
@@ -46,7 +46,7 @@
 		}
 		state->matrixList = NULL;
 		state->algebraList = NULL;
-        state->parentState = NULL;
+        state->parentState = parentState;
         state->parentMatrix = NULL;
         state->parentAlgebra = NULL;
 		state->parentConList= NULL;
@@ -201,7 +201,6 @@
 
     omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
         if(os == NULL || element == NULL) return NULL;
-        if(os->parentState == NULL) return element; // FIXME: Not sure if this is the correct behavior.
 
 		if (element->hasMatrixNumber) {
 			int matrixNumber = element->matrixNumber;

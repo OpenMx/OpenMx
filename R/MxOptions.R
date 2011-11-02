@@ -101,7 +101,7 @@ npsolOptions <- list(
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
-	"Number of Cores" = 0
+	"Number of Cores" = 1
 )
 
 checkpointOptions <- list(
