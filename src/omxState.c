@@ -91,6 +91,12 @@
 			return omxGetState(os->childList[subState % os->numChildren], subState / os->numChildren);
 		}
 	}
+
+	void omxUpdateState(omxState* tgt, omxState* src) {
+		tgt->computeCount 		= src->computeCount;
+		tgt->currentRow 		= src->currentRow;
+		tgt->optimalValues 		= src->optimalValues;
+	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {
 		tgt->numMats 			= src->numMats;
