@@ -45,12 +45,12 @@ struct hess_struct {
 	int r;
 };
 
-void omxPopulateHessianWork(struct hess_struct *hess_work, double functionPrecision, int r, omxState* childState) {
+void omxPopulateHessianWork(struct hess_struct *hess_work, double functionPrecision, int r, omxState* state) {
 
-	omxObjective* oo = childState->objectiveMatrix->objective;
-	int numParams = childState->numFreeParams;
+	omxObjective* oo = state->objectiveMatrix->objective;
+	int numParams = state->numFreeParams;
 
-	double* optima = childState->optimalValues;
+	double* optima = state->optimalValues;
 	double *freeParams = (double*) Calloc(numParams, double);
 
 	hess_work->numParams = numParams;
@@ -69,7 +69,7 @@ void omxPopulateHessianWork(struct hess_struct *hess_work, double functionPrecis
 	if (objectiveMatrix->objective->repopulateFun != NULL) {	//  Just in case
 		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, freeParams, numParams);
 	} else {
-		handleFreeVarList(childState, freeParams, numParams);
+		handleFreeVarList(state, freeParams, numParams);
 	}
 	omxRecompute(objectiveMatrix);		// Initial recompute in case it matters.	
 	hess_work->f0 = omxMatrixElement(objectiveMatrix, 0, 0);

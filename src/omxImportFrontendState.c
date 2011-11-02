@@ -248,7 +248,6 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
 		int numLocs = length(nextVar) - 2;
 		currentState->freeVarList[freeVarIndex].numLocations = numLocs;
-		currentState->freeVarList[freeVarIndex].location = (double**) R_alloc(numLocs, sizeof(double*));
 		currentState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
 		currentState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
 		currentState->freeVarList[freeVarIndex].col		 = (int*) R_alloc(numLocs, sizeof(int));
@@ -280,8 +279,6 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 			int theRow = theVarList[1];			// Row is zero-based.
 			int theCol = theVarList[2];			// Column is zero-based.
 
-			double* locationMatrixElement = omxLocationOfMatrixElement(currentState->matrixList[theMat], theRow, theCol);
-			currentState->freeVarList[freeVarIndex].location[locIndex] = locationMatrixElement;
 			currentState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
 			currentState->freeVarList[freeVarIndex].row[locIndex] = theRow;
 			currentState->freeVarList[freeVarIndex].col[locIndex] = theCol;

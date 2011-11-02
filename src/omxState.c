@@ -154,7 +154,6 @@
 			tgt->freeVarList[j].matrices		= (int*) R_alloc(nLocs, sizeof(int));
 			tgt->freeVarList[j].row				= (int*) R_alloc(nLocs, sizeof(int));
 			tgt->freeVarList[j].col				= (int*) R_alloc(nLocs, sizeof(int));
-			tgt->freeVarList[j].location		= (double**) R_alloc(nLocs, sizeof(double*));
 
 			for(int k = 0; k < nLocs; k++) {
 				int theMat 						= src->freeVarList[j].matrices[k];
@@ -164,9 +163,7 @@
 				tgt->freeVarList[j].matrices[k] = theMat;
 				tgt->freeVarList[j].row[k]		= theRow;
 				tgt->freeVarList[j].col[k]		= theCol;
-				
-				tgt->freeVarList[j].location[k] = omxLocationOfMatrixElement(tgt->matrixList[theMat], theRow, theCol);
-				
+								
 				tgt->freeVarList[j].name		= src->freeVarList[j].name;
 			}
 		}

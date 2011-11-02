@@ -71,8 +71,7 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 struct omxFreeVar {			// Free Variables
 	double lbound, ubound;	// Bounds
 	int numLocations;
-	double** location;		// And where they go.
-	int* matrices;			// Matrix numbers for dirtying.
+	int* matrices;			// Matrix numbers.
 	int *row, *col;			// Locations for copying.
 	const char* name;
 };
