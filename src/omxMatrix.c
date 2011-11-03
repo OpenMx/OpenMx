@@ -224,14 +224,6 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	return newMat;
 }
 
-void omxUpdateMatrix(omxMatrix* tgt, omxMatrix* src) {
-	tgt->isDirty     = src->isDirty;
-	tgt->lastCompute = src->lastCompute;
-	tgt->lastRow     = src->lastRow;
-	memcpy(tgt->data, src->data, src->rows * src->cols * sizeof(double));
-}
-
-
 omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState, short fullCopy) {
     omxMatrix* newMat;
     

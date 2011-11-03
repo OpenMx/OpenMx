@@ -314,3 +314,17 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	return om;
 	
 }
+
+void omxUpdateAlgebra(omxMatrix* tgt, omxMatrix* src) {
+	omxCopyMatrix(tgt, src);
+
+	if (tgt->algebra) {
+		omxAlgebra *tgtAlgebra = tgt->algebra;
+		omxAlgebra *srcAlgebra = src->algebra;
+		for(int i = 0; i < srcAlgebra->numArgs; i++) {
+			omxUpdateAlgebra(tgtAlgebra->args[i], srcAlgebra->args[i]);
+		}
+	}
+}
+
+
