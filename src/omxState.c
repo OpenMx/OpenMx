@@ -33,8 +33,6 @@
 		state->numAlgs = 0;
 		state->numData = 0;
 		state->numFreeParams = 0;
-		state->numDynamic = 0;
-		state->maxDynamic = 0;
 		if (numThreads > 1) {
 			state->numChildren = numThreads;
 			state->childList = (omxState**) Calloc(numThreads, omxState*);
@@ -48,11 +46,7 @@
 		}
 		state->matrixList = NULL;
 		state->algebraList = NULL;
-		state->dynamicList = NULL;
-        state->parentState = parentState;
-        state->parentMatrix = NULL;
-        state->parentAlgebra = NULL;
-		state->parentConList= NULL;
+		state->parentState = parentState;
 		state->dataList = NULL;
 		state->objectiveMatrix = NULL;
 		state->hessian = NULL;
@@ -108,9 +102,6 @@
 		for(int i = 0; i < src->numAlgs; i++) {
 			omxUpdateAlgebra(tgt->algebraList[i], src->algebraList[i]);
 		}
-		for(int i = 0; i < src->numDynamic; i++) {
-			omxUpdateAlgebra(tgt->dynamicList[i], src->dynamicList[i]);
-		}
 	}
 
     void omxSetMajorIteration(omxState *state, int value) {
@@ -126,20 +117,6 @@
 			omxSetMinorIteration(state->childList[i], value);
 		}
 	}
-
-	void omxAddDynamicMatrix(omxState* state, omxMatrix* matrix) {
-		if (state->dynamicList == NULL) {
-			state->dynamicList = (omxMatrix**) malloc(16 * sizeof(omxMatrix*));
-			state->maxDynamic = 16;
-		}
-		if (state->numDynamic == state->maxDynamic) {
-			state->dynamicList = realloc(state->dynamicList, state->maxDynamic * 2 * sizeof(omxMatrix*));
-			state->maxDynamic = state->maxDynamic * 2;
-		}
-		matrix->matrixNumber = state->numDynamic;
-		state->dynamicList[state->numDynamic] = matrix;
-		state->numDynamic = state->numDynamic + 1;		
-	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {
 		tgt->numMats 			= src->numMats;
@@ -150,15 +127,12 @@
 		
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
-		tgt->parentMatrix 		= src->matrixList;
-		tgt->parentAlgebra 		= src->algebraList;
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		for(int j = 0; j < tgt->numMats; j++) {
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], tgt, fullCopy);
 		}
 				
-		tgt->parentConList 		= src->conList;
 		tgt->numConstraints     = src->numConstraints;
 		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
 		for(int j = 0; j < tgt->numConstraints; j++) {
@@ -239,8 +213,8 @@
 		strncpy(tgt->statusMsg, "", 1);
 	}
 
-    omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
-        if(os == NULL || element == NULL) return NULL;
+	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
+		if(os == NULL || element == NULL) return NULL;
 
 		if (element->hasMatrixNumber) {
 			int matrixNumber = element->matrixNumber;
@@ -251,17 +225,20 @@
 			}
 		}
 
-        for(int i = 0; i < os->numConstraints; i++) {
-            if(os->parentConList[i].result == element) {
-				if(os->conList[i].result != NULL)   // Not sure of proper failure behavior here.
-                    return(os->conList[i].result);
-                else
+		omxConstraint* parentConList = os->parentState->conList;
+
+		for(int i = 0; i < os->numConstraints; i++) {
+			if(parentConList[i].result == element) {
+				if(os->conList[i].result != NULL) {   // Not sure of proper failure behavior here.
+            	return(os->conList[i].result);
+				} else {
                     omxRaiseError(os, -2, "Initialization Copy Error: Constraint required but not yet processed.");
             }
-        }
+			}
+		}
 
-        return NULL;
-    }
+		return NULL;
+	}
 
 	void omxFreeState(omxState *state) {
 		int k;
@@ -322,8 +299,6 @@
 			}
 			// Checkpoint list itself is freed by R.
 		}
-
-		if(state->dynamicList != NULL) free(state->dynamicList);
 
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}

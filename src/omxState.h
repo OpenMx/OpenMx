@@ -129,17 +129,12 @@ struct omxState {													// The Current State of Optimization
 
 //	omxOptimizer* optimizer;										// Current Optimizer
 	int numMats, numAlgs, numData, numChildren;						// Number of matrices, algebras, and data elements
-	int numDynamic; 			                                    // The current number of dynamic matrices
-	int maxDynamic;													// The current capacity of dynamic matrices
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
-    omxMatrix** dynamicList;                                        // Dynamic matrices and algebras
 	omxData** dataList;												// Data Objects
-    omxState** childList;                                           // List of child states
-    omxState* parentState;                                          // Parent State
-    omxMatrix** parentMatrix;                                       // Parent's Matrix List
-    omxMatrix** parentAlgebra;                                      // Parent's Algebra List
-	omxConstraint* parentConList;									// Parent's Constraint List
+	omxState** childList;											// List of child states
+	omxState* parentState;											// Parent State
+
                                                                     // TODO: Need a way to deal with unregistered matrices that have free vars
 	omxMatrix* objectiveMatrix;										// Objective Algebra
 
@@ -189,15 +184,14 @@ struct omxState {													// The Current State of Optimization
 	void omxFreeState(omxState *oo);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	void omxUpdateState(omxState* tgt, omxState* src);					// Updates the tgt state with the contents of src state
-    void omxDuplicateState(omxState *tgt, omxState* src, unsigned short fullCopy); 
+	void omxDuplicateState(omxState *tgt, omxState* src, unsigned short fullCopy); 
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
 
-    void omxSetMajorIteration(omxState *state, int value);				// Recursively set major iteration number
-    void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
+	void omxSetMajorIteration(omxState *state, int value);				// Recursively set major iteration number
+	void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
 
-	void omxAddDynamicMatrix(omxState* state, omxMatrix* matrix);
-    omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
+	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
     
 	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error
 																		// TODO: Move RaiseError to omxOptimizer.
