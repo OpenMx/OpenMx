@@ -193,6 +193,9 @@ struct omxState {													// The Current State of Optimization
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
 
+    void omxSetMajorIteration(omxState *state, int value);				// Recursively set major iteration number
+    void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
+
 	void omxAddDynamicMatrix(omxState* state, omxMatrix* matrix);
     omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
     

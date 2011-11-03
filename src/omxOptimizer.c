@@ -46,11 +46,13 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 	if(OMX_VERBOSE) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d.%d (%d)\n", os->majorIteration, os->minorIteration, os->computeCount);
-		Rprintf("Estimates: [");
-		for(int k = 0; k < numVars; k++) {
-			Rprintf(" %f", x[k]);
+		if (os->parentState == NULL) {
+			Rprintf("Estimates: [");
+			for(int k = 0; k < numVars; k++) {
+				Rprintf(" %f", x[k]);
+			}
+			Rprintf("] \n");
 		}
-		Rprintf("] \n");
 		Rprintf("--------------------------\n");
 	}
 
@@ -62,7 +64,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 			int row = freeVarList[k].row[l];
 			int col = freeVarList[k].col[l];
 			omxSetMatrixElement(matrix, row, col, x[k]);
-			if(OMX_DEBUG) {
+			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("Setting location (%d, %d) of matrix %d to value %f for var %d\n",
 					row, col, freeVarList[k].matrices[l], x[k], k);
 			}

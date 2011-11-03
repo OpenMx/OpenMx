@@ -706,10 +706,10 @@ void F77_SUB(objectiveFunction)
 	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 
 	if(*mode == 1) {
-		currentState->majorIteration++;
-		currentState->minorIteration = 0;
+		omxSetMajorIteration(currentState, currentState->majorIteration + 1);
+		omxSetMinorIteration(currentState, 0);
 		checkpointNow = TRUE;					// Only checkpoint at major iterations.
-	} else currentState->minorIteration++;
+	} else omxSetMinorIteration(currentState, currentState->minorIteration + 1);
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
 	char errMsg[5] = "";

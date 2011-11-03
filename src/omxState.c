@@ -105,15 +105,26 @@
 		for(int i = 0; i < src->numMats; i++) {
 			omxCopyMatrix(tgt->matrixList[i], src->matrixList[i]);
 		}
-
 		for(int i = 0; i < src->numAlgs; i++) {
 			omxUpdateAlgebra(tgt->algebraList[i], src->algebraList[i]);
 		}
-
 		for(int i = 0; i < src->numDynamic; i++) {
 			omxUpdateAlgebra(tgt->dynamicList[i], src->dynamicList[i]);
 		}
+	}
 
+    void omxSetMajorIteration(omxState *state, int value) {
+		state->majorIteration = value;
+		for(int i = 0; i < state->numChildren; i++) {
+			omxSetMajorIteration(state->childList[i], value);
+		}
+	}
+
+    void omxSetMinorIteration(omxState *state, int value) {
+		state->minorIteration = value;
+		for(int i = 0; i < state->numChildren; i++) {
+			omxSetMinorIteration(state->childList[i], value);
+		}
 	}
 
 	void omxAddDynamicMatrix(omxState* state, omxMatrix* matrix) {
