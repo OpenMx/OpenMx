@@ -61,6 +61,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
 	if(OMX_DEBUG_MATRIX) { Rprintf("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.\n", om, nrows, ncols, os); }
 
+	om->hasMatrixNumber = 0;
 	om->rows = nrows;
 	om->cols = ncols;
 	om->colMajor = (isColMajor?1:0);
@@ -227,6 +228,7 @@ void omxUpdateMatrix(omxMatrix* tgt, omxMatrix* src) {
 	tgt->isDirty     = src->isDirty;
 	tgt->lastCompute = src->lastCompute;
 	tgt->lastRow     = src->lastRow;
+	memcpy(tgt->data, src->data, src->rows * src->cols * sizeof(double));
 }
 
 
