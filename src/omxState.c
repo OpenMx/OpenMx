@@ -96,6 +96,17 @@
 		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;
 		tgt->optimalValues 		= src->optimalValues;
+		tgt->majorIteration 	= src->majorIteration;
+		tgt->minorIteration 	= src->minorIteration;
+
+		for(int i = 0; i < src->numMats; i++) {
+			omxUpdateMatrix(tgt->matrixList[i], src->matrixList[i]);
+		}
+
+		for(int i = 0; i < src->numAlgs; i++) {
+			omxUpdateMatrix(tgt->algebraList[i], src->algebraList[i]);
+		}
+
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {

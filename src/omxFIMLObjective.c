@@ -943,9 +943,15 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
-		if(numIdentical == 0) numIdentical = 1; 
 		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
 		// it should never be the case.
+		if (numIdentical == 0) numIdentical = 1; 
+
+		// if we're going to cross over the "rowcount" boundary
+		// then decrease the numIdentical count
+		if (numIdentical + (row - rowbegin) > rowcount) {
+			numIdentical = rowcount - row + rowbegin;
+		}
 		
 		Q = 0.0;
 

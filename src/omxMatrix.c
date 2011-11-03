@@ -223,12 +223,21 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	return newMat;
 }
 
+void omxUpdateMatrix(omxMatrix* tgt, omxMatrix* src) {
+	tgt->isDirty     = src->isDirty;
+	tgt->lastCompute = src->lastCompute;
+	tgt->lastRow     = src->lastRow;
+}
+
+
 omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState, short fullCopy) {
     omxMatrix* newMat;
     
     if(src == NULL) return NULL;
     newMat = omxInitMatrix(NULL, src->rows, src->cols, FALSE, newState);
     omxCopyMatrix(newMat, src);
+	newMat->hasMatrixNumber = src->hasMatrixNumber;
+	newMat->matrixNumber    = src->matrixNumber;
     
     return newMat;    
 }
