@@ -1175,7 +1175,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
     if (parallelism > 1) {
     	int stride = (data->rows / parallelism);
-	    int* sums = malloc(parallelism * sizeof(int));
+	    double* sums = malloc(parallelism * sizeof(double));
 
 		for(int i = 0; i < parallelism; i++) {
 			omxUpdateState(parentState->childList[i], parentState);
@@ -1190,6 +1190,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		for(int i = 0; i < parallelism; i++) {
 			sum += sums[i];
+			if (parentState->childList[i]->statusCode) {
+				parentState->statusCode = parentState->childList[i]->statusCode;
+				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
+				parentState->statusMsg[249] = '\0';
+			}
 		}
 
 		free(sums);

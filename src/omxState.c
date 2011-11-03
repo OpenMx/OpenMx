@@ -33,6 +33,8 @@
 		state->numAlgs = 0;
 		state->numData = 0;
 		state->numFreeParams = 0;
+		state->numDynamic = 0;
+		state->maxDynamic = 0;
 		if (numThreads > 1) {
 			state->numChildren = numThreads;
 			state->childList = (omxState**) Calloc(numThreads, omxState*);
@@ -46,6 +48,7 @@
 		}
 		state->matrixList = NULL;
 		state->algebraList = NULL;
+		state->dynamicList = NULL;
         state->parentState = parentState;
         state->parentMatrix = NULL;
         state->parentAlgebra = NULL;
@@ -107,6 +110,24 @@
 			omxUpdateMatrix(tgt->algebraList[i], src->algebraList[i]);
 		}
 
+		for(int i = 0; i < src->numDynamic; i++) {
+			omxUpdateMatrix(tgt->dynamicList[i], src->dynamicList[i]);
+		}
+
+	}
+
+	void omxAddDynamicMatrix(omxState* state, omxMatrix* matrix) {
+		if (state->dynamicList == NULL) {
+			state->dynamicList = (omxMatrix**) malloc(16 * sizeof(omxMatrix*));
+			state->maxDynamic = 16;
+		}
+		if (state->numDynamic == state->maxDynamic) {
+			state->dynamicList = realloc(state->dynamicList, state->maxDynamic * 2 * sizeof(omxMatrix*));
+			state->maxDynamic = state->maxDynamic * 2;
+		}
+		matrix->matrixNumber = state->numDynamic;
+		state->dynamicList[state->numDynamic] = matrix;
+		state->numDynamic = state->numDynamic + 1;		
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src, unsigned short fullCopy) {
@@ -231,46 +252,46 @@
         return NULL;
     }
 
-	void omxFreeState(omxState *oo) {
+	void omxFreeState(omxState *state) {
 		int k;
 
-		if (oo->numChildren > 0) {
-			for(k = 0; k < oo->numChildren; k++) {
-				omxFreeState(oo->childList[k]);
+		if (state->numChildren > 0) {
+			for(k = 0; k < state->numChildren; k++) {
+				omxFreeState(state->childList[k]);
 			}
-			Free(oo->childList);
-			oo->childList = NULL;
-			oo->numChildren = 0;
+			Free(state->childList);
+			state->childList = NULL;
+			state->numChildren = 0;
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", oo->numAlgs);}
-		for(k = 0; k < oo->numAlgs; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", k, oo->algebraList[k]); }
-			omxFreeAllMatrixData(oo->algebraList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", state->numAlgs);}
+		for(k = 0; k < state->numAlgs; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", k, state->algebraList[k]); }
+			omxFreeAllMatrixData(state->algebraList[k]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", oo->numMats);}
-		for(k = 0; k < oo->numMats; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, oo->matrixList[k]); }
-			omxFreeAllMatrixData(oo->matrixList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", state->numMats);}
+		for(k = 0; k < state->numMats; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, state->matrixList[k]); }
+			omxFreeAllMatrixData(state->matrixList[k]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", oo->numData);}
-		for(k = 0; k < oo->numData; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->dataList[k]); }
-			omxFreeData(oo->dataList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", state->numData);}
+		for(k = 0; k < state->numData; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, state->dataList[k]); }
+			omxFreeData(state->dataList[k]);
 		}
 
-        if(OMX_DEBUG) {Rprintf("Freeing %d Children.\n", oo->numChildren);}
-        for(k = 0; k < oo->numChildren; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Child State %d at 0x%x.\n", k, oo->childList[k]); }
-			omxFreeState(oo->childList[k]);            
+        if(OMX_DEBUG) {Rprintf("Freeing %d Children.\n", state->numChildren);}
+        for(k = 0; k < state->numChildren; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Child State %d at 0x%x.\n", k, state->childList[k]); }
+			omxFreeState(state->childList[k]);            
         }
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Checkpoints.\n", oo->numCheckpoints);}
-		for(k = 0; k < oo->numCheckpoints; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, oo->checkpointList[k]); }
-			omxCheckpoint oC = oo->checkpointList[k];
+		if(OMX_DEBUG) { Rprintf("Freeing %d Checkpoints.\n", state->numCheckpoints);}
+		for(k = 0; k < state->numCheckpoints; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, state->checkpointList[k]); }
+			omxCheckpoint oC = state->checkpointList[k];
 			switch(oC.type) {
 				case OMX_FILE_CHECKPOINT:
 					fclose(oC.file);
@@ -282,14 +303,16 @@
 					// Do nothing: this should be handled by R upon return.
 					break;
 			}
-			if(oo->chkptText1 != NULL) {
-				Free(oo->chkptText1);
+			if(state->chkptText1 != NULL) {
+				Free(state->chkptText1);
 			}
-			if(oo->chkptText2 != NULL) {
-				Free(oo->chkptText2);
+			if(state->chkptText2 != NULL) {
+				Free(state->chkptText2);
 			}
 			// Checkpoint list itself is freed by R.
 		}
+
+		if(state->dynamicList != NULL) free(state->dynamicList);
 
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}
@@ -307,23 +330,23 @@
 		strncpy(os->optimumMsg, os->statusMsg, 250);
 	}
 
-	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg) {
+	void omxRaiseError(omxState *state, int errorCode, char* errorMsg) {
 		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
-		oo->statusCode = errorCode;
-		strncpy(oo->statusMsg, errorMsg, 249);
-		oo->statusMsg[249] = '\0';
-		if(oo->computeCount <= 0 && errorCode < 0) {
-			oo->statusCode--;			// Decrement status for init errors.
+		state->statusCode = errorCode;
+		strncpy(state->statusMsg, errorMsg, 249);
+		state->statusMsg[249] = '\0';
+		if(state->computeCount <= 0 && errorCode < 0) {
+			state->statusCode--;			// Decrement status for init errors.
 		}
 	}
 
-	void omxStateNextRow(omxState *oo) {
-		oo->currentRow++;
+	void omxStateNextRow(omxState *state) {
+		state->currentRow++;
 	};
-	void omxStateNextEvaluation(omxState *oo) {
-		oo->currentRow = 0;
-		oo->computeCount++;
+	void omxStateNextEvaluation(omxState *state) {
+		state->currentRow = 0;
+		state->computeCount++;
 	};
 
 	void omxSaveCheckpoint(omxState *os, double* x, double* f) {

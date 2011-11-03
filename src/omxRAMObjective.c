@@ -324,9 +324,11 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 
 	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
+	omxAddDynamicMatrix(currentState, RAMobj->cov);
 
 	if(RAMobj->M != NULL) {
 		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
+		omxAddDynamicMatrix(currentState, RAMobj->means);
 	} else RAMobj->means  = 	NULL;
 
 	/* Create parent objective */
