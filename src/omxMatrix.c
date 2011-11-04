@@ -114,6 +114,17 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 }
 
+void omxUpdateMatrix(omxMatrix *dest, omxMatrix *orig) {
+	omxCopyMatrix(dest, orig);
+
+	if (orig->algebra) {
+		omxUpdateAlgebra(dest->algebra, orig->algebra);
+	} else if (orig->objective) {
+		omxUpdateObjectiveFunction(dest->objective, orig->objective);
+	}
+
+}
+
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
@@ -224,12 +235,12 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	return newMat;
 }
 
-omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState, short fullCopy) {
-    omxMatrix* newMat;
+omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
+	omxMatrix* newMat;
     
-    if(src == NULL) return NULL;
-    newMat = omxInitMatrix(NULL, src->rows, src->cols, FALSE, newState);
-    omxCopyMatrix(newMat, src);
+	if(src == NULL) return NULL;
+	newMat = omxInitMatrix(NULL, src->rows, src->cols, FALSE, newState);
+	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
     

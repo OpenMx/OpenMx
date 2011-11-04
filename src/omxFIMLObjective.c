@@ -1197,6 +1197,9 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 		}
 
+		// This line may be unnecessary
+		omxUpdateState(parentState, parentState->childList[parallelism - 1]);
+
 		free(sums);
 
 	} else {

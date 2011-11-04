@@ -30,6 +30,8 @@
 
 #include "omxObjective.h"
 
+void omxGenericUpdateObjectiveFunction(omxObjective* tgt, omxObjective* src);
+
 void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
@@ -96,12 +98,11 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->objectiveFun = NULL;
 	oo->needsUpdateFun = NULL;
 	oo->getStandardErrorFun = NULL;
-    oo->populateAttrFun = NULL;
+	oo->populateAttrFun = NULL;
 	oo->setFinalReturns = NULL;
-	oo->createUnsharedDuplicate = NULL;
-	oo->createSharedDuplicate = NULL;
+	oo->updateChildObjectiveFun = omxGenericUpdateObjectiveFunction;
 	oo->gradientFun = NULL;
-    oo->sharedArgs = NULL;
+	oo->sharedArgs = NULL;
 	oo->argStruct = NULL;
 	oo->subObjective = NULL;
 	oo->rObj = NULL;
@@ -162,32 +163,23 @@ void omxObjectiveCompute(omxObjective *oo) {
 		omxMatrixCompute(oo->matrix);
 }
 
-void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState, short fullCopy) {
+void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
 
-    if(tgt == NULL || src == NULL) return;
-    if(src->objective == NULL) {
-        return;
-    }
+	if(tgt == NULL || src == NULL) return;
+	if(src->objective == NULL) return;
     
-    omxObjective* target = tgt->objective;
-    omxObjective* source = src->objective;
+	omxFillMatrixFromMxObjective(tgt, src->objective->rObj, src->hasMatrixNumber, src->matrixNumber);
 
-	if(fullCopy) {
-		if(source->createUnsharedDuplicate == NULL) {
-			omxFillMatrixFromMxObjective(tgt, source->rObj, src->hasMatrixNumber, src->matrixNumber);
-		} else {
-			tgt->objective = omxCreateDuplicateObjective(target, source, newState);
-			src->objective->createUnsharedDuplicate(target, source, newState);
-		}
-	} else { 
-		if(source->createSharedDuplicate == NULL) {
-			return;
-		} else {
-			tgt->objective = omxCreateDuplicateObjective(target, source, newState);
-			source->createSharedDuplicate(target, source, newState);
-		}
+}
+
+void omxUpdateObjectiveFunction(omxObjective* tgt, omxObjective* src) {
+	tgt->updateChildObjectiveFun(tgt, src);
+}
+
+void omxGenericUpdateObjectiveFunction(omxObjective* tgt, omxObjective* src) {
+	if (tgt->subObjective != NULL) {
+		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
-
 }
 
 omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState) {
@@ -219,8 +211,7 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	tgt->stdError					= src->stdError;
 	tgt->hessian 					= src->hessian;
 	tgt->gradient 					= src->gradient;
-	tgt->createUnsharedDuplicate	= src->createUnsharedDuplicate;
-	tgt->createSharedDuplicate		= src->createSharedDuplicate;
+	tgt->updateChildObjectiveFun	= src->updateChildObjectiveFun;
 
 	if(tgt->objType == NULL) tgt->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*)); // Double-check
     strncpy(tgt->objType, src->objType, MAX_STRING_LEN);

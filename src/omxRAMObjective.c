@@ -232,6 +232,20 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 
 }
 
+void omxUpdateChildRAMObjective(omxObjective* tgt, omxObjective* src) {
+
+	omxRAMObjective* tgtRAM = (omxRAMObjective*)(tgt->argStruct);
+	omxRAMObjective* srcRAM = (omxRAMObjective*)(src->argStruct);
+
+	omxUpdateMatrix(tgtRAM->cov,   srcRAM->cov);
+	omxUpdateMatrix(tgtRAM->means, srcRAM->means);	
+
+	if (tgt->subObjective != NULL) {
+		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+	}
+
+}
+
 unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Checking if RAM needs update.  RAM uses A:0x%x, S:0x%x, F:0x%x, M:0x%x.\n",((omxRAMObjective*)oo->argStruct)->A, ((omxRAMObjective*)oo->argStruct)->S, ((omxRAMObjective*)oo->argStruct)->F, ((omxRAMObjective*)oo->argStruct)->M); }
 	return(omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->A)
@@ -264,6 +278,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->destructFun = omxDestroyRAMObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = omxPopulateRAMAttributes;
+	subObjective->updateChildObjectiveFun = omxUpdateChildRAMObjective;
 	subObjective->argStruct = (void*) RAMobj;
 	
 	/* Set up objective structures */

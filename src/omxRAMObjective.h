@@ -29,8 +29,8 @@ typedef struct {
 	double n;
 	double* work;
 	int lwork;
-    
-    int usePPML;
+
+	int usePPML;
 	omxData *ppmlData;
 	omxMatrix *ppmlCov, *ppmlMeans;
 

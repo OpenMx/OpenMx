@@ -66,13 +66,12 @@ struct omxObjective {					// An objective
 	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 	void (*populateAttrFun)(omxObjective* oo, SEXP algebra);					// Add attributes to the result algebra object
-    void* (*createUnsharedDuplicate)(omxObjective*, const omxObjective*, omxState*);		// Duplicate unshared args for thread safety
-    void* (*createSharedDuplicate)(omxObjective*, const omxObjective*, omxState*);			// Duplicate all args for thread safety
+	void (*updateChildObjectiveFun)(omxObjective* tgt, omxObjective* src);		// Update child objective function state
 	
 	omxObjective* subObjective;													// Subobjective structure in case it is needed.
 	
 	SEXP rObj;																	// Original r Object Pointer
-    void* sharedArgs;                                                           // Common argument structure
+	void* sharedArgs;                                                           // Common argument structure
 	void* argStruct;															// Arguments needed for objective function
 	char* objType;																// Type of Objective Function
 	double* hessian;															// Hessian details
@@ -96,10 +95,12 @@ struct omxObjective {					// An objective
 	void omxObjectiveCompute(omxObjective *oo);
 	unsigned short int omxObjectiveNeedsUpdate(omxObjective *oo);
 	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.
-    void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState, short fullCopy);
+	void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState);
 	
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
+
+	void omxUpdateObjectiveFunction(omxObjective* tgt, omxObjective* src);
 	
 	/* Helper functions */
 	void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo);	// Does what it says

@@ -271,7 +271,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		omxProcessCheckpointOptions(checkpointList);
 
 		for(int i = 0; i < numChildren; i++) {
-			omxDuplicateState(currentState->childList[i], currentState, 1);
+			omxDuplicateState(currentState->childList[i], currentState);
 		}
 
   } else { // End if(errOut)

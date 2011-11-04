@@ -55,12 +55,12 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 
 }
 
-void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState, short fullCopy) {
+void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->algebra->name);
     } else if(src->objective != NULL) {
-        omxDuplicateObjectiveMatrix(tgt, src, newState, fullCopy);
+        omxDuplicateObjectiveMatrix(tgt, src, newState);
     }
 
 }
@@ -315,16 +315,12 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	
 }
 
-void omxUpdateAlgebra(omxMatrix* tgt, omxMatrix* src) {
-	omxCopyMatrix(tgt, src);
+void omxUpdateAlgebra(omxAlgebra* tgt, omxAlgebra* src) {
 
-	if (tgt->algebra) {
-		omxAlgebra *tgtAlgebra = tgt->algebra;
-		omxAlgebra *srcAlgebra = src->algebra;
-		for(int i = 0; i < srcAlgebra->numArgs; i++) {
-			omxUpdateAlgebra(tgtAlgebra->args[i], srcAlgebra->args[i]);
-		}
+	for(int i = 0; i < src->numArgs; i++) {
+		omxUpdateMatrix(tgt->args[i], src->args[i]);
 	}
+
 }
 
 

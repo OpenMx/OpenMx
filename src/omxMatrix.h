@@ -102,7 +102,7 @@ struct omxMatrix {						// A matrix
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size
 	extern omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);	// Create a matrix/algebra from a matrix pointer
 	extern omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
-    omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState, short fullCopy);
+	omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState);
 
 /* Getters 'n Setters (static functions declared below) */
 	// static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col);
@@ -123,7 +123,8 @@ struct omxMatrix {						// A matrix
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
-	void omxTransposeMatrix(omxMatrix *mat);											// Transpose a matrix in place.
+	void omxUpdateMatrix(omxMatrix *dest, omxMatrix *src);							// Update matrix state with a reference source.
+	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */

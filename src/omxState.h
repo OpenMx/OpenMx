@@ -184,7 +184,7 @@ struct omxState {													// The Current State of Optimization
 	void omxFreeState(omxState *oo);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	void omxUpdateState(omxState* tgt, omxState* src);					// Updates the tgt state with the contents of src state
-	void omxDuplicateState(omxState *tgt, omxState* src, unsigned short fullCopy); 
+	void omxDuplicateState(omxState *tgt, omxState* src); 
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
 
