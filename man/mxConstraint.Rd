@@ -34,7 +34,9 @@ mxConstraint(expression, name = NA)
 \details{
 The mxConstraint function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The constraint relation is written identically to how a \link{MxAlgebra} expression would be written.  The outermost operator in this relation must be either \sQuote{<}, \sQuote{==} or \sQuote{>}. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
-The mxConstraint function should not be used to constrain free parameters to equality with other free parameters, either by name or by their position in an \link{MxMatrix} or \link{MxAlgebra} object. Including mxConstraint objects in \link{MxModel} objects will disable standard errors and the calculation of the final Hessian, as making constraints on free parameters, and thus should be avoided when standard errors are of importance or when constraints can be made using labels, lbound or ubound arguments or algebras. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'labels' matrices. Similarly, parameters may be fixed to an individual element in a \link{MxModel} object or the result of an \link{MxAlgebra} object through labeling. For example, assigning a label of ``name[1,1]`` fixes the value of a parameter at the value in first row and first column of whatever matrix or algebra is named ``name``. The mxConstraint function should be used to enforce inequalities that cannot be conveyed using other methods.
+Usage Note: Use of mxConstraint should be avoided where it is possible to achieve the constraint by equating free parameters by label or position in an \link{MxMatrix} or \link{MxAlgebra} object. Including mxConstraints in an mxModel will disable standard errors and the calculation of the final Hessian, and thus should be avoided when standard errors are of importance. Constraints also add computational overhead. If one labels two parameters the same, the optimizer has one fewer parameter to optimize. However, if one uses mxConstraint to do the same thing, both parameters remain estimated and a Lagrangian multiplier is added to maintain the constraint. This constraint also has to have its gradients computed and the order of the Hessian grows as well.  So while both approaches should work, the mxConstraint() will take longer to do so.
+
+Alernatives to mxConstraints include using labels, lbound or ubound arguments or algebras. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'labels' matrices. Similarly, parameters may be fixed to an individual element in a \link{MxModel} object or the result of an \link{MxAlgebra} object through labeling. For example, assigning a label of ``name[1,1]`` fixes the value of a parameter at the value in first row and first column of the matrix or algebra ``name``. The mxConstraint function should be used to enforce inequalities that cannot be conveyed using other methods.
 }
 
 \value{
@@ -53,11 +55,11 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 #Create a constraint between MxMatrices 'A' and 'B'
 constraint <- mxConstraint(A > B, name = 'AdominatesB')
 
-# Constrain a matrix of free parameters 'K' to be equal to matrix 'limit'
-K <- mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K")
-limit <- mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE, name="limit", values=1:4)
+# Constrain matrix 'K' to be equal to matrix 'limit'
 
-model <- mxModel("con_test", K, limit, 
+model <- mxModel("con_test", 
+    mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K"),
+    mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE, name="limit", values=1:4),
 	mxConstraint(K == limit, name = "Klimit_equality"), 
 	mxAlgebra(min(K), name="minK"), 
 	mxAlgebraObjective("minK")
@@ -70,13 +72,14 @@ fit@matrices$K@values
 # [1,]    1    3
 # [2,]    2    4
 
-# Constrain two free parameters to equality using labels
+# Constrain both free parameters of a matrix to equality using labels (both are set to "eq")
 equal <- mxMatrix("Full", 2, 1, free=TRUE, values=1, labels="eq", name="D")
 
 # Constrain a matrix element in to be equal to the result of an algebra
 start <- mxMatrix("Full", 1, 1, free=TRUE,  values=1, labels="param", name="F")
 alg   <- mxAlgebra(log(start), name="logP")
-# force the fixed parameter in matrix G to be the result of the algebra
+
+# Force the fixed parameter in matrix G to be the result of the algebra
 end   <- mxMatrix("Full", 1, 1, free=FALSE, values=1, labels="logP[1,1]", name="G")
 
 }
