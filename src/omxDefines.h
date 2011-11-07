@@ -27,7 +27,7 @@
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
-#define OMX_DEFAULT_MAX_PTS 100*cov->rows*cov->rows
+#define OMX_DEFAULT_MAX_PTS(rows) 100*rows*rows
 #define MAX_STRING_LEN 250
 #define EPSILON 1e-16
 #define TRUE 1
@@ -51,9 +51,9 @@
 #endif /* DEBUGMX */
 
 #ifdef DEBUGMX_ROWS
-#define OMX_DEBUG_ROWS ((data->currentState->currentRow < 10) || (data->currentState->currentRow % 50 == 0))
+#define OMX_DEBUG_ROWS(row) ((row < 10) || (row % 50 == 0))
 #else
-#define OMX_DEBUG_ROWS 0
+#define OMX_DEBUG_ROWS(row) 0
 #endif /* DEBUGMX_ROWS */
 
 #ifdef DEBUGNPSOL

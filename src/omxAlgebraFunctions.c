@@ -1690,7 +1690,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	double Error;
 	double absEps = 1e-3;
 	double relEps = 0;
-	int MaxPts = OMX_DEFAULT_MAX_PTS;
+	int MaxPts = OMX_DEFAULT_MAX_PTS(cov->rows);
 	double likelihood;
 	int inform;
 	int numVars = cov->rows;
@@ -1834,7 +1834,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	double Error;
 	double absEps = 1e-3;
 	double relEps = 0;
-	int MaxPts = OMX_DEFAULT_MAX_PTS;
+	int MaxPts = OMX_DEFAULT_MAX_PTS(cov->rows);
 	double likelihood;
 	int inform;
 	int numVars = nCols;

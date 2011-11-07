@@ -86,7 +86,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	
 	
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
-		if(OMX_DEBUG_ROWS) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
+		if(OMX_DEBUG_ROWS(1)) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
 		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
 	}
 		
@@ -98,7 +98,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	for(int row = 0; row < data->rows; row++) {
 
 		// Handle Definition Variables.
-        if(OMX_DEBUG_ROWS) { Rprintf("numDefs is %d", numDefs);}
+        if(OMX_DEBUG_ROWS(row)) { Rprintf("numDefs is %d", numDefs);}
 		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
 			handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs);
 		}

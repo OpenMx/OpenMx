@@ -106,7 +106,7 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 
 int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
 
-	if(OMX_DEBUG_ROWS) { Rprintf("Processing Definition Vars.\n"); }
+	if(OMX_DEBUG_ROWS(row)) { Rprintf("Processing Definition Vars.\n"); }
 	
 	int numVarsFilled = 0;
 
@@ -124,7 +124,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 		numVarsFilled++;
 
 		for(int l = 0; l < defVars[k].numLocations; l++) {
-			if(OMX_DEBUG_ROWS) {
+			if(OMX_DEBUG_ROWS(row)) {
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
 			int matrixNumber = defVars[k].matrices[l];
@@ -211,7 +211,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	int row = 0;
 
     while(row < data->rows) {
-        if(OMX_DEBUG_ROWS) {Rprintf("Row %d.\n", row);}
+        if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);}
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
@@ -227,7 +227,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
         // Handle Definition Variables.
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
-				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
 				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
@@ -287,7 +287,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}
-			if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+			if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
 			}
 		}
 		
@@ -343,7 +343,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		}
 
 		if(returnRowLikelihoods) {
-			if(OMX_DEBUG_ROWS) { 
+			if(OMX_DEBUG_ROWS(row)) { 
 				Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);
 			} 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
@@ -359,7 +359,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 			sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
 
-			if(OMX_DEBUG_ROWS) { 
+			if(OMX_DEBUG_ROWS(row)) { 
 				Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
 				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
             } 
@@ -512,7 +512,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         // Handle Definition Variables.
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
-				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
 				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow || 1) { // TODO: Implement sorting-based speedups here.
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
@@ -549,13 +549,13 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
                     contRemove[j] = 1;
     				// toRemove[j] = 1;
     				Infin[j] = -1;
-    				if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Not a factor.\n", row, j);}
+    				if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Not a factor.\n", row, j);}
     				continue;
     			} else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
                     numContRemoves++;
                     ordRemove[j] = 0;
                     contRemove[j] = 1;
-    			    if(OMX_DEBUG_ROWS) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+    			    if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
     			} else {
     			    numOrdRemoves++;
                     ordRemove[j] = 1;
@@ -601,7 +601,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
             
 
-    		if(OMX_DEBUG_ROWS) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
+    		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
 			omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove, contRemove);
@@ -828,10 +828,10 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
         // }
 
 		if(returnRowLikelihoods) {
-		    if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+		    if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
             
-			if(OMX_DEBUG_ROWS) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
+			if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(oo->matrix, omxDataIndex(data, j), 0, sum);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
@@ -847,11 +847,11 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
             sum += logDet;
 			
-			if(OMX_DEBUG_ROWS) { 
+			if(OMX_DEBUG_ROWS(row)) { 
 				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), -2  * log(likelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
 			} 
 
-			if(OMX_DEBUG_ROWS) {
+			if(OMX_DEBUG_ROWS(row)) {
 				Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change \n",
 				    sum, logDet);
             }
@@ -939,7 +939,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
     int row = rowbegin;
 
 	while(row < data->rows && (row - rowbegin) < rowcount) {
-        if (OMX_DEBUG_ROWS) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
+        if (OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
@@ -966,7 +966,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		// Handle Definition Variables.
 		if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate
-				if(OMX_DEBUG_ROWS) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
 				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
@@ -977,11 +977,11 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 						omxRecompute(means);
 					}
 				}
-			} else if(OMX_DEBUG_ROWS){ Rprintf("Identical def vars: Not repopulating"); }
+			} else if(OMX_DEBUG_ROWS(row)){ Rprintf("Identical def vars: Not repopulating"); }
 		}
 
-		if(OMX_DEBUG_ROWS) { omxPrint(means, "Local Means"); }
-		if(OMX_DEBUG_ROWS) {
+		if(OMX_DEBUG_ROWS(row)) { omxPrint(means, "Local Means"); }
+		if(OMX_DEBUG_ROWS(row)) {
 			char note[50];
 			sprintf(note, "Local Data Row %d", row);
 			omxPrint(smallRow, note); 
@@ -1019,13 +1019,13 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		
 		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
 		
-		if(OMX_DEBUG_ROWS) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
+		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
 		if(keepInverse <= 0 || keepCov <= 0 || firstRow) { // If defs and missingness don't change, skip.
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
 			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
-			if(OMX_DEBUG_ROWS) { omxPrint(smallCov, "Local Covariance Matrix"); }
+			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Local Covariance Matrix"); }
 
 			/* Calculate derminant and inverse of Censored Cov matrix */
 			// TODO : Speed this up.
@@ -1105,7 +1105,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
 		if(returnRowLikelihoods) {
-			if(OMX_DEBUG_ROWS) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+			if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
@@ -1118,7 +1118,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, val);
 			}
 			sum += ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
-			if(OMX_DEBUG_ROWS) {
+			if(OMX_DEBUG_ROWS(row)) {
 				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
 			}
 		}
