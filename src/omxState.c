@@ -96,6 +96,8 @@
 		tgt->majorIteration	= src->majorIteration;
 		tgt->minorIteration	= src->minorIteration;
 
+		tgt->statusCode = src->statusCode;
+
 		for(int i = 0; i < src->numMats; i++) {
 			omxUpdateMatrix(tgt->matrixList[i], src->matrixList[i]);
 		}

@@ -237,8 +237,10 @@ void omxUpdateChildRAMObjective(omxObjective* tgt, omxObjective* src) {
 	omxRAMObjective* tgtRAM = (omxRAMObjective*)(tgt->argStruct);
 	omxRAMObjective* srcRAM = (omxRAMObjective*)(src->argStruct);
 
-	omxUpdateMatrix(tgtRAM->cov,   srcRAM->cov);
-	omxUpdateMatrix(tgtRAM->means, srcRAM->means);	
+	omxUpdateMatrix(tgtRAM->cov, srcRAM->cov);
+	if (tgtRAM->means && srcRAM->means) {
+		omxUpdateMatrix(tgtRAM->means, srcRAM->means);	
+	}
 
 	if (tgt->subObjective != NULL) {
 		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);

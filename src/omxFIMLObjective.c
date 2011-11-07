@@ -1119,7 +1119,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 			}
 			sum += ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			if(OMX_DEBUG_ROWS(row)) {
-				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f, total Likelihood is %3.3f\n", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
+				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f\n", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
 			}
 		}
 		if(firstRow) firstRow = 0;
@@ -1192,7 +1192,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		for(int i = 0; i < parallelism; i++) {
 			sum += sums[i];
-			if (parentState->childList[i]->statusCode) {
+			if (parentState->childList[i]->statusCode < 0) {
 				parentState->statusCode = parentState->childList[i]->statusCode;
 				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
 				parentState->statusMsg[249] = '\0';
