@@ -322,7 +322,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 				if(oo->matrix->currentState->computeCount <= 0) {
 					sprintf(errstr, "%s at starting values.\n", helperstr);
 				} else {
-					sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+					sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
 				}
 				omxRaiseError(oo->matrix->currentState, -1, errstr);
 				free(errstr);
@@ -646,7 +646,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 					if(oo->matrix->currentState->computeCount <= 0) {
 						sprintf(errstr, "%s at starting values.\n", helperstr);
 					} else {
-						sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+						sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
 					}
 					omxRaiseError(oo->matrix->currentState, -1, errstr);
 					free(errstr);
@@ -806,7 +806,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     				if(oo->matrix->currentState->computeCount <= 0) {
     					sprintf(errstr, "%s at starting values.\n", helperstr);
     				} else {
-    					sprintf(errstr, "%s at iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+    					sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
     				}
     				omxRaiseError(oo->matrix->currentState, -1, errstr);
     				free(errstr);
@@ -1041,7 +1041,9 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 					if(localobj->matrix->currentState->computeCount <= 0) {
 						sprintf(errstr, "%s at starting values.\n", helperstr);
 					} else {
-						sprintf(errstr, "%s at iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
+						sprintf(errstr, "%s at major iteration %d (minor iteration %d).\n", helperstr, 
+							localobj->matrix->currentState->majorIteration, 
+							localobj->matrix->currentState->minorIteration);
 					}
 					omxRaiseError(localobj->matrix->currentState, -1, errstr);
 					free(errstr);

@@ -114,8 +114,33 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 }
 
+void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
+
+	dest->rows = orig->rows;
+	dest->cols = orig->cols;
+	dest->colMajor = orig->colMajor;
+	dest->originalRows = dest->rows;
+	dest->originalCols = dest->cols;
+	dest->originalColMajor = dest->colMajor;
+	dest->lastCompute = orig->lastCompute;
+	dest->lastRow = orig->lastRow;
+	dest->localData = orig->localData;
+
+	if ((dest->data == NULL) && (dest->rows > 0) && (dest->cols > 0)) {
+		dest->data = (double*) Calloc(dest->rows * dest->cols, double);
+	}
+
+	memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
+
+	if (dest->aliasedPtr != NULL && orig->aliasedPtr != NULL) {
+		omxUpdateMatrix(dest->aliasedPtr, orig->aliasedPtr);
+	}
+
+	omxMatrixCompute(dest);
+}
+
 void omxUpdateMatrix(omxMatrix *dest, omxMatrix *orig) {
-	omxCopyMatrix(dest, orig);
+	omxUpdateMatrixHelper(dest, orig);
 
 	if (orig->algebra) {
 		omxUpdateAlgebra(dest->algebra, orig->algebra);
@@ -161,7 +186,6 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->aliasedPtr = NULL;
 
 	omxMatrixCompute(dest);
-
 }
 
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
