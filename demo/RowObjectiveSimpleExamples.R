@@ -71,9 +71,9 @@ bmod <- mxModel(
 
 bmodFit <- mxRun(bmod)
 bmodFit$M@values
-mean(xdat)
+colMeans(xdat)
 
-omxCheckCloseEnough(c(bmodFit$M@values), mean(xdat), epsilon=10^(-5))
+omxCheckCloseEnough(c(bmodFit$M@values), colMeans(xdat), epsilon=10^(-5))
 
 
 
@@ -107,9 +107,9 @@ cmod <- mxModel(
 
 cmodFit <- mxRun(cmod)
 cmodFit$M@values
-mean(xdat, na.rm=T)
+colMeans(xdat, na.rm=T)
 
-omxCheckCloseEnough(c(cmodFit$M@values), mean(xdat, na.rm=T), epsilon=10^(-5))
+omxCheckCloseEnough(c(cmodFit$M@values), colMeans(xdat, na.rm=T), epsilon=10^(-5))
 
 
 

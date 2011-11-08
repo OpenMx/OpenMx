@@ -130,7 +130,7 @@ results2 <- data.frame(results[which(results[,1] <= 1),])
 # get rid of bad covergence results
 # -----------------------------------------------------------------------------
 
-means <- mean(results2)
+means <- colMeans(results2)
 stdevs <- sd(results2)
 sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
                                 dimnames=list(NULL, "Parameter")))

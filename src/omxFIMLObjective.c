@@ -119,7 +119,9 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 			continue; //Do not populate this variable.
 		}
 		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
-		if(newDefVar == oldDefs[k]) continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
+		if(newDefVar == oldDefs[k]) {
+			continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
+		}
 		oldDefs[k] = newDefVar;
 		numVarsFilled++;
 
@@ -875,6 +877,14 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     }
 }
 
+void resetDefinitionVariables(double *oldDefs, int numDefs) {
+	int nextDef;
+
+	for(nextDef = 0; nextDef < numDefs; nextDef++) {
+		oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
+	}
+
+}
 
 /**
  * The localobj reference is used to access read-only variables,
@@ -937,6 +947,8 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 
 	int firstRow = 1;
     int row = rowbegin;
+
+    resetDefinitionVariables(oldDefs, numDefs);
 
 	while(row < data->rows && (row - rowbegin) < rowcount) {
         if (OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);} //:::DEBUG:::

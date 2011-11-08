@@ -41,7 +41,7 @@ testData <- as.matrix(x)
 selVars <- c("X")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
-mean(testData)
+colMeans(testData)
 var(testData)
 # Simulate Data
 # -----------------------------------------------------------------------------

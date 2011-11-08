@@ -195,3 +195,4 @@ omxCheckCloseEnough(max(mxEval(classProbs, gmmFit)), 0.6009, 0.01)
 omxCheckCloseEnough(min(mxEval(classProbs, gmmFit)), 0.3991, 0.01)
 # Check results to see if they are within specified bounds
 # -----------------------------------------------------------------------------
+

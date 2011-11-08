@@ -10,7 +10,7 @@ nFac <- length(latents)
 factorModel <- mxModel("One Factor ML",
     mxData(cov(demoOneFactor), type="cov", numObs=500),
     # mxData(demoOneFactor, type="raw"),
-    mxMatrix("Full", 1, nVar, free=T, values=mean(demoOneFactor), name="M"),
+    mxMatrix("Full", 1, nVar, free=T, values=colMeans(demoOneFactor), name="M"),
     mxMatrix("Full", nVar, nFac, free=T, values=.2, name="A"),
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A%*%t(A) + D, name="C"),

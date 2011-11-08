@@ -23,7 +23,7 @@ testData <- as.matrix(x)
 selVars <- c("X")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
-mean(testData)
+colMeans(testData)
 var(testData)
 
 #example 1: Saturated Model with Cov Matrices and Paths input
