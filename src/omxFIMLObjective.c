@@ -1119,7 +1119,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 			}
 			sum += ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			if(OMX_DEBUG_ROWS(row)) {
-				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f\n", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
+				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
 			}
 		}
 		if(firstRow) firstRow = 0;
@@ -1187,7 +1187,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxObjective *childObjective = childMatrix->objective;
-			sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
+			if (i == parallelism - 1) {
+				sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
+			} else {
+				sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
+			}
 		}
 
 		for(int i = 0; i < parallelism; i++) {
