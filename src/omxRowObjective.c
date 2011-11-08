@@ -116,7 +116,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxMatrixElement(dataRow, 0, j);
-			if(isnan(dataValue) || dataValue == NA_REAL) {
+			if(isnan(dataValue)) {
 				numRemoves++;
 				toRemove[j] = 1;
                 omxSetMatrixElement(existenceVector, 0, j, 0);

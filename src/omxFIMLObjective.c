@@ -544,7 +544,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     			int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
     			// TODO: Might save time by preseparating ordinal from continuous.
-    			if(ISNA(value) || value == NA_INTEGER || value == NA_REAL) {  // Value is NA, therefore filter.
+    			if(isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
     				numOrdRemoves++;
                     numContRemoves++;
                     ordRemove[j] = 1;
@@ -1004,12 +1004,12 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		memset(zeros, 0, sizeof(int) * dataColumns->cols);
 		memset(toRemove, 0, sizeof(int) * dataColumns->cols);
 		for(int j = 0; j < dataColumns->cols; j++) {
-			double dataValue = omxMatrixElement(smallRow, 0, j);
-			if(isnan(dataValue) || dataValue == NA_REAL) {
+			double dataValue = omxVectorElement(smallRow, j);
+			if(isnan(dataValue)) {
 				numRemoves++;
 				toRemove[j] = 1;
 			} else if(means != NULL) {
-				omxSetMatrixElement(smallRow, 0, j, (dataValue -  omxVectorElement(means, j)));
+				omxSetVectorElement(smallRow, j, (dataValue -  omxVectorElement(means, j)));
 			}
 		}
 
