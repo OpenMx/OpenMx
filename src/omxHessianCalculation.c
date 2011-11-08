@@ -299,7 +299,7 @@ unsigned short omxEstimateHessian(int numHessians, double functionPrecision, int
 	} else {
 		hess_work = Calloc(numChildren, struct hess_struct);
 		for(int i = 0; i < numChildren; i++) {
-			omxUpdateState(parentState->childList[i], parentState);
+			omxUpdateState(parentState->childList[i], parentState, TRUE);
 			omxPopulateHessianWork(hess_work + i, functionPrecision, r, parentState->childList[i]);
 		}
 	}

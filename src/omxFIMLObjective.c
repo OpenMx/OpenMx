@@ -1180,7 +1180,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	    double* sums = malloc(parallelism * sizeof(double));
 
 		for(int i = 0; i < parallelism; i++) {
-			omxUpdateState(parentState->childList[i], parentState);
+			omxUpdateState(parentState->childList[i], parentState, TRUE);
 		}
 
 		#pragma omp parallel for num_threads(parallelism) 
@@ -1200,7 +1200,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 
 		// This line may be unnecessary
-		omxUpdateState(parentState, parentState->childList[parallelism - 1]);
+		omxUpdateState(parentState, parentState->childList[parallelism - 1], FALSE);
 
 		free(sums);
 

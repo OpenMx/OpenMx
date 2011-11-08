@@ -89,14 +89,16 @@
 		}
 	}
 
-	void omxUpdateState(omxState* tgt, omxState* src) {
+	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus) {
 		tgt->computeCount		= src->computeCount;
 		tgt->currentRow		= src->currentRow;
 		tgt->optimalValues	= src->optimalValues;
 		tgt->majorIteration	= src->majorIteration;
 		tgt->minorIteration	= src->minorIteration;
 
-		tgt->statusCode = src->statusCode;
+		if (copyStatus) {
+			tgt->statusCode = src->statusCode;
+		}
 
 		for(int i = 0; i < src->numMats; i++) {
 			omxUpdateMatrix(tgt->matrixList[i], src->matrixList[i]);

@@ -31,7 +31,7 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 
 	int numChildren = os->numChildren;
 
-	if(OMX_DEBUG) {
+	if(OMX_DEBUG && os->parentState == NULL) {
 		Rprintf("Processing Free Parameter Estimates.\n");
 		Rprintf("Number of free parameters is %d.\n", numVars);
 	}
@@ -43,16 +43,14 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 
 	os->computeCount++;
 
-	if(OMX_VERBOSE) {
+	if(OMX_VERBOSE && os->parentState == NULL) {
 		Rprintf("--------------------------\n");
 		Rprintf("Call: %d.%d (%d)\n", os->majorIteration, os->minorIteration, os->computeCount);
-		if (os->parentState == NULL) {
-			Rprintf("Estimates: [");
-			for(int k = 0; k < numVars; k++) {
-				Rprintf(" %f", x[k]);
-			}
-			Rprintf("] \n");
+		Rprintf("Estimates: [");
+		for(int k = 0; k < numVars; k++) {
+			Rprintf(" %f", x[k]);
 		}
+		Rprintf("] \n");
 		Rprintf("--------------------------\n");
 	}
 
