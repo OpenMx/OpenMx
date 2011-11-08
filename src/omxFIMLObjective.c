@@ -1004,7 +1004,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		if(cov->cols <= numRemoves) {
 			for(int nid = 0; nid < numIdentical; nid++) {
 				if(returnRowLikelihoods) {
-					omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 1);
+					omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 1);
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1);
 			}
@@ -1050,7 +1050,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 					return(sum);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
@@ -1085,7 +1085,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 					return(sum);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(localobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
             		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
@@ -1109,7 +1109,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(localobj->matrix, omxDataIndex(data, j), 0, sum);
+				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, sum);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
 			}
 		} else {
@@ -1200,7 +1200,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 
 		// This line may be unnecessary
-		omxUpdateState(parentState, parentState->childList[parallelism - 1], FALSE);
+		// omxUpdateState(parentState, parentState->childList[parallelism - 1], FALSE);
 
 		free(sums);
 
