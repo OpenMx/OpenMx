@@ -83,7 +83,7 @@ struct omxMatrix {						// A matrix
 
 /* For inclusion in(or of) other matrices */
 	int numPopulateLocations;
-	omxMatrix** populateFrom;
+	int *populateFrom;
 	int *populateFromRow, *populateFromCol;
 	int *populateToRow, *populateToCol;
 

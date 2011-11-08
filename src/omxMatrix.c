@@ -156,6 +156,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
 
 	int regenerateMemory = TRUE;
+	int numPopLocs = orig->numPopulateLocations;
 
 	if(dest->localData && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
 		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
@@ -169,6 +170,21 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalColMajor = dest->colMajor;
 	dest->lastCompute = orig->lastCompute;
 	dest->lastRow = orig->lastRow;
+
+	dest->numPopulateLocations = numPopLocs;
+	if (numPopLocs > 0) {
+		dest->populateFrom = (int*)R_alloc(numPopLocs, sizeof(int));
+		dest->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
+		dest->populateFromCol = (int*)R_alloc(numPopLocs, sizeof(int));
+		dest->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
+		dest->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
+		
+		memcpy(dest->populateFrom, orig->populateFrom, numPopLocs * sizeof(int));
+		memcpy(dest->populateFromRow, orig->populateFromRow, numPopLocs * sizeof(int));
+		memcpy(dest->populateFromCol, orig->populateFromCol, numPopLocs * sizeof(int));
+		memcpy(dest->populateToRow, orig->populateToRow, numPopLocs * sizeof(int));
+		memcpy(dest->populateToCol, orig->populateToCol, numPopLocs * sizeof(int));
+	}
 
 	if(dest->rows == 0 || dest->cols == 0) {
 		omxFreeMatrixData(dest);
@@ -317,10 +333,19 @@ void omxMatrixCompute(omxMatrix *om) {
 	om->lagging = (om->colMajor?om->cols:om->rows);
 
 	for(int i = 0; i < om->numPopulateLocations; i++) {
-		omxRecompute(om->populateFrom[i]);				// Make sure it's up to date
-		double value = omxMatrixElement(om->populateFrom[i], om->populateFromRow[i], om->populateFromCol[i]);
-		omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
-		// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
+		int index = om->populateFrom[i];
+		omxMatrix* sourceMatrix;
+		if (index < 0) {
+			sourceMatrix = om->currentState->matrixList[~index];
+		} else {
+			sourceMatrix = om->currentState->algebraList[index];
+		}
+		if (sourceMatrix != NULL) {
+			omxRecompute(sourceMatrix);				// Make sure it's up to date
+			double value = omxMatrixElement(sourceMatrix, om->populateFromRow[i], om->populateFromCol[i]);
+			omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
+			// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
+		}
 	}
 
 	om->isDirty = FALSE;
@@ -392,7 +417,14 @@ void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
 
 unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
 	for(int i = 0; i < om->numPopulateLocations; i++) {
-		if(omxNeedsUpdate(om->populateFrom[i])) return TRUE;	// Make sure it's up to date
+		int index = om->populateFrom[i];
+		omxMatrix* sourceMatrix;
+		if (index < 0) {
+			sourceMatrix = om->currentState->matrixList[~index];
+		} else {
+			sourceMatrix = om->currentState->algebraList[index];
+		}
+		if(omxNeedsUpdate(sourceMatrix)) return TRUE;	// Make sure it's up to date
 	}
     return FALSE;
 };
@@ -498,7 +530,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 	if(length(matStruct) > 1) {
 		int numPopLocs = length(matStruct) - 1;
 		matrix->numPopulateLocations = numPopLocs;
-		matrix->populateFrom = (omxMatrix**)R_alloc(numPopLocs, sizeof(omxMatrix*));
+		matrix->populateFrom = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateFromCol = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
@@ -509,13 +541,8 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
 
 		int* locations = INTEGER(subList);
-		int loc = locations[0];
 		if(OMX_DEBUG) { Rprintf("."); } //:::
-		if(loc < 0) {			// NOTE: This duplicates some of the functionality of NewMatrixFromMxIndex
-			matrix->populateFrom[i] = matrix->currentState->matrixList[(~loc)];
-		} else {
-			matrix->populateFrom[i] = matrix->currentState->algebraList[(loc)];
-		}
+		matrix->populateFrom[i] = locations[0];
 		matrix->populateFromRow[i] = locations[1];
 		matrix->populateFromCol[i] = locations[2];
 		matrix->populateToRow[i] = locations[3];

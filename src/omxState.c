@@ -132,6 +132,11 @@
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
+		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
+		
+		memset(tgt->matrixList, 0, sizeof(omxMatrix*) * tgt->numMats);
+		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
+
 		for(int j = 0; j < tgt->numMats; j++) {
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], tgt);
@@ -146,8 +151,6 @@
 			tgt->conList[j].ubound = src->conList[j].ubound;
 			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt);
 		}
-
-		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 
 		for(int j = 0; j < tgt->numAlgs; j++) {
 			// TODO: Smarter inference for which algebras to duplicate
