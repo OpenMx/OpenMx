@@ -18,6 +18,7 @@ library(snowfall)
 
 sfInit(parallel=TRUE)
 
+sfLibrary(snowfall)
 sfLibrary(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)

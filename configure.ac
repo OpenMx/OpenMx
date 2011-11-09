@@ -12,7 +12,10 @@ fi
 
 # check for gcc compiler
 AC_PROG_CC
+AC_ARG_ENABLE([openmp], AS_HELP_STRING([--disable-openmp], [Disable OpenMP library]))
+AS_IF([test "x$enable_openmp" != "xno"], [
 AC_OPENMP
+])
 AC_MSG_CHECKING(whether gcc is installed)
 if test "$GCC" != yes; then
 AC_MSG_RESULT(no)

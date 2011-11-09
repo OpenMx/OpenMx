@@ -14,6 +14,11 @@ else
    TESTFILE = inst/tools/testModels.R
    CPUS = 1
 endif
+ifeq ($(OPENMP),FALSE)
+BUILDARGS = "--configure-args=--disable-openmp"
+else
+BUILDARGS = "--configure-args=--enable-openmp"
+endif
 NIGHTLYFILE = inst/tools/testNightly.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
@@ -85,16 +90,16 @@ html: internal-build
 	cd docs; make clean; make html
 
 common-build: clean internal-build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
 
 common-build32: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch i386 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+	cd $(RBUILD); $(REXEC) --arch i386 $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
 
 common-build64: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
 
 common-buildppc: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch ppc $(RCOMMAND) $(RINSTALL) --build $(TARGET)
+	cd $(RBUILD); $(REXEC) --arch ppc $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
 
 post-build:
 	rm -f $(RBUILD)/$(TARGET)
@@ -119,7 +124,7 @@ winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
 	
 install: clean internal-build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(TARGET)
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
 check: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)

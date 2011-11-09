@@ -140,9 +140,14 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		options[["Number of Cores"]] <- 1L 
 	} else if (is.null(options[["Number of Cores"]]) || 
 			options[["Number of Cores"]] == 0) {
-		detect <- omxDetectCores()
-		if(is.na(detect)) detect <- 1L
-		options[["Number of Cores"]] <- detect 
+		if (("package:snowfall" %in% search()) && 
+				sfIsRunning() && !sfParallel()) {
+ 			options[["Number of Cores"]] <- 1L 
+		} else {
+			detect <- omxDetectCores()
+			if(is.na(detect)) detect <- 1L
+			options[["Number of Cores"]] <- detect 
+		}
 	}
 	return(options)
 }
