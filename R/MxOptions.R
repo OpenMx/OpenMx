@@ -101,7 +101,7 @@ npsolOptions <- list(
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
-	"Number of Cores" = 1
+	"Number of Cores" = 0
 )
 
 checkpointOptions <- list(
@@ -140,8 +140,7 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		options[["Number of Cores"]] <- 1L 
 	} else if (is.null(options[["Number of Cores"]]) || 
 			options[["Number of Cores"]] == 0) {
-		if (("package:snowfall" %in% search()) && 
-				sfIsRunning() && !sfParallel()) {
+		if (imxSfClient()) {
  			options[["Number of Cores"]] <- 1L 
 		} else {
 			detect <- omxDetectCores()

@@ -20,6 +20,10 @@ imxMpiWrap <- function(fun) {
 	}
 }
 
+imxSfClient <- function() {
+	return("snowfall" %in% loadedNamespaces())
+}
+
 omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
