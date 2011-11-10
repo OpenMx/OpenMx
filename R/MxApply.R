@@ -20,8 +20,18 @@ imxMpiWrap <- function(fun) {
 	}
 }
 
+# As of snowfall 1.84, the snowfall supervisor process
+# stores an internal state information in a variable 
+# named ".sfOption" that is located in the "snowfall" namespace.
+# The snowfall client processes store internal state
+# information in a variable named ".sfOption" that is located
+# in the global namespace.
+# 
+# As long as the previous statement is true, then the current
+# process is a snowfall client if-and-only-if exists(".sfOption").
+#
 imxSfClient <- function() {
-	return("snowfall" %in% loadedNamespaces())
+	return(exists(".sfOption"))
 }
 
 omxLapply <- function(x, fun, ...) {
