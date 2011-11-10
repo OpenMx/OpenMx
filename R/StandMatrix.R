@@ -98,56 +98,64 @@ setMethod("imxVerifyMatrix", "StandMatrix",
 				call. = FALSE)
 		}
 		if (!all(diag(values) == 1)) {
-			stop(paste("Values matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not 1's along the diagonal!", 
-				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
-				call. = FALSE)
+
+		if (max(abs(diag(values) - 1)) < 1.0e-8) {
+				stop(paste("Values matrix of standardized matrix", omxQuotes(.Object@name), 
+					"is very near, but not equal to, 1s along the diagonal! In", 
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+					call. = FALSE)
+			} else {
+				stop(paste("Values matrix of standardized matrix", omxQuotes(.Object@name), 
+					"is not 1's along the diagonal! In", 
+					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
+					call. = FALSE)
+			}
 		}
 		if (!all(free == t(free))) {
 			stop(paste("Free matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not symmetric!", 
+				"is not symmetric! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(diag(free) == FALSE)) {
 			stop(paste("Free matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not fixed along the diagonal!", 
+				"is not fixed along the diagonal! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(labels == t(labels), na.rm = TRUE) && all(is.na(labels) == is.na(t(labels)))) {
 			stop(paste("Labels matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not symmetric!", 
+				"is not symmetric! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(is.na(diag(labels)))) {
 			stop(paste("Labels matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not NA along the diagonal!", 
+				"is not NA along the diagonal! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(lbound == t(lbound), na.rm = TRUE) && all(is.na(lbound) == is.na(t(lbound)))) {
 			stop(paste("Lbound matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not symmetric!", 
+				"is not symmetric! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(is.na(diag(lbound)))) {
 			stop(paste("Lbound matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not NA along the diagonal!", 
+				"is not NA along the diagonal! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(ubound == t(ubound), na.rm = TRUE) && all(is.na(ubound) == is.na(t(ubound)))) {
 			stop(paste("Ubound matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not symmetric!", 
+				"is not symmetric! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
 		if (!all(is.na(diag(ubound)))) {
 			stop(paste("Ubound matrix of standardized matrix", omxQuotes(.Object@name), 
-				"is not NA along the diagonal!", 
+				"is not NA along the diagonal! In", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}

@@ -258,8 +258,14 @@ verifyCorrelationMatrix <- function(corMatrix) {
 		stop(msg, call. = FALSE)
 	}
 	if (!all(diag(corMatrix) == 1)) {
-		msg <- paste("The observed correlation matrix",
-			"is not 1's along the diagonal")
+		if (max(abs(diag(corMatrix) - 1)) < 1.0e-8) {
+			msg <- paste("The observed correlation matrix",
+				"has values that are near, but not equal to,",
+				"1's along the diagonal")
+		} else {
+			msg <- paste("The observed correlation matrix",
+				"is not 1's along the diagonal")
+		}
 		stop(msg, call. = FALSE)	
 	}
 }
