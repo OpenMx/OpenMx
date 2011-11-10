@@ -101,7 +101,7 @@ npsolOptions <- list(
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
-	"Number of Cores" = 0
+	"Number of Threads" = 0
 )
 
 checkpointOptions <- list(
@@ -137,15 +137,15 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		options[["useOptimizer"]] <- "No"
 	}
 	if (model@.forcesequential) {
-		options[["Number of Cores"]] <- 1L 
-	} else if (is.null(options[["Number of Cores"]]) || 
-			options[["Number of Cores"]] == 0) {
+		options[["Number of Threads"]] <- 1L 
+	} else if (is.null(options[["Number of Threads"]]) || 
+			options[["Number of Threads"]] == 0) {
 		if (imxSfClient()) {
- 			options[["Number of Cores"]] <- 1L 
+ 			options[["Number of Threads"]] <- 1L 
 		} else {
 			detect <- omxDetectCores()
 			if(is.na(detect)) detect <- 1L
-			options[["Number of Cores"]] <- detect 
+			options[["Number of Threads"]] <- detect 
 		}
 	}
 	return(options)
