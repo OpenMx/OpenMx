@@ -106,8 +106,8 @@ sfStop()
 results2 <- data.frame(results[which(results[,1] <= 1),])
 
 # summarize the results
-means <- mean(results2)
-stdevs <- sd(results2)
+means <- colMeans(results2)
+stdevs <- sapply(results2, sd)
 sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
                                 dimnames=list(NULL, "Parameter")))
 sumResults$mean <- means[pStrt:pEnd]

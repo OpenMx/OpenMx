@@ -69,7 +69,7 @@ ar1SV <- avgVar/3
 arSV <- ar1SV-ar1SV*stabilitySV*stabilitySV
 
 ##Set starting values for means to the average item mean
-meanSV <- mean(mean(data, na.rm=TRUE))
+meanSV <- mean(colMeans(data, na.rm=TRUE))
 
 #PATH STATEMENTS
 ##Variances
