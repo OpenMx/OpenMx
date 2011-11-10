@@ -65,9 +65,9 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
 					*disableOptimizer = 1;
 				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "Number of Cores")) {
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
-				if(OMX_DEBUG) { Rprintf("Found Number of Cores option (# = %d)...\n", *numThreads);};
+				if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
