@@ -181,10 +181,11 @@ struct omxState {													// The Current State of Optimization
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState, int numChildren); // Constructor
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective);
-	void omxFreeState(omxState *oo);									// Destructor
+	void omxFreeState(omxState *state);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus);	// Updates the tgt state with the contents of src state
 	void omxDuplicateState(omxState *tgt, omxState* src); 
+	int omxTotalThreadCount(omxState *state);
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
 
@@ -193,12 +194,12 @@ struct omxState {													// The Current State of Optimization
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
     
-	void omxRaiseError(omxState *oo, int errorCode, char* errorMsg);	// Raise an Error
+	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// Raise an Error
 																		// TODO: Move RaiseError to omxOptimizer.
 
 /* Advance a step */
-	void omxStateNextRow(omxState *oo);									// Advance Row
-	void omxStateNextEvaluation(omxState *oo);							// Advance Evaluation count
+	void omxStateNextRow(omxState *state);								// Advance Row
+	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
 
 	void omxSaveCheckpoint(omxState* os, double* x, double* f);			// Save out checkpoints
 
