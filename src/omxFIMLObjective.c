@@ -145,246 +145,6 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
-	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
-	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
-	// Requires: Data, means, covariances, thresholds
-
-	double sum;
-	double Q = 0.0;
-	double logDet = 0;
-	int numDefs;
-	int numRemoves = 0;
-	int returnRowLikelihoods = 0;
-	int keepCov = 0, keepInverse = 0;
-
-	omxMatrix *cov, *means, *smallCov, *dataColumns;
-    omxMatrix *rowLikelihoods;
-	omxThresholdColumn *thresholdCols;
-	omxData* data;
-	double *lThresh, *uThresh, *corList, *weights, *oldDefs;
-	int *Infin;
-	omxDefinitionVar* defVars;
-	int firstRow = 1;
-	
-	omxObjective* subObjective;	
-
-	// Locals, for readability.  Compiler should cut through this.
-	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
-	cov 		= ofo->cov;
-	means		= ofo->means;
-	smallCov 	= ofo->smallCov;
-	data		= ofo->data;
-	dataColumns	= ofo->dataColumns;
-	defVars		= ofo->defVars;
-	oldDefs		= ofo->oldDefs;
-	numDefs		= ofo->numDefs;
-
-	corList 	= ofo->corList;
-	weights		= ofo->weights;
-	lThresh		= ofo->lThresh;
-	uThresh		= ofo->uThresh;
-	thresholdCols = ofo->thresholdCols;
-	returnRowLikelihoods = ofo->returnRowLikelihoods;
-    rowLikelihoods = ofo->rowLikelihoods;
-
-	Infin		= ofo->Infin;
-	
-	subObjective = oo->subObjective;
-	
-	if(numDefs == 0) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-		if(!(subObjective == NULL)) {
-			omxObjectiveCompute(subObjective);
-		} else {
-			omxRecompute(cov);			// Only recompute this here if there are no definition vars
-			omxRecompute(means);
-		}
-		for(int j = 0; j < dataColumns->cols; j++) {
-			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-				omxRecompute(thresholdCols[j].matrix);
-				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
-			}
-		}
-		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
-	}
-
-	sum = 0.0;
-	int row = 0;
-
-    while(row < data->rows) {
-        if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);}
-        oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		int numIdentical = omxDataNumIdenticalRows(data, row);
-		if(numIdentical == 0) numIdentical = 1; 
-		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
-		// it should never be the case.
-
-        logDet = 0.0;
-        Q = 0.0;
-
-        // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
-        numRemoves = 0;
-
-        // Handle Definition Variables.
-        if(numDefs != 0) {
-			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
-				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
-					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
-					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(subObjective == NULL)) {
-						omxObjectiveCompute(subObjective);
-					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
-					}
-					for(int j=0; j < dataColumns->cols; j++) {
-						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-							omxRecompute(thresholdCols[j].matrix);
-							checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
-						}
-					}
-					// Calculate correlation matrix from covariance
-					omxStandardizeCovMatrix(cov, corList, weights);
-				}
-			}
-		}
-
-		// Filter down correlation matrix and calculate thresholds
-
-		for(int j = 0; j < dataColumns->cols; j++) {
-			int var = omxVectorElement(dataColumns, j);
-			int value = omxIntDataElement(data, row, var); // Indexing correction means this is the index of the upper bound +1.
-			if(ISNA(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
-				numRemoves++;
-				// toRemove[j] = 1;
-				Infin[j] = -1;
-				continue;
-			} else {			// For joint, check here for continuousness
-				value--;		// Correct for C indexing: value is now the index of the upper bound.
-				// Note : Tested subsampling of the corList and thresholds for speed. 
-				//			Doesn't look like that's much of a speedup.
-				double mean;
-				if(means == NULL) mean = 0;
-				else mean = omxVectorElement(means, j);
-				double weight = weights[j];
-				if(value == 0) { 									// Lowest threshold = -Inf
-					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
-					uThresh[j] = lThresh[j];
-					Infin[j] = 0;
-				} else {
-					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - mean) / weight;
-					if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
-						double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - mean) / weight;
-						uThresh[j] = tmp;
-						Infin[j] = 2;
-					} else {
-						uThresh[j] = NA_INTEGER; // NA is a special to indicate +Inf
-						Infin[j] = 1;
-					}
-				}
-				
-				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) { // for matrix-style specification.
-					uThresh[j] = lThresh[j];
-					Infin[j] = 1;
-				}
-			if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
-			}
-		}
-		
-		if(numRemoves >= smallCov->rows) {
-			for(int nid = 0; nid < numIdentical; nid++) {
-				if(returnRowLikelihoods) {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1.0);
-				}
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
-			}
-    		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-            row += numIdentical;
-    		keepCov -= numIdentical;
-    		keepInverse -= numIdentical;
-			continue;
-		}
-
-   		double likelihood;
-		int inform;
-
-		omxSadmvnWrapper(oo, cov, smallCov, corList, lThresh, uThresh, Infin, &likelihood, &inform);
-
-		if(inform == 2) {
-			if(!returnRowLikelihoods) {
-				for(int nid = 0; nid < numIdentical; nid++) {
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-				}
-				char helperstr[200];
-				char *errstr = calloc(250, sizeof(char));
-				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
-				if(oo->matrix->currentState->computeCount <= 0) {
-					sprintf(errstr, "%s at starting values.\n", helperstr);
-				} else {
-					sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
-				}
-				omxRaiseError(oo->matrix->currentState, -1, errstr);
-				free(errstr);
-				return;
-			} else {
-				for(int nid = 0; nid < numIdentical; nid++) {
-					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-				}
-        		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-        		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-                if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-                row += numIdentical;
-        		keepCov -= numIdentical;
-        		keepInverse -= numIdentical;
-				continue;
-			}
-		}
-
-		if(returnRowLikelihoods) {
-			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);
-			} 
-			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(oo->matrix, omxDataIndex(data, j), 0, likelihood);
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
-			}
-		} else {
-			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
-			}
-			logDet = -2 * log(likelihood);
-			logDet *= numIdentical;
-
-			sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
-
-			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
-				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
-            } 
-        }
-		if(firstRow) firstRow = 0;
-		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-
-		row += numIdentical;		// Step forward by the number of identical rows
-		keepCov -= numIdentical;
-		keepInverse -= numIdentical;
-	}
-
-    if(!returnRowLikelihoods) {
-        if(OMX_DEBUG) {
-            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
-                sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
-        }
-
-        oo->matrix->data[0] = sum;
-    }
-}
-
 void omxCallJointFIMLObjective(omxObjective *oo) {	
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
@@ -886,6 +646,243 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
 
 }
 
+
+/**
+ * The localobj reference is used to access read-only variables,
+ * or variables that can be modified but whose state cannot be
+ * accessed from other threads.
+ *
+ * The sharedobj reference is used to access write-only variables,
+ * where the memory writes of any two threads are non-overlapping.
+ * No synchronization mechanisms are employed to maintain consistency
+ * of sharedobj references.
+ */
+double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+
+    omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
+    omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
+
+	double sum = 0.0;
+	double Q = 0.0;
+	double logDet = 0.0;
+	double* oldDefs;
+	int numDefs;
+	int numRemoves;
+	int returnRowLikelihoods;
+	int keepCov = 0, keepInverse = 0;
+
+	omxObjective* subObjective;
+	
+	omxMatrix *cov, *means, *smallCov, *dataColumns;//, *oldInverse;
+    omxMatrix *rowLikelihoods;
+    omxThresholdColumn *thresholdCols;
+    double *lThresh, *uThresh, *corList, *weights;
+	int *Infin;
+	omxDefinitionVar* defVars;
+	omxData *data;
+
+	// Locals, for readability.  Should compile out.
+	cov 		     = ofo->cov;
+	means		     = ofo->means;
+	smallCov 	     = ofo->smallCov;
+	oldDefs		     = ofo->oldDefs;
+	data		     = ofo->data;                       //  read-only
+	dataColumns	     = ofo->dataColumns;                //  read-only
+	defVars		     = ofo->defVars;                    //  read-only
+	numDefs		     = ofo->numDefs;                    //  read-only
+	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
+    rowLikelihoods   = shared_ofo->rowLikelihoods;      // write-only
+
+    corList          = ofo->corList;
+    weights          = ofo->weights;
+    lThresh          = ofo->lThresh;
+    uThresh          = ofo->uThresh;
+    thresholdCols    = ofo->thresholdCols;
+
+    Infin            = ofo->Infin;
+
+	subObjective = localobj->subObjective;
+
+	int firstRow = 1;
+    int row = rowbegin;
+
+    resetDefinitionVariables(oldDefs, numDefs);
+
+	while(row < data->rows && (row - rowbegin) < rowcount) {
+        if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);}
+        localobj->matrix->currentState->currentRow = row;		// Set to a new row.
+		int numIdentical = omxDataNumIdenticalRows(data, row);
+		if(numIdentical == 0) numIdentical = 1; 
+		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+		// it should never be the case.
+
+		// if we're going to cross over the "rowcount" boundary
+		// then decrease the numIdentical count
+		if (numIdentical + (row - rowbegin) > rowcount) {
+			numIdentical = rowcount - row + rowbegin;
+		}
+
+
+        logDet = 0.0;
+        Q = 0.0;
+
+        // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
+        numRemoves = 0;
+
+        // Handle Definition Variables.
+        if(numDefs != 0) {
+			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
+				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
+				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
+					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
+					// N.B. handling of definition var lists always happens, regardless of firstRow.
+					if(!(subObjective == NULL)) {
+						omxObjectiveCompute(subObjective);
+					} else {
+						omxRecompute(cov);
+						omxRecompute(means);
+					}
+					for(int j=0; j < dataColumns->cols; j++) {
+						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
+							omxRecompute(thresholdCols[j].matrix);
+							checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+						}
+					}
+					// Calculate correlation matrix from covariance
+					omxStandardizeCovMatrix(cov, corList, weights);
+				}
+			}
+		}
+
+		// Filter down correlation matrix and calculate thresholds
+
+		for(int j = 0; j < dataColumns->cols; j++) {
+			int var = omxVectorElement(dataColumns, j);
+			int value = omxIntDataElement(data, row, var); // Indexing correction means this is the index of the upper bound +1.
+			if(ISNA(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
+				numRemoves++;
+				// toRemove[j] = 1;
+				Infin[j] = -1;
+				continue;
+			} else {			// For joint, check here for continuousness
+				value--;		// Correct for C indexing: value is now the index of the upper bound.
+				// Note : Tested subsampling of the corList and thresholds for speed. 
+				//			Doesn't look like that's much of a speedup.
+				double mean;
+				if(means == NULL) mean = 0;
+				else mean = omxVectorElement(means, j);
+				double weight = weights[j];
+				if(value == 0) { 									// Lowest threshold = -Inf
+					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
+					uThresh[j] = lThresh[j];
+					Infin[j] = 0;
+				} else {
+					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - mean) / weight;
+					if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
+						double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - mean) / weight;
+						uThresh[j] = tmp;
+						Infin[j] = 2;
+					} else {
+						uThresh[j] = NA_INTEGER; // NA is a special to indicate +Inf
+						Infin[j] = 1;
+					}
+				}
+				
+				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) { // for matrix-style specification.
+					uThresh[j] = lThresh[j];
+					Infin[j] = 1;
+				}
+			if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+			}
+		}
+		
+		if(numRemoves >= smallCov->rows) {
+			for(int nid = 0; nid < numIdentical; nid++) {
+				if(returnRowLikelihoods) {
+					omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 1.0);
+				}
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
+			}
+    		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+            row += numIdentical;
+    		keepCov -= numIdentical;
+    		keepInverse -= numIdentical;
+			continue;
+		}
+
+   		double likelihood;
+		int inform;
+
+		omxSadmvnWrapper(localobj, cov, smallCov, corList, lThresh, uThresh, Infin, &likelihood, &inform);
+
+		if(inform == 2) {
+			if(!returnRowLikelihoods) {
+				for(int nid = 0; nid < numIdentical; nid++) {
+					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+				}
+				char helperstr[200];
+				char *errstr = calloc(250, sizeof(char));
+				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+				if(localobj->matrix->currentState->computeCount <= 0) {
+					sprintf(errstr, "%s at starting values.\n", helperstr);
+				} else {
+					sprintf(errstr, "%s at major iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
+				}
+				omxRaiseError(localobj->matrix->currentState, -1, errstr);
+				free(errstr);
+				return(sum);
+			} else {
+				for(int nid = 0; nid < numIdentical; nid++) {
+					omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+				}
+        		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+        		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+                if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+                row += numIdentical;
+        		keepCov -= numIdentical;
+        		keepInverse -= numIdentical;
+				continue;
+			}
+		}
+
+		if(returnRowLikelihoods) {
+			if(OMX_DEBUG_ROWS(row)) { 
+				Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);
+			} 
+			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
+				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, likelihood);
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
+			}
+		} else {
+			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
+			}
+			logDet = -2 * log(likelihood);
+			logDet *= numIdentical;
+
+			sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
+
+			if(OMX_DEBUG_ROWS(row)) { 
+				Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
+				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+            } 
+        }
+		if(firstRow) firstRow = 0;
+		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+
+		row += numIdentical;		// Step forward by the number of identical rows
+		keepCov -= numIdentical;
+		keepInverse -= numIdentical;
+	}
+
+	return(sum);
+}
+
+
+
 /**
  * The localobj reference is used to access read-only variables,
  * or variables that can be modified but whose state cannot be
@@ -1215,9 +1212,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 		}
 
-		// This line may be unnecessary
-		// omxUpdateState(parentState, parentState->childList[parallelism - 1], FALSE);
-
 		free(sums);
 
 	} else {
@@ -1228,8 +1222,65 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
 	   omxSetMatrixElement(oo->matrix, 0, 0, sum);
     }
+}
+
+void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
+	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
+	// Requires: Data, means, covariances, thresholds
+
+	double sum;
+	int numDefs;
+	int returnRowLikelihoods = 0;
+
+	omxMatrix *cov, *means, *dataColumns;
+	omxThresholdColumn *thresholdCols;
+	omxData* data;
+	double *corList, *weights;
+	
+	omxObjective* subObjective;	
+
+	// Locals, for readability.  Compiler should cut through this.
+	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
+	cov 		= ofo->cov;
+	means		= ofo->means;
+	data		= ofo->data;
+	dataColumns	= ofo->dataColumns;
+	numDefs		= ofo->numDefs;
+
+	corList 	= ofo->corList;
+	weights		= ofo->weights;
+	thresholdCols = ofo->thresholdCols;
+	returnRowLikelihoods = ofo->returnRowLikelihoods;
+	
+	subObjective = oo->subObjective;
+	
+	if(numDefs == 0) {
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
+		if(!(subObjective == NULL)) {
+			omxObjectiveCompute(subObjective);
+		} else {
+			omxRecompute(cov);			// Only recompute this here if there are no definition vars
+			omxRecompute(means);
+		}
+		for(int j = 0; j < dataColumns->cols; j++) {
+			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
+				omxRecompute(thresholdCols[j].matrix);
+				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+			}
+		}
+		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
+	}
+
+   	sum = omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
+
+    if(!returnRowLikelihoods) {
+	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+	   omxSetMatrixElement(oo->matrix, 0, 0, sum);
+    }
 
 }
+
 
 unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 	return omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->cov)
