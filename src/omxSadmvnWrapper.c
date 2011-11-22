@@ -37,8 +37,8 @@ void* sadmvn_lock = NULL;
 
 #endif
 
-extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
-
+extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
+	double*, double*, double*, double*, int*, int*);
 
 void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform) {
@@ -62,6 +62,7 @@ void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov,
    	double relEps = 0;
    	int MaxPts = 100000*cov->rows;
    	int numVars = ordCov->rows;
+	int fortranThreadId = omx_omp_get_thread_num() + 1;
    	/* FOR DEBUGGING PURPOSES */
     /*	numVars = 2;
    	lThresh[0] = -2;
@@ -71,9 +72,8 @@ void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov,
    	uThresh[1] = 0;
    	Infin[1] = 0;
    	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
-	omx_omp_set_lock(&sadmvn_lock);
-   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, &absEps, &relEps, &Error, likelihood, inform);
-	omx_omp_unset_lock(&sadmvn_lock);
+   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
+		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
 
    	if(OMX_DEBUG && !oo->matrix->currentState->currentRow) {
    		char infinCodes[3][20];

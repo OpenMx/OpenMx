@@ -1,5 +1,5 @@
       SUBROUTINE RANMVN( N, LOWER, UPPER, INFIN, CORREL, MAXPTS,
-     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM )
+     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM, TID )
 *
 *     A subroutine for computing multivariate normal probabilities.
 *     This subroutine uses the Monte-Carlo algorithm given in the paper
@@ -40,7 +40,8 @@
 *            if INFORM = 2, N > 100 or N < 1.
 *
       EXTERNAL MVNFNC
-      INTEGER N, INFIN(*), MAXPTS, MPT, INFORM, INFIS, IVLS
+      INTEGER N, INFIN(*), MAXPTS, MPT, 
+     &     INFORM, INFIS, IVLS, TID
       DOUBLE PRECISION
      &     CORREL(*), LOWER(*), UPPER(*), MVNFNC,
      &     ABSEPS, RELEPS, ERROR, VALUE, D, E, EPS, MVNNIT
@@ -50,7 +51,8 @@
          ERROR = 1
          RETURN
       ENDIF
-      INFORM = MVNNIT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
+      INFORM = MVNNIT(N, CORREL, LOWER, UPPER, 
+     &                INFIN, INFIS, D, E, TID)
       IF ( N-INFIS .EQ. 0 ) THEN
          VALUE = 1
          ERROR = 0
@@ -62,26 +64,26 @@
 *        Call then Monte-Carlo integration subroutine
 *
          MPT = 25 + 10*N
-         CALL RCRUDE(N-INFIS-1, MPT, MVNFNC, ERROR, VALUE, 0)
+         CALL RCRUDE(N-INFIS-1,MPT,MVNFNC,ERROR,VALUE,0,TID)
          IVLS = MPT
  10      EPS = MAX( ABSEPS, RELEPS*ABS(VALUE) )
          IF ( ERROR .GT. EPS .AND. IVLS .LT. MAXPTS ) THEN
             MPT = MAX( MIN( INT(MPT*(ERROR/(EPS))**2),
      &                      MAXPTS-IVLS ), 10 )
-            CALL RCRUDE(N-INFIS-1, MPT, MVNFNC, ERROR, VALUE, 1)
+            CALL RCRUDE(N-INFIS-1,MPT,MVNFNC,ERROR,VALUE,1,TID)
             IVLS = IVLS + MPT
             GO TO 10
          ENDIF
          IF ( ERROR. GT. EPS .AND. IVLS .GE. MAXPTS ) INFORM = 1
       ENDIF
       END
-      SUBROUTINE RCRUDE(NDIM, MAXPTS, FUNCTN, ABSEST, FINEST, IR)
+      SUBROUTINE RCRUDE(NDIM,MAXPTS,FUNCTN,ABSEST,FINEST,IR,TID)
 *
 *     Crude Monte-Carlo Algorithm with simple antithetic variates
 *      and weighted results on restart
 *
       EXTERNAL FUNCTN
-      INTEGER NDIM, MAXPTS, M, K, IR, NPTS
+      INTEGER NDIM, MAXPTS, M, K, IR, NPTS, TID
       DOUBLE PRECISION FINEST, ABSEST, X(100), FUN, FUNCTN, UNI,
      &     VARSQR, VAREST, VARPRD, FINDIF, FINVAL
       SAVE VAREST
@@ -96,11 +98,11 @@
          DO K = 1,NDIM
             X(K) = UNI()
          END DO
-         FUN = FUNCTN(NDIM, X)
+         FUN = FUNCTN(NDIM, X, TID)
          DO K = 1,NDIM
             X(K) = 1 - X(K)
          END DO
-         FUN = ( FUNCTN(NDIM, X) + FUN )/2
+         FUN = ( FUNCTN(NDIM, X, TID) + FUN )/2
          FINDIF = ( FUN - FINVAL )/M
          VARSQR = ( M - 2 )*VARSQR/M + FINDIF**2
          FINVAL = FINVAL + FINDIF
@@ -554,7 +556,7 @@
       UNI = Z*INVMP1
       END
       SUBROUTINE SADMVN( N, LOWER, UPPER, INFIN, CORREL, MAXPTS,
-     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM )
+     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM, TID )
 *
 *     A subroutine for computing multivariate normal probabilities.
 *     This subroutine uses an algorithm given in the paper
@@ -596,20 +598,22 @@
 *
       EXTERNAL MVNFNC
       INTEGER N, NL, M, INFIN(*), LENWRK, MAXPTS, INFORM, INFIS,
-     &     RULCLS, TOTCLS, NEWCLS, MAXCLS
+     &     RULCLS, TOTCLS, NEWCLS, MAXCLS, TID
       DOUBLE PRECISION
      &     CORREL(*), LOWER(*), UPPER(*), ABSEPS, RELEPS, ERROR, VALUE,
      &     OLDVAL, D, E, MVNNIT, MVNFNC
       PARAMETER ( NL = 20 )
       PARAMETER ( LENWRK = 20*NL**2 )
-      DOUBLE PRECISION WORK(LENWRK)
+      PARAMETER ( NTHREADS = 64 )
+      DOUBLE PRECISION WORK(LENWRK, NTHREADS)
       IF ( N .GT. 20 .OR. N .LT. 1 ) THEN
          INFORM = 2
          VALUE = 0
          ERROR = 1
          RETURN
       ENDIF
-      INFORM = MVNNIT( N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E )
+      INFORM = MVNNIT( N, CORREL, LOWER, UPPER, 
+     &                 INFIN, INFIS, D, E, TID )
       M = N - INFIS
       IF ( M .EQ. 0 ) THEN
          VALUE = 1
@@ -624,17 +628,17 @@
          M = M - 1
          RULCLS = 1
          CALL ADAPT( M, RULCLS, 0, MVNFNC, ABSEPS, RELEPS,
-     &               LENWRK, WORK, ERROR, VALUE, INFORM )
+     &               LENWRK, NTHREADS, WORK, ERROR, VALUE, INFORM, TID )
          MAXCLS = MIN( 10*RULCLS, MAXPTS )
          TOTCLS = 0
          CALL ADAPT(M, TOTCLS, MAXCLS, MVNFNC, ABSEPS, RELEPS,
-     &        LENWRK, WORK, ERROR, VALUE, INFORM)
+     &        LENWRK, NTHREADS, WORK, ERROR, VALUE, INFORM, TID)
          IF ( ERROR .GT. MAX( ABSEPS, RELEPS*ABS(VALUE) ) ) THEN
  10         OLDVAL = VALUE
             MAXCLS = MAX( 2*RULCLS, MIN( 3*MAXCLS/2, MAXPTS - TOTCLS ) )
             NEWCLS = -1
             CALL ADAPT(M, NEWCLS, MAXCLS, MVNFNC, ABSEPS, RELEPS,
-     &           LENWRK, WORK, ERROR, VALUE, INFORM)
+     &           LENWRK, NTHREADS, WORK, ERROR, VALUE, INFORM, TID)
             TOTCLS = TOTCLS + NEWCLS
             ERROR = ABS(VALUE-OLDVAL) + SQRT(RULCLS*ERROR**2/TOTCLS)
             IF ( ERROR .GT. MAX( ABSEPS, RELEPS*ABS(VALUE) ) ) THEN
@@ -647,7 +651,7 @@
       END
 *
       SUBROUTINE KROMVN( N, LOWER, UPPER, INFIN, CORREL, MAXPTS,
-     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM )
+     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM, TID )
 *
 *     A subroutine for computing multivariate normal probabilities.
 *     This subroutine uses an algorithm given in the paper
@@ -688,7 +692,7 @@
 *            if INFORM = 2, N > 100 or N < 1.
 *
       EXTERNAL MVNFNC
-      INTEGER N, INFIN(*), MAXPTS, INFORM, INFIS, IVLS
+      INTEGER N, INFIN(*), MAXPTS, INFORM, INFIS, IVLS, TID
       DOUBLE PRECISION CORREL(*), LOWER(*), UPPER(*), RELEPS, ABSEPS,
      &       ERROR, VALUE, E, D, MVNNIT, MVNFNC
       IF ( N .GT. 100 .OR. N .LT. 1 ) THEN
@@ -696,7 +700,8 @@
          VALUE = 0
          ERROR = 1
       ELSE
-         INFORM = MVNNIT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
+         INFORM = MVNNIT(N, CORREL, LOWER, UPPER, 
+     &                   INFIN, INFIS, D, E, TID)
          IF ( N-INFIS .EQ. 0 ) THEN
             VALUE = 1
             ERROR = 0
@@ -709,12 +714,12 @@
 *
             IVLS = 0
             CALL KROBOV( N-INFIS-1, IVLS, MAXPTS, MVNFNC,
-     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM )
+     &                   ABSEPS, RELEPS, ERROR, VALUE, INFORM, TID )
          ENDIF
       ENDIF
       END
       SUBROUTINE KROBOV( NDIM, MINVLS, MAXVLS, FUNCTN, ABSEPS, RELEPS,
-     &                   ABSERR, FINEST, INFORM )
+     &                   ABSERR, FINEST, INFORM, TID )
 *
 *  Automatic Multidimensional Integration Subroutine
 *
@@ -767,7 +772,7 @@
 ************************************************************************
       EXTERNAL FUNCTN
       INTEGER NDIM, MINVLS, MAXVLS, INFORM, NP, PLIM, NLIM,
-     &        SAMPLS, I, INTVLS, MINSMP
+     &        SAMPLS, I, INTVLS, MINSMP, TID
       PARAMETER ( PLIM = 20, NLIM = 100, MINSMP = 6 )
       INTEGER C(PLIM,NLIM), P(PLIM)
       DOUBLE PRECISION FUNCTN, ABSEPS, RELEPS, FINEST, ABSERR, DIFINT,
@@ -794,7 +799,7 @@
       FINVAL = 0
       VARSQR = 0
       DO I = 1, SAMPLS
-         CALL KROSUM( NDIM, VALUE, P(NP), VK, FUNCTN, ALPHA, X )
+         CALL KROSUM( NDIM, VALUE, P(NP), VK, FUNCTN, ALPHA, X, TID )
          DIFINT = ( VALUE - FINVAL )/I
          FINVAL = FINVAL + DIFINT
          VARSQR = ( I - 2 )*VARSQR/I + DIFINT**2
@@ -1058,9 +1063,10 @@
      &  97781, 91996, 97781, 97781, 91996, 97781, 97781, 36249, 39779/
       END
 *
-      SUBROUTINE KROSUM( NDIM, SUMKRO, PRIME, VK, FUNCTN, ALPHA, X )
+      SUBROUTINE KROSUM( NDIM, SUMKRO, PRIME, VK,
+     &                   FUNCTN, ALPHA, X, TID )
       EXTERNAL FUNCTN
-      INTEGER NDIM, PRIME, K, J
+      INTEGER NDIM, PRIME, K, J, TID
       DOUBLE PRECISION SUMKRO, VK(*), FUNCTN, ALPHA(*), X(*), ONE, UNI
       PARAMETER ( ONE = 1 )
       SUMKRO = 0
@@ -1072,43 +1078,46 @@
             X(J) = MOD( K*VK(J) + ALPHA(J), ONE )
             X(J) = ABS( 2*X(J) - 1 )
          END DO
-         SUMKRO = SUMKRO + ( FUNCTN(NDIM,X) - SUMKRO )/( 2*K - 1 )
+         SUMKRO = SUMKRO + ( FUNCTN(NDIM,X,TID) - SUMKRO )/( 2*K - 1 )
          DO J = 1, NDIM
             X(J) = 1 - X(J)
          END DO
-         SUMKRO = SUMKRO + ( FUNCTN(NDIM,X) - SUMKRO )/( 2*K )
+         SUMKRO = SUMKRO + ( FUNCTN(NDIM,X,TID) - SUMKRO )/( 2*K )
       END DO
       END
 *
-      DOUBLE PRECISION FUNCTION MVNFNC(N, W)
+      DOUBLE PRECISION FUNCTION MVNFNC(N, W, TID)
 *
 *     Integrand subroutine
 *
-      INTEGER N, INFIN(*), INFIS
+      INTEGER N, INFIN(*), INFIS, TID
       DOUBLE PRECISION W(*), LOWER(*), UPPER(*), CORREL(*), ONE
       INTEGER NL, IJ, I, J
-      PARAMETER ( NL = 100, ONE = 1 )
-      DOUBLE PRECISION COV((NL*(NL+1))/2), A(NL), B(NL), Y(NL), BVN
-      INTEGER INFI(NL)
-      DOUBLE PRECISION PROD, D1, E1, DI, EI, SUM, PHINV, D, E, MVNNIT
+      PARAMETER ( NL = 100, NTHREADS = 64, ONE = 1 )
+      DOUBLE PRECISION COV((NL*(NL+1))/2,NTHREADS), A(NL,NTHREADS) 
+      DOUBLE PRECISION B(NL,NTHREADS), Y(NL), BVN
+      INTEGER INFI(NL,NTHREADS)
+      DOUBLE PRECISION PROD, D1(NTHREADS), E1(NTHREADS), DI, EI 
+      DOUBLE PRECISION SUM, PHINV, D, E, MVNNIT
       SAVE D1, E1, A, B, INFI, COV
-      DI = D1
-      EI = E1
-      PROD = E1 - D1
+      DI = D1(TID)
+      EI = E1(TID)
+      PROD = E1(TID) - D1(TID)
       IJ = 1
       DO I = 1,N
          Y(I) = PHINV( DI + W(I)*(EI-DI) )
          SUM = 0
          DO J = 1,I
             IJ = IJ + 1
-            SUM = SUM + COV(IJ)*Y(J)
+            SUM = SUM + COV(IJ,TID)*Y(J)
          END DO
          IJ = IJ + 1
-         IF ( COV(IJ) .GT. 0 ) THEN
-            CALL LIMITS( A(I+1)-SUM, B(I+1)-SUM, INFI(I+1), DI, EI )
+         IF ( COV(IJ,TID) .GT. 0 ) THEN
+            CALL LIMITS( A(I+1,TID)-SUM, B(I+1,TID)-SUM, 
+     &                   INFI(I+1,TID), DI, EI )
          ELSE
-            DI = ( 1 + SIGN( ONE, A(I+1)-SUM ) )/2
-            EI = ( 1 + SIGN( ONE, B(I+1)-SUM ) )/2
+            DI = ( 1 + SIGN( ONE, A(I+1,TID)-SUM ) )/2
+            EI = ( 1 + SIGN( ONE, B(I+1,TID)-SUM ) )/2
          ENDIF
          PROD = PROD*(EI-DI)
       END DO
@@ -1117,19 +1126,20 @@
 *
 *     Entry point for intialization.
 *
-      ENTRY MVNNIT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
+      ENTRY MVNNIT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E, TID)
       MVNNIT = 0
 *
 *     Initialization and computation of covariance Cholesky factor.
 *
-      CALL NCVSRT(N, LOWER,UPPER,CORREL,INFIN,Y, INFIS,A,B,INFI,COV,D,E)
-      D1 = D
-      E1 = E
+      CALL NCVSRT(N,LOWER,UPPER,CORREL,INFIN,Y,INFIS,
+     &            A(:,TID),B(:,TID),INFI(:,TID),COV(:,TID),D,E)
+      D1(TID) = D
+      E1(TID) = E
       IF ( N - INFIS .EQ. 2 ) THEN
-         D = SQRT( 1 + COV(2)**2 )
-         A(2) = A(2)/D
-         B(2) = B(2)/D
-         E = BVN( A, B, INFI, COV(2)/D )
+         D = SQRT( 1 + COV(2,TID)**2 )
+         A(2,TID) = A(2,TID)/D
+         B(2,TID) = B(2,TID)/D
+         E = BVN(A(:,TID),B(:,TID),INFI(:,TID),COV(2,TID)/D)
          D = 0
          INFIS = INFIS + 1
       END IF
@@ -1797,7 +1807,8 @@
       END
 *
       SUBROUTINE ADAPT(NDIM, MINCLS, MAXCLS, FUNCTN,
-     &     ABSREQ, RELREQ, LENWRK, WORK, ABSEST, FINEST, INFORM)
+     &     ABSREQ, RELREQ, LENWRK, NTHREADS, WORK, 
+     &     ABSEST, FINEST, INFORM, TID)
 *
 *   Adaptive Multidimensional Integration Subroutine
 *
@@ -1863,12 +1874,13 @@
 *      array and then calls the main subroutine ADBASE.
 *
       EXTERNAL FUNCTN
-      INTEGER NDIM, MINCLS, MAXCLS, LENWRK, INFORM
+      INTEGER NDIM, MINCLS, MAXCLS, LENWRK, NTHREADS, INFORM
       DOUBLE PRECISION
-     &     FUNCTN, ABSREQ, RELREQ, WORK(LENWRK), ABSEST, FINEST
+     &     FUNCTN, ABSREQ, RELREQ, WORK(LENWRK, NTHREADS), 
+     &     ABSEST, FINEST
       INTEGER SBRGNS, MXRGNS, RULCLS, LENRUL,
      & INERRS, INVALS, INPTRS, INLWRS, INUPRS, INMSHS, INPNTS, INWGTS,
-     & INLOWR, INUPPR, INWDTH, INMESH, INWORK
+     & INLOWR, INUPPR, INWDTH, INMESH, INWORK, TID
       IF ( NDIM .EQ. 1 ) THEN
          LENRUL = 5
          RULCLS = 9
@@ -1895,14 +1907,17 @@
         INWDTH = INUPPR + NDIM
         INMESH = INWDTH + NDIM
         INWORK = INMESH + NDIM
-        IF ( MINCLS .LT. 0 ) SBRGNS = WORK(LENWRK)
+        IF ( MINCLS .LT. 0 ) SBRGNS = WORK(LENWRK,TID)
         CALL ADBASE(NDIM, MINCLS, MAXCLS, FUNCTN, ABSREQ, RELREQ,
      &       ABSEST, FINEST, SBRGNS, MXRGNS, RULCLS, LENRUL,
-     &       WORK(INERRS), WORK(INVALS), WORK(INPTRS), WORK(INLWRS),
-     &       WORK(INUPRS), WORK(INMSHS), WORK(INWGTS), WORK(INPNTS),
-     &       WORK(INLOWR), WORK(INUPPR), WORK(INWDTH), WORK(INMESH),
-     &       WORK(INWORK), INFORM)
-        WORK(LENWRK) = SBRGNS
+     &       WORK(INERRS,TID), WORK(INVALS,TID), 
+     &       WORK(INPTRS,TID), WORK(INLWRS,TID),
+     &       WORK(INUPRS,TID), WORK(INMSHS,TID), 
+     &       WORK(INWGTS,TID), WORK(INPNTS,TID),
+     &       WORK(INLOWR,TID), WORK(INUPPR,TID), 
+     &       WORK(INWDTH,TID), WORK(INMESH,TID),
+     &       WORK(INWORK,TID), INFORM, TID)
+        WORK(LENWRK,TID) = SBRGNS
        ELSE
         INFORM = 2
         MINCLS = RULCLS
@@ -2044,17 +2059,17 @@
      &     ABSEST, FINEST, SBRGNS, MXRGNS, RULCLS, LENRUL,
      &     ERRORS, VALUES, PONTRS, LOWERS,
      &     UPPERS, MESHES, WEGHTS, POINTS,
-     &     LOWER, UPPER, WIDTH, MESH, WORK, INFORM)
+     &     LOWER, UPPER, WIDTH, MESH, WORK, INFORM, TID)
 *
 *        Main adaptive integration subroutine
 *
       EXTERNAL FUNCTN
       INTEGER I, J, NDIM, MINCLS, MAXCLS, SBRGNS, MXRGNS,
-     &     RULCLS, LENRUL, INFORM, NWRGNS
+     &     RULCLS, LENRUL, INFORM, NWRGNS, TID
       DOUBLE PRECISION FUNCTN, ABSREQ, RELREQ, ABSEST, FINEST,
      &     ERRORS(*), VALUES(*), PONTRS(*),
      &     LOWERS(NDIM,*), UPPERS(NDIM,*),
-     &     MESHES(NDIM,*),WEGHTS(*), POINTS(*),
+     &     MESHES(NDIM,*), WEGHTS(*), POINTS(*),
      &     LOWER(*), UPPER(*), WIDTH(*), MESH(*), WORK(*)
       INTEGER DIVAXN, TOP, RGNCLS, FUNCLS, DIFCLS
  
@@ -2079,8 +2094,8 @@
          DIVAXN = 0
          RGNCLS = RULCLS
          NWRGNS = 1
- 10      CALL DIFFER(NDIM, LOWER, UPPER, WIDTH, WORK, WORK(NDIM+1),
-     &        FUNCTN, DIVAXN, DIFCLS)
+ 10      CALL DIFFER(NDIM, LOWER, UPPER, WIDTH, WORK, 
+     &        WORK(NDIM+1), FUNCTN, DIVAXN, DIFCLS, TID)
          FUNCLS = FUNCLS + DIFCLS
          IF ( FUNCLS + RGNCLS*(MESH(DIVAXN)+1)/MESH(DIVAXN)
      &        .LE. MINCLS ) THEN
@@ -2101,8 +2116,9 @@
 *
  20      SBRGNS = SBRGNS + 1
          CALL BASRUL(NDIM, LOWER, UPPER, WIDTH, FUNCTN,
-     &        WEGHTS, LENRUL, POINTS, WORK, WORK(NDIM+1),
-     &        ERRORS(SBRGNS),VALUES(SBRGNS))
+     &        WEGHTS, LENRUL, POINTS, WORK, 
+     &        WORK(NDIM+1), ERRORS(SBRGNS), 
+     &        VALUES(SBRGNS), TID)
          CALL TRESTR(SBRGNS, SBRGNS, PONTRS, ERRORS)
          DO I = 1,NDIM
             LOWERS(I,SBRGNS) = LOWER(I)
@@ -2142,8 +2158,8 @@
             WIDTH(I) = (UPPER(I)-LOWER(I))/(2*MESH(I))
             RGNCLS = RGNCLS*MESH(I)
          END DO
-         CALL DIFFER(NDIM, LOWER, UPPER, WIDTH, WORK, WORK(NDIM+1),
-     &        FUNCTN, DIVAXN, DIFCLS)
+         CALL DIFFER(NDIM, LOWER, UPPER, WIDTH, WORK, 
+     &        WORK(NDIM+1), FUNCTN, DIVAXN, DIFCLS, TID)
          FUNCLS = FUNCLS + DIFCLS
          RGNCLS = RGNCLS*(MESH(DIVAXN)+1)/MESH(DIVAXN)
          IF ( FUNCLS + RGNCLS .LE. MAXCLS ) THEN
@@ -2175,16 +2191,16 @@
             ENDIF
             FUNCLS = FUNCLS + RGNCLS
             CALL BASRUL(NDIM, LOWERS(1,TOP), UPPERS(1,TOP), WIDTH,
-     &           FUNCTN, WEGHTS, LENRUL, POINTS, WORK, WORK(NDIM+1),
-     &           ERRORS(TOP), VALUES(TOP))
+     &           FUNCTN, WEGHTS, LENRUL, POINTS, WORK, 
+     &           WORK(NDIM+1), ERRORS(TOP), VALUES(TOP), TID)
             CALL TRESTR(TOP, SBRGNS, PONTRS, ERRORS)
             DO I = SBRGNS+1, SBRGNS+NWRGNS
 *
 *     Apply basic rule and store results in heap.
 *
                CALL BASRUL(NDIM, LOWERS(1,I), UPPERS(1,I), WIDTH,
-     &              FUNCTN, WEGHTS, LENRUL, POINTS, WORK, WORK(NDIM+1),
-     &              ERRORS(I), VALUES(I))
+     &              FUNCTN, WEGHTS, LENRUL, POINTS, WORK, 
+     &              WORK(NDIM+1), ERRORS(I), VALUES(I), TID)
                CALL TRESTR(I, I, PONTRS, ERRORS)
             END DO
             SBRGNS = SBRGNS + NWRGNS
@@ -2198,12 +2214,12 @@
       MINCLS = FUNCLS
       END
       SUBROUTINE BASRUL( NDIM, A, B, WIDTH, FUNCTN, W, LENRUL, G,
-     &     CENTER, Z, RGNERT, BASEST )
+     &     CENTER, Z, RGNERT, BASEST, TID )
 *
 *     For application of basic integration rule
 *
       EXTERNAL FUNCTN
-      INTEGER I, LENRUL, NDIM
+      INTEGER I, LENRUL, NDIM, TID
       DOUBLE PRECISION
      &     A(NDIM), B(NDIM), WIDTH(NDIM), FUNCTN, W(LENRUL,4),
      &     G(NDIM,LENRUL), CENTER(NDIM), Z(NDIM), RGNERT, BASEST
@@ -2227,7 +2243,7 @@
       RGNCMP = 0
       RGNCPT = 0
       DO I = 1,LENRUL
-         FSYMSM = FULSUM(NDIM, CENTER, WIDTH, Z, G(1,I), FUNCTN)
+         FSYMSM = FULSUM(NDIM,CENTER,WIDTH,Z,G(1,I),FUNCTN,TID)
 *     Basic Rule
          RGNVAL = RGNVAL + W(I,1)*FSYMSM
 *     First comparison rule
@@ -2256,12 +2272,12 @@
          CENTER(I) = A(I) + WIDTH(I)
       END DO
       END
-      DOUBLE PRECISION FUNCTION FULSUM(S, CENTER, HWIDTH, X, G, F)
+      DOUBLE PRECISION FUNCTION FULSUM(S,CENTER,HWIDTH,X,G,F,TID)
 *
 ****  To compute fully symmetric basic rule sum
 *
       EXTERNAL F
-      INTEGER S, IXCHNG, LXCHNG, I, L
+      INTEGER S, IXCHNG, LXCHNG, I, L, TID
       DOUBLE PRECISION CENTER(S), HWIDTH(S), X(S), G(S), F
       DOUBLE PRECISION INTSUM, GL, GI
       FULSUM = 0
@@ -2272,7 +2288,7 @@
       DO I = 1,S
          X(I) = CENTER(I) + G(I)*HWIDTH(I)
       END DO
- 20   INTSUM = INTSUM + F(S,X)
+ 20   INTSUM = INTSUM + F(S,X,TID)
       DO I = 1,S
          G(I) = -G(I)
          X(I) = CENTER(I) + G(I)*HWIDTH(I)
@@ -2311,12 +2327,12 @@
       END DO
       END
       SUBROUTINE DIFFER(NDIM, A, B, WIDTH, Z, DIF, FUNCTN,
-     &     DIVAXN, DIFCLS)
+     &     DIVAXN, DIFCLS, TID)
 *
 *     Compute fourth differences and subdivision axes
 *
       EXTERNAL FUNCTN
-      INTEGER I, NDIM, DIVAXN, DIFCLS
+      INTEGER I, NDIM, DIVAXN, DIFCLS, TID
       DOUBLE PRECISION
      &     A(NDIM), B(NDIM), WIDTH(NDIM), Z(NDIM), DIF(NDIM), FUNCTN
       DOUBLE PRECISION FRTHDF, FUNCEN, WIDTHI
@@ -2327,18 +2343,18 @@
             DIF(I) = 0
             Z(I) = A(I) + WIDTH(I)
          END DO
- 10      FUNCEN = FUNCTN(NDIM, Z)
+ 10      FUNCEN = FUNCTN(NDIM, Z, TID)
          DO I = 1,NDIM
             WIDTHI = WIDTH(I)/5
             FRTHDF = 6*FUNCEN
             Z(I) = Z(I) - 4*WIDTHI
-            FRTHDF = FRTHDF + FUNCTN(NDIM,Z)
+            FRTHDF = FRTHDF + FUNCTN(NDIM,Z,TID)
             Z(I) = Z(I) + 2*WIDTHI
-            FRTHDF = FRTHDF - 4*FUNCTN(NDIM,Z)
+            FRTHDF = FRTHDF - 4*FUNCTN(NDIM,Z,TID)
             Z(I) = Z(I) + 4*WIDTHI
-            FRTHDF = FRTHDF - 4*FUNCTN(NDIM,Z)
+            FRTHDF = FRTHDF - 4*FUNCTN(NDIM,Z,TID)
             Z(I) = Z(I) + 2*WIDTHI
-            FRTHDF = FRTHDF + FUNCTN(NDIM,Z)
+            FRTHDF = FRTHDF + FUNCTN(NDIM,Z,TID)
 *     Do not include differences below roundoff
             IF ( FUNCEN + FRTHDF/8 .NE. FUNCEN )
      &           DIF(I) = DIF(I) + ABS(FRTHDF)*WIDTH(I)

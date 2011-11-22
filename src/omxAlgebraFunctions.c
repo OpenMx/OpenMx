@@ -31,9 +31,11 @@
 #include "omxMatrix.h"
 #include "merge.h"
 #include "omxBLAS.h"
+#include "omxOpenmpWrap.h"
 
 /* Helper Functions */
-extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*, double*, double*, double*, double*, int*);
+extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*,
+	int*, double*, double*, double*, double*, int*, int*);
 
 void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
 	// Maybe coerce this into an algebra or sequence of algebras?
@@ -1695,6 +1697,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	int inform;
 	int numVars = cov->rows;
 	int Infin[cov->rows];
+	int fortranThreadId = omx_omp_get_thread_num() + 1;
 
 	for(int i = 0; i < nElements; i++) {
 		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
@@ -1717,7 +1720,9 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 	}
 
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
+		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
@@ -1841,7 +1846,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int Infin[nCols];
 	double lBounds[nCols];
 	double uBounds[nCols];
-
+	int fortranThreadId = omx_omp_get_thread_num() + 1;
 
 	/* Set up first row */
 	for(j = (nCols-1); j >= 0; j--) {					// For each threshold set, starting from the fastest
@@ -1861,7 +1866,8 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 		if(Infin[j] < 0) { Infin[j] = 3; }			// Both bounds infinite.
 	}
 
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
+		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
@@ -1903,7 +1909,8 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 		}
 
-		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, &MaxPts, &absEps, &relEps, &Error, &likelihood, &inform);
+		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList,
+			&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, likelihood, inform); }
 
