@@ -66,14 +66,18 @@ unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
 
 void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj) {
 	
-	if(OMX_DEBUG) { Rprintf("Initializing Algebra objective function.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Initializing Algebra objective function.\n");
+	}
 	
 	SEXP newptr;
 	
 	omxAlgebraObjective *newObj = (omxAlgebraObjective*) R_alloc(1, sizeof(omxAlgebraObjective));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxNewMatrixFromMxIndex(newptr, oo->matrix->currentState);
-	if(OMX_DEBUG) {Rprintf("Algebra Objective Bound to Algebra %d\n", newObj->algebra);}
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Algebra Objective Bound to Algebra %d\n", newObj->algebra);
+	}
 	UNPROTECT(1);
 	
 	oo->objectiveFun = omxCallAlgebraObjective;

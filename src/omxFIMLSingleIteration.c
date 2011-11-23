@@ -159,10 +159,11 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 				value--;		// Correct for C indexing: value is now the index of the upper bound.
 				// Note : Tested subsampling of the corList and thresholds for speed. 
 				//			Doesn't look like that's much of a speedup.
-				double mean;
-				if(means == NULL) mean = 0;
-				else mean = omxVectorElement(means, j);
+				double mean = (means == NULL) ? 0 : omxVectorElement(means, j);
 				double weight = weights[j];
+				if(OMX_DEBUG_ROWS(row)) { 
+					Rprintf("Row %d, column %d. Mean is %f and weight is %f\n", mean, weight);
+				}
 				if(value == 0) { 									// Lowest threshold = -Inf
 					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
 					uThresh[j] = lThresh[j];
@@ -183,7 +184,9 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}
-			if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+			if(OMX_DEBUG_ROWS(row)) { 
+				Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", 
+					row, j, var, value, lThresh[j], uThresh[j], Infin[j]);}
 			}
 		}
 		

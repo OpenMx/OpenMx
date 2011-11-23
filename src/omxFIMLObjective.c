@@ -724,7 +724,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
 	// Requires: Data, means, covariances, thresholds
 
-	double sum;
+	double sum = 0.0;
 	int numDefs;
 	int returnRowLikelihoods = 0;
 
@@ -735,8 +735,12 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	
 	omxObjective* subObjective;	
 
+	omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+	omxMatrix* objMatrix  = oo->matrix;
+	omxState* parentState = objMatrix->currentState;
+	int numChildren = parentState->numChildren;
+
 	// Locals, for readability.  Compiler should cut through this.
-	omxFIMLObjective* ofo = (omxFIMLObjective*)oo->argStruct;
 	cov 		= ofo->cov;
 	means		= ofo->means;
 	data		= ofo->data;
@@ -767,7 +771,41 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
-   	sum = omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
+	int parallelism = (numChildren == 0) ? 1 : numChildren;
+
+	if (parallelism > 1) {
+    	int stride = (data->rows / parallelism);
+	    double* sums = malloc(parallelism * sizeof(double));
+
+		for(int i = 0; i < parallelism; i++) {
+			omxUpdateState(parentState->childList[i], parentState, TRUE);
+		}
+
+		#pragma omp parallel for num_threads(parallelism) 
+		for(int i = 0; i < parallelism; i++) {
+			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxObjective *childObjective = childMatrix->objective;
+			if (i == parallelism - 1) {
+				sums[i] = omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
+			} else {
+				sums[i] = omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, stride);
+			}
+		}
+
+		for(int i = 0; i < parallelism; i++) {
+			sum += sums[i];
+			if (parentState->childList[i]->statusCode < 0) {
+				parentState->statusCode = parentState->childList[i]->statusCode;
+				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
+				parentState->statusMsg[249] = '\0';
+			}
+		}
+
+		free(sums);
+
+	} else {
+		sum = omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
+	}
 
     if(!returnRowLikelihoods) {
 	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
@@ -784,7 +822,9 @@ unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
 
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing FIML objective function.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Initializing FIML objective function.\n");
+	}
 
 	SEXP nextMatrix;
     omxMatrix *cov, *means;
@@ -802,7 +842,33 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxCreateFIMLObjective(oo, rObj, cov, means);
 
-	if(OMX_DEBUG) { Rprintf("FIML Initialization Completed."); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("FIML Initialization Completed.");
+	}
+}
+
+void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
+
+	omxFIMLObjective* tgtFIML = (omxFIMLObjective*)(tgt->argStruct);
+	omxFIMLObjective* srcFIML = (omxFIMLObjective*)(src->argStruct);
+
+	if (tgtFIML->thresholdCols != NULL) {
+
+		int numCols = tgtFIML->cov->rows;
+
+		for(int index = 0; index < numCols; index++) {
+			if (tgtFIML->thresholdCols[index].matrix != NULL) {
+				omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
+								srcFIML->thresholdCols[index].matrix);
+				break;
+			}
+		}
+	}
+
+	if (tgt->subObjective != NULL) {
+		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+	}
+
 }
 
 void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
@@ -823,15 +889,20 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->populateAttrFun = omxPopulateFIMLAttributes;
+	oo->updateChildObjectiveFun = omxUpdateChildFIMLObjective;
 	oo->repopulateFun = NULL;
 	
 
-	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Accessing data source.\n");
+	}
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
 	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 
-	if(OMX_DEBUG) {Rprintf("Accessing row likelihood option.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Accessing row likelihood option.\n");
+	}
 	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
 	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
 	if(newObj->returnRowLikelihoods) {
@@ -840,17 +911,25 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, oo->matrix->currentState);
 	UNPROTECT(1);
 
-	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Accessing variable mapping structure.\n");
+	}
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
-	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		omxPrint(newObj->dataColumns, "Variable mapping");
+	}
 	UNPROTECT(1);
 
-	if(OMX_DEBUG) {Rprintf("Accessing Threshold matrix.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Accessing Threshold matrix.\n");
+	}
 	PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
     
     if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-        if(OMX_DEBUG) {Rprintf("Accessing Threshold Mappings.\n"); }
+        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("Accessing Threshold Mappings.\n");
+		}
         
         /* Process the data and threshold mapping structures */
     	/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
@@ -864,7 +943,9 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     	newObj->thresholdCols = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
     	for(index = 0; index < numCols; index++) {
     		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-    			if(OMX_DEBUG) {Rprintf("Column %d is continuous.\n", index);}
+    			if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+					Rprintf("Column %d is continuous.\n", index);
+				}
     			newObj->thresholdCols[index].matrix = NULL;
     			newObj->thresholdCols[index].column = 0;
     			newObj->thresholdCols[index].numThresholds = 0;
@@ -874,17 +955,21 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     				oo->matrix->currentState);
     			newObj->thresholdCols[index].column = thresholdColumn[index];
     			newObj->thresholdCols[index].numThresholds = thresholdNumber[index];
-    			if(OMX_DEBUG) {
+    			if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
     				Rprintf("Column %d is ordinal with %d thresholds in threshold column %d.\n", 
-    				    thresholdColumn[index], thresholdNumber[index]);
+    				    index, thresholdColumn[index], thresholdNumber[index]);
     			}
     			numOrdinal++;
     		}
     	}
-    	if(OMX_DEBUG) {Rprintf("%d threshold columns processed.\n", numOrdinal);}
+    	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("%d threshold columns processed.\n", numOrdinal);
+		}
     	UNPROTECT(2); /* nextMatrix and itemList ("thresholds" and "thresholdColumns") */
     } else {
-        if (OMX_DEBUG) Rprintf("No thresholds matrix; not processing thresholds.");
+        if (OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("No thresholds matrix; not processing thresholds.");
+		}
         numContinuous = newObj->dataColumns->rows;
         newObj->thresholdCols = NULL;
         numOrdinal = 0;
@@ -893,20 +978,28 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
-	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Accessing definition variables structure.\n");
+	}
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
-	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
+	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+		Rprintf("Number of definition variables is %d.\n", newObj->numDefs);
+	}
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
-		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
+		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]);
+		}
 		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
 		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
+		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]);
+		}
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
 		UNPROTECT(2); // unprotect dataSource and columnSource
 		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
@@ -938,7 +1031,9 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     oo->argStruct = (void*)newObj;
 
 	if(numOrdinal > 0 && numContinuous <= 0) {
-		if(OMX_DEBUG) { Rprintf("Ordinal Data detected.  Using Ordinal FIML."); }
+		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
+		}
 		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
 		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
 		omxAliasMatrix(newObj->smallMeans, newObj->means);
@@ -950,7 +1045,9 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 
 		oo->objectiveFun = omxCallFIMLOrdinalObjective;
 	} else if(numOrdinal > 0) {
-		if(OMX_DEBUG) { Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML."); }
+		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+			Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
+		}
 		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
 		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
 		omxAliasMatrix(newObj->smallMeans, newObj->means);

@@ -44,7 +44,9 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	}
 	
-	if(OMX_DEBUG) { Rprintf("Initializing algebra 0x%0x with 0x%0x.\n", oa, om); }
+	if(OMX_DEBUG && om->currentState->parentState == NULL) { 
+		Rprintf("Initializing algebra 0x%0x with 0x%0x.\n", oa, om);
+	}
 	
 	oa->args = NULL;
 	oa->funWrapper = NULL;
@@ -144,14 +146,14 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	PROTECT(algebraOperator = AS_INTEGER(VECTOR_ELT(algebra, 0)));
 	value = INTEGER(algebraOperator)[0];
 
-	if(OMX_DEBUG) {Rprintf("Creating Algebra from Sexp.\n");}
+	if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Creating Algebra from Sexp.\n");}
 
 	if(value > 0) { 			// This is an operator.
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 		omxInitAlgebraWithMatrix(oa, om);
-		if(OMX_DEBUG) {Rprintf("Retrieving Table Entry %d.\n", value);}
+		if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Retrieving Table Entry %d.\n", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
-		if(OMX_DEBUG) {Rprintf("Table Entry %d (at 0x%0x) is %s.\n", value, entry, entry->opName);}
+		if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Table Entry %d (at 0x%0x) is %s.\n", value, entry, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry);
 		if(oa->numArgs < 0) {	// Special Case: open-ended operator.  Might want to move this section to omxFillAlgebraFromTableEntry
 			oa->numArgs = length(algebra) - 1;  // Has as many arguments as there are elements after the operator
@@ -160,7 +162,9 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
 				oa->args[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name);
-				if(OMX_DEBUG) { Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j); }
+				if(OMX_DEBUG && om->currentState->parentState == NULL) {
+					Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->args[j-1], j);
+				}
 			UNPROTECT(1); /* algebraArg */
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
@@ -205,7 +209,9 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	/* TODO: check for full initialization */
 	if(oa == NULL) error("Internal Error: Null Algebra Detected in fillAlgebra.");
 	
-	if(OMX_DEBUG) { Rprintf("Filling from table entry %d (%s)....", oate->number, oate->rName); }
+	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
+		Rprintf("Filling from table entry %d (%s)....", oate->number, oate->rName);
+	}
 	oa->funWrapper = oate->funWrapper;
 	oa->numArgs = oate->numArgs;
 	if(oa->numArgs >= 0) {
@@ -213,15 +219,17 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	} else {
 		oa->args = NULL;
 	}
-	if(OMX_DEBUG) { Rprintf("Table Entry processed.\n"); }
+	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
+		Rprintf("Table Entry processed.\n");
+	}
 }
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
 	omxMatrix* newMat;
-	if(OMX_DEBUG) { Rprintf("Helper: processing next arg..."); }
+	if(OMX_DEBUG && os->parentState == NULL) { Rprintf("Helper: processing next arg..."); }
 	
 	if(!IS_INTEGER(algebraArg)) {
-		if(OMX_DEBUG) { Rprintf("Helper detected list element.  Recursing.\n"); }
+		if(OMX_DEBUG && os->parentState == NULL) { Rprintf("Helper detected list element.  Recursing.\n"); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
 		newMat = omxNewMatrixFromMxIndex(algebraArg, os);
@@ -237,7 +245,9 @@ void omxAlgebraPrint(omxAlgebra* oa, char* d) {
 }
 
 omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
-	if(OMX_DEBUG) { Rprintf("Attaching pointer to matrix."); }
+	if(OMX_DEBUG && os->parentState == NULL) {
+		Rprintf("Attaching pointer to matrix.");
+	}
 
 	int value = 0;
 	omxMatrix* output = NULL;
@@ -247,7 +257,9 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(intMatrix = AS_INTEGER(matrix));
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
-	    	if(OMX_DEBUG) {Rprintf("  Null integer matrix.  Skipping.\n");}
+	    	if(OMX_DEBUG && os->parentState == NULL) {
+				Rprintf("  Null integer matrix.  Skipping.\n");
+			}
 			UNPROTECT(1);
 			return NULL;
 		}
@@ -257,7 +269,9 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
-	    	if(OMX_DEBUG) {Rprintf("   Null numeric matrix.  Skipping.\n");}
+	    	if(OMX_DEBUG && os->parentState == NULL) {
+				Rprintf("   Null numeric matrix.  Skipping.\n");
+			}
 			UNPROTECT(1);
 			return NULL;
 		}
@@ -269,7 +283,9 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		free(errstr);
 		return NULL;
 	}		
-	if(OMX_DEBUG) {Rprintf("  Pointer is %d.\n", value);}
+	if(OMX_DEBUG && os->parentState == NULL) {
+		Rprintf("  Pointer is %d.\n", value);
+	}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.
 		output = os->algebraList[value];
 	} else {												// Pre-existing matrix.  A-ok.
