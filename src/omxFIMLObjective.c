@@ -863,13 +863,17 @@ void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
 		memcpy(tgtFIML->corList, srcFIML->corList, 
 			(sizeof(double) / 2) * (numCols * (numCols + 1)));
 
-		for(int index = 0; index < numCols; index++) {
-			if (tgtFIML->thresholdCols[index].matrix != NULL) {
-				omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
-								srcFIML->thresholdCols[index].matrix);
-				break;
-			}
-		}
+		/* Updating the child thresholdCols matrix appears to
+         * be unecessary.
+         *
+		 * for(int index = 0; index < numCols; index++) {
+		 *	if (tgtFIML->thresholdCols[index].matrix != NULL) {
+		 *		omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
+		 *						srcFIML->thresholdCols[index].matrix);
+		 *		break;
+		 *	}
+		 * }
+		 */
 	}
 
 	if (tgt->subObjective != NULL) {
