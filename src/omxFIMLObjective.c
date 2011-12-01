@@ -856,6 +856,13 @@ void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
 
 		int numCols = tgtFIML->cov->rows;
 
+		memcpy(tgtFIML->weights, srcFIML->weights, sizeof(double) * numCols);
+		memcpy(tgtFIML->lThresh, srcFIML->lThresh, sizeof(double) * numCols);
+		memcpy(tgtFIML->uThresh, srcFIML->uThresh, sizeof(double) * numCols);
+		memcpy(tgtFIML->Infin, srcFIML->Infin, sizeof(int) * numCols);
+		memcpy(tgtFIML->corList, srcFIML->corList, 
+			(sizeof(double) / 2) * (numCols * (numCols + 1)));
+
 		for(int index = 0; index < numCols; index++) {
 			if (tgtFIML->thresholdCols[index].matrix != NULL) {
 				omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 

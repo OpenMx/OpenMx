@@ -162,7 +162,7 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 				double mean = (means == NULL) ? 0 : omxVectorElement(means, j);
 				double weight = weights[j];
 				if(OMX_DEBUG_ROWS(row)) { 
-					Rprintf("Row %d, column %d. Mean is %f and weight is %f\n", mean, weight);
+					Rprintf("Row %d, column %d. Mean is %f and weight is %f\n", row, j, mean, weight);
 				}
 				if(value == 0) { 									// Lowest threshold = -Inf
 					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
@@ -184,12 +184,14 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}
-			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", 
-					row, j, var, value, lThresh[j], uThresh[j], Infin[j]);}
+
+				if(OMX_DEBUG_ROWS(row)) { 
+					Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", 
+						row, j, var, value, lThresh[j], uThresh[j], Infin[j]);
+				}
 			}
 		}
-		
+
 		if(numRemoves >= smallCov->rows) {
 			for(int nid = 0; nid < numIdentical; nid++) {
 				if(returnRowLikelihoods) {
