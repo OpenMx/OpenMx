@@ -122,7 +122,7 @@ covariances <- mxPath(from = uniquePairs[1,], to=uniquePairs[2,], arrows = 2, fr
 model       <- mxModel(model, covariances) 
 
 # Create variances for the latent variables
-variances   <- mxPath(from myLatent, to=myLatent, arrows = 2, free = TRUE, values = 1)
+variances   <- mxPath(from = myLatent, to=myLatent, arrows = 2, free = TRUE, values = 1)
 model       <- mxModel(model, variances) # add variances to the model
 
 # Make a list of paths from each packet of 20 manifests to one of the 5 latent variables
