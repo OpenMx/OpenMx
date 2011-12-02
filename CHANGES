@@ -1,5 +1,5 @@
-trunk
-=====
+Beta Release 999.0.0-1875 (Dec 2, 2011)
+=======================================
 * new interface such that 'objective@info$expMean', 'objective@info$expCov'
       and 'objective@info$likelihoods' are available in FIML or RAM objective functions.
 * bug fix for omxSetParameters with lbound or ubound of NA.
