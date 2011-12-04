@@ -126,11 +126,11 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 	key <- deparse(symbol)
 	index <- match(key, dimnames(labelsData)[[1]])
 	if (!is.na(index)) {
-		targetmodel <- labelsData[[index,"model"]]
-		matrix <- labelsData[[index,"matrix"]]
+		targetmodel <- labelsData[index, "model"]
+		matrix <- labelsData[index, "matrix"]
 		fullname <- imxIdentifier(targetmodel, matrix)
-		row <- labelsData[[index,"row"]]
-		col <- labelsData[[index,"col"]]
+		row <- labelsData[index, "row"]
+		col <- labelsData[index, "col"]
 		value <- model[[fullname]]@values[row,col]
 		if (show) {
 			return(substitute(.zzz[[x]]@values[y,z], list(x = fullname, y = row, z = col)))
@@ -308,19 +308,30 @@ generateLabelsHelper <- function(model, labelsData) {
 	return(labelsData)
 }
 
+retainLabel <- function(label, existing) {
+    return(!imxIsDefinitionVariable(label) && 
+			!hasSquareBrackets(label) &&
+			!(label %in% existing))
+}
+
 generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	labels <- matrix@labels
-	select <- labels[!is.na(labels)]
-	rows <- row(labels)[!is.na(labels)]
-	cols <- col(labels)[!is.na(labels)]
+	test <- !is.na(labels)
+	select <- labels[test]
+	rows <- row(labels)[test]
+	cols <- col(labels)[test]
 	if (length(select) > 0) {
-		for(i in 1:length(select)) {
-			if(!imxIsDefinitionVariable(select[[i]]) && !hasSquareBrackets(select[[i]])) {
-				labelsData[select[[i]], "model"] <- modelName
-				labelsData[select[[i]], "matrix"] <- matrix@name
-				labelsData[select[[i]], "row"] <- rows[[i]]
-				labelsData[select[[i]], "col"] <- cols[[i]]
-			}
+		retain <- !duplicated(select) & sapply(select, 
+			retainLabel, rownames(labelsData))
+		select <- select[retain]
+		rows <- rows[retain]
+		cols <- cols[retain]
+		if (length(select) > 0) {
+			newLabels <- data.frame(model=modelName, 
+				matrix=matrix@name, row=rows, 
+				col=cols, stringsAsFactors=FALSE)
+			rownames(newLabels) <- select
+			labelsData <- rbind(labelsData, newLabels)
 		}
 	}
 	return(labelsData)
