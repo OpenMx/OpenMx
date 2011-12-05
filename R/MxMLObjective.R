@@ -114,14 +114,14 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 })
 
 setMethod("genericObjModelConvert", "MxMLObjective",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The ML objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call. = FALSE)
 		}
-		pair <- updateObjectiveDimnames(.Object, job, flatJob, model@name, "ML")
+		pair <- updateObjectiveDimnames(.Object, job, flatJob, model@name, "ML", labelsData)
 		job <- pair[[1]]
 		flatJob <- pair[[2]]
 		if (flatJob@datasets[[.Object@data]]@type != 'raw') {

@@ -146,7 +146,7 @@ generateRowDataColumns <- function(flatModel, expectedNames, dataName) {
 }
 
 setMethod("genericObjModelConvert", "MxRowObjective",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		rowAlgebraName <- .Object@rowAlgebra
 		rowResultsName <- .Object@rowResults
 		filteredDataRowName <- .Object@filteredDataRow

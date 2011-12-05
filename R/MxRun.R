@@ -73,7 +73,8 @@ runHelper <- function(model, frontendStart,
 	defVars <- generateDefinitionList(flatModel)
 	model <- convertDatasets(model, defVars, model@options)
 	flatModel@datasets <- collectDatasets(model)	
-	triple <- translateObjectives(model, namespace, flatModel)
+	labelsData <- imxGenerateLabels(model)
+	triple <- translateObjectives(model, namespace, labelsData, flatModel)
 	model <- triple[[1]]
 	namespace <- triple[[2]]
 	flatModel <- triple[[3]]

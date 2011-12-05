@@ -49,7 +49,7 @@ setMethod("genericObjFunNamespace", signature("MxRObjective"),
 })
 
 setMethod("genericObjModelConvert", signature("MxRObjective"), 
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		job@.forcesequential <- TRUE
 		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE

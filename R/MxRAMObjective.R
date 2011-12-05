@@ -324,7 +324,7 @@ updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
 }
 
 setMethod("genericObjModelConvert", "MxRAMObjective",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",

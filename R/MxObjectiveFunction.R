@@ -37,7 +37,7 @@ setGeneric("genericObjFunConvert",
 })
 
 setGeneric("genericObjModelConvert",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 	return(standardGeneric("genericObjModelConvert"))
 })
 
@@ -62,7 +62,7 @@ setGeneric("genericObjRename",
 })
 
 setMethod("genericObjModelConvert", "MxBaseObjective",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
@@ -70,7 +70,7 @@ setMethod("genericObjModelConvert", "MxBaseObjective",
 })
 
 setMethod("genericObjModelConvert", "NULL",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		job@.newobjects <- FALSE
 		job@.newobjective <- FALSE
 		job@.newtree <- FALSE
@@ -119,16 +119,16 @@ convertObjectives <- function(flatModel, model, defVars) {
 	return(retval)
 }
 
-translateObjectives <- function(model, namespace, flatModel) {
+translateObjectives <- function(model, namespace, labelsData, flatModel) {
 	model@.forcesequential <- FALSE
 	if(is.null(model@objective) && 
 		length(imxDependentModels(model)) == 0) {
 		return(list(model, namespace, flatModel))
 	}
-	return(translateObjectivesHelper(model, namespace, flatModel))
+	return(translateObjectivesHelper(model, namespace, labelsData, flatModel))
 }
 
-translateObjectivesHelper <- function(job, namespace, flatJob) {
+translateObjectivesHelper <- function(job, namespace, labelsData, flatJob) {
 	objectives <- flatJob@objectives
 	if (length(objectives) == 0) {
 		return(list(job, namespace, flatJob))
@@ -146,21 +146,24 @@ translateObjectivesHelper <- function(job, namespace, flatJob) {
 			job@.newobjects <- TRUE
 			job@.newobjective <- TRUE
 			job@.newtree <- TRUE
-			pair <- genericObjModelConvert(objective, job, model, namespace, flatJob)
+			pair <- genericObjModelConvert(objective, job, model, namespace, labelsData, flatJob)
 			job <- pair[[1]]
 			flatJob <- pair[[2]]
 			if (job@.newtree) {
 				namespace <- imxGenerateNamespace(job)
 				flatJob <- imxFlattenModel(job, namespace)
-				return(translateObjectivesHelper(job, namespace, flatJob))
+				labelsData <- imxGenerateLabels(job)
+				return(translateObjectivesHelper(job, namespace, labelsData, flatJob))
 			}
 			if (job@.newobjects) {
 				namespace <- imxGenerateNamespace(job)
+				labelsData <- imxGenerateLabels(job)
 				flatJob <- imxFlattenModel(job, namespace)
 			}
 			if (job@.newobjective) {
 				model <- job[[modelname]]
 				objective <- flatJob[[objectivename]]
+				labelsData <- imxGenerateLabels(job)
 			} else { break }
 		}
 	}
