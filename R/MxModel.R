@@ -16,7 +16,6 @@
 
 setClass(Class = "MxModel",
 	representation = representation(
-		name = "character",
 		matrices = "list",
 		algebras = "list",
 		constraints = "list",
@@ -34,8 +33,8 @@ setClass(Class = "MxModel",
 		.newobjects = "logical",
 		.newobjective = "logical",
 		.newtree = "logical",
-        .resetdata = "logical"
-))
+        .resetdata = "logical"),
+	contains = "MxNamedEntity")
 
 imxModelTypes[['default']] <- "MxModel"
 

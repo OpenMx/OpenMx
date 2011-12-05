@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2010 The OpenMx Project
+#   Copyright 2007-2012 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -70,9 +70,10 @@ setGeneric("imxCreateMatrix",
 setClass(Class = "MxMatrix",
 	representation = representation(
 		labels = "matrix", values = "matrix", 
-		free = "matrix", name = "character", 
-		lbound = "matrix", ubound = "matrix",
-		display = "character", "VIRTUAL"))
+		free = "matrix", lbound = "matrix",
+		ubound = "matrix", display = "character",
+		"VIRTUAL"),
+	contains = "MxNamedEntity")
 		
 setMethod("imxCreateMatrix", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {

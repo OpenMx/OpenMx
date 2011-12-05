@@ -19,10 +19,10 @@
 #
 setClass(Class = "MxBaseObjective", 
 	representation = representation(
-		name = "character",
 		data = "MxCharOrNumber",
         info = "list",
-		result = "matrix", "VIRTUAL"))
+		result = "matrix", "VIRTUAL"),
+	contains = "MxNamedEntity")
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 

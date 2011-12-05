@@ -16,12 +16,12 @@
 
 setClass(Class = "MxConstraint",
 	representation = representation(
-		name = "character",
 		formula = "MxAlgebraFormula",
 		alg1 = "MxCharOrNumber",
 		alg2 = "MxCharOrNumber",
 		relation = "MxCharOrNumber"
-	))
+	),
+	contains = "MxNamedEntity")
 	
 setMethod("initialize", "MxConstraint",
 	function(.Object, name, formula) {
