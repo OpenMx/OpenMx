@@ -86,7 +86,8 @@ setMethod("genericObjInitialMatrix", "MxRAMObjective",
 })
 
 setMethod("genericObjFunNamespace", signature("MxRAMObjective"), 
-	function(.Object, modelname, namespace) {
+	function(.Object, modelname, context, namespace) {
+		.Object@.absoluteName <- createAbsoluteName(context, modelname, .Object@name)
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)
 		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace)

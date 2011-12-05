@@ -27,7 +27,7 @@ setClass(Class = "MxBaseObjective",
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
 setGeneric("genericObjFunNamespace", 
-	function(.Object, modelname, namespace) {
+	function(.Object, modelname, context, namespace) {
 	return(standardGeneric("genericObjFunNamespace"))
 })
 

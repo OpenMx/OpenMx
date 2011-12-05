@@ -70,7 +70,8 @@ setMethod("genericObjDependencies", signature("MxRowObjective"),
 
 
 setMethod("genericObjFunNamespace", signature("MxRowObjective"), 
-	function(.Object, modelname, namespace) {
+	function(.Object, modelname, context, namespace) {
+		.Object@.absoluteName <- createAbsoluteName(context, modelname, .Object@name)
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@rowAlgebra <- imxConvertIdentifier(.Object@rowAlgebra, 
 			modelname, namespace)

@@ -43,7 +43,8 @@ setMethod("genericObjFunConvert", signature("MxRObjective"),
 })
 
 setMethod("genericObjFunNamespace", signature("MxRObjective"), 
-	function(.Object, modelname, namespace) {
+	function(.Object, modelname, context, namespace) {
+		.Object@.absoluteName <- createAbsoluteName(context, modelname, .Object@name)
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)
 })

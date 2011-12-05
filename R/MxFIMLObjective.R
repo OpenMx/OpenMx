@@ -54,7 +54,8 @@ setMethod("genericObjDependencies", signature("MxFIMLObjective"),
 
 
 setMethod("genericObjFunNamespace", signature("MxFIMLObjective"), 
-	function(.Object, modelname, namespace) {
+	function(.Object, modelname, context, namespace) {
+		.Object@.absoluteName <- createAbsoluteName(context, modelname, .Object@name)
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
 			modelname, namespace)
