@@ -13,6 +13,8 @@ Beta Release 999.0.0-1876 (Dec 2, 2011)
 * changed signature of genericObjModelConvert() to return list(job, flatJob) in order to improve performance
 * added '@likelihoods' slot for MxFIMLObjective and MxRAMObjective (when using raw data)
 * added support for OpenMP in hessian calculation
+* added support for OpenMP in continuous FIML objective function
+* added support for OpenMP in ordinal FIML objective function
 * fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
 * added more descriptive error message to mxOption()
 * catching illegal references of the form "mzData.ageT1mz"
