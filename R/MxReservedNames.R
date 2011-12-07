@@ -17,9 +17,9 @@ setClassUnion("MxMaybeFunction", c("NULL", "function"))
 
 setClass(Class = "MxReservedName",
 	representation = representation(
+		name = "character",
 		search = "MxMaybeFunction",
-		replace = "MxMaybeFunction"),
-	contains = "MxNamedEntity")
+		replace = "MxMaybeFunction"))
 
 setMethod("initialize", "MxReservedName",
 	function(.Object, name = character(),

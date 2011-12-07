@@ -111,8 +111,7 @@ setMethod("genericObjModelConvert", "MxLISRELObjective",
 
 # **DONE**
 setMethod("genericObjFunNamespace", signature("MxLISRELObjective"), 
-	function(.Object, modelname, context, namespace) {
-		.Object@.absoluteName <- createAbsoluteName(context, modelname, .Object@name)
+	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@LX <- imxConvertIdentifier(.Object@LX, modelname, namespace)
 		.Object@LY <- imxConvertIdentifier(.Object@LY, modelname, namespace)

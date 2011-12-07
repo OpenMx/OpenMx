@@ -19,11 +19,11 @@ setClassUnion("MxAlgebraFormula", c("call", "name", "language", "logical", "nume
 setClass(Class = "MxAlgebra",
 	representation = representation(
 		formula = "MxAlgebraFormula",
+		name = "character",
 		dirty = "logical",
 		.dimnames = "MxListOrNull",
 		initial = "matrix",
-		result = "matrix"),
-	contains = "MxNamedEntity")
+		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
 	function(.Object, formula, name) {

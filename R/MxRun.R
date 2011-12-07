@@ -88,7 +88,7 @@ runHelper <- function(model, frontendStart,
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(matrices, parameters)
-	defVars <- generateDefinitionList(flatModel)
+	defVars <- generateDefinitionList(flatModel)		
 	objectives <- convertObjectives(flatModel, model, defVars)
 	data <- flatModel@datasets
 	algebras <- append(algebras, objectives)

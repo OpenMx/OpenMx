@@ -19,15 +19,15 @@
 #
 setClass(Class = "MxBaseObjective", 
 	representation = representation(
+		name = "character",
 		data = "MxCharOrNumber",
         info = "list",
-		result = "matrix", "VIRTUAL"),
-	contains = "MxNamedEntity")
+		result = "matrix", "VIRTUAL"))
 
 setClassUnion("MxObjective", c("NULL", "MxBaseObjective"))
 
 setGeneric("genericObjFunNamespace", 
-	function(.Object, modelname, context, namespace) {
+	function(.Object, modelname, namespace) {
 	return(standardGeneric("genericObjFunNamespace"))
 })
 

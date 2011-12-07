@@ -590,16 +590,7 @@ imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	return(imxConvertIdentifier(label, modelname, namespace))
 }
 
-createAbsoluteName <- function(context, modelname, objname) {
-	if (length(context) == 0) {
-		return(paste(modelname, objname, sep = '.'))
-	} else {
-		return(paste(context, modelname, objname, sep = '.'))
-	}
-}
-
-namespaceConvertMatrix <- function(matrix, modelname, dataname, context, namespace) {
-	matrix@.absoluteName <- createAbsoluteName(context, modelname, matrix@name)
+namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
 	matrix@name <- imxIdentifier(modelname, matrix@name)
 	free <- matrix@free
 	labels <- matrix@labels
@@ -611,8 +602,7 @@ namespaceConvertMatrix <- function(matrix, modelname, dataname, context, namespa
 	return(matrix)
 }
 
-namespaceConvertAlgebra <- function(algebra, modelname, context, namespace) {
-	algebra@.absoluteName <- createAbsoluteName(context, modelname, algebra@name)
+namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
 	algebra@name <- imxIdentifier(modelname, algebra@name)
 	algebra@formula <- namespaceConvertFormula(algebra@formula, modelname, namespace)
 	return(algebra)
@@ -641,21 +631,20 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
 	return(formula)
 }
 
-namespaceConvertConstraint <- function(constraint, modelname, context, namespace) {
-	constraint@.absoluteName <- createAbsoluteName(context, modelname, constraint@name)
+namespaceConvertConstraint <- function(constraint, modelname, namespace) {
 	constraint@name <- imxIdentifier(modelname, constraint@name)
 	constraint@formula <- namespaceConvertFormula(constraint@formula, modelname, namespace)
 	return(constraint)
 }
 
-namespaceConvertInterval <- function(interval, modelname, context, namespace) {
+namespaceConvertInterval <- function(interval, modelname, namespace) {
 	interval@reference <- imxConvertLabel(interval@reference, modelname, NULL, namespace)
 	return(interval)
 }
 
-namespaceConvertObjective <- function(objective, modelname, context, namespace) {
+namespaceConvertObjective <- function(objective, modelname, namespace) {
 	if (!is.null(objective)) {
-		objective <- genericObjFunNamespace(objective, modelname, context, namespace)
+		objective <- genericObjFunNamespace(objective, modelname, namespace)
 	}
 	return(objective)
 }
