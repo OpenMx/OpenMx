@@ -48,14 +48,12 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
  * No synchronization mechanisms are employed to maintain consistency
  * of sharedobj references.
  */
-double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
 
     omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
     omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
 
-	double sum = 0.0;
 	double Q = 0.0;
-	double logDet = 0.0;
 	double* oldDefs;
 	int numDefs;
 	int numRemoves;
@@ -65,7 +63,7 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 	omxObjective* subObjective;
 	
 	omxMatrix *cov, *means, *smallCov, *dataColumns;//, *oldInverse;
-    omxMatrix *rowLikelihoods;
+    omxMatrix *rowLikelihoods, *rowLogLikelihoods;;
     omxThresholdColumn *thresholdCols;
     double *lThresh, *uThresh, *corList, *weights;
 	int *Infin;
@@ -82,7 +80,8 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 	defVars		     = ofo->defVars;                    //  read-only
 	numDefs		     = ofo->numDefs;                    //  read-only
 	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-    rowLikelihoods   = shared_ofo->rowLikelihoods;      // write-only
+	rowLikelihoods    = shared_ofo->rowLikelihoods;     // write-only
+	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 
     corList          = ofo->corList;
     weights          = ofo->weights;
@@ -113,8 +112,6 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 			numIdentical = rowcount - row + rowbegin;
 		}
 
-
-        logDet = 0.0;
         Q = 0.0;
 
         // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
@@ -227,7 +224,7 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 				}
 				omxRaiseError(localobj->matrix->currentState, -1, errstr);
 				free(errstr);
-				return(sum);
+				return;
 			} else {
 				for(int nid = 0; nid < numIdentical; nid++) {
 					omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
@@ -255,16 +252,17 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
 			}
-			logDet = -2 * log(likelihood);
+			double logDet = -2 * log(likelihood);
 			logDet *= numIdentical;
 
-			sum += logDet;// + (log(2 * M_PI) * (cov->cols - numRemoves));
+			omxSetMatrixElement(rowLogLikelihoods, omxDataIndex(data, row), 0, logDet);
 
 			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
-				    sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
-            } 
-        }
+				Rprintf("-2 Log Likelihood this row is %3.3f, total change %3.3f\n",
+				    logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
+			}
+		}
+		
 		if(firstRow) firstRow = 0;
 		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
@@ -273,8 +271,6 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
 		keepCov -= numIdentical;
 		keepInverse -= numIdentical;
 	}
-
-	return(sum);
 }
 
 
@@ -289,12 +285,11 @@ double omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *share
  * No synchronization mechanisms are employed to maintain consistency
  * of sharedobj references.
  */
-double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
     
     omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
     omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
 
-	double sum = 0.0;
 	char u = 'U';
 	int info = 0;
 	double oned = 1.0;
@@ -312,7 +307,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	omxObjective* subObjective;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
-    omxMatrix *rowLikelihoods;
+	omxMatrix *rowLikelihoods, *rowLogLikelihoods;
 	omxDefinitionVar* defVars;
 	omxData *data;
 
@@ -328,7 +323,8 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	defVars		     = ofo->defVars;                    //  read-only
 	numDefs		     = ofo->numDefs;                    //  read-only
 	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-    rowLikelihoods   = shared_ofo->rowLikelihoods;      // write-only
+	rowLikelihoods   = shared_ofo->rowLikelihoods;      // write-only
+	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 	isContiguous     = ofo->contiguous.isContiguous;    //  read-only
 	contiguousStart  = ofo->contiguous.start;           //  read-only
 	contiguousLength = ofo->contiguous.length;          //  read-only
@@ -339,9 +335,9 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 	int zeros[cov->cols];
 
 	int firstRow = 1;
-    int row = rowbegin;
+	int row = rowbegin;
 
-    resetDefinitionVariables(oldDefs, numDefs);
+	resetDefinitionVariables(oldDefs, numDefs);
 
 	while(row < data->rows && (row - rowbegin) < rowcount) {
         if (OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
@@ -452,7 +448,7 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 					}
 					omxRaiseError(localobj->matrix->currentState, -1, errstr);
 					free(errstr);
-					return(sum);
+					return;
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
@@ -487,18 +483,17 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
 					omxRaiseError(localobj->matrix->currentState, -1, errstr);
 					free(errstr);
-					return(sum);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-                    // Rprintf("Incrementing Row."); //:::DEBUG:::
-                    row += numIdentical;
-            		keepCov -= numIdentical;
-            		keepInverse -= numIdentical;
+					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+					// Rprintf("Incrementing Row."); //:::DEBUG:::
+					row += numIdentical;
+					keepCov -= numIdentical;
+					keepInverse -= numIdentical;
 					continue;
 				}
 			}
@@ -509,20 +504,21 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);
 		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei);
 
+		double likelihood = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 		if(returnRowLikelihoods) {
 			if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
-			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, sum);
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
+				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, likelihood);
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
 			}
 		} else {
-			double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
+			double logLikelihood = ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, val);
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, likelihood);
 			}
-			sum += ((2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols)) * numIdentical;
+			omxSetMatrixElement(rowLogLikelihoods, omxDataIndex(data, row), 0, logLikelihood);
+
 			if(OMX_DEBUG_ROWS(row)) {
 				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
 			}
@@ -535,5 +531,4 @@ double omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, i
 		keepCov -= numIdentical;
 		keepInverse -= numIdentical;
 	}
-	return(sum);
 }

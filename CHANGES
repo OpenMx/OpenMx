@@ -18,6 +18,7 @@ Beta Release 999.0.0-1876 (Dec 2, 2011)
 * fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
 * added more descriptive error message to mxOption()
 * catching illegal references of the form "mzData.ageT1mz"
+* serializing the sum operation on likelihoods - floating point addition is not associative
 
 Beta Release 999.0.0-1690 (June 27, 2011)
 =========================================

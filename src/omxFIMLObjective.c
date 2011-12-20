@@ -37,6 +37,7 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(argStruct->smallCov != NULL) omxFreeMatrixData(argStruct->smallCov);
 	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
     if(argStruct->rowLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLikelihoods);
+    if(argStruct->rowLogLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLogLikelihoods);
 	if(oo->subObjective == NULL) {
 		if(argStruct->cov != NULL) omxFreeMatrixData(argStruct->cov);
 		if(argStruct->means != NULL) omxFreeMatrixData(argStruct->means);
@@ -644,7 +645,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
-	double sum = 0.0;
 	int numDefs, returnRowLikelihoods;	
 	omxObjective* subObjective;
 	
@@ -676,12 +676,16 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
 
+	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
     int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-    if (parallelism > 1) {
-    	int stride = (data->rows / parallelism);
-	    double* sums = malloc(parallelism * sizeof(double));
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
+	}
+
+	if (parallelism > 1) {
+		int stride = (data->rows / parallelism);
 
 		for(int i = 0; i < parallelism; i++) {
 			omxUpdateState(parentState->childList[i], parentState, TRUE);
@@ -692,14 +696,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
-				sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
+				omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
 			} else {
-				sums[i] = omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
+				omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
 			}
 		}
 
 		for(int i = 0; i < parallelism; i++) {
-			sum += sums[i];
 			if (parentState->childList[i]->statusCode < 0) {
 				parentState->statusCode = parentState->childList[i]->statusCode;
 				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
@@ -707,16 +710,20 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 			}
 		}
 
-		free(sums);
-
 	} else {
-    	sum = omxFIMLSingleIteration(oo, oo, 0, data->rows);
+		omxFIMLSingleIteration(oo, oo, 0, data->rows);
 	}
 
-    if(!returnRowLikelihoods) {
-	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-	   omxSetMatrixElement(oo->matrix, 0, 0, sum);
-    }
+	if(!returnRowLikelihoods) {
+		double sum = 0.0;
+		// floating-point addition is not associative,
+		// so we serialized the following reduction operation.
+		for(int i = 0; i < data->rows; i++) {
+			sum += omxVectorElement(ofo->rowLogLikelihoods, i);
+		}	
+		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+		omxSetMatrixElement(oo->matrix, 0, 0, sum);
+	}
 }
 
 void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
@@ -724,7 +731,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
 	// Requires: Data, means, covariances, thresholds
 
-	double sum = 0.0;
 	int numDefs;
 	int returnRowLikelihoods = 0;
 
@@ -771,11 +777,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 	}
 
+	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
+
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
+	}
+
 	if (parallelism > 1) {
-    	int stride = (data->rows / parallelism);
-	    double* sums = malloc(parallelism * sizeof(double));
+		int stride = (data->rows / parallelism);
 
 		for(int i = 0; i < parallelism; i++) {
 			omxUpdateState(parentState->childList[i], parentState, TRUE);
@@ -786,14 +797,13 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
-				sums[i] = omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
+				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
 			} else {
-				sums[i] = omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, stride);
+				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, stride);
 			}
 		}
 
 		for(int i = 0; i < parallelism; i++) {
-			sum += sums[i];
 			if (parentState->childList[i]->statusCode < 0) {
 				parentState->statusCode = parentState->childList[i]->statusCode;
 				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
@@ -801,17 +811,20 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 			}
 		}
 
-		free(sums);
-
 	} else {
-		sum = omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
+		omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
 	}
 
-    if(!returnRowLikelihoods) {
-	   if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-	   omxSetMatrixElement(oo->matrix, 0, 0, sum);
-    }
-
+	if(!returnRowLikelihoods) {
+		double sum = 0.0;
+		// floating-point addition is not associative,
+		// so we serialized the following reduction operation.
+		for(int i = 0; i < data->rows; i++) {
+			sum += omxVectorElement(ofo->rowLogLikelihoods, i);
+		}	
+		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+		omxSetMatrixElement(oo->matrix, 0, 0, sum);
+	}
 }
 
 
@@ -920,6 +933,7 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	   omxResizeMatrix(oo->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
     }
     newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, oo->matrix->currentState);
+    newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, oo->matrix->currentState);
 	UNPROTECT(1);
 
 	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {

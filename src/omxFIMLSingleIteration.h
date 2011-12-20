@@ -19,10 +19,10 @@
 
 #include "omxFIMLObjective.h"
 
-double omxFIMLSingleIterationOrdinal(omxObjective *localobj,
+void omxFIMLSingleIterationOrdinal(omxObjective *localobj,
 	omxObjective *sharedobj, int rowbegin, int rowcount);
 
-double omxFIMLSingleIteration(omxObjective *localobj,
+void omxFIMLSingleIteration(omxObjective *localobj,
 	omxObjective *sharedobj, int rowbegin, int rowcount);
 
 
