@@ -715,11 +715,13 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	}
 
 	if(!returnRowLikelihoods) {
-		double sum = 0.0;
+		double val, sum = 0.0;
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			sum += omxVectorElement(ofo->rowLogLikelihoods, i);
+			val = omxVectorElement(ofo->rowLogLikelihoods, i);
+//			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
+			sum += val;
 		}	
 		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
 		omxSetMatrixElement(oo->matrix, 0, 0, sum);
@@ -816,11 +818,13 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	}
 
 	if(!returnRowLikelihoods) {
-		double sum = 0.0;
+		double val, sum = 0.0;
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			sum += omxVectorElement(ofo->rowLogLikelihoods, i);
+			val = omxVectorElement(ofo->rowLogLikelihoods, i);
+//			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
+			sum += val;
 		}	
 		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
 		omxSetMatrixElement(oo->matrix, 0, 0, sum);
