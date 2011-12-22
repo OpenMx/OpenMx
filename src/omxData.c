@@ -191,6 +191,15 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	return od;
 }
 
+void resetDefinitionVariables(double *oldDefs, int numDefs) {
+	int nextDef;
+
+	for(nextDef = 0; nextDef < numDefs; nextDef++) {
+		oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
+	}
+
+}
+
 void omxFreeData(omxData* od) {
 	if(od->dataMat != NULL) omxFreeAllMatrixData(od->dataMat);
 	if(od->meansMat != NULL) omxFreeAllMatrixData(od->meansMat);

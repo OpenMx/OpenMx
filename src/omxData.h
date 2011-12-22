@@ -99,8 +99,10 @@ struct omxData {						// A matrix
 	unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor
 	char* omxDataType(omxData *od);												// Returns the type field // TODO: Should this be an ENUM?
 	
-  int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
-  int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set
+	int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
+	int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set
+
+	void resetDefinitionVariables(double *oldDefs, int numDefs);
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrintData(omxData *source, char* d); 									// Pretty-print a (hopefully small) data object

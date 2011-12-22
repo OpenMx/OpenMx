@@ -28,16 +28,6 @@
 #include "omxFIMLObjective.h"
 #include "omxSadmvnWrapper.h"
 
-
-void resetDefinitionVariables(double *oldDefs, int numDefs) {
-	int nextDef;
-
-	for(nextDef = 0; nextDef < numDefs; nextDef++) {
-		oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
-	}
-
-}
-
 /**
  * The localobj reference is used to access read-only variables,
  * or variables that can be modified but whose state cannot be

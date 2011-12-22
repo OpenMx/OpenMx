@@ -50,14 +50,14 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
 
 }
 
-void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
-    if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
-	// Requires: Data, means, covariances.
-	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
+void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+
+    omxRowObjective* oro = ((omxRowObjective*) localobj->argStruct);
+    omxRowObjective* shared_oro = ((omxRowObjective*) sharedobj->argStruct);
 
 	int numDefs;
 
-    omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
+    omxMatrix *rowAlgebra, *rowResults;
     omxMatrix *filteredDataRow, *dataRow, *existenceVector;
     omxMatrix *dataColumns;
 	omxDefinitionVar* defVars;
@@ -66,11 +66,8 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
     double* oldDefs;
     int numCols, numRemoves;
 
-    omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
-
-	rowAlgebra	    = oro->rowAlgebra;	 // Locals, for readability.  Should compile out.
-	rowResults	    = oro->rowResults;
-	reduceAlgebra   = oro->reduceAlgebra;
+	rowAlgebra	    = oro->rowAlgebra;
+	rowResults	    = shared_oro->rowResults;
 	data		    = oro->data;
 	defVars		    = oro->defVars;
 	numDefs		    = oro->numDefs;
@@ -83,27 +80,22 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
     isContiguous    = oro->contiguous.isContiguous;
 	contiguousStart = oro->contiguous.start;
 	contiguousLength = oro->contiguous.length;
-	
-	
-	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
-		if(OMX_DEBUG_ROWS(1)) { Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", rowResults->rows, rowResults->cols, data->rows, rowAlgebra->cols); }
-		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
-	}
-		
-    numCols = dataColumns->cols;
-	int toRemove[dataColumns->cols];
-	int zeros[dataColumns->cols];
-	memset(zeros, 0, sizeof(int) * dataColumns->cols);  // Shouldn't be required.
 
-	for(int row = 0; row < data->rows; row++) {
+	numCols = dataColumns->cols;
+	int *toRemove = malloc(sizeof(int) * dataColumns->cols);
+	int *zeros = calloc(dataColumns->cols, sizeof(int));
+
+    resetDefinitionVariables(oldDefs, numDefs);
+
+	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
 
 		// Handle Definition Variables.
         if(OMX_DEBUG_ROWS(row)) { Rprintf("numDefs is %d", numDefs);}
-		if(numDefs != 0) {		// With no defs, just copy repeatedly to the rowResults matrix.
-			handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs);
+		if(numDefs != 0) {		// With defs, just copy repeatedly to the rowResults matrix.
+			handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
 		}
 
-		omxStateNextRow(oo->matrix->currentState);						// Advance row
+		omxStateNextRow(localobj->matrix->currentState);						// Advance row
 		
         // Populate data row
 		numRemoves = 0;
@@ -115,14 +107,14 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		}
 		
 		for(int j = 0; j < dataColumns->cols; j++) {
-			double dataValue = omxMatrixElement(dataRow, 0, j);
+			double dataValue = omxVectorElement(dataRow, j);
 			if(isnan(dataValue)) {
 				numRemoves++;
 				toRemove[j] = 1;
-                omxSetMatrixElement(existenceVector, 0, j, 0);
+                omxSetVectorElement(existenceVector, j, 0);
 			} else {
 			    toRemove[j] = 0;
-                omxSetMatrixElement(existenceVector, 0, j, 1);
+                omxSetVectorElement(existenceVector, j, 1);
 			}
 		}		
 		// TODO: Determine if this is the correct response.
@@ -130,9 +122,9 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		if(numRemoves == numCols) {
 		    char *errstr = calloc(250, sizeof(char));
 			sprintf(errstr, "Row %d completely missing.  omxRowObjective cannot have completely missing rows.", omxDataIndex(data, row));
-			omxRaiseError(oo->matrix->currentState, -1, errstr);
+			omxRaiseError(localobj->matrix->currentState, -1, errstr);
 			free(errstr);
-			return;
+			continue;
 		}
 
 		omxResetAliasedMatrix(filteredDataRow); 			// Reset the row
@@ -140,7 +132,74 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 		omxRecompute(rowAlgebra);							// Compute this row
 
-		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
+		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);		
+	}
+	free(toRemove);
+	free(zeros);
+}
+
+void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+    if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
+	// Requires: Data, means, covariances.
+	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
+
+	omxMatrix* objMatrix  = oo->matrix;
+	omxState* parentState = objMatrix->currentState;
+	int numChildren = parentState->numChildren;
+
+    omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
+	omxData *data;
+
+    omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
+
+	rowAlgebra	    = oro->rowAlgebra;
+	rowResults	    = oro->rowResults;
+	reduceAlgebra   = oro->reduceAlgebra;
+	data		    = oro->data;
+	
+	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
+		if(OMX_DEBUG_ROWS(1)) { 
+			Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", 
+				rowResults->rows, rowResults->cols, 
+				data->rows, rowAlgebra->cols); 
+		}
+		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
+	}
+		
+    int parallelism = (numChildren == 0) ? 1 : numChildren;
+
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
+	}
+
+	if (parallelism > 1) {
+		int stride = (data->rows / parallelism);
+
+		for(int i = 0; i < parallelism; i++) {
+			omxUpdateState(parentState->childList[i], parentState, TRUE);
+		}
+
+		#pragma omp parallel for num_threads(parallelism) 
+		for(int i = 0; i < parallelism; i++) {
+			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxObjective *childObjective = childMatrix->objective;
+			if (i == parallelism - 1) {
+				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
+			} else {
+				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, stride);
+			}
+		}
+
+		for(int i = 0; i < parallelism; i++) {
+			if (parentState->childList[i]->statusCode < 0) {
+				parentState->statusCode = parentState->childList[i]->statusCode;
+				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
+				parentState->statusMsg[249] = '\0';
+			}
+		}
+
+	} else {
+		omxRowObjectiveSingleIteration(oo, oo, 0, data->rows);
 	}
 
 	omxRecompute(reduceAlgebra);
