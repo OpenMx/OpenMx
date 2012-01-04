@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2010 The OpenMx Project
+#   Copyright 2007-2012 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -330,6 +330,16 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
+		}
+		Amatrix <- evaluateMxObject(.Object@A, flatJob, labelsData)
+		Smatrix <- evaluateMxObject(.Object@S, flatJob, labelsData)
+		if (!identical(dim(Amatrix), dim(Smatrix))) {
+				msg <- paste("The RAM objective",
+					"in model", omxQuotes(model@name), "has an A matrix",
+					"with dimensions", nrow(Amatrix), 'x', ncol(Amatrix),
+					"and a S matrix with dimensions", nrow(Smatrix), 'x',
+					ncol(Smatrix))
+				stop(msg, call.=FALSE)
 		}
 		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
 		job <- pair[[1]]
