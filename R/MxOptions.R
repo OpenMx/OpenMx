@@ -119,7 +119,8 @@ otherOptions <- list(
 	"Error Checking" = "Yes",
 	"No Sort Data" = character(),
 	"RAM Inverse Optimization" = "Yes",
-	"RAM Max Depth" = NA
+	"RAM Max Depth" = NA,
+	"UsePPML" = "Yes"
 )
 
 generateOptionsList <- function(model, constraints, useOptimizer) {
@@ -130,9 +131,18 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 	if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
 		input[["Calculate Hessian"]] <- "No"
 	}
+	if( !is.null(input[["UsePPML"]]) 
+		&& (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
+		input[["Calculate Hessian"]] <- "No"
+		input[["Hessian"]] <- "No"
+		input[["Standard Errors"]] <- "No"
+	}
 	options <- combineDefaultOptions(input)
 	if (useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
+		#PPML Analytical solution
+		if (!is.null(model@options$UsePPML) && model@options$UsePPML == "Solved")
+			options[["useOptimizer"]] <- "No"
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}

@@ -351,6 +351,35 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 					"'vector' = TRUE, but the observed data is not raw data")
 				stop(msg, call.=FALSE)
 			}
+			
+			# Simplest possible check for PPML applicability, imxTransformModelPPML
+			# will check beyond that
+			if (((is.null(model@options$UsePPML) && getOption("mxOptions")$UsePPML == "Yes") || model@options$UsePPML == "Yes") && !any(model$A@free)) {
+				oldName <- model@name
+				model <- imxTransformModelPPML(model)
+				# Make sure PPML was applied successfully
+				if ( !is.null(model@options$UsePPML) ) {
+					if ( model@options$UsePPML == "Split" ) {
+						job[[oldName]] <- model
+						
+						job@.newobjects <- TRUE
+						job@.newobjective <- TRUE
+						job@.newtree <- TRUE
+						return(list(job,flatJob))
+					} else if ( model@options$UsePPML == "Solved" || model@options$UsePPML == "PartialSolved" ) { # TODO: PartialSolved
+						job[[oldName]] <- model
+						
+						pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
+						job <- pair[[1]]
+					
+						job@.newobjects <- TRUE
+						job@.newobjective <- FALSE
+						job@.newtree <- FALSE
+						return(list(job, flatJob))
+					}
+				} 
+			}
+			
 			job@.newobjects <- FALSE
 			job@.newobjective <- FALSE
 			job@.newtree <- FALSE
@@ -363,6 +392,36 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
+		
+		# Simplest possible check for PPML applicability, imxTransformModelPPML
+		# will check beyond that
+		if (((is.null(model@options$UsePPML) && getOption("mxOptions")$UsePPML == "Yes") || model@options$UsePPML == "Yes") && !any(model$A@free)) {
+			oldName <- model@name
+			model <- imxTransformModelPPML(model)
+			# Make sure PPML was applied successfully
+			
+			if ( !is.null(model@options$UsePPML) ) {
+				if ( model@options$UsePPML == "Split" ) {
+					job[[oldName]] <- model
+					
+					job@.newobjects <- TRUE
+					job@.newobjective <- TRUE
+					job@.newtree <- TRUE
+					return(list(job,flatJob))
+				} else if ( model@options$UsePPML == "Solved" || model@options$UsePPML == "PartialSolved" ) { # TODO: PartialSolved
+					job[[oldName]] <- model
+					
+					pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
+					job <- pair[[1]]
+					
+					job@.newobjects <- TRUE
+					job@.newobjective <- FALSE
+					job@.newtree <- FALSE
+					return(list(job, flatJob))
+				}
+			} 
+		}
+		
 		pair <- updateThresholdDimnames(.Object, job, flatJob, model@name)
 		job <- pair[[1]]
 		flatJob <- pair[[2]]
