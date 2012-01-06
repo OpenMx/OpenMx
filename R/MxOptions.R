@@ -153,9 +153,15 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		if (imxSfClient()) {
  			options[["Number of Threads"]] <- 1L 
 		} else {
-			detect <- omxDetectCores()
-			if(is.na(detect)) detect <- 1L
-			options[["Number of Threads"]] <- detect 
+			hostfile <- Sys.getenv("PBS_NODEFILE")
+			if (file.exists(hostfile)) {
+				hostnames <- read.table(hostfile, stringsAsFactors=FALSE)[[1]]
+				options[["Number of Threads"]] <- length(hostnames) 				
+			} else {
+				detect <- omxDetectCores()
+				if(is.na(detect)) detect <- 1L
+				options[["Number of Threads"]] <- detect 
+			}
 		}
 	}
 	return(options)
