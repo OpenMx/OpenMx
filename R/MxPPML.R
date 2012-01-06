@@ -1368,23 +1368,23 @@ imxRestoreResultPPML <- function(model, result) {
 	return(fixed)	
 }
 
-mxEnablePPML <- function(model) {
+imxPPML <- function(model, flag) {
+	if (!(isS4(model) && is(model, "MxModel"))) {
+		stop("Argument 'model' must be MxModel object")
+	}
+	if (!(length(flag) == 1 && is.logical(flag) && !is.na(flag))) {
+		stop("Argument 'flag' must be TRUE or FALSE")
+	}
 	# Objective exists / must be a RAM objective
 	objective <- model$objective
 	if(is.null(objective) || !is(objective, "MxRAMObjective")) {
 		return(NA)
 	}
-	model@options$UsePPML <- "Yes"
-	return(model)
-}
-
-mxDisablePPML <- function(model) {
-	# Objective exists / must be a RAM objective
-	objective <- model$objective
-	if(is.null(objective) || !is(objective, "MxRAMObjective")) {
-		return(NA)
+	if (flag) {
+		model@options$UsePPML <- "Yes"
+	} else {
+		model@options$UsePPML <- "No"
 	}
-	model@options$UsePPML <- "No"
 	return(model)
 }
 
@@ -1459,9 +1459,9 @@ dhRun <- function(model) {
 }
 
 imxTestPPML <- function(model, checkLL = TRUE, checkByName = FALSE) {
-	res1 <- mxRun(mxDisablePPML(model), suppressWarnings = TRUE) # Standard fit
+	res1 <- mxRun(imxPPML(model, FALSE), suppressWarnings = TRUE) # Standard fit
 	#res2 <- mxRun(imxTransformModelPPML(model))	# PPML fit
-	res2 <- mxRun(mxEnablePPML(model), suppressWarnings = TRUE)	# PPML fit
+	res2 <- mxRun(imxPPML(model, TRUE), suppressWarnings = TRUE)	# PPML fit
 	# browser()
 	#omxCheckTrue( (length(grep("PPML", res2@name, fixed = TRUE)) > 0) )
 	#omxCheckTrue( is(res2@objective, "MxAlgebraObjective") ) # redundant, could comment this out
