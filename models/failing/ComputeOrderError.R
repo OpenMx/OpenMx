@@ -55,11 +55,11 @@ ntf <- mxModel(model="NTF",
    mxAlgebra(delta1 %*% m + delta1 %*% mu %*% Vp1 %*% t(m), name="w2"),
    
    #constraints - equating nonlinear constraints and parameters
-   mxConstraint('Vp1',   "=", 'Vp2',   name='VpCon'),
-   mxConstraint('x1',    "=", 'x2',    name='xCon'),
-   mxConstraint('delta1',"=", 'delta2',name='deltaCon'),
-   mxConstraint('q1',    "=", 'q2',    name='qCon'),
-   mxConstraint('w1',    "=", 'w2',    name='wCon'),
+   mxConstraint(Vp1 == Vp2,   name='VpCon'),
+   mxConstraint(x1 == x2,    name='xCon'),
+   mxConstraint(delta1 == delta2,name='deltaCon'),
+   mxConstraint(q1   == q2,    name='qCon'),
+   mxConstraint(w1   == w2,    name='wCon'),
    #mxAlgebra section - relative covariances
    mxAlgebra(a   %&% q1 + x1   + 2 %x% a %*% w1 + D + S, name="CvMz"),
    mxAlgebra(a   %&% (q1-.5) + .25 %x% d %*% t(d) + x1 + 2 %x% a %*% w1 + S, name="CvDz"),
