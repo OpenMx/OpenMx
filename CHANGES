@@ -2,6 +2,7 @@ trunk
 =====
 * added more descriptive error message to mxOption()
 * catching illegal references of the form "mzData.ageT1mz"
+* error checking when 'A' and 'S' matrices have different dimensions in MxRAMObjective function
 
 Release  1.1.2-1818 (October 24, 2011)
 =================================
