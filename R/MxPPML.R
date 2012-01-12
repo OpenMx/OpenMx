@@ -1,4 +1,4 @@
-imxCheckPPMLApplicable <- function(model) {
+	imxCheckPPMLApplicable <- function(model) {
 	# browser()
 	###############
 	#CHECK SECTION#
@@ -588,7 +588,8 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 			varE <- varE / ( (dim(model@data@observed)[[2]] - length(latentVars)) * dim(model@data@observed)[[1]] )
 		}
 		else if (model$data@type == 'cov') {
-			varE <- sum(diag(model@data@observed[(length(latentVars)+1):dim(model@data@observed)[[1]], (length(latentVars)+1):dim(model@data@observed)[[2]]]))/(dim(model@data@observed)[[1]]-length(latentVars))
+			dataDims <- (length(latentVars)+1):dim(model@data@observed)[[1]]
+			varE <- sum(diag(as.matrix(model@data@observed[dataDims, dataDims])))/length(dataDims)
 		}
 		
 		
