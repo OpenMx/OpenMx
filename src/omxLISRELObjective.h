@@ -21,14 +21,15 @@
 typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH, *TX, *TY, *KA, *AL, *I; // LISREL model Matrices
-	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *Mns; // Other Matrices used in computations.  NOTE: THESE HAVE NOT BEEN UPDATED YET
+	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH, *TX, *TY, *KA, *AL; // LISREL model Matrices
+	omxMatrix *I, *LXPH, *W, *GAPH, *U; // Place holder matrices used in computations
+	omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.
 
-	int numIters;
+	int numIters; // used by omxFastRAM/LISRELInverse
 	double logDetObserved;
 	double n;
-	double* work;
-	int lwork;
+	double* work; // used by omxFastRAM/LISRELInverse
+	int lwork; // used by omxFastRAM/LISRELInverse
 
 	int usePPML;
 	omxData *ppmlData;
@@ -36,9 +37,7 @@ typedef struct {
 
 } omxLISRELObjective;
 
-void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, 
-    omxMatrix* GA, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
-    omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
+void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U); // This does not involve means yet
 
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj);
 

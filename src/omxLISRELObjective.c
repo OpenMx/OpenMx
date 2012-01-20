@@ -41,7 +41,7 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	    omxRecompute(oro->AL);
 	}
 
-	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->cov, oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
+	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->PH, oro->PS, oro->TD, oro->TE, oro->TH, oro->cov, oro->means, oro->numIters, oro->I, oro->LXPH, oro->W, oro->GAPH, oro->U);
 }
 
 void omxDestroyLISRELObjective(omxObjective* oo) {
@@ -58,10 +58,11 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 		omxFreeMatrixData(argStruct->means);
 	
 	omxFreeMatrixData(argStruct->I);
-	omxFreeMatrixData(argStruct->X);
-	omxFreeMatrixData(argStruct->Y);
-	omxFreeMatrixData(argStruct->Z);
-	omxFreeMatrixData(argStruct->Ax);
+	omxFreeMatrixData(argStruct->U);
+	omxFreeMatrixData(argStruct->W);
+	omxFreeMatrixData(argStruct->LXPH);
+	omxFreeMatrixData(argStruct->GAPH);
+
 
 	if(argStruct->ppmlData != NULL) 
 		omxFreeData(argStruct->ppmlData);
@@ -69,7 +70,8 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 }
 
 void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating LISREL Attributes.  Currently this dones nothing!\n"); }
+    if(OMX_DEBUG) { Rprintf("Populating LISREL Attributes.  Currently this does very little!\n"); }
+	
 	/*
 	omxLISRELObjective* oro = (omxLISRELObjective*) (oo->argStruct);
 	omxMatrix* LX = oro->LX;
@@ -81,16 +83,20 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 	omxMatrix* TD = oro->TD;
 	omxMatrix* TE = oro->TE;
 	omxMatrix* TH = oro->TH;
-	omxMatrix* X = oro->X;
-	omxMatrix* Ax= oro->Ax;
-	omxMatrix* Z = oro->Z;
+	omxMatrix* LXPH = oro->LXPH;
+	omxMatrix* GAPH = oro->GAPH;
+	omxMatrix* W = oro->W;
+	omxMatrix* U = oro->U;
 	omxMatrix* I = oro->I;
-    int numIters = oro->numIters;
-    double oned = 1.0, zerod = 0.0;
-    
-    omxRecompute(LX);
-    omxRecompute(LY);
+	int numIters = oro->numIters;
+	double oned = 1.0, zerod = 0.0;
 	
+	omxRecompute(LX);
+	omxRecompute(LY);
+	*/ //This block of code works fine but because I do not use any of it later, it throws a huge block of warnings about unused variables.
+	// In general, I do not yet understand what this function needs to do.
+	
+	/*
 	omxFastRAMInverse(numIters, BE, Z, Ax, I ); // Z = (I-A)^-1
 	
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.\n", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
@@ -116,7 +122,37 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 /* omxFastLISRELInverse would go here */
 
 
-void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
+void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U) {
+	double oned = 1.0, zerod=0.0, minusOned = -1.0;
+	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
+	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
+	
+	/* Calculate the lower right quadrant: the covariance of the Xs */
+	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH);
+	omxDGEMM(FALSE, TRUE, oned, LXPH, LX, oned, TD);
+	
+	/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
+	omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, BE);
+	omxDGETRI(BE, ipiv, work, lwork);
+	omxDGEMM(FALSE, FALSE, oned, LY, BE, zerod, LY);
+	
+	/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
+	omxDGEMM(FALSE, TRUE, oned, LXPH, GA, zerod, W);
+	omxDGEMM(FALSE, TRUE, oned, W, LY, oned, TH);
+	
+	/* Calculate the upper right quadrant: NOTE THIS IS MERELY THE LOWER LEFT QUADRANT TRANSPOSED. */
+	//DONE as omxTranspose(TH)
+	
+	/* Calculate the upper left quadrant: the covariance of the Ys */
+	omxDGEMM(FALSE, FALSE, oned, GA, PH, zerod, GAPH);
+	omxDGEMM(FALSE, TRUE, oned, GAPH, GA, oned, PS);
+	omxDGEMM(FALSE, FALSE, oned, LY, PS, zerod, U);
+	omxDGEMM(FALSE, TRUE, oned, U, LY, oned, TE);
+	
+	/* Construct the full model-implied covariance matrix from the blocks previously calculated */
+	// SigmaHat = ( TE  t(TH) )
+	//            ( TH    TD  )
+	
 /*	
 	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
 		
