@@ -15,7 +15,13 @@
 
 
 omxQuotes <- function(name) {
-	listTerms <- sapply(name, function(x) {paste("'", x, "'", sep = '')} )
+	listTerms <- sapply(name, function(x) {
+		if (is.na(x)) {
+			return(as.character(x))
+		} else {
+			paste("'", x, "'", sep = '')
+		}
+	} )
 	if (length(listTerms) == 2) {
 		return(paste(listTerms[1], ' and ', listTerms[2], sep = ''))
 	} else if (length(listTerms) > 2) {
