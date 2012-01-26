@@ -1,3 +1,4 @@
+#   Build number: $Rev$
 #
 #   Copyright 2007-2012 The OpenMx Project
 #
