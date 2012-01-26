@@ -1,4 +1,3 @@
-#   Build number: $Rev$
 #
 #   Copyright 2007-2012 The OpenMx Project
 #
@@ -22,4 +21,8 @@ mxVersion <- function() {
 	}
 	if(!("OpenMx" %in% rownames(libMatrix))) return(NA)
 	return(libMatrix['OpenMx', 'Version'])
+}
+mxBuild <- function () 
+{
+    print("Build Number: $Rev$")
 }
