@@ -4,7 +4,9 @@ RBUILD = build
 RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2dvi
-TARGET = OpenMx_999.0.0-1876.tar.gz
+BUILDPRE = 999.0.0
+BUILDNO = $(shell svnversion -c | sed -e 's/[MS]//g' -e 's/^[[:digit:]]*://')
+TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
@@ -73,6 +75,9 @@ help:
 internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RFILES) $(RDFILES)
+	sed '/Version:/d' DESCRIPTION > DESCRIPTION_BUFFER
+	mv DESCRIPTION_BUFFER DESCRIPTION
+	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 
 pdf:
