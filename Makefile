@@ -75,11 +75,11 @@ help:
 internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RFILES) $(RDFILES)
-	sed '/Version:/d' DESCRIPTION > DESCRIPTION_BUFFER
-	mv DESCRIPTION_BUFFER DESCRIPTION
+	cp DESCRIPTION DESCRIPTION.bak
+	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
-
+	mv DESCRIPTION.bak DESCRIPTION
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
