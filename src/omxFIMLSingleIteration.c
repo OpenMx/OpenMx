@@ -402,7 +402,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 		memset(toRemove, 0, sizeof(int) * dataColumns->cols);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxVectorElement(smallRow, j);
-			if(isnan(dataValue)) {
+			if(isnan(dataValue) || dataValue == NA_INTEGER || !R_FINITE(dataValue)) {
 				numRemoves++;
 				toRemove[j] = 1;
 			} else if(means != NULL) {

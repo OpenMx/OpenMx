@@ -400,6 +400,35 @@ int omxDataNumIdenticalDefs(omxData *od, int row){
 	else return 1;
 }
 
+int omxDataNumIdenticalContinuousRows(omxData *od, int row) {
+    if(od->numNumeric <= 0) {
+        return od->rows;
+    }
+    return omxDataNumIdenticalRows(od, row);
+}
+
+int omxDataNumIdenticalContinuousMissingness(omxData *od, int row) {
+    if(od->numNumeric <= 0) {
+        return od->rows;
+    }
+    return omxDataNumIdenticalMissingness(od, row);
+}
+
+int omxDataNumIdenticalOrdinalRows(omxData *od, int row) {
+    if(od->numFactor <= 0) {
+        return od->rows;
+    }
+    return omxDataNumIdenticalRows(od, row);
+}
+
+int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row) {
+    if(od->numFactor <= 0) {
+        return od->rows;
+    }
+    return omxDataNumIdenticalMissingness(od, row);
+}
+
+
 double omxDataNumObs(omxData *od) {
 	return od->numObs;
 }

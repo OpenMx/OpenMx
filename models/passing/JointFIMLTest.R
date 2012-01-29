@@ -244,6 +244,238 @@ ord <- summary(mxRun(ordModel))$Minus2LogLikelihood
 cont <- summary(mxRun(contModel) )$Minus2LogLikelihood
 indepJoint <- summary(mxRun(independentModel))$Minus2LogLikelihood
 
+# Second simulation set: 2 correlated continuous, one NA ordinal
+
+useOptimizer <- TRUE
+
+nSubjects <- 200
+nThresh <- 1
+
+cov1 <- matrix( c(2, .7, 0,
+                 .7,  3, 0,
+                  0,  0, 1), 3, 3)
+start1 <- c(2, .7, 0, 3, 0, 1)
+mu1 <-  c(15, -6, 0)
+cNames1 <- c("C1", "C2", "Ona")
+oNames1 <- c("O1", "O2", "Cna")
+
+nVars <- dim(cov1)[1]
+# Continuous and Ordinal vs joint: Continuous and ordinal data with an NA column of the other type
+#   Comparison condition is to an NA column of the same type--with missingness, it's
+#   all the same to the math.
+set.seed(1234)
+continuousData1 <- data.frame(matrix(mvrnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
+continuousData1[,nVars] <- as.numeric(NA)
+continuousData1[,nVars] <- mxFactor(continuousData1[,nVars], levels=c(1, 2))
+names(continuousData1) <- cNames1
+
+
+
+contModel1 <- mxModel("contModel1", 
+    mxData(continuousData1, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
+    mxMatrix("Full", 1, 1, values=c(0), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=cNames1)
+)
+
+contModel1A <- mxModel("contModel1A", 
+    mxData(continuousData1, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
+    mxMatrix("Full", 1, 1, values=c(0), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=cNames1, thresholds="Thresh", threshnames=c("Ona"))
+)
+
+contModel1 <- mxOption(contModel1, "Function precision", 1e-9)
+contModel1A <- mxOption(contModel1A, "Function precision", 1e-9)
+contModel1 <- mxOption(contModel1, "Calculate Hessian", "No")
+contModel1A <- mxOption(contModel1A, "Calculate Hessian", "No")
+
+contFit1 <- mxRun(contModel1)
+contFit1A <- mxRun(contModel1A)
+contSum1 <- summary(contFit1)
+contSum1A <- summary(contFit1A)
+
+ordinalData1 <- data.frame(matrix(mvrnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
+quants <- quantile(ordinalData1[,1],  probs = c((1:nThresh)/(nThresh+1)))
+for(i in 1:nVars) {
+   ordinalData1[,i] <- cut(as.vector(ordinalData1[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh))
+}
+ordinalData1[,nVars] <- as.numeric(NA)
+ordinalData1 <- mxFactor(ordinalData1, levels=c(0:nThresh))
+names(ordinalData1) <- oNames1
+str(ordinalData1)
+
+ordModel1 <- mxModel("ordModel1", 
+    mxData(ordinalData1, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
+    mxMatrix("Full", nThresh, nVars, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=oNames1, thresholds="Thresh", threshnames=oNames1)
+)
+# ordinalData1[,nVars] <- as.numeric(NA)
+ordModel1A <- mxModel("ordModel1A", 
+    mxData(ordinalData1, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
+    mxMatrix("Full", nThresh, nVars-1, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = oNames1, thresholds="Thresh", threshnames=oNames1[1:(nVars-1)])
+)
+
+ordModel1 <- mxOption(ordModel1, "Function precision", 1e-9)
+ordModel1A <- mxOption(ordModel1A, "Function precision", 1e-9)
+ordModel1 <- mxOption(ordModel1, "Calculate Hessian", "No")
+ordModel1A <- mxOption(ordModel1A, "Calculate Hessian", "No")
+
+ordFit1 <- mxRun(ordModel1)
+ordFit1A <- mxRun(ordModel1A)
+ordSum1 <- summary(ordFit1)
+ordSum1A <- summary(ordFit1A)
+
+
+# Second simulation: Same conditions as above, combined into a single model of two uncorrelated systems.
+#   estimates should be identical.
+
+nOrd <- 2
+nCont <- 2
+nVars <- nOrd + nCont
+cov2 <- matrix(c(3, .7, 0, 0,
+                 .7, 3, 0, 0,
+                 0, 0, 1, -.7,
+                 0, 0, -.7, 5), nVars,nVars)
+mu2 <- c(5, 10, 0, 0)
+startCont2 <- c(2, .7, 3)
+startOrd2 <- c(1, .5, 1)
+startAll2 <- c(1, .5, 0, 0, 1, 0, 0, 1, .5, 1)
+startMeans2 <-c(0, 0, 0, 0)
+allContinuousData2 <- data.frame(matrix(mvrnorm(n=nSubjects,mu2,cov2), nrow=nSubjects, ncol=nVars))
+continuousData2 <- allContinuousData2[,1:nCont]
+ordinalData2 <- allContinuousData2[,(1:nOrd) + nCont]
+quants <- quantile(ordinalData2[,1],  probs = c((1:nThresh)/(nThresh+1)))
+for(i in 1:nOrd) {
+   ordinalData2[,i] <- mxFactor(cut(as.vector(ordinalData2[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh)), levels=0:nThresh)
+}
+
+cNames2 <- paste("C", 1:nCont, sep="")
+oNames2 <- paste("O", 1:nOrd, sep="")
+allNames2 <- c(cNames2, oNames2)
+allData2 <- data.frame(continuousData2, ordinalData2)
+names(continuousData2) <- cNames2
+names(ordinalData2) <- oNames2
+names(allData2) <- allNames2
+contBound2 <- matrix(NA, nCont, nCont)
+diag(contBound2) <- .01
+ordBound2 <- matrix(NA, nOrd, nOrd)
+diag(ordBound2) <- .01
+allBound2 <- cbind(rbind(contBound2, matrix(NA, nOrd, nCont)), rbind(matrix(NA, nCont, nOrd), ordBound2))
+
+
+contModel2 <- mxModel("contModel2", 
+    mxData(continuousData2, type="raw"),
+    mxMatrix("Symm", nCont, nCont, values=startCont2, free=useOptimizer, lbound=contBound2, name="Cov"),
+    mxMatrix("Full", 1, nCont, values=startMeans2[1:nCont], free=useOptimizer, name="Mean"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = cNames2)
+    )
+
+ordModel2 <-     mxModel("ordModel2", 
+    mxData(ordinalData2, type="raw"),
+    mxMatrix("Symm", nOrd, nOrd, values=startOrd2, free=useOptimizer, lbound=ordBound2, name="Cov"),
+    mxMatrix("Full", 1, nCont, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
+    mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = oNames2, thresholds="Thresh")
+    )
+
+allModel2 <- mxModel("jointModel2", 
+    mxData(allData2, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=startAll2, free=as.logical(useOptimizer * startAll2), lbound=allBound2, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
+    mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
+    )
+    
+dubData2 <- rbind(allData2, allData2)
+
+dubModel2 <- mxModel("jointModel2Double", 
+    mxData(dubData2, type="raw"),
+    mxMatrix("Symm", nVars, nVars, values=startAll2, free=as.logical(useOptimizer * startAll2), lbound=allBound2, name="Cov"),
+    mxMatrix("Full", 1, nVars, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
+    mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
+    )
+
+
+contModel2 <- mxOption(contModel2, "Function precision", 1e-9)
+ordModel2 <- mxOption(ordModel2, "Function precision", 1e-9)
+allModel2 <- mxOption(allModel2, "Function precision", 1e-9)
+dubModel2 <- mxOption(dubModel2, "Function precision", 1e-9)
+
+contModel2 <- mxOption(contModel2, "Calculate Hessian", "No")
+ordModel2 <- mxOption(ordModel2, "Calculate Hessian", "No")
+allModel2 <- mxOption(allModel2, "Calculate Hessian", "No")
+dubModel2 <- mxOption(dubModel2, "Calculate Hessian", "No")
+
+contFit2 <- mxRun(contModel2)
+ordFit2  <- mxRun(ordModel2)
+allFit2  <- mxRun(allModel2)
+dubFit2  <- mxRun(dubModel2)
+
+contSum2 <- summary(contFit2)
+ordSum2  <- summary(ordFit2)
+allSum2  <- summary(allFit2)
+dubSum2  <- summary(dubFit2)
+
+# Second simulation: The same conditions from above, with correlations freed between.
+#   Need correct values to make a solid check
+# 
+# nOrd <- 2
+# nCont <- 2
+# nVars <- nOrd + nCont
+# cov3 <- matrix(c(3, .7, .8, -.2,
+#                  .7, 3, .6, -.4,
+#                  .8, .6, 1, -.7,
+#                  -.2, -.4, -.7, 5), nVars,nVars)
+# mu3 <- c(5, 10, 0, 0)
+# startAll3 <- c(1, .5, .5, .5, 1, .5, .5, 1, .5, 1)
+# startMeans3 <-c(0, 0, 0, 0)
+# allContinuousData3 <- data.frame(matrix(mvrnorm(n=nSubjects,mu3,cov3), nrow=nSubjects, ncol=nVars))
+# continuousData3 <- allContinuousData3[,1:nCont]
+# ordinalData3 <- allContinuousData3[,(1:nOrd) + nCont]
+# quants <- quantile(ordinalData3[,1],  probs = c((1:nThresh)/(nThresh+1)))
+# for(i in 1:nOrd) {
+#    ordinalData3[,i] <- mxFactor(cut(as.vector(ordinalData3[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh)), levels=0:nThresh)
+# }
+# 
+# cNames3 <- paste("C", 1:nCont, sep="")
+# oNames3 <- paste("O", 1:nOrd, sep="")
+# allNames3 <- c(cNames3, oNames3)
+# allData3 <- data.frame(continuousData3, ordinalData3)
+# names(allData3) <- allNames3
+# contBound3 <- matrix(NA, nCont, nCont)
+# diag(contBound3) <- .01
+# ordBound3 <- matrix(NA, nOrd, nOrd)
+# diag(ordBound3) <- .01
+# allBound3 <- cbind(rbind(contBound3, matrix(NA, nOrd, nCont)), rbind(matrix(NA, nCont, nOrd), ordBound3))
+# 
+# allModel3 <- mxModel("jointModel3", 
+#     mxData(allData3, type="raw"),
+#     mxMatrix("Symm", nVars, nVars, values=startAll3, free=as.logical(useOptimizer * startAll3), lbound=allBound3, name="Cov"),
+#     mxMatrix("Full", 1, nVars, values=startMeans3[1:nOrd + nCont], free=useOptimizer, name="Mean"),
+#     mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
+#     mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames3, thresholds="Thresh", threshnames = oNames3)
+#     )
+# 
+# allModel3 <- mxOption(allModel3, "Function precision", 1e-9)
+# allModel3 <- mxOption(allModel3, "Calculate Hessian", "No")
+# 
+# allFit3 <- mxRun(allModel3)
+# allSum3 <- summary(allFit3)
+
+omxCheckCloseEnough(contSum1$Minus2LogLikelihood, contSum1A$Minus2LogLikelihood, .0000001)
+omxCheckCloseEnough(ordSum1$Minus2LogLikelihood, ordSum1A$Minus2LogLikelihood, .0000001)
+omxCheckCloseEnough(contSum2$Minus2LogLikelihood + ordSum2$Minus2LogLikelihood, allSum2$Minus2LogLikelihood, .001)
+omxCheckCloseEnough(2* allSum2$Minus2LogLikelihood, dubSum2$Minus2LogLikelihood, .001)
+
 # Step 13: Tests
 
 # Isbetween will be negative if the signs don't match; that is, if joint is not between

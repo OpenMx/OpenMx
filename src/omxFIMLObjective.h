@@ -81,6 +81,7 @@ typedef struct omxFIMLObjective {
 	omxThresholdColumn* thresholdCols;		// List of column thresholds
 	
 	/* Structures for JointFIMLObjective */
+	omxMatrix* contRow;		    // Memory reserved for continuous data row
 	omxMatrix* ordRow;		    // Memory reserved for ordinal data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
 	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    

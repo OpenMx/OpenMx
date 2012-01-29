@@ -164,11 +164,12 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	int numDefs;
 	int numOrdRemoves = 0, numContRemoves=0;
 	int returnRowLikelihoods = 0;
-	int keepCov = 0, keepInverse = 0;
+    int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0, numIdenticalOrdinalRows = 0, numOrdinal = 1,
+	                    numIdenticalContinuousMissingness = 0, numIdenticalContinuousRows = 0, numContinuous = 1;
 
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
 	omxMatrix *rowLikelihoods;
-    omxMatrix *ordMeans, *ordCov, *ordRow;
+    omxMatrix *ordMeans, *ordCov, *ordRow, *contRow;
     omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
@@ -190,10 +191,12 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     ordMeans    = ofo->ordMeans;
     ordCov      = ofo->ordCov;
     ordRow      = ofo->ordRow;
+    contRow     = ofo->contRow;
     halfCov     = ofo->halfCov;
     reduceCov   = ofo->reduceCov;
     ordContCov  = ofo->ordContCov;
 	RCX 		= ofo->RCX;
+
 	data		= ofo->data;
 	dataColumns	= ofo->dataColumns;
 	defVars		= ofo->defVars;
@@ -212,23 +215,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	
 	subObjective = oo->subObjective;
 
-	// if(numDefs == 0) {
-	//         if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-	//         if(!(subObjective == NULL)) {
-	//             omxObjectiveCompute(subObjective);
-	//         } else {
-	//             omxRecompute(cov);          // Only recompute this here if there are no definition vars
-	//             omxRecompute(means);
-	//         }
-	//         for(int j = 0; j < dataColumns->cols; j++) {
-	//             int var = omxVectorElement(dataColumns, j);
-	//             if(thresholdCols[var].numThresholds > 0) { // Actually an ordinal column
-	//                 omxRecompute(thresholdCols[var].matrix);
-	//                 checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
-	//             }
-	//         }
-	//     }
-
     int row = 0;
     int ordRemove[cov->cols], contRemove[cov->cols];
     int zeros[cov->cols];
@@ -237,8 +223,11 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     double determinant;
     double oned = 1.0, zerod = 0.0, minusoned = -1.0;
     int onei = 1;
+    double likelihood;
+	int inform;
 
     if(numDefs == 0) {
+        numIdenticalDefs = data->rows;
         if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
         if(!(subObjective == NULL)) {
             omxObjectiveCompute(subObjective);
@@ -246,62 +235,55 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             omxRecompute(cov);			// Only recompute this here if there are no definition vars
             omxRecompute(means); 
             // MCN Also do the threshold formulae!
-             for(int j=0; j < dataColumns->cols; j++) {
- 				int var = omxVectorElement(dataColumns, j);
- 				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
- 					omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
- 					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
- 				}
- 			}
+            for(int j=0; j < dataColumns->cols; j++) {
+                int var = omxVectorElement(dataColumns, j);
+                if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+                    omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+                    checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
+                }
+            }
         }
         if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
         if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
     }
 
     while(row < data->rows) {
-        // if(OMX_DEBUG_ROWS) { Rprintf("Row %d.\n", row); } //:::DEBUG:::
         oo->matrix->currentState->currentRow = row;		// Set to a new row.
-		int numIdentical = omxDataNumIdenticalRows(data, row);
-		if(numIdentical == 0) numIdentical = 1; 
-		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
-		// it should never be the case.
-		
-        logDet = 0.0;
-        Q = 0.0;
+        int numIdentical = omxDataNumIdenticalRows(data, row);
+        if(numIdentical == 0) numIdentical = 1; 
+        // N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+        // it should never be the case.
+        
+        omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
+        
+        if(OMX_DEBUG_ROWS(row)) {
+            Rprintf("Identicality check. Is %sfirst. Total: %d rows identical, %d defs, %d missingness: Continuous: %d rows, %d missingness; Ordinal: %d rows, %d missingness.\n", 
+                    (firstRow?"":"not "), numIdentical, numIdenticalDefs, omxDataNumIdenticalRows(data, row), 
+                    numIdenticalContinuousRows, numIdenticalContinuousMissingness, 
+                    numIdenticalOrdinalRows, numIdenticalOrdinalMissingness);
+        }
 
-        // Note:  This next bit really aught to be done using a matrix multiply.  Why isn't it?
-        numOrdRemoves = 0;
-        numContRemoves = 0;
-
-        // Handle Definition Variables.
-        if(numDefs != 0) {
-			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
+        if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow ) {  // If we're keeping covariance from the previous row, do not populate 
+            // Handle Definition Variables.
+            if((numDefs != 0 && numIdenticalDefs > 0) || firstRow) {
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow || 1) { // TODO: Implement sorting-based speedups here.
+				if(handleDefinitionVarList(data, oo->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) { // TODO: Implement sorting-based speedups here.
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
+					// Recalculate means and covariances.
 					if(!(subObjective == NULL)) {
 						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);
 						omxRecompute(means);
 					}
-					for(int j=0; j < dataColumns->cols; j++) {
-						int var = omxVectorElement(dataColumns, j);
-						if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-							omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
-							checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
-						}
-					}
 				}
 			}
-		}
-
-        // TODO: Possible solution here: Manually record threshold column and index from data during this initial reduction step.  Since all the rest is algebras, it'll filter naturally.  Calculate offsets from continuous data, then dereference actual threshold values from the threshold matrix in its original state.  Requirement: colNum integer vector
-
-		// Filter down correlation matrix and calculate thresholds
-        // if(keepInverse <= 0 || keepCov <= 0 || firstRow) { // If defs and missingness don't change, skip. // TODO: Add in handling of sort speedup data
-    		for(int j = 0; j < dataColumns->cols; j++) {
+            // Filter down correlation matrix and calculate thresholds.
+            // TODO: If identical ordinal or continuous missingness, ignore only the appropriate columns.
+            numOrdRemoves = 0;
+            numContRemoves = 0;
+			for(int j = 0; j < dataColumns->cols; j++) {
                 zeros[j] = 0;
     			int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
@@ -311,207 +293,301 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
                     numContRemoves++;
                     ordRemove[j] = 1;
                     contRemove[j] = 1;
-    				// toRemove[j] = 1;
     				Infin[j] = -1;
-    				if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Not a factor.\n", row, j);}
+                    if(OMX_DEBUG_ROWS(row)) { 
+    				    Rprintf("Row %d, column %d, value %d.  NA.\n", row, j, value);
+                    }
     				continue;
     			} else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
                     numContRemoves++;
                     ordRemove[j] = 0;
                     contRemove[j] = 1;
-    			    if(OMX_DEBUG_ROWS(row)) { Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", row, j, var, value-1, lThresh[j], uThresh[j], Infin[j]);}
+                    if(OMX_DEBUG_ROWS(row)) { 
+    			        Rprintf("Row %d, column %d, value %d.  Ordinal.\n", row, j, value);
+                    }
     			} else {
     			    numOrdRemoves++;
                     ordRemove[j] = 1;
                     contRemove[j] = 0;
+                    if(OMX_DEBUG_ROWS(row)) { 
+    			        Rprintf("Row %d, column %d, value %d.  Continuous.\n", row, j, value);
+                    }
     			}
     		}
-
-    		if(numOrdRemoves >= dataColumns->cols && numContRemoves >=  dataColumns->cols) {
-    		    // All elements missing.  Skip row.
-				for(int nid = 0; nid < numIdentical; nid++) {	
-					if(returnRowLikelihoods) {
-						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1.0);
-					}
-					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
+    		
+            if(OMX_DEBUG_ROWS(row)) {
+                Rprintf("\n\nRemovals: %d ordinal, %d continuous out of %d total.", numOrdRemoves, numContRemoves, dataColumns->cols);
+            }
+    		
+			for(int j=0; j < dataColumns->cols; j++) {
+				int var = omxVectorElement(dataColumns, j);
+				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+					omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
 				}
-        		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-        		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-                if(OMX_DEBUG) { Rprintf("All elements missing.  Skipping row."); } // WAS: OMX_DEBUG_ROWS
-                row += numIdentical;
-        		keepCov -= numIdentical;
-        		keepInverse -= numIdentical;
-    			continue;
-    		}
+			}
+            numContinuous = dataColumns->cols - numContRemoves;
+            numOrdinal = dataColumns->cols - numOrdRemoves;
 
-    		//  smallCov <- cov[!contRemove, !contRemove] : covariance of continuous elements
-    		//  smallMeans <- means[ALL, !contRemove] : continuous means
-    		//  smallRow <- data[ALL, !contRemove]  : continuous data
-    		//              ordCov <- cov[!ordRemove, !ordRemove]
-    		//              ordMeans <- means[NULL, !ordRemove]
-    		//              ordData <- data[NULL, !ordRemove]
-    		//              ordContCov <- cov[!contRemove, !ordRemove]
+		}
 
-            // TODO: Data handling is confusing.  Maybe set two self-aliased row-reduction "datacolumns" elements?
-            omxResetAliasedMatrix(smallRow);				// Reset smallRow
-            omxDataRow(data, row, dataColumns, smallRow);						        // Populate data row
+        // TODO: Possible solution here: Manually record threshold column and index from data 
+        //   during this initial reduction step.  Since all the rest is algebras, it'll filter 
+        //   naturally.  Calculate offsets from continuous data, then dereference actual 
+        //   threshold values from the threshold matrix in its original state.  
+        //   Alternately, rearrange the thresholds matrix (and maybe data matrix) to split
+        //    ordinal and continuous variables.
+        //   Requirement: colNum integer vector
 
+		if(numContinuous <= 0 && numOrdinal <= 0) {
+		    // All elements missing.  Skip row.
+			for(int nid = 0; nid < numIdentical; nid++) {	
+				if(returnRowLikelihoods) {
+					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 1.0);
+				}
+				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
+			}
+			if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+    		if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
+    		if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
+    		if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
+    		if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
+            if(OMX_DEBUG) { Rprintf("All elements missing.  Skipping row."); } // WAS: OMX_DEBUG_ROWS
+            row += numIdentical;
+            numIdenticalDefs -= numIdentical;
+            numIdenticalContinuousMissingness -= numIdentical;
+            numIdenticalContinuousRows -= numIdentical;
+            numIdenticalOrdinalMissingness -= numIdentical;
+            numIdenticalOrdinalRows -= numIdentical;
+            continue;
+		}
+
+		//  smallCov <- cov[!contRemove, !contRemove] : covariance of continuous elements
+		//  smallMeans <- means[ALL, !contRemove] : continuous means
+		//  smallRow <- data[ALL, !contRemove]  : continuous data
+		//              ordCov <- cov[!ordRemove, !ordRemove]
+		//              ordMeans <- means[NULL, !ordRemove]
+		//              ordData <- data[NULL, !ordRemove]
+		//              ordContCov <- cov[!contRemove, !ordRemove]
+
+        // TODO: Data handling is confusing.  Maybe set two self-aliased row-reduction "datacolumns" elements?
+        
+        // SEPARATION: 
+        // Catch here: If continuous columns are all missing, skip everything except the ordCov calculations
+        //              in this case, log likelihood of the continuous is 1 (likelihood is 0)
+        // Do not recompute ordcov if missingness is identical and no def vars
+
+        // SEPARATION: 
+        //  Unprojected covariances only need to reset and re-filter if there are def vars or the appropriate missingness pattern changes
+        //  Also, if each one is not all-missing.
+
+		if(numContinuous <= 0) {
+		    // All continuous missingness.  Populate some stuff.
+            logDet = 0.0;
+            Q = 0.0;
+            determinant = 0;
+            if(numIdenticalDefs <= 0 || firstRow) {
+                // Recalculate Ordinal covariance matrix
+                omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
+                omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
+                
+                // Recalculate ordinal fs
+                omxResetAliasedMatrix(ordMeans);
+                omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
+                
+                // These values pass through directly without modification by continuous variables
+                
+                // Calculate correlation matrix, correlation list, and weights from covariance
+    		    omxStandardizeCovMatrix(ordCov, corList, weights);
+            }
+        } else if(numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow) {
+
+            /* Reset and Resample rows if necessary. */
+            // First Cov and Means (if they've changed)
+            if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow) {
+                omxResetAliasedMatrix(smallMeans);
+                omxRemoveRowsAndColumns(smallMeans, 0, numContRemoves, zeros, contRemove);
+                omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
+                omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove, contRemove);
+
+                /* Calculate derminant and inverse of Censored continuousCov matrix */
+                if(OMX_DEBUG_ROWS(row)) { 
+                    omxPrint(smallCov, "Cont Cov to Invert"); 
+                }
+                
+			    F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+
+                if(info != 0) {
+                    if(!returnRowLikelihoods) {
+                        for(int nid = 0; nid < numIdentical; nid++) {
+                            omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+                        }
+                        char helperstr[200];
+                        char *errstr = calloc(250, sizeof(char));
+                        sprintf(helperstr, "Expected covariance matrix for continuous variables is not positive-definite in data row %d", 
+                            omxDataIndex(data, row));
+                        if(oo->matrix->currentState->computeCount <= 0) {
+                            sprintf(errstr, "%s at starting values.\n", helperstr);
+                        } else {
+                            sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
+                        }
+                        omxRaiseError(oo->matrix->currentState, -1, errstr);
+                        free(errstr);
+                        return;
+                    } else {
+                        for(int nid = 0; nid < numIdentical; nid++) {
+                            omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+                            omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+                        }
+                        if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
+                        
+                        if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+                        if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness =
+                                                            omxDataNumIdenticalContinuousMissingness(data, row);
+                        if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = 
+                                                            omxDataNumIdenticalOrdinalMissingness(data, row);
+                        if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = 
+                                                            omxDataNumIdenticalContinuousRows(data, row);
+                        if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = 
+                                                            omxDataNumIdenticalOrdinalRows(data, row);
+                        row += numIdentical;
+                        numIdenticalDefs -= numIdentical;
+                        numIdenticalContinuousMissingness -= numIdentical;
+                        numIdenticalContinuousRows -= numIdentical;
+                        numIdenticalOrdinalMissingness -= numIdentical;
+                        numIdenticalOrdinalRows -= numIdentical;
+                        continue;
+                    }
+                }
+                // Calculate determinant: squared product of the diagonal of the decomposition
+    			// For speed, use sum of logs rather than log of product.
+    			
+                determinant = 0.0;
+    			for(int diag = 0; diag < (smallCov->rows); diag++) {
+    				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
+    			}
+                // determinant = determinant * determinant;  // Delayed.
+    			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+    			if(info != 0) {
+    				if(!returnRowLikelihoods) {
+    					char *errstr = calloc(250, sizeof(char));
+    					for(int nid = 0; nid < numIdentical; nid++) {
+    						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+    					}
+    					sprintf(errstr, "Cannot invert expected continuous covariance matrix. Error %d.", info);
+    					omxRaiseError(oo->matrix->currentState, -1, errstr);
+    					free(errstr);
+    					return;
+    				} else {
+    					for(int nid = 0; nid < numIdentical; nid++) {
+    						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+    						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+    					}
+                        if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+                        if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
+                        if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
+                        if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
+                        if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
+                        numIdenticalDefs -= numIdentical;
+                        numIdenticalContinuousMissingness -= numIdentical;
+                        numIdenticalContinuousRows -= numIdentical;
+                        numIdenticalOrdinalMissingness -= numIdentical;
+                        numIdenticalOrdinalRows -= numIdentical;
+                        continue;
+    				}
+    			}
+            }
+
+            // Reset continuous data row (always needed)
+            omxResetAliasedMatrix(contRow);                                            // Reset smallRow
+            omxRemoveRowsAndColumns(contRow, 0, numContRemoves, zeros, contRemove); 	// Reduce the row to just continuous.
+            F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
+
+		    /* Calculate Row Likelihood */
+		    /* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
+    		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
+    		Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
+    		
+    		if(numOrdinal > 0) {
+
+                // Precalculate Ordinal things that change with continuous changes
+                // Reserve: 1) Inverse continuous covariance (smallCov)
+                //          2) Columnwise Mahalanobis distance (contCov^-1)%*%(Data - Means) (RCX)
+                //          3) Overall Mahalanobis distance (FIML likelihood of data) (Q)
+                //Calculate:4) Cont/ord covariance %*% Mahalanobis distance  (halfCov)
+                //          5) ordCov <- ordCov - Cont/ord covariance %*% Inverse continuous cov
+
+                if(numIdenticalContinuousMissingness <= 0 || firstRow) {
+                    // Re-sample covariance between ordinal and continuous only if the continuous missingness changes.
+                    omxResetAliasedMatrix(ordContCov);
+                    omxRemoveRowsAndColumns(ordContCov, numContRemoves, numOrdRemoves, contRemove, ordRemove);
+
+                    // TODO: Make this less of a hack.
+                    halfCov->rows = smallCov->rows;
+                    halfCov->cols = ordContCov->cols;
+                    omxMatrixCompute(halfCov);
+                    reduceCov->rows = ordContCov->cols;
+                    reduceCov->cols = ordContCov->cols;
+                    omxMatrixCompute(reduceCov);
+
+                    F77_CALL(dsymm)(&l, &u, &(smallCov->rows), &(ordContCov->cols), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
+                    F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->cols), &(halfCov->cols), &(ordContCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is cont/ord^T %*% (contCov^-1 %*% cont/ord)
+                }
+
+                if(numIdenticalOrdinalMissingness <= 0 || firstRow) {
+                    // Means, projected covariance, and Columnwise mahalanobis distance must be recalculated
+                    //   unless there are no ordinal variables or the continuous variables are identical
+                    
+                    // Recalculate Ordinal and Ordinal/Continuous covariance matrices.
+                    if(OMX_DEBUG_ROWS(row)) {
+                        Rprintf("Resetting Ordinal Covariance Matrix.\n");
+                        omxPrint(ordCov, "Was:");
+                    }
+
+                    omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
+                    if(OMX_DEBUG_ROWS(row)) {
+                        Rprintf("Resetting/Filtering Ordinal Covariance Matrix.\n");
+                        omxPrint(ordCov, "Reset to:");
+                    }
+
+                    omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
+                    if(OMX_DEBUG_ROWS(row)) {
+                        Rprintf("Resetting/Filtering Ordinal Covariance Matrix.\n");
+                        omxPrint(ordCov, "Filtered to:");
+                    }
+                
+                    // FIXME: This assumes that ordCov and reducCov have the same row/column majority.
+                    int vlen = reduceCov->rows * reduceCov->cols;
+                    F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov) %*% cont/ord
+            
+                }
+                
+                // Projected means must be recalculated if the continuous variables change at all.
+                omxResetAliasedMatrix(ordMeans);
+                omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
+                F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), contRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
+            }
+            
+        } // End of continuous likelihood values calculation
+        
+        if(numOrdinal <= 0) {       // No Ordinal Vars at all.
+            likelihood = 1;
+        } else {  
+            // There are ordinal vars, and not everything is identical, so we're recalculating
+            // Calculate correlation matrix, correlation list, and weights from covariance
+            if(numIdenticalDefs <=0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
+                // if(OMX_DEBUG_ROWS(row)) {omxPrint(ordCov, "Ordinal cov matrix for standardization."); } //:::DEBUG:::
+                omxStandardizeCovMatrix(ordCov, corList, weights);
+            }
+            
             omxResetAliasedMatrix(ordRow);                                              // Propagate to ordinal row
             omxRemoveRowsAndColumns(ordRow, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
-    		omxRemoveRowsAndColumns(smallRow, 0, numContRemoves, zeros, contRemove); 	// Reduce the row to just continuous.
-    		omxResetAliasedMatrix(smallMeans);
-    		omxResetAliasedMatrix(ordMeans);
-            omxRemoveRowsAndColumns(smallMeans, 0, numContRemoves, zeros, contRemove);
-            omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
-            
 
-    		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
+            // omxPrint(ordMeans, "Ordinal Projected Means"); //:::DEBUG:::
+            // omxPrint(ordRow, "Filtered Ordinal Row"); //:::DEBUG:::
 
-			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
-			omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove, contRemove);
-			omxResetAliasedMatrix(ordCov);				// Re-sample covariance matrix for ordinal
-			omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
-			omxResetAliasedMatrix(ordContCov);				// Re-sample covariance between ordinal and continuous
-            F77_CALL(daxpy)(&(smallRow->cols), &minusoned, smallMeans->data, &onei, smallRow->data, &onei);
-			omxRemoveRowsAndColumns(ordContCov, numContRemoves, numOrdRemoves, contRemove, ordRemove);
 
-            /* :::DEBUG::: */
-            //             if(OMX_DEBUG_ROWS) { Rprintf("Removed %d continuous and %d ordinal cols from length %d(%d) data row.\n", numContRemoves, numOrdRemoves, dataColumns->cols, cov->cols);}
-            // if(OMX_DEBUG_ROWS) { omxPrint(cov, "Original Covariance Matrix"); }
-            // if(OMX_DEBUG_ROWS) { 
-            //  omxPrint(smallCov, "Continuous Covariance Matrix"); 
-            //  }
-            //             if(OMX_DEBUG_ROWS) { 
-            //  omxPrint(smallRow, "Continuous elements");
-            //  }
-            // if(OMX_DEBUG_ROWS) { omxPrint(ordCov, "Ordinal Covariance Matrix"); }
-            // if(OMX_DEBUG_ROWS) { 
-            //  omxPrint(ordRow, "Ordinal elements");
-            //  }
-            // if(OMX_DEBUG_ROWS) { 
-            //  omxPrint(ordContCov, "Ordinal/Continuous Covariance Matrix");
-            //   }
-            /* :::DEBUG::: */
-            
-            // if(smallCov->cols < 1) {     // TODO: Implement catch for all-continuous-missing case
-
-			/* Calculate derminant and inverse of Censored continuousCov matrix */
-			// TODO : Speed this up.
-			F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-
-			if(info != 0) {
-				if(!returnRowLikelihoods) {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-					char helperstr[200];
-					char *errstr = calloc(250, sizeof(char));
-					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
-					if(oo->matrix->currentState->computeCount <= 0) {
-						sprintf(errstr, "%s at starting values.\n", helperstr);
-					} else {
-						sprintf(errstr, "%s at major iteration %d.\n", helperstr, oo->matrix->currentState->majorIteration);
-					}
-					omxRaiseError(oo->matrix->currentState, -1, errstr);
-					free(errstr);
-					return;
-				} else {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-                    if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
-                    row += numIdentical;
-            		keepCov -= numIdentical;
-            		keepInverse -= numIdentical;
-					continue;
-				}
-			}
-
-			// Calculate determinant: squared product of the diagonal of the decomposition
-			// For speed, use sum of logs rather than log of product.
-			determinant = 0.0;
-			for(int diag = 0; diag < (smallCov->rows); diag++) {
-				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
-			}
-            // determinant = determinant * determinant;  // Delayed.
-			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
-			if(info != 0) {
-				if(!returnRowLikelihoods) {
-					char *errstr = calloc(250, sizeof(char));
-					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
-					omxRaiseError(oo->matrix->currentState, -1, errstr);
-					free(errstr);
-					return;
-				} else {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-                    // Rprintf("Incrementing Row."); //:::DEBUG:::
-                    row += numIdentical;
-            		keepCov -= numIdentical;
-            		keepInverse -= numIdentical;
-					continue;
-				}
-			}
-        // }
-        
-		/* Calculate Row Likelihood */
-		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), smallRow->data, &onei, &zerod, RCX->data, &onei);                          // RCX is the continuous-column mahalanobis distance.
-		Q = F77_CALL(ddot)(&(smallRow->cols), smallRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
-		
-		// Reserve: 1) Inverse continuous covariance (smallCov)
-		//          2) Columnwise Mahalanobis distance (contCov^-1)%*%(Data - Means) (RCX)
-		//          3) Overall Mahalanobis distance (FIML likelihood of data) (Q)
-		//Calculate:4) Cont/ord covariance %*% Mahalanobis distance  (halfCov)
-		//          5) ordCov <- ordCov - Cont/ord covariance %*% Inverse continuous cov
-		
-		// TODO: Make this less of a hack.
-        halfCov->rows = smallCov->rows;
-        halfCov->cols = ordContCov->cols;
-        omxMatrixCompute(halfCov);
-        reduceCov->rows = ordContCov->cols;
-        reduceCov->cols = ordContCov->cols;
-        omxMatrixCompute(reduceCov);
-        
-        F77_CALL(dsymv)(&u, &(ordContCov->rows), &oned, ordContCov->data, (&ordContCov->cols), RCX->data, &onei, &zerod, RCX->data, &onei);                             // RCX is the influence of the continuous on the thresholds
-        F77_CALL(dsymm)(&l, &u, &(smallCov->rows), &(ordContCov->cols), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
-        F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->cols), &(halfCov->cols), &(ordContCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is cont/ord^T %*% (contCov^-1 %*% cont/ord)
-        int vlen = reduceCov->rows * reduceCov->cols;
-        // FIXME: This assumes that ordCov and reducCov have the same row/column majority.
-        F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov) %*% cont/ord
-        F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), smallRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
-
-        // 
-        // if(OMX_DEBUG_ROWS) {
-        //     omxPrint(smallCov, "smallCov"); //:::DEBUG:::
-        //     omxPrint(ordContCov, "OrdCont"); //:::DEBUG:::
-        //     omxPrint(RCX, "RCX"); //:::DEBUG:::
-        //     omxPrint(halfCov, "halfCov"); //:::DEBUG:::
-        //     omxPrint(ordCov, "ordCov"); //:::DEBUG:::
-        //     omxPrint(reduceCov, "reduceCov"); //:::DEBUG:::
-        //     omxPrint(means, "Means"); //:::DEBUG:::
-        // }
-
-		// TODO: Implement all-ordinal-missing case
-        // if(numOrdRemoves < dataColumns->cols) {    // Ordinal all missing.
-        //             likelihood = 1;
-        // 
-        //         } else {
-
-		    // Calculate correlation matrix from covariance
-		    if(OMX_DEBUG) {omxPrint(ordCov, "Cov matrix for standardization."); } //:::DEBUG:::
-		    omxStandardizeCovMatrix(ordCov, corList, weights);
-		    
+            // Inspect elements, reweight, and set to 
             int count = 0;
     		for(int j = 0; j < dataColumns->cols; j++) {
                 if(ordRemove[j]) continue;         // NA or non-ordinal
@@ -524,18 +600,13 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     			if(means == NULL) offset = 0;
     			else offset = omxVectorElement(ordMeans, count);
     			double weight = weights[count];
-                offset += omxVectorElement(RCX, j);          // Offset adjustment now covers mahalnobis adjustment as well
     			if(value == 0) { 									// Lowest threshold = -Inf
-                    // Rprintf("0 %d = %d, %x, %d, %3.3f, %3.3f.\n", j, count, thresholdCols[j].matrix, thresholdCols[j].column, offset, weight); //:::DEBUG::::
-                    // Rprintf("%d(%d) Zeroed.", j, count); //:::DEBUG:::
     				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - offset) / weight;
     				uThresh[count] = lThresh[count];
     				Infin[count] = 0;
     			} else {
-                    // Rprintf("%d(%d) NonZeroed.", j, count); //:::DEBUG:::
     				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - offset) / weight;
     				if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
-                        // Rprintf("Twoed."); //:::DEBUG:::
     					double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - offset) / weight;
     					uThresh[count] = tmp;
     					Infin[count] = 2;
@@ -549,13 +620,16 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     				uThresh[count] = lThresh[count];
     				Infin[count] = 1;
     			}
-    			if(OMX_DEBUG) { Rprintf("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d)\n", row, count, j, value, lThresh[count], uThresh[count], Infin[count]);}
-                // omxPrint(thresholdCols[j].matrix, "Thresholds"); // :::DEBUG:::
+    			if(OMX_DEBUG) { 
+    			    Rprintf("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d).  Offset is %f and weight is %f\n",
+    			            row, count, j, value, lThresh[count], uThresh[count], Infin[count], offset, weight);
+    			    Rprintf("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.\n",
+    			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
+    			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
+                            weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
+    			}
                 count++;
     		}
-
-    		double likelihood;
-			int inform;
 
 			omxSadmvnWrapper(oo, cov, ordCov, corList, lThresh, uThresh, Infin, &likelihood, &inform);
 
@@ -580,20 +654,29 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     					omxSetMatrixElement(oo->matrix, omxDataIndex(data, row+nid), 0, 0.0);
     					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
     				}
-            		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-            		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
                     if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+                    if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+            		if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
+            		if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
+            		if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
+            		if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
                     row += numIdentical;
-            		keepCov -= numIdentical;
-            		keepInverse -= numIdentical;
-    				continue;
+            		numIdenticalDefs -= numIdentical;
+                    numIdenticalContinuousMissingness -= numIdentical;
+                    numIdenticalContinuousRows -= numIdentical;
+                    numIdenticalOrdinalMissingness -= numIdentical;
+                    numIdenticalOrdinalRows -= numIdentical;
+                    continue;
+
     			}
     		}
-        // }
+		}
 
 		if(returnRowLikelihoods) {
-		    if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
-			sum = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
+		    if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", 
+		        pow(2 * M_PI, -.5 * numContinuous), (1.0/exp(determinant)), exp(-.5 * Q), 
+		        pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+			sum = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
             
 			if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);}
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
@@ -601,18 +684,20 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, sum);
 			}
 		} else {
-            double val = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;            
+            double val = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;            
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, val);
 			}
 			logDet = -2 * log(likelihood);       // -2 Log of ordinal likelihood
-            logDet += ((2 * determinant) + Q + (log(2 * M_PI) * smallRow->cols));    // -2 Log of continuous likelihood
-            // logDet *= numIdentical;
+            logDet += ((2 * determinant) + Q + (log(2 * M_PI) * numContinuous));    // -2 Log of continuous likelihood
+            logDet *= numIdentical;
 
             sum += logDet;
 			
 			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, total Likelihood is %3.3f\n", oo->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), -2  * log(likelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * smallRow->cols), sum);
+				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, total Likelihood is %3.3f\n", 
+				    oo->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * numContinuous), 
+				    -2  * log(likelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * numContinuous), sum);
 			} 
 
 			if(OMX_DEBUG_ROWS(row)) {
@@ -620,19 +705,26 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 				    sum, logDet);
             }
         }
-		if(firstRow) firstRow = 0;
-		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-        // Rprintf("Incrementing Row."); //:::DEBUG:::
-		row += numIdentical;		// Step forward by the number of identical rows
-		keepCov -= numIdentical;
-		keepInverse -= numIdentical;
+        if(firstRow) firstRow = 0;
+        if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+        if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
+        if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
+        if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
+        if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
+        row += numIdentical;
+        numIdenticalDefs -= numIdentical;
+        numIdenticalContinuousMissingness -= numIdentical;
+        numIdenticalContinuousRows -= numIdentical;
+        numIdenticalOrdinalMissingness -= numIdentical;
+        numIdenticalOrdinalRows -= numIdentical;
+        continue;
+
 	}
 
     if(!returnRowLikelihoods) {
         if(OMX_DEBUG) {
-            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f, total change %3.3f\n",
-                sum, logDet, logDet + Q + (log(2 * M_PI) * (cov->cols)));
+            Rprintf("Total over all rows is %3.3f. -2 Log Likelihood this row is %3.3f\n",
+                sum, logDet);
         }
 
         oo->matrix->data[0] = sum;
@@ -1047,58 +1139,59 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	}
 	UNPROTECT(1); // unprotect nextMatrix
 
-	/* Temporary storage for calculation */
-	int covCols = newObj->cov->cols;
+    /* Temporary storage for calculation */
+    int covCols = newObj->cov->cols;
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
-	newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
-	newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-	newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
-//	newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
+    newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+    newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
+    newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
+//  newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
 
-	omxAliasMatrix(newObj->smallCov, newObj->cov);					// Will keep its aliased state from here on.
+    omxAliasMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
     oo->argStruct = (void*)newObj;
 
-	if(numOrdinal > 0 && numContinuous <= 0) {
-		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
-		}
-		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
-		newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
-		newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
-		newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
-		newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
+    if(numOrdinal > 0 && numContinuous <= 0) {
+        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+            Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
+        }
+        newObj->weights = (double*) R_alloc(covCols, sizeof(double));
+        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        omxAliasMatrix(newObj->smallMeans, newObj->means);
+        newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
+        newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
+        newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
+        newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
+        newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
-		oo->objectiveFun = omxCallFIMLOrdinalObjective;
-	} else if(numOrdinal > 0) {
-		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
-		}
-		newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-		newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		newObj->ordCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		newObj->ordMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        oo->objectiveFun = omxCallFIMLOrdinalObjective;
+    } else if(numOrdinal > 0) {
+        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+            Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
+        }
+
+        newObj->weights = (double*) R_alloc(covCols, sizeof(double));
+        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        newObj->ordMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        newObj->contRow = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
         newObj->ordRow = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        newObj->ordCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
         newObj->ordContCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
         newObj->halfCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		omxAliasMatrix(newObj->ordMeans, newObj->means);
-		omxAliasMatrix(newObj->ordCov, newObj->cov);
-		omxAliasMatrix(newObj->ordContCov, newObj->cov);
-		omxAliasMatrix(newObj->ordRow, newObj->smallRow );
-		omxAliasMatrix(newObj->smallMeans, newObj->means);
-		omxAliasMatrix(newObj->ordMeans, newObj->means);
-		newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
-		newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
-		newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
-		newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
+        omxAliasMatrix(newObj->smallMeans, newObj->means);
+        omxAliasMatrix(newObj->ordMeans, newObj->means);
+        omxAliasMatrix(newObj->contRow, newObj->smallRow );
+        omxAliasMatrix(newObj->ordRow, newObj->smallRow );
+        omxAliasMatrix(newObj->ordCov, newObj->cov);
+        omxAliasMatrix(newObj->ordContCov, newObj->cov);
+        omxAliasMatrix(newObj->smallMeans, newObj->means);
+        omxAliasMatrix(newObj->ordMeans, newObj->means);
+        newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
+        newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
+        newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
+        newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
-		oo->objectiveFun = omxCallJointFIMLObjective;
-	}
+        oo->objectiveFun = omxCallJointFIMLObjective;
+    }
 }

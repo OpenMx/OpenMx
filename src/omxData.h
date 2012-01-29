@@ -92,7 +92,11 @@ struct omxData {						// A matrix
 	omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 	int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
 	int omxDataNumIdenticalRows(omxData *od, int row);							// Returns the number of rows identical to this one in the data set
-	int omxDataNumIdenticalMissingness(omxData *od, int row);						// Returns the number of rows with definition variables and missingness identical to this one in the data set
+	int omxDataNumIdenticalMissingness(omxData *od, int row);					// Returns the number of rows with definition variables and missingness identical to this one in the data set
+    int omxDataNumIdenticalContinuousRows(omxData *od, int row);                // Number of rows with continuous variables remaining, or Inf if no continous vars
+    int omxDataNumIdenticalContinuousMissingness(omxData *od, int row);         // Number of rows with continuous variables remaining, or Inf if no continous vars
+    int omxDataNumIdenticalOrdinalRows(omxData *od, int row);
+    int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row);
 	int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number of rows with definition variables identical to this one in the data set
 	
 	double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
