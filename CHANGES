@@ -1,3 +1,7 @@
+trunk
+=====
+* added an OpenMX Sphinx/reST theme to enable documentation code-blocks with different background colors.
+* modified build system so that mxVersion now returns the correct revision number of the running code.
 Beta Release 999.0.0-1876 (Dec 2, 2011)
 =======================================
 * new interface such that 'objective@info$expMean', 'objective@info$expCov'
