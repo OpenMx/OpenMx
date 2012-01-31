@@ -14,7 +14,7 @@ Full Information Maximum Likelihood, Row Objective Specification
 
 This example will show how full information maximum likelihood can be implemented using a row-by-row evaluation of a likelihood function.  This example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
 
-*    http://openmx.psyc.virginia.edu/svn/trunk/demo/FIMLRowObjectiveBivariateCorrelation.R
+*    http://openmx.psyc.virginia.edu/svn/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
 
 There is a parallel version of this example that uses the standard full information maximum likelihood implementation here:
 
