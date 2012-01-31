@@ -7,11 +7,11 @@ An important aspect of structural equation modeling is the use of multiple group
 
 The example includes the heterogeneity model as well as its submodel, the homogeneity model, and is available in the following file:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateHeterogeneity_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateHeterogeneity_PathRaw.R
 
 A parallel version of this example, using matrix specification of models rather than paths, can be found here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateHeterogeneity_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateHeterogeneity_MatrixRaw.R
 
 
 Heterogeneity Model

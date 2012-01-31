@@ -15,21 +15,21 @@ Univariate Saturated Model
     
 The four univariate examples are available here, and you may wish to access them while working through this manual. The last file includes all four example in one.
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateSaturated_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateSaturated_PathRaw.R                                
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateSaturated_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateSaturated_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateSaturated.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/UnivariateSaturated_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/UnivariateSaturated_PathRaw.R                                
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/UnivariateSaturated_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/UnivariateSaturated_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/UnivariateSaturated.R
 
 The bivariate examples are available in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_PathRaw.R                                
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_MatrixCovCholesky.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated_MatrixRawCholesky.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateSaturated.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_PathRaw.R                                
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_MatrixCovCholesky.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated_MatrixRawCholesky.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/BivariateSaturated.R
 
 Note that we have additional versions of these matrix-style examples which use a Cholesky decomposition to estimate the expected covariance matrices, which is preferable to directly estimating the symmetric matrices as it avoids the possibility of non positive-definite matrices.
 

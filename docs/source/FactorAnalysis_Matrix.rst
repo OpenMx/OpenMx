@@ -5,17 +5,17 @@ Factor Analysis, Matrix Specification
 
 This example will demonstrate latent variable modeling via the common factor model using RAM matrices for model specification. We'll walk through two applications of this approach: one with a single latent variable, and one with two latent variables. As with previous examples, these two applications are split into four files, with each application represented separately with raw and covariance data. These examples can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorModel_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorModel_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/TwoFactorModel_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/TwoFactorModel_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/OneFactorModel_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/OneFactorModel_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/TwoFactorModel_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/TwoFactorModel_MatrixRaw.R
 
 Parallel versions of this example, using path-centric specification of models rather than paths, can be found here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorModel_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorModel_PathRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/TwoFactorModel_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/TwoFactorModel_PathRaws.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/OneFactorModel_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/OneFactorModel_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/TwoFactorModel_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.1/demo/TwoFactorModel_PathRaws.R
 
 
 Common Factor Model
