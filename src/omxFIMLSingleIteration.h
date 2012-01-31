@@ -19,6 +19,9 @@
 
 #include "omxFIMLObjective.h"
 
+void omxFIMLSingleIterationJoint(omxObjective *localobj,
+	omxObjective *sharedobj, int rowbegin, int rowcount);
+
 void omxFIMLSingleIterationOrdinal(omxObjective *localobj,
 	omxObjective *sharedobj, int rowbegin, int rowcount);
 

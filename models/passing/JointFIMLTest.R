@@ -232,17 +232,17 @@ ordModel        <- mxOption(ordModel,        "Standard Errors", "No")
 contModel       <- mxOption(contModel,       "Standard Errors", "No")
 
 # Step 12: Run 'em.
-thresholdModelRun <- mxRun(thresholdModel)
-continuousModelRun <- mxRun(continuousModel)
-jointModelRun <- mxRun(jointModel)
+thresholdModelRun <- mxRun(thresholdModel, suppressWarnings=TRUE)
+continuousModelRun <- mxRun(continuousModel, suppressWarnings=TRUE)
+jointModelRun <- mxRun(jointModel, suppressWarnings=TRUE)
 
 ordinal    <- summary(thresholdModelRun)$Minus2LogLikelihood
 continuous <- summary(continuousModelRun)$Minus2LogLikelihood
 joint      <- summary(jointModelRun)$Minus2LogLikelihood
 
-ord <- summary(mxRun(ordModel))$Minus2LogLikelihood
-cont <- summary(mxRun(contModel) )$Minus2LogLikelihood
-indepJoint <- summary(mxRun(independentModel))$Minus2LogLikelihood
+ord <- summary(mxRun(ordModel, suppressWarnings=TRUE))$Minus2LogLikelihood
+cont <- summary(mxRun(contModel, suppressWarnings=TRUE))$Minus2LogLikelihood
+indepJoint <- summary(mxRun(independentModel, suppressWarnings=TRUE))$Minus2LogLikelihood
 
 # Second simulation set: 2 correlated continuous, one NA ordinal
 
@@ -292,8 +292,8 @@ contModel1A <- mxOption(contModel1A, "Function precision", 1e-9)
 contModel1 <- mxOption(contModel1, "Calculate Hessian", "No")
 contModel1A <- mxOption(contModel1A, "Calculate Hessian", "No")
 
-contFit1 <- mxRun(contModel1)
-contFit1A <- mxRun(contModel1A)
+contFit1 <- mxRun(contModel1, suppressWarnings=TRUE)
+contFit1A <- mxRun(contModel1A, suppressWarnings=TRUE)
 contSum1 <- summary(contFit1)
 contSum1A <- summary(contFit1A)
 
@@ -328,8 +328,8 @@ ordModel1A <- mxOption(ordModel1A, "Function precision", 1e-9)
 ordModel1 <- mxOption(ordModel1, "Calculate Hessian", "No")
 ordModel1A <- mxOption(ordModel1A, "Calculate Hessian", "No")
 
-ordFit1 <- mxRun(ordModel1)
-ordFit1A <- mxRun(ordModel1A)
+ordFit1 <- mxRun(ordModel1, suppressWarnings=TRUE)
+ordFit1A <- mxRun(ordModel1A, suppressWarnings=TRUE)
 ordSum1 <- summary(ordFit1)
 ordSum1A <- summary(ordFit1A)
 
@@ -415,10 +415,10 @@ ordModel2 <- mxOption(ordModel2, "Calculate Hessian", "No")
 allModel2 <- mxOption(allModel2, "Calculate Hessian", "No")
 dubModel2 <- mxOption(dubModel2, "Calculate Hessian", "No")
 
-contFit2 <- mxRun(contModel2)
-ordFit2  <- mxRun(ordModel2)
-allFit2  <- mxRun(allModel2)
-dubFit2  <- mxRun(dubModel2)
+contFit2 <- mxRun(contModel2, suppressWarnings=TRUE)
+ordFit2  <- mxRun(ordModel2, suppressWarnings=TRUE)
+allFit2  <- mxRun(allModel2, suppressWarnings=TRUE)
+dubFit2  <- mxRun(dubModel2, suppressWarnings=TRUE)
 
 contSum2 <- summary(contFit2)
 ordSum2  <- summary(ordFit2)
@@ -468,7 +468,7 @@ dubSum2  <- summary(dubFit2)
 # allModel3 <- mxOption(allModel3, "Function precision", 1e-9)
 # allModel3 <- mxOption(allModel3, "Calculate Hessian", "No")
 # 
-# allFit3 <- mxRun(allModel3)
+# allFit3 <- mxRun(allModel3, suppressWarnings=TRUE)
 # allSum3 <- summary(allFit3)
 
 omxCheckCloseEnough(contSum1$Minus2LogLikelihood, contSum1A$Minus2LogLikelihood, .0000001)
