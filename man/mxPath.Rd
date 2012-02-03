@@ -24,10 +24,10 @@
 }
 
 \usage{
-%mxPath(from, to = NA, all = FALSE, arrows = 1,
-mxPath(from, to = NA, connect = "single", arrows = 1,
+mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
+    "all.bivariate", "unique.bivariate"), arrows = 1,
 	free = TRUE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA)
+	lbound = NA, ubound = NA, ...)
 }
 
 \arguments{
