@@ -173,7 +173,7 @@ htmlhelp_basename = 'OpenMxdoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'OpenMx.tex', u'OpenMx Documentation',
-   u'OpenMx Development Team', 'manual'),
+   u'Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C. Hackett, Julian Karch, Andreas Brandmaier', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
