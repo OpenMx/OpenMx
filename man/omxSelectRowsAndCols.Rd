@@ -38,7 +38,7 @@ omxSelectCols(x, selector)
 
 \details{
 
-omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a target matrix specified by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the target matrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from a target matrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. 
+omxSelectRowsAndCols, omxSelectRows, and omxSelectCols returns the filtered entries in a target matrix specified by a single row or single column selector matrix. Each entry in the selector matrix is treated as a logical data indicating if the corresponding entry in the target matrix should be excluded (0 or FALSE) or included (not 0 or TRUE). Typically the function is used to filter data from a target matrix using an existence vector which specifies what data entries are missing. This can be seen in the demo: RowObjectiveFIMLBivariateSaturated. 
 }
 
 \value{
@@ -46,7 +46,7 @@ Returns a new matrix with the filtered data.
 }
 
 \references{
-The function is most often used when filtering data for missingness. This can be seen in the demo: FIMLRowObjectiveBivariateCorrelation.R. The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation. The omxSelect* functions share some similarity to the Extract function in the R programming language.
+The function is most often used when filtering data for missingness. This can be seen in the demo: RowObjectiveFIMLBivariateSaturated. The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation. The omxSelect* functions share some similarity to the Extract function in the R programming language.
 }
 
 \examples{
