@@ -85,7 +85,7 @@ The following functions are supported in mxAlgebra:
 \item{\code{\link{omxGreaterThan}}}{Perform binary greater on two matrices}
 \item{\code{\link{omxLessThan}}}{Perform binary less than on two matrices}
 \item{\code{\link{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
-\item{\code{\link{omxExponential}}}{Matrix Exponential}
+\item{\code{omxExponential}}{Matrix Exponential}
 }}
 
 \value{
