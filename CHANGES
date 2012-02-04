@@ -1,5 +1,5 @@
-trunk
-=====
+Official Release 1.2.0-1926 (Feb 4, 2012)
+=========================================
 * added an OpenMX Sphinx/reST theme to enable documentation code-blocks with different background colors.
 * modified build system so that mxVersion now returns the correct revision number of the running code.
 
