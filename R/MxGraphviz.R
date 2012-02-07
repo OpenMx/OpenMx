@@ -27,7 +27,7 @@ writeDotFile <-function (model, graph, dotFilename)
 		outputLines <-append(outputLines, rankString)
         for (i in 1:length(graph@manifestVars)) {
             outputLines <- c(outputLines, paste("\t", graph@manifestVars[[i]], 
-                "[shape=box, fillcolor=\"#a9fab1\", height=0.5, width=0.5];"))
+                "[shape=square, fillcolor=\"#a9fab1\", height=0.5, width=0.5];"))
         }
     }
     if (length(graph@latentVars) > 0) {
