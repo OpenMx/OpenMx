@@ -41,7 +41,7 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	    omxRecompute(oro->AL);
 	}
 
-	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->PH, oro->PS, oro->TD, oro->TE, oro->TH, oro->cov, oro->means, oro->numIters, oro->I, oro->LXPH, oro->W, oro->GAPH, oro->U);
+	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->PH, oro->PS, oro->TD, oro->TE, oro->TH, oro->cov, oro->means, oro->numIters, oro->I, oro->LXPH, oro->W, oro->GAPH, oro->U, oro->TOP, oro->BOT);
 }
 
 void omxDestroyLISRELObjective(omxObjective* oo) {
@@ -122,10 +122,11 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 /* omxFastLISRELInverse would go here */
 
 
-void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U) {
+void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U, omxMatrix* TOP, omxMatrix* BOT) {
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
+	omxMatrix** args = R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH);
@@ -152,6 +153,18 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	/* Construct the full model-implied covariance matrix from the blocks previously calculated */
 	// SigmaHat = ( TE  t(TH) )
 	//            ( TH    TD  )
+	args[0] = TH;
+	args[1] = TD;
+	omxMatrixHorizCat(args, 2, BOT);
+	args[0] = TD;
+	omxTransposeMatrix(TH);
+	args[1] = TH;
+	omxMatrixHorizCat(args, 2, TOP);
+	omxTransposeMatrix(TH);
+	// So that it's back where it was.
+	args[0] = TOP;
+	args[1] = BOT;
+	omxMatrixVertCat(args, 2, Cov);
 	
 /*	
 	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
