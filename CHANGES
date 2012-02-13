@@ -1,54 +1,45 @@
-Official Release 1.2.0-1926 (Feb 4, 2012)
-=========================================
-* added an OpenMX Sphinx/reST theme to enable documentation code-blocks with different background colors.
-* modified build system so that mxVersion now returns the correct revision number of the running code.
-
-Beta Release 999.0.0-1876 (Dec 2, 2011)
-=======================================
+Release 1.2.0-1926 (February 04, 2012)
+======================================
 * new interface such that 'objective@info$expMean', 'objective@info$expCov'
-      and 'objective@info$likelihoods' are available in FIML or RAM objective functions.
+  and 'objective@info$likelihoods' are available in FIML or RAM objective functions.
 * bug fix for omxSetParameters with lbound or ubound of NA.
-* Updated mxAlgebra man pages to include omxMnor, omxAllInt, omxExponential.
 * catching unknown matrix operator or function in mxAlgebra() or mxConstraint() declaration
-* updated user guide examples and documentation to reflect new mxPath 'connect' argument.
-* removed 'all' argument from mxPath function and replaced it with 'connect' argument. Also updated demos that used 'all' argument and documentation.
+* deprecated 'all' argument from mxPath function and replaced it with 'connect' argument. Also updated demos that used 'all' argument and documentation.
 * removed 'excludeself' argument from mxPath() function
-* added deprecation warning for argument 'all'=TRUE in mxPath()
-* eliminated flattenModelHelper() and replaced with functions that use lapply()
-* changed signature of genericObjModelConvert() to return list(job, flatJob) in order to improve performance
-* added '@likelihoods' slot for MxFIMLObjective and MxRAMObjective (when using raw data)
+* added deprecation warning for argument 'all' = TRUE in mxPath()
 * added support for OpenMP in hessian calculation
 * added support for OpenMP in continuous FIML objective function
 * added support for OpenMP in ordinal FIML objective function
-* fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+* added support for OpenMP in joint ordinal/continuous FIML objective function
 * added more descriptive error message to mxOption()
-* catching illegal references of the form "mzData.ageT1mz"
 * serializing the sum operation on likelihoods - floating point addition is not associative
-* error checking when 'A' and 'S' matrices have different dimensions in MxRAMObjective function
 
-Beta Release 999.0.0-1690 (June 27, 2011)
-=========================================
+Release  1.1.2-1818 (October 24, 2011)
+======================================
+* fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+* fixed bug in independence model likelihood calculation for ML objective
+* included support for gcc 4.5 and 4.6 under 32-bit x86
+
+Release  1.1.1-1784 (September 11, 2011)
+========================================
+* fixed several bugs in joint ordinal-continuous integration
+* fixed several typos in User Guide
+
+Release  1.1.0-1764 (August 22, 2011)
+=====================================
+* Joint and Ordinal documentation included and up to date.
+* added deprecation warning for argument 'all'=TRUE in mxPath()
 * added omxSelectRowsAndCols, omxSelectRows and omxSelectCols documentation
 * fixed model flattening to keep track of confidence intervals in submodels
-* fixed a bug in omxParallelCI() introduced by previous change
-* added verifyCorrelationMatrix to mxData. See http://openmx.psyc.virginia.edu/issue/2011/06/error-checking-correlation-matrices
 * added error checking for dimnames on MxMatrix and MxAlgebra objects
 * reformated comments and heading style for all demos
 * fixed segmentation fault on backend error condition
-
-Beta Release 999.0.0-1661 (May 20, 2011)
-========================================
 * turn off jiggling of free parameters with starting values of 0.0 when useOptimizer=FALSE
 * allow non-RAM objective functions in RAM model
 * change model type names to 'default' and 'RAM'
 * no longer explicitly transforming RAM + raw data models into FIML models
 * fixed bug in MxMatrix indexing operator
-
-Pre-Release 999.0.0-1609 (April 7, 2011)
-========================================
-* added argument 'threshnames' to mxFIMLObjective()
-* eliminated "initialize" method for MxMatrix objects
-* added "omxCreateMatrix" method for MxMatrix objects
+* added argument 'threshnames' to mxFIMLObjective() and mxRAMObjective()
 * renaming majority of omx* functions to imx* functions. See http://openmx.psyc.virginia.edu/thread/761
 * added error checking to mxOption() function
 * added "Optimality tolerance" to mxOption() selection
@@ -56,9 +47,6 @@ Pre-Release 999.0.0-1609 (April 7, 2011)
 * added asterisks to the 'lbound' and 'ubound' columns when feasibility tolerance is met
 * added "omxNot" function to the set of available mxAlgebra() function
 * added "omxSelectRows", "omxSelectCols", and "omxSelectRowsAndCols" as mxAlgebra operators()
-* updated interface of mxRowObjective
-* in ML objective: expected covariance matrix and observed covariance matrix must have identical dimnames
-* in RAM and ML objectives: the observed means vector must have column names
 * added "mean" function to the set of available mxAlgebra() functions
 * added slots "expCov" and "expMean" to the MxRAMObjective function
 * added useOptimizer option to mxRun.
@@ -68,9 +56,6 @@ Pre-Release 999.0.0-1609 (April 7, 2011)
 * error checking in the front-end whether more than 20 ordinal columns are present in a data set
 * improved performance in the front-end in mxModel() for adding paths to RAM models
 * print name of algebra when operator has too few or too many arguments
-
-Pre-Release 999.0.0-1527 (January 6, 2011)
-==========================================
 * added mxErrorPool() function and R documentation.
 * added Apache license information to all R documentation files.
 * new implementation of mxEval().
@@ -81,7 +66,6 @@ Pre-Release 999.0.0-1527 (January 6, 2011)
 * added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
 * eliminated warnings for confidence interval optimization codes
 * added "..." argument to mxRObjectiveFunction()
-* added 'excludeself' argument to mxPath() function
 * fix memory leak in RAM objective function
 * removed dependency to MBESS library in R documentation
 * added more descriptive error message when thresholds are not sorted
@@ -98,6 +82,51 @@ Pre-Release 999.0.0-1527 (January 6, 2011)
 * change snowfall interface to use sfClusterApplyLB()
 * storing raw data in row-major order, and copying contiguous data rows
 * fix bug in mxModel() when using remove = TRUE
+
+Release 1.0.7-1706 (July 6, 2011)
+=================================
+* error checking in front-end for non-positive-definite observed covariance matrices
+* fix bug in MxMatrix indexing operator
+* added deprecation warning for argument 'all'=TRUE in mxPath()
+
+Release 1.0.6-1581 (March 10, 2011)
+===================================
+* Bug fix corner case in sorting data with definition variables
+
+Release 1.0.5-1575 (March 8, 2011)
+==================================
+* added error checking in ML objective to match expected covariance and observed covariance matrices
+* updated BootstrapParallel.R demo to use mxData() instead of model@data
+* added the dataset from the Psychometrika article (www.springerlink.com/content/dg37445107026711)
+
+Release 1.0.4-1540 (January 16, 2011)
+=====================================
+* added initialization to load OpenMx on swift workers
+* only calculating CIs for upper triangle on symmetric matrices
+* fix bug with very large number of omxUntitledName() objects
+* incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
+* fix bug in mxModel() when using remove = TRUE
+* Added intervals to MxModel class documentation
+
+Release 1.0.3-1505 (November 10, 2010)
+======================================
+* return NA in mxVersion() if "OpenMx" cannot be found
+* eliminate infinite loop in objective function transformations
+
+Release 1.0.2-1497 (November 5, 2010)
+=====================================
+* missing <errno.h> include 
+* fix memory leak in RAM objective function
+* incorporated NaN unsafe matrix-matrix multiplication (dgemm) from R <= 2.11.1
+
+Release 1.0.1-1464 (October 8, 2010)
+====================================
+* bugfix for mxEval() and MxData objects
+* handling definition variables for (I - A) ^ - 1 speedup
+* handling square bracket labels for (I - A) ^ - 1 speedup
+* added argument 'free' to omxGetParameters.  See ?omxGetParameters.
+* added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
+* eliminated warnings for confidence interval optimization codes
 
 Release 1.0.0-1448 (September 30, 2010)
 =======================================
