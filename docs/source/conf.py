@@ -172,7 +172,7 @@ htmlhelp_basename = 'OpenMxdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'OpenMx.tex', u'OpenMx Documentation',
+  ('index', 'OpenMx.tex', u'OpenMx User Guide',
    'Steven M. Boker \\and Michael C. Neale \\and Hermine H. Maes \\and Michael J. Wilde \\and Michael Spiegel \\and Timothy R. Brick \\and Ryne Estabrook \\and Timothy C. Bates \\and Paras Mehta \\and Timo von Oertzen \\and Ross J. Gore \\and Michael D. Hunter \\and Daniel C. Hackett \\and Julian Karch \\and Andreas Brandmaier', 'manual'),
 ]
 
