@@ -127,6 +127,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
 	omxMatrix** args = R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
+	// Note: the above give the warning message: initialization from incompatible pointer type
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH);
@@ -246,98 +247,128 @@ unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 }
 */
 
-/*
-void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
+
+void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxState* currentState = oo->matrix->currentState;	
 
-	if(OMX_DEBUG) { Rprintf("Initializing RAM objective.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing LISREL objective.\n"); }
 	
-	int l, k;
+	int nx, nxi, ny, neta, ntotal;
 
 	SEXP slotValue;
 	
-	// IMPORTANT: Create and register subobjective
+	/* Create and register subobjective */
 
     omxObjective *subObjective = omxCreateSubObjective(oo);
 	
-	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
+	omxLISRELObjective *LISobj = (omxLISRELObjective*) R_alloc(1, sizeof(omxLISRELObjective));
 	
-	// IMPORTANT: Set Subobjective Calls and Structures
-	subObjective->objectiveFun = omxCallRAMObjective;
-	subObjective->needsUpdateFun = omxNeedsUpdateRAMObjective;
-	subObjective->destructFun = omxDestroyRAMObjective;
+	/* IMPORTANT: Set Subobjective Calls and Structures */
+	subObjective->objectiveFun = omxCallLISRELObjective;
+	subObjective->needsUpdateFun = NULL; //omxNeedsUpdateRAMObjective;
+	subObjective->destructFun = omxDestroyLISRELObjective;
 	subObjective->setFinalReturns = NULL;
-	subObjective->populateAttrFun = omxPopulateRAMAttributes;
-	subObjective->updateChildObjectiveFun = omxUpdateChildRAMObjective;
-	subObjective->argStruct = (void*) RAMobj;
+	subObjective->populateAttrFun = omxPopulateLISRELAttributes;
+	subObjective->updateChildObjectiveFun = NULL; //omxUpdateChildRAMObjective;
+	subObjective->argStruct = (void*) LISobj;
 	
-	// IMPORTANT Set up objective structures
-	if(OMX_DEBUG) { Rprintf("Initializing RAM Meta Data for objective function.\n"); }
-
-	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
-	RAMobj->M = omxNewMatrixFromIndexSlot(rObj, currentState, "M");
-
-	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
-	RAMobj->A = omxNewMatrixFromIndexSlot(rObj, currentState, "A");
-
-	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
-	RAMobj->S = omxNewMatrixFromIndexSlot(rObj, currentState, "S");
-
-	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
-	RAMobj->F = omxNewMatrixFromIndexSlot(rObj, currentState, "F");
-
+	/* IMPORTANT Set up objective structures */
+	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for objective function.\n"); }
+	
+	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }
+	LISobj->LX = omxNewMatrixFromIndexSlot(rObj, currentState, "LX");
+	
+	if(OMX_DEBUG) { Rprintf("Processing LY.\n"); }
+	LISobj->LY = omxNewMatrixFromIndexSlot(rObj, currentState, "LY");
+	
+	if(OMX_DEBUG) { Rprintf("Processing BE.\n"); }
+	LISobj->BE = omxNewMatrixFromIndexSlot(rObj, currentState, "BE");
+	
+	if(OMX_DEBUG) { Rprintf("Processing GA.\n"); }
+	LISobj->GA = omxNewMatrixFromIndexSlot(rObj, currentState, "GA");
+	
+	if(OMX_DEBUG) { Rprintf("Processing PH.\n"); }
+	LISobj->PH = omxNewMatrixFromIndexSlot(rObj, currentState, "PH");
+	
+	if(OMX_DEBUG) { Rprintf("Processing PS.\n"); }
+	LISobj->PS = omxNewMatrixFromIndexSlot(rObj, currentState, "PS");
+	
+	if(OMX_DEBUG) { Rprintf("Processing TD.\n"); }
+	LISobj->TD = omxNewMatrixFromIndexSlot(rObj, currentState, "TD");
+	
+	if(OMX_DEBUG) { Rprintf("Processing TE.\n"); }
+	LISobj->TE = omxNewMatrixFromIndexSlot(rObj, currentState, "TE");
+	
+	if(OMX_DEBUG) { Rprintf("Processing TH.\n"); }
+	LISobj->TH = omxNewMatrixFromIndexSlot(rObj, currentState, "TH");
+	
+	// TODO: Add means specification
+	
+	/* PPML Code: Perhaps comment out this block */
 	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
-	RAMobj->usePPML = INTEGER(slotValue)[0]; 
+	LISobj->usePPML = INTEGER(slotValue)[0]; 
 	UNPROTECT(1);
 
-	if(RAMobj->usePPML) {
+	if(LISobj->usePPML) {
 		PROTECT(slotValue = GET_SLOT(rObj, install("ppmlData")));
-		RAMobj->ppmlData = omxNewDataFromMxData(NULL, slotValue, currentState);
+		LISobj->ppmlData = omxNewDataFromMxData(NULL, slotValue, currentState);
 		UNPROTECT(1);
 
-		RAMobj->cov = omxDataMatrix(RAMobj->ppmlData, NULL);
+		LISobj->cov = omxDataMatrix(LISobj->ppmlData, NULL);
 
 		if(OMX_DEBUG) { Rprintf("Processing PPML observed means.\n"); }
-		RAMobj->ppmlMeans = omxDataMeans(RAMobj->ppmlData, 0, NULL);
-		if(OMX_DEBUG && RAMobj->means == NULL) { Rprintf("RAM: No PPML Observed Means.\n"); }
+		LISobj->ppmlMeans = omxDataMeans(LISobj->ppmlData, 0, NULL);
+		if(OMX_DEBUG && LISobj->means == NULL) { Rprintf("LISREL: No PPML Observed Means.\n"); }
 	} else {
-		RAMobj->ppmlData  = NULL;
-		RAMobj->ppmlCov   = NULL;
-		RAMobj->ppmlMeans = NULL;
+		LISobj->ppmlData  = NULL;
+		LISobj->ppmlCov   = NULL;
+		LISobj->ppmlMeans = NULL;
 	}
-
-	// IMPORTANT: Identity Matrix, Size Of A
+	
+	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
-	RAMobj->I = omxNewIdentityMatrix(RAMobj->A->rows, currentState);
-	omxRecompute(RAMobj->I);
-
+	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
+	omxRecompute(LISobj->I);
+	
+	/*
 	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
-	RAMobj->numIters = INTEGER(slotValue)[0];
-	if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMobj->numIters); }
+	LISobj->numIters = INTEGER(slotValue)[0];
+	if(OMX_DEBUG) { Rprintf("Using %d iterations.", LISobj->numIters); }
 	UNPROTECT(1);
-
-	l = RAMobj->F->rows;
-	k = RAMobj->A->cols;
-
+	*/
+	
+	/* Initialize the place holder matrices used in calculations */
+	nx = LISobj->LX->rows;
+	nxi = LISobj->LX->cols;
+	ny = LISobj->LY->rows;
+	neta = LISobj->LY->cols;
+	ntotal = nx + ny;
+	
+	
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
+	
+	LISobj->LXPH = 	omxInitMatrix(NULL, nx, nxi, TRUE, currentState);
+	LISobj->W = 	omxInitMatrix(NULL, nx, neta, TRUE, currentState);
+	LISobj->GAPH = 	omxInitMatrix(NULL, neta, nxi, TRUE, currentState);
+	LISobj->U = 	omxInitMatrix(NULL, ny, neta, TRUE, currentState);
+	LISobj->TOP = 	omxInitMatrix(NULL, ny, ntotal, TRUE, currentState);
+	LISobj->BOT = 	omxInitMatrix(NULL, nx, ntotal, TRUE, currentState);
 
-	RAMobj->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 
-	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
-
+	LISobj->cov = 		omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
+	
+	/* Uncomment this when means are implemented
 	if(RAMobj->M != NULL) {
 		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
 	} else RAMobj->means  = 	NULL;
+	*/
 
-	//IMPORTANT: Create parent objective
+	/* Create parent objective */
 
-	omxCreateMLObjective(oo, rObj, RAMobj->cov, RAMobj->means);
+	omxCreateMLObjective(oo, rObj, LISobj->cov, LISobj->means);
 	
 }
-*/
+
