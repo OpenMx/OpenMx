@@ -238,8 +238,10 @@ updateObjectiveDimnames <- function(flatObjective, job, flatJob,
 		!identical(dimnames(covariance), list(dims, dims))) {
 		msg <- paste("The expected covariance matrix associated",
 			"with the", objectiveName, "objective in model", 
-			omxQuotes(modelname), "contains dimnames and",
-			"the objective function has specified dimnames.")
+			omxQuotes(modelname), "contains dimnames: ", 
+            paste(toString(dimnames(covariance)), ".", sep = ""),
+			"The objective function has specified dimnames:", 
+			paste(toString(dims), ".", sep =""))
 		stop(msg, call.=FALSE)		
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
@@ -272,8 +274,10 @@ updateObjectiveDimnames <- function(flatObjective, job, flatJob,
 		!identical(dimnames(means), list(NULL, dims))) {
 		msg <- paste("The expected means matrix associated",
 			"with the", objectiveName, "objective in model", 
-			omxQuotes(modelname), "contains dimnames and",
-			"the objective function has specified dimnames.")
+			omxQuotes(modelname), "contains dimnames: ", 
+            paste(toString(dimnames(means)), ".", sep = ""),
+			"The objective function has specified dimnames:", 
+			paste(toString(dims), ".", sep =""))
 		stop(msg, call.=FALSE)	
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
