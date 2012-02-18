@@ -15,8 +15,10 @@ END_REVISION=$4
 cd $SVN_ROOT
 for ((rev=$START_REVISION; rev <= $END_REVISION; rev++))
 do
-#   svn checkout -r $rev
-#   make nightly > performance.results
+   svn update -r $rev --non-interactive --force
+   svn revert --recursive .
+   make install
+   make nightly > performance.results
    awk '/Results:/ {flag=1}flag' performance.results | tail -n +2 > performance.data
    cat performance.data | while read line;
    do
