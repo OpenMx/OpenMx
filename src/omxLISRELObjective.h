@@ -21,7 +21,8 @@
 typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH, *TX, *TY, *KA, *AL; // LISREL model Matrices
+	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
+	//omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
 	omxMatrix *I, *LXPH, *W, *GAPH, *U; // Place holder matrices used in computations
 	omxMatrix *TOP, *BOT; // Place holder matrices for building covariance matrix from blocks
 	omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.

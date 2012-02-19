@@ -34,12 +34,12 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	omxRecompute(oro->TD);
 	omxRecompute(oro->TE);
 	omxRecompute(oro->TH);
-	if(oro->TX != NULL) {
+	/*if(oro->TX != NULL) {     // Update means?
 	    omxRecompute(oro->TX);
 	    omxRecompute(oro->TY);
 	    omxRecompute(oro->KA);
 	    omxRecompute(oro->AL);
-	}
+	}*/
 
 	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->PH, oro->PS, oro->TD, oro->TE, oro->TH, oro->cov, oro->means, oro->numIters, oro->I, oro->LXPH, oro->W, oro->GAPH, oro->U, oro->TOP, oro->BOT);
 }
@@ -123,6 +123,7 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 
 
 void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U, omxMatrix* TOP, omxMatrix* BOT) {
+	if(OMX_DEBUG) { Rprintf("Running LISREL computation."); }
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
@@ -250,9 +251,9 @@ unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
 
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
-	omxState* currentState = oo->matrix->currentState;	
-
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL objective.\n"); }
+
+	omxState* currentState = oo->matrix->currentState;	
 	
 	int nx, nxi, ny, neta, ntotal;
 
@@ -264,7 +265,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxLISRELObjective *LISobj = (omxLISRELObjective*) R_alloc(1, sizeof(omxLISRELObjective));
 	
-	/* IMPORTANT: Set Subobjective Calls and Structures */
+	/* Set Subobjective Calls and Structures */
 	subObjective->objectiveFun = omxCallLISRELObjective;
 	subObjective->needsUpdateFun = NULL; //omxNeedsUpdateRAMObjective;
 	subObjective->destructFun = omxDestroyLISRELObjective;
@@ -273,7 +274,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->updateChildObjectiveFun = NULL; //omxUpdateChildRAMObjective;
 	subObjective->argStruct = (void*) LISobj;
 	
-	/* IMPORTANT Set up objective structures */
+	/* Set up objective structures */
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for objective function.\n"); }
 	
 	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }

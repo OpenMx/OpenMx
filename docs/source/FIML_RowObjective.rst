@@ -8,15 +8,20 @@
 Full Information Maximum Likelihood, Row Objective Specification
 ================================================================
 
-*This document was authored by Michael D. Hunter, M.A.*
+..
+    This document was authored by Michael D. Hunter, M.A.
+    Last updated: Sun Feb 19 16:34:27 Central Standard Time 2012 by Michael Hunter
 
-**This document is a draft.  Please excuse its disorderly state as I continue writing. -MDH**
 
-This example will show how full information maximum likelihood can be implemented using a row-by-row evaluation of a likelihood function.  This example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
+This example will show how full information maximum likelihood (FIML) can be implemented using a row-by-row evaluation of a likelihood function.  **Note: You do not have to implement your own FIML! The method of FIML used in this example  is for didactic purposes only.**  If you are looking for how to get your model to use FIML, then look for any model that uses raw data.  For example
+
+*   http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorModel_PathRaw.R
+
+This document seeks to inform users about how they can implement their own row objective functions using FIML as an example.  The example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
 
 *    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
 
-There is a parallel version of this example that uses the standard full information maximum likelihood implementation here:
+There is an analogous version of this example that uses the standard full information maximum likelihood implementation here:
 
 *    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation.R
 
