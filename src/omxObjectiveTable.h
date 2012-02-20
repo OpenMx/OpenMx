@@ -35,7 +35,7 @@ struct omxObjectiveTableEntry {
 
 };
 
-#define omxObjectiveTableLength 6
+#define omxObjectiveTableLength 7
 
 const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength];
 

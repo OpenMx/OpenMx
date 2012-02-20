@@ -37,5 +37,5 @@ const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength] = 
 	{"MxRowObjective", 				&omxInitRowObjective},
 	{"MxMLObjective", 				&omxInitMLObjective},
 	{"MxRObjective",				&omxInitRObjective},
-	
+	{"MxLISRELObjective",			&omxInitLISRELObjective},
 };

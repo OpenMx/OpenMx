@@ -307,6 +307,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	// TODO: Add means specification
 	
 	/* PPML Code: Perhaps comment out this block */
+	/*
 	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
 	LISobj->usePPML = INTEGER(slotValue)[0]; 
@@ -327,6 +328,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 		LISobj->ppmlCov   = NULL;
 		LISobj->ppmlMeans = NULL;
 	}
+	*/
 	
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
