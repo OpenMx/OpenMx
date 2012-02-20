@@ -62,7 +62,7 @@ void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov,
    	double relEps = 0;
    	int MaxPts = 100000*cov->rows;
    	int numVars = ordCov->rows;
-	int fortranThreadId = omx_omp_get_thread_num() + 1;
+	int fortranThreadId = omx_absolute_thread_num() + 1;
    	/* FOR DEBUGGING PURPOSES */
     /*	numVars = 2;
    	lThresh[0] = -2;

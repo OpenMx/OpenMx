@@ -247,14 +247,14 @@ void doHessianCalculation(int numParams, int numChildren,
 
 	#pragma omp parallel for num_threads(parallelism) 
 	for(i = 0; i < numParams; i++) {
-		int threadId = (numChildren < 2) ? 0 : omx_omp_get_thread_num();
+		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		omxEstimateHessianOnDiagonal(i, hess_work + threadId, 
 			parent_optima, parent_gradient, parent_hessian);
 	}
 
 	#pragma omp parallel for num_threads(parallelism) 
 	for(offset = 0; offset < numOffDiagonal; offset++) {
-		int threadId = (numChildren < 2) ? 0 : omx_omp_get_thread_num();
+		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		omxEstimateHessianOffDiagonal(diags[offset], offDiags[offset],
 			hess_work + threadId, parent_optima, parent_gradient,
 			parent_hessian);

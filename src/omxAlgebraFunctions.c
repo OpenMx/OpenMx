@@ -1697,7 +1697,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	int inform;
 	int numVars = cov->rows;
 	int Infin[cov->rows];
-	int fortranThreadId = omx_omp_get_thread_num() + 1;
+	int fortranThreadId = omx_absolute_thread_num() + 1;
 
 	for(int i = 0; i < nElements; i++) {
 		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
@@ -1846,7 +1846,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int Infin[nCols];
 	double lBounds[nCols];
 	double uBounds[nCols];
-	int fortranThreadId = omx_omp_get_thread_num() + 1;
+	int fortranThreadId = omx_absolute_thread_num() + 1;
 
 	/* Set up first row */
 	for(j = (nCols-1); j >= 0; j--) {					// For each threshold set, starting from the fastest

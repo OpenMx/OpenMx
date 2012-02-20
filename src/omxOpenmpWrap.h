@@ -26,13 +26,33 @@
 
 #include <omp.h>
 
-static OMXINLINE int omx_omp_get_thread_num(void) {
+#if _OPENMP <= 200505
+
+static OMXINLINE int omx_absolute_thread_num(void) {
    return(omp_get_thread_num());
 }
+
+#else
+
+static OMXINLINE int omx_absolute_thread_num(void) {
+   int retval = 0;
+   int level = omp_get_level();
+   int scale = 1;
+   for(int i = level; i > 0; i--) {
+       retval += scale * omp_get_ancestor_thread_num(i);
+       scale *= omp_get_team_size(i);
+   }
+   return(retval);
+}
+
+#endif
 
 static OMXINLINE void omx_omp_init() {
    omp_init_lock(&sadmvn_lock);
    omp_init_lock(&robjective_lock);
+#if _OPENMP <= 200505
+   omp_set_nested(0);
+#endif
 }
 
 static OMXINLINE void omx_omp_set_lock(omp_lock_t* lock) {
@@ -45,7 +65,7 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* lock) {
 
 #else
 
-static OMXINLINE int omx_omp_get_thread_num(void) {
+static OMXINLINE int omx_absolute_thread_num(void) {
    return(0);
 }
 
