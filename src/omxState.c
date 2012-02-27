@@ -65,6 +65,8 @@
 		state->chkptText1 = NULL;
 		state->chkptText2 = NULL;
 
+        state->currentInterval = -1;
+
 		state->computeCount = -1;
 		state->currentRow = -1;
 

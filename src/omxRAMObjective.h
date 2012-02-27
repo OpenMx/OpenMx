@@ -22,7 +22,8 @@ typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *C, *X, *Y, *Z, *Ax, *P, *V, *Mns;
+	omxMatrix *C, *Cx, *Ix, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *Mns;
+    omxMatrix *dA, *dS, *dM;
 
 	int numIters;
 	double logDetObserved;

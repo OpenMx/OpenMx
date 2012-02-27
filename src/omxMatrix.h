@@ -150,6 +150,9 @@ void setVectorError(int index, int numrow, int numcol);
 void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
 
+static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
+    return (mat->algebra == NULL && mat->objective == NULL);
+}
 
 /* BLAS Wrappers */
 
@@ -215,18 +218,24 @@ static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, om
 	int onei = 1;
 	int nrows = (transposeMat?mat->cols:mat->rows);
 	int ncols = (transposeMat?mat->rows:mat->cols);
-	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
+	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), 
+	        &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static OMXINLINE void omxDSYMV(unsigned short int transposeMat, double* alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
-				omxMatrix* vec, double* beta, omxMatrix*result){							// only A is symmetric, and B is a vector
+static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C
+				omxMatrix* vec, double beta, omxMatrix* result) {       // only A is symmetric, and B is a vector
+	char u='U';
+    int onei = 1;
 
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+    F77_CALL(dsymv)(&u, &(mat->cols), &alpha, mat->data, &(mat->leading), 
+                    vec->data, &onei, &beta, result->data, &onei);
+
+    // if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
 static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
-				omxMatrix *b, double beta, omxMatrix* result, unsigned short int fillMat) {	// One of A or B is symmetric
+				omxMatrix *b, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
 
 	char r='R', l = 'L';
 	char u='U';
@@ -236,12 +245,6 @@ static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxM
 					&beta, result->data, &(result->leading));
 
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
-	
-	if(fillMat) {
-		for(int j = 0; j < result->rows; j++)
-			for(int k = j+1; k < result->cols; k++)
-				omxSetMatrixElement(result, j, k, omxMatrixElement(result, k, j));
-	}
 }
 
 static OMXINLINE int omxDGETRF(omxMatrix* mat, int* ipiv) {										// LUP decomposition of mat

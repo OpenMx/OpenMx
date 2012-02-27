@@ -25,6 +25,8 @@
 extern void omxInitFIMLObjective(omxObjective* oo, SEXP rObj); // Included in case ML gets a raw data object.
 extern void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+void omxSetMLObjectiveGradient(omxObjective* oo, void (*)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*));
+void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int nLocs);
 
 #ifndef _OMX_ML_OBJECTIVE_
 #define _OMX_ML_OBJECTIVE_ TRUE
@@ -40,11 +42,25 @@ typedef struct omxMLObjective {
 	omxMatrix* P;
 	omxMatrix* C;
 	omxMatrix* I;
+    
 	double n;
 	double logDetObserved;
 
 	double* work;
 	int lwork;
+	
+    // Subobjective Storage;
+    omxMatrix** dSigma;         // dSigma/dTheta
+    omxMatrix** dMu;            // dMu/dTheta
+    omxMatrix* Mu;
+    omxMatrix* Ms;
+    omxMatrix* X;
+    omxMatrix* Y;
+    
+    // TODO: Add space for second derivatives
+    
+    // Allows the subobjective function to calculate its own derivates in an optimal way.
+    void (*derivativeFun)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*);
 
 } omxMLObjective;
 
@@ -151,8 +167,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 //	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
 	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);
-	omxPrint(localCov, "After Decomp:");}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
 	if(info > 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
@@ -252,7 +267,7 @@ void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
-	SEXP expCovExt, expMeanExt;
+	SEXP expCovExt, expMeanExt, gradients;
 	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -268,15 +283,38 @@ void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
 	} else {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
 	}   
+	
+	if(oo->gradientFun != NULL) {
+        int nLocs = oo->matrix->currentState->numFreeParams;
+        double gradient[oo->matrix->currentState->numFreeParams];
+        int locs[oo->matrix->currentState->numFreeParams];
+        for(int loc = 0; loc < nLocs; loc++) {
+            locs[loc] = loc;
+            gradient[loc] = NA_REAL;
+        }
+        omxCalculateMLGradient(oo, gradient, locs, nLocs);
+        PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
+
+    	for(int loc = 0; loc < nLocs; loc++)
+            REAL(gradients)[loc] = gradient[loc];
+    } else {
+        PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
+    }
+    
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
-	UNPROTECT(2);
+	setAttrib(algebra, install("gradients"), gradients);
+	
+	UNPROTECT(3);
 
 }
 
 void omxSetMLObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to ML Objective Calls */
+    char* myType = (char*) Calloc(25, char);
+    strncpy(myType, "omxMLObjective", 15);
+    oo->objType = myType;
 	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
@@ -413,6 +451,166 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
     oo->argStruct = (void*)newObj;
+
+}
+
+void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*)) {
+    if(OMX_DEBUG) { Rprintf("Setting up gradient for ML Objective."); }
+    if(!strncmp("omxFIMLObjective", oo->objType, 16)) {
+        if(OMX_DEBUG) { Rprintf("FIML Objective gradients not yet implemented. Skipping."); }
+        return; // ERROR:NYI.
+    } else if(strncmp("omxMLObjective", oo->objType, 16)) {
+        char errorstr[250];
+        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
+        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        return;
+    }
+    
+    if(derivativeFun == NULL) {
+        char errorstr[250];
+        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
+        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        return;
+    }
+    
+    omxMLObjective *omo = ((omxMLObjective*) oo->argStruct);
+    int rows = omo->observedCov->rows;
+    int cols = omo->observedCov->cols;
+    int nFreeVars = oo->matrix->currentState->numFreeParams;
+            
+    omo->derivativeFun = derivativeFun;
+    omo->X  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
+    omo->Y  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
+    omo->Ms = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
+    omo->Mu = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
+    omo->dSigma = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
+    omo->dMu = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
+    for(int i = 0; i < nFreeVars; i++) {
+        omo->dSigma[i] = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
+        omo->dMu[i] = omxInitMatrix(NULL, rows, 1, TRUE, oo->matrix->currentState);
+    }
+    oo->gradientFun = omxCalculateMLGradient;
+}
+
+void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int nLocs) {
+
+    if(OMX_DEBUG) { Rprintf("Beginning ML Gradient Calculation.\n"); }
+    // 1) Calculate current Expected Covariance
+    // 2) Calculate eCov, the Inverse Expected Covariance matrix 
+    // 3) Calculate C = I - eCov D, where D is the observed covariance matrix
+    // 4) Calculate b = M - [observed M]
+    // 5) For each location in locs:
+    //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
+
+    if(oo->matrix->currentState->currentInterval >= 0) {
+        if(OMX_DEBUG) {Rprintf("Skipping gradient calculation during confidence interval calculation.");}
+        return;
+    }
+
+    omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
+    
+    /* Locals for readability.  Compiler should cut through this. */
+    omxMatrix *scov         = omo->observedCov;
+    omxMatrix *smeans       = omo->observedMeans;
+    omxMatrix *cov          = omo->expectedCov;
+    omxMatrix *M            = omo->expectedMeans;
+    omxMatrix *eCov         = omo->localCov;        // TODO: Maybe need to avoid reusing these
+    omxMatrix *I            = omo->I;
+    omxMatrix *C            = omo->C;
+    omxMatrix *X            = omo->X;
+    omxMatrix *Y            = omo->Y;
+    omxMatrix *Mu           = omo->Mu;
+    omxMatrix *Ms           = omo->Ms;
+    omxMatrix *P            = omo->P;
+    double n                = omo->n;
+    omxMatrix** dSigmas     = omo->dSigma;
+    omxMatrix** dMus        = omo->dMu;
+    
+    int gradientSize = oo->matrix->currentState->numFreeParams;
+    
+    char u = 'U';
+    int info;
+    double minusoned = -1.0;
+    int onei = 1;
+    int status[gradientSize];
+    
+    // Calculate current Objective values
+    // We can safely assume this has been done
+    // omxObjectiveCompute(oo);
+    
+    // Calculate current eCov
+    
+    omxCopyMatrix(eCov, cov);				// But expected cov is destroyed in inversion
+    
+    F77_CALL(dpotrf)(&u, &(eCov->cols), eCov->data, &(eCov->cols), &info);
+
+    if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
+    if(info > 0) {
+        char *errstr = calloc(250, sizeof(char));
+        sprintf(errstr, "Expected covariance matrix is non-positive-definite");
+        if(oo->matrix->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
+        strncat(errstr, ".\n", 3);
+        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        free(errstr);
+        return;                                                                     // Leave output untouched
+    }
+    
+    F77_CALL(dpotri)(&u, &(eCov->rows), eCov->data, &(eCov->cols), &info);
+    if(info > 0) {
+        char *errstr = calloc(250, sizeof(char));
+        sprintf(errstr, "Expected covariance matrix is not invertible");
+        if(oo->matrix->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
+        strncat(errstr, ".\n", 3);
+        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        free(errstr);
+        return;
+    }
+    // Calculate P = expected means - observed means
+    if(M != NULL) {
+        omxCopyMatrix(P, smeans);
+    	F77_CALL(daxpy)(&(smeans->cols), &minusoned, M->data, &onei, P->data, &onei);
+    }
+	
+	// Reset C and Calculate C = I - eCov * oCov
+    omxCopyMatrix(C, I);
+    omxDSYMM(TRUE, -1.0, eCov, scov, 1.0, C);
+    
+    // Calculate parameter-level derivatives
+    // TODO: Parallelize Here.
+    
+    omo->derivativeFun(oo->subObjective, locs, nLocs, dSigmas, dMus, status);
+    
+    for(int param = 0; param < nLocs; param++) {
+        int currentLoc = locs[param];
+        double meanInfluence, covInfluence;
+        if(status[currentLoc] < 0) continue;  // Failure in computation--skip.
+        //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - 
+        //    (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
+        
+        omxDGEMM(FALSE, FALSE, 1.0, dSigmas[currentLoc], C, 0.0, Y);
+        omxDSYMM(TRUE, 1.0, eCov, Y, 0.0, X);
+        gradient[currentLoc] = 0;
+        covInfluence = 0.0;
+        for(int i = 0; i < eCov->cols; i++) 
+            covInfluence += omxMatrixElement(X, i, i);
+        if(M != NULL) {
+            omxDSYMM(FALSE, 1.0, eCov, P, 0.0, Ms);
+            omxCopyMatrix(Mu, dMus[currentLoc]);
+            omxDSYMV(1.0, dSigmas[currentLoc], Ms, 2.0, Mu);
+            // omxDGEMV(1.0, , Mu, 2.0, Mu);
+            // omxPrint(Mu, "(dSigma %*% eCov %*% (M-m) + 2.0 * dMu)");
+            meanInfluence = F77_CALL(ddot)(&(eCov->cols), Mu->data, &onei, Ms->data, &onei);
+        } else {
+            meanInfluence = 0;
+        }
+        gradient[currentLoc] = (covInfluence * (n-1)) - (meanInfluence * n);
+        if(OMX_DEBUG) { Rprintf("Calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f\n",
+            currentLoc, covInfluence, meanInfluence, gradient[currentLoc]); }
+    }
 
 }
 

@@ -20,6 +20,8 @@
 #include "omxRAMObjective.h"
 
 extern void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+extern void omxSetMLObjectiveGradient(omxObjective* oo, void (*)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*));
+void calculateRAMGradientComponents(omxObjective* oo, int*, int, omxMatrix**, omxMatrix**, int*);
 
 void omxCallRAMObjective(omxObjective* oo) {
     if(OMX_DEBUG) { Rprintf("RAM Subobjective called.\n"); }
@@ -179,6 +181,7 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 			omxCopyMatrix(Z, Ax);
 		}
 	}
+    omxMatrixCompute(Z);    // Update the compute count for Z.
 }
 
 void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
@@ -207,7 +210,9 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	// }
 	
 	omxFastRAMInverse(numIters, A, Z, Ax, I );
-		
+	
+    if(A->currentState->statusCode < 0) return;
+	
 	/* Cov = FZSZ'F' */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
 	// F77_CALL(omxunsafedgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
@@ -229,7 +234,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 		omxDGEMV(FALSE, 1.0, Y, M, 0.0, Means);
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....RAM: Model-implied Means Vector:");}
 	}
-
 }
 
 void omxUpdateChildRAMObjective(omxObjective* tgt, omxObjective* src) {
@@ -271,6 +275,10 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	/* Create and register subobjective */
 
     omxObjective *subObjective = omxCreateSubObjective(oo);
+    char* myType = (char*) Calloc(25, char);
+    strncpy(myType, "omxRAMObjective", 16);
+    subObjective->objType = myType;
+
 	
 	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	
@@ -337,17 +345,163 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 
 	RAMobj->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMobj->W = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMobj->U = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMobj->V = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMobj->Cx= 	omxInitMatrix(NULL, l, l, TRUE, currentState);
+    RAMobj->Ix= 	omxNewIdentityMatrix(l, currentState);
+	
+    if(omxIsMatrix(RAMobj->A))
+	    RAMobj->dA = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+    if(omxIsMatrix(RAMobj->S))
+	    RAMobj->dS = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+    if(RAMobj->M != NULL && omxIsMatrix(RAMobj->M))
+	    RAMobj->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
 
 	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
 
 	if(RAMobj->M != NULL) {
 		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
-	} else RAMobj->means  = 	NULL;
+	} else {
+	    RAMobj->means  = 	NULL;
+    }
 
 	/* Create parent objective */
 
 	omxCreateMLObjective(oo, rObj, RAMobj->cov, RAMobj->means);
 	
+	omxSetMLObjectiveGradient(oo, calculateRAMGradientComponents);
+}
+
+void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
+
+    // Steps:
+    // 1) (Re) Calculate current A, S, F, and Z (where Z = (I-A)^-1)
+    // 2) E = Z S Z^T
+    // 3) B = F Z
+    // 4) For each location in locations:
+    //      1) Calculate dA/dt, dS/dt, and dM/dt by substituting 1s into empty matrices
+    //      2) C = B dAdt E F^T
+    //      3) dSigma/dT = C + C^T + B dS/dT B^T
+    //      4) dM/dT = B dA/dT Z b + B dM/dT
+
+    omxRAMObjective* oro = (omxRAMObjective*) (oo->argStruct);
+
+    omxMatrix* A = oro->A;
+    omxMatrix* S = oro->S;
+    omxMatrix* F = oro->F;
+    omxMatrix* Ax= oro->Ax;
+    omxMatrix* Z = oro->Z;
+    omxMatrix* I = oro->I;
+    omxMatrix* M = oro->M;
+    omxMatrix* B = oro->X;
+    omxMatrix* U = oro->U;
+    omxMatrix* V = oro->V;
+    omxMatrix* W = oro->W;
+    omxMatrix* Ix= oro->Ix;
+    omxMatrix* Cx= oro->Cx;
+	omxMatrix* E = oro->Ax;
+    omxMatrix* cov = oro->cov;
+    omxMatrix* means = oro->means;
+    
+    omxMatrix* dA = oro->dA;
+    omxMatrix* dS = oro->dS;
+    omxMatrix* dM = oro->dM;
+    
+    int numIters = oro->numIters;
+    int Amat = A->matrixNumber;
+    int Smat = S->matrixNumber;
+    int Mmat = 0;
+    if(M != NULL) Mmat = M->matrixNumber;
+    
+    omxFreeVar* varList = oo->matrix->currentState->freeVarList;
+
+    // Assumed.
+    // if(omxNeedsUpdate(Z)) {
+    //     // (Re)Calculate current A, S, F, and Z
+    //     omxCalculateRAMCovarianceAndMeans(A, S, F, M, cov, means, numIters, I, Z, oro->Y, B, Ax);
+    // }
+    
+    // TODO: Handle repeated-call cases.
+    // E = Z S (Z^T)
+    omxDGEMM(FALSE, FALSE, 1.0, Z, S, 0.0, W);
+    omxDGEMM(FALSE, TRUE, 1.0, W, Z, 0.0, E);
+
+    // B = F Z
+    omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, B);
+    
+    // Step through free params 
+    // Note: This should be parallelized at the next level up.
+    //  This function itself should serially perform one computation for each location
+    //  given in the sequence.  Always write to the appropriate location so that writes
+    //  can be shared across thread-level parallelism.
+    
+    for(int param = 0; param < nLocs; param++) {
+        //  Repeated from above.  For each parameter:
+        //      1) Calculate dA/dt, dS/dt, and dM/dt by substituting 1s into empty matrices
+        
+        int paramNo = locations[param];
+        omxFreeVar var = varList[paramNo];
+        
+        // Zero dA, dS, and dM.  // TODO: speed
+        for( int k = 0; k < dA->cols; k++) {
+            for( int j = 0; j < dA->rows; j++) {
+                omxSetMatrixElement(dA, j, k, 0.0);
+                omxSetMatrixElement(dS, j, k, 0.0);
+            }
+            if(M != NULL) omxSetMatrixElement(dM, 0, k, 0.0);
+        }
+        status[paramNo] = 0;
+
+        // Create dA, dS, and dM mats for each Free Parameter
+        for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
+            int varMat = ~var.matrices[varLoc]; // Matrices are numbered from ~0 to ~N
+            if(varMat == Amat) {
+                omxSetMatrixElement(dA, var.row[varLoc], var.col[varLoc], 1);
+            } else if(varMat == Smat) {
+                omxSetMatrixElement(dS, var.row[varLoc], var.col[varLoc], 1);
+            } else if(varMat == Mmat && M != NULL) {
+                omxSetMatrixElement(dM, var.row[varLoc], var.col[varLoc], 1);
+            } else {
+                // This parameter has some outside effect
+                // We cannot directly estimate its effects on the likelihood
+                // For now, skip.
+                // TODO: Find a way to deal with these situations
+                status[paramNo] = -1;
+                if(OMX_DEBUG) { Rprintf("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.\n", paramNo, varLoc, varMat, Amat, Smat, Mmat);}
+                break;
+            }
+        }
+        
+        if(status[paramNo] < 0) {
+            continue;  // Skip this one.
+        }
+        
+        omxMatrix* C = dSigmas[paramNo];
+        omxMatrix* dMu = dMus[paramNo];
+        
+        //      2) C = B dAdt E F^T
+        omxDGEMM(FALSE, FALSE, 1.0, B, dA, 0.0, U);
+        omxDGEMM(FALSE, FALSE, 1.0, U, E, 0.0, W);
+        omxDGEMM(FALSE, FALSE, 1.0, F, W, 0.0, V);
+        omxDGEMM(FALSE, TRUE, 1.0, V, F, 0.0, C);
+        omxCopyMatrix(Cx, C);
+        
+        //      3) dSigma/dT = C + C^T + B dS/dT B^T
+        omxDGEMM(FALSE, TRUE,  1.0, Ix, Cx, 1.0, C);
+        omxDGEMM(FALSE, FALSE, 1.0, B, dS, 0.0, V);
+        omxDGEMM(FALSE, TRUE,  1.0, V, B, 1.0, C);
+        
+        if(M != NULL) {
+            //      4) dM/dT = B dA/dT Z M + B dM/dT
+            omxDGEMM(FALSE, FALSE, 1.0, dA,  Z, 0.0, W);
+            omxDGEMM(FALSE, FALSE, 1.0, B, W, 0.0, V);
+            omxDGEMM(FALSE, TRUE, 1.0, V, M, 0.0, dMu);
+            omxDGEMM(FALSE, TRUE, 1.0, B, dM, 1.0, dMu);
+        }
+
+    }
+
 }

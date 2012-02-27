@@ -719,6 +719,7 @@ void F77_SUB(objectiveFunction)
     /* This allows for abitrary repopulation of the free parameters.
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
+
 	if (objectiveMatrix->objective->repopulateFun != NULL) {
 		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, x, *n);
 	} else {
@@ -727,6 +728,15 @@ void F77_SUB(objectiveFunction)
 	omxRecompute(objectiveMatrix);
 
 	/* Derivative Calculation Goes Here. */
+	/* Turn this off if derivative calculations are not wanted */
+	if(*mode > 0) {
+	    if(objectiveMatrix->objective->gradientFun != NULL) {
+	        // Location sets included to assist with parallelization
+            int locs[*n];
+            for(int i = 0; i < *n; i++) locs[i] = i;
+            objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g, locs, *n);
+	    }
+	}
 
 	if(isnan(objectiveMatrix->data[0])) {
 		if(OMX_DEBUG) {
@@ -778,6 +788,7 @@ void F77_SUB(constraintFunction)
 			Rprintf("But only gradients requested.  Returning.\n");
 			Rprintf("-=====================================================-\n");
 		}
+
 		return;
 	}
 
