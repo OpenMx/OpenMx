@@ -7,8 +7,24 @@ then
     exit
 fi
 
+if [ -d $1 ];
+then
+    echo ""
+    echo "The argument $1 must point to a directory that is not present."
+    echo ""
+    exit
+fi
+
+if [ ! -d $2 ];
+then
+    echo ""
+    echo "The argument $2 must point to a directory that is present."
+    echo ""
+    exit
+fi
+
 SVN_ROOT=$1
-OUTPUT_DIR=$2
+OUTPUT_DIR=`cd $2; pwd`
 START_REVISION=$3
 END_REVISION=$4
 
