@@ -579,6 +579,10 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
     omxCopyMatrix(C, I);
     omxDSYMM(TRUE, -1.0, eCov, scov, 1.0, C);
     
+    // For means, calculate Ms = eCov-1 %*% P
+    if(M != NULL)
+        omxDSYMM(FALSE, 1.0, eCov, P, 0.0, Ms);
+    
     // Calculate parameter-level derivatives
     // TODO: Parallelize Here.
     
@@ -590,7 +594,6 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
         if(status[currentLoc] < 0) continue;  // Failure in computation--skip.
         //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - 
         //    (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
-        
         omxDGEMM(FALSE, FALSE, 1.0, dSigmas[currentLoc], C, 0.0, Y);
         omxDSYMM(TRUE, 1.0, eCov, Y, 0.0, X);
         gradient[currentLoc] = 0;
@@ -598,11 +601,8 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
         for(int i = 0; i < eCov->cols; i++) 
             covInfluence += omxMatrixElement(X, i, i);
         if(M != NULL) {
-            omxDSYMM(FALSE, 1.0, eCov, P, 0.0, Ms);
             omxCopyMatrix(Mu, dMus[currentLoc]);
             omxDSYMV(1.0, dSigmas[currentLoc], Ms, 2.0, Mu);
-            // omxDGEMV(1.0, , Mu, 2.0, Mu);
-            // omxPrint(Mu, "(dSigma %*% eCov %*% (M-m) + 2.0 * dMu)");
             meanInfluence = F77_CALL(ddot)(&(eCov->cols), Mu->data, &onei, Ms->data, &onei);
         } else {
             meanInfluence = 0;

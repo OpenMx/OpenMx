@@ -2447,3 +2447,27 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
     omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove, toRemove);
 
 }
+
+void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
+    omxMatrix* M = *matlist;
+    if(M->rows != M->cols || M->rows != result->cols || result->rows != result->cols) {
+        char *errstr = calloc(250, sizeof(char));
+        sprintf(errstr, "A + A^T attempted on asymmetric matrix.\n");
+        omxRaiseError(result->currentState, -1, errstr);
+        free(errstr);
+    }
+    
+    double total;
+    
+    for(int i = 0; i < result->rows; i++) {
+        for(int j = 0; j < i; j++) {
+            total = omxMatrixElement(M, i, j);
+            total += omxMatrixElement(M, j, i);
+            omxSetMatrixElement(result, i, j, total);
+            omxSetMatrixElement(result, j, i, total);
+        }
+        omxSetMatrixElement(result, i, i, 2 * omxMatrixElement(M, i, i));
+    }
+    
+    return;
+}

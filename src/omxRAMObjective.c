@@ -346,20 +346,21 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	RAMobj->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMobj->W = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->U = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMobj->U = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 	RAMobj->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
 	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMobj->EF= 	omxInitMatrix(NULL, k, l, TRUE, currentState);
 	RAMobj->V = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->Cx= 	omxInitMatrix(NULL, l, l, TRUE, currentState);
-    RAMobj->Ix= 	omxNewIdentityMatrix(l, currentState);
 	
     if(omxIsMatrix(RAMobj->A))
 	    RAMobj->dA = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
     if(omxIsMatrix(RAMobj->S))
 	    RAMobj->dS = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-    if(RAMobj->M != NULL && omxIsMatrix(RAMobj->M))
+    if(RAMobj->M != NULL && omxIsMatrix(RAMobj->M)) {
 	    RAMobj->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
-
+	    RAMobj->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
+    }
+    
 	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
 
 	if(RAMobj->M != NULL) {
@@ -388,29 +389,29 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
     //      4) dM/dT = B dA/dT Z b + B dM/dT
 
     omxRAMObjective* oro = (omxRAMObjective*) (oo->argStruct);
-
-    omxMatrix* A = oro->A;
-    omxMatrix* S = oro->S;
-    omxMatrix* F = oro->F;
-    omxMatrix* Ax= oro->Ax;
-    omxMatrix* Z = oro->Z;
-    omxMatrix* I = oro->I;
-    omxMatrix* M = oro->M;
-    omxMatrix* B = oro->X;
-    omxMatrix* U = oro->U;
-    omxMatrix* V = oro->V;
-    omxMatrix* W = oro->W;
-    omxMatrix* Ix= oro->Ix;
-    omxMatrix* Cx= oro->Cx;
-	omxMatrix* E = oro->Ax;
-    omxMatrix* cov = oro->cov;
-    omxMatrix* means = oro->means;
+                                // Size reference: A is axa, F is fxf
+    omxMatrix* A = oro->A;      // axa
+    omxMatrix* S = oro->S;      // axa
+    omxMatrix* F = oro->F;      // fxf
+    // omxMatrix* Ax= oro->Ax;     // axa
+    omxMatrix* Z = oro->Z;      // axa
+    // omxMatrix* I = oro->I;      // axa
+    omxMatrix* M = oro->M;      // 1xf
+    omxMatrix* B = oro->X;      // fxa
+    omxMatrix* U = oro->U;      // fxa
+    omxMatrix* EF = oro->EF;    // fxa
+    omxMatrix* ZM = oro->ZM;    // 1xf
+    omxMatrix* V = oro->V;      // fxa
+    omxMatrix* W = oro->W;      // axa
+	omxMatrix* E = oro->Ax;     // axa
+    // omxMatrix* cov = oro->cov;
+    // omxMatrix* means = oro->means;
     
     omxMatrix* dA = oro->dA;
     omxMatrix* dS = oro->dS;
     omxMatrix* dM = oro->dM;
     
-    int numIters = oro->numIters;
+    // int numIters = oro->numIters;
     int Amat = A->matrixNumber;
     int Smat = S->matrixNumber;
     int Mmat = 0;
@@ -428,9 +429,16 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
     // E = Z S (Z^T)
     omxDGEMM(FALSE, FALSE, 1.0, Z, S, 0.0, W);
     omxDGEMM(FALSE, TRUE, 1.0, W, Z, 0.0, E);
+    
+    //EF = E F^T
+    omxDGEMM(FALSE, TRUE, 1.0, E, F, 0.0, EF);
 
     // B = F Z
     omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, B);
+    
+    // ZM = ZM
+    if(M != NULL)
+        omxDGEMV(FALSE, 1.0, Z, M, 0.0, ZM);
     
     // Step through free params 
     // Note: This should be parallelized at the next level up.
@@ -482,24 +490,21 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
         omxMatrix* C = dSigmas[paramNo];
         omxMatrix* dMu = dMus[paramNo];
         
-        //      2) C = B dAdt E F^T
+        //      2) C = B dAdt EF
         omxDGEMM(FALSE, FALSE, 1.0, B, dA, 0.0, U);
-        omxDGEMM(FALSE, FALSE, 1.0, U, E, 0.0, W);
-        omxDGEMM(FALSE, FALSE, 1.0, F, W, 0.0, V);
-        omxDGEMM(FALSE, TRUE, 1.0, V, F, 0.0, C);
-        omxCopyMatrix(Cx, C);
+        omxDGEMM(FALSE, FALSE, 1.0, U, EF, 0.0, C);
         
+        // Note: U is saved here for calculation of M, below.
         //      3) dSigma/dT = C + C^T + B dS/dT B^T
-        omxDGEMM(FALSE, TRUE,  1.0, Ix, Cx, 1.0, C);
+        omxAddOwnTranspose(&C, 0, C);
         omxDGEMM(FALSE, FALSE, 1.0, B, dS, 0.0, V);
         omxDGEMM(FALSE, TRUE,  1.0, V, B, 1.0, C);
         
         if(M != NULL) {
             //      4) dM/dT = B dA/dT Z M + B dM/dT
-            omxDGEMM(FALSE, FALSE, 1.0, dA,  Z, 0.0, W);
-            omxDGEMM(FALSE, FALSE, 1.0, B, W, 0.0, V);
-            omxDGEMM(FALSE, TRUE, 1.0, V, M, 0.0, dMu);
-            omxDGEMM(FALSE, TRUE, 1.0, B, dM, 1.0, dMu);
+            omxDGEMV(FALSE, 1.0, U, ZM, 0.0, dMu);
+            omxDGEMV(FALSE, 1.0, B, dM, 1.0, dMu);
+
         }
 
     }

@@ -85,4 +85,5 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxAddOwnTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
 #endif
