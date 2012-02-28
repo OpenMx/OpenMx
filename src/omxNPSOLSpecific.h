@@ -24,6 +24,6 @@ extern const double NPSOL_BIGBND, NEG_INF, INF;
 
 void omxSetNPSOLOpts(SEXP options, int *numHessians, 
 	int *calculateStdErrors, int *ciMaxIterations, int *disableOptimizer,
-	int *numThreads);
+	int *numThreads, int *analyticGradients);
 
 #endif // #define _OMX_NPSOL_SPECIFIC_H

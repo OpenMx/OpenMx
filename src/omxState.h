@@ -175,7 +175,7 @@ struct omxState {													// The Current State of Optimization
 	int statusCode;													// Status code, if appropriate
 	char statusMsg[250];											// Status/Error message to report
 	double saturatedModel;											// Saturated model likelihood, where applicable
-
+	int analyticGradients;
 };
 
 /* Initialize and Destroy */

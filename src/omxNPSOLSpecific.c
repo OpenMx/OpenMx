@@ -32,7 +32,8 @@ const double INF = 2e20;
 extern void F77_SUB(npoptn)(char* string, int length);
 
 void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
-	int *ciMaxIterations, int *disableOptimizer, int *numThreads) {
+	int *ciMaxIterations, int *disableOptimizer, int *numThreads,
+	int *analyticGradients) {
 
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
@@ -64,6 +65,12 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 				if(matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
 					*disableOptimizer = 1;
+				}
+			} else if(matchCaseInsensitive(nextOptionName, lenName, "Analytic Gradients")) {
+				if(OMX_DEBUG) { Rprintf("Found Analytic Gradients option...");};	
+				if(matchCaseInsensitive(nextOptionValue, lenValue, "Yes")) {
+					if(OMX_DEBUG) { Rprintf("Enabling Analytic Gradients.\n");}
+					*analyticGradients = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, lenName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);

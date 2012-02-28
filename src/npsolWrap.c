@@ -198,6 +198,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int ciMaxIterations = 5;
 	int disableOptimizer = 0;
 	int numThreads = 1;
+	int analyticGradients = 0;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
@@ -211,12 +212,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
-		&ciMaxIterations, &disableOptimizer, &numThreads);
+		&ciMaxIterations, &disableOptimizer, &numThreads, 
+		&analyticGradients);
 
 	/* Create new omxState for current state storage and initialize it. */
 	currentState = (omxState*) R_alloc(1, sizeof(omxState));
 	omxInitState(currentState, NULL, numThreads);
 	currentState->numFreeParams = n;
+	currentState->analyticGradients = analyticGradients;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
 
 	/* Retrieve Data Objects */
@@ -730,7 +733,7 @@ void F77_SUB(objectiveFunction)
 	/* Derivative Calculation Goes Here. */
 	/* Turn this off if derivative calculations are not wanted */
 	if(*mode > 0) {
-	    if(objectiveMatrix->objective->gradientFun != NULL) {
+	    if(currentState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL) {
 	        // Location sets included to assist with parallelization
             int locs[*n];
             for(int i = 0; i < *n; i++) locs[i] = i;
