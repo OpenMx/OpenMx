@@ -63,10 +63,10 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 	omxFreeMatrixData(argStruct->LXPH);
 	omxFreeMatrixData(argStruct->GAPH);
 
-
+	/* Comment out the ppml things I do not use.
 	if(argStruct->ppmlData != NULL) 
 		omxFreeData(argStruct->ppmlData);
-	
+	*/
 }
 
 void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
@@ -123,7 +123,7 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 
 
 void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* LXPH, omxMatrix* W, omxMatrix* GAPH, omxMatrix* U, omxMatrix* TOP, omxMatrix* BOT) {
-	if(OMX_DEBUG) { Rprintf("Running LISREL computation."); }
+	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
@@ -131,15 +131,19 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	// Note: the above give the warning message: initialization from incompatible pointer type
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
+	if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH);
 	omxDGEMM(FALSE, TRUE, oned, LXPH, LX, oned, TD);
 	
 	/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
+	if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
 	omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, BE);
-	omxDGETRI(BE, ipiv, work, lwork);
+	omxDGETRF(BE, ipiv); //LU Decomp
+	omxDGETRI(BE, ipiv, work, lwork); //Inverse based on LU Decomp
 	omxDGEMM(FALSE, FALSE, oned, LY, BE, zerod, LY);
 	
 	/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
+	if(OMX_DEBUG) {Rprintf("Calculating Lower Left Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, TRUE, oned, LXPH, GA, zerod, W);
 	omxDGEMM(FALSE, TRUE, oned, W, LY, oned, TH);
 	
@@ -147,6 +151,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	//DONE as omxTranspose(TH)
 	
 	/* Calculate the upper left quadrant: the covariance of the Ys */
+	if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, FALSE, oned, GA, PH, zerod, GAPH);
 	omxDGEMM(FALSE, TRUE, oned, GAPH, GA, oned, PS);
 	omxDGEMM(FALSE, FALSE, oned, LY, PS, zerod, U);
@@ -270,7 +275,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->needsUpdateFun = NULL; //omxNeedsUpdateRAMObjective;
 	subObjective->destructFun = omxDestroyLISRELObjective;
 	subObjective->setFinalReturns = NULL;
-	subObjective->populateAttrFun = omxPopulateLISRELAttributes;
+	subObjective->populateAttrFun = NULL; //omxPopulateLISRELAttributes;
 	subObjective->updateChildObjectiveFun = NULL; //omxUpdateChildRAMObjective;
 	subObjective->argStruct = (void*) LISobj;
 	
