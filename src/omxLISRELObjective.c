@@ -257,7 +257,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	int nx, nxi, ny, neta, ntotal;
 
-	SEXP slotValue;
+	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and register subobjective */
 
@@ -368,6 +368,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
 	} else RAMobj->means  = 	NULL;
 	*/
+	LISobj->means = NULL;
 
 	/* Create parent objective */
 

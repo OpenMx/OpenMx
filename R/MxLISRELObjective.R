@@ -13,7 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#--------------------------------------------------------------------
+# Author: Michael D. Hunter
+# Filename: MxLISRELObjective.R
+#--------------------------------------------------------------------
 
+#--------------------------------------------------------------------
+# Revision History
+#   Mon Feb 20 13:03:21 Central Standard Time 2012 -- Michael Hunter added means
+
+
+#--------------------------------------------------------------------
 # **DONE**
 setClass(Class = "MxLISRELObjective",
 	representation = representation(
@@ -26,6 +36,10 @@ setClass(Class = "MxLISRELObjective",
 		TD = "MxCharOrNumber",
 		TE = "MxCharOrNumber",
 		TH = "MxCharOrNumber",
+		TX = "MxCharOrNumber",
+		TY = "MxCharOrNumber",
+		KA = "MxCharOrNumber",
+		AL = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		vector = "logical",
@@ -40,7 +54,7 @@ setClass(Class = "MxLISRELObjective",
 
 # **DONE**
 setMethod("initialize", "MxLISRELObjective",
-	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, dims, thresholds, vector,
+	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dims, thresholds, vector,
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@LX <- LX
@@ -52,6 +66,10 @@ setMethod("initialize", "MxLISRELObjective",
 		.Object@TD <- TD
 		.Object@TE <- TE
 		.Object@TH <- TH
+		.Object@TX <- TX
+		.Object@TY <- TY
+		.Object@KA <- KA
+		.Object@AL <- AL
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
@@ -122,6 +140,10 @@ setMethod("genericObjFunNamespace", signature("MxLISRELObjective"),
 		.Object@TD <- imxConvertIdentifier(.Object@TD, modelname, namespace)
 		.Object@TE <- imxConvertIdentifier(.Object@TE, modelname, namespace)
 		.Object@TH <- imxConvertIdentifier(.Object@TH, modelname, namespace)
+		.Object@TX <- imxConvertIdentifier(.Object@TX, modelname, namespace)
+		.Object@TY <- imxConvertIdentifier(.Object@TY, modelname, namespace)
+		.Object@KA <- imxConvertIdentifier(.Object@KA, modelname, namespace)
+		.Object@AL <- imxConvertIdentifier(.Object@AL, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
 		return(.Object)
@@ -143,6 +165,10 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		tdMatrix <- .Object@TD
 		teMatrix <- .Object@TE
 		thMatrix <- .Object@TH
+		txMatrix <- .Object@TX
+		tyMatrix <- .Object@TY
+		kaMatrix <- .Object@KA
+		alMatrix <- .Object@AL
 		data <- .Object@data
 		if(is.na(data)) {
 			msg <- paste("The LISREL objective",
@@ -151,20 +177,41 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
-#		if(!is.na(mMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-#			msg <- paste("The RAM objective",
-#				"has an expected means vector but",
-#				"no observed means vector in model",
-#				omxQuotes(modelname))
-#			stop(msg, call. = FALSE)
-#		}
-#		if(!single.na(mxDataObject@means) && is.null(flatModel[[mMatrix]])) {
-#			msg <- paste("The RAM objective",
-#				"has an observed means vector but",
-#				"no expected means vector in model",
-#				omxQuotes(modelname))
-#			stop(msg, call. = FALSE)		
-#		}
+		if(!is.na(txMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+			msg <- paste("The LISREL objective",
+				"has an expected means vector, TX, but",
+				"no observed means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
+		if(!is.na(tyMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+			msg <- paste("The LISREL objective",
+				"has an expected means vector, TY, but",
+				"no observed means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
+		if(!is.na(kaMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+			msg <- paste("The LISREL objective",
+				"has an expected means vector, KA, but",
+				"no observed means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
+		if(!is.na(alMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+			msg <- paste("The LISREL objective",
+				"has an expected means vector, AL, but",
+				"no observed means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
+		if(!single.na(mxDataObject@means) && (is.null(flatModel[[txMatrix]]) || is.null(flatModel[[tyMatrix]]) || is.null(flatModel[[kaMatrix]]) || is.null(flatModel[[alMatrix]]) )) {
+			msg <- paste("The LISREL objective",
+				"has an observed means vector but",
+				"no expected means vector in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
 		checkNumericData(mxDataObject)
 		.Object@LX <- imxLocateIndex(flatModel, lxMatrix, name)
 		.Object@LY <- imxLocateIndex(flatModel, lyMatrix, name)
@@ -175,6 +222,10 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		.Object@TD <- imxLocateIndex(flatModel, tdMatrix, name)
 		.Object@TE <- imxLocateIndex(flatModel, teMatrix, name)
 		.Object@TH <- imxLocateIndex(flatModel, thMatrix, name)
+		.Object@TX <- imxLocateIndex(flatModel, txMatrix, name)
+		.Object@TY <- imxLocateIndex(flatModel, tyMatrix, name)
+		.Object@KA <- imxLocateIndex(flatModel, kaMatrix, name)
+		.Object@AL <- imxLocateIndex(flatModel, alMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 #		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
 #		fMatrix <- flatModel[[fMatrix]]@values
@@ -188,7 +239,10 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #				omxQuotes(modelname), "does not contain colnames")
 #			stop(msg, call. = FALSE)
 #		}
-#		mMatrix <- flatModel[[mMatrix]]		
+		txMatrix <- flatModel[[txMatrix]]
+		tyMatrix <- flatModel[[tyMatrix]]
+		kaMatrix <- flatModel[[kaMatrix]]
+		alMatrix <- flatModel[[alMatrix]]
 #		if(!is.null(mMatrix)) {
 #			means <- dimnames(mMatrix)
 #			if (is.null(means)) {
@@ -249,7 +303,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 # **DONE**
 setMethod("genericObjDependencies", signature("MxLISRELObjective"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@LX, .Object@LY, .Object@BE, .Object@GA, .Object@PH, .Object@PS, .Object@TD, .Object@TE, .Object@TH, .Object@thresholds)
+	sources <- c(.Object@LX, .Object@LY, .Object@BE, .Object@GA, .Object@PH, .Object@PS, .Object@TD, .Object@TE, .Object@TH, .Object@TX, .Object@TY, .Object@KA, .Object@AL, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
@@ -269,6 +323,10 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 		.Object@TD <- renameReference(.Object@TD, oldname, newname)
 		.Object@TE <- renameReference(.Object@TE, oldname, newname)
 		.Object@TH <- renameReference(.Object@TH, oldname, newname)
+		.Object@TX <- renameReference(.Object@TX, oldname, newname)
+		.Object@TY <- renameReference(.Object@TY, oldname, newname)
+		.Object@KA <- renameReference(.Object@KA, oldname, newname)
+		.Object@AL <- renameReference(.Object@AL, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
 		return(.Object)
@@ -277,7 +335,7 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 
 
 # **DONE**
-mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames = NA, thresholds = NA, vector = FALSE) {
+mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE) {
 	if (missing(LX) || typeof(LX) != "character") {
 		msg <- paste("argument 'LX' is not a string",
 			"(the name of the 'LX' matrix)")
@@ -323,12 +381,30 @@ mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames = NA,
 			"(the name of the 'TH' matrix)")
 		stop(msg)
 	}
-#	if (!(single.na(M) || typeof(M) == "character")) {
-#		msg <- paste("argument M is not a string",
-#			"(the name of the 'M' matrix)")
-#		stop(msg)
-#	}
-#	if (is.na(M)) M <- as.integer(NA)
+	if (!(single.na(TX) || typeof(TX) == "character")) {
+		msg <- paste("argument TX is not a string",
+			"(the name of the 'TX' matrix)")
+		stop(msg)
+	}
+	if (is.na(TX)) TX <- as.integer(NA)
+	if (!(single.na(TY) || typeof(TY) == "character")) {
+		msg <- paste("argument TY is not a string",
+			"(the name of the 'TY' matrix)")
+		stop(msg)
+	}
+	if (is.na(TY)) TY <- as.integer(NA)
+	if (!(single.na(KA) || typeof(KA) == "character")) {
+		msg <- paste("argument KA is not a string",
+			"(the name of the 'KA' matrix)")
+		stop(msg)
+	}
+	if (is.na(KA)) KA <- as.integer(NA)
+	if (!(single.na(AL) || typeof(AL) == "character")) {
+		msg <- paste("argument AL is not a string",
+			"(the name of the 'AL' matrix)")
+		stop(msg)
+	}
+	if (is.na(AL)) AL <- as.integer(NA)
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
@@ -346,7 +422,7 @@ mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames = NA,
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
-	return(new("MxLISRELObjective", LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames, thresholds, vector))
+	return(new("MxLISRELObjective", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, vector))
 }
 
 
@@ -362,11 +438,26 @@ displayLISRELObjective <- function(objective) {
 	cat("@TD :", omxQuotes(objective@TD), '\n')
 	cat("@TE :", omxQuotes(objective@TE), '\n')
 	cat("@TH :", omxQuotes(objective@TH), '\n')
-#	if (is.na(objective@M)) {
-#		cat("@M :", objective@M, '\n')
-#	} else {
-#		cat("@M :", omxQuotes(objective@M), '\n')
-#	}
+	if (is.na(objective@TX)) {
+		cat("@TX :", objective@TX, '\n')
+	} else {
+		cat("@TX :", omxQuotes(objective@TX), '\n')
+	}
+	if (is.na(objective@TY)) {
+		cat("@TY :", objective@TY, '\n')
+	} else {
+		cat("@TY :", omxQuotes(objective@TY), '\n')
+	}
+	if (is.na(objective@KA)) {
+		cat("@KA :", objective@KA, '\n')
+	} else {
+		cat("@KA :", omxQuotes(objective@KA), '\n')
+	}
+	if (is.na(objective@AL)) {
+		cat("@AL :", objective@AL, '\n')
+	} else {
+		cat("@AL :", omxQuotes(objective@AL), '\n')
+	}
 	cat("@vector :", objective@vector, '\n')
 	if (single.na(objective@dims)) {
 		cat("@dims : NA \n")
