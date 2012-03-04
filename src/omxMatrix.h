@@ -87,6 +87,7 @@ struct omxMatrix {						// A matrix
 	int *populateFromRow, *populateFromCol;
 	int *populateToRow, *populateToCol;
 
+	const char* name;
 };
 
 /* Initialize and Destroy */
@@ -145,7 +146,7 @@ struct omxMatrix {						// A matrix
 
 /* OMXINLINE functions and helper functions */
 
-void setMatrixError(int row, int col, int numrow, int numcol);
+void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol);
 void setVectorError(int index, int numrow, int numcol);
 void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
@@ -158,7 +159,7 @@ static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
 
 static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
 	if(row >= om->rows || col >= om->cols) {
-		setMatrixError(row + 1, col + 1, om->rows, om->cols);
+		setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
 	}
 	int index = 0;
 	if(om->colMajor) {

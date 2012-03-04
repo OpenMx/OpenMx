@@ -372,10 +372,26 @@ void vectorElementError(int index, int numrow, int numcol) {
 	free(errstr);
 }
 
-void setMatrixError(int row, int col, int numrow, int numcol) {
+void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	char *errstr = calloc(250, sizeof(char));
-	sprintf(errstr, "Attempted to set row and column (%d, %d) in matrix with dimensions %d x %d.", 
-		row, col, numrow, numcol);
+	const char *matrixString = "matrix";
+	const char *algebraString = "algebra";
+	const char *objectiveString = "objective";
+	char *typeString;
+	if (om->algebra != NULL) {
+		typeString = algebraString;
+	} else if (om->objective != NULL) {
+		typeString = objectiveString;
+	} else {
+		typeString = matrixString;
+	}
+	if (om->name == NULL) {
+		sprintf(errstr, "Attempted to set row and column (%d, %d) in %s with dimensions %d x %d.", 
+			row, col, typeString, numrow, numcol);
+	} else {
+		sprintf(errstr, "Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
+			row, col, typeString, om->name, numrow, numcol);
+	}
 	error(errstr);
 	free(errstr);
 }

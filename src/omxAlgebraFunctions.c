@@ -90,6 +90,9 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
+	int *populateTemp = result->populateToCol;
+	result->populateToCol = result->populateToRow;
+	result->populateToRow = populateTemp;
 	omxMatrixCompute(result);
 }
 
@@ -1523,7 +1526,7 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) {
-		Rprintf("Row Vectorize %s.\n", result->algebra->name);
+		Rprintf("Row Vectorize %s.\n", result->name);
 	}
 
 	omxMatrix *inMat = matList[0];
@@ -1548,7 +1551,7 @@ void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) {
-		 Rprintf("Column Vectorize %s.\n", result->algebra->name);
+		 Rprintf("Column Vectorize %s.\n", result->name);
 	}
 
 	omxMatrix *inMat = matList[0];

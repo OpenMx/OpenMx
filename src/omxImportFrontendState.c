@@ -65,11 +65,14 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 	SEXP nextLoc, nextMat;
 	currentState->numMats = length(matList);
 	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
+	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < length(matList); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		currentState->matrixList[index] = omxNewMatrixFromRPrimitive(nextMat, currentState, 1, -index - 1);
+		currentState->matrixList[index] = omxNewMatrixFromRPrimitive(
+			nextMat, currentState, 1, -index - 1);
+		currentState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				currentState->matrixList[index], currentState->matrixList[index]->rows, currentState->matrixList[index]->cols);

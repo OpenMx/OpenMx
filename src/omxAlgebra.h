@@ -51,7 +51,6 @@ struct omxAlgebra {						// A matrix
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
-	const char* name;				// The name of the algebra (for debugging)
 
 };
 
