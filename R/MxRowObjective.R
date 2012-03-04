@@ -204,7 +204,8 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 			stop(msg, call. = FALSE)
 		}
 		labelsData <- imxGenerateLabels(job)
-		result <- evaluateMxObject(rowAlgebraName, flatJob, labelsData)
+		tuple <- evaluateMxObject(rowAlgebraName, flatJob, labelsData, list())
+		result <- tuple[[1]]
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
 				omxQuotes(simplifyName(rowAlgebraName, model@name)), 
@@ -261,7 +262,8 @@ setMethod("genericObjInitialMatrix", "MxRowObjective",
 	function(.Object, flatModel) {
 		reduceAlgebraName <- .Object@reduceAlgebra
 		labelsData <- imxGenerateLabels(flatModel)
-		result <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData)
+		tuple <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData, list())
+		result <- tuple[[1]]
 		return(result)
 	}
 )

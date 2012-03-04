@@ -192,7 +192,8 @@ updateThresholdDimnames <- function(flatObjective, job, flatJob, labelsData, mod
 		stop(msg, call.=FALSE)      
 	}
 	if (is.null(colnames(thresholds)) && !single.na(dims)) {
-		threshMatrix <- evaluateMxObject(threshName, flatJob, labelsData)
+		tuple <- evaluateMxObject(threshName, flatJob, labelsData, list())
+		threshMatrix <- tuple[[1]]
 		if (ncol(threshMatrix) != length(dims)) {
 			msg <- paste("The thresholds matrix associated",
 			"with the FIML objective in model", 
@@ -246,7 +247,8 @@ updateObjectiveDimnames <- function(flatObjective, job, flatJob,
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
 		if (!unsafe) {
-			covMatrix <- evaluateMxObject(covName, flatJob, labelsData)
+			tuple <- evaluateMxObject(covName, flatJob, labelsData, list())
+			covMatrix <- tuple[[1]]
 			if (nrow(covMatrix) != ncol(covMatrix)) {
 				msg <- paste("The expected covariance matrix associated",
 					"with the", objectiveName, "objective in model", 
@@ -282,7 +284,8 @@ updateObjectiveDimnames <- function(flatObjective, job, flatJob,
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
 		if (!unsafe) {
-			meansMatrix <- evaluateMxObject(meansName, flatJob, labelsData)
+			tuple <- evaluateMxObject(meansName, flatJob, labelsData, list())
+			meansMatrix <- tuple[[1]]
 			if (nrow(meansMatrix) != 1) {
 				msg <- paste("The expected means vector associated",
 					"with the", objectiveName, "objective in model", 

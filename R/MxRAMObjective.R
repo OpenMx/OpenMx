@@ -325,14 +325,20 @@ updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
 
 setMethod("genericObjModelConvert", "MxRAMObjective",
 	function(.Object, job, model, namespace, labelsData, flatJob) {
+		cache <- list()
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
-		Amatrix <- evaluateMxObject(.Object@A, flatJob, labelsData)
-		Smatrix <- evaluateMxObject(.Object@S, flatJob, labelsData)
+		
+		tuple <- evaluateMxObject(.Object@A, flatJob, labelsData, cache)
+		Amatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@S, flatJob, labelsData, cache)
+		Smatrix <- tuple[[1]]
+		cache <- tuple[[2]]
 		if (!identical(dim(Amatrix), dim(Smatrix))) {
 				msg <- paste("The RAM objective",
 					"in model", omxQuotes(model@name), "has an A matrix",

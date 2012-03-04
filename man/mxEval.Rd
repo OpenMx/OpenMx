@@ -23,7 +23,8 @@
 }
 
 \usage{
-mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1)
+mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
+	cache = list(), cacheBack = FALSE)
 }
 
 \arguments{
@@ -32,12 +33,17 @@ mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1)
    \item{compute}{If TRUE then compute the value of algebra expressions.}
    \item{show}{If TRUE then print the translated expression.}
    \item{defvar.row}{The row number for definition variables when compute=TRUE.}
+   \item{cache}{A list of name/matrix value pairs used to speedup computation.}
+   \item{cacheBack}{If TRUE then return the list pair (value, cache).}
 }
 
 \details{
 The argument \sQuote{expression} is an arbitrary R expression.  Any named entities that are used within the R expression are translated into their current value from the model. Any labels from the matrices within the model are translated into their current value from the model. Finally the expression is evaluated and the result is returned.  To enable debugging, the \sQuote{show} argument has been provided.  The most common mistake when using this function is to include named entities in the model that are identical to R function names.  For example, if a model contains a named entity named \sQuote{c}, then the following mxEval call will return an error: \code{mxEval(c(A, B, C), model)}.
 
-If \sQuote{compute} is FALSE, then MxAlgebra expressions return their current values as they have been computed by the optimization call (using \link{mxRun}). If the \sQuote{compute} argument is TRUE, then MxAlgebra expressions will be calculated in R.  Any references to an objective function that has not yet been calculated will return a 1 x 1 matrix with a value of NA.}
+If \sQuote{compute} is FALSE, then MxAlgebra expressions return their current values as they have been computed by the optimization call (using \link{mxRun}). If the \sQuote{compute} argument is TRUE, then MxAlgebra expressions will be calculated in R.  Any references to an objective function that has not yet been calculated will return a 1 x 1 matrix with a value of NA.
+
+The \sQuote{cache} is used to speedup calculation by storing previously computing values. The cache is a list of matrices, such that names(cache) must all be of the form \dQuote{modelname.entityname}. Setting \sQuote{cacheBack} 
+to TRUE will return the pair list(value, cache) where value is the result of the mxEval() computation and cache is the updated cache.}
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.

@@ -171,40 +171,51 @@ substituteOperators <- function(algebra, name) {
 
 checkEvaluation <- function(model, flatModel) {
 	labelsData <- imxGenerateLabels(model)
-	checkMatrixEvaluation(model, flatModel, labelsData)
-	flatModel <- checkAlgebraEvaluation(model, flatModel, labelsData)
-	checkConstraintEvaluation(model, flatModel, labelsData)
+	cache <- list()
+	cache <- checkMatrixEvaluation(model, flatModel, labelsData, cache)
+	tuple <- checkAlgebraEvaluation(model, flatModel, labelsData, cache)
+	flatModel <- tuple[[1]]
+	cache <- tuple[[2]]
+	checkConstraintEvaluation(model, flatModel, labelsData, cache)
 	return(flatModel)
 }
 
-checkMatrixEvaluation <- function(model, flatModel, labelsData) {
-	if(length(flatModel@matrices) == 0) { return() }
+checkMatrixEvaluation <- function(model, flatModel, labelsData, cache) {
+	if(length(flatModel@matrices) == 0) { return(cache) }
 	for(i in 1:length(flatModel@matrices)) {
 		matrix <- flatModel@matrices[[i]]
-		evaluateMxObject(matrix@name, flatModel, labelsData)
+		tuple <- evaluateMxObject(matrix@name, flatModel, labelsData, cache)
+		cache <- tuple[[2]]
 	}
+	return(cache)
 }
 
-checkAlgebraEvaluation <- function(model, flatModel, labelsData) {
-	if(length(flatModel@algebras) == 0) { return(flatModel) }
+checkAlgebraEvaluation <- function(model, flatModel, labelsData, cache) {
+	if(length(flatModel@algebras) == 0) { return(list(flatModel, cache)) }
 	for(i in 1:length(flatModel@algebras)) {
 		algebra <- flatModel@algebras[[i]]
-		result <- evaluateMxObject(algebra@name, flatModel, labelsData)
+		tuple <- evaluateMxObject(algebra@name, flatModel, labelsData, cache)
+		result <- tuple[[1]]
+		cache <- tuple[[2]]
 		algebra <- flatModel[[algebra@name]]
 		algebra@initial <- as.matrix(result)
 		flatModel[[algebra@name]] <- algebra
 	}
-	return(flatModel)
+	return(list(flatModel, cache))
 }
 
-checkConstraintEvaluation <- function(model, flatModel, labelsData) {
+checkConstraintEvaluation <- function(model, flatModel, labelsData, cache) {
 	if(length(flatModel@constraints) == 0) { return() }
 	for(i in 1:length(flatModel@constraints)) {
 		constraint <- flatModel@constraints[[i]]		
 		lhsContext <- paste("the left-hand side of constraint", omxQuotes(constraint@name))
 		rhsContext <- paste("the right-hand side of constraint", omxQuotes(constraint@name))		
-		lhs <- evaluateAlgebraWithContext(flatModel[[constraint@alg1]], lhsContext, flatModel, labelsData)
-		rhs <- evaluateAlgebraWithContext(flatModel[[constraint@alg2]], rhsContext, flatModel, labelsData)
+		tuple <- evaluateAlgebraWithContext(flatModel[[constraint@alg1]], lhsContext, flatModel, labelsData, cache)
+		lhs <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateAlgebraWithContext(flatModel[[constraint@alg2]], rhsContext, flatModel, labelsData, cache)
+		rhs <- tuple[[1]]
+		cache <- tuple[[2]]
 		if (!all(dim(lhs) == dim(rhs))) {
 			lhsName <- constraint@formula[[2]]
 			rhsName <- constraint@formula[[3]]
