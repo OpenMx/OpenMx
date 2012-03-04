@@ -374,7 +374,7 @@ void vectorElementError(int index, int numrow, int numcol) {
 
 void setMatrixError(int row, int col, int numrow, int numcol) {
 	char *errstr = calloc(250, sizeof(char));
-	sprintf(errstr, "Attempted to set improper value (%d, %d) into (%d, %d) matrix.", 
+	sprintf(errstr, "Attempted to set row and column (%d, %d) in matrix with dimensions %d x %d.", 
 		row, col, numrow, numcol);
 	error(errstr);
 	free(errstr);

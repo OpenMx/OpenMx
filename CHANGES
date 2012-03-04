@@ -1,6 +1,7 @@
 trunk
 =====
 * added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
+* added 'cache' and 'cacheBack' arguments to mxEval()
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================
