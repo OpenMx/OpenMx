@@ -1,3 +1,7 @@
+Release 1.2.1
+=============
+* bug fix for interaction of matrix transpose and square bracket substitutions
+
 Release 1.2.0-1926 (February 04, 2012)
 ======================================
 * new interface such that 'objective@info$expMean', 'objective@info$expCov'

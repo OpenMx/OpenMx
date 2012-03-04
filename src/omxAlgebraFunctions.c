@@ -90,6 +90,9 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
+	int *populateTemp = result->populateToCol;
+	result->populateToCol = result->populateToRow;
+	result->populateToRow = populateTemp;
 	omxMatrixCompute(result);
 }
 
