@@ -193,8 +193,11 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	omxTransposeMatrix(F);
 	args[1] = F;
 	omxMatrixHorizCat(args, 2, TOP);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(args[0], "....LISREL: TOP Debugging args[0] = J:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(args[1], "....LISREL: TOP Debugging args[1] = F:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(F, "....LISREL: TOP Debugging F (should be 2 rows):");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TOP, "....LISREL: TOP = cbind(J, t(F)):");}
-	omxTransposeMatrix(TH); // So that it's back where it was.
+	omxTransposeMatrix(F); // So that it's back where it was.
 	args[0] = TOP;
 	args[1] = BOT;
 	omxMatrixVertCat(args, 2, Cov);
