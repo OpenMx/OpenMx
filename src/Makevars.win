@@ -4,7 +4,7 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol$(WIN) -L$(NPSOL_DIR)
 
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # PKG_CFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
-PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
+# PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX # turn on algebra and matrix debugging
 # PKG_CFLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
 # PKG_CFLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
