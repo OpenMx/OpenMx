@@ -130,11 +130,21 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	omxMatrix** args = R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
 	// Note: the above give the warning message: initialization from incompatible pointer type
 	
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LY, "....LISREL: LY:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(BE, "....LISREL: BE:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(GA, "....LISREL: GA:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(PH, "....LISREL: PH:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(PS, "....LISREL: PS:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TD, "....LISREL: TD:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TE, "....LISREL: TE:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
+
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH); // LXPH = lx*ph
 	omxDGEMM(FALSE, TRUE, oned, LXPH, LX, oned, TD);  // TD = LXPH * lx^T + td = lx * ph * lx^T + td
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TD->data);}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TD, "....LISREL: Lower Right Quadrant of Model-implied Covariance Matrix:");}
 	
 	/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 	if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
@@ -142,13 +152,13 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	omxDGETRF(BE, ipiv); //LU Decomp
 	omxDGETRI(BE, ipiv, work, lwork); //Inverse based on LU Decomp ... BE = BE^(-1) = (I - be)^(-1)
 	omxDGEMM(FALSE, FALSE, oned, LY, BE, zerod, LY); // LY = LY*BE = ly * (I - be)^(-1)
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", LY->data);}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LY, "....LISREL: LY*(I-BE)^(-1)");}
 	
 	/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
 	if(OMX_DEBUG) {Rprintf("Calculating Lower Left Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, TRUE, oned, LXPH, GA, zerod, W); // W = LXPH*GA^T = lx*ph*ga^T
 	omxDGEMM(FALSE, TRUE, oned, W, LY, oned, TH); // TH = W*LY^T + TH = lx*ph*ga^T * (ly * (I - be)^(-1))^T + th
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TH->data);}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: Lower Left Quadrant of Model-implied Covariance Matrix:");}
 	
 	/* Calculate the upper right quadrant: NOTE THIS IS MERELY THE LOWER LEFT QUADRANT TRANSPOSED. */
 	//DONE as omxTranspose(TH)
@@ -159,7 +169,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	omxDGEMM(FALSE, TRUE, oned, GAPH, GA, oned, PS); // PS = ga*ph*ga^T + ps
 	omxDGEMM(FALSE, FALSE, oned, LY, PS, zerod, U); // U = ly * (I - be)^(-1) * (ga*ph*ga^T + ps)
 	omxDGEMM(FALSE, TRUE, oned, U, LY, oned, TE); // TE = ly * (I - be)^(-1) * (ga*ph*ga^T + ps) * (ly * (I - be)^(-1))^T + te
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TE->data);}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TE, "....LISREL: Upper Left Quadrant of Model-implied Covariance Matrix:");}
 	
 	/* Construct the full model-implied covariance matrix from the blocks previously calculated */
 	// SigmaHat = ( TE  t(TH) )
@@ -167,10 +177,16 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	args[0] = TH;
 	args[1] = TD;
 	omxMatrixHorizCat(args, 2, BOT);
-	args[0] = TD;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TD, "....LISREL: TD:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(BOT, "....LISREL: BOT:");}
+	args[0] = TE;
 	omxTransposeMatrix(TH);
 	args[1] = TH;
 	omxMatrixHorizCat(args, 2, TOP);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TE, "....LISREL: TE:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TOP, "....LISREL: TOP:");}
 	omxTransposeMatrix(TH);
 	// So that it's back where it was.
 	args[0] = TOP;
