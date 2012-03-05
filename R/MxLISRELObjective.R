@@ -277,7 +277,7 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 
 
 # **DONE**
-mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames = NA, thresholds = NA, vector = FALSE) {
+imxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, dimnames = NA, thresholds = NA, vector = FALSE) {
 	if (missing(LX) || typeof(LX) != "character") {
 		msg <- paste("argument 'LX' is not a string",
 			"(the name of the 'LX' matrix)")

@@ -1,6 +1,7 @@
 Release 1.2.1
 =============
 * bug fix for interaction of matrix transpose and square bracket substitutions
+* renaming mxLISRELObjective() to imxLISRELObjective(), LISREL objective function is not yet implementated.
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================
