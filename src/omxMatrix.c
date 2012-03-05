@@ -602,6 +602,13 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 
 void omxTransposeMatrix(omxMatrix *mat) {
 	mat->colMajor = !mat->colMajor;
+	
+	if(mat->rows != mat->cols){
+        int mid = mat->rows;
+        mat->rows = mat->cols;
+        mat->cols = mid;
+	}
+	
 	omxMatrixCompute(mat);
 }
 
