@@ -132,30 +132,34 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
-	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH);
-	omxDGEMM(FALSE, TRUE, oned, LXPH, LX, oned, TD);
+	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, LXPH); // LXPH = lx*ph
+	omxDGEMM(FALSE, TRUE, oned, LXPH, LX, oned, TD);  // TD = LXPH * lx^T + td = lx * ph * lx^T + td
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TD->data);}
 	
 	/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 	if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
-	omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, BE);
+	omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, BE); // BE = I*I - be
 	omxDGETRF(BE, ipiv); //LU Decomp
-	omxDGETRI(BE, ipiv, work, lwork); //Inverse based on LU Decomp
-	omxDGEMM(FALSE, FALSE, oned, LY, BE, zerod, LY);
+	omxDGETRI(BE, ipiv, work, lwork); //Inverse based on LU Decomp ... BE = BE^(-1) = (I - be)^(-1)
+	omxDGEMM(FALSE, FALSE, oned, LY, BE, zerod, LY); // LY = LY*BE = ly * (I - be)^(-1)
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", LY->data);}
 	
 	/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
 	if(OMX_DEBUG) {Rprintf("Calculating Lower Left Quadrant of Expected Covariance Matrix.\n"); }
-	omxDGEMM(FALSE, TRUE, oned, LXPH, GA, zerod, W);
-	omxDGEMM(FALSE, TRUE, oned, W, LY, oned, TH);
+	omxDGEMM(FALSE, TRUE, oned, LXPH, GA, zerod, W); // W = LXPH*GA^T = lx*ph*ga^T
+	omxDGEMM(FALSE, TRUE, oned, W, LY, oned, TH); // TH = W*LY^T + TH = lx*ph*ga^T * (ly * (I - be)^(-1))^T + th
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TH->data);}
 	
 	/* Calculate the upper right quadrant: NOTE THIS IS MERELY THE LOWER LEFT QUADRANT TRANSPOSED. */
 	//DONE as omxTranspose(TH)
 	
 	/* Calculate the upper left quadrant: the covariance of the Ys */
 	if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
-	omxDGEMM(FALSE, FALSE, oned, GA, PH, zerod, GAPH);
-	omxDGEMM(FALSE, TRUE, oned, GAPH, GA, oned, PS);
-	omxDGEMM(FALSE, FALSE, oned, LY, PS, zerod, U);
-	omxDGEMM(FALSE, TRUE, oned, U, LY, oned, TE);
+	omxDGEMM(FALSE, FALSE, oned, GA, PH, zerod, GAPH); // GAPH = GA*PH = ga*ph
+	omxDGEMM(FALSE, TRUE, oned, GAPH, GA, oned, PS); // PS = ga*ph*ga^T + ps
+	omxDGEMM(FALSE, FALSE, oned, LY, PS, zerod, U); // U = ly * (I - be)^(-1) * (ga*ph*ga^T + ps)
+	omxDGEMM(FALSE, TRUE, oned, U, LY, oned, TE); // TE = ly * (I - be)^(-1) * (ga*ph*ga^T + ps) * (ly * (I - be)^(-1))^T + te
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %x .\n", TE->data);}
 	
 	/* Construct the full model-implied covariance matrix from the blocks previously calculated */
 	// SigmaHat = ( TE  t(TH) )
@@ -172,6 +176,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	args[0] = TOP;
 	args[1] = BOT;
 	omxMatrixVertCat(args, 2, Cov);
+	
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....LISREL: Model-implied Covariance Matrix:");}
 	
 /*	
 	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
@@ -335,7 +341,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	}
 	*/
 	
-	/* Identity Matrix, Size Of A */
+	/* Identity Matrix, Size Of BE */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
 	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
 	omxRecompute(LISobj->I);
@@ -369,10 +375,10 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	LISobj->cov = 		omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
 	
 	/* Uncomment this when means are implemented
-	if(RAMobj->M != NULL) {
-		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
-	} else RAMobj->means  = 	NULL;
-	*/
+	if(LISobj->M != NULL) {
+		LISobj->means = 	omxInitMatrix(NULL, 1, ntotal, TRUE, currentState);
+	} else*/ LISobj->means  = 	NULL;
+	
 	LISobj->means = NULL;
 
 	/* Create parent objective */
