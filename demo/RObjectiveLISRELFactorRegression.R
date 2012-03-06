@@ -350,7 +350,7 @@ diag(TDf) <- sqrt(diag(ex1Run$ThetaDelta@values))
 PSf <- cov2cor(ex1Run$Psi@values)
 diag(PSf) <- sqrt(diag(ex1Run$Psi@values))
 
-# The other matrices are report raw.
+# The other matrices are reported raw.
 LXf <- ex1Run$LambdaX@values
 GAf <- ex1Run$Gamma@values
 BEf <- ex1Run$Beta@values

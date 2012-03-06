@@ -54,6 +54,7 @@ GrowthMixtureModel_PathRaw	Growth mixture model using path specification and raw
 GrowthMixtureModelRandomStarts	Random starting value generation for growth mixture model
 OneFactorOrdinal_MatrixRaw	One factor model using matrix specification for ordinal data
 OneFactorOrdinal01_MatrixRaw	One factor model using matrix specification for ordinal data (alternative specification)
-FIMLRowObjectiveBivariateCorrelation	Implementing Full Information Maximum Likelihood using the MxRowObjective function
+RowObjectiveFIMLBivariateSaturated	Implementing Full Information Maximum Likelihood using the MxRowObjective function
 RowObjectiveSimpleExamples	Basic examples of using the row-wise objective function (MxRowObjective)
+RObjectiveLISRELFactorRegression	Implementing LISREL style model specification with the MxRObjective function
 
