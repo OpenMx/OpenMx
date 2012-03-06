@@ -16,7 +16,7 @@
 library(OpenMx)
 
 # Define a model
-model <- mxModel()
+model <- mxModel('model')
 model <- mxModel(model, mxMatrix("Full", values = c(0,0.2,0,0), name="A", nrow=2, ncol=2))
 model <- mxModel(model, mxMatrix("Symm", values = c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Iden", name="F", nrow=2, ncol=2, dimnames = list(c('a','b'), c('a','b'))))
@@ -58,7 +58,9 @@ omxCheckCloseEnough(expectedParameters,
 
 fixedModel <- model
 params <- omxGetParameters(fixedModel)
-fixedModel <- omxSetParameters(fixedModel, names(params), free = FALSE)
+fixedModel <- omxSetParameters(fixedModel, names(params), free = FALSE, name = 'modelFixed')
+omxCheckEquals(model@name, "model")
+omxCheckEquals(fixedModel@name, "modelFixed")
 fixedModelOut <- mxRun(fixedModel)
 
 modelUnfitted <- mxRun(model, useOptimizer=FALSE)

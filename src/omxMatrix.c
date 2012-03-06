@@ -374,10 +374,10 @@ void vectorElementError(int index, int numrow, int numcol) {
 
 void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	char *errstr = calloc(250, sizeof(char));
-	const char *matrixString = "matrix";
-	const char *algebraString = "algebra";
-	const char *objectiveString = "objective";
-	char *typeString;
+	static const char *matrixString = "matrix";
+	static const char *algebraString = "algebra";
+	static const char *objectiveString = "objective";
+	const char *typeString;
 	if (om->algebra != NULL) {
 		typeString = algebraString;
 	} else if (om->objective != NULL) {

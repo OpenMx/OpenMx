@@ -48,7 +48,7 @@ setParametersCheckVector <- function(values, test, argname, typename) {
 
 omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
-	strict = TRUE) {
+	strict = TRUE, name = NULL) {
 	if (missing(labels) || !is.character(labels) || length(labels) == 0) {
 		stop("'labels' argument must be a character vector")
 	}
@@ -57,6 +57,9 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	}
 	if (any(duplicated(labels))) {
 		stop("'labels' argument must not contain duplicate values")		
+	}
+	if (!is.null(name) && length(name) != 1 && !is.character(name)) {
+		stop("'name' argument must be a character string")
 	}
 	if (strict) {
 		pnames <- names(omxGetParameters(model, indep, NA))
@@ -80,8 +83,12 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	setParametersCheckVector(newlabels, is.character, 'newlabels', 'character')
 	setParametersCheckVector(lbound, is.numeric, 'lbound', 'numeric')
 	setParametersCheckVector(ubound, is.numeric, 'ubound', 'numeric')
-	return(setParametersHelper(model, labels, free, values,
-		newlabels, lbound, ubound, indep))
+	retval <- setParametersHelper(model, labels, free, values,
+		newlabels, lbound, ubound, indep)
+	if (!is.null(name)) {
+		retval <- mxRename(retval, name)
+	}
+	return(retval)
 }
 
 setParametersHelper <- function(model, labels, free, values,
