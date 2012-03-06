@@ -102,13 +102,15 @@ imxCheckVariables <- function(flatModel, namespace) {
 		freeVars <- list()
 		fixedVars <- list()
 		bounds <- list()
+		varlocations <- list()
 		for(i in 1:length(flatModel@matrices)) {
 			result <- checkVariablesHelper(flatModel@matrices[[i]], startVals, 
-				freeVars, fixedVars, bounds, flatModel@name, datasets)
+				freeVars, fixedVars, bounds, varlocations, flatModel@name, datasets)
 			startVals <- result[[1]]
 			freeVars <- result[[2]]
 			fixedVars <- result[[3]]
 			bounds <- result[[4]]
+			varlocations <- result[[5]]
 		}
 		retval$startvals <- startVals
 		retval$bounds <- bounds
@@ -116,8 +118,12 @@ imxCheckVariables <- function(flatModel, namespace) {
 	return(retval)
 }
 
+rowColToString <- function(row, col) {
+	return(paste("(", row, ", ", col, ")", sep = ""))
+}
+
 checkVariablesHelper <- function(matrix, startVals, freeVars,
-		fixedVars, bounds, modelname, datasets) {
+		fixedVars, bounds, varlocations, modelname, datasets) {
 	labels <- matrix@labels
 	free <- matrix@free
 	values <- matrix@values
@@ -180,21 +186,43 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"has been assigned to a free parameter",
 						"and a fixed value!"), call. = FALSE)
 				} else if (label %in% freeVars && startVals[[label]] != value) {
+					loc <- varlocations[[label]]
 					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple starting values!"),
-						 call. = FALSE)
+						"has been assigned multiple starting values!",
+						"See matrix",
+						omxQuotes(simplifyName(matrix@name, modelname)), 
+						"at location", 
+						rowColToString(row, col),
+						"and matrix", 
+						omxQuotes(simplifyName(loc[[1]], modelname)), 
+						"at location", 
+						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else if (label %in% freeVars && 
 								!identicalNA(lbound, bounds[[label]][[1]])) {
+					loc <- varlocations[[label]]
 					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple lower bounds!"),
-						 call. = FALSE)
+						"has been assigned multiple lower bounds!",
+						"See matrix",
+						omxQuotes(simplifyName(matrix@name, modelname)), 
+						"at location", 
+						rowColToString(row, col),
+						"and matrix", 
+						omxQuotes(simplifyName(loc[[1]], modelname)), 
+						"at location", 
+						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else if (label %in% freeVars && 
 								!identicalNA(ubound, bounds[[label]][[2]])) {
-					print(typeof(ubound))
-					print(typeof(bounds[[label]][[2]]))
+					loc <- varlocations[[label]]
 					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple upper bounds!"),
-						 call. = FALSE)
+						"has been assigned multiple upper bounds!",
+						"See matrix",
+						omxQuotes(simplifyName(matrix@name, modelname)), 
+						"at location", 
+						rowColToString(row, col),
+						"and matrix", 
+						omxQuotes(simplifyName(loc[[1]], modelname)), 
+						"at location", 
+						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else {
 					startVals[[label]] <- value
 					freeVars <- append(freeVars, label)
@@ -207,17 +235,28 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"has been assigned to a fixed value",
 						"and a free parameter!"), call. = FALSE)
 				} else if (label %in% fixedVars && startVals[[label]] != value) {
+					loc <- varlocations[[label]]
 					stop(paste("The fixed variable", omxQuotes(label),
-						"has been assigned multiple starting values!"),
-						 call. = FALSE)
+						"has been assigned multiple starting values!",
+						"See matrix",
+						omxQuotes(simplifyName(matrix@name, modelname)), 
+						"at location", 
+						rowColToString(row, col),
+						"and matrix", 
+						omxQuotes(simplifyName(loc[[1]], modelname)), 
+						"at location", 
+						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else {
 					startVals[[label]] <- value
 					fixedVars <- append(fixedVars, label)
 				}
 			}
+			if(is.null(varlocations[[label]])) {
+				varlocations[[label]] <- c(matrix@name, row, col)
+			}
 		}
 	}
-	return(list(startVals, freeVars, fixedVars, bounds))
+	return(list(startVals, freeVars, fixedVars, bounds, varlocations))
 }
 
 identicalNA <- function(x, y) {
