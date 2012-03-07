@@ -15,7 +15,7 @@ Parallel versions of this example, using path-centric specification of models ra
 * http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/OneFactorModel_PathCov.R
 * http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/OneFactorModel_PathRaw.R
 * http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/TwoFactorModel_PathCov.R
-* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/TwoFactorModel_PathRaws.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/TwoFactorModel_PathRaw.R
 
 
 Common Factor Model

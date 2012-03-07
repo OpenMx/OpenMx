@@ -5,12 +5,10 @@ Time Series, Matrix Specification
 
 This example will demonstrate a growth curve model using RAM specified matrices. As with previous examples, this application is split into two files, one each raw and covariance data. These examples can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_MatrixCov.R
 * http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_MatrixRaw.R
 
 Parallel versions of this example, using path-centric specification of models rather than matrices, can be found here:
 
-* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_PathCov.R
 * http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_PathRaw.R
 
 
