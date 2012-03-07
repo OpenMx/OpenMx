@@ -94,6 +94,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->lastCompute = -2;
 	om->lastRow = -2;
 	om->isTemporary = FALSE;
+	om->name = NULL;
 
 	omxMatrixCompute(om);
 

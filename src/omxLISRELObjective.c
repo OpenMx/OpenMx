@@ -133,7 +133,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
-	omxMatrix** args = R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
+	omxMatrix** args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
 	// Note: the above give the warning message: initialization from incompatible pointer type
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
@@ -254,35 +254,48 @@ void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatri
 */
 }
 
-/*
-void omxUpdateChildRAMObjective(omxObjective* tgt, omxObjective* src) {
+void omxUpdateChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
 
-	omxRAMObjective* tgtRAM = (omxRAMObjective*)(tgt->argStruct);
-	omxRAMObjective* srcRAM = (omxRAMObjective*)(src->argStruct);
+	omxLISRELObjective* tgtLISREL = (omxLISRELObjective*)(tgt->argStruct);
+	omxLISRELObjective* srcLISREL = (omxLISRELObjective*)(src->argStruct);
 
-	omxUpdateMatrix(tgtRAM->cov, srcRAM->cov);
-	if (tgtRAM->means && srcRAM->means) {
-		omxUpdateMatrix(tgtRAM->means, srcRAM->means);	
+	omxUpdateMatrix(tgtLISREL->cov, srcLISREL->cov);
+	if (tgtLISREL->means && srcLISREL->means) {
+		omxUpdateMatrix(tgtLISREL->means, srcLISREL->means);
 	}
+	
+	omxUpdateMatrix(tgtLISREL->A, srcLISREL->A);
+	omxUpdateMatrix(tgtLISREL->B, srcLISREL->B);
+	omxUpdateMatrix(tgtLISREL->C, srcLISREL->C);
+	omxUpdateMatrix(tgtLISREL->D, srcLISREL->D);
+	omxUpdateMatrix(tgtLISREL->E, srcLISREL->E);
+	omxUpdateMatrix(tgtLISREL->F, srcLISREL->F);
+	omxUpdateMatrix(tgtLISREL->G, srcLISREL->G);
+	omxUpdateMatrix(tgtLISREL->H, srcLISREL->H);
+	omxUpdateMatrix(tgtLISREL->J, srcLISREL->J);
+	omxUpdateMatrix(tgtLISREL->TOP, srcLISREL->TOP);
+	omxUpdateMatrix(tgtLISREL->BOT, srcLISREL->BOT);
 
 	if (tgt->subObjective != NULL) {
 		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
 
 }
-*/
 
-/*
-unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Checking if RAM needs update.  RAM uses A:0x%x, S:0x%x, F:0x%x, M:0x%x.\n",((omxRAMObjective*)oo->argStruct)->A, ((omxRAMObjective*)oo->argStruct)->S, ((omxRAMObjective*)oo->argStruct)->F, ((omxRAMObjective*)oo->argStruct)->M); }
-	return(omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->A)
-	 	|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->S)
-	 	|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->F)
-		|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->M));
+
+unsigned short int omxNeedsUpdateLISRELObjective(omxObjective* oo) {
+	return(omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->LX)
+	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->LY)
+	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->BE)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->GA)
+	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PH)
+	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PS)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TD)		
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TE)		
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TH));
 
 	// Note: cov is data, and should never need updating.
 }
-*/
 
 
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
@@ -303,11 +316,11 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Set Subobjective Calls and Structures */
 	subObjective->objectiveFun = omxCallLISRELObjective;
-	subObjective->needsUpdateFun = NULL; //omxNeedsUpdateRAMObjective;
+	subObjective->needsUpdateFun = omxNeedsUpdateLISRELObjective;
 	subObjective->destructFun = omxDestroyLISRELObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = NULL; //omxPopulateLISRELAttributes;
-	subObjective->updateChildObjectiveFun = NULL; //omxUpdateChildRAMObjective;
+	subObjective->updateChildObjectiveFun = omxUpdateChildLISRELObjective;
 	subObjective->argStruct = (void*) LISobj;
 	
 	/* Set up objective structures */

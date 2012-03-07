@@ -309,20 +309,6 @@ void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
 
 }
 
-void omxSetMLObjectiveCalls(omxObjective* oo) {
-	
-	/* Set Objective Calls to ML Objective Calls */
-    char* myType = (char*) Calloc(25, char);
-    strncpy(myType, "omxMLObjective", 15);
-    oo->objType = myType;
-	oo->objectiveFun = omxCallMLObjective;
-	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
-	oo->destructFun = omxDestroyMLObjective;
-	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
-	oo->populateAttrFun = omxPopulateMLAttributes;
-	
-}
-
 void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
@@ -351,6 +337,29 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxCreateMLObjective(oo, rObj, cov, means);
 	
+}
+
+void omxUpdateChildMLObjective(omxObjective* tgt, omxObjective* src) {
+
+	if (tgt->subObjective != NULL) {
+		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+	}
+
+}
+
+void omxSetMLObjectiveCalls(omxObjective* oo) {
+	
+	/* Set Objective Calls to ML Objective Calls */
+    char* myType = (char*) Calloc(25, char);
+    strncpy(myType, "omxMLObjective", 15);
+    oo->objType = myType;
+	oo->objectiveFun = omxCallMLObjective;
+	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
+	oo->destructFun = omxDestroyMLObjective;
+	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
+	oo->populateAttrFun = omxPopulateMLAttributes;
+	oo->updateChildObjectiveFun = omxUpdateChildMLObjective;
+	oo->repopulateFun = NULL;	
 }
 
 void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
