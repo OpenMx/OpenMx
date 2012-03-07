@@ -41,7 +41,7 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	    omxRecompute(oro->AL);
 	}*/
 
-	omxCalculateLISRELCovarianceAndMeans(oro->LX, oro->LY, oro->BE, oro->GA, oro->PH, oro->PS, oro->TD, oro->TE, oro->TH, oro->cov, oro->means, oro->numIters, oro->A, oro->B, oro->C, oro->D, oro->E, oro->F, oro->G, oro->H, oro->I, oro->J, oro->TOP, oro->BOT);
+	omxCalculateLISRELCovarianceAndMeans(oro);
 }
 
 void omxDestroyLISRELObjective(omxObjective* oo) {
@@ -128,12 +128,37 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 /* omxFastLISRELInverse would go here */
 
 
-void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* A, omxMatrix* B, omxMatrix* C, omxMatrix* D, omxMatrix* E, omxMatrix* F, omxMatrix* G, omxMatrix* H, omxMatrix* I, omxMatrix* J, omxMatrix* TOP, omxMatrix* BOT) {
+void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
+	omxMatrix* LX = oro->LX;
+	omxMatrix* LY = oro->LY;
+	omxMatrix* BE = oro->BE;
+	omxMatrix* GA = oro->GA;
+	omxMatrix* PH = oro->PH;
+	omxMatrix* PS = oro->PS;
+	omxMatrix* TD = oro->TD;
+	omxMatrix* TE = oro->TE;
+	omxMatrix* TH = oro->TH;
+	omxMatrix* Cov = oro->cov;
+	omxMatrix* Means = oro->means;
+	int numIters = oro->numIters;
+	omxMatrix* A = oro->A;
+	omxMatrix* B = oro->B;
+	omxMatrix* C = oro->C;
+	omxMatrix* D = oro->D;
+	omxMatrix* E = oro->E;
+	omxMatrix* F = oro->F;
+	omxMatrix* G = oro->G;
+	omxMatrix* H = oro->H;
+	omxMatrix* I = oro->I;
+	omxMatrix* J = oro->J;
+	omxMatrix* TOP = oro->TOP;
+	omxMatrix* BOT = oro->BOT;
+	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
-	omxMatrix** args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*)); // Used to block construct covariance matrix
+
 	// Note: the above give the warning message: initialization from incompatible pointer type
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
@@ -403,7 +428,9 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	LISobj->BOT = 	omxInitMatrix(NULL, nx, ntotal, TRUE, currentState);
 
 
-	LISobj->cov = 		omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
+	LISobj->cov = 	omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
+
+	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
 	
 	/* Uncomment this when means are implemented
 	if(LISobj->M != NULL) {

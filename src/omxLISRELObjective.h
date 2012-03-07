@@ -37,9 +37,11 @@ typedef struct {
 	omxData *ppmlData;
 	omxMatrix *ppmlCov, *ppmlMeans;
 
+	omxMatrix **args;
+
 } omxLISRELObjective;
 
-void omxCalculateLISRELCovarianceAndMeans(omxMatrix* LX, omxMatrix* LY, omxMatrix* BE, omxMatrix* GA, omxMatrix* PH, omxMatrix* PS,  omxMatrix* TD, omxMatrix* TE, omxMatrix* TH, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* A, omxMatrix* B, omxMatrix* C, omxMatrix* D, omxMatrix* E, omxMatrix* F, omxMatrix* G, omxMatrix* H, omxMatrix* I, omxMatrix* J, omxMatrix* TOP, omxMatrix* BOT); //, omxMatrix* TX, omxMatrix* TY, omxMatrix* KA, omxMatrix* AL);
+void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro);
 
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj);
 
