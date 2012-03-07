@@ -7,11 +7,11 @@ Mx is probably most popular in the behavior genetics field, as it was conceived 
 
 The example starts with the ACE model and includes one submodel, the AE model. It is available in the following file:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateTwinAnalysis_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/UnivariateTwinAnalysis_MatrixRaw.R
 
 A parallel version of this example, using path specification of models rather than matrices, can be found here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateTwinAnalysis_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/UnivariateTwinAnalysis_PathRaw.R
 
 
 ACE Model: a Twin Analysis

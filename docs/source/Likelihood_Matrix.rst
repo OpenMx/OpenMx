@@ -9,16 +9,16 @@ Two hypotheses were advanced to account for the ABO variation.  The single locus
 
 The two scripts are available in these files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneLocusLikelihood.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneLocusLikelihood.R
 
 and 
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/TwoLocusLikelihood.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/TwoLocusLikelihood.R
 
 For (former) users of the first version of Mx, scripts for that software can be found here:
     
-    * http://openmx.psyc.virginia.edu/repoview/1/trunk/models/passing/mx-scripts/one.mx
-    * http://openmx.psyc.virginia.edu/repoview/1/trunk/models/passing/mx-scripts/two.mx
+    * http://openmx.psyc.virginia.edu/svn/trunk/models/passing/mx-scripts/one.mx
+    * http://openmx.psyc.virginia.edu/svn/trunk/models/passing/mx-scripts/two.mx
 
 
 Specification of the Single Locus Model

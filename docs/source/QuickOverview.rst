@@ -5,16 +5,16 @@ This document provides a quick overview of the capabilities of OpenMx in handlin
 
 The OpenMx scripts for the examples in this overview are available in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MatrixAlgebra.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateTwinAnalysis.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/MatrixAlgebra.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/BivariateCorrelation.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/UnivariateTwinAnalysis.R
 
 
 Simple OpenMx Script
 --------------------
 
 We will start by showing some of the main features of OpenMx using simple examples.  For those familiar with Mx, it is basically a matrix interpreter combined with a numerical optimizer to allow fitting statistical models.  Of course you do not need OpenMx to perform matrix algebra as that can already be done in R or by hand.  However, to accommodate flexible statistical modeling of the type of models typically fit in Mx, Mplus or other SEM packages, special kinds of matrices and functions are required which are bundled in OpenMx.  We will introduce key features of OpenMx using a matrix algebra example.  Remember that R is object-oriented, such that the results of operations are objects, rather than just matrices, with various properties/characteristics attached to them.  We will describe the script line by line; a link to the complete script is `here
-<http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MatrixAlgebra.R>`_.
+<http://openmx.psyc.virginia.edu/svn/trunk/demo/MatrixAlgebra.R>`_.
 
 Say, we want to create two matrices, **A** and **B**, each of them a 'Full' matrix with 3 rows and 1 column and with the values 1, 2 and 3, as follows:
 
@@ -173,7 +173,7 @@ Optimization Script
 -------------------
 
 When collecting data to test a specific hypothesis, one of the first things one typically does is to check the basic descriptive statistics, such as the means, variances and covariances/correlations.  We can use basic functions in R, i.e., `summary(Data)` - or the alternative `describe(Data)` from the package ``psych`` - `meanCol(Data)`, `cov(Data)` or `cor(Data)` to perform these operations.  We can even get R to provide significance levels for the correlations etc.  However, if we want to test specific hypotheses about the data by maximum likelihood (ML), for example, test whether the correlation between two variables is significantly different from zero, we need to compare the likelihood of the data when the correlation is freely estimated with the likelihood of the data when the correlation is fixed to zero.  Let's work through a specific `example
-<http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation.R>`_.
+<http://openmx.psyc.virginia.edu/svn/trunk/demo/BivariateCorrelation.R>`_.
 
 Say, we have collected data on two variables **X** and **Y** in 1000 individuals, and R descriptive statistics has shown that the correlation between them is 0.5.  For the sake of this example, we used another built-in function in the R package ``MASS``, namely ``mvrnorm``, to generate multivariate normal data for 1000 individuals with means of 0.0, variances of 1.0 and a correlation (``rs``) of 0.5 between **X** and **Y**.  Note that the first argument of ``mvrnorm`` is the sample size, the second the vector of means, and the third the covariance matrix to be simulated.  We save the data in the object ``xy`` and create a vector of labels for the two selected variables, hence ``selVars``, which is used in the ``dimnames`` statement later on.  The `dimnames`` are expected to be a list with rows corresponding to subjects and columns to variables.  The rows are typically not labeled thus we use ``NULL``, the columns get the labels of the variables from ``selVars``.  The R functions ``summary()`` and ``cov()`` are used to verify that the simulations appear OK.
 
@@ -356,7 +356,7 @@ The basic model typically fit to twin data from MZ and DZ twins reared together 
 It has been standard in twin modeling to fit models to the raw data, as often data are missing on some co-twins.  When using FIML, we also need to specify the expected means.  There is no reason to expect that the variances are different for twin 1 and twin 2, neither are the means for twin 1 and twin 2 expected to differ.  This can easily be verified by fitting submodels to the saturated model, prior to fitting the **ACE** model.
 
 Let us start by simulating twin data followed by fitting a series of models.  The `code
-<http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/UnivariateTwinAnalysis.R>`_
+<http://openmx.psyc.virginia.edu/svn/trunk/demo/UnivariateTwinAnalysis.R>`_
 includes both the twin data simulation and several OpenMx scripts to analyze the data.  We will describe each of the parts in turn and include the code for the specific part in the code blocks.  Note that a more extensive example is discussed later in :ref:`geneticepidemiology-matrix-specification`.
 
 First, we simulate twin data using the ``mvrnorm`` R function.  If the additive genetic factors (**A**) account for 50% of the total variance and the shared environmental factors (**C**) for 30%, thus leaving 20% explained by specific environmental factors (**E**), then the expected MZ twin correlation is ``a^2 + c^2`` or 0.8 in this case, and the expected DZ twin correlation is 0.55, calculated as ``.5*a^2 + c^2``.  We simulate 1000 pairs of MZ and DZ twins each with zero means and a correlation matrix according to the values listed above.  We run some basic descriptive statistics on the simulated data, using regular R functions.
