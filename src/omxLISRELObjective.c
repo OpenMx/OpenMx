@@ -264,18 +264,6 @@ void omxUpdateChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
 		omxUpdateMatrix(tgtLISREL->means, srcLISREL->means);
 	}
 	
-	omxUpdateMatrix(tgtLISREL->A, srcLISREL->A);
-	omxUpdateMatrix(tgtLISREL->B, srcLISREL->B);
-	omxUpdateMatrix(tgtLISREL->C, srcLISREL->C);
-	omxUpdateMatrix(tgtLISREL->D, srcLISREL->D);
-	omxUpdateMatrix(tgtLISREL->E, srcLISREL->E);
-	omxUpdateMatrix(tgtLISREL->F, srcLISREL->F);
-	omxUpdateMatrix(tgtLISREL->G, srcLISREL->G);
-	omxUpdateMatrix(tgtLISREL->H, srcLISREL->H);
-	omxUpdateMatrix(tgtLISREL->J, srcLISREL->J);
-	omxUpdateMatrix(tgtLISREL->TOP, srcLISREL->TOP);
-	omxUpdateMatrix(tgtLISREL->BOT, srcLISREL->BOT);
-
 	if (tgt->subObjective != NULL) {
 		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
