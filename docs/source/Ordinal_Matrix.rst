@@ -7,8 +7,8 @@ This chapter deals with the specification of models that are either fit exclusiv
 
 The examples for this chapter can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModelOrdinal_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModelOrdinal01_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal01_MatrixRaw.R
 
 The continuous versions of these models for raw data can be found the previous demos here:
 
