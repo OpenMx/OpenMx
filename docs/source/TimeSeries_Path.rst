@@ -5,13 +5,13 @@ Time Series, Path Specification
 
 This example will demonstrate a growth curve model using path-centric specification. As with previous examples, this application is split into two files, one each raw and covariance data. These examples can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_PathRaw.R
 
 Parallel versions of this example, using matrix specification of models rather than paths, can be found here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_MatrixRaw.R
 
 Latent Growth Curve Model
 -------------------------

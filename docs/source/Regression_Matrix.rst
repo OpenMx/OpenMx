@@ -6,21 +6,21 @@ Regression, Matrix Specification
 Our next example will show how regression can be carried out from structural modeling perspective. This example is in three parts; a simple regression, a multiple regression, and multivariate regression. There are two versions of each example are available; one where the data is supplied as a covariance matrix and vector of means, and one with raw data. These examples are available in the following files:
 Parallel versions of this example, using matrix specification of models rather than paths, can be found here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultipleRegression_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultipleRegression_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_MatrixCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/SimpleRegression_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/SimpleRegression_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultipleRegression_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultipleRegression_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultivariateRegression_MatrixCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultivariateRegression_MatrixRaw.R
 
 This example will focus on the RAM approach to building structural models. A parallel version of this example, using path-centric rather than matrix specification, is available here:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/SimpleRegression_PathRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultipleRegression_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultipleRegression_PathRaw.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_PathCov.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/MultivariateRegression_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/SimpleRegression_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/SimpleRegression_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultipleRegression_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultipleRegression_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultivariateRegression_PathCov.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/MultivariateRegression_PathRaw.R
 
 
 Simple Regression

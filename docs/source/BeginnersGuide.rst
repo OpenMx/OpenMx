@@ -5,8 +5,8 @@ This document will walk the reader through the basic concepts used in the OpenMx
 
 The OpenMx scripts for the examples in this guide are available in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorPathDemo.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorMatrixDemo.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/OneFactorPathDemo.R
+* http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/OneFactorMatrixDemo.R
 
 
 Pass By Value

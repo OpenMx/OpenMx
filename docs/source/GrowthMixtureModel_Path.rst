@@ -4,17 +4,17 @@ Growth Mixture Modeling, Path Specification
 
 This example will demonstrate how to specify a growth mixture model using path specification. Unlike other examples, this application will not be demonstrated with covariance data, as this model can only be fit to raw data. The script for this example can be found in the following file:
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/GrowthMixtureModel_PathRaw.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/GrowthMixtureModel_PathRaw.R
 
 A parallel example using matrix specification can be found here:
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/GrowthMixtureModel_MatrixRaw.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/GrowthMixtureModel_MatrixRaw.R
 
 The latent growth curve used in this example is the same one fit in the latent growth curve example. Path and matrix versions of that example for raw data can be found here: 
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_PathRaw.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_PathRaw.R
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/LatentGrowthCurveModel_MatrixRaw.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/LatentGrowthCurveModel_MatrixRaw.R
 
 Mixture Modeling
 ----------------
@@ -198,7 +198,7 @@ Multiple Runs: Serial Method
 
 The results of a mixture model can sometimes depend on starting values. It is a good idea to run a mixture model with a variety of starting values to make sure results you find are not the result of a local minimum in the likelihood space. This section will describe a serial (i.e., running one model at a time) method for randomly generating starting values and re-running a model, which is appropriate for a wide range of methods. The next section will cover parallel (multiple models simultaneously) estimation procedures. Both of these examples are available in the ``GrowthMixtureModelRandomStarts`` demo.
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/GrowthMixtureModelRandomStarts.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/GrowthMixtureModelRandomStarts.R
 
 One way to access the starting values in a model is by using the ``omxGetParameters`` function. This function takes an existing model as an argument and returns the names and values of all free parameters. Using this function on our growth mixture model, which is stored in an objected called ``gmm``, gives us back the starting values we specified above.
 
@@ -323,7 +323,7 @@ Multiple Runs: Parallel Method
 
 OpenMx supports multicore processing through the ``snowfall`` library, which is described in the "Multicore Execution" section of the documentation and in the following demo:
 
-** http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BootstrapParallel.R
+** http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/BootstrapParallel.R
 
 Using multiple processors can greatly improve processing time for model estimation when a model contains independent submodels. While the growth mixture model in this example does contain submodels (i.e., the class specific models), they are not independent, as they both depend on a set of shared parameters ("residual", "pclass1").
 

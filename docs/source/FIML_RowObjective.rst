@@ -14,11 +14,11 @@ Full Information Maximum Likelihood, Row Objective Specification
 
 This example will show how full information maximum likelihood can be implemented using a row-by-row evaluation of a likelihood function.  This example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
 
-*    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
+*    http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/RowObjectiveFIMLBivariateSaturated.R
 
 There is a parallel version of this example that uses the standard full information maximum likelihood implementation here:
 
-*    http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/BivariateCorrelation.R
+*    http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/demo/BivariateCorrelation.R
 
 The goal of the current document is twofold: to increase users' understanding of full information maximum likelihood, and to assist users in implementing their own row objective functions.
 
@@ -128,7 +128,7 @@ The selection on both rows and columns yields the following filtered expected co
     2 & 6 & 8\\
     \end{array} \right)$
 
-In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row objective implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/repoview/1/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/repoview/1/trunk/src/omxFIMLObjective.c .
+In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row objective implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/svn/tags/stable-1.2/src/omxFIMLObjective.c .
 
 Quadratic Products
 ******************
