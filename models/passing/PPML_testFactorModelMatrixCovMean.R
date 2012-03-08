@@ -73,4 +73,5 @@ factorModel <- mxModel("Two Factor Matrix",
       mxData(dataCov, mean=dataMean, type="cov", numObs=140),
 	  mxRAMObjective("A","S","F","M",dimnames=c("X", "Y", "Z", "G","H"))
 			)
+
 imxTestPPML(factorModel)
