@@ -403,9 +403,10 @@ modelModifyFilter <- function(model, entries, action) {
 			"See http://openmx.psyc.virginia.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
 	}
 	if (any(characterFilter) && action == 'add') {
-		stop(paste("Cannot use character vectors when remove = FALSE.",
-			"Instead supply the named entity to the mxModel() function:",
-			omxQuotes(entries[characterFilter])))
+		stop(paste("I don't know what to do with the following strings",
+			omxQuotes(entries[characterFilter]),
+			"that have been passed into the function:",
+			deparse(width.cutoff = 400L, imxLocateFunction("mxModel"))), call. = FALSE)
 	}
 	if (identical(action, 'add')) {
 		return(list(entries[namedEntityFilter], entries[boundsFilter], entries[intervalFilter]))
