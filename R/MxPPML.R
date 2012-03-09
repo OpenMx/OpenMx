@@ -1478,12 +1478,6 @@ imxPPML <- function(model, flag) {
 	return(model)
 }
 
-single.na <- function(a) {
-    return((length(a) == 1) &&
-        (is.list(a) || is.vector(a) || is.matrix(a)) &&
-        (is.na(a) == TRUE))
-}	
-
 # DEVELOPMENT FUNCTIONS
 
 # Function could be extended to be more general, but for now is just for comparing fits for models,

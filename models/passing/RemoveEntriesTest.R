@@ -17,9 +17,9 @@ require(OpenMx)
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxAlgebra(A + A, name = 'B')
 omxCheckError(mxModel('model', 'A', 'B'),
-	paste("Cannot use character vectors",
-	"when remove = FALSE. Instead supply",
-	"the named entity to the mxModel() function: 'A' and 'B'"))
+	paste("I don't know what to do with the following",
+		"strings 'A' and 'B' that have been passed into the",
+		"function: mxModel(\"model\", \"A\", \"B\")"))
 model <- mxModel('model', A, B)
 omxCheckError(mxModel(model, A, B, remove=TRUE),
 	paste("Cannot use named entities",
