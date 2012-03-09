@@ -4,6 +4,7 @@ Release 1.2.1
 * renaming mxLISRELObjective() to imxLISRELObjective(), LISREL objective function is not yet implementated.
 * improved error messages when a free parameter has multiple lbounds/ubounds
 * improved error messages when passing strings into mxModel()
+* improved error messages in mxEval()
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================

@@ -103,7 +103,7 @@ evaluateExpression <- function(formula, contextString, model, labelsData, env, c
 	result <- tryCatch(do.call(as.character(formula[[1]]), as.list(formula[-1]), envir = env),
 			error = function(x) {
 				originalFormula <- translateErrorFormula(originalFormula, model)
-				formulaString <- deparse(originalFormula)
+				formulaString <- deparse(originalFormula, width.cutoff = 500L)
 				if(identical(formulaString, contextString)) {
 					msg <- paste("The following error occurred while",
 						"evaluating the expression", omxQuotes(formulaString), 
