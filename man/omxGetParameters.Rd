@@ -22,7 +22,7 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
 }
 
 \seealso{
-\code{\link{omxSetParameters}}, \code{\link{omxAssignFirstParameters}} 
+\code{\link{omxSetParameters}}, \code{\link{omxLocateParameters}}, \code{\link{omxAssignFirstParameters}} 
 }
 
 \examples{
