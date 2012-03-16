@@ -13,6 +13,71 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
+omxLocateParameters <- function(model, labels = NULL, indep = FALSE) {
+	retval <- locateParametersInternal(model, labels, indep)
+	if (nrow(retval) > 0) {
+		retval <- retval[order(retval$label),]
+	}
+	rownames(retval) <- NULL
+	return(retval)
+}
+
+locateParametersInternal <- function(model, labels, indep) {
+	if (!is.null(labels) && !single.na(labels) && !is.character(labels)) {
+		stop("'labels' argument must be NULL or a character vector")
+	}
+	retval <- lapply(model@matrices, locateParametersHelper, model@name, labels)
+	retval <- do.call(rbind, retval)
+	if(indep) {
+		submodels <- model@submodels
+	} else {
+		submodels <- imxDependentModels(model)
+	}
+	if (length(submodels) > 0) {
+		subparams <- lapply(submodels, locateParametersInternal, labels, indep)
+		subparams <- do.call(rbind, subparams)
+		retval <- rbind(retval, subparams)		
+	}
+	return(retval)
+}
+
+locateParametersHelper <- function(matrix, modelname, target) {
+	retval <- data.frame(label = character(0), model = character(0),
+		matrix = character(0), row = numeric(0), 
+		col = numeric(0), value = numeric(0),
+		lbound = numeric(0), ubound = numeric(0),
+		stringsAsFactors = FALSE)
+	free <- matrix@free
+	count <- sum(free)
+	if (count == 0) {
+		return(retval)		
+	} else {
+		labels <- matrix@labels[free]
+		rows <- row(free)[free]
+		cols <- col(free)[free]
+		values <- matrix@values[free]
+		lbound <- matrix@lbound[free]
+		ubound <- matrix@ubound[free]
+		for(i in 1:count) {
+			pname <- labels[[i]]
+			if (is.null(target) || (is.na(pname) && any(is.na(target))) ||
+				pname %in% target) {
+				nextentry <- nrow(retval) + 1
+				retval[nextentry,'label'] <- pname
+				retval[nextentry,'model'] <- modelname
+				retval[nextentry,'matrix'] <- matrix@name
+				retval[nextentry,'row'] <- rows[[i]]
+				retval[nextentry,'col'] <- cols[[i]]
+				retval[nextentry,'value'] <- values[[i]]
+				retval[nextentry,'lbound'] <- lbound[[i]]
+				retval[nextentry,'ubound'] <- ubound[[i]]
+			}
+		}
+	}
+	return(retval)
+}
+
 omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
 	if (identical(free, c(TRUE, FALSE, NA))) {
 		free <- TRUE
