@@ -205,7 +205,8 @@ addEntriesRAM <- function(model, entries) {
 			warning("Multiple data sources specified.  Only one will be chosen.")
 		}
 		data <- data[[1]]
-		model$data <- data
+		model@data <- data
+		model[['F']] <- createMatrixF(model)
 	}
 	return(model)
 }
@@ -603,8 +604,28 @@ createMatrixS <- function(model) {
 createMatrixF <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
-	names <- list(model@manifestVars, variables)
 	values <- diag(nrow = length(model@manifestVars), ncol = len)
+	names <- list(model@manifestVars, variables)
+	if (!is.null(model@data) && (model@data@type != 'raw')) {
+		manifestNames <- rownames(model@data@observed)
+		extraData <- setdiff(manifestNames, model@manifestVars)
+		extraVars <- setdiff(model@manifestVars, manifestNames)
+		if (length(extraData) > 0) {
+			msg <- paste("The observed data contains the variables:",
+				omxQuotes(extraData), "that have not been declared in the",
+				"manifest variables.")
+			stop(msg, call. = FALSE)
+		}
+		if (length(extraVars) > 0) {
+			msg <- paste("The manifest variables include",
+				omxQuotes(extraVars), "that have not been found in the",
+				"observed data.")
+			stop(msg, call. = FALSE)
+		}
+		dimnames(values) <- names
+		values <- values[manifestNames,]
+		names <- list(manifestNames, variables)
+	}
 	free <- matrix(FALSE, length(model@manifestVars), len)
 	labels <- matrix(as.character(NA), length(model@manifestVars), len)
 	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "F")

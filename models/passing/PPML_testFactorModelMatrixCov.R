@@ -14,8 +14,6 @@ rownames(dataCov) <- manifests
 latents <- c('G', 'H')
 
 factorModel <- mxModel("Two Factor Matrix",
-      type="RAM",
-	  
 	  mxMatrix(
 		type = "Full",
 		nrow = 5,

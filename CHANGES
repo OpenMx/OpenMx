@@ -8,6 +8,8 @@ trunk
 * improved error messages when passing strings into mxModel()
 * improved error messages in mxEval()
 * added omxLocateParameters() function (see ?omxLocateParameters)
+* type='RAM' allowing 'manifestVars' argument to appear in a different order
+  than in the observed covariance matrix.
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================
