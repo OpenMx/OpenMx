@@ -158,8 +158,9 @@ static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
 /* BLAS Wrappers */
 
 static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
-	if(row >= om->rows || col >= om->cols) {
+	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
 		setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
+		return;
 	}
 	int index = 0;
 	if(om->colMajor) {
@@ -172,8 +173,9 @@ static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, doubl
 
 static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
-	if(row >= om->rows || col >= om->cols) {
+	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
 		matrixElementError(row + 1, col + 1, om->rows, om->cols);
+        return (NA_REAL);
 	}
 	if(om->colMajor) {
 		index = col * om->rows + row;
@@ -184,19 +186,20 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 static OMXINLINE void omxSetVectorElement(omxMatrix *om, int index, double value) {
-	if(index < om->rows * om->cols) {
-		om->data[index] = value;
+	if (index < 0 || index >= (om->rows * om->cols)) {
+		setVectorError(index + 1, om->rows, om->cols);
+		return;
 	} else {
-		setVectorError(index, om->rows, om->cols);
+		om->data[index] = value;
     }
 }
 
 static OMXINLINE double omxVectorElement(omxMatrix *om, int index) {
-	if(index < om->rows * om->cols) {
-		return om->data[index];
-	} else {
-		vectorElementError(index, om->rows, om->cols);
+	if (index < 0 || index >= (om->rows * om->cols)) {
+		vectorElementError(index + 1, om->rows, om->cols);
         return (NA_REAL);
+	} else {
+		return om->data[index];
     }
 }
 

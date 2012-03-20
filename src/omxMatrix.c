@@ -413,8 +413,14 @@ void matrixElementError(int row, int col, int numrow, int numcol) {
 
 void setVectorError(int index, int numrow, int numcol) {
 	char *errstr = calloc(250, sizeof(char));
-	sprintf(errstr, "Setting improper index (%d) from (%d, %d) vector.", 
-		index, numrow, numcol);
+	if ((numrow > 1) && (numcol > 1)) {
+		sprintf(errstr, "Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d).", 
+			index, numrow, numcol);
+	} else {
+		int length = (numrow > 1) ? numrow : numcol;
+		sprintf(errstr, "Setting improper index (%d) from vector of length %d.", 
+			index, length);
+	}
 	error(errstr);
 	free(errstr);
 }
