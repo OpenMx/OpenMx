@@ -46,7 +46,7 @@ omxMnor(covariance, means, lbound, ubound)
 data(myFAData)
 
 covariance <- cov(myFAData[,1:3])
-means <- mean(myFAData[,1:3])
+means <- colMeans(myFAData[,1:3])
 lbound <- c(-Inf, 0,   1)    # Integrate from -Infinity to 0 on first variable
 ubound <- c(0,    Inf, 2.5)  # From 0 to +Infinity on second, and from 1 to 2.5 on third
 omxMnor(covariance, means, lbound, ubound)
