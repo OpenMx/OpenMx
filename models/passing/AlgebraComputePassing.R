@@ -224,6 +224,7 @@ model <- mxModel(model, mxAlgebra(omxExponential(B), name = 'test55c'))
 model <- mxModel(model, mxAlgebra(omxExponential(t(B)), name = 'test55d'))
 model <- mxModel(model, mxAlgebra(omxExponential(I), name = 'test55e'))
 model <- mxModel(model, mxAlgebra(omxExponential(t(I)), name = 'test55f'))
+model <- mxModel(model, mxAlgebra(chol(V), name = 'test56'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -412,4 +413,5 @@ omxCheckCloseEnough(model[['test55c']]@result, mxEval(as.matrix(expm(B)), model)
 omxCheckCloseEnough(model[['test55d']]@result, mxEval(as.matrix(expm(t(B))), model), 0.001)
 omxCheckCloseEnough(model[['test55e']]@result, mxEval(as.matrix(expm(I)), model), 0.001)
 omxCheckCloseEnough(model[['test55f']]@result, mxEval(as.matrix(expm(t(I))), model), 0.001)
+omxCheckCloseEnough(model[['test56']]@result, mxEval(as.matrix(chol(V)), model), 0.001)
 

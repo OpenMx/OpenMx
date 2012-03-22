@@ -2474,3 +2474,35 @@ void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
     
     return;
 }
+
+void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Cholesky Decomposition.\n");}
+
+	omxMatrix* inMat = matList[0];
+
+    int l = 0; char u = 'U';
+	omxCopyMatrix(result, inMat);
+	if(result->rows != result->cols) {
+		char *errstr = Calloc(250, char);
+		sprintf(errstr, "Cholesky decomposition of non-square matrix cannot even be attempted\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		Free(errstr);
+	}
+
+    F77_CALL(dpotrf)(&u, &(result->rows), result->data, &(result->cols), &l);
+	if(l != 0) {
+		char *errstr = Calloc(250, char);
+		sprintf(errstr, "Attempted to Cholesky decompose non-invertable matrix.\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		Free(errstr);
+	} else {
+	    for(int i = 0; i < result->rows; i++) {
+			for(int j = 0; j < i; j++) {
+                omxSetMatrixElement(result, i, j, 0.0);
+			}
+		}
+	}
+}
+

@@ -290,3 +290,17 @@ omxSelectRowsAndCols <- function(x, selector) {
     selector <- as.logical(selector)
     return(x[selector, selector, drop=FALSE])    
 }
+
+cholesky <- function(x) {
+    x <- as.matrix(x)
+    if(nrow(x) != ncol(x)) {
+        stop("matrix must be square")
+    }
+    
+    retval <- .Call("omxCallAlgebra", 
+        list(x),         # Flatten args into a single list
+        imxLookupSymbolTable("cholesky"), 
+        NA)
+        
+    return(as.matrix(as.numeric(retval)))
+}

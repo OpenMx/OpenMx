@@ -56,3 +56,4 @@
 54		"Binary Approximate Equals"	"omxApproxEquals"	3			"omxBinaryApproxEquals"
 55		"Matrix Exponential"				"omxExponential"	1			"omxExponential"
 56		"Matrix Exponential order"		"omxExponential"	2			"omxExponentialOrder"
+57		"Cholesky Decomposition" "chol" 1 "omxCholesky"
