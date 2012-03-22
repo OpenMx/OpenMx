@@ -22,6 +22,7 @@ else
 BUILDARGS = "--configure-args=--enable-openmp"
 endif
 NIGHTLYFILE = inst/tools/testNightly.R
+NIGHTLYPPMLFILE = inst/tools/testNightlyPPML.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.R
@@ -62,6 +63,7 @@ help:
 	@echo "  test (CPUS=n) run the test suite"	
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
+	@echo "  nightlyPPML   run the nightly test suite with PPML"			
 	@echo "  testdocs      test the examples in the Sphinx documentation"	
 	@echo "  failtest      run the failing test suite"
 	@echo "  memorytest    run the test suite under the Valgrind memory debugger"
@@ -146,6 +148,9 @@ test:
 	
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
+
+nightlyPPML:
+	$(REXEC) --vanilla --slave < $(NIGHTLYPPMLFILE)	
 
 failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
