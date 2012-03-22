@@ -350,7 +350,11 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 		} else {
 			enablePPML <- (ppmlModelOption == "Yes")
 		}
-		enablePPML <- enablePPML && !any(job[[.Object@A]]@free)
+		if (enablePPML) {
+			aMatrix <- job[[.Object@A]]
+			aMatrixFixed <- !is.null(aMatrix) && is(aMatrix, "MxMatrix") && all(!aMatrix@free)
+			enablePPML <- aMatrixFixed
+		}
 
 		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
 		job <- pair[[1]]
