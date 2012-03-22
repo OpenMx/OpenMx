@@ -1,4 +1,4 @@
-Release 1.2.2
+Release 1.2.2-1986 (March 22, 2012)
 ===================================
 * setting default value for mxOption("UsePPML") to "No" until
   the feature is adequately tested. Added test enforcing default
