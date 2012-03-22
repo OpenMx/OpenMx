@@ -1,3 +1,9 @@
+Release 1.2.2
+===================================
+* setting default value for mxOption("UsePPML") to "No" until
+  the feature is adequately tested. Added test enforcing default
+  value to test suite.
+
 Release 1.2.1-1979 (March 21, 2012)
 ===================================
 * bug fix for interaction of matrix transpose and square bracket substitutions

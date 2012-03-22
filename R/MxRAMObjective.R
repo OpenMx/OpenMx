@@ -341,6 +341,17 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 					ncol(Smatrix))
 				stop(msg, call.=FALSE)
 		}
+
+		# Simplest possible check for PPML applicability, imxTransformModelPPML
+		# will check beyond that
+		ppmlModelOption <- model@options$UsePPML
+		if (is.null(ppmlModelOption)) {
+			enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
+		} else {
+			enablePPML <- (ppmlModelOption == "Yes")
+		}
+		enablePPML <- enablePPML && !any(job[[.Object@A]]@free)
+
 		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
 		job <- pair[[1]]
 		flatJob <- pair[[2]]
@@ -352,9 +363,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 				stop(msg, call.=FALSE)
 			}
 			
-			# Simplest possible check for PPML applicability, imxTransformModelPPML
-			# will check beyond that
-			if (((is.null(model@options$UsePPML) && getOption("mxOptions")$UsePPML == "Yes") || model@options$UsePPML == "Yes") && !any(model$A@free)) {
+			if (enablePPML) {
 				oldName <- model@name
 				model <- imxTransformModelPPML(model)
 				# Make sure PPML was applied successfully
@@ -393,9 +402,7 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			stop(msg, call.=FALSE)
 		}
 		
-		# Simplest possible check for PPML applicability, imxTransformModelPPML
-		# will check beyond that
-		if (((is.null(model@options$UsePPML) && getOption("mxOptions")$UsePPML == "Yes") || model@options$UsePPML == "Yes") && !any(model$A@free)) {
+		if (enablePPML) {
 			oldName <- model@name
 			model <- imxTransformModelPPML(model)
 			# Make sure PPML was applied successfully

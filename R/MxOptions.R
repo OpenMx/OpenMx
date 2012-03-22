@@ -120,7 +120,7 @@ otherOptions <- list(
 	"No Sort Data" = character(),
 	"RAM Inverse Optimization" = "Yes",
 	"RAM Max Depth" = NA,
-	"UsePPML" = "Yes"
+	"UsePPML" = "No"
 )
 
 generateOptionsList <- function(model, constraints, useOptimizer) {
