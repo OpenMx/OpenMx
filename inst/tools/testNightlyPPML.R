@@ -32,7 +32,7 @@ errors <- list()
 runtimes <- numeric()
 
 theOptions <- options('mxOptions')
-theOptions$UsePPML <- "Yes"
+theOptions$mxOptions$UsePPML <- "Yes"
 options('mxOptions' = theOptions)
 	
 errorRecover <- function(script, index) {
