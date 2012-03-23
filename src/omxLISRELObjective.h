@@ -22,9 +22,10 @@ typedef struct {
 
 	omxMatrix *cov, *means; // expected covariance and means
 	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
-	//omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
-	omxMatrix *A, *B, *C, *D, *E, *F, *G, *H, *I, *J; // Place holder matrices used in computations
+	omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
+	omxMatrix *A, *B, *C, *D, *E, *F, *G, *H, *I, *J, *K; // Place holder matrices used in computations
 	omxMatrix *TOP, *BOT; // Place holder matrices for building covariance matrix from blocks
+	omxMatrix *MUX, *MUY; //Place holder matrices for building means from blocks
 	//omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.
 
 	int numIters; // used by omxFastRAM/LISRELInverse
@@ -49,4 +50,4 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj);
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse
 */
 
-#endif /* _OMXRAMOBJECTIVE_H_ */
+#endif /* _OMXLISRELOBJECTIVE_H_ */

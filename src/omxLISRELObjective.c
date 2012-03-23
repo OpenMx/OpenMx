@@ -34,12 +34,12 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	omxRecompute(oro->TD);
 	omxRecompute(oro->TE);
 	omxRecompute(oro->TH);
-	/*if(oro->TX != NULL) {     // Update means?
+	if(oro->TX != NULL) {     // Update means?
 	    omxRecompute(oro->TX);
 	    omxRecompute(oro->TY);
 	    omxRecompute(oro->KA);
 	    omxRecompute(oro->AL);
-	}*/
+	}
 
 	omxCalculateLISRELCovarianceAndMeans(oro);
 }
@@ -67,8 +67,13 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 	omxFreeMatrixData(argStruct->H);
 	omxFreeMatrixData(argStruct->I);
 	omxFreeMatrixData(argStruct->J);
-
-
+	omxFreeMatrixData(argStruct->K);
+	omxFreeMatrixData(argStruct->TOP);
+	omxFreeMatrixData(argStruct->BOT);
+	omxFreeMatrixData(argStruct->MUX);
+	omxFreeMatrixData(argStruct->MUY);
+	
+	
 	/* Comment out the ppml things I do not use.
 	if(argStruct->ppmlData != NULL) 
 		omxFreeData(argStruct->ppmlData);
@@ -138,6 +143,10 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	omxMatrix* TD = oro->TD;
 	omxMatrix* TE = oro->TE;
 	omxMatrix* TH = oro->TH;
+	omxMatrix* TX = oro->TX;
+	omxMatrix* TY = oro->TY;
+	omxMatrix* KA = oro->KA;
+	omxMatrix* AL = oro->AL;
 	omxMatrix* Cov = oro->cov;
 	omxMatrix* Means = oro->means;
 	int numIters = oro->numIters;
@@ -151,15 +160,17 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	omxMatrix* H = oro->H;
 	omxMatrix* I = oro->I;
 	omxMatrix* J = oro->J;
+	omxMatrix* K = oro->K;
 	omxMatrix* TOP = oro->TOP;
 	omxMatrix* BOT = oro->BOT;
+	omxMatrix* MUX = oro->MUX;
+	omxMatrix* MUY = oro->MUY;
 	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
 	double oned = 1.0, zerod=0.0, minusOned = -1.0;
 	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
 	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
-
-	// Note: the above give the warning message: initialization from incompatible pointer type
+	
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LY, "....LISREL: LY:");}
@@ -170,7 +181,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TD, "....LISREL: TD:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TE, "....LISREL: TE:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
-
+	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 	omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
@@ -195,7 +206,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(F, "....LISREL: Lower Left Quadrant of Model-implied Covariance Matrix:");}
 	
 	/* Calculate the upper right quadrant: NOTE THIS IS MERELY THE LOWER LEFT QUADRANT TRANSPOSED. */
-	//DONE as omxTranspose(TH)
+	//DONE as omxTranspose(F)
 	
 	/* Calculate the upper left quadrant: the covariance of the Ys */
 	if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
@@ -228,6 +239,29 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	omxMatrixVertCat(args, 2, Cov);
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....LISREL: Model-implied Covariance Matrix:");}
+	
+	
+	/* Now Calculate the Expected Means */
+	if(TX != NULL && Means != NULL) { //NOTE: just checking if TX is NULL!?!?!?
+		/* Mean of the Xs */
+		omxCopyMatrix(MUX, TX);
+		omxDGEMV(FALSE, oned, LX, KA, oned, MUX);
+		
+		/* Mean of Ys */
+		omxCopyMatrix(K, AL);
+		omxDGEMV(FALSE, oned, GA, KA, oned, K);
+		omxCopyMatrix(MUY, TY);
+		omxDGEMV(FALSE, oned, D, K, oned, MUY);
+		
+		/* Build means from blocks */
+		args[0] = MUY;
+		args[1] = MUX;
+		omxTransposeMatrix(Means); //To make the means a column vector
+		omxMatrixVertCat(args, 2, Means);
+		omxTransposeMatrix(Means); //To make it back into a row vector
+		
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");}
+	}
 	
 /*	
 	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
@@ -280,10 +314,10 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 }
 
 void omxUpdateChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
-
+	
 	omxLISRELObjective* tgtLISREL = (omxLISRELObjective*)(tgt->argStruct);
 	omxLISRELObjective* srcLISREL = (omxLISRELObjective*)(src->argStruct);
-
+	
 	omxUpdateMatrix(tgtLISREL->cov, srcLISREL->cov);
 	if (tgtLISREL->means && srcLISREL->means) {
 		omxUpdateMatrix(tgtLISREL->means, srcLISREL->means);
@@ -292,7 +326,7 @@ void omxUpdateChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
 	if (tgt->subObjective != NULL) {
 		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
-
+	
 }
 
 
@@ -303,10 +337,14 @@ unsigned short int omxNeedsUpdateLISRELObjective(omxObjective* oo) {
 		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->GA)
 	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PH)
 	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PS)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TD)		
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TE)		
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TH));
-
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TD)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TE)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TH)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TX)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TY)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->KA)
+		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->AL));
+	
 	// Note: cov is data, and should never need updating.
 }
 
@@ -365,8 +403,19 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Processing TH.\n"); }
 	LISobj->TH = omxNewMatrixFromIndexSlot(rObj, currentState, "TH");
+
+	if(OMX_DEBUG) { Rprintf("Processing TX.\n"); }
+	LISobj->TX = omxNewMatrixFromIndexSlot(rObj, currentState, "TX");
+
+	if(OMX_DEBUG) { Rprintf("Processing TY.\n"); }
+	LISobj->TY = omxNewMatrixFromIndexSlot(rObj, currentState, "TY");
+
+	if(OMX_DEBUG) { Rprintf("Processing KA.\n"); }
+	LISobj->KA = omxNewMatrixFromIndexSlot(rObj, currentState, "KA");
+
+	if(OMX_DEBUG) { Rprintf("Processing AL.\n"); }
+	LISobj->AL = omxNewMatrixFromIndexSlot(rObj, currentState, "AL");
 	
-	// TODO: Add means specification
 	
 	/* PPML Code: Perhaps comment out this block */
 	/*
@@ -424,18 +473,21 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	LISobj->G = 	omxInitMatrix(NULL, neta, nxi, TRUE, currentState);
 	LISobj->H = 	omxInitMatrix(NULL, ny, neta, TRUE, currentState);
 	LISobj->J = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
+	LISobj->K = 	omxInitMatrix(NULL, neta, 1, TRUE, currentState);
 	LISobj->TOP = 	omxInitMatrix(NULL, ny, ntotal, TRUE, currentState);
 	LISobj->BOT = 	omxInitMatrix(NULL, nx, ntotal, TRUE, currentState);
-
-
+	LISobj->MUX = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
+	LISobj->MUY = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	
+	
 	LISobj->cov = 	omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
 
 	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
 	
-	/* Uncomment this when means are implemented
-	if(LISobj->M != NULL) {
+	/* Means */
+	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
 		LISobj->means = 	omxInitMatrix(NULL, 1, ntotal, TRUE, currentState);
-	} else*/ LISobj->means  = 	NULL;
+	} else LISobj->means  = 	NULL;
 	
 
 	/* Create parent objective */

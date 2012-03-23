@@ -148,9 +148,9 @@ Jor82Ex1 <- mxModel(
 
 # Uncomment the following lines when debugbing
 #ex1Run <- mxRun(Jor82Ex1, onlyFrontend=TRUE) # This runs fine.
-#Jor82Ex1 <- mxOption(Jor82Ex1, "Calculate Hessian", "Yes")
-#Jor82Ex1 <- mxOption(Jor82Ex1, "Standard Errors", "Yes")
-#Jor82Ex1 <- mxOption(Jor82Ex1, "Major iterations", 100)
+#Jor82Ex1 <- mxOption(Jor82Ex1, "Calculate Hessian", "No")
+#Jor82Ex1 <- mxOption(Jor82Ex1, "Standard Errors", "No")
+#Jor82Ex1 <- mxOption(Jor82Ex1, "Major iterations", 0)
 
 ex1Run <- mxRun(Jor82Ex1)
 
