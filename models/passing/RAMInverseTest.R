@@ -26,6 +26,7 @@
 # Revision History
 #  Fri Mar 23 22:45:52 Central Daylight Time 2012 -- Michael Hunter Created RAMInverseTest.R
 #   from Steven Boker's test IntroSEM-ThreeLatentMultipleRegTest1.R
+#  Sat Mar 24 01:40:52 Central Daylight Time 2012 -- Michael Hunter changed model to use ML instead of FIML
 #  
 #
 # ---------------------------------------------------------------------
@@ -115,7 +116,7 @@ threeLatentOrthoRaw1 <- mxModel("threeLatentOrthogonal",
     mxPath(from="one", to=indicators, 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=latentMultipleRegExample1, type="raw")
+    mxData(observed=cov(latentMultipleRegExample1), type="cov", numObs=nrow(latentMultipleRegExample1), means=colMeans(latentMultipleRegExample1))
     )
 
 threeLatentOrthoRaw1Out <- mxRun(threeLatentOrthoRaw1, suppressWarnings=TRUE)

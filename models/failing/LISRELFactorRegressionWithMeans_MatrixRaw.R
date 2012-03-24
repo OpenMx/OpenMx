@@ -16,19 +16,21 @@
 
 #------------------------------------------------------------------------------
 # Author: Michael D. Hunter
-# Date: 2011.03.22
-# Filename: LISRELFactorRegressionWithMeans_Matrix.R
-# Purpose: Create a test for the mxLISRELObjective function.  This test includes
-#  a model for the means.  The known parameters are taken from model 3 (AKA 
-#  threeLatentMultipleReg1 and threeLatentMultipleReg1Out) in
-#  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.  I re-estimated the
-#  parameters of that model with ML instead of FIML to get the comparison
-#  estimates.
+# Date: 2011.03.24
+# Filename: LISRELFactorRegressionWithMeans_MatrixRaw.R
+# Purpose: Create a test for the mxLISRELObjective function using FIML.  This
+#  test includes a model for the means and uses raw data.  The known
+#  parameters are taken from model 3 (AKA threeLatentMultipleReg1 and
+#  threeLatentMultipleReg1Out) in
+#  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.  This is the same test as
+#  models/passing/LISRELFactorRegressionWithMeans_Matrix.R only it uses the raw
+#  data.
 #------------------------------------------------------------------------------
 
 # Revision History:
-# Thu Mar 22 21:21:39 Central Daylight Time 2012 -- Michael Hunter created complete file
-# Sat Mar 24 01:24:23 Central Daylight Time 2012 -- Michael Hunter added dimnames to all matrices
+# Sat Mar 24 01:27:41 Central Daylight Time 2012 -- Michael Hunter created complete file from
+#  models/passing/LISRELFactorRegressionWithMeans_Matrix.R
+# Sat Mar 24 01:51:53 Central Daylight Time 2012 -- Michael Hunter corrected the expected parameters
 # 
 
 
@@ -159,8 +161,7 @@ al <- mxMatrix("Zero", numLatEnd, 1, name='AL', dimnames=list(LatEnd, "ALMeans")
 
 lmod <- mxModel(
 	name='LISREL Factor Regression Model with Means',
-	mxData(observed=covlisdat, type='cov', means=mealisdat, numObs=nrow(rawlisdat)),
-	#mxData(observed=rawlisdat, type='raw'),
+	mxData(observed=rawlisdat, type='raw'),
 	lx, ly, be, ga, ph, ps, td, te, th, tx, ty, ka, al,
 	mxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name,
 		GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name,
@@ -179,6 +180,8 @@ lmod <- mxModel(
 #lmod <- mxOption(lmod, "Standard Errors", "No")
 #lmod <- mxOption(lmod, "Major iterations", 0)
 
+# TODO: Figure why this doesn't work.  Perhaps OpenMx doesn't realized that a model with raw data 
+#  and a LISREL objective should use FIML?
 
 lmodRun <- mxRun(lmod)
 summary(lmodRun)
@@ -189,23 +192,24 @@ summary(lmodRun)
 
 # Recal that The known parameters are taken from model 3 (AKA 
 #  threeLatentMultipleReg1 and threeLatentMultipleReg1Out) in
-#  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.  I re-estimated the
-#  parameters of that model with ML instead of FIML to get the comparison
-#  estimates.
+#  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.
+
 
 
 expectedParam <- c(
- 0.80902164,  1.14833409,  1.30535700,  0.80529009,  1.23203934,  1.18969961, 
- 0.87485965,  0.78660379,  0.70181917,  0.99077779,  0.45668438,  1.93873470, 
- 0.15417010,  1.32349163,  0.77447746,  1.13919808,  1.07278935,  1.06921199, 
- 1.05895855,  0.85186877,  0.76561617,  1.19231559,  1.01501106,  0.94721747, 
- 0.97589600,  0.88473398,  0.96086846,  0.06081483,  0.03737652, -0.04867645, 
--0.01319064,  0.19334869,  0.22000314,  0.25678636,  0.17189360,  0.16619428, 
- 0.23483328,  0.17302787,  0.15761761 
+ 0.809021, 1.148334, 1.305356, 0.805289, 1.232038, 1.189698, 
+ 0.87486, 0.786604, 0.701819, , 0.990778, 0.456683, 1.92904, 
+ 0.153399, 1.316878, 0.770605, 1.133502, 1.067425, 1.063866,
+ 1.053663, 0.847609, 0.761789, 1.186354, 1.009936, 0.942481, 
+ 0.971017, 0.880311, 0.956065,  0.060813, 0.037374, -0.048679,
+-0.013194, 0.193348, 0.220002, 0.256785, 0.171892, 0.166191, 
+ 0.23483, 0.173025, 0.157615
 )
 
 
+
 omxCheckCloseEnough(lmodRun@output$estimate, expectedParam, epsilon=0.001)
+
 
 
 #--------------------------------------------------------------------

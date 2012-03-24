@@ -227,7 +227,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		.Object@KA <- imxLocateIndex(flatModel, kaMatrix, name)
 		.Object@AL <- imxLocateIndex(flatModel, alMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
-#		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
+		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "LISREL")
 #		fMatrix <- flatModel[[fMatrix]]@values
 #		if (is.null(dimnames(fMatrix))) {
 #			msg <- paste("The F matrix of model",
@@ -245,7 +245,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		alMatrix <- flatModel[[alMatrix]]
 #		if(!is.null(mMatrix)) {
 #			means <- dimnames(mMatrix)
-#			if (is.null(means)) {
+#			if (is.null(means)) { #Check if the means have dimnames
 #				msg <- paste("The M matrix associated",
 #				"with the RAM objective function in model", 
 #				omxQuotes(modelname), "does not contain dimnames.")
@@ -253,13 +253,13 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #			}
 #			meanRows <- means[[1]]
 #			meanCols <- means[[2]]
-#			if (!is.null(meanRows) && length(meanRows) > 1) {
+#			if (!is.null(meanRows) && length(meanRows) > 1) { #Check if means are a row/column vector
 #				msg <- paste("The M matrix associated",
 #				"with the RAM objective in model", 
 #				omxQuotes(modelname), "is not a 1 x N matrix.")
 #				stop(msg, call. = FALSE)
 #			}
-#			if (!identical(dimnames(fMatrix)[[2]], meanCols)) {
+#			if (!identical(dimnames(fMatrix)[[2]], meanCols)) { #Check if means exactly match F matrix (including order)
 #				msg <- paste("The column names of the F matrix",
 #					"and the column names of the M matrix",
 #					"in model", 
@@ -268,7 +268,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #				stop(msg, call. = FALSE)
 #			}
 #		}
-#		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
+#		translatedNames <- fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 #		if (mxDataObject@type == 'raw') {
 #			threshName <- .Object@thresholds
@@ -287,7 +287,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #				.Object@dims <- translatedNames
 #			}
 #		} else {
-#			if (!identical(translatedNames, rownames(mxDataObject@observed))) {
+#			if (!identical(translatedNames, rownames(mxDataObject@observed))) { #Check the rows of F match the obs Cov
 #				msg <- paste("The names of the manifest",
 #					"variables in the F matrix of model",
 #					omxQuotes(modelname), "does not match the",
