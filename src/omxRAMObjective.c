@@ -132,7 +132,8 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 		/* Z = (I-A)^-1 */
 		// F77_CALL(omxunsafedgemm)(I->majority, Z->majority, &(I->cols), &(I->rows), &(Z->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &minusOned, Z->data, &(Z->cols));
-		omxDGEMM(FALSE, FALSE, oned, I, Z, minusOned, Z); //Tim, I think this is incorrect: 1.0*I*Z-Z = Z-Z = 0 but you want I-Z.  So this should be omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z). -MDH 
+		//omxDGEMM(FALSE, FALSE, oned, I, Z, minusOned, Z); //Tim, I think this is incorrect: 1.0*I*Z-Z = Z-Z = 0 but you want I-Z.  So this should be omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z). -MDH
+		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z);
 
 		// F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
 		k = omxDGETRF(Z, ipiv);
