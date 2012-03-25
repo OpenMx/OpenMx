@@ -28,8 +28,6 @@ dataTest <- (dataTest + t(dataTest)) / 2
 dataRaw <- mvrnorm(n=5000, rep(0,100), dataTest)
 colnames(dataRaw) <- manifests
 
-browser()
-
 colnames(dataTest) <- manifests
 rownames(dataTest) <- manifests
 
