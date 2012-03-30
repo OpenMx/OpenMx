@@ -268,13 +268,13 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #				stop(msg, call. = FALSE)
 #			}
 #		}
-#		translatedNames <- fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
+		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[2]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
-#		if (mxDataObject@type == 'raw') {
+		if (mxDataObject@type == 'raw') {
 #			threshName <- .Object@thresholds
 #			checkNumberOrdinalColumns(mxDataObject)
 #			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
-#			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
+			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 #			verifyThresholds(flatModel, model, data, translatedNames, threshName)
 #			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 #			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)

@@ -352,17 +352,18 @@ unsigned short int omxNeedsUpdateLISRELObjective(omxObjective* oo) {
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL objective.\n"); }
-
+	
 	omxState* currentState = oo->matrix->currentState;	
 	
 	int nx, nxi, ny, neta, ntotal;
-
+	
 	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and register subobjective */
-
-    omxObjective *subObjective = omxCreateSubObjective(oo);
-	
+	omxObjective *subObjective = omxCreateSubObjective(oo);
+	char* myType = (char*) Calloc(25, char);
+	strncpy(myType, "omxLISRELObjective", 19);
+	subObjective->objType = myType;
 	omxLISRELObjective *LISobj = (omxLISRELObjective*) R_alloc(1, sizeof(omxLISRELObjective));
 	
 	/* Set Subobjective Calls and Structures */
