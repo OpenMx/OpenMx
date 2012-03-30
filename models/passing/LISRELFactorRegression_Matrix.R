@@ -28,6 +28,7 @@
 #   Thu Sep 22 20:56:35 Central Daylight Time 2011 -- Michael Hunter created file
 #   Mon Mar 05 08:41:32 Central Standard Time 2012 -- Michael Hunter added comparison to published estimated parameters
 #   Tue Mar 06 12:52:01 Central Standard Time 2012 -- Michael Hunter added OpenMx copyright and moved from models/failing to models/passing and renamed from LISRELObjectiveTest_Matrix.R to LISRELFactorRegression_Matrix.R
+#   Fri Mar 30 03:10:06 Central Daylight Time 2012 -- Michael Hunter added dimnames to observed data
 #
 
 
@@ -49,6 +50,8 @@ exoInd <- c(2:4) #Indexes of the exogenous/independent variables
 # Correlation matrix rearranged into separate blocks of
 # endogenous and exogenous variables
 gObsCor <- cbind(rbind(obsCor[endInd, endInd], obsCor[exoInd, endInd]), rbind(obsCor[endInd, exoInd], obsCor[exoInd, exoInd]) )
+rownames(gObsCor) <- c(paste('y', 1:length(endInd), sep=''), paste('x', 1:length(exoInd), sep='') )
+colnames(gObsCor) <- rownames(gObsCor)
 
 
 #------------------------------------------------------------------------------
