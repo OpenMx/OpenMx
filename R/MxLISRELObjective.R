@@ -243,6 +243,8 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		tyMatrix <- flatModel[[tyMatrix]]
 		kaMatrix <- flatModel[[kaMatrix]]
 		alMatrix <- flatModel[[alMatrix]]
+		lxMatrix <- flatModel[[lxMatrix]]
+		lyMatrix <- flatModel[[lyMatrix]]
 #		if(!is.null(mMatrix)) {
 #			means <- dimnames(mMatrix)
 #			if (is.null(means)) { #Check if the means have dimnames
@@ -268,7 +270,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #				stop(msg, call. = FALSE)
 #			}
 #		}
-		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[2]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
+		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (mxDataObject@type == 'raw') {
 #			threshName <- .Object@thresholds
@@ -542,16 +544,6 @@ setMethod("show", "MxLISRELObjective", function(object) {
 #
 #
 #
-#setMethod("genericObjReadAttributes", signature("MxRAMObjective"),
-#	function(.Object, values) {
-#		.Object@expCov <- attr(values, "expCov", exact = TRUE)
-#		.Object@expMean <- attr(values, "expMean", exact = TRUE)
-#		dimnames(values) <- dimnames(.Object)
-#		attr(values, "expCov") <- NULL
-#		attr(values, "expMean") <- NULL
-#		.Object@result <- values
-#		return(.Object)
-#})
 #
 #generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 #	mxObject <- flatModel[[aMatrixName]]
