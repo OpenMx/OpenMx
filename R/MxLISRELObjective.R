@@ -286,7 +286,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #			if (single.na(.Object@dims)) {
 #				.Object@dims <- translatedNames
 #			}
-#		} else {
+		}# else {
 #			if (!identical(translatedNames, rownames(mxDataObject@observed))) { #Check the rows of F match the obs Cov
 #				msg <- paste("The names of the manifest",
 #					"variables in the F matrix of model",
