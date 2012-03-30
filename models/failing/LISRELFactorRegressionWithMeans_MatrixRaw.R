@@ -161,7 +161,7 @@ al <- mxMatrix("Zero", numLatEnd, 1, name='AL', dimnames=list(LatEnd, "ALMeans")
 
 lmod <- mxModel(
 	name='LISREL Factor Regression Model with Means',
-	mxData(observed=rawlisdat, type='raw'),
+	mxData(observed=rawlisdat, type='raw', means=mealisdat),
 	lx, ly, be, ga, ph, ps, td, te, th, tx, ty, ka, al,
 	mxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name,
 		GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name,
