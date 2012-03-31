@@ -46,15 +46,16 @@ setClass(Class = "MxLISRELObjective",
 		expCov = "matrix",
 		expMean = "matrix",
 		definitionVars = "list",
-		dataColumns = "numeric",
-		thresholdColumns = "numeric",
-		thresholdLevels = "numeric",
-		depth = "integer"),
+		dataColumns = "numeric", #Used in FIML to grab the correct data elements
+		thresholdColumns = "numeric", #Used in FIML
+		thresholdLevels = "numeric", # Used in FIML
+		threshnames = "character",
+		depth = "integer"), #Used to speed up I-A inverse in RAM, could be used to speed up I-B inverse in LISREL
 	contains = "MxBaseObjective")
 
 # **DONE**
 setMethod("initialize", "MxLISRELObjective",
-	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dims, thresholds, vector,
+	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dims, thresholds, vector, threshnames,
 		data = as.integer(NA), name = 'objective') {
 		.Object@name <- name
 		.Object@LX <- LX
@@ -82,13 +83,14 @@ setMethod("initialize", "MxLISRELObjective",
 # Not sure about the first line here
 # Should it be MxLISRELObjective or MxBaseObjective?
 setMethod("genericObjModelConvert", "MxLISRELObjective",
-	function(.Object, job, model, namespace, flatJob) {
+	function(.Object, job, model, namespace, labelsData, flatJob) {
 		if(is.na(.Object@data)) {
 			msg <- paste("The LISREL objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(model@name))
 			stop(msg, call.=FALSE)
 		}
+#		The code below is out of date.  See current MxRAMObjective for up to date info.
 #		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
 #		job <- pair[[1]]
 #		flatJob <- pair[[2]]
@@ -208,7 +210,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		if(!single.na(mxDataObject@means) && (is.null(flatModel[[txMatrix]]) || is.null(flatModel[[tyMatrix]]) || is.null(flatModel[[kaMatrix]]) || is.null(flatModel[[alMatrix]]) )) {
 			msg <- paste("The LISREL objective",
 				"has an observed means vector but",
-				"no expected means vector in model",
+				"is missing some expected means vectors in model",
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
@@ -227,6 +229,8 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		.Object@KA <- imxLocateIndex(flatModel, kaMatrix, name)
 		.Object@AL <- imxLocateIndex(flatModel, alMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
+		
+		# 
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "LISREL")
 #		fMatrix <- flatModel[[fMatrix]]@values
 #		if (is.null(dimnames(fMatrix))) {
@@ -245,7 +249,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		alMatrix <- flatModel[[alMatrix]]
 		lxMatrix <- flatModel[[lxMatrix]]
 		lyMatrix <- flatModel[[lyMatrix]]
-#		if(!is.null(mMatrix)) {
+		if(!is.null(txMatrix) || !is.null(tyMatrix) || !is.null(kaMatrix) || !is.null(alMatrix) ) {
 #			means <- dimnames(mMatrix)
 #			if (is.null(means)) { #Check if the means have dimnames
 #				msg <- paste("The M matrix associated",
@@ -269,25 +273,25 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 #					"names.")
 #				stop(msg, call. = FALSE)
 #			}
-#		}
+		}
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (mxDataObject@type == 'raw') {
-#			threshName <- .Object@thresholds
-#			checkNumberOrdinalColumns(mxDataObject)
-#			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
+			threshName <- .Object@thresholds
+			checkNumberOrdinalColumns(mxDataObject)
+			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-#			verifyThresholds(flatModel, model, data, translatedNames, threshName)
-#			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-#			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)
-#			.Object@thresholdColumns <- retval[[1]]
-#			.Object@thresholdLevels <- retval[[2]]
-#			if (length(mxDataObject@observed) == 0) {
-#				.Object@data <- as.integer(NA)
-#			}
-#			if (single.na(.Object@dims)) {
-#				.Object@dims <- translatedNames
-#			}
+			verifyThresholds(flatModel, model, data, translatedNames, threshName)
+			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)
+			.Object@thresholdColumns <- retval[[1]]
+			.Object@thresholdLevels <- retval[[2]]
+			if (length(mxDataObject@observed) == 0) {
+				.Object@data <- as.integer(NA)
+			}
+			if (single.na(.Object@dims)) {
+				.Object@dims <- translatedNames
+			}
 		}# else {
 #			if (!identical(translatedNames, rownames(mxDataObject@observed))) { #Check the rows of F match the obs Cov
 #				msg <- paste("The names of the manifest",
@@ -337,7 +341,7 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 
 
 # **DONE**
-mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE) {
+mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
 	if (missing(LX) || typeof(LX) != "character") {
 		msg <- paste("argument 'LX' is not a string",
 			"(the name of the 'LX' matrix)")
@@ -409,8 +413,12 @@ mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = 
 	if (is.na(AL)) AL <- as.integer(NA)
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
+	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
+	}
+	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
+		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
 		stop("Thresholds argument must be a single matrix or algebra name")
@@ -418,13 +426,19 @@ mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = 
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
+	if (length(threshnames) == 0) {
+		stop("'threshnames' argument cannot be an empty vector")
+	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
+	}
+	if (length(threshnames) > 1 && any(is.na(threshnames))) {
+		stop("NA values are not allowed for 'threshnames' vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
-	return(new("MxLISRELObjective", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, vector))
+	return(new("MxLISRELObjective", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, vector, threshnames))
 }
 
 
