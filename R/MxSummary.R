@@ -154,12 +154,15 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
 	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
-	rownames(IC) <- c("AIC", "BIC")
+	rownames(IC) <- c("AIC:", "BIC:")
 	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
-		is.nan(rmseaSquared) || (rmseaSquared < 0)) {
+		is.nan(rmseaSquared)){ 
+		# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 		retval[['RMSEA']] <- NA
+	} else if (rmseaSquared < 0){
+		retval[['RMSEA']] <- "0.000* (Non-centrality parameter is negative)"
 	} else {
 		retval[['RMSEA']] <- sqrt(rmseaSquared)
 	}
