@@ -152,8 +152,22 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
         if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow ) {  // If we're keeping covariance from the previous row, do not populate 
             // Handle Definition Variables.
             if((numDefs != 0 && numIdenticalDefs > 0) || firstRow) {
+				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) { // TODO: Implement sorting-based speedups here.
+				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
+				if (numVarsFilled < 0) {
+					for(int nid = 0; nid < numIdentical; nid++) {
+						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
+					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+					// Rprintf("Incrementing Row."); //:::DEBUG:::
+					row += numIdentical;
+					keepCov -= numIdentical;
+					keepInverse -= numIdentical;
+					continue;
+				} else if (numVarsFilled || firstRow) { 
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					// Recalculate means and covariances.
@@ -688,8 +702,22 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
         // Handle Definition Variables.
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
+				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
+				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
+				if (numVarsFilled < 0) {
+					for(int nid = 0; nid < numIdentical; nid++) {
+						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
+					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+					// Rprintf("Incrementing Row."); //:::DEBUG:::
+					row += numIdentical;
+					keepCov -= numIdentical;
+					keepInverse -= numIdentical;
+					continue;
+				} else if (numVarsFilled || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					if(!(subObjective == NULL)) {
@@ -942,8 +970,22 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 		// Handle Definition Variables.
 		if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate
+				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
-				if(handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs) || firstRow) {
+				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
+				if (numVarsFilled < 0) {
+					for(int nid = 0; nid < numIdentical; nid++) {
+						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+					}
+					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
+					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
+					// Rprintf("Incrementing Row."); //:::DEBUG:::
+					row += numIdentical;
+					keepCov -= numIdentical;
+					keepInverse -= numIdentical;
+					continue;
+				} else if (numVarsFilled || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					if(!(subObjective == NULL)) {

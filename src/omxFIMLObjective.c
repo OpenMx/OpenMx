@@ -121,6 +121,11 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 			continue; //Do not populate this variable.
 		}
 		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
+		if(ISNA(newDefVar)) {
+			omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
+			error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
+			return -1;
+		}
 		if(newDefVar == oldDefs[k]) {
 			continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
 		}
@@ -137,11 +142,6 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 			omxMatrix *matrix = state->matrixList[matrixNumber];
 			omxSetMatrixElement(matrix, row, col, newDefVar);
 			omxMarkDirty(matrix);
-			if(ISNA(omxDoubleDataElement(data, row, defVars[k].column))) {
-				omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
-				error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
-				return numVarsFilled;
-			}
 		}
 	}
 	return numVarsFilled;
