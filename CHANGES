@@ -11,6 +11,8 @@ trunk
 * type='RAM' allowing 'manifestVars' argument to appear in a different order
   than in the observed covariance matrix.
 * bug fix in the identification of NA definition variables
+* bugfix when (I-A)^-1 speedup is disabled
+* bugfix in mxAlgebra() detection of missing operator or function
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================

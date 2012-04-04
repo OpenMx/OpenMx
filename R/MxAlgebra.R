@@ -81,7 +81,7 @@ algebraErrorChecking <- function(formula, context) {
 			deparse(width.cutoff = 400L, imxLocateFunction(context)))
 		stop(msg, call. = FALSE)
 	}
-	lapply(formula[-1], algebraErrorChecking)
+	lapply(formula[-1], algebraErrorChecking, context)
 }
 
 defStringsAsFactors <- getOption('stringsAsFactors')
