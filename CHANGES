@@ -1,3 +1,8 @@
+Release 1.2.3
+=============
+* bugfix when (I-A)^-1 speedup is disabled
+* bugfix in mxAlgebra() detection of missing operator or function
+
 Release 1.2.2-1986 (March 22, 2012)
 ===================================
 * setting default value for mxOption("UsePPML") to "No" until
