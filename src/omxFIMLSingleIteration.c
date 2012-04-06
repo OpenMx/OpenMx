@@ -29,6 +29,46 @@
 #include "omxSadmvnWrapper.h"
 
 
+void omxFIMLAdvanceRow(int *keepCov, int *keepInverse, int *row,
+	omxData *data, int numIdentical) {
+	int rowVal = *row;
+	if(*keepCov <= 0) *keepCov = omxDataNumIdenticalDefs(data, rowVal);
+	if(*keepInverse  <= 0) *keepInverse = omxDataNumIdenticalMissingness(data, rowVal);
+	// Rprintf("Incrementing Row."); //:::DEBUG:::
+	*row += numIdentical;
+	*keepCov -= numIdentical;
+	*keepInverse -= numIdentical;
+}
+
+void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs, 
+	int *numIdenticalContinuousMissingness,
+	int *numIdenticalOrdinalMissingness, 
+	int *numIdenticalContinuousRows,
+	int *numIdenticalOrdinalRows,
+	omxData *data, int numDefs, int numIdentical) {
+
+	int rowVal = *row;
+
+    if(numDefs != 0 && *numIdenticalDefs <= 0) *numIdenticalDefs = 
+		omxDataNumIdenticalDefs(data, rowVal);
+	if(*numIdenticalContinuousMissingness <= 0) *numIdenticalContinuousMissingness =
+		omxDataNumIdenticalContinuousMissingness(data, rowVal);
+	if(*numIdenticalOrdinalMissingness <= 0) *numIdenticalOrdinalMissingness = 
+		omxDataNumIdenticalOrdinalMissingness(data, rowVal);
+	if(*numIdenticalContinuousRows <= 0) *numIdenticalContinuousRows = 
+		omxDataNumIdenticalContinuousRows(data, rowVal);
+	if(*numIdenticalOrdinalRows <= 0) *numIdenticalOrdinalRows = 
+		omxDataNumIdenticalOrdinalRows(data, rowVal);
+
+	*row += numIdentical;
+	*numIdenticalDefs -= numIdentical;
+	*numIdenticalContinuousMissingness -= numIdentical;
+	*numIdenticalContinuousRows -= numIdentical;
+	*numIdenticalOrdinalMissingness -= numIdentical;
+	*numIdenticalOrdinalRows -= numIdentical;
+}
+
+
 /**
  * The localobj reference is used to access read-only variables,
  * or variables that can be modified but whose state cannot be
@@ -160,21 +200,12 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-                    if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-                    if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness =
-                                                        omxDataNumIdenticalContinuousMissingness(data, row);
-                    if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = 
-                                                        omxDataNumIdenticalOrdinalMissingness(data, row);
-                    if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = 
-                                                        omxDataNumIdenticalContinuousRows(data, row);
-                    if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = 
-                                                        omxDataNumIdenticalOrdinalRows(data, row);
-                    row += numIdentical;
-                    numIdenticalDefs -= numIdentical;
-                    numIdenticalContinuousMissingness -= numIdentical;
-                    numIdenticalContinuousRows -= numIdentical;
-                    numIdenticalOrdinalMissingness -= numIdentical;
-                    numIdenticalOrdinalRows -= numIdentical;
+					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+						&numIdenticalContinuousMissingness,
+						&numIdenticalOrdinalMissingness, 
+						&numIdenticalContinuousRows,
+						&numIdenticalOrdinalRows,
+						data, numDefs, numIdentical);
 					continue;
 				} else if (numVarsFilled || firstRow) { 
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
@@ -256,18 +287,12 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
 			}
-			if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-    		if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
-    		if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
-    		if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
-    		if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
-            if(OMX_DEBUG) { Rprintf("All elements missing.  Skipping row."); } // WAS: OMX_DEBUG_ROWS
-            row += numIdentical;
-            numIdenticalDefs -= numIdentical;
-            numIdenticalContinuousMissingness -= numIdentical;
-            numIdenticalContinuousRows -= numIdentical;
-            numIdenticalOrdinalMissingness -= numIdentical;
-            numIdenticalOrdinalRows -= numIdentical;
+			omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+				&numIdenticalContinuousMissingness,
+				&numIdenticalOrdinalMissingness, 
+				&numIdenticalContinuousRows,
+				&numIdenticalOrdinalRows,
+				data, numDefs, numIdentical);
             continue;
 		}
 
@@ -348,22 +373,12 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                         omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
                     }
                     if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
-                        
-                    if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-                    if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness =
-                                                        omxDataNumIdenticalContinuousMissingness(data, row);
-                    if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = 
-                                                        omxDataNumIdenticalOrdinalMissingness(data, row);
-                    if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = 
-                                                        omxDataNumIdenticalContinuousRows(data, row);
-                    if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = 
-                                                        omxDataNumIdenticalOrdinalRows(data, row);
-                    row += numIdentical;
-                    numIdenticalDefs -= numIdentical;
-                    numIdenticalContinuousMissingness -= numIdentical;
-                    numIdenticalContinuousRows -= numIdentical;
-                    numIdenticalOrdinalMissingness -= numIdentical;
-                    numIdenticalOrdinalRows -= numIdentical;
+   					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+						&numIdenticalContinuousMissingness,
+						&numIdenticalOrdinalMissingness, 
+						&numIdenticalContinuousRows,
+						&numIdenticalOrdinalRows,
+						data, numDefs, numIdentical);
                     continue;
                 }
                 // Calculate determinant: squared product of the diagonal of the decomposition
@@ -387,16 +402,12 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
    						    omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
    						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
    					}
-                    if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-                    if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
-                    if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
-                    if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
-                    if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
-                    numIdenticalDefs -= numIdentical;
-                    numIdenticalContinuousMissingness -= numIdentical;
-                    numIdenticalContinuousRows -= numIdentical;
-                    numIdenticalOrdinalMissingness -= numIdentical;
-                    numIdenticalOrdinalRows -= numIdentical;
+ 					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+						&numIdenticalContinuousMissingness,
+						&numIdenticalOrdinalMissingness, 
+						&numIdenticalContinuousRows,
+						&numIdenticalOrdinalRows,
+						data, numDefs, numIdentical);
                     continue;
     			}
             }
@@ -555,17 +566,12 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
   					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
    				}
                 if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-                if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-         		if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
-          		if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
-          		if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
-          		if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
-                row += numIdentical;
-          		numIdenticalDefs -= numIdentical;
-                numIdenticalContinuousMissingness -= numIdentical;
-                numIdenticalContinuousRows -= numIdentical;
-                numIdenticalOrdinalMissingness -= numIdentical;
-                numIdenticalOrdinalRows -= numIdentical;
+				omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+					&numIdenticalContinuousMissingness,
+					&numIdenticalOrdinalMissingness, 
+					&numIdenticalContinuousRows,
+					&numIdenticalOrdinalRows,
+					data, numDefs, numIdentical);
                 continue;
     		}
 		}
@@ -600,23 +606,17 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 
         }
         if(firstRow) firstRow = 0;
-        if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
-        if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness = omxDataNumIdenticalContinuousMissingness(data, row);
-        if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = omxDataNumIdenticalOrdinalMissingness(data, row);
-        if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = omxDataNumIdenticalContinuousRows(data, row);
-        if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = omxDataNumIdenticalOrdinalRows(data, row);
-        row += numIdentical;
-        numIdenticalDefs -= numIdentical;
-        numIdenticalContinuousMissingness -= numIdentical;
-        numIdenticalContinuousRows -= numIdentical;
-        numIdenticalOrdinalMissingness -= numIdentical;
-        numIdenticalOrdinalRows -= numIdentical;
+		omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+			&numIdenticalContinuousMissingness,
+			&numIdenticalOrdinalMissingness, 
+			&numIdenticalContinuousRows,
+			&numIdenticalOrdinalRows,
+			data, numDefs, numIdentical);
         continue;
 
 	}
 
 }
-
 
 /**
  * The localobj reference is used to access read-only variables,
@@ -719,12 +719,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-					// Rprintf("Incrementing Row."); //:::DEBUG:::
-					row += numIdentical;
-					keepCov -= numIdentical;
-					keepInverse -= numIdentical;
+					omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 					continue;
 				} else if (numVarsFilled || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
@@ -801,11 +796,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1.0);
 			}
-    		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-            row += numIdentical;
-    		keepCov -= numIdentical;
-    		keepInverse -= numIdentical;
+			omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 			continue;
 		}
 
@@ -832,12 +823,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 					omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 			}
-       		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-       		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-			if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-			row += numIdentical;
-			keepCov -= numIdentical;
-			keepInverse -= numIdentical;
+			omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 			continue;
 		}
 
@@ -865,12 +851,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 		}
 		
 		if(firstRow) firstRow = 0;
-		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-
-		row += numIdentical;		// Step forward by the number of identical rows
-		keepCov -= numIdentical;
-		keepInverse -= numIdentical;
+		omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 	}
 }
 
@@ -1035,12 +1016,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 				}
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 1);
 			}
-			if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-    		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-            // Rprintf("Incrementing Row."); //:::DEBUG:::
-    		row += numIdentical;
-    		keepCov -= numIdentical;
-    		keepInverse -= numIdentical;
+			omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 			continue;
 		}
 		
@@ -1113,12 +1089,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-					// Rprintf("Incrementing Row."); //:::DEBUG:::
-					row += numIdentical;
-					keepCov -= numIdentical;
-					keepInverse -= numIdentical;
+					omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 					continue;
 				}
 			}
@@ -1149,11 +1120,6 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 			}
 		}
 		if(firstRow) firstRow = 0;
-		if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-		if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-
-		row += numIdentical;
-		keepCov -= numIdentical;
-		keepInverse -= numIdentical;
+		omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 	}
 }
