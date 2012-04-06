@@ -160,12 +160,21 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
-					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-					// Rprintf("Incrementing Row."); //:::DEBUG:::
-					row += numIdentical;
-					keepCov -= numIdentical;
-					keepInverse -= numIdentical;
+                    if(numDefs != 0 && numIdenticalDefs <= 0) numIdenticalDefs = omxDataNumIdenticalDefs(data, row);
+                    if(numIdenticalContinuousMissingness <= 0) numIdenticalContinuousMissingness =
+                                                        omxDataNumIdenticalContinuousMissingness(data, row);
+                    if(numIdenticalOrdinalMissingness <= 0) numIdenticalOrdinalMissingness = 
+                                                        omxDataNumIdenticalOrdinalMissingness(data, row);
+                    if(numIdenticalContinuousRows <= 0) numIdenticalContinuousRows = 
+                                                        omxDataNumIdenticalContinuousRows(data, row);
+                    if(numIdenticalOrdinalRows <= 0) numIdenticalOrdinalRows = 
+                                                        omxDataNumIdenticalOrdinalRows(data, row);
+                    row += numIdentical;
+                    numIdenticalDefs -= numIdentical;
+                    numIdenticalContinuousMissingness -= numIdentical;
+                    numIdenticalContinuousRows -= numIdentical;
+                    numIdenticalOrdinalMissingness -= numIdentical;
+                    numIdenticalOrdinalRows -= numIdentical;
 					continue;
 				} else if (numVarsFilled || firstRow) { 
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
