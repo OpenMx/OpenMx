@@ -180,8 +180,6 @@ lmod <- mxModel(
 #lmod <- mxOption(lmod, "Standard Errors", "No")
 #lmod <- mxOption(lmod, "Major iterations", 0)
 
-# TODO: Figure why this doesn't work.  Perhaps OpenMx doesn't realized that a model with raw data 
-#  and a LISREL objective should use FIML?
 
 lmodRun <- mxRun(lmod)
 summary(lmodRun)

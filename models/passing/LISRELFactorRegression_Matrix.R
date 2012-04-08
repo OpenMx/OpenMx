@@ -29,6 +29,7 @@
 #   Mon Mar 05 08:41:32 Central Standard Time 2012 -- Michael Hunter added comparison to published estimated parameters
 #   Tue Mar 06 12:52:01 Central Standard Time 2012 -- Michael Hunter added OpenMx copyright and moved from models/failing to models/passing and renamed from LISRELObjectiveTest_Matrix.R to LISRELFactorRegression_Matrix.R
 #   Fri Mar 30 03:10:06 Central Daylight Time 2012 -- Michael Hunter added dimnames to observed data
+#   Sat Apr 07 20:06:13 Central Daylight Time 2012 -- Michael Hunter added dimnames to factor loading matrices
 #
 
 
@@ -54,6 +55,7 @@ rownames(gObsCor) <- c(paste('y', 1:length(endInd), sep=''), paste('x', 1:length
 colnames(gObsCor) <- rownames(gObsCor)
 
 
+
 #------------------------------------------------------------------------------
 # Specify the model
 
@@ -64,6 +66,11 @@ numManEnd <- length(endInd)
 numLatExo <- 1
 numLatEnd <- 2
 
+manExoNam <- paste('x', 1:numManExo, sep='')
+manEndNam <- paste('y', 1:numManEnd, sep='')
+latExoNam <- paste('xi', 1:numLatExo, sep='')
+latEndNam <- paste('eta', 1:numLatEnd, sep='')
+
 
 # Specify the nine LISREL matrices, no model for means
 lx <-     mxMatrix(
@@ -72,14 +79,16 @@ lx <-     mxMatrix(
         ncol=numLatExo,
         free=T,
         values=c(.8, .8, .8),
-        labels=c('lam1', 'lam2', 'lam3')
+        labels=c('lam1', 'lam2', 'lam3'),
+        dimnames=list(manExoNam, latExoNam)
         )
 ly <-     mxMatrix(
         name='LY',
         type='Iden',
         free=F,
         nrow=numManEnd,
-        ncol=numLatEnd
+        ncol=numLatEnd,
+        dimnames=list(manEndNam, latEndNam)
         )
 be <-     mxMatrix(
         name='BE',

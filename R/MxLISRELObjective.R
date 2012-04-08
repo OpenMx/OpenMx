@@ -21,6 +21,8 @@
 #--------------------------------------------------------------------
 # Revision History
 #   Mon Feb 20 13:03:21 Central Standard Time 2012 -- Michael Hunter added means
+#   Sat Apr 07 19:48:33 Central Daylight Time 2012 -- Michael Hunter added lots of error checking
+# 
 
 
 #--------------------------------------------------------------------
@@ -53,6 +55,8 @@ setClass(Class = "MxLISRELObjective",
 		depth = "integer"), #Used to speed up I-A inverse in RAM, could be used to speed up I-B inverse in LISREL
 	contains = "MxBaseObjective")
 
+
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxLISRELObjective",
 	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dims, thresholds, vector, threshnames,
@@ -80,6 +84,8 @@ setMethod("initialize", "MxLISRELObjective",
 	}
 )
 
+
+#--------------------------------------------------------------------
 # Not sure about the first line here
 # Should it be MxLISRELObjective or MxBaseObjective?
 setMethod("genericObjModelConvert", "MxLISRELObjective",
@@ -129,6 +135,8 @@ setMethod("genericObjModelConvert", "MxLISRELObjective",
 	}
 )
 
+
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("genericObjFunNamespace", signature("MxLISRELObjective"), 
 	function(.Object, modelname, namespace) {
@@ -153,7 +161,91 @@ setMethod("genericObjFunNamespace", signature("MxLISRELObjective"),
 )
 
 
+#--------------------------------------------------------------------
+# Helper functions used in genericObjFunConvert method
+
+checkLISRELmeansHelper <- function(Lam, Mean, Latent, matrixname, lamname, modelname){
+	if(Latent){
+		varType <- "latent" #used in error messages
+		checkInd <- 2  #used to check row or col names match (1 for rows, 2 for cols)
+		checkStg <- "col"
+	}
+	else{
+		varType <- "manifest"
+		checkInd <- 1
+		checkStg <- "row"
+	}
+	# Check that the means are non-null
+	if(is.null(Mean)){
+		msg <- paste("The LISREL objective",
+			"has an observed means vector but",
+			"is missing expected means vector",
+			"for", varType, "variables",
+			matrixname,  "in model",
+			omxQuotes(modelname))
+		stop(msg, call. = FALSE)
+	}
+	# Check that the means have dimnames
+	meanDimnames <- dimnames(Mean)
+	if(is.null(meanDimnames)){
+		msg <- paste("The", matrixname, "matrix associated",
+		"with the LISREL objective function in model", 
+		omxQuotes(modelname), "does not contain dimnames.")
+		stop(msg, call. = FALSE)	
+	}
+	#Check if means are a column vector
+	meanRownames <- meanDimnames[[1]]
+	meanColnames <- meanDimnames[[2]]
+	if (!is.null(meanColnames) && length(meanColnames) > 1) {
+		msg <- paste("The", matrixname, "matrix associated",
+		"with the LISREL objective in model", 
+		omxQuotes(modelname), "is not an N x 1 matrix.")
+		stop(msg, call. = FALSE)
+	}
+	#Check if means exactly match Lambda matrix (including order)
+	if (!identical(dimnames(Lam)[[checkInd]], meanRownames)) {
+		msg <- paste("The", checkStg, "names of the", lamname, "matrix",
+			"and the row names of the", matrixname, "matrix",
+			"in model", 
+			omxQuotes(modelname), "do not contain identical",
+			"names.")
+		stop(msg, call. = FALSE)
+	}
+}
+
+
+checkLISRELmeans <- function(Lam, ManMean, LatMean, X, modelname){
+	if(X){
+		manMeanMat <- 'TX'
+		latMeanMat <- 'KA'
+		lamMat <- 'LX'
+	} else{
+		manMeanMat <- 'TY'
+		latMeanMat <- 'AL'
+		lamMat <- 'LY'
+	}
+	checkLISRELmeansHelper(
+		Lam=Lam,
+		Mean=ManMean,
+		Latent=FALSE,
+		matrixname=manMeanMat,
+		lamname= lamMat,
+		modelname=modelname
+	)
+	checkLISRELmeansHelper(
+		Lam=Lam,
+		Mean=LatMean,
+		Latent=TRUE,
+		matrixname=latMeanMat,
+		lamname= lamMat,
+		modelname=modelname
+	)
+}
+
+
+#--------------------------------------------------------------------
 # **DONE**
+# Note: Lots of error checking is done in this method
 setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"), 
 	function(.Object, flatModel, model, defVars) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
@@ -172,47 +264,46 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		kaMatrix <- .Object@KA
 		alMatrix <- .Object@AL
 		data <- .Object@data
+		# Check if the model has data
 		if(is.na(data)) {
 			msg <- paste("The LISREL objective",
 				"does not have a dataset associated with it in model",
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
+		#
+		# if any of the names of TX, TY, KA, AL are not missing
+		#	 then the model must have observed means or raw data
 		mxDataObject <- flatModel@datasets[[.Object@data]]
-		if(!is.na(txMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-			msg <- paste("The LISREL objective",
-				"has an expected means vector, TX, but",
-				"no observed means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
-		if(!is.na(tyMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-			msg <- paste("The LISREL objective",
-				"has an expected means vector, TY, but",
-				"no observed means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
-		if(!is.na(kaMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-			msg <- paste("The LISREL objective",
-				"has an expected means vector, KA, but",
-				"no observed means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
-		if(!is.na(alMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-			msg <- paste("The LISREL objective",
-				"has an expected means vector, AL, but",
-				"no observed means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
-		if(!single.na(mxDataObject@means) && (is.null(flatModel[[txMatrix]]) || is.null(flatModel[[tyMatrix]]) || is.null(flatModel[[kaMatrix]]) || is.null(flatModel[[alMatrix]]) )) {
-			msg <- paste("The LISREL objective",
-				"has an observed means vector but",
-				"is missing some expected means vectors in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
+		if(single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+			if(!is.na(txMatrix)) {
+				msg <- paste("The LISREL objective",
+					"has an expected means vector, TX, but",
+					"no observed means vector in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(!is.na(tyMatrix)) {
+				msg <- paste("The LISREL objective",
+					"has an expected means vector, TY, but",
+					"no observed means vector in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(!is.na(kaMatrix)) {
+				msg <- paste("The LISREL objective",
+					"has an expected means vector, KA, but",
+					"no observed means vector in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(!is.na(alMatrix)) {
+				msg <- paste("The LISREL objective",
+					"has an expected means vector, AL, but",
+					"no observed means vector in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
 		}
 		checkNumericData(mxDataObject)
 		.Object@LX <- imxLocateIndex(flatModel, lxMatrix, name)
@@ -230,50 +321,147 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		.Object@AL <- imxLocateIndex(flatModel, alMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 		
-		# 
+		#
+		# What does this do, again?
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "LISREL")
-#		fMatrix <- flatModel[[fMatrix]]@values
-#		if (is.null(dimnames(fMatrix))) {
-#			msg <- paste("The F matrix of model",
-#				omxQuotes(modelname), "does not contain dimnames")
-#			stop(msg, call. = FALSE)
-#		}
-#		if (is.null(dimnames(fMatrix)[[2]])) {
-#			msg <- paste("The F matrix of model",
-#				omxQuotes(modelname), "does not contain colnames")
-#			stop(msg, call. = FALSE)
-#		}
+		#
+		# Change *Matrix from the string name of the matrix to the object
+		lxMatrix <- flatModel[[lxMatrix]]
+		lyMatrix <- flatModel[[lyMatrix]]
+		beMatrix <- flatModel[[beMatrix]]
+		gaMatrix <- flatModel[[gaMatrix]]
+		phMatrix <- flatModel[[phMatrix]]
+		psMatrix <- flatModel[[psMatrix]]
+		tdMatrix <- flatModel[[tdMatrix]]
+		teMatrix <- flatModel[[teMatrix]]
+		thMatrix <- flatModel[[thMatrix]]
 		txMatrix <- flatModel[[txMatrix]]
 		tyMatrix <- flatModel[[tyMatrix]]
 		kaMatrix <- flatModel[[kaMatrix]]
 		alMatrix <- flatModel[[alMatrix]]
-		lxMatrix <- flatModel[[lxMatrix]]
-		lyMatrix <- flatModel[[lyMatrix]]
-		if(!is.null(txMatrix) || !is.null(tyMatrix) || !is.null(kaMatrix) || !is.null(alMatrix) ) {
-#			means <- dimnames(mMatrix)
-#			if (is.null(means)) { #Check if the means have dimnames
-#				msg <- paste("The M matrix associated",
-#				"with the RAM objective function in model", 
-#				omxQuotes(modelname), "does not contain dimnames.")
-#				stop(msg, call. = FALSE)	
-#			}
-#			meanRows <- means[[1]]
-#			meanCols <- means[[2]]
-#			if (!is.null(meanRows) && length(meanRows) > 1) { #Check if means are a row/column vector
-#				msg <- paste("The M matrix associated",
-#				"with the RAM objective in model", 
-#				omxQuotes(modelname), "is not a 1 x N matrix.")
-#				stop(msg, call. = FALSE)
-#			}
-#			if (!identical(dimnames(fMatrix)[[2]], meanCols)) { #Check if means exactly match F matrix (including order)
-#				msg <- paste("The column names of the F matrix",
-#					"and the column names of the M matrix",
-#					"in model", 
-#					omxQuotes(modelname), "do not contain identical",
-#					"names.")
-#				stop(msg, call. = FALSE)
-#			}
+		#
+		# if LY is not null, then
+		#	 check LY for dimnames and
+		#	 check its means (TY, AL) and
+		#	 check for TE, BE, PS
+		if(!is.null(lyMatrix)){
+			# Check LY for dimnames
+			if (is.null(dimnames(lyMatrix))) {
+				msg <- paste("The LY matrix of model",
+					omxQuotes(modelname), "does not contain dimnames")
+				stop(msg, call. = FALSE)
+			}
+			if (is.null(dimnames(lyMatrix)[[2]])) {
+				msg <- paste("The LY matrix of model",
+					omxQuotes(modelname), "does not contain colnames")
+				stop(msg, call. = FALSE)
+			}
+			# Check its means (TY, AL) 
+			if(!single.na(mxDataObject@means) || mxDataObject@type == "raw") {
+				checkLISRELmeans(
+					Lam=lyMatrix,
+					ManMean=tyMatrix,
+					LatMean=alMatrix,
+					X=FALSE,
+					modelname=modelname
+				)
+			}
+			# Check for TE, BE, PS
+			if(is.null(teMatrix)){
+				msg <- paste("The manifest residual covariance matrix TE",
+					"for endogenous variables is not present but the",
+					"factor loading matrix LY for endogenous variables is",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(is.null(beMatrix)){
+				msg <- paste("The latent regression matrix BE",
+					"for endogenous variables is not present but the",
+					"factor loading matrix LY for endogenous variables is",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(is.null(psMatrix)){
+				msg <- paste("The latent covariance matrix PS",
+					"for endogenous variables is not present but the",
+					"factor loading matrix LY for endogenous variables is",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
 		}
+		#
+		# if LX is non-null, then
+		#	 check LX for dimnames
+		#	 check its means (TX, KA) and
+		#	 check for TD, PH
+		if(!is.null(lxMatrix)){
+			# Check LX for dimnames
+			if (is.null(dimnames(lxMatrix))) {
+				msg <- paste("The LX matrix of model",
+					omxQuotes(modelname), "does not contain dimnames")
+				stop(msg, call. = FALSE)
+			}
+			if (is.null(dimnames(lxMatrix)[[2]])) {
+				msg <- paste("The LX matrix of model",
+					omxQuotes(modelname), "does not contain colnames")
+				stop(msg, call. = FALSE)
+			}
+			# Check its means (TX, KA)
+			if(!single.na(mxDataObject@means) || mxDataObject@type == "raw") {
+				checkLISRELmeans(
+					Lam=lxMatrix,
+					ManMean=txMatrix,
+					LatMean=kaMatrix,
+					X=TRUE,
+					modelname=modelname
+				)
+			}
+			# Check for TD, PH
+			if(is.null(tdMatrix)){
+				msg <- paste("The manifest covariance matrix TD",
+					"for exogenous variables is not present but the",
+					"factor loading matrix LX for exogenous variables is",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(is.null(phMatrix)){
+				msg <- paste("The latent covariance matrix PH",
+					"for exogenous variables is not present but the",
+					"factor loading matrix LX for exogenous variables is",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+		}
+		#
+		# if both LX and LY are not null
+		#	 must have TH, GA
+		if(!is.null(lxMatrix) && !is.null(lyMatrix)){
+			if(is.null(thMatrix)){
+				msg <- paste("The manifest covariance matrix TH",
+					"for endogenous and exogenous variables is not present but the",
+					"factor loading matrix LY for endogenous variables",
+					"and the factor loading matrix LX for exogenous variables both are",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+			if(is.null(gaMatrix)){
+				msg <- paste("The latent regression matrix GA",
+					"for endogenous variables on exogenous variables is not present but the",
+					"factor loading matrix LY for endogenous variables",
+					"and the factor loading matrix LX for exogenous variables both are",
+					"in the LISREL objective in model",
+					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
+			}
+		}
+		#
+		# Raw data error checking
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (mxDataObject@type == 'raw') {
@@ -292,20 +480,23 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 			if (single.na(.Object@dims)) {
 				.Object@dims <- translatedNames
 			}
-		}# else {
-#			if (!identical(translatedNames, rownames(mxDataObject@observed))) { #Check the rows of F match the obs Cov
-#				msg <- paste("The names of the manifest",
-#					"variables in the F matrix of model",
-#					omxQuotes(modelname), "does not match the",
-#					"dimnames of the observed covariance matrix")
-#				stop(msg, call. = FALSE)
-#			}
-#		}
+		} else {# Non-Raw data checking
+			# Check the observed covariance matrix is separated into endo and exo blocks
+			if (!identical(translatedNames, rownames(mxDataObject@observed))) {
+				msg <- paste("The names of the manifest",
+					"variables in the LY and LX matrices of model",
+					omxQuotes(modelname), "do not match the",
+					"dimnames of the observed covariance matrix",
+					"or they are in the wrong order.")
+				stop(msg, call. = FALSE)
+			}
+		}
 		return(.Object)
 	}
 )
 
 
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("genericObjDependencies", signature("MxLISRELObjective"),
 	function(.Object, dependencies) {
@@ -317,6 +508,7 @@ setMethod("genericObjDependencies", signature("MxLISRELObjective"),
 )
 
 
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("genericObjRename", signature("MxLISRELObjective"),
 	function(.Object, oldname, newname) {
@@ -340,8 +532,9 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 )
 
 
+#--------------------------------------------------------------------
 # **DONE**
-mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
+mxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
 	if (missing(LX) || typeof(LX) != "character") {
 		msg <- paste("argument 'LX' is not a string",
 			"(the name of the 'LX' matrix)")
@@ -442,6 +635,7 @@ mxLISRELObjective <- function(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX = NA, TY = 
 }
 
 
+#--------------------------------------------------------------------
 # **DONE**
 displayLISRELObjective <- function(objective) {
 	cat("MxLISRELObjective", omxQuotes(objective@name), '\n')
@@ -507,12 +701,14 @@ displayLISRELObjective <- function(objective) {
 }
 
 
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("print", "MxLISRELObjective", function(x,...) { 
 	displayLISRELObjective(x) 
 })
 
 
+#--------------------------------------------------------------------
 # **DONE**
 setMethod("show", "MxLISRELObjective", function(object) { 
 	displayLISRELObjective(object) 
