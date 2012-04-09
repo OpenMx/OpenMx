@@ -242,16 +242,20 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	
 	
 	/* Now Calculate the Expected Means */
-	if(TX != NULL && Means != NULL) { //NOTE: just checking if TX is NULL!?!?!?
+	if(Means != NULL) {
 		/* Mean of the Xs */
-		omxCopyMatrix(MUX, TX);
-		omxDGEMV(FALSE, oned, LX, KA, oned, MUX);
+		//if(TX != NULL) {
+			omxCopyMatrix(MUX, TX);
+			omxDGEMV(FALSE, oned, LX, KA, oned, MUX);
+		//}
 		
 		/* Mean of Ys */
-		omxCopyMatrix(K, AL);
-		omxDGEMV(FALSE, oned, GA, KA, oned, K);
-		omxCopyMatrix(MUY, TY);
-		omxDGEMV(FALSE, oned, D, K, oned, MUY);
+		//if(TY != NULL) {
+			omxCopyMatrix(K, AL);
+			omxDGEMV(FALSE, oned, GA, KA, oned, K);
+			omxCopyMatrix(MUY, TY);
+			omxDGEMV(FALSE, oned, D, K, oned, MUY);
+		//}
 		
 		/* Build means from blocks */
 		args[0] = MUY;
@@ -381,29 +385,47 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }
 	LISobj->LX = omxNewMatrixFromIndexSlot(rObj, currentState, "LX");
 	
+	if(OMX_DEBUG) { Rprintf("Processing PH.\n"); }
+	LISobj->PH = omxNewMatrixFromIndexSlot(rObj, currentState, "PH");
+	
+	if(OMX_DEBUG) { Rprintf("Processing TD.\n"); }
+	LISobj->TD = omxNewMatrixFromIndexSlot(rObj, currentState, "TD");
+	
+	if(LISobj->LX == NULL) {
+		LISobj->LX = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->PH = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->TD = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+	}
+	
 	if(OMX_DEBUG) { Rprintf("Processing LY.\n"); }
 	LISobj->LY = omxNewMatrixFromIndexSlot(rObj, currentState, "LY");
 	
 	if(OMX_DEBUG) { Rprintf("Processing BE.\n"); }
 	LISobj->BE = omxNewMatrixFromIndexSlot(rObj, currentState, "BE");
 	
-	if(OMX_DEBUG) { Rprintf("Processing GA.\n"); }
-	LISobj->GA = omxNewMatrixFromIndexSlot(rObj, currentState, "GA");
-	
-	if(OMX_DEBUG) { Rprintf("Processing PH.\n"); }
-	LISobj->PH = omxNewMatrixFromIndexSlot(rObj, currentState, "PH");
-	
 	if(OMX_DEBUG) { Rprintf("Processing PS.\n"); }
 	LISobj->PS = omxNewMatrixFromIndexSlot(rObj, currentState, "PS");
-	
-	if(OMX_DEBUG) { Rprintf("Processing TD.\n"); }
-	LISobj->TD = omxNewMatrixFromIndexSlot(rObj, currentState, "TD");
 	
 	if(OMX_DEBUG) { Rprintf("Processing TE.\n"); }
 	LISobj->TE = omxNewMatrixFromIndexSlot(rObj, currentState, "TE");
 	
+	if(LISobj->LY == NULL) {
+		LISobj->LY = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->PS = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->BE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->TE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+	}
+	
+	if(OMX_DEBUG) { Rprintf("Processing GA.\n"); }
+	LISobj->GA = omxNewMatrixFromIndexSlot(rObj, currentState, "GA");
+	
 	if(OMX_DEBUG) { Rprintf("Processing TH.\n"); }
 	LISobj->TH = omxNewMatrixFromIndexSlot(rObj, currentState, "TH");
+	
+	if(LISobj->LY == NULL || LISobj->LX == NULL) {
+		LISobj->GA = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->TH = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+	}
 
 	if(OMX_DEBUG) { Rprintf("Processing TX.\n"); }
 	LISobj->TX = omxNewMatrixFromIndexSlot(rObj, currentState, "TX");
@@ -489,6 +511,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
 		LISobj->means = 	omxInitMatrix(NULL, 1, ntotal, TRUE, currentState);
 	} else LISobj->means  = 	NULL;
+	//TODO: Adjust means processing to allow only Xs or only Ys
 	
 
 	/* Create parent objective */
