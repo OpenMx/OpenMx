@@ -368,26 +368,20 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 			}
 			# Check for TE, BE, PS
 			if(is.null(teMatrix)){
-				msg <- paste("The manifest residual covariance matrix TE",
-					"for endogenous variables is not present but the",
-					"factor loading matrix LY for endogenous variables is",
-					"in the LISREL objective in model",
+				msg <- paste("The TE matrix is absent but the LY",
+					"matrix is present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
 			if(is.null(beMatrix)){
-				msg <- paste("The latent regression matrix BE",
-					"for endogenous variables is not present but the",
-					"factor loading matrix LY for endogenous variables is",
-					"in the LISREL objective in model",
+				msg <- paste("The BE matrix is absent but the LY",
+					"matrix is present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
 			if(is.null(psMatrix)){
-				msg <- paste("The latent covariance matrix PS",
-					"for endogenous variables is not present but the",
-					"factor loading matrix LY for endogenous variables is",
-					"in the LISREL objective in model",
+				msg <- paste("The PS matrix is absent but the LY",
+					"matrix is present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
@@ -421,18 +415,14 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 			}
 			# Check for TD, PH
 			if(is.null(tdMatrix)){
-				msg <- paste("The manifest covariance matrix TD",
-					"for exogenous variables is not present but the",
-					"factor loading matrix LX for exogenous variables is",
-					"in the LISREL objective in model",
+				msg <- paste("The TD matrix is absent but the LX",
+					"matrix is present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
 			if(is.null(phMatrix)){
-				msg <- paste("The latent covariance matrix PH",
-					"for exogenous variables is not present but the",
-					"factor loading matrix LX for exogenous variables is",
-					"in the LISREL objective in model",
+				msg <- paste("The PH matrix is absent but the LX",
+					"matrix is present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
@@ -442,21 +432,16 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		#	 must have TH, GA
 		if(!is.null(lxMatrix) && !is.null(lyMatrix)){
 			if(is.null(thMatrix)){
-				msg <- paste("The manifest covariance matrix TH",
-					"for endogenous and exogenous variables is not present but the",
-					"factor loading matrix LY for endogenous variables",
-					"and the factor loading matrix LX for exogenous variables both are",
-					"in the LISREL objective in model",
+				msg <- paste("The TH matrix is absent but the LY and LX",
+					"matrices are present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
 			}
 			if(is.null(gaMatrix)){
-				msg <- paste("The latent regression matrix GA",
-					"for endogenous variables on exogenous variables is not present but the",
-					"factor loading matrix LY for endogenous variables",
-					"and the factor loading matrix LX for exogenous variables both are",
-					"in the LISREL objective in model",
+				msg <- paste("The GA matrix is absent but the LY and LX",
+					"matrices are present in model",
 					omxQuotes(modelname))
+				stop(msg, call. = FALSE)
 				stop(msg, call. = FALSE)
 			}
 		}
@@ -533,77 +518,34 @@ setMethod("genericObjRename", signature("MxLISRELObjective"),
 
 
 #--------------------------------------------------------------------
+checkLISRELargument <- function(x, xname) {
+	if (!(single.na(x) || typeof(x) == "character")) {
+		msg <- paste("argument ", xname, " is not a string ",
+			"(the name of the '", xname, "' matrix)", sep="")
+		stop(msg)
+	}
+	if (is.na(x)) x <- as.integer(NA)
+	return(x)
+}
+
+
+#--------------------------------------------------------------------
 # **DONE**
 mxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
-	if (missing(LX) || typeof(LX) != "character") {
-		msg <- paste("argument 'LX' is not a string",
-			"(the name of the 'LX' matrix)")
-		stop(msg)
-	}
-	if (missing(LY) || typeof(LY) != "character") {
-		msg <- paste("argument 'LY' is not a string",
-			"(the name of the 'LY' matrix)")
-		stop(msg)
-	}
-	if (missing(BE) || typeof(BE) != "character") {
-		msg <- paste("argument 'BE' is not a string",
-			"(the name of the 'BE' matrix)")
-		stop(msg)
-	}
-	if (missing(GA) || typeof(GA) != "character") {
-		msg <- paste("argument 'GA' is not a string",
-			"(the name of the 'GA' matrix)")
-		stop(msg)
-	}
-	if (missing(PH) || typeof(PH) != "character") {
-		msg <- paste("argument 'PH' is not a string",
-			"(the name of the 'PH' matrix)")
-		stop(msg)
-	}
-	if (missing(PS) || typeof(PS) != "character") {
-		msg <- paste("argument 'PS' is not a string",
-			"(the name of the 'PS' matrix)")
-		stop(msg)
-	}
-	if (missing(TD) || typeof(TD) != "character") {
-		msg <- paste("argument 'TD' is not a string",
-			"(the name of the 'TD' matrix)")
-		stop(msg)
-	}
-	if (missing(TE) || typeof(TE) != "character") {
-		msg <- paste("argument 'TE' is not a string",
-			"(the name of the 'TE' matrix)")
-		stop(msg)
-	}
-	if (missing(TH) || typeof(TH) != "character") {
-		msg <- paste("argument 'TH' is not a string",
-			"(the name of the 'TH' matrix)")
-		stop(msg)
-	}
-	if (!(single.na(TX) || typeof(TX) == "character")) {
-		msg <- paste("argument TX is not a string",
-			"(the name of the 'TX' matrix)")
-		stop(msg)
-	}
-	if (is.na(TX)) TX <- as.integer(NA)
-	if (!(single.na(TY) || typeof(TY) == "character")) {
-		msg <- paste("argument TY is not a string",
-			"(the name of the 'TY' matrix)")
-		stop(msg)
-	}
-	if (is.na(TY)) TY <- as.integer(NA)
-	if (!(single.na(KA) || typeof(KA) == "character")) {
-		msg <- paste("argument KA is not a string",
-			"(the name of the 'KA' matrix)")
-		stop(msg)
-	}
-	if (is.na(KA)) KA <- as.integer(NA)
-	if (!(single.na(AL) || typeof(AL) == "character")) {
-		msg <- paste("argument AL is not a string",
-			"(the name of the 'AL' matrix)")
-		stop(msg)
-	}
-	if (is.na(AL)) AL <- as.integer(NA)
+	LX <- checkLISRELargument(LX, "LX")
+	LY <- checkLISRELargument(LY, "LY")
+	BE <- checkLISRELargument(BE, "BE")
+	GA <- checkLISRELargument(GA, "GA")
+	PH <- checkLISRELargument(PH, "PH")
+	PS <- checkLISRELargument(PS, "PS")
+	TD <- checkLISRELargument(TD, "TD")
+	TE <- checkLISRELargument(TE, "TE")
+	TH <- checkLISRELargument(TH, "TH")
+	TX <- checkLISRELargument(TX, "TX")
+	TY <- checkLISRELargument(TY, "TY")
+	KA <- checkLISRELargument(KA, "KA")
+	AL <- checkLISRELargument(AL, "AL")
+	
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (single.na(threshnames)) threshnames <- as.character(NA)
