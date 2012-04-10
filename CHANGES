@@ -2,6 +2,9 @@ Release 1.2.3
 =============
 * bugfix when (I-A)^-1 speedup is disabled
 * bugfix in mxAlgebra() detection of missing operator or function
+* bugfix in joint FIML when: 1) there are no definition variables, 
+  2) the first (sorted) row with a new number of ordinal variables, and 
+  3) has all continuous variables missing
 
 Release 1.2.2-1986 (March 22, 2012)
 ===================================
