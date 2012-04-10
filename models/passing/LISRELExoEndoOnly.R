@@ -177,9 +177,9 @@ ymod <- mxModel(
 
 # Uncomment the following lines when debugbing
 #ymodRun <- mxRun(ymod, onlyFrontend=TRUE) # This runs fine.
-ymod <- mxOption(ymod, "Calculate Hessian", "No")
-ymod <- mxOption(ymod, "Standard Errors", "No")
-ymod <- mxOption(ymod, "Major iterations", 1)
+#ymod <- mxOption(ymod, "Calculate Hessian", "No")
+#ymod <- mxOption(ymod, "Standard Errors", "No")
+#ymod <- mxOption(ymod, "Major iterations", 1)
 
 
 ymodRun <- mxRun(ymod)
@@ -211,9 +211,9 @@ xmod <- mxModel(
 
 # Uncomment the following lines when debugbing
 #xmodRun <- mxRun(xmod, onlyFrontend=TRUE) # This runs fine.
-xmod <- mxOption(xmod, "Calculate Hessian", "No")
-xmod <- mxOption(xmod, "Standard Errors", "No")
-xmod <- mxOption(xmod, "Major iterations", 1)
+#xmod <- mxOption(xmod, "Calculate Hessian", "No")
+#xmod <- mxOption(xmod, "Standard Errors", "No")
+#xmod <- mxOption(xmod, "Major iterations", 1)
 
 
 xmodRun <- mxRun(xmod)
@@ -221,28 +221,76 @@ summary(xmodRun)
 
 
 
+
+
 #--------------------------------------------------------------------
-# Compare the estimate parameters to known values
+# Create RAM models that mirror the LISREL ones
 
-# Recal that The known parameters are taken from model 3 (AKA 
-#  threeLatentMultipleReg1 and threeLatentMultipleReg1Out) in
-#  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.
+xman <- names(rawlisx)
 
-
-
-expectedParam <- c(
- 0.809021, 1.148334, 1.305356, 0.805289, 1.232038, 1.189698, 
- 0.87486, 0.786604, 0.701819, 0.990778, 0.456683, 1.92904, 
- 0.153399, 1.316878, 0.770605, 1.133502, 1.067425, 1.063866,
- 1.053663, 0.847609, 0.761789, 1.186354, 1.009936, 0.942481, 
- 0.971017, 0.880311, 0.956065,  0.060813, 0.037374, -0.048679,
--0.013194, 0.193348, 0.220002, 0.256785, 0.171892, 0.166191, 
- 0.23483, 0.173025, 0.157615
+xrmod <- mxModel(
+	mxData(observed=rawlisx, type='raw'),
+	name="RAM Exogenous",
+	type="RAM",
+	manifestVars=xman,
+	latentVars=c("f1", "f2"),
+	mxPath("f1", xman[1:4], free=c(F, T, T, T), values=c(1, .2, .2, .2)),
+	mxPath("f2", xman[5:8], free=c(F, T, T, T), values=c(1, .2, .2, .2)),
+	mxPath(c("f1", "f2"), connect="unique.pairs", free=T, arrows=2, values=c(.8, .3, .8)),
+	mxPath(xman, arrows=2, free=T, values=.8),
+	mxPath("one", c(xman, "f1", "f2"), free=c(rep(T, 8), F, F), values=c(rep(.1, 8), 0, 0))
 )
 
+xrmodRun <- mxRun(xrmod)
 
 
-#omxCheckCloseEnough(lmodRun@output$estimate, expectedParam, epsilon=0.001)
+
+
+
+yman <- names(rawlisy)
+
+yrmod <- mxModel(
+	mxData(observed=rawlisy, type='raw'),
+	name="RAM Endogenous",
+	type="RAM",
+	manifestVars=yman,
+	latentVars="f1",
+	mxPath("f1", yman[1:4], free=c(F, T, T, T), values=c(1, .2, .2, .2)),
+	mxPath("f1", free=T, arrows=2, values=.8),
+	mxPath(yman, arrows=2, free=T, values=.8),
+	mxPath("one", c(yman, "f1"), free=c(rep(T, 4), F), values=c(rep(.1, 4), 0))
+)
+
+yrmodRun <- mxRun(yrmod)
+summary(yrmodRun)
+
+
+
+
+#--------------------------------------------------------------------
+# Compare the estimate parameters in LISREL and RAM
+
+# Check the exogenous only model
+omxCheckCloseEnough(xmodRun@output$estimate, xrmodRun@output$estimate[c(1:6, 15:17, 7:14, 18:25)], epsilon=0.001)
+
+
+# Check the endogenoug only model
+omxCheckCloseEnough(ymodRun@output$estimate, yrmodRun@output$estimate[c(1:3, 8, 4:7, 9:12)], epsilon=0.001)
+
+
+
+#--------------------------------------------------------------------
+#require(rbenchmark)
+
+
+#benchmark(mxRun(xmod), mxRun(xrmod), replications=10)
+# LISREL and RAM models here take about the same amount of time
+# LISREL is acutally .9% faster
+
+#benchmark(mxRun(ymod), mxRun(yrmod), replications=10)
+# LISREL takes about 9% longer than RAM models here
+
+# For the combined model, LISREL is about 10% slower.
 
 
 

@@ -442,8 +442,21 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 					"matrices are present in model",
 					omxQuotes(modelname))
 				stop(msg, call. = FALSE)
-				stop(msg, call. = FALSE)
 			}
+		}
+		if(is.null(lxMatrix) && (!is.null(phMatrix) || !is.null(tdMatrix))) {
+			msg <- paste("Some, but not all of measurement and structural matrices are missing.",
+				"The LX matrix is absent but the PH or TD",
+				"matrices are present in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+		}
+		if(is.null(lyMatrix) && (!is.null(psMatrix) || !is.null(teMatrix) || !is.null(beMatrix))) {
+			msg <- paste("Some, but not all of measurement and structural matrices are missing.",
+				"The LY matrix is absent but at least one of the PS, TE, and BE",
+				"matrices are present in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
 		}
 		#
 		# Raw data error checking
