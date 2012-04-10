@@ -319,7 +319,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 		    // All continuous missingness.  Populate some stuff.
             Q = 0.0;
             determinant = 0;
-            if(numIdenticalDefs <= 0 || firstRow) {
+            if(numIdenticalDefs <= 0 || numIdenticalOrdinalRows <= 0 || firstRow) {
                 // Recalculate Ordinal covariance matrix
                 omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
                 omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
