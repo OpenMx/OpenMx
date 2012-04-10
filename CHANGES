@@ -1,5 +1,5 @@
-Release 1.2.3
-=============
+Release 1.2.3-2011 (April 10, 2012)
+===================================
 * bugfix when (I-A)^-1 speedup is disabled
 * bugfix in mxAlgebra() detection of missing operator or function
 * bugfix in joint FIML when: 1) there are no definition variables, 
