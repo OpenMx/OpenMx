@@ -13,6 +13,7 @@ trunk
 * bug fix in the identification of NA definition variables
 * bugfix when (I-A)^-1 speedup is disabled
 * bugfix in mxAlgebra() detection of missing operator or function
+* error checking for 0-length arguments to mxPath()
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================
