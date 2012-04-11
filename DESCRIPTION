@@ -15,8 +15,8 @@ Authors@R: c(person(c("Steven", "M."), "Boker"),
              person(c("Michael", "D."), "Hunter"),
              person(c("Daniel", "C."), "Hackett"),
              person("Julian", "Karch"),
-             person("Andreas", "Brandmaier"))
-Author: Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C. Hackett, Julian Karch, Andreas Brandmaier
+             person(c("Andreas", "M."), "Brandmaier"))
+Author: Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C. Hackett, Julian Karch, Andreas M. Brandmaier
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
 URL: http://openmx.psyc.virginia.edu
 Description: The OpenMx Project intends to rewrite and extend the popular statistical package Mx to address the challenges facing a large range of modern statistical problems such as: the difficulty of measuring behavioral traits; the availability of technologies - such as such as magnetic resonance imaging, continuous physiological monitoring and microarrays - which generate extremely large amounts of data often with complex time-dependent patterning; and increased sophistication in the statistical models used to analyze the data.
