@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2010 The OpenMx Project
+%   Copyright 2007-2012 The OpenMx Project
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -59,10 +59,10 @@ omxAllInt(covariance, means, ...)
 
 \examples{
 
-data(myFAData)
+data(myFADataRaw)
 
-covariance <- cov(myFAData[,1:5])
-means <- colMeans(myFAData[,1:5])
+covariance <- cov(myFADataRaw[,1:5])
+means <- colMeans(myFADataRaw[,1:5])
 thresholdForColumn1 <- cbind(c(-Inf, 0,   1))               # Integrate from -Infinity to 0 and 0 to 1 on first variable
                                                             # Note: The first variable will never be calculated from 1 to +Infinity.
 thresholdsForColumn2 <- cbind(c(-Inf, -1, 0, 1, Inf))       # These columns will be integrated from -Inf to -1, -1 to 0, etc.
@@ -71,8 +71,8 @@ omxAllInt(covariance, means, thresholdForColumn1, thresholdsForColumn2, threshol
                                                             # Notice that columns 2 and 5 are assigned identical thresholds.
 
 # An alternative specification of the same calculation follows
-covariance <- cov(myFAData[,1:5])
-means <- colMeans(myFAData[,1:5])
+covariance <- cov(myFADataRaw[,1:5])
+means <- colMeans(myFADataRaw[,1:5])
 thresholds <- cbind(c(-Inf,     0,     1,  NA,  NA),        # Note NAs to indicate the end of the sequence of thresholds.
                     c(-Inf,    -1,     0,   1, Inf),
                     c(-Inf,  1.96,  2.32, Inf,  NA),
