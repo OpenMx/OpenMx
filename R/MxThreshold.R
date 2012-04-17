@@ -108,11 +108,15 @@ verifyThresholds <- function(flatModel, model, dataName, covNames, threshName) {
 		if (any(is.na(values))) {
 			stop(paste("In model", 
 				omxQuotes(modelName),
-				"the thresholds in column",
-				omxQuotes(tName), "of matrix/algebra",
-			    omxQuotes(simplifyName(threshName, modelName)),
-				"contain NA values. Only the first", expectedThreshCount,
-                "elements of this column are inspected."), call. = FALSE)	
+				"I was expecting", expectedThreshCount, 
+				"thresholds in column", omxQuotes(tName), 
+				"of matrix/algebra", 
+				omxQuotes(simplifyName(threshName, modelName)),
+				"but I hit NA values after only", 
+				length(values[!is.na(values)]), "thresholds.",
+				"You need to increase the number of",
+				"free thresholds for", omxQuotes(tName), 
+				"and give them values other than NA"), call. = FALSE)	
 		}
 		sortValues <- sort(values, na.last = NA)
 		if (!identical(sortValues, values)) {
