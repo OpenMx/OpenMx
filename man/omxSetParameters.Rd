@@ -10,7 +10,7 @@
 \usage{
 omxSetParameters(model, labels, free = NULL, values = NULL,
 	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
-	strict = TRUE)
+	strict = TRUE, name = NULL)
 }
 
 \arguments{
@@ -23,6 +23,7 @@ omxSetParameters(model, labels, free = NULL, values = NULL,
    \item{ubound}{a numeric vector of upper bound values.} 
    \item{indep}{boolean. set parameters in independent submodels.}
    \item{strict}{boolean. if TRUE then throw an error when a label does not appear in the model.}
+   \item{name}{character string. (optional) a new name for the model.}
 }
 
 \seealso{
