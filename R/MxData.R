@@ -52,7 +52,10 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	}
 	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
 		is.na(match(type, imxDataTypes))) {
-		stop(paste("Type must be one of:", paste(imxDataTypes, collapse=" ")))
+			numTypes = length(imxDataTypes)
+			stop(paste("Type must be set to one of: ", "'", 
+			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
+			"' or '", imxDataTypes[numTypes], "'", sep=""))
 	}
 	if (type == "sscp") {
 		stop(paste("'sscp' is not yet implemented."))
