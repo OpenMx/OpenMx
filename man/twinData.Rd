@@ -2,7 +2,11 @@
 \alias{twinData}
 \title{Australian twin sample biometric data.}
 \description{
-Australian data on body mass index (BMI) which saved in the text file twinData.txt. It is a wide dataset, with two individuals per line. It also contains both MZ and DZ twins, along with heights, weights and the calculated variable body mass index (BMI) for each subject. Ago of course occurs only once, as the two twins of each pair share a common age. fam is a family identifier.
+Australian data on body mass index (BMI) assessed in both MZ and DZ twins, and saved in the text file twinData.txt. 
+
+It is a wide dataset, with two individuals per line. Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as "htwt1" and "htwt2"), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
+
+Age of course occurs only once, as the two twins of each pair share a common age. fam is a family identifier.
 
 }
 \usage{data(twinData)}
