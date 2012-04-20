@@ -3,7 +3,7 @@ RCOMMAND = CMD
 RBUILD = build
 RINSTALL = INSTALL
 RCHECK = check
-RPDF = Rd2dvi
+RPDF = Rd2pdf
 BUILDPRE = 999.0.0
 BUILDNO = $(shell svnversion -c | sed -e 's/[MS]//g' -e 's/^[[:digit:]]*://')
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
@@ -83,7 +83,7 @@ build/$(TARGET): $(RFILES) $(RDFILES)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	mv DESCRIPTION.bak DESCRIPTION
 pdf:
-	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
+	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
 
 html: internal-build
