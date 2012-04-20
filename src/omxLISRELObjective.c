@@ -35,12 +35,14 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	omxRecompute(oro->TE);
 	omxRecompute(oro->TH);
 	if(oro->TX != NULL) {     // Update means?
-	    omxRecompute(oro->TX);
-	    omxRecompute(oro->TY);
-	    omxRecompute(oro->KA);
-	    omxRecompute(oro->AL);
+		omxRecompute(oro->TX);
+		omxRecompute(oro->KA);
 	}
-
+	if(oro->TY != NULL) {
+		omxRecompute(oro->TY);
+		omxRecompute(oro->AL);
+	}
+	
 	omxCalculateLISRELCovarianceAndMeans(oro);
 }
 
@@ -184,6 +186,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(LX->cols != 0 & LY->cols != 0) {
+	//if( (LX != NULL) && (LY != NULL) ) {
 		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
 		omxCopyMatrix(B, TD); // B = TD
@@ -275,6 +278,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		}
 	}
 	else if(LX->cols != 0) { /* IF THE MODEL ONLY HAS Xs */
+	//else if(LX != NULL) { /* IF THE MODEL ONLY HAS Xs */
 		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
 		omxCopyMatrix(B, TD); // B = TD
@@ -292,6 +296,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	
 	/* IF THE MODEL ONLY HAS Ys */
 	else if(LY->cols != 0) {
+	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
 		omxCopyMatrix(C, BE); // C = BE
@@ -472,6 +477,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing AL.\n"); }
 	LISobj->AL = omxNewMatrixFromIndexSlot(rObj, currentState, "AL");
 	
+	
 	if(LISobj->LY == NULL) {
 		LISobj->LY = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->PS = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
@@ -489,6 +495,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 		LISobj->GA = omxInitMatrix(NULL, LISobj->LY->cols, LISobj->LX->cols, TRUE, currentState);
 		LISobj->TH = omxInitMatrix(NULL, LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
 	}
+	
 	
 	/* PPML Code: Perhaps comment out this block */
 	/*
