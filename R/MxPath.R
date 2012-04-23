@@ -211,9 +211,9 @@ mxPath <- function(from, to = NA,
 		stop("The 'from' argument to mxPath must have a value.")
 	}
 	if (is.logical(connect)) {
-		msg <- paste("The 'all' argument to mxPath ",
-			"has been deprecated. It has been replaced ",
-			"with the safer interface 'connect' in OpenMx 1.2. ",
+		msg <- paste("The 'all' argument to mxPath",
+			"has been deprecated. It has been replaced",
+			"with the safer interface 'connect' in OpenMx 1.2.",
 			"See ?mxPath for more information.")
 		# throw an error if 'all' has illegal value
 		if ((length(connect) != 1) || single.na(connect)) {
@@ -225,9 +225,9 @@ mxPath <- function(from, to = NA,
 	garbageArguments <- list(...)
 	allArgument <- garbageArguments[['all']]
 	if (!is.null(allArgument)) {
-		msg <- paste("The 'all' argument to mxPath ",
-			"has been deprecated. It has been replaced ",
-			"with the safer interface 'connect' in OpenMx 1.2. ",
+		msg <- paste("The 'all' argument to mxPath",
+			"has been deprecated. It has been replaced",
+			"with the safer interface 'connect' in OpenMx 1.2.",
 			"See ?mxPath for more information.")
 		# throw an error if 'all' has illegal value
 		if (!(is.logical(allArgument) && 
