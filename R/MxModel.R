@@ -235,6 +235,14 @@ imxGenericModelBuilder <- function(model, lst, name,
 	return(model)
 }
 
+varsToCharacter <- function(vars) {
+    if (is.list(vars)) {
+        return(lapply(vars, as.character))
+    } else {
+        return(as.character(vars))
+    }
+}
+
 variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
@@ -245,9 +253,11 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	if (remove == TRUE) {
 		model <- modelRemoveVariables(model, latentVars, manifestVars)
 	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- as.character(latentVars)
-		manifestVars <- as.character(manifestVars)
+		latentVars <- varsToCharacter(latentVars)
+		manifestVars <- varsToCharacter(manifestVars)
 		checkVariables(model, latentVars, manifestVars)
+		latentVars   <- unlist(latentVars, use.names = FALSE)
+		manifestVars <- unlist(manifestVars, use.names = FALSE)
 		model <- modelAddVariables(model, latentVars, manifestVars)
 	}
 	return(model)
@@ -277,19 +287,23 @@ nameArgument <- function(model, name) {
 }
 
 checkVariables <- function(model, latentVars, manifestVars) {
-	common <- intersect(latentVars, manifestVars)
+	latentVars   <- unlist(latentVars, use.names = FALSE)
+	manifestVars <- unlist(manifestVars, use.names = FALSE)
+	modelLatent <- unlist(model@latentVars, use.names = FALSE)
+	modelManifest <- unlist(model@manifestVars, use.names = FALSE)
+	common <- intersect(latentVars, manifestVars)    
 	if (length(common) > 0) {
 		stop(paste("The following variables cannot",
 			"be both latent and manifest:",
 			omxQuotes(common)), call. = FALSE)
 	}
-	common <- intersect(model@latentVars, manifestVars)
+	common <- intersect(modelLatent, manifestVars)
 	if (length(common) > 0) {
 		stop(paste("The following variables cannot",
 			"be both latent and manifest:",
 			omxQuotes(common)), call. = FALSE)
 	}
-	common <- intersect(model@manifestVars, latentVars)
+	common <- intersect(modelManifest, latentVars)
 	if (length(common) > 0) {
 		stop(paste("The following variables cannot",
 			"be both latent and manifest",

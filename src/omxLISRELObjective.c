@@ -185,7 +185,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
 	
 	/* Calculate the lower right quadrant: the covariance of the Xs */
-	if(LX->cols != 0 & LY->cols != 0) {
+	if(LX->cols != 0 && LY->cols != 0) {
 	//if( (LX != NULL) && (LY != NULL) ) {
 		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH

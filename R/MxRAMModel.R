@@ -111,9 +111,11 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, remove) {
 			model <- removeVariablesRAM(model, latentVars, manifestVars)
 		}
 	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- as.character(latentVars)
-		manifestVars <- as.character(manifestVars)
+		latentVars <- varsToCharacter(latentVars)
+		manifestVars <- varsToCharacter(manifestVars)
 		checkVariables(model, latentVars, manifestVars)
+		latentVars   <- unlist(latentVars, use.names = FALSE)
+		manifestVars <- unlist(manifestVars, use.names = FALSE)
 		model <- addVariablesRAM(model, latentVars, manifestVars)
 	}
 	return(model)
