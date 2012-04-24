@@ -59,13 +59,19 @@ displayModel <- function(model, expand = FALSE) {
 	cat("@intervals :", omxQuotes(names(model@intervals)), '\n')
 	if (length(model@latentVars) == 0) {
 		cat("@latentVars : none\n")
-	} else {
+	} else if (is.character(model@latentVars)) {
 		cat("@latentVars :", omxQuotes(model@latentVars), '\n')
+	} else {
+		cat("@latentVars :\n")
+		print(format(model@latentVars))
 	}
 	if (length(model@manifestVars) == 0) {
 		cat("@manifestVars : none\n")
-	} else {
+	} else if (is.character(model@manifestVars)) {
 		cat("@manifestVars :", omxQuotes(model@manifestVars), '\n')
+	} else {
+		cat("@manifestVars :\n")
+		print(format(model@manifestVars))
 	}
 	data <- model@data
 	if (is.null(data)) {

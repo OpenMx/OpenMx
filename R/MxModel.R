@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setClassUnion("MxCharOrList", c("character", "list"))
 
 setClass(Class = "MxModel",
 	representation = representation(
@@ -21,8 +22,8 @@ setClass(Class = "MxModel",
 		algebras = "list",
 		constraints = "list",
 		intervals = "list",
-		latentVars = "character",
-		manifestVars = "character",
+		latentVars = "MxCharOrList",
+		manifestVars = "MxCharOrList",
 		data = "MxData",
 		submodels = "list",
 		objective = "MxObjective",
@@ -34,7 +35,7 @@ setClass(Class = "MxModel",
 		.newobjects = "logical",
 		.newobjective = "logical",
 		.newtree = "logical",
-        .resetdata = "logical"
+		.resetdata = "logical"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -235,12 +236,36 @@ imxGenericModelBuilder <- function(model, lst, name,
 	return(model)
 }
 
-varsToCharacter <- function(vars) {
-    if (is.list(vars)) {
-        return(lapply(vars, as.character))
-    } else {
-        return(as.character(vars))
-    }
+varsToCharacter <- function(vars, vartype) {
+	if (is.list(vars)) {
+		varnames <- names(vars)
+		if (length(varnames) == 0) {
+			return(as.character(vars))	
+		} else {
+			result <- pmatch(varnames, imxVariableTypes)
+			illegal <- which(is.na(result))
+			if (length(illegal) > 0) {
+				if (length(illegal) == 1) {
+					ctgMsg <- "category"
+				} else {
+					ctgMsg <- "categories"
+				}
+				msg <- paste("In the", vartype, "variables",
+					"the", ctgMsg,
+					omxQuotes(varnames[illegal]), "did not match",
+					"to a valid category or two categories matched",
+					"to the same string (see 'imxVariableTypes'",
+					"for the list of legal categories)")
+				stop(msg, call. = FALSE)
+			}
+			varnames <- imxVariableTypes[result]
+			vars <- lapply(vars, as.character)
+			names(vars) <- varnames
+			return(vars)
+		}
+	} else {
+		return(as.character(vars))
+	}
 }
 
 variablesArgument <- function(model, manifestVars, latentVars, remove) {
@@ -253,11 +278,9 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	if (remove == TRUE) {
 		model <- modelRemoveVariables(model, latentVars, manifestVars)
 	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- varsToCharacter(latentVars)
-		manifestVars <- varsToCharacter(manifestVars)
+		latentVars <- varsToCharacter(latentVars, "latent")
+		manifestVars <- varsToCharacter(manifestVars, "manifest")
 		checkVariables(model, latentVars, manifestVars)
-		latentVars   <- unlist(latentVars, use.names = FALSE)
-		manifestVars <- unlist(manifestVars, use.names = FALSE)
 		model <- modelAddVariables(model, latentVars, manifestVars)
 	}
 	return(model)
@@ -309,6 +332,18 @@ checkVariables <- function(model, latentVars, manifestVars) {
 			"be both latent and manifest",
 			omxQuotes(common)), call. = FALSE)
 	}
+	common <- intersect(modelManifest, manifestVars)
+	if (length(common) > 0) {
+		stop(paste("The following manifest variables",
+			"have already been declared",
+			omxQuotes(common)), call. = FALSE)
+	}
+	common <- intersect(modelLatent, latentVars)
+	if (length(common) > 0) {
+		stop(paste("The following latent variables",
+			"have already been declared",
+			omxQuotes(common)), call. = FALSE)
+	}
 	if (any(is.na(latentVars))) {
 		stop("NA is not allowed as a latent variable", call. = FALSE)
 	}
@@ -344,9 +379,50 @@ setMethod("imxVerifyModel", "MxModel", function(model) {
 
 # End implementation of generics
 
+addVariablesHelper <- function(model, vartype, vars) {
+	modelvars <- slot(model, vartype)
+
+	if (length(vars) == 0) {
+		return(model)
+	} else if (length(modelvars) == 0) {
+		slot(model, vartype) <- vars
+		return(model)
+	}
+
+	if (is.list(vars) && !is.list(modelvars)) {
+		msg <- paste("The", vartype, "variables in",
+			"the call to mxModel() have been separated",
+			"into categories, and the existing", vartype,
+			"variables do not have categories.")
+		stop(msg, call. = FALSE)
+	} else if (!is.list(vars) && is.list(modelvars)) {
+		msg <- paste("The", vartype, "variables in",
+			"the call to mxModel() have not been separated",
+			"into categories, and the existing", vartype,
+			"variables do have categories.")
+		stop(msg, call. = FALSE)
+	}
+
+	if (is.character(vars) && is.character(modelvars)) {
+		modelvars <- c(modelvars, vars)
+		slot(model, vartype) <- modelvars
+	} else {
+		varnames <- names(vars)
+		offsets <- pmatch(varnames, imxVariableTypes)
+		for(i in 1:length(vars)) {
+			currOffset <- offsets[[i]]
+			currName <- imxVariableTypes[[currOffset]]
+			modelvars[[currName]] <- c(modelvars[[currName]], vars[[i]])
+		}
+		slot(model, vartype) <- modelvars
+	}
+
+	return(model)
+}
+
 modelAddVariables <- function(model, latent, manifest) {
-	model@latentVars   <- union(model@latentVars, latent)
-	model@manifestVars <- union(model@manifestVars, manifest)
+	model <- addVariablesHelper(model, "latentVars", latent)
+	model <- addVariablesHelper(model, "manifestVars", manifest)
 	return(model)
 }
 

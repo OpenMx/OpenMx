@@ -15,6 +15,8 @@
 
 imxModelTypes <- list()
 
+imxVariableTypes <- character()
+
 mxTypes <- function() {
 	return(names(imxModelTypes))
 }

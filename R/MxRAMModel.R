@@ -19,6 +19,8 @@ setClass(Class = "MxRAMModel",
 
 imxModelTypes[['RAM']] <- "MxRAMModel"
 
+imxVariableTypes <- c(imxVariableTypes, "exogenous", "endogenous")
+
 # Define generic functions
 
 setMethod("imxTypeName", "MxRAMModel", 
@@ -111,11 +113,9 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, remove) {
 			model <- removeVariablesRAM(model, latentVars, manifestVars)
 		}
 	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- varsToCharacter(latentVars)
-		manifestVars <- varsToCharacter(manifestVars)
+		latentVars <- varsToCharacter(latentVars, "latent")
+		manifestVars <- varsToCharacter(manifestVars, "manifest")
 		checkVariables(model, latentVars, manifestVars)
-		latentVars   <- unlist(latentVars, use.names = FALSE)
-		manifestVars <- unlist(manifestVars, use.names = FALSE)
 		model <- addVariablesRAM(model, latentVars, manifestVars)
 	}
 	return(model)
@@ -154,10 +154,19 @@ removeVariablesRAM <- function(model, latent, manifest) {
 }
 
 addVariablesRAM <- function(model, latent, manifest) {
-	newLatent   <- setdiff(latent, model@latentVars)
-	newManifest <- setdiff(manifest, model@manifestVars)
-	model@latentVars <- c(model@latentVars, newLatent)
-	model@manifestVars <- c(model@manifestVars, newManifest)
+
+	modelLatent   <- unlist(model@latentVars, use.names = FALSE)
+	modelManifest <- unlist(model@manifestVars, use.names = FALSE)
+
+	model <- addVariablesHelper(model, "latentVars", latent)
+	model <- addVariablesHelper(model, "manifestVars", manifest)
+
+	latent <- unlist(latent, use.names = FALSE)
+	manifest <- unlist(manifest, use.names = FALSE)
+
+	newLatent   <- setdiff(latent, modelLatent)
+	newManifest <- setdiff(manifest, modelManifest)
+
 	A <- model[['A']]
 	S <- model[['S']]
 	M <- model[['M']]
