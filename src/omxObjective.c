@@ -309,8 +309,8 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 
 }
 
-void omxObjectiveGradient(omxObjective* oo, double* gradient, int* locs, int nLocs) {
-	if(!(oo->gradientFun == NULL)) { oo->gradientFun(oo, gradient, locs, nLocs); }
+void omxObjectiveGradient(omxObjective* oo, double* gradient) {
+	if(!(oo->gradientFun == NULL)) { oo->gradientFun(oo, gradient); }
 	return;
 }
 

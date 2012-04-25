@@ -22,13 +22,18 @@ typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *Mns;
-    omxMatrix *dA, *dS, *dM;
+	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *bCB, *ZSBC, *Mns, *lilI, *eCov;
+    omxMatrix *dA, *dS, *dM, *b, *D, *paramVec;
+    // For gradients
+    omxMatrix ***eqnOuts;
+    omxMatrix **dAdts, **dSdts, **dMdts;
+    omxMatrix *tempVec, *bigSum, *lilSum;
 
+    int *pNums, nParam; // For Fast Gradient/Hessian Computation
 	int numIters;
 	double logDetObserved;
 	double n;
-	double* work;
+	double *work;
 	int lwork;
 
 	int usePPML;

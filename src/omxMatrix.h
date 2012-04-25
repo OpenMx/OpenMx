@@ -208,6 +208,7 @@ static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int
 	int nrow = (transposeA?a->cols:a->rows);
 	int nmid = (transposeA?a->rows:a->cols);
 	int ncol = (transposeB?b->rows:b->cols);
+
 	F77_CALL(omxunsafedgemm)((transposeA?a->minority:a->majority), (transposeB?b->minority:b->majority), 
 							&(nrow), &(ncol), &(nmid),
 							&alpha, a->data, &(a->leading), 
@@ -238,14 +239,14 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
     // if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* a, 		// result <- alpha * A %*% B + beta * C
-				omxMatrix *b, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
+static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* symmetric, 		// result <- alpha * A %*% B + beta * C
+				omxMatrix *other, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
 
 	char r='R', l = 'L';
 	char u='U';
 	F77_CALL(dsymm)((symmOnLeft?&l:&r), &u, &(result->rows), &(result->cols),
-					&alpha, a->data, &(a->leading),
- 					b->data, &(b->leading),
+					&alpha, symmetric->data, &(symmetric->leading),
+ 					other->data, &(other->leading),
 					&beta, result->data, &(result->leading));
 
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
@@ -261,6 +262,23 @@ static OMXINLINE int omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int lwor
 	int info = 0;
 	F77_CALL(dgetri)(&(mat->rows), mat->data, &(mat->leading), ipiv, work, &lwork, &info);
 	return info;
+}
+
+static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  
+    // N.B.  Not fully tested.                                                              // Assumes common majority or vectordom.
+    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
+    int len = lhs->rows * lhs->cols;
+    int onei = 1;
+    F77_CALL(daxpy)(&len, &alpha, lhs->data, &onei, rhs->data, &onei);
+
+}
+
+static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              // returns dot product, as if they were vectors
+    // N.B.  Not fully tested.                                                  // Assumes common majority or vectordom.
+    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
+    int len = lhs->rows * lhs->cols;
+    int onei = 1;
+    return(F77_CALL(ddot)(&len, lhs->data, &onei, rhs->data, &onei));
 }
 
 static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat

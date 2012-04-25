@@ -734,10 +734,7 @@ void F77_SUB(objectiveFunction)
 	/* Turn this off if derivative calculations are not wanted */
 	if(*mode > 0) {
 	    if(currentState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL) {
-	        // Location sets included to assist with parallelization
-            int locs[*n];
-            for(int i = 0; i < *n; i++) locs[i] = i;
-            objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g, locs, *n);
+            objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g);
 	    }
 	}
 

@@ -716,7 +716,6 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
         omxAliasMatrix(newObj->ordCov, newObj->cov);
         omxAliasMatrix(newObj->ordContCov, newObj->cov);
         omxAliasMatrix(newObj->smallMeans, newObj->means);
-        omxAliasMatrix(newObj->ordMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));

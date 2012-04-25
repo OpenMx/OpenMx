@@ -363,6 +363,7 @@
 	void omxStateNextRow(omxState *state) {
 		state->currentRow++;
 	};
+
 	void omxStateNextEvaluation(omxState *state) {
 		state->currentRow = -1;
 		state->computeCount++;

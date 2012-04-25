@@ -21,48 +21,9 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
-
-extern void omxInitFIMLObjective(omxObjective* oo, SEXP rObj); // Included in case ML gets a raw data object.
-extern void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
-void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
-void omxSetMLObjectiveGradient(omxObjective* oo, void (*)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*));
-void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int nLocs);
-
-#ifndef _OMX_ML_OBJECTIVE_
-#define _OMX_ML_OBJECTIVE_ TRUE
-
-typedef struct omxMLObjective {
-
-	omxMatrix* observedCov;
-	omxMatrix* observedMeans;
-	omxMatrix* expectedCov;
-	omxMatrix* expectedMeans;
-	omxMatrix* localCov;
-	omxMatrix* localProd;
-	omxMatrix* P;
-	omxMatrix* C;
-	omxMatrix* I;
-    
-	double n;
-	double logDetObserved;
-
-	double* work;
-	int lwork;
-	
-    // Subobjective Storage;
-    omxMatrix** dSigma;         // dSigma/dTheta
-    omxMatrix** dMu;            // dMu/dTheta
-    omxMatrix* Mu;
-    omxMatrix* Ms;
-    omxMatrix* X;
-    omxMatrix* Y;
-    
-    // TODO: Add space for second derivatives
-    
-    // Allows the subobjective function to calculate its own derivates in an optimal way.
-    void (*derivativeFun)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*);
-
-} omxMLObjective;
+#include "omxMLObjective.h"
+#include "omxFIMLObjective.h"
+#include "omxRAMObjective.h"
 
 void omxDestroyMLObjective(omxObjective *oo) {
 
@@ -287,12 +248,10 @@ void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
 	if(oo->gradientFun != NULL) {
         int nLocs = oo->matrix->currentState->numFreeParams;
         double gradient[oo->matrix->currentState->numFreeParams];
-        int locs[oo->matrix->currentState->numFreeParams];
         for(int loc = 0; loc < nLocs; loc++) {
-            locs[loc] = loc;
             gradient[loc] = NA_REAL;
         }
-        omxCalculateMLGradient(oo, gradient, locs, nLocs);
+        oo->gradientFun(oo, gradient);
         PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
 
     	for(int loc = 0; loc < nLocs; loc++)
@@ -463,8 +422,26 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 
 }
 
-void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObjective*, int*, int, omxMatrix**, omxMatrix**, int*)) {
-    if(OMX_DEBUG) { Rprintf("Setting up gradient for ML Objective."); }
+void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObjective*, double*)) {
+    if(strncmp("omxMLObjective", oo->objType, 16)) {
+        char errorstr[250];
+        sprintf(errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with Objective of type %s", oo->objType);
+        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        return;
+    }
+    
+    if(derivativeFun == NULL) {
+        char errorstr[250];
+        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
+        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        return;
+    }
+    
+    oo->gradientFun = derivativeFun;
+}
+
+void omxSetMLObjectiveGradientComponents(omxObjective* oo, void (*derivativeFun)(omxObjective*, omxMatrix**, omxMatrix**, int*)) {
+    if(OMX_DEBUG) { Rprintf("Setting up gradient component function for ML Objective."); }
     if(!strncmp("omxFIMLObjective", oo->objType, 16)) {
         if(OMX_DEBUG) { Rprintf("FIML Objective gradients not yet implemented. Skipping."); }
         return; // ERROR:NYI.
@@ -501,9 +478,12 @@ void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObject
     oo->gradientFun = omxCalculateMLGradient;
 }
 
-void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int nLocs) {
+void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
 
     if(OMX_DEBUG) { Rprintf("Beginning ML Gradient Calculation.\n"); }
+    Rprintf("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
+        oo->matrix->currentState->majorIteration, oo->matrix->currentState->minorIteration,
+        oo->matrix->currentState->computeCount);
     // 1) Calculate current Expected Covariance
     // 2) Calculate eCov, the Inverse Expected Covariance matrix 
     // 3) Calculate C = I - eCov D, where D is the observed covariance matrix
@@ -542,6 +522,7 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
     double minusoned = -1.0;
     int onei = 1;
     int status[gradientSize];
+    int nLocs = oo->matrix->currentState->numFreeParams;
     
     // Calculate current Objective values
     // We can safely assume this has been done
@@ -595,15 +576,15 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
     // Calculate parameter-level derivatives
     // TODO: Parallelize Here.
     
-    omo->derivativeFun(oo->subObjective, locs, nLocs, dSigmas, dMus, status);
+    omo->derivativeFun(oo->subObjective, dSigmas, dMus, status);
     
-    for(int param = 0; param < nLocs; param++) {
-        int currentLoc = locs[param];
+    for(int currentLoc = 0; currentLoc < nLocs; currentLoc++) {
         double meanInfluence, covInfluence;
         if(status[currentLoc] < 0) continue;  // Failure in computation--skip.
         //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - 
         //    (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
-        omxDGEMM(FALSE, FALSE, 1.0, dSigmas[currentLoc], C, 0.0, Y);
+        // omxDGEMM(FALSE, FALSE, 1.0, dSigmas[currentLoc], C, 0.0, Y);
+        omxDSYMM(TRUE, 1.0, dSigmas[currentLoc], C, 0.0, Y);
         omxDSYMM(TRUE, 1.0, eCov, Y, 0.0, X);
         gradient[currentLoc] = 0;
         covInfluence = 0.0;
@@ -617,10 +598,10 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient, int* locs, int n
             meanInfluence = 0;
         }
         gradient[currentLoc] = (covInfluence * (n-1)) - (meanInfluence * n);
-        if(OMX_DEBUG) { Rprintf("Calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f\n",
-            currentLoc, covInfluence, meanInfluence, gradient[currentLoc]); }
+        if(OMX_DEBUG) { 
+            Rprintf("Calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f\n",
+            currentLoc, covInfluence, meanInfluence, gradient[currentLoc]); 
+        }
     }
 
 }
-
-#endif /* _OMX_ML_OBJECTIVE_ */

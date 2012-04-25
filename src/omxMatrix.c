@@ -691,7 +691,8 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 /* Function wrappers that switch based on inclusion of algebras */
 void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
-	if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
+    if(source == NULL) Rprintf("%s is NULL.\n", d);
+	else if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
 	else if(source->objective != NULL) omxObjectivePrint(source->objective, d);
 	else omxPrintMatrix(source, d);
 }
