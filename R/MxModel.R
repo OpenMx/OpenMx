@@ -352,14 +352,11 @@ checkVariables <- function(model, latentVars, manifestVars) {
 	}
 	if (length(unique(latentVars)) != length(latentVars)) {
 		stop(paste("The following variables in the latentVars list are duplicated:", 
-						omxQuotes(latentVars[duplicated(latentVars)])),
-
-					call. = FALSE)
+		omxQuotes(latentVars[duplicated(latentVars)])), call. = FALSE)
+	}
 	if (length(unique(manifestVars)) != length(manifestVars)) {
 		stop(paste("The following variables in the manifestVars list are duplicated:", 
-						omxQuotes(manifestVars[duplicated(manifestVars)])),
-
-					call. = FALSE)
+		omxQuotes(manifestVars[duplicated(manifestVars)])), call. = FALSE)
 	}
 }
 

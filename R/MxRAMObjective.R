@@ -202,15 +202,19 @@ setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"),
 				.Object@dims <- translatedNames
 			}
 		} else {
-			if (!identical(translatedNames, rownames(mxDataObject@observed))) {
-				varsNotInData = translatedNames[!(translatedNames %in% rownames(mxDataObject@observed))]
+			targetNames <- rownames(mxDataObject@observed)
+			if (!identical(translatedNames, targetNames)) {
+				varsNotInData <- translatedNames[!(translatedNames %in% targetNames)]
 				msg <- paste("The names of the manifest",
 					"variables in the F matrix of model",
 					omxQuotes(modelname), "does not match the",
-					"dimnames of the observed covariance matrix.",
-					"To get you started, the following variables are used but",
-					"are not in the observed data:", 
-					omxQuotes(varsNotInData) )
+					"dimnames of the observed covariance matrix.")
+				if (length(varsNotInData) > 0) {
+					msg <- paste(msg,
+						"To get you started, the following variables are used but",
+						"are not in the observed data:", 
+						omxQuotes(varsNotInData))
+				}
 				stop(msg, call. = FALSE)
 			}
 		}
