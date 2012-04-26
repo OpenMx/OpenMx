@@ -285,6 +285,10 @@ insertAllPathsRAM <- function(model, paths) {
 	M <- model[['M']]
 	if (is.null(A)) { A <- createMatrixA(model) }
 	if (is.null(S)) { S <- createMatrixS(model) }
+	
+	# TODO someone please check this and the fragment on 303
+	legalVars = c(model@latentVars, model@manifestVars, "one")
+	
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
 	
@@ -294,6 +298,16 @@ insertAllPathsRAM <- function(model, paths) {
 		if (single.na(path@to)) {
 			path@to <- path@from
 			paths[[i]] <- path
+		}
+		
+		# TODO please check this (down to  312)
+		allFromTo = c(path@from, path@to)
+		if(! all( allFromTo  %in% legalVars) ){
+			MIA = allFromTo[!(allFromTo  %in% legalVars)]
+			stop(paste("Nice try: you need to add ", 
+				omxQuotes(MIA), 
+				"to either manifestVars or LatentVars before you",
+				"can use them in a path."), call. = FALSE)
 		}
 		
 		if (length(path@from) == 1 && (path@from == "one")) {
