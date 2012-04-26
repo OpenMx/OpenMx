@@ -64,7 +64,7 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 		stop("Means argument must be of numeric vector type")
 	}
 	if (type != "raw" && is.na(numObs)) {
-		stop("Number of observations must be specified for non-raw data")
+		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
 	if (type == "raw") {
 		numObs <- nrow(observed)
