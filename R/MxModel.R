@@ -351,13 +351,15 @@ checkVariables <- function(model, latentVars, manifestVars) {
 		stop("NA is not allowed as a manifest variable", call. = FALSE)
 	}
 	if (length(unique(latentVars)) != length(latentVars)) {
-		stop("The latent variables list contains duplicate elements",
-			call. = FALSE)
-	}
-	if (length(unique(manifestVars)) != length(manifestVars)) {
-		stop("The manifest variables list contains duplicate elements",
+		stop(paste("The following variables in the latentVars list are duplicated:", 
+						omxQuotes(latentVars[duplicated(latentVars)])),
 
-			call. = FALSE)
+					call. = FALSE)
+	if (length(unique(manifestVars)) != length(manifestVars)) {
+		stop(paste("The following variables in the manifestVars list are duplicated:", 
+						omxQuotes(manifestVars[duplicated(manifestVars)])),
+
+					call. = FALSE)
 	}
 }
 
