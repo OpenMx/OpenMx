@@ -21,7 +21,11 @@
 
 \description{
 12 columns of generated data: x1 x2 x3 x4 x5 x6 y1 y2 y3 z1 z2 z3  each with 500 rows.
+}
 
+\usage{data(myFADataRaw)}
+
+\details{
 The x variables intercorrelate around .6 with each other.
 
 The y variables intercorrelate around .5 with each other, and correlate around .3 with the X vars.
@@ -32,3 +36,10 @@ The data are used in some OpenMx examples, especially confirmatory factor analys
 
 There are no missing data.
 }
+
+\examples{
+data(myFADataRaw)
+str(myFADataRaw)
+}
+
+\keyword{datasets}
