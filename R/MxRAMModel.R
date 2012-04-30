@@ -305,7 +305,7 @@ insertAllPathsRAM <- function(model, paths) {
 			missingVars <- allFromTo[!varExist]
 			stop(paste("Nice try, you need to add", 
 				omxQuotes(missingVars), 
-				"to either manifestVars or LatentVars before you",
+				"to either manifestVars or latentVars before you",
 				"can use them in a path."), call. = FALSE)
 		}
 		
