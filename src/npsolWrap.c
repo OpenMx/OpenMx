@@ -420,7 +420,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
 		}
 		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
-		
+
+		omxSaveCheckpoint(currentState, x, &f, TRUE);
+
 		handleFreeVarList(currentState, x, n);
 		
 	} // END OF PERFORM OPTIMIZATION CASE
@@ -769,7 +771,7 @@ void F77_SUB(objectiveFunction)
 	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
 
 	if(checkpointNow && currentState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(currentState, x, f);		// Check about saving a checkpoint
+		omxSaveCheckpoint(currentState, x, f, FALSE);		// Check about saving a checkpoint
 	}
 
 }

@@ -201,7 +201,7 @@ struct omxState {													// The Current State of Optimization
 	void omxStateNextRow(omxState *state);								// Advance Row
 	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
 
-	void omxSaveCheckpoint(omxState* os, double* x, double* f);			// Save out checkpoints
+	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
 
 #endif /* _OMXSTATE_H_ */
 

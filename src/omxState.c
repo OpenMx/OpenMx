@@ -369,20 +369,20 @@
 		state->computeCount++;
 	};
 
-	void omxSaveCheckpoint(omxState *os, double* x, double* f) {
+	void omxSaveCheckpoint(omxState *os, double* x, double* f, int force) {
 		time_t now = time(NULL);
 		int soFar = now - os->startTime;		// Translated into minutes
 		int n;
 		for(int i = 0; i < os->numCheckpoints; i++) {
 			n = 0;
 			omxCheckpoint* oC = &(os->checkpointList[i]);
-			// Check based on time
-			if(oC->time > 0 && (soFar - oC->lastCheckpoint) >= oC->time) {
+			// Check based on time            
+			if((oC->time > 0 && (soFar - oC->lastCheckpoint) >= oC->time) || force) {
 				oC->lastCheckpoint = soFar;
 				n = 1;
 			}
 			// Or iterations
-			if(oC->numIterations > 0 && (os->majorIteration - oC->lastCheckpoint) >= oC->numIterations) {
+			if((oC->numIterations > 0 && (os->majorIteration - oC->lastCheckpoint) >= oC->numIterations) || force) {
 				oC->lastCheckpoint = os->majorIteration;
 				n = 1;
 			}
