@@ -2,21 +2,37 @@ trunk
 =====
 * added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
 * added 'cache' and 'cacheBack' arguments to mxEval()
-* bugfix for interaction of matrix transpose and square bracket substitution
-* added 'name=' argument to omxSetParameters()
-* improved error messages when a free parameter has multiple lbounds/ubounds
-* improved error messages when passing strings into mxModel()
-* improved error messages in mxEval()
 * added omxLocateParameters() function (see ?omxLocateParameters)
 * type='RAM' allowing 'manifestVars' argument to appear in a different order
   than in the observed covariance matrix.
 * bug fix in the identification of NA definition variables
-* bugfix when (I-A)^-1 speedup is disabled
-* bugfix in mxAlgebra() detection of missing operator or function
-* error checking for 0-length arguments to mxPath()
 * the configuration mxRun(model, checkpoint = TRUE) writes a line
   in the checkpoint file at the conclusion of model optimization.
 * added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
+* header for the checkpoint file will identify anonymous 
+  free parameters with the string matrixName[row,col]
+
+Release 1.2.3-2011 (April 10, 2012)
+===================================
+* bugfix when (I-A)^-1 speedup is disabled
+* bugfix in mxAlgebra() detection of missing operator or function
+* bugfix in joint FIML when: 1) there are no definition variables, 
+  2) the first (sorted) row with a new number of ordinal variables, and 
+  3) has all continuous variables missing
+
+Release 1.2.2-1986 (March 22, 2012)
+===================================
+* setting default value for mxOption("UsePPML") to "No" until
+  the feature is adequately tested. Added test enforcing default
+  value to test suite.
+
+Release 1.2.1-1979 (March 21, 2012)
+===================================
+* bug fix for interaction of matrix transpose and square bracket substitutions
+* renaming mxLISRELObjective() to imxLISRELObjective(), LISREL objective function is not yet implementated.
+* improved error messages when a free parameter has multiple lbounds/ubounds
+* improved error messages when passing strings into mxModel()
+* improved error messages in mxEval()
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================

@@ -400,8 +400,14 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	}
 }
 
-matrixParameters <- function(free, labels, lbound, ubound, 
-	result, matrixNumber, isSymmetric) {
+generateParameterListHelper <- function(mxMatrix, result, matrixNumber) {
+
+	free <- mxMatrix@free
+	labels <- mxMatrix@labels
+	lbound <- mxMatrix@lbound
+	ubound <- mxMatrix@ubound
+	isSymmetric <- imxSymmetricMatrix(mxMatrix)
+
 	if (all(free == FALSE)) {
 		return(result)
 	}
@@ -430,7 +436,8 @@ matrixParameters <- function(free, labels, lbound, ubound,
 				original[[length(original) + 1]] <- c(matrixNumber, col, row)
 				result[[length(result)]] <- original
 			}
-			names(result)[[length(result)]] <- as.character(NA)
+			names(result)[[length(result)]] <- paste(mxMatrix@name, 
+				"[", rows[i], ",", cols[i], "]", sep ="")
 		} else if (length(grep(imxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
@@ -513,18 +520,6 @@ matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) 
 
 generateMatrixValuesHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
-}
-
-generateParameterListHelper <- function(mxMatrix,
-	result, matrixNumber) {
-	free <- mxMatrix@free
-	labels <- mxMatrix@labels
-	lbound <- mxMatrix@lbound
-	ubound <- mxMatrix@ubound
-	isSymmetric <- imxSymmetricMatrix(mxMatrix)
-	result <- matrixParameters(free, labels, lbound,
-		ubound, result, matrixNumber, isSymmetric)
-	return(result)
 }
 
 generateDefinitionListHelper <- function(mxMatrix,
