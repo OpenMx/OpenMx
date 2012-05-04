@@ -85,7 +85,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
 	if (!is.logical(free) || length(free) != 1) {
 		stop("argument 'free' must be a 'TRUE', 'FALSE', or NA")
 	}
-	parameters <- lapply(model@matrices, getParametersHelper, free)
+	parameters <- lapply(model@matrices, getParametersHelper, model@name, free)
 	names(parameters) <- NULL
 	parameters <- unlist(parameters)
 	if(indep) {
@@ -156,10 +156,29 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	return(retval)
 }
 
+SBMatchHelper <- function(label, modelname) {
+	if (!hasSquareBrackets(label)) {
+		return(FALSE)
+	}
+	components <- splitSubstitution(label)
+	fullname <- unlist(strsplit(components[[1]], imxSeparatorChar, fixed = TRUE))
+	return(fullname[[1]] == modelname)
+}
+
+detectSBMatches <- function(model, labels) {
+	modelname <- model@name
+	targets <- which(sapply(labels, SBMatchHelper, modelname))
+	return(targets)
+}
+
 setParametersHelper <- function(model, labels, free, values,
 	newlabels, lbound, ubound, indep) {
+	squarebrackets <- detectSBMatches(model, labels)
 	model@matrices <- lapply(model@matrices, setParametersMatrix, 
 		labels, free, values, newlabels, lbound, ubound)
+	if (length(squarebrackets) > 0) {
+		model <- setSquareBracketsHelper(model, squarebrackets, labels, free, values, newlabels, lbound, ubound)
+	}
 	if(indep) {
 		if (length(model@submodels) == 0) {
 			return(model)
@@ -261,7 +280,7 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 	return(model)
 }
 
-getParametersHelper <- function(amatrix, selection) {
+getParametersHelper <- function(amatrix, modelname, selection) {
 	if (single.na(selection)) {
 		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
 	} else if (selection) {
@@ -277,11 +296,20 @@ getParametersHelper <- function(amatrix, selection) {
 		select <- select & triangle
 	} 
 	theNames <- amatrix@labels[select]
+	if (any(is.na(theNames))) {
+		rows <- row(amatrix@labels)[select]
+		cols <- col(amatrix@labels)[select]
+		for(i in 1:length(theNames)) {
+			if (is.na(theNames[[i]])) {
+				theNames[[i]] <- paste(modelname, ".", amatrix@name, 
+				"[", rows[i], ",", cols[i], "]", sep ="")
+			}
+		}
+	}
 	theValues <- amatrix@values[select]
 	names(theValues) <- theNames
-	return(theValues[!duplicated(theNames, incomparables = NA)])
+	return(theValues[!duplicated(theNames)])
 }
-
 
 setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
 	labels <- amatrix@labels
@@ -308,6 +336,60 @@ setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound,
 		amatrix@ubound[locations] <- as.numeric(ubound[index2])
 	}
 	return(amatrix)
+}
+
+setSquareBracketsHelper <- function(model, squarebrackets, labels, 
+	free, values, newlabels, lbound, ubound) {
+	for(i in 1:length(squarebrackets)) {
+		nextbracket <- squarebrackets[[i]]
+		nextlabel <- labels[[nextbracket]]
+		components <- splitSubstitution(nextlabel)
+		fullname <- unlist(strsplit(components[[1]], imxSeparatorChar, fixed = TRUE))
+		matrixname <-fullname[[2]]
+		row <- as.numeric(components[[2]])
+		col <- as.numeric(components[[3]])
+		amatrix <- model[[matrixname]]
+		if (!is.null(amatrix) || !is(amatrix, "MxMatrix")) {
+			isSymmetric <- imxSymmetricMatrix(amatrix)
+			if (!is.null(free)) {
+				index2 <- ((nextbracket - 1) %% length(free)) + 1
+				amatrix@free[row,col] <- as.logical(free[index2])
+				if (isSymmetric) {
+					amatrix@free[col,row] <- as.logical(free[index2])
+				}
+			}
+			if (!is.null(values)) {
+				index2 <- ((nextbracket - 1) %% length(values)) + 1
+				amatrix@values[row,col] <- as.numeric(values[index2])
+				if (isSymmetric) {
+					amatrix@values[col,row] <- as.numeric(values[index2])
+				}
+			}
+			if (!is.null(newlabels)) {
+				index2 <- ((nextbracket - 1) %% length(newlabels)) + 1
+				amatrix@labels[row,col] <- as.character(newlabels[index2])
+				if (isSymmetric) {
+					amatrix@labels[col,row] <- as.character(newlabels[index2])
+				}
+			}
+			if (!is.null(lbound)) {
+				index2 <- ((nextbracket - 1) %% length(lbound)) + 1
+				amatrix@lbound[row,col] <- as.numeric(lbound[index2])
+				if (isSymmetric) {
+					amatrix@lbound[col,row] <- as.numeric(lbound[index2])
+				}
+			}
+			if (!is.null(ubound)) {
+				index2 <- ((nextbracket - 1) %% length(ubound)) + 1
+				amatrix@ubound[row,col] <- as.numeric(ubound[index2])
+				if (isSymmetric) {
+					amatrix@ubound[col,row] <- as.numeric(ubound[index2])
+				}
+			}
+			model[[matrixname]] <- amatrix
+		}
+	}
+	return(model)
 }
 
 

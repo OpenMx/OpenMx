@@ -11,6 +11,8 @@ trunk
 * added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
 * header for the checkpoint file will identify anonymous 
   free parameters with the string matrixName[row,col]
+* omxGetParameters() and omxSetParameters() support anonymous
+  free parameters
 
 Release 1.2.3-2011 (April 10, 2012)
 ===================================

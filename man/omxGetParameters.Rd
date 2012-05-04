@@ -18,7 +18,7 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
 }
 
 \details{
-  The argument \sQuote{free} dictates whether to return only free parameters or only fixed parameters or both free and fixed parameters. The function will return free parameters that have a label of NA.  But it will never return fixed parameters that have a label of NA. No distinction is made between ordinary labels, and definition variables, and square bracket constraints in labels.
+  The argument \sQuote{free} dictates whether to return only free parameters or only fixed parameters or both free and fixed parameters. The function will return free parameters that have a label of NA, and those anonymous free parameters will be identified as \sQuote{modelname.matrixname[row,col]}.  It will not return fixed parameters that have a label of NA. No distinction is made between ordinary labels, definition variables, and square bracket constraints.
 }
 
 \seealso{
@@ -30,13 +30,13 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
 A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
 
-# Request all free paraemters in model
+# Request all free parameters in model
 omxGetParameters(model)
 
-# A11  A12 <NA> 
+# A11  A12 model.A[2,2] 
 #   1    2    4 
 
-# Request fixed paraemters from model
+# Request fixed parameters from model
 omxGetParameters(model, free=FALSE)
 # A21 
 #   3
