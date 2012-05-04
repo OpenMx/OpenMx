@@ -17,6 +17,56 @@ removeTrailingSeparator <- function(x) {
 	return(sub('/$', '', x))
 }
 
+mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
+	if (!is(model, "MxModel")) {
+		stop("'model' argument must be a MxModel object")
+	}
+	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
+	chkpt.filename <- paste(chkpt.prefix, model@name, ".omx", sep = '')
+	filepath <- paste(chkpt.directory, chkpt.filename, sep = '/')
+	print.header <- file.access(filepath) != 0
+	pList <- omxGetParameters(model)
+	if (length(model@output) == 0) {
+		iterations <- 0
+		objective <- as.numeric(NA)
+	} else {
+		iterations <- model@output$iterations
+		objective <- factorFit@output$minimum
+	}
+	timestamp <- date()
+	fconnection <- file(filepath, "a")
+	if (!isOpen(fconnection, "w")) {
+		return(FALSE)
+	}
+	if (print.header) {
+		cat("iterations\t", file=fconnection)
+		cat("timestamp\t", file=fconnection)
+		cat("objective\t", file=fconnection)
+		if (length(pList) > 0) {
+			for(i in 1:length(pList)) {
+				cat(omxQuotes(names(pList)[[i]]), file=fconnection)
+				cat("\t", file=fconnection)
+			}
+		}
+		cat("\n", file=fconnection)
+	}
+	cat(iterations, file=fconnection)
+	cat("\t", file=fconnection)
+	cat(omxQuotes(timestamp), file=fconnection)
+	cat("\t", file=fconnection)
+	cat(objective, file=fconnection)
+	cat("\t", file=fconnection)
+	if (length(pList) > 0) {
+		for(i in 1:length(pList)) {
+			cat(pList[[i]], file=fconnection)
+			cat("\t", file=fconnection)
+		}
+	}
+	cat("\n", file=fconnection)
+	close(fconnection)
+	return(TRUE)
+}
+
 mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {	
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
