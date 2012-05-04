@@ -14,9 +14,12 @@
 #   limitations under the License.
 
 generateCommunicationList <- function(modelname, checkpoint, useSocket, options) {
+	defaults <- getOption('mxOptions')
+	if (defaults[['Always Checkpoint']] == "Yes") {
+		checkpoint <- TRUE
+	}
 	if (!checkpoint && !useSocket) return(list())
 	retval <- list()
-	defaults <- getOption('mxOptions')
 	if (checkpoint) {		
 		chkpt.directory <- options[['Checkpoint Directory']]
 		chkpt.prefix <- options[['Checkpoint Prefix']]

@@ -16,6 +16,7 @@ trunk
 * error checking for 0-length arguments to mxPath()
 * the configuration mxRun(model, checkpoint = TRUE) writes a line
   in the checkpoint file at the conclusion of model optimization.
+* added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
 
 Release 1.2.0-1926 (February 04, 2012)
 ======================================

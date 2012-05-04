@@ -72,6 +72,7 @@ Hessian \tab [Yes|No] \tab return the transformed Hessian (if \sQuote{No}) or th
 Checkpointing options
 
 \tabular{rl}{
+Always Checkpoint \tab "Yes" or "No" whether to checkpoint all models during optimization \cr
 Checkpoint Directory \tab the directory where to write checkpoint files \cr
 Checkpoint Prefix \tab the string prefix to add to all checkpoint filenames \cr
 Checkpoint Units \tab the type of units for checkpointing: 'minutes' or 'iterations' \cr

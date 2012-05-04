@@ -117,6 +117,7 @@ checkpointOptions <- list(
 )
 
 otherOptions <- list(
+    "Always Checkpoint" = "No",
 	"Error Checking" = "Yes",
 	"No Sort Data" = character(),
 	"RAM Inverse Optimization" = "Yes",
