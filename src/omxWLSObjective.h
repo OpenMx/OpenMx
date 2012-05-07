@@ -1,4 +1,4 @@
-/*
+ /*
  *  Copyright 2007-2012 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,30 +14,24 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_OBJECTIVE_TABLE_
-#define _OMX_OBJECTIVE_TABLE_ TRUE
 
-#include <R.h> 
-#include <Rinternals.h> 
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
+#ifndef _OMX_WLS_OBJECTIVE_
+#define _OMX_WLS_OBJECTIVE_ TRUE
 
-typedef struct omxObjectiveTableEntry omxObjectiveTableEntry;
+typedef struct omxWLSObjective {
 
-#include "omxObjective.h"
+	omxMatrix* observedCov;
+	omxMatrix* observedMeans;
+	omxMatrix* expectedCov;
+	omxMatrix* expectedMeans;
+	omxMatrix* observedFlattened;
+	omxMatrix* expectedFlattened;
+	omxMatrix* weights;
+	omxMatrix* P;
+	omxMatrix* B;
 
-struct omxObjectiveTableEntry {
+} omxWLSObjective;
 
-	char name[250];
-	void (*initFun)(omxObjective*, SEXP) ;
+void omxCreateWLSObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights);
 
-};
-
-#define omxObjectiveTableLength 8
-
-const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength];
-
-
-#endif /* _OMX_OBJECTIVE_TABLE_ */
+#endif /* _OMX_WLS_OBJECTIVE_ */
