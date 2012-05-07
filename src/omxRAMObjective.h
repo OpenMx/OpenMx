@@ -22,7 +22,7 @@ typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *bCB, *ZSBC, *Mns, *lilI, *eCov;
+	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *bCB, *ZSBC, *Mns, *lilI, *eCov, *beCov;
     omxMatrix *dA, *dS, *dM, *b, *D, *paramVec;
     // For gradients
     omxMatrix ***eqnOuts;
@@ -47,7 +47,7 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
     omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj);
-
 void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
+void fastRAMGradientML(omxObjective* oo, double* gradient);
 
 #endif /* _OMXRAMOBJECTIVE_H_ */

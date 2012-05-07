@@ -20,7 +20,7 @@
 #include "omxMLObjective.h"
 #include "omxRAMObjective.h"
 
-void calculateRAMGradientComponents(omxObjective* oo, int*, int, omxMatrix**, omxMatrix**, int*);
+void calculateRAMGradientComponents(omxObjective* oo, omxMatrix**, omxMatrix**, int*);
 void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result);
 void fastRAMGradientML(omxObjective* oo, double* result);
 
@@ -456,11 +456,12 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	if(RAMobj->M != NULL) {
 		RAMobj->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
 		RAMobj->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMobj->bCB = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMobj->bCB = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
 		RAMobj->b = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
 		RAMobj->tempVec = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
 		RAMobj->bigSum = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
 		RAMobj->lilSum = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMobj->beCov = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
 		RAMobj->Mns = 	NULL;
     }
 
@@ -491,9 +492,9 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	// If this block doesn't execute, we don't use gradients.
 	if(!strncmp("omxMLObjective", oo->objType, 14)) {
 	    // Mode switch here.  Faster one is:
-	    omxSetMLObjectiveGradient(oo, fastRAMGradientML);
+        omxSetMLObjectiveGradient(oo, fastRAMGradientML);
 	    // Otherwise, call 
-	    // omxSetMLObjectiveGradientComponents(oo, omxRAMGradientML);
+        // omxSetMLObjectiveGradientComponents(oo, calculateRAMGradientComponents);
 	    // Note that once FIML kicks in, components should still work.
 	    // Probably, we'll use the same thing for WLS.
 	    RAMobj->D = ((omxMLObjective*)(oo->argStruct))->observedCov;
@@ -565,7 +566,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     omxMatrix* A = oro->A;          // axa
     omxMatrix* S = oro->S;          // axa
     omxMatrix* F = oro->F;          // fxa
-    omxMatrix* M = oro->M;          // 1xf
+    omxMatrix* M = oro->M;          // 1xa
     omxMatrix* Z = oro->Z;          // axa
 
     omxMatrix* cov = oro->cov;      // fxf
@@ -580,7 +581,8 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     omxMatrix* ZSBC = oro->ZSBC;    // fxa
     omxMatrix* eCovB = oro->U;      // fxa
 
-    omxMatrix* beCov = oro->ZM;     // 1xf
+    omxMatrix* ZM = oro->ZM;        // 1xa
+    omxMatrix* beCov = oro->beCov;  // 1xf
     omxMatrix* bCB = oro->bCB;      // 1xa
     omxMatrix* b = oro->b;          // 1xa
     
@@ -617,11 +619,10 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
 
     omxMatrix *eqnList1[1], *eqnList2[1];
 
-    if(OMX_DEBUG) { Rprintf("Planning Memory for Fast Gradient Calculation: Using %d params.\n", nParam); }
-
     if(nParam < 0) {
         nParam = 0;
         int nTotalParams = oo->matrix->currentState->numFreeParams;
+        if(OMX_DEBUG) { Rprintf("Planning Memory for Fast Gradient Calculation: Using %d params.\n", nParam); }
         unsigned short int calc[nTotalParams]; 
         // Work out the set of parameters for which we can calculate gradients
         // TODO: Potential speedup by splitting this to calculate dA, dS, and dM separately
@@ -750,14 +751,17 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         // This is calculated during objective computation.
         // 11) b = Means - d, where d is the observed means matrix (fx1)
 
-        omxCopyMatrix(b, means);
-    	F77_CALL(daxpy)(&(means->cols), &minusoned, Mns->data, &onei, b->data, &onei);
+        omxCopyMatrix(b, Mns);
+    	F77_CALL(daxpy)(&(means->cols), &minusoned, means->data, &onei, b->data, &onei);
     
         // 11) beCov = b cov^(-1) (1xf) *
         omxDSYMV(1.0, eCov, b, 0.0, beCov);
         
         // 12) beCovB = b cov^(-1) B (1xa) *
-        omxDGEMV(FALSE, 1.0, eCovB, b, 0.0, bCB);
+        omxDGEMV(TRUE, 1.0, eCovB, b, 0.0, bCB);
+        
+        // 13) ZM = Z %*% M (1xa)
+        omxDGEMV(FALSE, 1.0, Z, M, 0.0, ZM);
     }
     
     // 14) For each location in locations:
@@ -805,11 +809,10 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
             //          6) sumVec *= B^T --> 1xf
             omxDGEMV(FALSE, 1.0, B, bigSum, 0.0, lilSum);
 
-
             // Factorizing dMudt
-            //          7) sumVec += 2 * B dAdt (expected manifest)Means (1xf)
+            //          7) sumVec += 2 * B dAdt ZM (1xa)
             //              Note: in the paper, expected manifest means are Bm
-            omxDGEMV(FALSE, 1.0, dAdts[pNum], means, 0.0, tempVec);
+            omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
             omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
 
             //          8) sumVec += 2 * B dMdt (1xf)
@@ -839,7 +842,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
 }
 
 
-void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
+void calculateRAMGradientComponents(omxObjective* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
 
     // Steps:
     // 1) (Re) Calculate current A, S, F, and Z (where Z = (I-A)^-1)
@@ -851,7 +854,7 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
     //      3) dSigma/dT = C + C^T + B dS/dT B^T
     //      4) dM/dT = B dA/dT Z b + B dM/dT
 
-    omxRAMObjective* oro = (omxRAMObjective*) (oo->argStruct);
+    omxRAMObjective* oro = (omxRAMObjective*) (oo->subObjective->argStruct);
                                 // Size reference: A is axa, F is fxf
     omxMatrix* A = oro->A;      // axa
     omxMatrix* S = oro->S;      // axa
@@ -878,6 +881,7 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
     if(M != NULL) Mmat = M->matrixNumber;
     
     omxFreeVar* varList = oo->matrix->currentState->freeVarList;
+    int nLocs = oo->matrix->currentState->numFreeParams;
 
     // Assumed.
     // if(omxNeedsUpdate(Z)) {
@@ -910,8 +914,7 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
         //  Repeated from above.  For each parameter:
         //      1) Calculate dA/dt, dS/dt, and dM/dt by substituting 1s into empty matrices
         
-        int paramNo = locations[param];
-        omxFreeVar var = varList[paramNo];
+        omxFreeVar var = varList[param];
         
         // Zero dA, dS, and dM.  // TODO: speed
         for( int k = 0; k < dA->cols; k++) {
@@ -921,7 +924,7 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
             }
             if(M != NULL) omxSetMatrixElement(dM, 0, k, 0.0);
         }
-        status[paramNo] = 0;
+        status[param] = 0;
 
         // Create dA, dS, and dM mats for each Free Parameter
         for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
@@ -937,18 +940,18 @@ void calculateRAMGradientComponents(omxObjective* oo, int* locations, int nLocs,
                 // We cannot directly estimate its effects on the likelihood
                 // For now, skip.
                 // TODO: Find a way to deal with these situations
-                status[paramNo] = -1;
-                if(OMX_DEBUG) { Rprintf("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.\n", paramNo, varLoc, varMat, Amat, Smat, Mmat);}
+                status[param] = -1;
+                if(OMX_DEBUG) { Rprintf("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.\n", param, varLoc, varMat, Amat, Smat, Mmat);}
                 break;
             }
         }
         
-        if(status[paramNo] < 0) {
+        if(status[param] < 0) {
             continue;  // Skip this one.
         }
         
-        omxMatrix* C = dSigmas[paramNo];
-        omxMatrix* dMu = dMus[paramNo];
+        omxMatrix* C = dSigmas[param];
+        omxMatrix* dMu = dMus[param];
         
         //      2) C = B dAdt EF
         omxDGEMM(FALSE, FALSE, 1.0, B, dA, 0.0, U);

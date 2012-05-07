@@ -735,9 +735,9 @@ void F77_SUB(objectiveFunction)
 	/* Derivative Calculation Goes Here. */
 	/* Turn this off if derivative calculations are not wanted */
 	if(*mode > 0) {
-	    if(currentState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL) {
+	    if(currentState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL && currentState->currentInterval < 0) {
             objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g);
-	    }
+	    } 
 	}
 
 	if(isnan(objectiveMatrix->data[0])) {

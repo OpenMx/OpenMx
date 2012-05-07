@@ -221,8 +221,16 @@ static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int
 static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix*result) {							// where B is treated as a vector
 	int onei = 1;
-	int nrows = (transposeMat?mat->cols:mat->rows);
-	int ncols = (transposeMat?mat->rows:mat->cols);
+	int nrows = mat->rows;
+	int ncols = mat->cols;
+	if(OMX_DEBUG_DEVELOPER) {
+		int nVecEl = vec->rows * vec->cols;
+		// Rprintf("DGEMV: %c, %d, %d, %f, 0x%x, %d, 0x%x, %d, 0x%x, %d\n", *(transposeMat?mat->minority:mat->majority), (nrows), (ncols), 
+        	// alpha, mat->data, (mat->leading), vec->data, onei, beta, result->data, onei); //:::DEBUG:::
+		if((transposeMat && nrows != nVecEl) || (!transposeMat && ncols != nVecEl)) {
+			Rprintf("Mismatch in vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", (transposeMat?"transposed":""), mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+		}
+	}
 	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), 
 	        &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
@@ -232,6 +240,15 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 				omxMatrix* vec, double beta, omxMatrix* result) {       // only A is symmetric, and B is a vector
 	char u='U';
     int onei = 1;
+
+	if(OMX_DEBUG_DEVELOPER) {
+		int nVecEl = vec->rows * vec->cols;
+		// Rprintf("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
+	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
+		if(mat->cols != nVecEl) {
+			Rprintf("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+		}
+	}
 
     F77_CALL(dsymv)(&u, &(mat->cols), &alpha, mat->data, &(mat->leading), 
                     vec->data, &onei, &beta, result->data, &onei);

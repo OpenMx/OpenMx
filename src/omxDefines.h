@@ -74,4 +74,9 @@
 #define OMX_DEBUG_ALGEBRA 0
 #endif /* DEBUGMX_ALGEBRA */
 
+#ifdef DEBUGMX_DEVELOPER
+#define OMX_DEBUG_DEVELOPER 1
+#else
+#define OMX_DEBUG_DEVELOPER 0
+#endif /* DEBUGMX_DEVELOPER */
 #endif /* _OMXDEFINES_H_ */

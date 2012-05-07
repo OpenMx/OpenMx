@@ -481,20 +481,15 @@ void omxSetMLObjectiveGradientComponents(omxObjective* oo, void (*derivativeFun)
 void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
 
     if(OMX_DEBUG) { Rprintf("Beginning ML Gradient Calculation.\n"); }
-    Rprintf("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
-        oo->matrix->currentState->majorIteration, oo->matrix->currentState->minorIteration,
-        oo->matrix->currentState->computeCount);
+    // Rprintf("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
+        // oo->matrix->currentState->majorIteration, oo->matrix->currentState->minorIteration,
+        // oo->matrix->currentState->computeCount); //:::DEBUG:::
     // 1) Calculate current Expected Covariance
     // 2) Calculate eCov, the Inverse Expected Covariance matrix 
     // 3) Calculate C = I - eCov D, where D is the observed covariance matrix
     // 4) Calculate b = M - [observed M]
     // 5) For each location in locs:
     //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
-
-    if(oo->matrix->currentState->currentInterval >= 0) {
-        if(OMX_DEBUG) {Rprintf("Skipping gradient calculation during confidence interval calculation.");}
-        return;
-    }
 
     omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
     
@@ -575,8 +570,9 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
     
     // Calculate parameter-level derivatives
     // TODO: Parallelize Here.
-    
-    omo->derivativeFun(oo->subObjective, dSigmas, dMus, status);
+
+    if(OMX_DEBUG)  { Rprintf("Calling component function.\n"); }
+    omo->derivativeFun(oo, dSigmas, dMus, status);
     
     for(int currentLoc = 0; currentLoc < nLocs; currentLoc++) {
         double meanInfluence, covInfluence;
@@ -603,5 +599,4 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
             currentLoc, covInfluence, meanInfluence, gradient[currentLoc]); 
         }
     }
-
 }
