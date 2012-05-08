@@ -92,11 +92,11 @@
 	}
 
 	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus) {
-		tgt->computeCount		= src->computeCount;
-		tgt->currentRow		= src->currentRow;
-		tgt->optimalValues	= src->optimalValues;
-		tgt->majorIteration	= src->majorIteration;
-		tgt->minorIteration	= src->minorIteration;
+		tgt->computeCount   = src->computeCount;
+		tgt->currentRow     = src->currentRow;
+		tgt->optimalValues  = src->optimalValues;
+		tgt->majorIteration = src->majorIteration;
+		tgt->minorIteration = src->minorIteration;
 
 		if (copyStatus) {
 			tgt->statusCode = src->statusCode;

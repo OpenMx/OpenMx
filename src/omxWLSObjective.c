@@ -270,9 +270,7 @@ void omxUpdateChildWLSObjective(omxObjective* tgt, omxObjective* src) {
 void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to WLS Objective Calls */
-    char* myType = (char*) Calloc(25, char);
-    strncpy(myType, "omxWLSObjective", 15);
-    oo->objType = myType;
+	strncpy(oo->objType, "omxWLSObjective", 15);
 	oo->objectiveFun = omxCallWLSObjective;
 	oo->needsUpdateFun = omxNeedsUpdateWLSObjective;
 	oo->destructFun = omxDestroyWLSObjective;

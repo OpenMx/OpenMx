@@ -64,7 +64,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
 	om->cols = ncols;
-	om->colMajor = (isColMajor?1:0);
+	om->colMajor = (isColMajor ? 1 : 0);
 
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;

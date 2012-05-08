@@ -106,8 +106,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->argStruct = NULL;
 	oo->subObjective = NULL;
 	oo->rObj = NULL;
-	oo->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*));
-	oo->objType[0] = '\0';
+	oo->objType = Calloc(MAX_STRING_LEN, char);
 	oo->matrix = NULL;
 	oo->stdError = NULL;
 	oo->hessian = NULL;
@@ -132,24 +131,24 @@ omxObjective* omxCreateSubObjective(omxObjective *oo) {
 }
 
 void omxFreeObjectiveArgs(omxObjective *oo) {
-    if(oo==NULL) return;
+	if(oo==NULL) return;
     
 	/* Completely destroy the objective function tree */
-    if(OMX_DEBUG) {Rprintf("Freeing objective object at 0x%x with subobjective 0x%x.\n", oo, oo->subObjective);}
+	if(OMX_DEBUG) {Rprintf("Freeing objective object at 0x%x with subobjective 0x%x.\n", oo, oo->subObjective);}
 	if(oo->matrix != NULL) {
-	    if(oo->objType != NULL) {
-	        free(oo->objType);
-            oo->objType = NULL;
-        }
-	    if(oo->subObjective != NULL) {
-		    omxFreeObjectiveArgs(oo->subObjective);
-	    }
-	    if(oo->destructFun != NULL) {
-            if(OMX_DEBUG) {Rprintf("Calling objective destructor for 0x%x.\n", oo);}
-		    oo->destructFun(oo);
-	    }
-	    oo->matrix = NULL;
-    }
+		if(oo->objType != NULL) {
+			Free(oo->objType);
+		}
+		if(oo->subObjective != NULL) {
+			omxFreeObjectiveArgs(oo->subObjective);
+			Free(oo->subObjective);
+		}
+		if(oo->destructFun != NULL) {
+			if(OMX_DEBUG) {Rprintf("Calling objective destructor for 0x%x.\n", oo);}
+			oo->destructFun(oo);
+		}
+		oo->matrix = NULL;
+	}
 }
 
 void omxObjectiveCompute(omxObjective *oo) {
@@ -213,7 +212,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	tgt->gradient 					= src->gradient;
 	tgt->updateChildObjectiveFun	= src->updateChildObjectiveFun;
 
-	if(tgt->objType == NULL) tgt->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*)); // Double-check
     strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
 	return tgt;
 
@@ -238,15 +236,6 @@ unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
 	return needsIt;
 }
 
-void omxSetObjectiveType(omxObjective* oo, const char* newName) {
-	if(oo->objType == NULL) {
-		oo->objType = (char*) calloc(MAX_STRING_LEN, sizeof(char*));
-		oo->objType[0] = '\0';
-	}
-	
-	strncpy(oo->objType, newName, MAX_STRING_LEN);
-}
-
 void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 
@@ -267,7 +256,7 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	/* Get Objective Type */
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
 	objType = CHAR(objectiveClass);
-	obj->objType[MAX_STRING_LEN] = '\0';
+	obj->objType[MAX_STRING_LEN - 1] = '\0';
 	strncpy(obj->objType, objType, MAX_STRING_LEN);
 	
 	/* Switch based on objective type. */ 

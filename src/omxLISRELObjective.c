@@ -421,9 +421,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Create and register subobjective */
 	omxObjective *subObjective = omxCreateSubObjective(oo);
-	char* myType = (char*) Calloc(25, char);
-	strncpy(myType, "omxLISRELObjective", 19);
-	subObjective->objType = myType;
+	strncpy(subObjective->objType, "omxLISRELObjective", 19);
 	omxLISRELObjective *LISobj = (omxLISRELObjective*) R_alloc(1, sizeof(omxLISRELObjective));
 	
 	/* Set Subobjective Calls and Structures */

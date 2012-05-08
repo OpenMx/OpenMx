@@ -309,9 +309,7 @@ void omxUpdateChildMLObjective(omxObjective* tgt, omxObjective* src) {
 void omxSetMLObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to ML Objective Calls */
-    char* myType = (char*) Calloc(25, char);
-    strncpy(myType, "omxMLObjective", 15);
-    oo->objType = myType;
+	strncpy(oo->objType, "omxMLObjective", 15);
 	oo->objectiveFun = omxCallMLObjective;
 	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;

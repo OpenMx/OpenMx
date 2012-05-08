@@ -122,8 +122,17 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 	if(argStruct->cov != NULL)
 		omxFreeMatrixData(argStruct->cov);
 
-	if(argStruct->means != NULL)
+	if(argStruct->means != NULL) {
+		omxFreeMatrixData(argStruct->dM);
+		omxFreeMatrixData(argStruct->ZM);
+		omxFreeMatrixData(argStruct->bCB);
+		omxFreeMatrixData(argStruct->b);
+		omxFreeMatrixData(argStruct->tempVec);
+		omxFreeMatrixData(argStruct->bigSum);
+		omxFreeMatrixData(argStruct->lilSum);
+		omxFreeMatrixData(argStruct->beCov);
 		omxFreeMatrixData(argStruct->means);
+	}
 
 	int nParam = argStruct->nParam;
 	if(nParam >= 0) {
@@ -140,11 +149,27 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 		omxFreeMatrixData(argStruct->paramVec);
 	}
 
+	if (argStruct->dA != NULL)
+		omxFreeMatrixData(argStruct->dA);
+
+	if (argStruct->dS != NULL)
+		omxFreeMatrixData(argStruct->dS);
+
 	omxFreeMatrixData(argStruct->I);
+	omxFreeMatrixData(argStruct->lilI);
 	omxFreeMatrixData(argStruct->X);
 	omxFreeMatrixData(argStruct->Y);
 	omxFreeMatrixData(argStruct->Z);
 	omxFreeMatrixData(argStruct->Ax);
+
+	omxFreeMatrixData(argStruct->W);
+	omxFreeMatrixData(argStruct->U);
+	omxFreeMatrixData(argStruct->EF);
+	omxFreeMatrixData(argStruct->V);
+	omxFreeMatrixData(argStruct->ZSBC);
+	omxFreeMatrixData(argStruct->C);
+	omxFreeMatrixData(argStruct->eCov);
+
 
 	if(argStruct->ppmlData != NULL) 
 		omxFreeData(argStruct->ppmlData);
@@ -381,11 +406,8 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Create and register subobjective */
 
-    omxObjective *subObjective = omxCreateSubObjective(oo);
-    char* myType = (char*) Calloc(25, char);
-    strncpy(myType, "omxRAMObjective", 16);
-    subObjective->objType = myType;
-
+	omxObjective *subObjective = omxCreateSubObjective(oo);
+	strncpy(subObjective->objType, "omxRAMObjective", 16);
 	
 	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	
@@ -464,10 +486,16 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	RAMobj->ZSBC = 	omxInitMatrix(NULL, k, l, TRUE, currentState);
 	RAMobj->C = 	omxInitMatrix(NULL, l, l, TRUE, currentState);
 	
-	if(omxIsMatrix(RAMobj->A))
-		RAMobj->dA = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	if(omxIsMatrix(RAMobj->S))
-		RAMobj->dS = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	if(omxIsMatrix(RAMobj->A)) {
+		RAMobj->dA = omxInitMatrix(NULL, k, k, TRUE, currentState);
+	} else {
+		RAMobj->dA = NULL;
+	}
+	if(omxIsMatrix(RAMobj->S)) {
+		RAMobj->dS = omxInitMatrix(NULL, k, k, TRUE, currentState);
+	} else {
+		RAMobj->dS = NULL;
+	}
 	if(RAMobj->M != NULL) {
 		RAMobj->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
 		RAMobj->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
