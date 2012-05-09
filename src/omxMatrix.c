@@ -119,10 +119,15 @@ void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
 
 	if ((orig->rows > 0) && (orig->cols > 0)) {
 		if (dest->data != NULL && (dest->rows * dest->cols) != (orig->rows * orig->cols)) {
-			Free(dest->data);
+            if (dest->localData) {
+   			    Free(dest->data);
+            } else {
+                error("I don't know how to resize memory that wasn't allocated to me.");
+            }
 		}
 		if (dest->data == NULL) {
-			dest->data = Calloc((orig->rows * orig->cols), double);			
+			dest->data = Calloc((orig->rows * orig->cols), double);
+            dest->localData = TRUE;
 		}
 	}
 
