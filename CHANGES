@@ -10,7 +10,7 @@ trunk
   in the checkpoint file at the conclusion of model optimization.
 * added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
 * header for the checkpoint file will identify anonymous 
-  free parameters with the string matrixName[row,col]
+  free parameters with the string modelName.matrixName[row,col]
 * omxGetParameters() and omxSetParameters() support anonymous
   free parameters
 * fixed several memory leaks
