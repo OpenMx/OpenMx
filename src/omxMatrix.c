@@ -117,6 +117,15 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
 
+	if ((orig->rows > 0) && (orig->cols > 0)) {
+		if (dest->data != NULL && (dest->rows * dest->cols) != (orig->rows * orig->cols)) {
+			Free(dest->data);
+		}
+		if (dest->data == NULL) {
+			dest->data = Calloc((orig->rows * orig->cols), double);			
+		}
+	}
+
 	dest->rows = orig->rows;
 	dest->cols = orig->cols;
 	dest->colMajor = orig->colMajor;
@@ -125,11 +134,8 @@ void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalColMajor = dest->colMajor;
 	dest->lastCompute = orig->lastCompute;
 	dest->lastRow = orig->lastRow;
-	dest->localData = orig->localData;
-
-	if ((dest->data == NULL) && (dest->rows > 0) && (dest->cols > 0)) {
-		dest->data = (double*) Calloc(dest->rows * dest->cols, double);
-	}
+//	If activated, the next line induces a memory leak.
+//	dest->localData = orig->localData;
 
 	memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
 

@@ -29,6 +29,9 @@
 
 void omxDestroyRowObjective(omxObjective *oo) {
 
+	omxRowObjective* argStruct = (omxRowObjective*)(oo->argStruct);
+
+	omxFreeMatrixData(argStruct->dataRow);
 }
 
 omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturns) {
