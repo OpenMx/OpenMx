@@ -26,6 +26,7 @@ NIGHTLYPPMLFILE = inst/tools/testNightlyPPML.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.R
+MEMORYTESTFILE2 = inst/tools/memoryTestModels.sh
 
 # subdirectories
 RSOURCE = R
@@ -67,6 +68,7 @@ help:
 	@echo "  testdocs      test the examples in the Sphinx documentation"	
 	@echo "  failtest      run the failing test suite"
 	@echo "  memorytest    run the test suite under the Valgrind memory debugger"
+	@echo "  memorytest2   start a new process for each test file in Valgrind (slower)"
 	@echo "  rproftest     run the test suite under the Rprof R profiler"
 	@echo ""
 	@echo "CLEANING"
@@ -157,6 +159,9 @@ failtest:
 
 memorytest:
 	$(REXEC) -d "valgrind --tool=memcheck --leak-check=full --suppressions=inst/tools/OpenMx.supp --quiet" --vanilla --slave < $(MEMORYTESTFILE)
+
+memorytest2:
+	$(MEMORYTESTFILE2)
 
 clean:
 	rm -rf $(RBUILD)/*
