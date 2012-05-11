@@ -33,6 +33,15 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
 	omxFIMLObjective *argStruct = (omxFIMLObjective*) (oo->argStruct);
 
+	if(argStruct->smallMeans != NULL) omxFreeMatrixData(argStruct->smallMeans);
+	if(argStruct->ordMeans != NULL) omxFreeMatrixData(argStruct->ordMeans);
+	if(argStruct->contRow != NULL) omxFreeMatrixData(argStruct->contRow);
+	if(argStruct->ordRow != NULL) omxFreeMatrixData(argStruct->ordRow);
+	if(argStruct->ordCov != NULL) omxFreeMatrixData(argStruct->ordCov);
+	if(argStruct->ordContCov != NULL) omxFreeMatrixData(argStruct->ordContCov);
+	if(argStruct->halfCov != NULL) omxFreeMatrixData(argStruct->halfCov);
+	if(argStruct->reduceCov != NULL) omxFreeMatrixData(argStruct->reduceCov);
+
 	if(argStruct->smallRow != NULL) omxFreeMatrixData(argStruct->smallRow);
 	if(argStruct->smallCov != NULL) omxFreeMatrixData(argStruct->smallCov);
 	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
@@ -529,6 +538,14 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	
     newObj->cov = cov;
     newObj->means = means;
+    newObj->smallMeans = NULL;
+    newObj->ordMeans   = NULL;
+    newObj->contRow    = NULL;
+    newObj->ordRow     = NULL;
+    newObj->ordCov     = NULL;
+    newObj->ordContCov = NULL;
+    newObj->halfCov    = NULL;
+    newObj->reduceCov  = NULL;
     
     /* Set default Objective calls to FIML Objective Calls */
 	oo->objectiveFun = omxCallFIMLObjective;

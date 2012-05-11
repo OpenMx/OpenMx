@@ -141,7 +141,7 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 				omxFreeMatrixData(argStruct->dAdts[j]);
 			if(argStruct->dSdts != NULL)
 				omxFreeMatrixData(argStruct->dSdts[j]);
-			if(argStruct->M != NULL && argStruct->dMdts != NULL) 
+			if(argStruct->dMdts != NULL) 
 				omxFreeMatrixData(argStruct->dMdts[j]);
 			if(argStruct->eqnOuts != NULL)
 				omxFreeMatrixData(argStruct->eqnOuts[0][j]);
