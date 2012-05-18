@@ -31,6 +31,7 @@
 		int i;
 		state->numMats = 0;
 		state->numAlgs = 0;
+		state->numConstraints = 0;
 		state->numData = 0;
 		state->numFreeParams = 0;
 		if (numThreads > 1) {
@@ -293,6 +294,12 @@
 		for(k = 0; k < state->numMats; k++) {
 			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, state->matrixList[k]); }
 			omxFreeAllMatrixData(state->matrixList[k]);
+		}
+
+		if(OMX_DEBUG) { Rprintf("Freeing %d Constraints.\n", state->numConstraints);}
+		for(k = 0; k < state->numConstraints; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Constraint %d at 0x%x.\n", k, state->conList[k]); }
+			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
 		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", state->numData);}

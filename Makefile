@@ -24,7 +24,7 @@ endif
 NIGHTLYFILE = inst/tools/testNightly.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
-MEMORYTESTFILE = inst/tools/memoryTestModels.R
+MEMORYTESTFILE = inst/tools/memoryTestModels.sh
 
 # subdirectories
 RSOURCE = R
@@ -151,7 +151,7 @@ failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
 
 memorytest:
-	$(REXEC) -d "valgrind --tool=memcheck --leak-check=full --suppressions=inst/tools/OpenMx.supp --quiet" --vanilla --slave < $(MEMORYTESTFILE)
+	$(MEMORYTESTFILE)
 
 clean:
 	rm -rf $(RBUILD)/*
