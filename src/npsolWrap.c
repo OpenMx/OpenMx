@@ -236,12 +236,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		// disable parallelism until omxDuplicateState() can be invoked
     	currentState->numChildren = 0;
 		errOut = omxInitialMatrixAlgebraCompute();
-    	currentState->numChildren = (numThreads > 1) ? numThreads : 0;	
+		currentState->numChildren = (numThreads > 1) ? numThreads : 0;
 	}
 
 	/* Process Objective Function */
 	if(!errOut) errOut = omxProcessObjectiveFunction(objective, &n);
-
+	
 	// TODO: Make calculateHessians an option instead.
 
 	if(!errOut) {	// In the event of an initialization error, skip all this.
@@ -276,10 +276,10 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		for(int i = 0; i < numChildren; i++) {
 			omxDuplicateState(currentState->childList[i], currentState);
 		}
-
-  } else { // End if(errOut)
-    error(currentState->statusMsg);
-  }
+		
+	} else { // End if(errOut)
+		error(currentState->statusMsg);
+	}
 
 	/* Set up Optimization Memory Allocations */
 	if(n == 0) {			// Special Case for the evaluation-only condition
@@ -744,16 +744,22 @@ void F77_SUB(objectiveFunction)
 		if(OMX_DEBUG) {
 			Rprintf("Objective value is NaN.\n");
 		}
-		omxRaiseError(currentState, -1, "Objective function returned a value of NaN.");
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Objective function returned a value of NaN at iteration %d.%d.", currentState->majorIteration, currentState->minorIteration);
+		omxRaiseError(currentState, -1, errstr);
 		*mode = -1;
+		free(errstr);
 	}
 
 	if(isinf(objectiveMatrix->data[0])) {
 		if(OMX_DEBUG) {
 			Rprintf("Objective Value is infinite.\n");
 		}
-		omxRaiseError(currentState, -1, "Objective function returned an infinite value.");
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Objective function returned an infinite value at iteration %d.%d.", currentState->majorIteration, currentState->minorIteration);
+		omxRaiseError(currentState, -1, errstr);
 		*mode = -1;
+		free(errstr);
 	}
 
 	if(currentState->statusCode <= -1) {		// At some point, we'll add others
