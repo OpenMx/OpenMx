@@ -157,12 +157,13 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	rownames(IC) <- c("AIC:", "BIC:")
 	retval[['informationCriteria']] <- IC
 	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
+	retval[['RMSEASquared']] <- rmseaSquared
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
-		is.nan(rmseaSquared)){ 
+		is.nan(rmseaSquared)) { 
 		# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 		retval[['RMSEA']] <- NA
-	} else if (rmseaSquared < 0){
-		retval[['RMSEA']] <- "0.000* (Non-centrality parameter is negative)"
+	} else if (rmseaSquared < 0) {
+		retval[['RMSEA']] <- 0.0
 	} else {
 		retval[['RMSEA']] <- sqrt(rmseaSquared)
 	}
@@ -363,7 +364,11 @@ print.summary.mxmodel <- function(x,...) {
 	cat("TLI:", x$TLI, '\n')
 	# cat("satDoF", x$satDoF, "\n")
 	# cat("indDoF", x$indDoF, "\n")
-	cat("RMSEA: ", x$RMSEA, '\n')
+	if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
+		cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
+	} else {
+		cat("RMSEA: ", x$RMSEA, '\n')
+	}
 	cat("timestamp:", format(x$timestamp), '\n')
 	cat("frontend time:", format(x$frontendTime), '\n')
 	cat("backend time:", format(x$backendTime), '\n')
