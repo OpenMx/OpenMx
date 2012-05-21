@@ -28,7 +28,10 @@
 #include "omxFIMLObjective.h"
 
 void omxDestroyRowObjective(omxObjective *oo) {
+	if(OMX_DEBUG) { Rprintf("Destroying row objective object.\n"); }
+	omxRowObjective *argStruct = (omxRowObjective*) (oo->argStruct);
 
+	omxFreeMatrixData(argStruct->dataRow);
 }
 
 omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturns) {
