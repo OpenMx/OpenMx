@@ -1,5 +1,5 @@
-Release 1.2.4
-=============
+Release 1.2.4-2063 (May 22, 2012)
+=================================
 * added argument "name" to omxSetParameters()
 * error checking for 0-length arguments to mxPath()
 
