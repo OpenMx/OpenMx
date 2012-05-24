@@ -14,6 +14,7 @@ trunk
 * omxGetParameters() and omxSetParameters() support anonymous
   free parameters
 * fixed several memory leaks
+* improved error messages in mxOption()
 
 Release 1.2.3-2011 (April 10, 2012)
 ===================================

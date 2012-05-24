@@ -31,18 +31,20 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		stop("argument 'key' must be a character string")
 	}
 	if (length(value) > 1) {
-		stop("argument 'value' must be either NULL or of length 1")
-	}
+		msg <- paste("argument 'value' must be either NULL or of length 1.",
+			"You gave me an object of length", length(value))
+		stop(msg)
+	}	
 	optionsNames <- names(getOption('mxOptions'))
 	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
 		ignore.case=TRUE)
 	if(length(match) == 0) {
-		stop(paste("argument 'key' has a value",
-			omxQuotes(key), "that cannot be found in",
+		stop(paste("argument 'key' is the character string",
+			omxQuotes(key), "and cannot be found in",
 			"getOption('mxOptions')"))
 	}
 	if (!identical(optionsNames[[match]], key)) {
-		stop(paste("argument 'key' has a value",
+		stop(paste("argument 'key' is the character string",
 			omxQuotes(key), "but the option is named",
 			omxQuotes(optionsNames[[match]]), ": please correct",
 			"the capitalization and re-run mxOption()."))
