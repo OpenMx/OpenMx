@@ -10,7 +10,7 @@ This example will demonstrate latent variable modeling via the common factor mod
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/TwoFactorModel_MatrixCov.R
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/TwoFactorModel_MatrixRaw.R
 
-Parallel versions of this example, using path-centric specification of models rather than paths, can be found here:
+Parallel versions of this example, using path-centric specification of models rather than matrices, can be found here:
 
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_PathCov.R
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_PathRaw.R
