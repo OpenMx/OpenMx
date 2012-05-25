@@ -33,7 +33,7 @@ mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
 \arguments{
    \item{from}{character vector. These are the sources of the new paths.}
    \item{to}{character vector. These are the sinks of the new paths.}
-   \item{connect}{String. Specifies the type of source to sink connection: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate".}
+   \item{connect}{String. Specifies the type of source to sink connection: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". Default value is "single".}
    \item{arrows}{numeric value. Must be either 1 (for single-headed) or 2 (for double-headed arrows).}
    \item{free}{boolean vector. Indicates whether paths are free or fixed.}
    \item{values}{numeric vector. The starting values of the parameters.}
@@ -52,7 +52,7 @@ The mxPath function creates \link{MxPath} objects. These consist of a list of pa
 
 Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
 
-\sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
+\sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". The default value is "single". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
 
 	\describe{
 	\item{"all.pairs":}{(a,a), (a,b), (a,c), (b,a), (b,b), (b,c), (c,a), (c,b), (c,c).} 
