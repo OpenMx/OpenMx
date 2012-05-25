@@ -170,18 +170,41 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	return(retval)
 }
 
+
+# Adapted from the function standardizeRAM
+# author:   Ryne Estabrook
+# author:   Michael Spiegel
+# date:     20 Oct 2010
+# revised:  01 Nov 2010 (corrected algebra)
+#           13 Dec 2010 (corrected 'parameters' output)
+#           25 May 2012 (incorporated into summary function)
+standardizeRAMModel <- function(model) {
+	nameA <- model$objective@A
+	nameS <- model$objective@S
+	I <- diag(nrow(model[[nameS]]))
+	IA <- eval(substitute(mxEval(solve(I - x), model), list(x = as.symbol(nameA))))
+	expCov <- eval(substitute(mxEval(IA %*% x %*% t(IA), model), list(x = as.symbol(nameS) )))
+	invSDs <- 1 / sqrt(diag(expCov))
+	return(invSDs)
+}
+
 parameterList <- function(model, useSubmodels) {
+	if (imxSimpleRAMPredicate(model) && length(model@submodels) == 0) {
+		invSDs <- standardizeRAMModel(model)
+	} else {
+		invSDs <- NULL
+	}
 	if (useSubmodels && length(model@runstate$independents) > 0) {
-		ptable <- parameterListHelper(model, TRUE)
+		ptable <- parameterListHelper(model, TRUE, invSDs)
 		submodelParameters <- lapply(model@runstate$independents, parameterListHelper, TRUE)
 		ptable <- Reduce(rbind, submodelParameters, ptable)
 	} else {
-		ptable <- parameterListHelper(model, FALSE)
+		ptable <- parameterListHelper(model, FALSE, invSDs)
 	}
 	return(ptable)
 }
 
-parameterListHelper <- function(model, modelName) {
+parameterListHelper <- function(model, withModelName, invSDs) {
 	ptable <- data.frame()
 	if(length(model@output) == 0) { return(ptable) }
 	estimates <- model@output$estimate
@@ -210,7 +233,7 @@ parameterListHelper <- function(model, modelName) {
 					mCol <- colnames(aMatrix)[[mCol]]
 				}
 			}
-			if (modelName) {
+			if (withModelName) {
 				ptable[i, 'model'] <- model@name
 			}
 			ptable[i, 'name'] <- names(estimates)[[i]]
@@ -222,6 +245,21 @@ parameterListHelper <- function(model, modelName) {
 			ptable[i, 'lbound'] <- lbound
 			ptable[i, 'ubound'] <- ubound
 		}
+	}
+	if (!is.null(invSDs)) {
+		nameA <- model$objective@A
+		nameS <- model$objective@S
+		rowA <- subset(ptable, matrix==nameA, select='row', drop=TRUE)
+		colA <- subset(ptable, matrix==nameA, select='col', drop=TRUE)
+		rowS <- subset(ptable, matrix==nameS, select='row', drop=TRUE)
+		colS <- subset(ptable, matrix==nameS, select='col', drop=TRUE)
+		rescaleA <- invSDs[rowA] * 1 / invSDs[colA]
+		rescaleS <- invSDs[rowS] * invSDs[colS]
+		ptable[ptable$matrix == nameA,'Std.Estimate']  <- ptable[ptable$matrix == nameA,'Estimate'] * rescaleA
+		ptable[ptable$matrix == nameS,'Std.Estimate']  <- ptable[ptable$matrix == nameS,'Estimate'] * rescaleS
+		ptable[ptable$matrix == nameA,'Std.Std.Error']  <- ptable[ptable$matrix == nameA,'Std.Error'] * rescaleA
+		ptable[ptable$matrix == nameS,'Std.Std.Error']  <- ptable[ptable$matrix == nameS,'Std.Error'] * rescaleS
+		ptable <- ptable[,c(1:6, 9, 10, 7, 8)]
 	}
 	return(ptable)
 }

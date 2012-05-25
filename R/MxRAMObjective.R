@@ -463,6 +463,20 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 	}
 )
 
+imxSimpleRAMPredicate <- function(model) {
+	if (is.null(model$objective) || !is(model$objective, "MxRAMObjective")) {
+		return(FALSE)
+	}
+	nameA <- model$objective@A
+	nameS <- model$objective@S
+	A <- model[[nameA]]
+	S <- model[[nameS]]
+	if (is.null(A) || is.null(S)) {
+		return(FALSE)
+	}
+	return(is(A, "MxMatrix") && is(S, "MxMatrix"))
+}
+
 mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE,
 									threshnames = dimnames) {
 	if (missing(A) || typeof(A) != "character") {
