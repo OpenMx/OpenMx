@@ -196,8 +196,9 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"and matrix", 
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
-						rowColToString(loc[[2]], loc[[3]]), "If you want to fix this automatically, call",
-						"model <- omxAssignFirstParameters(model) before running again"), call. = FALSE)
+						rowColToString(loc[[2]], loc[[3]]), 
+						"If you want to randomly select one of these values, call",
+						"model <- omxAssignFirstParameters(model) before running again."), call. = FALSE)
 				} else if (label %in% freeVars && 
 								!identicalNA(lbound, bounds[[label]][[1]])) {
 					loc <- varlocations[[label]]
@@ -246,9 +247,10 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"and matrix", 
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
-						rowColToString(loc[[2]], loc[[3]]), "If you want to fix this",
-						"automatically, call model <- omxAssignFirstParameters(model)",
-						"before running again"), call. = FALSE)
+						rowColToString(loc[[2]], loc[[3]]),
+						"If you want to randomly select one of these values, call",
+						"model <- omxAssignFirstParameters(model)",
+						"before running again."), call. = FALSE)
 				} else {
 					startVals[[label]] <- value
 					fixedVars <- append(fixedVars, label)
