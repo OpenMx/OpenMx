@@ -257,8 +257,8 @@ parameterListHelper <- function(model, withModelName, invSDs) {
 		rescaleS <- invSDs[rowS] * invSDs[colS]
 		ptable[ptable$matrix == nameA,'Std.Estimate']  <- ptable[ptable$matrix == nameA,'Estimate'] * rescaleA
 		ptable[ptable$matrix == nameS,'Std.Estimate']  <- ptable[ptable$matrix == nameS,'Estimate'] * rescaleS
-		ptable[ptable$matrix == nameA,'Std.Std.Error']  <- ptable[ptable$matrix == nameA,'Std.Error'] * rescaleA
-		ptable[ptable$matrix == nameS,'Std.Std.Error']  <- ptable[ptable$matrix == nameS,'Std.Error'] * rescaleS
+		ptable[ptable$matrix == nameA,'Std.SE']  <- ptable[ptable$matrix == nameA,'Std.Error'] * rescaleA
+		ptable[ptable$matrix == nameS,'Std.SE']  <- ptable[ptable$matrix == nameS,'Std.Error'] * rescaleS
 		ptable <- ptable[,c(1:6, 9, 10, 7, 8)]
 	}
 	return(ptable)
