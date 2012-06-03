@@ -199,7 +199,9 @@ pathCheckVector <- function(value, valname, check, type) {
 	if (!is.vector(value) || !check(value) || length(value) == 0) {
 		stop(paste("The", omxQuotes(valname), 
 			"argument to mxPath must be a",
-			type, "vector of length > 0."), call. = FALSE)
+			type, "vector of length > 0.",
+			"Call traceback() to see which mxPath statement generated this error."
+			), call. = FALSE)
 	}
 }
 
