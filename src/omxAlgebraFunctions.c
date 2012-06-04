@@ -1997,7 +1997,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0]);				// FIXME: Much memory badness here.
+	omxCopyMatrix(B, matList[0]);
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
 	/* Conformability Check! */
@@ -2056,8 +2056,8 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxSortHelper(WI, A, result);
 
-	omxFreeMatrixData(A);			// FIXME: Memory Badness here
-	omxFreeMatrixData(B);			// FIXME: Memory Badness here
+	omxFreeMatrixData(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrixData(B);
 	omxMatrixCompute(result);
 
 }
@@ -2066,7 +2066,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0]);				// FIXME: Much memory badness here.
+	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
 
@@ -2134,7 +2134,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	// Sort results
 	omxSortHelper(WR, A, result);
 
-	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
+	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixCompute(result);
 
 }
@@ -2145,7 +2145,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0]);				// FIXME: Potential memory badness here.
+	omxCopyMatrix(B, matList[0]);
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
 	/* Conformability Check! */
@@ -2207,7 +2207,8 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	// Sort results
 	omxSortHelper(WR, A, result);
 
-	omxFreeMatrixData(A);				//FIXME: Potential Memory badness here.
+	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrixData(B);
 	omxMatrixCompute(result);
 
 }
@@ -2216,7 +2217,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Eigenvalues.\n");}
 
 	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0]);				// FIXME: Potential Much memory badness here.
+	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
 	/* Conformability Check! */
@@ -2285,7 +2286,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 
 	omxSortHelper(WR, A, result);
 
-	omxFreeMatrixData(A);			// FIXME: Potential Memory Badness here
+	omxFreeMatrixData(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixCompute(result);
 
 }
