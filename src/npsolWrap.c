@@ -160,6 +160,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 		strncpy(output, currentState->statusMsg, 250);
 	}
 
+	omxFreeAllMatrixData(algebra);
 	omxFreeState(currentState);
 
 	if(errOut != 0) {
