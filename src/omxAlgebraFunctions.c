@@ -2206,6 +2206,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	omxSortHelper(WR, A, result);
 
 	omxFreeMatrixData(A);				//FIXME: Potential Memory badness here.
+	omxFreeMatrixData(B);
 	omxMatrixCompute(result);
 
 }
