@@ -47,11 +47,7 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, o
         // Set D
         if(D != NULL) {
             thisD = D[param];
-            for( int k = 0; k < thisD->cols; k++) {
-                for( int j = 0; j < thisD->rows; j++) {
-                    omxSetMatrixElement(thisD, j, k, 0.0);
-                }
-            }
+            memset(thisD->data, 0, sizeof(double) * thisD->cols * thisD->rows);
             // Honestly, this should be calculated only once.
             for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
                 if(~var.matrices[varLoc] == matNum) {
