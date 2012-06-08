@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# TODO: Add conformance and dimname checking for weight matrix
+
 
 setClass(Class = "MxWLSObjective",
 	representation = representation(
@@ -109,7 +111,7 @@ setMethod("genericObjFunConvert", signature("MxWLSObjective"),
 		verifyExpectedObservedNames(mxDataObject@observed, covariance, flatModel, modelname, "WLS")
 		verifyWLSMeans(means, mxDataObject, flatModel, modelname)
 		meansIndex <- imxLocateIndex(flatModel, means, name)
-		weightsIndex <- imxLocateIndex(flatmodel, weights, name)
+		weightsIndex <- imxLocateIndex(flatModel, weights, name)
 		dIndex <- imxLocateIndex(flatModel, data, name)
 		.Object@covariance <- covarianceIndex
 		.Object@means <- meansIndex
@@ -166,11 +168,12 @@ mxWLSObjective <- function(covariance, means = NA, weights=NA, dimnames = NA, th
 		stop("Means argument is not a string (the name of the expected means matrix)")
 	}
 	if (is.na(means)) means <- as.integer(NA)
-	if (!single.na(weights)) {
-	    weights <- as.character(NA)
-	    stop("Weight matrices not yet supported.")
-	}
-	if (single.na(weights)) weights <- as.character(NA)
+	# Uncomment this for NA-only
+	# if (!single.na(weights)) {
+	#     weights <- as.character(NA)
+	#     stop("Weight matrices not yet supported.")
+	# }
+	if (is.na(weights)) weights <- as.character(NA)
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {

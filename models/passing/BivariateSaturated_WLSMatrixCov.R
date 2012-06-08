@@ -25,10 +25,12 @@
 # Purpose: 
 #      Bivariate Saturated model to estimate means and (co)variances
 #      Matrix style model input - Covariance matrix data input
+#      Uses WLS for model fit
 #
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Tim Brick -- 2012.06.08 updated to use WLS modeling
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -119,7 +121,47 @@ SL3m <- summary(bivSatFit3m)$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 # example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
 # -----------------------------------------------------------------------------
+nWeights <- 5
+bivSatModel3w <- mxModel("bivSat3w",
+    mxMatrix(
+        type="Symm", 
+        nrow=2, 
+        ncol=2, 
+        free=T, 
+        values=c(1,.5,1), 
+        name="expCov"
+    ),
+    mxMatrix(
+        type="Full", 
+        nrow=1, 
+        ncol=2, 
+        free=T, 
+        values=c(0,0), 
+        name="expMean"
+    ),
+	mxMatrix("Iden",5,5,free=FALSE, name="weightMat"),
+    mxData(
+        observed=cov(testData), 
+        type="cov", 
+        numObs=1000, 
+        means=colMeans(testData) 
+    ),
+    mxWLSObjective(
+        covariance="expCov",
+        means="expMean",
+        weights="weightMat",
+        dimnames=selVars
+    )
+)
 
+bivSatFit3w <- mxRun(bivSatModel3w)
+EM3w <- mxEval(expMean, bivSatFit3w)
+EC3w <- mxEval(expCov, bivSatFit3w)
+LL3w <- mxEval(objective,bivSatFit3w)
+SL3w <- summary(bivSatFit3w)$SaturatedLikelihood
+Chi3w <- LL3w-SL3w
+# example 3w: Saturated Model with Cov Matrices & Means and Matrix-Style Input Plus Weights = I
+# ---------------------------------------------------------------------------------------------
 
 
 Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
@@ -149,6 +191,12 @@ omxCheckCloseEnough(EC3m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
 # 3m:CovMPat 
 # -------------------------------------
+omxCheckCloseEnough(Chi3w,Mx.LL1m,.001)
+omxCheckCloseEnough(EC3w,Mx.EC1m,.001)
+omxCheckCloseEnough(EM3w,Mx.EM1m,.001)
+# 3w:CovMPat 
+# -------------------------------------
+
 # Compare OpenMx results to Mx results 
 # (LL: likelihood; EC: expected covariance, EM: expected means)
 # -----------------------------------------------------------------------------
