@@ -22,11 +22,16 @@
 }
 
 \details{
-OpenMx is a package for algebra optimization and statistical estimation problems using matrix algebra. The OpenMx library defines a set of S4 classes and functions used to create them. The majority of these classes are used as arguments in models, which may include data, matrices, algebras, bounds and constraints. These models are then paired with objective functions, either existing (maximum likelihood, FIML) or user-defined with included algebra functions. These models can then be optimized, resulting in parameter estimation, algebra evaluation, and output for additional models.
+OpenMx solves algebra optimization and statistical estimation problems using matrix algebra. The OpenMx library defines a set of S4 classes and functions used to create them. The majority of these classes are used as arguments in models, which may include data, matrices, algebras, bounds and constraints. These models are then paired with either built-in objective functions (maximum likelihood and FIML) or user-defined functions. These models can then be optimized, resulting in parameter estimation, algebra evaluation, and output for additional models.
 
-Objects used or created by OpenMx may be of the following classes: \link{MxAlgebra}, \link{MxBounds}, \link{MxCI}, \link{MxConstraint}, \link{MxData}, \link{MxMatrix}, \link{MxModel}, and \link{MxPath}. Objects of these classes may be created by the following OpenMx functions: \link{mxAlgebra}, \link{mxBounds}, \link{mxCI}, \link{mxConstraint}, \link{mxData}, \link{mxMatrix}, \link{mxModel}, and \link{mxPath}. The functions \link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} and \link{mxRAMObjective} create objective functions for model estimation. Models which include objective functions may be estimated using the \link{mxRun} function.
+The main OpenMx functions are: \link{mxAlgebra}, \link{mxBounds}, \link{mxCI}, \link{mxConstraint}, \link{mxData}, \link{mxMatrix}, \link{mxModel}, and \link{mxPath} as well as \link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} and \link{mxRAMObjective}. These latter functions create the objectives for model estimation. Models are run (estimated) using \link{mxRun}.
+
+These functions create the following Objects: \link{MxModel}s, which can contain \link{MxPath}s, \link{MxMatrix} objects, and \link{MxData} as well as \link{MxAlgebra}, \link{MxBounds}, \link{MxCI}s (confidence intervals) and \link{MxConstraint}s.
 
 OpenMx comes with several useful datasets built-in. Access them using data(package="OpenMx")
+
+The main learning material is online, but functions \link{mxRun}, \link{mxModel}, \link{mxMatrix} all have runnable examples to get you started.
+
 }
 
 \references{
