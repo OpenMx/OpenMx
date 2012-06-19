@@ -108,9 +108,6 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 	numObs=nrow(YMatrix), type="cov")
     )
 
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Analytic Gradients", "Yes")
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Calculate Hessian", "No")
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Standard Errors", "No")
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
 
