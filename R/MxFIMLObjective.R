@@ -77,7 +77,7 @@ setMethod("genericObjRename", signature("MxFIMLObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxFIMLObjective"), 
-	function(.Object, flatModel, model, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
@@ -107,9 +107,9 @@ setMethod("genericObjFunConvert", signature("MxFIMLObjective"),
 		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "FIML")
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
-		verifyThresholds(flatModel, model, dataName, covNames, threshName)
+		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
 		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-		retval <- generateThresholdColumns(flatModel, model, covNames, dataName, threshName)
+		retval <- generateThresholdColumns(flatModel, model, labelsData, covNames, dataName, threshName)
 		.Object@thresholdColumns <- retval[[1]] 
 		.Object@thresholdLevels <- retval[[2]]
 		if (length(mxDataObject@observed) == 0) {

@@ -247,7 +247,7 @@ checkLISRELmeans <- function(Lam, ManMean, LatMean, X, modelname){
 # **DONE**
 # Note: Lots of error checking is done in this method
 setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"), 
-	function(.Object, flatModel, model, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		lxMatrix <- .Object@LX
@@ -467,9 +467,9 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 			checkNumberOrdinalColumns(mxDataObject)
 			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-			verifyThresholds(flatModel, model, data, translatedNames, threshName)
+			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-			retval <- generateThresholdColumns(flatModel, model, translatedNames, data, threshName)
+			retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
 			.Object@thresholdColumns <- retval[[1]]
 			.Object@thresholdLevels <- retval[[2]]
 			if (length(mxDataObject@observed) == 0) {

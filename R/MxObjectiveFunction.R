@@ -32,7 +32,7 @@ setGeneric("genericObjFunNamespace",
 })
 
 setGeneric("genericObjFunConvert", 
-	function(.Object, flatModel, model, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars) {
 	return(standardGeneric("genericObjFunConvert"))	
 })
 
@@ -112,10 +112,8 @@ setMethod("genericObjRename", "NULL",
 		return(NULL)
 })
 
-convertObjectives <- function(flatModel, model, defVars) {
-	retval <- lapply(flatModel@objectives, function(x) {
-		genericObjFunConvert(x, flatModel, model, defVars)
-	})
+convertObjectives <- function(flatModel, model, labelsData, defVars) {
+	retval <- lapply(flatModel@objectives, genericObjFunConvert, flatModel, model, labelsData, defVars)
 	return(retval)
 }
 

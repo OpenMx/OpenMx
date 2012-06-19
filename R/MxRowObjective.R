@@ -96,7 +96,7 @@ setMethod("genericObjRename", signature("MxRowObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxRowObjective"), 
-	function(.Object, flatModel, model, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		dataName <- .Object@data 

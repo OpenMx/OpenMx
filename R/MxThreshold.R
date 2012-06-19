@@ -13,15 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-generateThresholdColumns <- function(flatModel, model, covarianceColumnNames, dataName, threshName) {
+generateThresholdColumns <- function(flatModel, model, labelsData, covarianceColumnNames, dataName, threshName) {
 	covarianceLength <- length(covarianceColumnNames)
 	thresholdColumns <- replicate(covarianceLength, as.integer(NA))
 	thresholdLevels <- replicate(covarianceLength, as.integer(NA))
 	if (single.na(threshName)) {
 		return(list(thresholdColumns, thresholdLevels))
 	}
-	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
-		list(x = as.symbol(threshName))))
+
+	tuple <- evaluateMxObject(threshName, flatModel, labelsData, list())
+	thresholds <- tuple[[1]]
+
 	thresholdColumnNames <- dimnames(thresholds)[[2]]
 	datasource <- flatModel@datasets[[dataName]]@observed
 	for(i in 1:length(thresholdColumnNames)) {
@@ -34,7 +36,7 @@ generateThresholdColumns <- function(flatModel, model, covarianceColumnNames, da
 	return(list(thresholdColumns, thresholdLevels))
 }
 
-verifyThresholds <- function(flatModel, model, dataName, covNames, threshName) {
+verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, threshName) {
 	if (single.na(threshName)) {
 		return()
 	}
@@ -50,8 +52,8 @@ verifyThresholds <- function(flatModel, model, dataName, covNames, threshName) {
 			"for model", omxQuotes(modelName), 
 			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 	}
-	thresholds <- eval(substitute(mxEval(x, model, compute=TRUE),
-		list(x = as.symbol(threshName))))
+	tuple <- evaluateMxObject(threshName, flatModel, labelsData, list())
+	thresholds <- tuple[[1]]
 	observed <- flatModel@datasets[[dataName]]@observed
 	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
 		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), "for model", 
