@@ -180,8 +180,8 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxUpdateState(parentState->childList[i], parentState, TRUE);
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
