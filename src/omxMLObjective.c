@@ -300,6 +300,14 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 
 void omxUpdateChildMLObjective(omxObjective* tgt, omxObjective* src) {
 
+	omxMLObjective* tgtML = (omxMLObjective*)(tgt->argStruct);
+	omxMLObjective* srcML = (omxMLObjective*)(src->argStruct);
+
+	omxUpdateMatrix(tgtML->expectedCov, srcML->expectedCov);
+	if (tgtML->expectedMeans && srcML->expectedMeans) {
+		omxUpdateMatrix(tgtML->expectedMeans, srcML->expectedMeans);	
+	}
+
 	if (tgt->subObjective != NULL) {
 		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}

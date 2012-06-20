@@ -184,6 +184,8 @@ struct omxState {													// The Current State of Optimization
 	void omxFreeState(omxState *state);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus);	// Updates the tgt state with the contents of src state
+	void omxPartialUpdateState(omxState* tgt, omxState* src, omxMatrix *tgtMatrix,
+                               omxMatrix *srcMatrix, int copyStatus);    // Updates the tgt state with the contents of src state ONLY for the specific matrix and its dependencies
 	void omxDuplicateState(omxState *tgt, omxState* src); 
 	int omxTotalThreadCount(omxState *state);
                                                                         // Duplicates the current state object

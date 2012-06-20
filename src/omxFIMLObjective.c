@@ -227,8 +227,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxUpdateState(parentState->childList[i], parentState, TRUE);
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIterationJoint(childObjective, oo, stride * i, data->rows - stride * i);
@@ -314,8 +314,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxUpdateState(parentState->childList[i], parentState, TRUE);
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
@@ -414,8 +414,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxUpdateState(parentState->childList[i], parentState, TRUE);
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
@@ -499,17 +499,18 @@ void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
 		memcpy(tgtFIML->corList, srcFIML->corList, 
 			(sizeof(double) / 2) * (numCols * (numCols + 1)));
 
-		/* Updating the child thresholdCols matrix appears to
-         * be unecessary.
-         *
-		 * for(int index = 0; index < numCols; index++) {
-		 *	if (tgtFIML->thresholdCols[index].matrix != NULL) {
-		 *		omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
-		 *						srcFIML->thresholdCols[index].matrix);
-		 *		break;
-		 *	}
-		 * }
-		 */
+		for(int index = 0; index < numCols; index++) {
+			if (tgtFIML->thresholdCols[index].matrix != NULL) {
+				omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
+								srcFIML->thresholdCols[index].matrix);
+				break;
+			}
+		}		 
+	}
+
+	omxUpdateMatrix(tgtFIML->cov, srcFIML->cov);
+	if (tgtFIML->means && srcFIML->means) {
+		omxUpdateMatrix(tgtFIML->means, srcFIML->means);	
 	}
 
 	if (tgt->subObjective != NULL) {

@@ -92,6 +92,22 @@
 		}
 	}
 
+	void omxPartialUpdateState(omxState* tgt, omxState* src, omxMatrix *tgtMatrix,
+                               omxMatrix *srcMatrix, int copyStatus) {
+		tgt->computeCount   = src->computeCount;
+		tgt->currentRow     = src->currentRow;
+		tgt->optimalValues  = src->optimalValues;
+		tgt->majorIteration = src->majorIteration;
+		tgt->minorIteration = src->minorIteration;
+
+		if (copyStatus) {
+			tgt->statusCode = src->statusCode;
+		}
+
+		omxUpdateMatrix(tgtMatrix, srcMatrix);
+
+	}
+
 	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus) {
 		tgt->computeCount   = src->computeCount;
 		tgt->currentRow     = src->currentRow;
