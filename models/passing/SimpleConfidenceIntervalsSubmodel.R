@@ -94,7 +94,7 @@ twinACEModel <- mxModel("twinACE",
 								cbind(0.5%x%A+C , A+C+E)), 
 			name="expCovDZ"
 		),
-    	mxCI(c("A", "C[,]", "E[1,1]"))
+		mxCI(c("A", "C[,]", "E[1,1]"))
 	),
 	mxModel("MZ",
 	    mxData(
