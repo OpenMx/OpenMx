@@ -57,13 +57,7 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, o
         }
         for(int eqn = 0; eqn < numArgs; eqn++) {
             omxMatrix* thisResult = result[eqn][param];
-            for(int j = 0; j < thisResult->rows; j++) {
-                for(int k = 0; k < j && k < thisResult->cols; k++) {
-                    omxSetMatrixElement(thisResult, j, k, 0.0);
-                    omxSetMatrixElement(thisResult, k, j, 0.0);
-                }
-                omxSetMatrixElement(thisResult, j, j, 0.0);
-            }
+            memset(thisResult->data, 0, sizeof(double) * thisResult->cols * thisResult->rows);
             for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
                 if(~var.matrices[varLoc] == matNum) {
                     sliceCrossUpdate(A[eqn], B[eqn], var.row[varLoc], var.col[varLoc], thisResult);
@@ -76,10 +70,29 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, o
 void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result) {
     // Performs outer multiply of column col of A by row row of B.
     // Adds product to beta * result.
+    int nrow = A->rows;
+    int ncol = B->cols;
+    int resultrows = result->rows;
+    int brows = B->rows;
 
-    for(int j = 0; j < A->rows; j++) {
-        for(int k = 0; k < B->cols; k++) {
-            omxSetMatrixElement(result, j, k, omxMatrixElement(A, j, row) * omxMatrixElement(B, col, k) + omxMatrixElement(result, j, k));
+    if (A->colMajor && B->colMajor && result->colMajor) {
+        int aoffset = row * nrow;
+        double* Adata = A->data;
+        double* Bdata = B->data;
+        double* resdata = result->data;
+
+        for(int k = 0; k < ncol; k++) {
+            int offset = k * resultrows;
+            double factor = Bdata[k * brows + col];
+            for(int j = 0; j < nrow; j++) {
+                resdata[offset + j] += Adata[aoffset + j] * factor;
+            }
+        }
+    } else {
+        for(int k = 0; k < ncol; k++) {
+            for(int j = 0; j < nrow; j++) {
+                omxAccumulateMatrixElement(result, j, k, omxMatrixElement(A, j, row) * omxMatrixElement(B, col, k));
+            }
         }
     }
 }

@@ -171,6 +171,20 @@ static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, doubl
 	om->data[index] = value;
 }
 
+static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col, double value) {
+        if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+                setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
+                return;
+        }
+        int index = 0;
+        if(om->colMajor) {
+                index = col * om->rows + row;
+        } else {
+                index = row * om->cols + col;
+        }
+        om->data[index] += value;
+}
+
 static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
