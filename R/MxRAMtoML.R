@@ -78,19 +78,30 @@ convertRAMtoMLModel <- function(model, job, namespace) {
 	dataset <- job[[modelname]]@data
 	if (dataset@type == 'raw') {
 		objectiveType <- as.symbol('mxFIMLObjective')
+		if (is.na(mName)) {
+			objective <- eval(substitute(obj(covariance = x, 
+				thresholds = z, vector = w, dimnames = u),
+				list(x = covName, z = objective@thresholds, 
+					w = objective@vector, u = translatedNames, obj = objectiveType)))
+		} else {
+			objective <- eval(substitute(obj(covariance = x, 
+				means = y, thresholds = z, vector = w, dimnames = u),
+				list(x = covName, y = meansName, z = objective@thresholds, 
+					w = objective@vector, u = translatedNames, obj = objectiveType)))
+		}
 	} else {
 		objectiveType <- as.symbol('mxMLObjective')		
-	}
-	if (is.na(mName)) {
-		objective <- eval(substitute(obj(covariance = x, 
-			thresholds = z, vector = w, dimnames = u),
-			list(x = covName, z = objective@thresholds, 
-				w = objective@vector, u = translatedNames, obj = objectiveType)))
-	} else {
-		objective <- eval(substitute(obj(covariance = x, 
-			means = y, thresholds = z, vector = w, dimnames = u),
-			list(x = covName, y = meansName, z = objective@thresholds, 
-				w = objective@vector, u = translatedNames, obj = objectiveType)))
+		if (is.na(mName)) {
+			objective <- eval(substitute(obj(covariance = x, 
+				thresholds = z, dimnames = u),
+				list(x = covName, z = objective@thresholds, 
+					u = translatedNames, obj = objectiveType)))
+		} else {
+			objective <- eval(substitute(obj(covariance = x, 
+				means = y, thresholds = z, dimnames = u),
+				list(x = covName, y = meansName, z = objective@thresholds, 
+					u = translatedNames, obj = objectiveType)))
+		}
 	}
     model@objective <- objective
     class(model) <- 'MxModel'
