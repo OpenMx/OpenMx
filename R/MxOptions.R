@@ -103,7 +103,7 @@ npsolOptions <- list(
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
-	"Analytic Gradients" = "No",
+	"Analytic Gradients" = "Yes",
 	"Number of Threads" = 0
 )
 

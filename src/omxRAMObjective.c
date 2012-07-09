@@ -25,7 +25,8 @@ void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* r
 void fastRAMGradientML(omxObjective* oo, double* result);
 
 // Speedup Helper
-void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, omxFreeVar* varList, 
+void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
+        int matNum, omxFreeVar* varList, 
         int* pNums, int nParam, omxMatrix*** result) {
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
     // Also populates the matrices called D if it appears.
@@ -34,7 +35,6 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, o
 
     omxFreeVar var;
     int paramNo;
-    omxMatrix *thisD;
 
     for(int param = 0; param < nParam; param++) {
         if(pNums != NULL) {
@@ -46,14 +46,17 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int matNum, o
 
         // Set D
         if(D != NULL) {
-            thisD = D[param];
+            int nonzero = 0;
+            omxMatrix *thisD = D[param];
             memset(thisD->data, 0, sizeof(double) * thisD->cols * thisD->rows);
             // Honestly, this should be calculated only once.
             for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
                 if(~var.matrices[varLoc] == matNum) {
                     omxSetMatrixElement(thisD, var.row[varLoc], var.col[varLoc], 1.0);
+                    nonzero++;
                 }
             }
+            Dcounts[param] = nonzero;
         }
         for(int eqn = 0; eqn < numArgs; eqn++) {
             omxMatrix* thisResult = result[eqn][param];
@@ -642,6 +645,10 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     omxMatrix** dSdts = oro->dSdts;
     omxMatrix** dMdts = oro->dMdts;
     
+    int* dAdtsCount = oro->dAdtsCount;
+    int* dSdtsCount = oro->dSdtsCount;
+    int* dMdtsCount = oro->dMdtsCount;
+
     omxMatrix*** eqnOuts = oro->eqnOuts;
     
     omxMatrix* tempVec = oro->tempVec;
@@ -711,6 +718,9 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         oro->dAdts = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
         oro->dSdts = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
         oro->dMdts = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
+        oro->dAdtsCount = (int*) R_alloc(nParam, sizeof(int));
+        oro->dSdtsCount = (int*) R_alloc(nParam, sizeof(int));
+        oro->dMdtsCount = (int*) R_alloc(nParam, sizeof(int));
         
         oro->eqnOuts = (omxMatrix***) R_alloc(1, sizeof(omxMatrix**));
         oro->eqnOuts[0] = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
@@ -729,6 +739,9 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         dAdts = oro->dAdts;
         dSdts = oro->dSdts;
         dMdts = oro->dMdts;
+        dAdtsCount = oro->dAdtsCount;
+        dSdtsCount = oro->dSdtsCount;
+        dMdtsCount = oro->dMdtsCount;
         
         eqnOuts = oro->eqnOuts;
     }
@@ -822,7 +835,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     
     eqnList1[0] = eCovB;
     eqnList2[0] = ZSBC;
-    ADB(eqnList1, eqnList2, 1, dAdts, Amat, varList, pNums, nParam, eqnOuts);
+    ADB(eqnList1, eqnList2, 1, dAdts, dAdtsCount, Amat, varList, pNums, nParam, eqnOuts);
     omxMatrixTrace(eqnOuts[0], nParam, paramVec);
     
     for(int i = 0; i < nParam; i++)
@@ -832,7 +845,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     //      1C) eqnList2 = ADB(eCovB, dSdt, BC)
     eqnList1[0] = eCovB;
     eqnList2[0] = BC;
-    ADB(eqnList1, eqnList2, 1, dSdts, Smat, varList, pNums, nParam, eqnOuts);
+    ADB(eqnList1, eqnList2, 1, dSdts, dSdtsCount, Smat, varList, pNums, nParam, eqnOuts);
     omxMatrixTrace(eqnOuts[0], nParam, paramVec);
 
     //      2) sum = eqnList1 + eqnList2
@@ -842,33 +855,46 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     //      If Means:
 
         //          Just populate dMdts
-        ADB(NULL, NULL, 0, dMdts, Mmat, varList, pNums, nParam, NULL);
+        ADB(NULL, NULL, 0, dMdts, dMdtsCount, Mmat, varList, pNums, nParam, NULL);
 
         //  This needs to be done one-per-param.
         //  Parallelize here.
         for(int pNum = 0; pNum < nParam; pNum++) {
-            //          3) sumVec = beCovB dAdt ZS (1xa)
-            omxDGEMV(TRUE, 1.0, dAdts[pNum], bCB, 0.0, tempVec);
-            omxDGEMV(TRUE, 1.0, ZS, tempVec, 0.0, bigSum);
-            // Term with dSigma/dTheta
-            //          4) sumVec += beCovB ZS dAdt (1xa)
-            omxDGEMV(TRUE, 1.0, ZS, bCB, 0.0, tempVec);
-            omxDGEMV(TRUE, 1.0, dAdts[pNum], tempVec, 1.0, bigSum);
 
-            //          5) sumVec += beCovB dSdt (1xa)
-            omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 1.0, bigSum);
-
+            if (dAdtsCount[pNum] > 0) {
+                //          3) sumVec = beCovB dAdt ZS (1xa)
+                omxDGEMV(TRUE, 1.0, dAdts[pNum], bCB, 0.0, tempVec);
+                omxDGEMV(TRUE, 1.0, ZS, tempVec, 0.0, bigSum);
+                // Term with dSigma/dTheta
+                //          4) sumVec += beCovB ZS dAdt (1xa)
+                omxDGEMV(TRUE, 1.0, ZS, bCB, 0.0, tempVec);
+                omxDGEMV(TRUE, 1.0, dAdts[pNum], tempVec, 1.0, bigSum);
+                if (dSdtsCount[pNum] > 0) {
+                     //          5) sumVec += beCovB dSdt (1xa)
+                     omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 1.0, bigSum);
+                }
+            } else if (dSdtsCount[pNum] > 0) {
+                     //          5) sumVec = beCovB dSdt (1xa)
+                     omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 0.0, bigSum);
+            } else {
+                memset(bigSum->data, 0, sizeof(double) * bigSum->rows * bigSum->cols);
+            }
+ 
             //          6) sumVec *= B^T --> 1xf
             omxDGEMV(FALSE, 1.0, B, bigSum, 0.0, lilSum);
 
             // Factorizing dMudt
             //          7) sumVec += 2 * B dAdt ZM (1xa)
             //              Note: in the paper, expected manifest means are Bm
-            omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
-            omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
+            if (dAdtsCount[pNum] > 0) {
+                omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
+                omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
+            }
 
             //          8) sumVec += 2 * B dMdt (1xf)
-            omxDGEMV(FALSE, 2.0, B, dMdts[pNum], 1.0, lilSum); // :::DEBUG::: <-- Save B %*% dM
+            if (dMdtsCount[pNum] > 0) {
+                omxDGEMV(FALSE, 2.0, B, dMdts[pNum], 1.0, lilSum); // :::DEBUG::: <-- Save B %*% dM
+            }
 
             //          9) sum = sumVec beCov (1x1)
             int len = lilSum->rows * lilSum->cols;

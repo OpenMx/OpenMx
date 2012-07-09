@@ -27,6 +27,12 @@ typedef struct {
     // For gradients
     omxMatrix ***eqnOuts;
     omxMatrix **dAdts, **dSdts, **dMdts;
+
+    // Each vector keeps track of the number
+    // of non-zero elements in the 
+    // corresponding dXdts matrix.
+    int *dAdtsCount, *dSdtsCount, *dMdtsCount;
+
     omxMatrix *tempVec, *bigSum, *lilSum;
 
     int *pNums, nParam; // For Fast Gradient/Hessian Computation
