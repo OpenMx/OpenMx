@@ -1080,7 +1080,6 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Trace.\n");}
 
 	/* Consistency check: */
@@ -1089,33 +1088,23 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
     for(int i = 0; i < numArgs; i++) {
+    	double trace = 0.0;
     	omxMatrix* inMat = matList[i];
+        double* values = inMat->data;
+        int nrow  = inMat->rows;
+        int ncol  = inMat->cols;
 
-    	if(inMat->rows != inMat->cols) {
+    	if(nrow != ncol) {
     		char *errstr = Calloc(250, char);
     		sprintf(errstr, "Non-square matrix in Trace().\n");
     		omxRaiseError(result->currentState, -1, errstr);
     		Free(errstr);
+            return;
     	}
-
-    	double trace = 0.0;
-    	float min = 10E20;
-    	float max = 0.0;
 
     	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
-    	for(int j = 0; j < inMat->rows; j++) {
-    		float thisElement = omxMatrixElement(inMat, j, j);
-    		if(fabs(min) > fabs(thisElement)) min = thisElement;
-    		if(fabs(max) < fabs(thisElement)) max = thisElement;
-    		trace += omxMatrixElement(inMat, j, j);
-    	}
-
-    	if(fabs(max/min) > 10E10) {
-    		// TODO: Warn or sort-and-sum if numerical instability shows up.
-    		// char errstr[250];
-    		// sprintf(errstr, "Matrix trace() may be numerically unstable.\n");
-    		// omxRaiseError(result->currentState, -1, errstr);
-    	}
+        for(int j = 0; j < nrow; j++)
+           trace += values[j * nrow + j];
 
     	omxSetVectorElement(result, i, trace);
 	}
