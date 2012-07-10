@@ -33,6 +33,10 @@ typedef struct {
     // corresponding dXdts matrix.
     int *dAdtsCount, *dSdtsCount, *dMdtsCount;
 
+    int *dAdtsRowCache, *dAdtsColCache;
+    int *dSdtsRowCache, *dSdtsColCache;
+    int *dMdtsRowCache, *dMdtsColCache;
+
     omxMatrix *tempVec, *bigSum, *lilSum;
 
     int *pNums, nParam; // For Fast Gradient/Hessian Computation

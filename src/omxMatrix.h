@@ -199,6 +199,15 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	return om->data[index];
 }
 
+static OMXINLINE void omxAccumulateVectorElement(omxMatrix *om, int index, double value) {
+	if (index < 0 || index >= (om->rows * om->cols)) {
+		setVectorError(index + 1, om->rows, om->cols);
+		return;
+	} else {
+		om->data[index] += value;
+    }
+}
+
 static OMXINLINE void omxSetVectorElement(omxMatrix *om, int index, double value) {
 	if (index < 0 || index >= (om->rows * om->cols)) {
 		setVectorError(index + 1, om->rows, om->cols);

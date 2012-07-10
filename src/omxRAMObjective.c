@@ -26,7 +26,7 @@ void fastRAMGradientML(omxObjective* oo, double* result);
 
 // Speedup Helper
 void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
-        int matNum, omxFreeVar* varList, 
+        int *DrowCache, int *DcolCache, int matNum, omxFreeVar* varList, 
         int* pNums, int nParam, omxMatrix*** result) {
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
     // Also populates the matrices called D if it appears.
@@ -53,6 +53,8 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts,
             for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
                 if(~var.matrices[varLoc] == matNum) {
                     omxSetMatrixElement(thisD, var.row[varLoc], var.col[varLoc], 1.0);
+                    if (DrowCache != NULL) DrowCache[param] = var.row[varLoc];
+                    if (DcolCache != NULL) DcolCache[param] = var.col[varLoc];
                     nonzero++;
                 }
             }
@@ -94,7 +96,8 @@ void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* r
     } else {
         for(int k = 0; k < ncol; k++) {
             for(int j = 0; j < nrow; j++) {
-                omxAccumulateMatrixElement(result, j, k, omxMatrixElement(A, j, row) * omxMatrixElement(B, col, k));
+                omxAccumulateMatrixElement(result, j, k, 
+                    omxMatrixElement(A, j, row) * omxMatrixElement(B, col, k));
             }
         }
     }
@@ -559,6 +562,16 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
     }
 }
 
+static inline void omxVectorMultiplyAndSet(double *restrict dest, 
+                                           double *restrict src, 
+                                           int len, double value) {
+
+    for(int offset = 0; offset < len; offset++)
+        dest[offset] = src[offset] * value;
+
+}
+
+
 
 /*
  * fastRAMGradientML
@@ -649,6 +662,13 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     int* dSdtsCount = oro->dSdtsCount;
     int* dMdtsCount = oro->dMdtsCount;
 
+    int* dAdtsRowCache = oro->dAdtsRowCache;
+    int* dAdtsColCache = oro->dAdtsColCache;
+    int* dSdtsRowCache = oro->dSdtsRowCache;
+    int* dSdtsColCache = oro->dSdtsColCache;
+    int* dMdtsRowCache = oro->dMdtsRowCache;
+    int* dMdtsColCache = oro->dMdtsColCache;
+
     omxMatrix*** eqnOuts = oro->eqnOuts;
     
     omxMatrix* tempVec = oro->tempVec;
@@ -722,6 +742,13 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         oro->dSdtsCount = (int*) R_alloc(nParam, sizeof(int));
         oro->dMdtsCount = (int*) R_alloc(nParam, sizeof(int));
         
+        oro->dAdtsRowCache = (int*) R_alloc(nParam, sizeof(int));
+        oro->dAdtsColCache = (int*) R_alloc(nParam, sizeof(int));
+        oro->dSdtsRowCache = (int*) R_alloc(nParam, sizeof(int));
+        oro->dSdtsColCache = (int*) R_alloc(nParam, sizeof(int));
+        oro->dMdtsRowCache = (int*) R_alloc(nParam, sizeof(int));
+        oro->dMdtsColCache = (int*) R_alloc(nParam, sizeof(int));
+
         oro->eqnOuts = (omxMatrix***) R_alloc(1, sizeof(omxMatrix**));
         oro->eqnOuts[0] = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
         
@@ -743,6 +770,13 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         dSdtsCount = oro->dSdtsCount;
         dMdtsCount = oro->dMdtsCount;
         
+        dAdtsRowCache = oro->dAdtsRowCache;
+        dAdtsColCache = oro->dAdtsColCache;
+        dSdtsRowCache = oro->dSdtsRowCache;
+        dSdtsColCache = oro->dSdtsColCache;
+        dMdtsRowCache = oro->dMdtsRowCache;
+        dMdtsColCache = oro->dMdtsColCache;
+
         eqnOuts = oro->eqnOuts;
     }
 
@@ -835,7 +869,8 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     
     eqnList1[0] = eCovB;
     eqnList2[0] = ZSBC;
-    ADB(eqnList1, eqnList2, 1, dAdts, dAdtsCount, Amat, varList, pNums, nParam, eqnOuts);
+    ADB(eqnList1, eqnList2, 1, dAdts, dAdtsCount, dAdtsRowCache, dAdtsColCache, 
+        Amat, varList, pNums, nParam, eqnOuts);
     omxMatrixTrace(eqnOuts[0], nParam, paramVec);
     
     for(int i = 0; i < nParam; i++)
@@ -845,39 +880,83 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     //      1C) eqnList2 = ADB(eCovB, dSdt, BC)
     eqnList1[0] = eCovB;
     eqnList2[0] = BC;
-    ADB(eqnList1, eqnList2, 1, dSdts, dSdtsCount, Smat, varList, pNums, nParam, eqnOuts);
+    ADB(eqnList1, eqnList2, 1, dSdts, dSdtsCount, dSdtsRowCache, dSdtsColCache, 
+        Smat, varList, pNums, nParam, eqnOuts);
     omxMatrixTrace(eqnOuts[0], nParam, paramVec);
 
     //      2) sum = eqnList1 + eqnList2
     F77_CALL(daxpy)(&nParam, &oned, paramVec->data, &onei, covInfluence, &onei);
 
-    if(M != NULL) {
     //      If Means:
+    if(M != NULL) {
 
-        //          Just populate dMdts
-        ADB(NULL, NULL, 0, dMdts, dMdtsCount, Mmat, varList, pNums, nParam, NULL);
+        //      Just populate dMdts
+        ADB(NULL, NULL, 0, dMdts, dMdtsCount, dMdtsRowCache, dMdtsColCache,
+            Mmat, varList, pNums, nParam, NULL);
 
         //  This needs to be done one-per-param.
         //  Parallelize here.
         for(int pNum = 0; pNum < nParam; pNum++) {
 
-            if (dAdtsCount[pNum] > 0) {
-                //          3) sumVec = beCovB dAdt ZS (1xa)
-                omxDGEMV(TRUE, 1.0, dAdts[pNum], bCB, 0.0, tempVec);
-                omxDGEMV(TRUE, 1.0, ZS, tempVec, 0.0, bigSum);
-                // Term with dSigma/dTheta
-                //          4) sumVec += beCovB ZS dAdt (1xa)
-                omxDGEMV(TRUE, 1.0, ZS, bCB, 0.0, tempVec);
-                omxDGEMV(TRUE, 1.0, dAdts[pNum], tempVec, 1.0, bigSum);
-                if (dSdtsCount[pNum] > 0) {
-                     //          5) sumVec += beCovB dSdt (1xa)
-                     omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 1.0, bigSum);
+            switch(dAdtsCount[pNum]) {
+                case 0:
+                    switch(dSdtsCount[pNum]) {
+                        case 0:
+                            memset(bigSum->data, 0, sizeof(double) * bigSum->rows);
+                            break;
+                        case 1:
+                        {
+                            int rowCache = dSdtsRowCache[pNum];
+                            int colCache = dSdtsColCache[pNum];
+                            memset(bigSum->data, 0, sizeof(double) * bigSum->rows);
+                            bigSum->data[colCache] = bCB->data[rowCache];                            
+                            break;
+                        }
+                        default:
+                            // 5) sumVec = beCovB dSdt (1xa)
+                            omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 0.0, bigSum);
+                    }
+                    break;
+                case 1:
+                {
+                    int rowCache = dAdtsRowCache[pNum];
+                    int colCache = dAdtsColCache[pNum];
+                    double value = bCB->data[rowCache];
+
+                    int len = bCB->rows;
+                    int nrow = ZS->rows;
+                    int ncol = ZS->cols;
+
+                    if (ZS->colMajor) 
+                        for(int offset = 0; offset < len; offset++)
+                            bigSum->data[offset] = ZS->data[offset * nrow + colCache] * value;
+                    else
+                        for(int offset = 0; offset < len; offset++)
+                            bigSum->data[offset] = ZS->data[colCache * ncol + offset] * value;
+
+                    // Term with dSigma/dTheta
+                    //          4) sumVec += beCovB ZS dAdt (1xa)
+                    omxDGEMV(TRUE, 1.0, ZS, bCB, 0.0, tempVec);
+                    bigSum->data[colCache] += tempVec->data[rowCache];
+
+                    if (dSdtsCount[pNum]) {
+                        //  5) sumVec = beCovB dSdt (1xa)
+                        omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 1.0, bigSum);
+                    }               
+                    break;
                 }
-            } else if (dSdtsCount[pNum] > 0) {
-                     //          5) sumVec = beCovB dSdt (1xa)
-                     omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 0.0, bigSum);
-            } else {
-                memset(bigSum->data, 0, sizeof(double) * bigSum->rows * bigSum->cols);
+                default:
+                    //          3) sumVec = beCovB dAdt ZS (1xa)
+                    omxDGEMV(TRUE, 1.0, dAdts[pNum], bCB, 0.0, tempVec);
+                    omxDGEMV(TRUE, 1.0, ZS, tempVec, 0.0, bigSum);
+                    // Term with dSigma/dTheta
+                    //          4) sumVec += beCovB ZS dAdt (1xa)
+                    omxDGEMV(TRUE, 1.0, ZS, bCB, 0.0, tempVec);
+                    omxDGEMV(TRUE, 1.0, dAdts[pNum], tempVec, 1.0, bigSum);
+                    if (dSdtsCount[pNum]) {
+                        //  5) sumVec = beCovB dSdt (1xa)
+                        omxDGEMV(TRUE, 1.0, dSdts[pNum], bCB, 1.0, bigSum);
+                    }
             }
  
             //          6) sumVec *= B^T --> 1xf
@@ -886,14 +965,34 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
             // Factorizing dMudt
             //          7) sumVec += 2 * B dAdt ZM (1xa)
             //              Note: in the paper, expected manifest means are Bm
-            if (dAdtsCount[pNum] > 0) {
-                omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
-                omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
+            switch(dAdtsCount[pNum]) {
+                case 0:
+                    break;
+                case 1:
+                default:
+                    omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
+                    omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
             }
 
             //          8) sumVec += 2 * B dMdt (1xf)
-            if (dMdtsCount[pNum] > 0) {
-                omxDGEMV(FALSE, 2.0, B, dMdts[pNum], 1.0, lilSum); // :::DEBUG::: <-- Save B %*% dM
+            switch(dMdtsCount[pNum]) {
+                case 0:
+                    break;
+                case 1: 
+                {
+                    int moffset, boffset, nrow;
+
+                    moffset = dMdtsColCache[pNum];
+                    nrow = B->rows;
+                    boffset = moffset * nrow;
+
+                    for(int row = 0; row < nrow; row++)
+                        lilSum->data[row] += 2.0 * B->data[boffset + row];
+
+                    break;
+                }
+                default:
+                    omxDGEMV(FALSE, 2.0, B, dMdts[pNum], 1.0, lilSum); // :::DEBUG::: <-- Save B %*% dM
             }
 
             //          9) sum = sumVec beCov (1x1)
