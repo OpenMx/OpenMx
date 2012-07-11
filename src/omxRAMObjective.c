@@ -969,6 +969,24 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
                 case 0:
                     break;
                 case 1:
+                {
+                    int rowCache = dAdtsRowCache[pNum];
+                    int colCache = dAdtsColCache[pNum];
+                    double value = ZM->data[colCache];
+
+                    int len = B->rows;
+                    int nrow = B->rows;
+                    int ncol = B->cols;
+
+                    if (B->colMajor) 
+                        for(int offset = 0; offset < len; offset++)
+                            lilSum->data[offset] += 2.0 * B->data[rowCache * nrow + offset] * value;
+                    else
+                        for(int offset = 0; offset < len; offset++)
+                            lilSum->data[offset] += 2.0 * B->data[offset * ncol + rowCache] * value;
+
+                    break;
+                }
                 default:
                     omxDGEMV(FALSE, 1.0, dAdts[pNum], ZM, 0.0, tempVec);
                     omxDGEMV(FALSE, 2.0, B, tempVec, 1.0, lilSum); // :::DEBUG:::<-- Save B %*% tempVec
