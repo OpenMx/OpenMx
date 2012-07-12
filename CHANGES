@@ -16,6 +16,7 @@ trunk
 * fixed several memory leaks
 * improved error messages in mxOption()
 * bugfix to omxRAMtoML() when input model has covariance data
+* implemented cov2cor in the OpenMx backend
 
 Release 1.2.3-2011 (April 10, 2012)
 ===================================

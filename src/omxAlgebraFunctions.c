@@ -2467,6 +2467,55 @@ void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
     return;
 }
 
+void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+
+    omxMatrix* inMat = matList[0];
+    int rows = inMat->rows;
+
+	omxMatrix* intermediate;
+
+    if(inMat->rows != inMat->cols) {
+        char *errstr = Calloc(250, char);
+        sprintf(errstr, "cov2cor of non-square matrix cannot even be attempted\n");
+        omxRaiseError(result->currentState, -1, errstr);
+        Free(errstr);
+	}
+
+	if(result->rows != rows || result->cols != rows) {
+        if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: cov2cor resizing result.\n");}
+        omxResizeMatrix(result, rows, rows, FALSE);
+	}
+
+    intermediate = omxInitTemporaryMatrix(NULL, 1, rows, TRUE, inMat->currentState);
+
+    for(int i = 0; i < rows; i++) {
+        intermediate->data[i] = sqrt(1.0 / omxMatrixElement(inMat, i, i));
+    }
+
+    if (inMat->colMajor) {
+        for(int col = 0; col < rows; col++) {
+            for(int row = 0; row < rows; row++) {
+                result->data[col * rows + row] = inMat->data[col * rows + row] * 
+                    intermediate->data[row] * intermediate->data[col];
+            }
+        }
+    } else {
+        for(int col = 0; col < rows; col++) {
+            for(int row = 0; row < rows; row++) {
+                result->data[col * rows + row] = inMat->data[row * rows + col] * 
+                    intermediate->data[row] * intermediate->data[col];
+            }
+        }
+    }
+
+    for(int i = 0; i < rows; i++) {
+        result->data[i * rows + i] = 1.0;
+    }
+
+    omxFreeAllMatrixData(intermediate);
+}
+
 void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
