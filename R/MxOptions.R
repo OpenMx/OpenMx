@@ -14,19 +14,6 @@
 #   limitations under the License.
 
 mxOption <- function(model, key, value, reset = FALSE) {
-    if (length(model) == 0 && is.null(model)) {
-        return(processDefaultOptionList(key, value, reset))
-    }
-	if (length(model) > 1 || !is(model, "MxModel")) {
-		stop("argument 'model' must be an MxModel object")
-	}
-	if (length(reset) != 1 || !is.logical(reset)) {
-		stop("argument 'reset' must be TRUE or FALSE")
-	}
-	if (reset) {
-		model@options <- list()
-		return(model)
-	}
 	if (length(key) != 1 || !is.character(key)) {
 		stop("argument 'key' must be a character string")
 	}
@@ -34,7 +21,34 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
 			"You gave me an object of length", length(value))
 		stop(msg)
-	}	
+	}
+	if (length(reset) != 1 || !is.logical(reset)) {
+		stop("argument 'reset' must be TRUE or FALSE")
+	}
+	if (key == "Major iterations" && typeof(value) == "closure") {
+		args <- formals(value)
+		if (length(args) != 2) {
+			msg <- paste("The function provided to the option 'Major iterations'",
+				"must have exactly 2 arguments but you have provided",
+				"a function with", length(args), "arguments.")
+			stop(msg)
+		}
+		if (!single.na(match("...", names(args)))) {
+			msg <- paste("You have provided a function to the option 'Major iterations'",
+				"that uses the '...' argument.")
+			stop(msg)
+		}
+	}
+    if (length(model) == 0 && is.null(model)) {
+        return(processDefaultOptionList(key, value, reset))
+    }
+	if (length(model) > 1 || !is(model, "MxModel")) {
+		stop("argument 'model' must be an MxModel object")
+	}
+	if (reset) {
+		model@options <- list()
+		return(model)
+	}
 	optionsNames <- names(getOption('mxOptions'))
 	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
 		ignore.case=TRUE)
@@ -54,15 +68,6 @@ mxOption <- function(model, key, value, reset = FALSE) {
 }
 
 processDefaultOptionList <- function(key, value, reset) {
-	if (length(reset) != 1 || !is.logical(reset)) {
-		stop("argument 'reset' must be TRUE or FALSE")
-	}
-	if (length(key) != 1 || !is.character(key)) {
-		stop("argument 'key' must be a character string")
-	}
-	if (length(value) != 1) {
-		stop("argument 'value' must be of length 1")
-	}
 	defaultOptions <- getOption('mxOptions')
 	optionsNames <- names(defaultOptions)
 	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
@@ -95,7 +100,7 @@ npsolOptions <- list(
 	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "1.0e-05",
 	"Optimality tolerance" = as.character(1e-14 ^ 0.8),
-	"Major iterations" = "1000",
+	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
 	"Verify level" = "3",
 	"Line search tolerance" = "0.3",
 	"Derivative level" = "0",
@@ -127,7 +132,7 @@ otherOptions <- list(
 	"UsePPML" = "No"
 )
 
-generateOptionsList <- function(model, constraints, useOptimizer) {
+generateOptionsList <- function(model, parameters, constraints, useOptimizer) {
 	input <- model@options
 	if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
 		input[["Standard Errors"]] <- "No"
@@ -142,6 +147,11 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		input[["Standard Errors"]] <- "No"
 	}
 	options <- combineDefaultOptions(input)
+	mIters <- options[["Major iterations"]]
+	if (typeof(mIters) == "closure") {
+		mIters <- do.call(mIters, list(length(parameters), length(constraints)))
+	}
+	options[["Major iterations"]] <- as.character(mIters)
 	if (useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
 		#PPML Analytical solution
@@ -175,11 +185,15 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 combineDefaultOptions <- function(input) {
 	options <- getOption('mxOptions')
 	options <- options[names(options) %in% names(npsolOptions)]
-	input <- input[names(input) %in% names(npsolOptions)]
-	if (length(input) > 0) {
-		keys <- sapply(names(input), as.character)
-		values <- sapply(input, as.character)
+	temp <- input[names(input) %in% names(npsolOptions)]
+	temp[["Major iterations"]] <- NULL
+	if (length(temp) > 0) {
+		keys <- sapply(names(temp), as.character)
+		values <- sapply(temp, as.character)
 		options[keys] <- values
+	}
+	if (!is.null(input[["Major iterations"]])) {
+		options[["Major iterations"]] <- input[["Major iterations"]]
 	}
 	return(options)
 }

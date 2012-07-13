@@ -98,7 +98,7 @@ runHelper <- function(model, frontendStart,
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)
-	options <- generateOptionsList(model, constraints, useOptimizer)
+	options <- generateOptionsList(model, parameters, constraints, useOptimizer)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
