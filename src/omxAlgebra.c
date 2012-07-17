@@ -118,14 +118,17 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 
 int omxAlgebraNeedsUpdate(omxAlgebra *oa)
 {
+	int numArgs = oa->numArgs;
+	omxMatrix **args = oa->args;
+
 	if(OMX_DEBUG_ALGEBRA) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numArgs);}
-	for(int j = 0; j < fabs(oa->numArgs); j++) {
-		if(omxNeedsUpdate(oa->args[j])) {
+	for(int j = 0; j < numArgs; j++) {
+		if(omxNeedsUpdate(args[j])) {
 			if(OMX_DEBUG_ALGEBRA) {Rprintf("Arg %d Needs Update.\n");}
 			return TRUE;
 		}
 	}
-    return FALSE;
+	return FALSE;
 }
 
 omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
