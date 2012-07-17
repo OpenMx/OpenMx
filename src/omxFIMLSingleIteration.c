@@ -214,8 +214,8 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 					if(!(subObjective == NULL)) {
 						omxObjectiveCompute(subObjective);
 					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
+						omxCompute(cov);
+						omxCompute(means);
 					}
 				}
 			}
@@ -262,7 +262,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 			for(int j=0; j < dataColumns->cols; j++) {
 				int var = omxVectorElement(dataColumns, j);
 				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-					omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+					omxCompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
 					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
 				}
 			}
@@ -727,12 +727,12 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 					if(!(subObjective == NULL)) {
 						omxObjectiveCompute(subObjective);
 					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
+						omxCompute(cov);
+						omxCompute(means);
 					}
 					for(int j=0; j < dataColumns->cols; j++) {
 						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-							omxRecompute(thresholdCols[j].matrix);
+							omxCompute(thresholdCols[j].matrix);
 							checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
 						}
 					}
@@ -981,8 +981,8 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 					if(!(subObjective == NULL)) {
 						omxObjectiveCompute(subObjective);
 					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
+						omxCompute(cov);
+						omxCompute(means);
 					}
 				}
 			} else if(OMX_DEBUG_ROWS(row)){ Rprintf("Identical def vars: Not repopulating"); }

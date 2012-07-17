@@ -96,6 +96,36 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 		
 	for(int j = 0; j < oa->numArgs; j++) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->args[j], (omxNeedsUpdate(oa->args[j])?"does":"does not")); }
+		omxCompute(oa->args[j]);
+	}
+   // Recompute happens in handleFreeVars, for now.
+	
+	if(oa->funWrapper == NULL) { 			// No-op algebra: only for algebra-is-a-matrix condition.
+		if(oa->numArgs == 1) {
+			if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->args[0], "No-op Matrix"); }
+			omxCopyMatrix(oa->matrix, oa->args[0]);
+		} else {
+			error("Internal Error: Empty algebra evaluated.\n");
+		}
+	} else {
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->matrix);
+	}
+	omxMatrixCompute(oa->matrix);
+	
+	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
+}
+
+
+void omxAlgebraRecompute(omxAlgebra *oa) {
+	if(OMX_DEBUG_ALGEBRA) { 
+		Rprintf("Algebra compute (%s): 0x%0x (needed: %d/%d).\n", 
+			oa->matrix->name, oa->matrix, 
+			oa->matrix->lastCompute, oa->matrix->currentState->computeCount);
+	}
+		
+	for(int j = 0; j < oa->numArgs; j++) {
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->args[j], (omxNeedsUpdate(oa->args[j])?"does":"does not")); }
 		omxRecompute(oa->args[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
