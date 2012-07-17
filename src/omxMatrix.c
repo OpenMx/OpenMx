@@ -741,7 +741,7 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 
 void omxRecompute(omxMatrix *matrix) {
 	if(!omxNeedsUpdate(matrix)) return;
-	if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
+	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
 	else omxMatrixCompute(matrix);
 }
