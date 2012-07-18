@@ -59,8 +59,8 @@ summary(regResults1)
 summary(regResults2)
 
 # check the likelihoods
-omxCheckCloseEnough(regResults1@output$Minus2LogLikelihood, 1789.092, 0.001)
-omxCheckCloseEnough(regResults2@output$Minus2LogLikelihood, 1789.092, 0.001)
+omxCheckCloseEnough(regResults1@output$Minus2LogLikelihood, 1789.092, 0.01)
+omxCheckCloseEnough(regResults2@output$Minus2LogLikelihood, 1789.092, 0.01)
 
 # check the parameters
 omxCheckCloseEnough(regResults1@output$estimate, c(0.847, 0.282, -0.036, 0.062), 0.001)
