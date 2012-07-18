@@ -30,7 +30,8 @@ cycleDetection <- function(flatModel) {
 			dependencies <- addMatrixDetection(flatModel@matrices[[i]], dependencies)
 		}
 	}
-	containsCycle(dependencies, flatModel)	
+	containsCycle(dependencies, flatModel)
+	return(dependencies)
 }
 
 containsCycle <- function(graph, flatModel) {

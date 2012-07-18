@@ -259,10 +259,10 @@ void omxInitWLSObjective(omxObjective* oo, SEXP rObj) {
 	
 }
 
-void omxUpdateChildWLSObjective(omxObjective* tgt, omxObjective* src) {
+void omxStateRefreshChildWLSObjective(omxObjective* tgt, omxObjective* src) {
 
 	if (tgt->subObjective != NULL) {
-		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
 
 }
@@ -276,7 +276,7 @@ void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	oo->destructFun = omxDestroyWLSObjective;
 	oo->setFinalReturns = omxSetFinalReturnsWLSObjective;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
-	oo->updateChildObjectiveFun = omxUpdateChildWLSObjective;
+	oo->stateRefreshChildObjectiveFun = omxStateRefreshChildWLSObjective;
 	oo->repopulateFun = NULL;	
 }
 

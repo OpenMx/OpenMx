@@ -90,7 +90,7 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 
 int omxProcessMxAlgebraEntities(SEXP algList) {
 	int errOut = FALSE;
-	SEXP nextAlgTuple, nextAlg;
+	SEXP nextAlgTuple;
 	currentState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
@@ -107,14 +107,18 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is an objective object.
 			omxFillMatrixFromMxObjective(currentState->algebraList[index], nextAlgTuple, 1, index);
 		} else {								// This is an algebra spec.
-			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 0));
+			SEXP initialValue, formula, dependencies;
+			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
 			omxFillMatrixFromRPrimitive(currentState->algebraList[index],
-				nextAlg, currentState, 1, index);
-			UNPROTECT(1);	// nextAlg
-			PROTECT(nextAlg = VECTOR_ELT(nextAlgTuple, 1));
+				initialValue, currentState, 1, index);
+			UNPROTECT(1);	// initialValue
+			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(currentState->algebraList[index],
-				nextAlg, CHAR(STRING_ELT(algListNames, index)));
-			UNPROTECT(1);	// nextAlg
+				formula, CHAR(STRING_ELT(algListNames, index)));
+			UNPROTECT(1);	// formula
+			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
+			omxAlgebraProcessDependencies(currentState, index, dependencies);
+			UNPROTECT(1);	// dependencies
 		}
 		UNPROTECT(1);	// nextAlgTuple
 		if(currentState->statusCode < 0) {

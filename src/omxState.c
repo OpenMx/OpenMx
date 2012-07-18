@@ -104,7 +104,7 @@
 			tgt->statusCode = src->statusCode;
 		}
 
-		omxUpdateMatrix(tgtMatrix, srcMatrix);
+		omxStateRefreshMatrix(tgtMatrix, srcMatrix);
 
 	}
 
@@ -120,10 +120,10 @@
 		}
 
 		for(int i = 0; i < src->numMats; i++) {
-			omxUpdateMatrix(tgt->matrixList[i], src->matrixList[i]);
+			omxStateRefreshMatrix(tgt->matrixList[i], src->matrixList[i]);
 		}
 		for(int i = 0; i < src->numAlgs; i++) {
-			omxUpdateMatrix(tgt->algebraList[i], src->algebraList[i]);
+			omxStateRefreshMatrix(tgt->algebraList[i], src->algebraList[i]);
 		}
 	}
 

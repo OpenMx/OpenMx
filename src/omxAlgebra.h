@@ -49,8 +49,12 @@ struct omxAlgebra {						// A matrix
 	omxMatrix** args;					// Arguments to the above function
 	int numArgs;						// Length of args
 
+	omxMatrix** deps;					// Dependencies to the above function
+	int numDeps;						// Length of dependencies
+
 	omxMatrix* matrix;				// The matrix populated by this algebra
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
+    SEXP sexpDependencies;          // The SEXP dependencies vector
 
 };
 
@@ -62,6 +66,7 @@ struct omxAlgebra {						// A matrix
 	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name);	// Populate an Algebra from an R mxMatrix
 	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
+	void omxAlgebraProcessDependencies(omxState *currentState, int index, SEXP dependencies);
 
 /* Other Functions */
 	void omxFillAlgebraFromTableEntry(omxAlgebra *algebra, const omxAlgebraTableEntry* oate);
@@ -74,7 +79,7 @@ struct omxAlgebra {						// A matrix
 	void omxAlgebraRecompute(omxAlgebra *oa);
 	void omxAlgebraCompute(omxAlgebra *oa);
 	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
-	void omxUpdateAlgebra(omxAlgebra* tgt, omxAlgebra* src);
+	void omxStateRefreshAlgebra(omxAlgebra* tgt, omxAlgebra* src);
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 
 	void omxAlgebraPrint(omxAlgebra *source, char* d);					// Pretty-print a (small) matrix

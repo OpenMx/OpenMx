@@ -26,10 +26,13 @@ generateMatrixList <- function(model) {
 
 generateAlgebraList <- function(model) {
 	mNames <- names(model@matrices)
-	aNames <- names(model@algebras)
-	oNames <- names(model@objectives)
+	aNames <- append(names(model@algebras), names(model@objectives))	
+	mNumbers <- as.list(as.integer(-1 : (-length(mNames))))
+	aNumbers <- as.list(as.integer(0 : (length(aNames) - 1)))
+	names(mNumbers) <- mNames
+	names(aNumbers) <- aNames
 	retval <- lapply(model@algebras, generateAlgebraHelper, 
-		mNames, append(aNames, oNames))
+		mNumbers, aNumbers)
     return(retval)
 }
 

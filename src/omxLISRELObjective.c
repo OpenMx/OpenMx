@@ -373,18 +373,18 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 */
 }
 
-void omxUpdateChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
+void omxStateRefreshChildLISRELObjective(omxObjective* tgt, omxObjective* src) {
 	
 	omxLISRELObjective* tgtLISREL = (omxLISRELObjective*)(tgt->argStruct);
 	omxLISRELObjective* srcLISREL = (omxLISRELObjective*)(src->argStruct);
 	
-	omxUpdateMatrix(tgtLISREL->cov, srcLISREL->cov);
+	omxStateRefreshMatrix(tgtLISREL->cov, srcLISREL->cov);
 	if (tgtLISREL->means && srcLISREL->means) {
-		omxUpdateMatrix(tgtLISREL->means, srcLISREL->means);
+		omxStateRefreshMatrix(tgtLISREL->means, srcLISREL->means);
 	}
 	
 	if (tgt->subObjective != NULL) {
-		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
 	
 }
@@ -430,7 +430,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->destructFun = omxDestroyLISRELObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = NULL; //omxPopulateLISRELAttributes;
-	subObjective->updateChildObjectiveFun = omxUpdateChildLISRELObjective;
+	subObjective->stateRefreshChildObjectiveFun = omxStateRefreshChildLISRELObjective;
 	subObjective->argStruct = (void*) LISobj;
 	
 	/* Set up objective structures */

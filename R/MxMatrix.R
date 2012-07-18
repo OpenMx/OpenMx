@@ -72,7 +72,7 @@ setClass(Class = "MxMatrix",
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
 		lbound = "matrix", ubound = "matrix",
-		display = "character", "VIRTUAL"))
+		display = "character", dependencies = "integer", "VIRTUAL"))
 		
 setMethod("imxCreateMatrix", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {

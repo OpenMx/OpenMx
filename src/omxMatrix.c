@@ -115,7 +115,7 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 }
 
-void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
+void omxStateRefreshMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
 
 	if ((orig->rows > 0) && (orig->cols > 0)) {
 		if (dest->data != NULL && (dest->rows * dest->cols) != (orig->rows * orig->cols)) {
@@ -143,19 +143,19 @@ void omxUpdateMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
 	memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
 
 	if (dest->aliasedPtr != NULL && orig->aliasedPtr != NULL) {
-		omxUpdateMatrix(dest->aliasedPtr, orig->aliasedPtr);
+		omxStateRefreshMatrix(dest->aliasedPtr, orig->aliasedPtr);
 	}
 
 	omxMatrixCompute(dest);
 }
 
-void omxUpdateMatrix(omxMatrix *dest, omxMatrix *orig) {
-	omxUpdateMatrixHelper(dest, orig);
+void omxStateRefreshMatrix(omxMatrix *dest, omxMatrix *orig) {
+	omxStateRefreshMatrixHelper(dest, orig);
 
 	if (orig->algebra) {
-		omxUpdateAlgebra(dest->algebra, orig->algebra);
+		omxStateRefreshAlgebra(dest->algebra, orig->algebra);
 	} else if (orig->objective) {
-		omxUpdateObjectiveFunction(dest->objective, orig->objective);
+		omxStateRefreshObjectiveFunction(dest->objective, orig->objective);
 	}
 
 }

@@ -383,18 +383,18 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	}
 }
 
-void omxUpdateChildRAMObjective(omxObjective* tgt, omxObjective* src) {
+void omxStateRefreshChildRAMObjective(omxObjective* tgt, omxObjective* src) {
 
 	omxRAMObjective* tgtRAM = (omxRAMObjective*)(tgt->argStruct);
 	omxRAMObjective* srcRAM = (omxRAMObjective*)(src->argStruct);
 
-	omxUpdateMatrix(tgtRAM->cov, srcRAM->cov);
+	omxStateRefreshMatrix(tgtRAM->cov, srcRAM->cov);
 	if (tgtRAM->means && srcRAM->means) {
-		omxUpdateMatrix(tgtRAM->means, srcRAM->means);	
+		omxStateRefreshMatrix(tgtRAM->means, srcRAM->means);	
 	}
 
 	if (tgt->subObjective != NULL) {
-		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
 
 }
@@ -432,7 +432,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->destructFun = omxDestroyRAMObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = omxPopulateRAMAttributes;
-	subObjective->updateChildObjectiveFun = omxUpdateChildRAMObjective;
+	subObjective->stateRefreshChildObjectiveFun = omxStateRefreshChildRAMObjective;
 	subObjective->argStruct = (void*) RAMobj;
 	
 	/* Set up objective structures */

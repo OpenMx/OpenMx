@@ -124,7 +124,7 @@ struct omxMatrix {						// A matrix
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
-	void omxUpdateMatrix(omxMatrix *dest, omxMatrix *src);							// Update matrix state with a reference source.
+	void omxStateRefreshMatrix(omxMatrix *dest, omxMatrix *src);						// Update matrix state with a reference source.
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 

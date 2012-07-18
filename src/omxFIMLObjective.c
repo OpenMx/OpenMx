@@ -28,6 +28,8 @@
 #include "omxFIMLSingleIteration.h"
 #include "omxSadmvnWrapper.h"
 
+static inline int max(int a, int b) { return(a > b ? a : b); }
+
 /* FIML Function body */
 void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
@@ -216,10 +218,10 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
 	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
-    int parallelism = (numChildren == 0) ? 1 : numChildren;
+	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
+		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
 	}
 
 	if (parallelism > 1) {
@@ -276,7 +278,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	omxMatrix *cov, *means;//, *oldInverse;
 	omxData *data;
 
-    omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+	omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
 	omxMatrix* objMatrix  = oo->matrix;
 	omxState* parentState = objMatrix->currentState;
 	int numChildren = parentState->numChildren;
@@ -303,10 +305,10 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
-    int parallelism = (numChildren == 0) ? 1 : numChildren;
+	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
+		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
 	}
 
 	if (parallelism > 1) {
@@ -405,8 +407,8 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
+		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
 	}
 
 	if (parallelism > 1) {
@@ -483,7 +485,7 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	}
 }
 
-void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
+void omxStateRefreshChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
 
 	omxFIMLObjective* tgtFIML = (omxFIMLObjective*)(tgt->argStruct);
 	omxFIMLObjective* srcFIML = (omxFIMLObjective*)(src->argStruct);
@@ -501,20 +503,20 @@ void omxUpdateChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
 
 		for(int index = 0; index < numCols; index++) {
 			if (tgtFIML->thresholdCols[index].matrix != NULL) {
-				omxUpdateMatrix(tgtFIML->thresholdCols[index].matrix, 
+				omxStateRefreshMatrix(tgtFIML->thresholdCols[index].matrix, 
 								srcFIML->thresholdCols[index].matrix);
 				break;
 			}
 		}		 
 	}
 
-	omxUpdateMatrix(tgtFIML->cov, srcFIML->cov);
+	omxStateRefreshMatrix(tgtFIML->cov, srcFIML->cov);
 	if (tgtFIML->means && srcFIML->means) {
-		omxUpdateMatrix(tgtFIML->means, srcFIML->means);	
+		omxStateRefreshMatrix(tgtFIML->means, srcFIML->means);	
 	}
 
 	if (tgt->subObjective != NULL) {
-		tgt->subObjective->updateChildObjectiveFun(tgt->subObjective, src->subObjective);
+		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
 	}
 
 }
@@ -546,7 +548,7 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->populateAttrFun = omxPopulateFIMLAttributes;
-	oo->updateChildObjectiveFun = omxUpdateChildFIMLObjective;
+	oo->stateRefreshChildObjectiveFun = omxStateRefreshChildFIMLObjective;
 	oo->repopulateFun = NULL;
 	
 
