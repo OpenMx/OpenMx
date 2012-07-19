@@ -322,7 +322,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 		
 		#
-		# What does this do, again?
+		# Check the data has row and column names as appropriate
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "LISREL")
 		#
 		# Change *Matrix from the string name of the matrix to the object
@@ -460,6 +460,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		}
 		#
 		# Raw data error checking
+		#  Set the canonical order of observed variable names.
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 #		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (mxDataObject@type == 'raw') {

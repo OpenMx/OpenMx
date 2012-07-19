@@ -205,7 +205,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
 		if(OMX_DEBUG) {Rprintf("Calculating Lower Left Quadrant of Expected Covariance Matrix.\n"); }
 		omxDGEMM(FALSE, TRUE, oned, A, GA, zerod, E); // E = A*GA^T = LX*PH*GA^T
-		omxCopyMatrix(F, TH);
+		omxCopyMatrix(F, TH); // F = TH
 		omxDGEMM(FALSE, TRUE, oned, E, D, oned, F); // F = E*D^T + F = LX*PH*GA^T * (LY * (I - BE)^(-1))^T + TH
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(F, "....LISREL: Lower Left Quadrant of Model-implied Covariance Matrix:");}
 	
