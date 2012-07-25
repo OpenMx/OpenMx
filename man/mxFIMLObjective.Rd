@@ -42,7 +42,7 @@ The 'vector' argument is either TRUE or FALSE, and determines whether the object
 
 thresholds: The name of the thresholds matrix. When needed (for modelling ordinal data), this matrix should be created using  \link{mxMatrix}(). The thresholds matrix must have as many columns as there are ordinal variables in the model, and number of rows equal to one fewer than the maximum number of levels found in the ordinal variables. The starting values  of this matrix must also be set to reasonable values. Fill each column with a set of ordered start thresholds, one for each level of this column's factor levels minus 1. These thresholds may be free if you wish them to be estimated, or fixed. The unused rows in each column, if any, can be set to any value including NA.
 
-threshnames: A character vector consisting of the variables in the thresholds matrix, i.e., the names of ordinal variables in a model. This is necessary for OpenMx to map the thresholds matrix columns onto the variables in your data. If you set the \link{dimames} of the columns in the thresholds matrix then threshnames is not needed.
+threshnames: A character vector consisting of the variables in the thresholds matrix, i.e., the names of ordinal variables in a model. This is necessary for OpenMx to map the thresholds matrix columns onto the variables in your data. If you set the \link{dimnames} of the columns in the thresholds matrix then threshnames is not needed.
 
 Usage Notes: 
 dimnames must be supplied where the matrices referenced by the covariance and means algebras are not themselves labeled. Failure to do so leads to an error noting that the covariance or means matrix associated with the FIML objective does not contain dimnames.

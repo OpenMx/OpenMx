@@ -39,7 +39,7 @@ setMethod("genericObjDependencies", signature("MxAlgebraObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxAlgebraObjective"), 
-	function(.Object, flatModel, model, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars) {
 		name <- .Object@name
 		algebra <- .Object@algebra
 		if (is.na(algebra)) {

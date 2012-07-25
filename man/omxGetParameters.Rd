@@ -69,7 +69,7 @@ factorModel <- mxModel("One Factor",
     mxMatrix(name="L", type="Symm", nrow=1, ncol=1, values=1, free=FALSE),
     # the "U" matrix has nVar (5) anonymous free parameters
     mxMatrix(name="U", type="Diag", nrow=nVar, ncol=nVar, values=1, free=TRUE),
-    mxAlgebra(expression=A %&% L + U, name="R"),
+    mxAlgebra(expression=A \%&\% L + U, name="R"),
     mxMLObjective(covariance="R", dimnames=manifestVars),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )

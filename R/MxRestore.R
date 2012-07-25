@@ -31,7 +31,7 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 		objective <- as.numeric(NA)
 	} else {
 		iterations <- model@output$iterations
-		objective <- factorFit@output$minimum
+		objective <- model@output$minimum
 	}
 	timestamp <- date()
 	fconnection <- file(filepath, "a")
