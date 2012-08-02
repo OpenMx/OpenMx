@@ -77,7 +77,7 @@ setMethod("genericObjRename", signature("MxFIMLObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxFIMLObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {

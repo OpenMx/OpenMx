@@ -117,7 +117,6 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 				formula, CHAR(STRING_ELT(algListNames, index)));
 			UNPROTECT(1);	// formula
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
-			omxAlgebraProcessDependencies(currentState, index, dependencies);
 			UNPROTECT(1);	// dependencies
 		}
 		UNPROTECT(1);	// nextAlgTuple
@@ -133,14 +132,19 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 
 int omxInitialMatrixAlgebraCompute() {
 	int errOut = FALSE;
+	int numMats = currentState->numMats;
+	int numAlgs = currentState->numAlgs;
+
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(currentState);
 
-	for(int index = 0; index < currentState->numMats; index++) {
+	currentState->markMatrices = (int*) R_alloc(numMats + numAlgs, sizeof(int));
+
+	for(int index = 0; index < numMats; index++) {
 		omxRecompute(currentState->matrixList[index]);
 	}
 
-	for(int index = 0; index < currentState->numAlgs; index++) {
+	for(int index = 0; index < numAlgs; index++) {
 		omxRecompute(currentState->algebraList[index]);
 	}
 	return(errOut);
@@ -244,16 +248,18 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 /*
 varList is a list().  Each element of this list corresponds to one free parameter.
 Each free parameter is a list.  The first element of this list is the lower bound.
-The second element of the list is the upper bound.  The remaining elements of this
-list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
+The second element of the list is the upper bound.  The third element of the list
+is a vector of mxIndices specifying the dependencies of the free parameter. 
+The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
 */
 void omxProcessFreeVarList(SEXP varList, int n) {
 	SEXP nextVar, nextLoc;
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
+		int numDeps;
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
-		int numLocs = length(nextVar) - 2;
+		int numLocs = length(nextVar) - 3;
 		currentState->freeVarList[freeVarIndex].numLocations = numLocs;
 		currentState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
 		currentState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
@@ -265,13 +271,23 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 		currentState->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
 		if(ISNA(currentState->freeVarList[freeVarIndex].lbound)) currentState->freeVarList[freeVarIndex].lbound = NEG_INF;
 		if(currentState->freeVarList[freeVarIndex].lbound == 0.0) currentState->freeVarList[freeVarIndex].lbound = 0.0;
-		UNPROTECT(1); // NextLoc
+		UNPROTECT(1); // nextLoc
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
 		currentState->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
 		if(ISNA(currentState->freeVarList[freeVarIndex].ubound)) currentState->freeVarList[freeVarIndex].ubound = INF;
 		if(currentState->freeVarList[freeVarIndex].ubound == 0.0) currentState->freeVarList[freeVarIndex].ubound = -0.0;
-		UNPROTECT(1); // NextLoc
+		UNPROTECT(1); // nextLoc
+
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
+		numDeps = LENGTH(nextLoc);
+		currentState->freeVarList[freeVarIndex].numDeps = numDeps;
+		currentState->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
+		for(int i = 0; i < numDeps; i++) {
+			currentState->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
+		}
+		UNPROTECT(1); // nextLoc
+
 
 		if(OMX_DEBUG) { 
 			Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", freeVarIndex, 
@@ -279,7 +295,7 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 				currentState->freeVarList[freeVarIndex].ubound, numLocs);
 		}
 		for(int locIndex = 0; locIndex < currentState->freeVarList[freeVarIndex].numLocations; locIndex++) {
-			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+2));
+			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+3));
 			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
 
 			int theMat = theVarList[0];			// Matrix is zero-based indexed.

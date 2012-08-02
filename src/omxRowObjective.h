@@ -48,7 +48,9 @@ typedef struct omxRowObjective {
 	int numDefs;				// The length of the defVars list
 	omxMatrix* dataRow;         // One row of data, kept for aliasing only
 	omxData*   data;			// The data
-    
+
+	int numDataRowDeps;         // number of algebra/matrix dependencies
+	int *dataRowDeps;           // indices of algebra/matrix dependencies
 
 } omxRowObjective;
 

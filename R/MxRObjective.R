@@ -35,10 +35,10 @@ setMethod("initialize", "MxRObjective",
 )
 
 setMethod("genericObjFunConvert", signature("MxRObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
-		.Object@parameters <- generateParameterList(flatModel)
+		.Object@parameters <- generateParameterList(flatModel, dependencies)
 		return(.Object)
 })
 

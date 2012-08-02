@@ -298,6 +298,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		inform = 0;
 		iter = 0;
 
+		for(int index = 0; index < currentState->numMats; index++) {
+			omxMarkDirty(currentState->matrixList[index]);
+		}
+		for(int index = 0; index < currentState->numAlgs; index++) {
+			omxMarkDirty(currentState->algebraList[index]);
+		}
 		omxStateNextEvaluation(currentState);	// Advance for a final evaluation.
 
 	} else {
@@ -356,6 +362,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			x[k] = REAL(startVals)[k];
 			if((x[k] == 0.0) && !disableOptimizer) {
 				x[k] += 0.1;
+				markFreeVarDependencies(currentState, k);
 			}
 			if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
@@ -718,8 +725,7 @@ void F77_SUB(objectiveFunction)
 	} else omxSetMinorIteration(currentState, currentState->minorIteration + 1);
 
 	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
-	char errMsg[5] = "";
-	omxRaiseError(currentState, 0, errMsg);						// Clear Error State
+	omxResetStatus(currentState);						// Clear Error State recursively
 	/* Interruptible? */
 	R_CheckUserInterrupt();
     /* This allows for abitrary repopulation of the free parameters.

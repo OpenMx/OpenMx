@@ -74,8 +74,6 @@ struct omxMatrix {						// A matrix
 	omxState* currentState;				// Optimizer State
 	unsigned short isDirty;				// Retained, for historical purposes.
 	unsigned short isTemporary;			// Whether or not to destroy the omxMatrix Structure when omxFreeAllMatrixData is called.
-	int lastCompute;					// Compute Count Number at last computation
-	int lastRow;						// Compute Count Number at last row update (Used for row-by-row computation only)
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
@@ -114,6 +112,7 @@ struct omxMatrix {						// A matrix
 	double omxAliasedMatrixElement(omxMatrix *om, int row, int col);			// Element from unaliased form of the same matrix
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
 	void omxMarkDirty(omxMatrix *om);
+	void omxMarkClean(omxMatrix *om);
 
 /* Matrix Modification Functions */
 	void omxZeroByZeroMatrix(omxMatrix *source);
@@ -124,7 +123,6 @@ struct omxMatrix {						// A matrix
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
 	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
-	void omxStateRefreshMatrix(omxMatrix *dest, omxMatrix *src);						// Update matrix state with a reference source.
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
@@ -140,7 +138,7 @@ struct omxMatrix {						// A matrix
 	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
-	void omxMatrixCompute(omxMatrix *matrix);
+	void omxMatrixLeadingLagging(omxMatrix *matrix);
 	void omxPrintMatrix(omxMatrix *source, char* d);                    // Pretty-print a (small) matrix
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 

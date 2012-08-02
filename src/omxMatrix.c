@@ -91,12 +91,11 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->objective = NULL;
 
 	om->currentState = os;
-	om->lastCompute = -2;
-	om->lastRow = -2;
 	om->isTemporary = FALSE;
 	om->name = NULL;
+	om->isDirty = FALSE;
 
-	omxMatrixCompute(om);
+	omxMatrixLeadingLagging(om);
 
 	return om;
 
@@ -112,51 +111,6 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 	om->isTemporary = TRUE;
 	
 	return(om);
-
-}
-
-void omxStateRefreshMatrixHelper(omxMatrix *dest, omxMatrix *orig) {
-
-	if ((orig->rows > 0) && (orig->cols > 0)) {
-		if (dest->data != NULL && (dest->rows * dest->cols) != (orig->rows * orig->cols)) {
-            if (dest->localData)
-                Free(dest->data);
-            dest->data = NULL;
-		}
-		if (dest->data == NULL) {
-			dest->data = Calloc((orig->rows * orig->cols), double);
-            dest->localData = TRUE;
-		}
-	}
-
-	dest->rows = orig->rows;
-	dest->cols = orig->cols;
-	dest->colMajor = orig->colMajor;
-	dest->originalRows = dest->rows;
-	dest->originalCols = dest->cols;
-	dest->originalColMajor = dest->colMajor;
-	dest->lastCompute = orig->lastCompute;
-	dest->lastRow = orig->lastRow;
-//	If activated, the next line induces a memory leak.
-//	dest->localData = orig->localData;
-
-	memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
-
-	if (dest->aliasedPtr != NULL && orig->aliasedPtr != NULL) {
-		omxStateRefreshMatrix(dest->aliasedPtr, orig->aliasedPtr);
-	}
-
-	omxMatrixCompute(dest);
-}
-
-void omxStateRefreshMatrix(omxMatrix *dest, omxMatrix *orig) {
-	omxStateRefreshMatrixHelper(dest, orig);
-
-	if (orig->algebra) {
-		omxStateRefreshAlgebra(dest->algebra, orig->algebra);
-	} else if (orig->objective) {
-		omxStateRefreshObjectiveFunction(dest->objective, orig->objective);
-	}
 
 }
 
@@ -178,8 +132,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
 	dest->originalColMajor = dest->colMajor;
-	dest->lastCompute = orig->lastCompute;
-	dest->lastRow = orig->lastRow;
+	dest->isDirty = orig->isDirty;
 
 	dest->numPopulateLocations = numPopLocs;
 	if (numPopLocs > 0) {
@@ -211,7 +164,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 	dest->aliasedPtr = NULL;
 
-	omxMatrixCompute(dest);
+	omxMatrixLeadingLagging(dest);
 }
 
 void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
@@ -321,7 +274,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		om->originalCols = om->cols;
 	}
 
-	omxMatrixCompute(om);
+	omxMatrixLeadingLagging(om);
 }
 
 void omxResetAliasedMatrix(omxMatrix *om) {
@@ -331,37 +284,7 @@ void omxResetAliasedMatrix(omxMatrix *om) {
 		memcpy(om->data, om->aliasedPtr->data, om->rows*om->cols*sizeof(double));
 		om->colMajor = om->aliasedPtr->colMajor;
 	}
-	omxMatrixCompute(om);
-}
-
-void omxMatrixCompute(omxMatrix *om) {
-
-	if(OMX_DEBUG_MATRIX) { Rprintf("Matrix compute: 0x%0x, 0x%0x, algebra: 0x%x.\n", om, om->currentState, om->algebra); }
-	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
-	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
-	om->leading = (om->colMajor?om->rows:om->cols);
-	om->lagging = (om->colMajor?om->cols:om->rows);
-
-	for(int i = 0; i < om->numPopulateLocations; i++) {
-		int index = om->populateFrom[i];
-		omxMatrix* sourceMatrix;
-		if (index < 0) {
-			sourceMatrix = om->currentState->matrixList[~index];
-		} else {
-			sourceMatrix = om->currentState->algebraList[index];
-		}
-		if (sourceMatrix != NULL) {
-			omxRecompute(sourceMatrix);				// Make sure it's up to date
-			double value = omxMatrixElement(sourceMatrix, om->populateFromRow[i], om->populateFromCol[i]);
-			omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
-			// And then fill in the details.  Use the Helper here in case of transposition/downsampling.
-		}
-	}
-
-	om->isDirty = FALSE;
-	om->lastCompute = om->currentState->computeCount;
-	om->lastRow = om->currentState->currentRow;
-
+	omxMatrixLeadingLagging(om);
 }
 
 double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
@@ -438,7 +361,8 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->originalRows || col >= om->originalCols) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", row+1, col+1, om->originalRows, om->originalCols);
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
+			row + 1, col + 1, om->originalRows, om->originalCols);
 		error(errstr);
 		free(errstr);
         return (NA_REAL);
@@ -452,6 +376,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
+void omxMarkClean(omxMatrix *om) { om->isDirty = FALSE; }
 
 unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
 	for(int i = 0; i < om->numPopulateLocations; i++) {
@@ -543,14 +468,12 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	om->algebra = NULL;
 	om->objective = NULL;
 	om->currentState = state;
-	om->lastCompute = -1;
-	om->lastRow = -1;
 	om->hasMatrixNumber = hasMatrixNumber;
 	om->matrixNumber = matrixNumber;
-
+	om->isDirty = FALSE;
 
 	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
-	omxMatrixCompute(om);
+	omxMatrixLeadingLagging(om);
 	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
 
 	if(OMX_DEBUG) {
@@ -631,7 +554,7 @@ void omxTransposeMatrix(omxMatrix *mat) {
         mat->cols = mid;
 	}
 	
-	omxMatrixCompute(mat);
+	omxMatrixLeadingLagging(mat);
 }
 
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
@@ -695,7 +618,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 		}
 	}
 
-	omxMatrixCompute(om);
+	omxMatrixLeadingLagging(om);
 }
 
 /* Function wrappers that switch based on inclusion of algebras */
@@ -706,48 +629,52 @@ void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matri
 	else omxPrintMatrix(source, d);
 }
 
-unsigned short omxNeedsUpdate(omxMatrix *matrix) {
-	unsigned short retval;
-	/* Simplest update check: If we're dirty or haven't computed this cycle (iteration or row), we need to. */
-	// TODO : Implement a dependency-tree-based dirtiness propagation system
-	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix 0x%x NeedsUpdate?", matrix);}
-
-	if(matrix == NULL) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("matrix argument is NULL. ");}
-		retval = FALSE;		// Not existing means never having to say you need to recompute.
-	} else if(matrix->isDirty) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("matrix is dirty. ");}
-		retval = TRUE;
-	} else if(matrix->lastCompute < matrix->currentState->computeCount) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last compute is less than current compute count. ");}
-		retval = TRUE;  	// No need to check args if oa's dirty.
-	} else if(matrix->lastRow != matrix->currentState->currentRow) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("matrix last row is less than current row. ");}
-		retval = TRUE;			// Ditto.
-	} else if(matrix->algebra != NULL) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("checking algebra needs update. ");}
-		retval = omxAlgebraNeedsUpdate(matrix->algebra);
-	} else if(matrix->objective != NULL) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("checking objective function needs update. ");}
-		retval = omxObjectiveNeedsUpdate(matrix->objective);
-	} else {
-		if(OMX_DEBUG_MATRIX) {Rprintf("checking matrix needs update. ");}
-		retval = omxMatrixNeedsUpdate(matrix);
+void omxPopulateSubstitutions(omxMatrix *om) {
+	for(int i = 0; i < om->numPopulateLocations; i++) {
+		int index = om->populateFrom[i];
+		omxMatrix* sourceMatrix;
+		if (index < 0) {
+			sourceMatrix = om->currentState->matrixList[~index];
+		} else {
+			sourceMatrix = om->currentState->algebraList[index];
+		}
+		if (sourceMatrix != NULL) {
+			omxRecompute(sourceMatrix);				// Make sure it's up to date
+			double value = omxMatrixElement(sourceMatrix, om->populateFromRow[i], om->populateFromCol[i]);
+			omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
+		}
 	}
-	if(OMX_DEBUG_MATRIX && retval) {Rprintf("Yes.\n");}
-	if(OMX_DEBUG_MATRIX && !retval) {Rprintf("No.\n");}
-	return(retval);
+}
+
+void omxMatrixLeadingLagging(omxMatrix *om) {
+	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
+	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
+	om->leading = (om->colMajor?om->rows:om->cols);
+	om->lagging = (om->colMajor?om->cols:om->rows);
+}
+
+unsigned short omxNeedsUpdate(omxMatrix *matrix) {
+	if (OMX_DEBUG_ALGEBRA) 
+		Rprintf("Matrix 0x%0x needs update: ", matrix);
+	if (matrix->hasMatrixNumber && !matrix->isDirty) {
+		if (OMX_DEBUG_ALGEBRA) Rprintf("No\n");
+		return(FALSE);
+	} else {
+		if (OMX_DEBUG_ALGEBRA) Rprintf("Yes\n");
+		return(TRUE);
+	}
 }
 
 void omxRecompute(omxMatrix *matrix) {
-	if(!omxNeedsUpdate(matrix)) return;
-	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
+	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
+	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
 }
 
 void omxCompute(omxMatrix *matrix) {
-	if(matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
+	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
+	else if (matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
-	else omxMatrixCompute(matrix);
+	else if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 }

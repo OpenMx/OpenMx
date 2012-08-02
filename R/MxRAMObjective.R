@@ -110,7 +110,7 @@ setMethod("genericObjRename", signature("MxRAMObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxRAMObjective", "MxFlatModel"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A

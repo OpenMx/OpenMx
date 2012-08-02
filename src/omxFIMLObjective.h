@@ -27,6 +27,8 @@ typedef struct omxDefinitionVar {		 	// Definition Var
 	int* rows;				// row positions
 	int* cols;				// column positions
 	int* matrices;			// matrix numbers
+	int  numDeps;           // number of algebra/matrix dependencies
+	int* deps;              // indices of algebra/matrix dependencies
 
 } omxDefinitionVar;
 

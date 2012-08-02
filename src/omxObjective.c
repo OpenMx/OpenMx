@@ -30,8 +30,6 @@
 
 #include "omxObjective.h"
 
-void omxGenericStateRefreshObjectiveFunction(omxObjective* tgt, omxObjective* src);
-
 void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
@@ -100,7 +98,6 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->getStandardErrorFun = NULL;
 	oo->populateAttrFun = NULL;
 	oo->setFinalReturns = NULL;
-	oo->stateRefreshChildObjectiveFun = omxGenericStateRefreshObjectiveFunction;
 	oo->gradientFun = NULL;
 	oo->sharedArgs = NULL;
 	oo->argStruct = NULL;
@@ -158,8 +155,8 @@ void omxObjectiveCompute(omxObjective *oo) {
 
 	oo->objectiveFun(oo);
 
-	if(oo->matrix != NULL)
-		omxMatrixCompute(oo->matrix);
+	omxMarkClean(oo->matrix);
+
 }
 
 void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
@@ -169,16 +166,6 @@ void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState*
     
 	omxFillMatrixFromMxObjective(tgt, src->objective->rObj, src->hasMatrixNumber, src->matrixNumber);
 
-}
-
-void omxStateRefreshObjectiveFunction(omxObjective* tgt, omxObjective* src) {
-	tgt->stateRefreshChildObjectiveFun(tgt, src);
-}
-
-void omxGenericStateRefreshObjectiveFunction(omxObjective* tgt, omxObjective* src) {
-	if (tgt->subObjective != NULL) {
-		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
-	}
 }
 
 omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState) {
@@ -210,7 +197,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	tgt->stdError					= src->stdError;
 	tgt->hessian 					= src->hessian;
 	tgt->gradient 					= src->gradient;
-	tgt->stateRefreshChildObjectiveFun	= src->stateRefreshChildObjectiveFun;
 
     strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
 	return tgt;

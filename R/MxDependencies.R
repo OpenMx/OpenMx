@@ -13,25 +13,56 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# returns a list object
+# The names of the list are the full identifiers of named entities in the model.
+#
+# Given the ith element of the list, define the ith name as the source entity
+# of the ith element.
+#
+# Each element of a list is a character vector.
+# The character vector stores the named entities that are be affected by
+# modifying the source entity.
+transitiveClosure <- function(flatModel, dependencies) {
+	dependencies <- dependencies@edges
+	cache <- list()
+    if (length(flatModel@matrices) == 0) {
+		return(cache)
+	}
+	matrices <- names(flatModel@matrices)
+	for (i in 1:length(matrices)) {
+		target <- matrices[[i]]
+		if (!(target %in% names(cache))) {
+			cache <- transitiveClosureEntity(flatModel, dependencies, target, cache)
+		}
+	}
+	return(cache)
+}
+
+extractElement <- function(name, object) { getElement(object, name) }
+
+transitiveClosureEntity <- function(flatModel, dependencies, target, cache) {
+	sinks <- dependencies[[target]]
+	if (is.null(sinks)) {
+		cache[[target]] <- character()
+		return(cache)
+	}
+	isMissing <- !(sinks %in% names(cache))
+	missing <- sinks[isMissing]
+	if (length(missing) > 0) {
+		for (i in 1:length(missing)) {
+			entity <- missing[[i]]
+			cache <- transitiveClosureEntity(flatModel, dependencies, entity, cache)
+		}
+	}
+	entities <- lapply(sinks, extractElement, cache)
+	combined <- c(entities, sinks)
+	result <- Reduce(union, combined, character())
+	cache[[target]] <- result
+	return(cache)
+}
+
 doLocateIndex <- function(name, model, referant) {
 	return(imxLocateIndex(model, name, referant))
-}
-
-entityDependencies <- function(entity, flatModel) {
-	dependencies <- names(entity@dependencies)
-	if (length(dependencies) > 0) {
-		dependencies <- sapply(dependencies, doLocateIndex, flatModel, entity@name) 
-	} else {
-		dependencies <- integer(0)
-	}
-	entity@dependencies <- dependencies
-	return(entity)
-}
-
-convertDependencies <- function(flatModel) {
-	flatModel@algebras <- lapply(flatModel@algebras, entityDependencies, flatModel)
-	flatModel@objectives <- lapply(flatModel@objectives, entityDependencies, flatModel)
-	return(flatModel)
 }
 
 generateDeps <- function(sinks, source) {
@@ -55,39 +86,5 @@ combinePairs <- function(x, y) {
 	xunique <- x[diffx]
 	yunique <- y[diffy]
 	return(c(common, xunique, yunique))
-}
-
-applyDeps <- function(object, pairs) {
-	sources <- pairs[[object@name]]
-	if (is.null(sources)) {
-		return(object)
-	} else {
-		deplist <- rep.int(1L, length(sources))
-		names(deplist) <- sources
-		object@dependencies <- deplist
-	}
-	return(object)
-}
-
-addDependencies <- function(flatModel, dependencies) {
-	edges <- dependencies@edges
-	if (length(edges) == 0) {
-		return(flatModel)
-	}
-	pairs <- mapply(generateDeps, edges, names(edges), USE.NAMES = FALSE)
-	pairs <- Reduce(combinePairs, pairs, character())
-	flatModel@matrices <- lapply(flatModel@matrices, applyDeps, pairs)
-	flatModel@algebras <- lapply(flatModel@algebras, applyDeps, pairs)
-	flatModel@objectives <- lapply(flatModel@objectives, applyDeps, pairs)
-#	for (i in 1:length(edges)) {
-#		source <- edgeNames[[i]]
-#		sinks <- edges[[i]]
-#		if (length(sinks) > 0) {
-#			for (sink in sinks) {
-#				flatModel[[sink]]@dependencies[[source]] <- 1L
-#			}
-#		}
-#	}
-	return(flatModel)
 }
 

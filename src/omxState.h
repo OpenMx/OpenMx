@@ -73,6 +73,8 @@ struct omxFreeVar {			// Free Variables
 	int numLocations;
 	int* matrices;			// Matrix numbers.
 	int *row, *col;			// Locations for copying.
+	int numDeps;            // number of algebra/matrix dependencies
+	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
 };
 
@@ -134,6 +136,7 @@ struct omxState {													// The Current State of Optimization
 	omxData** dataList;												// Data Objects
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
+	int* markMatrices;												// An array of [0,1] values used by markFreeVarDependencies()
 
                                                                     // TODO: Need a way to deal with unregistered matrices that have free vars
 	omxMatrix* objectiveMatrix;										// Objective Algebra
@@ -195,7 +198,8 @@ struct omxState {													// The Current State of Optimization
 	void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
-    
+
+	void omxResetStatus(omxState *state);    
 	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// Raise an Error
 																		// TODO: Move RaiseError to omxOptimizer.
 

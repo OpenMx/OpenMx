@@ -80,7 +80,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	}
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace)
-	pList <- generateParameterList(flatModel)
+	pList <- generateParameterList(flatModel, list())
 	for(i in 1:length(chkpt.files)) {
 		filename <- chkpt.files[[i]]
 		modelname <- substr(filename, nchar(chkpt.prefix) + 1, nchar(filename) - 4)
@@ -95,7 +95,7 @@ restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel, pLis
 	if (model@independent) {
 		namespace <- imxGenerateNamespace(model)
 		flatModel <- imxFlattenModel(model, namespace)
-		pList <- generateParameterList(flatModel)
+		pList <- generateParameterList(flatModel, list())
 	}
 	if (modelname == model@name) {
 		values <- as.numeric(checkpoint[nrow(checkpoint), 4:ncol(checkpoint)])

@@ -45,12 +45,14 @@ struct hess_struct {
 	int r;
 };
 
-void omxPopulateHessianWork(struct hess_struct *hess_work, double functionPrecision, int r, omxState* state) {
+void omxPopulateHessianWork(struct hess_struct *hess_work, 
+	double functionPrecision, int r, omxState* state,
+	omxState *parentState) {
 
 	omxObjective* oo = state->objectiveMatrix->objective;
 	int numParams = state->numFreeParams;
 
-	double* optima = state->optimalValues;
+	double* optima = parentState->optimalValues;
 	double *freeParams = (double*) Calloc(numParams, double);
 
 	hess_work->numParams = numParams;
@@ -295,12 +297,11 @@ unsigned short omxEstimateHessian(int numHessians, double functionPrecision, int
     struct hess_struct* hess_work;
 	if (numChildren < 2) {
 		hess_work = Calloc(1, struct hess_struct);
-		omxPopulateHessianWork(hess_work, functionPrecision, r, parentState);
+		omxPopulateHessianWork(hess_work, functionPrecision, r, parentState, parentState);
 	} else {
 		hess_work = Calloc(numChildren, struct hess_struct);
 		for(int i = 0; i < numChildren; i++) {
-			omxUpdateState(parentState->childList[i], parentState, TRUE);
-			omxPopulateHessianWork(hess_work + i, functionPrecision, r, parentState->childList[i]);
+			omxPopulateHessianWork(hess_work + i, functionPrecision, r, parentState->childList[i], parentState);
 		}
 	}
 	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);

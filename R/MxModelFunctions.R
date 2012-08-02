@@ -36,7 +36,28 @@ generateAlgebraList <- function(model) {
     return(retval)
 }
 
-generateParameterList <- function(flatModel) {
+findDependencies <- function(triple, flatModel, dependencies) {
+	mNames <- names(flatModel@matrices)
+	matrixNum <- triple[[1]] + 1
+	matrixName <- mNames[[matrixNum]]
+	return(dependencies[[matrixName]])	
+}
+
+parameterDependencyList <- function(pList, flatModel, dependencies) {
+	if (length(pList) == 2) {
+		retval <- list(pList[[1]], pList[[2]], integer())
+		return(retval)
+	}
+	locations <- pList[3:length(pList)]
+	deps <- lapply(locations, findDependencies, flatModel, dependencies)
+	depnames <- Reduce(union, deps, character())
+	depnumbers <- sapply(depnames, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
+	depnumbers <- as.integer(depnumbers)
+	retval <- list(pList[[1]], pList[[2]], depnumbers)
+	return(append(retval, locations))
+}
+
+generateParameterList <- function(flatModel, dependencies) {
 	result <- list()
 	if (length(flatModel@matrices) == 0) {
 		return(result)
@@ -46,10 +67,11 @@ generateParameterList <- function(flatModel) {
 		result <- generateParameterListHelper(
 			matrix, result, i - 1L)
 	}
+	result <- lapply(result, parameterDependencyList, flatModel, dependencies)
 	return(result)
 }
 
-generateDefinitionList <- function(flatModel) {
+generateDefinitionList <- function(flatModel, dependencies) {
 	result <- list()
 	defLocations <- generateDefinitionLocations(flatModel@datasets)
 	if (length(flatModel@matrices) == 0) {
@@ -59,7 +81,8 @@ generateDefinitionList <- function(flatModel) {
 		result <- generateDefinitionListHelper(
 			flatModel@matrices[[i]], 
 			result, defLocations, i - 1L)
-	}	
+	}
+	result <- lapply(result, parameterDependencyList, flatModel, dependencies)
 	return(result)
 }
 
@@ -71,7 +94,7 @@ generateValueList <- function(mList, pList) {
 	}
 	for(i in 1:length(pList)) {
 		parameter <- pList[[i]]
-		parameter <- parameter[3:length(parameter)] # Remove (min, max) bounds
+		parameter <- parameter[4:length(parameter)] # Remove (min, max, dependencies)
 		if (length(parameter) > 1) {
 			values <- sapply(parameter, generateValueHelper, mList)
 			if (!all(values == values[[1]])) {
@@ -113,7 +136,7 @@ imxUpdateModelValues <- function(model, flatModel, pList, values) {
 	}
 	for(i in 1:length(pList)) {
 		parameters <- pList[[i]]
-		parameters <- parameters[3:length(parameters)] # Remove (min, max) bounds
+		parameters <- parameters[4:length(parameters)] # Remove min, max, and dependencies
 		model <- updateModelValuesHelper(parameters, values[[i]], flatModel, model)
     }
 	return(model)

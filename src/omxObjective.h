@@ -66,7 +66,6 @@ struct omxObjective {					// An objective
 	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 	void (*populateAttrFun)(omxObjective* oo, SEXP algebra);					// Add attributes to the result algebra object
-	void (*stateRefreshChildObjectiveFun)(omxObjective* tgt, omxObjective* src);// Update child objective function state
 	
 	omxObjective* subObjective;													// Subobjective structure in case it is needed.
 	
@@ -99,8 +98,6 @@ struct omxObjective {					// An objective
 	omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState);
 	
 	void omxObjectivePrint(omxObjective *source, char* d);					// Pretty-print a (small) matrix
-
-	void omxStateRefreshObjectiveFunction(omxObjective* tgt, omxObjective* src);
 	
 	/* Helper functions */
 	void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo);	// Does what it says

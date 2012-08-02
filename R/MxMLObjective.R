@@ -82,7 +82,7 @@ verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
 }
 
 setMethod("genericObjFunConvert", signature("MxMLObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		covariance <- .Object@covariance

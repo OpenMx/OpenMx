@@ -112,7 +112,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
         omxObjectiveCompute(subObjective);
 	} else {
 		omxRecompute(cov);
-		omxRecompute(means);
+		if (means != NULL) omxRecompute(means);
 	}
 
 	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
@@ -298,22 +298,6 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 	
 }
 
-void omxStateRefreshChildMLObjective(omxObjective* tgt, omxObjective* src) {
-
-	omxMLObjective* tgtML = (omxMLObjective*)(tgt->argStruct);
-	omxMLObjective* srcML = (omxMLObjective*)(src->argStruct);
-
-	omxStateRefreshMatrix(tgtML->expectedCov, srcML->expectedCov);
-	if (tgtML->expectedMeans && srcML->expectedMeans) {
-		omxStateRefreshMatrix(tgtML->expectedMeans, srcML->expectedMeans);	
-	}
-
-	if (tgt->subObjective != NULL) {
-		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
-	}
-
-}
-
 void omxSetMLObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to ML Objective Calls */
@@ -323,7 +307,6 @@ void omxSetMLObjectiveCalls(omxObjective* oo) {
 	oo->destructFun = omxDestroyMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
 	oo->populateAttrFun = omxPopulateMLAttributes;
-	oo->stateRefreshChildObjectiveFun = omxStateRefreshChildMLObjective;
 	oo->repopulateFun = NULL;	
 }
 

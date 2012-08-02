@@ -17,6 +17,7 @@
 #ifndef _OMXOPTIMIZER_H
 #define _OMXOPTIMIZER_H
 
+void markFreeVarDependencies(omxState* os, int varNumber);
 void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 
 SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"

@@ -50,9 +50,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	
 	oa->args = NULL;
 	oa->funWrapper = NULL;
-	oa->deps = NULL;
 	oa->numArgs = 0;
-	oa->numDeps = 0;
 	oa->matrix = om;
 	om->algebra = oa;
 
@@ -62,7 +60,6 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name);
-		omxAlgebraProcessDependencies(newState, src->matrixNumber, src->algebra->sexpDependencies);
     } else if(src->objective != NULL) {
         omxDuplicateObjectiveMatrix(tgt, src, newState);
     }
@@ -90,11 +87,10 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
-void omxAlgebraCompute(omxAlgebra *oa) {
+void omxAlgebraRecompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		Rprintf("Algebra compute (%s): 0x%0x (needed: %d/%d).\n", 
-			oa->matrix->name, oa->matrix, 
-			oa->matrix->lastCompute, oa->matrix->currentState->computeCount);
+		Rprintf("Algebra compute (%s): 0x%0x.\n", 
+			oa->matrix->name, oa->matrix);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
@@ -114,24 +110,46 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
 		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->matrix);
 	}
-	omxMatrixCompute(oa->matrix);
+
+	omxMarkClean(oa->matrix);
+	
+	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
+}
+
+
+
+void omxAlgebraCompute(omxAlgebra *oa) {
+	if(OMX_DEBUG_ALGEBRA) { 
+		Rprintf("Algebra compute (%s): 0x%0x.\n", 
+			oa->matrix->name, oa->matrix);
+	}
+		
+	for(int j = 0; j < oa->numArgs; j++) {
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->args[j], (omxNeedsUpdate(oa->args[j])?"does":"does not")); }
+		omxCompute(oa->args[j]);
+	}
+   // Recompute happens in handleFreeVars, for now.
+	
+	if(oa->funWrapper == NULL) { 			// No-op algebra: only for algebra-is-a-matrix condition.
+		if(oa->numArgs == 1) {
+			if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->args[0], "No-op Matrix"); }
+			omxCopyMatrix(oa->matrix, oa->args[0]);
+		} else {
+			error("Internal Error: Empty algebra evaluated.\n");
+		}
+	} else {
+		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->args, (oa->numArgs), oa->matrix);
+	}
+
+	omxMarkClean(oa->matrix);
 	
 	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
 }
 
 int omxAlgebraNeedsUpdate(omxAlgebra *oa)
 {
-	int numDeps = oa->numDeps;
-	omxMatrix **deps = oa->deps;
-
-	if(OMX_DEBUG_ALGEBRA) {Rprintf("AlgebraNeedsUpdate:%d?", oa->numDeps);}
-	for(int j = 0; j < numDeps; j++) {
-		if(omxNeedsUpdate(deps[j])) {
-			if(OMX_DEBUG_ALGEBRA) {Rprintf("Arg %d Needs Update.\n");}
-			return TRUE;
-		}
-	}
-	return FALSE;
+	return TRUE;
 }
 
 omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
@@ -144,29 +162,6 @@ omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
 	omxFillMatrixFromMxAlgebra(om, alg, name);
 	
 	return om;
-}
-
-void omxAlgebraProcessDependencies(omxState *currentState, int index, SEXP dependencies) {
-	omxMatrix *om = currentState->algebraList[index];
-	omxAlgebra *oa = om->algebra;
-	oa->sexpDependencies = dependencies;
-
-	int numDeps = LENGTH(dependencies);
-
-	if (numDeps == 0) return;
-
-	oa->numDeps = numDeps;
-	oa->deps = (omxMatrix**)R_alloc(numDeps, sizeof(omxMatrix*));
-
-	for(int i = 0; i < numDeps; i++) {
-		int nextElt = INTEGER(dependencies)[i];
-		if(nextElt < 0) {
-				nextElt = ~nextElt;					// Bitwise reverse of number--this is a matrix index
-				oa->deps[i] = currentState->matrixList[nextElt];
-			} else {
-				oa->deps[i] = currentState->algebraList[nextElt];
-			}
-	}
 }
 
 void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
@@ -230,10 +225,6 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	oa->sexpAlgebra = algebra;
 
 	UNPROTECT(1);	/* algebraOperator */
-
-	// omxAlgebraCompute(oa);
-	// 
-	// omxMatrixCompute(om);
 
 }
 
@@ -362,17 +353,4 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	return om;
 	
 }
-
-void omxStateRefreshAlgebra(omxAlgebra* tgt, omxAlgebra* src) {
-
-	int numDeps = src->numDeps;
-	omxMatrix **tgtDeps = tgt->deps;
-	omxMatrix **srcDeps = src->deps;
-
-	for(int i = 0; i < numDeps; i++) {
-		omxStateRefreshMatrix(tgtDeps[i], srcDeps[i]);
-	}
-
-}
-
 

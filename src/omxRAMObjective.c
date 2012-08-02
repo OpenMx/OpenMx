@@ -124,7 +124,8 @@ void omxCallRAMObjective(omxObjective* oo) {
 	if(oro->M != NULL)
 	    omxRecompute(oro->M);
 	    
-	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
+	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
+		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
 }
 
 void omxDestroyRAMObjective(omxObjective* oo) {
@@ -311,7 +312,6 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 			omxCopyMatrix(Z, Ax);
 		}
 	}
-    omxMatrixCompute(Z);    // Update the compute count for Z.
 }
 
 /*
@@ -331,9 +331,11 @@ void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
+void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
+	omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
+	omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
 	
-	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
+	if(OMX_DEBUG) { Rprintf("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	double oned = 1.0, zerod=0.0;
 	
@@ -357,6 +359,8 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	// }
 	
 	omxFastRAMInverse(numIters, A, Z, Ax, I );
+
+	if(OMX_DEBUG_ALGEBRA) Rprintf("Status is %d\n", A->currentState->statusCode);
 	
     if(A->currentState->statusCode < 0) return;
 	
@@ -381,22 +385,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 		omxDGEMV(FALSE, 1.0, Y, M, 0.0, Means);
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....RAM: Model-implied Means Vector:");}
 	}
-}
-
-void omxStateRefreshChildRAMObjective(omxObjective* tgt, omxObjective* src) {
-
-	omxRAMObjective* tgtRAM = (omxRAMObjective*)(tgt->argStruct);
-	omxRAMObjective* srcRAM = (omxRAMObjective*)(src->argStruct);
-
-	omxStateRefreshMatrix(tgtRAM->cov, srcRAM->cov);
-	if (tgtRAM->means && srcRAM->means) {
-		omxStateRefreshMatrix(tgtRAM->means, srcRAM->means);	
-	}
-
-	if (tgt->subObjective != NULL) {
-		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
-	}
-
 }
 
 unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
@@ -432,7 +420,6 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	subObjective->destructFun = omxDestroyRAMObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = omxPopulateRAMAttributes;
-	subObjective->stateRefreshChildObjectiveFun = omxStateRefreshChildRAMObjective;
 	subObjective->argStruct = (void*) RAMobj;
 	
 	/* Set up objective structures */

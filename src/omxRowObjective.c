@@ -53,6 +53,26 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
 
 }
 
+void markDataRowDependencies(omxState* os, omxRowObjective* objective) {
+
+	int numDeps = objective->numDataRowDeps;
+	int *deps = objective->dataRowDeps;
+
+	omxMatrix** matrixList = os->matrixList;
+	omxMatrix** algebraList = os->algebraList;
+
+	for (int i = 0; i < numDeps; i++) {
+		int value = deps[i];
+
+		if(value < 0) {
+			omxMarkDirty(matrixList[~value]);
+		} else {
+			omxMarkDirty(algebraList[value]);
+		}
+	}
+
+}
+
 void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
 
     omxRowObjective* oro = ((omxRowObjective*) localobj->argStruct);
@@ -108,6 +128,8 @@ void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *shared
 		} else {
 			omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
 		}
+
+		markDataRowDependencies(localobj->matrix->currentState, oro);
 		
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxVectorElement(dataRow, j);
@@ -135,7 +157,7 @@ void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *shared
 
 		omxRecompute(rowAlgebra);							// Compute this row
 
-		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);		
+		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
 	}
 	free(toRemove);
 	free(zeros);
@@ -144,22 +166,27 @@ void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *shared
 void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
     if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
 	// Requires: Data, means, covariances.
-	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
 	omxMatrix* objMatrix  = oo->matrix;
 	omxState* parentState = objMatrix->currentState;
 	int numChildren = parentState->numChildren;
 
-    omxMatrix *rowAlgebra, *rowResults, *reduceAlgebra;
+    omxMatrix *reduceAlgebra;
 	omxData *data;
 
-    omxRowObjective* oro = ((omxRowObjective*)oo->argStruct);
+    omxRowObjective* oro = ((omxRowObjective*) oo->argStruct);
 
-	rowAlgebra	    = oro->rowAlgebra;
-	rowResults	    = oro->rowResults;
 	reduceAlgebra   = oro->reduceAlgebra;
 	data		    = oro->data;
-	
+
+	/* Michael Spiegel, 7/31/12
+	* The demo "RowObjectiveSimpleExamples" will fail in the parallel 
+	* Hessian calculation if the resizing operation is performed.
+	*
+	omxMatrix *rowAlgebra, *rowResults
+	rowAlgebra	    = oro->rowAlgebra;
+	rowResults	    = oro->rowResults;
+
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
 		if(OMX_DEBUG_ROWS(1)) { 
 			Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", 
@@ -168,6 +195,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		}
 		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
 	}
+	*/
 		
     int parallelism = (numChildren == 0) ? 1 : numChildren;
 
@@ -181,7 +209,6 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
@@ -217,8 +244,9 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce objective function.\n"); }
 
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource;
-	int nextDef, index;
+	SEXP nextMatrix, itemList, nextItem;
+	int nextDef, index, numDeps;
+
 	omxRowObjective *newObj = (omxRowObjective*) R_alloc(1, sizeof(omxRowObjective));
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
@@ -292,7 +320,16 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
 	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
-	
+
+	if(OMX_DEBUG) {Rprintf("Accessing data row dependencies.\n"); }
+	PROTECT(nextItem = GET_SLOT(rObj, install("dataRowDeps")));
+	numDeps = LENGTH(nextItem);
+	newObj->numDataRowDeps = numDeps;
+	newObj->dataRowDeps = (int*) R_alloc(numDeps, sizeof(int));
+	for(int i = 0; i < numDeps; i++) {
+		newObj->dataRowDeps[i] = INTEGER(nextItem)[i];
+	}
+	UNPROTECT(1);
 
 	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
@@ -301,6 +338,8 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
+		SEXP dataSource, columnSource, depsSource; 
+
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
 		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
@@ -309,17 +348,25 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
-		UNPROTECT(2); // unprotect dataSource and columnSource
-		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
-		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
-		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 2, sizeof(int));
-		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		PROTECT(depsSource = VECTOR_ELT(itemList, 2));
+		numDeps = LENGTH(depsSource);
+		newObj->defVars[nextDef].numDeps = numDeps;
+		newObj->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
+		for(int i = 0; i < numDeps; i++) {
+			newObj->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
+		}
+		UNPROTECT(3); // unprotect dataSource, columnSource, and depsSource
 
-		for(index = 2; index < length(itemList); index++) {
+		newObj->defVars[nextDef].numLocations = length(itemList) - 3;
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 3, sizeof(int));
+		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 3, sizeof(int));
+		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 3, sizeof(int));
+
+		for(index = 3; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
-			newObj->defVars[nextDef].matrices[index-2] = INTEGER(nextItem)[0];
-			newObj->defVars[nextDef].rows[index-2]     = INTEGER(nextItem)[1];
-			newObj->defVars[nextDef].cols[index-2]     = INTEGER(nextItem)[2];
+			newObj->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
+			newObj->defVars[nextDef].rows[index-3]     = INTEGER(nextItem)[1];
+			newObj->defVars[nextDef].cols[index-3]     = INTEGER(nextItem)[2];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList

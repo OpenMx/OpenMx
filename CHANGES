@@ -18,6 +18,8 @@ trunk
 * bugfix to omxRAMtoML() when input model has covariance data
 * implemented cov2cor in the OpenMx backend
 * mxOption "Major iterations" accepts either a value or a function
+* now tracking the MxAlgebra and MxMatrix objects that need to be updated
+  when populating free parameters or updating definition variables.
 
 Release 1.2.3-2011 (April 10, 2012)
 ===================================

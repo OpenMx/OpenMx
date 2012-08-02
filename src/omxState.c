@@ -92,41 +92,6 @@
 		}
 	}
 
-	void omxPartialUpdateState(omxState* tgt, omxState* src, omxMatrix *tgtMatrix,
-                               omxMatrix *srcMatrix, int copyStatus) {
-		tgt->computeCount   = src->computeCount;
-		tgt->currentRow     = src->currentRow;
-		tgt->optimalValues  = src->optimalValues;
-		tgt->majorIteration = src->majorIteration;
-		tgt->minorIteration = src->minorIteration;
-
-		if (copyStatus) {
-			tgt->statusCode = src->statusCode;
-		}
-
-		omxStateRefreshMatrix(tgtMatrix, srcMatrix);
-
-	}
-
-	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus) {
-		tgt->computeCount   = src->computeCount;
-		tgt->currentRow     = src->currentRow;
-		tgt->optimalValues  = src->optimalValues;
-		tgt->majorIteration = src->majorIteration;
-		tgt->minorIteration = src->minorIteration;
-
-		if (copyStatus) {
-			tgt->statusCode = src->statusCode;
-		}
-
-		for(int i = 0; i < src->numMats; i++) {
-			omxStateRefreshMatrix(tgt->matrixList[i], src->matrixList[i]);
-		}
-		for(int i = 0; i < src->numAlgs; i++) {
-			omxStateRefreshMatrix(tgt->algebraList[i], src->algebraList[i]);
-		}
-	}
-
 	void omxSetMajorIteration(omxState *state, int value) {
 		state->majorIteration = value;
 		for(int i = 0; i < state->numChildren; i++) {
@@ -152,6 +117,7 @@
 		tgt->parentState 		= src;
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
+		tgt->markMatrices		= (int*) R_alloc(tgt->numMats + tgt->numAlgs, sizeof(int));
 		
 		memset(tgt->matrixList, 0, sizeof(omxMatrix*) * tgt->numMats);
 		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
@@ -189,14 +155,18 @@
 		tgt->numFreeParams			= src->numFreeParams;
 		tgt->freeVarList 		= (omxFreeVar*) R_alloc(tgt->numFreeParams, sizeof(omxFreeVar));
 		for(int j = 0; j < tgt->numFreeParams; j++) {
+			int nLocs 							= src->freeVarList[j].numLocations;
+			int numDeps							= src->freeVarList[j].numDeps;
+
 			tgt->freeVarList[j].lbound			= src->freeVarList[j].lbound;
 			tgt->freeVarList[j].ubound			= src->freeVarList[j].ubound;
-			tgt->freeVarList[j].numLocations	= src->freeVarList[j].numLocations;
+			tgt->freeVarList[j].numLocations	= nLocs;
+			tgt->freeVarList[j].numDeps			= numDeps;
 			
-			int nLocs 							= tgt->freeVarList[j].numLocations;
 			tgt->freeVarList[j].matrices		= (int*) R_alloc(nLocs, sizeof(int));
 			tgt->freeVarList[j].row				= (int*) R_alloc(nLocs, sizeof(int));
 			tgt->freeVarList[j].col				= (int*) R_alloc(nLocs, sizeof(int));
+			tgt->freeVarList[j].deps			= (int*) R_alloc(numDeps, sizeof(int));
 
 			for(int k = 0; k < nLocs; k++) {
 				int theMat 						= src->freeVarList[j].matrices[k];
@@ -208,6 +178,10 @@
 				tgt->freeVarList[j].col[k]		= theCol;
 								
 				tgt->freeVarList[j].name		= src->freeVarList[j].name;
+			}
+
+			for(int k = 0; k < numDeps; k++) {
+				tgt->freeVarList[j].deps[k] = src->freeVarList[j].deps[k];
 			}
 		}
 		
@@ -370,6 +344,15 @@
 		os->optimum = minimum;
 		os->optimumStatus = os->statusCode;
 		strncpy(os->optimumMsg, os->statusMsg, 250);
+	}
+
+	void omxResetStatus(omxState *state) {
+		int numChildren = state->numChildren;
+		state->statusCode = 0;
+		state->statusMsg[0] = '\0';
+		for(int i = 0; i < numChildren; i++) {
+			omxResetStatus(state->childList[i]);
+		}
 	}
 
 	void omxRaiseError(omxState *state, int errorCode, char* errorMsg) {

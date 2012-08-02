@@ -247,7 +247,7 @@ checkLISRELmeans <- function(Lam, ManMean, LatMean, X, modelname){
 # **DONE**
 # Note: Lots of error checking is done in this method
 setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		lxMatrix <- .Object@LX

@@ -447,7 +447,7 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber) {
 				}
 				result[[parameterName]] <- original
 			} else {
-				result[[parameterName]] <- list('min' = minBounds, 'max' = maxBounds, 
+				result[[parameterName]] <- list(minBounds, maxBounds, 
 					c(matrixNumber, row, col))
 				if (isSymmetric && row != col) {
 					original <- result[[parameterName]]

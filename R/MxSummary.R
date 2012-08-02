@@ -219,9 +219,9 @@ parameterListHelper <- function(model, withModelName, invSDs) {
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
-			mLocation <- parameters[[i]][[3]][[1]] + 1
-			mRow <- parameters[[i]][[3]][[2]] + 1
-			mCol <- parameters[[i]][[3]][[3]] + 1
+			mLocation <- parameters[[i]][[4]][[1]] + 1
+			mRow <- parameters[[i]][[4]][[2]] + 1
+			mCol <- parameters[[i]][[4]][[3]] + 1
 			lbound <- parameters[[i]][[1]]
 			ubound <- parameters[[i]][[2]]
 			aMatrix <- matrices[[mLocation]][[1]]

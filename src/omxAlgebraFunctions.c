@@ -93,7 +93,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int *populateTemp = result->populateToCol;
 	result->populateToCol = result->populateToRow;
 	result->populateToRow = populateTemp;
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 }
 
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -158,8 +158,8 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxDGEMM(FALSE, FALSE, 1.0, preMul, postMul, 0.0, result);
 	// F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
 	result->colMajor = TRUE;
-	omxMatrixCompute(result);
 
+	omxMatrixLeadingLagging(result);
 }
 
 void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -192,7 +192,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 					omxVectorElement(second, i)));
 		}
 		result->colMajor = first->colMajor;
-		omxMatrixCompute(result);
+		omxMatrixLeadingLagging(result);
 	} else {
 		for(int i = 0; i < rows; i++) {
 			for(int j = 0; j < cols; j++) {
@@ -232,7 +232,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 				omxVectorElement(second, i));
 		}
 		result->colMajor = first->colMajor;
-		omxMatrixCompute(result);
+		omxMatrixLeadingLagging(result);
 	} else {
 		for(int i = 0; i < rows; i++) {
 			for(int j = 0; j < cols; j++) {
@@ -323,13 +323,10 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
 
-	omxMatrixCompute(intermediate);
-	omxMatrixCompute(result);
-
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: premul.\n");}
 	F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
-	omxMatrixCompute(intermediate);
+
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: postmul.\n");}
 //	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).\n", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
 	F77_CALL(omxunsafedgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
@@ -370,7 +367,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 				omxVectorElement(second, i));
 		}
 		result->colMajor = first->colMajor;
-		omxMatrixCompute(result);
+		omxMatrixLeadingLagging(result);
 	} else {
 		for(int i = 0; i < rows; i++) {
 			for(int j = 0; j < cols; j++) {
@@ -406,7 +403,7 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 		}
 	}
 	result->colMajor = inMat->colMajor;
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 }
 
 void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result){
@@ -441,7 +438,7 @@ void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result){
 					}
 	        	}
 	        result->colMajor = first->colMajor;
-	        omxMatrixCompute(result);
+	        omxMatrixLeadingLagging(result);
 		} else {
 	        	for(int i = 0; i < rows; i++) {
 	                	for(int j = 0; j < cols; j++) {
@@ -490,7 +487,7 @@ void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
 					}
 	        	}
 	        result->colMajor = first->colMajor;
-	        omxMatrixCompute(result);
+	        omxMatrixLeadingLagging(result);
 		} else {
 	        	for(int i = 0; i < rows; i++) {
 	                	for(int j = 0; j < cols; j++) {
@@ -539,7 +536,7 @@ void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
 						}
 	        	}
 	        result->colMajor = first->colMajor;
-	        omxMatrixCompute(result);
+	        omxMatrixLeadingLagging(result);
 		} else {
 	        	for(int i = 0; i < rows; i++) {
 	                	for(int j = 0; j < cols; j++) {
@@ -591,7 +588,7 @@ void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
 			}
         	}
         result->colMajor = first->colMajor;
-        omxMatrixCompute(result);
+        omxMatrixLeadingLagging(result);
 	} else {
         	for(int i = 0; i < rows; i++) {
                 	for(int j = 0; j < cols; j++) {
@@ -652,7 +649,7 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
 				}
         	}
         result->colMajor = first->colMajor;
-        omxMatrixCompute(result);
+        omxMatrixLeadingLagging(result);
 	} else {
         	for(int i = 0; i < rows; i++) {
                 	for(int j = 0; j < cols; j++) {
@@ -706,7 +703,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 				omxVectorElement(second, i));
 		}
 		result->colMajor = first->colMajor;
-		omxMatrixCompute(result);
+		omxMatrixLeadingLagging(result);
 	} else {
 		for(int i = 0; i < rows; i++) {
 			for(int j = 0; j < cols; j++) {
@@ -882,7 +879,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 				omxVectorElement(second, i));
 		}
 		result->colMajor = first->colMajor;
-		omxMatrixCompute(result);
+		omxMatrixLeadingLagging(result);
 	} else {
 		for(int i = 0; i < rows; i++) {
 			for(int j = 0; j < cols; j++) {
@@ -914,7 +911,7 @@ void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 			- omxVectorElement(inMat, i));
 	}
 	result->colMajor = inMat->colMajor;
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 
 }
 
@@ -2047,7 +2044,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxFreeMatrixData(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxFreeMatrixData(B);
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 
 }
 
@@ -2124,7 +2121,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxSortHelper(WR, A, result);
 
 	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 
 }
 
@@ -2198,7 +2195,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 
 	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxFreeMatrixData(B);
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 
 }
 
@@ -2276,7 +2273,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	omxSortHelper(WR, A, result);
 
 	omxFreeMatrixData(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxMatrixCompute(result);
+	omxMatrixLeadingLagging(result);
 
 }
 

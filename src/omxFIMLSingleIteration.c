@@ -161,10 +161,6 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 	int firstRow = 1;
     int row = rowbegin;
 
-    if(numDefs == 0) {
-        numIdenticalDefs = data->rows;
-    }
-
     resetDefinitionVariables(oldDefs, numDefs);
 
 	// [[Comment 4]] moving row starting position
@@ -211,7 +207,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					// Recalculate means and covariances.
-					if(!(subObjective == NULL)) {
+					if(subObjective != NULL) {
 						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);
@@ -439,10 +435,10 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                     // TODO: Make this less of a hack.
                     halfCov->rows = smallCov->rows;
                     halfCov->cols = ordContCov->cols;
-                    omxMatrixCompute(halfCov);
+                    omxMatrixLeadingLagging(halfCov);
                     reduceCov->rows = ordContCov->cols;
                     reduceCov->cols = ordContCov->cols;
-                    omxMatrixCompute(reduceCov);
+                    omxMatrixLeadingLagging(reduceCov);
 
                     F77_CALL(dsymm)(&l, &u, &(smallCov->rows), &(ordContCov->cols), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
                     F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->cols), &(halfCov->cols), &(ordContCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is cont/ord^T %*% (contCov^-1 %*% cont/ord)
@@ -724,7 +720,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 				} else if (numVarsFilled || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(subObjective == NULL)) {
+					if(subObjective != NULL) {
 						omxObjectiveCompute(subObjective);
 					} else {
 						omxRecompute(cov);

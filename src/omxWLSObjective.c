@@ -131,7 +131,7 @@ void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
         omxObjectiveCompute(subObjective);
 	} else {
 		omxRecompute(eCov);
-		omxRecompute(eMeans);
+		if (eMeans != NULL) omxRecompute(eMeans);
 	}
 
 	flattenDataToVector(oCov, oMeans, oFlat);
@@ -259,14 +259,6 @@ void omxInitWLSObjective(omxObjective* oo, SEXP rObj) {
 	
 }
 
-void omxStateRefreshChildWLSObjective(omxObjective* tgt, omxObjective* src) {
-
-	if (tgt->subObjective != NULL) {
-		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
-	}
-
-}
-
 void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to WLS Objective Calls */
@@ -276,7 +268,6 @@ void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	oo->destructFun = omxDestroyWLSObjective;
 	oo->setFinalReturns = omxSetFinalReturnsWLSObjective;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
-	oo->stateRefreshChildObjectiveFun = omxStateRefreshChildWLSObjective;
 	oo->repopulateFun = NULL;	
 }
 

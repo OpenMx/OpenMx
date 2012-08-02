@@ -25,9 +25,38 @@
 #include "omxDefines.h"
 #include "omxState.h"
 
+void markFreeVarDependenciesHelper(omxState* os, int varNumber) {
 
-/* Sub Free Vars Into Appropriate Slots */
-void handleFreeVarList(omxState* os, double* x, int numVars) {
+	int numDeps = os->freeVarList[varNumber].numDeps;
+	int *deps = os->freeVarList[varNumber].deps;
+
+	omxMatrix** matrixList = os->matrixList;
+	omxMatrix** algebraList = os->algebraList;
+
+	for (int i = 0; i < numDeps; i++) {
+		int value = deps[i];
+
+		if(value < 0) {
+			omxMarkDirty(matrixList[~value]);
+		} else {
+			omxMarkDirty(algebraList[value]);
+		}
+	}
+
+}
+
+void markFreeVarDependencies(omxState* os, int varNumber) {
+
+	int numChildren = os->numChildren;
+
+	markFreeVarDependenciesHelper(os, varNumber);
+
+	for(int i = 0; i < numChildren; i++) {
+		markFreeVarDependencies(os->childList[i], varNumber);
+	}
+}
+
+void handleFreeVarListHelper(omxState* os, double* x, int numVars, int parent, int *markMatrices) {
 
 	int numChildren = os->numChildren;
 
@@ -39,7 +68,10 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 	if(numVars == 0) return;
 
 	omxFreeVar* freeVarList = os->freeVarList;
-	omxMatrix** matrixList = os->matrixList;
+	omxMatrix** matrixList  = os->matrixList;
+	omxMatrix** algebraList = os->algebraList;
+	int numMats = os->numMats;
+	int numAlgs = os->numAlgs;
 
 	os->computeCount++;
 
@@ -66,13 +98,45 @@ void handleFreeVarList(omxState* os, double* x, int numVars) {
 				Rprintf("Setting location (%d, %d) of matrix %d to value %f for var %d\n",
 					row, col, freeVarList[k].matrices[l], x[k], k);
 			}
-			omxMarkDirty(matrix);
+		}
+		if (parent) {
+			int *deps   = os->freeVarList[k].deps;
+			int numDeps = os->freeVarList[k].numDeps;
+			for (int index = 0; index < numDeps; index++) {
+				markMatrices[deps[index] + numMats] = 1;
+			}
 		}
 	}
 
-	for(int i = 0; i < numChildren; i++) {
-		handleFreeVarList(os->childList[i], x, numVars);
+	for(int i = 0; i < numMats; i++) {
+		if (markMatrices[i]) {
+			int offset = ~(i - numMats);
+			omxMarkDirty(matrixList[offset]);
+		}
 	}
+
+	for(int i = 0; i < numAlgs; i++) {
+		if (markMatrices[i + numMats]) {
+			omxMarkDirty(algebraList[i]);
+		}
+	}
+
+	// The if-statement is redundant, but the OpenMP
+	// specification is ambiguous on the outcome of num_threads(0)
+	if (numChildren > 0) {
+		#pragma omp parallel for num_threads(numChildren) 
+		for(int i = 0; i < numChildren; i++) {
+			handleFreeVarListHelper(os->childList[i], x, numVars, 0, markMatrices);
+		}
+	}
+}
+
+/* Sub Free Vars Into Appropriate Slots */
+void handleFreeVarList(omxState* os, double* x, int numVars) {
+
+	memset(os->markMatrices, 0, sizeof(int) * (os->numMats + os->numAlgs));
+	handleFreeVarListHelper(os, x, numVars, 1, os->markMatrices);
+
 }
 
 /* get the list element named str, or return NULL */

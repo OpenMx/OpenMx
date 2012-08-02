@@ -28,7 +28,10 @@
 #include "omxFIMLSingleIteration.h"
 #include "omxSadmvnWrapper.h"
 
-static inline int max(int a, int b) { return(a > b ? a : b); }
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
 
 /* FIML Function body */
 void omxDestroyFIMLObjective(omxObjective *oo) {
@@ -117,6 +120,26 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	return retVal;
 }
 
+void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar) {
+
+	int numDeps = defVar->numDeps;
+	int *deps = defVar->deps;
+
+	omxMatrix** matrixList = os->matrixList;
+	omxMatrix** algebraList = os->algebraList;
+
+	for (int i = 0; i < numDeps; i++) {
+		int value = deps[i];
+
+		if(value < 0) {
+			omxMarkDirty(matrixList[~value]);
+		} else {
+			omxMarkDirty(algebraList[value]);
+		}
+	}
+
+}
+
 int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
 
 	if(OMX_DEBUG_ROWS(row)) { Rprintf("Processing Definition Vars.\n"); }
@@ -152,8 +175,8 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 			int col = defVars[k].cols[l];
 			omxMatrix *matrix = state->matrixList[matrixNumber];
 			omxSetMatrixElement(matrix, row, col, newDefVar);
-			omxMarkDirty(matrix);
 		}
+		markDefVarDependencies(state, &(defVars[k]));
 	}
 	return numVarsFilled;
 }
@@ -198,20 +221,31 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
     if(numDefs == 0) {
         if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-        if(!(subObjective == NULL)) {
+        if(subObjective != NULL) {
             omxObjectiveCompute(subObjective);
         } else {
             omxRecompute(cov);			// Only recompute this here if there are no definition vars
-            omxRecompute(means); 
-            // MCN Also do the threshold formulae!
-            for(int j=0; j < dataColumns->cols; j++) {
-                int var = omxVectorElement(dataColumns, j);
-                if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-                    omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
-                    checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
-                }
+            omxRecompute(means);
+        }
+        // MCN Also do the threshold formulae!
+        for(int j=0; j < dataColumns->cols; j++) {
+            int var = omxVectorElement(dataColumns, j);
+            if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+				omxMatrix* nextMatrix = thresholdCols[var].matrix;
+				omxRecompute(nextMatrix);
+				checkIncreasing(nextMatrix, thresholdCols[var].column);
+				for(int index = 0; index < numChildren; index++) {
+					omxMatrix *target = omxLookupDuplicateElement(parentState->childList[index], nextMatrix);
+					omxCopyMatrix(target, nextMatrix);
+				}
             }
         }
+		for(int index = 0; index < numChildren; index++) {
+			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
+			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
+			omxCopyMatrix(childOfo->cov, cov);
+			omxCopyMatrix(childOfo->means, means);
+		}
         if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
         if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
     }
@@ -220,8 +254,8 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
     
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
-		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
 	}
 
 	if (parallelism > 1) {
@@ -230,7 +264,6 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIterationJoint(childObjective, oo, stride * i, data->rows - stride * i);
@@ -278,7 +311,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 	omxMatrix *cov, *means;//, *oldInverse;
 	omxData *data;
 
-	omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
+	omxFIMLObjective* ofo = ((omxFIMLObjective*) oo->argStruct);
 	omxMatrix* objMatrix  = oo->matrix;
 	omxState* parentState = objMatrix->currentState;
 	int numChildren = parentState->numChildren;
@@ -293,12 +326,19 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-		if(!(subObjective == NULL)) {
+		if(subObjective != NULL) {
 			omxObjectiveCompute(subObjective);
 		} else {
 			omxRecompute(cov);			// Only recompute this here if there are no definition vars
 			omxRecompute(means);
 		}
+		for(int index = 0; index < numChildren; index++) {
+			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
+			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
+			omxCopyMatrix(childOfo->cov, cov);
+			omxCopyMatrix(childOfo->means, means);
+		}
+
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
@@ -307,8 +347,8 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
     
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
-		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
 	}
 
 	if (parallelism > 1) {
@@ -317,7 +357,6 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
@@ -388,7 +427,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-		if(!(subObjective == NULL)) {
+		if(subObjective != NULL) {
 			omxObjectiveCompute(subObjective);
 		} else {
 			omxRecompute(cov);			// Only recompute this here if there are no definition vars
@@ -396,19 +435,32 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		}
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-				omxRecompute(thresholdCols[j].matrix);
-				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+				omxMatrix* nextMatrix = thresholdCols[j].matrix;
+				omxRecompute(nextMatrix);
+				checkIncreasing(nextMatrix, thresholdCols[j].column);
+				for(int index = 0; index < numChildren; index++) {
+					omxMatrix *target = omxLookupDuplicateElement(parentState->childList[index], nextMatrix);
+					omxCopyMatrix(target, nextMatrix);
+				}
 			}
 		}
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
+		for(int index = 0; index < numChildren; index++) {
+			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
+			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
+			omxCopyMatrix(childOfo->cov, cov);
+			omxCopyMatrix(childOfo->means, means);
+			memcpy(childOfo->weights, weights, sizeof(double) * cov->rows);
+			memcpy(childOfo->corList, corList, sizeof(double) * (cov->rows * (cov->rows - 1)) / 2);
+		}
 	}
 
 	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
 
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (data->rows / parallelism < MIN_ROWS_PER_THREAD) {
-		parallelism = max(1, data->rows / MIN_ROWS_PER_THREAD);
+	if (parallelism > data->rows) {
+		parallelism = data->rows;
 	}
 
 	if (parallelism > 1) {
@@ -417,7 +469,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxPartialUpdateState(parentState->childList[i], parentState, childMatrix, objMatrix, TRUE);
 			omxObjective *childObjective = childMatrix->objective;
 			if (i == parallelism - 1) {
 				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
@@ -485,45 +536,9 @@ void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 	}
 }
 
-void omxStateRefreshChildFIMLObjective(omxObjective* tgt, omxObjective* src) {
-
-	omxFIMLObjective* tgtFIML = (omxFIMLObjective*)(tgt->argStruct);
-	omxFIMLObjective* srcFIML = (omxFIMLObjective*)(src->argStruct);
-
-	if (tgtFIML->thresholdCols != NULL) {
-
-		int numCols = tgtFIML->cov->rows;
-
-		memcpy(tgtFIML->weights, srcFIML->weights, sizeof(double) * numCols);
-		memcpy(tgtFIML->lThresh, srcFIML->lThresh, sizeof(double) * numCols);
-		memcpy(tgtFIML->uThresh, srcFIML->uThresh, sizeof(double) * numCols);
-		memcpy(tgtFIML->Infin, srcFIML->Infin, sizeof(int) * numCols);
-		memcpy(tgtFIML->corList, srcFIML->corList, 
-			(sizeof(double) / 2) * (numCols * (numCols + 1)));
-
-		for(int index = 0; index < numCols; index++) {
-			if (tgtFIML->thresholdCols[index].matrix != NULL) {
-				omxStateRefreshMatrix(tgtFIML->thresholdCols[index].matrix, 
-								srcFIML->thresholdCols[index].matrix);
-				break;
-			}
-		}		 
-	}
-
-	omxStateRefreshMatrix(tgtFIML->cov, srcFIML->cov);
-	if (tgtFIML->means && srcFIML->means) {
-		omxStateRefreshMatrix(tgtFIML->means, srcFIML->means);	
-	}
-
-	if (tgt->subObjective != NULL) {
-		tgt->subObjective->stateRefreshChildObjectiveFun(tgt->subObjective, src->subObjective);
-	}
-
-}
-
 void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
 
-	SEXP nextMatrix, itemList, nextItem, dataSource, columnSource, threshMatrix;
+	SEXP nextMatrix, itemList, nextItem, threshMatrix;
 	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
 
     omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
@@ -548,7 +563,6 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->populateAttrFun = omxPopulateFIMLAttributes;
-	oo->stateRefreshChildObjectiveFun = omxStateRefreshChildFIMLObjective;
 	oo->repopulateFun = NULL;
 	
 
@@ -649,29 +663,43 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
+		SEXP dataSource, columnSource, depsSource; 
+		int nextDataSource, numDeps;
+
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
+		nextDataSource = INTEGER(dataSource)[0];
 		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]);
+			Rprintf("Data source number is %d.\n", nextDataSource);
 		}
-		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
-		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
+		newObj->defVars[nextDef].data = nextDataSource;
+		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[nextDataSource];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
 			Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]);
 		}
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
-		UNPROTECT(2); // unprotect dataSource and columnSource
-		newObj->defVars[nextDef].numLocations = length(itemList) - 2;
-		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 2, sizeof(int));
-		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 2, sizeof(int));
-		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 2, sizeof(int));
+		PROTECT(depsSource = VECTOR_ELT(itemList, 2));
+		numDeps = LENGTH(depsSource);
+		newObj->defVars[nextDef].numDeps = numDeps;
+		newObj->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
+		for(int i = 0; i < numDeps; i++) {
+			newObj->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
+		}
+		UNPROTECT(3); // unprotect dataSource, columnSource, and depsSource
+
+
+
+		newObj->defVars[nextDef].numLocations = length(itemList) - 3;
+		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 3, sizeof(int));
+		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 3, sizeof(int));
+		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 3, sizeof(int));
 		newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
-		for(index = 2; index < length(itemList); index++) {
+		for(index = 3; index < length(itemList); index++) {
 			PROTECT(nextItem = VECTOR_ELT(itemList, index));
-			newObj->defVars[nextDef].matrices[index-2] = INTEGER(nextItem)[0];
-			newObj->defVars[nextDef].rows[index-2] = INTEGER(nextItem)[1];
-			newObj->defVars[nextDef].cols[index-2] = INTEGER(nextItem)[2];
+			newObj->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
+			newObj->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
+			newObj->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
 			UNPROTECT(1); // unprotect nextItem
 		}
 		UNPROTECT(1); // unprotect itemList

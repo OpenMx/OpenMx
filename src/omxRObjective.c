@@ -95,6 +95,8 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 
 	UNPROTECT(2); // theCall, estimate
 	omx_omp_unset_lock(&robjective_lock);
+
+	omxMarkDirty(oo->matrix);
 }
 
 omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns) {

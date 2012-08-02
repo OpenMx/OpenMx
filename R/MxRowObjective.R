@@ -23,7 +23,8 @@ setClass(Class = "MxRowObjective",
 		reduceAlgebra = "MxCharOrNumber",
 		definitionVars = "list",
 		dims = "character",
-		dataColumns = "numeric"),
+		dataColumns = "numeric",
+		dataRowDeps = "integer"),
 	contains = "MxBaseObjective")
 
 setMethod("initialize", "MxRowObjective",
@@ -60,12 +61,12 @@ setMethod("genericObjNewEntities", signature("MxRowObjective"),
 
 setMethod("genericObjDependencies", signature("MxRowObjective"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@reduceAlgebra)
-	sources <- sources[!is.na(sources)]
-	if (length(sources) > 0) {
-		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
-	}
-	return(dependencies)
+		reduceAlgebra <- .Object@reduceAlgebra
+		rowAlgebra <- .Object@rowAlgebra
+		rowResults <- .Object@rowResults
+		dependencies <- imxAddDependency(reduceAlgebra, .Object@name, dependencies)
+		dependencies <- imxAddDependency(rowAlgebra, rowResults, dependencies)
+		return(dependencies)
 })
 
 
@@ -96,10 +97,10 @@ setMethod("genericObjRename", signature("MxRowObjective"),
 })
 
 setMethod("genericObjFunConvert", signature("MxRowObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars) {
+	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
-		dataName <- .Object@data 
+		dataName <- .Object@data
 		if(is.na(dataName)) {
 			msg <- paste("The MxRowObjective objective function",
 				"does not have a dataset associated with it in model",
@@ -112,6 +113,9 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call. = FALSE)
 		}
+		dataRowDeps <- union(dependencies[[.Object@filteredDataRow]], dependencies[[.Object@existenceVector]])
+		dataRowDeps <- sapply(dataRowDeps, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
+		dataRowDeps <- as.integer(dataRowDeps)
 		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, dataName)
 		.Object@rowAlgebra <- imxLocateIndex(flatModel, .Object@rowAlgebra, name)
 		.Object@rowResults <- imxLocateIndex(flatModel, .Object@rowResults, name)
@@ -120,6 +124,7 @@ setMethod("genericObjFunConvert", signature("MxRowObjective"),
 		.Object@reduceAlgebra <- imxLocateIndex(flatModel, .Object@reduceAlgebra, name)
 		.Object@data <- imxLocateIndex(flatModel, dataName, name)
 		.Object@dataColumns <- generateRowDataColumns(flatModel, .Object@dims, dataName)
+		.Object@dataRowDeps <- dataRowDeps
 		if (length(mxDataObject@observed) == 0) {
 			.Object@data <- as.integer(NA)
 		}
