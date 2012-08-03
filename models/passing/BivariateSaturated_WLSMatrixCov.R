@@ -66,7 +66,7 @@ bivSatModel3 <- mxModel("bivSat3",
         type="cov", 
         numObs=1000 
     ),
-    mxWLSObjective(
+    imxWLSObjective(
         covariance="expCov",
         dimnames=selVars
     )
@@ -106,7 +106,7 @@ bivSatModel3m <- mxModel("bivSat3m",
         numObs=1000, 
         means=colMeans(testData) 
     ),
-    mxWLSObjective(
+    imxWLSObjective(
         covariance="expCov",
         means="expMean",
         dimnames=selVars
@@ -146,7 +146,7 @@ bivSatModel3w <- mxModel("bivSat3w",
         numObs=1000, 
         means=colMeans(testData) 
     ),
-    mxWLSObjective(
+    imxWLSObjective(
         covariance="expCov",
         means="expMean",
         weights="weightMat",

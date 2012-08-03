@@ -160,7 +160,7 @@ setMethod("genericObjModelConvert", "MxWLSObjective",
 )
 
 
-mxWLSObjective <- function(covariance, means = NA, weights=NA, dimnames = NA, thresholds = NA) {
+imxWLSObjective <- function(covariance, means = NA, weights=NA, dimnames = NA, thresholds = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
 	}

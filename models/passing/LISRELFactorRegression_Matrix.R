@@ -150,7 +150,7 @@ Jor82Ex1 <- mxModel(
     name='LISREL Test from 1982 Paper with mxLISRELObjective',
     mxData(observed=gObsCor, type='cor', numObs=1000),
     lx, ly, be, ga, ph, ps, td, te, th,
-    mxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name, GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name, TE=te@name, TH=th@name)
+    imxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name, GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name, TE=te@name, TH=th@name)
 )
 
 

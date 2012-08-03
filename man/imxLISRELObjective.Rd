@@ -13,8 +13,8 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{mxLISRELObjective}
-\alias{mxLISRELObjective}
+\name{imxLISRELObjective}
+\alias{imxLISRELObjective}
 
 \title{Create MxLISRELObjective Object}
 
@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxLISRELObjective(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
+imxLISRELObjective(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
    TX = NA, TY = NA, KA = NA, AL = NA,
    dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
 }
@@ -132,7 +132,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
    mPH <- mxMatrix("Symm", values=c(1, .3, 1), name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE))
    
    # Create a LISREL objective with LX, TD, and PH matrix names
-   objective <- mxLISRELObjective(LX="LX", TD="TD", PH="PH")
+   objective <- imxLISRELObjective(LX="LX", TD="TD", PH="PH")
    
    model <- mxModel(mLX, mTD, mPH, objective)
 

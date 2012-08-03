@@ -160,7 +160,7 @@ ymod <- mxModel(
 	name='LISREL Endogenous Model with Means',
 	mxData(observed=rawlisy, type='raw'),
 	ly, be, ps, te, ty, al,
-	mxLISRELObjective(
+	imxLISRELObjective(
 		LY=ly@name,
 		BE=be@name,
 		PS=ps@name,
@@ -195,7 +195,7 @@ xmod <- mxModel(
 	name='LISREL Exogenous Model with Means',
 	mxData(observed=rawlisx, type='raw'),
 	lx, ph, td, tx, ka,
-	mxLISRELObjective(
+	imxLISRELObjective(
 		LX=lx@name,
 		PH=ph@name,
 		TD=td@name,
