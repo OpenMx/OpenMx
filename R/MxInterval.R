@@ -140,7 +140,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 	reference <- interval@reference
 	entity <- flatModel[[reference]]
 	if(reference %in% pnames) {
-		location <- parameters[[reference]][[3]]
+		location <- parameters[[reference]][[4]]
 		location[[1]] <- - location[[1]] - 1
 		retval <- list()
 		retval[[reference]] <- c(location, 
