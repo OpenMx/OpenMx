@@ -1,5 +1,5 @@
-trunk
-=====
+Beta Release 999.0.0-2126 (August 03, 2012)
+===========================================
 * added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
 * added 'cache' and 'cacheBack' arguments to mxEval()
 * added omxLocateParameters() function (see ?omxLocateParameters)
