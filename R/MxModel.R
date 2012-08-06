@@ -70,7 +70,7 @@ setGeneric("imxInitModel", function(model) {
 	return(standardGeneric("imxInitModel")) } )
 
 setGeneric("imxModelBuilder", function(model, lst, name, 
-	manifestVars, latentVars, remove, independent) {
+	manifestVars, latentVars, lst.call, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
 setGeneric("imxTypeName", function(model) { 
@@ -179,6 +179,7 @@ imxSameType <- function(a, b) {
 
 mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	remove = FALSE, independent = NA, type = NA, name = NA) {
+	func.call <- match.call(expand.dots=FALSE)
 	retval <- firstArgument(model, name)
 	first <- retval[[1]]
 	model <- retval[[2]]
@@ -186,8 +187,9 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
 	lst <- unlist(lst)
+	lst.call <- c(first, func.call[['...']])
 	model <- imxModelBuilder(model, lst, name, manifestVars,
-		latentVars, remove, independent)
+		latentVars, lst.call, remove, independent)
 	return(model)
 }
 
@@ -228,9 +230,9 @@ typeArgument <- function(model, type) {
 }
 
 imxGenericModelBuilder <- function(model, lst, name, 
-	manifestVars, latentVars, remove, independent) {
+	manifestVars, latentVars, lst.call, remove, independent) {
 	model <- variablesArgument(model, manifestVars, latentVars, remove)
-	model <- listArgument(model, lst, remove)
+	model <- listArgument(model, lst, remove, lst.call)
 	model <- independentArgument(model, independent)
 	model <- nameArgument(model, name)
 	return(model)
@@ -286,11 +288,11 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	return(model)
 }
 
-listArgument <- function(model, lst, remove) {
+listArgument <- function(model, lst, remove, lst.call) {
 	if(remove == TRUE) {
-		model <- modelRemoveEntries(model, lst)
+		model <- modelRemoveEntries(model, lst, lst.call)
 	} else {
-		model <- modelAddEntries(model, lst)
+		model <- modelAddEntries(model, lst, lst.call)
 	}
 	return(model)
 }
@@ -431,11 +433,11 @@ modelRemoveVariables <- function(model, latent, manifest) {
 	return(model)
 }
 	
-modelAddEntries <- function(model, entries) {
+modelAddEntries <- function(model, entries, lst.call) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelModifyFilter(model, entries, "add")
+	tuple <- modelModifyFilter(model, entries, "add", lst.call)
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
@@ -449,11 +451,11 @@ modelAddEntries <- function(model, entries) {
 	return(model)
 }
 
-modelRemoveEntries <- function(model, entries) {
+modelRemoveEntries <- function(model, entries, lst.call) {
 	if (length(entries) == 0) {
 		return(model)
 	}
-	tuple <- modelModifyFilter(model, entries, "remove")
+	tuple <- modelModifyFilter(model, entries, "remove", lst.call)
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
@@ -469,7 +471,7 @@ modelRemoveEntries <- function(model, entries) {
 
 actionCorrespondingPredicate <- c('add' = 'into', 'remove' = 'from')
 
-modelModifyFilter <- function(model, entries, action) {
+modelModifyFilter <- function(model, entries, action, lst.call) {
 	boundsFilter <- sapply(entries, is, "MxBounds")
 	intervalFilter <- sapply(entries, is, "MxInterval")
 	namedEntityFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
@@ -484,7 +486,7 @@ modelModifyFilter <- function(model, entries, action) {
 	if (any(unknownFilter)) {
 		stop(paste("Cannot", action, "the following item(s)", 
 			actionCorrespondingPredicate[[action]], "the model:", 
-			omxQuotes(entries[unknownFilter])), call. = FALSE)
+			omxQuotes(sapply(lst.call[unknownFilter], deparse))), call. = FALSE)
 	}
 	if (any(namedEntityFilter) && action == 'remove') {
 		stop(paste("Cannot use named entities when remove = TRUE.",
