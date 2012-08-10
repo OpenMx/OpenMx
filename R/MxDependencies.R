@@ -38,7 +38,7 @@ transitiveClosure <- function(flatModel, dependencies) {
 	return(cache)
 }
 
-extractElement <- function(name, object) { getElement(object, name) }
+extractElement <- function(name, object) { object[[name, exact=TRUE]] }
 
 transitiveClosureEntity <- function(flatModel, dependencies, target, cache) {
 	sinks <- dependencies[[target]]
