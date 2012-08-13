@@ -135,6 +135,7 @@ struct omxMatrix {						// A matrix
 /* Aliased Matrix Functions */
 	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.
 	void omxResetAliasedMatrix(omxMatrix *matrix);						// Reset to the original matrix
+	void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);
 	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
@@ -223,6 +224,15 @@ static OMXINLINE double omxVectorElement(omxMatrix *om, int index) {
 		return om->data[index];
     }
 }
+
+static OMXINLINE void omxUnsafeSetVectorElement(omxMatrix *om, int index, double value) {
+	om->data[index] = value;
+}
+
+static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
+	return om->data[index];
+}
+
 
 static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {

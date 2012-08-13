@@ -149,7 +149,6 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 	subObjective = localobj->subObjective;
 
     int ordRemove[cov->cols], contRemove[cov->cols];
-    int zeros[cov->cols];
     char u = 'U', l = 'L';
     int info;
     double determinant;
@@ -220,7 +219,6 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
             numOrdRemoves = 0;
             numContRemoves = 0;
 			for(int j = 0; j < dataColumns->cols; j++) {
-                zeros[j] = 0;
     			int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
     			// TODO: Might save time by preseparating ordinal from continuous.
@@ -322,7 +320,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                 
                 // Recalculate ordinal fs
                 omxResetAliasedMatrix(ordMeans);
-                omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
+                omxRemoveElements(ordMeans, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
                 
                 // These values pass through directly without modification by continuous variables
                 
@@ -335,7 +333,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
             // First Cov and Means (if they've changed)
             if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow) {
                 omxResetAliasedMatrix(smallMeans);
-                omxRemoveRowsAndColumns(smallMeans, 0, numContRemoves, zeros, contRemove);
+                omxRemoveElements(smallMeans, numContRemoves, contRemove);
                 omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
                 omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove, contRemove);
 
@@ -410,7 +408,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 
             // Reset continuous data row (always needed)
             omxResetAliasedMatrix(contRow);                                            // Reset smallRow
-            omxRemoveRowsAndColumns(contRow, 0, numContRemoves, zeros, contRemove); 	// Reduce the row to just continuous.
+            omxRemoveElements(contRow, numContRemoves, contRemove); 	// Reduce the row to just continuous.
             F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
 
 		    /* Calculate Row Likelihood */
@@ -474,7 +472,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                 
                 // Projected means must be recalculated if the continuous variables change at all.
                 omxResetAliasedMatrix(ordMeans);
-                omxRemoveRowsAndColumns(ordMeans, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
+                omxRemoveElements(ordMeans, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
                 F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), contRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
             }
             
@@ -491,7 +489,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
             }
             
             omxResetAliasedMatrix(ordRow);                                              // Propagate to ordinal row
-            omxRemoveRowsAndColumns(ordRow, 0, numOrdRemoves, zeros, ordRemove); 	    // Reduce the row to just ordinal.
+            omxRemoveElements(ordRow, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
 
             // omxPrint(ordMeans, "Ordinal Projected Means"); //:::DEBUG:::
             // omxPrint(ordRow, "Filtered Ordinal Row"); //:::DEBUG:::
@@ -921,7 +919,6 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 	subObjective = localobj->subObjective;
 
 	int toRemove[cov->cols];
-	int zeros[cov->cols];
 
 	int firstRow = 1;
 	int row = rowbegin;
@@ -993,7 +990,6 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 		
 		/* Censor row and censor and invert cov. matrix. */
 		// Determine how many rows/cols to remove.
-		memset(zeros, 0, sizeof(int) * dataColumns->cols);
 		memset(toRemove, 0, sizeof(int) * dataColumns->cols);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxVectorElement(smallRow, j);
@@ -1016,7 +1012,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 			continue;
 		}
 		
-		omxRemoveRowsAndColumns(smallRow, 0, numRemoves, zeros, toRemove); 	// Reduce it.
+		omxRemoveElements(smallRow, numRemoves, toRemove); 	// Reduce it.
 		
 		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 

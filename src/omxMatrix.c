@@ -557,6 +557,50 @@ void omxTransposeMatrix(omxMatrix *mat) {
 	omxMatrixLeadingLagging(mat);
 }
 
+void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
+
+	if(numRemoved < 1) { return; }
+
+	int oldElements;
+
+	if (om->rows > 1) {
+		if(om->aliasedPtr == NULL) {
+			if(om->originalRows == 0) {
+				om->originalRows = om->rows;
+			}
+			oldElements = om->originalRows;
+		} else {
+			oldElements = om->aliasedPtr->rows;
+		}
+		om->rows = oldElements - numRemoved;
+	} else {
+		if(om->aliasedPtr == NULL) {
+			if(om->originalCols == 0) {
+				om->originalCols = om->cols;
+			}
+			oldElements = om->originalCols;
+		} else {
+			oldElements = om->aliasedPtr->cols;
+		}
+		om->cols = oldElements - numRemoved;
+	}
+
+	int nextElement = 0;
+
+	for(int j = 0; j < oldElements; j++) {
+		if(!removed[j]) {
+			if(om->aliasedPtr == NULL) {
+				omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om, j));
+			} else {
+				omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om->aliasedPtr, j));
+			}
+			nextElement++;
+		}
+	}
+
+	omxMatrixLeadingLagging(om);
+}
+
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
     // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
