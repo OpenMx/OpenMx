@@ -93,7 +93,7 @@ runHelper <- function(model, frontendStart,
 	data <- flatModel@datasets
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)
-	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters)
+	intervalList <- generateIntervalList(flatModel, intervals, model, parameters)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
 	objective <- getObjectiveIndex(flatModel)

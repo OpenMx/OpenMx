@@ -3,6 +3,8 @@ Release 1.2.5
 * bugfix to omxRAMtoML() when input model has covariance data
 * fixing memory leak in cleaning up algebras when optimization is complete
 * fixing memory leak in omxImaginaryEigenvalues()
+* fixed a bug that manifests in confidence intervals with definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1505)
 
 Release 1.2.4-2063 (May 22, 2012)
 =================================
