@@ -113,7 +113,7 @@ modelRemoveIntervals <- function(model, intervals) {
 	return(model)
 }
 
-generateIntervalList <- function(flatModel, useIntervals, modelname, parameters) {
+generateIntervalList <- function(flatModel, useIntervals, modelname, parameters, labelsData) {
 	if (length(useIntervals) != 1 || 
 		typeof(useIntervals) != "logical" || 
 		is.na(useIntervals)) {
@@ -124,7 +124,8 @@ generateIntervalList <- function(flatModel, useIntervals, modelname, parameters)
 	if (!useIntervals) {
 		return(list())
 	}
-	retval <- lapply(flatModel@intervals, generateIntervalListHelper, flatModel, modelname, parameters)
+	retval <- lapply(flatModel@intervals, generateIntervalListHelper, 
+		flatModel, modelname, parameters, labelsData)
 	names(retval) <- NULL
 	retval <- unlist(retval, recursive = FALSE)
 	return(retval)
@@ -135,7 +136,9 @@ makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
 	return(c(entityNumber, row - 1, col - 1, lower, upper))
 }
 
-generateIntervalListHelper <- function(interval, flatModel, modelname, parameters) {
+generateIntervalListHelper <- function(interval, flatModel, modelname, 
+			parameters, labelsData) {
+
 	pnames <- names(parameters)
 	reference <- interval@reference
 	entity <- flatModel[[reference]]
@@ -147,8 +150,8 @@ generateIntervalListHelper <- function(interval, flatModel, modelname, parameter
 			interval@lowerdelta, interval@upperdelta)
 		return(retval)
 	} else if (!is.null(entity)) {
-		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
-			list(x = as.symbol(reference))))
+		tuple <- evaluateMxObject(reference, flatModel, labelsData, list())
+		entityValue <- as.matrix(tuple[[1]])
 		rows <- nrow(entityValue)
 		cols <- ncol(entityValue)
 		if (is(entity, "MxMatrix")) {
