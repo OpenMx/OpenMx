@@ -97,7 +97,7 @@ addObjectiveDetection <- function(objective, dependencies) {
 
 addMatrixDetection <- function(matrix, dependencies) {
 	labels <- matrix@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	select <- matrix@.squareBrackets
 	subs <- labels[select]
 	if (length(subs) > 0) {
 		for(i in 1:length(subs)) {

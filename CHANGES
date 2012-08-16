@@ -2,6 +2,8 @@ trunk
 =====
 * fixed a bug that manifests in confidence intervals with definition variables
   (see http://openmx.psyc.virginia.edu/thread/1505)
+* performance improvements in mxModel() when building RAM models
+* performance improvements in mxRun() frontend for large matrices
 
 Beta Release 999.0.0-2126 (August 03, 2012)
 ===========================================

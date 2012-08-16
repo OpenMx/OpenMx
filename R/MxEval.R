@@ -217,7 +217,7 @@ evaluateMatrix <- function(matrix, model, labelsData, env, show, compute, defvar
 computeMatrix <- function(matrix, model, labelsData, defvar.row, env, cache) {
 	values <- populateDefVarMatrix(matrix, model, defvar.row)
 	labels <- matrix@labels
-	select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+	select <- matrix@.squareBrackets
 	if (all(!select)) {
 		return(list(values, cache))
 	}

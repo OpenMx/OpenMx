@@ -213,6 +213,9 @@ imxVerifyName <- function(name, stackNumber) {
 }
 
 imxIsDefinitionVariable <- function(name) {
+	if (is.na(name)) {
+		return(FALSE)
+	}
 	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 2 && components[[1]] == 'data') {
 		return(TRUE)

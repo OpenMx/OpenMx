@@ -241,9 +241,16 @@ imxLocateIndex <- function(model, name, referant) {
 	}
 }
 
-omxCheckMatrices <- function(model) {
+imxPreprocessModel <- function(model) {
+	model@matrices <- lapply(model@matrices, findSquareBrackets)
+	model@submodels <- lapply(model@submodels, imxPreprocessModel)
+	return(model)
+}
+
+
+imxCheckMatrices <- function(model) {
 	matrices <- model@matrices
 	lapply(matrices, imxVerifyMatrix)
 	submodels <- imxDependentModels(model)
-	lapply(submodels, omxCheckMatrices)
+	lapply(submodels, imxCheckMatrices)
 }

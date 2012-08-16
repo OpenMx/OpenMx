@@ -104,16 +104,17 @@ insertFixedValue <- function(valName, startvals, flatModel) {
 
 insertFreeParameter <- function(paramName, startvals, bounds, flatModel) {
     if (!(paramName %in% names(flatModel@freeMatrices))) {
-        localName <- imxUntitledName()
-        identifier <- imxIdentifier(flatModel@name, localName)
-	value <- as.matrix(startvals[[paramName]])
-	lbound <- as.matrix(bounds[[paramName]][[1]])
-	ubound <- as.matrix(bounds[[paramName]][[2]])
+		localName <- imxUntitledName()
+		identifier <- imxIdentifier(flatModel@name, localName)
+		value <- as.matrix(startvals[[paramName]])
+		lbound <- as.matrix(bounds[[paramName]][[1]])
+		ubound <- as.matrix(bounds[[paramName]][[2]])
         matrix <- mxMatrix("Full", values = value, labels = paramName,
             free = TRUE, lbound = lbound, ubound = ubound, name = localName)
         matrix@name <- identifier
-	matrix@display <- paramName
-        flatModel@freeMatrices[[paramName]] <- matrix
+		matrix@display <- paramName
+		matrix <- findSquareBrackets(matrix)
+		flatModel@freeMatrices[[paramName]] <- matrix
     }
     return(flatModel)
 }
@@ -127,6 +128,7 @@ insertDefinitionVariable <- function(defName, flatModel) {
             free = FALSE, name = localName)
         matrix@name <- identifier
 		matrix@display <- defName
+		matrix <- findSquareBrackets(matrix)
         flatModel@freeMatrices[[defName]] <- matrix
     }
     return(flatModel)
@@ -214,6 +216,7 @@ insertNumericValue <- function(value, flatModel) {
         matrix <- mxMatrix("Full", values = as.matrix(value), name = localName)
         matrix@name <- identifier
 		matrix@display <- as.character(value)
+		matrix <- findSquareBrackets(matrix)
         flatModel@constMatrices[[identifier]] <- matrix
     } else {
 		valuematrix <- as.matrix(value)
@@ -230,6 +233,7 @@ insertNumericValue <- function(value, flatModel) {
         matrix <- mxMatrix("Full", values = valuematrix, name = localName)
         matrix@name <- identifier
 		matrix@display <- as.character(value)
+		matrix <- findSquareBrackets(matrix)
         flatModel@constMatrices[[identifier]] <- matrix
     }
     return(flatModel)
@@ -243,6 +247,7 @@ insertOutsideValue <- function(varname, flatModel) {
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
 		matrix@display <- varname
+		matrix <- findSquareBrackets(matrix)
     	flatModel@constMatrices[[varname]] <- matrix
     } else {
         for (i in 1:length(flatModel@constMatrices)) {
@@ -258,6 +263,7 @@ insertOutsideValue <- function(varname, flatModel) {
         matrix <- mxMatrix("Full", values = value, name = localName)
 	    matrix@name <- identifier
 		matrix@display <- varname
+		matrix <- findSquareBrackets(matrix)
     	flatModel@constMatrices[[varname]] <- matrix
     }
     return(flatModel)

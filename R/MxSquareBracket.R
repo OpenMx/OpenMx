@@ -27,10 +27,21 @@ splitSubstitution <- function(input) {
 	return(c(identifier, row, col))
 }
 
+findSquareBrackets <- function(aMatrix) {
+	aMatrix@.squareBrackets <- apply(aMatrix@labels, c(1,2), hasSquareBrackets)
+	return(aMatrix)
+}
+
 hasSquareBrackets <- function(input) {
+	if (is.na(input)) {
+		return(FALSE)
+	}
     match1 <- grep("[", input, fixed=TRUE)
+	if (length(match1) == 0) {
+		return(FALSE)
+	}
     match2 <- grep("]", input, fixed=TRUE)
-    return(length(match1) > 0 && length(match2) > 0)
+    return(length(match2) > 0)
 }
 
 verifySquareBracket <- function(squareBracket, matrixName) {
@@ -60,7 +71,7 @@ generateMatrixReferences <- function(model) {
 		matrix <- model@matrices[[i]]
 		name <- matrix@name
 		labels <- matrix@labels
-		select <- !apply(labels, c(1,2), is.na) & apply(labels, c(1,2), hasSquareBrackets)
+		select <- matrix@.squareBrackets
 		rows <- row(labels)[select]
 		cols <- col(labels)[select]
 		subs <- labels[select]

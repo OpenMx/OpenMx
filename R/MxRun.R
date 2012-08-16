@@ -31,7 +31,8 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
 		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
-	omxCheckMatrices(model)
+	model <- imxPreprocessModel(model)
+	imxCheckMatrices(model)
 	imxVerifyModel(model)
 	model <- processParentData(model, parentData)
 	if (modelIsHollow(model)) {

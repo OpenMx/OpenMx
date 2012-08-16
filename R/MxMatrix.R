@@ -72,6 +72,7 @@ setClass(Class = "MxMatrix",
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
 		lbound = "matrix", ubound = "matrix",
+		.squareBrackets = "matrix",
 		display = "character", dependencies = "integer", "VIRTUAL"))
 		
 setMethod("imxCreateMatrix", "MxMatrix",
@@ -88,13 +89,6 @@ setMethod("imxCreateMatrix", "MxMatrix",
 
 populateMatrixSlot <- function(object, slotName, vals, nr, nc) {
     lendat <- length(vals)
-#	if (is.matrix(vals) && (nrow(vals) != nr || ncol(vals) != nc)) {
-#		msg <- paste("Input matrix for argument", omxQuotes(slotName),
-#			"is a", nrow(vals), "by", ncol(vals), "matrix and should",
-#			"be a", nr, "by", nc, "matrix in",
-#			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")))
-#		stop(msg, call. = FALSE)
-#    }
 	if (lendat > 1 && (nr * nc) %% lendat != 0) {
 		if (((lendat > nr) && (lendat %/% nr) * nr != lendat) ||
 			((lendat < nr) && (nr %/% lendat) * lendat != nr))
@@ -125,7 +119,7 @@ setMethod("imxVerifyMatrix", "MxMatrix",
 				omxQuotes(.Object@name), 
 				"have different dimensions"), call.=FALSE)
 		}
-		select <- !apply(.Object@labels, c(1,2), is.na) & apply(.Object@labels, c(1,2), hasSquareBrackets)
+		select <- .Object@.squareBrackets
 		subs <- .Object@labels[select]
 		lapply(subs, verifySquareBracket, .Object@name)
 		if (imxSquareMatrix(.Object)) {
