@@ -34,6 +34,14 @@ availableName <- function(model, namespace, name) {
 }
 
 imxVerifyReference <- function(reference, stackNumber) {
+	if (length(reference) != 1) {
+		stop(paste("Internal error of call to imxVerifyReference in",
+			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
+		call. = FALSE)
+	}
+	if (is.na(reference)) {
+		return()
+	}
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
             "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
