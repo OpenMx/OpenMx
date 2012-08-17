@@ -194,9 +194,8 @@ checkAlgebraEvaluation <- function(model, flatModel, labelsData, cache) {
 		tuple <- evaluateMxObject(algebra@name, flatModel, labelsData, cache)
 		result <- tuple[[1]]
 		cache <- tuple[[2]]
-		algebra <- flatModel[[algebra@name]]
 		algebra@initial <- as.matrix(result)
-		flatModel[[algebra@name]] <- algebra
+		flatModel@algebras[[i]] <- algebra
 	}
 	return(list(flatModel, cache))
 }
