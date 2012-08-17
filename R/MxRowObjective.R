@@ -150,8 +150,8 @@ generateRowDataColumns <- function(flatModel, expectedNames, dataName) {
 	return(retval)
 }
 
-setMethod("genericObjModelConvert", "MxRowObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjAddEntities", "MxRowObjective",
+	function(.Object, job, flatJob, labelsData) {
 		rowAlgebraName <- .Object@rowAlgebra
 		rowResultsName <- .Object@rowResults
 		filteredDataRowName <- .Object@filteredDataRow
@@ -160,60 +160,44 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		dimnames <- .Object@dims
 
 		# Create the filtered data row
-		if (is.na(filteredDataRowName)) {
-			filteredDataRowName <- imxIdentifier(model@name, imxUntitledName())
-		}
-		filteredDataRow <- job[[filteredDataRowName]]
+		filteredDataRow <- flatJob[[filteredDataRowName]]
 		if (!is.null(filteredDataRow)) {
 			msg <- paste("The filteredDataRow cannot have name", 
-				omxQuotes(simplifyName(filteredDataRowName, model@name)), 
+				omxQuotes(filteredDataRowName), 
 				"because this entity already exists in the model")
 			stop(msg, call. = FALSE)
 		}
 		filteredDataRow <- mxMatrix('Full', nrow = 1, ncol = length(dimnames))
 		job[[filteredDataRowName]] <- filteredDataRow
 		flatJob[[filteredDataRowName]] <- filteredDataRow
-		pair <- imxReverseIdentifier(model, filteredDataRowName)
-		if (model@name == pair[[1]]) {
-			job[[.Object@name]]@filteredDataRow <- pair[[2]]
-		} else {
-			job[[.Object@name]]@filteredDataRow <- filteredDataRowName
-		}
 
 		# Create the existence vector
 		if (!is.na(existenceVectorName)) {
 			existenceVector <- job[[existenceVectorName]]
 			if (!is.null(existenceVector)) {
 				msg <- paste("The existenceVector cannot have name", 
-					omxQuotes(simplifyName(existenceVectorName, model@name)), 
+					omxQuotes(existenceVectorName), 
 					"because this entity already exists in the model")
 				stop(msg, call. = FALSE)
 			}
 			existenceVector <- mxMatrix('Full', nrow = 1, ncol = length(dimnames), values = 1)
 			job[[existenceVectorName]] <- existenceVector
 			flatJob[[existenceVectorName]] <- existenceVector
-			pair <- imxReverseIdentifier(model, existenceVectorName)
-			if (model@name == pair[[1]]) {
-				job[[.Object@name]]@existenceVector <- pair[[2]]
-			} else {
-				job[[.Object@name]]@existenceVector <- existenceVectorName
-			}
 		}
 
 		# Locate the row algebra
 		rowAlgebra <- job[[rowAlgebraName]]
 		if (is.null(rowAlgebra)) {
 			msg <- paste("The rowAlgebra with name", 
-				omxQuotes(simplifyName(rowAlgebraName, model@name)), 
+				omxQuotes(rowAlgebraName), 
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
-		labelsData <- imxGenerateLabels(job)
 		tuple <- evaluateMxObject(rowAlgebraName, flatJob, labelsData, list())
 		result <- tuple[[1]]
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
-				omxQuotes(simplifyName(rowAlgebraName, model@name)), 
+				omxQuotes(rowAlgebraName), 
 				"does not evaluate to a row vector")
 			stop(msg, call. = FALSE)			
 		}
@@ -228,38 +212,25 @@ setMethod("genericObjModelConvert", "MxRowObjective",
 		# Create the row results
 		rows <- nrow(mxDataObject@observed)
 		cols <- ncol(result)
-		if (is.na(rowResultsName)) {
-			rowResultsName <- imxIdentifier(model@name, imxUntitledName())
-		}
 		rowResults <- job[[rowResultsName]]
 		if (!is.null(rowResults)) {
 			msg <- paste("The rowResults cannot have name", 
-				omxQuotes(simplifyName(rowResultsName, model@name)), 
+				omxQuotes(rowResultsName), 
 				"because this entity already exists in the model")
 			stop(msg, call. = FALSE)
 		}
 		rowResults <- mxMatrix('Full', nrow = rows, ncol = cols)
 		job[[rowResultsName]] <- rowResults
-		flatJob[[rowResultsName]] <- rowResults
-		pair <- imxReverseIdentifier(model, rowResultsName)
-		if (model@name == pair[[1]]) {
-			job[[.Object@name]]@rowResults <- pair[[2]]
-		} else {
-			job[[.Object@name]]@rowResults <- rowResultsName
-		}
 
 		# Locate the reduce algebra
 		reduceAlgebra <- job[[reduceAlgebraName]]
 		if (is.null(reduceAlgebra)) {
 			msg <- paste("The reduceAlgebra with name", 
-				omxQuotes(simplifyName(reduceAlgebraName, model@name)), 
+				omxQuotes(reduceAlgebraName), 
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
-		job@.newobjects <- TRUE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+		return(job)
 	}
 )
 

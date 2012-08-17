@@ -281,16 +281,17 @@ fMatrixTranslateNames <- function(fMatrix, modelName) {
 	return(retval)
 }
 
-updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
+updateRAMdimnames <- function(flatObjective, flatJob) {
 	fMatrixName <- flatObjective@F
 	mMatrixName <- flatObjective@M
 	if (is.na(mMatrixName)) {
 		mMatrix <- NA
 	} else {
-		mMatrix <- job[[mMatrixName]]
+		mMatrix <- flatJob[[mMatrixName]]
 	}
-	fMatrix <- job[[fMatrixName]]
+	fMatrix <- flatJob[[fMatrixName]]
 	if (is.null(fMatrix)) {
+		modelname <- getModelName(flatObjective)
 		stop(paste("Unknown F matrix name", 
 			omxQuotes(simplifyName(fMatrixName, modelname)),
 			"detected in the objective function",
@@ -299,6 +300,7 @@ updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
 	dims <- flatObjective@dims
 	if (!is.null(dimnames(fMatrix)) && !single.na(dims) && 
 		!identical(dimnames(fMatrix)[[2]], dims)) {
+		modelname <- getModelName(flatObjective)
 		msg <- paste("The F matrix associated",
 			"with the RAM objective in model", 
 			omxQuotes(modelname), "contains dimnames and",
@@ -306,33 +308,62 @@ updateRAMdimnames <- function(flatObjective, job, flatJob, modelname) {
 		stop(msg, call.=FALSE)		
 	}
 	if (is.null(dimnames(fMatrix)) && !single.na(dims)) {
-		fMatrixFlat <- flatJob[[fMatrixName]]
-		dimnames(fMatrix) <- list(c(), dims)
-		dimnames(fMatrixFlat) <- list(c(), dims)
-		job[[fMatrixName]] <- fMatrix
-		flatJob[[fMatrixName]] <- fMatrixFlat
+		dimnames(flatJob[[fMatrixName]]) <- list(c(), dims)
 	}
-	if (!isS4(mMatrix) && (is.null(mMatrix) || is.na(mMatrix))) return(list(job, flatJob))
+
+	if (!isS4(mMatrix) && (is.null(mMatrix) || is.na(mMatrix))) {
+		return(flatJob)
+	}
+
 	if (!is.null(dimnames(mMatrix)) && !single.na(dims) &&
 		!identical(dimnames(mMatrix), list(NULL, dims))) {
+		modelname <- getModelName(flatObjective)
 		msg <- paste("The M matrix associated",
 			"with the RAM objective in model", 
 			omxQuotes(modelname), "contains dimnames and",
 			"the objective function has specified dimnames")
 		stop(msg, call.=FALSE)	
 	}
+
 	if (is.null(dimnames(mMatrix)) && !single.na(dims)) {
-		mMatrixFlat <- flatJob[[mMatrixName]]
-		dimnames(mMatrix) <- list(NULL, dims)
-		dimnames(mMatrixFlat) <- list(NULL, dims)
-		job[[mMatrixName]] <- mMatrix
-		flatJob[[mMatrixName]] <- mMatrixFlat
+		dimnames(flatJob[[mMatrixName]]) <- list(NULL, dims)
 	}
-	return(list(job, flatJob))
+
+	return(flatJob)
 }
 
-setMethod("genericObjModelConvert", "MxRAMObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjAddEntities", "MxRAMObjective",
+	function(.Object, job, flatJob, labelsData) {
+		precision <- "Function precision"
+		if(!single.na(.Object@thresholds)) {
+			if (is.null(job@options[[precision]])) {
+				job <- mxOption(job, precision, 1e-9)
+			}
+		}
+
+        ppmlModelOption <- job@options$UsePPML
+        if (is.null(ppmlModelOption)) {
+            enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
+        } else {
+            enablePPML <- (ppmlModelOption == "Yes")
+        }
+
+        if (enablePPML) {
+            aMatrix <- job[[.Object@A]]
+            aMatrixFixed <- !is.null(aMatrix) && is(aMatrix, "MxMatrix") && all(!aMatrix@free)
+            enablePPML <- aMatrixFixed
+		}
+
+		if (enablePPML) {
+			job <- imxTransformModelPPML(job)
+		}
+
+		return(job)
+	}
+)
+
+setMethod("genericObjConvertEntities", "MxRAMObjective",
+	function(.Object, flatModel, namespace, labelsData) {
 		cache <- list()
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
@@ -341,15 +372,16 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 			stop(msg, call.=FALSE)
 		}
 		
-		tuple <- evaluateMxObject(.Object@A, flatJob, labelsData, cache)
+		tuple <- evaluateMxObject(.Object@A, flatModel, labelsData, cache)
 		Amatrix <- tuple[[1]]
 		cache <- tuple[[2]]
-		tuple <- evaluateMxObject(.Object@S, flatJob, labelsData, cache)
+		tuple <- evaluateMxObject(.Object@S, flatModel, labelsData, cache)
 		Smatrix <- tuple[[1]]
 		cache <- tuple[[2]]
 		if (!identical(dim(Amatrix), dim(Smatrix))) {
+				modelname <- getModelName(.Object)
 				msg <- paste("The RAM objective",
-					"in model", omxQuotes(model@name), "has an A matrix",
+					"in model", omxQuotes(modelname), "has an A matrix",
 					"with dimensions", nrow(Amatrix), 'x', ncol(Amatrix),
 					"and a S matrix with dimensions", nrow(Smatrix), 'x',
 					ncol(Smatrix))
@@ -358,108 +390,33 @@ setMethod("genericObjModelConvert", "MxRAMObjective",
 
 		# Simplest possible check for PPML applicability, imxTransformModelPPML
 		# will check beyond that
-		ppmlModelOption <- model@options$UsePPML
-		if (is.null(ppmlModelOption)) {
-			enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
-		} else {
-			enablePPML <- (ppmlModelOption == "Yes")
-		}
-		if (enablePPML) {
-			aMatrix <- job[[.Object@A]]
-			aMatrixFixed <- !is.null(aMatrix) && is(aMatrix, "MxMatrix") && all(!aMatrix@free)
-			enablePPML <- aMatrixFixed
-		}
 
-		pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
-		job <- pair[[1]]
-		flatJob <- pair[[2]]
-		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
+		flatModel <- updateRAMdimnames(.Object, flatModel)
+
+		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
 			if (.Object@vector) {
+				modelname <- getModelName(.Object)
 				msg <- paste("The RAM objective",
-					"in model", omxQuotes(model@name), "has specified",
+					"in model", omxQuotes(modelname), "has specified",
 					"'vector' = TRUE, but the observed data is not raw data")
 				stop(msg, call.=FALSE)
 			}
 			
-			if (enablePPML) {
-				oldName <- model@name
-				model <- imxTransformModelPPML(model)
-				# Make sure PPML was applied successfully
-				if ( !is.null(model@options$UsePPML) ) {
-					if ( model@options$UsePPML == "Split" ) {
-						job[[oldName]] <- model
-						
-						job@.newobjects <- TRUE
-						job@.newobjective <- TRUE
-						job@.newtree <- TRUE
-						return(list(job,flatJob))
-					} else if ( model@options$UsePPML == "Solved" || model@options$UsePPML == "PartialSolved" ) { # TODO: PartialSolved
-						job[[oldName]] <- model
-						
-						pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
-						job <- pair[[1]]
-					
-						job@.newobjects <- TRUE
-						job@.newobjective <- FALSE
-						job@.newtree <- FALSE
-						return(list(job, flatJob))
-					}
-				} 
-			}
-			
-			job@.newobjects <- FALSE
-			job@.newobjective <- FALSE
-			job@.newtree <- FALSE
-			return(list(job, flatJob))
+			return(flatModel)
 		}
-		if (is.na(.Object@M) || is.null(job[[.Object@M]])) {
+
+		if (is.na(.Object@M) || is.null(flatModel[[.Object@M]])) {
+			modelname <- getModelName(.Object)
 			msg <- paste("The RAM objective",
 				"has raw data but is missing",
 				"an expected means vector in model",
-				omxQuotes(model@name))
+				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
-		
-		if (enablePPML) {
-			oldName <- model@name
-			model <- imxTransformModelPPML(model)
-			# Make sure PPML was applied successfully
-			
-			if ( !is.null(model@options$UsePPML) ) {
-				if ( model@options$UsePPML == "Split" ) {
-					job[[oldName]] <- model
-					
-					job@.newobjects <- TRUE
-					job@.newobjective <- TRUE
-					job@.newtree <- TRUE
-					return(list(job,flatJob))
-				} else if ( model@options$UsePPML == "Solved" || model@options$UsePPML == "PartialSolved" ) { # TODO: PartialSolved
-					job[[oldName]] <- model
-					
-					pair <- updateRAMdimnames(.Object, job, flatJob, model@name)
-					job <- pair[[1]]
-					
-					job@.newobjects <- TRUE
-					job@.newobjective <- FALSE
-					job@.newtree <- FALSE
-					return(list(job, flatJob))
-				}
-			} 
-		}
-		
-		pair <- updateThresholdDimnames(.Object, job, flatJob, model@name)
-		job <- pair[[1]]
-		flatJob <- pair[[2]]
-		precision <- "Function precision"
-		if(!single.na(.Object@thresholds) && 
-			is.null(job@options[[precision]])) {
-			job <- mxOption(job, precision, 1e-9)
-			flatJob <- mxOption(flatJob, precision, 1e-9)
-		}
-		job@.newobjects <- FALSE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+				
+		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
+
+		return(flatModel)
 	}
 )
 

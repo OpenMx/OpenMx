@@ -575,6 +575,10 @@ imxConvertIdentifier <- function(identifier, modelname, namespace) {
 	}
 }
 
+getModelName <- function(object) {
+	return(unlist(strsplit(object@name, imxSeparatorChar, fixed = TRUE))[[1]])
+}
+
 imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (hasSquareBrackets(label)) {
 		components <- splitSubstitution(label)

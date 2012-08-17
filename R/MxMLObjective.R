@@ -113,35 +113,33 @@ setMethod("genericObjFunConvert", signature("MxMLObjective"),
 		return(.Object)
 })
 
-setMethod("genericObjModelConvert", "MxMLObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjConvertEntities", "MxMLObjective",
+	function(.Object, flatModel, namespace, labelsData) {
 		if(is.na(.Object@data)) {
+			modelname <- getModelName(.Object)
 			msg <- paste("The ML objective",
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
-		pair <- updateObjectiveDimnames(.Object, job, flatJob, model@name, "ML", labelsData)
-		job <- pair[[1]]
-		flatJob <- pair[[2]]
-		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
-			job@.newobjects <- FALSE
-			job@.newobjective <- FALSE
-			job@.newtree <- FALSE
-			return(list(job, flatJob))
+		flatModel <- updateObjectiveDimnames(.Object, flatModel, "ML", labelsData)
+		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
+			return(flatModel)
 		}
 		if (is.na(.Object@means)) {
-			msg <- paste("In model", omxQuotes(model@name),
+			modelname <- getModelName(.Object)
+			msg <- paste("In model", omxQuotes(modelname),
 				"the ML objective has a raw dataset specified",
 				"but no expected means vector")
 			stop(msg, call. = FALSE)
 		}
 		objective <- mxFIMLObjective(.Object@covariance, .Object@means, .Object@thresholds)
-		job[[model@name]][['objective']] <- objective
-		job@.newobjects <- TRUE
-		job@.newobjective <- TRUE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+		objective@data <- .Object@data
+
+		flatModel[[.Object@name]] <- objective	
+		flatModel <- genericObjConvertEntities(objective, flatModel, namespace, labelsData)
+
+		return(flatModel)
 	}
 )
 

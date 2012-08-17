@@ -48,13 +48,10 @@ setMethod("genericObjFunNamespace", signature("MxRObjective"),
 		return(.Object)
 })
 
-setMethod("genericObjModelConvert", signature("MxRObjective"), 
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjAddEntities", signature("MxRObjective"),
+	function(.Object, job, flatJob, labelsData) {
 		job@.forcesequential <- TRUE
-		job@.newobjects <- FALSE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+		return(job)
 })
 
 mxRObjective <- function(objfun, ...) {

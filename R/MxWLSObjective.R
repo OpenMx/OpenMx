@@ -123,39 +123,42 @@ setMethod("genericObjFunConvert", signature("MxWLSObjective"),
 		return(.Object)
 })
 
-setMethod("genericObjModelConvert", "MxWLSObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjConvertEntities", "MxWLSObjective",
+	function(.Object, flatModel, namespace, labelsData) {
 		if(is.na(.Object@data)) {
+			modelname <- getModelName(.Object)
 			msg <- paste("The WLS objective",
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
-		pair <- updateObjectiveDimnames(.Object, job, flatJob, model@name, "WLS", labelsData)
-		job <- pair[[1]]
-		flatJob <- pair[[2]]
-		if (flatJob@datasets[[.Object@data]]@type != 'raw') {
-			job@.newobjects <- FALSE
-			job@.newobjective <- FALSE
-			job@.newtree <- FALSE
-			return(list(job, flatJob))
+		flatModel <- updateObjectiveDimnames(.Object, flatModel, "WLS", labelsData)
+		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
+			return(flatModel)
 		}
-		msg <- paste("In model", omxQuotes(model@name),
-			"the WLS objective has a raw dataset specified.  ",
-			"But WLS cannot yet handle raw datasets.")
-		stop(msg, call. = FALSE)
+	
+		if (TRUE) {
+			modelname <- getModelName(.Object)
+			msg <- paste("In model", omxQuotes(modelname),
+				"the WLS objective has a raw dataset specified.  ",
+				"But WLS cannot yet handle raw datasets.")
+			stop(msg, call. = FALSE)
+		}
+
 		if (is.na(.Object@means)) {
-			msg <- paste("In model", omxQuotes(model@name),
+			modelname <- getModelName(.Object)
+			msg <- paste("In model", omxQuotes(modelname),
 				"the WLS objective has a raw dataset specified",
 				"but no expected means vector")
 			stop(msg, call. = FALSE)
 		}
+
 		objective <- mxFIWLSObjective(.Object@covariance, .Object@means, .Object@thresholds)
-		job[[model@name]][['objective']] <- objective
-		job@.newobjects <- TRUE
-		job@.newobjective <- TRUE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+
+		flatModel[[.Object@name]] <- objective	
+		flatModel <- genericObjConvertEntities(objective, flatModel, namespace, labelsData)
+
+		return(flatModel)
 	}
 )
 

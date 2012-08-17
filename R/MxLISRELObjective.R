@@ -86,14 +86,13 @@ setMethod("initialize", "MxLISRELObjective",
 
 
 #--------------------------------------------------------------------
-# Not sure about the first line here
-# Should it be MxLISRELObjective or MxBaseObjective?
-setMethod("genericObjModelConvert", "MxLISRELObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
+setMethod("genericObjConvertEntities", "MxLISRELObjective",
+	function(.Object, flatModel, namespace, labelsData) {
 		if(is.na(.Object@data)) {
+			modelname <- getModelName(.Object)
 			msg <- paste("The LISREL objective",
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
 #		The code below is out of date.  See current MxRAMObjective for up to date info.
@@ -122,16 +121,7 @@ setMethod("genericObjModelConvert", "MxLISRELObjective",
 #		pair <- updateThresholdDimnames(.Object, job, flatJob, model@name)
 #		job <- pair[[1]]
 #		flatJob <- pair[[2]]
-#		precision <- "Function precision"
-#		if(!single.na(.Object@thresholds) && 
-#			is.null(job@options[[precision]])) {
-#			job <- mxOption(job, precision, 1e-9)
-#			flatJob <- mxOption(flatJob, precision, 1e-9)
-#		}
-		job@.newobjects <- FALSE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+		return(flatModel)
 	}
 )
 

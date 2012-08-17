@@ -75,11 +75,11 @@ runHelper <- function(model, frontendStart,
 	model <- convertDatasets(model, defVars, model@options)
 	flatModel@datasets <- collectDatasets(model)
 	labelsData <- imxGenerateLabels(model)
-	triple <- translateObjectives(model, namespace, labelsData, flatModel)
-	model <- triple[[1]]
-	namespace <- triple[[2]]
-	flatModel <- triple[[3]]
+	model <- objectiveFunctionAddEntities(model, flatModel, labelsData)
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace)
 	labelsData <- imxGenerateLabels(model)
+	flatModel <- objectiveFunctionModifyEntities(flatModel, namespace, labelsData)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
@@ -92,7 +92,7 @@ runHelper <- function(model, frontendStart,
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(matrices, parameters)
 	defVars <- generateDefinitionList(flatModel, dependencies)		
-	objectives <- convertObjectives(flatModel, model, labelsData, defVars, dependencies)
+	objectives <- convertObjectiveFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- flatModel@datasets
 	algebras <- append(algebras, objectives)
 	constraints <- convertConstraints(flatModel)

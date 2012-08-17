@@ -37,9 +37,14 @@ setGeneric("genericObjFunConvert",
 	return(standardGeneric("genericObjFunConvert"))	
 })
 
-setGeneric("genericObjModelConvert",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
-	return(standardGeneric("genericObjModelConvert"))
+setGeneric("genericObjAddEntities",
+	function(.Object, job, flatJob, labelsData) {
+	return(standardGeneric("genericObjAddEntities"))
+})
+
+setGeneric("genericObjConvertEntities",
+	function(.Object, flatModel, namespace, labelsData) {
+	return(standardGeneric("genericObjConvertEntities"))
 })
 
 setGeneric("genericObjDependencies",
@@ -62,20 +67,24 @@ setGeneric("genericObjRename",
 	return(standardGeneric("genericObjRename"))
 })
 
-setMethod("genericObjModelConvert", "MxBaseObjective",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
-		job@.newobjects <- FALSE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+setMethod("genericObjAddEntities", "MxBaseObjective",
+	function(.Object, job, flatJob, labelsData) {
+		return(job)
 })
 
-setMethod("genericObjModelConvert", "NULL",
-	function(.Object, job, model, namespace, labelsData, flatJob) {
-		job@.newobjects <- FALSE
-		job@.newobjective <- FALSE
-		job@.newtree <- FALSE
-		return(list(job, flatJob))
+setMethod("genericObjAddEntities", "NULL",
+	function(.Object, job, flatJob, labelsData) {
+		return(job)
+})
+
+setMethod("genericObjConvertEntities", "MxBaseObjective",
+	function(.Object, flatModel, namespace, labelsData) {
+		return(flatModel)
+})
+
+setMethod("genericObjConvertEntities", "NULL",
+	function(.Object, flatModel, namespace, labelsData) {
+		return(flatModel)
 })
 
 setMethod("genericObjDependencies", "MxBaseObjective",
@@ -113,61 +122,43 @@ setMethod("genericObjRename", "NULL",
 		return(NULL)
 })
 
-convertObjectives <- function(flatModel, model, labelsData, defVars, dependencies) {
+convertObjectiveFunctions <- function(flatModel, model, labelsData, defVars, dependencies) {
 	retval <- lapply(flatModel@objectives, genericObjFunConvert, 
 		flatModel, model, labelsData, defVars, dependencies)
 	return(retval)
 }
 
-translateObjectives <- function(model, namespace, labelsData, flatModel) {
+objectiveFunctionAddEntities <- function(model, flatModel, labelsData) {
+
 	model@.forcesequential <- FALSE
-	if(is.null(model@objective) && 
-		length(imxDependentModels(model)) == 0) {
-		return(list(model, namespace, flatModel))
+
+	objectives <- flatModel@objectives
+
+	if (length(objectives) == 0) {
+		return(model)
 	}
-	return(translateObjectivesHelper(model, namespace, labelsData, flatModel))
+
+	for(i in 1:length(objectives)) {
+		model <- genericObjAddEntities(objectives[[i]], model, flatModel, labelsData)
+	}
+
+	return(model)
 }
 
-translateObjectivesHelper <- function(job, namespace, labelsData, flatJob) {
-	objectives <- flatJob@objectives
+
+objectiveFunctionModifyEntities <- function(flatModel, namespace, labelsData) {
+
+	objectives <- flatModel@objectives
+
 	if (length(objectives) == 0) {
-		return(list(job, namespace, flatJob))
+		return(flatModel)
 	}
+
 	for(i in 1:length(objectives)) {
-		objective <- objectives[[i]]
-		objectivename <- objective@name
-		modelname <- unlist(strsplit(objective@name, imxSeparatorChar, fixed=TRUE))[[1]]
-		model <- job[[modelname]]
-		repeat {
-			if(is.null(objective)) { break }
-			# .newobjects is TRUE when new matrices or algebras are created
-			# .newobjective is TRUE when one objective function is transformed into another
-			# .newtree is TRUE when one objective function is transformed into multiple objective functions
-			job@.newobjects <- TRUE
-			job@.newobjective <- TRUE
-			job@.newtree <- TRUE
-			pair <- genericObjModelConvert(objective, job, model, namespace, labelsData, flatJob)
-			job <- pair[[1]]
-			flatJob <- pair[[2]]
-			if (job@.newtree) {
-				namespace <- imxGenerateNamespace(job)
-				flatJob <- imxFlattenModel(job, namespace)
-				labelsData <- imxGenerateLabels(job)
-				return(translateObjectivesHelper(job, namespace, labelsData, flatJob))
-			}
-			if (job@.newobjects) {
-				namespace <- imxGenerateNamespace(job)
-				labelsData <- imxGenerateLabels(job)
-				flatJob <- imxFlattenModel(job, namespace)
-			}
-			if (job@.newobjective) {
-				model <- job[[modelname]]
-				objective <- flatJob[[objectivename]]
-				labelsData <- imxGenerateLabels(job)
-			} else { break }
-		}
+		flatModel <- genericObjConvertEntities(objectives[[i]], flatModel, namespace, labelsData)
 	}
-	return(list(job, namespace, flatJob))
+
+	return(flatModel)
 }
 
 objectiveReadAttributes <- function(objective, values) {
