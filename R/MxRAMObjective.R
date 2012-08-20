@@ -356,6 +356,7 @@ setMethod("genericObjAddEntities", "MxRAMObjective",
 
 		if (enablePPML) {
 			job <- imxTransformModelPPML(job)
+			job@.newobjects <- TRUE
 		}
 
 		return(job)
