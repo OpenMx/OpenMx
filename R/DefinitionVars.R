@@ -44,23 +44,19 @@ definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row =
 
 populateDefInitialValues <- function(flatModel) {
 	matrices <- flatModel@matrices
-	if (length(matrices) > 0) {
-		for(i in 1:length(matrices)) {
-			flatModel@matrices[[i]]@values <- populateDefVarMatrix(matrices[[i]], flatModel)
-		}
-	}
+	flatModel@matrices <- lapply(flatModel@matrices, populateDefVarMatrix, flatModel)
 	return(flatModel)
 }
 
 populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	labels <- matrix@labels
 	notNA <- !is.na(labels)
-	if (!any(notNA)) { return(matrix@values) }
+	if (!any(notNA)) { return(matrix) }
 	rows <- row(labels)[notNA]
 	cols <- col(labels)[notNA]
 	subs <- labels[notNA]
 	select <- sapply(subs, imxIsDefinitionVariable)
-	if (!any(select)) { return(matrix@values) }
+	if (!any(select)) { return(matrix) }
 	rows <- rows[select]
 	cols <- cols[select]
 	subs <- subs[select]
@@ -69,7 +65,8 @@ populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 		startValue <- definitionStartingValue(subs[[i]], matrix@name, model, defvar.row)
 		value[rows[[i]],cols[[i]]] <- startValue
 	}
-	return(value)
+	matrix@values <- value
+	return(matrix)
 }
 
 defVariableIsMatch <- function(defName, dataName) {

@@ -66,7 +66,9 @@ convertSingleAlgebra <- function(algebra, flatModel, convertArguments) {
 convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
 	if (length(formula) == 1) {
         charFormula <- as.character(formula)
-        if (is.numeric(formula)) {
+		if (!is.null(flatModel[[charFormula]])) {
+             # do not translate this symbol
+        } else if (is.numeric(formula)) {
             flatModel <- insertNumericValue(formula, flatModel)
         } else if (identical(charFormula, "")) {
             flatModel <- insertNumericValue(matrix(0,0,0), flatModel)
@@ -77,8 +79,6 @@ convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
 		convertArguments$bounds, flatModel)
 		} else if (imxIsDefinitionVariable(charFormula)) {
              flatModel <- insertDefinitionVariable(charFormula, flatModel)
-        } else if (!is.null(flatModel[[charFormula]])) {
-             # do not translate this symbol
         } else if (exists(charFormula, envir = globalenv()) && is.numeric(get(charFormula, envir = globalenv()))) {
             flatModel <- insertOutsideValue(charFormula, flatModel)
         }

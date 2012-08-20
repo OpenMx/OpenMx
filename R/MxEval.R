@@ -215,7 +215,8 @@ evaluateMatrix <- function(matrix, model, labelsData, env, show, compute, defvar
 }
 
 computeMatrix <- function(matrix, model, labelsData, defvar.row, env, cache) {
-	values <- populateDefVarMatrix(matrix, model, defvar.row)
+	matrix <- populateDefVarMatrix(matrix, model, defvar.row)
+	values <- matrix@values
 	labels <- matrix@labels
 	select <- matrix@.squareBrackets
 	if (all(!select)) {
