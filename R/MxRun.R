@@ -70,19 +70,29 @@ runHelper <- function(model, frontendStart,
 	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
+	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
 	model <- convertDatasets(model, defVars, model@options)
 	flatModel@datasets <- collectDatasets(model)
 	labelsData <- imxGenerateLabels(model)
+
 	model <- objectiveFunctionAddEntities(model, flatModel, labelsData)
-	namespace <- imxGenerateNamespace(model)
-	flatModel <- imxFlattenModel(model, namespace)
-	labelsData <- imxGenerateLabels(model)
+
+	if (model@.newobjects) {
+		namespace <- imxGenerateNamespace(model)
+		flatModel <- imxFlattenModel(model, namespace)
+		labelsData <- imxGenerateLabels(model)
+	}
+
 	flatModel <- objectiveFunctionModifyEntities(flatModel, namespace, labelsData)
-	convertArguments <- imxCheckVariables(flatModel, namespace)
-	flatModel <- constraintsToAlgebras(flatModel)
-	flatModel <- convertAlgebras(flatModel, convertArguments)
+
+	if (model@.newobjects) {
+		convertArguments <- imxCheckVariables(flatModel, namespace)
+		flatModel <- constraintsToAlgebras(flatModel)
+		flatModel <- convertAlgebras(flatModel, convertArguments)
+	}
+
 	dependencies <- cycleDetection(flatModel)
 	dependencies <- transitiveClosure(flatModel, dependencies)
 	flatModel <- populateDefInitialValues(flatModel)

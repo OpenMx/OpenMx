@@ -194,26 +194,36 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	return(model)
 }
 
+
 updateModelEntitiesHelper <- function(entNames, values, model) {
-	for(i in 1:length(entNames)) {
-		name <- entNames[[i]]
-		candidate <- model[[name]]
-		value <- values[[i]]
-		if (!is.null(candidate) && (length(value) > 0)
-			&& !is.nan(value)) {
-			if (is(candidate,"MxAlgebra") || is(candidate,"MxObjective")) {
-				if (is(candidate, "MxAlgebra")) {
+	modelNameMapping <- sapply(entNames, getModelNameString)
+	modelNames <- unique(modelNameMapping)
+	for(j in 1:length(modelNames)) {
+		nextName <- modelNames[[j]]
+		selectEnt <- entNames[modelNameMapping == nextName]
+		selectVal <- values[modelNameMapping == nextName]
+		submodel <- model[[nextName]]
+		for(i in 1:length(selectEnt)) {
+			name <- selectEnt[[i]]
+			candidate <- submodel[[name]]
+			value <- selectVal[[i]]
+			if (!is.null(candidate) && (length(value) > 0)
+				&& !is.nan(value)) {
+				if (is(candidate,"MxAlgebra") || is(candidate,"MxObjective")) {
+					if (is(candidate, "MxAlgebra")) {
+						dimnames(value) <- dimnames(candidate)
+						candidate@result <- value
+					} else {
+						candidate <- objectiveReadAttributes(candidate, value)
+					}
+				} else if(is(candidate, "MxMatrix")) {
 					dimnames(value) <- dimnames(candidate)
-					candidate@result <- value
-				} else {
-					candidate <- objectiveReadAttributes(candidate, value)
+					candidate@values <- value
 				}
-			} else if(is(candidate, "MxMatrix")) {
-				dimnames(value) <- dimnames(candidate)
-				candidate@values <- value
 			}
+			submodel[[name]] <- candidate
 		}
-		model[[name]] <- candidate
+		model[[nextName]] <- submodel
 	}
 	return(model)
 }

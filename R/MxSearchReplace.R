@@ -19,53 +19,63 @@ namespaceSearch <- function(model, name) {
 	}
 	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
-		submodel <- namespaceModelSearch(model, name)
-		if (!is.null(submodel)) {
-			return(submodel)
+		path <- namespaceFindPath(model, name)
+		if (is.null(path)) {
+			return(namespaceLocalSearch(model, name))
+		} else {
+			return(namespaceGetModel(model, path))
 		}
-	}
-	tuple <- imxReverseIdentifier(model, name)
-	return(namespaceSearchHelper(model, tuple[[1]], tuple[[2]]))
-}
-
-namespaceSearchReplace <- function(model, name, value) {
-	if (is.na(name) || identical(name, "")) {
-		return(model)
-	}
-	if (!is.null(value) && !(isS4(value) && ("name" %in% slotNames(value)))) {
-		stop(paste("Right-hand side of assignment",
-		"operator has illegal value", omxQuotes(value)), call. = FALSE)
-	}
-	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
-	if (length(components) == 1) {
-		submodel <- namespaceModelSearch(model, name)
-		if (!is.null(submodel)) {
-			model <- namespaceModelSearchReplace(model, name, value)
-			return(model)
-		}
-	}
-	tuple <- imxReverseIdentifier(model, name)
-	return(namespaceSearchReplaceHelper(model, tuple[[1]], tuple[[2]], value))
-}
-
-#
-# First portion of namespaceSearch(model, name)
-# Checks for an existing submodel with the same name
-#
-namespaceModelSearch <- function(model, name) {
-	if (model@name == name) return(model)
-	results <- lapply(model@submodels, namespaceModelSearch, name)
-	names(results) <- NULL
-	results <- unlist(results)
-	if (length(results) == 0) {
-		return(NULL)
-	} else if (length(results) == 1) {
-		return(results[[1]])
 	} else {
-		stop(paste("There are two models with the name",
-			omxQuotes(name), "found in the model"), call. = FALSE) 
+		path <- namespaceFindPath(model, components[[1]])
+		if (is.null(path)) {
+			return(NULL)
+		} else {
+			submodel <- namespaceGetModel(model, path)
+			return(namespaceLocalSearch(submodel, components[[2]]))			
+		}
 	}
 }
+
+namespaceFindPath <- function(model, modelname) {
+	parentname <- model@name
+	if (parentname == modelname) {
+		return(modelname)
+	} else if (length(model@submodels) == 0) {
+		return(NULL)
+	} else if (modelname %in% names(model@submodels)) {
+		return(c(parentname, modelname))
+	} else {
+		candidates <- lapply(model@submodels, namespaceFindPath, modelname)
+		filter <- !(sapply(candidates, is.null))
+		ncand <- which(filter)
+		ncandlen <- length(ncand)
+		if (ncandlen == 0) {
+			return(NULL)
+		} else if (ncandlen == 1) {
+			return(c(parentname, candidates[[ncand]]))
+		} else {
+			msg <- paste("There are two models with the name",
+				omxQuotes(modelname), "found in the model",
+				omxQuotes(parentname))
+			stop(msg, call. = FALSE)
+		}
+	}
+}
+
+namespaceGetModel <- function(model, path) {
+	pathlen <- length(path)
+	if (pathlen == 0) {
+		stop("An internal error has occured in namespaceSearch")
+	} else if (pathlen == 1) {
+		return(model)
+	} else if (pathlen == 2) {
+		return(model@submodels[[path[[2]]]])
+	} else {
+		remainder <- path[3:pathlen]
+		return(namespaceGetModel(model@submodels[[path[[2]]]], remainder))
+	}
+}
+
 
 #
 # Check for a named entity within the local model
@@ -97,59 +107,56 @@ namespaceLocalSearch <- function(model, name) {
 	return(NULL)
 }
 
-#
-# The recursive portion of namespaceSearch(model, name)
-#
-namespaceSearchHelper <- function(model, namespace, name) {
-	if (namespace == model@name) {
-		return(namespaceLocalSearch(model, name))
-	} else {
-		if (length(model@submodels) == 0) {
-			return(NULL)
-		}
-		results <- lapply(model@submodels, namespaceSearchHelper,
-			namespace, name)
-		names(results) <- NULL
-		results <- unlist(results)
-		if (length(results) == 0) {
-			return(NULL)
-		} else if (length(results) == 1) {
-			return(results[[1]])
+namespaceSearchReplace <- function(model, name, value) {
+	if (is.na(name) || identical(name, "")) {
+		return(model)
+	}
+	if (!is.null(value) && !(isS4(value) && ("name" %in% slotNames(value)))) {
+		stop(paste("Right-hand side of assignment",
+		"operator has illegal value", omxQuotes(value)), call. = FALSE)
+	}
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
+	if (length(components) == 1) {
+		path <- namespaceFindPath(model, name)
+		if (is.null(path)) {
+			return(localNamespaceSearchReplace(model, name, value))
 		} else {
-			stop(paste("There are two named entities",
-				"that matched to the identifier",
-				omxQuotes(imxIdentifier(namespace, name))),
-				call. = FALSE)
+			return(namespaceSearchReplaceHelper(model, name, value, path))
+		}
+	} else {
+		path <- namespaceFindPath(model, components[[1]])
+		if (is.null(path)) {
+			msg <- paste("Could not find the submodel", omxQuotes(components[[1]]),
+				"in the interior of model", omxQuotes(model@name))
+			stop(msg, call. = FALSE)
+		} else {
+			return(namespaceSearchReplaceHelper(model, components[[2]], value, path))
 		}
 	}
 }
 
-#
-# First portion of namespaceSearchReplace(model, name, value)
-# Replaces an existing submodel with the same name
-#
-namespaceModelSearchReplace <- function(model, name, value) {
-	if (!(is.null(value) || is(value, "MxModel"))) {
-		stop(paste("Replacement for model", omxQuotes(name),
-			"is neither NULL nor MxModel object"), call. = FALSE)
+
+namespaceSearchReplaceHelper <- function(model, name, value, path) {
+	pathlen <- length(path)
+	if (pathlen == 0) {
+		stop("An internal error has occured in namespaceSearchReplace")
+	} else if (pathlen == 1) {
+		return(localNamespaceSearchReplace(model, name, value))
 	}
-	if (model@name == name) {
-		if (!is.null(value)) {
-			value@name <- name
-		}
-		return(value)
+	subname <- path[[2]]
+	if (pathlen == 2) {
+		submodel <- model@submodels[[subname]]
+		submodel <- localNamespaceSearchReplace(submodel, name, value)
+		model@submodels[[subname]] <- submodel
+		return(model)
+	} else {
+		remainder <- path[3:pathlen]
+		model@submodels[[subname]] <- namespaceSearchReplaceHelper(
+			model@submodels[[subname]], name, value, remainder)
+		return(model)
 	}
-	if (length(model@submodels) > 0) {
-		submodels <- lapply(model@submodels, namespaceModelSearchReplace, name, value)
-		select <- sapply(submodels, is.null)
-		model@submodels <- submodels[!select]
-	}
-	return(model)
 }
 
-#
-# Replace a named entity within the local model
-#
 localNamespaceSearchReplace <- function(model, name, value) {
 	if (name == model@name) {
 		if (!(is.null(value) || is(value, "MxModel"))) {
@@ -199,17 +206,3 @@ localNamespaceSearchReplace <- function(model, name, value) {
 	return(model)
 }
 
-#
-# The recursive portion of namespaceSearchReplace(model, name, value)
-#
-namespaceSearchReplaceHelper <- function(model, namespace, name, value) {
-	if (namespace == model@name) {
-		return(localNamespaceSearchReplace(model, name, value))
-	} else {
-		submodels <- lapply(model@submodels, 
-			namespaceSearchReplaceHelper, namespace, name, value)
-		select <- sapply(submodels, is.null)
-		model@submodels <- submodels[!select]
-	}
-	return(model)
-}

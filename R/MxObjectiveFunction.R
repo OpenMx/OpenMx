@@ -131,6 +131,7 @@ convertObjectiveFunctions <- function(flatModel, model, labelsData, defVars, dep
 objectiveFunctionAddEntities <- function(model, flatModel, labelsData) {
 
 	model@.forcesequential <- FALSE
+	model@.newobjects <- FALSE
 
 	objectives <- flatModel@objectives
 

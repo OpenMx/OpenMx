@@ -158,6 +158,7 @@ setMethod("genericObjAddEntities", "MxRowObjective",
 		existenceVectorName <- .Object@existenceVector
 		reduceAlgebraName <- .Object@reduceAlgebra
 		dimnames <- .Object@dims
+		job@.newobjects <- TRUE
 
 		# Create the filtered data row
 		filteredDataRow <- flatJob[[filteredDataRowName]]

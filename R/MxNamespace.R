@@ -579,6 +579,10 @@ getModelName <- function(object) {
 	return(unlist(strsplit(object@name, imxSeparatorChar, fixed = TRUE))[[1]])
 }
 
+getModelNameString <- function(name) {
+	return(unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))[[1]])
+}
+
 imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (hasSquareBrackets(label)) {
 		components <- splitSubstitution(label)
