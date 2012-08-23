@@ -21,7 +21,7 @@ generateThresholdColumns <- function(flatModel, model, labelsData, covarianceCol
 		return(list(thresholdColumns, thresholdLevels))
 	}
 
-	tuple <- evaluateMxObject(threshName, flatModel, labelsData, list())
+	tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 	thresholds <- tuple[[1]]
 
 	thresholdColumnNames <- dimnames(thresholds)[[2]]
@@ -52,7 +52,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 			"for model", omxQuotes(modelName), 
 			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 	}
-	tuple <- evaluateMxObject(threshName, flatModel, labelsData, list())
+	tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 	thresholds <- tuple[[1]]
 	observed <- flatModel@datasets[[dataName]]@observed
 	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {

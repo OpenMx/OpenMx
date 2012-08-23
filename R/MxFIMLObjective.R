@@ -191,7 +191,7 @@ updateThresholdDimnames <- function(flatObjective, flatModel, labelsData) {
 		stop(msg, call.=FALSE)      
 	}
 	if (is.null(colnames(thresholds)) && !single.na(dims)) {
-		tuple <- evaluateMxObject(threshName, flatModel, labelsData, list())
+		tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 		threshMatrix <- tuple[[1]]
 		if (ncol(threshMatrix) != length(dims)) {
 			modelname <- getModelName(flatObjective)
@@ -246,7 +246,7 @@ updateObjectiveDimnames <- function(flatObjective, flatModel,
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
 		if (!unsafe) {
-			tuple <- evaluateMxObject(covName, flatModel, labelsData, list())
+			tuple <- evaluateMxObject(covName, flatModel, labelsData, new.env(parent = emptyenv()))
 			covMatrix <- tuple[[1]]
 			if (nrow(covMatrix) != ncol(covMatrix)) {
 				modelname <- getModelName(flatObjective)
@@ -286,7 +286,7 @@ updateObjectiveDimnames <- function(flatObjective, flatModel,
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
 		if (!unsafe) {
-			tuple <- evaluateMxObject(meansName, flatModel, labelsData, list())
+			tuple <- evaluateMxObject(meansName, flatModel, labelsData, new.env(parent = emptyenv()))
 			meansMatrix <- tuple[[1]]
 			if (nrow(meansMatrix) != 1) {
 				modelname <- getModelName(flatObjective)

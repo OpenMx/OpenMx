@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
-			cache = list(), cacheBack = FALSE) {
+			cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
 	if (missing(expression)) {
 		stop("'expression' argument is mandatory in call to mxEval function")
 	} else if (missing(model)) {
@@ -34,7 +34,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	if (show) {
 		tuple <- evaluateExpression(expression, deparse(expression), model, 
 			labelsData, env, compute, show = TRUE, outsideAlgebra = TRUE,
-			cache = list())
+			cache = new.env(parent = emptyenv()))
 		showResult <- tuple[[1]]
 		showResult <- eval(substitute(substitute(x, list(.zzz = modelvariable)), list(x = showResult)))
 		print(deparse(showResult), width.cutoff = 450L)
@@ -75,7 +75,7 @@ translateErrorFormula <- function(formula, model) {
 }
 
 evaluateExpression <- function(formula, contextString, model, labelsData, 
-	env, compute, show, outsideAlgebra, defvar.row = 1, cache = list()) {
+	env, compute, show, outsideAlgebra, defvar.row = 1, cache = new.env(parent = emptyenv())) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
@@ -142,9 +142,8 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 			env, compute, show, outsideAlgebra, defvar.row = 1, 
 			cache) {
 	key <- deparse(symbol)
-	searchCache <- cache[[key]]
-	if (!is.null(searchCache)) {
-		result <- searchCache
+	if (exists(key, envir = cache)) {
+		result <- get(key, envir = cache)
 	} else {
 		index <- match(key, dimnames(labelsData)[[1]])
 		if (!is.na(index)) {
@@ -197,7 +196,7 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 					omxQuotes(model@name)))
 			}
 		}
-		cache[[key]] <- result
+		assign(key, result, envir = cache)
 	}
 	return(list(result, cache))
 }

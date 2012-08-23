@@ -365,7 +365,7 @@ setMethod("genericObjAddEntities", "MxRAMObjective",
 
 setMethod("genericObjConvertEntities", "MxRAMObjective",
 	function(.Object, flatModel, namespace, labelsData) {
-		cache <- list()
+		cache <- new.env(parent = emptyenv())
 		if(is.na(.Object@data)) {
 			msg <- paste("The RAM objective",
 				"does not have a dataset associated with it in model",

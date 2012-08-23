@@ -168,7 +168,7 @@ substituteOperators <- function(algebra, name) {
 
 checkEvaluation <- function(model, flatModel) {
 	labelsData <- imxGenerateLabels(model)
-	cache <- list()
+	cache <- new.env(parent = emptyenv())
 	cache <- checkMatrixEvaluation(model, flatModel, labelsData, cache)
 	tuple <- checkAlgebraEvaluation(model, flatModel, labelsData, cache)
 	flatModel <- tuple[[1]]

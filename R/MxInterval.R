@@ -150,7 +150,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			interval@lowerdelta, interval@upperdelta)
 		return(retval)
 	} else if (!is.null(entity)) {
-		tuple <- evaluateMxObject(reference, flatModel, labelsData, list())
+		tuple <- evaluateMxObject(reference, flatModel, labelsData, new.env(parent = emptyenv()))
 		entityValue <- as.matrix(tuple[[1]])
 		rows <- nrow(entityValue)
 		cols <- ncol(entityValue)

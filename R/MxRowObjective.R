@@ -194,7 +194,7 @@ setMethod("genericObjAddEntities", "MxRowObjective",
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
-		tuple <- evaluateMxObject(rowAlgebraName, flatJob, labelsData, list())
+		tuple <- evaluateMxObject(rowAlgebraName, flatJob, labelsData, new.env(parent = emptyenv()))
 		result <- tuple[[1]]
 		if (nrow(result) != 1) {
 			msg <- paste("The rowAlgebra with name", 
@@ -239,7 +239,7 @@ setMethod("genericObjInitialMatrix", "MxRowObjective",
 	function(.Object, flatModel) {
 		reduceAlgebraName <- .Object@reduceAlgebra
 		labelsData <- imxGenerateLabels(flatModel)
-		tuple <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData, list())
+		tuple <- evaluateMxObject(reduceAlgebraName, flatModel, labelsData, new.env(parent = emptyenv()))
 		result <- tuple[[1]]
 		return(result)
 	}
