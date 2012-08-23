@@ -919,6 +919,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 	subObjective = localobj->subObjective;
 
 	int toRemove[cov->cols];
+	int dataColumnCols = dataColumns->cols;
 
 	int firstRow = 1;
 	int row = rowbegin;
@@ -990,10 +991,11 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 		
 		/* Censor row and censor and invert cov. matrix. */
 		// Determine how many rows/cols to remove.
-		memset(toRemove, 0, sizeof(int) * dataColumns->cols);
-		for(int j = 0; j < dataColumns->cols; j++) {
+		memset(toRemove, 0, sizeof(int) * dataColumnCols);
+		for(int j = 0; j < dataColumnCols; j++) {
 			double dataValue = omxVectorElement(smallRow, j);
-			if(isnan(dataValue) || dataValue == NA_INTEGER || !R_FINITE(dataValue)) {
+			int dataValuefpclass = fpclassify(dataValue);
+			if(dataValuefpclass == FP_NAN || dataValuefpclass == FP_INFINITE) {
 				numRemoves++;
 				toRemove[j] = 1;
 			} else if(means != NULL) {

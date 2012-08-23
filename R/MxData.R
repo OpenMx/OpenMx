@@ -187,7 +187,7 @@ convertIntegerColumns <- function(mxData) {
 }
 
 convertIntegerSingleColumn <- function(column) {
-	if(!is.factor(column) && is.integer(column)) {
+	if(all(is.na(column)) || (!is.factor(column) && is.integer(column))) {
 		return(as.double(column))
 	} else {
 		return(column)
