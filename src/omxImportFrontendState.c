@@ -309,6 +309,18 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 		}
 		UNPROTECT(1); // nextVar
 	}
+
+	int numMats = currentState->numMats;
+
+	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
+		omxFreeVar* freeVar = currentState->freeVarList + freeVarIndex;
+		int *deps   = freeVar->deps;
+		int numDeps = freeVar->numDeps;
+		for (int index = 0; index < numDeps; index++) {
+			currentState->markMatrices[deps[index] + numMats] = 1;
+		}
+	}
+
 }
 
 /*

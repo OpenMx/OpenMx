@@ -56,7 +56,7 @@ void markFreeVarDependencies(omxState* os, int varNumber) {
 	}
 }
 
-void handleFreeVarListHelper(omxState* os, double* x, int numVars, int parent, int *markMatrices) {
+void handleFreeVarListHelper(omxState* os, double* x, int numVars, int *markMatrices) {
 
 	int numChildren = os->numChildren;
 
@@ -88,22 +88,16 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars, int parent, i
 
 	/* Fill in Free Var Estimates */
 	for(int k = 0; k < numVars; k++) {
+		omxFreeVar* freeVar = freeVarList + k;
 		// if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
-		for(int l = 0; l < freeVarList[k].numLocations; l++) {
-			omxMatrix *matrix = matrixList[freeVarList[k].matrices[l]];
-			int row = freeVarList[k].row[l];
-			int col = freeVarList[k].col[l];
+		for(int l = 0; l < freeVar->numLocations; l++) {
+			omxMatrix *matrix = matrixList[freeVar->matrices[l]];
+			int row = freeVar->row[l];
+			int col = freeVar->col[l];
 			omxSetMatrixElement(matrix, row, col, x[k]);
 			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("Setting location (%d, %d) of matrix %d to value %f for var %d\n",
-					row, col, freeVarList[k].matrices[l], x[k], k);
-			}
-		}
-		if (parent) {
-			int *deps   = os->freeVarList[k].deps;
-			int numDeps = os->freeVarList[k].numDeps;
-			for (int index = 0; index < numDeps; index++) {
-				markMatrices[deps[index] + numMats] = 1;
+					row, col, freeVar->matrices[l], x[k], k);
 			}
 		}
 	}
@@ -121,22 +115,14 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars, int parent, i
 		}
 	}
 
-	// The if-statement is redundant, but the OpenMP
-	// specification is ambiguous on the outcome of num_threads(0)
-	if (numChildren > 0) {
-		#pragma omp parallel for num_threads(numChildren) 
-		for(int i = 0; i < numChildren; i++) {
-			handleFreeVarListHelper(os->childList[i], x, numVars, 0, markMatrices);
-		}
+	for(int i = 0; i < numChildren; i++) {
+		handleFreeVarListHelper(os->childList[i], x, numVars, markMatrices);
 	}
 }
 
 /* Sub Free Vars Into Appropriate Slots */
 void handleFreeVarList(omxState* os, double* x, int numVars) {
-
-	memset(os->markMatrices, 0, sizeof(int) * (os->numMats + os->numAlgs));
-	handleFreeVarListHelper(os, x, numVars, 1, os->markMatrices);
-
+	handleFreeVarListHelper(os, x, numVars, os->markMatrices);
 }
 
 /* get the list element named str, or return NULL */

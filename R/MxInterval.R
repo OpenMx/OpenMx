@@ -324,6 +324,7 @@ omxParallelCI <- function(model, run = TRUE) {
 		interval <- intervals[[i]]
 		newmodel <- mxModel(template, interval, independent = TRUE)
 		newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
+		newmodel <- mxOption(newmodel, "Number of Threads", 1)
 		submodels <- c(submodels, newmodel)
 	}
 	container <- mxModel(container, submodels)

@@ -118,7 +118,9 @@
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 		tgt->markMatrices		= (int*) R_alloc(tgt->numMats + tgt->numAlgs, sizeof(int));
-		
+
+		memcpy(tgt->markMatrices, src->markMatrices, (tgt->numMats + tgt->numAlgs) * sizeof(int));
+				
 		memset(tgt->matrixList, 0, sizeof(omxMatrix*) * tgt->numMats);
 		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
 
