@@ -5,6 +5,7 @@ trunk
 * performance improvements in mxModel() when building RAM models
 * performance improvements in mxRun() frontend for large matrices
 * rewrite on the processing of objective functions in the frontend
+* added R functions omxCbind(), omxRbind(), and omxTranspose()
 
 Beta Release 999.0.0-2126 (August 03, 2012)
 ===========================================
