@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2010 The OpenMx Project
+%   Copyright 2007-2012 The OpenMx Project
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ mxMatrix(type = "Full", nrow = NA, ncol = NA,
   \item{ubound}{a vector or matrix of numeric upper bounds. Default bounds are specified with an NA.}  
   \item{byrow}{logical. If \sQuote{FALSE} (default), the \sQuote{values}, \sQuote{free}, \sQuote{labels}, \sQuote{lbound}, and \sQuote{ubound} matrices are populated by column rather than by row. }
   \item{dimnames}{list. The dimnames attribute for the matrix: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.}
-  \item{name}{an optional character string indicating the name of the MxMatrix object created by the mxModel function.}
+  \item{name}{an optional character string indicating the name of the MxMatrix object}
 }
 
 \details{
