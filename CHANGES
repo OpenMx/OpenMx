@@ -5,6 +5,8 @@ Release 1.2.5
 * fixing memory leak in omxImaginaryEigenvalues()
 * fixed a bug that manifests in confidence intervals with definition variables
   (see http://openmx.psyc.virginia.edu/thread/1505)
+* fixed a bug in the identification of NA definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1521)
 
 Release 1.2.4-2063 (May 22, 2012)
 =================================
