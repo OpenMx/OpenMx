@@ -171,10 +171,10 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
 			int matrixNumber = defVars[k].matrices[l];
-			int row = defVars[k].rows[l];
-			int col = defVars[k].cols[l];
+			int matrow = defVars[k].rows[l];
+			int matcol = defVars[k].cols[l];
 			omxMatrix *matrix = state->matrixList[matrixNumber];
-			omxSetMatrixElement(matrix, row, col, newDefVar);
+			omxSetMatrixElement(matrix, matrow, matcol, newDefVar);
 		}
 		markDefVarDependencies(state, &(defVars[k]));
 	}
