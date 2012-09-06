@@ -87,7 +87,7 @@ pdf:
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
-	cd $(RBUILD); gnutar -zxf *gz
+	cd $(RBUILD); tar -zxf *gz
 	mv build/OpenMx/html build/html
 	mv build/OpenMx/demo build/demo
 	cp build/html/* docs/source/static/Rdoc
@@ -109,7 +109,7 @@ common-buildppc: clean internal-build
 post-build:
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *;\
-	gnutar --delete --file=`ls` OpenMx/npsol;\
+	tar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
 
 
