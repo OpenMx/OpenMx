@@ -4,7 +4,7 @@ RBUILD = build
 RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2dvi
-BUILDPRE = 1.2.4
+BUILDPRE = 1.2.5
 BUILDNO = $(shell svnversion -c | sed -e 's/[MS]//g' -e 's/^[[:digit:]]*://')
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = $(RBUILD)/OpenMx.pdf
@@ -87,7 +87,7 @@ pdf:
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
-	cd $(RBUILD); tar -zxf *gz
+	cd $(RBUILD); gnutar -zxf *gz
 	mv build/OpenMx/html build/html
 	mv build/OpenMx/demo build/demo
 	cp build/html/* docs/source/static/Rdoc
@@ -109,7 +109,7 @@ common-buildppc: clean internal-build
 post-build:
 	rm -f $(RBUILD)/$(TARGET)
 	cd $(RBUILD); gunzip *;\
-	tar --delete --file=`ls` OpenMx/npsol;\
+	gnutar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
 
 
