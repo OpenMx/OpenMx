@@ -270,9 +270,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 			/* Build means from blocks */
 			args[0] = MUY;
 			args[1] = MUX;
-			omxTransposeMatrix(Means); //To make the means a column vector
 			omxMatrixVertCat(args, 2, Means);
-			omxTransposeMatrix(Means); //To make it back into a row vector
 			
 			if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");}
 		}
@@ -286,11 +284,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		omxCopyMatrix(Cov, B);
 		if(Means != NULL) {
 				/* Mean of the Xs */
-				omxCopyMatrix(MUX, TX);
-				omxDGEMV(FALSE, oned, LX, KA, oned, MUX);
-				omxTransposeMatrix(MUX);
-				omxCopyMatrix(Means, MUX);
-				omxTransposeMatrix(MUX);
+				omxCopyMatrix(Means, TX);
+				omxDGEMV(FALSE, oned, LX, KA, oned, Means);
 		}
 	}
 	
@@ -316,11 +311,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		omxCopyMatrix(Cov, J);
 		if(Means != NULL) {
 				omxCopyMatrix(K, AL);
-				omxCopyMatrix(MUY, TY);
-				omxDGEMV(FALSE, oned, D, K, oned, MUY);
-				omxTransposeMatrix(MUY);
-				omxCopyMatrix(Means, MUY);
-				omxTransposeMatrix(MUY);
+				omxCopyMatrix(Means, TY);
+				omxDGEMV(FALSE, oned, D, K, oned, Means);
 		}
 	}
 /*	

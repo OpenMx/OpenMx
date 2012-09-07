@@ -234,7 +234,7 @@ static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
 }
 
 
-static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * result
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
 	int nrow = (transposeA?a->cols:a->rows);
 	int nmid = (transposeA?a->rows:a->cols);
