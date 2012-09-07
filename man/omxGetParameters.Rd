@@ -23,17 +23,19 @@
 }
 
 \usage{
-omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA))
+omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
+	fetch = c('values', 'free', 'lbound', 'ubound', 'all'))
 }
 
 \arguments{
    \item{model}{a MxModel object}
    \item{indep}{fetch parameters from independent submodels.}
    \item{free}{fetch either free parameters (TRUE), or fixed parameters or both types. Default value is TRUE.}
+   \item{fetch}{which attribute of the parameters to fetch. Default choice is \sQuote{values}.}
 }
 
 \details{
-  The argument \sQuote{free} dictates whether to return only free parameters or only fixed parameters or both free and fixed parameters. The function can return unlabelled free parameters (parameters with a label of NA). These anonymous free parameters will be identified as \sQuote{modelname.matrixname[row,col]}.  It will not return fixed parameters that have a label of NA. No distinction is made between ordinary labels, definition variables, and square bracket constraints.
+  The argument \sQuote{free} dictates whether to return only free parameters or only fixed parameters or both free and fixed parameters. The function can return unlabelled free parameters (parameters with a label of NA). These anonymous free parameters will be identified as \sQuote{modelname.matrixname[row,col]}.  It will not return fixed parameters that have a label of NA. No distinction is made between ordinary labels, definition variables, and square bracket constraints. The function will return either a vector of parameter values, or free/fixed designations, or lower bounds, or upper bounds, depending on the \sQuote{fetch} argument. Using fetch with \sQuote{all} returns a data frame that is populated with all of the attributes.
 }
 
 \seealso{
@@ -52,7 +54,7 @@ omxGetParameters(model)
 #   1    2    4 
 
 # Request fixed parameters from model
-omxGetParameters(model, free=FALSE)
+omxGetParameters(model, free = FALSE)
 # A21 
 #   3
 

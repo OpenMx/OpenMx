@@ -78,14 +78,37 @@ locateParametersHelper <- function(matrix, modelname, target) {
 	return(retval)
 }
 
-omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
+omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA), 
+	fetch = c('values', 'free', 'lbound', 'ubound', 'all')) {
 	if (identical(free, c(TRUE, FALSE, NA))) {
 		free <- TRUE
+	}
+	if (identical(fetch, c('values', 'free', 'lbound', 'ubound', 'all'))) {
+		fetch <- 'values'
 	}
 	if (!is.logical(free) || length(free) != 1) {
 		stop("argument 'free' must be a 'TRUE', 'FALSE', or NA")
 	}
-	parameters <- lapply(model@matrices, getParametersHelper, model@name, free)
+	if (!is.character(fetch) || length(fetch) != 1 || 
+		!(fetch %in% c('values', 'free', 'lbound', 'ubound', 'all'))) {
+		stop("argument 'fetch' must be one of c('values', 'free', 'lbound', 'ubound', 'all')")
+	}
+	if (fetch == 'all') {
+		values <- omxGetParameters(model, indep, free, 'values')
+		lbound <- omxGetParameters(model, indep, free, 'lbound')
+		ubound <- omxGetParameters(model, indep, free, 'ubound')
+		if (!is.na(free) && free) {
+			free <- rep.int(TRUE, length(values))
+		} else if (!is.na(free) && !free) {
+			free <- rep.int(FALSE, length(values))
+		} else {
+			free <- omxGetParameters(model, indep, free, 'free')
+		}
+		return(data.frame(values, free, lbound, ubound))
+	}
+	parameters <- lapply(model@matrices, getParametersHelper, model@name, free, fetch)
+	plen <- lapply(parameters, length)
+	parameters[plen == 0] <- NULL
 	names(parameters) <- NULL
 	parameters <- unlist(parameters)
 	if(indep) {
@@ -93,11 +116,15 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA)) {
 	} else {
 		submodels <- imxDependentModels(model)
 	}
-	subparams <- lapply(submodels, omxGetParameters, indep, free)
-	names(subparams) <- NULL
-	subparams <- unlist(subparams)
-	parameters <- c(parameters, subparams)
-	parameters <- parameters[!duplicated(names(parameters), incomparables = NA)]
+	if (length(submodels) > 0) {
+		subparams <- lapply(submodels, omxGetParameters, indep, free, fetch)
+		plen <- lapply(subparams, length)
+		subparams[plen == 0] <- NULL
+		names(subparams) <- NULL
+		subparams <- unlist(subparams)
+		parameters <- c(parameters, subparams)
+		parameters <- parameters[!duplicated(names(parameters), incomparables = NA)]
+	}
 	return(parameters)
 }
 
@@ -280,7 +307,7 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 	return(model)
 }
 
-getParametersHelper <- function(amatrix, modelname, selection) {
+getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 	if (single.na(selection)) {
 		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
 	} else if (selection) {
@@ -306,7 +333,15 @@ getParametersHelper <- function(amatrix, modelname, selection) {
 			}
 		}
 	}
-	theValues <- amatrix@values[select]
+	if (fetch == "values") {
+		theValues <- amatrix@values[select]
+	} else if (fetch == "lbound") {
+		theValues <- amatrix@lbound[select]
+	} else if (fetch == "ubound") {
+		theValues <- amatrix@ubound[select]
+	} else if (fetch == "free") {
+		theValues <- amatrix@free[select]
+	}
 	names(theValues) <- theNames
 	return(theValues[!duplicated(theNames)])
 }

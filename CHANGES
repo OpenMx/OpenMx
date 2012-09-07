@@ -1,20 +1,10 @@
 trunk
 =====
-* fixed a bug that manifests in confidence intervals with definition variables
-  (see http://openmx.psyc.virginia.edu/thread/1505)
-* performance improvements in mxModel() when building RAM models
-* performance improvements in mxRun() frontend for large matrices
-* rewrite on the processing of objective functions in the frontend
-* added R functions omxCbind(), omxRbind(), and omxTranspose()
-
-Beta Release 999.0.0-2126 (August 03, 2012)
-===========================================
 * added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
 * added 'cache' and 'cacheBack' arguments to mxEval()
 * added omxLocateParameters() function (see ?omxLocateParameters)
 * type='RAM' allowing 'manifestVars' argument to appear in a different order
   than in the observed covariance matrix.
-* bug fix in the identification of NA definition variables
 * the configuration mxRun(model, checkpoint = TRUE) writes a line
   in the checkpoint file at the conclusion of model optimization.
 * added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
@@ -22,11 +12,25 @@ Beta Release 999.0.0-2126 (August 03, 2012)
   free parameters with the string modelName.matrixName[row,col]
 * omxGetParameters() and omxSetParameters() support anonymous
   free parameters
-* bugfix to omxRAMtoML() when input model has covariance data
 * implemented cov2cor in the OpenMx backend
 * mxOption "Major iterations" accepts either a value or a function
 * now tracking the MxAlgebra and MxMatrix objects that need to be updated
   when populating free parameters or updating definition variables.
+* performance improvements in mxModel() when building RAM models
+* performance improvements in mxRun() frontend for large matrices
+* rewrite on the processing of objective functions in the frontend
+* added R functions omxCbind(), omxRbind(), and omxTranspose()
+* added 'fetch' argument to omxGetParameters()
+
+Release 1.2.5-2156 (September 5, 2012)
+======================================
+* bugfix to omxRAMtoML() when input model has covariance data
+* fixing memory leak in cleaning up algebras when optimization is complete
+* fixing memory leak in omxImaginaryEigenvalues()
+* fixed a bug that manifests in confidence intervals with definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1505)
+* fixed a bug in the identification of NA definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1521)
 
 Release 1.2.4-2063 (May 22, 2012)
 =================================
