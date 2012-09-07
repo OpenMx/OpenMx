@@ -279,9 +279,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	//else if(LX != NULL) { /* IF THE MODEL ONLY HAS Xs */
 		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
-		omxCopyMatrix(B, TD); // B = TD
-		omxDGEMM(FALSE, TRUE, oned, A, LX, oned, B);  // B = LX*PH*LX^T + TD
-		omxCopyMatrix(Cov, B);
+		omxCopyMatrix(Cov, TD); // Cov = TD
+		omxDGEMM(FALSE, TRUE, oned, A, LX, oned, Cov);  // Cov = LX*PH*LX^T + Cov
 		if(Means != NULL) {
 				/* Mean of the Xs */
 				omxCopyMatrix(Means, TX);
@@ -303,16 +302,13 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		/* Calculate the upper left quadrant: the covariance of the Ys */
 		if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
 		if(OMX_DEBUG_ALGEBRA) {Rprintf("Copying C = PS.\n");}
-		omxCopyMatrix(C, PS); // C = PS
-		omxDGEMM(FALSE, FALSE, oned, D, C, zerod, H); // H = D*C = LY * (I - BE)^(-1) * PS
-		omxCopyMatrix(J, TE); // J = TE
-		omxDGEMM(FALSE, TRUE, oned, H, D, oned, J); // J = H*D^T + J = LY * (I - BE)^(-1) * PS * (LY * (I - BE)^(-1))^T + TE
+		omxDGEMM(FALSE, FALSE, oned, D, PS, zerod, H); // H = D*PS = LY * (I - BE)^(-1) * PS
+		omxCopyMatrix(Cov, TE); // Cov = TE
+		omxDGEMM(FALSE, TRUE, oned, H, D, oned, Cov); // Cov = H*D^T + Cov = LY * (I - BE)^(-1) * PS * (LY * (I - BE)^(-1))^T + TE
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(J, "....LISREL: Upper Left Quadrant of Model-implied Covariance Matrix:");}
-		omxCopyMatrix(Cov, J);
 		if(Means != NULL) {
-				omxCopyMatrix(K, AL);
 				omxCopyMatrix(Means, TY);
-				omxDGEMV(FALSE, oned, D, K, oned, Means);
+				omxDGEMV(FALSE, oned, D, AL, oned, Means);
 		}
 	}
 /*	
