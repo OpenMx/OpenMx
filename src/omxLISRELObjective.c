@@ -18,6 +18,7 @@
 #include "omxBLAS.h"
 #include "omxFIMLObjective.h"
 #include "omxLISRELObjective.h"
+#include "omxRAMObjective.h" //included for omxFastRAMInverse
 
 extern void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 
@@ -70,6 +71,7 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 	omxFreeMatrixData(argStruct->I);
 	omxFreeMatrixData(argStruct->J);
 	omxFreeMatrixData(argStruct->K);
+	omxFreeMatrixData(argStruct->L);
 	omxFreeMatrixData(argStruct->TOP);
 	omxFreeMatrixData(argStruct->BOT);
 	omxFreeMatrixData(argStruct->MUX);
@@ -151,7 +153,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	omxMatrix* AL = oro->AL;
 	omxMatrix* Cov = oro->cov;
 	omxMatrix* Means = oro->means;
-	int numIters = oro->numIters;
+	int numIters = oro->numIters; //Used for fast RAM/LISREL inverse
 	omxMatrix* A = oro->A;
 	omxMatrix* B = oro->B;
 	omxMatrix* C = oro->C;
@@ -163,15 +165,16 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	omxMatrix* I = oro->I;
 	omxMatrix* J = oro->J;
 	omxMatrix* K = oro->K;
+	omxMatrix* L = oro->L;
 	omxMatrix* TOP = oro->TOP;
 	omxMatrix* BOT = oro->BOT;
 	omxMatrix* MUX = oro->MUX;
 	omxMatrix* MUY = oro->MUY;
 	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
-	double oned = 1.0, zerod=0.0, minusOned = -1.0;
-	int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
-	double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
+	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
+	//int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
+	//double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
 	
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
@@ -195,10 +198,13 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 		
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
-		omxCopyMatrix(C, BE); // C = BE
-		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
-		omxDGETRF(C, ipiv); //LU Decomp
-		omxDGETRI(C, ipiv, work, lwork); //Inverse based on LU Decomp ... C = C^(-1) = (I - BE)^(-1)
+		omxFastRAMInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		//omxCopyMatrix(C, BE); // C = BE
+		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
+		//omxDGETRF(C, ipiv); //LU Decomp
+		//omxDGETRI(C, ipiv, work, lwork); //Inverse based on LU Decomp ... C = C^(-1) = (I - BE)^(-1)
+		
+		
 		omxDGEMM(FALSE, FALSE, oned, LY, C, zerod, D); // D = LY*C = LY * (I - BE)^(-1)
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....LISREL: LY*(I-BE)^(-1)");}
 		
@@ -293,10 +299,11 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
-		omxCopyMatrix(C, BE); // C = BE
-		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
-		omxDGETRF(C, ipiv); //LU Decomp
-		omxDGETRI(C, ipiv, work, lwork); //Inverse based on LU Decomp ... C = C^(-1) = (I - BE)^(-1)
+		omxFastRAMInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		//omxCopyMatrix(C, BE); // C = BE
+		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
+		//omxDGETRF(C, ipiv); //LU Decomp
+		//omxDGETRI(C, ipiv, work, lwork); //Inverse based on LU Decomp ... C = C^(-1) = (I - BE)^(-1)
 		omxDGEMM(FALSE, FALSE, oned, LY, C, zerod, D); // D = LY*C = LY * (I - BE)^(-1)
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....LISREL: LY*(I-BE)^(-1)");}
 		/* Calculate the upper left quadrant: the covariance of the Ys */
@@ -388,7 +395,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	int nx, nxi, ny, neta, ntotal;
 	
-	//SEXP slotValue;   //Used by PPML
+	SEXP slotValue;   //Used to get LISREL depth, for I-BE inverse speedup
 	
 	/* Create and register subobjective */
 	omxObjective *subObjective = omxCreateSubObjective(oo);
@@ -494,13 +501,14 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
 	omxRecompute(LISobj->I);
 	
-	/*
+	
+	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */
 	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
 	LISobj->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { Rprintf("Using %d iterations.", LISobj->numIters); }
 	UNPROTECT(1);
-	*/
+	
 	
 	/* Initialize the place holder matrices used in calculations */
 	nx = LISobj->LX->rows;
@@ -522,6 +530,7 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	LISobj->H = 	omxInitMatrix(NULL, ny, neta, TRUE, currentState);
 	LISobj->J = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
 	LISobj->K = 	omxInitMatrix(NULL, neta, 1, TRUE, currentState);
+	LISobj->L = 	omxInitMatrix(NULL, neta, neta, TRUE, currentState);
 	LISobj->TOP = 	omxInitMatrix(NULL, ny, ntotal, TRUE, currentState);
 	LISobj->BOT = 	omxInitMatrix(NULL, nx, ntotal, TRUE, currentState);
 	LISobj->MUX = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);

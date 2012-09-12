@@ -254,6 +254,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		kaMatrix <- .Object@KA
 		alMatrix <- .Object@AL
 		data <- .Object@data
+		beMatrix2 <- beMatrix #This is a placeholder for use with the I-BE inverse speedup
 		# Check if the model has data
 		if(is.na(data)) {
 			msg <- paste("The LISREL objective",
@@ -452,7 +453,7 @@ setMethod("genericObjFunConvert", signature("MxLISRELObjective", "MxFlatModel"),
 		# Raw data error checking
 		#  Set the canonical order of observed variable names.
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
-#		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
+		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
@@ -701,48 +702,48 @@ setMethod("show", "MxLISRELObjective", function(object) {
 #
 #
 #
-#generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
-#	mxObject <- flatModel[[aMatrixName]]
-#	if (!is(mxObject, "MxMatrix")) {
-#		return(as.integer(NA))
-#	}
-#	if (identical(modeloptions[['RAM Inverse Optimization']], "No")) {
-#		return(as.integer(NA))
-#	}
-#	if (is.null(modeloptions[['RAM Inverse Optimization']]) &&
-#		identical(getOption('mxOptions')[['RAM Inverse Optimization']], "No")) {
-#		return(as.integer(NA))
-#	}	
-#	maxdepth <- modeloptions[['RAM Max Depth']]
-#	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
-#		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
-#		maxdepth <- nrow(mxObject) - 1
-#	}
-#	return(omxGetRAMDepth(mxObject, maxdepth))
-#}
-#
-#omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
-#	mxObject <- A
-#	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
-#	defvars <- apply(mxObject@labels, c(1,2), imxIsDefinitionVariable)
-#	squarebrackets <- apply(mxObject@labels, c(1,2), hasSquareBrackets)
-#	aValues[mxObject@free] <- 1
-#	aValues[mxObject@values != 0] <- 1
-#	aValues[defvars] <- 1
-#	aValues[squarebrackets] <- 1
-#	return(generateDepthHelper(aValues, aValues, 0, maxdepth))
-#}
-#
-#generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
-#	if (depth > maxdepth) {
-#		return(as.integer(NA))
-#	}
-#	if (all(currentProduct == 0)) { 
-#		return(as.integer(depth))
-#	} else {
-#		return(generateDepthHelper(aValues, currentProduct %*% aValues, depth + 1, maxdepth))
-#	}
-#}
+generateLISRELDepth <- function(flatModel, aMatrixName, modeloptions) {
+	mxObject <- flatModel[[aMatrixName]]
+	if (!is(mxObject, "MxMatrix")) {
+		return(as.integer(NA))
+	}
+	if (identical(modeloptions[['RAM Inverse Optimization']], "No")) {
+		return(as.integer(NA))
+	}
+	if (is.null(modeloptions[['RAM Inverse Optimization']]) &&
+		identical(getOption('mxOptions')[['RAM Inverse Optimization']], "No")) {
+		return(as.integer(NA))
+	}	
+	maxdepth <- modeloptions[['RAM Max Depth']]
+	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
+		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
+		maxdepth <- nrow(mxObject) - 1
+	}
+	return(omxGetLISRELDepth(mxObject, maxdepth))
+}
+
+omxGetLISRELDepth <- function(A, maxdepth = nrow(A) - 1) {
+	mxObject <- A
+	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
+	defvars <- apply(mxObject@labels, c(1,2), imxIsDefinitionVariable)
+	squarebrackets <- apply(mxObject@labels, c(1,2), hasSquareBrackets)
+	aValues[mxObject@free] <- 1
+	aValues[mxObject@values != 0] <- 1
+	aValues[defvars] <- 1
+	aValues[squarebrackets] <- 1
+	return(generateDepthHelper(aValues, aValues, 0, maxdepth))
+}
+
+generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
+	if (depth > maxdepth) {
+		return(as.integer(NA))
+	}
+	if (all(currentProduct == 0)) { 
+		return(as.integer(depth))
+	} else {
+		return(generateDepthHelper(aValues, currentProduct %*% aValues, depth + 1, maxdepth))
+	}
+}
 #
 #fMatrixTranslateNames <- function(fMatrix, modelName) {
 #	retval <- character()
