@@ -227,10 +227,10 @@ typeArgument <- function(model, type) {
 
 imxGenericModelBuilder <- function(model, lst, name, 
 	manifestVars, latentVars, lst.call, remove, independent) {
+	model <- nameArgument(model, name)
 	model <- variablesArgument(model, manifestVars, latentVars, remove)
 	model <- listArgument(model, lst, remove, lst.call)
 	model <- independentArgument(model, independent)
-	model <- nameArgument(model, name)
 	return(model)
 }
 
