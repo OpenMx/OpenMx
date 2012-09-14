@@ -44,7 +44,8 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 
 \examples{
 
-A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
+A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, 
+	free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
 
 # Request all free parameters in model
@@ -82,7 +83,8 @@ data(demoOneFactor)
 manifestVars <- names(demoOneFactor)
 nVar = length(manifestVars) # 5 variables
 factorModel <- mxModel("One Factor",
-    mxMatrix(name="A", type="Full", nrow=nVar, ncol=1, values=0.2, free=TRUE, labels=letters[1:nVar]),
+    mxMatrix(name="A", type="Full", nrow=nVar, ncol=1, values=0.2, free=TRUE, 
+		lbound = 0.0, labels=letters[1:nVar]),
     mxMatrix(name="L", type="Symm", nrow=1, ncol=1, values=1, free=FALSE),
     # the "U" matrix has nVar (5) anonymous free parameters
     mxMatrix(name="U", type="Diag", nrow=nVar, ncol=nVar, values=1, free=TRUE),
@@ -93,6 +95,7 @@ factorModel <- mxModel("One Factor",
 
 # Get all free parameters
 params         <- omxGetParameters(factorModel)
+lbound         <- omxGetParameters(factorModel, fetch="lbound")
 # Set new values for these params, saving them in a new model
 newFactorModel <- omxSetParameters(factorModel, names(params), values = 1:10)
 # Read out the values from the new model

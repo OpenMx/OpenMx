@@ -24,7 +24,7 @@
 
 \usage{
 mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
-	cache = list(), cacheBack = FALSE)
+	cache = new.env(parent = emptyenv()), cacheBack = FALSE)
 }
 
 \arguments{
@@ -33,7 +33,7 @@ mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
    \item{compute}{If TRUE then compute the value of algebra expressions.}
    \item{show}{If TRUE then print the translated expression.}
    \item{defvar.row}{The row number for definition variables when compute=TRUE.}
-   \item{cache}{A list of name/matrix value pairs used to speedup computation.}
+   \item{cache}{An R environment of matrix values used to speedup computation.}
    \item{cacheBack}{If TRUE then return the list pair (value, cache).}
 }
 
@@ -60,12 +60,15 @@ matrixA <- mxMatrix("Full", nrow = 1, ncol = 1,
 	values = 1, name = "A")
 algebraB <- mxAlgebra(A + A, name = "B")
 
-model <- mxModel(matrixA, algebraB)
+model <- mxModel(matrixA, algebraB, name = "test")
 model <- mxRun(model)
-start <- mxEval(-pi * A, model)
+results <- mxEval(B, model, compute=TRUE, cacheBack=TRUE)
+B <- get("test.B", envir = results[[2]])
+A <- get("test.A", envir = results[[2]])
 
 \dontrun{
-	
+
+start <- mxEval(-pi * A, model)	
 mxEval(plot(sin, start, B * pi), model)
 
 # The statement above is equivalent to:
