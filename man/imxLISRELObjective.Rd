@@ -64,7 +64,7 @@ The table below is provided as a quick reference to the numerous matrices in LIS
 Matrix \tab Word \tab Abbreviation \tab Dimensions \tab Expression\tab Description \cr
 \eqn{\Lambda_x} \tab Lambda x \tab LX \tab NX x NK \tab \tab Exogenous Factor Loading Matrix \cr
 \eqn{\Lambda_y} \tab Lambda y \tab LY \tab NY x NE \tab \tab Endogenous Factor Loading Matrix\cr
-\eqn{B} \tab BE \tab Beta \tab NE x NE \tab \tab Regressions of Latent Endogenous Variables Predicting Endogenous Variables\cr
+\eqn{B} \tab Beta \tab BE \tab NE x NE \tab \tab Regressions of Latent Endogenous Variables Predicting Endogenous Variables\cr
 \eqn{\Gamma} \tab Gamma \tab GA \tab NE x NK \tab \tab Regressions of Latent Exogenous Variables Predicting Endogenous Variables \cr
 \eqn{\Phi} \tab Phi \tab PH \tab NK x NK \tab cov(\eqn{\xi}) \tab Covariance Matrix of Latent Exogenous Variables \cr
 \eqn{\Psi} \tab Psi \tab PS \tab NE x NE \tab cov(\eqn{\zeta}) \tab Residual Covariance Matrix of Latent Endogenous Variables \cr
@@ -77,7 +77,9 @@ Matrix \tab Word \tab Abbreviation \tab Dimensions \tab Expression\tab Descripti
 \eqn{\alpha} \tab alpha \tab AL \tab NE x 1 \tab \tab Residual Means of Latent Endogenous Variables \cr
 }
 
-From the extended LISREL model, several submodels can be defined.  Subtypes of the LISREL model are defined by setting some of the arguments of the LISREL objective to NA.  The first submodel is the LISREL model without means.
+From the extended LISREL model, several submodels can be defined.  Subtypes of the LISREL model are defined by setting some of the arguments of the LISREL objective to NA.  Note that because the default values of each LISREL matrix is NA, setting a matrix to NA can be accomplished by simply not giving it any other value.
+
+The first submodel is the LISREL model without means.
 
 \deqn{\eta = B \eta + \Gamma \xi + \zeta}
 \deqn{y = \Lambda_y \eta + \epsilon}
@@ -92,15 +94,15 @@ A second submodel involves only endogenous variables.
 \deqn{\eta = B \eta + \zeta}
 \deqn{y = \Lambda_y \eta + \epsilon}
 
-The endogenous-only LISREL model requires 4 matrices: LY, BE, PS, and TE.  The LX, GA, PH, TD, and TH must be NA in this case.  However, means can also be specified, allowing TY and AL if the data are provided.
+The endogenous-only LISREL model requires 4 matrices: LY, BE, PS, and TE.  The LX, GA, PH, TD, and TH must be NA in this case.  However, means can also be specified, allowing TY and AL if the data are raw or if observed means are provided.
 
 Another submodel involves only exogenous variables.
 
 \deqn{x = \Lambda_x \xi + \delta}
 
-The exogenous-model model requires 3 matrices: LX, PH, and TD.  The LY, BE, GA, PS, TE, and TH matrices must be NA.  However, means can also be specified, allowing TX and KA if the data are provided.
+The exogenous-model model requires 3 matrices: LX, PH, and TD.  The LY, BE, GA, PS, TE, and TH matrices must be NA.  However, means can also be specified, allowing TX and KA if the data are raw or if observed means are provided.
 
-The model that is run depends on the matrices that are not NA.  If all 9 matrices are not NA, then the full model is run.  If only the 4 endogenous matrices are not NA, then the endogenous-only model is run.  If only the 3 exogenous matrices are not NA, then the exogenous-only model is run.  If some endogenous and exogenous matrices are not NA, but not all of them, then appropriate errors are thrown.
+The model that is run depends on the matrices that are not NA.  If all 9 matrices are not NA, then the full model is run.  If only the 4 endogenous matrices are not NA, then the endogenous-only model is run.  If only the 3 exogenous matrices are not NA, then the exogenous-only model is run.  If some endogenous and exogenous matrices are not NA, but not all of them, then appropriate errors are thrown.  Means are included in the model whenever their matrices are provided.
 
 %The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the 'F' matrix and optionally to the 'M' matrix, if the 'M' matrix exists.
 
