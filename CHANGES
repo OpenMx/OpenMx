@@ -1,5 +1,9 @@
 trunk
 =====
+* renamed global state from "currentState" to "globalState"
+
+Release 1.3.0-2168 (September 17, 2012)
+=======================================
 * added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
 * added 'cache' and 'cacheBack' arguments to mxEval()
 * added omxLocateParameters() function (see ?omxLocateParameters)

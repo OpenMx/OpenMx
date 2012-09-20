@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "omxState.h"
+#include "omxGlobalState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxObjective.h"
@@ -80,24 +81,6 @@ double *g;						// Gradient Pointer
 double *R, *cJac;				// Hessian (Approx) and Jacobian
 int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
 
-/*
- * If you try to export the following variable to other
- * files, I will send a plague of locusts upon your house.
-
- * I would prefer this global variable didn't exist at all,
- * except that the NPSOL API appears to be non thread-safe. See
- * the function "F77_SUB(objectiveFunction)" to convince
- * yourself of this fact.
- *
- * It may be possible to create multiple copies of "objectiveFunction"
- * in memory, but even then we are unsure if the NPSOL internals
- * are thread-safe.
- *
- * So for now, we can't perform any shared memory
- * parallel computations that invoke the optimizer. -mspiegel
- */
-omxState* currentState;			// Current State of optimization
-
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
@@ -113,35 +96,35 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 	/* Create new omxState for current state storage and initialize it. */
 	
-	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState, NULL, 1);
-	currentState->numFreeParams = n;
-	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
+	globalState = (omxState*) R_alloc(1, sizeof(omxState));
+	omxInitState(globalState, NULL, 1);
+	globalState->numFreeParams = n;
+	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
 
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
-	currentState->numMats = length(matList);
-	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
+	globalState->numMats = length(matList);
+	globalState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 
 	for(k = 0; k < length(matList); k++) {
 		PROTECT(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
-		currentState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, currentState, 1, - k - 1);
+		globalState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
-				currentState->matrixList[k], currentState->matrixList[k]->rows, currentState->matrixList[k]->cols);
+				globalState->matrixList[k], globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
 		}
 		UNPROTECT(1); // nextMat
 	}
 
-	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, currentState->matrixList, currentState->numMats, currentState);
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, globalState->matrixList, globalState->numMats, globalState);
 
 	if(algebra==NULL) {
-		error(currentState->statusMsg);
+		error(globalState->statusMsg);
 	}
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
-	omxStateNextEvaluation(currentState);
+	omxStateNextEvaluation(globalState);
 
 	omxRecompute(algebra);
 
@@ -155,13 +138,13 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 
-	if(currentState->statusCode != 0) {
-		errOut = currentState->statusCode;
-		strncpy(output, currentState->statusMsg, 250);
+	if(globalState->statusCode != 0) {
+		errOut = globalState->statusCode;
+		strncpy(output, globalState->statusMsg, 250);
 	}
 
 	omxFreeAllMatrixData(algebra);
-	omxFreeState(currentState);
+	omxFreeState(globalState);
 
 	if(errOut != 0) {
 		error(output);
@@ -217,11 +200,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		&analyticGradients);
 
 	/* Create new omxState for current state storage and initialize it. */
-	currentState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(currentState, NULL, numThreads);
-	currentState->numFreeParams = n;
-	currentState->analyticGradients = analyticGradients;
-	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", currentState);}
+	globalState = (omxState*) R_alloc(1, sizeof(omxState));
+	omxInitState(globalState, NULL, numThreads);
+	globalState->numFreeParams = n;
+	globalState->analyticGradients = analyticGradients;
+	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve Data Objects */
 	if(!errOut) errOut = omxProcessMxDataEntities(data);
@@ -235,9 +218,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Initial Matrix and Algebra Calculations */
     if(!errOut) {
 		// disable parallelism until omxDuplicateState() can be invoked
-    	currentState->numChildren = 0;
+    	globalState->numChildren = 0;
 		errOut = omxInitialMatrixAlgebraCompute();
-		currentState->numChildren = (numThreads > 1) ? numThreads : 0;
+		globalState->numChildren = (numThreads > 1) ? numThreads : 0;
 	}
 
 	/* Process Objective Function */
@@ -247,7 +230,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	if(!errOut) {	// In the event of an initialization error, skip all this.
 
-		int numChildren = currentState->numChildren;
+		int numChildren = globalState->numChildren;
 
 		/* Process Matrix and Algebra Population Function */
 		/*
@@ -255,9 +238,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		 populated into it at each iteration.  The first element is already processed, above.
 		 The rest of the list will be processed here.
 		*/
-		for(int j = 0; j < currentState->numMats; j++) {
+		for(int j = 0; j < globalState->numMats; j++) {
 			PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
-			omxProcessMatrixPopulationList(currentState->matrixList[j], nextLoc);
+			omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 			UNPROTECT(1);
 		}
 
@@ -275,11 +258,11 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		omxProcessCheckpointOptions(checkpointList);
 
 		for(int i = 0; i < numChildren; i++) {
-			omxDuplicateState(currentState->childList[i], currentState);
+			omxDuplicateState(globalState->childList[i], globalState);
 		}
 		
 	} else { // End if(errOut)
-		error(currentState->statusMsg);
+		error(globalState->statusMsg);
 	}
 
 	/* Set up Optimization Memory Allocations */
@@ -290,21 +273,21 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		f = 0;
 		double* x = NULL, *g = NULL;
 
-		if(currentState->objectiveMatrix != NULL) {
+		if(globalState->objectiveMatrix != NULL) {
 			F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
 		};
 		numHessians = 0;					// No hessian if there's no free params
-		currentState->numIntervals = 0; 	// No intervals if there's no free params
+		globalState->numIntervals = 0; 	// No intervals if there's no free params
 		inform = 0;
 		iter = 0;
 
-		for(int index = 0; index < currentState->numMats; index++) {
-			omxMarkDirty(currentState->matrixList[index]);
+		for(int index = 0; index < globalState->numMats; index++) {
+			omxMarkDirty(globalState->matrixList[index]);
 		}
-		for(int index = 0; index < currentState->numAlgs; index++) {
-			omxMarkDirty(currentState->algebraList[index]);
+		for(int index = 0; index < globalState->numAlgs; index++) {
+			omxMarkDirty(globalState->algebraList[index]);
 		}
-		omxStateNextEvaluation(currentState);	// Advance for a final evaluation.
+		omxStateNextEvaluation(globalState);	// Advance for a final evaluation.
 
 	} else {
 		/* Initialize Scalar Variables. */
@@ -362,7 +345,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 			x[k] = REAL(startVals)[k];
 			if((x[k] == 0.0) && !disableOptimizer) {
 				x[k] += 0.1;
-				markFreeVarDependencies(currentState, k);
+				markFreeVarDependencies(globalState, k);
 			}
 			if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
@@ -414,14 +397,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 		if (disableOptimizer) {
 			int mode = 0, nstate = -1;		
-			if(currentState->objectiveMatrix != NULL) {
+			if(globalState->objectiveMatrix != NULL) {
 				F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
 			};
 
 			inform = 0;
 			iter = 0;
 
-			omxStateNextEvaluation(currentState);	// Advance for a final evaluation.		
+			omxStateNextEvaluation(globalState);	// Advance for a final evaluation.		
 		} else {
 			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 							(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
@@ -429,9 +412,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
 
-		omxSaveCheckpoint(currentState, x, &f, TRUE);
+		omxSaveCheckpoint(globalState, x, &f, TRUE);
 
-		handleFreeVarList(currentState, x, n);
+		handleFreeVarList(globalState, x, n);
 		
 	} // END OF PERFORM OPTIMIZATION CASE
 
@@ -446,8 +429,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
 	PROTECT(evaluations = NEW_NUMERIC(2));
-	PROTECT(matrices = NEW_LIST(currentState->numMats));
-	PROTECT(algebras = NEW_LIST(currentState->numAlgs));
+	PROTECT(matrices = NEW_LIST(globalState->numMats));
+	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 
 	/* N-dependent SEXPs */
 	PROTECT(estimate = allocVector(REALSXP, n));
@@ -457,15 +440,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
 	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1)); // for optimizer
 	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
-	PROTECT(intervals = allocMatrix(REALSXP, currentState->numIntervals, 2)); // for optimizer
-	PROTECT(intervalCodes = allocMatrix(INTSXP, currentState->numIntervals, 2)); // for optimizer
+	PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
+	PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
 	PROTECT(NAmat = allocMatrix(REALSXP, 1, 1)); // In case of missingness
 	REAL(NAmat)[0] = R_NaReal;
 
 	/* Store outputs for return */
 	if(objective != NULL) {
 		REAL(minimum)[0] = f;
-		currentState->optimum = f;
+		globalState->optimum = f;
 	} else {
 		REAL(minimum)[0] = R_NaReal;
 	}
@@ -482,7 +465,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 	}
 
-	omxSaveState(currentState, x, f);		// Keep the current values for the currentState.
+	omxSaveState(globalState, x, f);		// Keep the current values for the globalState.
 
 	/* Fill in details from the optimizer */
 	SET_VECTOR_ELT(optimizer, 0, gradient);
@@ -494,26 +477,26 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	REAL(code)[0] = inform;
 	REAL(iterations)[0] = iter;
-	REAL(evaluations)[0] = currentState->computeCount;
+	REAL(evaluations)[0] = globalState->computeCount;
 
 	/* Fill Status code. */
 	SET_VECTOR_ELT(status, 0, code);
 	PROTECT(code = NEW_NUMERIC(1));
-	REAL(code)[0] = currentState->statusCode;
+	REAL(code)[0] = globalState->statusCode;
 	SET_VECTOR_ELT(status, 1, code);
 	PROTECT(statusMsg = allocVector(STRSXP, 1));
-	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
+	SET_STRING_ELT(statusMsg, 0, mkChar(globalState->statusMsg));
 	SET_VECTOR_ELT(status, 2, statusMsg);
 
-	if(numHessians && currentState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
-		if(currentState->numConstraints == 0) {
+	if(numHessians && globalState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
+		if(globalState->numConstraints == 0) {
 			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
-			int gotHessians = omxEstimateHessian(numHessians, .0001, 4, currentState);
+			int gotHessians = omxEstimateHessian(numHessians, .0001, 4, globalState);
 			if(gotHessians) {
 				if(calculateStdErrors) {
 					for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
 						if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Objective Function.\n");}
-						omxObjective* oo = currentState->objectiveMatrix->objective;
+						omxObjective* oo = globalState->objectiveMatrix->objective;
 						if(oo->getStandardErrorFun != NULL) {
 							oo->getStandardErrorFun(oo);
 						} else {
@@ -530,17 +513,17 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
-	if(currentState->numIntervals) {
+	if(globalState->numIntervals) {
 		if(inform == 0 || inform == 1 || inform == 6) {
 			if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
-			currentState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
-			for(int i = 0; i < currentState->numIntervals; i++) {
+			globalState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+			for(int i = 0; i < globalState->numIntervals; i++) {
 
-				memcpy(x, currentState->optimalValues, n * sizeof(double)); // Reset to previous optimum
-				currentState->currentInterval = i;
-				omxConfidenceInterval *currentCI = &(currentState->intervalList[i]);
-				currentCI->lbound += currentState->optimum;			// Convert from offsets to targets
-				currentCI->ubound += currentState->optimum;			// Convert from offsets to targets
+				memcpy(x, globalState->optimalValues, n * sizeof(double)); // Reset to previous optimum
+				globalState->currentInterval = i;
+				omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);
+				currentCI->lbound += globalState->optimum;			// Convert from offsets to targets
+				currentCI->ubound += globalState->optimum;			// Convert from offsets to targets
 
 				/* Set up for the lower bound */
 				inform = -1;
@@ -569,14 +552,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					if(inform != 0) {
 						unsigned int jitter = TRUE;
 						for(int j = 0; j < n; j++) {
-							if(fabs(x[j] - currentState->optimalValues[j]) > objDiff){
+							if(fabs(x[j] - globalState->optimalValues[j]) > objDiff){
 								jitter = FALSE;
 								break;
 							}
 						}
 						if(jitter) {
 							for(int j = 0; j < n; j++) {
-								x[j] = currentState->optimalValues[j] + objDiff;
+								x[j] = globalState->optimalValues[j] + objDiff;
 							}
 						}
 					}
@@ -585,7 +568,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 				if(OMX_DEBUG) { Rprintf("Found lower bound %d.  Seeking upper.\n", i); }
 				// TODO: Repopulate original optimizer state in between CI calculations
 
-				memcpy(x, currentState->optimalValues, n * sizeof(double));
+				memcpy(x, globalState->optimalValues, n * sizeof(double));
 
 				/* Reset for the upper bound */
 				value = INF;
@@ -612,14 +595,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					if(inform != 0) {
 						unsigned int jitter = TRUE;
 						for(int j = 0; j < n; j++) {
-							if(fabs(x[j] - currentState->optimalValues[j]) > objDiff){
+							if(fabs(x[j] - globalState->optimalValues[j]) > objDiff){
 								jitter = FALSE;
 								break;
 							}
 						}
 						if(jitter) {
 							for(int j = 0; j < n; j++) {
-								x[j] = currentState->optimalValues[j] + objDiff;
+								x[j] = globalState->optimalValues[j] + objDiff;
 							}
 						}
 					}
@@ -635,21 +618,21 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 	}
 
-	handleFreeVarList(currentState, currentState->optimalValues, n);  // Restore to optima for final compute
-	if(!errOut) omxFinalAlgebraCalculation(currentState, matrices, algebras); 
+	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
+	if(!errOut) omxFinalAlgebraCalculation(globalState, matrices, algebras); 
 
-	omxPopulateObjectiveFunction(currentState, numReturns, &ans, &names);
+	omxPopulateObjectiveFunction(globalState, numReturns, &ans, &names);
 
 	if(numHessians) {
-		omxPopulateHessians(numHessians, currentState->objectiveMatrix, 
+		omxPopulateHessians(numHessians, globalState->objectiveMatrix, 
 			calculatedHessian, stdErrors, calculateStdErrors, n);
 	}
 
-	if(currentState->numIntervals) {	// Populate CIs
-		omxPopulateConfidenceIntervals(currentState, intervals, intervalCodes);
+	if(globalState->numIntervals) {	// Populate CIs
+		omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
 	}
 	
-	REAL(evaluations)[1] = currentState->computeCount;
+	REAL(evaluations)[1] = globalState->computeCount;
 
 	int nextEl = 0;
 
@@ -693,12 +676,12 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	namesgets(ans, names);
 
 	if(OMX_VERBOSE) {
-		Rprintf("Inform Value: %d\n", currentState->optimumStatus);
+		Rprintf("Inform Value: %d\n", globalState->optimumStatus);
 		Rprintf("--------------------------\n");
 	}
 
 	/* Free data memory */
-	omxFreeState(currentState);
+	omxFreeState(globalState);
 
 	UNPROTECT(numReturns);						// Unprotect Output Parameters
 	UNPROTECT(8);								// Unprotect internals
@@ -719,13 +702,13 @@ void F77_SUB(objectiveFunction)
 	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
 
 	if(*mode == 1) {
-		omxSetMajorIteration(currentState, currentState->majorIteration + 1);
-		omxSetMinorIteration(currentState, 0);
+		omxSetMajorIteration(globalState, globalState->majorIteration + 1);
+		omxSetMinorIteration(globalState, 0);
 		checkpointNow = TRUE;					// Only checkpoint at major iterations.
-	} else omxSetMinorIteration(currentState, currentState->minorIteration + 1);
+	} else omxSetMinorIteration(globalState, globalState->minorIteration + 1);
 
-	omxMatrix* objectiveMatrix = currentState->objectiveMatrix;
-	omxResetStatus(currentState);						// Clear Error State recursively
+	omxMatrix* objectiveMatrix = globalState->objectiveMatrix;
+	omxResetStatus(globalState);						// Clear Error State recursively
 	/* Interruptible? */
 	R_CheckUserInterrupt();
     /* This allows for abitrary repopulation of the free parameters.
@@ -735,14 +718,14 @@ void F77_SUB(objectiveFunction)
 	if (objectiveMatrix->objective->repopulateFun != NULL) {
 		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, x, *n);
 	} else {
-		handleFreeVarList(currentState, x, *n);
+		handleFreeVarList(globalState, x, *n);
 	}
 	omxRecompute(objectiveMatrix);
 
 	/* Derivative Calculation Goes Here. */
 	/* Turn this off if derivative calculations are not wanted */
 	if(*mode > 0) {
-	    if(currentState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL && currentState->currentInterval < 0) {
+	    if(globalState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL && globalState->currentInterval < 0) {
             objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g);
 	    } 
 	}
@@ -752,8 +735,8 @@ void F77_SUB(objectiveFunction)
 			Rprintf("Objective value is NaN.\n");
 		}
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Objective function returned a value of NaN at iteration %d.%d.", currentState->majorIteration, currentState->minorIteration);
-		omxRaiseError(currentState, -1, errstr);
+		sprintf(errstr, "Objective function returned a value of NaN at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
+		omxRaiseError(globalState, -1, errstr);
 		*mode = -1;
 		free(errstr);
 	}
@@ -763,13 +746,13 @@ void F77_SUB(objectiveFunction)
 			Rprintf("Objective Value is infinite.\n");
 		}
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Objective function returned an infinite value at iteration %d.%d.", currentState->majorIteration, currentState->minorIteration);
-		omxRaiseError(currentState, -1, errstr);
+		sprintf(errstr, "Objective function returned an infinite value at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
+		omxRaiseError(globalState, -1, errstr);
 		*mode = -1;
 		free(errstr);
 	}
 
-	if(currentState->statusCode <= -1) {		// At some point, we'll add others
+	if(globalState->statusCode <= -1) {		// At some point, we'll add others
 		if(OMX_DEBUG) {
 			Rprintf("Error status reported.\n");
 		}
@@ -783,8 +766,8 @@ void F77_SUB(objectiveFunction)
 
 	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
 
-	if(checkpointNow && currentState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(currentState, x, f, FALSE);		// Check about saving a checkpoint
+	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
+		omxSaveCheckpoint(globalState, x, f, FALSE);		// Check about saving a checkpoint
 	}
 
 }
@@ -809,14 +792,14 @@ void F77_SUB(constraintFunction)
 
 	int j, k, l = 0, size;
 
-	handleFreeVarList(currentState, x, *n);
+	handleFreeVarList(globalState, x, *n);
 
-	for(j = 0; j < currentState->numConstraints; j++) {
-		omxRecompute(currentState->conList[j].result);
-		size = currentState->conList[j].result->rows * currentState->conList[j].result->cols;
-		if(OMX_VERBOSE) { omxPrint(currentState->conList[j].result, "Constraint evaluates as:"); }
-		for(k = 0; k < currentState->conList[j].size; k++){
-			c[l++] = currentState->conList[j].result->data[k];
+	for(j = 0; j < globalState->numConstraints; j++) {
+		omxRecompute(globalState->conList[j].result);
+		size = globalState->conList[j].result->rows * globalState->conList[j].result->cols;
+		if(OMX_VERBOSE) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
+		for(k = 0; k < globalState->conList[j].size; k++){
+			c[l++] = globalState->conList[j].result->data[k];
 		}
 	}
 
@@ -831,11 +814,11 @@ void F77_SUB(constraintFunction)
 void F77_SUB(limitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", currentState->currentInterval, (currentState->intervalList[currentState->currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", globalState->currentInterval, (globalState->intervalList[globalState->currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxConfidenceInterval *oCI = &(currentState->intervalList[currentState->currentInterval]);
+		omxConfidenceInterval *oCI = &(globalState->intervalList[globalState->currentInterval]);
 		
 		omxRecompute(oCI->matrix);
 		
@@ -848,7 +831,7 @@ void F77_SUB(limitObjectiveFunction)
 
 		/* Catch boundary-passing condition */
 		if(isnan(CIElement) || isinf(CIElement)) {
-			omxRaiseError(currentState, -1, 
+			omxRaiseError(globalState, -1, 
 				"Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 			*mode = -1;
 			return;

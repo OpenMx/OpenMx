@@ -23,12 +23,11 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
+#include "omxGlobalState.h"
 #include "omxNPSOLSpecific.h"
 
 /* Outside R Functions */
 static int isDir(const char *path);
-
-extern omxState* currentState;		
 
 int matchCaseInsensitive(const char *source, int lenSource, const char *target) {
 	int lenTarget = strlen(target);
@@ -39,20 +38,20 @@ int omxProcessMxDataEntities(SEXP data) {
 	int errOut = FALSE;
 	SEXP nextLoc;
 	if(OMX_DEBUG) { Rprintf("Processing %d data source(s).\n", length(data));}
-	currentState->numData = length(data);
-	currentState->dataList = (omxData**) R_alloc(length(data), sizeof(omxData*));
+	globalState->numData = length(data);
+	globalState->dataList = (omxData**) R_alloc(length(data), sizeof(omxData*));
 
 	for(int index = 0; index < length(data); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
-		currentState->dataList[index] = omxNewDataFromMxData(NULL, nextLoc, currentState);
+		globalState->dataList[index] = omxNewDataFromMxData(NULL, nextLoc, globalState);
 		if(OMX_DEBUG) {
 			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
-				currentState->dataList[index], currentState->dataList[index]->rows, currentState->dataList[index]->cols);
+				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
 		}
 		UNPROTECT(1); // nextMat
-		if(currentState->statusCode < 0) {
+		if(globalState->statusCode < 0) {
 			errOut = TRUE;
-			currentState->numData = index+1;
+			globalState->numData = index+1;
 			break;
 		}
 	}
@@ -63,25 +62,25 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
 	int errOut = FALSE;
 	SEXP nextLoc, nextMat;
-	currentState->numMats = length(matList);
-	currentState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
+	globalState->numMats = length(matList);
+	globalState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < length(matList); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		currentState->matrixList[index] = omxNewMatrixFromRPrimitive(
-			nextMat, currentState, 1, -index - 1);
-		currentState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
+		globalState->matrixList[index] = omxNewMatrixFromRPrimitive(
+			nextMat, globalState, 1, -index - 1);
+		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
-				currentState->matrixList[index], currentState->matrixList[index]->rows, currentState->matrixList[index]->cols);
+				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
 		UNPROTECT(2); // nextLoc and nextMat
-		if(currentState->statusCode < 0) {
+		if(globalState->statusCode < 0) {
 			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth matrix.\n", index+1);}
 			errOut = TRUE;
-			currentState->numMats = index+1;
+			globalState->numMats = index+1;
 			break;
 		}
 	}
@@ -91,39 +90,39 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 int omxProcessMxAlgebraEntities(SEXP algList) {
 	int errOut = FALSE;
 	SEXP nextAlgTuple;
-	currentState->numAlgs = length(algList);
+	globalState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", currentState->numAlgs, length(algList)); }
-	currentState->algebraList = (omxMatrix**) R_alloc(currentState->numAlgs, sizeof(omxMatrix*));
+	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", globalState->numAlgs, length(algList)); }
+	globalState->algebraList = (omxMatrix**) R_alloc(globalState->numAlgs, sizeof(omxMatrix*));
 
-	for(int index = 0; index < currentState->numAlgs; index++) {
-		currentState->algebraList[index] = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+	for(int index = 0; index < globalState->numAlgs; index++) {
+		globalState->algebraList[index] = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	}
 
-	for(int index = 0; index < currentState->numAlgs; index++) {
+	for(int index = 0; index < globalState->numAlgs; index++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or objective to process
-		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, currentState->algebraList + index); }
+		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, globalState->algebraList + index); }
 		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is an objective object.
-			omxFillMatrixFromMxObjective(currentState->algebraList[index], nextAlgTuple, 1, index);
+			omxFillMatrixFromMxObjective(globalState->algebraList[index], nextAlgTuple, 1, index);
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula, dependencies;
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
-			omxFillMatrixFromRPrimitive(currentState->algebraList[index],
-				initialValue, currentState, 1, index);
+			omxFillMatrixFromRPrimitive(globalState->algebraList[index],
+				initialValue, globalState, 1, index);
 			UNPROTECT(1);	// initialValue
 			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
-			omxFillMatrixFromMxAlgebra(currentState->algebraList[index],
+			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
 				formula, CHAR(STRING_ELT(algListNames, index)));
 			UNPROTECT(1);	// formula
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
 			UNPROTECT(1);	// dependencies
 		}
 		UNPROTECT(1);	// nextAlgTuple
-		if(currentState->statusCode < 0) {
+		if(globalState->statusCode < 0) {
 			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth algebra.\n", index+1);}
 			errOut = TRUE;
-			currentState->numAlgs = index+1;
+			globalState->numAlgs = index+1;
 			break;
 		}
 	}
@@ -132,20 +131,20 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 
 int omxInitialMatrixAlgebraCompute() {
 	int errOut = FALSE;
-	int numMats = currentState->numMats;
-	int numAlgs = currentState->numAlgs;
+	int numMats = globalState->numMats;
+	int numAlgs = globalState->numAlgs;
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
-	omxStateNextEvaluation(currentState);
+	omxStateNextEvaluation(globalState);
 
-	currentState->markMatrices = (int*) R_alloc(numMats + numAlgs, sizeof(int));
+	globalState->markMatrices = (int*) R_alloc(numMats + numAlgs, sizeof(int));
 
 	for(int index = 0; index < numMats; index++) {
-		omxRecompute(currentState->matrixList[index]);
+		omxRecompute(globalState->matrixList[index]);
 	}
 
 	for(int index = 0; index < numAlgs; index++) {
-		omxRecompute(currentState->algebraList[index]);
+		omxRecompute(globalState->algebraList[index]);
 	}
 	return(errOut);
 }
@@ -154,11 +153,11 @@ int omxProcessObjectiveFunction(SEXP objective, int *n) {
 	int errOut = FALSE;
 	if(!isNull(objective)) {
 		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
-		currentState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, currentState);
+		globalState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, globalState);
 	} else {
-		currentState->objectiveMatrix = NULL;
+		globalState->objectiveMatrix = NULL;
 		*n = 0;
-		currentState->numFreeParams = *n;
+		globalState->numFreeParams = *n;
 	}
 	return(errOut);
 }
@@ -175,13 +174,13 @@ The last element is an integer count, indicating the number of <type>s per check
 */
 void omxProcessCheckpointOptions(SEXP checkpointList) {
 	if(OMX_VERBOSE) { Rprintf("Processing Checkpoint Requests.\n");}
-	currentState->numCheckpoints = length(checkpointList);
-	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", currentState->numCheckpoints); }
-	currentState->checkpointList = (omxCheckpoint*) R_alloc(currentState->numCheckpoints, sizeof(omxCheckpoint));
+	globalState->numCheckpoints = length(checkpointList);
+	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", globalState->numCheckpoints); }
+	globalState->checkpointList = (omxCheckpoint*) R_alloc(globalState->numCheckpoints, sizeof(omxCheckpoint));
 	SEXP nextLoc;
 
-	for(int index = 0; index < currentState->numCheckpoints; index++) {
-		omxCheckpoint *oC = &(currentState->checkpointList[index]);
+	for(int index = 0; index < globalState->numCheckpoints; index++) {
+		omxCheckpoint *oC = &(globalState->checkpointList[index]);
 
 		/* Initialize Checkpoint object */
 		oC->socket = -1;
@@ -255,46 +254,46 @@ The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, r
 void omxProcessFreeVarList(SEXP varList, int n) {
 	SEXP nextVar, nextLoc;
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
-	currentState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
+	globalState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
 		int numDeps;
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
 		int numLocs = length(nextVar) - 3;
-		currentState->freeVarList[freeVarIndex].numLocations = numLocs;
-		currentState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
-		currentState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
-		currentState->freeVarList[freeVarIndex].col		 = (int*) R_alloc(numLocs, sizeof(int));
-		currentState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
+		globalState->freeVarList[freeVarIndex].numLocations = numLocs;
+		globalState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
+		globalState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
+		globalState->freeVarList[freeVarIndex].col		 = (int*) R_alloc(numLocs, sizeof(int));
+		globalState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
 
 		/* Lower Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
-		currentState->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
-		if(ISNA(currentState->freeVarList[freeVarIndex].lbound)) currentState->freeVarList[freeVarIndex].lbound = NEG_INF;
-		if(currentState->freeVarList[freeVarIndex].lbound == 0.0) currentState->freeVarList[freeVarIndex].lbound = 0.0;
+		globalState->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
+		if(ISNA(globalState->freeVarList[freeVarIndex].lbound)) globalState->freeVarList[freeVarIndex].lbound = NEG_INF;
+		if(globalState->freeVarList[freeVarIndex].lbound == 0.0) globalState->freeVarList[freeVarIndex].lbound = 0.0;
 		UNPROTECT(1); // nextLoc
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
-		currentState->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
-		if(ISNA(currentState->freeVarList[freeVarIndex].ubound)) currentState->freeVarList[freeVarIndex].ubound = INF;
-		if(currentState->freeVarList[freeVarIndex].ubound == 0.0) currentState->freeVarList[freeVarIndex].ubound = -0.0;
+		globalState->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
+		if(ISNA(globalState->freeVarList[freeVarIndex].ubound)) globalState->freeVarList[freeVarIndex].ubound = INF;
+		if(globalState->freeVarList[freeVarIndex].ubound == 0.0) globalState->freeVarList[freeVarIndex].ubound = -0.0;
 		UNPROTECT(1); // nextLoc
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
 		numDeps = LENGTH(nextLoc);
-		currentState->freeVarList[freeVarIndex].numDeps = numDeps;
-		currentState->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
+		globalState->freeVarList[freeVarIndex].numDeps = numDeps;
+		globalState->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
 		for(int i = 0; i < numDeps; i++) {
-			currentState->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
+			globalState->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
 		}
 		UNPROTECT(1); // nextLoc
 
 
 		if(OMX_DEBUG) { 
 			Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", freeVarIndex, 
-				currentState->freeVarList[freeVarIndex].lbound, 
-				currentState->freeVarList[freeVarIndex].ubound, numLocs);
+				globalState->freeVarList[freeVarIndex].lbound, 
+				globalState->freeVarList[freeVarIndex].ubound, numLocs);
 		}
-		for(int locIndex = 0; locIndex < currentState->freeVarList[freeVarIndex].numLocations; locIndex++) {
+		for(int locIndex = 0; locIndex < globalState->freeVarList[freeVarIndex].numLocations; locIndex++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+3));
 			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
 
@@ -302,22 +301,22 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 			int theRow = theVarList[1];			// Row is zero-based.
 			int theCol = theVarList[2];			// Column is zero-based.
 
-			currentState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
-			currentState->freeVarList[freeVarIndex].row[locIndex] = theRow;
-			currentState->freeVarList[freeVarIndex].col[locIndex] = theCol;
+			globalState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
+			globalState->freeVarList[freeVarIndex].row[locIndex] = theRow;
+			globalState->freeVarList[freeVarIndex].col[locIndex] = theCol;
 			UNPROTECT(1); // nextLoc
 		}
 		UNPROTECT(1); // nextVar
 	}
 
-	int numMats = currentState->numMats;
+	int numMats = globalState->numMats;
 
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
-		omxFreeVar* freeVar = currentState->freeVarList + freeVarIndex;
+		omxFreeVar* freeVar = globalState->freeVarList + freeVarIndex;
 		int *deps   = freeVar->deps;
 		int numDeps = freeVar->numDeps;
 		for (int index = 0; index < numDeps; index++) {
-			currentState->markMatrices[deps[index] + numMats] = 1;
+			globalState->markMatrices[deps[index] + numMats] = 1;
 		}
 	}
 
@@ -333,14 +332,14 @@ void omxProcessFreeVarList(SEXP varList, int n) {
 void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	SEXP nextVar;
 	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
-	currentState->numIntervals = length(intervalList);
-	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", currentState->numIntervals); }
-	currentState->intervalList = (omxConfidenceInterval*) R_alloc(currentState->numIntervals, sizeof(omxConfidenceInterval));
-	for(int index = 0; index < currentState->numIntervals; index++) {
-		omxConfidenceInterval *oCI = &(currentState->intervalList[index]);
+	globalState->numIntervals = length(intervalList);
+	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", globalState->numIntervals); }
+	globalState->intervalList = (omxConfidenceInterval*) R_alloc(globalState->numIntervals, sizeof(omxConfidenceInterval));
+	for(int index = 0; index < globalState->numIntervals; index++) {
+		omxConfidenceInterval *oCI = &(globalState->intervalList[index]);
 		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
-		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, currentState);	// Expects an R object
+		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, globalState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
 		oCI->lbound = intervalInfo[3];
@@ -350,7 +349,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->min = R_NaReal;
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", currentState->numIntervals); }
+	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", globalState->numIntervals); }
 }
 
 int omxProcessConstraints(SEXP constraints)  {
@@ -358,26 +357,26 @@ int omxProcessConstraints(SEXP constraints)  {
 	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
-	currentState->numConstraints = length(constraints);
-	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", currentState->numConstraints); }
-	currentState->conList = (omxConstraint*) R_alloc(currentState->numConstraints, sizeof(omxConstraint));
+	globalState->numConstraints = length(constraints);
+	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", globalState->numConstraints); }
+	globalState->conList = (omxConstraint*) R_alloc(globalState->numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
-	for(int constraintIndex = 0; constraintIndex < currentState->numConstraints; constraintIndex++) {
+	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, constraintIndex));
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxNewMatrixFromMxIndex(nextLoc, currentState);
+		arg1 = omxNewMatrixFromMxIndex(nextLoc, globalState);
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxNewMatrixFromMxIndex(nextLoc, currentState);
+		arg2 = omxNewMatrixFromMxIndex(nextLoc, globalState);
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
-		currentState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
+		globalState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);
 		omxMatrix *args[2] = {arg1, arg2};
-		currentState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, currentState); // 10 = binary subtract
-		omxRecompute(currentState->conList[constraintIndex].result);
-		int nrows = currentState->conList[constraintIndex].result->rows;
-		int ncols = currentState->conList[constraintIndex].result->cols;
-		currentState->conList[constraintIndex].size = nrows * ncols;
-		ncnln += currentState->conList[constraintIndex].size;
+		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
+		omxRecompute(globalState->conList[constraintIndex].result);
+		int nrows = globalState->conList[constraintIndex].result->rows;
+		int ncols = globalState->conList[constraintIndex].result->cols;
+		globalState->conList[constraintIndex].size = nrows * ncols;
+		ncnln += globalState->conList[constraintIndex].size;
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
@@ -387,8 +386,8 @@ int omxProcessConstraints(SEXP constraints)  {
 void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 	/* Set min and max limits */
 	for(int index = 0; index < n; index++) {
-		bl[index] = currentState->freeVarList[index].lbound;				// -Infinity'd be -10^20.
-		bu[index] = currentState->freeVarList[index].ubound;				// Infinity would be at 10^20.
+		bl[index] = globalState->freeVarList[index].lbound;				// -Infinity'd be -10^20.
+		bu[index] = globalState->freeVarList[index].ubound;				// Infinity would be at 10^20.
 	}
 
 	for(int index = n; index < n+nclin; index++) {						// At present, nclin == 0.
@@ -397,12 +396,12 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 	}												    // But if there were, they would go here.
 
 	int index = n + nclin;
-	for(int constraintIndex = 0; constraintIndex < currentState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
+	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
 		if(OMX_DEBUG) { Rprintf("Constraint %d: ", constraintIndex);}
-		switch(currentState->conList[constraintIndex].opCode) {
+		switch(globalState->conList[constraintIndex].opCode) {
 		case 0:									// Less than: Must be strictly less than 0.
 			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
-			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = NEG_INF;
 				bu[index] = -0.0;
 				index++;
@@ -410,7 +409,7 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 			break;
 		case 1:									// Equal: Must be roughly equal to 0.
 			if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
-			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = -0.0;
 				bu[index] = 0.0;
 				index++;
@@ -418,7 +417,7 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 			break;
 		case 2:									// Greater than: Must be strictly greater than 0.
 			if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
-			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				if(OMX_DEBUG) { Rprintf("\tBounds set for constraint %d.%d.\n", constraintIndex, offset);}
 				bl[index] = 0.0;
 				bu[index] = INF;
@@ -427,7 +426,7 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 			break;
 		default:
 			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
-			for(int offset = 0; offset < currentState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = NEG_INF;
 				bu[index] = INF;
 				index++;
