@@ -149,15 +149,14 @@ int omxInitialMatrixAlgebraCompute() {
 	return(errOut);
 }
 
-int omxProcessObjectiveFunction(SEXP objective, int *n) {
+int omxProcessObjectiveFunction(SEXP objective) {
 	int errOut = FALSE;
 	if(!isNull(objective)) {
 		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
 		globalState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, globalState);
 	} else {
 		globalState->objectiveMatrix = NULL;
-		*n = 0;
-		globalState->numFreeParams = *n;
+		globalState->numFreeParams = 0;
 	}
 	return(errOut);
 }

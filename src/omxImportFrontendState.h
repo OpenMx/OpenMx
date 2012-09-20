@@ -7,7 +7,7 @@ int omxProcessMxDataEntities(SEXP data);
 int omxProcessMxMatrixEntities(SEXP matList);
 int omxProcessMxAlgebraEntities(SEXP algList);
 int omxInitialMatrixAlgebraCompute();
-int omxProcessObjectiveFunction(SEXP objective, int *n);
+int omxProcessObjectiveFunction(SEXP objective);
 void omxProcessCheckpointOptions(SEXP checkpointList);
 void omxProcessFreeVarList(SEXP varList, int n);
 void omxProcessConfidenceIntervals(SEXP intervalList);

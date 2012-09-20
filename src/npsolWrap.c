@@ -74,13 +74,6 @@ void R_unload_mylib(DllInfo *info) {
 SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
 SEXP env;						// Environment for evaluation and object hunting
 
-/* Made global for objective functions that want them */
-int n, nclin, ncnln;			// Number of Free Params, linear, and nonlinear constraints
-double f;						// Objective Function Value
-double *g;						// Gradient Pointer
-double *R, *cJac;				// Hessian (Approx) and Jacobian
-int *istate;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
-
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
@@ -98,7 +91,6 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	
 	globalState = (omxState*) R_alloc(1, sizeof(omxState));
 	omxInitState(globalState, NULL, 1);
-	globalState->numFreeParams = n;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
@@ -163,9 +155,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	int ldA, ldJ, ldR, inform, iter, leniw, lenw; // nclin, ncnln
 	int *iw = NULL; // , istate;
 
-//	double f;
+	double f;
 	double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *x = NULL, *w=NULL; //  *g, *R, *cJac,
 	double *est, *grad, *hess;
+
+	double *g, *R = NULL, *cJac = NULL;	// Hessian (Approx) and Jacobian
+	int *istate = NULL;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
+
+	int nclin, ncnln;			// Number of linear and nonlinear constraints
+
 
 	/* Helpful variables */
 
@@ -177,6 +175,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	SEXP nextLoc;
 
+	int n;
 	int calculateStdErrors = FALSE;
 	int numHessians = 0;
 	int ciMaxIterations = 5;
@@ -192,8 +191,6 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	omx_omp_init();
 
-	n = length(startVals);
-
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
 		&ciMaxIterations, &disableOptimizer, &numThreads, 
@@ -202,7 +199,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = (omxState*) R_alloc(1, sizeof(omxState));
 	omxInitState(globalState, NULL, numThreads);
-	globalState->numFreeParams = n;
+	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
@@ -224,7 +221,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	/* Process Objective Function */
-	if(!errOut) errOut = omxProcessObjectiveFunction(objective, &n);
+	if(!errOut) errOut = omxProcessObjectiveFunction(objective);
 	
 	// TODO: Make calculateHessians an option instead.
 
@@ -245,7 +242,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		}
 
 		/* Process Free Var List */
-		omxProcessFreeVarList(varList, n);
+		omxProcessFreeVarList(varList, globalState->numFreeParams);
 
 		/* Processing Constraints */
 		ncnln = omxProcessConstraints(constraints);
@@ -265,13 +262,16 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		error(globalState->statusMsg);
 	}
 
+	n = globalState->numFreeParams;
+
 	/* Set up Optimization Memory Allocations */
 	if(n == 0) {			// Special Case for the evaluation-only condition
 
 		if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
 		int mode = 0, nstate = -1;
 		f = 0;
-		double* x = NULL, *g = NULL;
+		x = NULL;
+		g = NULL;
 
 		if(globalState->objectiveMatrix != NULL) {
 			F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
