@@ -40,19 +40,6 @@
 
 //#include "omxSymbolTable.h"
 
-/* NPSOL-related functions */
-extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
-							double *bl,	double *bu, void* funcon, void* funobj, int *inform, int *iter, 
-							int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
-							double *x, int *iw,	int *leniw, double *w, int *lenw);
-
-/* Objective Function */
-void F77_SUB(objectiveFunction)	( int* mode, int* n, double* x, double* f, double* g, int* nstate );				// For general computation
-void F77_SUB(limitObjectiveFunction)(	int* mode, int* n, double* x, double* f, double* g, int* nstate );			// For limit computations
-
-/* Constraint Function */
-void F77_SUB(constraintFunction)(int *mode, int *ncnln, int *n, int *ldJ, int *needc, double *x, double *c, double *cJac, int *nstate);	// Constraints in the style of old Mx
-
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = {
 {"callNPSOL", (void*(*)())&callNPSOL, 11},
@@ -149,27 +136,14 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
-	/* NPSOL Arguments */
-	void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
-
-	int ldA, ldJ, ldR, inform, iter, leniw, lenw; // nclin, ncnln
-	int *iw = NULL; // , istate;
-
+	double *x, *g, *R;
 	double f;
-	double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *x = NULL, *w=NULL; //  *g, *R, *cJac,
+
 	double *est, *grad, *hess;
-
-	double *g, *R = NULL, *cJac = NULL;	// Hessian (Approx) and Jacobian
-	int *istate = NULL;					// Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
-
-	int nclin, ncnln;			// Number of linear and nonlinear constraints
-
 
 	/* Helpful variables */
 
 	int k, l;					// Index Vars
-
-	int nctotl, nlinwid, nlnwid;	// Helpful side variables.
 	
 	int errOut = 0;                 // Error state: Clear
 
@@ -194,7 +168,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
 		&ciMaxIterations, &disableOptimizer, &numThreads, 
-		&analyticGradients);
+		&analyticGradients, length(startVals));
 
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = (omxState*) R_alloc(1, sizeof(omxState));
@@ -245,8 +219,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		omxProcessFreeVarList(varList, globalState->numFreeParams);
 
 		/* Processing Constraints */
-		ncnln = omxProcessConstraints(constraints);
-		funcon = F77_SUB(constraintFunction);
+		omxProcessConstraints(constraints);
 
 		/* Process Confidence Interval List */
 		omxProcessConfidenceIntervals(intervalList);
@@ -264,159 +237,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	n = globalState->numFreeParams;
 
-	/* Set up Optimization Memory Allocations */
-	if(n == 0) {			// Special Case for the evaluation-only condition
-
-		if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
-		int mode = 0, nstate = -1;
-		f = 0;
-		x = NULL;
+	if (n == 0) {
 		g = NULL;
-
-		if(globalState->objectiveMatrix != NULL) {
-			F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
-		};
-		numHessians = 0;					// No hessian if there's no free params
-		globalState->numIntervals = 0; 	// No intervals if there's no free params
-		inform = 0;
-		iter = 0;
-
-		for(int index = 0; index < globalState->numMats; index++) {
-			omxMarkDirty(globalState->matrixList[index]);
-		}
-		for(int index = 0; index < globalState->numAlgs; index++) {
-			omxMarkDirty(globalState->algebraList[index]);
-		}
-		omxStateNextEvaluation(globalState);	// Advance for a final evaluation.
-
+		x = NULL;
+		R = NULL;
 	} else {
-		/* Initialize Scalar Variables. */
-		nclin = 0;						// No linear constraints.
-
-		/* Set boundaries and widths. */
-		if(nclin <= 0) {
-			nclin = 0;					// This should never matter--nclin should always be non-negative.
-			nlinwid = 1;				// For memory allocation purposes, nlinwid > 0
-		} else {						// nlinwid is  used to calculate ldA, and eventually the size of A.
-			nlinwid = nclin;
-		}
-
-		if(ncnln <= 0) {
-			ncnln = 0;					// This should never matter--ncnln should always be non-negative.
-			nlnwid = 1;					// For memory allocation purposes nlnwid > 0
-		} else {						// nlnwid is used to calculate ldJ, and eventually the size of J.
-			nlnwid = ncnln;
-		}
-
-		nctotl = n + nlinwid + nlnwid;
-
-		leniw = 3 * n + nclin + 2 * ncnln;
-		lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
-
-		ldA = nlinwid;  		// NPSOL specifies this should be either 1 or nclin, whichever is greater
-		ldJ = nlnwid; 			// NPSOL specifies this should be either 1 or nclin, whichever is greater
-		ldR = n;				// TODO: Test alternative versions of the size of R to see what's best.
-
-	/* Allocate arrays */
-		A		= (double*) R_alloc (ldA * n, sizeof ( double )  );
-		bl		= (double*) R_alloc ( nctotl, sizeof ( double ) );
-		bu		= (double*) R_alloc (nctotl, sizeof ( double ) );
-		c		= (double*) R_alloc (nlnwid, sizeof ( double ));
-		cJac	= (double*) R_alloc (ldJ * n, sizeof ( double ) );
-		clambda = (double*) R_alloc (nctotl, sizeof ( double )  );
-		g		= (double*) R_alloc (n, sizeof ( double ) );
-		R		= (double*) R_alloc (ldR * n, sizeof ( double ));
-		x		= (double*) R_alloc ((n+1), sizeof ( double ));
-		w		= (double*) R_alloc (lenw, sizeof ( double ));
-
-		istate	= (int*) R_alloc (nctotl, sizeof ( int ) );
-		iw		= (int*) R_alloc (leniw, sizeof ( int ));
-
-		/* Set up actual run */
-
-		omxSetupBoundsAndConstraints(bl, bu, n, nclin);		
-
-		/* Initialize Starting Values */
-		if(OMX_VERBOSE) {
-			Rprintf("--------------------------\n");
-			Rprintf("Starting Values (%d) are:\n", n);
-		}
+		g = (double*) R_alloc (n, sizeof ( double ));
+		x = (double*) R_alloc ((n+1), sizeof ( double ));
+		R = (double*) R_alloc (n * n, sizeof ( double ));
 		for(k = 0; k < n; k++) {
 			x[k] = REAL(startVals)[k];
-			if((x[k] == 0.0) && !disableOptimizer) {
-				x[k] += 0.1;
-				markFreeVarDependencies(globalState, k);
-			}
-			if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
 		}
-		if(OMX_DEBUG) {
-			Rprintf("--------------------------\n");
-			Rprintf("Setting up optimizer...");
-		}
+	}
 
-	/*  F77_CALL(npsol)
-		(	int *n,					-- Number of variables
-			int *nclin,				-- Number of linear constraints
-			int *ncnln,				-- Number of nonlinear constraints
-			int *ldA,				-- Row dimension of A (Linear Constraints)
-			int *ldJ,				-- Row dimension of cJac (Jacobian)
-			int *ldR,				-- Row dimension of R (Hessian)
-			double *A,				-- Linear Constraints Array A (in Column-major order)
-			double *bl,				-- Lower Bounds Array (at least n + nclin + ncnln long)
-			double *bu,				-- Upper Bounds Array (at least n + nclin + ncnln long)
-			function funcon,		-- Nonlinear constraint function
-			function funobj,		-- Objective function
-			int *inform,			-- Used to report state.  Need not be initialized.
-			int *iter,				-- Used to report number of major iterations performed.  Need not be initialized.
-			int *istate,			-- Initial State.  Need not be initialized unless using Warm Start.
-			double *c,				-- Array of length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
-			double *cJac,			-- Array of Row-length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
-			double *clambda,		-- Array of length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
-			double *f,				-- Used to report final objective value.  Need not be initialized.
-			double *g,				-- Array of length n. Used to report final objective gradient.  Need not be initialized.
-			double *R,				-- Array of length ldR.  Need not be intialized unless using Warm Start.
-			double *x,				-- Array of length n.  Contains initial solution estimate.
-			int *iw,				-- Array of length leniw. Need not be initialized.  Provides workspace.
-			int *leniw,				-- Length of iw.  Must be at least 3n + nclin + ncnln.
-			double *w,				-- Array of length lenw. Need not be initialized.  Provides workspace.
-			int *lenw				-- Length of w.  Must be at least 2n^2 + n*nclin + 2*n*ncnln + 20*n + 11*nclin +21*ncnln
-		)
-
-		bl, bu, istate, and clambda are all length n+nclin+ncnln.
-			First n elements refer to the vars, in order.
-			Next nclin elements refer to bounds on Ax
-			Last ncnln elements refer to bounds on c(x)
-
-		All arrays must be in column-major order.
-
-		*/
-
-		if(OMX_DEBUG) {
-			Rprintf("Set.\n");
-		}
-
-		if (disableOptimizer) {
-			int mode = 0, nstate = -1;		
-			if(globalState->objectiveMatrix != NULL) {
-				F77_SUB(objectiveFunction)(&mode, &n, x, &f, g, &nstate);
-			};
-
-			inform = 0;
-			iter = 0;
-
-			omxStateNextEvaluation(globalState);	// Advance for a final evaluation.		
-		} else {
-			F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-							(void*) F77_SUB(objectiveFunction), &inform, &iter, istate, c, cJac,
-							clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-		}
-		if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", f); }
-
-		omxSaveCheckpoint(globalState, x, &f, TRUE);
-
-		handleFreeVarList(globalState, x, n);
-		
-	} // END OF PERFORM OPTIMIZATION CASE
+	omxInvokeNPSOL(&f, x, g, R, disableOptimizer);
 
 	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations;
 	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, optimizer;
@@ -475,8 +309,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, 1, mkChar("estimate"));
 	namesgets(optimizer, names);
 
-	REAL(code)[0] = inform;
-	REAL(iterations)[0] = iter;
+	REAL(code)[0] = globalState->inform;
+	REAL(iterations)[0] = globalState->iter;
 	REAL(evaluations)[0] = globalState->computeCount;
 
 	/* Fill Status code. */
@@ -513,110 +347,9 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
-	if(globalState->numIntervals) {
-		if(inform == 0 || inform == 1 || inform == 6) {
-			if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
-			globalState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
-			for(int i = 0; i < globalState->numIntervals; i++) {
-
-				memcpy(x, globalState->optimalValues, n * sizeof(double)); // Reset to previous optimum
-				globalState->currentInterval = i;
-				omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);
-				currentCI->lbound += globalState->optimum;			// Convert from offsets to targets
-				currentCI->ubound += globalState->optimum;			// Convert from offsets to targets
-
-				/* Set up for the lower bound */
-				inform = -1;
-				// Number of times to keep trying.
-				int cycles = ciMaxIterations;
-				double value = INF;
-				double objDiff = 1.e-4;		// TODO : Use function precision to determine CI jitter?
-				while(inform != 0 && cycles > 0) {
-					/* Find lower limit */
-					currentCI->calcLower = TRUE;
-					F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-									(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-									clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-
-					currentCI->lCode = inform;
-					if(f < value) {
-						currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-						value = f;
-					}
-
-					if(inform != 0 && OMX_DEBUG) {
-						Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n",
-							i, inform);
-					}
-					cycles--;
-					if(inform != 0) {
-						unsigned int jitter = TRUE;
-						for(int j = 0; j < n; j++) {
-							if(fabs(x[j] - globalState->optimalValues[j]) > objDiff){
-								jitter = FALSE;
-								break;
-							}
-						}
-						if(jitter) {
-							for(int j = 0; j < n; j++) {
-								x[j] = globalState->optimalValues[j] + objDiff;
-							}
-						}
-					}
-				}
-
-				if(OMX_DEBUG) { Rprintf("Found lower bound %d.  Seeking upper.\n", i); }
-				// TODO: Repopulate original optimizer state in between CI calculations
-
-				memcpy(x, globalState->optimalValues, n * sizeof(double));
-
-				/* Reset for the upper bound */
-				value = INF;
-				inform = -1;
-				cycles = ciMaxIterations;
-
-				while(inform != 0 && cycles >= 0) {
-					/* Find upper limit */
-					currentCI->calcLower = FALSE;
-					F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-									(void*) F77_SUB(limitObjectiveFunction), &inform, &iter, istate, c, cJac,
-									clambda, &f, g, R, x, iw, &leniw, w, &lenw);
-
-					currentCI->uCode = inform;
-					if(f < value) {
-						currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-					}
-
-					if(inform != 0 && OMX_DEBUG) {
-						Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n",
-							i, inform);
-					}
-					cycles--;
-					if(inform != 0) {
-						unsigned int jitter = TRUE;
-						for(int j = 0; j < n; j++) {
-							if(fabs(x[j] - globalState->optimalValues[j]) > objDiff){
-								jitter = FALSE;
-								break;
-							}
-						}
-						if(jitter) {
-							for(int j = 0; j < n; j++) {
-								x[j] = globalState->optimalValues[j] + objDiff;
-							}
-						}
-					}
-				}
-				if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
-			}
-		} else {					// Improper code. No intervals calculated.
-									// TODO: Throw a warning, allow force()
-			warning("Not calculating confidence intervals because of error status.");
-			if(OMX_DEBUG) {
-				Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
-			}
-		}
-	}
+    if(globalState->numIntervals) {
+		omxNPSOLConfidenceIntervals(&f, x, g, R, ciMaxIterations);
+	}	
 
 	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
 	if(!errOut) omxFinalAlgebraCalculation(globalState, matrices, algebras); 
@@ -692,162 +425,3 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 }
 
-/****** Objective Function *********/
-void F77_SUB(objectiveFunction)
-	(	int* mode, int* n, double* x,
-		double* f, double* g, int* nstate )
-{
-	unsigned short int checkpointNow = FALSE;
-
-	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
-
-	if(*mode == 1) {
-		omxSetMajorIteration(globalState, globalState->majorIteration + 1);
-		omxSetMinorIteration(globalState, 0);
-		checkpointNow = TRUE;					// Only checkpoint at major iterations.
-	} else omxSetMinorIteration(globalState, globalState->minorIteration + 1);
-
-	omxMatrix* objectiveMatrix = globalState->objectiveMatrix;
-	omxResetStatus(globalState);						// Clear Error State recursively
-	/* Interruptible? */
-	R_CheckUserInterrupt();
-    /* This allows for abitrary repopulation of the free parameters.
-     * Typically, the default is for repopulateFun to be NULL,
-     * and then handleFreeVarList is invoked */
-
-	if (objectiveMatrix->objective->repopulateFun != NULL) {
-		objectiveMatrix->objective->repopulateFun(objectiveMatrix->objective, x, *n);
-	} else {
-		handleFreeVarList(globalState, x, *n);
-	}
-	omxRecompute(objectiveMatrix);
-
-	/* Derivative Calculation Goes Here. */
-	/* Turn this off if derivative calculations are not wanted */
-	if(*mode > 0) {
-	    if(globalState->analyticGradients && objectiveMatrix->objective->gradientFun != NULL && globalState->currentInterval < 0) {
-            objectiveMatrix->objective->gradientFun(objectiveMatrix->objective, g);
-	    } 
-	}
-
-	if(isnan(objectiveMatrix->data[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("Objective value is NaN.\n");
-		}
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Objective function returned a value of NaN at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
-		omxRaiseError(globalState, -1, errstr);
-		*mode = -1;
-		free(errstr);
-	}
-
-	if(isinf(objectiveMatrix->data[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("Objective Value is infinite.\n");
-		}
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Objective function returned an infinite value at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
-		omxRaiseError(globalState, -1, errstr);
-		*mode = -1;
-		free(errstr);
-	}
-
-	if(globalState->statusCode <= -1) {		// At some point, we'll add others
-		if(OMX_DEBUG) {
-			Rprintf("Error status reported.\n");
-		}
-		*mode = -1;
-	}
-
-	*f = objectiveMatrix->data[0];
-	if(OMX_VERBOSE) {
-		Rprintf("Objective Value is: %f, Mode is %d.\n", objectiveMatrix->data[0], *mode);
-	}
-
-	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
-
-	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(globalState, x, f, FALSE);		// Check about saving a checkpoint
-	}
-
-}
-
-/* (Non)Linear Constraint Functions */
-void F77_SUB(constraintFunction)
-	(	int *mode, int *ncnln, int *n,
-		int *ldJ, int *needc, double *x,
-		double *c, double *cJac, int *nstate)
-{
-
-	if(OMX_DEBUG) { Rprintf("Constraint function called.\n");}
-
-	if(*mode==1) {
-		if(OMX_DEBUG) {
-			Rprintf("But only gradients requested.  Returning.\n");
-			Rprintf("-=====================================================-\n");
-		}
-
-		return;
-	}
-
-	int j, k, l = 0, size;
-
-	handleFreeVarList(globalState, x, *n);
-
-	for(j = 0; j < globalState->numConstraints; j++) {
-		omxRecompute(globalState->conList[j].result);
-		size = globalState->conList[j].result->rows * globalState->conList[j].result->cols;
-		if(OMX_VERBOSE) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
-		for(k = 0; k < globalState->conList[j].size; k++){
-			c[l++] = globalState->conList[j].result->data[k];
-		}
-	}
-
-	if(OMX_DEBUG) { Rprintf("-=======================================================-\n"); }
-
-	return;
-
-}
-
-/* Objective function for confidence interval limit finding. 
- * Replaces the standard objective function when finding confidence intervals. */
-void F77_SUB(limitObjectiveFunction)
-	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
-		
-		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", globalState->currentInterval, (globalState->intervalList[globalState->currentInterval].calcLower?"lower":"upper"));
-
-		F77_CALL(objectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
-
-		omxConfidenceInterval *oCI = &(globalState->intervalList[globalState->currentInterval]);
-		
-		omxRecompute(oCI->matrix);
-		
-		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-
-		if(OMX_DEBUG) {
-			Rprintf("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.\n",
-				oCI->lbound, oCI->ubound, *f, CIElement);
-		}
-
-		/* Catch boundary-passing condition */
-		if(isnan(CIElement) || isinf(CIElement)) {
-			omxRaiseError(globalState, -1, 
-				"Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			*mode = -1;
-			return;
-		}
-
-		if(oCI->calcLower) {
-			double diff = oCI->lbound - *f;		// Offset - likelihood
-			*f = diff*diff + CIElement;
-				// Minimize element for lower bound.
-		} else {
-			double diff = oCI->ubound - *f;			// Offset - likelihood
-			*f = diff*diff - CIElement;
-				// Maximize element for upper bound.
-		}
-
-		if(OMX_DEBUG) {
-			Rprintf("Interval Objective in previous iteration was calculated to be %f.\n", *f);
-		}
-}

@@ -351,7 +351,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", globalState->numIntervals); }
 }
 
-int omxProcessConstraints(SEXP constraints)  {
+void omxProcessConstraints(SEXP constraints)  {
 	int ncnln = 0; 
 	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
 	omxMatrix *arg1, *arg2;
@@ -379,7 +379,9 @@ int omxProcessConstraints(SEXP constraints)  {
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
-	return(ncnln);
+
+	globalState->ncnln = ncnln;
+	globalState->nclin = 0;
 }
 
 void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {

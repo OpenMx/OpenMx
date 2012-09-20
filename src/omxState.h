@@ -143,6 +143,7 @@ struct omxState {													// The Current State of Optimization
 
 	/* May want to farm these out to the omxObjective object. */
 	int numConstraints;
+	int nclin, ncnln;												// Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 	int numIntervals;
 	int currentInterval;											// The interval currently being calculated
@@ -175,6 +176,7 @@ struct omxState {													// The Current State of Optimization
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
 
+	int inform, iter;
 	int statusCode;													// Status code, if appropriate
 	char statusMsg[250];											// Status/Error message to report
 	double saturatedModel;											// Saturated model likelihood, where applicable
