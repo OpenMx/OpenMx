@@ -5,7 +5,7 @@ RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2pdf
 BUILDPRE = 999.0.0
-BUILDNO = $(shell svnversion -c | sed -e 's/[MS]//g' -e 's/^[[:digit:]]*://')
+BUILDNO = $(shell ./inst/tools/findBuildNum)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
@@ -77,6 +77,7 @@ help:
 internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RFILES) $(RDFILES)
+	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
@@ -129,7 +130,7 @@ winbuild: common-build
 
 winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
-	
+
 install: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
@@ -145,7 +146,7 @@ testdocs:
 
 test:
 	$(REXEC) --vanilla --slave --cpus=$(CPUS) < $(TESTFILE)
-	
+
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
 
