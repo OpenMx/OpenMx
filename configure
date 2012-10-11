@@ -1811,7 +1811,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 npsol_library='inst/npsol'
 
-: ${R_HOME=`R RHOME`}
+: ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then
 echo "could not determine R_HOME"
 exit 1
@@ -3688,6 +3688,12 @@ _ASBOX
 
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
+#
+# INIT-COMMANDS
+#
+R_HOME=${R_HOME}
+R_HOME=${R_HOME}
+
 _ACEOF
 
 cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1

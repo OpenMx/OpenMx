@@ -4,7 +4,7 @@ AC_CONFIG_AUX_DIR("inst/tools")
 
 npsol_library='inst/npsol'
 
-: ${R_HOME=`R RHOME`} 
+: ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then 
 echo "could not determine R_HOME" 
 exit 1 
@@ -74,6 +74,6 @@ AC_SUBST(arch_specific_compiler_flags)
 AC_SUBST(OPENMP_CFLAGS)
 AC_CONFIG_FILES([src/Makevars])
 
-AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h])
-AC_CONFIG_COMMANDS([src/omxSymbolTable.c],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c])
+AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h],[R_HOME=${R_HOME}])
+AC_CONFIG_COMMANDS([src/omxSymbolTable.c],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c],[R_HOME=${R_HOME}])
 AC_OUTPUT
