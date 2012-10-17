@@ -194,18 +194,14 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	return(model)
 }
 
-
-updateModelEntitiesHelper <- function(entNames, values, model) {
-	modelNameMapping <- sapply(entNames, getModelNameString)
-	modelNames <- unique(modelNameMapping)
-	for(j in 1:length(modelNames)) {
-		nextName <- modelNames[[j]]
-		selectEnt <- entNames[modelNameMapping == nextName]
-		selectVal <- values[modelNameMapping == nextName]
-		submodel <- model[[nextName]]
+updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMapping) {
+	nextName <- model@name
+	selectEnt <- entNames[modelNameMapping == nextName]
+	selectVal <- values[modelNameMapping == nextName]
+	if (length(selectEnt) > 0) {
 		for(i in 1:length(selectEnt)) {
 			name <- selectEnt[[i]]
-			candidate <- submodel[[name]]
+			candidate <- model[[name]]
 			value <- selectVal[[i]]
 			if (!is.null(candidate) && (length(value) > 0)
 				&& !is.nan(value)) {
@@ -220,11 +216,20 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
 					dimnames(value) <- dimnames(candidate)
 					candidate@values <- value
 				}
+				model[[name]] <- candidate
 			}
-			submodel[[name]] <- candidate
 		}
-		model[[nextName]] <- submodel
 	}
+	if (length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, 
+			updateModelEntitiesTargetModel, entNames, values, modelNameMapping)
+	}
+	return(model)
+}
+
+updateModelEntitiesHelper <- function(entNames, values, model) {
+	modelNameMapping <- sapply(entNames, getModelNameString)
+	model <- updateModelEntitiesTargetModel(model, entNames, values, modelNameMapping)
 	return(model)
 }
 
