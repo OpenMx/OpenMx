@@ -42,28 +42,31 @@
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-mxSaturatedModel <- function(model){
-	numVar <- ncol(model@data@observed)
-	if(!is.null(colnames(model@data@observed))){
-		varnam <- colnames(model@data@observed)
+omxSaturatedModel <- function(model) {
+	if (!(isS4(model) && is(model, "MxModel"))) {
+		stop("'model' argument must be a MxModel object")
 	}
-	else{
+	datasource <- model$data
+	if (is.null(datasource)) {
+		stop("'model' argument does not contain any data")
+	}
+	numVar <- ncol(datasource@observed)
+	varnam <- colnames(datasource@observed)
+	if(is.null(varnam)) {
 		varnam <- paste("x", 1:numVar, sep="")
-		colnames(model@data@observed) <- varnam
-		rownames(model@data@observed) <- varnam
+		dimnames(datasource@observed) <- list(varnam, varnam)
 	}
-	if(model@data@type == "raw"){
-		startcov <- t(chol(cov(model@data@observed, use="pairwise.complete.obs")))
+	if(datasource@type == "raw") {
+		startcov <- t(chol(cov(datasource@observed, use="pairwise.complete.obs")))
 		startcov <- startcov[lower.tri(startcov, TRUE)]
-		startmea <- sapply(model@data@observed, mean, na.rm=TRUE)
-	}
-	else{
+		startmea <- colMeans(datasource@observed, na.rm=TRUE)
+	} else {
 		startcov <- 0.3
 		startmea <- 3.0
 	}
 	saturatedModel <- mxModel(
 		name=paste("Saturated", model@name),
-		model@data,
+		datasource,
 		mxMatrix(type="Lower",
 			nrow=numVar,
 			ncol=numVar,
@@ -72,13 +75,12 @@ mxSaturatedModel <- function(model){
 			name="ltCov"),
 		mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	)
-	if(model@data@type == "raw" || !any(is.na(model@data@means)) ){
+	if(datasource@type == "raw" || !any(is.na(datasource@means)) ) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=T, name="satMea", dimnames=list(NA, varnam)),
 			mxMLObjective("satCov", "satMea")
 		)
-	}
-	else{
+	} else {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMLObjective("satCov")
 		)
@@ -86,7 +88,6 @@ mxSaturatedModel <- function(model){
 	
 	saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
 	saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")
-	saturatedModel <- mxRun(saturatedModel)
 	return(saturatedModel)
 }
 
