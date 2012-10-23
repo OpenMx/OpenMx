@@ -71,13 +71,13 @@ omxSaturatedModel <- function(model) {
 			nrow=numVar,
 			ncol=numVar,
 			values=startcov,
-			free=T,
+			free=TRUE,
 			name="ltCov"),
 		mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	)
 	if(datasource@type == "raw" || !any(is.na(datasource@means)) ) {
 		saturatedModel <- mxModel(saturatedModel,
-			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=T, name="satMea", dimnames=list(NA, varnam)),
+			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
 			mxMLObjective("satCov", "satMea")
 		)
 	} else {
