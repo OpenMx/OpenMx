@@ -116,8 +116,9 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Attempted to invert non-invertable matrix.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+	} else {
+		F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 	}
-	F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
 
 	free(ipiv);
 	free(work);
@@ -135,6 +136,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Null matrix pointer detected.\n");
 		free(errstr);
+		return;
 	}
 
 	static double zero = 0.0;
@@ -146,6 +148,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices [(%d x %d) and (%d x %d)] in Matrix Multiply.", preMul->rows, preMul->cols, postMul->rows, postMul->cols);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	if(result->rows != preMul->rows || result->cols != postMul->cols)
@@ -178,6 +181,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices in Element Powering.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	int rows = first->rows;
@@ -218,6 +222,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices in Element Multiplication.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	int rows = first->rows;
@@ -311,8 +316,10 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	static double one = 1.0;
 
 	/* Conformability Check! */
-	if(preMul->cols != postMul->rows || postMul->rows != postMul->cols)
+	if(preMul->cols != postMul->rows || postMul->rows != postMul->cols) {
 		omxRaiseError(preMul->currentState, -1, "Non-conformable matrices in Matrix Quadratic Product.");
+		return;
+	}
 
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitTemporaryMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState);
@@ -353,6 +360,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices in Element Division.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	int rows = first->rows;
@@ -419,6 +427,7 @@ void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result){
 	        	sprintf(errstr, "Non-conformable matrices in Binary Or.");
 	        	omxRaiseError(result->currentState, -1, errstr);
 	        	free(errstr);
+	        	return;
 		}
 
 		int rows = first->rows;
@@ -468,6 +477,7 @@ void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
 	        	sprintf(errstr, "Non-conformable matrices in Binary And.");
 	        	omxRaiseError(result->currentState, -1, errstr);
 	        	free(errstr);
+				return;
 		}
 
 		int rows = first->rows;
@@ -517,6 +527,7 @@ void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
 	        	sprintf(errstr, "Non-conformable matrices in Binary Less Than.");
 	        	omxRaiseError(result->currentState, -1, errstr);
 	        	free(errstr);
+				return;
 		}
 
 		int rows = first->rows;
@@ -569,6 +580,7 @@ void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
         	sprintf(errstr, "Non-conformable matrices in Binary Greater Than.");
         	omxRaiseError(result->currentState, -1, errstr);
         	free(errstr);
+			return;
 	}
 
 	int rows = first->rows;
@@ -624,6 +636,7 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
         	sprintf(errstr, "Non-conformable matrices in Binary Approx Equals.");
         	omxRaiseError(result->currentState, -1, errstr);
         	free(errstr);
+			return;
 	}
 
 	int rows = first->rows;
@@ -689,6 +702,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices in Matrix Addition.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	int rows = first->rows;
@@ -865,6 +879,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-conformable matrices in Matrix Subtract.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	int rows = first->rows;
@@ -1039,6 +1054,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Determinant of non-square matrix cannot be found.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	if(result->rows != 1 || result->cols != 1) {
@@ -1057,6 +1073,9 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.", info);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		free(ipiv);
+		omxFreeAllMatrixData(calcMat);
+		return;
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {
@@ -1278,6 +1297,7 @@ void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result) 
 		sprintf(errstr, "To generate a matrix from a diagonal that is not 1xN or Nx1.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	if (result->cols != diags || result->rows != diags) {
@@ -1577,6 +1597,7 @@ void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-finite start value in ':' operator.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	if (!R_finite(stop)) {
@@ -1584,6 +1605,7 @@ void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-finite stop value in ':' operator.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	double difference = stop - start;
@@ -1704,6 +1726,11 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 			sprintf(errstr, "Thresholds are not strictly increasing: %3.3f >= %3.3f.", lBounds[i], uBounds[i]);
 			omxRaiseError(result->currentState, -1, errstr);
 			free(errstr);
+			free(corList);
+			free(weights);
+			free(uBounds);
+			free(lBounds);
+			return;
 		}
 		if(!R_finite(lBounds[i]) ) {
 			Infin[i] -= 2;	// NA or INF or -INF means no lower threshold.
@@ -1727,6 +1754,11 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		free(corList);
+		free(weights);
+		free(uBounds);
+		free(lBounds);
+		return;
 	}
 
 	free(corList);
@@ -1875,6 +1907,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		goto AllIntCleanup;
 	}
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
@@ -1918,11 +1951,13 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 			sprintf(errstr, "Improper input to sadmvn.");
 			omxRaiseError(result->currentState, -1, errstr);
 			free(errstr);
+			goto AllIntCleanup;
 		}
 
 		omxSetMatrixElement(result, i, 0, likelihood);
 	}
 
+AllIntCleanup:
 	free(Infin);
 	free(lBounds);
 	free(uBounds);
@@ -1966,6 +2001,7 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 		sprintf(errstr, "Incorrect input to omxRowSortHelper: %d %d %d %d", result->cols, original->cols, result->rows, original->rows);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	double* sortArray[original->rows];
@@ -2010,6 +2046,9 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
 		omxRaiseError(B->currentState, -1, errstr);
 		free(errstr);
+		omxFreeMatrixData(A);
+		omxFreeMatrixData(B);
+		return;
 	}
 
 	if(result->rows != B->rows || result->cols != 1)
@@ -2043,6 +2082,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		goto RealEigenValCleanup;
 	}
 
 	result->colMajor = TRUE;
@@ -2061,6 +2101,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxSortHelper(WI, A, result);
 
+RealEigenValCleanup:
 	omxFreeMatrixData(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxFreeMatrixData(B);
 	omxMatrixLeadingLagging(result);
@@ -2081,6 +2122,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Null matrix pointer detected.\n");
 		free(errstr);
+		return;
 	}
 
 	/* Conformability Check! */
@@ -2089,6 +2131,8 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-square matrix in (real) eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		omxFreeMatrixData(A);
+		return;
 	}
 
 	char N = 'N';						// Indicators for BLAS
@@ -2120,6 +2164,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		goto RealEigenVecCleanup;
 	}
 
 	// Filter real and imaginary eigenvectors.  Real ones have no WI.
@@ -2140,6 +2185,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	// Sort results
 	omxSortHelper(WR, A, result);
 
+RealEigenVecCleanup:
 	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixLeadingLagging(result);
 
@@ -2163,6 +2209,9 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		omxFreeMatrixData(A);
+		omxFreeMatrixData(B);
+		return;
 	}
 
 	if(result->cols != 1 || result->rows != A->rows)
@@ -2197,6 +2246,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		goto ImagEigenValCleanup;
 	}
 
 	// Calculate Eigenvalue modulus.
@@ -2217,6 +2267,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	// Sort results
 	omxSortHelper(WR, A, result);
 
+ImagEigenValCleanup:
 	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxFreeMatrixData(B);
 	omxMatrixLeadingLagging(result);
@@ -2239,6 +2290,8 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 		sprintf(errstr, "Non-square matrix in (imaginary) eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		omxFreeMatrixData(A);
+		return;
 	}
 
 	char N = 'N';						// Indicators for BLAS
@@ -2273,6 +2326,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		goto ImagEigenVecCleanup;
 	}
 
 	// Filter real and imaginary eigenvectors.  Imaginary ones have a WI.
@@ -2300,6 +2354,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 
 	omxSortHelper(WR, A, result);
 
+ImagEigenVecCleanup:
 	omxFreeMatrixData(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixLeadingLagging(result);
 
@@ -2324,7 +2379,8 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
         omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);        
+		free(errstr);
+		return;
     }
 
 	if(selectLength != rows) {
@@ -2332,6 +2388,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-conformable matrices for row selection.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 	
 	if(result->aliasedPtr != inMat) {
@@ -2355,6 +2412,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Attempted to select zero columns.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);        
+		return;
     }
     
     omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove, zeros);
@@ -2377,6 +2435,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);        
+		return;
     }
 
 	if(selectLength != cols) {
@@ -2384,6 +2443,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-conformable matrices for row selection.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 	
 	if(result->aliasedPtr != inMat) {
@@ -2407,6 +2467,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Attempted to select zero columns.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);        
+		return;
     }
     
     omxRemoveRowsAndColumns(result, 0, numRemoves, zeros, toRemove);
@@ -2430,6 +2491,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);        
+		return;
     }
 
 	if(rows != cols) {
@@ -2437,6 +2499,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Can only select rows and columns from square matrices.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
 	if(selectLength != cols) {
@@ -2444,6 +2507,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Non-conformable matrices for row selection.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 	
 	if(result->aliasedPtr != inMat) {
@@ -2466,6 +2530,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		sprintf(errstr, "Attempted to select zero columns.\n");
         omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);        
+		return;
     }
     
     omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove, toRemove);
@@ -2474,11 +2539,13 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
     omxMatrix* M = *matlist;
+
     if(M->rows != M->cols || M->rows != result->cols || result->rows != result->cols) {
         char *errstr = calloc(250, sizeof(char));
         sprintf(errstr, "A + A^T attempted on asymmetric matrix.\n");
         omxRaiseError(result->currentState, -1, errstr);
         free(errstr);
+		return;
     }
     
     double total;
@@ -2493,7 +2560,6 @@ void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
         omxSetMatrixElement(result, i, i, 2 * omxMatrixElement(M, i, i));
     }
     
-    return;
 }
 
 void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2509,6 +2575,7 @@ void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
         sprintf(errstr, "cov2cor of non-square matrix cannot even be attempted\n");
         omxRaiseError(result->currentState, -1, errstr);
         free(errstr);
+		return;
 	}
 
 	if(result->rows != rows || result->cols != rows) {
@@ -2559,6 +2626,7 @@ void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Cholesky decomposition of non-square matrix cannot even be attempted\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	}
 
     F77_CALL(dpotrf)(&u, &(result->rows), result->data, &(result->cols), &l);
@@ -2567,6 +2635,7 @@ void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Attempted to Cholesky decompose non-invertable matrix.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
+		return;
 	} else {
 	    for(int i = 0; i < result->rows; i++) {
 			for(int j = 0; j < i; j++) {
