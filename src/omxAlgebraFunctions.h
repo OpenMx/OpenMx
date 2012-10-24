@@ -88,4 +88,6 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxAddOwnTranspose(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result);
 void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxVechToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result);
+void omxVechsToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result);
 #endif

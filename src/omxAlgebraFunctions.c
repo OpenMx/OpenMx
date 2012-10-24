@@ -2645,3 +2645,85 @@ void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
+void omxVechToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	omxMatrix *inMat = matList[0];
+	
+	// check that inMat is a column vector.  If not make it one.
+	
+	int size = sqrt(2*inMat->rows + 0.25) - 0.5;
+	//if (inMat->rows > inMat->cols) {
+	//	size = inMat->cols * (2 * inMat->rows - inMat->cols + 1) / 2;
+	//} else {
+	//	size = inMat->rows * (inMat->rows + 1) / 2;
+	//}
+
+	/* Consistency check: */
+	if(result->rows != size || result->cols != size) {
+		omxResizeMatrix(result, size, size, FALSE);
+	}
+
+	int counter = 0;
+	for(int i = 0; i < size; i++) {
+		for(int j = i; j < size; j++) {
+			omxSetMatrixElement(result, j, i, omxMatrixElement(inMat, counter, 0));
+			counter++;
+		}
+	}
+	for(int i = 0; i < size; i++) {
+		for(int j = i+1; j < size; j++) {
+			omxSetMatrixElement(result, i, j, omxMatrixElement(result, j, i));
+			counter++;
+		}
+	}
+
+	if(counter != size*size) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Internal error in vech2full().\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+}
+
+
+void omxVechsToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
+	omxMatrix *inMat = matList[0];
+	
+	// check that inMat is a column vector.  If not make it one.
+	
+	int size = sqrt(2*inMat->rows + 0.25) + 0.5; //note the plus 0.5
+	//if (inMat->rows > inMat->cols) {
+	//	size = inMat->cols * (2 * inMat->rows - inMat->cols + 1) / 2;
+	//} else {
+	//	size = inMat->rows * (inMat->rows + 1) / 2;
+	//}
+
+	/* Consistency check: */
+	if(result->rows != size || result->cols != size) {
+		omxResizeMatrix(result, size, size, FALSE);
+	}
+
+	int counter = 0;
+	for(int i = 0; i < size; i++) {
+		for(int j = i+1; j < size; j++) {
+			omxSetMatrixElement(result, j, i, omxMatrixElement(inMat, counter, 0));
+			counter++;
+		}
+	}
+	for(int i = 0; i < size; i++) {
+		for(int j = i+1; j < size; j++) {
+			omxSetMatrixElement(result, i, j, omxMatrixElement(result, j, i));
+			counter++;
+		}
+	}
+
+	if(counter != size*size) {
+		char *errstr = calloc(250, sizeof(char));
+		sprintf(errstr, "Internal error in vechs2full().\n");
+		omxRaiseError(result->currentState, -1, errstr);
+		free(errstr);
+	}
+
+}
+
+

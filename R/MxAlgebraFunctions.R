@@ -291,3 +291,31 @@ omxSelectRowsAndCols <- function(x, selector) {
     return(x[selector, selector, drop=FALSE])    
 }
 
+vech2full <- function(x) {
+	if(is.matrix(x)) k <- sqrt(2*nrow(x) + 0.25) - 0.5
+	else if(is.vector(x)) k <- sqrt(2*length(x) + 0.25) - 0.5
+	else stop("Input to the function vech2full must be either a matrix or a vector.")
+	ret <- matrix(0, nrow=k, ncol=k)
+	row <- 1
+	for(j in 1:k){
+		ret[j:k, j] <- x[row:(row+k-j)]
+		row <- row+k-j+1
+	}
+	ret <- ret + t(ret) - diag(diag(ret))
+	return(ret)
+}
+
+vechs2full <- function(x) {
+	if(is.matrix(x)) k <- sqrt(2*nrow(x) + 0.25) + 0.5
+	else if(is.vector(x)) k <- sqrt(2*length(x) + 0.25) + 0.5
+	else stop("Input to the function vechs2full must be either a matrix or a vector.")
+	ret <- matrix(0, nrow=k, ncol=k)
+	row <- 1
+	for(j in 1:(k-1)){
+		ret[(j+1):k, j] <- x[row:(row+k-j-1)]
+		row <- row+k-j+1-1
+	}
+	ret <- ret + t(ret)
+	return(ret)
+}
+

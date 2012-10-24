@@ -58,3 +58,5 @@
 56		"Matrix Exponential order"		"omxExponential"	2			"omxExponentialOrder"
 57		"Cholesky Decomposition" "chol" 1 "omxCholesky"
 58		"Covariance to Correlation"	"cov2cor"	1	"omxCovToCor"
+59		"Inverse Half vectorization"	"vech2full"			1			"omxVechToMatrix"
+60		"Inverse 1/2 vector (strict)"	"vechs2full"			1			"omxVechsToMatrix"
