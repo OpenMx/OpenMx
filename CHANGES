@@ -3,6 +3,9 @@ trunk
 * renamed global state from "currentState" to "globalState"
 * bug fix in mxRun() where a model with grandchildren submodels can
   have its internal state corrupted
+* detect non-conformable arrays for elementwise division in the front-end
+* added 'return' statements to error conditions in the backend algebra
+  calculations.
 
 Release 1.3.0-2168 (September 17, 2012)
 =======================================
