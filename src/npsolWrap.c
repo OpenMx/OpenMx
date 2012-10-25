@@ -505,7 +505,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(statusMsg, 0, mkChar(currentState->statusMsg));
 	SET_VECTOR_ELT(status, 2, statusMsg);
 
-	if(numHessians && currentState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
+	if(numHessians && currentState->objectiveMatrix != NULL && currentState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
 		if(currentState->numConstraints == 0) {
 			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
 			int gotHessians = omxEstimateHessian(numHessians, .0001, 4, currentState);
@@ -527,6 +527,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		} else {
 			numHessians = 0;
 		}
+	} else {
+		numHessians = 0;
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
