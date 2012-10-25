@@ -6,6 +6,7 @@ trunk
 * detect non-conformable arrays for elementwise division in the front-end
 * added 'return' statements to error conditions in the backend algebra
   calculations.
+* fix crash in Hessian calculation when no objective function is specified
 
 Release 1.3.0-2168 (September 17, 2012)
 =======================================
