@@ -292,30 +292,50 @@ omxSelectRowsAndCols <- function(x, selector) {
 }
 
 vech2full <- function(x) {
-	if(is.matrix(x)) k <- sqrt(2*nrow(x) + 0.25) - 0.5
-	else if(is.vector(x)) k <- sqrt(2*length(x) + 0.25) - 0.5
-	else stop("Input to the function vech2full must be either a matrix or a vector.")
-	ret <- matrix(0, nrow=k, ncol=k)
-	row <- 1
-	for(j in 1:k){
-		ret[j:k, j] <- x[row:(row+k-j)]
-		row <- row+k-j+1
+	
+	if(is.matrix(x)) {
+
+		if (nrow(x) > 1 && ncol(x) > 1) {
+			stop("Input to the full vech2full must be a (1 x n) or (n x 1) matrix.")
+		}
+
+		dimension <- max(dim(x))
+
+	} else if(is.vector(x)) {
+		dimension <- length(x)
+	} else {
+		stop("Input to the function vech2full must be either a matrix or a vector.")
 	}
-	ret <- ret + t(ret) - diag(diag(ret))
+
+	k <- sqrt(2.0 * dimension + 0.25) - 0.5
+
+	ret <- matrix(0, nrow=k, ncol=k)
+	ret[lower.tri(ret, diag=TRUE)] <- as.vector(x)
+	ret[upper.tri(ret, diag=FALSE)] <- ret[lower.tri(ret, diag=FALSE)]
 	return(ret)
 }
 
 vechs2full <- function(x) {
-	if(is.matrix(x)) k <- sqrt(2*nrow(x) + 0.25) + 0.5
-	else if(is.vector(x)) k <- sqrt(2*length(x) + 0.25) + 0.5
-	else stop("Input to the function vechs2full must be either a matrix or a vector.")
-	ret <- matrix(0, nrow=k, ncol=k)
-	row <- 1
-	for(j in 1:(k-1)){
-		ret[(j+1):k, j] <- x[row:(row+k-j-1)]
-		row <- row+k-j+1-1
+
+	if(is.matrix(x)) {
+
+		if (nrow(x) > 1 && ncol(x) > 1) {
+			stop("Input to the full vechs2full must be a (1 x n) or (n x 1) matrix.")
+		}
+
+		dimension <- max(dim(x))
+
+	} else if(is.vector(x)) {
+		dimension <- length(x)
+	} else {
+		stop("Input to the function vechs2full must be either a matrix or a vector.")
 	}
-	ret <- ret + t(ret)
+
+	k <- sqrt(2.0 * dimension + 0.25) + 0.5
+
+	ret <- matrix(0, nrow=k, ncol=k)
+	ret[lower.tri(ret, diag=FALSE)] <- as.vector(x)
+	ret[upper.tri(ret, diag=FALSE)] <- ret[lower.tri(ret, diag=FALSE)]
 	return(ret)
 }
 
