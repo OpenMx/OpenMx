@@ -377,6 +377,42 @@
 		state->computeCount++;
 	};
 
+	void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
+		// FIXME: Is it faster to allocate this on the stack?
+		os->chkptText1 = (char*) Calloc((24 + 15 * os->numFreeParams), char);
+		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * os->numFreeParams*
+											(os->numFreeParams + 1.0) / 2.0, char);
+		if (oC->type == OMX_FILE_CHECKPOINT) {
+			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
+			for(int j = 0; j < os->numFreeParams; j++) {
+				if(strcmp(os->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
+					fprintf(oC->file, "%s", os->freeVarList[j].name);
+				} else {
+					fprintf(oC->file, "\"%s\"", os->freeVarList[j].name);
+				}
+					if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
+			}
+			fprintf(oC->file, "\n");
+			fflush(oC->file);
+		}
+	}
+
+	void omxWriteCheckpointMessage(omxState *os, char *msg) {
+		for(int i = 0; i < os->numCheckpoints; i++) {
+			omxCheckpoint* oC = &(os->checkpointList[i]);
+			if(os->chkptText1 == NULL) {	// First one: set up output
+				omxWriteCheckpointHeader(os, oC);
+			}
+			if (oC->type == OMX_FILE_CHECKPOINT) {
+				fprintf(oC->file, "%d \"%s\" NA ", os->majorIteration, msg);
+				for(int j = 0; j < os->numFreeParams; j++) {
+					fprintf(oC->file, "NA ");
+				}
+				fprintf(oC->file, "\n");
+			}
+		}
+	}
+
 	void omxSaveCheckpoint(omxState *os, double* x, double* f, int force) {
 		time_t now = time(NULL);
 		int soFar = now - os->startTime;		// Translated into minutes
@@ -397,23 +433,7 @@
 
 			if(n) {		//In either case, save a checkpoint.
 				if(os->chkptText1 == NULL) {	// First one: set up output
-					// FIXME: Is it faster to allocate this on the stack?
-					os->chkptText1 = (char*) Calloc((24+15*os->numFreeParams), char);
-					os->chkptText2 = (char*) Calloc(1.0+15.0*os->numFreeParams*
-														(os->numFreeParams + 1.0)/2.0, char);
-					if (oC->type == OMX_FILE_CHECKPOINT) {
-						fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
-						for(int j = 0; j < os->numFreeParams; j++) {
-							if(strcmp(os->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
-								fprintf(oC->file, "%s", os->freeVarList[j].name);
-							} else {
-								fprintf(oC->file, "\"%s\"", os->freeVarList[j].name);
-							}
-							if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
-						}
-						fprintf(oC->file, "\n");
-						fflush(oC->file);
-					}
+					omxWriteCheckpointHeader(os, oC);
 				}
 				char tempstring[25];
 				sprintf(tempstring, "%d", os->majorIteration);

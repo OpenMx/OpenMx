@@ -31,6 +31,8 @@ const double NPSOL_BIGBND = 1e20;
 const double NEG_INF = -2e20;
 const double INF = 2e20;
 
+const char* anonMatrix = "anonymous matrix";
+
 /* NPSOL-related functions */
 extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
 							double *bl,	double *bu, void* funcon, void* funobj, int *inform, int *iter, 
@@ -450,9 +452,29 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 		globalState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
 		for(int i = 0; i < globalState->numIntervals; i++) {
 
+			omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);
+
+			int msgLength = 45;
+
+			if (currentCI->matrix->name == NULL) {
+				msgLength += strlen(anonMatrix);
+			} else {
+				msgLength += strlen(currentCI->matrix->name);
+			}
+			
+			char *message = Calloc(msgLength, char);
+
+			if (currentCI->matrix->name == NULL) {
+				sprintf(message, "%s[%d, %d] begin lower interval", anonMatrix, currentCI->row, currentCI->col);
+			} else {
+				sprintf(message, "%s[%d, %d] begin lower interval", currentCI->matrix->name, currentCI->row, currentCI->col);
+			}
+
+			omxWriteCheckpointMessage(globalState, message);
+
 			memcpy(x, globalState->optimalValues, n * sizeof(double)); // Reset to previous optimum
 			globalState->currentInterval = i;
-			omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);
+
 			currentCI->lbound += globalState->optimum;          // Convert from offsets to targets
 			currentCI->ubound += globalState->optimum;          // Convert from offsets to targets
 
@@ -473,6 +495,7 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 				if(*f < value) {
 					currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 					value = *f;
+					omxSaveCheckpoint(globalState, x, f, TRUE);
 				}
 
 				if(inform != 0 && OMX_DEBUG) {
@@ -499,6 +522,16 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 			if(OMX_DEBUG) { Rprintf("Found lower bound %d.  Seeking upper.\n", i); }
 			// TODO: Repopulate original optimizer state in between CI calculations
 
+			if (currentCI->matrix->name == NULL) {
+				sprintf(message, "%s[%d, %d] begin upper interval", anonMatrix, currentCI->row, currentCI->col);
+			} else {
+				sprintf(message, "%s[%d, %d] begin upper interval", currentCI->matrix->name, currentCI->row, currentCI->col);
+			}
+
+			omxWriteCheckpointMessage(globalState, message);
+
+			Free(message);
+
 			memcpy(x, globalState->optimalValues, n * sizeof(double));
 
 			/* Reset for the upper bound */
@@ -516,6 +549,7 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 				currentCI->uCode = inform;
 				if(*f < value) {
 					currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					omxSaveCheckpoint(globalState, x, f, TRUE);
 				}
 
 				if(inform != 0 && OMX_DEBUG) {

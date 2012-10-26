@@ -8,6 +8,7 @@ trunk
   calculations.
 * fix crash in Hessian calculation when no objective function is specified
 * throw an error if standard errors are enabled and Hessian calculation is disabled
+* added confidence interval calculations to checkpoint output
 
 Release 1.3.0-2168 (September 17, 2012)
 =======================================
