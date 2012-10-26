@@ -2,6 +2,7 @@ Release 1.3.2
 =============
 * detect non-conformable arrays for elementwise division in the front-end
 * fix crash in Hessian calculation when no objective function is specified
+* throw an error if standard errors are enabled and Hessian calculation is disabled
 
 Release 1.3.1-2179 (October 17, 2012)
 =====================================
