@@ -61,7 +61,9 @@ setMethod("imxVerifyModel", "MxRAMModel",
 			(length(model$S) == 0) ||
 			(length(model$F) == 0)) {
 				msg <- paste("The RAM model", omxQuotes(model@name),
-                "does not contain any paths.")
+                "does not contain any paths.",
+				" Are you just starting out? You need to add paths like",
+				" mxPath(from = 'x1', to = 'y1') to your RAM model.")
 				stop(msg, call. = FALSE)
 		}
 		objective <- model$objective
@@ -69,7 +71,9 @@ setMethod("imxVerifyModel", "MxRAMModel",
 			if (!is.null(model@data) && model@data@type == "raw" &&
    	    	is.null(model$M)) {
 				msg <- paste("The RAM model", omxQuotes(model@name),
-        	       "contains raw data but has not specified any means paths.")
+        	       "contains raw data but has not specified any means paths.",
+				   " Add something like mxPath(from = 'one', to = manifests) to your model."
+				   )
 				stop(msg, call. = FALSE)
 			}
 			if (!is.null(model@data) && !single.na(model@data@means) &&
