@@ -604,6 +604,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 					currentCI->uCode = inform;
 					if(f < value) {
 						currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+						value = f;
 					}
 
 					if(inform != 0 && OMX_DEBUG) {
