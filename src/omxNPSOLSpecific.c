@@ -549,6 +549,7 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 				currentCI->uCode = inform;
 				if(*f < value) {
 					currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					value = *f;
 					omxSaveCheckpoint(globalState, x, f, TRUE);
 				}
 

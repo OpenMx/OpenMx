@@ -1,5 +1,6 @@
 trunk
 =====
+* bug fix in multiple-iteration upper confidence interval estimation
 * renamed global state from "currentState" to "globalState"
 * bug fix in mxRun() where a model with grandchildren submodels can
   have its internal state corrupted
