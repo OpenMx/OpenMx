@@ -62,8 +62,8 @@ setMethod("imxVerifyModel", "MxRAMModel",
 			(length(model$F) == 0)) {
 				msg <- paste("The RAM model", omxQuotes(model@name),
                 "does not contain any paths.",
-				" Are you just starting out? You need to add paths like",
-				" mxPath(from = 'x1', to = 'y1') to your RAM model.")
+				" You can add paths to your model like this:",
+				" mxPath(from = 'x1', to = 'y1')")
 				stop(msg, call. = FALSE)
 		}
 		objective <- model$objective
