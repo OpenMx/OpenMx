@@ -644,7 +644,7 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
         if (OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
 			Rprintf("No thresholds matrix; not processing thresholds.");
 		}
-        numContinuous = newObj->dataColumns->rows;
+        numContinuous = numCols;
         newObj->thresholdCols = NULL;
         numOrdinal = 0;
     }
