@@ -181,7 +181,11 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				}
 			} else if (is(lookup, "MxObjective")) {
 		        if (length(lookup@result) == 0) {
-		            result <- genericObjInitialMatrix(lookup, model)
+					if (compute) {
+						result <- genericObjInitialMatrix(lookup, model)
+					} else {
+						result <- matrix(0, 0, 0)
+					}
 		        } else if (show) {
 					result <- substitute(.zzz[[x]]@result, list(x = key))
 				} else {
