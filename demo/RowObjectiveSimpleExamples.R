@@ -45,10 +45,10 @@ amod <- mxModel(
 )
 
 amodFit <- mxRun(amod)
-amodFit$objective@result
+mxEval(objective, amodFit)
 sum(xdat)
 
-omxCheckCloseEnough(amodFit$objective@result, sum(xdat), epsilon=10^(-5))
+omxCheckCloseEnough(mxEval(objective, amodFit), sum(xdat), epsilon=10^(-5))
 
 
 #------------------------------------------------
@@ -73,7 +73,7 @@ bmodFit <- mxRun(bmod)
 bmodFit$M@values
 colMeans(xdat)
 
-omxCheckCloseEnough(c(bmodFit$M@values), colMeans(xdat), epsilon=10^(-5))
+omxCheckCloseEnough(as.vector(mxEval(M, bmodFit)), as.vector(colMeans(xdat)), epsilon=10^(-5))
 
 
 
@@ -109,7 +109,7 @@ cmodFit <- mxRun(cmod)
 cmodFit$M@values
 colMeans(xdat, na.rm=T)
 
-omxCheckCloseEnough(c(cmodFit$M@values), colMeans(xdat, na.rm=T), epsilon=10^(-5))
+omxCheckCloseEnough(as.vector(mxEval(M, cmodFit)), as.vector(colMeans(xdat, na.rm=T)), epsilon=10^(-5))
 
 
 
@@ -123,21 +123,21 @@ dmod <- mxModel(
 	name='I will run fast on OpenMx',
 	mxMatrix(name='A', nrow=nobs, ncol=1, free=T, values=0.1),
 	mxMatrix(name='X', nrow=nobs, ncol=1, free=F, values=as.matrix(adat)),
-	mxAlgebra((X-A)%^%2, name='Row'),
+	mxAlgebra((X-A) %^% 2, name='Row'),
 	mxAlgebra(sum(Row), name='Red'),
 	mxAlgebraObjective('Red')
 )
 
 dmodRun <- mxRun(dmod) # runs super fast := 0.07 sec
-omxCheckCloseEnough(dmodRun$A@values, as.matrix(adat), epsilon=10^(-5))
+omxCheckCloseEnough(mxEval(A, dmodRun), as.matrix(adat), epsilon=10^(-5))
 
 
 
 #------------------------------------------------
-robj1 <- function(model, state){
+robj1 <- function(model, state) {
 	a <- model$A@values
 	x <- model$X@values
-	return(sum((x-a)^2))
+	return(sum((x - a) ^ 2))
 }
 
 emod <- mxModel(
@@ -148,6 +148,6 @@ emod <- mxModel(
 )
 
 emodRun <- mxRun(emod) # runs super slow := 10.5 sec
-omxCheckCloseEnough(emodRun$A@values, as.matrix(adat), epsilon=10^(-5))
+omxCheckCloseEnough(mxEval(A, emodRun), as.matrix(adat), epsilon=10^(-5))
 
 

@@ -69,7 +69,7 @@ countFit = mxRun(countModel)
 # -----------------------------------------------------------------------
 realCount = sum(sum(!is.na(xes)))
 
-omxCheckCloseEnough(realCount, sumFit$objective@result)
-omxCheckCloseEnough(!is.na(xes), sumFit$rowResults@values)
-omxCheckCloseEnough(realCount, countFit$objective@result)
-omxCheckCloseEnough(apply(!is.na(xes), 1, sum), c(countFit$rowResults@values))
+omxCheckCloseEnough(realCount, as.vector(mxEval(objective, sumFit)))
+omxCheckCloseEnough(!is.na(xes), mxEval(rowResults, sumFit))
+omxCheckCloseEnough(realCount, as.vector(mxEval(objective, countFit)))
+omxCheckCloseEnough(apply(!is.na(xes), 1, sum), as.vector(mxEval(rowResults, countFit)))
