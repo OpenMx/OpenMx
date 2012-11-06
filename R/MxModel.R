@@ -505,6 +505,11 @@ modelModifyFilter <- function(model, entries, action, lst.call) {
 }
 
 addSingleNamedEntity <- function(model, entity) {
+        if (!nzchar(entity@name)) {
+		stop(paste("Entity",
+			omxQuotes(class(entity)), "in model",
+			omxQuotes(model@name), "needs a name"), call. = FALSE)
+        }
 	if (model@name == entity@name) {
 		stop(paste("You cannot insert an entity named",
 			omxQuotes(entity@name), "into a model named",
