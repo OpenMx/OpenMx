@@ -150,16 +150,6 @@ void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 }
 
-unsigned short int omxNeedsUpdateWLSObjective(omxObjective* oo) {
- 	if(omxNeedsUpdate(((omxWLSObjective*)oo->argStruct)->expectedCov))
-		return 1;
-	if(omxNeedsUpdate(((omxWLSObjective*)oo->argStruct)->weights))
-    	return 1;
-	if(((omxWLSObjective*)oo->argStruct)->expectedMeans != NULL)
-		return omxNeedsUpdate(((omxWLSObjective*)oo->argStruct)->expectedMeans);
-	return 0;
-}
-
 void omxPopulateWLSAttributes(omxObjective *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating WLS Attributes.\n"); }
 
@@ -264,7 +254,6 @@ void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	/* Set Objective Calls to WLS Objective Calls */
 	strncpy(oo->objType, "omxWLSObjective", 15);
 	oo->objectiveFun = omxCallWLSObjective;
-	oo->needsUpdateFun = omxNeedsUpdateWLSObjective;
 	oo->destructFun = omxDestroyWLSObjective;
 	oo->setFinalReturns = omxSetFinalReturnsWLSObjective;
 	oo->populateAttrFun = omxPopulateWLSAttributes;

@@ -65,11 +65,6 @@ void omxCallRObjective(omxObjective *oo) {
 	omx_omp_unset_lock(&robjective_lock);
 }
 
-// I have no idea what I'm supposed to do here...
-unsigned short int omxNeedsUpdateRObjective(omxObjective* oo) {
-	return(TRUE);
-}
-
 void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	omx_omp_set_lock(&robjective_lock);
 
@@ -117,7 +112,6 @@ void omxInitRObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Set Objective Calls to R Objective Calls */
 	oo->objectiveFun = omxCallRObjective;
-	oo->needsUpdateFun = omxNeedsUpdateRObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRObjective;
 	oo->destructFun = omxDestroyRObjective;
 	oo->repopulateFun = omxRepopulateRObjective;

@@ -368,25 +368,6 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 */
 }
 
-unsigned short int omxNeedsUpdateLISRELObjective(omxObjective* oo) {
-	return(omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->LX)
-	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->LY)
-	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->BE)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->GA)
-	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PH)
-	 	|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->PS)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TD)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TE)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TH)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TX)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->TY)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->KA)
-		|| omxNeedsUpdate(((omxLISRELObjective*)oo->argStruct)->AL));
-	
-	// Note: cov is data, and should never need updating.
-}
-
-
 void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL objective.\n"); }
@@ -404,7 +385,6 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Set Subobjective Calls and Structures */
 	subObjective->objectiveFun = omxCallLISRELObjective;
-	subObjective->needsUpdateFun = omxNeedsUpdateLISRELObjective;
 	subObjective->destructFun = omxDestroyLISRELObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = NULL; //omxPopulateLISRELAttributes;

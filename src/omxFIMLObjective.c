@@ -503,12 +503,6 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	}
 }
 
-
-unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo) {
-	return omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->cov)
-		|| omxMatrixNeedsUpdate(((omxFIMLObjective*)oo->argStruct)->means);
-}
-
 void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
@@ -559,7 +553,6 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     /* Set default Objective calls to FIML Objective Calls */
 	oo->objectiveFun = omxCallFIMLObjective;
 	strncpy(oo->objType, "omxFIMLObjective", 17);
-	oo->needsUpdateFun = omxNeedsUpdateFIMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->populateAttrFun = omxPopulateFIMLAttributes;

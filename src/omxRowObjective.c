@@ -235,11 +235,6 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 }
 
-unsigned short int omxNeedsUpdateRowObjective(omxObjective* oo) {
-	return omxMatrixNeedsUpdate(((omxRowObjective*)oo->argStruct)->rowAlgebra)
-		|| omxMatrixNeedsUpdate(((omxRowObjective*)oo->argStruct)->reduceAlgebra);
-}
-
 void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce objective function.\n"); }
@@ -377,7 +372,6 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
 	oo->objectiveFun = omxCallRowObjective;
-	oo->needsUpdateFun = omxNeedsUpdateRowObjective;
 	oo->setFinalReturns = omxSetFinalReturnsRowObjective;
 	oo->destructFun = omxDestroyRowObjective;
 	oo->repopulateFun = NULL;

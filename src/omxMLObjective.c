@@ -213,14 +213,6 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 }
 
-unsigned short int omxNeedsUpdateMLObjective(omxObjective* oo) {
- 	if(omxNeedsUpdate(((omxMLObjective*)oo->argStruct)->expectedCov))
-		return 1;
-	if(((omxMLObjective*)oo->argStruct)->expectedMeans != NULL)
-		return omxNeedsUpdate(((omxMLObjective*)oo->argStruct)->expectedMeans);
-	return 0;
-}
-
 void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating ML Attributes.\n"); }
 
@@ -303,7 +295,6 @@ void omxSetMLObjectiveCalls(omxObjective* oo) {
 	/* Set Objective Calls to ML Objective Calls */
 	strncpy(oo->objType, "omxMLObjective", 15);
 	oo->objectiveFun = omxCallMLObjective;
-	oo->needsUpdateFun = omxNeedsUpdateMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
 	oo->populateAttrFun = omxPopulateMLAttributes;

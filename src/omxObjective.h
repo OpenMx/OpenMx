@@ -62,7 +62,6 @@ struct omxObjective {					// An objective
 	void (*objectiveFun)(omxObjective* oo);										// Wrapper for the objective function itself
 	void (*repopulateFun)(omxObjective* oo, double* x, int n);					// To repopulate any data stored in the objective function
 	omxRListElement* (*setFinalReturns)(omxObjective* oo, int *numVals);		// Sets any R returns.
-	unsigned short int (*needsUpdateFun)(omxObjective* oo);						// To calculate recomputation
 	double* (*getStandardErrorFun)(omxObjective* oo);							// To calculate standard errors
 	void (*gradientFun)(omxObjective* oo, double* grad);						// To calculate gradient
 	void (*populateAttrFun)(omxObjective* oo, SEXP algebra);					// Add attributes to the result algebra object
@@ -92,7 +91,6 @@ struct omxObjective {					// An objective
 
 /* Objective-specific implementations of matrix functions */
 	void omxObjectiveCompute(omxObjective *oo);
-	unsigned short int omxObjectiveNeedsUpdate(omxObjective *oo);
 	void omxObjectiveGradient(omxObjective* oo, double* gradient);			// For gradient calculation.  If needed.
 	void omxDuplicateObjectiveMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective *src, omxState* newState);

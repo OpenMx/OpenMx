@@ -94,7 +94,6 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->destructFun = NULL;
 	oo->repopulateFun = NULL;
 	oo->objectiveFun = NULL;
-	oo->needsUpdateFun = NULL;
 	oo->getStandardErrorFun = NULL;
 	oo->populateAttrFun = NULL;
 	oo->setFinalReturns = NULL;
@@ -185,7 +184,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	tgt->destructFun 				= src->destructFun;
 	tgt->repopulateFun 				= src->repopulateFun;
 	tgt->objectiveFun 				= src->objectiveFun;
-	tgt->needsUpdateFun				= src->needsUpdateFun;
 	tgt->getStandardErrorFun 		= src->getStandardErrorFun;
 	tgt->populateAttrFun 			= src->populateAttrFun;
 	tgt->setFinalReturns 			= src->setFinalReturns;
@@ -201,25 +199,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
     strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
 	return tgt;
 
-}
-
-unsigned short omxObjectiveNeedsUpdate(omxObjective *oo)
-{
-	if(OMX_DEBUG_MATRIX) { Rprintf("omxObjectiveNeedsUpdate:"); }
-	unsigned short needsIt = TRUE;     // Defaults to TRUE if unspecified
-	if(!(oo->needsUpdateFun == NULL)) {
-		if(OMX_DEBUG_MATRIX) {Rprintf("Calling update function 0x%x:", oo->needsUpdateFun);}
-		needsIt = oo->needsUpdateFun(oo);
-		if(!needsIt && !(oo->subObjective == NULL)) {
-			needsIt = omxObjectiveNeedsUpdate(oo->subObjective);
-		}
-	} else if(!(oo->subObjective == NULL)) {
-		needsIt = omxObjectiveNeedsUpdate(oo->subObjective);
-	}
-	
-	if(OMX_DEBUG_MATRIX) {Rprintf("%s\n", (needsIt?"Yes":"No"));}
-	
-	return needsIt;
 }
 
 void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,

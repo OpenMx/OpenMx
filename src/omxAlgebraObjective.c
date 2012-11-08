@@ -58,12 +58,6 @@ omxRListElement* omxSetFinalReturnsAlgebraObjective(omxObjective *oo, int *numRe
 	return retVal;
 }
 
-unsigned short int omxNeedsUpdateAlgebraObjective(omxObjective *oo) {
-
-	if(oo->matrix->data[0] != ((omxAlgebraObjective*)oo->argStruct)->algebra->data[0]) return TRUE;
-	return omxNeedsUpdate(((omxAlgebraObjective*)oo->argStruct)->algebra);
-}
-
 void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj) {
 	
 	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
@@ -81,7 +75,6 @@ void omxInitAlgebraObjective(omxObjective* oo, SEXP rObj) {
 	UNPROTECT(1);
 	
 	oo->objectiveFun = omxCallAlgebraObjective;
-	oo->needsUpdateFun = omxNeedsUpdateAlgebraObjective;
 	oo->setFinalReturns = omxSetFinalReturnsAlgebraObjective;
 	oo->destructFun = omxDestroyAlgebraObjective;
 	oo->repopulateFun = NULL;

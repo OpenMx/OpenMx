@@ -387,16 +387,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	}
 }
 
-unsigned short int omxNeedsUpdateRAMObjective(omxObjective* oo) {
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Checking if RAM needs update.  RAM uses A:0x%x, S:0x%x, F:0x%x, M:0x%x.\n",((omxRAMObjective*)oo->argStruct)->A, ((omxRAMObjective*)oo->argStruct)->S, ((omxRAMObjective*)oo->argStruct)->F, ((omxRAMObjective*)oo->argStruct)->M); }
-	return(omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->A)
-	 	|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->S)
-	 	|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->F)
-		|| omxNeedsUpdate(((omxRAMObjective*)oo->argStruct)->M));
-
-	// Note: cov is data, and should never need updating.
-}
-
 void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	
 	omxState* currentState = oo->matrix->currentState;	
@@ -416,7 +406,6 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	
 	/* Set Subobjective Calls and Structures */
 	subObjective->objectiveFun = omxCallRAMObjective;
-	subObjective->needsUpdateFun = omxNeedsUpdateRAMObjective;
 	subObjective->destructFun = omxDestroyRAMObjective;
 	subObjective->setFinalReturns = NULL;
 	subObjective->populateAttrFun = omxPopulateRAMAttributes;
