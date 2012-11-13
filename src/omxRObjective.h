@@ -52,8 +52,6 @@ extern void* robjective_lock;
 void omxDestroyRObjective(omxObjective *oo);
 void omxCallRObjective(omxObjective *oo);
 
-unsigned short int omxNeedsUpdateRObjective(omxObjective* oo);
-
 void omxRepopulateRObjective(omxObjective* oo, double* x, int n);
 
 omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns);

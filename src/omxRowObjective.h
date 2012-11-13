@@ -65,8 +65,6 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target);
 
 void omxCallRowObjective(omxObjective *oo);
 
-unsigned short int omxNeedsUpdateRowObjective(omxObjective* oo);
-
 void omxInitRowObjective(omxObjective* oo, SEXP rObj);
 
 

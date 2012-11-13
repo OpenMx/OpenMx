@@ -108,7 +108,6 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row,
 
 void omxCallFIMLObjective(omxObjective *oo);
 void omxCallFIMLOrdinalObjective(omxObjective *oo);
-unsigned short int omxNeedsUpdateFIMLObjective(omxObjective* oo);
 omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns);
 void omxDestroyFIMLObjective(omxObjective *oo);
 void omxPopulateFIMLObjective(omxObjective *oo, SEXP algebra);
