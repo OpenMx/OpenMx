@@ -204,9 +204,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 
-	int i;
-	const char *objType;
-	SEXP objectiveClass;
 	char errorCode[MAX_STRING_LEN];
 	omxObjective *obj = (omxObjective*) R_alloc(1, sizeof(omxObjective));
 	omxInitEmptyObjective(obj);
@@ -219,23 +216,31 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	om->matrixNumber = matrixNumber;
 	
 	/* Get Objective Type */
+	{
+	SEXP objectiveClass;
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
-	objType = CHAR(objectiveClass);
+	const char *objType = CHAR(objectiveClass);
 	obj->objType[MAX_STRING_LEN - 1] = '\0';
 	strncpy(obj->objType, objType, MAX_STRING_LEN);
 	
 	/* Switch based on objective type. */ 
-	for(i = 0; i < omxObjectiveTableLength; i++) {
-		if(strncmp(objType, omxObjectiveSymbolTable[i].name, MAX_STRING_LEN) == 0) {
-			obj->initFun = omxObjectiveSymbolTable[i].initFun;
+	const omxObjectiveTableEntry *entry = omxObjectiveSymbolTable;
+	while (entry->initFun) {
+		if(strncmp(obj->objType, entry->name, MAX_STRING_LEN) == 0) {
+			obj->initFun = entry->initFun;
 			break;
 		}
+		entry += 1;
 	}
 
-	if(i == omxObjectiveTableLength) {
+	UNPROTECT(1);	/* objectiveClass */
+	}
+
+	if (!obj->initFun) {
 		char newError[MAX_STRING_LEN];
 		sprintf(newError, "Objective function %s not implemented.\n", obj->objType);
 		omxRaiseError(om->currentState, -1, newError);
+		return;
 	}
 	
 	obj->rObj = rObj;
@@ -259,7 +264,6 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	
 	obj->matrix->isDirty = TRUE;
 
-	UNPROTECT(1);	/* objectiveClass */
 
 }
 

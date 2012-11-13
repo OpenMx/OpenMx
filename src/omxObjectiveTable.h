@@ -35,9 +35,7 @@ struct omxObjectiveTableEntry {
 
 };
 
-#define omxObjectiveTableLength 8
-
-const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength];
+extern const omxObjectiveTableEntry omxObjectiveSymbolTable[];
 
 
 #endif /* _OMX_OBJECTIVE_TABLE_ */

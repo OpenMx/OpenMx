@@ -31,7 +31,7 @@ extern void omxInitRowObjective(omxObjective *oo, SEXP rObj);
 extern void omxInitMLObjective(omxObjective *oo, SEXP rObj);
 extern void omxInitRObjective(omxObjective *oo, SEXP rObj);	
 extern void omxInitWLSObjective(omxObjective *oo, SEXP rObj);	
-const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength] = {
+const omxObjectiveTableEntry omxObjectiveSymbolTable[] = {
 	{"MxAlgebraObjective", 			&omxInitAlgebraObjective},
 	{"MxFIMLObjective",				&omxInitFIMLObjective},
 	{"MxRAMObjective", 				&omxInitRAMObjective},
@@ -40,4 +40,5 @@ const omxObjectiveTableEntry omxObjectiveSymbolTable[omxObjectiveTableLength] = 
 	{"MxMLObjective", 				&omxInitMLObjective},
 	{"MxRObjective",				&omxInitRObjective},
 	{"MxLISRELObjective",			&omxInitLISRELObjective},
+	{"", 0}
 };
