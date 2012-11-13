@@ -171,7 +171,6 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 
-	char errorCode[MAX_STRING_LEN];
 	omxObjective *obj = (omxObjective*) R_alloc(1, sizeof(omxObjective));
 	omxInitEmptyObjective(obj);
 
@@ -203,8 +202,9 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	}
 
 	if (!obj->initFun) {
-		char newError[MAX_STRING_LEN];
-		sprintf(newError, "Objective function %s not implemented.\n", obj->objType);
+		const int MaxErrorLen = 256;
+		char newError[MaxErrorLen];
+		snprintf(newError, MaxErrorLen, "Objective function %s not implemented.\n", obj->objType);
 		omxRaiseError(om->currentState, -1, newError);
 		return;
 	}
@@ -213,17 +213,19 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	obj->initFun(obj, rObj);
 
 	if(obj->objectiveFun == NULL) {// If initialization fails, error code goes in argStruct
+	        char *errorCode;
 		if(om->currentState->statusCode != 0) {
-			strncpy(errorCode, om->currentState->statusMsg, 150); // Report a status error
+			errorCode = om->currentState->statusMsg; // Report a status error
 		} else {
 			// If no error code is reported, we report that.
-  			strncpy(errorCode, "No error code reported.", 25);
+		        errorCode = "No error code reported.";
 		}
 		if(obj->argStruct != NULL) {
-			strncpy(errorCode, (char*)(obj->argStruct), 51);
+		        errorCode = (char*) obj->argStruct;
 		}
-		char newError[MAX_STRING_LEN];
-		sprintf(newError, "Could not initialize objective function %s.  Error: %s\n", 
+		const int MaxErrorLen = 256;
+		char newError[MaxErrorLen];
+		snprintf(newError, MaxErrorLen, "Could not initialize objective function %s.  Error: %s\n", 
 		    obj->objType, errorCode);
 		omxRaiseError(om->currentState, -1, newError);
 	}
