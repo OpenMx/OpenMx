@@ -90,24 +90,7 @@ void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo) {
 void omxInitEmptyObjective(omxObjective *oo) {
 	/* Sets everything to NULL to avoid bad pointer calls */
 	
-	oo->initFun = NULL;
-	oo->destructFun = NULL;
-	oo->repopulateFun = NULL;
-	oo->objectiveFun = NULL;
-	oo->getStandardErrorFun = NULL;
-	oo->populateAttrFun = NULL;
-	oo->setFinalReturns = NULL;
-	oo->gradientFun = NULL;
-	oo->sharedArgs = NULL;
-	oo->argStruct = NULL;
-	oo->subObjective = NULL;
-	oo->rObj = NULL;
-	oo->objType = NULL;
-	oo->matrix = NULL;
-	oo->stdError = NULL;
-	oo->hessian = NULL;
-	oo->gradient = NULL;
-	oo->isPrepopulated = FALSE;
+  memset(oo, 0, sizeof(omxObjective));
 }
 
 omxObjective* omxCreateSubObjective(omxObjective *oo) {
@@ -179,23 +162,8 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	  omxRaiseError(newState, -1, "omxCreateDuplicateObjective requested to overwrite target");
 	}
 
-	tgt->initFun 					= src->initFun;
-	tgt->destructFun 				= src->destructFun;
-	tgt->repopulateFun 				= src->repopulateFun;
-	tgt->objectiveFun 				= src->objectiveFun;
-	tgt->getStandardErrorFun 		= src->getStandardErrorFun;
-	tgt->populateAttrFun 			= src->populateAttrFun;
-	tgt->setFinalReturns 			= src->setFinalReturns;
-	tgt->gradientFun 				= src->gradientFun;
-	tgt->sharedArgs					= src->sharedArgs;
-	tgt->matrix						= src->matrix;
-	tgt->rObj						= src->rObj;
-	tgt->subObjective	 			= src->subObjective;
-	tgt->stdError					= src->stdError;
-	tgt->hessian 					= src->hessian;
-	tgt->gradient 					= src->gradient;
+	memcpy(tgt, src, sizeof(omxObjective));
 
-	tgt->objType = src->objType;
 	return tgt;
 
 }
