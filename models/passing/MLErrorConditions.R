@@ -12,7 +12,7 @@ factorModel <- mxModel("One Factor ML",
     mxMatrix("Full", 1, nVar, free=T, values=colMeans(demoOneFactor), name="M"),
     mxMatrix("Full", nVar, nFac, free=T, values=.2, name="A"),
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
-    mxAlgebra(A%*%t(A) + D, name="C"),
+    mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
     mxMLObjective("C", "M", dimnames=manifests))
 
@@ -26,7 +26,7 @@ factorModel <- mxModel("One Factor ML",
     mxMatrix("Full", nVar, 1, free=T, values=colMeans(demoOneFactor), name="M"),
     mxMatrix("Full", nVar, nFac, free=T, values=.2, name="A"),
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
-    mxAlgebra(A%*%t(A) + D, name="C"),
+    mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
     mxMLObjective("C", "M", dimnames=manifests))
 
@@ -40,7 +40,7 @@ factorModel <- mxModel("One Factor FIML",
     mxMatrix("Full", nVar, 1, free=T, values=colMeans(demoOneFactor), name="M"),
     mxMatrix("Full", nVar, nFac, free=T, values=.2, name="A"),
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
-    mxAlgebra(A%*%t(A) + D, name="C"),
+    mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
     mxFIMLObjective("C", "M", dimnames=manifests))
 
