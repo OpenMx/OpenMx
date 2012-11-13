@@ -45,7 +45,6 @@ typedef struct omxRListElement omxRListElement;
 #include "omxAlgebraFunctions.h"
 #include "omxData.h"
 #include "omxState.h"
-#include "omxObjectiveTable.h"
 
 struct omxRListElement {
 	char label[250];

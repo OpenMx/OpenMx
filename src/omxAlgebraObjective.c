@@ -15,7 +15,6 @@
  */
 
 #include "omxAlgebraFunctions.h"
-#include "omxObjectiveTable.h"
 
 #ifndef _OMX_ALGEBRA_OBJECTIVE_
 #define _OMX_ALGEBRA_OBJECTIVE_ TRUE

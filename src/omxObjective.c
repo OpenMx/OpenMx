@@ -30,6 +30,36 @@
 
 #include "omxObjective.h"
 
+typedef struct omxObjectiveTableEntry omxObjectiveTableEntry;
+
+struct omxObjectiveTableEntry {
+
+	char name[32];
+	void (*initFun)(omxObjective*, SEXP) ;
+
+};
+
+extern void omxInitAlgebraObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitFIMLObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitRAMObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitLISRELObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitRowObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitMLObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitRObjective(omxObjective *oo, SEXP rObj);
+extern void omxInitWLSObjective(omxObjective *oo, SEXP rObj);
+
+static const omxObjectiveTableEntry omxObjectiveSymbolTable[] = {
+	{"MxAlgebraObjective", 			&omxInitAlgebraObjective},
+	{"MxFIMLObjective",				&omxInitFIMLObjective},
+	{"MxRAMObjective", 				&omxInitRAMObjective},
+	{"MxWLSObjective",				&omxInitWLSObjective},
+	{"MxRowObjective", 				&omxInitRowObjective},
+	{"MxMLObjective", 				&omxInitMLObjective},
+	{"MxRObjective",				&omxInitRObjective},
+	{"MxLISRELObjective",			&omxInitLISRELObjective},
+	{"", 0}
+};
+
 void omxCalculateStdErrorFromHessian(double scale, omxObjective *oo) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
