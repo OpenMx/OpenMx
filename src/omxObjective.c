@@ -102,7 +102,7 @@ void omxInitEmptyObjective(omxObjective *oo) {
 	oo->argStruct = NULL;
 	oo->subObjective = NULL;
 	oo->rObj = NULL;
-	oo->objType = Calloc(MAX_STRING_LEN, char);
+	oo->objType = NULL;
 	oo->matrix = NULL;
 	oo->stdError = NULL;
 	oo->hessian = NULL;
@@ -132,9 +132,6 @@ void omxFreeObjectiveArgs(omxObjective *oo) {
 	/* Completely destroy the objective function tree */
 	if(OMX_DEBUG) {Rprintf("Freeing objective object at 0x%x with subobjective 0x%x.\n", oo, oo->subObjective);}
 	if(oo->matrix != NULL) {
-		if(oo->objType != NULL) {
-			Free(oo->objType);
-		}
 		if(oo->subObjective != NULL) {
 			omxFreeObjectiveArgs(oo->subObjective);
 			Free(oo->subObjective);
@@ -178,7 +175,9 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	if(tgt == NULL) {
         tgt = (omxObjective*) R_alloc(1, sizeof(omxObjective));
         omxInitEmptyObjective(tgt);
-    }
+	} else if (tgt->objType) {
+	  omxRaiseError(newState, -1, "omxCreateDuplicateObjective requested to overwrite target");
+	}
 
 	tgt->initFun 					= src->initFun;
 	tgt->destructFun 				= src->destructFun;
@@ -196,7 +195,7 @@ omxObjective* omxCreateDuplicateObjective(omxObjective *tgt, const omxObjective 
 	tgt->hessian 					= src->hessian;
 	tgt->gradient 					= src->gradient;
 
-    strncpy(tgt->objType, src->objType, MAX_STRING_LEN);
+	tgt->objType = src->objType;
 	return tgt;
 
 }
@@ -220,13 +219,12 @@ void omxFillMatrixFromMxObjective(omxMatrix* om, SEXP rObj,
 	SEXP objectiveClass;
 	PROTECT(objectiveClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
 	const char *objType = CHAR(objectiveClass);
-	obj->objType[MAX_STRING_LEN - 1] = '\0';
-	strncpy(obj->objType, objType, MAX_STRING_LEN);
 	
 	/* Switch based on objective type. */ 
 	const omxObjectiveTableEntry *entry = omxObjectiveSymbolTable;
 	while (entry->initFun) {
-		if(strncmp(obj->objType, entry->name, MAX_STRING_LEN) == 0) {
+		if(strncmp(objType, entry->name, MAX_STRING_LEN) == 0) {
+			obj->objType = entry->name;
 			obj->initFun = entry->initFun;
 			break;
 		}

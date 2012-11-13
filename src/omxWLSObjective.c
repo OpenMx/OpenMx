@@ -252,7 +252,7 @@ void omxInitWLSObjective(omxObjective* oo, SEXP rObj) {
 void omxSetWLSObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to WLS Objective Calls */
-	strncpy(oo->objType, "omxWLSObjective", 15);
+	oo->objType = "omxWLSObjective";
 	oo->objectiveFun = omxCallWLSObjective;
 	oo->destructFun = omxDestroyWLSObjective;
 	oo->setFinalReturns = omxSetFinalReturnsWLSObjective;

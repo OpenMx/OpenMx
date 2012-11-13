@@ -400,7 +400,7 @@ void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
 	/* Create and register subobjective */
 
 	omxObjective *subObjective = omxCreateSubObjective(oo);
-	strncpy(subObjective->objType, "omxRAMObjective", 16);
+	subObjective->objType = "omxRAMObjective";
 	
 	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
 	

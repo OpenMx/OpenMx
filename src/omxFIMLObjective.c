@@ -552,7 +552,7 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     
     /* Set default Objective calls to FIML Objective Calls */
 	oo->objectiveFun = omxCallFIMLObjective;
-	strncpy(oo->objType, "omxFIMLObjective", 17);
+	oo->objType = "omxFIMLObjective";
 	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
 	oo->destructFun = omxDestroyFIMLObjective;
 	oo->populateAttrFun = omxPopulateFIMLAttributes;

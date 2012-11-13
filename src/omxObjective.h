@@ -71,6 +71,8 @@ struct omxObjective {					// An objective
 	SEXP rObj;																	// Original r Object Pointer
 	void* sharedArgs;                                                           // Common argument structure
 	void* argStruct;															// Arguments needed for objective function
+  // This is always a pointer to a static string.
+  // We do not need to allocate or free it.
 	char* objType;																// Type of Objective Function
 	double* hessian;															// Hessian details
 	double* gradient;															// Gradient details

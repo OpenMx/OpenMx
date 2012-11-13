@@ -293,7 +293,7 @@ void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
 void omxSetMLObjectiveCalls(omxObjective* oo) {
 	
 	/* Set Objective Calls to ML Objective Calls */
-	strncpy(oo->objType, "omxMLObjective", 15);
+        oo->objType = "omxMLObjective";
 	oo->objectiveFun = omxCallMLObjective;
 	oo->destructFun = omxDestroyMLObjective;
 	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
