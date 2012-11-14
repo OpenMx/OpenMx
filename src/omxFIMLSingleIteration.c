@@ -151,7 +151,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
     int ordRemove[cov->cols], contRemove[cov->cols];
     char u = 'U', l = 'L';
     int info;
-    double determinant;
+    double determinant = 0.0;
     double oned = 1.0, zerod = 0.0, minusoned = -1.0;
     int onei = 1;
     double likelihood;
@@ -312,7 +312,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 		if(numContinuous <= 0) {
 		    // All continuous missingness.  Populate some stuff.
             Q = 0.0;
-            determinant = 0;
+            determinant = 0.0;
             if(numIdenticalDefs <= 0 || numIdenticalOrdinalRows <= 0 || firstRow) {
                 // Recalculate Ordinal covariance matrix
                 omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
@@ -378,7 +378,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                 // Calculate determinant: squared product of the diagonal of the decomposition
     			// For speed, use sum of logs rather than log of product.
     			
-                determinant = 0.0;
+    			determinant = 0.0;
     			for(int diag = 0; diag < (smallCov->rows); diag++) {
     				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
     			}
