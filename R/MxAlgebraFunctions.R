@@ -294,48 +294,48 @@ omxSelectRowsAndCols <- function(x, selector) {
 vech2full <- function(x) {
 	
 	if(is.matrix(x)) {
-
 		if (nrow(x) > 1 && ncol(x) > 1) {
 			stop("Input to the full vech2full must be a (1 x n) or (n x 1) matrix.")
 		}
-
+		
 		dimension <- max(dim(x))
-
+		
 	} else if(is.vector(x)) {
 		dimension <- length(x)
 	} else {
 		stop("Input to the function vech2full must be either a matrix or a vector.")
 	}
-
+	
 	k <- sqrt(2.0 * dimension + 0.25) - 0.5
-
+	
 	ret <- matrix(0, nrow=k, ncol=k)
+	if(nrow(ret) != k) {stop("Not so fast, partner.  Incorrect number of elemets in vector to construct a matrix from a half-vectorization.")}
 	ret[lower.tri(ret, diag=TRUE)] <- as.vector(x)
-	ret[upper.tri(ret, diag=FALSE)] <- ret[lower.tri(ret, diag=FALSE)]
+	ret <- ret + t(ret) - diag(diag(ret))
 	return(ret)
 }
 
 vechs2full <- function(x) {
 
 	if(is.matrix(x)) {
-
 		if (nrow(x) > 1 && ncol(x) > 1) {
 			stop("Input to the full vechs2full must be a (1 x n) or (n x 1) matrix.")
 		}
-
+		
 		dimension <- max(dim(x))
-
+		
 	} else if(is.vector(x)) {
 		dimension <- length(x)
 	} else {
 		stop("Input to the function vechs2full must be either a matrix or a vector.")
 	}
-
+	
 	k <- sqrt(2.0 * dimension + 0.25) + 0.5
-
+	
 	ret <- matrix(0, nrow=k, ncol=k)
+	if(nrow(ret) != k) {stop("Not so fast, partner.  Incorrect number of elemets in vector to construct a matrix from a strict half-vectorization.")}
 	ret[lower.tri(ret, diag=FALSE)] <- as.vector(x)
-	ret[upper.tri(ret, diag=FALSE)] <- ret[lower.tri(ret, diag=FALSE)]
+	ret <- ret + t(ret)
 	return(ret)
 }
 
