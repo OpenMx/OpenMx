@@ -423,4 +423,8 @@ omxCheckCloseEnough(model[['test57b']]@result, mxEval(as.matrix(cov2cor(B)), mod
 omxCheckCloseEnough(model[['test58a']]@result, t(A@values) %*% A@values, 0.001)
 omxCheckCloseEnough(model[['test58b']]@result, cov2cor(t(A@values) %*% A@values)-diag(1, ncol(A@values)), 0.001)
 
+# Show the bug in frontend calculation of vech2full.
+frontvech2full <- mxEval(test58a, model, compute=TRUE)
+backvech2full <- model[['test58a']]@result
+omxCheckCloseEnough(frontvech2full, backvech2full, epsilon=0.001)
 
