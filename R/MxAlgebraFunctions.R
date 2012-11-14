@@ -309,7 +309,9 @@ vech2full <- function(x) {
 	k <- sqrt(2.0 * dimension + 0.25) - 0.5
 	
 	ret <- matrix(0, nrow=k, ncol=k)
-	if(nrow(ret) != k) {stop("Not so fast, partner.  Incorrect number of elemets in vector to construct a matrix from a half-vectorization.")}
+	if(nrow(ret) != k) {
+		stop("Incorrect number of elements in vector to construct a matrix from a half-vectorization.")
+	}
 	ret[lower.tri(ret, diag=TRUE)] <- as.vector(x)
 	ret <- ret + t(ret) - diag(diag(ret))
 	return(ret)
@@ -333,7 +335,9 @@ vechs2full <- function(x) {
 	k <- sqrt(2.0 * dimension + 0.25) + 0.5
 	
 	ret <- matrix(0, nrow=k, ncol=k)
-	if(nrow(ret) != k) {stop("Not so fast, partner.  Incorrect number of elemets in vector to construct a matrix from a strict half-vectorization.")}
+	if(nrow(ret) != k) {
+		stop("Incorrect number of elements in vector to construct a matrix from a strict half-vectorization.")
+	}
 	ret[lower.tri(ret, diag=FALSE)] <- as.vector(x)
 	ret <- ret + t(ret)
 	return(ret)
