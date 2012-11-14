@@ -75,6 +75,8 @@ The following functions are supported in mxAlgebra:
 \item{\code{\link{cvectorize}}}{Vectorize by column}
 \item{\code{\link{vech}}}{Half-vectorization}
 \item{\code{\link{vechs}}}{Strict half-vectorization}
+\item{\code{\link{vech2full}}}{Inverse half-vectorization}
+\item{\code{\link{vechs2full}}}{Inverse strict half-vectorization}
 \item{\code{\link{vec2diag}}}{Create a diagonal matrix}
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix}
 \item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
