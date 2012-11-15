@@ -313,7 +313,7 @@ vech2full <- function(x) {
 		stop("Incorrect number of elements in vector to construct a matrix from a half-vectorization.")
 	}
 	ret[lower.tri(ret, diag=TRUE)] <- as.vector(x)
-	ret <- ret + t(ret) - diag(diag(ret))
+	ret[upper.tri(ret)] <- t(ret)[upper.tri(ret)]
 	return(ret)
 }
 
@@ -339,7 +339,7 @@ vechs2full <- function(x) {
 		stop("Incorrect number of elements in vector to construct a matrix from a strict half-vectorization.")
 	}
 	ret[lower.tri(ret, diag=FALSE)] <- as.vector(x)
-	ret <- ret + t(ret)
+	ret[upper.tri(ret)] <- t(ret)[upper.tri(ret)]
 	return(ret)
 }
 
