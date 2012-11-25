@@ -2,28 +2,127 @@ Package: OpenMx
 Date: 2012-08-03
 Title: Multipurpose Software for Statistical Modeling
 Authors@R: c(person(c("Steven", "M."), "Boker"),
-             person(c("Michael", "C."), "Neale"),
-             person(c("Hermine", "H."), "Maes"),
-             person(c("Michael", "J."), "Wilde"),
-             person("Michael", "Spiegel"),
-             person(c("Timothy", "R."), "Brick"),
-             person("Ryne", "Estabrook"),
-             person(c("Timothy", "C."), "Bates"),
-             person("Paras", "Mehta"),
-             person("Timo", c("von", "Oertzen")),
-             person(c("Ross", "J."), "Gore"),
-             person(c("Michael", "D."), "Hunter"),
-             person(c("Daniel", "C."), "Hackett"),
-             person("Julian", "Karch"),
-             person(c("Andreas", "M."), "Brandmaier"))
-Author: Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C. Hackett, Julian Karch, Andreas M. Brandmaier
+    person(c("Michael", "C."), "Neale"),
+    person(c("Hermine", "H."), "Maes"),
+    person(c("Michael", "J."), "Wilde"),
+    person("Michael", "Spiegel"),
+    person(c("Timothy", "R."), "Brick"),
+    person("Ryne", "Estabrook"),
+    person(c("Timothy", "C."), "Bates"),
+    person("Paras", "Mehta"),
+    person("Timo", c("von", "Oertzen")),
+    person(c("Ross", "J."), "Gore"),
+    person(c("Michael", "D."), "Hunter"),
+    person(c("Daniel", "C."), "Hackett"),
+    person("Julian", "Karch"),
+    person(c("Andreas", "M."), "Brandmaier"))
+Author: Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde,
+    Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras
+    Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C.
+    Hackett, Julian Karch, Andreas M. Brandmaier
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
 URL: http://openmx.psyc.virginia.edu
-Description: The OpenMx Project intends to rewrite and extend the popular statistical package Mx to address the challenges facing a large range of modern statistical problems such as: the difficulty of measuring behavioral traits; the availability of technologies - such as such as magnetic resonance imaging, continuous physiological monitoring and microarrays - which generate extremely large amounts of data often with complex time-dependent patterning; and increased sophistication in the statistical models used to analyze the data.
+Description: The OpenMx Project intends to rewrite and extend the popular
+    statistical package Mx to address the challenges facing a large range of
+    modern statistical problems such as: the difficulty of measuring behavioral
+    traits; the availability of technologies - such as such as magnetic
+    resonance imaging, continuous physiological monitoring and microarrays -
+    which generate extremely large amounts of data often with complex
+    time-dependent patterning; and increased sophistication in the statistical
+    models used to analyze the data.
 License: Apache License 2.0
-Depends: methods
-Suggests: snowfall
+Depends:
+    methods
+Suggests:
+    snowfall,
+    roxygen2
 LazyLoad: yes
 LazyData: yes
-Collate: MxData.R DefinitionVars.R MxReservedNames.R MxNamespace.R MxSearchReplace.R MxFlatSearchReplace.R MxUntitled.R MxCharOrNumber.R MxAlgebraFunctions.R MxExponential.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R LowerMatrix.R SdiagMatrix.R StandMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxMatrixFunctions.R MxAlgebra.R MxCycleDetection.R MxDependencies.R MxAlgebraConvert.R MxAlgebraTransform.R MxSquareBracket.R MxEval.R MxRename.R MxPath.R MxObjectiveMetaData.R MxRAMMetaData.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxInterval.R MxTypes.R MxModel.R MxRAMModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxModelParameters.R MxUnitTesting.R MxAlgebraObjective.R MxRowObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxLISRELObjective.R MxRObjective.R MxApply.R MxRun.R MxRunHelperFunctions.R MxSummary.R MxCompare.R MxSwift.R MxOptions.R MxThreshold.R OriginalMx.R MxGraph.R MxGraphviz.R MxDeparse.R MxCommunication.R MxRestore.R MxVersion.R MxErrorPool.R MxPPML.R MxRAMtoML.R MxDiff.R MxErrorHandling.R MxDetectCores.R MxWLSObjective.R omxBrownie.R MxSaturatedModel.R zzz.R
+Collate:
+    'MxData.R'
+    'DefinitionVars.R'
+    'MxReservedNames.R'
+    'MxNamespace.R'
+    'MxSearchReplace.R'
+    'MxFlatSearchReplace.R'
+    'MxUntitled.R'
+    'MxCharOrNumber.R'
+    'MxAlgebraFunctions.R'
+    'MxExponential.R'
+    'MxMatrix.R'
+    'DiagMatrix.R'
+    'FullMatrix.R'
+    'IdenMatrix.R'
+    'LowerMatrix.R'
+    'SdiagMatrix.R'
+    'StandMatrix.R'
+    'SymmMatrix.R'
+    'UnitMatrix.R'
+    'ZeroMatrix.R'
+    'MxMatrixFunctions.R'
+    'MxAlgebra.R'
+    'MxCycleDetection.R'
+    'MxDependencies.R'
+    'MxAlgebraConvert.R'
+    'MxAlgebraTransform.R'
+    'MxSquareBracket.R'
+    'MxEval.R'
+    'MxRename.R'
+    'MxPath.R'
+    'MxObjectiveMetaData.R'
+    'MxRAMMetaData.R'
+    'MxExpectation.R'
+    'MxExpectationNormal.R'
+    'MxExpectationRAM.R'
+    'MxExpectationLISREL.R'
+    'MxFitFunction.R'
+    'MxFitFunctionAlgebra.R'
+    'MxFitFunctionML.R'
+    'MxFitFunctionRow.R'
+    'MxRAMObjective.R'
+    'MxLISRELObjective.R'
+    'MxFIMLObjective.R'
+    'MxMLObjective.R'
+    'MxRowObjective.R'
+    'MxAlgebraObjective.R'
+    'MxBounds.R'
+    'MxConstraint.R'
+    'MxInterval.R'
+    'MxTypes.R'
+    'MxModel.R'
+    'MxRAMModel.R'
+    'MxLISRELModel.R'
+    'MxModelDisplay.R'
+    'MxFlatModel.R'
+    'MxMultiModel.R'
+    'MxModelFunctions.R'
+    'MxModelParameters.R'
+    'MxUnitTesting.R'
+    'MxApply.R'
+    'MxRun.R'
+    'MxRunHelperFunctions.R'
+    'MxSummary.R'
+    'MxCompare.R'
+    'MxSwift.R'
+    'MxOptions.R'
+    'MxThreshold.R'
+    'OriginalMx.R'
+    'MxGraph.R'
+    'MxGraphviz.R'
+    'MxDeparse.R'
+    'MxCommunication.R'
+    'MxRestore.R'
+    'MxVersion.R'
+    'MxErrorPool.R'
+    'MxPPML.R'
+    'MxRAMtoML.R'
+    'MxDiff.R'
+    'MxErrorHandling.R'
+    'MxDetectCores.R'
+    'MxSaturatedModel.R'
+    'omxBrownie.R'
+    'MxFitFunctionR.R'
+    'MxRObjective.R'
+    'MxExpectationStateSpace.R'
+    'zzz.R'
 Version: 999.0.0-

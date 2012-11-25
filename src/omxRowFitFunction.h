@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_ROW_OBJECTIVE_
-#define _OMX_ROW_OBJECTIVE_ TRUE
+#ifndef _OMX_ROW_FITFUNCTION_
+#define _OMX_ROW_FITFUNCTION_ TRUE
 
 #include <R.h>
 #include <Rinternals.h>
@@ -27,11 +27,11 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxFIMLObjective.h"
+#include "omxFIMLFitFunction.h"
 
-typedef struct omxRowObjective {
+typedef struct omxRowFitFunction {
 
-	/* Parts of the R  MxRowObjective Object */
+	/* Parts of the R  MxRowFitFunction Object */
 	omxMatrix* rowAlgebra;		// Row-by-row algebra
 	omxMatrix* rowResults;		// Aggregation of row algebra results
 	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
@@ -42,7 +42,7 @@ typedef struct omxRowObjective {
     /* Contiguous data note for contiguity speedup */
 	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
-	/* Structures determined from info in the MxRowObjective Object*/
+	/* Structures determined from info in the MxRowFitFunction Object*/
     double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.         // NYI: This element currently unused.
 	omxDefinitionVar* defVars;	// A list of definition variables
 	int numDefs;				// The length of the defVars list
@@ -52,23 +52,23 @@ typedef struct omxRowObjective {
 	int numDataRowDeps;         // number of algebra/matrix dependencies
 	int *dataRowDeps;           // indices of algebra/matrix dependencies
 
-} omxRowObjective;
+} omxRowFitFunction;
 
 
 
-void omxDestroyRowObjective(omxObjective *oo);
+void omxDestroyRowFitFunction(omxFitFunction *oo);
 
-omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturns);
+omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numReturns);
 
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target);
 
-void omxCallRowObjective(omxObjective *oo);
+void omxCallRowFitFunction(omxFitFunction *oo);
 
-void omxInitRowObjective(omxObjective* oo, SEXP rObj);
-
-
+void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj);
 
 
 
-#endif /* _OMX_ROW_OBJECTIVE_ */
+
+
+#endif /* _OMX_ROW_FITFUNCTION_ */

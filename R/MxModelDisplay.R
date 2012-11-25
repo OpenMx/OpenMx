@@ -87,13 +87,21 @@ displayModel <- function(model, expand = FALSE) {
 		cat("@data type:", omxQuotes(data@type), '\n')
 	}
 	cat("@submodels :", omxQuotes(names(model@submodels)), '\n')
-	objective <- model@objective
-	if (is.null(objective)) {
-		objectiveType <- "NULL"
+	expectation <- model@expectation
+	fitfunction <- model@fitfunction
+	if (is.null(expectation)) {
+		expectationType <- "NULL"
 	} else {
-		objectiveType <- class(objective)[[1]]
+		expectationType <- class(expectation)[[1]]
 	}
-	cat("@objective :", objectiveType, '\n')
+	cat("@expectation :", expectationType, '\n')
+
+	if (is.null(fitfunction)) {
+		fitfunctionType <- "NULL"
+	} else {
+		fitfunctionType <- class(fitfunction)[[1]]
+	}
+	cat("@fitfunction :", fitfunctionType, '\n')
 	cat("@independent :", model@independent, '\n')
 	cat("@options :", printOptions(model@options), '\n')
 	cat("@output :", length(model@output) > 0, '\n')
@@ -114,10 +122,14 @@ displayModel <- function(model, expand = FALSE) {
 			cat("\n--------DATA--------\n")
 			print(model@data)
 		}
-		if(!is.null(model@objective) > 0) {
-			cat("\n--------OBJECTIVE FUNCTION--------\n")
-			print(model@objective)
-		}		
+		if(!is.null(model@expectation) > 0) {
+			cat("\n--------EXPECTATION FUNCTION--------\n")
+			print(model@expectation)
+		}
+		if(!is.null(model@fitfunction) > 0) {
+			cat("\n--------FIT FUNCTION--------\n")
+			print(model@fitfunction)
+		}
 		if(length(model@output) > 0) {
 			cat("\n--------OUTPUT--------\n")
 			print(model@output)

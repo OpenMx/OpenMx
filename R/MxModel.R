@@ -26,7 +26,8 @@ setClass(Class = "MxModel",
 		manifestVars = "MxCharOrList",
 		data = "MxData",
 		submodels = "list",
-		objective = "MxObjective",
+		expectation = "MxExpectation",
+		fitfunction = "MxFitFunction",
 		independent = "logical",
 		options = "list",
 		output = "list",
@@ -48,7 +49,8 @@ setMethod("initialize", "MxModel",
 		.Object@constraints <- list()
 		.Object@data <- NULL
 		.Object@submodels <- list()
-		.Object@objective <- NULL
+		.Object@expectation <- NULL
+		.Object@fitfunction <- NULL
 		.Object@independent <- FALSE
 		.Object@options <- list()
 		.Object@output <- list()
@@ -108,8 +110,11 @@ generateLocalNames <- function(model) {
 	constraints <- names(model@constraints)
 	retval <- union(matrices, algebras)
 	retval <- union(retval, constraints)
-	if (!is.null(model@objective)) {
-		retval <- union(retval, model@objective@name)
+	if (!is.null(model@fitfunction)) {
+		retval <- union(retval, model@fitfunction@name)
+	}
+	if (!is.null(model@expectation)) {
+		retval <- union(retval, model@expectation@name)
 	}
 	if (!is.null(model@data)) {
 		retval <- union(retval, model@data@name)
@@ -168,7 +173,8 @@ imxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
 			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||
 			(is(a, "MxAlgebra") && is(b, "MxAlgebra")) ||
-			(is(a, "MxObjective") && is(b, "MxObjective")) ||
+			(is(a, "MxExpectation") && is(b, "MxExpectation")) ||
+			(is(a, "MxFitFunction") && is(b, "MxFitFunction")) ||
 			(is(a, "MxConstraint") && is(b, "MxConstraint")) ||
 			(is(a, "MxData") && is(b, "MxData")))
 }
@@ -505,11 +511,11 @@ modelModifyFilter <- function(model, entries, action, lst.call) {
 }
 
 addSingleNamedEntity <- function(model, entity) {
-        if (!nzchar(entity@name)) {
+	if (!nzchar(entity@name)) {
 		stop(paste("Entity",
 			omxQuotes(class(entity)), "in model",
 			omxQuotes(model@name), "needs a name"), call. = FALSE)
-        }
+	}
 	if (model@name == entity@name) {
 		stop(paste("You cannot insert an entity named",
 			omxQuotes(entity@name), "into a model named",

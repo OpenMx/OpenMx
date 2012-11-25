@@ -21,7 +21,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
-#include "omxWLSObjective.h"
+#include "omxWLSFitFunction.h"
 
 void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix* vector) {
     int nextLoc = 0;
@@ -39,10 +39,10 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix* vector) {
     }
 }
 
-void omxDestroyWLSObjective(omxObjective *oo) {
+void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
-	if(OMX_DEBUG) {Rprintf("Freeing WLS Objective.");}
-	omxWLSObjective* owo = ((omxWLSObjective*)oo->argStruct);
+	if(OMX_DEBUG) {Rprintf("Freeing WLS FitFunction.");}
+	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
 
     if(owo->observedFlattened != NULL) omxFreeMatrixData(owo->observedFlattened);
     if(owo->expectedFlattened != NULL) omxFreeMatrixData(owo->expectedFlattened);
@@ -51,7 +51,7 @@ void omxDestroyWLSObjective(omxObjective *oo) {
     if(owo->P != NULL) omxFreeMatrixData(owo->P);
 }
 
-omxRListElement* omxSetFinalReturnsWLSObjective(omxObjective *oo, int *numReturns) {
+omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numReturns) {
 	*numReturns = 4;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 
@@ -78,7 +78,7 @@ omxRListElement* omxSetFinalReturnsWLSObjective(omxObjective *oo, int *numReturn
     // retVal[1].numValues = 1;
     // retVal[1].values = (double*) R_alloc(1, sizeof(double));
     // strncpy(retVal[1].label, "SaturatedADFMisfit", 20);
-    // retVal[1].values[0] = (((omxWLSObjective*)oo->argStruct)->logDetObserved + ncols) * (((omxWLSObjective*)oo->argStruct)->n - 1);
+    // retVal[1].values[0] = (((omxWLSFitFunction*)oo->argStruct)->logDetObserved + ncols) * (((omxWLSFitFunction*)oo->argStruct)->n - 1);
     // 
     // retVal[2].numValues = 1;
     // retVal[2].values = (double*) R_alloc(1, sizeof(double));
@@ -94,14 +94,14 @@ omxRListElement* omxSetFinalReturnsWLSObjective(omxObjective *oo, int *numReturn
     //  // We sum logs instead of logging the product.
     //  det += log(omxMatrixElement(cov, i, i));
     // }
-    // if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxWLSObjective*)oo->argStruct)->n, (ncols + det) * (((omxWLSObjective*)oo->argStruct)->n - 1)); }
+    // if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxWLSFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1)); }
     // if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-    // retVal[2].values[0] = (ncols + det) * (((omxWLSObjective*)oo->argStruct)->n - 1);
+    // retVal[2].values[0] = (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1);
 
 	return retVal;
 }
 
-void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallWLSFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning WLS Evaluation.\n");}
 	// Requires: Data, means, covariances.
@@ -110,7 +110,7 @@ void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 	omxMatrix *oCov, *oMeans, *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
 
-	omxWLSObjective *owo = ((omxWLSObjective*)oo->argStruct);
+	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
     /* Locals for readability.  Compiler should cut through this. */
 	oCov 		= owo->observedCov;
@@ -124,15 +124,10 @@ void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 	P			= owo->P;
     int onei    = 1;
 	
-	omxObjective* subObjective = oo->subObjective;
+	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
-	if(!(subObjective == NULL)) {
-        omxObjectiveCompute(subObjective);
-	} else {
-		omxRecompute(eCov);
-		if (eMeans != NULL) omxRecompute(eMeans);
-	}
+	omxExpectationCompute(expectation);
 
 	flattenDataToVector(oCov, oMeans, oFlat);
 	flattenDataToVector(eCov, eMeans, eFlat);
@@ -146,14 +141,14 @@ void omxCallWLSObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
     oo->matrix->data[0] = sum;
 
-	if(OMX_DEBUG) { Rprintf("WLSObjective value comes to: %f.\n", oo->matrix->data[0]); }
+	if(OMX_DEBUG) { Rprintf("WLSFitFunction value comes to: %f.\n", oo->matrix->data[0]); }
 
 }
 
-void omxPopulateWLSAttributes(omxObjective *oo, SEXP algebra) {
+void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating WLS Attributes.\n"); }
 
-	omxWLSObjective *argStruct = ((omxWLSObjective*)oo->argStruct);
+	omxWLSFitFunction *argStruct = ((omxWLSFitFunction*)oo->argStruct);
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 	omxMatrix *weightInt = argStruct->weights;			// Expected means
@@ -206,9 +201,9 @@ void omxPopulateWLSAttributes(omxObjective *oo, SEXP algebra) {
 
 }
 
-void omxInitWLSObjective(omxObjective* oo, SEXP rObj) {
+void omxInitWLSFitFunction(omxFitFunction* oo, SEXP rObj) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing WLS objective function.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing WLS FitFunction function.\n"); }
 
 	SEXP nextMatrix;
 	omxMatrix *cov, *means, *weights;
@@ -245,47 +240,48 @@ void omxInitWLSObjective(omxObjective* oo, SEXP rObj) {
 	}
 	UNPROTECT(1);
 	
-	omxCreateWLSObjective(oo, rObj, cov, means, weights);
+	// omxCreateWLSFitFunction(oo, rObj, cov, means, weights); // FIXME: Add WLS Expectation-handling abilities
 	
 }
 
-void omxSetWLSObjectiveCalls(omxObjective* oo) {
+void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	
-	/* Set Objective Calls to WLS Objective Calls */
-	oo->objType = "omxWLSObjective";
-	oo->objectiveFun = omxCallWLSObjective;
-	oo->destructFun = omxDestroyWLSObjective;
-	oo->setFinalReturns = omxSetFinalReturnsWLSObjective;
+	/* Set FitFunction Calls to WLS FitFunction Calls */
+	oo->fitType = "omxWLSFitFunction";
+	oo->computeFun = omxCallWLSFitFunction;
+	oo->destructFun = omxDestroyWLSFitFunction;
+	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
 	oo->repopulateFun = NULL;	
 }
 
-void omxCreateWLSObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights) {
+void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights) {
 	
 	SEXP nextMatrix;
     int vectorSize = 0;
 	
-	omxSetWLSObjectiveCalls(oo);
+	omxSetWLSFitFunctionCalls(oo);
 	
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "WLS Objective unable to handle data type %s.\n", omxDataType(dataMat));
+		sprintf(errstr, "WLS FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
-		if(OMX_DEBUG) { Rprintf("WLS Objective unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
+		if(OMX_DEBUG) { Rprintf("WLS FitFunction unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
 		return;
 	}
 	
 	if(cov == NULL) {
 		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
-			"Developer Error in WLS-based objective object: WLS-based subobjectives must specify a model-implied covariance matrix.\nIf you are not developing a new objective type, you should probably post this to the OpenMx forums.");
+			"Developer Error in WLS-based FitFunction object: WLS-based expectations must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+			// TODO: Revise WLS to accept something besides cov/means
 		return;
 	}
 
-	omxWLSObjective *newObj = (omxWLSObjective*) R_alloc(1, sizeof(omxWLSObjective));
+	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
 
 	newObj->expectedCov = cov;
 	newObj->expectedMeans = means;
@@ -305,7 +301,7 @@ void omxCreateWLSObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatri
         }
 	} else if(weights->rows != weights->cols && weights->cols != vectorSize) {
 	    omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
-			"Developer Error in WLS-based objective object: WLS-based subobjective specified an incorrectly-sized weight matrix.\nIf you are not developing a new objective type, you should probably post this to the OpenMx forums.");
+			"Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
 		return;
 	}
     newObj->weights = weights;

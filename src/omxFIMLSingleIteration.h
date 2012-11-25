@@ -17,16 +17,16 @@
 #ifndef _OMX_FIML_SINGLE_ITERATION
 #define _OMX_FIML_SINGLE_ITERATION
 
-#include "omxFIMLObjective.h"
+#include "omxFIMLFitFunction.h"
 
-void omxFIMLSingleIterationJoint(omxObjective *localobj,
-	omxObjective *sharedobj, int rowbegin, int rowcount);
+void omxFIMLSingleIterationJoint(omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
-void omxFIMLSingleIterationOrdinal(omxObjective *localobj,
-	omxObjective *sharedobj, int rowbegin, int rowcount);
+void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
-void omxFIMLSingleIteration(omxObjective *localobj,
-	omxObjective *sharedobj, int rowbegin, int rowcount);
+void omxFIMLSingleIteration(omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
 
 

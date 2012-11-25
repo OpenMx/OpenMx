@@ -58,21 +58,21 @@ freezeAlgebra <- function(mxAlgebra) {
 	return(res)
 }
 
-freezeObjective <- function(model) {
-	objective <- model@objective
-	if (!is.null(objective)) {
-		model[[objective@name]] <- NULL
-		if (length(objective@result) > 0) {
-			newMatrix <- mxMatrix(values = objective@result)
-			newMatrix@name <- objective@name
-			model[[objective@name]] <- newMatrix
+freezeFitfunction <- function(model) {
+	fitfunction <- model@fitfunction
+	if (!is.null(fitfunction)) {
+		model[[fitfunction@name]] <- NULL
+		if (length(fitfunction@result) > 0) {
+			newMatrix <- mxMatrix(values = fitfunction@result)
+			newMatrix@name <- fitfunction@name
+			model[[fitfunction@name]] <- newMatrix
 		}
 	}
 	return(model)
 }
 
 imxFreezeModel <- function(model) {
-	model <- freezeObjective(model)
+	model <- freezeFitfunction(model)
 	model@matrices <- lapply(model@matrices, freezeMatrix)
 	algebras <- lapply(model@algebras, freezeAlgebra)
 	algebras <- algebras[!sapply(algebras, is.null)]
@@ -84,9 +84,10 @@ imxFreezeModel <- function(model) {
 }
 
 imxFlattenModel <- function(model, namespace) {
-	flatModel <- new("MxFlatModel", model, list(), list())
+	flatModel <- new("MxFlatModel", model, list(), list(), list())
 	name <- model@name
-	flatModel@objective <- namespaceConvertObjective(model@objective, name, namespace)
+	flatModel@fitfunction <- namespaceConvertFitFunction(model@fitfunction, name, namespace)
+	flatModel@expectation <- namespaceConvertExpectation(model@expectation, name, namespace)
 	defaultData <- namespaceConvertData(model@data, name)
 	flatModel@data <- defaultData
 	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
@@ -94,7 +95,8 @@ imxFlattenModel <- function(model, namespace) {
 	flatModel@constraints <- collectComponents(model, namespace, "constraints", namespaceConvertConstraint)	
 	flatModel@intervals <- collectComponents(model, namespace, "intervals", namespaceConvertInterval)
 	flatModel@datasets <- collectDatasets(model)
-	flatModel@objectives <- collectObjectives(model, namespace, defaultData)
+	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
+	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
 	flatModel@submodels <- list()
 	return(flatModel)
 }
@@ -171,33 +173,66 @@ collectMatricesHelper <- function(model, namespace, defaultData) {
 	return(retval)
 }
 
-collectObjectives <- function(model, namespace, defaultData) {
-	objectives <- collectObjectivesHelper(model, namespace, defaultData)
-	names(objectives) <- imxExtractNames(objectives)
-	return(objectives)
+collectFitFunctions <- function(model, namespace, defaultData) {
+	fitfunctions <- collectFitFunctionsHelper(model, namespace, defaultData)
+	names(fitfunctions) <- imxExtractNames(fitfunctions)
+	return(fitfunctions)
 }
 
+collectExpectations <- function(model, namespace, defaultData) {
+	expectations <- collectExpectationsHelper(model, namespace, defaultData)
+	names(expectations) <- imxExtractNames(expectations)
+	return(expectations)
+}
 
-collectObjectivesHelper <- function(model, namespace, defaultData) {
-	objective <- namespaceConvertObjective(model@objective, model@name, namespace)
+collectExpectationsHelper <- function(model, namespace, defaultData) {
+	expectation <- namespaceConvertExpectation(model@expectation, model@name, namespace)
 	modeldata <- namespaceConvertData(model@data, model@name)	
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	
-	if (!is.null(objective)) {
-		if(is.na(objective@data) && is.null(modeldata) && !is.null(defaultData)) {
-			objective@data <- defaultData@name
-		} else if (is.na(objective@data) && !is.null(modeldata)) {
-			objective@data <- modeldata@name
+	if (!is.null(expectation)) {
+		if(is.na(expectation@data) && is.null(modeldata) && !is.null(defaultData)) {
+			expectation@data <- defaultData@name
+		} else if (is.na(expectation@data) && !is.null(modeldata)) {
+			expectation@data <- modeldata@name
 		}
-		retval <- list(objective)
+		retval <- list(expectation)
 	} else {
 		retval <- list()
 	}
 	if (length(model@submodels) > 0) {
-		submodel_objectives <- lapply(model@submodels, collectObjectivesHelper, namespace, defaultData)		
-		submodel_objectives <- unlist(submodel_objectives, recursive = FALSE, use.names = FALSE)
-		retval <- append(retval, submodel_objectives)
+		submodel_expectations <- lapply(model@submodels, collectExpectationsHelper, namespace, defaultData)		
+		submodel_expectations <- unlist(submodel_expectations, recursive = FALSE, use.names = FALSE)
+		retval <- append(retval, submodel_expectations)
+	}
+	return(retval)	
+}
+
+collectFitFunctionsHelper <- function(model, namespace, defaultData) {
+	fitfunction <- namespaceConvertFitFunction(model@fitfunction, model@name, namespace)
+	modeldata <- namespaceConvertData(model@data, model@name)	
+	if (is.null(defaultData)) {
+		defaultData <- modeldata
+	} 	
+
+	if (!is.null(fitfunction)) {
+		if ("data" %in% slotNames(fitfunction)) {
+			if(is.na(fitfunction@data) && is.null(modeldata) && !is.null(defaultData)) {
+				fitfunction@data <- defaultData@name
+			} else if (is.na(fitfunction@data) && !is.null(modeldata)) {
+				fitfunction@data <- modeldata@name
+			}
+		}
+		retval <- list(fitfunction)
+	} else {
+		retval <- list()
+	}
+
+	if (length(model@submodels) > 0) {
+		submodel_fitfunctions <- lapply(model@submodels, collectFitFunctionsHelper, namespace, defaultData)		
+		submodel_fitfunctions <- unlist(submodel_fitfunctions, recursive = FALSE, use.names = FALSE)
+		retval <- append(retval, submodel_fitfunctions)
 	}
 	return(retval)	
 }

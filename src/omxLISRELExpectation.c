@@ -14,17 +14,18 @@
  *  limitations under the License.
  */
 
-#include "omxObjective.h"
+#include "omxExpectation.h"
 #include "omxBLAS.h"
-#include "omxFIMLObjective.h"
-#include "omxLISRELObjective.h"
-#include "omxRAMObjective.h" //included for omxFastRAMInverse
+#include "omxFIMLFitFunction.h"
+#include "omxLISRELExpectation.h"
+#include "omxRAMExpectation.h"
 
-extern void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+// TODO: Merge ML and FIML Fit Functions into one unit.
 
-void omxCallLISRELObjective(omxObjective* oo) {
-    if(OMX_DEBUG) { Rprintf("LISREL Subobjective called.\n"); }
-	omxLISRELObjective* oro = (omxLISRELObjective*)(oo->argStruct);
+void omxCallLISRELExpectation(omxExpectation* oo) {
+    if(OMX_DEBUG) { Rprintf("LISREL Expectation Called.\n"); }
+	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	
 	omxRecompute(oro->LX);
 	omxRecompute(oro->LY);
@@ -47,11 +48,11 @@ void omxCallLISRELObjective(omxObjective* oo) {
 	omxCalculateLISRELCovarianceAndMeans(oro);
 }
 
-void omxDestroyLISRELObjective(omxObjective* oo) {
+void omxDestroyLISRELExpectation(omxExpectation* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Destroying LISREL Objective.\n"); }
+	if(OMX_DEBUG) { Rprintf("Destroying LISREL Expectation.\n"); }
 	
-	omxLISRELObjective* argStruct = (omxLISRELObjective*)(oo->argStruct);
+	omxLISRELExpectation* argStruct = (omxLISRELExpectation*)(oo->argStruct);
 
 	/* We allocated 'em, so we destroy 'em. */
 	if(argStruct->cov != NULL)
@@ -84,11 +85,11 @@ void omxDestroyLISRELObjective(omxObjective* oo) {
 	*/
 }
 
-void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
+void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating LISREL Attributes.  Currently this does very little!\n"); }
 	
 	/*
-	omxLISRELObjective* oro = (omxLISRELObjective*) (oo->argStruct);
+	omxLISRELExpectation* oro = (omxLISRELExpectation*) (oo->argStruct);
 	omxMatrix* LX = oro->LX;
 	omxMatrix* LY = oro->LY;
 	omxMatrix* BE = oro->BE;
@@ -137,7 +138,7 @@ void omxPopulateLISRELAttributes(omxObjective *oo, SEXP algebra) {
 /* omxFastLISRELInverse would go here */
 
 
-void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
+void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxMatrix* LX = oro->LX;
 	omxMatrix* LY = oro->LY;
 	omxMatrix* BE = oro->BE;
@@ -368,30 +369,29 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro) {
 */
 }
 
-void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
+void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj) {
 	
-	if(OMX_DEBUG) { Rprintf("Initializing LISREL objective.\n"); }
-	
-	omxState* currentState = oo->matrix->currentState;	
-	
+	if(OMX_DEBUG) { Rprintf("Initializing LISREL Expectation.\n"); }
+		
 	int nx, nxi, ny, neta, ntotal;
 	
-	SEXP slotValue;   //Used to get LISREL depth, for I-BE inverse speedup
+	SEXP slotValue;
 	
-	/* Create and register subobjective */
-	omxObjective *subObjective = omxCreateSubObjective(oo);
-	subObjective->objType = "omxLISRELObjective";
-	omxLISRELObjective *LISobj = (omxLISRELObjective*) R_alloc(1, sizeof(omxLISRELObjective));
+	/* Create and fill expectation */
+	oo->expType = "omxLISRELExpectation";
+	omxLISRELExpectation *LISobj = (omxLISRELExpectation*) R_alloc(1, sizeof(omxLISRELExpectation));
+	omxState* currentState = oo->currentState;
 	
-	/* Set Subobjective Calls and Structures */
-	subObjective->objectiveFun = omxCallLISRELObjective;
-	subObjective->destructFun = omxDestroyLISRELObjective;
-	subObjective->setFinalReturns = NULL;
-	subObjective->populateAttrFun = NULL; //omxPopulateLISRELAttributes;
-	subObjective->argStruct = (void*) LISobj;
+	/* Set Expectation Calls and Structures */
+	oo->computeFun = omxCallLISRELExpectation;
+	oo->destructFun = omxDestroyLISRELExpectation;
+	oo->setFinalReturns = NULL;
+	oo->componentFun = omxGetLISRELExpectationComponent;
+	oo->populateAttrFun = omxPopulateLISRELAttributes;
+	oo->argStruct = (void*) LISobj;
 	
-	/* Set up objective structures */
-	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for objective function.\n"); }
+	/* Set up expectation structures */
+	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for expectation.\n"); }
 	
 	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }
 	LISobj->LX = omxNewMatrixFromIndexSlot(rObj, currentState, "LX");
@@ -526,11 +526,22 @@ void omxInitLISRELObjective(omxObjective* oo, SEXP rObj) {
 		LISobj->means = 	omxInitMatrix(NULL, 1, ntotal, TRUE, currentState);
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys
-	
 
-	/* Create parent objective */
-
-	omxCreateMLObjective(oo, rObj, LISobj->cov, LISobj->means);
-	
 }
 
+omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+	omxLISRELExpectation* ore = (omxLISRELExpectation*)(ox->argStruct);
+	omxMatrix* retval = NULL;
+
+	if(!strncmp("cov", component, 3)) {
+		retval = ore->cov;
+	} else if(!strncmp("mean", component, 4)) {
+		retval = ore->means;
+	} else if(!strncmp("pvec", component, 4)) {
+		// Once implemented, change compute function and return pvec
+	}
+	
+	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+
+	return retval;
+}

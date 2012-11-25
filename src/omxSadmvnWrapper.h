@@ -31,7 +31,7 @@ extern void* sadmvn_lock;
 
 
 
-void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov, 
+void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 
 

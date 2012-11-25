@@ -101,10 +101,10 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 	}
 
 	for(int index = 0; index < globalState->numAlgs; index++) {
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or objective to process
+		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, globalState->algebraList + index); }
-		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is an objective object.
-			omxFillMatrixFromMxObjective(globalState->algebraList[index], nextAlgTuple, 1, index);
+		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is a fit function object.
+			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple, 1, index);
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula, dependencies;
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
@@ -129,6 +129,57 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 	return(errOut);
 }
 
+int omxProcessMxExpectationEntities(SEXP expList) {
+	if(OMX_DEBUG) { Rprintf("Initializing %d Model Expectation(s).\n", length(expList));}
+	int errOut = FALSE;
+	SEXP nextExp;
+	globalState->numExpects = length(expList);
+	globalState->expectationList = (omxExpectation**) R_alloc(length(expList), sizeof(omxExpectation*));
+
+	for(int index = 0; index < length(expList); index++) {
+		PROTECT(nextExp = VECTOR_ELT(expList, index));
+		globalState->expectationList[index] = omxNewIncompleteExpectation(nextExp, index, globalState);
+		if(OMX_DEBUG) {
+			Rprintf("%s incomplete expectation set up at 0x%0xd.\n",
+				(globalState->expectationList[index]->expType
+					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
+					 globalState->expectationList[index]);
+		}
+		UNPROTECT(1); // nextExp
+		if(globalState->statusCode < 0) {
+			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth Expectation.\n", index+1);}
+			errOut = TRUE;
+			globalState->numMats = index+1;
+			break;
+		}
+	}
+	return(errOut);
+}
+
+
+int omxCompleteMxExpectationEntities() {
+	if(OMX_DEBUG) { Rprintf("Completing %d Model Expectation(s).\n", globalState->numExpects);}
+	int errOut = FALSE;
+	
+	for(int index = 0; index < globalState->numExpects; index++) {
+		omxCompleteExpectation(globalState->expectationList[index]);
+		if(OMX_DEBUG) {
+			Rprintf("%s expectation completed at 0x%0xd.\n",
+				(globalState->expectationList[index]->expType
+					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
+					 globalState->expectationList[index]);
+		}
+		if(globalState->statusCode < 0) {
+			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth Expectation.\n", index+1);}
+			errOut = TRUE;
+			globalState->numMats = index+1;
+			break;
+		}
+	}
+	return(errOut);
+}
+
+
 int omxInitialMatrixAlgebraCompute() {
 	int errOut = FALSE;
 	int numMats = globalState->numMats;
@@ -149,13 +200,13 @@ int omxInitialMatrixAlgebraCompute() {
 	return(errOut);
 }
 
-int omxProcessObjectiveFunction(SEXP objective) {
+int omxProcessFitFunction(SEXP fitFunction) {
 	int errOut = FALSE;
-	if(!isNull(objective)) {
-		if(OMX_DEBUG) { Rprintf("Processing objective function.\n"); }
-		globalState->objectiveMatrix = omxNewMatrixFromMxIndex(objective, globalState);
+	if(!isNull(fitFunction)) {
+		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
+		globalState->fitMatrix = omxNewMatrixFromMxIndex(fitFunction, globalState);
 	} else {
-		globalState->objectiveMatrix = NULL;
+		globalState->fitMatrix = NULL;
 		globalState->numFreeParams = 0;
 	}
 	return(errOut);
@@ -379,7 +430,6 @@ void omxProcessConstraints(SEXP constraints)  {
 	}
 	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
 	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
-
 	globalState->ncnln = ncnln;
 	globalState->nclin = 0;
 }

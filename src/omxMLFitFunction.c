@@ -21,14 +21,15 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
-#include "omxMLObjective.h"
-#include "omxFIMLObjective.h"
-#include "omxRAMObjective.h"
+#include "omxExpectation.h"
+#include "omxMLFitFunction.h"
+#include "omxFIMLFitFunction.h"
+#include "omxRAMExpectation.h"
 
-void omxDestroyMLObjective(omxObjective *oo) {
+void omxDestroyMLFitFunction(omxFitFunction *oo) {
 
-	if(OMX_DEBUG) {Rprintf("Freeing ML Objective.");}
-	omxMLObjective* omlo = ((omxMLObjective*)oo->argStruct);
+	if(OMX_DEBUG) {Rprintf("Freeing ML Fit Function.");}
+	omxMLFitFunction* omlo = ((omxMLFitFunction*)oo->argStruct);
 
 	if(omlo->localCov != NULL)	omxFreeMatrixData(omlo->localCov);
 	if(omlo->localProd != NULL)	omxFreeMatrixData(omlo->localProd);
@@ -37,12 +38,12 @@ void omxDestroyMLObjective(omxObjective *oo) {
 	if(omlo->I != NULL)			omxFreeMatrixData(omlo->I);
 }
 
-omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns) {
+omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numReturns) {
 	*numReturns = 3;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 	double det = 0.0;
-	omxMatrix* cov = ((omxMLObjective*)oo->argStruct)->observedCov;
-	int ncols = ((omxMLObjective*)oo->argStruct)->observedCov->cols;
+	omxMatrix* cov = ((omxMLFitFunction*)oo->argStruct)->observedCov;
+	int ncols = ((omxMLFitFunction*)oo->argStruct)->observedCov->cols;
     
 	retVal[0].numValues = 1;
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
@@ -52,7 +53,7 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 	retVal[1].numValues = 1;
 	retVal[1].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
-	retVal[1].values[0] = (((omxMLObjective*)oo->argStruct)->logDetObserved + ncols) * (((omxMLObjective*)oo->argStruct)->n - 1);
+	retVal[1].values[0] = (((omxMLFitFunction*)oo->argStruct)->logDetObserved + ncols) * (((omxMLFitFunction*)oo->argStruct)->n - 1);
 
 	retVal[2].numValues = 1;
 	retVal[2].values = (double*) R_alloc(1, sizeof(double));
@@ -68,14 +69,14 @@ omxRListElement* omxSetFinalReturnsMLObjective(omxObjective *oo, int *numReturns
 		// We sum logs instead of logging the product.
 		det += log(omxMatrixElement(cov, i, i));
 	}
-	if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxMLObjective*)oo->argStruct)->n, (ncols + det) * (((omxMLObjective*)oo->argStruct)->n - 1)); }
+	if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxMLFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1)); }
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-	retVal[2].values[0] = (ncols + det) * (((omxMLObjective*)oo->argStruct)->n - 1);
+	retVal[2].values[0] = (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1);
 
 	return retVal;
 }
 
-void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallMLFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
 	// Requires: Data, means, covariances.
@@ -92,7 +93,7 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C;
 
-	omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
+	omxMLFitFunction *omo = ((omxMLFitFunction*)oo->argStruct);
 	
     /* Locals for readability.  Compiler should cut through this. */
 	scov 		= omo->observedCov;
@@ -105,15 +106,10 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 	C		 	= omo->C;
 	double n 	= omo->n;
 	double Q	= omo->logDetObserved;
-	omxObjective* subObjective = oo->subObjective;
+	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
-	if(!(subObjective == NULL)) {
-        omxObjectiveCompute(subObjective);
-	} else {
-		omxRecompute(cov);
-		if (means != NULL) omxRecompute(means);
-	}
+	omxExpectationCompute(expectation);
 
 	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
 
@@ -209,14 +205,14 @@ void omxCallMLObjective(omxObjective *oo) {	// TODO: Figure out how to give acce
 
 	oo->matrix->data[0] = (sum + det) * (n - 1) + fmean * (n);
 
-	if(OMX_DEBUG) { Rprintf("MLObjective value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
+	if(OMX_DEBUG) { Rprintf("MLFitFunction value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
 
 }
 
-void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
+void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating ML Attributes.\n"); }
 
-	omxMLObjective *argStruct = ((omxMLObjective*)oo->argStruct);
+	omxMLFitFunction *argStruct = ((omxMLFitFunction*)oo->argStruct);
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
@@ -260,84 +256,46 @@ void omxPopulateMLAttributes(omxObjective *oo, SEXP algebra) {
 
 }
 
-void omxInitMLObjective(omxObjective* oo, SEXP rObj) {
-
-	if(OMX_DEBUG) { Rprintf("Initializing ML objective function.\n"); }
-
-	SEXP nextMatrix;
-	omxMatrix *cov, *means;
+void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	
-	/* Read and set expected means and variances */
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
-	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("ML: No Expected Means.\n");
-		}
-		means = NULL;
-	} else {
-		means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-		if(OMX_DEBUG) { Rprintf("Means matrix created at 0x%x.\n", means); }
-	}
-	UNPROTECT(1);
-
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
-	cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);
-	
-	omxCreateMLObjective(oo, rObj, cov, means);
-	
-}
-
-void omxSetMLObjectiveCalls(omxObjective* oo) {
-	
-	/* Set Objective Calls to ML Objective Calls */
-        oo->objType = "omxMLObjective";
-	oo->objectiveFun = omxCallMLObjective;
-	oo->destructFun = omxDestroyMLObjective;
-	oo->setFinalReturns = omxSetFinalReturnsMLObjective;
+	/* Set FitFunction Calls to ML FitFunction Calls */
+	oo->fitType = "omxMLFitFunction";
+	oo->computeFun = omxCallMLFitFunction;
+	oo->destructFun = omxDestroyMLFitFunction;
+	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
 	oo->populateAttrFun = omxPopulateMLAttributes;
 	oo->repopulateFun = NULL;	
 }
 
-void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
-	
-	SEXP nextMatrix;
+
+void omxInitMLFitFunction(omxFitFunction* oo, SEXP rObj) {
+
+	if(OMX_DEBUG) { Rprintf("Initializing ML fit function.\n"); }
+
 	int info = 0;
 	double det = 1.0;
 	char u = 'U';
 	
-	omxSetMLObjectiveCalls(oo);
-	
-	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
-	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
-	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
+	/* Read and set expectation */
+	omxSetMLFitFunctionCalls(oo);
+
+	omxData* dataMat = oo->expectation->data;
+
+	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
 			if(OMX_DEBUG) { Rprintf("Raw Data: Converting to FIML.\n"); }
-            UNPROTECT(1); // Cleanup before sending to omxCreateFIML.
-			omxCreateFIMLObjective(oo, rObj, cov, means);
+			omxInitFIMLFitFunction(oo, rObj);
 			return;
 		}
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "ML Objective unable to handle data type %s.\n", omxDataType(dataMat));
+		sprintf(errstr, "ML FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
-		if(OMX_DEBUG) { Rprintf("ML Objective unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
-		return;
-	}
-	
-	if(cov == NULL) {
-		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
-			"Developer Error in ML-based objective object: ML-based subobjectives must specify a model-implied covariance matrix.\nIf you are not developing a new objective type, you should probably post this to the OpenMx forums.");
+		if(OMX_DEBUG) { Rprintf("ML FitFunction unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
 		return;
 	}
 
-	omxMLObjective *newObj = (omxMLObjective*) R_alloc(1, sizeof(omxMLObjective));
-
-	newObj->expectedCov = cov;
-	newObj->expectedMeans = means;
+	omxMLFitFunction *newObj = (omxMLFitFunction*) R_alloc(1, sizeof(omxMLFitFunction));
 
 	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
 	newObj->observedCov = omxDataMatrix(dataMat, NULL);
@@ -346,20 +304,28 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 	if(OMX_DEBUG && newObj->observedMeans == NULL) { Rprintf("ML: No Observed Means.\n"); }
 	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
 	newObj->n = omxDataNumObs(dataMat);
-	UNPROTECT(1); // nextMatrix
-	
+
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
+
+	if(newObj->expectedCov == NULL) {
+		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
+			"Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+		return;
+	}
+
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
-	    if(newObj->expectedMeans != NULL) {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
-		    return;
-	    } else {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
-		    return;	        
-	    }
+		if(newObj->expectedMeans != NULL) {
+			omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+				"Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			return;
+		} else {
+			omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+				"Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			return;	        
+		}
 	}
 
 	/* Temporary storage for calculation */
@@ -377,6 +343,8 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 
 	newObj->lwork = newObj->expectedCov->rows;
 	newObj->work = (double*)R_alloc(newObj->lwork, sizeof(double));
+
+	// TODO: Determine where the saturated model computation should go.
 
 	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
@@ -402,17 +370,17 @@ void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix
 
 }
 
-void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObjective*, double*)) {
-    if(strncmp("omxMLObjective", oo->objType, 16)) {
+void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, double*)) {
+    if(strncmp("omxMLFitFunction", oo->fitType, 16)) {
         char errorstr[250];
-        sprintf(errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with Objective of type %s", oo->objType);
+        sprintf(errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with FitFunction of type %s", oo->fitType);
         omxRaiseError(oo->matrix->currentState, -2, errorstr);
         return;
     }
     
     if(derivativeFun == NULL) {
         char errorstr[250];
-        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
+        sprintf(errorstr, "Programmer error: ML gradient given NULL gradient function.");
         omxRaiseError(oo->matrix->currentState, -2, errorstr);
         return;
     }
@@ -420,26 +388,21 @@ void omxSetMLObjectiveGradient(omxObjective* oo, void (*derivativeFun)(omxObject
     oo->gradientFun = derivativeFun;
 }
 
-void omxSetMLObjectiveGradientComponents(omxObjective* oo, void (*derivativeFun)(omxObjective*, omxMatrix**, omxMatrix**, int*)) {
-    if(OMX_DEBUG) { Rprintf("Setting up gradient component function for ML Objective."); }
-    if(!strncmp("omxFIMLObjective", oo->objType, 16)) {
-        if(OMX_DEBUG) { Rprintf("FIML Objective gradients not yet implemented. Skipping."); }
+void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
+    if(OMX_DEBUG) { Rprintf("Setting up gradient component function for ML FitFunction."); }
+    if(!strncmp("omxFIMLFitFunction", oo->fitType, 16)) {
+        if(OMX_DEBUG) { Rprintf("FIML FitFunction gradients not yet implemented. Skipping."); }
         return; // ERROR:NYI.
-    } else if(strncmp("omxMLObjective", oo->objType, 16)) {
-        char errorstr[250];
-        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
-        omxRaiseError(oo->matrix->currentState, -2, errorstr);
-        return;
     }
     
     if(derivativeFun == NULL) {
         char errorstr[250];
-        sprintf(errorstr, "Programmer error: ML gradient cannot be used with objective functions of type %s", oo->objType);
+        sprintf(errorstr, "Programmer error: ML gradient components given NULL gradient function.");
         omxRaiseError(oo->matrix->currentState, -2, errorstr);
         return;
     }
     
-    omxMLObjective *omo = ((omxMLObjective*) oo->argStruct);
+    omxMLFitFunction *omo = ((omxMLFitFunction*) oo->argStruct);
     int rows = omo->observedCov->rows;
     int cols = omo->observedCov->cols;
     int nFreeVars = oo->matrix->currentState->numFreeParams;
@@ -458,7 +421,7 @@ void omxSetMLObjectiveGradientComponents(omxObjective* oo, void (*derivativeFun)
     oo->gradientFun = omxCalculateMLGradient;
 }
 
-void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
+void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
 
     if(OMX_DEBUG) { Rprintf("Beginning ML Gradient Calculation.\n"); }
     // Rprintf("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
@@ -471,7 +434,7 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
     // 5) For each location in locs:
     //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
 
-    omxMLObjective *omo = ((omxMLObjective*)oo->argStruct);
+    omxMLFitFunction *omo = ((omxMLFitFunction*)oo->argStruct);
     
     /* Locals for readability.  Compiler should cut through this. */
     omxMatrix *scov         = omo->observedCov;
@@ -499,9 +462,9 @@ void omxCalculateMLGradient(omxObjective* oo, double* gradient) {
     int status[gradientSize];
     int nLocs = oo->matrix->currentState->numFreeParams;
     
-    // Calculate current Objective values
+    // Calculate current FitFunction values
     // We can safely assume this has been done
-    // omxObjectiveCompute(oo);
+    // omxFitFunctionCompute(oo);
     
     // Calculate current eCov
     

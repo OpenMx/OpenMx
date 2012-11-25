@@ -42,7 +42,7 @@ typedef struct omxData omxData;
 typedef struct omxContiguousData omxContiguousData;
 
 #include "omxAlgebra.h"
-#include "omxObjective.h"
+#include "omxFitFunction.h"
 #include "omxState.h"
 
 struct omxContiguousData {

@@ -14,15 +14,16 @@
  *  limitations under the License.
  */
 
-#include "omxObjective.h"
+#include "omxExpectation.h"
+#include "omxFitFunction.h"
 #include "omxBLAS.h"
-#include "omxFIMLObjective.h"
-#include "omxMLObjective.h"
-#include "omxRAMObjective.h"
+#include "omxFIMLFitFunction.h"
+#include "omxMLFitFunction.h"
+#include "omxRAMExpectation.h"
 
-void calculateRAMGradientComponents(omxObjective* oo, omxMatrix**, omxMatrix**, int*);
+void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix**, omxMatrix**, int*);
 void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result);
-void fastRAMGradientML(omxObjective* oo, double* result);
+void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
 
 // Speedup Helper
 void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
@@ -114,9 +115,9 @@ double trAB(omxMatrix* A, omxMatrix* B) {
     return(output);
 }
 
-void omxCallRAMObjective(omxObjective* oo) {
-    if(OMX_DEBUG) { Rprintf("RAM Subobjective called.\n"); }
-	omxRAMObjective* oro = (omxRAMObjective*)(oo->argStruct);
+void omxCallRAMExpectation(omxExpectation* oo) {
+    if(OMX_DEBUG) { Rprintf("RAM Expectation calculating.\n"); }
+	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
 	omxRecompute(oro->A);
 	omxRecompute(oro->S);
@@ -128,11 +129,11 @@ void omxCallRAMObjective(omxObjective* oo) {
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
 }
 
-void omxDestroyRAMObjective(omxObjective* oo) {
+void omxDestroyRAMExpectation(omxExpectation* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Destroying RAM Objective.\n"); }
+	if(OMX_DEBUG) { Rprintf("Destroying RAM Expectation.\n"); }
 	
-	omxRAMObjective* argStruct = (omxRAMObjective*)(oo->argStruct);
+	omxRAMExpectation* argStruct = (omxRAMExpectation*)(oo->argStruct);
 
 	/* We allocated 'em, so we destroy 'em. */
 	if(argStruct->cov != NULL)
@@ -186,16 +187,12 @@ void omxDestroyRAMObjective(omxObjective* oo) {
 	omxFreeMatrixData(argStruct->C);
 	omxFreeMatrixData(argStruct->eCov);
 
-
-	if(argStruct->ppmlData != NULL) 
-		omxFreeData(argStruct->ppmlData);
-	
 }
 
-void omxPopulateRAMAttributes(omxObjective *oo, SEXP algebra) {
+void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating RAM Attributes.\n"); }
 
-	omxRAMObjective* oro = (omxRAMObjective*) (oo->argStruct);
+	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
 	omxMatrix* A = oro->A;
 	omxMatrix* S = oro->S;
 	omxMatrix* X = oro->X;
@@ -355,7 +352,7 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
 	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
 	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
-	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
+	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
 	omxFastRAMInverse(numIters, A, Z, Ax, I );
@@ -387,154 +384,135 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	}
 }
 
-void omxInitRAMObjective(omxObjective* oo, SEXP rObj) {
+void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj) {
 	
-	omxState* currentState = oo->matrix->currentState;	
+	omxState* currentState = oo->currentState;	
 
-    if(OMX_DEBUG) { Rprintf("Initializing RAM objective.\n"); }
+    if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
 	
 	int l, k;
 
 	SEXP slotValue;
 	
-	/* Create and register subobjective */
-
-	omxObjective *subObjective = omxCreateSubObjective(oo);
-	subObjective->objType = "omxRAMObjective";
+	omxRAMExpectation *RAMexp = (omxRAMExpectation*) R_alloc(1, sizeof(omxRAMExpectation));
+	oo->expType = "omxRAMExpectation";
 	
-	omxRAMObjective *RAMobj = (omxRAMObjective*) R_alloc(1, sizeof(omxRAMObjective));
+	/* Set Expectation Calls and Structures */
+	oo->computeFun = omxCallRAMExpectation;
+	oo->destructFun = omxDestroyRAMExpectation;
+	oo->setFinalReturns = NULL;
+	oo->componentFun = omxGetRAMExpectationComponent;
+	oo->populateAttrFun = omxPopulateRAMAttributes;
+	oo->argStruct = (void*) RAMexp;
 	
-	/* Set Subobjective Calls and Structures */
-	subObjective->objectiveFun = omxCallRAMObjective;
-	subObjective->destructFun = omxDestroyRAMObjective;
-	subObjective->setFinalReturns = NULL;
-	subObjective->populateAttrFun = omxPopulateRAMAttributes;
-	subObjective->argStruct = (void*) RAMobj;
-	
-	/* Set up objective structures */
-	if(OMX_DEBUG) { Rprintf("Initializing RAM Meta Data for objective function.\n"); }
+	/* Set up expectation structures */
+	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
 
 	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
-	RAMobj->M = omxNewMatrixFromIndexSlot(rObj, currentState, "M");
+	RAMexp->M = omxNewMatrixFromIndexSlot(rObj, currentState, "M");
 
 	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
-	RAMobj->A = omxNewMatrixFromIndexSlot(rObj, currentState, "A");
+	RAMexp->A = omxNewMatrixFromIndexSlot(rObj, currentState, "A");
 
 	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
-	RAMobj->S = omxNewMatrixFromIndexSlot(rObj, currentState, "S");
+	RAMexp->S = omxNewMatrixFromIndexSlot(rObj, currentState, "S");
 
 	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
-	RAMobj->F = omxNewMatrixFromIndexSlot(rObj, currentState, "F");
+	RAMexp->F = omxNewMatrixFromIndexSlot(rObj, currentState, "F");
 
 	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
-	RAMobj->usePPML = INTEGER(slotValue)[0]; 
 	UNPROTECT(1);
-
-	if(RAMobj->usePPML) {
-		PROTECT(slotValue = GET_SLOT(rObj, install("ppmlData")));
-		RAMobj->ppmlData = omxNewDataFromMxData(NULL, slotValue, currentState);
-		UNPROTECT(1);
-
-		RAMobj->cov = omxDataMatrix(RAMobj->ppmlData, NULL);
-
-		if(OMX_DEBUG) { Rprintf("Processing PPML observed means.\n"); }
-		RAMobj->ppmlMeans = omxDataMeans(RAMobj->ppmlData, 0, NULL);
-		if(OMX_DEBUG && RAMobj->means == NULL) { Rprintf("RAM: No PPML Observed Means.\n"); }
-	} else {
-		RAMobj->ppmlData  = NULL;
-		RAMobj->ppmlCov   = NULL;
-		RAMobj->ppmlMeans = NULL;
-	}
 
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
-	RAMobj->I = omxNewIdentityMatrix(RAMobj->A->rows, currentState);
-	omxRecompute(RAMobj->I);
-	RAMobj->lilI = omxNewIdentityMatrix(RAMobj->F->rows, currentState);
-	omxRecompute(RAMobj->lilI);
+	RAMexp->I = omxNewIdentityMatrix(RAMexp->A->rows, currentState);
+	omxRecompute(RAMexp->I);
+	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
+	omxRecompute(RAMexp->lilI);
 	
 
 	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
-	RAMobj->numIters = INTEGER(slotValue)[0];
-	if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMobj->numIters); }
+	RAMexp->numIters = INTEGER(slotValue)[0];
+	if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMexp->numIters); }
 	UNPROTECT(1);
 
-	l = RAMobj->F->rows;
-	k = RAMobj->A->cols;
+	l = RAMexp->F->rows;
+	k = RAMexp->A->cols;
 
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 
-	RAMobj->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->W = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMobj->U = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->EF= 	omxInitMatrix(NULL, k, l, TRUE, currentState);
-	RAMobj->V = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMobj->ZSBC = 	omxInitMatrix(NULL, k, l, TRUE, currentState);
-	RAMobj->C = 	omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMexp->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMexp->W = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
+	RAMexp->U = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMexp->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMexp->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMexp->EF= 	omxInitMatrix(NULL, k, l, TRUE, currentState);
+	RAMexp->V = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
+	RAMexp->ZSBC = 	omxInitMatrix(NULL, k, l, TRUE, currentState);
+	RAMexp->C = 	omxInitMatrix(NULL, l, l, TRUE, currentState);
 	
-	if(omxIsMatrix(RAMobj->A)) {
-		RAMobj->dA = omxInitMatrix(NULL, k, k, TRUE, currentState);
+	if(omxIsMatrix(RAMexp->A)) {
+		RAMexp->dA = omxInitMatrix(NULL, k, k, TRUE, currentState);
 	} else {
-		RAMobj->dA = NULL;
+		RAMexp->dA = NULL;
 	}
-	if(omxIsMatrix(RAMobj->S)) {
-		RAMobj->dS = omxInitMatrix(NULL, k, k, TRUE, currentState);
+	if(omxIsMatrix(RAMexp->S)) {
+		RAMexp->dS = omxInitMatrix(NULL, k, k, TRUE, currentState);
 	} else {
-		RAMobj->dS = NULL;
+		RAMexp->dS = NULL;
 	}
-	if(RAMobj->M != NULL) {
-		RAMobj->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
-		RAMobj->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMobj->bCB = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMobj->b = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
-		RAMobj->tempVec = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMobj->bigSum = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMobj->lilSum = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
-		RAMobj->beCov = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
-		RAMobj->Mns = 	NULL;
+	if(RAMexp->M != NULL) {
+		RAMexp->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
+		RAMexp->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
+		RAMexp->bCB = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
+		RAMexp->b = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMexp->tempVec = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
+		RAMexp->bigSum = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
+		RAMexp->lilSum = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMexp->beCov = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMexp->Mns = 	NULL;
     }
 
-	RAMobj->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
 
-	if(RAMobj->M != NULL) {
-		RAMobj->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
+	if(RAMexp->M != NULL) {
+		RAMexp->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
 	} else {
-	    RAMobj->means  = 	NULL;
+	    RAMexp->means  = 	NULL;
     }
 
     // Derivative space:
-	RAMobj->eqnOuts = NULL;
-	RAMobj->dAdts = NULL;
-	RAMobj->dSdts = NULL;
-	RAMobj->dMdts = NULL;
-	RAMobj->paramVec = NULL;
-	RAMobj->D =     NULL;
-	RAMobj->pNums = NULL;
-	RAMobj->nParam = -1;
-	RAMobj->eCov=       omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->eqnOuts = NULL;
+	RAMexp->dAdts = NULL;
+	RAMexp->dSdts = NULL;
+	RAMexp->dMdts = NULL;
+	RAMexp->paramVec = NULL;
+	RAMexp->D =     NULL;
+	RAMexp->pNums = NULL;
+	RAMexp->nParam = -1;
+	RAMexp->eCov=       omxInitMatrix(NULL, l, l, TRUE, currentState);
 
-	/* Create parent objective */
+}
 
-	omxCreateMLObjective(oo, rObj, RAMobj->cov, RAMobj->means);
+void omxExpectationSetFitFunction(omxExpectation *ox, omxFitFunction *off) {
+/* Check for fit and make any changes based on the type of the underlying object */
 
+	omxRAMExpectation* RAMexp = (omxRAMExpectation*)(ox->argStruct);
 	// For fast gradient calculations
 	// If this block doesn't execute, we don't use gradients.
-	if(!strncmp("omxMLObjective", oo->objType, 14)) {
-	    // Mode switch here.  Faster one is:
-        omxSetMLObjectiveGradient(oo, fastRAMGradientML);
-	    // Otherwise, call 
-        // omxSetMLObjectiveGradientComponents(oo, calculateRAMGradientComponents);
-	    // Note that once FIML kicks in, components should still work.
-	    // Probably, we'll use the same thing for WLS.
-	    RAMobj->D = ((omxMLObjective*)(oo->argStruct))->observedCov;
-	    RAMobj->Mns = ((omxMLObjective*)(oo->argStruct))->observedMeans;
-        RAMobj->n = ((omxMLObjective*)(oo->argStruct))->n;
-        
+	if(!strncmp("omxMLFitFunction", off->fitType, 14)) {
+		// Mode switch here.  Faster one is:
+		// omxSetMLFitFunctionGradient(off, fastRAMGradientML);
+		// Otherwise, call 
+		// omxSetMLFitFunctionGradientComponents(oo, calculateRAMGradientComponents);
+		// Note that once FIML kicks in, components should still work.
+		// Probably, we'll use the same thing for WLS.
+		RAMexp->D = ((omxMLFitFunction*)(off->argStruct))->observedCov;
+		RAMexp->Mns = ((omxMLFitFunction*)(off->argStruct))->observedMeans;
+		RAMexp->n = ((omxMLFitFunction*)(off->argStruct))->n;
     }
 }
 
@@ -552,7 +530,7 @@ static inline void omxVectorMultiplyAndSet(double *restrict dest,
 /*
  * fastRAMGradientML
  * 			Calculates the derivatives of the likelihood for a RAM model.  
- * Locations of free parameters are extracted from the omxObjective's state object.
+ * Locations of free parameters are extracted from the omxExpecation's state object.
  *
  * params:
  * omxMatrix *A, *S, *F 	: matrices as specified in the RAM model.  MxM, MxM, and NxM
@@ -565,7 +543,7 @@ static inline void omxVectorMultiplyAndSet(double *restrict dest,
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void fastRAMGradientML(omxObjective* oo, double* result) {
+void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result) {
     
     // This calculation is based on von Oertzen and Brick, in prep.
     //
@@ -605,7 +583,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
  
     if(OMX_DEBUG) {Rprintf("Calculating fast RAM/ML gradient.\n"); }
     
-    omxRAMObjective* oro = (omxRAMObjective*)(oo->subObjective->argStruct);
+    omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
                                     // Size reference: A is axa, F is fxa
     omxMatrix* A = oro->A;          // axa
     omxMatrix* S = oro->S;          // axa
@@ -670,13 +648,13 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     char u = 'U';
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = oo->matrix->currentState->freeVarList;
+    omxFreeVar* varList = oo->currentState->freeVarList;
 
     omxMatrix *eqnList1[1], *eqnList2[1];
 
     if(nParam < 0) {
         nParam = 0;
-        int nTotalParams = oo->matrix->currentState->numFreeParams;
+        int nTotalParams = oo->currentState->numFreeParams;
         if(OMX_DEBUG) { Rprintf("Planning Memory for Fast Gradient Calculation: Using %d params.\n", nParam); }
         unsigned short int calc[nTotalParams]; 
         // Work out the set of parameters for which we can calculate gradients
@@ -729,7 +707,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
         oro->eqnOuts[0] = (omxMatrix**) R_alloc(nParam, sizeof(omxMatrix*));
         
         int a = A->rows;
-        omxState* currentState = oo->matrix->currentState;
+        omxState* currentState = oo->currentState;
         for(int i = 0; i < nParam; i++) {
             oro->dAdts[i] = omxInitMatrix(NULL, a, a, TRUE, currentState);
             oro->dSdts[i] = omxInitMatrix(NULL, a, a, TRUE, currentState);
@@ -759,15 +737,11 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     double covInfluence[nParam];
     double meanInfluence[nParam];
     
-
-    // Rprintf("Memory Set Up.\n"); //:::DEBUG:::
-
     // 1) (Re) Calculate current A, S, F, M, and Z (where Z = (I-A)^-1)
     // 2) cov = current Expected Covariance (fxf)
-    // Theoretically, we should calculate current Objective values 
+    // Theoretically, we should calculate current fit function values 
     // But we can safely assume this has already been done
     // That assumption may no longer be valid in FIML.
-    // omxObjectiveCompute(oo);
 
     // 3) eCov = cov^(-1) (fxf)
     omxCopyMatrix(eCov, cov);				// But expected cov is destroyed in inversion
@@ -778,11 +752,11 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     if(info > 0) {
         char *errstr = calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
-        if(oo->matrix->currentState->computeCount <= 0) {
+        if(oo->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->currentState, -1, errstr);                        // Raise error
         free(errstr);
         return;                                                                     // Leave output untouched
     }
@@ -791,11 +765,11 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     if(info > 0) {
         char *errstr = calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is not invertible");
-        if(oo->matrix->currentState->computeCount <= 0) {
+        if(oo->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->currentState, -1, errstr);                        // Raise error
         free(errstr);
         return;
     }
@@ -823,7 +797,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
     
     if(M != NULL) {
         // 10) Means = BM (fx1) *
-        // This is calculated during objective computation.
+        // This is calculated during expectation computation.
         // 11) b = Means - d, where d is the observed means matrix (fx1)
 
         omxCopyMatrix(b, Mns);
@@ -1013,7 +987,7 @@ void fastRAMGradientML(omxObjective* oo, double* result) {
 }
 
 
-void calculateRAMGradientComponents(omxObjective* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
+void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
 
     // Steps:
     // 1) (Re) Calculate current A, S, F, and Z (where Z = (I-A)^-1)
@@ -1025,7 +999,7 @@ void calculateRAMGradientComponents(omxObjective* oo, omxMatrix** dSigmas, omxMa
     //      3) dSigma/dT = C + C^T + B dS/dT B^T
     //      4) dM/dT = B dA/dT Z b + B dM/dT
 
-    omxRAMObjective* oro = (omxRAMObjective*) (oo->subObjective->argStruct);
+    omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
                                 // Size reference: A is axa, F is fxf
     omxMatrix* A = oro->A;      // axa
     omxMatrix* S = oro->S;      // axa
@@ -1051,8 +1025,8 @@ void calculateRAMGradientComponents(omxObjective* oo, omxMatrix** dSigmas, omxMa
     int Mmat = 0;
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = oo->matrix->currentState->freeVarList;
-    int nLocs = oo->matrix->currentState->numFreeParams;
+    omxFreeVar* varList = oo->currentState->freeVarList;
+    int nLocs = oo->currentState->numFreeParams;
 
     // Assumed.
     // if(omxNeedsUpdate(Z)) {
@@ -1142,5 +1116,26 @@ void calculateRAMGradientComponents(omxObjective* oo, omxMatrix** dSigmas, omxMa
         }
 
     }
+
+}
+
+omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+	
+	if(OMX_DEBUG) { Rprintf("RAM expectation: %s requested--", component); }
+
+	omxRAMExpectation* ore = (omxRAMExpectation*)(ox->argStruct);
+	omxMatrix* retval = NULL;
+
+	if(!strncmp("cov", component, 3)) {
+		retval = ore->cov;
+	} else if(!strncmp("mean", component, 4)) {
+		retval = ore->means;
+	} else if(!strncmp("pvec", component, 4)) {
+		// Once implemented, change compute function and return pvec
+	}
+	
+	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+
+	return retval;
 
 }

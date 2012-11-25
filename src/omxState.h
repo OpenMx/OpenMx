@@ -63,7 +63,8 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
-#include "omxObjective.h"
+#include "omxExpectation.h"
+#include "omxFitFunction.h"
 #include "omxData.h"
 //#include "omxOptimizer.h"											// omxOptimizer objects coming soon
 
@@ -90,7 +91,7 @@ struct omxOptimizerState {			// For hessian or confidence interval computation
 	int currentParameter;			// Which parameter is being examined?
 	double offset;					// Current offset of optimization
 	short int alpha;				// Parameter multiplier
-	// Objective should be:  (3.84 - (-2LL))^2 + alpha * parameter
+	// NormalFit should be:  (Limit - (-2LL))^2 + alpha * parameter
 	// Alpha should generally be +1 to minimize parameter -1 to maximize
 };
 
@@ -114,8 +115,8 @@ struct omxCheckpoint {
 struct omxConfidenceInterval {		// For Confidence interval request
 	omxMatrix* matrix;				// The matrix
 	int row, col;					// Location of element to calculate
-	double ubound;					// Objective-space upper boundary
-	double lbound;					// Objective-space lower boundary
+	double ubound;					// Fit-space upper boundary
+	double lbound;					// Fit-space lower boundary
 	double max;						// Value at upper bound
 	double min;						// Value at lower bound
 	int lCode;						// Optimizer code at lower bound
@@ -130,20 +131,21 @@ struct omxState {													// The Current State of Optimization
 /* Model and Optimizer Pointers */
 
 //	omxOptimizer* optimizer;										// Current Optimizer
-	int numMats, numAlgs, numData, numChildren;						// Number of matrices, algebras, and data elements
+	int numMats, numAlgs, numExpects, numData, numChildren;			// Number of matrices, algebras, and data elements
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
+	omxExpectation** expectationList; 							// Model Expectations
 	omxData** dataList;												// Data Objects
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
 	int* markMatrices;												// An array of [0,1] values used by markFreeVarDependencies()
 
                                                                     // TODO: Need a way to deal with unregistered matrices that have free vars
-	omxMatrix* objectiveMatrix;										// Objective Algebra
+	omxMatrix* fitMatrix;											// Fit Function Algebra
 
-	/* May want to farm these out to the omxObjective object. */
+	/* May want to farm these out to the omxFitFunction object. */
 	int numConstraints;
-	int nclin, ncnln;												// Number of linear and nonlinear constraints
+	int nclin, ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 	int numIntervals;
 	int currentInterval;											// The interval currently being calculated
@@ -154,7 +156,7 @@ struct omxState {													// The Current State of Optimization
 
 	/* Saved Optimum State */ // TODO: Rename saved optimum state
 	double* optimalValues;											// Values of the free parameters at the optimum value
-	double optimum;													// Objective value at last saved optimum
+	double optimum;													// Fit function value at last saved optimum
 	double* hessian;												// Current hessian storage
 	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
 	char optimumMsg[250];											// Status message of last saved optimum
@@ -163,7 +165,7 @@ struct omxState {													// The Current State of Optimization
 /* Current Optimization State (optimizer-specific) */
 //	void* optimizerInfo;											// Optimizer specific storage
 
-/* Data members for use by Objective Function and Algebra Calculations */
+/* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
 
@@ -176,8 +178,8 @@ struct omxState {													// The Current State of Optimization
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
 
-	int inform, iter;
-	int statusCode;													// Status code, if appropriate
+	int inform, iter;													// Status code, if appropriate
+	int statusCode;
 	char statusMsg[250];											// Status/Error message to report
 	double saturatedModel;											// Saturated model likelihood, where applicable
 	int analyticGradients;
@@ -185,7 +187,7 @@ struct omxState {													// The Current State of Optimization
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState, int numChildren); // Constructor
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* objective);
+	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
 	void omxFreeState(omxState *state);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
 	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus);	// Updates the tgt state with the contents of src state
@@ -200,6 +202,7 @@ struct omxState {													// The Current State of Optimization
 	void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
+	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
 	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// Raise an Error

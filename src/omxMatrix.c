@@ -88,7 +88,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
-	om->objective = NULL;
+	om->fitFunction = NULL;
 
 	om->currentState = os;
 	om->isTemporary = FALSE;
@@ -188,7 +188,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
     if(om == NULL) return;
 
 	if(OMX_DEBUG) { 
-	    Rprintf("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and objective 0x%x.\n", 
+	    Rprintf("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and fit function 0x%x.\n", 
 	        om, om->data, om->algebra); 
 	}
 
@@ -203,9 +203,9 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 		om->algebra = NULL;
 	}
 
-	if(om->objective != NULL) {
-		omxFreeObjectiveArgs(om->objective);
-		om->objective = NULL;
+	if(om->fitFunction != NULL) {
+		omxFreeFitFunctionArgs(om->fitFunction);
+		om->fitFunction = NULL;
 	}
 	
 	if(om->isTemporary) {
@@ -308,19 +308,19 @@ void vectorElementError(int index, int numrow, int numcol) {
 			index, length);
 	}
 	error(errstr);
-	free(errstr);
+	free(errstr);  // TODO not reached
 }
 
 void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	char *errstr = calloc(250, sizeof(char));
 	static const char *matrixString = "matrix";
 	static const char *algebraString = "algebra";
-	static const char *objectiveString = "objective";
+	static const char *fitString = "fit function";
 	const char *typeString;
 	if (om->algebra != NULL) {
 		typeString = algebraString;
-	} else if (om->objective != NULL) {
-		typeString = objectiveString;
+	} else if (om->fitFunction != NULL) {
+		typeString = fitString;
 	} else {
 		typeString = matrixString;
 	}
@@ -332,7 +332,7 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 			row, col, typeString, om->name, numrow, numcol);
 	}
 	error(errstr);
-	free(errstr);
+	free(errstr);  // TODO not reached
 }
 
 void matrixElementError(int row, int col, int numrow, int numcol) {
@@ -340,7 +340,7 @@ void matrixElementError(int row, int col, int numrow, int numcol) {
 	sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.",
 		row, col, numrow, numcol);
 	error(errstr);
-	free(errstr);
+	free(errstr);  // TODO not reached
 }
 
 void setVectorError(int index, int numrow, int numcol) {
@@ -354,7 +354,7 @@ void setVectorError(int index, int numrow, int numcol) {
 			index, length);
 	}
 	error(errstr);
-	free(errstr);
+	free(errstr);  // TODO not reached
 }
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
@@ -364,7 +364,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
 			row + 1, col + 1, om->originalRows, om->originalCols);
 		error(errstr);
-		free(errstr);
+		free(errstr);  // TODO not reached
         return (NA_REAL);
 	}
 	if(om->colMajor) {
@@ -466,7 +466,7 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	om->originalColMajor = TRUE;
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
-	om->objective = NULL;
+	om->fitFunction = NULL;
 	om->currentState = state;
 	om->hasMatrixNumber = hasMatrixNumber;
 	om->matrixNumber = matrixNumber;
@@ -669,7 +669,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
     if(source == NULL) Rprintf("%s is NULL.\n", d);
 	else if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
-	else if(source->objective != NULL) omxObjectivePrint(source->objective, d);
+	else if(source->fitFunction != NULL) omxFitFunctionPrint(source->fitFunction, d);
 	else omxPrintMatrix(source, d);
 }
 
@@ -713,12 +713,12 @@ void omxRecompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
-	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
+	else if(matrix->fitFunction != NULL) omxFitFunctionCompute(matrix->fitFunction);
 }
 
 void omxCompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if (matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
-	else if(matrix->objective != NULL) omxObjectiveCompute(matrix->objective);
+	else if(matrix->fitFunction != NULL) omxFitFunctionCompute(matrix->fitFunction);
 	else if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 }

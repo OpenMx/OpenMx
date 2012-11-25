@@ -29,6 +29,6 @@ mxMatrix(type="Full", nrow=1, ncol=1, free=TRUE, values=st, labels="th1", name="
 mxRAMObjective("A", "S", "F", "M", dimnames=c("x","f1"),
 thresholds="thresh", threshnames=c("x"))
 )
-omxCheckError(mxRun(prop.Model), paste("The RAM objective in model",
+omxCheckError(mxRun(prop.Model), paste("The RAM expectation function in model",
 	omxQuotes("Binary variable"), "has an A matrix with dimensions",
 	"1 x 2 and a S matrix with dimensions 2 x 2"))

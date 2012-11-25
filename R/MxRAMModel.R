@@ -35,8 +35,11 @@ setMethod("imxInitModel", "MxRAMModel",
 		if (is.null(model[['S']])) {
 			model[['S']] <- createMatrixS(model)
 		}
-		if (is.null(model[['objective']])) {
-			model[['objective']] <- mxRAMObjective('A', 'S', 'F')
+		if (is.null(model[['expectation']])) {
+			model[['expectation']] <- mxExpectationRAM('A', 'S', 'F')
+		}
+		if (is.null(model[['fitfunction']])) {
+			model[['fitfunction']] <- mxFitFunctionML()
 		}
 		model[['F']] <- createMatrixF(model)
 		return(model)
@@ -46,7 +49,7 @@ setMethod("imxInitModel", "MxRAMModel",
 setMethod("imxModelBuilder", "MxRAMModel", 
 	function(model, lst, name, 
 		manifestVars, latentVars, lst.call, remove, independent) {
-		model <- nameArgument(model, name)
+        model <- nameArgument(model, name)		
 		model <- variablesArgumentRAM(model, manifestVars, latentVars, remove)
 		model <- listArgumentRAM(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
@@ -66,14 +69,14 @@ setMethod("imxVerifyModel", "MxRAMModel",
 				" mxPath(from = 'x1', to = 'y1')")
 				stop(msg, call. = FALSE)
 		}
-		objective <- model$objective
-		if (!is.null(objective) && is(objective, "MxRAMObjective")) {
+		expectation <- model$expectation
+		if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
 			if (!is.null(model@data) && model@data@type == "raw" &&
    	    	is.null(model$M)) {
 				msg <- paste("The RAM model", omxQuotes(model@name),
         	       "contains raw data but has not specified any means paths.",
-				   " Add something like mxPath(from = 'one', to = manifests) to your model."
-				   )
+                   "Add something like mxPath(from = 'one', to = manifests) to your model."
+                   )
 				stop(msg, call. = FALSE)
 			}
 			if (!is.null(model@data) && !single.na(model@data@means) &&
@@ -277,11 +280,11 @@ checkPaths <- function(model, paths) {
 	}
 }
 
-objectiveIsMissingMeans <- function(model) {
-	objective <- model@objective
-	return(!is.null(objective) &&
-		is(objective, "MxRAMObjective") &&
-		is.na(objective@M))
+expectationIsMissingMeans <- function(model) {
+	expectation <- model@expectation
+	return(!is.null(expectation) &&
+		is(expectation, "MxExpectationRAM") &&
+		is.na(expectation@M))
 }
 
 insertAllPathsRAM <- function(model, paths) {
@@ -317,8 +320,8 @@ insertAllPathsRAM <- function(model, paths) {
 		if (length(path@from) == 1 && (path@from == "one")) {
 			if (is.null(M)) {
 				M <- createMatrixM(model) 
-				if(objectiveIsMissingMeans(model)) {
-					model@objective@M <- "M"
+				if(expectationIsMissingMeans(model)) {
+					model@expectation@M <- "M"
 				}
 			}
 			M <- insertMeansPathRAM(path, M)
@@ -758,7 +761,7 @@ replaceMethodRAM <- function(model, index, value) {
 	if (namespace == model@name && name == "data") {
 		model@data <- value
 		if (requireMeansVector(value)) {
-			model@objective@M <- "M"
+			model@expectation@M <- "M"
 		}
 	} else {
 		model <- imxReplaceMethod(model, index, value)

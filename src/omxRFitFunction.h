@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_R_OBJECTIVE_
-#define _OMX_R_OBJECTIVE_
+#ifndef _OMX_R_FITFUNCTION_
+#define _OMX_R_FITFUNCTION_
 
 #include <R.h>
 #include <Rinternals.h>
@@ -27,7 +27,7 @@
 
 typedef struct {
 
-	SEXP objfun;
+	SEXP fitfun;
 	SEXP model;
 	PROTECT_INDEX modelIndex;
 	SEXP flatModel;
@@ -35,27 +35,27 @@ typedef struct {
 	SEXP state;
 	PROTECT_INDEX stateIndex;
 
-} omxRObjective;
+} omxRFitFunction;
 
 #ifdef _OPENMP
 
 #include "omp.h"
-extern omp_lock_t robjective_lock;
+extern omp_lock_t rfitfunction_lock;
 
 #else // (!defined _OPENMP)
 
-extern void* robjective_lock;
+extern void* rfitfunction_lock;
 
 #endif // _OPENMP
 
 
-void omxDestroyRObjective(omxObjective *oo);
-void omxCallRObjective(omxObjective *oo);
+void omxDestroyRFitFunction(omxFitFunction *oo);
+void omxCallRFitFunction(omxFitFunction *oo);
 
-void omxRepopulateRObjective(omxObjective* oo, double* x, int n);
+void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n);
 
-omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns);
+omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns);
 
-void omxInitRObjective(omxObjective* oo, SEXP rObj);
+void omxInitRFitFunction(omxFitFunction* oo, SEXP rObj);
 
-#endif /* _OMX_R_OBJECTIVE_ */
+#endif /* _OMX_R_FITFUNCTION_ */

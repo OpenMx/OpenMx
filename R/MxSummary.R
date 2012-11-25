@@ -40,19 +40,19 @@ calculateConstraintsHelper <- function(constraint, model) {
 	}
 }
 
-observedStatisticsHelper <- function(model, objective, datalist, historySet) {
-	if ('numStats' %in% slotNames(objective)) {
-		if (!is.na(objective@numStats)) {
-			return(list(objective@numStats, historySet))
+observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
+	if ('numStats' %in% slotNames(expectation)) {
+		if (!is.na(expectation@numStats)) {
+			return(list(expectation@numStats, historySet))
 		}
 	}
-	if (is.na(objective@data)) {
+	if (is.na(expectation@data)) {
 		return(list(0, historySet))
 	}
-	if (is.numeric(objective@data)) {
-		data <- datalist[[objective@data + 1]]
+	if (is.numeric(expectation@data)) {
+		data <- datalist[[expectation@data + 1]]
 	} else {
-		data <- model[[objective@data]] 
+		data <- model[[expectation@data]] 
 	}
 	if (data@type == 'cov' || data@type == 'sscp') {
 		if (data@name %in% historySet) {
@@ -80,7 +80,7 @@ observedStatisticsHelper <- function(model, objective, datalist, historySet) {
 		for (i in 1:ncol(observed)) {
 			colname <- colnames(observed)[[i]]
 			fullname <- paste(data@name, colname, sep='.')
-			if ((colname %in% objective@dims) && !(fullname %in% historySet)) {
+			if ((colname %in% expectation@dims) && !(fullname %in% historySet)) {
 				dof <- dof + sum(!is.na(observed[,i]))
 				historySet <- append(fullname, historySet)
 			}
@@ -91,12 +91,12 @@ observedStatisticsHelper <- function(model, objective, datalist, historySet) {
 
 observedStatistics <- function(model, useSubmodels, constraintOffset) {
 	datalist <- model@runstate$datalist
-	objectives <- model@runstate$objectives
+	expectations <- model@runstate$expectations
 	retval <- constraintOffset
-	if (length(objectives) > 0) {
+	if (length(expectations) > 0) {
 		historySet <- character()
-		for(i in 1:length(objectives)) {
-			result <- observedStatisticsHelper(model, objectives[[i]], datalist, historySet)
+		for(i in 1:length(expectations)) {
+			result <- observedStatisticsHelper(model, expectations[[i]], datalist, historySet)
 			retval <- retval + result[[1]]
 			historySet <- result[[2]]
 		}
@@ -108,18 +108,18 @@ observedStatistics <- function(model, useSubmodels, constraintOffset) {
 	return(retval)
 }
 
-objectiveNumberObservations <- function(objective) {
-	if (("numObs" %in% slotNames(objective)) && !single.na(objective@numObs)) {
-		return(objective@numObs)
+fitfunctionNumberObservations <- function(fitfunction) {
+	if (("numObs" %in% slotNames(fitfunction)) && !single.na(fitfunction@numObs)) {
+		return(fitfunction@numObs)
 	} else {
 		return(0)
 	}
 }
 
-numberObservations <- function(datalist, objectives) {
+numberObservations <- function(datalist, fitfunctions) {
 	dataObservations <- sapply(datalist, slot, name = "numObs")
-	objectiveObservations <- sapply(objectives, objectiveNumberObservations)
-	return(sum(as.numeric(dataObservations), as.numeric(objectiveObservations)))
+	fitfunctionObservations <- sapply(fitfunctions, fitfunctionNumberObservations)
+	return(sum(as.numeric(dataObservations), as.numeric(fitfunctionObservations)))
 }
 
 computeFValue <- function(datalist, likelihood, chi) {
@@ -179,8 +179,8 @@ fitStatistics <- function(model, useSubmodels, retval) {
 #           13 Dec 2010 (corrected 'parameters' output)
 #           25 May 2012 (incorporated into summary function)
 standardizeRAMModel <- function(model) {
-	nameA <- model$objective@A
-	nameS <- model$objective@S
+	nameA <- model$expectation@A
+	nameS <- model$expectation@S
 	I <- diag(nrow(model[[nameS]]))
 	IA <- eval(substitute(mxEval(solve(I - x), model), list(x = as.symbol(nameA))))
 	expCov <- eval(substitute(mxEval(IA %*% x %*% t(IA), model), list(x = as.symbol(nameS) )))
@@ -247,8 +247,8 @@ parameterListHelper <- function(model, withModelName, invSDs) {
 		}
 	}
 	if (!is.null(invSDs)) {
-		nameA <- model$objective@A
-		nameS <- model$objective@S
+		nameA <- model$expectation@A
+		nameS <- model$expectation@S
 		rowA <- subset(ptable, matrix==nameA, select='row', drop=TRUE)
 		colA <- subset(ptable, matrix==nameA, select='col', drop=TRUE)
 		rowS <- subset(ptable, matrix==nameS, select='row', drop=TRUE)
@@ -290,9 +290,9 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 		nvar <- 0
 	}
 		# how many thresholds does each variable have (needed for saturated and independence DoF calculation)
-	# grab the objective
-	obj <- model@runstate$objective
-	# grab the thresholdLevels object and expected means; punt if there is more than one objective
+	# grab the expectation
+	obj <- model@runstate$expectation
+	# grab the thresholdLevels object and expected means; punt if there is more than one expectation
 	if (length(obj)==1){
 		if ("thresholdLevels" %in% slotNames(obj[[1]])){
 			thresholdLevels <- obj[[1]]@thresholdLevels
@@ -303,7 +303,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 	} else {
 		thresholdLevels <- NULL	
 	}
-	# number of continuous variables, provided there is just one objective
+	# number of continuous variables, provided there is just one expectation
 	if (!is.null(thresholdLevels)){
 		continuous <- sum(is.na(thresholdLevels))
 	} else{
@@ -445,9 +445,9 @@ setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, r
 	return(retval)
 }
 
-setNumberObservations <- function(numObs, datalist, objectives, retval) {
+setNumberObservations <- function(numObs, datalist, fitfunctions, retval) {
 	if(is.null(numObs)) {
-		retval$numObs <- numberObservations(datalist, objectives)
+		retval$numObs <- numberObservations(datalist, fitfunctions)
 	} else {
 		retval$numObs <- numObs
 	}
@@ -550,19 +550,19 @@ translateSaturatedLikelihood <- function(input) {
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
-		if (is.null(input@objective)) {
+		if (is.null(input@fitfunction)) {
 			stop(paste("Saturated model passed",
 				"to summary function does not",
-				"have top-level objective function in",
+				"have top-level fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (length(input@objective@result) != 1) {
+		if (length(input@fitfunction@result) != 1) {
 			stop(paste("Saturated model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in objective function in",
+				"result in fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		return(input@objective@result[1,1])
+		return(input@fitfunction@result[1,1])
 	} else {
 		stop(paste("Illegal argument passed to",
 			"'SaturatedLikelihood' argument",
@@ -577,16 +577,16 @@ translateSaturatedDoF <- function(input) {
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
-		if (is.null(input@objective)) {
+		if (is.null(input@fitfunction)) {
 			stop(paste("Saturated model passed",
 				"to summary function does not",
-				"have top-level objective function in",
+				"have top-level fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (length(input@objective@result) != 1) {
+		if (length(input@fitfunction@result) != 1) {
 			stop(paste("Saturated model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in objective function in",
+				"result in fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		return(summary(input)$degreesOfFreedom)
@@ -604,19 +604,19 @@ translateIndependenceLikelihood <- function(input) {
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
-		if (is.null(input@objective)) {
+		if (is.null(input@fitfunction)) {
 			stop(paste("Independence model passed",
 				"to summary function does not",
-				"have top-level objective function in",
+				"have top-level fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (length(input@objective@result) != 1) {
+		if (length(input@fitfunction@result) != 1) {
 			stop(paste("Independence model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in objective function in",
+				"result in fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		return(input@objective@result[1,1])
+		return(input@fitfunction@result[1,1])
 	} else {
 		stop(paste("Illegal argument passed to",
 			"'IndependenceLikelihood' argument",
@@ -631,16 +631,16 @@ translateIndependenceDoF <- function(input) {
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
-		if (is.null(input@objective)) {
+		if (is.null(input@fitfunction)) {
 			stop(paste("Independence model passed",
 				"to summary function does not",
-				"have top-level objective function in",
+				"have top-level fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		if (length(input@objective@result) != 1) {
+		if (length(input@fitfunction@result) != 1) {
 			stop(paste("Independence model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in objective function in",
+				"result in fitfunction function in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		return(summary(input)$degreesOfFreedom) 	} else {
@@ -668,7 +668,7 @@ setMethod("summary", "MxModel",
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
-		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$objectives, retval)
+		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
 		retval$CI <- generateConfidenceIntervalTable(model)

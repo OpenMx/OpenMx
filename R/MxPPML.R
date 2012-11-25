@@ -9,18 +9,18 @@ imxCheckPPMLApplicable <- function(model) {
 	
 	#is the model a RAM model?
 	# NOTE: This could be made redundant by implementing the transform call
-	# from the MxRAMObjective function
+	# from the MxExpectationRAM function
 	# Depends on FIML implementation
-	objective <- model$objective
-	if(is.null(objective) || !is(objective, "MxRAMObjective")) {
+	expectation <- model$expectation
+	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
 		return(NA)
 	}
 	
 	# Extract RAM matrices
-	Aname <- objective@A
-	Sname <- objective@S
-	Fname <- objective@F
-	Mname <- objective@M
+	Aname <- expectation@A
+	Sname <- expectation@S
+	Fname <- expectation@F
+	Mname <- expectation@M
 	Amatrix <- model[[Aname]]
 	Smatrix <- model[[Sname]]
 	Fmatrix <- model[[Fname]]
@@ -53,11 +53,11 @@ imxCheckPPMLApplicable <- function(model) {
 	}
 	
 	# If the model is matrix specified, uses numeric indices instead of dimnames
-	# Then splits the objective function in the split section
+	# Then splits the fit function in the split section
 	manifestVars <- NULL
 	latentVars <- NULL
 	if (length(model@manifestVars) == 0 && length(model@latentVars) == 0) {
-		if (length(model@objective@dims) == 1 && single.na(unique(model@objective@dims)))	# no dims anywhere NOTE: is this necessary?
+		if (length(model@expectation@dims) == 1 && single.na(unique(model@expectation@dims)))	# no dims anywhere NOTE: is this necessary?
 			return(NA)
 		for (i in 1:max(dim(Fmatrix@values))) {
 			if (any(as.logical(Fmatrix@values[,i])))
@@ -274,12 +274,12 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 	# -------------------------------------------------------------------------
 	### SET-UP Section
 	### Set up for the transform
-	objective <- model$objective
+	expectation <- model$expectation
 	
-	Aname <- objective@A
-	Sname <- objective@S
-	Fname <- objective@F
-	Mname <- objective@M
+	Aname <- expectation@A
+	Sname <- expectation@S
+	Fname <- expectation@F
+	Mname <- expectation@M
 	Amatrix <- model[[Aname]]
 	Smatrix <- model[[Sname]]
 	Fmatrix <- model[[Fname]]
@@ -290,11 +290,11 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 	constraints <- model@constraints
 	
 	# If the model is matrix specified, uses numeric indices instead of dimnames
-	# Then splits the objective function in the split section
+	# Then splits the expectation function in the split section
 	manifestVars <- NULL
 	latentVars <- NULL
 	if (length(model@manifestVars) == 0 && length(model@latentVars) == 0) {
-		if (length(model@objective@dims) == 1 && single.na(unique(model@objective@dims)))	# no dims anywhere NOTE: is this necessary?
+		if (length(expectation@dims) == 1 && single.na(unique(expectation@dims)))	# no dims anywhere NOTE: is this necessary?
 			return(model)
 		for (i in 1:max(dim(Fmatrix@values))) {
 			if (any(as.logical(Fmatrix@values[,i])))
@@ -476,13 +476,13 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 			MDmodel@latentVars <- latentVars
 		} else if (length(latentVars) < (max(dim(Fmatrix@values)) - sum(Fmatrix@values)) ) {
 			# if number of latentVars has been reduced, remove appropriate variable
-			# names from the objective
+			# names from the expectation
 			oldLatentVars <- NULL
 			for (i in 1:max(dim(Fmatrix@values))) {
 				if (!any(as.logical(Fmatrix@values[,i])))
 					oldLatentVars <- c(latentVars, as.numeric(i))
 			}
-			MDmodel@objective@dims <- MDmodel@objective@dims[-setdiff(oldLatentVars, latentVars)]
+			MDmodel$expectation@dims <- MDmodel$expectation@dims[-setdiff(oldLatentVars, latentVars)]
 		}
 		
 		MDmodel <- imxPPMLMissingData(MDmodel)
@@ -545,13 +545,13 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 		model@latentVars <- latentVars
 	} else if (length(latentVars) < (max(dim(Fmatrix@values)) - sum(Fmatrix@values)) ) {
 		# if number of latentVars has been reduced, remove appropriate variable
-		# names from the objective
+		# names from the expectation
 		oldLatentVars <- NULL
 		for (i in 1:max(dim(Fmatrix@values))) {
 			if (!any(as.logical(Fmatrix@values[,i])))
 				oldLatentVars <- c(latentVars, as.numeric(i))
 		}
-		model@objective@dims <- model@objective@dims[-setdiff(oldLatentVars, latentVars)]
+		model$expectation@dims <- model$expectation@dims[-setdiff(oldLatentVars, latentVars)]
 	}
 	model@constraints <- constraints
 	
@@ -563,7 +563,7 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 		if (!is.numeric(manifestVars))
 			colnames(model$data@observed) <- manifestVars
 		else {
-			colnames(model$data@observed) <- model@objective@dims[manifestVars]
+			colnames(model$data@observed) <- model$expectation@dims[manifestVars]
 		}
 	}
 	else if(model$data@type == "cov") {
@@ -577,8 +577,8 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 			rownames(model$data@observed) <- manifestVars
 		} else {
 			# For matrix-specified models
-			colnames(model$data@observed) <- model@objective@dims[manifestVars]
-			rownames(model$data@observed) <- model@objective@dims[manifestVars]
+			colnames(model$data@observed) <- model$expectation@dims[manifestVars]
+			rownames(model$data@observed) <- model$expectation@dims[manifestVars]
 		}
 		
 		# Transform means data, if it exists
@@ -588,7 +588,7 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 			if (!(is.numeric(manifestVars) && is.numeric(latentVars)))
 				colnames(model$data@means) <- manifestVars	# Path-specified
 			else
-				colnames(model$data@means) <- model@objective@dims[manifestVars] # Matrix-specified
+				colnames(model$data@means) <- model$expectation@dims[manifestVars] # Matrix-specified
 		}
 		
 	}
@@ -753,7 +753,7 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 		
 		# browser()
 		
-		### Create separate 1x1 "error matrix" to be referenced by objective, constrain to error variance with a label
+		### Create separate 1x1 "error matrix" to be referenced by fit function, constrain to error variance with a label
 		# Find error label for Smatrix
 		errorLabel <- unique(diag(Smatrix@labels[manifestVars, manifestVars])) # NOTE: Should be fine as long as there's only one error label
 		# Create mxMatrix for error parameter
@@ -761,7 +761,7 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 		varE <- mxMatrix( "Full", nrow=1, ncol=1, labels=errorLabel, values=leftmodel$S@values[[ which(leftmodel$S@labels == errorLabel)[[1]] ]], free=TRUE, name="varE" )
 		
 		
-		### Create algebra objective
+		### Create algebra fitfunction
 		sumSqData <- mxMatrix("Full", nrow=1, ncol=1, values = sum(errData^2 ), name = "sumSqData")
 		numData <- mxMatrix("Full", nrow=1, ncol=1, values = (dim(errData)[[2]] * dim(errData)[[1]]), name="numData")
 		
@@ -778,14 +778,14 @@ imxTransformModelPPML <- function(model, solveType = "Check") {
 		
 		
 		# Build algebra string
-		expression <- paste(paste(model@name,'_leftmodel',sep=""), "objective", sep=".") # "model@name_leftmodel.objective"
-		expression <- paste(c(expression, "errorLL"), collapse = " + ") # "model@name_leftmodel.objective + errorLL"
-		expression <- paste("mxAlgebra(", expression, ", name='TotObj')", sep="") # mxAlgebra(model@name_leftmodel.objective + errorLL, name='TotObj')
+		expression <- paste(paste(model@name,'_leftmodel',sep=""), "fitfunction", sep=".") # "model@name_leftmodel.fitfunction"
+		expression <- paste(c(expression, "errorLL"), collapse = " + ") # "model@name_leftmodel.fitfunction + errorLL"
+		expression <- paste("mxAlgebra(", expression, ", name='TotObj')", sep="") # mxAlgebra(model@name_leftmodel.fitfunction + errorLL, name='TotObj')
 		# Create algebra
 		objAlgebra <- eval(parse(text=expression)) 
 		
-		objective <- mxAlgebraObjective("TotObj") # Create algebraobjective that call this algebra
-		result <- mxModel(name=model@name, result, leftmodel, objective, objAlgebra, sumSqData, numData, errorLLAlgebra, varE)
+		fitfunction <- mxFitFunctionAlgebra("TotObj") # Create algebra fitfunction that call this algebra
+		result <- mxModel(name=model@name, result, leftmodel, fitfunction, objAlgebra, sumSqData, numData, errorLLAlgebra, varE)
 		
 		
 		# Include data in combination model for raw data
@@ -812,10 +812,11 @@ imxPPMLMissingData <- function(model) {
 	# Need to name anonymous params to constrain across the submodels
 	model <- omxNameAnonymousParameters(model)[[1]]
 	
-	Aname <- model@objective@A
-	Sname <- model@objective@S
-	Fname <- model@objective@F
-	Mname <- model@objective@M
+	expectation <- model$expectation
+	Aname <- expectation@A
+	Sname <- expectation@S
+	Fname <- expectation@F
+	Mname <- expectation@M
 	
 	# TODO / NOTE: Do we need to worry about screwy matrix-defined models? e.g., a case where
 	# the latents and manifests are mixed in together in the matrices, rather than
@@ -869,23 +870,23 @@ imxPPMLMissingData <- function(model) {
 		remainingMansData <- remainingMans
 		# NOTE: actually only need removedMans?
 		if ( length(newSubmodel@manifestVars) == 0 && length(newSubmodel@latentVars) == 0 ) {
-			remainingVars <- c(remainingMans, model@objective@dims[apply(newSubmodel$F@values, 2, sum) == 0])
-			# Matrix specified - Use dims from objective to get location vector
+			remainingVars <- c(remainingMans, model$expectation@dims[apply(newSubmodel$F@values, 2, sum) == 0])
+			# Matrix specified - Use dims from expectation to get location vector
 			removedMansLoc <- c()
 			for (removedMan in removedMans) {
-				removedMansLoc <- c(removedMansLoc, which(model@objective@dims == removedMan))
+				removedMansLoc <- c(removedMansLoc, which(model$expectation@dims == removedMan))
 			}
 			removedMans <- sort(removedMansLoc)
 			
 			remainingMansLoc <- c()
 			for (remainingMan in remainingMans) {
-				remainingMansLoc <- c(remainingMansLoc, which(model@objective@dims == remainingMan))
+				remainingMansLoc <- c(remainingMansLoc, which(model$expectation@dims == remainingMan))
 			}
 			remainingMans <- sort(remainingMansLoc)
 			
 			remainingVarsLoc <- c()
 			for (remainingVar in remainingVars) {
-				remainingVarsLoc <- c(remainingVarsLoc, which(model@objective@dims == remainingVar))
+				remainingVarsLoc <- c(remainingVarsLoc, which(model$expectation@dims == remainingVar))
 			}
 			remainingVars <- sort(remainingVarsLoc)
 		} else {
@@ -925,7 +926,7 @@ imxPPMLMissingData <- function(model) {
 		if ( !(length(newSubmodel@manifestVars) == 0 && length(newSubmodel@latentVars) == 0) ) {
 			newSubmodel@manifestVars <- remainingMans
 		} else {
-			newSubmodel@objective@dims <- newSubmodel@objective@dims[-removedMans]
+			newSubmodel@expectation@dims <- newSubmodel@expectation@dims[-removedMans]
 		}
 		
 		# Rename each submodel
@@ -969,13 +970,13 @@ imxPPMLMissingData <- function(model) {
 	# }
 	
 	
-	# Objective = sum
-	objectives <- paste(submodelNames, "objective", sep = ".")
-	objectives <- paste(objectives, collapse = " + ")
-	expression <- paste("mxAlgebra(", objectives, ", name = 'SumObjective')", sep = "")
+	# Fit function = sum
+	fitfunctions <- paste(submodelNames, "fitfunction", sep = ".")
+	fitfunctions <- paste(fitfunctions, collapse = " + ")
+	expression <- paste("mxAlgebra(", fitfunctions, ", name = 'SumFitFunction')", sep = "")
 	algebra <- eval(parse(text=expression))
-	objective <- mxAlgebraObjective("SumObjective")
-	bigModel <- mxModel(bigModel, objective, algebra)
+	fitfunction <- mxFitFunctionAlgebra("SumFitFunction")
+	bigModel <- mxModel(bigModel, fitfunction, algebra)
 	bigModel <- mxOption(bigModel, "UsePPML", "Split")
 	
 	# Return this model
@@ -1022,7 +1023,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 	}
 	else
 	{
-		submodel@objective@dims <- submodel@objective@dims[Aindices]
+		submodel@expectation@dims <- submodel@expectation@dims[Aindices]
 	}
 	
 	if(!is.null(submodel$M)){
@@ -1465,9 +1466,9 @@ imxPPML <- function(model, flag) {
 	if (!(length(flag) == 1 && is.logical(flag) && !is.na(flag))) {
 		stop("Argument 'flag' must be TRUE or FALSE")
 	}
-	# Objective exists / must be a RAM objective
-	objective <- model$objective
-	if(is.null(objective) || !is(objective, "MxRAMObjective")) {
+	# Expectation exists / must be a RAM expectation
+	expectation <- model$expectation
+	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
 		return(NA)
 	}
 	if (flag) {

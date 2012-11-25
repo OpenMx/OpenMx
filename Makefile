@@ -130,7 +130,7 @@ winbuild: common-build
 
 winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
-
+	
 install: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
@@ -146,7 +146,7 @@ testdocs:
 
 test:
 	$(REXEC) --vanilla --slave --cpus=$(CPUS) < $(TESTFILE)
-
+	
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
 

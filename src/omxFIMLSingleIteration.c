@@ -25,7 +25,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxFIMLObjective.h"
+#include "omxFIMLFitFunction.h"
 #include "omxSadmvnWrapper.h"
 
 
@@ -90,10 +90,10 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
-    omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
-    omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
+    omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
+    omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 
 	double Q = 0.0;
 	int numDefs;
@@ -112,7 +112,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 	int *Infin;
 	omxDefinitionVar* defVars;
 	
-	omxObjective* subObjective;
+	omxExpectation* expectation;
 	
 
 	// Locals, for readability.  Compiler should cut through this.
@@ -145,8 +145,8 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 	rowLikelihoods = shared_ofo->rowLikelihoods;		// write-only
 	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 
-    Infin            = ofo->Infin;
-	subObjective = localobj->subObjective;
+	Infin			= ofo->Infin;
+	expectation 	= localobj->expectation;
 
     int ordRemove[cov->cols], contRemove[cov->cols];
     char u = 'U', l = 'L';
@@ -206,12 +206,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					// Recalculate means and covariances.
-					if(subObjective != NULL) {
-						omxObjectiveCompute(subObjective);
-					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
-					}
+					omxExpectationCompute(expectation);
 				}
 			}
             // Filter down correlation matrix and calculate thresholds.
@@ -378,7 +373,7 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
                 // Calculate determinant: squared product of the diagonal of the decomposition
     			// For speed, use sum of logs rather than log of product.
     			
-    			determinant = 0.0;
+                determinant = 0.0;
     			for(int diag = 0; diag < (smallCov->rows); diag++) {
     				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
     			}
@@ -633,10 +628,10 @@ void omxFIMLSingleIterationJoint(omxObjective *localobj, omxObjective *sharedobj
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
-    omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
-    omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
+    omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
+    omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 
 	double Q = 0.0;
 	double* oldDefs;
@@ -645,7 +640,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
 
-	omxObjective* subObjective;
+	omxExpectation* expectation;
 	
 	omxMatrix *cov, *means, *smallCov, *dataColumns;//, *oldInverse;
     omxMatrix *rowLikelihoods, *rowLogLikelihoods;;
@@ -676,7 +671,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 
     Infin            = ofo->Infin;
 
-	subObjective = localobj->subObjective;
+	expectation 	 = localobj->expectation;
 
 	int firstRow = 1;
     int row = rowbegin;
@@ -718,12 +713,7 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
 				} else if (numVarsFilled || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(subObjective != NULL) {
-						omxObjectiveCompute(subObjective);
-					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
-					}
+					omxExpectationCompute(expectation);
 					for(int j=0; j < dataColumns->cols; j++) {
 						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 							omxRecompute(thresholdCols[j].matrix);
@@ -872,10 +862,10 @@ void omxFIMLSingleIterationOrdinal(omxObjective *localobj, omxObjective *sharedo
  * Grep for "[[Comment 4]]" in source code.
  * 
  */
-void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
     
-    omxFIMLObjective* ofo = ((omxFIMLObjective*) localobj->argStruct);
-    omxFIMLObjective* shared_ofo = ((omxFIMLObjective*) sharedobj->argStruct);
+    omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
+    omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 
 	char u = 'U';
 	int info = 0;
@@ -891,7 +881,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 	int returnRowLikelihoods;
 	int keepCov = 0, keepInverse = 0;
 
-	omxObjective* subObjective;
+	omxExpectation* expectation;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *RCX, *dataColumns;//, *oldInverse;
 	omxMatrix *rowLikelihoods, *rowLogLikelihoods;
@@ -916,7 +906,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 	contiguousStart  = ofo->contiguous.start;           //  read-only
 	contiguousLength = ofo->contiguous.length;          //  read-only
 
-	subObjective = localobj->subObjective;
+	expectation = localobj->expectation;
 
 	int toRemove[cov->cols];
 	int dataColumnCols = dataColumns->cols;
@@ -972,12 +962,7 @@ void omxFIMLSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int
 				} else if (numVarsFilled || firstRow) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
-					if(!(subObjective == NULL)) {
-						omxObjectiveCompute(subObjective);
-					} else {
-						omxRecompute(cov);
-						omxRecompute(means);
-					}
+					omxExpectationCompute(expectation);
 				}
 			} else if(OMX_DEBUG_ROWS(row)){ Rprintf("Identical def vars: Not repopulating"); }
 		}

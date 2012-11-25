@@ -24,17 +24,17 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxRowObjective.h"
-#include "omxFIMLObjective.h"
+#include "omxRowFitFunction.h"
+#include "omxFIMLFitFunction.h"
 
-void omxDestroyRowObjective(omxObjective *oo) {
+void omxDestroyRowFitFunction(omxFitFunction *oo) {
 
-	omxRowObjective* argStruct = (omxRowObjective*)(oo->argStruct);
+	omxRowFitFunction* argStruct = (omxRowFitFunction*)(oo->argStruct);
 
 	omxFreeMatrixData(argStruct->dataRow);
 }
 
-omxRListElement* omxSetFinalReturnsRowObjective(omxObjective *oo, int *numReturns) {
+omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numReturns) {
 	*numReturns = 0;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
 
@@ -53,10 +53,10 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
 
 }
 
-void markDataRowDependencies(omxState* os, omxRowObjective* objective) {
+void markDataRowDependencies(omxState* os, omxRowFitFunction* orff) {
 
-	int numDeps = objective->numDataRowDeps;
-	int *deps = objective->dataRowDeps;
+	int numDeps = orff->numDataRowDeps;
+	int *deps = orff->dataRowDeps;
 
 	omxMatrix** matrixList = os->matrixList;
 	omxMatrix** algebraList = os->algebraList;
@@ -73,10 +73,10 @@ void markDataRowDependencies(omxState* os, omxRowObjective* objective) {
 
 }
 
-void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *sharedobj, int rowbegin, int rowcount) {
+void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
-    omxRowObjective* oro = ((omxRowObjective*) localobj->argStruct);
-    omxRowObjective* shared_oro = ((omxRowObjective*) sharedobj->argStruct);
+    omxRowFitFunction* oro = ((omxRowFitFunction*) localobj->argStruct);
+    omxRowFitFunction* shared_oro = ((omxRowFitFunction*) sharedobj->argStruct);
 
 	int numDefs;
 
@@ -146,7 +146,7 @@ void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *shared
 		
 		if(numRemoves == numCols) {
 		    char *errstr = calloc(250, sizeof(char));
-			sprintf(errstr, "Row %d completely missing.  omxRowObjective cannot have completely missing rows.", omxDataIndex(data, row));
+			sprintf(errstr, "Row %d completely missing.  omxRowFitFunction cannot have completely missing rows.", omxDataIndex(data, row));
 			omxRaiseError(localobj->matrix->currentState, -1, errstr);
 			free(errstr);
 			continue;
@@ -163,7 +163,7 @@ void omxRowObjectiveSingleIteration(omxObjective *localobj, omxObjective *shared
 	free(zeros);
 }
 
-void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallRowFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
     if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
 	// Requires: Data, means, covariances.
 
@@ -174,13 +174,13 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
     omxMatrix *reduceAlgebra;
 	omxData *data;
 
-    omxRowObjective* oro = ((omxRowObjective*) oo->argStruct);
+    omxRowFitFunction* oro = ((omxRowFitFunction*) oo->argStruct);
 
 	reduceAlgebra   = oro->reduceAlgebra;
 	data		    = oro->data;
 
 	/* Michael Spiegel, 7/31/12
-	* The demo "RowObjectiveSimpleExamples" will fail in the parallel 
+	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel 
 	* Hessian calculation if the resizing operation is performed.
 	*
 	omxMatrix *rowAlgebra, *rowResults
@@ -209,11 +209,11 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxObjective *childObjective = childMatrix->objective;
+			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
+				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i);
 			} else {
-				omxRowObjectiveSingleIteration(childObjective, oo, stride * i, stride);
+				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride);
 			}
 		}
 
@@ -226,7 +226,7 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 		}
 
 	} else {
-		omxRowObjectiveSingleIteration(oo, oo, 0, data->rows);
+		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows);
 	}
 
 	omxRecompute(reduceAlgebra);
@@ -235,21 +235,21 @@ void omxCallRowObjective(omxObjective *oo) {	// TODO: Figure out how to give acc
 
 }
 
-void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
+void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce objective function.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce fit function.\n"); }
 
 	SEXP nextMatrix, itemList, nextItem;
 	int nextDef, index, numDeps;
 
-	omxRowObjective *newObj = (omxRowObjective*) R_alloc(1, sizeof(omxRowObjective));
+	omxRowFitFunction *newObj = (omxRowFitFunction*) R_alloc(1, sizeof(omxRowFitFunction));
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No data provided to omxRowObjective.");
+		sprintf(errstr, "No data provided to omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -259,7 +259,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	newObj->rowAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No row-wise algebra in omxRowObjective.");
+		sprintf(errstr, "No row-wise algebra in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -269,7 +269,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	newObj->filteredDataRow = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->filteredDataRow == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No row results matrix in omxRowObjective.");
+		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -283,7 +283,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
     // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
 	if(newObj->existenceVector == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No existance matrix in omxRowObjective.");
+		sprintf(errstr, "No existance matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -294,7 +294,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	newObj->rowResults = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowResults == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No row results matrix in omxRowObjective.");
+		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -304,7 +304,7 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	newObj->reduceAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
 	if(newObj->reduceAlgebra == NULL) {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "No row reduction algebra in omxRowObjective.");
+		sprintf(errstr, "No row reduction algebra in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -371,9 +371,9 @@ void omxInitRowObjective(omxObjective* oo, SEXP rObj) {
 	/* Set up data columns */
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
-	oo->objectiveFun = omxCallRowObjective;
-	oo->setFinalReturns = omxSetFinalReturnsRowObjective;
-	oo->destructFun = omxDestroyRowObjective;
+	oo->computeFun = omxCallRowFitFunction;
+	oo->setFinalReturns = omxSetFinalReturnsRowFitFunction;
+	oo->destructFun = omxDestroyRowFitFunction;
 	oo->repopulateFun = NULL;
 
 	oo->argStruct = (void*) newObj;

@@ -32,6 +32,7 @@ runHelper <- function(model, frontendStart,
 		intervals, silent, suppressWarnings, 
 		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
 	model <- imxPreprocessModel(model)
+	model <- eliminateObjectiveFunctions(model)
 	imxCheckMatrices(model)
 	imxVerifyModel(model)
 	model <- processParentData(model, parentData)
@@ -77,7 +78,8 @@ runHelper <- function(model, frontendStart,
 	flatModel@datasets <- collectDatasets(model)
 	labelsData <- imxGenerateLabels(model)
 
-	model <- objectiveFunctionAddEntities(model, flatModel, labelsData)
+	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
+	model <- fitFunctionAddEntities(model, flatModel, labelsData)
 
 	if (model@.newobjects) {
 		namespace <- imxGenerateNamespace(model)
@@ -85,7 +87,7 @@ runHelper <- function(model, frontendStart,
 		labelsData <- imxGenerateLabels(model)
 	}
 
-	flatModel <- objectiveFunctionModifyEntities(flatModel, namespace, labelsData)
+	flatModel <- expectationFunctionModifyEntities(flatModel, namespace, labelsData)
 
 	if (model@.newobjects) {
 		convertArguments <- imxCheckVariables(flatModel, namespace)
@@ -102,33 +104,34 @@ runHelper <- function(model, frontendStart,
 	algebras <- generateAlgebraList(flatModel)
 	startVals <- generateValueList(matrices, parameters)
 	defVars <- generateDefinitionList(flatModel, dependencies)		
-	objectives <- convertObjectiveFunctions(flatModel, model, labelsData, defVars, dependencies)
+	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
+	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- flatModel@datasets
-	algebras <- append(algebras, objectives)
+	algebras <- append(algebras, fitfunctions)
 	constraints <- convertConstraints(flatModel)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
-	objective <- getObjectiveIndex(flatModel)
+	fitfunction <- getFitFunctionIndex(flatModel)
 	options <- generateOptionsList(model, parameters, constraints, useOptimizer)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
-	output <- .Call("callNPSOL", objective, startVals, 
+	output <- .Call("callNPSOL", fitfunction, startVals, 
 		constraints, matrices, parameters, 
-		algebras, data, intervalList, communication, options, state, PACKAGE = "OpenMx")
+		algebras, expectations, data, intervalList, communication, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
-	independents <- lapply(independents, undoDataShare, dataList)	
+	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)
 	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
 	model <- populateRunStateInformation(model, parameters, matrices, 
-		objectives, data, flatModel@constraints, independents, defVars)
+		fitfunctions, expectations, data, flatModel@constraints, independents, defVars)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,

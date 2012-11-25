@@ -25,7 +25,7 @@
 #include "omxNPSOLSpecific.h"
 #include "npsolWrap.h"
 
-void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras) {
+void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras, SEXP expectations) {
 	SEXP nextMat, algebra;
 	for(int index = 0; index < currentState->numMats; index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", index); }
@@ -39,7 +39,6 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 			}
 		}
 		SET_VECTOR_ELT(matrices, index, nextMat);
-
 		UNPROTECT(1);	/* nextMat */
 	}
 
@@ -48,15 +47,16 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
 		omxRecompute(nextAlgebra);
 		PROTECT(algebra = allocMatrix(REALSXP, nextAlgebra->rows, nextAlgebra->cols));
-		/* If an objective, populate attributes.  Will skip if not objective. */
-        for(omxObjective* currentObj = nextAlgebra->objective; currentObj != NULL; 
-            currentObj = currentObj->subObjective) {
-		        if(OMX_DEBUG) { Rprintf("Algebra %d is an objective.\n", index); }                
-                if(currentObj->populateAttrFun != NULL) {
-    		        if(OMX_DEBUG) { Rprintf("Algebra %d has attribute population.\n", index); }                    
-	                currentObj->populateAttrFun(currentObj, algebra);
-                }
+		/* If an fit function, populate attributes.  Will skip if not fit function. */
+		omxFitFunction* currentFit = nextAlgebra->fitFunction;
+		if(currentFit != NULL) {
+			if(OMX_DEBUG) { Rprintf("Algebra %d is a fit function.\n", index); }
+			if(currentFit->populateAttrFun != NULL) {
+				if(OMX_DEBUG) { Rprintf("Algebra %d has attribute population.\n", index); }
+				currentFit->populateAttrFun(currentFit, algebra);
 		    }
+		}
+
 		if(OMX_DEBUG) { Rprintf("Final Calculation of Algebra %d Complete.\n", index); }
 		for(int row = 0; row < nextAlgebra->rows; row++) {
 			for(int col = 0; col < nextAlgebra->cols; col++) {
@@ -69,23 +69,37 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		UNPROTECT(1);	/* algebra */
 	}
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
+	
+	for(int index = 0; index < currentState->numExpects; index++) {
+		if(OMX_DEBUG) { Rprintf("Final Calculation of Expectation %d.\n", index); }
+		omxExpectation* nextExpectation = currentState->expectationList[index];
+		omxExpectationRecompute(nextExpectation);
+		SEXP rExpect;
+		PROTECT(rExpect = allocVector(LGLSXP, 1));
+		if(nextExpectation->populateAttrFun != NULL) {
+			if(OMX_DEBUG) { Rprintf("Expectation %d has attribute population.\n", index); }
+			nextExpectation->populateAttrFun(nextExpectation, rExpect);
+	    }
+		SET_VECTOR_ELT(expectations, index, rExpect);
+		UNPROTECT(1); /* rExpect */
+	}
 }
 
-void omxPopulateObjectiveFunction(omxState *currentState, int numReturns, SEXP *ans, SEXP *names) {
-	omxMatrix* om = currentState->objectiveMatrix;
-	if(om != NULL) {					// In the event of a no-objective run.
-		omxObjective* oo = om->objective;
-		if(OMX_DEBUG) { Rprintf("Checking for additional objective info.\n"); }
+void omxPopulateFitFunction(omxState *currentState, int numReturns, SEXP *ans, SEXP *names) {
+	omxMatrix* om = currentState->fitMatrix;
+	if(om != NULL) {					// In the event of a no-fit function run.
+		omxFitFunction* off = om->fitFunction;
+		if(OMX_DEBUG) { Rprintf("Checking for additional fit function info.\n"); }
 
-		if(oo != NULL && oo->setFinalReturns != NULL) {
-			if(OMX_DEBUG) { Rprintf("Expecting objective Info....");}
+		if(off != NULL && off->setFinalReturns != NULL) {
+			if(OMX_DEBUG) { Rprintf("Expecting fit function Info....");}
 			int numEls;
 			SEXP oElement;
-			omxRListElement* orle = oo->setFinalReturns(oo, &numEls);
+			omxRListElement* orle = off->setFinalReturns(off, &numEls);
 			PROTECT(*ans = allocVector(VECSXP, numReturns + numEls));
 			PROTECT(*names = allocVector(STRSXP, numReturns + numEls));
 			if(numEls != 0) {
-				if(OMX_DEBUG) { Rprintf("Adding %d sets of objective Info....", numEls);}
+				if(OMX_DEBUG) { Rprintf("Adding %d sets of fit function Info....", numEls);}
 				for(int i = 0; i < numEls; i++) {
 					PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
 					for(int j = 0; j < orle[i].numValues; j++)
@@ -106,25 +120,25 @@ void omxPopulateObjectiveFunction(omxState *currentState, int numReturns, SEXP *
 	}
 }
 
-void omxPopulateHessians(int numHessians, omxMatrix* currentObjective, 
+void omxPopulateHessians(int numHessians, omxMatrix* currentFit, 
 		SEXP calculatedHessian, SEXP stdErrors, int calculateStdErrors, int n) {
-	if(OMX_DEBUG) { Rprintf("Populating hessians for %d objectives.\n", numHessians); }
-	omxObjective* oo = currentObjective->objective;
-	if(oo->hessian == NULL) {
-		if(OMX_DEBUG) { Rprintf("Objective 0 has no hessian. Aborting.\n");}
+	if(OMX_DEBUG) { Rprintf("Populating hessians for %d fit functions.\n", numHessians); }
+	omxFitFunction* off = currentFit->fitFunction;
+	if(off->hessian == NULL) {
+		if(OMX_DEBUG) { Rprintf("Fit function 0 has no hessian. Aborting.\n");}
 		return;
 	}
 
-	if(OMX_DEBUG) { Rprintf("Objective 0 has hessian at 0x%x.\n", oo->hessian);}
+	if(OMX_DEBUG) { Rprintf("Fit function 0 has hessian at 0x%x.\n", off->hessian);}
 
 	double* hessian  = REAL(calculatedHessian);
 	double* stdError = REAL(stdErrors);
 	for(int k = 0; k < n * n; k++) {
 		if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
-		hessian[k] = oo->hessian[k];		// For expediency, ignore majority for symmetric matrices.
+		hessian[k] = off->hessian[k];		// For expediency, ignore majority for symmetric matrices.
 	}
 	if(calculateStdErrors) {
-		if(oo->stdError == NULL) {
+		if(off->stdError == NULL) {
 			for(int k = 0; k < n; k++) {
 				if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
 				stdError[k] = R_NaReal;
@@ -132,7 +146,7 @@ void omxPopulateHessians(int numHessians, omxMatrix* currentObjective,
 		} else {
 			for(int k = 0; k < n; k++) {
 				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-				stdError[k] = oo->stdError[k];
+				stdError[k] = off->stdError[k];
 			}
 		}
 	}
@@ -140,7 +154,7 @@ void omxPopulateHessians(int numHessians, omxMatrix* currentObjective,
 
 void omxPopulateConfidenceIntervals(omxState* currentState, SEXP intervals, SEXP intervalCodes) {
 	int numInts = currentState->numIntervals;
-	if(OMX_DEBUG) { Rprintf("Populating CIs for %d objectives.\n", numInts); }
+	if(OMX_DEBUG) { Rprintf("Populating CIs for %d fit functions.\n", numInts); }
 	double* interval = REAL(intervals);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {

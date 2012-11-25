@@ -13,29 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClassUnion("MxMaybeFunction", c("NULL", "function"))
 
-setClass(Class = "MxReservedName",
-	representation = representation(
-		name = "character",
-		search = "MxMaybeFunction",
-		replace = "MxMaybeFunction"))
+imxReservedNames <- c('data', 'objective', 'likelihood', 'fitfunction', 'expectation')
 
-setMethod("initialize", "MxReservedName",
-	function(.Object, name = character(),
-		search = function(model) { return(NULL) },
-		replace = function(model, value) { return(model) }) {
-		.Object@name <- name
-		.Object@search <- search
-		.Object@replace <- replace
-		return(.Object)
-	}
-)
-
-imxReservedNames <- list()
-
-imxReservedNames[['data']] <- new("MxReservedName", "data", NULL, NULL)
-
-imxReservedNames[['objective']] <- new("MxReservedName", "objective", NULL, NULL)
-
-imxReservedNames[['likelihood']] <- new("MxReservedName", "likelihood")

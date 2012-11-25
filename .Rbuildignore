@@ -1,3 +1,5 @@
 Makefile
 build
 support
+.gitignore
+inst/tools/rox

@@ -1,0 +1,5 @@
+/build
+/config.log
+/config.status
+/src/Makevars
+/src/omxSymbolTable.*

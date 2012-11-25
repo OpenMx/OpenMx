@@ -24,7 +24,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxFIMLObjective.h"
+#include "omxFIMLFitFunction.h"
 #include "omxFIMLSingleIteration.h"
 #include "omxSadmvnWrapper.h"
 
@@ -34,9 +34,9 @@
      _a > _b ? _a : _b; })
 
 /* FIML Function body */
-void omxDestroyFIMLObjective(omxObjective *oo) {
-	if(OMX_DEBUG) { Rprintf("Destroying FIML objective object.\n"); }
-	omxFIMLObjective *argStruct = (omxFIMLObjective*) (oo->argStruct);
+void omxDestroyFIMLFitFunction(omxFitFunction *off) {
+	if(OMX_DEBUG) { Rprintf("Destroying FIML fit function object.\n"); }
+	omxFIMLFitFunction *argStruct = (omxFIMLFitFunction*) (off->argStruct);
 
 	if(argStruct->smallMeans != NULL) omxFreeMatrixData(argStruct->smallMeans);
 	if(argStruct->ordMeans != NULL) omxFreeMatrixData(argStruct->ordMeans);
@@ -52,14 +52,14 @@ void omxDestroyFIMLObjective(omxObjective *oo) {
 	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
     if(argStruct->rowLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLikelihoods);
     if(argStruct->rowLogLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLogLikelihoods);
-	if(oo->subObjective == NULL) {
+	if(off->expectation == NULL) {
 		if(argStruct->cov != NULL) omxFreeMatrixData(argStruct->cov);
 		if(argStruct->means != NULL) omxFreeMatrixData(argStruct->means);
 	}
 }
 
-void omxPopulateFIMLAttributes(omxObjective *oo, SEXP algebra) {
-	omxFIMLObjective *argStruct = ((omxFIMLObjective*)oo->argStruct);
+void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
+	omxFIMLFitFunction *argStruct = ((omxFIMLFitFunction*)off->argStruct);
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
 	omxMatrix *expCovInt, *expMeanInt, *rowLikelihoodsInt;
 	expCovInt = argStruct->cov;
@@ -88,18 +88,18 @@ void omxPopulateFIMLAttributes(omxObjective *oo, SEXP algebra) {
 	setAttrib(algebra, install("expMean"), expMeanExt);
 	setAttrib(algebra, install("likelihoods"), rowLikelihoodsExt);
 
-	UNPROTECT(3);
+	UNPROTECT(3); // expCovExp, expCovInt, rowLikelihoodsExt
 }
 
-omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns) {
+omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *off, int *numReturns) {
 
-	omxFIMLObjective* ofo = (omxFIMLObjective *) (oo->argStruct);
+	omxFIMLFitFunction* ofiml = (omxFIMLFitFunction *) (off->argStruct);
 
 	omxRListElement* retVal;
 
 	*numReturns = 1;
 
-	if(!ofo->returnRowLikelihoods) {
+	if(!ofiml->returnRowLikelihoods) {
 		retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
 	} else {
 		retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
@@ -108,11 +108,11 @@ omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numRetur
 	retVal[0].numValues = 1;
 	retVal[0].values = (double*) R_alloc(1, sizeof(double));
 	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+	retVal[0].values[0] = omxMatrixElement(off->matrix, 0, 0);
 
 
-	if(ofo->returnRowLikelihoods) {
-		omxData* data = ofo->data;
+	if(ofiml->returnRowLikelihoods) {
+		omxData* data = ofiml->data;
 		retVal[1].numValues = data->rows;
 		retVal[1].values = (double*) R_alloc(data->rows, sizeof(double));
 	}
@@ -181,7 +181,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-void omxCallJointFIMLObjective(omxObjective *oo) {	
+void omxCallJointFIMLFitFunction(omxFitFunction *off) {	
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
@@ -201,36 +201,32 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 	omxThresholdColumn *thresholdCols;
 	omxData* data;
 	
-	omxObjective* subObjective;
+	omxExpectation* expectation;
 
-    omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
-	omxMatrix* objMatrix  = oo->matrix;
-	omxState* parentState = objMatrix->currentState;
+	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
+	omxMatrix* fitMatrix  = off->matrix;
+	omxState* parentState = fitMatrix->currentState;
 	int numChildren = parentState->numChildren;
 
-    cov 		= ofo->cov;
-	means		= ofo->means;
-	data		= ofo->data;                            //  read-only
-	numDefs		= ofo->numDefs;                         //  read-only
-	dataColumns	= ofo->dataColumns;
-	thresholdCols = ofo->thresholdCols;
+	cov 		= ofiml->cov;
+	means		= ofiml->means;
+	data		= ofiml->data;                            //  read-only
+	numDefs		= ofiml->numDefs;                         //  read-only
+	dataColumns	= ofiml->dataColumns;
+	thresholdCols = ofiml->thresholdCols;
 
-	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-	subObjective = oo->subObjective;
+	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
+	expectation = off->expectation;
 
 
     if(numDefs == 0) {
         if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-        if(subObjective != NULL) {
-            omxObjectiveCompute(subObjective);
-        } else {
-            omxRecompute(cov);			// Only recompute this here if there are no definition vars
-            omxRecompute(means);
-        }
-        // MCN Also do the threshold formulae!
-        for(int j=0; j < dataColumns->cols; j++) {
-            int var = omxVectorElement(dataColumns, j);
-            if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+		omxExpectationRecompute(expectation);
+		// MCN Also do the threshold formulae!
+		
+		for(int j=0; j < dataColumns->cols; j++) {
+			int var = omxVectorElement(dataColumns, j);
+			if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[var].matrix;
 				omxRecompute(nextMatrix);
 				checkIncreasing(nextMatrix, thresholdCols[var].column);
@@ -241,16 +237,16 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
             }
         }
 		for(int index = 0; index < numChildren; index++) {
-			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
-			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
-			omxCopyMatrix(childOfo->cov, cov);
-			omxCopyMatrix(childOfo->means, means);
+			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], fitMatrix);
+			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
+			omxCopyMatrix(childOfiml->cov, cov);
+			omxCopyMatrix(childOfiml->means, means);
 		}
         if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
         if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
     }
 
-	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
+	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
@@ -263,12 +259,12 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxObjective *childObjective = childMatrix->objective;
+			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], fitMatrix);
+			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIterationJoint(childObjective, oo, stride * i, data->rows - stride * i);
+				omxFIMLSingleIterationJoint(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIterationJoint(childObjective, oo, stride * i, stride);
+				omxFIMLSingleIterationJoint(childFit, off, stride * i, stride);
 			}
 		}
 
@@ -281,7 +277,7 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 		}
 
 	} else {
-		omxFIMLSingleIterationJoint(oo, oo, 0, data->rows);
+		omxFIMLSingleIterationJoint(off, off, 0, data->rows);
 	}
 
 	if(!returnRowLikelihoods) {
@@ -289,61 +285,57 @@ void omxCallJointFIMLObjective(omxObjective *oo) {
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			val = omxVectorElement(ofo->rowLogLikelihoods, i);
+			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
 //			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
 		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-		omxSetMatrixElement(oo->matrix, 0, 0, sum);
+		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 
 }
 
-void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallFIMLFitFunction(omxFitFunction *off) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
 	int numDefs, returnRowLikelihoods;	
-	omxObjective* subObjective;
+	omxExpectation* expectation;
 	
 	omxMatrix *cov, *means;//, *oldInverse;
 	omxData *data;
 
-	omxFIMLObjective* ofo = ((omxFIMLObjective*) oo->argStruct);
-	omxMatrix* objMatrix  = oo->matrix;
+	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*) off->argStruct);
+	omxMatrix* objMatrix  = off->matrix;
 	omxState* parentState = objMatrix->currentState;
 	int numChildren = parentState->numChildren;
 
 	// Locals, for readability.  Should compile out.
-	cov 		= ofo->cov;
-	means		= ofo->means;
-	data		= ofo->data;                            //  read-only
-	numDefs		= ofo->numDefs;                         //  read-only
-	returnRowLikelihoods = ofo->returnRowLikelihoods;   //  read-only
-	subObjective = oo->subObjective;
+	cov 		= ofiml->cov;
+	means		= ofiml->means;
+	data		= ofiml->data;                            //  read-only
+	numDefs		= ofiml->numDefs;                         //  read-only
+	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
+	expectation = off->expectation;
 
 	if(numDefs == 0) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
-		if(subObjective != NULL) {
-			omxObjectiveCompute(subObjective);
-		} else {
-			omxRecompute(cov);			// Only recompute this here if there are no definition vars
-			omxRecompute(means);
-		}
+		omxExpectationCompute(expectation);
+		
 		for(int index = 0; index < numChildren; index++) {
-			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
-			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
-			omxCopyMatrix(childOfo->cov, cov);
-			omxCopyMatrix(childOfo->means, means);
+			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
+			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
+			omxCopyMatrix(childOfiml->cov, cov);
+			omxCopyMatrix(childOfiml->means, means);
 		}
 
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
 	}
 
-	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
+	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
@@ -357,11 +349,11 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxObjective *childObjective = childMatrix->objective;
+			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIteration(childObjective, oo, stride * i, data->rows - stride * i);
+				omxFIMLSingleIteration(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIteration(childObjective, oo, stride * i, stride);
+				omxFIMLSingleIteration(childFit, off, stride * i, stride);
 			}
 		}
 
@@ -374,7 +366,7 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		}
 
 	} else {
-		omxFIMLSingleIteration(oo, oo, 0, data->rows);
+		omxFIMLSingleIteration(off, off, 0, data->rows);
 	}
 
 	if(!returnRowLikelihoods) {
@@ -382,16 +374,16 @@ void omxCallFIMLObjective(omxObjective *oo) {	// TODO: Figure out how to give ac
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			val = omxVectorElement(ofo->rowLogLikelihoods, i);
+			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
 //			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
 		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-		omxSetMatrixElement(oo->matrix, 0, 0, sum);
+		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 }
 
-void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+void omxCallFIMLOrdinalFitFunction(omxFitFunction *off) {	// TODO: Figure out how to give access to other per-iteration structures.
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
 	// Requires: Data, means, covariances, thresholds
@@ -404,35 +396,30 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 	omxData* data;
 	double *corList, *weights;
 	
-	omxObjective* subObjective;	
+	omxExpectation* expectation;
 
-	omxFIMLObjective* ofo = ((omxFIMLObjective*)oo->argStruct);
-	omxMatrix* objMatrix  = oo->matrix;
+	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
+	omxMatrix* objMatrix  = off->matrix;
 	omxState* parentState = objMatrix->currentState;
 	int numChildren = parentState->numChildren;
 
 	// Locals, for readability.  Compiler should cut through this.
-	cov 		= ofo->cov;
-	means		= ofo->means;
-	data		= ofo->data;
-	dataColumns	= ofo->dataColumns;
-	numDefs		= ofo->numDefs;
+	cov 		= ofiml->cov;
+	means		= ofiml->means;
+	data		= ofiml->data;
+	dataColumns	= ofiml->dataColumns;
+	numDefs		= ofiml->numDefs;
 
-	corList 	= ofo->corList;
-	weights		= ofo->weights;
-	thresholdCols = ofo->thresholdCols;
-	returnRowLikelihoods = ofo->returnRowLikelihoods;
+	corList 	= ofiml->corList;
+	weights		= ofiml->weights;
+	thresholdCols = ofiml->thresholdCols;
+	returnRowLikelihoods = ofiml->returnRowLikelihoods;
 	
-	subObjective = oo->subObjective;
+	expectation = off->expectation;
 	
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
-		if(subObjective != NULL) {
-			omxObjectiveCompute(subObjective);
-		} else {
-			omxRecompute(cov);			// Only recompute this here if there are no definition vars
-			omxRecompute(means);
-		}
+		omxExpectationCompute(expectation);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;
@@ -446,16 +433,16 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		}
 		omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 		for(int index = 0; index < numChildren; index++) {
-			omxMatrix *childObjective = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
-			omxFIMLObjective* childOfo = ((omxFIMLObjective*) childObjective->objective->argStruct);
-			omxCopyMatrix(childOfo->cov, cov);
-			omxCopyMatrix(childOfo->means, means);
-			memcpy(childOfo->weights, weights, sizeof(double) * cov->rows);
-			memcpy(childOfo->corList, corList, sizeof(double) * (cov->rows * (cov->rows - 1)) / 2);
+			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
+			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
+			omxCopyMatrix(childOfiml->cov, cov);
+			omxCopyMatrix(childOfiml->means, means);
+			memcpy(childOfiml->weights, weights, sizeof(double) * cov->rows);
+			memcpy(childOfiml->corList, corList, sizeof(double) * (cov->rows * (cov->rows - 1)) / 2);
 		}
 	}
 
-	memset(ofo->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
+	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
 
 	int parallelism = (numChildren == 0) ? 1 : numChildren;
 
@@ -469,11 +456,11 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
-			omxObjective *childObjective = childMatrix->objective;
+			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, data->rows - stride * i);
+				omxFIMLSingleIterationOrdinal(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIterationOrdinal(childObjective, oo, stride * i, stride);
+				omxFIMLSingleIterationOrdinal(childFit, off, stride * i, stride);
 			}
 		}
 
@@ -486,7 +473,7 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		}
 
 	} else {
-		omxFIMLSingleIterationOrdinal(oo, oo, 0, data->rows);
+		omxFIMLSingleIterationOrdinal(off, off, 0, data->rows);
 	}
 
 	if(!returnRowLikelihoods) {
@@ -494,50 +481,48 @@ void omxCallFIMLOrdinalObjective(omxObjective *oo) {	// TODO: Figure out how to 
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			val = omxVectorElement(ofo->rowLogLikelihoods, i);
+			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
 //			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
 		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
-		omxSetMatrixElement(oo->matrix, 0, 0, sum);
+		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 }
 
-void omxInitFIMLObjective(omxObjective* oo, SEXP rObj) {
+void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-		Rprintf("Initializing FIML objective function.\n");
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+		Rprintf("Initializing FIML fit function function.\n");
 	}
 
 	SEXP nextMatrix;
-    omxMatrix *cov, *means;
-	
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	if(means == NULL) { 
-		omxRaiseError(oo->matrix->currentState, -1, "No means model in FIML evaluation.");
+	int numOrdinal = 0, numContinuous = 0;
+	omxMatrix *cov, *means;
+
+	omxFIMLFitFunction *newObj = (omxFIMLFitFunction*) R_alloc(1, sizeof(omxFIMLFitFunction));
+	omxExpectation* expectation = off->expectation;
+	if(expectation == NULL) {
+		omxRaiseError(off->matrix->currentState, -1, "FIML cannot fit without model expectations.");
+		return;
 	}
-	UNPROTECT(1);	// UNPROTECT(means)
 
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);	// UNPROTECT(covariance)
+	cov = omxGetExpectationComponent(expectation, off, "cov");
+	if(cov == NULL) { 
+		omxRaiseError(off->matrix->currentState, -1, "No covariance expectation in FIML evaluation.");
+		return;
+	}
+
+	means = omxGetExpectationComponent(expectation, off, "means");
 	
-	omxCreateFIMLObjective(oo, rObj, cov, means);
+	if(means == NULL) { 
+		omxRaiseError(off->matrix->currentState, -1, "No means model in FIML evaluation.");
+		return;
+	}
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("FIML Initialization Completed.");
 	}
-}
-
-void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means) {
-
-	SEXP nextMatrix, itemList, nextItem, threshMatrix;
-	int nextDef, index, numOrdinal = 0, numContinuous = 0, numCols;
-
-    omxFIMLObjective *newObj = (omxFIMLObjective*) R_alloc(1, sizeof(omxFIMLObjective));
-
-	numCols = cov->rows;
 	
     newObj->cov = cov;
     newObj->means = means;
@@ -550,173 +535,77 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
     newObj->halfCov    = NULL;
     newObj->reduceCov  = NULL;
     
-    /* Set default Objective calls to FIML Objective Calls */
-	oo->objectiveFun = omxCallFIMLObjective;
-	oo->objType = "omxFIMLObjective";
-	oo->setFinalReturns = omxSetFinalReturnsFIMLObjective;
-	oo->destructFun = omxDestroyFIMLObjective;
-	oo->populateAttrFun = omxPopulateFIMLAttributes;
-	oo->repopulateFun = NULL;
+    /* Set default FitFunction calls to FIML FitFunction Calls */
+	off->computeFun = omxCallFIMLFitFunction;
+	off->fitType = "omxFIMLFitFunction";
+	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
+	off->destructFun = omxDestroyFIMLFitFunction;
+	off->populateAttrFun = omxPopulateFIMLAttributes;
+	off->repopulateFun = NULL;
 	
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing data source.\n");
 	}
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data"))); // TODO: Need better way to process data elements.
-	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
-	UNPROTECT(1);
+	newObj->data = off->expectation->data;
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing row likelihood option.\n");
 	}
 	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
 	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
 	if(newObj->returnRowLikelihoods) {
-	   omxResizeMatrix(oo->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
+	   omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
     }
-    newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, oo->matrix->currentState);
-    newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, oo->matrix->currentState);
-	UNPROTECT(1);
+    newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+    newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	UNPROTECT(1); // nextMatrix
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing variable mapping structure.\n");
 	}
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
-	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-		omxPrint(newObj->dataColumns, "Variable mapping");
-	}
-	UNPROTECT(1);
+	newObj->dataColumns = off->expectation->dataColumns;
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing Threshold matrix.\n");
 	}
-	PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
-    
-    if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Accessing Threshold Mappings.\n");
-		}
-        
-        /* Process the data and threshold mapping structures */
-    	/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
-         * and fill all the thresholdCols with {NULL, 0, 0}.
-    	 * However the current path does not have a lot of overhead. */
-    	PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
-    	PROTECT(itemList = GET_SLOT(rObj, install("thresholdLevels")));
-        int* thresholdColumn, *thresholdNumber;
-        thresholdColumn = INTEGER(nextMatrix);
-        thresholdNumber = INTEGER(itemList);
-    	newObj->thresholdCols = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
-    	for(index = 0; index < numCols; index++) {
-    		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-    			if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-					Rprintf("Column %d is continuous.\n", index);
-				}
-    			newObj->thresholdCols[index].matrix = NULL;
-    			newObj->thresholdCols[index].column = 0;
-    			newObj->thresholdCols[index].numThresholds = 0;
-                numContinuous++;
-    		} else {
-    			newObj->thresholdCols[index].matrix = omxNewMatrixFromMxIndex(threshMatrix, 
-    				oo->matrix->currentState);
-    			newObj->thresholdCols[index].column = thresholdColumn[index];
-    			newObj->thresholdCols[index].numThresholds = thresholdNumber[index];
-    			if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-    				Rprintf("Column %d is ordinal with %d thresholds in threshold column %d.\n", 
-    				    index, thresholdColumn[index], thresholdNumber[index]);
-    			}
-    			numOrdinal++;
-    		}
-    	}
-    	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("%d threshold columns processed.\n", numOrdinal);
-		}
-    	UNPROTECT(2); /* nextMatrix and itemList ("thresholds" and "thresholdColumns") */
-    } else {
-        if (OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("No thresholds matrix; not processing thresholds.");
-		}
-        numContinuous = numCols;
-        newObj->thresholdCols = NULL;
-        numOrdinal = 0;
-    }
-    UNPROTECT(1); /* threshMatrix */
+	newObj->thresholdCols = off->expectation->thresholds;
+	numOrdinal = off->expectation->numOrdinal;
+	numContinuous = newObj->dataColumns->cols - off->expectation->numOrdinal;
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
+	
+	newObj->numDefs = off->expectation->numDefs;
+	newObj->defVars = off->expectation->defVars;
+	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing definition variables structure.\n");
 	}
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
-	newObj->numDefs = length(nextMatrix);
-	if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-		Rprintf("Number of definition variables is %d.\n", newObj->numDefs);
-	}
-	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
-	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
-		SEXP dataSource, columnSource, depsSource; 
-		int nextDataSource, numDeps;
-
-		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
-		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
-		nextDataSource = INTEGER(dataSource)[0];
-		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Data source number is %d.\n", nextDataSource);
-		}
-		newObj->defVars[nextDef].data = nextDataSource;
-		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[nextDataSource];
-		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
-			Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]);
-		}
-		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
-		PROTECT(depsSource = VECTOR_ELT(itemList, 2));
-		numDeps = LENGTH(depsSource);
-		newObj->defVars[nextDef].numDeps = numDeps;
-		newObj->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
-		for(int i = 0; i < numDeps; i++) {
-			newObj->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
-		}
-		UNPROTECT(3); // unprotect dataSource, columnSource, and depsSource
-
-
-
-		newObj->defVars[nextDef].numLocations = length(itemList) - 3;
-		newObj->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-		newObj->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-		newObj->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-		newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
-		for(index = 3; index < length(itemList); index++) {
-			PROTECT(nextItem = VECTOR_ELT(itemList, index));
-			newObj->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
-			newObj->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
-			newObj->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
-			UNPROTECT(1); // unprotect nextItem
-		}
-		UNPROTECT(1); // unprotect itemList
-	}
-	UNPROTECT(1); // unprotect nextMatrix
+	memset(newObj->oldDefs, NA_REAL, sizeof(double) * newObj->numDefs);			// Does this work?
+	// for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
+	// 	newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
+	// }
 
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
-    newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
-    newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-    newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, oo->matrix->currentState);
-//  newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, oo->matrix->currentState);
+    newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
+    newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
+    newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
+//  newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, off->matrix->currentState);
 
     omxAliasMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
-    oo->argStruct = (void*)newObj;
+    off->argStruct = (void*)newObj;
 
     if(numOrdinal > 0 && numContinuous <= 0) {
-        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+        if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
             Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
+        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
         omxAliasMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
@@ -724,21 +613,21 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
-        oo->objectiveFun = omxCallFIMLOrdinalObjective;
+        off->computeFun = omxCallFIMLOrdinalFitFunction;
     } else if(numOrdinal > 0) {
-        if(OMX_DEBUG && oo->matrix->currentState->parentState == NULL) {
+        if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
             Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
         }
 
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-        newObj->ordMeans = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-        newObj->contRow = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-        newObj->ordRow = omxInitMatrix(NULL, covCols, 1, TRUE, oo->matrix->currentState);
-        newObj->ordCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-        newObj->ordContCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-        newObj->halfCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
-        newObj->reduceCov = omxInitMatrix(NULL, covCols, covCols, TRUE, oo->matrix->currentState);
+        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
+        newObj->contRow = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordRow = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->ordContCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->halfCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->reduceCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
         omxAliasMatrix(newObj->smallMeans, newObj->means);
         omxAliasMatrix(newObj->ordMeans, newObj->means);
         omxAliasMatrix(newObj->contRow, newObj->smallRow );
@@ -751,6 +640,6 @@ void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatr
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
-        oo->objectiveFun = omxCallJointFIMLObjective;
+        off->computeFun = omxCallJointFIMLFitFunction;
     }
 }

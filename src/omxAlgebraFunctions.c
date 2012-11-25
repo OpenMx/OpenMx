@@ -326,12 +326,12 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: os = 0x%x, step = %d.\n", result->currentState, intermediate->currentState->computeCount);}
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->objective);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)\n", result->algebra, result->fitFunction);}
 
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->objective);}
+	if(OMX_DEBUG_ALGEBRA) { Rprintf("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)\n", intermediate->algebra, intermediate->fitFunction);}
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Quadratic: premul.\n");}
@@ -2121,6 +2121,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	if(A == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Null matrix pointer detected.\n");
+		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 		return;
 	}

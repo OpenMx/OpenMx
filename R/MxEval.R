@@ -27,6 +27,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	labelsData <- imxGenerateLabels(model)
 	env <- parent.frame()
 	if (compute) {
+		expression <- formulaEliminateObjectiveFunctions(expression)
 		namespace <- imxGenerateNamespace(model)
 		model <- imxFlattenModel(model, namespace)
 		expression <- namespaceConvertFormula(expression, model@name, namespace)
@@ -157,6 +158,9 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 			}
 		} else {
 			lookup <- model[[key]]
+			if (is.list(lookup) && length(lookup) == 2 && is(lookup[[2]], "MxFitFunction")) {
+				lookup <- lookup[[2]]
+			}
 			if (imxIsDefinitionVariable(key)) {
 				result <- definitionStartingValue(key, contextString, model, defvar.row)
 			} else if (is.null(lookup)) {
@@ -179,10 +183,10 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				} else {
 					result <- lookup@observed
 				}
-			} else if (is(lookup, "MxObjective")) {
+			} else if (is(lookup, "MxFitFunction")) {
 		        if (length(lookup@result) == 0) {
 					if (compute) {
-			            result <- genericObjInitialMatrix(lookup, model)
+			            result <- genericFitInitialMatrix(lookup, model)
 					} else {
 						result <- matrix(0, 0, 0)
 					}
@@ -294,8 +298,8 @@ getEntityType <- function(object) {
 		entity <- "MxMatrix"
 	} else if(is(object, "MxAlgebra")) {
 		entity <- "MxAlgebra"
-	} else if(is(object, "MxObjective")) {
-		entity <- "MxObjective"
+	} else if(is(object, "MxFitFunction")) {
+		entity <- "MxFitFunction"
 	} else {
 		entity <- "entity"
 	}

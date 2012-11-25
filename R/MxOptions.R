@@ -182,9 +182,9 @@ generateOptionsList <- function(model, parameters, constraints, useOptimizer) {
 	if (identical(options[["Standard Errors"]], "Yes") &&
 		identical(options[["Calculate Hessian"]], "No")) {
 		msg <- paste('The "Standard Errors" option is enabled and',
-			'the "Calculate Hessian" option is disabled. Generating',
-			'standard errors requires the Hessian calculation. Please',
-			'disable standard errors or enable the Hessian calculation.')
+		'the "Calculate Hessian" option is disabled. Generating',
+		'standard errors requires the Hessian calculation. Please',
+		'disable standard errors or enable the Hessian calculation.')
 		stop(msg, call. = FALSE)
 	}
 	return(options)

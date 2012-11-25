@@ -15,8 +15,8 @@
  *
  */
  
-#ifndef _OMXRAMOBJECTIVE_H_
-#define _OMXRAMOBJECTIVE_H_
+#ifndef _OMXRAMEXPECTATION_H_
+#define _OMXRAMEXPECTATION_H_
 
 typedef struct {
 
@@ -46,18 +46,15 @@ typedef struct {
 	double *work;
 	int lwork;
 
-	int usePPML;
-	omxData *ppmlData;
-	omxMatrix *ppmlCov, *ppmlMeans;
-
-} omxRAMObjective;
+} omxRAMExpectation;
 
 void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
     omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
     omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 
-void omxInitRAMObjective(omxObjective* oo, SEXP rObj);
+void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj);
+omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
-void fastRAMGradientML(omxObjective* oo, double* gradient);
+void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
 
-#endif /* _OMXRAMOBJECTIVE_H_ */
+#endif /* _OMXRAMEXPECTATION_H_ */

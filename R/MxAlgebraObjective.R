@@ -13,60 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-setClass(Class = "MxAlgebraObjective",
-	representation = representation(
-		algebra = "MxCharOrNumber",
-		numObs = "numeric",
-		numStats = "numeric"),
-	contains = "MxBaseObjective")
-
-setMethod("initialize", "MxAlgebraObjective",
-	function(.Object, algebra, numObs, numStats, name = 'objective') {
-		.Object@name <- name
-		.Object@algebra <- algebra
-		.Object@numObs <- numObs
-		.Object@numStats <- numStats
-		.Object@data <- as.integer(NA)
-		return(.Object)
-	}
-)
-
-setMethod("genericObjDependencies", signature("MxAlgebraObjective"),
-	function(.Object, dependencies) {
-	dependencies <- imxAddDependency(.Object@algebra, .Object@name, dependencies)
-	return(dependencies)
-})
-
-setMethod("genericObjFunConvert", signature("MxAlgebraObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
-		name <- .Object@name
-		algebra <- .Object@algebra
-		if (is.na(algebra)) {
-			modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
-			msg <- paste("The algebra name cannot be NA",
-			"for the algebra objective of model", omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
-		algebraIndex <- imxLocateIndex(flatModel, algebra, name)
-		.Object@algebra <- algebraIndex
-		.Object@data <- as.integer(NA)
-		return(.Object)
-})
-
-setMethod("genericObjFunNamespace", signature("MxAlgebraObjective"), 
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace)
-		return(.Object)
-})
-
-setMethod("genericObjRename", signature("MxAlgebraObjective"),
-	function(.Object, oldname, newname) {
-		.Object@algebra <- renameReference(.Object@algebra, oldname, newname)
-		return(.Object)
-})
-
 mxAlgebraObjective <- function(algebra, numObs = NA, numStats = NA) {
 	if (missing(algebra) || typeof(algebra) != "character") {
 		stop("Algebra argument is not a string (the name of the algebra)")
@@ -77,27 +23,10 @@ mxAlgebraObjective <- function(algebra, numObs = NA, numStats = NA) {
 	if (single.na(numStats)) {
 		numStats <- as.numeric(NA)
 	}
-	return(new("MxAlgebraObjective", algebra, numObs, numStats))
+	expectation <- NULL
+	fitfunction <- mxFitFunctionAlgebra(algebra, numObs, numStats)
+	msg <- paste("Objective functions have been deprecated.",
+		"Please use mxFitFunctionAlgebra() instead.")
+	warning(msg)
+	return(list(expectation, fitfunction))
 }
-
-displayAlgebraObjective <- function(objective) {
-	cat("MxAlgebraObjective", omxQuotes(objective@name), '\n')
-	cat("@algebra: ", omxQuotes(objective@algebra), '\n')	
-	cat("@numObs: ", objective@numObs, '\n')
-	cat("@numStats: ", objective@numStats, '\n')
-	if (length(objective@result) == 0) {
-		cat("@result: (not yet computed) ")
-	} else {
-		cat("@result:\n")
-	}
-	print(objective@result)
-	invisible(objective)
-}
-
-setMethod("print", "MxAlgebraObjective", function(x,...) { 
-	displayAlgebraObjective(x) 
-})
-
-setMethod("show", "MxAlgebraObjective", function(object) { 
-	displayAlgebraObjective(object) 
-})

@@ -78,11 +78,13 @@ omxSaturatedModel <- function(model) {
 	if(datasource@type == "raw" || !any(is.na(datasource@means)) ) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
-			mxMLObjective("satCov", "satMea")
+			mxExpectationNormal("satCov", "satMea"),
+			mxFitFunctionML()
 		)
 	} else {
 		saturatedModel <- mxModel(saturatedModel,
-			mxMLObjective("satCov")
+			mxExpectationNormal("satCov"),
+			MxFitFunctionML()
 		)
 	}
 	

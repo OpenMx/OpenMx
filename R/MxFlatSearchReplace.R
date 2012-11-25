@@ -47,26 +47,53 @@ flatNamespaceSearchReplace <- function(model, name, value) {
 # Check for a named entity within the flat model
 #
 doFlatNamespaceSearch <- function(model, name) {
-	if (name %in% names(imxReservedNames) && 
-		!is.null(imxReservedNames[[name]]@search)) {
-		return(imxReservedNames[[name]]@search(model))
+
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
+	modelname <- components[[1]]
+	localname <- components[[2]]
+
+	if (identical(localname, "objective")) {
+		expectation <- doFlatNamespaceSearch(model, paste(modelname, "expectation", sep = "."))
+		fitfunction <- doFlatNamespaceSearch(model, paste(modelname, "fitfunction", sep = "."))
+		return(list(expectation, fitfunction))
 	}
-	first <- model@matrices[[name]]
-	second <- model@algebras[[name]]
-	third <- model@constraints[[name]]
-	fourth <- model@objectives[[name]]
-	fifth <- model@datasets[[name]]
-	if (!is.null(first)) {
-		return(first)
-	} else if (!is.null(second)) {
-		return(second)
-	} else if (!is.null(third)) {
-		return(third)
-	} else if (!is.null(fourth)) {
-		return(fourth)
-	} else if (!is.null(fifth)) {
-		return(fifth)
+
+	result <- model@matrices[[name]]
+
+	if (!is.null(result)) {
+		return(result)
 	}
+
+	result <- model@algebras[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	} 
+
+	result <- model@constraints[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@fitfunctions[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@expectations[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@datasets[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
 	return(NULL)
 }
 
@@ -89,10 +116,27 @@ flatNamespaceModelSearchReplace <- function(name, value) {
 # Replace a named entity within the flat model
 #
 doFlatNamespaceSearchReplace <- function(model, name, value) {
-	if (name %in% names(imxReservedNames) && 
-		!is.null(imxReservedNames[[name]]@replace)) {
-		return(imxReservedNames[[name]]@replace(model, value))
+
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
+	modelname <- components[[1]]
+	localname <- components[[2]]
+
+	if (identical(localname, "objective")) {
+		if (is.null(value)) {
+			model <- doFlatNamespaceSearchReplace(model, paste(modelname, "expectation", sep = "."), NULL)
+			model <- doFlatNamespaceSearchReplace(model, paste(modelname, "fitfunction", sep = "."), NULL)
+			return(model)
+		} else if (length(value) == 2) {
+			model <- doFlatNamespaceSearchReplace(model, paste(modelname, "expectation", sep = "."), value[[1]])
+			model <- doFlatNamespaceSearchReplace(model, paste(modelname, "fitfunction", sep = "."), value[[2]])
+			return(model)
+		} else {
+			msg <- paste("Error in replacing", omxQuotes(name), "in model",
+				omxQuotes(model@name), ": value must be either NULL or a (expectation, fit) list")
+			stop(msg, call. = FALSE)
+		}
 	}
+
 	current <- doFlatNamespaceSearch(model, name)
 	if (is.null(current) && is.null(value)) {
 		return(model)
@@ -113,8 +157,10 @@ doFlatNamespaceSearchReplace <- function(model, name, value) {
 		model@matrices[[name]] <- value
 	} else if (is(test,"MxAlgebra")) {
 		model@algebras[[name]] <- value
-	} else if (is(test,"MxObjective")) {
-		model@objectives[[name]] <- value
+	} else if (is(test,"MxFitFunction")) {
+		model@fitfunctions[[name]] <- value
+	} else if (is(test,"MxExpectation")) {
+		model@expectations[[name]] <- value
 	} else if (is(test,"MxData")) {
 		model@datasets[[name]] <- value
 	} else if (is(test,"MxConstraint")) {

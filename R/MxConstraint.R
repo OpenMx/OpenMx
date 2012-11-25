@@ -41,7 +41,7 @@ mxConstraint <- function(expression, name = NA) {
 	imxVerifyName(name, 0)
 	if (typeof(name) != "character") {
 		stop(paste("Name argument is not a string",
-		"(the name of the objective function)"))
+		"(the name of the constraint)"))
 	}
 	formula <- match.call()$expression
 	if (length(formula) != 3) {

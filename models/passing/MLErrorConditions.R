@@ -17,7 +17,7 @@ factorModel <- mxModel("One Factor ML",
     mxMLObjective("C", "M", dimnames=manifests))
 
 omxCheckError(mxRun(factorModel), 
-	paste("In model 'One Factor ML' the ML objective function",
+	paste("In model 'One Factor ML' the Normal expectation function",
 		"contains an expected means vector but the model is missing",
 		"some data for the observed means."))
 
@@ -32,7 +32,7 @@ factorModel <- mxModel("One Factor ML",
 
 omxCheckError(mxRun(factorModel),
 	paste("The expected means vector associated with",
-		"the ML objective in model 'One Factor ML'",
+		"the expectation function in model 'One Factor ML'",
 		"is not a 1 x n matrix. It has dimensions 5 x 1."))
 
 factorModel <- mxModel("One Factor FIML",
@@ -46,5 +46,5 @@ factorModel <- mxModel("One Factor FIML",
 
 omxCheckError(mxRun(factorModel),
 	paste("The expected means vector associated with",
-		"the FIML objective in model 'One Factor FIML'",
+		"the expectation function in model 'One Factor FIML'",
 		"is not a 1 x n matrix. It has dimensions 5 x 1."))

@@ -55,4 +55,4 @@ omxCheckError(mxMatrix('Full', 1, 1, labels = "a.b.c.d.e"),
 nameless <- mxMatrix('Full', name='abc', 1, 1)
 nameless@name <- ''
 omxCheckError(mxModel(model="complain", nameless),
-              paste("Entity 'FullMatrix' in model 'complain' needs a name"))
+	paste("Entity 'FullMatrix' in model 'complain' needs a name"))

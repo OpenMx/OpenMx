@@ -31,7 +31,8 @@
 #include "omxGlobalState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
-#include "omxObjective.h"
+#include "omxFitFunction.h"
+#include "omxExpectation.h"
 #include "omxNPSOLSpecific.h"
 #include "omxImportFrontendState.h"
 #include "omxExportBackendState.h"
@@ -42,7 +43,7 @@
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = {
-{"callNPSOL", (void*(*)())&callNPSOL, 11},
+{"callNPSOL", (void*(*)())&callNPSOL, 12},
 {"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
 {"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 5},
 {NULL, NULL, 0}
@@ -132,13 +133,12 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	return ans;
 }
 
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
+SEXP callNPSOL(SEXP fitfunction, SEXP startVals, SEXP constraints,
+	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
 	double *x, *g, *R;
 	double f;
-
 	double *est, *grad, *hess;
 
 	/* Helpful variables */
@@ -182,9 +182,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
     
 	/* Retrieve All Matrices From the MatList */
 	if(!errOut) errOut = omxProcessMxMatrixEntities(matList);
+	
+	/* Initialize all Expectations Here */
+	if(!errOut) errOut = omxProcessMxExpectationEntities(expectList);
 
 	/* Process Algebras Here */
 	if(!errOut) errOut = omxProcessMxAlgebraEntities(algList);
+
+	/* Complete Expectations */
+	if(!errOut) errOut = omxCompleteMxExpectationEntities();
 
 	/* Initial Matrix and Algebra Calculations */
     if(!errOut) {
@@ -194,8 +200,8 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		globalState->numChildren = (numThreads > 1) ? numThreads : 0;
 	}
 
-	/* Process Objective Function */
-	if(!errOut) errOut = omxProcessObjectiveFunction(objective);
+	/* Process Fit Function */
+	if(!errOut) errOut = omxProcessFitFunction(fitfunction);
 	
 	// TODO: Make calculateHessians an option instead.
 
@@ -237,26 +243,28 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 
 	n = globalState->numFreeParams;
 
-	if (n == 0) {
+	if(n == 0) {			// Special Case for the evaluation-only condition
 		g = NULL;
 		x = NULL;
 		R = NULL;
 	} else {
-		g = (double*) R_alloc (n, sizeof ( double ));
-		x = (double*) R_alloc ((n+1), sizeof ( double ));
-		R = (double*) R_alloc (n * n, sizeof ( double ));
+		g		= (double*) R_alloc (n, sizeof ( double ) );
+		x		= (double*) R_alloc ((n+1), sizeof ( double ));
+		R		= (double*) R_alloc (n * n, sizeof ( double ));
+
 		for(k = 0; k < n; k++) {
 			x[k] = REAL(startVals)[k];
 		}
-	}
 
+	}
+	
 	omxInvokeNPSOL(&f, x, g, R, disableOptimizer);
 
 	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations;
-	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, optimizer;
+	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, expectations, optimizer;
 	SEXP intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
 
-	int numReturns = 13;
+	int numReturns = 14;
 
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
@@ -265,6 +273,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	PROTECT(evaluations = NEW_NUMERIC(2));
 	PROTECT(matrices = NEW_LIST(globalState->numMats));
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
+	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 
 	/* N-dependent SEXPs */
 	PROTECT(estimate = allocVector(REALSXP, n));
@@ -280,7 +289,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	REAL(NAmat)[0] = R_NaReal;
 
 	/* Store outputs for return */
-	if(objective != NULL) {
+	if(fitfunction != NULL) {
 		REAL(minimum)[0] = f;
 		globalState->optimum = f;
 	} else {
@@ -322,15 +331,15 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(statusMsg, 0, mkChar(globalState->statusMsg));
 	SET_VECTOR_ELT(status, 2, statusMsg);
 
-	if(numHessians && globalState->objectiveMatrix != NULL && globalState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
+	if(numHessians && globalState->fitMatrix != NULL && globalState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
 		if(globalState->numConstraints == 0) {
-			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Objective Function.\n");}
+			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Fit Function.\n");}
 			int gotHessians = omxEstimateHessian(numHessians, .0001, 4, globalState);
 			if(gotHessians) {
 				if(calculateStdErrors) {
 					for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
-						if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Objective Function.\n");}
-						omxObjective* oo = globalState->objectiveMatrix->objective;
+						if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
+						omxFitFunction* oo = globalState->fitMatrix->fitFunction;
 						if(oo->getStandardErrorFun != NULL) {
 							oo->getStandardErrorFun(oo);
 						} else {
@@ -344,22 +353,20 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 		} else {
 			numHessians = 0;
 		}
-	} else {
-		numHessians = 0;
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
-    if(globalState->numIntervals) {
+	if(globalState->numIntervals) {
 		omxNPSOLConfidenceIntervals(&f, x, g, R, ciMaxIterations);
-	}	
+	}  
 
 	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
-	if(!errOut) omxFinalAlgebraCalculation(globalState, matrices, algebras); 
+	if(!errOut) omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
-	omxPopulateObjectiveFunction(globalState, numReturns, &ans, &names);
+	omxPopulateFitFunction(globalState, numReturns, &ans, &names);
 
 	if(numHessians) {
-		omxPopulateHessians(numHessians, globalState->objectiveMatrix, 
+		omxPopulateHessians(numHessians, globalState->fitMatrix, 
 			calculatedHessian, stdErrors, calculateStdErrors, n);
 	}
 
@@ -380,6 +387,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(names, nextEl++, mkChar("evaluations"));
 	SET_STRING_ELT(names, nextEl++, mkChar("matrices"));
 	SET_STRING_ELT(names, nextEl++, mkChar("algebras"));
+	SET_STRING_ELT(names, nextEl++, mkChar("expectations"));
 	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervals"));
 	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervalCodes"));
 	SET_STRING_ELT(names, nextEl++, mkChar("calculatedHessian"));
@@ -396,6 +404,7 @@ SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
 	SET_VECTOR_ELT(ans, nextEl++, evaluations);
 	SET_VECTOR_ELT(ans, nextEl++, matrices);
 	SET_VECTOR_ELT(ans, nextEl++, algebras);
+	SET_VECTOR_ELT(ans, nextEl++, expectations);
 	SET_VECTOR_ELT(ans, nextEl++, intervals);
 	SET_VECTOR_ELT(ans, nextEl++, intervalCodes);
 	if(numHessians == 0) {

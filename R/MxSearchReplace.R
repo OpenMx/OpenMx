@@ -83,27 +83,48 @@ namespaceGetModel <- function(model, path) {
 namespaceLocalSearch <- function(model, name) {
 	if (name == model@name) {
 		return(model)
-	} else if (name %in% names(imxReservedNames) && 
-		!is.null(imxReservedNames[[name]]@search)) {
-		return(imxReservedNames[[name]]@search(model))
 	}
-	first <- model@matrices[[name]]
-	second <- model@algebras[[name]]
-	third <- model@submodels[[name]]
-	fourth <- model@constraints[[name]]
-	if (!is.null(model@objective) && name == model@objective@name) {
-		return(model@objective)
-	} else if (!is.null(model@data) && name == model@data@name) {
+
+	if (identical(name, "objective"))  {
+		return(list(model@expectation, model@fitfunction))
+	}
+
+	if (!is.null(model@data) && name == model@data@name) {
 		return(model@data)
-	} else if (!is.null(first)) {
-		return(first)
-	} else if (!is.null(second)) {
-		return(second)
-	} else if (!is.null(third)) {
-		return(third)
-	} else if (!is.null(fourth)) {
-		return(fourth)
 	}
+
+	if (!is.null(model@fitfunction) && name == model@fitfunction@name) {
+		return(model@fitfunction)
+	}
+
+	if (!is.null(model@expectation) && name == model@expectation@name) {
+		return(model@expectation)
+	}
+
+	result <- model@matrices[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@algebras[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@submodels[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
+	result <- model@constraints[[name]]
+
+	if (!is.null(result)) {
+		return(result)
+	}
+
 	return(NULL)
 }
 
@@ -167,9 +188,21 @@ localNamespaceSearchReplace <- function(model, name, value) {
 			value@name <- name
 		}
 		return(value)
-	} else if (name %in% names(imxReservedNames) && 
-		!is.null(imxReservedNames[[name]]@replace)) {
-		return(imxReservedNames[[name]]@replace(model, value))
+	}
+	if (identical(name, "objective")) {
+		if (is.null(value)) {
+			model <- localNamespaceSearchReplace(model, paste(modelname, "expectation", sep = "."), NULL)
+			model <- localNamespaceSearchReplace(model, paste(modelname, "fitfunction", sep = "."), NULL)
+			return(model)
+		} else if (length(value) == 2) {
+			model <- localNamespaceSearchReplace(model, paste(modelname, "expectation", sep = "."), value[[1]])
+			model <- localNamespaceSearchReplace(model, paste(modelname, "fitfunction", sep = "."), value[[2]])
+			return(model)
+		} else {
+			msg <- paste("Error in replacing", omxQuotes(name), "in model",
+				omxQuotes(model@name), ": value must be either NULL or a (expectation, fit) list")
+			stop(msg, call. = FALSE)
+		}
 	}
 	current <- namespaceLocalSearch(model, name)
 	if (is.null(current) && is.null(value)) {
@@ -193,8 +226,10 @@ localNamespaceSearchReplace <- function(model, name, value) {
 		model@algebras[[name]] <- value
 	} else if (is(test,"MxModel")) {
 		model@submodels[[name]] <- value	
-	} else if (is(test,"MxObjective")) {
-		model@objective <- value
+	} else if (is(test,"MxFitFunction")) {
+		model@fitfunction <- value
+	} else if (is(test,"MxExpectation")) {
+		model@expectation <- value
 	} else if (is(test,"MxData")) {
 		model@data <- value
 	} else if (is(test,"MxConstraint")) {

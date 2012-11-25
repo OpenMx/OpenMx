@@ -15,10 +15,10 @@
  */
 
 
-#ifndef _OMX_ML_OBJECTIVE_
-#define _OMX_ML_OBJECTIVE_ TRUE
+#ifndef _OMX_ML_FIT_FUNCTION_
+#define _OMX_ML_FIT_FUNCTION_ TRUE
 
-typedef struct omxMLObjective {
+typedef struct omxMLFitFunction {
 
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
@@ -36,7 +36,7 @@ typedef struct omxMLObjective {
 	double* work;
 	int lwork;
 	
-    // Subobjective Storage;
+    // Expectation Storage;
     omxMatrix** dSigma;         // dSigma/dTheta
     omxMatrix** dMu;            // dMu/dTheta
     omxMatrix* Mu;
@@ -46,17 +46,17 @@ typedef struct omxMLObjective {
     
     // TODO: Add space for second derivatives
     
-    // Allows the subobjective function to calculate its own derivates in an optimal way.
-    void (*derivativeFun)(omxObjective*, omxMatrix**, omxMatrix**, int*);
+    // Allows the expectation to calculate its own derivates in an optimal way.
+    void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*);
 
-} omxMLObjective;
+} omxMLFitFunction; // FIXME: Move a bility to specify Unique Gradient/Hessian Functions to FitFunction
 
-void omxCreateMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 
-void omxSetMLObjectiveGradient(omxObjective* oo, void (*)(omxObjective*, double*));
+void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*)(omxFitFunction*, double*));
 
-void omxSetMLObjectiveGradientComponents(omxObjective* oo, void (*)(omxObjective*, omxMatrix**, omxMatrix**, int*));
+void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*)(omxFitFunction*, omxMatrix**, omxMatrix**, int*));
 
-void omxCalculateMLGradient(omxObjective* oo, double* gradient);
+void omxCalculateMLGradient(omxFitFunction* oo, double* gradient);
 
-#endif /* _OMX_ML_OBJECTIVE_ */
+#endif /* _OMX_ML_FIT_FUNCTION_ */

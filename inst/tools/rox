@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+if [ ! -x inst/tools/rox ]; then
+  echo "$0 must be run from the top of the package directory"
+  exit 1
+fi
+
+# Version=0.4
+# descVersion=$(grep Version DESCRIPTION | cut -d ' ' -f 2)
+# if [ "$descVersion" != "$Version" ]; then
+#   today=$(date +%Y-%m-%d)
+#   perl -pi -e "s/^Date\:.*$/Date: $today/;
+#                s/^Version\:.*$/Version: $Version/;" DESCRIPTION
+# fi
+
+#rm -f man/*
+R --no-restore --no-save --no-readline <<EOF
+library(roxygen2)
+roxygenize('.', roclets=c('rd', 'collate'))
+EOF

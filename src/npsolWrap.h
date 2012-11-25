@@ -20,8 +20,8 @@
 #include "omxState.h"
 
 /* Functions for Export */
-SEXP callNPSOL(SEXP objective, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList,
+SEXP callNPSOL(SEXP fitfunction, SEXP startVals, SEXP constraints,
+	SEXP matList, SEXP varList, SEXP algList, SEXP expList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);

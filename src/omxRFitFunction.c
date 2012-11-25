@@ -21,33 +21,33 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
-#include "omxRObjective.h"
+#include "omxRFitFunction.h"
 #include "omxOpenmpWrap.h"
 
 #ifdef _OPENMP
 
-omp_lock_t robjective_lock;
+omp_lock_t rfitfunction_lock;
 
 #else
 
-void* robjective_lock = NULL;
+void* rfitfunction_lock = NULL;
 
 #endif
 
-void omxDestroyRObjective(omxObjective *oo) {
+void omxDestroyRFitFunction(omxFitFunction *off) {
 
-	UNPROTECT(5); 			// objfun, model, flatModel, parameters, and state
+	UNPROTECT(5); 			// fitfun, model, flatModel, parameters, and state
 }
 
-void omxCallRObjective(omxObjective *oo) {
-	omx_omp_set_lock(&robjective_lock);
+void omxCallRFitFunction(omxFitFunction *oo) {
+	omx_omp_set_lock(&rfitfunction_lock);
 
-	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
+	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 	SEXP theCall, theReturn;
 	PROTECT(theCall = allocVector(LANGSXP, 3));
-	SETCAR(theCall, rObjective->objfun);
-	SETCADR(theCall, rObjective->model);
-	SETCADDR(theCall, rObjective->state);
+	SETCAR(theCall, rFitFunction->fitfun);
+	SETCADR(theCall, rFitFunction->model);
+	SETCADDR(theCall, rFitFunction->state);
 
 	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
 
@@ -55,20 +55,20 @@ void omxCallRObjective(omxObjective *oo) {
 		oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
 	} else if (LENGTH(theReturn) == 2) {
 		oo->matrix->data[0] = REAL(VECTOR_ELT(theReturn, 0))[0];
-		REPROTECT(rObjective->state = VECTOR_ELT(theReturn, 1), rObjective->stateIndex);
+		REPROTECT(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
 	} else {
 		// throw an error
 	}
 
 	UNPROTECT(2); // theCall and theReturn
 
-	omx_omp_unset_lock(&robjective_lock);
+	omx_omp_unset_lock(&rfitfunction_lock);
 }
 
-void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
-	omx_omp_set_lock(&robjective_lock);
+void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n) {
+	omx_omp_set_lock(&rfitfunction_lock);
 
-	omxRObjective* rObjective = (omxRObjective*)oo->argStruct;
+	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
 	SEXP theCall, estimate;
 
@@ -81,20 +81,20 @@ void omxRepopulateRObjective(omxObjective* oo, double* x, int n) {
 	PROTECT(theCall = allocVector(LANGSXP, 5));
 
 	SETCAR(theCall, install("imxUpdateModelValues"));
-	SETCADR(theCall, rObjective->model);
-	SETCADDR(theCall, rObjective->flatModel);
-	SETCADDDR(theCall, rObjective->parameters);
+	SETCADR(theCall, rFitFunction->model);
+	SETCADDR(theCall, rFitFunction->flatModel);
+	SETCADDDR(theCall, rFitFunction->parameters);
 	SETCAD4R(theCall, estimate);
 
-	REPROTECT(rObjective->model = eval(theCall, R_GlobalEnv), rObjective->modelIndex);
+	REPROTECT(rFitFunction->model = eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
 
 	UNPROTECT(2); // theCall, estimate
-	omx_omp_unset_lock(&robjective_lock);
+	omx_omp_unset_lock(&rfitfunction_lock);
 
 	omxMarkDirty(oo->matrix);
 }
 
-omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns) {
+omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns) {
 	*numReturns = 1;
 	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
 
@@ -106,18 +106,18 @@ omxRListElement* omxSetFinalReturnsRObjective(omxObjective *oo, int *numReturns)
 	return retVal;
 }
 
-void omxInitRObjective(omxObjective* oo, SEXP rObj) {
-	if(OMX_DEBUG) { Rprintf("Initializing R objective function.\n"); }
-	omxRObjective *newObj = (omxRObjective*) R_alloc(1, sizeof(omxRObjective));
+void omxInitRFitFunction(omxFitFunction* oo, SEXP rObj) {
+	if(OMX_DEBUG) { Rprintf("Initializing R fit function.\n"); }
+	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
 	
-	/* Set Objective Calls to R Objective Calls */
-	oo->objectiveFun = omxCallRObjective;
-	oo->setFinalReturns = omxSetFinalReturnsRObjective;
-	oo->destructFun = omxDestroyRObjective;
-	oo->repopulateFun = omxRepopulateRObjective;
+	/* Set Fit Function Calls to RFitFunction Calls */
+	oo->computeFun = omxCallRFitFunction;
+	oo->setFinalReturns = omxSetFinalReturnsRFitFunction;
+	oo->destructFun = omxDestroyRFitFunction;
+	oo->repopulateFun = omxRepopulateRFitFunction;
 	oo->argStruct = (void*) newObj;
 	
-	PROTECT(newObj->objfun = GET_SLOT(rObj, install("objfun")));
+	PROTECT(newObj->fitfun = GET_SLOT(rObj, install("fitfun")));
 	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
 	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
 	PROTECT(newObj->parameters = GET_SLOT(rObj, install("parameters")));

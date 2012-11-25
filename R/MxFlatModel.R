@@ -16,7 +16,8 @@
 
 setClass(Class = "MxFlatModel",
 	representation = representation(
-		objectives = "list",
+		expectations = "list",
+		fitfunctions = "list",
 		datasets = "list",
 		constMatrices = "list",
 		freeMatrices = "list"
@@ -24,13 +25,14 @@ setClass(Class = "MxFlatModel",
 	contains = "MxModel")
 	
 setMethod("initialize", "MxFlatModel",
-	function(.Object, model, objectives, datasets) {
+	function(.Object, model, expectations, fitfunctions, datasets) {
 		modelSlotNames <- slotNames(model)
 		for(i in 1:length(modelSlotNames)) {
 			name <- modelSlotNames[[i]]
 			slot(.Object, name) <- slot(model, name)
 		}
-		.Object@objectives <- objectives
+		.Object@expectations <- expectations
+		.Object@fitfunctions <- fitfunctions
 		.Object@datasets <- datasets
 		.Object@constMatrices <- list()
 		.Object@freeMatrices <- list()
@@ -73,16 +75,17 @@ generateFlatModelNames <- function(model) {
 	algebras <- names(model@algebras)
 	constraints <- names(model@constraints)
 	datasets <- names(model@datasets)
-	objectives <- names(model@objectives)
+	expectations <- names(model@expectations)
+	fitfunctions <- names(model@fitfunctions)
 
 	mat_alg <- union(matrices, algebras)
+	fit_expectations <- union(fitfunctions, expectations)
 	constraints_datasets <- union(constraints, datasets)
 
-	retval <- union(mat_alg, objectives)
+	retval <- union(mat_alg, fit_expectations)
 	retval <- union(retval, constraints_datasets)
 	return(retval)
 }
-
 
 flatExtractMethod <- function(model, index) {
 	return(flatNamespaceSearch(model, index))
@@ -291,14 +294,18 @@ identicalNA <- function(x, y) {
 
 setMethod("print", "MxFlatModel", function(x,...) {
 	callNextMethod()
-	cat("objectives : ")
-	print(x@objectives)
+	cat("expectations : ")
+	print(object@expectations)
+	cat("fitfunctions : ")
+	print(object@fitfunctions)
 	cat("datasets :", length(x@datasets), '\n') 
 })
 
 setMethod("show", "MxFlatModel", function(object) { 
 	callNextMethod()
-	cat("objectives : ")
-	print(object@objectives)
+	cat("expectations : ")
+	print(object@expectations)
+	cat("fitfunctions : ")
+	print(object@fitfunctions)
 	cat("datasets :", length(object@datasets), '\n') 
 })

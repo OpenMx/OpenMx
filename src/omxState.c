@@ -31,6 +31,7 @@
 		int i;
 		state->numMats = 0;
 		state->numAlgs = 0;
+		state->numExpects = 0;
         state->numConstraints = 0;
 		state->numData = 0;
 		state->numFreeParams = 0;
@@ -47,9 +48,10 @@
 		}
 		state->matrixList = NULL;
 		state->algebraList = NULL;
+		state->expectationList = NULL;
 		state->parentState = parentState;
 		state->dataList = NULL;
-		state->objectiveMatrix = NULL;
+		state->fitMatrix = NULL;
 		state->hessian = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
@@ -76,7 +78,7 @@
 	}
 
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList,
-						omxMatrix** algebraList, omxData** dataList, omxMatrix* objective) {
+						omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction) {
 		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
 	}
 	
@@ -109,6 +111,7 @@
 	void omxDuplicateState(omxState* tgt, omxState* src) {
 		tgt->numMats 			= src->numMats;
 		tgt->numAlgs 			= src->numAlgs;
+		tgt->numExpects 		= src->numExpects;
 		tgt->numData 			= src->numData;
 		tgt->dataList			= src->dataList;
 		tgt->numChildren 		= 0;
@@ -116,6 +119,7 @@
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
 		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
+		tgt->expectationList	= (omxExpectation**) R_alloc(tgt->numExpects, sizeof(omxExpectation*));
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 		tgt->markMatrices		= (int*) R_alloc(tgt->numMats + tgt->numAlgs, sizeof(int));
 
@@ -123,12 +127,13 @@
 				
 		memset(tgt->matrixList, 0, sizeof(omxMatrix*) * tgt->numMats);
 		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
+		memset(tgt->expectationList, 0, sizeof(omxExpectation*) * tgt->numExpects);
 
 		for(int j = 0; j < tgt->numMats; j++) {
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], tgt);
 		}
-				
+
 		tgt->numConstraints     = src->numConstraints;
 		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
 		for(int j = 0; j < tgt->numConstraints; j++) {
@@ -144,14 +149,23 @@
 			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], tgt);
 		}
 
+		for(int j = 0; j < tgt->numExpects; j++) {
+			// TODO: Smarter inference for which expectations to duplicate
+			tgt->expectationList[j] = omxDuplicateExpectation(src->expectationList[j], tgt);
+		}
+
 		for(int j = 0; j < tgt->numAlgs; j++) {
 			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
 		}
 
-		
+		for(int j = 0; j < tgt->numExpects; j++) {
+			// TODO: Smarter inference for which expectations to duplicate
+			omxCompleteExpectation(tgt->expectationList[j]);
+		}
+
 		tgt->childList 			= NULL;
 
-		tgt->objectiveMatrix	= omxLookupDuplicateElement(tgt, src->objectiveMatrix);
+		tgt->fitMatrix	= omxLookupDuplicateElement(tgt, src->fitMatrix);
 		tgt->hessian 			= src->hessian;
 
 		tgt->numFreeParams			= src->numFreeParams;
@@ -241,6 +255,12 @@
 
 		return NULL;
 	}
+	
+	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox) {
+		if(os == NULL || ox == NULL) return NULL;
+
+		return(os->expectationList[ox->expNum]);
+	}
 
 	int omxCountLeafNodes(omxState *state) {
 		int children = state->numChildren;
@@ -288,6 +308,12 @@
 		for(k = 0; k < state->numMats; k++) {
 			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, state->matrixList[k]); }
 			omxFreeAllMatrixData(state->matrixList[k]);
+		}
+		
+		if(OMX_DEBUG) { Rprintf("Freeing %d Model Expectations.\n", state->numExpects);}
+		for(k = 0; k < state->numExpects; k++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Expectation %d at 0x%x.\n", k, state->expectationList[k]); }
+			omxFreeExpectationArgs(state->expectationList[k]);
 		}
 
 		if(OMX_DEBUG) { Rprintf("Freeing %d Constraints.\n", state->numConstraints);}
@@ -381,7 +407,7 @@
 		// FIXME: Is it faster to allocate this on the stack?
 		os->chkptText1 = (char*) Calloc((24 + 15 * os->numFreeParams), char);
 		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * os->numFreeParams*
-											(os->numFreeParams + 1.0) / 2.0, char);
+			(os->numFreeParams + 1.0) / 2.0, char);
 		if (oC->type == OMX_FILE_CHECKPOINT) {
 			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
 			for(int j = 0; j < os->numFreeParams; j++) {
@@ -390,17 +416,17 @@
 				} else {
 					fprintf(oC->file, "\"%s\"", os->freeVarList[j].name);
 				}
-					if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
+				if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
 			}
 			fprintf(oC->file, "\n");
 			fflush(oC->file);
 		}
 	}
-
+ 
 	void omxWriteCheckpointMessage(omxState *os, char *msg) {
 		for(int i = 0; i < os->numCheckpoints; i++) {
 			omxCheckpoint* oC = &(os->checkpointList[i]);
-			if(os->chkptText1 == NULL) {	// First one: set up output
+			if(os->chkptText1 == NULL) {    // First one: set up output
 				omxWriteCheckpointHeader(os, oC);
 			}
 			if (oC->type == OMX_FILE_CHECKPOINT) {

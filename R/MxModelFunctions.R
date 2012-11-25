@@ -26,7 +26,7 @@ generateMatrixList <- function(model) {
 
 generateAlgebraList <- function(model) {
 	mNames <- names(model@matrices)
-	aNames <- append(names(model@algebras), names(model@objectives))	
+	aNames <- append(names(model@algebras), names(model@fitfunctions))	
 	mNumbers <- as.list(as.integer(-1 : (-length(mNames))))
 	aNumbers <- as.list(as.integer(0 : (length(aNames) - 1)))
 	names(mNumbers) <- mNames
@@ -43,6 +43,11 @@ findDependencies <- function(triple, flatModel, dependencies) {
 	return(dependencies[[matrixName]])	
 }
 
+	
+isExpectation <- function(name) {
+	return(length(grep("expectation", name, fixed=TRUE)) > 0)
+}
+
 parameterDependencyList <- function(pList, flatModel, dependencies) {
 	if (length(pList) == 2) {
 		retval <- list(pList[[1]], pList[[2]], integer())
@@ -51,6 +56,7 @@ parameterDependencyList <- function(pList, flatModel, dependencies) {
 	locations <- pList[3:length(pList)]
 	deps <- lapply(locations, findDependencies, flatModel, dependencies)
 	depnames <- Reduce(union, deps, character())
+	depnames <- Filter(Negate(isExpectation), depnames)
 	depnumbers <- sapply(depnames, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
 	depnumbers <- as.integer(depnumbers)
 	retval <- list(pList[[1]], pList[[2]], depnumbers)
@@ -116,12 +122,12 @@ generateValueHelper <- function(triple, mList) {
 	return(mList[[mat]][row,col])
 }
 
-getObjectiveIndex <- function(flatModel) {
-	objective <- flatModel@objective
-	if(is.null(objective)) {
+getFitFunctionIndex <- function(flatModel) {
+	fitfunction <- flatModel@fitfunction
+	if(is.null(fitfunction)) {
 		return(NULL)
 	} else {
-		return(imxLocateIndex(flatModel, objective@name, flatModel@name))
+		return(imxLocateIndex(flatModel, fitfunction@name, flatModel@name))
 	}
 }
 
@@ -180,7 +186,7 @@ updateModelMatrices <- function(model, flatModel, values) {
 
 updateModelAlgebras <- function(model, flatModel, values) {
 	aNames <- names(flatModel@algebras)
-	oNames <- names(flatModel@objectives)
+	oNames <- names(flatModel@fitfunctions)
 	aList <- append(aNames, oNames)
 	if(length(aList) != length(values)) {
 		stop(paste("This model has", length(aList), 
@@ -194,24 +200,23 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	return(model)
 }
 
+
 updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMapping) {
-	nextName <- model@name
-	selectEnt <- entNames[modelNameMapping == nextName]
-	selectVal <- values[modelNameMapping == nextName]
-	if (length(selectEnt) > 0) {
+    nextName <- model@name
+    selectEnt <- entNames[modelNameMapping == nextName]
+    selectVal <- values[modelNameMapping == nextName]
+    if (length(selectEnt) > 0) {
 		for(i in 1:length(selectEnt)) {
 			name <- selectEnt[[i]]
 			candidate <- model[[name]]
 			value <- selectVal[[i]]
 			if (!is.null(candidate) && (length(value) > 0)
 				&& !is.nan(value)) {
-				if (is(candidate,"MxAlgebra") || is(candidate,"MxObjective")) {
-					if (is(candidate, "MxAlgebra")) {
-						dimnames(value) <- dimnames(candidate)
-						candidate@result <- value
-					} else {
-						candidate <- objectiveReadAttributes(candidate, value)
-					}
+				if (is(candidate, "MxAlgebra")) {
+					dimnames(value) <- dimnames(candidate)
+					candidate@result <- value
+				} else if (is(candidate,"MxFitFunction")) {
+					candidate <- fitFunctionReadAttributes(candidate, value)
 				} else if(is(candidate, "MxMatrix")) {
 					dimnames(value) <- dimnames(candidate)
 					candidate@values <- value
@@ -220,29 +225,33 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 			}
 		}
 	}
-	if (length(model@submodels) > 0) {
-		model@submodels <- lapply(model@submodels, 
-			updateModelEntitiesTargetModel, entNames, values, modelNameMapping)
-	}
+    if (length(model@submodels) > 0) {
+        model@submodels <- lapply(model@submodels, 
+            updateModelEntitiesTargetModel, entNames, values, modelNameMapping)
+    }
 	return(model)
 }
 
 updateModelEntitiesHelper <- function(entNames, values, model) {
-	modelNameMapping <- sapply(entNames, getModelNameString)
-	model <- updateModelEntitiesTargetModel(model, entNames, values, modelNameMapping)
-	return(model)
+    modelNameMapping <- sapply(entNames, getModelNameString)
+    model <- updateModelEntitiesTargetModel(model, entNames, 
+		values, modelNameMapping)
+    return(model)
 }
 
 imxLocateIndex <- function(model, name, referant) {
 	if (is.na(name)) { return(as.integer(name)) }
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
-	oNames <- names(model@objectives)
+	fNames <- names(model@fitfunctions)
+	eNames <- names(model@expectations)
 	dNames <- names(model@datasets)		
 	matrixNumber <- match(name, mNames)
-	algebraNumber <- match(name, append(aNames, oNames))
+	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
-	if (is.na(matrixNumber) && is.na(algebraNumber) && is.na(dataNumber)) {
+	expectationNumber <- match(name, eNames)
+	if (is.na(matrixNumber) && is.na(algebraNumber) 
+		&& is.na(dataNumber) && is.na(expectationNumber)) {
 		msg <- paste("The reference", omxQuotes(name),
 			"does not exist.  It is used by the named entity",
 			omxQuotes(referant),".")
@@ -251,6 +260,8 @@ imxLocateIndex <- function(model, name, referant) {
 		return(- matrixNumber)
 	} else if (!is.na(dataNumber)) {
 		return(dataNumber - 1L)
+	} else if (!is.na(expectationNumber)) {
+		return(expectationNumber - 1L)
 	} else {
 		return(algebraNumber - 1L)
 	}

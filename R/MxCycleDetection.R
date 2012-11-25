@@ -15,9 +15,14 @@
 
 cycleDetection <- function(flatModel) {
 	dependencies <- new("MxDirectedGraph")
-	if (length(flatModel@objectives) > 0) {
-		for(i in 1:length(flatModel@objectives)) {
-			dependencies <- addObjectiveDetection(flatModel@objectives[[i]], dependencies)
+	if (length(flatModel@fitfunctions) > 0) {
+		for(i in 1:length(flatModel@fitfunctions)) {
+			dependencies <- addFitFunctionDetection(flatModel@fitfunctions[[i]], flatModel, dependencies)
+		}	
+	}
+	if (length(flatModel@expectations) > 0) {
+		for(i in 1:length(flatModel@expectations)) {
+			dependencies <- addExpectationDetection(flatModel@expectations[[i]], dependencies)
 		}	
 	}
 	if (length(flatModel@algebras) > 0) {
@@ -90,8 +95,13 @@ reportCycle <- function(backedges, destination, modelname) {
 		omxQuotes(report)), call. = FALSE)
 }
 
-addObjectiveDetection <- function(objective, dependencies) {
-	dependencies <- genericObjDependencies(objective, dependencies)
+addFitFunctionDetection <- function(fitfunction, flatModel, dependencies) {
+	dependencies <- genericFitDependencies(fitfunction, flatModel, dependencies)
+	return(dependencies)
+}
+
+addExpectationDetection <- function(expectation, dependencies) {
+	dependencies <- genericExpDependencies(expectation, dependencies)
 	return(dependencies)
 }
 

@@ -28,6 +28,7 @@
 **********************************************************/
 
 #include "omxMatrix.h"
+#include "omxFitFunction.h"
 
 omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
 
@@ -60,8 +61,8 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name);
-    } else if(src->objective != NULL) {
-        omxDuplicateObjectiveMatrix(tgt, src, newState);
+    } else if(src->fitFunction != NULL) {
+        omxDuplicateFitMatrix(tgt, src, newState);
     }
 
 }
@@ -299,6 +300,12 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 			return NULL;
 		}
 		UNPROTECT(1); // numericMatrix		
+	} else if (isString(matrix)) {
+	  const int MaxErrorLen = 250;
+	  char err[MaxErrorLen];
+	  snprintf(err, MaxErrorLen, "Internal error: string passed to omxNewMatrixFromMxIndex, did you forget to call imxLocateIndex?");
+	  omxRaiseError(os, -1, err);
+	  return NULL;
 	} else {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "Internal error: unknown type passed to omxNewMatrixFromMxIndex.");
@@ -313,6 +320,10 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		output = os->algebraList[value];
 	} else {												// Pre-existing matrix.  A-ok.
 		output = os->matrixList[~value];						// Value invert for matrices.
+	}
+	
+	if(OMX_DEBUG && os->parentState == NULL) {
+		Rprintf("Attached.\n");
 	}
 	
 	return output;

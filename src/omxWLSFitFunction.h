@@ -15,10 +15,10 @@
  */
 
 
-#ifndef _OMX_WLS_OBJECTIVE_
-#define _OMX_WLS_OBJECTIVE_ TRUE
+#ifndef _OMX_WLS_FITFUNCTION_
+#define _OMX_WLS_FITFUNCTION_ TRUE
 
-typedef struct omxWLSObjective {
+typedef struct omxWLSFitFunction {
 
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
@@ -30,8 +30,8 @@ typedef struct omxWLSObjective {
 	omxMatrix* P;
 	omxMatrix* B;
 
-} omxWLSObjective;
+} omxWLSFitFunction;
 
-void omxCreateWLSObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights);
+void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights);
 
-#endif /* _OMX_WLS_OBJECTIVE_ */
+#endif /* _OMX_WLS_FITFUNCTION_ */

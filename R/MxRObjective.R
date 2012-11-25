@@ -13,47 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-setClass(Class = "MxRObjective",
-	representation = representation(
-		objfun = "function",
-		model = "MxModel",
-		flatModel = "MxFlatModel",
-		parameters = "list",
-		state = "list"),
-	contains = "MxBaseObjective")
-
-setMethod("initialize", "MxRObjective",
-	function(.Object, objfun, state, data = as.integer(NA), 
-		name = 'objective') {
-		.Object@objfun <- objfun
-		.Object@name <- name
-		.Object@data <- data
-		.Object@state <- state
-		return(.Object)
-	}
-)
-
-setMethod("genericObjFunConvert", signature("MxRObjective"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
-		.Object@model <- model
-		.Object@flatModel <- flatModel
-		.Object@parameters <- generateParameterList(flatModel, dependencies)
-		return(.Object)
-})
-
-setMethod("genericObjFunNamespace", signature("MxRObjective"), 
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		return(.Object)
-})
-
-setMethod("genericObjAddEntities", signature("MxRObjective"),
-	function(.Object, job, flatJob, labelsData) {
-		job@.forcesequential <- TRUE
-		return(job)
-})
-
 mxRObjective <- function(objfun, ...) {
 	if (!is.function(objfun)) {
 		stop("First argument 'objfun' must be of type function")
@@ -61,28 +20,12 @@ mxRObjective <- function(objfun, ...) {
 	if (length(formals(objfun)) != 2) {
 		stop("The objective function must take exactly two arguments: a model and a persistant state")
 	}
-	state <- list(...)
-	return(new("MxRObjective", objfun, state))
-}
-
-displayRObjective <- function(objective) {
-	cat("MxRObjective", omxQuotes(objective@name), '\n')
-	cat("@objfun (objective function) \n")
-	print(objective@objfun)
-	if (length(objective@result) == 0) {
-		cat("@result: (not yet computed) ")
-	} else {
-		cat("@result:\n")
-	}
-	print(objective@result)
-	invisible(objective)
+	expectation <- NULL
+	fitfunction <- mxFitFunctionR(objfun, ...)
+	msg <- paste("Objective functions have been deprecated.",
+		"Please use mxFitFunctionR() instead.")
+	warning(msg)
+	return(list(expectation, fitfunction))
 }
 
 
-setMethod("print", "MxRObjective", function(x,...) { 
-	displayRObjective(x) 
-})
-
-setMethod("show", "MxRObjective", function(object) { 
-	displayRObjective(object) 
-})

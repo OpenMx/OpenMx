@@ -15,8 +15,8 @@
  *
  */
  
-#ifndef _OMXLISRELOBJECTIVE_H_
-#define _OMXLISRELOBJECTIVE_H_
+#ifndef _OMXLISRELEXPECTATION_H_
+#define _OMXLISRELEXPECTATION_H_
 
 typedef struct {
 
@@ -40,14 +40,16 @@ typedef struct {
 
 	omxMatrix **args;
 
-} omxLISRELObjective;
+} omxLISRELExpectation;
 
-void omxCalculateLISRELCovarianceAndMeans(omxLISRELObjective* oro);
+void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);
 
-void omxInitLISRELObjective(omxObjective* oo, SEXP rObj);
+void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj);
+
+omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 
 /*
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse
 */
 
-#endif /* _OMXLISRELOBJECTIVE_H_ */
+#endif /* _OMXLISRELEXPECTATION_H_ */

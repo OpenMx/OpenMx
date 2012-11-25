@@ -42,7 +42,8 @@
 typedef struct omxMatrix omxMatrix;
 
 #include "omxAlgebra.h"
-#include "omxObjective.h"
+#include "omxFitFunction.h"
+#include "omxExpectation.h"
 #include "omxState.h"
 
 
@@ -72,12 +73,12 @@ struct omxMatrix {						// A matrix
 
 /* Curent State */
 	omxState* currentState;				// Optimizer State
-	unsigned short isDirty;				// Retained, for historical purposes.
+	unsigned short isDirty;				// Whether or not the matrix requires recomputation.
 	unsigned short isTemporary;			// Whether or not to destroy the omxMatrix Structure when omxFreeAllMatrixData is called.
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
-	omxObjective* objective;			// If it's not an objective function, this is NULL.
+	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
 
 /* For inclusion in(or of) other matrices */
 	int numPopulateLocations;
@@ -151,7 +152,7 @@ void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
 
 static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
-    return (mat->algebra == NULL && mat->objective == NULL);
+    return (mat->algebra == NULL && mat->fitFunction == NULL);
 }
 
 /* BLAS Wrappers */
@@ -234,7 +235,7 @@ static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
 }
 
 
-static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * result
+static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
 	int nrow = (transposeA?a->cols:a->rows);
 	int nmid = (transposeA?a->rows:a->cols);

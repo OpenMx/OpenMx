@@ -24,7 +24,7 @@ modelIsHollow <- function(model) {
 }
 
 isHollow <- function(model) {
-	return(is.null(model@objective) && 
+	return(is.null(model@fitfunction) && 
 		length(model@matrices) == 0 && 
 		length(model@algebras) == 0)
 }
@@ -113,10 +113,11 @@ processErrorConditions <- function(model, unsafe, suppressWarnings) {
 }
 
 populateRunStateInformation <- function(model, parameters, matrices, 
-		objectives, datalist, constraints, independents, defvars) {
+		fitfunctions, expectations, datalist, constraints, independents, defvars) {
 	model@runstate$parameters <- parameters
 	model@runstate$matrices <- matrices
-	model@runstate$objectives <- objectives
+	model@runstate$fitfunctions <- fitfunctions
+	model@runstate$expectations <- expectations
 	model@runstate$datalist <- datalist
 	model@runstate$constraints <- constraints
 	model@runstate$independents <- independents

@@ -24,7 +24,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxFIMLObjective.h"
+#include "omxFIMLFitFunction.h"
 #include "omxOpenmpWrap.h"
 
 #ifdef _OPENMP
@@ -40,7 +40,7 @@ void* sadmvn_lock = NULL;
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 	double*, double*, double*, double*, int*, int*);
 
-void omxSadmvnWrapper(omxObjective *oo, omxMatrix *cov, omxMatrix *ordCov, 
+void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform) {
     // SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
    	// TODO: Check with Genz: should we be using sadmvn or sadmvn?

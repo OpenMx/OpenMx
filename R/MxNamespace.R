@@ -171,7 +171,7 @@ imxVerifyName <- function(name, stackNumber) {
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
-	if (name %in% names(imxReservedNames)) {
+	if (name %in% imxReservedNames) {
 		stop(paste("The name", omxQuotes(name),
 			"is illegal because it is a reserved name in", 
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
@@ -321,19 +321,29 @@ generateLocalNamespace <- function(model) {
 	thisEntities <- namespaceGetEntities(model, "algebras", thisEntities)
 	thisEntities <- namespaceGetEntities(model, "submodels", thisEntities)
 	thisEntities <- namespaceGetEntities(model, "constraints", thisEntities)
-	objective <- model@objective
+	fitfunction <- model@fitfunction
+	expectation <- model@expectation
 	data <- model@data
-	if (!is.null(objective) && (objective@name %in% thisEntities)) {
-		stop(namespaceErrorMessage(objective@name), call. = FALSE)
-	} else if (!is.null(objective)) {
-		thisEntities <- c(thisEntities, objective@name)
-		thisEntities <- c(thisEntities, genericObjNewEntities(objective))
+
+	if (!is.null(fitfunction) && (fitfunction@name %in% thisEntities)) {
+		stop(namespaceErrorMessage(fitfunction@name), call. = FALSE)
+	} else if (!is.null(fitfunction)) {
+		thisEntities <- c(thisEntities, fitfunction@name)
+		thisEntities <- c(thisEntities, genericFitNewEntities(fitfunction))
 	}
+
+	if (!is.null(expectation) && (expectation@name %in% thisEntities)) {
+		stop(namespaceErrorMessage(expectation@name), call. = FALSE)
+	} else if (!is.null(expectation)) {
+		thisEntities <- c(thisEntities, expectation@name)
+	}
+
 	if (!is.null(data) && (data@name %in% thisEntities)) {
 		stop(namespaceErrorMessage(data@name), call. = FALSE)
 	} else if (!is.null(data)) {
 		thisEntities <- c(thisEntities, data@name)
 	}
+
 	thisParameters <- namespaceGetParameters(model)
     thisValues <- namespaceGetValues(model)
 	return(list('entities' = thisEntities, 'parameters' = thisParameters, 'values' = thisValues))
@@ -491,7 +501,7 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
 		 !(name %in% parameters) &&
          !(name %in% values) &&
          !(legalGlobalReference(name)) &&
-		 !(name %in% names(imxReservedNames))) {
+		 !(name %in% imxReservedNames)) {
 		stop(paste("Unknown reference", 
 			omxQuotes(simplifyName(imxIdentifier(space, name), model@name)),
 			"detected in the entity", omxQuotes(entity),
@@ -661,11 +671,18 @@ namespaceConvertInterval <- function(interval, modelname, namespace) {
 	return(interval)
 }
 
-namespaceConvertObjective <- function(objective, modelname, namespace) {
-	if (!is.null(objective)) {
-		objective <- genericObjFunNamespace(objective, modelname, namespace)
+namespaceConvertExpectation <- function(expectation, modelname, namespace) {
+	if (!is.null(expectation)) {
+		expectation <- genericExpFunNamespace(expectation, modelname, namespace)
 	}
-	return(objective)
+	return(expectation)
+}
+
+namespaceConvertFitFunction <- function(fitfunction, modelname, namespace) {
+	if (!is.null(fitfunction)) {
+		fitfunction <- genericFitFunNamespace(fitfunction, modelname, namespace)
+	}
+	return(fitfunction)
 }
 
 namespaceConvertData <- function(data, modelname) {

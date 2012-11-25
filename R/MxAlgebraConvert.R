@@ -13,6 +13,42 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+eliminateObjectiveFunctions <- function(model) {
+	model@algebras <- lapply(model@algebras, algebraEliminateObjectiveFunctions)
+	if (length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, eliminateObjectiveFunctions)
+	}
+	return(model)
+}
+
+algebraEliminateObjectiveFunctions <- function(algebra) {
+	algebra@formula <- formulaEliminateObjectiveFunctions(algebra@formula)
+	return(algebra)
+}
+
+formulaEliminateObjectiveFunctions <- function(formula) {
+	if (length(formula) == 1) {
+		asCharacter <- as.character(formula)
+		components <- unlist(strsplit(asCharacter, imxSeparatorChar, fixed = TRUE))
+		if (length(components) == 1) {
+			if (identical(asCharacter, "objective")) {
+				return(as.symbol("fitfunction"))
+			}
+		} else if (length(components) == 2) {
+			modelname <- components[[1]]
+			localname <- components[[2]]
+			if (identical(localname, "objective")) {
+				return(as.symbol(paste(modelname, "fitfunction", sep = ".")))
+			}
+		}
+	} else {
+		for (i in 2:length(formula)) {
+			formula[[i]] <- formulaEliminateObjectiveFunctions(formula[[i]])
+		}
+	}
+	return(formula)
+}
+
 constraintsToAlgebras <- function(flatModel) {
 	constraints <- flatModel@constraints
 	if (length(constraints) == 0) {

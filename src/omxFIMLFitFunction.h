@@ -15,29 +15,10 @@
  *
  */
  
-#ifndef _OMXFIMLOBJECTIVE_H_
-#define _OMXFIMLOBJECTIVE_H_
+#ifndef _OMXFIMLFITFUNCTION_H_
+#define _OMXFIMLFITFUNCTION_H_
 
-/* FIML Computation Structures */
-typedef struct omxDefinitionVar {		 	// Definition Var
-
-	int data, column;		// Where it comes from
-	omxData* source;		// Data source
-	int numLocations;		// Num locations
-	int* rows;				// row positions
-	int* cols;				// column positions
-	int* matrices;			// matrix numbers
-	int  numDeps;           // number of algebra/matrix dependencies
-	int* deps;              // indices of algebra/matrix dependencies
-
-} omxDefinitionVar;
-
-typedef struct omxThresholdColumn {		 	// Threshold
-	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
-	int column;				// Which column has the thresholds
-	int numThresholds;		// And how many thresholds
-} omxThresholdColumn;
-
+#include "omxFitFunction.h"
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
@@ -49,9 +30,9 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	int modelNumber;		// Not used
 } omxFIMLRowOutput;
 
-typedef struct omxFIMLObjective {
+typedef struct omxFIMLFitFunction {
 
-	/* Parts of the R  MxFIMLObjective Object */
+	/* Parts of the R  MxFIMLFitFunction Object */
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
@@ -64,7 +45,7 @@ typedef struct omxFIMLObjective {
 
 //	double* zeros;
 
-	/* Structures determined from info in the MxFIMLObjective Object*/
+	/* Structures determined from info in the MxFIMLFitFunction Object*/
 	omxDefinitionVar* defVars;	// A list of definition variables
 	double* oldDefs;			// Stores definition variables between rows
 	int numDefs;				// The length of the defVars list
@@ -76,13 +57,13 @@ typedef struct omxFIMLObjective {
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
 		
-	/* Structures for FIMLOrdinalObjective Objects */
+	/* Structures for FIMLOrdinalFitFunction Objects */
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
 	double* weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
 	omxThresholdColumn* thresholdCols;		// List of column thresholds
 	
-	/* Structures for JointFIMLObjective */
+	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
 	omxMatrix* ordRow;		    // Memory reserved for ordinal data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
@@ -101,18 +82,17 @@ typedef struct omxFIMLObjective {
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions
 
-} omxFIMLObjective;
+} omxFIMLFitFunction;
 
 int handleDefinitionVarList(omxData* data, omxState *state, int row, 
 	omxDefinitionVar* defVars, double* oldDefs, int numDefs);
 
-void omxCallFIMLObjective(omxObjective *oo);
-void omxCallFIMLOrdinalObjective(omxObjective *oo);
-omxRListElement* omxSetFinalReturnsFIMLObjective(omxObjective *oo, int *numReturns);
-void omxDestroyFIMLObjective(omxObjective *oo);
-void omxPopulateFIMLObjective(omxObjective *oo, SEXP algebra);
-void omxInitFIMLObjective(omxObjective* oo, SEXP rObj);
-void omxCreateFIMLObjective(omxObjective* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
+void omxCallFIMLFitFunction(omxFitFunction *oo);
+void omxCallFIMLOrdinalFitFunction(omxFitFunction *oo);
+omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
+void omxDestroyFIMLFitFunction(omxFitFunction *oo);
+void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
+void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
 
-#endif /* _OMXFIMLOBJECTIVE_H_ */
+#endif /* _OMXFIMLFITFUNCTION_H_ */
