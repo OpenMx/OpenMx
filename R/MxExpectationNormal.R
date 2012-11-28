@@ -423,7 +423,7 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 
 
 
-mxExpectationNormal <- function(covariance, means, 
+mxExpectationNormal <- function(covariance, means = NA, 
 	dimnames = NA, thresholds = NA, threshnames = dimnames) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("'covariance' argument is not a string (the name of the expected covariance matrix)")

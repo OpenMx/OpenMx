@@ -73,10 +73,11 @@ bivCorModel <- mxModel("bivCor",
         observed=testData, 
         type="raw"
     ), 
-    mxFIMLObjective(
+    mxExpectationNormal(
         covariance="expCov", 
         means="expMean",
-        dimnames=selVars)
+        dimnames=selVars),
+    mxFitFunctionML()
     )
 # Fit Saturated Model with Raw Data and Matrix-style Input
 # -----------------------------------------------------------------------------
@@ -85,7 +86,7 @@ bivCorModel <- mxModel("bivCor",
 bivCorFit <- mxRun(bivCorModel)
 EM <- mxEval(expMean, bivCorFit)
 EC <- mxEval(expCov, bivCorFit)
-LL <- mxEval(objective, bivCorFit)
+LL <- mxEval(fitfunction, bivCorFit)
 # Run Model and Generate Output
 # -----------------------------------------------------------------------------
 
@@ -106,7 +107,7 @@ bivCorModelSub <-mxModel(bivCorModel,
 bivCorFitSub <- mxRun(bivCorModelSub)
 EMs <- mxEval(expMean, bivCorFitSub)
 ECs <- mxEval(expCov, bivCorFitSub)
-LLs <- mxEval(objective, bivCorFitSub)
+LLs <- mxEval(fitfunction, bivCorFitSub)
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 # Run Model and Generate Output

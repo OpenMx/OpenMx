@@ -132,13 +132,14 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
             observed=xy2, 
             type="raw", 
         ),
+        # fit="ML",
         type="RAM"
         ),
     mxAlgebra(
-        group1.objective + group2.objective, 
+        group1.fitfunction + group2.fitfunction, 
         name="h12"
     ),
-    mxAlgebraObjective("h12")
+    mxFitFunctionAlgebra("h12")
 )
 
     bivHetFit <- mxRun(bivHetModel)
@@ -146,7 +147,7 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
     EM2Het <- bivHetFit$group2.fitfunction@info$expMean
     EC1Het <- bivHetFit$group1.fitfunction@info$expCov
     EC2Het <- bivHetFit$group2.fitfunction@info$expCov
-    LLHet <- mxEval(objective, bivHetFit)
+    LLHet <- mxEval(fitfunction, bivHetFit)
 # Fit Heterogeneity Model
 # -----------------------------------------------------------------------------
 
@@ -159,7 +160,7 @@ bivHomModel <- bivHetModel
     EM2Hom <- bivHomFit$group2.fitfunction@info$expMean
     EC1Hom <- bivHomFit$group1.fitfunction@info$expCov
     EC2Hom <- bivHomFit$group2.fitfunction@info$expCov
-    LLHom <- mxEval(objective, bivHomFit)
+    LLHom <- mxEval(fitfunction, bivHomFit)
 
     Chi= LLHom-LLHet
     LRT= rbind(LLHet,LLHom,Chi)

@@ -107,8 +107,9 @@ class1 <- mxModel("Class1",
         labels=c(NA,NA,NA,NA,NA,"meani1","means1"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M", vector=TRUE, 
-		dimnames = c(names(myGrowthMixtureData), "intercept", "slope"))
+    mxExpectationRAM("A","S","F","M",
+		dimnames = c(names(myGrowthMixtureData), "intercept", "slope")),
+	mxFitFunctionML(vector=TRUE)
 ) # close model
 #Create an MxModel object
 # -----------------------------------------------------------------------------
@@ -168,10 +169,10 @@ classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
 
 
 algObj <- mxAlgebra(-2*sum(
-          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
+          log(classProbs[1,1]%x%Class1.fitfunction + classProbs[2,1]%x%Class2.fitfunction)), 
           name="mixtureObj")
 
-obj <- mxAlgebraObjective("mixtureObj")
+obj <- mxFitFunctionAlgebra("mixtureObj")
       
 gmm <- mxModel("Growth Mixture Model",
 	mxData(

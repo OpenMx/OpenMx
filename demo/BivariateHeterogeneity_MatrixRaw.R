@@ -92,10 +92,11 @@ bivHetModel <- mxModel("bivariate Heterogeneity Matrix Specification",
             xy1, 
             type="raw"
         ), 
-        mxFIMLObjective(
+        mxExpectationNormal(
             "EC1", 
             "EM1",
-            selVars)
+            selVars),
+        mxFitFunctionML()
         ),
     mxModel("group2",
         mxMatrix(
@@ -124,16 +125,17 @@ bivHetModel <- mxModel("bivariate Heterogeneity Matrix Specification",
             xy2, 
             type="raw"
         ), 
-        mxFIMLObjective(
+        mxExpectationNormal(
             "EC2", 
             "EM2",
-            selVars)
+            selVars),
+        mxFitFunctionML()
         ),
     mxAlgebra(
-        group1.objective + group2.objective, 
+        group1.fitfunction + group2.fitfunction, 
         name="h12"
     ),
-    mxAlgebraObjective("h12")
+    mxFitFunctionAlgebra("h12")
 )
 
 bivHetFit <- mxRun(bivHetModel)
@@ -141,7 +143,7 @@ bivHetFit <- mxRun(bivHetModel)
     EM2Het <- mxEval(group2.EM2, bivHetFit)
     EC1Het <- mxEval(group1.EC1, bivHetFit)
     EC2Het <- mxEval(group2.EC2, bivHetFit)
-    LLHet <- mxEval(objective, bivHetFit)
+    LLHet <- mxEval(fitfunction, bivHetFit)
 # Fit Heterogeneity Model
 # -----------------------------------------------------------------------------
 
@@ -153,7 +155,7 @@ bivHomFit <- mxRun(bivHomModel)
     EM2Hom <- mxEval(group2.EM2, bivHomFit)
     EC1Hom <- mxEval(group1.EC1, bivHomFit)
     EC2Hom <- mxEval(group2.EC2, bivHomFit)
-    LLHom <- mxEval(objective, bivHomFit)
+    LLHom <- mxEval(fitfunction, bivHomFit)
 
     Chi= LLHom-LLHet
     LRT= rbind(LLHet,LLHom,Chi)

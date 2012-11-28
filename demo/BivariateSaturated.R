@@ -76,7 +76,7 @@ bivSatModel1 <- mxModel("bivSat1",
     )
 bivSatFit1 <- mxRun(bivSatModel1)
 EC1 <- mxEval(S, bivSatFit1)
-LL1 <- mxEval(objective, bivSatFit1)
+LL1 <- mxEval(fitfunction, bivSatFit1)
 SL1 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi1 <- LL1-SL1
 # example 1: Saturated Model with Cov Matrices and Path-Style Input
@@ -120,7 +120,7 @@ bivSatModel1m <- mxModel("bivSat1m",
 bivSatFit1m <- mxRun(bivSatModel1m)
 EM1m <- mxEval(M, bivSatFit1m)
 EC1m <- mxEval(S, bivSatFit1m)
-LL1m <- mxEval(objective, bivSatFit1m)
+LL1m <- mxEval(fitfunction, bivSatFit1m)
 SL1m <- summary(bivSatFit1m)$SaturatedLikelihood
 Chi1m <- LL1m-SL1m
 # example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
@@ -158,7 +158,7 @@ bivSatModel2 <- mxModel("bivSat2",
 bivSatFit2 <- mxRun(bivSatModel2)
 EM2 <- mxEval(M, bivSatFit2)
 EC2 <- mxEval(S, bivSatFit2)
-LL2 <- mxEval(objective, bivSatFit2)
+LL2 <- mxEval(fitfunction, bivSatFit2)
 SL2 <- summary(bivSatFit1)$SaturatedLikelihood
 Chi2 <- LL2-SL2
 # example 2: Saturated Model with Raw Data and Path input
@@ -178,7 +178,7 @@ bivSatModel2s <- mxModel(bivSatModel1,
 bivSatFit2s <- mxRun(bivSatModel2s)
 EM2s <- mxEval(M, bivSatFit2s)
 EC2s <- mxEval(S, bivSatFit2s)
-LL2s <- mxEval(objective, bivSatFit2s)
+LL2s <- mxEval(fitfunction, bivSatFit2s)
 # example 2s: Saturated Model with Raw Data and Path input built upon Cov/Means version
 # -----------------------------------------------------------------------------
 
@@ -197,13 +197,14 @@ bivSatModel3 <- mxModel("bivSat3",
         type="cov", 
         numObs=1000 
     ),
-    mxMLObjective(
+    mxExpectationNormal(
         covariance="expCov"
-    )
+    ),
+    mxFitFunctionML()
     )
 bivSatFit3 <- mxRun(bivSatModel3)
 EC3 <- mxEval(expCov, bivSatFit3)
-LL3 <- mxEval(objective,bivSatFit3)
+LL3 <- mxEval(fitfunction,bivSatFit3)
 SL3 <- summary(bivSatFit3)$SaturatedLikelihood
 Chi3 <- LL3-SL3
 # example 3: Saturated Model with Cov Matrices and Matrix-Style Input
@@ -232,16 +233,17 @@ bivSatModel3m <- mxModel("bivSat3m",
         numObs=1000, 
         means=colMeans(testData) 
     ),
-    mxMLObjective(
+    mxExpectationNormal(
         covariance="expCov",
         means="expMean",
         dimnames=selVars
-    )
+    ),
+    mxFitFunctionML()
     )
 bivSatFit3m <- mxRun(bivSatModel3m)
 EM3m <- mxEval(expMean, bivSatFit3m)
 EC3m <- mxEval(expCov, bivSatFit3m)
-LL3m <- mxEval(objective,bivSatFit3m)
+LL3m <- mxEval(fitfunction,bivSatFit3m)
 SL3m <- summary(bivSatFit3m)$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 # example 3m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
@@ -268,16 +270,17 @@ mxData(
     observed=testData, 
     type="raw", 
 ),
-mxFIMLObjective(
+mxExpectationNormal(
     covariance="expCov",
     means="expMean",
     dimnames=selVars
-)
+),
+mxFitFunctionML()
 )
 bivSatFit4 <- mxRun(bivSatModel4)
 EM4 <- mxEval(expMean, bivSatFit4)
 EC4 <- mxEval(expCov, bivSatFit4)
-LL4 <- mxEval(objective,bivSatFit4)
+LL4 <- mxEval(fitfunction,bivSatFit4)
 # examples 4: Saturated Model with Raw Data and Matrix-Style Input
 # -----------------------------------------------------------------------------
 
@@ -309,13 +312,14 @@ bivSatModel5 <- mxModel("bivSat5",
         type="cov", 
         numObs=1000 
     ),
-    mxMLObjective(
+    mxExpectationNormal(
         covariance="expCov"
-    )
+    ),
+    mxFitFunctionML()
     )
 bivSatFit5 <- mxRun(bivSatModel5)
 EC5 <- mxEval(expCov, bivSatFit5)
-LL5 <- mxEval(objective,bivSatFit5)
+LL5 <- mxEval(fitfunction,bivSatFit5)
 SL5 <- summary(bivSatFit5)$SaturatedLikelihood
 Chi5 <- LL5-SL5
 # example 5: Saturated Model with Cov Matrices and Matrix-Style Input
@@ -350,15 +354,16 @@ bivSatModel5m <- mxModel("bivSat5m",
         numObs=1000, 
         means=colMeans(testData) 
     ),
-    mxMLObjective(
+    mxExpectationNormal(
         covariance="expCov",
         means="expMean"
-    )
+    ),
+    mxFitFunctionML()
     )
 bivSatFit5m <- mxRun(bivSatModel5m)
 EM5m <- mxEval(expMean, bivSatFit5m)
 EC5m <- mxEval(expCov, bivSatFit5m)
-LL5m <- mxEval(objective,bivSatFit5m);
+LL5m <- mxEval(fitfunction,bivSatFit5m);
 SL5m <- summary(bivSatFit5m)$SaturatedLikelihood
 Chi5m <- LL5m-SL5m
 # example 5m: Saturated Model with Cov Matrices & Means and Matrix-Style Input
@@ -391,15 +396,16 @@ bivSatModel6 <- mxModel("bivSat6",
         observed=testData, 
         type="raw", 
     ),
-    mxFIMLObjective(
+    mxExpectationNormal(
         covariance="expCov",
         means="expMean"
-    )
+    ),
+    mxFitFunctionML()
     )
 bivSatFit6 <- mxRun(bivSatModel6)
 EM6 <- mxEval(expMean, bivSatFit6)
 EC6 <- mxEval(expCov, bivSatFit6)
-LL6 <- mxEval(objective,bivSatFit6)
+LL6 <- mxEval(fitfunction,bivSatFit6)
 # examples 6: Saturated Model with RawData and Matrix-Style Input
 # -----------------------------------------------------------------------------
 
