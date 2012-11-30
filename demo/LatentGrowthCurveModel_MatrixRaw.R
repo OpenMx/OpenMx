@@ -109,7 +109,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
         labels=c(NA,NA,NA,NA,NA,"meani","means"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M",
+    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",
 		dimnames = c(names(myLongitudinalData), "intercept", "slope"))
 )
 # Create an MxModel object

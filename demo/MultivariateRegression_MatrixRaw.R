@@ -100,7 +100,7 @@ multivariateRegModel <- mxModel("Multiple Regression Matrix Specification",
         labels=c("betaw","meanx","betay","meanz"),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M",
+    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",
 		dimnames=c("w", "x", "y", "z"))
 )
 # Create an MxModel object

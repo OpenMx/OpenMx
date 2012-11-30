@@ -136,7 +136,7 @@ twoFactorModel <- mxModel("Two Factor Model Matrix Specification",
         labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA,NA),
         name="M"
     ),
-    mxRAMObjective("A","S","F","M",
+    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",
 		dimnames=c(manifestVars, latentVars))
 )
 # Create an MxModel object

@@ -132,7 +132,7 @@ oneFactorModel <- mxModel("Common Factor Model Matrix Specification",
 		         NA),
 		name="M"
 	),
-	mxRAMObjective("A","S","F","M",
+	mxFitFunctionML(),mxExpectationRAM("A","S","F","M",
 		dimnames=c(manifestVars, latentVars))
 )
 # Create an MxModel object

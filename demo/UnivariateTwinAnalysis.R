@@ -64,13 +64,13 @@ twinSatModel <- mxModel("twinSat",
 		mxMatrix("Lower", 2, 2, T, .5, name="CholMZ"), 
 		mxAlgebra(CholMZ %*% t(CholMZ), name="expCovMZ"), 
 		mxData(DataMZ, type="raw"),
-		mxFIMLObjective("expCovMZ", "expMeanMZ", selVars)),  
+		mxFitFunctionML(),mxExpectationNormal("expCovMZ", "expMeanMZ", selVars)),  
 	mxModel("DZ",
 		mxMatrix("Full", 1, 2, T, c(0,0), name="expMeanDZ"), 
 		mxMatrix("Lower", 2, 2, T, .5, name="CholDZ"), 
 		mxAlgebra(CholDZ %*% t(CholDZ), name="expCovDZ"), 
 		mxData(DataDZ, type="raw"), 
-		mxFIMLObjective("expCovDZ", "expMeanDZ", selVars)),
+		mxFitFunctionML(),mxExpectationNormal("expCovDZ", "expMeanDZ", selVars)),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxFitFunctionAlgebra("twin"))
 twinSatFit <- mxRun(twinSatModel, suppressWarnings=TRUE)
@@ -136,7 +136,7 @@ twinACEModel <- mxModel("twinACE",
 	
 	mxModel("MZ",
 		mxData(DataMZ, type="raw"), 
-		mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMean",selVars)),
+		mxFitFunctionML(),mxExpectationNormal("twinACE.expCovMZ", "twinACE.expMean",selVars)),
 
 	mxAlgebra(rbind(cbind(A+C+E   , .5%x%A+C),
 					cbind(.5%x%A+C , A+C+E)), name="expCovDZ"),
@@ -146,7 +146,7 @@ twinACEModel <- mxModel("twinACE",
 	
 	mxModel("DZ", 
 		mxData(DataDZ, type="raw"), 
-		mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMean",selVars)),
+		mxFitFunctionML(),mxExpectationNormal("twinACE.expCovDZ", "twinACE.expMean",selVars)),
 
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
 	mxFitFunctionAlgebra("twin"))

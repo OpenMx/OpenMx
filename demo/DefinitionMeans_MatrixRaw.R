@@ -98,7 +98,7 @@ defMeansModel <- mxModel("Definition  Means Matrix Specification",
     	observed=data.frame(y,def), 
     	type="raw"
     ), 
-    mxFIMLObjective(
+    mxFitFunctionML(),mxExpectationNormal(
     	covariance="Sigma", 
     	means="Mu", 
     	dimnames=selVars

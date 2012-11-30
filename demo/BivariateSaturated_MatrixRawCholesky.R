@@ -74,7 +74,7 @@ bivSatModel6 <- mxModel("bivSat6",
 		observed=testData, 
 		type="raw"
 	),
-	mxFIMLObjective(
+	mxFitFunctionML(),mxExpectationNormal(
 		covariance="expCov",
 		means="expMean",
 		dimnames=selVars

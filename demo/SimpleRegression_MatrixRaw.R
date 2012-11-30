@@ -87,7 +87,7 @@ uniRegModel <- mxModel("Simple Regression Matrix Specification",
         values=c(0, 0),
         labels=c("meanx", "beta0"),
         name="M"),
-    mxRAMObjective("A", "S", "F", "M",
+    mxFitFunctionML(),mxExpectationRAM("A", "S", "F", "M",
 		dimnames=c("x","y"))
 )
 # Create an MxModel object
