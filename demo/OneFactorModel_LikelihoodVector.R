@@ -43,7 +43,7 @@ data(myFADataRaw)
 myFADataRaw <- myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
 
 oneFactorModel <- mxModel("parent",
-	mxAlgebra(-2 * sum(log(likelihoods.objective)), name = "algObjective"),
+	mxAlgebra(-2 * sum(log(likelihoods.fitfunction)), name = "algObjective"),
 	mxFitFunctionAlgebra("algObjective"),
 	mxModel("likelihoods", 
 		type="RAM",
@@ -87,7 +87,8 @@ oneFactorModel <- mxModel("parent",
 		),
 		# means
 		# -------------------------------------
-		mxRAMObjective("A", "S", "F", "M", vector=TRUE)
+		mxExpectationRAM("A", "S", "F", "M"),
+                mxFitFunctionML(vector=TRUE)
 	) # close model 'likelihoods'
 ) #close model 'parent'
 # Create an MxModel object

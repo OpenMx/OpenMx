@@ -93,11 +93,11 @@ class1 <- mxModel("Class1",
         labels=c("meani1", "means1")
     ),
     # enable the likelihood vector
-    mxRAMObjective(A = "A",
+    mxExpectationRAM(A = "A",
         S = "S",
         F = "F",
-        M = "M",
-        vector = TRUE)
+        M = "M"),
+    mxFitFunctionML(vector=TRUE)
 ) # close model
 
 class2 <- mxModel(class1,
@@ -136,7 +136,7 @@ classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE),
 classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
 
 algObj <- mxAlgebra(-2*sum(
-          log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
+          log(classProbs[1,1]%x%Class1.fitfunction + classProbs[2,1]%x%Class2.fitfunction)), 
           name="mixtureObj")
           
 obj <- mxFitFunctionAlgebra("mixtureObj")
