@@ -59,26 +59,30 @@ twinACEModel <- mxModel("twinACE",
 	                cbind(.5%x%A+C , A+C+E)), name="expCovDZ"),
 	# MZ likelihood is set up as pright*(Likelihood|Zygosity=MZ) + pwrong*(Likelihood|DZ)
 	# DZ likelihood is set up as pright*(Likelihood|Zygosity=DZ) + pwrong*(Likelihood|MZ)
-	# vector=TRUE argument to mxFIMLObjective allows mixture distribution on individual likelihoods
+	# vector=TRUE allows mixture distribution on individual likelihoods
     mxModel("MZcorrect",
-            mxData(dataMZ, type="raw"), 
-            mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMean",selVars, vector=T)),
+            mxData(dataMZ, type="raw"),
+            mxExpectationNormal("twinACE.expCovMZ", "twinACE.expMean",selVars),
+            mxFitFunctionML(vector=T)),
     mxModel("MZincorrect",
-            mxData(dataMZ, type="raw"), 
-            mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMean",selVars, vector=T)),
+            mxData(dataMZ, type="raw"),
+            mxExpectationNormal("twinACE.expCovDZ", "twinACE.expMean",selVars),
+            mxFitFunctionML(vector=T)),
     mxModel("DZcorrect", 
             mxData(dataDZ, type="raw"), 
-            mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMean",selVars, vector=T)),
+            mxExpectationNormal("twinACE.expCovDZ", "twinACE.expMean",selVars),
+            mxFitFunctionML(vector=T)),
     mxModel("DZincorrect", 
             mxData(dataDZ, type="raw"), 
-            mxFIMLObjective("twinACE.expCovMZ", "twinACE.expMean",selVars, vector=T)),
-    mxAlgebra(-2*sum(log(pright%x%MZcorrect.objective + pwrong%x%MZincorrect.objective)) + 
-              -2*sum(log(pright%x%DZcorrect.objective + pwrong%x%DZincorrect.objective)), name="twin"), 
-    mxAlgebraObjective("twin")
+            mxExpectationNormal("twinACE.expCovMZ", "twinACE.expMean",selVars),
+            mxFitFunctionML(vector=T)),
+    mxAlgebra(-2*sum(log(pright%x%MZcorrect.fitfunction + pwrong%x%MZincorrect.fitfunction)) + 
+              -2*sum(log(pright%x%DZcorrect.fitfunction + pwrong%x%DZincorrect.fitfunction)), name="twin"), 
+    mxFitFunctionAlgebra("twin")
 )
 twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
 
 # Check results against hard-coded Mx1 estimates and likelihood
 estimates     <- mxEval(as.vector(c(X, Y, Z, expMean[1,1])), twinACEFit)
-fitStatistics <- mxEval(objective, twinACEFit)
+fitStatistics <- mxEval(fitfunction, twinACEFit)
 omxCheckCloseEnough(as.vector(c(0.7974,0.4196,0.4509,-0.0254,10165.966)),as.vector(c(estimates,fitStatistics)), .005)
