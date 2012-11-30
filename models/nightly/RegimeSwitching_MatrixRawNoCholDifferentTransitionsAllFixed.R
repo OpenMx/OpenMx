@@ -186,7 +186,7 @@ components <- paste("weights[", modelnumbers, ",1]", " %x% ", objectives, sep = 
 componentsSum <- paste(components, collapse = " + ")
 algebraString <- paste("mxAlgebra(-2*sum(log(", componentsSum, ")), name='mixtureObj')", sep = "")
 algebraObjective <- eval(parse(text=algebraString)[[1]])
-obj <- mxAlgebraObjective("mixtureObj")
+obj <- mxFitFunctionAlgebra("mixtureObj")
 # -----------------------------------------------------------------------------
       
 # Construct MxModel from all the various pieces; add options and then run it and summarize results

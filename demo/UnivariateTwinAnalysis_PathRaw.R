@@ -131,7 +131,7 @@ twinACEModel <- mxModel("twinACE", mzModel, dzModel,
     	expression=MZ.objective + DZ.objective, 
     	name="twin"
     ), 
-    mxAlgebraObjective("twin")
+    mxFitFunctionAlgebra("twin")
 )
 # Fit ACE Model with RawData and Path-Style Input
 # -----------------------------------------------------------------------------
@@ -225,7 +225,7 @@ twinAEModel <- mxModel("twinAE", mzModel, dzModel,
     	expression=MZ.objective + DZ.objective, 
     	name="twin"
     ), 
-    mxAlgebraObjective("twin")
+    mxFitFunctionAlgebra("twin")
 )
 
 twinAEFit <- mxRun(twinAEModel)

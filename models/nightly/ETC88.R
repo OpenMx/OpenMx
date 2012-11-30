@@ -347,7 +347,7 @@ etc88Model <- mxModel("et",
 	    mxData( observed=dataDZO, type="raw" ),
 	    mxFIMLObjective( covariance="et.covDZO", means="et.meanDZO", dimnames=selVars ) ),
 	mxAlgebra( expression=MZM.objective + DZM.objective + MZF.objective + DZF.objective + DZO.objective, 		name="m2LL" ),
-	mxAlgebraObjective("m2LL")
+	mxFitFunctionAlgebra("m2LL")
     )
     
 # Run Model and Generate Output

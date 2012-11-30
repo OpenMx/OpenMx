@@ -80,7 +80,7 @@ dzModel <- mxModel(ntf, name = "DZNTF",
 
 model <- mxModel(model="NTF", mzModel, dzModel,
   mxAlgebra(expression=MZNTF.objective + DZNTF.objective, name="ntffit"), #MZ.objective is the automatic name for the -2LL of mzModel
-  mxAlgebraObjective("ntffit")
+  mxFitFunctionAlgebra("ntffit")
 )
 
 #Run MX

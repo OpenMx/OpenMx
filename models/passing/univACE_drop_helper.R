@@ -101,7 +101,7 @@ modelDZ <- mxModel("modelDZ",
 model = mxModel("ACE", 
   modelShare, modelMZ, modelDZ,
   mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin"),
-  mxAlgebraObjective("twin")
+  mxFitFunctionAlgebra("twin")
 )
 fit <- mxRun(model)
 summary(fit)
@@ -113,7 +113,7 @@ modelShare = setParameters(modelShare, labels=c("c1"), free = FALSE, value = 0)
 model = mxModel("ACE", 
   modelShare, modelMZ, modelDZ,
   mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin"),
-  mxAlgebraObjective("twin")
+  mxFitFunctionAlgebra("twin")
 )
 fit <- mxRun(model)
 summary(fit)

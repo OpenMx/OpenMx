@@ -44,7 +44,7 @@ modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,A,C,E,cMZ, objMZ)
 modelDZ <- mxModel("modelDZ", dataDZ, X,Y,Z,h,A,C,E,cDZ, objDZ)
 
 twin <- mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin")
-obj <- mxAlgebraObjective("twin")
+obj <- mxFitFunctionAlgebra("twin")
 
 model <- mxModel("both", twin, obj, modelMZ, modelDZ)
 modelOut <- mxRun(model)

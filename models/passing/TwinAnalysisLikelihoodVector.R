@@ -132,7 +132,7 @@ twinACEModel <- mxModel("twinACE",
 		expression=-2.0 *sum(log(MZ.objective), log(DZ.objective)), 
 		name="twin"
 	), 
-	mxAlgebraObjective("twin")
+	mxFitFunctionAlgebra("twin")
 )
 
 #Run ACE model

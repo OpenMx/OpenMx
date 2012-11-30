@@ -139,7 +139,7 @@ algObj <- mxAlgebra(-2*sum(
           log(classProbs[1,1]%x%Class1.objective + classProbs[2,1]%x%Class2.objective)), 
           name="mixtureObj")
           
-obj <- mxAlgebraObjective("mixtureObj")
+obj <- mxFitFunctionAlgebra("mixtureObj")
       
 gmm <- mxModel("Growth Mixture Model",
 	mxData(

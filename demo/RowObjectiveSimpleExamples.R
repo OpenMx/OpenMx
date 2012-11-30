@@ -125,7 +125,7 @@ dmod <- mxModel(
 	mxMatrix(name='X', nrow=nobs, ncol=1, free=F, values=as.matrix(adat)),
 	mxAlgebra((X-A) %^% 2, name='Row'),
 	mxAlgebra(sum(Row), name='Red'),
-	mxAlgebraObjective('Red')
+	mxFitFunctionAlgebra('Red')
 )
 
 dmodRun <- mxRun(dmod) # runs super fast := 0.07 sec

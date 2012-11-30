@@ -151,7 +151,7 @@ twinACEModel <- mxModel("twinACE",
 	# to 1*1 matrix
 	# ----------------------------------
 	
-	mxAlgebraObjective("twin")
+	mxFitFunctionAlgebra("twin")
 )
 # Fit ACE Model with RawData and Matrices Input
 # -----------------------------------------------------------------------------

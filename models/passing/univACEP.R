@@ -55,7 +55,7 @@ DZ = mxModel(share, name="DZ",
 
 twinACEModel <- mxModel("twinACE", MZ, DZ,
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-    mxAlgebraObjective("twin")
+    mxFitFunctionAlgebra("twin")
 )
 
 #Run ACE model
@@ -108,7 +108,7 @@ DZ = mxModel(share2, name="DZ",
 
 model <- mxModel("twinAE", MZ, DZ,
     mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-    mxAlgebraObjective("twin")
+    mxFitFunctionAlgebra("twin")
 )
 
 fit <- mxRun(model)

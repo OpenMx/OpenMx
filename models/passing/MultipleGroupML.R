@@ -36,7 +36,7 @@ output1@output
 output2@output
 
 alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
-obj <- mxAlgebraObjective("alg")
+obj <- mxFitFunctionAlgebra("alg")
 
 model <- mxModel("both", alg, obj, model1, model2)
 model <- mxRun(model, suppressWarnings = TRUE)

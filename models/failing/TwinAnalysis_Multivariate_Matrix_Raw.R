@@ -83,7 +83,7 @@ dzGroup <- mxModel("dz",
 # Combine the mz and dz groups in a supermodel which can have as its objective maximising the likelihood ofboth groups simultaneously.
 model = mxModel("ACE", mzGroup, dzGroup,
 	mxAlgebra(mz.objective + dz.objective, name="twin"), 
-	mxAlgebraObjective("twin")
+	mxFitFunctionAlgebra("twin")
 )
 
 #Run ACE model

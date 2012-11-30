@@ -22,7 +22,7 @@ require(OpenMx)
 #     Bernstein data on ABO blood-groups
 #     c.f. Edwards, AWF (1972)  Likelihood.  Cambridge Univ Press, pp. 39-41
 #
-onelocus<-mxModel("onelocus", mxAlgebraObjective("NegativeLogLikelihood"), 
+onelocus<-mxModel("onelocus", mxFitFunctionAlgebra("NegativeLogLikelihood"), 
 				
 				mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),  # P, freq of allele 1
 				mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="Q"),  # Q, freq of allele 2

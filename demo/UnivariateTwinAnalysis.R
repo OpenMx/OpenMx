@@ -72,7 +72,7 @@ twinSatModel <- mxModel("twinSat",
 		mxData(DataDZ, type="raw"), 
 		mxFIMLObjective("expCovDZ", "expMeanDZ", selVars)),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-	mxAlgebraObjective("twin"))
+	mxFitFunctionAlgebra("twin"))
 twinSatFit <- mxRun(twinSatModel, suppressWarnings=TRUE)
 # Specify and Run Saturated Model with RawData and Matrix-style Input
 # -----------------------------------------------------------------------
@@ -149,7 +149,7 @@ twinACEModel <- mxModel("twinACE",
 		mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMean",selVars)),
 
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-	mxAlgebraObjective("twin"))
+	mxFitFunctionAlgebra("twin"))
 twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
 # Specify and Run ACE Model with RawData and Matrix-style Input
 # -----------------------------------------------------------------------

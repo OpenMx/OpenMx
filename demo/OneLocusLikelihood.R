@@ -52,7 +52,7 @@ OneLocusModel <- mxModel("OneLocus",
     mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
     # Algebra for -logLikelihood
     # -------------------------------------
-    mxAlgebraObjective("NegativeLogLikelihood") 
+    mxFitFunctionAlgebra("NegativeLogLikelihood") 
     # User-defined objective
      # -------------------------------------
 )

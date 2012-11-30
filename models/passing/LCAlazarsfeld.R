@@ -75,7 +75,7 @@ lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"),
 # Define the objective function
             mxAlgebra(-2*sum(freq * log(pclass1%x%Class1.objective + pclass2%x%Class2.objective)), 
             	name="lca"),
-            mxAlgebraObjective("lca")
+            mxFitFunctionAlgebra("lca")
 )
 
 # Run the job

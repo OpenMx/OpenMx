@@ -74,7 +74,7 @@ twinACEModel <- mxModel("twinACE",
         mxMatrix(type="Unit", nrow=dim(frameMZ)[1], ncol=1, name="unit"),
         
         mxAlgebra(-2*sum(log(pMZ * MZlike.objective + (unit-pMZ) * DZlike.objective)), name="twin"), 
-        mxAlgebraObjective("twin")
+        mxFitFunctionAlgebra("twin")
         )
 
 twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)

@@ -52,7 +52,7 @@ twinSatModel <- mxModel("twinSat",
 		mxFIMLObjective("expCovDZ", "expMeanDZ")
 	),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-	mxAlgebraObjective("twin")
+	mxFitFunctionAlgebra("twin")
 )
 twinSatFit <- mxRun(twinSatModel)
 
@@ -129,7 +129,7 @@ twinACEModel <- mxModel("twinACE",
 		mxData(DataDZ, type="raw"), 
 		mxFIMLObjective("twinACE.expCovDZ", "twinACE.expMean")),
 	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-	mxAlgebraObjective("twin")
+	mxFitFunctionAlgebra("twin")
 )
 twinACEFit <- mxRun(twinACEModel)
 

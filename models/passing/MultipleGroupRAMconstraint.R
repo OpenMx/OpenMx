@@ -48,12 +48,12 @@ output1<-mxRun(model1, suppressWarnings=TRUE)
 output2<-mxRun(model2, suppressWarnings=TRUE)
 
 ###Starting the "Super" Model, which contains models 1 and 2
-#This will use the mxAlgebraObjective function
+#This will use the mxFitFunctionAlgebra function
 #we first need an algebra, which describes how obj1 and obj2 go together (sum)
 alg<-mxAlgebra(first.objective + second.objective, name="alg")
 
 #now the objective function
-obj <- mxAlgebraObjective("alg")
+obj <- mxFitFunctionAlgebra("alg")
 
 #make a model
 model <- mxModel("both", alg, obj, model1, model2)

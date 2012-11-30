@@ -238,7 +238,7 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
 #univModHetACEFit <- mxModel(ACE,MZm,DZm,MZf,DZf,DZmf,
     mxAlgebra( expression=-2*sum(log(rbind(MZm.objective,DZm.objective,MZf.objective,DZf.objective))), 
         name="minus2sumloglikelihood" ),
-    mxAlgebraObjective("minus2sumloglikelihood")
+    mxFitFunctionAlgebra("minus2sumloglikelihood")
 )
 
 univHetACEModelNIQmfFv <- mxOption(univHetACEModelNIQmfFv, "Function precision", 1e-10) 

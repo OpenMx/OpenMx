@@ -121,7 +121,7 @@ twinACEModel <- mxModel("twinACE",
 		expression=MZ.objective + DZ.objective, 
 		name="twin"
 	), 
-	mxAlgebraObjective("twin"),
+	mxFitFunctionAlgebra("twin"),
     mxCI(c("common.A", "common.C[,]", "common.E[1,1]"))
 )	
 #Run ACE model
@@ -151,12 +151,12 @@ twinACEIntervals@output <- list()
 CIaupper <- mxModel(twinACEIntervals, name = 'A_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.A,name="upperCIa"), 
-		mxAlgebraObjective("upperCIa"))
+		mxFitFunctionAlgebra("upperCIa"))
 
 CIalower <- mxModel(twinACEIntervals, name = 'A_CIlower',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.A,name="lowerCIa"),
-		mxAlgebraObjective("lowerCIa"))
+		mxFitFunctionAlgebra("lowerCIa"))
 
 runCIalower <- suppressWarnings(iterateMxRun(CIalower, 3))
 runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
@@ -164,12 +164,12 @@ runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
 CIcupper <- mxModel(twinACEIntervals, name = 'C_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.C,name="upperCIc"), 
-		mxAlgebraObjective("upperCIc"))
+		mxFitFunctionAlgebra("upperCIc"))
 
 CIclower <- mxModel(twinACEIntervals, name = 'C_CIlower',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.C,name="lowerCIc"),
-		mxAlgebraObjective("lowerCIc"))
+		mxFitFunctionAlgebra("lowerCIc"))
 
 runCIclower <- suppressWarnings(iterateMxRun(CIclower, 3))
 runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
@@ -177,12 +177,12 @@ runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
 CIeupper <- mxModel(twinACEIntervals, name = 'E_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.E,name="upperCIe"), 
-		mxAlgebraObjective("upperCIe"))
+		mxFitFunctionAlgebra("upperCIe"))
 
 CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
 		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.E,name="lowerCIe"),
-		mxAlgebraObjective("lowerCIe"))
+		mxFitFunctionAlgebra("lowerCIe"))
 
 runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
 runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
