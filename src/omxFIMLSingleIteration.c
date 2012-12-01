@@ -942,8 +942,8 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		}
 
 		// Handle Definition Variables.
-		if(numDefs != 0) {
-			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate
+		if(numDefs != 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+			if(keepCov <= 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {  // If we're keeping covariance from the previous row, do not populate
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
@@ -959,7 +959,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 					keepCov -= numIdentical;
 					keepInverse -= numIdentical;
 					continue;
-				} else if (numVarsFilled || firstRow) {
+				} else if (numVarsFilled || firstRow || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					omxExpectationCompute(expectation);
@@ -987,6 +987,8 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 				omxSetVectorElement(smallRow, j, (dataValue -  omxVectorElement(means, j)));
 			}
 		}
+		//TODO: If the expectation is a state space model then
+		// set the y attribute of the state space expectation to smallRow.
 
 		if(cov->cols <= numRemoves) {
 			for(int nid = 0; nid < numIdentical; nid++) {

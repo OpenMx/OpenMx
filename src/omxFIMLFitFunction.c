@@ -320,7 +320,7 @@ void omxCallFIMLFitFunction(omxFitFunction *off) {	// TODO: Figure out how to gi
 	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
 	expectation = off->expectation;
 
-	if(numDefs == 0) {
+	if(numDefs == 0 && strcmp(expectation->expType, "omxStateSpaceExpectation")) {
 		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
 		omxExpectationCompute(expectation);
 		
