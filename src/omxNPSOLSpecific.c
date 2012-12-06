@@ -456,10 +456,10 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
  
 			if (currentCI->matrix->name == NULL) {
 				sprintf(message, "%s[%d, %d] begin lower interval",
-					anonMatrix, currentCI->row, currentCI->col);
+					anonMatrix, currentCI->row + 1, currentCI->col + 1);
 			} else {
 				sprintf(message, "%s[%d, %d] begin lower interval",
-					currentCI->matrix->name, currentCI->row, currentCI->col);
+					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
 			omxWriteCheckpointMessage(globalState, message);
@@ -516,10 +516,10 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
 
 			if (currentCI->matrix->name == NULL) {
 				sprintf(message, "%s[%d, %d] begin upper interval", 
-					anonMatrix, currentCI->row, currentCI->col);
+					anonMatrix, currentCI->row + 1, currentCI->col + 1);
 			} else {
 				sprintf(message, "%s[%d, %d] begin upper interval",
-					currentCI->matrix->name, currentCI->row, currentCI->col);
+					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
 			omxWriteCheckpointMessage(globalState, message);
