@@ -33,7 +33,6 @@ struct omxFitFunctionTableEntry {
 
 	char name[32];
 	void (*initFun)(omxFitFunction*, SEXP);
-	unsigned long long distributions;
 
 };
 
