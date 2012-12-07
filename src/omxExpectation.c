@@ -46,7 +46,7 @@ extern void omxInitRAMExpectation(omxExpectation *ox, SEXP rObj);
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationLISREL",			&omxInitLISRELExpectation},
-	{"MxExpectationSSM",			&omxInitStateSpaceExpectation},
+	{"MxExpectationStateSpace",			&omxInitStateSpaceExpectation},
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
 	{"MxExpectationRAM",			&omxInitRAMExpectation},
 	{ "", 0 }

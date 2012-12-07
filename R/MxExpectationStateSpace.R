@@ -194,12 +194,12 @@ checkSSMargument <- function(x, xname) {
 #--------------------------------------------------------------------
 # **DONE**
 imxExpectationStateSpace <- function(A, B, C, D, Q, R, dimnames = NA, thresholds = NA, threshnames = dimnames){
-	A <- checkLISRELargument(A, "A")
-	B <- checkLISRELargument(B, "B")
-	C <- checkLISRELargument(C, "C")
-	D <- checkLISRELargument(D, "D")
-	Q <- checkLISRELargument(Q, "Q")
-	R <- checkLISRELargument(R, "R")
+	A <- checkSSMargument(A, "A")
+	B <- checkSSMargument(B, "B")
+	C <- checkSSMargument(C, "C")
+	D <- checkSSMargument(D, "D")
+	Q <- checkSSMargument(Q, "Q")
+	R <- checkSSMargument(R, "R")
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (single.na(threshnames)) threshnames <- as.character(NA)
