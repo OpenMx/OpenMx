@@ -7,5 +7,6 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol$(WIN) -L$(NPSOL_DIR)
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX # turn on algebra and matrix debugging
 # PKG_CFLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
+# PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX -DDEBUG_ROWS # Debug setup, etc., Algebras, etc., Matrix, and Rows
 # PKG_CFLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 

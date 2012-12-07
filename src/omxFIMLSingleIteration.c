@@ -863,7 +863,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
  * 
  */
 void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
-    
+    if(OMX_DEBUG_ALGEBRA) {Rprintf("Entering FIML Single Iteration\n"); }
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 

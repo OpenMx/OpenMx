@@ -331,10 +331,16 @@ static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              /
 }
 
 static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
-	// ERROR: NYI.
+	// TODO: Add error checking, and/or adjustments for row vs. column majority.
+	// N.B. Not fully tested.
+	char u = 'U'; //l = 'L'; //U for storing upper triangle
+	F77_CALL(dpotrf)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
-	// ERROR: NYI
+	// TODO: Add error checking, and/or adjustments for row vs. column majority.
+	// N.B. Not fully tested.
+	char u = 'U'; //l = 'L'; // U for storing upper triangle
+	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 
 

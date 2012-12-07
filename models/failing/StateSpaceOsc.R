@@ -63,7 +63,7 @@ for(i in 2:(tdim+1)){
 	ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 }
 
-plot(tx[1,], type='l')
+#plot(tx[1,], type='l')
 
 rownames(ty) <- paste('y', 1:ydim)
 rownames(tx) <- paste('x', 1:xdim)
@@ -116,7 +116,8 @@ smod <- mxModel(
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
 	mxData(observed=t(ty), type='raw'),
-	imxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P')
+	imxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P'),
+	mxFitFunctionML()
 )
 
 smod <- mxOption(smod, 'Calculate Hessian', 'No')

@@ -63,11 +63,12 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	/* We allocated 'em, so we destroy 'em. */
 	omxFreeMatrixData(argStruct->r);
 	omxFreeMatrixData(argStruct->s);
-	omxFreeMatrixData(argStruct->u); // This is data, destroy it?
-	omxFreeMatrixData(argStruct->x); // This is latent data, destroy it?
-	omxFreeMatrixData(argStruct->y); // This is data, destroy it?
+	omxFreeMatrixData(argStruct->z);
+	//omxFreeMatrixData(argStruct->u); // This is data, destroy it?
+	//omxFreeMatrixData(argStruct->x); // This is latent data, destroy it?
+	//omxFreeMatrixData(argStruct->y); // This is data, destroy it?
 	omxFreeMatrixData(argStruct->K); // This is the Kalman gain, destroy it?
-	omxFreeMatrixData(argStruct->P); // This is latent cov, destroy it?
+	//omxFreeMatrixData(argStruct->P); // This is latent cov, destroy it?
 	omxFreeMatrixData(argStruct->S); // This is data error cov, destroy it?
 	omxFreeMatrixData(argStruct->Y);
 	omxFreeMatrixData(argStruct->Z);
@@ -155,6 +156,8 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxMatrix* Cov = ose->cov;
 	omxMatrix* Means = ose->means;
 	
+	int info = 0; // Used for computing inverse for Kalman gain
+	
 	/* r = y - C x - D u */
 	omxCopyMatrix(r, y); // r = y
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = y"); }
@@ -180,7 +183,41 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S = C P C^T + R"); }
 	
 	omxCopyMatrix(Cov, S); //Note: I know this is inefficient memory use, but for now it is more clear.-MDH
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....State Space: Cov"); }
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	
+	/* Now compute the Kalman Gain and update the error covariance matrix */
+	/* S = S^-1 */
+	omxDPOTRF(S, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Cholesky of S"); }
+	//for(int i = 0; i < S->cols; i++) {
+	//	det += log(fabs(S->data[i+S->rows*i]));
+	// alternatively log(fabs(omxMatrixElement(S, i, i)));
+	//}
+	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
+	omxDPOTRI(S, &info); // S = S^-1 via Cholesky factorization
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Inverse of S"); }
+	
+	/* K = P C^T S^-1 */
+	omxTransposeMatrix(Y);
+	omxDSYMM(FALSE, 1.0, S, Y, 0.0, K); // K = Y^T S THAT IS K = P C^T S^-1
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K = P C^T S^-1"); }
+	omxTransposeMatrix(Y);
+	
+	/* x = x + K r */
+	omxDGEMV(FALSE, 1.0, K, r, 1.0, x); // x = K r + x
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = K r + x"); }
+	
+	/* P = (I - K C) P */
+	/* P = P - K C P */
+	omxDGEMM(FALSE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
+	
+	/*m2ll = r^T S r */
+	//omxDSYMV(1.0, S, r, 0.0, s); // s = S r
+	//m2ll = omxDDOT(r, s); // m2ll = r s THAT IS r^T S r
+	//m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + r^T S r
+	// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
 }
 
 
@@ -245,6 +282,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	for(int i = 0; i < ny; i++) {
 		omxSetMatrixElement(SSMexp->y, i, 0, omxMatrixElement(ox->data->dataMat, 0, i));
 	}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }
 	
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 	
