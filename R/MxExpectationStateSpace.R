@@ -38,6 +38,8 @@ setClass(Class = "MxExpectationStateSpace",
 		D = "MxCharOrNumber",
 		Q = "MxCharOrNumber",
 		R = "MxCharOrNumber",
+		x = "MxCharOrNumber",
+		P = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		definitionVars = "list",
@@ -51,7 +53,7 @@ setClass(Class = "MxExpectationStateSpace",
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationStateSpace",
-	function(.Object, A, B, C, D, Q, R, dims, thresholds, threshnames,
+	function(.Object, A, B, C, D, Q, R, x, P, dims, thresholds, threshnames,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -60,6 +62,8 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@D <- D
 		.Object@Q <- Q
 		.Object@R <- R
+		.Object@x <- x
+		.Object@P <- P
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
@@ -99,6 +103,8 @@ setMethod("genericExpFunNamespace", signature("MxExpectationStateSpace"),
 		.Object@D <- imxConvertIdentifier(.Object@D, modelname, namespace)
 		.Object@Q <- imxConvertIdentifier(.Object@Q, modelname, namespace)
 		.Object@R <- imxConvertIdentifier(.Object@R, modelname, namespace)
+		.Object@x <- imxConvertIdentifier(.Object@x, modelname, namespace)
+		.Object@P <- imxConvertIdentifier(.Object@P, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
 		return(.Object)
@@ -118,6 +124,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		dMatrix <- .Object@D
 		qMatrix <- .Object@Q
 		rMatrix <- .Object@R
+		xMatrix <- .Object@x
+		pMatrix <- .Object@P
 		data <- .Object@data
 		if(is.na(data)) {
 			msg <- paste("The SSM expectation function",
@@ -133,7 +141,35 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		.Object@D <- imxLocateIndex(flatModel, dMatrix, name)
 		.Object@Q <- imxLocateIndex(flatModel, qMatrix, name)
 		.Object@R <- imxLocateIndex(flatModel, rMatrix, name)
+		.Object@x <- imxLocateIndex(flatModel, xMatrix, name)
+		.Object@P <- imxLocateIndex(flatModel, pMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
+		aMatrix <- flatModel[[aMatrix]]
+		bMatrix <- flatModel[[bMatrix]]
+		cMatrix <- flatModel[[cMatrix]]
+		dMatrix <- flatModel[[dMatrix]]
+		qMatrix <- flatModel[[qMatrix]]
+		rMatrix <- flatModel[[rMatrix]]
+		xMatrix <- flatModel[[xMatrix]]
+		pMatrix <- flatModel[[pMatrix]]
+		translatedNames <- c(dimnames(cMatrix)[[1]])
+		if (mxDataObject@type == 'raw') {
+			threshName <- .Object@thresholds
+			checkNumberOrdinalColumns(mxDataObject)
+			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
+			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
+			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
+			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+			retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
+			.Object@thresholdColumns <- retval[[1]]
+			.Object@thresholdLevels <- retval[[2]]
+			if (length(mxDataObject@observed) == 0) {
+				.Object@data <- as.integer(NA)
+			}
+			if (single.na(.Object@dims)) {
+				.Object@dims <- translatedNames
+			}
+		}
 		return(.Object)
 	}
 )
@@ -143,7 +179,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 # **DONE**
 setMethod("genericExpDependencies", signature("MxExpectationStateSpace"),
 	function(.Object, dependencies) {
-		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R, .Object@thresholds)
+		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R, .Object@x, .Object@P, .Object@thresholds)
 		sources <- sources[!is.na(sources)]
 		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		return(dependencies)
@@ -161,6 +197,8 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 		.Object@D <- renameReference(.Object@D, oldname, newname)
 		.Object@Q <- renameReference(.Object@Q, oldname, newname)
 		.Object@R <- renameReference(.Object@R, oldname, newname)
+		.Object@x <- renameReference(.Object@x, oldname, newname)
+		.Object@P <- renameReference(.Object@P, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
 		return(.Object)
@@ -193,13 +231,15 @@ checkSSMargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-imxExpectationStateSpace <- function(A, B, C, D, Q, R, dimnames = NA, thresholds = NA, threshnames = dimnames){
+imxExpectationStateSpace <- function(A, B, C, D, Q, R, x, P, dimnames = NA, thresholds = NA, threshnames = dimnames){
 	A <- checkSSMargument(A, "A")
 	B <- checkSSMargument(B, "B")
 	C <- checkSSMargument(C, "C")
 	D <- checkSSMargument(D, "D")
 	Q <- checkSSMargument(Q, "Q")
 	R <- checkSSMargument(R, "R")
+	x <- checkSSMargument(x, "x")
+	P <- checkSSMargument(P, "P")
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (single.na(threshnames)) threshnames <- as.character(NA)
@@ -224,7 +264,7 @@ imxExpectationStateSpace <- function(A, B, C, D, Q, R, dimnames = NA, thresholds
 	if (length(threshnames) > 1 && any(is.na(threshnames))) {
 		stop("NA values are not allowed for 'threshnames' vector")
 	}
-	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, dimnames, thresholds, threshnames))
+	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x, P, dimnames, thresholds, threshnames))
 }
 
 
@@ -238,6 +278,8 @@ displayMxExpectationStateSpace <- function(expectation) {
 	cat("@D :", omxQuotes(expectation@D), '\n')
 	cat("@Q :", omxQuotes(expectation@Q), '\n')
 	cat("@R :", omxQuotes(expectation@R), '\n')
+	cat("@x :", omxQuotes(expectation@x), '\n')
+	cat("@P :", omxQuotes(expectation@P), '\n')
 	if (single.na(expectation@dims)) {
 		cat("@dims : NA \n")
 	} else {

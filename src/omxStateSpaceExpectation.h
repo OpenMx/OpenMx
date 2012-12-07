@@ -21,7 +21,7 @@
 typedef struct {
 	omxMatrix *cov, *means;
 	omxMatrix *A, *B, *C, *D, *Q, *R; // State Space model Matrices
-	omxMatrix *r, *s, *u, *x, *y; // Data and place holder vectors
+	omxMatrix *r, *s, *u, *x, *y, *z; // Data and place holder vectors
 	omxMatrix *K, *P, *S, *Y, *Z; // Behind the scenes state space matrices (P, S, and K) and place holder matrices
 	
 	

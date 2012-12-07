@@ -83,48 +83,70 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 
 
 void omxKalmanPredict(omxStateSpaceExpectation* ose) {
+    if(OMX_DEBUG) { Rprintf("Kalman Predict Called.\n"); }
 	/* Creat local copies of State Space Matrices */
 	omxMatrix* A = ose->A;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
 	omxMatrix* B = ose->B;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....State Space: B"); }
 	//omxMatrix* C = ose->C;
 	//omxMatrix* D = ose->D;
 	omxMatrix* Q = ose->Q;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Q, "....State Space: Q"); }
 	//omxMatrix* R = ose->R;
 	//omxMatrix* r = ose->r;
 	//omxMatrix* s = ose->s;
 	omxMatrix* u = ose->u;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(u, "....State Space: u"); }
 	omxMatrix* x = ose->x;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
 	//omxMatrix* y = ose->y;
+	omxMatrix* z = ose->z;
 	//omxMatrix* K = ose->K;
 	omxMatrix* P = ose->P;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 	//omxMatrix* S = ose->S;
 	//omxMatrix* Y = ose->Y;
 	omxMatrix* Z = ose->Z;
 
 	/* x = A x + B u */
-	omxDGEMV(FALSE, 1.0, A, x, 0.0, x); // x = A x
-	omxDGEMV(FALSE, 1.0, B, u, 1.0, x); // x = B u + x THAT IS x = A x + B u
+	omxDGEMV(FALSE, 1.0, A, x, 0.0, z); // x = A x
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(z, "....State Space: z = A x"); }
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
+	omxDGEMV(FALSE, 1.0, B, u, 1.0, z); // x = B u + x THAT IS x = A x + B u
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(z, "....State Space: z = A x + B u"); }
+	omxCopyMatrix(x, z); // x = z THAT IS x = A x + B u
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = A x + B u"); }
 	
 	/* P = A P A^T + Q */
 	omxDSYMM(FALSE, 1.0, P, A, 0.0, Z); // Z = A P
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Z, "....State Space: Z = A P"); }
 	omxCopyMatrix(P, Q); // P = Q
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = Q"); }
 	omxDGEMM(FALSE, TRUE, 1.0, Z, A, 1.0, P); // P = Z A^T + P THAT IS P = A P A^T + Q
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = A P A^T + Q"); }
 }
 
 
 void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
+    if(OMX_DEBUG) { Rprintf("Kalman Update Called.\n"); }
 	/* Creat local copies of State Space Matrices */
 	//omxMatrix* A = ose->A;
 	//omxMatrix* B = ose->B;
 	omxMatrix* C = ose->C;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C"); }
 	omxMatrix* D = ose->D;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....State Space: D"); }
 	//omxMatrix* Q = ose->Q;
 	omxMatrix* R = ose->R;
 	omxMatrix* r = ose->r;
 	omxMatrix* s = ose->s;
 	omxMatrix* u = ose->u;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(u, "....State Space: u"); }
 	omxMatrix* x = ose->x;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
 	omxMatrix* y = ose->y;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(y, "....State Space: y"); }
 	omxMatrix* K = ose->K;
 	omxMatrix* P = ose->P;
 	omxMatrix* S = ose->S;
@@ -133,54 +155,32 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxMatrix* Cov = ose->cov;
 	omxMatrix* Means = ose->means;
 	
-	double det = 0.0;  //Only needed if I'm computing my own likelihood
-	double m2ll = 0.0; //Only needed if I'm computing my own likelihood
-	int* info; //Only needed if I'm computing my own likelihood
-	
 	/* r = y - C x - D u */
 	omxCopyMatrix(r, y); // r = y
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = y"); }
 	omxDGEMV(FALSE, -1.0, C, x, 1.0, r); // r = -C x + r THAT IS r = -C x + y
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = -C x + y"); }
 	omxDGEMV(FALSE, -1.0, D, u, 1.0, r); // r = -D u + r THAT IS r = y - (C x + D u)
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = y - (C x + D u)"); }
 	
 	/* Alternatively, create just the expected value for the data row, x. */
+	omxDGEMV(FALSE, 1.0, C, x, 0.0, s);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x"); }
+	omxDGEMV(FALSE, 1.0, D, u, 1.0, s);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x + D u"); }
+	omxCopyMatrix(Means, s);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	omxTransposeMatrix(Means);
-	omxDGEMV(FALSE, 1.0, C, x, 0.0, Means);
-	omxDGEMV(FALSE, 1.0, D, u, 1.0, Means);
-	omxTransposeMatrix(Means);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	
 	/* S = C P C^T + R */
-	omxDSYMM(FALSE, 1.0, C, P, 0.0, Y); // Y = C P
+	omxDSYMM(FALSE, 1.0, P, C, 0.0, Y); // Y = C P
 	omxCopyMatrix(S, R); // S = R
 	omxDGEMM(FALSE, TRUE, 1.0, Y, C, 1.0, S); // S = Y C^T + S THAT IS C P C^T + R
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S = C P C^T + R"); }
 	
 	omxCopyMatrix(Cov, S); //Note: I know this is inefficient memory use, but for now it is more clear.-MDH
 	
-	/* Everything in this function after here just computes the -2LL. */
-	
-	/* S = S^-1 */
-	omxDPOTRF(S, info); // S replaced by the lower triangular matrix of the Cholesky factorization
-	for(int i = 0; i < S->cols; i++) {
-		det += log(fabs(S->data[i+S->rows*i]));
-		// alternatively log(fabs(omxMatrixElement(S, i, i)));
-	}
-	det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
-	omxDPOTRI(S, info); // S = S^-1 via Cholesky factorization
-	
-	/* K = P C^T S^-1 */
-	omxDGEMM(TRUE, FALSE, 1.0, Y, S, 0.0, K); // K = Y^T S THAT IS K = P C^T S^-1
-	
-	/* x = x + K r */
-	omxDGEMV(FALSE, 1.0, K, r, 1.0, x); // x = K r + x
-	
-	/* P = (I - K C) P */
-	/* P = P - K C P */
-	omxDGEMM(FALSE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
-	
-	/*m2ll = r^T S r */
-	omxDSYMV(1.0, S, r, 0.0, s); // s = S r
-	m2ll = omxDDOT(r, s); // m2ll = r s THAT IS r^T S r
-	m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + r^T S r
-	// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
 }
 
 
@@ -227,22 +227,32 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Processing R.\n"); }
 	SSMexp->R = omxNewMatrixFromIndexSlot(rObj, currentState, "R");
 	
+	if(OMX_DEBUG) { Rprintf("Processing initial x.\n"); }
+	SSMexp->x = omxNewMatrixFromIndexSlot(rObj, currentState, "x");
+	
+	if(OMX_DEBUG) { Rprintf("Processing initial P.\n"); }
+	SSMexp->P = omxNewMatrixFromIndexSlot(rObj, currentState, "P");
+	
+	
 	
 	/* Initialize the place holder matrices used in calculations */
 	nx = SSMexp->C->cols;
 	ny = SSMexp->C->rows;
 	nu = SSMexp->D->cols;
 	
+	if(OMX_DEBUG) { Rprintf("Processing first data row for y.\n"); }
+	SSMexp->y = omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	for(int i = 0; i < ny; i++) {
+		omxSetMatrixElement(SSMexp->y, i, 0, omxMatrixElement(ox->data->dataMat, 0, i));
+	}
 	
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 	
 	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->u = 	omxInitMatrix(NULL, nu, 1, TRUE, currentState);
-	SSMexp->x = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	SSMexp->y = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	SSMexp->z = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
 	SSMexp->K = 	omxInitMatrix(NULL, nx, ny, TRUE, currentState);
-	SSMexp->P = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
 	SSMexp->S = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
 	SSMexp->Y = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
 	SSMexp->Z = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
