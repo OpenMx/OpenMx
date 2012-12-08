@@ -932,15 +932,21 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		if (numIdentical == 0) numIdentical = 1; 
 		
 		Q = 0.0;
-
+		
+		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
 		numRemoves = 0;
 		omxResetAliasedMatrix(smallRow); 			// Resize smallrow
+		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
 		} else {
 			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
 		}
-
+		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
+		//TODO: If the expectation is a state space model then
+		// set the y attribute of the state space expectation to smallRow.
+		//TODO: Write getter/setter for state space expectation to do the above.
+		
 		// Handle Definition Variables.
 		if(numDefs != 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {
 			if(keepCov <= 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {  // If we're keeping covariance from the previous row, do not populate
@@ -963,6 +969,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					omxExpectationCompute(expectation);
+					if(OMX_DEBUG_ROWS(row)){ Rprintf("Successfully finished expectation compute.\n"); }
 				}
 			} else if(OMX_DEBUG_ROWS(row)){ Rprintf("Identical def vars: Not repopulating"); }
 		}
@@ -987,9 +994,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 				omxSetVectorElement(smallRow, j, (dataValue -  omxVectorElement(means, j)));
 			}
 		}
-		//TODO: If the expectation is a state space model then
-		// set the y attribute of the state space expectation to smallRow.
-
+		
 		if(cov->cols <= numRemoves) {
 			for(int nid = 0; nid < numIdentical; nid++) {
 				if(returnRowLikelihoods) {

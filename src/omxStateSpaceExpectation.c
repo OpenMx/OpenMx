@@ -199,18 +199,17 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Inverse of S"); }
 	
 	/* K = P C^T S^-1 */
-	omxTransposeMatrix(Y);
-	omxDSYMM(FALSE, 1.0, S, Y, 0.0, K); // K = Y^T S THAT IS K = P C^T S^-1
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K = P C^T S^-1"); }
-	omxTransposeMatrix(Y);
+	/* Computed as K^T = S^-1 C P */
+	omxDSYMM(TRUE, 1.0, S, Y, 0.0, K); // K = Y^T S THAT IS K = P C^T S^-1
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K^T = S^-1 C P"); }
 	
 	/* x = x + K r */
-	omxDGEMV(FALSE, 1.0, K, r, 1.0, x); // x = K r + x
+	omxDGEMV(TRUE, 1.0, K, r, 1.0, x); // x = K r + x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = K r + x"); }
 	
 	/* P = (I - K C) P */
 	/* P = P - K C P */
-	omxDGEMM(FALSE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
+	omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
 	
 	/*m2ll = r^T S r */
@@ -290,12 +289,12 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->u = 	omxInitMatrix(NULL, nu, 1, TRUE, currentState);
 	SSMexp->z = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	SSMexp->K = 	omxInitMatrix(NULL, nx, ny, TRUE, currentState);
+	SSMexp->K = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState); // Actually the tranpose of the Kalman gain
 	SSMexp->S = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
 	SSMexp->Y = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
 	SSMexp->Z = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
 	
-	SSMexp->cov = 		omxInitMatrix(NULL, nx, nx, TRUE, currentState);
+	SSMexp->cov = 		omxInitMatrix(NULL, ny, ny, TRUE, currentState);
 	SSMexp->means = 	omxInitMatrix(NULL, 1, nx, TRUE, currentState);
 }
 

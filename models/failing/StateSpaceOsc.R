@@ -100,6 +100,19 @@ diag(tQ)
 #diag(mfun(mfit$par)$V)
 diag(tR)
 
+(Sinv <- solve(tC %*% (tA %*% P0 %*% t(tA) + tQ) %*% t(tC) + tR)) # S^-1
+
+(Y <- tC %*% (tA %*% P0 %*% t(tA) + tQ)) # Y
+
+(K <- t(Y) %*% Sinv) # Correct K
+
+(Kin <- matrix(Y, nrow=3) %*% Sinv) # Incorrect K
+
+# P = P - K C P
+(tA %*% P0 %*% t(tA) + tQ) - K %*% tC %*% (tA %*% P0 %*% t(tA) + tQ)
+
+(tA %*% P0 %*% t(tA) + tQ) - Kin %*% tC %*% (tA %*% P0 %*% t(tA) + tQ)
+
 #--------------------------------------------------------------------
 # Fit state space model to data via OpenMx package
 
