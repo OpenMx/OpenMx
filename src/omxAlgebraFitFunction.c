@@ -15,7 +15,6 @@
  */
 
 #include "omxAlgebraFunctions.h"
-#include "omxFitFunctionTable.h"
 
 #ifndef _OMX_ALGEBRA_FITFUNCTION_
 #define _OMX_ALGEBRA_FITFUNCTION_ TRUE

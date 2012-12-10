@@ -45,7 +45,6 @@ typedef struct omxFitFunction omxFitFunction;
 #include "omxAlgebraFunctions.h"
 #include "omxData.h"
 #include "omxState.h"
-#include "omxFitFunctionTable.h"
 #include "omxExpectation.h"
 
 struct omxFitFunction {					// A fit function

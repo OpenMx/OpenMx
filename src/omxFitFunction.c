@@ -30,6 +30,30 @@
 
 #include "omxFitFunction.h"
 
+typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
+
+struct omxFitFunctionTableEntry {
+
+	char name[32];
+	void (*initFun)(omxFitFunction*, SEXP);
+
+};
+
+extern void omxInitAlgebraFitFunction(omxFitFunction *off, SEXP rObj);
+extern void omxInitWLSFitFunction(omxFitFunction *off, SEXP rObj);
+extern void omxInitRowFitFunction(omxFitFunction *off, SEXP rObj);
+extern void omxInitMLFitFunction(omxFitFunction *off, SEXP rObj);
+extern void omxInitRFitFunction(omxFitFunction *off, SEXP rObj);
+
+static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
+	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
+	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
+	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
+	{"MxFitFunctionML", 				&omxInitMLFitFunction},
+	{"MxFitFunctionR",					&omxInitRFitFunction},
+	{"", 0}
+};
+
 void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *off) {
 	/* This function calculates the standard errors from the hessian matrix */
 	// sqrt(diag(solve(hessian)))
