@@ -1,9 +1,10 @@
-Release 1.3.2
-=============
+Release 1.3.2-2301 (December 9, 2012)
+=====================================
 * detect non-conformable arrays for elementwise division in the front-end
 * fix crash in Hessian calculation when no objective function is specified
 * throw an error if standard errors are enabled and Hessian calculation is disabled
 * bug fix in multiple-iteration upper confidence interval estimation
+* support for 32-bit and 64-bit gcc4.7 on linux
 
 Release 1.3.1-2179 (October 17, 2012)
 =====================================

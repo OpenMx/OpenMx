@@ -1,5 +1,5 @@
 Package: OpenMx
-Date: 2012-10-17
+Date: 2012-12-09
 Title: Multipurpose Software for Statistical Modeling
 Authors@R: c(person(c("Steven", "M."), "Boker"),
              person(c("Michael", "C."), "Neale"),
@@ -26,4 +26,4 @@ Suggests: snowfall
 LazyLoad: yes
 LazyData: yes
 Collate: MxData.R DefinitionVars.R MxReservedNames.R MxNamespace.R MxSearchReplace.R MxFlatSearchReplace.R MxUntitled.R MxCharOrNumber.R MxAlgebraFunctions.R MxExponential.R MxMatrix.R DiagMatrix.R FullMatrix.R IdenMatrix.R LowerMatrix.R SdiagMatrix.R StandMatrix.R SymmMatrix.R UnitMatrix.R ZeroMatrix.R MxMatrixFunctions.R MxAlgebra.R MxCycleDetection.R MxDependencies.R MxAlgebraConvert.R MxAlgebraTransform.R MxSquareBracket.R MxEval.R MxRename.R MxPath.R MxObjectiveMetaData.R MxRAMMetaData.R MxObjectiveFunction.R MxBounds.R MxConstraint.R MxInterval.R MxTypes.R MxModel.R MxRAMModel.R MxModelDisplay.R MxFlatModel.R MxMultiModel.R MxModelFunctions.R MxModelParameters.R MxUnitTesting.R MxAlgebraObjective.R MxRowObjective.R MxFIMLObjective.R MxMLObjective.R MxRAMObjective.R MxLISRELObjective.R MxRObjective.R MxApply.R MxRun.R MxRunHelperFunctions.R MxSummary.R MxCompare.R MxSwift.R MxOptions.R MxThreshold.R OriginalMx.R MxGraph.R MxGraphviz.R MxDeparse.R MxCommunication.R MxRestore.R MxVersion.R MxErrorPool.R MxPPML.R MxRAMtoML.R MxDiff.R MxErrorHandling.R MxDetectCores.R MxWLSObjective.R omxBrownie.R zzz.R
-Version: 1.3.1-
+Version: 1.3.2-
