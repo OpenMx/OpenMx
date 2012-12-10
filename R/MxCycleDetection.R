@@ -138,6 +138,10 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 }
 
 imxAddDependency <- function(source, sink, dependencies) {
+  if (length(source) == 0) {
+    warning("imxAddDependency called with no sources (ignored)")
+    return(dependencies)
+  }
 	dependencies <- addNode(source, dependencies)
 	dependencies <- addNode(sink, dependencies)
 	dependencies <- addEdge(source, sink, dependencies)
