@@ -109,6 +109,7 @@ struct omxData {						// A matrix
 	void resetDefinitionVariables(double *oldDefs, int numDefs);
 
 /* Function wrappers that switch based on inclusion of algebras */
-	void omxPrintData(omxData *source, char* d); 									// Pretty-print a (hopefully small) data object
+
+void omxPrintData(omxData *od, const char *header);
 
 #endif /* _OMXDATA_H_ */
