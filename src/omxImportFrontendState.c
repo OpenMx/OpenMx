@@ -93,7 +93,7 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 	globalState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", globalState->numAlgs, length(algList)); }
+	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", globalState->numAlgs); }
 	globalState->algebraList = (omxMatrix**) R_alloc(globalState->numAlgs, sizeof(omxMatrix*));
 
 	for(int index = 0; index < globalState->numAlgs; index++) {
