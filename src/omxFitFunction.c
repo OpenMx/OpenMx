@@ -214,6 +214,12 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	UNPROTECT(1);	/* fitType */
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
+	if (LENGTH(slotValue) != 1) {
+	    const int MaxErrorLen = 256;
+	    char newError[MaxErrorLen];
+	    snprintf(newError, MaxErrorLen, "Fit function %s expectation improperly initialized\n", obj->fitType);
+	    error(newError);
+	}
 	int expNumber = INTEGER(slotValue)[0];	
 	if(expNumber == NA_INTEGER) {						// Has no expectation associated with it
 		obj->expectation = NULL;
