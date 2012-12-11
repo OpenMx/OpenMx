@@ -933,10 +933,8 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		
 		Q = 0.0;
 		
-		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
 		numRemoves = 0;
 		omxResetAliasedMatrix(smallRow); 			// Resize smallrow
-		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
 		} else {

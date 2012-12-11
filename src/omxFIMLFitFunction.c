@@ -594,7 +594,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
     newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
-	if(OMX_DEBUG){omxPrintMatrix(newObj->smallRow, "... The initialized smallRow"); }
     newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
     newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
 //  newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, off->matrix->currentState);
