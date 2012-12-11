@@ -227,68 +227,73 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
 		Rprintf("Accessing variable mapping structure.\n");
 	}
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
-	ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
-	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-		omxPrint(ox->dataColumns, "Variable mapping");
-	}
-	UNPROTECT(1); // dataColumns
+
+	if (R_has_slot(rObj, install("dataColumns"))) {
+	  PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
+	  ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
+	  if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+	    omxPrint(ox->dataColumns, "Variable mapping");
+	  }
+	  UNPROTECT(1); // dataColumns
 	
-	numCols = ox->dataColumns->cols;
+	  numCols = ox->dataColumns->cols;
 
-	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-		Rprintf("Accessing Threshold matrix.\n");
-	}
-	PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
+	  if (R_has_slot(rObj, install("thresholds"))) {
+	    if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+	      Rprintf("Accessing Threshold matrix.\n");
+	    }
+	    PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
 
-	if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-			Rprintf("Accessing Threshold Mappings.\n");
-		}
+	    if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
+	      if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		Rprintf("Accessing Threshold Mappings.\n");
+	      }
         
-        /* Process the data and threshold mapping structures */
-    	/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
-         * and fill all the thresholds with {NULL, 0, 0}.
-    	 * However the current path does not have a lot of overhead. */
-		PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
-    	PROTECT(itemList = GET_SLOT(rObj, install("thresholdLevels")));
-		int* thresholdColumn, *thresholdNumber;
-		thresholdColumn = INTEGER(nextMatrix);
-		thresholdNumber = INTEGER(itemList);
-    	ox->thresholds = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
-    	for(index = 0; index < numCols; index++) {
-    		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-    			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-					Rprintf("Column %d is continuous.\n", index);
-				}
-    			ox->thresholds[index].matrix = NULL;
-    			ox->thresholds[index].column = 0;
-    			ox->thresholds[index].numThresholds = 0;
-    		} else {
-    			ox->thresholds[index].matrix = omxNewMatrixFromMxIndex(threshMatrix, 
-    				ox->currentState);
-    			ox->thresholds[index].column = thresholdColumn[index];
-    			ox->thresholds[index].numThresholds = thresholdNumber[index];
-    			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-    				Rprintf("Column %d is ordinal with %d thresholds in threshold column %d.\n", 
-    				    index, thresholdColumn[index], thresholdNumber[index]);
-    			}
-    			numOrdinal++;
-    		}
-    	}
-    	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-			Rprintf("%d threshold columns processed.\n", numOrdinal);
+	      /* Process the data and threshold mapping structures */
+	      /* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
+	       * and fill all the thresholds with {NULL, 0, 0}.
+	       * However the current path does not have a lot of overhead. */
+	      PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
+	      PROTECT(itemList = GET_SLOT(rObj, install("thresholdLevels")));
+	      int* thresholdColumn, *thresholdNumber;
+	      thresholdColumn = INTEGER(nextMatrix);
+	      thresholdNumber = INTEGER(itemList);
+	      ox->thresholds = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
+	      for(index = 0; index < numCols; index++) {
+		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
+		  if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		    Rprintf("Column %d is continuous.\n", index);
+		  }
+		  ox->thresholds[index].matrix = NULL;
+		  ox->thresholds[index].column = 0;
+		  ox->thresholds[index].numThresholds = 0;
+		} else {
+		  ox->thresholds[index].matrix = omxNewMatrixFromMxIndex(threshMatrix, 
+									 ox->currentState);
+		  ox->thresholds[index].column = thresholdColumn[index];
+		  ox->thresholds[index].numThresholds = thresholdNumber[index];
+		  if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		    Rprintf("Column %d is ordinal with %d thresholds in threshold column %d.\n", 
+			    index, thresholdColumn[index], thresholdNumber[index]);
+		  }
+		  numOrdinal++;
 		}
-    	UNPROTECT(2); /* nextMatrix and itemList ("thresholds" and "thresholdColumns") */
-		ox->numOrdinal = numOrdinal;
-	} else {
-		if (OMX_DEBUG && ox->currentState->parentState == NULL) {
-			Rprintf("No thresholds matrix; not processing thresholds.");
-		}
-		ox->thresholds = NULL;
-		ox->numOrdinal = 0;
+	      }
+	      if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		Rprintf("%d threshold columns processed.\n", numOrdinal);
+	      }
+	      UNPROTECT(2); /* nextMatrix and itemList ("thresholds" and "thresholdColumns") */
+	      ox->numOrdinal = numOrdinal;
+	    } else {
+	      if (OMX_DEBUG && ox->currentState->parentState == NULL) {
+		Rprintf("No thresholds matrix; not processing thresholds.");
+	      }
+	      ox->thresholds = NULL;
+	      ox->numOrdinal = 0;
+	    }
+	    UNPROTECT(1); /* threshMatrix */
+	  }
 	}
-	UNPROTECT(1); /* threshMatrix */
 
 	if(!R_has_slot(rObj, install("definitionVars"))) {
 		ox->numDefs = 0;
