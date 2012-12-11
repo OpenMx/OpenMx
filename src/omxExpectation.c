@@ -100,6 +100,12 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 	
 }
 
+void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, char* component, omxMatrix* om) {
+	if(!strcmp(ox->expType, "omxStateSpaceExpectation")) {
+		ox->mutateFun(ox, off, component, om);
+	}
+}
+
 omxExpectation* omxNewExpectationFromMxExpectation(SEXP mxobj, int expNum, omxState* os) {
 	
 	omxExpectation* expectation = omxNewIncompleteExpectation(mxobj, expNum, os);

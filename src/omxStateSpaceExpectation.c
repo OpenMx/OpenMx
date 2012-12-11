@@ -239,6 +239,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	ox->destructFun = omxDestroyStateSpaceExpectation;
 	ox->setFinalReturns = NULL;
 	ox->componentFun = omxGetStateSpaceExpectationComponent;
+	ox->mutateFun = omxSetStateSpaceExpectationComponent;
 	ox->populateAttrFun = omxPopulateSSMAttributes;
 	ox->argStruct = (void*) SSMexp;
 	
@@ -314,6 +315,14 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
 
 	return retval;
+}
+
+void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
+	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	
+	if(!strcmp("y", component)) {
+		ose->y = om;
+	}
 }
 
 

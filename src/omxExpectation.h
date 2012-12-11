@@ -90,6 +90,7 @@ struct omxExpectation {					// An Expectation
 	omxRListElement* (*setFinalReturns)(omxExpectation* ox, int *numVals);		// Sets any R returns.
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
+	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation
 	
 	SEXP rObj;																	// Original r Object Pointer
 	void* sharedArgs;															// Common argument structure
@@ -125,5 +126,7 @@ struct omxExpectation {					// An Expectation
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation
 	
 	omxMatrix* omxGetExpectationComponent(omxExpectation *ox, omxFitFunction *off, char* component);	// Get a component
+	
+	void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, char* component, omxMatrix *om);	// Set a component
 
 #endif /* _OMXEXPECTATION_H_ */
