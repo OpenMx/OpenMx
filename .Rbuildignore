@@ -3,3 +3,4 @@ build
 support
 .gitignore
 inst/tools/rox
+.dir-locals.el
