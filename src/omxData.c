@@ -627,40 +627,40 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 }
 
 void omxPrintData(omxData *od, const char *header) {
-  if (!header) error("omxPrintData: header is NULL");
+	if (!header) error("omxPrintData: header is NULL");
 
-  if (!od) {
-    Rprintf("%s: NULL\n", header);
-    return;
-  }
+	if (!od) {
+		Rprintf("%s: NULL\n", header);
+		return;
+	}
 
-  Rprintf("%s(%s): %f observations %d x %d\n", header, od->type, od->numObs,
-	  od->rows, od->cols);
-  Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
+	Rprintf("%s(%s): %f observations %d x %d\n", header, od->type, od->numObs,
+		od->rows, od->cols);
+	Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
 
-  if (od->columns) {
-    for(int j = 0; j < od->cols; j++) {
-      PrintValue(od->columns[j]);
-    }
-  }
+	if (od->columns) {
+		for(int j = 0; j < od->cols; j++) {
+			PrintValue(od->columns[j]);
+		}
+	}
 
-  if (od->location) {
-    Rprintf("Location: ");
-    for(int j = 0; j < od->cols; j++) {
-      Rprintf("%d ", od->location[j]);
-    }
-    Rprintf("\n");
-  }
+	if (od->location) {
+		Rprintf("Location: ");
+		for(int j = 0; j < od->cols; j++) {
+			Rprintf("%d ", od->location[j]);
+		}
+		Rprintf("\n");
+	}
 
-  if (od->identicalRows) {
-    Rprintf("\trow\tmissing\tdefvars\n");
-    for(int j = 0; j < od->rows; j++) {
-      Rprintf("[%d]\t%d\t%d\t%d\n", j, od->identicalRows[j],
-	      od->identicalMissingness[j], od->identicalDefs[j]);
-    }
-  }
+	if (od->identicalRows) {
+		Rprintf("\trow\tmissing\tdefvars\n");
+		for(int j = 0; j < od->rows; j++) {
+			Rprintf("[%d]\t%d\t%d\t%d\n", j, od->identicalRows[j],
+				od->identicalMissingness[j], od->identicalDefs[j]);
+		}
+	}
 
-  if (od->dataMat) omxPrintMatrix(od->dataMat, "dataMat");
-  if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
+	if (od->dataMat) omxPrintMatrix(od->dataMat, "dataMat");
+	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
 }
 
