@@ -128,16 +128,43 @@ smod <- mxModel(
 	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE),
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
-	mxData(observed=t(ty), type='raw'),
+	mxData(observed=t(ty)[1:5,], type='raw'),
 	imxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P'),
 	mxFitFunctionML()
 )
 
 smod <- mxOption(smod, 'Calculate Hessian', 'No')
 smod <- mxOption(smod, 'Standard Errors', 'No')
-smod <- mxOption(smod, 'Major iterations', 2)
+smod <- mxOption(smod, 'Major iterations', 0)
+smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
 srun <- mxRun(smod, onlyFrontend=FALSE)
 
+
+
+
+
+kalmanFilter <- function(X, P, A, B, C, Rw, Rv, U, y){
+	# Predict
+	X <- A %*% X + B %*% U
+	P <- A %*% P %*% t(A) + Rw
+	
+	# Update
+	S <- C %*% P %*% t(C) + Rv
+	K <- P %*% t(C) %*% solve(S)
+	X <- X + K %*% (y - C %*% X)
+	P <- (diag(1, nrow(P)) - K %*% C) %*% P
+	return(list(X=X, P=P, A=A, B=B, C=C, Rw=Rw, Rv=Rv, U=U, S=S, K=K))
+}
+
+
+(k1 <- kalmanFilter(x0, P0, tA, tB, tC, tQ, tR, matrix(tu[,1]), matrix(ty[,1])))
+(k2 <- kalmanFilter(k1$X, k1$P, tA, tB, tC, tQ, tR, matrix(tu[,2]), matrix(ty[,2])))
+(k3 <- kalmanFilter(k2$X, k2$P, tA, tB, tC, tQ, tR, matrix(tu[,3]), matrix(ty[,3])))
+(k4 <- kalmanFilter(k3$X, k3$P, tA, tB, tC, tQ, tR, matrix(tu[,4]), matrix(ty[,4])))
+(k5 <- kalmanFilter(k4$X, k4$P, tA, tB, tC, tQ, tR, matrix(tu[,5]), matrix(ty[,5])))
+
+# N.B. OpenMx State Space Expectation appears to be correct.  I just need to re-initialize x0 and P0 everytime
+# row = 0 for the FIML single iteration.
 
 
 

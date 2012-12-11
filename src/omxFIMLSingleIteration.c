@@ -941,6 +941,9 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
 		}
 		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
+		if(!strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+			omxSetStateSpaceExpectationComponent(expectation, ofo, "y", smallRow);
+		}
 		//TODO: If the expectation is a state space model then
 		// set the y attribute of the state space expectation to smallRow.
 		
