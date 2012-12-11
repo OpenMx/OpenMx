@@ -19,3 +19,5 @@ Subdirectories:
 'inst/npsol'	 - npsol compiled binaries
 
 To install: type "make" to see the available options.
+
+For Unix developers, CFLAGS can be overridden in /etc/R/Makeconf
