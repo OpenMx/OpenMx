@@ -115,7 +115,7 @@ omxExpectation* omxNewExpectationFromMxExpectation(SEXP mxobj, int expNum, omxSt
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
 
-	if(OMX_DEBUG) {Rprintf("Duplicating Expectation 0x%x.", src);}
+	if(OMX_DEBUG) {Rprintf("Duplicating Expectation 0x%x\n", src);}
 
 	// if(src == NULL) {
 	// 	return NULL;
