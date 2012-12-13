@@ -78,6 +78,7 @@ help:
 internal-build: build/$(TARGET)
 
 build/$(TARGET): $(RFILES) $(RDFILES)
+	./inst/tools/rox
 	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
@@ -164,6 +165,7 @@ clean:
 	rm -rf $(RBUILD)/*
 	rm -rf models/passing/temp-files/*
 	rm -rf models/failing/temp-files/*
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;

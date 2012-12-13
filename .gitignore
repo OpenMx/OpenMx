@@ -1,5 +1,9 @@
+/.Rhistory
 /build
 /config.log
 /config.status
+/autom4te.cache
 /src/Makevars
 /src/omxSymbolTable.*
+/man/genericFitDependencies.Rd
+/man/imxAddDependency.Rd

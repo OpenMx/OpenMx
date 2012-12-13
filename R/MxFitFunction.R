@@ -68,6 +68,17 @@ setMethod("genericFitInitialMatrix", "NULL",
 		return(NULL)
 })
 
+##' Add dependencies
+##'
+##' If there is an expectation, then the fitfunction should always
+##' depend on it. Hence, subclasses that implement this method must
+##' ignore the passed-in dependencies and use "dependencies <-
+##' callNextMethod()" instead.
+##'
+##' @param .Object
+##' @param flatModel
+##' @param dependencies accumulated dependency relationships
+
 setMethod("genericFitDependencies", "MxBaseFitFunction",
 	function(.Object, flatModel, dependencies) {
         name <- .Object@name

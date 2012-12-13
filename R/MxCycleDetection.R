@@ -137,11 +137,38 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 	return(dependencies)
 }
 
+##' Add a dependency
+##'
+##' The dependency tracking system ensures that algebra and
+##' fitfunctions are not recomputed if their inputs have not changed.
+##' Dependency information is computed prior to handing the model off
+##' to the optimizer to reduce overhead during optimization.
+##'
+##' Each free parameter keeps track of all the objects that store that
+##' free parameter and the transitive closure of all algebras and fit
+##' functions that depend on that free parameter.  Similarly, each
+##' definition variable keeps track of all the objects that store that
+##' free parameter and the transitive closure of all the algebras and
+##' fit functions that depend on that free parameter. At each
+##' iteration of the optimization, when the free parameter values are
+##' updated, all of the dependencies of that free parameter are marked
+##' as dirty (see \code{omxFitFunction.repopulateFun}). After an
+##' algebra or fit function is computed, \code{omxMarkClean()} is
+##' called to to indicate that the algebra or fit function is updated.
+##' Similarly, when definition variables are populated in FIML, all of
+##' the dependencies of the definition variables are marked as dirty.
+##' Particularly for FIML, the fact that non-definition-variable
+##' dependencies remain clean is a big performance gain.
+##'
+##' @param source a character vector of the names of the computation sources (inputs)
+##' @param sink the name of the computation sink (output)
+##' @param dependencies the dependency graph
+
 imxAddDependency <- function(source, sink, dependencies) {
-  if (length(source) == 0) {
-    warning("imxAddDependency called with no sources (ignored)")
-    return(dependencies)
-  }
+	if (length(source) == 0) {
+		warning("imxAddDependency called with no sources (ignored)")
+		return(dependencies)
+	}
 	dependencies <- addNode(source, dependencies)
 	dependencies <- addNode(sink, dependencies)
 	dependencies <- addEdge(source, sink, dependencies)
