@@ -29,7 +29,7 @@
 #ifndef _OMXEXPECTATION_H_
 #define _OMXEXPECTATION_H_
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h> 
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h> 
@@ -95,7 +95,7 @@ struct omxExpectation {					// An Expectation
 	SEXP rObj;																	// Original r Object Pointer
 	void* sharedArgs;															// Common argument structure
 	void* argStruct;															// Arguments needed for Expectation function
-        char* expType;   // pointer to a static string, no need to allocate or free
+        const char* expType;   // pointer to a static string, no need to allocate or free
 	unsigned short int isPrepopulated;											// Object has had some values prepopulated to allow object sharing
 	omxData* data;																// Not sure if this is appropriate, but the expectation passes the actual data object
 	omxMatrix* dataColumns;
