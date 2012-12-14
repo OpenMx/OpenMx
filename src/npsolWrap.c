@@ -43,7 +43,7 @@
 
 /* Set up R .Call info */
 R_CallMethodDef callMethods[] = {
-{"callNPSOL", (void*(*)())&callNPSOL, 12},
+{"omxBackend", (void*(*)())&omxBackend, 12},
 {"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
 {"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 5},
 {NULL, NULL, 0}

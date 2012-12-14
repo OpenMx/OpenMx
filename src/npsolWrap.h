@@ -20,9 +20,9 @@
 #include "omxState.h"
 
 /* Functions for Export */
-SEXP callNPSOL(SEXP fitfunction, SEXP startVals, SEXP constraints,
+SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList, SEXP expList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);  // Calls NPSOL.  Duh.
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state);
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
