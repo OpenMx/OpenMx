@@ -133,7 +133,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	return ans;
 }
 
-SEXP callNPSOL(SEXP fitfunction, SEXP startVals, SEXP constraints,
+SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
