@@ -58,10 +58,6 @@ void R_unload_mylib(DllInfo *info) {
 /* Release resources. */
 }
 
-/* Globals for function evaluation */
-SEXP RObjFun, RConFun;			// Pointers to the functions NPSOL calls
-SEXP env;						// Environment for evaluation and object hunting
-
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 
