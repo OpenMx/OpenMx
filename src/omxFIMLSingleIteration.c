@@ -913,11 +913,17 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 
 	int firstRow = 1;
 	int row = rowbegin;
+	
 
 	// [[Comment 4]] moving row starting position
 	if (row > 0) {
 		int prevIdentical = omxDataNumIdenticalRows(data, row - 1);
 		row += (prevIdentical - 1);
+	}
+	
+	if(row == 0 && !strcmp(expectation->expType, "omxStateSpaceExpectation") ) {
+		if(OMX_DEBUG){ Rprintf("Resetting State Space state (x) and error cov (P).\n"); }
+		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 	}
 
 	resetDefinitionVariables(oldDefs, numDefs);
@@ -942,9 +948,9 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		}
 		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
 		if(!strcmp(expectation->expType, "omxStateSpaceExpectation")) {
-			omxSetStateSpaceExpectationComponent(expectation, ofo, "y", smallRow);
+			omxSetExpectationComponent(expectation, localobj, "y", smallRow);
 		}
-		//TODO: If the expectation is a state space model then
+		//If the expectation is a state space model then
 		// set the y attribute of the state space expectation to smallRow.
 		
 		// Handle Definition Variables.

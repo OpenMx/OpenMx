@@ -89,56 +89,64 @@ rownames(tx) <- paste('x', 1:xdim)
 #mfun(mfit$par)
 
 #mfun(mfit$par)$GG
-tA
+#tA
 
 #mfun(mfit$par)$FF
-tC
+#tC
 
 #diag(mfun(mfit$par)$W)
-diag(tQ)
+#diag(tQ)
 
 #diag(mfun(mfit$par)$V)
-diag(tR)
+#diag(tR)
 
-(Sinv <- solve(tC %*% (tA %*% P0 %*% t(tA) + tQ) %*% t(tC) + tR)) # S^-1
 
-(Y <- tC %*% (tA %*% P0 %*% t(tA) + tQ)) # Y
-
-(K <- t(Y) %*% Sinv) # Correct K
-
-(Kin <- matrix(Y, nrow=3) %*% Sinv) # Incorrect K
-
-# P = P - K C P
-(tA %*% P0 %*% t(tA) + tQ) - K %*% tC %*% (tA %*% P0 %*% t(tA) + tQ)
-
-(tA %*% P0 %*% t(tA) + tQ) - Kin %*% tC %*% (tA %*% P0 %*% t(tA) + tQ)
 
 #--------------------------------------------------------------------
 # Fit state space model to data via OpenMx package
 
 smod <- mxModel(
 	name='State Space Example',
-	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(T, F, F, F, T, T, F, F, T), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b')),
-	#mxAlgebra(name='csym', -c),
-	#mxConstraint(name='ccon', d == csym),
+	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(T, F, F, F, T, T, F, T, T), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b')),
+	mxAlgebra(name='csym', -c),
+	mxConstraint(name='ccon', d == csym),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
-	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx))),
+	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx)), ubound=2.0001),
 	mxMatrix(name='D', values=0, nrow=ydim, ncol=udim, free=FALSE),
-	mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=TRUE),
-	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE),
+	#mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=TRUE, ubound=2.0001),
+	mxMatrix(name='Q', type='Diag', values=c(0.1412850, 0.9959084, 0.2436430), nrow=xdim, ncol=xdim, free=FALSE, ubound=2.0001),
+	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE, ubound=2.0001),
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
-	mxData(observed=t(ty)[1:5,], type='raw'),
+	mxData(observed=t(ty)[1:200,], type='raw'),
 	imxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P'),
 	mxFitFunctionML()
 )
 
-smod <- mxOption(smod, 'Calculate Hessian', 'No')
-smod <- mxOption(smod, 'Standard Errors', 'No')
-smod <- mxOption(smod, 'Major iterations', 0)
+
+
+smod <- mxOption(smod, 'Calculate Hessian', 'Yes')
+smod <- mxOption(smod, 'Standard Errors', 'Yes')
+#smod <- mxOption(smod, 'Major iterations', 2)
 smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
 srun <- mxRun(smod, onlyFrontend=FALSE)
 
+
+srun$A@values
+mfun(mfit$par)$GG
+tA
+
+srun$C@values
+mfun(mfit$par)$FF
+tC
+
+diag(srun$Q@values)
+diag(mfun(mfit$par)$W)
+diag(tQ)
+
+diag(srun$R@values)
+diag(mfun(mfit$par)$V)
+diag(tR)
 
 
 

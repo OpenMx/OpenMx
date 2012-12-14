@@ -271,7 +271,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	SSMexp->P = omxNewMatrixFromIndexSlot(rObj, currentState, "P");
 	
 	
-	
 	/* Initialize the place holder matrices used in calculations */
 	nx = SSMexp->C->cols;
 	ny = SSMexp->C->rows;
@@ -283,6 +282,14 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 		omxSetMatrixElement(SSMexp->y, i, 0, omxMatrixElement(ox->data->dataMat, 0, i));
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }
+	
+	// TODO Make x0 and P0 static (if possible) to save memory
+	// TODO Look into omxMatrix.c/h for a possible new matrix from omxMatrix function
+	if(OMX_DEBUG) { Rprintf("Generating static internals for resetting initial values.\n"); }
+	SSMexp->x0 = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
+	SSMexp->P0 = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
+	omxCopyMatrix(SSMexp->x0, SSMexp->x);
+	omxCopyMatrix(SSMexp->P0, SSMexp->P);
 	
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 	
@@ -322,6 +329,10 @@ void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* of
 	
 	if(!strcmp("y", component)) {
 		ose->y = om;
+	}
+	if(!strcmp("Reset", component)) {
+		omxCopyMatrix(ose->x, ose->x0);
+		omxCopyMatrix(ose->P, ose->P0);
 	}
 }
 
