@@ -33,7 +33,6 @@ RDOCUMENTS = man
 RDATA = data
 
 # file types
-RDFILES =$(wildcard man/*.Rd)
 RFILES = $(wildcard R/*.R)
 
 help:
@@ -77,7 +76,7 @@ help:
 
 internal-build: build/$(TARGET)
 
-build/$(TARGET): $(RFILES) $(RDFILES)
+build/$(TARGET): $(RFILES)
 	./inst/tools/rox
 	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
