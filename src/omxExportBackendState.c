@@ -31,13 +31,7 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", index); }
 		omxMatrix* nextMatrix = currentState->matrixList[index];
 		omxRecompute(nextMatrix);
-		PROTECT(nextMat = allocMatrix(REALSXP, nextMatrix->rows, nextMatrix->cols));
-		for(int row = 0; row < nextMatrix->rows; row++) {
-			for(int col = 0; col < nextMatrix->cols; col++) {
-				REAL(nextMat)[col * nextMatrix->rows + row] =
-					omxMatrixElement(nextMatrix, row, col);
-			}
-		}
+		nextMat = omxExportMatrix(nextMatrix);
 		SET_VECTOR_ELT(matrices, index, nextMat);
 		UNPROTECT(1);	/* nextMat */
 	}
@@ -46,7 +40,7 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", index); }
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
 		omxRecompute(nextAlgebra);
-		PROTECT(algebra = allocMatrix(REALSXP, nextAlgebra->rows, nextAlgebra->cols));
+		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;
 		if(currentFit != NULL) {
@@ -58,12 +52,6 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		}
 
 		if(OMX_DEBUG) { Rprintf("Final Calculation of Algebra %d Complete.\n", index); }
-		for(int row = 0; row < nextAlgebra->rows; row++) {
-			for(int col = 0; col < nextAlgebra->cols; col++) {
-				REAL(algebra)[col * nextAlgebra->rows + row] =
-					omxMatrixElement(nextAlgebra, row, col);
-			}
-		}
 		SET_VECTOR_ELT(algebras, index, algebra);
 
 		UNPROTECT(1);	/* algebra */

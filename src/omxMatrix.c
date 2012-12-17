@@ -215,6 +215,24 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 
 }
 
+/**
+ * Copies an omxMatrix to a new R matrix object
+ *
+ * \param om the omxMatrix to copy
+ * \return a PROTECT'd SEXP for the R matrix object
+ */
+SEXP omxExportMatrix(omxMatrix *om) {
+	SEXP nextMat;
+	PROTECT(nextMat = allocMatrix(REALSXP, om->rows, om->cols));
+	for(int row = 0; row < om->rows; row++) {
+		for(int col = 0; col < om->cols; col++) {
+			REAL(nextMat)[col * om->rows + row] =
+				omxMatrixElement(om, row, col);
+		}
+	}
+	return nextMat;
+}
+
 void omxZeroByZeroMatrix(omxMatrix *om) {
 	if (om->rows > 0 || om->cols > 0) {
 		omxResizeMatrix(om, 0, 0, FALSE);

@@ -103,6 +103,7 @@ struct omxMatrix {						// A matrix
 	extern omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);	// Create a matrix/algebra from a matrix pointer
 	extern omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 	omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState);
+	SEXP omxExportMatrix(omxMatrix *om);
 
 /* Getters 'n Setters (static functions declared below) */
 	// static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col);
