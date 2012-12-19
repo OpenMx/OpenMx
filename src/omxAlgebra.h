@@ -14,18 +14,6 @@
  *  limitations under the License.
  */
 
-/***********************************************************
-* 
-*  omxMatrix.h
-*
-*  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
-*
-*	Contains header information for the omxMatrix class
-*   omxDataMatrices hold necessary information to simplify
-* 	dealings between the OpenMX back end and BLAS.
-*
-**********************************************************/
-
 #ifndef _OMXALGEBRA_H_
 #define _OMXALGEBRA_H_
 
