@@ -2373,7 +2373,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	int rows = inMat->rows;
     int selectLength = selector->rows * selector->cols;
-    int toRemove[rows], zeros[rows];
+    int toRemove[rows];
     int numRemoves = 0;
     
     if((selector->cols != 1) && selector->rows !=1) {
@@ -2399,7 +2399,6 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
     omxResetAliasedMatrix(result);
 	
     for(int index = 0; index < selectLength; index++) {
-        zeros[index] = 0;
         if(omxVectorElement(selector, index) == 0) {
             numRemoves++;
             toRemove[index] = 1;
@@ -2416,6 +2415,8 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		return;
     }
     
+    int zeros[inMat->cols];
+    memset(zeros, 0, sizeof(*zeros) * inMat->cols);
     omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove, zeros);
 
 }
@@ -2428,7 +2429,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	int cols = inMat->cols;
     int selectLength = selector->rows * selector->cols;
-    int toRemove[cols], zeros[cols];
+    int toRemove[cols];
     int numRemoves = 0;
 
     if((selector->cols != 1) && selector->rows !=1) {
@@ -2454,7 +2455,6 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
     omxResetAliasedMatrix(result);
 	
     for(int index = 0; index < selectLength; index++) {
-        zeros[index] = 0;
         if(omxVectorElement(selector, index) == 0) {
             numRemoves++;
             toRemove[index] = 1;
@@ -2471,6 +2471,8 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result) {
 		return;
     }
     
+    int zeros[inMat->rows];
+    memset(zeros, 0, sizeof(*zeros) * inMat->rows);
     omxRemoveRowsAndColumns(result, 0, numRemoves, zeros, toRemove);
     
 }
