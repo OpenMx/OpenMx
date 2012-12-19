@@ -4,8 +4,6 @@ if (file.access(symbolTable) < 0) {
 } 
 table <- read.table(symbolTable, header = TRUE)
 
-numEntries <- dim(table)[[1]]
-
 declares <- apply(table, 1, function(x) {		# Generates a declaration line for each of the functions in the table.
 	if(x[[5]] != 'NULL') {
 		paste('void ', x[[5]], '(omxMatrix** args, int numArgs, omxMatrix* result);', sep="")
@@ -28,24 +26,21 @@ output <- paste(
 "#include <R_ext/Lapack.h>",
 "typedef struct omxAlgebraTableEntry omxAlgebraTableEntry;",
 "#include \"omxMatrix.h\"",
-
+"typedef void (*algebra_op_t)(omxMatrix**, int, omxMatrix*);",
 "struct omxAlgebraTableEntry {",
 
 "	unsigned int number;",
-"	const char opName[250];",
-"	const char rName[250];",
-"	short int numArgs;",
-"	void* funWrapper;",
+"	const char opName[32];",
+"	const char rName[32];",
+"	int numArgs;",
+"	algebra_op_t funWrapper;",
 
 "};",
 
 declares,
 
-paste("#define omxSymbolTableLength", numEntries),
-
-"const omxAlgebraTableEntry omxAlgebraSymbolTable[omxSymbolTableLength];",
-
-
+"extern const omxAlgebraTableEntry omxAlgebraSymbolTable[];",
 "#endif", sep = "\n")
 
 cat(output)
+cat("\n")

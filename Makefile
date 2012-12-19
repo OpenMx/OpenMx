@@ -88,6 +88,12 @@ pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
 
+src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
+	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
+
+src/omxSymbolTable.c: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
+	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c
+
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
@@ -164,7 +170,7 @@ clean:
 	rm -rf $(RBUILD)/*
 	rm -rf models/passing/temp-files/*
 	rm -rf models/failing/temp-files/*
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;

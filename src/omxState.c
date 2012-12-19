@@ -384,7 +384,7 @@
 	}
 
 	void omxRaiseError(omxState *state, int errorCode, char* errorMsg) {
-		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s", errorCode, errorMsg);}
+		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
 		state->statusCode = errorCode;
 		strncpy(state->statusMsg, errorMsg, 249);

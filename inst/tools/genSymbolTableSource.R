@@ -8,7 +8,7 @@ header <- paste(
 	"#include \"omxSymbolTable.h\"",
 #	"#include \"omxAlgebraFunctions.h\"",
 
-	"const omxAlgebraTableEntry omxAlgebraSymbolTable[omxSymbolTableLength] = {", 
+	"const omxAlgebraTableEntry omxAlgebraSymbolTable[] = {",
 	sep = "\n"
 )
 
@@ -22,7 +22,7 @@ table <- read.table(symbolTable, header = TRUE,
 
 strings <- apply(table, 1, function(x) {
 	paste('{', x[[1]], ',\t"', x[[2]], '",\t"', x[[3]],
-		'",\t', x[[4]], ",\t(void*)",x[[5]], '},', sep = '')
+		'",\t', x[[4]], ",\t",x[[5]], '},', sep = '')
 })
 
 strings <- paste(strings, collapse = '\n')
