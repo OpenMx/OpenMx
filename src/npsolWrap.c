@@ -349,6 +349,8 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		} else {
 			numHessians = 0;
 		}
+	} else {
+		numHessians = 0;
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
