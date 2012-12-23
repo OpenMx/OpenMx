@@ -738,5 +738,4 @@ void omxCompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if (matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) omxFitFunctionCompute(matrix->fitFunction);
-	else if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 }
