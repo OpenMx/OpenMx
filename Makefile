@@ -152,6 +152,7 @@ testdocs:
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
+	mkdir -p models/passing/temp-files
 	$(REXEC) --vanilla --slave --cpus=$(CPUS) < $(TESTFILE)
 
 nightly:
