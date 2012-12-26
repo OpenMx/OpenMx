@@ -173,7 +173,8 @@ clean:
 	rm -rf $(RBUILD)/*
 	rm -rf models/passing/temp-files/*
 	rm -rf models/failing/temp-files/*
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
+		man/omxCheckCloseEnough.Rd
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;

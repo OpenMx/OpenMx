@@ -102,17 +102,59 @@ omxCheckTrue <- function(a) {
 	}
 }
 
-
-omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
+##' Approximate Equality Testing Function
+##'
+##' This function tests whether two numeric vectors or matrixes are
+##' approximately equal to one another, within a specified threshold.
+##'
+##' Arguments \sQuote{a} and \sQuote{b} must be of the same type,
+##' ie. they must be either vectors of equal dimension or matrices of
+##' equal dimension. The two arguments are compared element-wise for
+##' approximate equality.  If the absolute value of the difference of
+##' any two values is greater than the threshold, then an error will
+##' be thrown. If \sQuote{a} and \sQuote{b} are approximately equal to
+##' each other, by default the function will print a statement
+##' informing the user the test has passed.  To turn off these print
+##' statements use \code{options("mxPrintUnitTests" = FALSE)}.
+##'
+##' When na.action is set to na.pass, a and b are expected to have
+##' identical missingness patterns.
+##'
+##' @param a a numeric vector or matrix
+##' @param b a numeric vector or matrix
+##' @param epsilon a non-negative tolerance threshold
+##' @param na.action either na.fail (default) or na.pass. Use of
+##' na.omit or na.exclude is not recommended.
+##' @seealso
+##' \code{\link{omxCheckWithinPercentError}},
+##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
+##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
+##' @references
+##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' @examples
+##' omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.5)
+##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
+##' # Throws an error
+##' try(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01))
+omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15), na.action=na.fail) {
+	if (epsilon < 0) stop("epsilon must be non-negative")
 	checkEqualDimensions(a, b)
-	if(any(mapply(function(x,y) {
-			is.na(a) || is.na(b) },
-			as.vector(a), as.vector(b)))) {
-		stop("omxCheckCloseEnough does not support NA values")
+	a <- na.action(a)
+	b <- na.action(b)
+	if (any(is.na(a) != is.na(b))) {
+		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
+			omxQuotes(paste(a, collapse = ' ')),
+			"and", omxQuotes(paste(b, collapse = ' ')),
+			"have different missingness patterns"),
+			call. = FALSE)
 	}
+	a.vec <- as.vector(a)
+	b.vec <- as.vector(b)
+	a.vec <- a.vec[!is.na(a.vec)]
+	b.vec <- b.vec[!is.na(b.vec)]
 	check <- any(mapply(function(x,y) {
 			abs(x - y) > epsilon }, 
-			as.vector(a), as.vector(b)))
+			a.vec, b.vec))
 	if (check) {
 		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
 			omxQuotes(paste(a, collapse = ' ')), 
