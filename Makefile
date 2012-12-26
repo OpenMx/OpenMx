@@ -76,15 +76,17 @@ help:
 
 internal-build: build/$(TARGET)
 
-build/$(TARGET): $(RFILES)
+documentation:
 	./inst/tools/rox
+
+build/$(TARGET): $(RFILES) documentation
 	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	mv DESCRIPTION.bak DESCRIPTION
-pdf:
+pdf: documentation
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
 
@@ -94,7 +96,7 @@ src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 src/omxSymbolTable.c: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
 	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c
 
-html: internal-build
+html: internal-build documentation
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
 	rm -f build/$(TARGET)
 	cd $(RBUILD); tar -zxf *gz
