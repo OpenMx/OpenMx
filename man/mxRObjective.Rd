@@ -44,6 +44,10 @@
 	optimization.
 
 	The initial default value for the persistant state information is NA.
+
+	Throwing an exception (via stop) from inside objfun may result
+	in unpredictable behavior. You may want to wrap your code in
+	tryCatch while experimenting.
 }
 
 \value{

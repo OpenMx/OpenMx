@@ -50,9 +50,19 @@ static R_CallMethodDef callMethods[] = {
 
 void R_init_OpenMx(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+
+	omx_omp_init_lock(&GlobalRLock);
+
+	// There is no code that will change behavior whether openmp
+	// is set for nested or not. I'm just keeping this in case it
+	// makes a difference with older versions of openmp. 2012-12-24 JNP
+#if defined(_OPENMP) && _OPENMP <= 200505
+	omp_set_nested(0);
+#endif
 }
 
 void R_unload_OpenMx(DllInfo *info) {
+	omx_omp_destroy_lock(&GlobalRLock);
 }
 
 /* Main functions */
@@ -155,8 +165,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 //	if(!isVector(startVals)) error ("startVals must be a vector");
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
-
-	omx_omp_init();
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 

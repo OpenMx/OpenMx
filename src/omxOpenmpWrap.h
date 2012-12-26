@@ -17,11 +17,6 @@
 #ifndef _OMX_OPENMP_WRAP_H
 #define _OMX_OPENMP_WRAP_H
 
-#include "Rconfig.h"
-#include "omxDefines.h"
-#include "omxSadmvnWrapper.h"
-#include "omxRFitFunction.h"
-
 #ifdef _OPENMP
 
 #include <omp.h>
@@ -32,7 +27,7 @@ static OMXINLINE int omx_absolute_thread_num(void) {
    return(omp_get_thread_num());
 }
 
-#else
+#else  // _OPENMP <= 200505
 
 static OMXINLINE int omx_absolute_thread_num(void) {
    int retval = 0;
@@ -45,13 +40,14 @@ static OMXINLINE int omx_absolute_thread_num(void) {
    return(retval);
 }
 
-#endif
+#endif // _OPENMP <= 200505
 
-static OMXINLINE void omx_omp_init() {
-   omp_init_lock(&rfitfunction_lock);
-#if _OPENMP <= 200505
-   omp_set_nested(0);
-#endif
+static OMXINLINE void omx_omp_init_lock(omp_lock_t* lock) {
+   omp_init_lock(lock);
+}
+
+static OMXINLINE void omx_omp_destroy_lock(omp_lock_t* lock) {
+   omp_destroy_lock(lock);
 }
 
 static OMXINLINE void omx_omp_set_lock(omp_lock_t* lock) {
@@ -62,17 +58,21 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* lock) {
    omp_unset_lock(lock);
 }
 
-#else
+#else  // _OPENMP
+
+typedef int omp_lock_t;
 
 static OMXINLINE int omx_absolute_thread_num(void) {
    return(0);
 }
 
-static OMXINLINE void omx_omp_init() {}
+static OMXINLINE void omx_omp_init_lock(omp_lock_t* __attribute__((unused)) lock) {}
 
-static OMXINLINE void omx_omp_set_lock(void** __attribute__((unused)) lock) {}
+static OMXINLINE void omx_omp_destroy_lock(omp_lock_t* __attribute__((unused)) lock) {}
 
-static OMXINLINE void omx_omp_unset_lock(void** __attribute__((unused)) lock) {}
+static OMXINLINE void omx_omp_set_lock(omp_lock_t* __attribute__((unused)) lock) {}
+
+static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) lock) {}
 
 
 #endif // #ifdef _OPENMP

@@ -37,18 +37,6 @@ typedef struct {
 
 } omxRFitFunction;
 
-#ifdef _OPENMP
-
-#include "omp.h"
-extern omp_lock_t rfitfunction_lock;
-
-#else // (!defined _OPENMP)
-
-extern void* rfitfunction_lock;
-
-#endif // _OPENMP
-
-
 void omxDestroyRFitFunction(omxFitFunction *oo);
 void omxCallRFitFunction(omxFitFunction *oo);
 

@@ -23,26 +23,17 @@
 #include "omxAlgebraFunctions.h"
 #include "omxRFitFunction.h"
 #include "omxOpenmpWrap.h"
-
-#ifdef _OPENMP
-
-omp_lock_t rfitfunction_lock;
-
-#else
-
-void* rfitfunction_lock = NULL;
-
-#endif
+#include "npsolWrap.h"
 
 void omxDestroyRFitFunction(omxFitFunction *off) {
-
 	UNPROTECT(5); 			// fitfun, model, flatModel, parameters, and state
 }
 
 void omxCallRFitFunction(omxFitFunction *oo) {
-	omx_omp_set_lock(&rfitfunction_lock);
+	omx_omp_set_lock(&GlobalRLock);
 
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
+
 	SEXP theCall, theReturn;
 	PROTECT(theCall = allocVector(LANGSXP, 3));
 	SETCAR(theCall, rFitFunction->fitfun);
@@ -62,11 +53,11 @@ void omxCallRFitFunction(omxFitFunction *oo) {
 
 	UNPROTECT(2); // theCall and theReturn
 
-	omx_omp_unset_lock(&rfitfunction_lock);
+	omx_omp_unset_lock(&GlobalRLock);
 }
 
 void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n) {
-	omx_omp_set_lock(&rfitfunction_lock);
+	omx_omp_set_lock(&GlobalRLock);
 
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
@@ -89,7 +80,7 @@ void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n) {
 	REPROTECT(rFitFunction->model = eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
 
 	UNPROTECT(2); // theCall, estimate
-	omx_omp_unset_lock(&rfitfunction_lock);
+	omx_omp_unset_lock(&GlobalRLock);
 
 	omxMarkDirty(oo->matrix);
 }

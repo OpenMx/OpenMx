@@ -18,6 +18,7 @@
 #define _NPSOLWRAP_H
 
 #include "omxState.h"
+#include "omxOpenmpWrap.h"
 
 /* Functions for Export */
 SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
@@ -27,5 +28,11 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 	SEXP skipMissingness, SEXP skipDefvars);
+
+/** R is not thread-safe. This lock must be held while manipulating R
+ * data structures from a context where there may be multiple threads
+ * active.
+ */
+extern omp_lock_t GlobalRLock;
 
 #endif // #define _NPSOLWRAP_H
