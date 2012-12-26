@@ -281,7 +281,7 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(intMatrix = AS_INTEGER(matrix));
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
-	    	if(OMX_DEBUG && os->parentState == NULL) {
+			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("  Null integer matrix.  Skipping.\n");
 			}
 			UNPROTECT(1);
@@ -293,13 +293,15 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
-	    	if(OMX_DEBUG && os->parentState == NULL) {
+			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("   Null numeric matrix.  Skipping.\n");
 			}
 			UNPROTECT(1);
 			return NULL;
 		}
-		UNPROTECT(1); // numericMatrix		
+		UNPROTECT(1); // numericMatrix
+	} else if (matrix == R_NilValue) {
+		return NULL;
 	} else if (isString(matrix)) {
 	  const int MaxErrorLen = 250;
 	  char err[MaxErrorLen];

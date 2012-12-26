@@ -15,3 +15,5 @@
 
 
 setClassUnion("MxCharOrNumber", c("character", "integer"))
+
+setClassUnion("MxOptionalCharOrNumber", c("NULL", "character", "integer"))
