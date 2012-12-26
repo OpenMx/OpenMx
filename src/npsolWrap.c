@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -39,23 +39,20 @@
 #include "omxHessianCalculation.h"
 #include "omxOptimizer.h"
 
-//#include "omxSymbolTable.h"
+omp_lock_t GlobalRLock;
 
-/* Set up R .Call info */
-R_CallMethodDef callMethods[] = {
-{"omxBackend", (void*(*)())&omxBackend, 12},
-{"omxCallAlgebra", (void*(*)())&omxCallAlgebra, 3},
-{"findIdenticalRowsData", (void*(*)())&findIdenticalRowsData, 5},
-{NULL, NULL, 0}
+static R_CallMethodDef callMethods[] = {
+	{"omxBackend", (DL_FUNC) omxBackend, 12},
+	{"omxCallAlgebra", (DL_FUNC) omxCallAlgebra, 3},
+	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
+	{NULL, NULL, 0}
 };
 
-void R_init_mylib(DllInfo *info) {
-/* Register routines, allocate resources. */
-R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+void R_init_OpenMx(DllInfo *info) {
+	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
 }
 
-void R_unload_mylib(DllInfo *info) {
-/* Release resources. */
+void R_unload_OpenMx(DllInfo *info) {
 }
 
 /* Main functions */

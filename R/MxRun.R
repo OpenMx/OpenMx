@@ -117,7 +117,7 @@ runHelper <- function(model, frontendStart,
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
-	output <- .Call("omxBackend", fitfunction, startVals,
+	output <- .Call(omxBackend, fitfunction, startVals,
 		constraints, matrices, parameters, 
 		algebras, expectations, data, intervalList, communication, options, state, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
