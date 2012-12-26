@@ -111,7 +111,7 @@ generateValueList <- function(mList, pList) {
 		} else {
 			retval[i] <- generateValueHelper(parameter[[1]], mList)
 		}
-    }
+	}
 	return(retval)	
 }
 
@@ -119,7 +119,12 @@ generateValueHelper <- function(triple, mList) {
 	mat <- triple[1] + 1
 	row <- triple[2] + 1
 	col <- triple[3] + 1
-	return(mList[[mat]][row,col])
+	val <- mList[[mat]][row,col]
+	if (is.na(val)) {
+		stop(paste("Starting value in ",names(mList)[[mat]],
+			   "[",row,",",col,"] is missing", sep=""))
+	}
+	return(val)
 }
 
 getFitFunctionIndex <- function(flatModel) {
