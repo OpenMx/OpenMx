@@ -27,16 +27,6 @@
 #include "omxFIMLFitFunction.h"
 #include "omxOpenmpWrap.h"
 
-#ifdef _OPENMP
-
-omp_lock_t sadmvn_lock;
-
-#else
-
-void* sadmvn_lock = NULL;
-
-#endif
-
 extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 	double*, double*, double*, double*, int*, int*);
 

@@ -48,7 +48,6 @@ static OMXINLINE int omx_absolute_thread_num(void) {
 #endif
 
 static OMXINLINE void omx_omp_init() {
-   omp_init_lock(&sadmvn_lock);
    omp_init_lock(&rfitfunction_lock);
 #if _OPENMP <= 200505
    omp_set_nested(0);

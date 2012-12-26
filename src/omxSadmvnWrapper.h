@@ -18,21 +18,7 @@
 #ifndef _OMXSADMVNWRAPPER_H
 #define _OMXSADMVNWRAPPER_H
 
-#ifdef _OPENMP
-
-#include <omp.h>
-extern omp_lock_t sadmvn_lock;
-
-#else  // (!defined _OPENMP)
-
-extern void* sadmvn_lock;
-
-#endif // _OPENMP
-
-
-
 void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
-
 
 #endif 
