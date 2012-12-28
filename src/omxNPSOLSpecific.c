@@ -78,27 +78,7 @@ void F77_SUB(npsolObjectiveFunction)
 	    } 
 	}
 
-	if(isnan(fitMatrix->data[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("Fit function value is NaN.\n");
-		}
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Fit function returned a value of NaN at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
-		omxRaiseError(globalState, -1, errstr);
-		*mode = -1;
-		free(errstr);
-	}
-
-	if(isinf(fitMatrix->data[0])) {
-		if(OMX_DEBUG) {
-			Rprintf("Fit function value is infinite.\n");
-		}
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Fit function returned an infinite value at iteration %d.%d.", globalState->majorIteration, globalState->minorIteration);
-		omxRaiseError(globalState, -1, errstr);
-		*mode = -1;
-		free(errstr);
-	}
+	omxExamineFitOutput(globalState, fitMatrix, mode);
 
 	if(globalState->statusCode <= -1) {		// At some point, we'll add others
 		if(OMX_DEBUG) {

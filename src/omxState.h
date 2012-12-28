@@ -215,6 +215,7 @@ void omxRaiseErrorf(omxState *state, char* errorMsg, ...);   // new API
 
 	void omxWriteCheckpointMessage(omxState *os, char *msg);
 	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
+void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 
 #endif /* _OMXSTATE_H_ */
 

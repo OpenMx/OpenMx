@@ -523,3 +523,12 @@ void omxRaiseErrorf(omxState *state, char* errorMsg, ...)
 			}
 		}
 	}
+
+void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode)
+{
+	if (!isnormal(fitMatrix->data[0])) {
+		omxRaiseErrorf(state, "Fit function returned %g at iteration %d.%d",
+			       fitMatrix->data[0], state->majorIteration, state->minorIteration);
+		*mode = -1;
+	}
+}
