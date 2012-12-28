@@ -140,14 +140,8 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
-	double *x, *g, *R;
-	double f;
-	double *est, *grad, *hess;
-
 	/* Helpful variables */
 
-	int k, l;					// Index Vars
-	
 	int errOut = 0;                 // Error state: Clear
 
 	SEXP nextLoc;
@@ -240,30 +234,22 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	n = globalState->numFreeParams;
 
-	if(n == 0) {			// Special Case for the evaluation-only condition
-		g = NULL;
-		x = NULL;
-		R = NULL;
-	} else {
-		g		= (double*) R_alloc (n, sizeof ( double ) );
-		x		= (double*) R_alloc ((n+1), sizeof ( double ));
-		R		= (double*) R_alloc (n * n, sizeof ( double ));
+	SEXP minimum, estimate, gradient, hessian;
+	PROTECT(minimum = NEW_NUMERIC(1));
+	PROTECT(estimate = allocVector(REALSXP, n));
+	PROTECT(gradient = allocVector(REALSXP, n));
+	PROTECT(hessian = allocMatrix(REALSXP, n, n));
 
-		for(k = 0; k < n; k++) {
-			x[k] = REAL(startVals)[k];
-		}
-
-	}
+	if (n>0) { memcpy(REAL(estimate), REAL(startVals), sizeof(double)*n); }
 	
-	omxInvokeNPSOL(&f, x, g, R, disableOptimizer);
+	omxInvokeNPSOL(REAL(minimum), REAL(estimate), REAL(gradient), REAL(hessian), disableOptimizer);
 
-	SEXP minimum, estimate, gradient, hessian, code, status, statusMsg, iterations;
+	SEXP code, status, statusMsg, iterations;
 	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, expectations, optimizer;
 	SEXP intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
 
 	int numReturns = 14;
 
-	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
@@ -272,11 +258,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 
-	/* N-dependent SEXPs */
-	PROTECT(estimate = allocVector(REALSXP, n));
 	PROTECT(optimizer = allocVector(VECSXP, 2));
-	PROTECT(gradient = allocVector(REALSXP, n));
-	PROTECT(hessian = allocMatrix(REALSXP, n, n));
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
 	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1)); // for optimizer
 	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
@@ -285,27 +267,11 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(NAmat = allocMatrix(REALSXP, 1, 1)); // In case of missingness
 	REAL(NAmat)[0] = R_NaReal;
 
-	/* Store outputs for return */
-	if(fitfunction != NULL) {
-		REAL(minimum)[0] = f;
-		globalState->optimum = f;
-	} else {
+	if(fitfunction == NULL) {
 		REAL(minimum)[0] = R_NaReal;
 	}
 
-	est = REAL(estimate);  // Aliases to avoid repeated function calls.
-	grad = REAL(gradient);
-	hess = REAL(hessian);
-
-	for(k = 0; k < n; k++) {		// Do these with memcpy instead, probably.
-		est[k] = x[k];
-		grad[k] = g[k];
-		for(l = 0; l < n; l++) {			// Save the NPSOL hessian, in case somebody wants it
-			hess[k*n + l] = R[k*n + l];		// This is ok, because they're both in Col-Major already.
-		}
-	}
-
-	omxSaveState(globalState, x, f);		// Keep the current values for the globalState.
+	omxSaveState(globalState, REAL(estimate), REAL(minimum)[0]);
 
 	/* Fill in details from the optimizer */
 	SET_VECTOR_ELT(optimizer, 0, gradient);
@@ -356,7 +322,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
-		omxNPSOLConfidenceIntervals(&f, x, g, R, ciMaxIterations);
+		omxNPSOLConfidenceIntervals(REAL(minimum), REAL(estimate), REAL(gradient), REAL(hessian), ciMaxIterations);
 	}  
 
 	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
