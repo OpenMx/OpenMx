@@ -383,6 +383,22 @@
 		}
 	}
 
+void omxRaiseErrorf(omxState *state, char* errorMsg, ...)
+{
+	va_list ap;
+	va_start(ap, errorMsg);
+	int fit = vsnprintf(state->statusMsg, MAX_STRING_LEN, errorMsg, ap);
+	va_end(ap);
+	if(OMX_DEBUG) {
+		if (!(fit > -1 && fit < MAX_STRING_LEN)) {
+			Rprintf("Error exceeded maximum length: %s\n", errorMsg);
+		} else {
+			Rprintf("Error raised: %s\n", state->statusMsg);
+		}
+	}
+	state->statusCode = -1;  // this provides no additional information beyond errorMsg[0]!=0 TODO
+}
+
 	void omxRaiseError(omxState *state, int errorCode, char* errorMsg) {
 		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }

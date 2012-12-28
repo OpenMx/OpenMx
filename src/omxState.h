@@ -159,7 +159,7 @@ struct omxState {													// The Current State of Optimization
 	double optimum;													// Fit function value at last saved optimum
 	double* hessian;												// Current hessian storage
 	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
-	char optimumMsg[250];											// Status message of last saved optimum
+	char optimumMsg[MAX_STRING_LEN];											// Status message of last saved optimum
 	omxOptimizerState* optimizerState;								// Current optimum parameters for limit computation
 
 /* Current Optimization State (optimizer-specific) */
@@ -180,7 +180,7 @@ struct omxState {													// The Current State of Optimization
 
 	int inform, iter;													// Status code, if appropriate
 	int statusCode;
-	char statusMsg[250];											// Status/Error message to report
+	char statusMsg[MAX_STRING_LEN];											// Status/Error message to report
 	double saturatedModel;											// Saturated model likelihood, where applicable
 	int analyticGradients;
 };
@@ -205,7 +205,8 @@ struct omxState {													// The Current State of Optimization
 	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
-	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// Raise an Error
+	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// old API
+void omxRaiseErrorf(omxState *state, char* errorMsg, ...);   // new API
 																		// TODO: Move RaiseError to omxOptimizer.
 
 /* Advance a step */
