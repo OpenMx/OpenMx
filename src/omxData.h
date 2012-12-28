@@ -56,7 +56,7 @@ struct omxData {						// A matrix
 /* The object itself */
 	SEXP dataObject;					// The R object
 	SEXP* columns;						// An array of column SEXPs
-	omxMatrix* dataMat;					// The data, as an omxMatrix Object
+	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	double numObs;						// Number of observations
 	char type[250];						// The type of data object.

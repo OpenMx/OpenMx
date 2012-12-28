@@ -219,7 +219,7 @@ double omxDoubleDataElement(omxData *od, int row, int col) {
 
 int omxIntDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
-		return (int) omxMatrixElement(od->dataMat, row, col);
+		error("Use a data frame for factor data");
 	}
 
 	int location = od->location[col];
