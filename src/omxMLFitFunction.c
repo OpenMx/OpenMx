@@ -279,6 +279,8 @@ void omxInitMLFitFunction(omxFitFunction* oo, SEXP rObj) {
 	/* Read and set expectation */
 	omxSetMLFitFunctionCalls(oo);
 
+	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
+
 	omxData* dataMat = oo->expectation->data;
 
 	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
