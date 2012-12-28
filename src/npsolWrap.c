@@ -206,40 +206,36 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	
 	// TODO: Make calculateHessians an option instead.
 
-	if(!errOut) {	// In the event of an initialization error, skip all this.
+	if(errOut) error(globalState->statusMsg);
 
-		int numChildren = globalState->numChildren;
+	int numChildren = globalState->numChildren;
 
-		/* Process Matrix and Algebra Population Function */
-		/*
-		 Each matrix is a list containing a matrix and the other matrices/algebras that are
-		 populated into it at each iteration.  The first element is already processed, above.
-		 The rest of the list will be processed here.
-		*/
-		for(int j = 0; j < globalState->numMats; j++) {
-			PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
-			omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
-			UNPROTECT(1);
-		}
+	/* Process Matrix and Algebra Population Function */
+	/*
+	  Each matrix is a list containing a matrix and the other matrices/algebras that are
+	  populated into it at each iteration.  The first element is already processed, above.
+	  The rest of the list will be processed here.
+	*/
+	for(int j = 0; j < globalState->numMats; j++) {
+		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
+		UNPROTECT(1);
+	}
 
-		/* Process Free Var List */
-		omxProcessFreeVarList(varList, globalState->numFreeParams);
+	/* Process Free Var List */
+	omxProcessFreeVarList(varList, globalState->numFreeParams);
 
-		/* Processing Constraints */
-		omxProcessConstraints(constraints);
+	/* Processing Constraints */
+	omxProcessConstraints(constraints);
 
-		/* Process Confidence Interval List */
-		omxProcessConfidenceIntervals(intervalList);
+	/* Process Confidence Interval List */
+	omxProcessConfidenceIntervals(intervalList);
 
-		/* Process Checkpoint List */
-		omxProcessCheckpointOptions(checkpointList);
+	/* Process Checkpoint List */
+	omxProcessCheckpointOptions(checkpointList);
 
-		for(int i = 0; i < numChildren; i++) {
-			omxDuplicateState(globalState->childList[i], globalState);
-		}
-		
-	} else { // End if(errOut)
-		error(globalState->statusMsg);
+	for(int i = 0; i < numChildren; i++) {
+		omxDuplicateState(globalState->childList[i], globalState);
 	}
 
 	n = globalState->numFreeParams;
