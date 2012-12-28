@@ -14,6 +14,5 @@ model <- mxModel("missingtest",
 model[["A"]]@free[2,1] <- TRUE
 model[["A"]]@values[2,1] <- NA   # oops
 
-msg <<- ''
-tryCatch(mxRun(model, silent=TRUE), error = function(e) msg <<- e$message)
-omxCheckEquals(msg, "Starting value in missingtest.A[2,1] is missing")
+omxCheckError(mxRun(model, silent=TRUE),
+	      "Starting value in missingtest.A[2,1] is missing")
