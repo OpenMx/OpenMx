@@ -74,30 +74,32 @@ More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 	
 \examples{
-# Create an empy model, and place it in an object.
+# At the simplest, you can create an empty model, placing it in an object, and add to it later
 model <- mxModel()
- 	
-# Create a model named 'firstdraft' with one matrix
+
+# Create a model named 'firstdraft' with one matrix 'A'
 model <- mxModel('firstdraft', 
                  mxMatrix('Full', nrow = 3, ncol = 3, name = "A"))
- 	
-# Add other matrices to model 'firstdraft', and rename that model 'finaldraft'
+
+# Update 'firstdraft', and rename the model 'finaldraft'
 model <- mxModel(model,
                  mxMatrix('Symm', nrow = 3, ncol = 3, name = "S"),
                  mxMatrix('Iden', nrow = 3, name = "F"),
                  name= "finaldraft")
 
 # Add data to the model from an existing data frame in object 'data'
-data <- data.frame()
-model <- mxModel(model, mxData(data, type='raw'))
+data(twinData)  # load some data
+model <- mxModel(model, mxData(twinData, type='raw'))
 
-#View the matrix named "A" in MxModel object 'model'
+# View the matrix named "A" in MxModel object 'model'
 model[["A"]]
+
+model@matrices$A
 
 #View the data associated with MxModel object 'model'
 model$data
 
-# An example Using OpenMx's Path Syntax
+# A working example using OpenMx Path Syntax
 data(HS.fake.data)  #load the data
 
 Spatial   <- c("visual","cubes","paper") # the manifest variables loading on each proposed latent variable
@@ -128,6 +130,6 @@ model <- mxModel("Holzinger and Swineford (1939)", type="RAM",
     mxData(cov(HS.fake.data[,manifests]), type="cov", numObs=301))
 	
 fit <- mxRun(model) # run the model
-summary(fit) # examine the output: Fits statistics and (unstandardized) path loadings
+summary(fit) # examine the output: Fit statistics and path loadings
 
 }
