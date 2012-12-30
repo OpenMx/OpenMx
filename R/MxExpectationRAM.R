@@ -94,7 +94,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if(is.na(data)) {
 			msg <- paste("The RAM expectation function",
 				"does not have a dataset associated with it in model",
-				omxQuotes(modelname))
+				omxQuotes(modelname),
+				"\nSee ?mxData() to see how to add data to your model")
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
