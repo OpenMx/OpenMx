@@ -47,7 +47,7 @@ All other arguments must be named (i.e. \sQuote{latentVars = names}), or they wi
  	
 Model independence may be specified with the \sQuote{independent} argument. If a model is independent (\sQuote{independent = TRUE}), then the parameters of this model are not shared with any other model. An independent model may be estimated with no dependency on any other model. If a model is not independent (\sQuote{independent = FALSE}), then this model shares parameters with one or more other models such that these models must be jointly estimated. These dependent models must be entered as arguments in another model, so that they are simultaneously optimized.
 
-The model type is determined by a character vector supplied to the \sQuote{type} argument. The type of a model is a dynamic property, ie. it is allowed to change during the lifetype of the model. To see a list of available types, use the \link{mxTypes} command.  When a new model is created and no type is specified, the type specified by \code{options("mxDefaultType")} is used.
+The model type is determined by a character vector supplied to the \sQuote{type} argument. The type of a model is a dynamic property, ie. it is allowed to change during the lifetime of the model. To see a list of available types, use the \link{mxTypes} command.  When a new model is created and no type is specified, the type specified by \code{options("mxDefaultType")} is used.
  	
 To be estimated, \link{MxModel} objects must include objective functions as arguments
 (\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
