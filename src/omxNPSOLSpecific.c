@@ -559,12 +559,27 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
     }
 }
  
-static int
-friendlyStringToLogical(const char *str)
+static void
+friendlyStringToLogical(const char *key, const char *str, int *out)
 {
-	if (matchCaseInsensitive(str, "Yes")) return 1;
-	if (matchCaseInsensitive(str, "No")) return 0;
-	return atoi(str) == 1;
+	int understood = FALSE;
+	int newVal;
+	if (matchCaseInsensitive(str, "Yes")) {
+		understood = TRUE;
+		newVal = 1;
+	} else if (matchCaseInsensitive(str, "No")) {
+		understood = TRUE;
+		newVal = 0;
+	} else if (isdigit(str[0]) && (atoi(str) == 1 || atoi(str) == 0)) {
+		understood = TRUE;
+		newVal = atoi(str);
+	}
+	if (!understood) {
+		warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
+		return;
+	}
+	if(OMX_DEBUG) { Rprintf("%s=%d\n", key, newVal); }
+	*out = newVal;
 }
 
 void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
@@ -587,13 +602,9 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 					}
 				}
 			} else if(matchCaseInsensitive(nextOptionName, "Standard Errors")) {
-				if(OMX_DEBUG) { Rprintf("Found standard error option...Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
-					*calculateStdErrors = TRUE;
-					if (numFreeParams > 0) {
-						*numHessians = 1;
-					}
+				friendlyStringToLogical(nextOptionName, nextOptionValue, calculateStdErrors);
+				if (*calculateStdErrors == TRUE && numFreeParams > 0) {
+					*numHessians = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
 				int newvalue = atoi(nextOptionValue);
@@ -605,8 +616,7 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 					*disableOptimizer = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-				*analyticGradients = friendlyStringToLogical(nextOptionValue);
-				if(OMX_DEBUG) { Rprintf("Analytic Gradients=%d\n", *analyticGradients); }
+				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
 				if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};

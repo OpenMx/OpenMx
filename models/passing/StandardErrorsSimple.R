@@ -36,6 +36,9 @@ factorModel <- mxModel("test SE", type="RAM",
       mxPath(from="one", to=manifests),
       mxData(known, type="raw")
 )
+factorModel <- mxOption(factorModel, "Standard Errors", "Fnord")
+ignore <- omxCheckWarning(mxRun(factorModel),
+			  "Expecting 'Yes' or 'No' for 'Standard Errors' but got 'Fnord', ignoring");
 factorModel <- mxOption(factorModel, "Standard Errors", "Yes")
 fit <- mxRun(factorModel)
 test.summary <- summary(mxRun(factorModel, suppressWarnings=TRUE))
