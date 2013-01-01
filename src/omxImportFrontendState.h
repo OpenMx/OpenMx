@@ -2,7 +2,7 @@
 #define _OMX_IMPORT_FRONTEND_STATE_H
 
 
-int matchCaseInsensitive(const char *source, int lenSource, const char *target);
+int matchCaseInsensitive(const char *source, const char *target);
 int omxProcessMxDataEntities(SEXP data);
 int omxProcessMxMatrixEntities(SEXP matList);
 int omxProcessMxAlgebraEntities(SEXP algList);

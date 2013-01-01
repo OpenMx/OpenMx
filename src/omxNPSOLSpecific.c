@@ -571,41 +571,39 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-			int lenName = strlen(nextOptionName);
-			int lenValue = strlen(nextOptionValue);
-			if(matchCaseInsensitive(nextOptionName, lenName, "Calculate Hessian")) {
+			if(matchCaseInsensitive(nextOptionName, "Calculate Hessian")) {
 				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+				if(!matchCaseInsensitive(nextOptionValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
 					if (numFreeParams > 0) {
 						*numHessians = 1;
 					}
 				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "Standard Errors")) {
+			} else if(matchCaseInsensitive(nextOptionName, "Standard Errors")) {
 				if(OMX_DEBUG) { Rprintf("Found standard error option...Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+				if(!matchCaseInsensitive(nextOptionValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Enabling explicit standard error calculation.\n");}
 					*calculateStdErrors = TRUE;
 					if (numFreeParams > 0) {
 						*numHessians = 1;
 					}
 				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "CI Max Iterations")) { 
+			} else if(matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
 				int newvalue = atoi(nextOptionValue);
 				if (newvalue > 0) *ciMaxIterations = newvalue;
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "useOptimizer")) {
+			} else if(matchCaseInsensitive(nextOptionName, "useOptimizer")) {
 				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
-				if(matchCaseInsensitive(nextOptionValue, lenValue, "No")) {
+				if(matchCaseInsensitive(nextOptionValue, "No")) {
 					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
 					*disableOptimizer = 1;
 				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "Analytic Gradients")) {
+			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				if(OMX_DEBUG) { Rprintf("Found Analytic Gradients option...");};	
-				if(matchCaseInsensitive(nextOptionValue, lenValue, "Yes")) {
+				if(matchCaseInsensitive(nextOptionValue, "Yes")) {
 					if(OMX_DEBUG) { Rprintf("Enabling Analytic Gradients.\n");}
 					*analyticGradients = 1;
 				}
-			} else if(matchCaseInsensitive(nextOptionName, lenName, "Number of Threads")) {
+			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
 				if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};
 			} else {

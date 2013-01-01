@@ -29,9 +29,8 @@
 /* Outside R Functions */
 static int isDir(const char *path);
 
-int matchCaseInsensitive(const char *source, int lenSource, const char *target) {
-	int lenTarget = strlen(target);
-	return((lenSource == lenTarget)	&& (strncasecmp(source, target, lenSource) == 0));
+int matchCaseInsensitive(const char *source, const char *target) {
+	return strcasecmp(source, target) == 0;
 }
 
 int omxProcessMxDataEntities(SEXP data) {
