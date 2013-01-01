@@ -63,4 +63,6 @@ if (length(errors) > 0) {
 	}
 }
 
+warnings()
+
 cat("Finished testing models.\n")
