@@ -78,6 +78,8 @@ void omxExpectationRecompute(omxExpectation *ox) {
 }
 
 void omxExpectationCompute(omxExpectation *ox) {
+	if (!ox) return;
+
 	if(OMX_DEBUG_ALGEBRA) { 
 	    Rprintf("Expectation compute: 0x%0x\n", ox);
 	}

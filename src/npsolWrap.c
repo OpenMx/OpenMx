@@ -181,22 +181,33 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Initialize all Expectations Here */
 	if(!errOut) errOut = omxProcessMxExpectationEntities(expectList);
 
-	/* Process Algebras Here */
-	if(!errOut) errOut = omxProcessMxAlgebraEntities(algList);
+	if(!errOut) {
+		omxProcessMxAlgebraEntities(algList);
+		errOut = globalState->statusMsg[0];
+	}
 
 	/* Complete Expectations */
 	if(!errOut) errOut = omxCompleteMxExpectationEntities();
 
-	/* Initial Matrix and Algebra Calculations */
-    if(!errOut) {
+	if(!errOut) {
+		// This is the chance to check for matrix
+		// conformability, etc.  Any errors encountered should
+		// be reported using R's error() function, not
+		// omxRaiseErrorf.
+
 		// disable parallelism until omxDuplicateState() can be invoked
-    	globalState->numChildren = 0;
-		errOut = omxInitialMatrixAlgebraCompute();
+		globalState->numChildren = 0;
+
+		omxInitialMatrixAlgebraCompute();
+
 		globalState->numChildren = (numThreads > 1) ? numThreads : 0;
+		omxResetStatus(globalState);
 	}
 
-	/* Process Fit Function */
-	if(!errOut) errOut = omxProcessFitFunction(fitfunction);
+	if(!errOut) {
+		omxProcessFitFunction(fitfunction);
+		errOut = globalState->statusMsg[0];
+	}
 	
 	// TODO: Make calculateHessians an option instead.
 

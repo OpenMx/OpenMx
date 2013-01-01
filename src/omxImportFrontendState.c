@@ -86,8 +86,7 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 	return(errOut);
 }
 
-int omxProcessMxAlgebraEntities(SEXP algList) {
-	int errOut = FALSE;
+void omxProcessMxAlgebraEntities(SEXP algList) {
 	SEXP nextAlgTuple;
 	globalState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
@@ -118,14 +117,8 @@ int omxProcessMxAlgebraEntities(SEXP algList) {
 			UNPROTECT(1);	// dependencies
 		}
 		UNPROTECT(1);	// nextAlgTuple
-		if(globalState->statusCode < 0) {
-			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth algebra.\n", index+1);}
-			errOut = TRUE;
-			globalState->numAlgs = index+1;
-			break;
-		}
+		if (globalState->statusMsg[0]) return;
 	}
-	return(errOut);
 }
 
 int omxProcessMxExpectationEntities(SEXP expList) {
@@ -179,8 +172,7 @@ int omxCompleteMxExpectationEntities() {
 }
 
 
-int omxInitialMatrixAlgebraCompute() {
-	int errOut = FALSE;
+void omxInitialMatrixAlgebraCompute() {
 	int numMats = globalState->numMats;
 	int numAlgs = globalState->numAlgs;
 
@@ -196,11 +188,9 @@ int omxInitialMatrixAlgebraCompute() {
 	for(int index = 0; index < numAlgs; index++) {
 		omxRecompute(globalState->algebraList[index]);
 	}
-	return(errOut);
 }
 
-int omxProcessFitFunction(SEXP fitFunction) {
-	int errOut = FALSE;
+void omxProcessFitFunction(SEXP fitFunction) {
 	if(!isNull(fitFunction)) {
 		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
 		globalState->fitMatrix = omxNewMatrixFromMxIndex(fitFunction, globalState);
@@ -208,7 +198,6 @@ int omxProcessFitFunction(SEXP fitFunction) {
 		globalState->fitMatrix = NULL;
 		globalState->numFreeParams = 0;
 	}
-	return(errOut);
 }
 
 /*

@@ -32,6 +32,7 @@ void omxDestroyRFitFunction(omxFitFunction *off) {
 void omxCallRFitFunction(omxFitFunction *oo) {
 	omx_omp_set_lock(&GlobalRLock);
 
+	omxState* currentState = oo->matrix->currentState;
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
 	SEXP theCall, theReturn;
@@ -42,13 +43,16 @@ void omxCallRFitFunction(omxFitFunction *oo) {
 
 	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
 
-	if (LENGTH(theReturn) == 1) {
-		oo->matrix->data[0] = REAL(AS_NUMERIC(theReturn))[0];
+	if (LENGTH(theReturn) < 1) {
+		// seems impossible, but report it if it happens
+		omxRaiseErrorf(currentState, "FitFunction returned nothing");
+	} else if (LENGTH(theReturn) == 1) {
+		oo->matrix->data[0] = asReal(theReturn);
 	} else if (LENGTH(theReturn) == 2) {
-		oo->matrix->data[0] = REAL(VECTOR_ELT(theReturn, 0))[0];
+		oo->matrix->data[0] = asReal(VECTOR_ELT(theReturn, 0));
 		REPROTECT(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
-	} else {
-		// throw an error
+	} else if (LENGTH(theReturn) > 2) {
+		omxRaiseErrorf(currentState, "FitFunction returned more than 2 arguments");
 	}
 
 	UNPROTECT(2); // theCall and theReturn

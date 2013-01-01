@@ -228,6 +228,8 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	}
 	UNPROTECT(1);	/* slotValue */
 	
+	if (om->currentState->statusMsg[0]) return;
+
 	obj->rObj = rObj;
 	obj->initFun(obj, rObj);
 
