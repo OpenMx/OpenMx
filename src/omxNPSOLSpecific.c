@@ -559,6 +559,13 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
     }
 }
  
+static int
+friendlyStringToLogical(const char *str)
+{
+	if (matchCaseInsensitive(str, "Yes")) return 1;
+	if (matchCaseInsensitive(str, "No")) return 0;
+	return atoi(str) == 1;
+}
 
 void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
 	int *ciMaxIterations, int *disableOptimizer, int *numThreads,
@@ -598,11 +605,8 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 					*disableOptimizer = 1;
 				}
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-				if(OMX_DEBUG) { Rprintf("Found Analytic Gradients option...");};	
-				if(matchCaseInsensitive(nextOptionValue, "Yes")) {
-					if(OMX_DEBUG) { Rprintf("Enabling Analytic Gradients.\n");}
-					*analyticGradients = 1;
-				}
+				*analyticGradients = friendlyStringToLogical(nextOptionValue);
+				if(OMX_DEBUG) { Rprintf("Analytic Gradients=%d\n", *analyticGradients); }
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
 				if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};
