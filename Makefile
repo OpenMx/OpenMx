@@ -61,6 +61,7 @@ help:
 	@echo "TESTING"
 	@echo ""	
 	@echo "  test (CPUS=n) run the test suite"	
+	@echo "  torture       run the test suite with gctorture(TRUE)"
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
 	@echo "  nightlyPPML   run the nightly test suite with PPML"			
@@ -153,9 +154,14 @@ testdocs:
 	$(DOCTESTGEN)
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
-test:
+prepare-test:
 	mkdir -p models/passing/temp-files
-	$(REXEC) --vanilla --slave --cpus=$(CPUS) < $(TESTFILE)
+
+test: prepare-test
+	$(REXEC) --vanilla --slave --cpus=$(CPUS) -f $(TESTFILE)
+
+torture: prepare-test
+	$(REXEC) --vanilla --slave --cpus=$(CPUS) -f $(TESTFILE) --args gctorture
 
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	

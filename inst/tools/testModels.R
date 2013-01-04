@@ -13,6 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+args <- commandArgs(trailingOnly = TRUE)
+if (any(args == 'gctorture')) {
+	gctorture(TRUE)
+	cat("*** GCTORTURE ENABLED ***\n");
+}
+
 library(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)
