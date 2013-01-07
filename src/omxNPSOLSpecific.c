@@ -14,7 +14,8 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <ctype.h>
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 
