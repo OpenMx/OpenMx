@@ -59,8 +59,8 @@ copied such that each thread has its own copy. This model copying is
 optional. With adequate care, it is also possible to write OpenMP
 optimizations without the added complexity of duplicating the model
 (see sadmvn.f).  The second facility is Snowfall. Snowfall works at
-the granularity of machines while OpenMP is only concerned with
-exploiting all the CPU within a single machine.
+the granularity of machines or processes with a machine while OpenMP
+is only concerned with exploiting all the CPU within a single machine.
 
 Questions
 ---------
