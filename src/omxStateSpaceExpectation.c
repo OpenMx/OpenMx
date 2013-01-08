@@ -237,7 +237,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	/* Set Expectation Calls and Structures */
 	ox->computeFun = omxCallStateSpaceExpectation;
 	ox->destructFun = omxDestroyStateSpaceExpectation;
-	ox->setFinalReturns = NULL;
 	ox->componentFun = omxGetStateSpaceExpectationComponent;
 	ox->mutateFun = omxSetStateSpaceExpectationComponent;
 	ox->populateAttrFun = omxPopulateSSMAttributes;

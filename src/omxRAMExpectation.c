@@ -400,7 +400,6 @@ void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj) {
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallRAMExpectation;
 	oo->destructFun = omxDestroyRAMExpectation;
-	oo->setFinalReturns = NULL;
 	oo->componentFun = omxGetRAMExpectationComponent;
 	oo->populateAttrFun = omxPopulateRAMAttributes;
 	oo->argStruct = (void*) RAMexp;

@@ -89,7 +89,6 @@ void omxInitNormalExpectation(omxExpectation* ox, SEXP rObj) {
 	/* Set Expectation Calls and Structures */
 	ox->computeFun = omxComputeNormalExpectation;
 	ox->destructFun = omxDestroyNormalExpectation;
-	ox->setFinalReturns = NULL;
 	ox->componentFun = omxGetNormalExpectationComponent;
 	ox->populateAttrFun = omxPopulateNormalAttributes;
 	ox->argStruct = (void*) one;

@@ -87,7 +87,6 @@ struct omxExpectation {					// An Expectation
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
 	void (*setFitFun)(omxExpectation ox, omxFitFunction* off);					// To handle fit interactions
 	void (*repopulateFun)(omxExpectation* ox, double* x, int n);				// To repopulate any data stored in the Expectation function
-	omxRListElement* (*setFinalReturns)(omxExpectation* ox, int *numVals);		// Sets any R returns.
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
 	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation

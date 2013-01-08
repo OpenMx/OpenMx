@@ -385,7 +385,6 @@ void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj) {
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallLISRELExpectation;
 	oo->destructFun = omxDestroyLISRELExpectation;
-	oo->setFinalReturns = NULL;
 	oo->componentFun = omxGetLISRELExpectationComponent;
 	oo->populateAttrFun = omxPopulateLISRELAttributes;
 	oo->argStruct = (void*) LISobj;
