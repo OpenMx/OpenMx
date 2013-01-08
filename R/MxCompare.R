@@ -46,37 +46,43 @@ mxCompare <- function(base, comparison, ..., all = FALSE) {
 	return(resultsTable)
 }
 
-showFitStatistics <- function(baseSummaries, compareSummaries, all) {
-	statistics <- list()
-	if(all) {
-		for(i in 1:length(baseSummaries)) {
-			nextBaseSummary <- baseSummaries[[i]]
-			statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
-			for(j in 1:length(compareSummaries)) {
-				nextCompareSummary <- compareSummaries[[j]]
-				statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary, 
-					nextCompareSummary)
-			}
-		}
-	} else {
-		maxLength <- max(length(baseSummaries), length(compareSummaries))
-		previousBaseSummaryIndex <- -1
-		for(i in 1:maxLength) {
-			nextBaseSummaryIndex <- (i - 1) %% length(baseSummaries) + 1
-			nextCompareSummaryIndex <- (i - 1) %% length(compareSummaries) + 1
-			nextBaseSummary <- baseSummaries[[nextBaseSummaryIndex]]
-			nextCompareSummary <- compareSummaries[[nextCompareSummaryIndex]]
-			if (previousBaseSummaryIndex != nextBaseSummaryIndex) {
-				statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
-			}
-			statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary,
-				nextCompareSummary)
-			previousBaseSummaryIndex <- nextBaseSummaryIndex
-		}
-	}
-	statistics <- do.call(rbind, statistics)
-	return(statistics)
+showFitStatistics <- function(baseSummaries, compareSummaries, all)  {
+    statistics <- list()
+    if (all) {
+        for (i in seq_along(baseSummaries)) {
+            nextBaseSummary <- baseSummaries[[i]]
+            statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
+            for (j in seq_along(compareSummaries)) {
+                nextCompareSummary <- compareSummaries[[j]]
+                statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary, nextCompareSummary)
+            }
+        }
+    }
+    else {
+		if(length(compareSummaries)==0){
+	        for (i in seq_along(baseSummaries)) {
+	            statistics[[length(statistics) + 1]] <- collectBaseStatistics(baseSummaries[[i]])
+	        }
+		} else {
+	        maxLength <- max(length(baseSummaries), length(compareSummaries))
+	        previousBaseSummaryIndex <- -1
+	        for (i in 1:maxLength) {
+	            nextBaseSummaryIndex <- (i - 1)%%length(baseSummaries) + 1
+	            nextCompareSummaryIndex <- (i - 1)%%length(compareSummaries) + 1
+	            nextBaseSummary <- baseSummaries[[nextBaseSummaryIndex]]
+	            nextCompareSummary <- compareSummaries[[nextCompareSummaryIndex]]
+	            if (previousBaseSummaryIndex != nextBaseSummaryIndex) {
+	                statistics[[length(statistics) + 1]] <- collectBaseStatistics(nextBaseSummary)
+	            }
+	            statistics[[length(statistics) + 1]] <- collectStatistics(nextBaseSummary, nextCompareSummary)
+	            previousBaseSummaryIndex <- nextBaseSummaryIndex
+	        }
+		}		
+    }
+    statistics <- do.call(rbind, statistics)
+    return(statistics)
 }
+
 
 collectBaseStatistics <- function(refSummary) {
 	baseStats <- data.frame(stringsAsFactors = FALSE,
