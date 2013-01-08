@@ -17,9 +17,6 @@ mxCompare <- function(base, comparison, ..., all = FALSE) {
 	if (missing(base)) {
 		stop("'base' argument be a MxModel object or list of MxModel objects")	
 	}
-	if (missing(comparison)) {
-		stop("'comparison' argument be a MxModel object or list of MxModel objects")	
-	}
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompare does not accept values for the '...' argument")
@@ -29,22 +26,30 @@ mxCompare <- function(base, comparison, ..., all = FALSE) {
 	} else {
 		base <- list(base)
 	}
-	if (is.list(comparison)) {
-		comparison <- unlist(comparison)
-	} else {
-		comparison <- list(comparison)
-	}
 	if(!all(sapply(base, is, "MxModel"))) {
 		stop("The 'base' argument must consist of MxModel objects")
 	}
-	if(!all(sapply(comparison, is, "MxModel"))) {
-		stop("The 'comparison' argument must consist of MxModel objects")
+	baseSummaries <- omxLapply(base, summary)
+	
+	if(missing(comparison)) {
+		# no comparison models, just make a dummy list to feed to showFitStatistics
+		compareSummaries <- list()
+	}else{
+		if (is.list(comparison)) {
+			comparison <- unlist(comparison)
+		} else {
+			comparison <- list(comparison)
+		}
+		if(!all(sapply(comparison, is, "MxModel"))) {
+			stop("The 'comparison' argument must consist of MxModel objects")
+		} else {
+			compareSummaries <- omxLapply(comparison, summary)
+		}
 	}
-	baseSummaries <- omxLapply(base, summary)	
-	compareSummaries <- omxLapply(comparison, summary)
 	resultsTable <- showFitStatistics(baseSummaries, compareSummaries, all)
 	return(resultsTable)
 }
+
 
 showFitStatistics <- function(baseSummaries, compareSummaries, all)  {
     statistics <- list()
