@@ -29,28 +29,28 @@ checkEqualDimensions <- function(a, b) {
 	checkZeroDimensions(a, b)
 	if((is.vector(a) && length(a) > 1 && !is.vector(b)) || 
 		(is.vector(b) && length(b) > 1 && !is.vector(a))) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not both vectors")) 	
+		stop(paste("Not both vectors:",
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))))
 	}
 	if((is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && !is.matrix(b)) || 
 		(is.matrix(b) && (nrow(b) > 1 || ncol(b) > 1) && !is.matrix(a))) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not both matrices")) 	
+		stop(paste("Not both matrices:",
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))))
 	}	
 	if (is.vector(a) && (length(a) != length(b))) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"do not have equal length :",
-			length(a), 'and', length(b)))
+		stop(paste("Not equal length",
+			   length(a), 'and', length(b), ":",
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))))
 	}
 	if (is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && any(dim(a) != dim(b))) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not of equal dimension :", 
-			paste(dim(a), collapse = ' x '), 'and', 
-			paste(dim(b), collapse = ' x ')))
+		stop(paste("Not of equal dimension",
+			   paste(dim(a), collapse = ' x '), 'and',
+			   paste(dim(b), collapse = ' x '), ":",
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))))
 	}
 }
 
@@ -143,9 +143,9 @@ omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15), na.action=na.fail) {
 	b <- na.action(b)
 	if (any(is.na(a) != is.na(b))) {
 		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
-			omxQuotes(paste(a, collapse = ' ')),
-			"and", omxQuotes(paste(b, collapse = ' ')),
-			"have different missingness patterns"),
+			   "different missingness patterns:",
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))),
 			call. = FALSE)
 	}
 	a.vec <- as.vector(a)
@@ -157,9 +157,9 @@ omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15), na.action=na.fail) {
 			a.vec, b.vec))
 	if (check) {
 		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
-			omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not equal to within", epsilon), 
+			   "not equal to within", epsilon, ':',
+			   omxQuotes(paste(a, collapse = ' ')),
+			   "and", omxQuotes(paste(b, collapse = ' '))),
 			call. = FALSE)
 	} else if (getOption("mxPrintUnitTests")) {
 		cat(paste(deparse(match.call()$a), "and", 
