@@ -12,16 +12,21 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+# 2013-01-10 update for new error reporting when using named entity to constrain label
 
 
 require(OpenMx)
+# Check we error when a free named entity shares its name with a label in an object
 foo <- mxMatrix(name = 'foo', nrow = 1, ncol = 1, free = TRUE, labels = 'foo')
 bar <- mxAlgebra(foo, name = 'bar')
 model <- mxModel('model', foo, bar)
-omxCheckError(mxRun(model), "In model 'model' the following are both named entities and free parameters: 'foo'")
-foo <- mxMatrix(name = 'foo', nrow = 1, ncol = 1, free = TRUE, labels = 'a')
-bar <- mxMatrix(name = 'bar', nrow = 1, ncol = 1, free = TRUE, labels = 'a')
-baz <- mxMatrix(name = 'baz', nrow = 1, ncol = 1, free = FALSE, labels = 'a')
-quux <- mxMatrix(name = 'quux', nrow = 1, ncol = 1, free = FALSE, labels = 'a')
+omxCheckError(mxRun(model), paste("In model 'model' the following are both named entities and free parameters: 'foo'",
+"\nIf you are trying to set a path using an mxAlgebra, then refer to the Algebra with square-bracket notation.",
+"\ni.,e, instead of labels=\"", omxQuotes(overlap), "\" use: labels=\"", omxQuotes(overlap), "[1,1]\""))
+
+foo   <- mxMatrix(name = 'foo',  nrow = 1, ncol = 1, free = TRUE , labels = 'a')
+bar   <- mxMatrix(name = 'bar',  nrow = 1, ncol = 1, free = TRUE , labels = 'a')
+baz   <- mxMatrix(name = 'baz',  nrow = 1, ncol = 1, free = FALSE, labels = 'a')
+quux  <- mxMatrix(name = 'quux', nrow = 1, ncol = 1, free = FALSE, labels = 'a')
 model <- mxModel('model', foo, bar, baz, quux)
 omxCheckError(mxRun(model), "In model 'model' the name 'a' is used as a free parameter in 'model.foo' and 'model.bar' and as a fixed parameter in 'model.baz' and 'model.quux'")

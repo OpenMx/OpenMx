@@ -432,10 +432,15 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	allEntities <- unique(unlist(namespace$entities))
 	overlap <- intersect(allEntities, namespace$parameters)
 	if (length(overlap) > 0) {
+		item1 = overlap[1]
 		stop(paste("In model", omxQuotes(model@name),
 			"the following are both named",
 			"entities and free parameters:",
-			omxQuotes(overlap)), call. = FALSE)
+			omxQuotes(overlap),
+			"\nIf you are trying to set a path using an mxAlgebra, then",
+			"refer to the Algebra with square-bracket notation.",
+			"\ni.,e, instead of labels=\"", omxQuotes(overlap), "\"",
+			"use: labels=\"", omxQuotes(overlap), "[1,1]\""), call. = FALSE)
 	}
 	overlap <- intersect(allEntities, namespace$values)
 	if (length(overlap) > 0) {
