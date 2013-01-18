@@ -75,6 +75,10 @@ help:
 	@echo "  clean      remove all files from the build directory"
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
 
+r-libs-user-dir:
+	mkdir -p $(R -q  --vanilla -e 'Sys.getenv("R_LIBS_USER")' | \
+		fgrep -v '>' | cut -d '"' -f 2 | sed -e "s,~,$HOME,")
+
 internal-build: build/$(TARGET)
 
 dev-doc:
