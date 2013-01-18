@@ -76,8 +76,7 @@ help:
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
 
 r-libs-user-dir:
-	mkdir -p $(R -q  --vanilla -e 'Sys.getenv("R_LIBS_USER")' | \
-		fgrep -v '>' | cut -d '"' -f 2 | sed -e "s,~,$HOME,")
+	./inst/tools/mk-r-libs-user-dir
 
 internal-build: build/$(TARGET)
 
