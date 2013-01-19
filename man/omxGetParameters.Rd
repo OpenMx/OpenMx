@@ -19,7 +19,7 @@
 \title{Fetch Model Parameters}
 
 \description{
-    Return a vector of the free parameters in the model.
+    Return a vector of the chosen parameters from the model.
 }
 
 \usage{

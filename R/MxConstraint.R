@@ -34,7 +34,13 @@ setMethod("initialize", "MxConstraint",
 	}
 )
 
-mxConstraint <- function(expression, name = NA) {
+mxConstraint <- function(expression, name = NA,...) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		# user may have added an illegal parameter, or an illegal symbol in the expression
+		stop("mxConstraint accepts only two arguments. Check that you've used only the legal comparators (<, ==, >) in the constraint formula.")
+	}
+	
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}
