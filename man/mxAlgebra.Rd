@@ -35,7 +35,10 @@ mxAlgebra(expression, name = NA, dimnames = NA)
 \details{
 The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxAlgebraObjective} function. The \code{mxAlgebraObjective} function must reference the \code{MxAlgebra} object to be evaluated by name.
 
-The following operators are supported in mxAlgebra:
+The following operators and functions are supported in mxAlgebra:
+
+Operators
+
 \describe{
 \item{\code{solve()}}{Inversion}
 \item{\code{t()}}{Transposition}
@@ -50,8 +53,11 @@ The following operators are supported in mxAlgebra:
 \item{\code{\%&\%}}{Quadratic product}
 }
 
-The following functions are supported in mxAlgebra:
+Functions
+
 \describe{
+\item{\code{cov2cor}}{Convert covariance matrix to correlation matrix}
+\item{\code{chol}}{Cholesky Decomposition}
 \item{\code{cbind}}{Horizontal adhesion}
 \item{\code{rbind}}{Vertical adhesion}
 \item{\code{det}}{Determinant}
@@ -77,8 +83,8 @@ The following functions are supported in mxAlgebra:
 \item{\code{\link{vechs}}}{Strict half-vectorization}
 \item{\code{\link{vech2full}}}{Inverse half-vectorization}
 \item{\code{\link{vechs2full}}}{Inverse strict half-vectorization}
-\item{\code{\link{vec2diag}}}{Create a diagonal matrix}
-\item{\code{\link{diag2vec}}}{Extract diagonal from matrix}
+\item{\code{\link{vec2diag}}}{Create matrix from a diagonal vector (similar to \link{diag}) }
+\item{\code{\link{diag2vec}}}{Extract diagonal from matrix (similar to \link{diag}) }
 \item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
 \item{\code{\link{omxAllInt}}}{All cells Multivariate Normal Integration}
 \item{\code{\link{omxNot}}}{Perform unary negation on a matrix}
