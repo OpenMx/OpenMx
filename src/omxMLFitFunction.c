@@ -76,7 +76,7 @@ omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numRet
 	return retVal;
 }
 
-void omxCallMLFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
 	// Requires: Data, means, covariances.
@@ -232,21 +232,21 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 	} else {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
 	}   
-	
-	if(oo->gradientFun != NULL) {
-        int nLocs = oo->matrix->currentState->numFreeParams;
-        double gradient[oo->matrix->currentState->numFreeParams];
-        for(int loc = 0; loc < nLocs; loc++) {
-            gradient[loc] = NA_REAL;
-        }
-        oo->gradientFun(oo, gradient);
-        PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
 
-    	for(int loc = 0; loc < nLocs; loc++)
-            REAL(gradients)[loc] = gradient[loc];
-    } else {
-        PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
-    }
+	if (0) {  // TODO, fix for new gradient internal API
+		int nLocs = oo->matrix->currentState->numFreeParams;
+		double gradient[oo->matrix->currentState->numFreeParams];
+		for(int loc = 0; loc < nLocs; loc++) {
+			gradient[loc] = NA_REAL;
+		}
+		//oo->gradientFun(oo, gradient);
+		PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
+
+		for(int loc = 0; loc < nLocs; loc++)
+			REAL(gradients)[loc] = gradient[loc];
+	} else {
+		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
+	}
     
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
@@ -387,7 +387,7 @@ void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFi
         return;
     }
     
-    oo->gradientFun = derivativeFun;
+    //oo->gradientFun = derivativeFun; TODO
 }
 
 void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
@@ -420,7 +420,7 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
         omo->dSigma[i] = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
         omo->dMu[i] = omxInitMatrix(NULL, rows, 1, TRUE, oo->matrix->currentState);
     }
-    oo->gradientFun = omxCalculateMLGradient;
+    //oo->gradientFun = omxCalculateMLGradient; TODO
 }
 
 void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {

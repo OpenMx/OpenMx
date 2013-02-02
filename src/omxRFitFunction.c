@@ -29,7 +29,7 @@ void omxDestroyRFitFunction(omxFitFunction *off) {
 	UNPROTECT(5); 			// fitfun, model, flatModel, parameters, and state
 }
 
-void omxCallRFitFunction(omxFitFunction *oo) {
+static void omxCallRFitFunction(omxFitFunction *oo, int want, double *gradient) {
 	omx_omp_set_lock(&GlobalRLock);
 
 	omxState* currentState = oo->matrix->currentState;

@@ -163,7 +163,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 	free(zeros);
 }
 
-void omxCallRowFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
     if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
 	// Requires: Data, means, covariances.
 

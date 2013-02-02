@@ -29,7 +29,7 @@ void omxDestroyAlgebraFitFunction(omxFitFunction *off) {
 
 }
 
-void omxCallAlgebraFitFunction(omxFitFunction *off) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 	if(OMX_DEBUG_ALGEBRA) {Rprintf("Beginning Algebra Fit Function Computation.\n");}
 	omxMatrix* algebra = ((omxAlgebraFitFunction*)(off->argStruct))->algebra;
 

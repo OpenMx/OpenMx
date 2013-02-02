@@ -52,11 +52,11 @@ struct omxFitFunction {					// A fit function
 	/* Fields unique to FitFunction Functions */
 	void (*initFun)(omxFitFunction *oo, SEXP rObj);								// Wrapper for initialization function (probably not needed)
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
-	void (*computeFun)(omxFitFunction* oo);										// Wrapper for the fit function itself
+	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
+	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);
 	void (*repopulateFun)(omxFitFunction* oo, double* x, int n);					// To repopulate any data stored in the fit function
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
 	double* (*getStandardErrorFun)(omxFitFunction* oo);							// To calculate standard errors
-	void (*gradientFun)(omxFitFunction* oo, double* grad);						// To calculate gradient
 	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
 	
 	SEXP rObj;																	// Original r Object Pointer
@@ -83,8 +83,7 @@ struct omxFitFunction {					// A fit function
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
-	void omxFitFunctionCompute(omxFitFunction *oo);
-	void omxFitFunctionGradient(omxFitFunction* oo, double* gradient);			// For gradient calculation.  If needed.
+void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState);
 	
@@ -97,5 +96,11 @@ struct omxFitFunction {					// A fit function
 	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 
 	omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* state, char* const dataSlotName);	// Gets an mxData object from a data slot
+
+enum omxFFCompute {
+  FF_COMPUTE_FIT      = 1<<0,
+  FF_COMPUTE_GRADIENT = 1<<1,
+  FF_COMPUTE_HESSIAN  = 1<<2
+};
 
 #endif /* _OMXFITFUNCTION_H_ */

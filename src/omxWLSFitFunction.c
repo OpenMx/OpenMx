@@ -101,7 +101,7 @@ omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numRe
 	return retVal;
 }
 
-void omxCallWLSFitFunction(omxFitFunction *oo) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning WLS Evaluation.\n");}
 	// Requires: Data, means, covariances.
@@ -177,20 +177,20 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 				omxMatrixElement(weightInt, row, col);
 	
 	
-	if(oo->gradientFun != NULL) {
-        int nLocs = oo->matrix->currentState->numFreeParams;
-        double gradient[oo->matrix->currentState->numFreeParams];
-        for(int loc = 0; loc < nLocs; loc++) {
-            gradient[loc] = NA_REAL;
-        }
-        oo->gradientFun(oo, gradient);
-        PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
+	if(0) {  // TODO fix for new internal API
+		int nLocs = oo->matrix->currentState->numFreeParams;
+		double gradient[oo->matrix->currentState->numFreeParams];
+		for(int loc = 0; loc < nLocs; loc++) {
+			gradient[loc] = NA_REAL;
+		}
+		//oo->gradientFun(oo, gradient);
+		PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
 
-    	for(int loc = 0; loc < nLocs; loc++)
-            REAL(gradients)[loc] = gradient[loc];
-    } else {
-        PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
-    }
+		for(int loc = 0; loc < nLocs; loc++)
+			REAL(gradients)[loc] = gradient[loc];
+	} else {
+		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
+	}
     
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);

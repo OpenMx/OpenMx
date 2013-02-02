@@ -38,7 +38,6 @@ typedef struct {
 } omxRFitFunction;
 
 void omxDestroyRFitFunction(omxFitFunction *oo);
-void omxCallRFitFunction(omxFitFunction *oo);
 
 void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n);
 

@@ -69,14 +69,11 @@ void F77_SUB(npsolObjectiveFunction)
 	} else {
 		handleFreeVarList(globalState, x, *n);
 	}
-	omxRecompute(fitMatrix);
 
-	/* Derivative Calculation Goes Here. */
-	/* Turn this off if derivative calculations are not wanted */
-	if(*mode > 0) {
-	    if(globalState->analyticGradients && fitMatrix->fitFunction->gradientFun != NULL && globalState->currentInterval < 0) {
-            fitMatrix->fitFunction->gradientFun(fitMatrix->fitFunction, g);
-	    } 
+	if (*mode > 0 && globalState->analyticGradients && globalState->currentInterval < 0) {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
+	} else {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
 	}
 
 	omxExamineFitOutput(globalState, fitMatrix, mode);

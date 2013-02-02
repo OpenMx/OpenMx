@@ -131,17 +131,6 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	}
 }
 
-void omxFitFunctionCompute(omxFitFunction *off) {
-	if(OMX_DEBUG_ALGEBRA) { 
-	    Rprintf("FitFunction compute: 0x%0x (needed: %s).\n", off, (off->matrix->isDirty?"Yes":"No"));
-	}
-
-	off->computeFun(off);
-
-	omxMarkClean(off->matrix);
-
-}
-
 void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
 
 	if(tgt == NULL || src == NULL) return;
@@ -171,6 +160,16 @@ omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitF
 	memcpy(tgt, src, sizeof(omxFitFunction));
 	return tgt;
 
+}
+
+void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
+	if(OMX_DEBUG_ALGEBRA) { 
+	    Rprintf("FitFunction compute: 0x%0x (needed: %s).\n", off, (off->matrix->isDirty?"Yes":"No"));
+	}
+
+	off->computeFun(off, want, gradient);
+
+	omxMarkClean(off->matrix);
 }
 
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
@@ -253,11 +252,6 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	
 	obj->matrix->isDirty = TRUE;
 
-}
-
-void omxFitFunctionGradient(omxFitFunction* off, double* gradient) {
-	if(!(off->gradientFun == NULL)) { off->gradientFun(off, gradient); }
-	return;
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, char* d) {

@@ -181,7 +181,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-void omxCallJointFIMLFitFunction(omxFitFunction *off) {	
+static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *gradient) {	
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
@@ -295,7 +295,7 @@ void omxCallJointFIMLFitFunction(omxFitFunction *off) {
 
 }
 
-void omxCallFIMLFitFunction(omxFitFunction *off) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
 	// Requires: Data, means, covariances.
@@ -383,7 +383,7 @@ void omxCallFIMLFitFunction(omxFitFunction *off) {	// TODO: Figure out how to gi
 	}
 }
 
-void omxCallFIMLOrdinalFitFunction(omxFitFunction *off) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
 	// Requires: Data, means, covariances, thresholds

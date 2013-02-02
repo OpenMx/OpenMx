@@ -87,8 +87,6 @@ typedef struct omxFIMLFitFunction {
 int handleDefinitionVarList(omxData* data, omxState *state, int row, 
 	omxDefinitionVar* defVars, double* oldDefs, int numDefs);
 
-void omxCallFIMLFitFunction(omxFitFunction *oo);
-void omxCallFIMLOrdinalFitFunction(omxFitFunction *oo);
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
 void omxDestroyFIMLFitFunction(omxFitFunction *oo);
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
