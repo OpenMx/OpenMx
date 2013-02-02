@@ -14,7 +14,6 @@ ifdef CPUS
    TESTFILE = inst/tools/parallelTestModels.R
 else
    TESTFILE = inst/tools/testModels.R
-   CPUS = 1
 endif
 ifeq ($(OPENMP),FALSE)
 BUILDARGS = "--configure-args=--disable-openmp"
@@ -60,7 +59,7 @@ help:
 	@echo ""
 	@echo "TESTING"
 	@echo ""	
-	@echo "  test (CPUS=n) run the test suite"	
+	@echo "  test          run the test suite"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
@@ -164,10 +163,10 @@ prepare-test:
 	mkdir -p models/passing/temp-files
 
 test: prepare-test
-	$(REXEC) --vanilla --slave --cpus=$(CPUS) -f $(TESTFILE)
+	$(REXEC) --vanilla --slave -f $(TESTFILE)
 
 torture: prepare-test
-	$(REXEC) --vanilla --slave --cpus=$(CPUS) -f $(TESTFILE) --args gctorture
+	$(REXEC) --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
