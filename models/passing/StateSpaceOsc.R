@@ -119,12 +119,12 @@ smod <- mxModel(
 	mxAlgebra(name='csym', -c),
 	mxConstraint(name='ccon', d == csym),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
-	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx)), ubound=2.0001),
+	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx))),
 	mxMatrix(name='D', values=0, nrow=ydim, ncol=udim, free=FALSE),
 	# Note Factor error matrix is fixed!  This is for model identification.
 	# I happen to fix the variances to their true values.
-	mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=FALSE, ubound=2.0001),
-	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE, ubound=2.0001),
+	mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=FALSE),
+	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE),
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
 	mxData(observed=t(ty)[1:200,], type='raw'),
@@ -133,9 +133,9 @@ smod <- mxModel(
 )
 
 
-# Uncomment for beguggin
-#smod <- mxOption(smod, 'Calculate Hessian', 'Yes')
-#smod <- mxOption(smod, 'Standard Errors', 'Yes')
+# Uncomment for degugging
+#smod <- mxOption(smod, 'Calculate Hessian', 'No')
+#smod <- mxOption(smod, 'Standard Errors', 'No')
 #smod <- mxOption(smod, 'Major iterations', 0)
 
 smod <- mxOption(smod, 'No Sort Data', 'State Space Example')

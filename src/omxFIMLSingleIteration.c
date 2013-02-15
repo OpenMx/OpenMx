@@ -1016,7 +1016,9 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		
 		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
-		if(keepInverse <= 0 || keepCov <= 0 || firstRow) { // If defs and missingness don't change, skip.
+		if((keepInverse <= 0 || keepCov <= 0 || firstRow) && strcmp(expectation->expType, "omxStateSpaceExpectation")) { // If defs and missingness don't change, skip.
+			// also skip if this is a state space expectation
+			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to recompute inverse cov for standard models\n"); }
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
 			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
@@ -1085,6 +1087,19 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 					continue;
 				}
 			}
+		}
+		
+		/* If it's a state space expectation, extract the inverse rather than recompute it */
+		if(!strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to extract inverse cov for state space models\n"); }
+			
+			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
+			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
+			smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
+			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
+			
+			determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
+			if(OMX_DEBUG_ROWS(row)) { Rprintf("0.5*log(det(Cov)) is: %3.3f\n", determinant);}
 		}
 
 		/* Calculate Row Likelihood */

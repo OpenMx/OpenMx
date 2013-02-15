@@ -155,6 +155,8 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	//omxMatrix* Z = ose->Z;
 	omxMatrix* Cov = ose->cov;
 	omxMatrix* Means = ose->means;
+	omxMatrix* Det = ose->det;
+	*Det->data = 0.0; // the value pointed to by Det->data is assigned to be zero
 	
 	int info = 0; // Used for computing inverse for Kalman gain
 	
@@ -186,10 +188,9 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	/* S = S^-1 */
 	omxDPOTRF(S, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Cholesky of S"); }
-	//for(int i = 0; i < S->cols; i++) {
-	//	det += log(fabs(S->data[i+S->rows*i]));
-	// alternatively log(fabs(omxMatrixElement(S, i, i)));
-	//}
+	for(int i = 0; i < S->cols; i++) {
+		*Det->data += log(fabs(omxMatrixElement(S, i, i)));
+	}
 	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
 	omxDPOTRI(S, &info); // S = S^-1 via Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Inverse of S"); }
@@ -288,6 +289,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 	
+	SSMexp->det = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
 	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->u = 	omxInitMatrix(NULL, nu, 1, TRUE, currentState);
@@ -312,6 +314,10 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->means;
 	} else if(!strncmp("pvec", component, 4)) {
 		// Once implemented, change compute function and return pvec
+	} else if(!strncmp("inverse", component, 7)) {
+		retval = ose->S;
+	} else if(!strncmp("determinant", component, 11)) {
+		retval = ose->det;
 	}
 	
 	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
