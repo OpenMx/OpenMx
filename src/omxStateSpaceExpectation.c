@@ -66,7 +66,7 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrixData(argStruct->z);
 	//omxFreeMatrixData(argStruct->u); // This is data, destroy it?
 	//omxFreeMatrixData(argStruct->x); // This is latent data, destroy it?
-	//omxFreeMatrixData(argStruct->y); // This is data, destroy it?
+	omxFreeMatrixData(argStruct->y); // This is data, destroy it?
 	omxFreeMatrixData(argStruct->K); // This is the Kalman gain, destroy it?
 	//omxFreeMatrixData(argStruct->P); // This is latent cov, destroy it?
 	omxFreeMatrixData(argStruct->S); // This is data error cov, destroy it?
@@ -158,23 +158,19 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	int info = 0; // Used for computing inverse for Kalman gain
 	
-	/* r = y - C x - D u */
-	omxCopyMatrix(r, y); // r = y
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = y"); }
-	omxDGEMV(FALSE, -1.0, C, x, 1.0, r); // r = -C x + r THAT IS r = -C x + y
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = -C x + y"); }
-	omxDGEMV(FALSE, -1.0, D, u, 1.0, r); // r = -D u + r THAT IS r = y - (C x + D u)
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r = y - (C x + D u)"); }
-	
+	/* r = r - C x - D u */
 	/* Alternatively, create just the expected value for the data row, x. */
-	omxDGEMV(FALSE, 1.0, C, x, 0.0, s);
+	omxDGEMV(FALSE, 1.0, C, x, 0.0, s); // s = C x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x"); }
-	omxDGEMV(FALSE, 1.0, D, u, 1.0, s);
+	omxDGEMV(FALSE, 1.0, D, u, 1.0, s); // s = D u + s THAT IS s = C x + D u
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x + D u"); }
-	omxCopyMatrix(Means, s);
+	omxCopyMatrix(Means, s); // Means = s THAT IS Means = C x + D u
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	omxTransposeMatrix(Means);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
+	/* Now compute the residual */
+	omxCopyMatrix(r, y); // r = y
+	omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
 	
 	/* S = C P C^T + R */
 	omxDSYMM(FALSE, 1.0, P, C, 0.0, Y); // Y = C P
@@ -212,10 +208,10 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
 	
-	/*m2ll = r^T S r */
-	//omxDSYMV(1.0, S, r, 0.0, s); // s = S r
-	//m2ll = omxDDOT(r, s); // m2ll = r s THAT IS r^T S r
-	//m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + r^T S r
+	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
+	//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
+	//m2ll = omxDDOT(y, s); // m2ll = y s THAT IS y^T S y
+	//m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + y^T S y
 	// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
 }
 
