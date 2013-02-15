@@ -25,15 +25,16 @@
 #--------------------------------------------------------------------
 # Revision History
 # Thu Dec 06 18:59:04 Central Standard Time 2012 -- Michael Hunter Checked in file to models/failing
+# Thu 14 Feb 2013 15:52:57 Central Standard Time -- Michael Hunter realized the model actually worked.
 # 
 
 
 #--------------------------------------------------------------------
-
+# Load required packages
 
 require(OpenMx)
-require(mvtnorm)
-require(dlm)
+require(mvtnorm) # used to generate data
+#require(dlm) # only used if model is estimated with dlm for comparison
 
 
 #--------------------------------------------------------------------
@@ -65,43 +66,47 @@ for(i in 2:(tdim+1)){
 
 #plot(tx[1,], type='l')
 
-rownames(ty) <- paste('y', 1:ydim)
-rownames(tx) <- paste('x', 1:xdim)
+rownames(ty) <- paste('y', 1:ydim, sep='')
+rownames(tx) <- paste('x', 1:xdim, sep='')
 
 
 #--------------------------------------------------------------------
 # Fit state space model to data via dlm package
+# For posterity show how the same model would be estimated in the dlm package.
+# This is how the values I validated the estimation for OpenMx,
+#  i.e. by comparing the estimates from dlm and OpenMx.
+# Note that in my (mhunter) experience OpenMx is much faster (25x in this example).
 
-mfun <- function(x){
-	mG <- matrix(c(x[1], 0, 0, 0, x[2], x[3], 0, -x[3], x[2]), xdim, xdim)
-	mW <- tQ # diag(x[4:6])
-	mF <- matrix(c(x[7:9], rep(0, ydim), x[10:12], rep(0, ydim), x[13:15]), ydim, xdim)
-	mV <- diag(x[16:24])
-	mM <- x0
-	mC <- P0
-	return(dlm(FF=mF, V=mV, GG=mG, W=mW, m0=mM, C0=mC))
-}
+#mfun <- function(x){
+#	mG <- matrix(c(x[1], 0, 0, 0, x[2], x[3], 0, -x[3], x[2]), xdim, xdim)
+#	mW <- tQ # diag(x[4:6])
+#	mF <- matrix(c(x[7:9], rep(0, ydim), x[10:12], rep(0, ydim), x[13:15]), ydim, xdim)
+#	mV <- diag(x[16:24])
+#	mM <- x0
+#	mC <- P0
+#	return(dlm(FF=mF, V=mV, GG=mG, W=mW, m0=mM, C0=mC))
+#}
 
-#tinit <- c(-.5, .9, .01, diag(tQ), tC[tC!=0], diag(tR))
-tinit <- c(-.4, -.9, .1, diag(tQ), tC[tC!=0], diag(tR))
-mfun(tinit)
 
-dlmBegin <- Sys.time()
-mfit <- dlmMLE(y=t(ty), parm=tinit, build=mfun, lower=c(rep(NA, 3), rep(0.00001, 3), rep(NA, 9), rep(0.00001, 9)), control=list(maxit=200))
-dlmEnd <- Sys.time()
-mfun(mfit$par)
+#tinit <- c(-.4, -.9, .1, diag(tQ), tC[tC!=0], diag(tR))
+#mfun(tinit)
 
-mfun(mfit$par)$GG
-tA
+#dlmBegin <- Sys.time()
+#mfit <- dlmMLE(y=t(ty), parm=tinit, build=mfun, lower=c(rep(NA, 3), rep(0.00001, 3), rep(NA, 9), rep(0.00001, 9)), control=list(maxit=200))
+#dlmEnd <- Sys.time()
+#mfun(mfit$par)
 
-mfun(mfit$par)$FF
-tC
+#mfun(mfit$par)$GG
+#tA
 
-diag(mfun(mfit$par)$W)
-diag(tQ)
+#mfun(mfit$par)$FF
+#tC
 
-diag(mfun(mfit$par)$V)
-diag(tR)
+#diag(mfun(mfit$par)$W)
+#diag(tQ)
+
+#diag(mfun(mfit$par)$V)
+#diag(tR)
 
 
 
@@ -116,8 +121,9 @@ smod <- mxModel(
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
 	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx)), ubound=2.0001),
 	mxMatrix(name='D', values=0, nrow=ydim, ncol=udim, free=FALSE),
+	# Note Factor error matrix is fixed!  This is for model identification.
+	# I happen to fix the variances to their true values.
 	mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=FALSE, ubound=2.0001),
-	#mxMatrix(name='Q', type='Diag', values=c(0.1412850, 0.9959084, 0.2436430), nrow=xdim, ncol=xdim, free=FALSE, ubound=2.0001),
 	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE, ubound=2.0001),
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
@@ -127,66 +133,47 @@ smod <- mxModel(
 )
 
 
-
-smod <- mxOption(smod, 'Calculate Hessian', 'Yes')
-smod <- mxOption(smod, 'Standard Errors', 'Yes')
+# Uncomment for beguggin
+#smod <- mxOption(smod, 'Calculate Hessian', 'Yes')
+#smod <- mxOption(smod, 'Standard Errors', 'Yes')
 #smod <- mxOption(smod, 'Major iterations', 0)
-smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
-ssmBegin <- Sys.time()
-srun <- mxRun(smod)
-ssmEnd <- Sys.time()
 
-ssmEnd-ssmBegin
-dlmEnd-dlmBegin
+smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
+#ssmBegin <- Sys.time()
+srun <- mxRun(smod)
+#ssmEnd <- Sys.time()
+
+#ssmEnd-ssmBegin
+#dlmEnd-dlmBegin
 # OpenMx is 24.6 times faster then dlm
 
 # Check likelihoods of initial parameters
 # -2LL
-summary(srun)$Minus2LogLikelihood # when major iterations is 0
-2*dlmLL(y=t(ty), mod=mfun(tinit)) + 200*9*log(2*pi) # dlm gives back -LL - CONST, so adjust it.  200 is N, 9 is k
+#summary(srun)$Minus2LogLikelihood # when major iterations is 0
+#2*dlmLL(y=t(ty), mod=mfun(tinit)) + 200*9*log(2*pi) # dlm gives back -LL - CONST, so adjust it.  200 is N, 9 is k
+
+summary(srun)
+
+dlmEstA <- matrix(c(
+	-0.7911864,  0.0000000,  0.0000000,
+	 0.0000000, -0.8960419, -0.1064521,
+	 0.0000000,  0.1064521, -0.8960419),
+	3, 3, byrow=TRUE)
+
+dlmEstC <- c( #nonzero factor loadings
+	0.1798166, 0.4718692, 0.4547457,
+	0.9500226, 0.6864060, 0.9554287,
+	0.4287551, 0.9650694, 0.4956449)
+
+dlmEstR <- c( #diagonal manifest error cov
+	0.3798346, 0.8068893, 1.0383961,
+	0.6261729, 0.1331556, 0.7761499,
+	0.7538665, 0.9816791, 1.2166798)
 
 
-srun$A@values
-mfun(mfit$par)$GG
-tA
 
-srun$C@values
-mfun(mfit$par)$FF
-tC
-
-diag(srun$Q@values)
-diag(mfun(mfit$par)$W)
-diag(tQ)
-
-diag(srun$R@values)
-diag(mfun(mfit$par)$V)
-diag(tR)
-
-
-
-
-kalmanFilter <- function(X, P, A, B, C, Rw, Rv, U, y){
-	# Predict
-	X <- A %*% X + B %*% U
-	P <- A %*% P %*% t(A) + Rw
-	
-	# Update
-	S <- C %*% P %*% t(C) + Rv
-	K <- P %*% t(C) %*% solve(S)
-	X <- X + K %*% (y - C %*% X)
-	P <- (diag(1, nrow(P)) - K %*% C) %*% P
-	return(list(X=X, P=P, A=A, B=B, C=C, Rw=Rw, Rv=Rv, U=U, S=S, K=K))
-}
-
-
-(k1 <- kalmanFilter(x0, P0, tA, tB, tC, tQ, tR, matrix(tu[,1]), matrix(ty[,1])))
-(k2 <- kalmanFilter(k1$X, k1$P, tA, tB, tC, tQ, tR, matrix(tu[,2]), matrix(ty[,2])))
-(k3 <- kalmanFilter(k2$X, k2$P, tA, tB, tC, tQ, tR, matrix(tu[,3]), matrix(ty[,3])))
-(k4 <- kalmanFilter(k3$X, k3$P, tA, tB, tC, tQ, tR, matrix(tu[,4]), matrix(ty[,4])))
-(k5 <- kalmanFilter(k4$X, k4$P, tA, tB, tC, tQ, tR, matrix(tu[,5]), matrix(ty[,5])))
-
-# N.B. OpenMx State Space Expectation appears to be correct.  I just need to re-initialize x0 and P0 everytime
-# row = 0 for the FIML single iteration.
-
+omxCheckCloseEnough(srun$A@values, dlmEstA, epsilon=0.001)
+omxCheckCloseEnough(srun$C@values[srun$C@free], dlmEstC, epsilon=0.001)
+omxCheckCloseEnough(diag(srun$R@values), dlmEstR, epsilon=0.001)
 
 
