@@ -7,7 +7,9 @@ set.seed(3141593)
 jointDataLambda <- matrix(c(.7, .65, .55, .6, .2), nrow=5)
 jointDataTheta  <- diag(c(.5, .6, .7, .5, .8))
 jointDataCov <- jointDataLambda %*% t(jointDataLambda) + jointDataTheta           
-jointData <- data.frame(rmvnorm(250, c(8, 0, 2, 0, 0), jointDataCov))
+# this test is very sensitive to small differences
+reliable.rmvnorm <- round(rmvnorm(250, c(8, 0, 2, 0, 0), jointDataCov), 10)
+jointData <- data.frame(reliable.rmvnorm)
 names(jointData) <- paste("z", 1:5, sep="")
 
 # keep the continuous data covariance matrix (standardize ordinal vars)
@@ -88,5 +90,5 @@ jointModel2 <- mxModel("ContinuousOrdinalData",
 jointResults2 <- mxRun(jointModel2, suppressWarnings=TRUE)
 
 # check that the likelihoods are the same as originally reported
-omxCheckCloseEnough(jointResults1@output$Minus2LogLikelihood, 2701.748, 0.05)
-omxCheckCloseEnough(jointResults2@output$Minus2LogLikelihood, 2692.160, 0.05)
+omxCheckCloseEnough(jointResults1@output$Minus2LogLikelihood, 2683.071, 0.01)
+omxCheckCloseEnough(jointResults2@output$Minus2LogLikelihood, 2674.235, 0.01)
