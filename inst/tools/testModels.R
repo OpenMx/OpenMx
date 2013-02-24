@@ -85,4 +85,4 @@ for (i in 1:length(runtimes)) {
 }
 
 cat("Finished testing models.\n")
-quit(status=errors)
+quit(status=length(errors))
