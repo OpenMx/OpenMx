@@ -229,12 +229,18 @@ verifyCovarianceMatrix <- function(covMatrix) {
 	}
 	if (!all(covMatrix == t(covMatrix))) {
 		msg <- paste("The observed covariance matrix",
-			"is not a symmetric matrix")
+			"is not a symmetric matrix.",
+			" This can arise from rounding errors.",
+			"In that case, something like this would be appropriate:\n",
+			"covmat[upper.tri(covmat)] = t(covmat[lower.tri(covmat)]).\n",
+			"Where covmat is the name of your covariance data.")
 		stop(msg, call. = FALSE)
 	}
 	if (any(eigen(covMatrix)$values <= 0)) {
 		msg <- paste("The observed covariance matrix",
-			"is not a positive-definite matrix")
+			"is not a positive-definite matrix:\n",
+			"1 or more elements of eigen(covMatrix)$values ",
+			"<= 0")
 		stop(msg, call. = FALSE)
 	}
 }
