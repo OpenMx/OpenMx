@@ -1,36 +1,7 @@
-library(OpenMx)
-library(mvtnorm)
+require(OpenMx)
 
-set.seed(3141593)
-
-# make data
-jointDataLambda <- matrix(c(.7, .65, .55, .6, .2), nrow=5)
-jointDataTheta  <- diag(c(.5, .6, .7, .5, .8))
-jointDataCov <- jointDataLambda %*% t(jointDataLambda) + jointDataTheta           
-# this test is very sensitive to small differences
-reliable.rmvnorm <- round(rmvnorm(250, c(8, 0, 2, 0, 0), jointDataCov), 10)
-jointData <- data.frame(reliable.rmvnorm)
-names(jointData) <- paste("z", 1:5, sep="")
-
-# keep the continuous data covariance matrix (standardize ordinal vars)
-latentCov <- cov(jointData)
-invSDs <- diag(1/sqrt(diag(latentCov)))
-invSDs[1,1] <- 1
-invSDs[3,3] <- 1
-latentCov <- invSDs %*% latentCov %*% invSDs
-
-# polytimize (sp) ordinal variables
-jointData[,2] <- as.integer(jointData[,2] > 0)
-tester <- jointData[,4]
-jointData[, 4] <- 0
-jointData[(tester > -.35), 4] <- 1
-jointData[(tester > .15), 4] <- 2
-jointData[(tester > .75), 4] <- 3
-
-tester <- jointData[,5]
-jointData[,5] <- 0
-jointData[(tester > -.8) ,5] <- 1
-jointData[(tester > -.3),5] <- 2
+# get data
+jointData <- read.table("data/jointData.txt", header=TRUE)
 
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
