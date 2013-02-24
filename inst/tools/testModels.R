@@ -24,6 +24,9 @@ library(OpenMx)
 options('mxPrintUnitTests' = FALSE)
 
 directories <- c('demo', 'models/passing')
+if (any(args == 'nightly')) {
+	directories <- c(directories, 'models/nightly')
+}
 
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
 	error = function(e) { file('nul', 'w') } )
@@ -35,19 +38,24 @@ files <- list.files(directories, pattern = '^.+[.]R$',
 	full.names = TRUE, recursive = TRUE)
 	
 errors <- list()
-	
+runtimes <- numeric()
+
 errorRecover <- function(script, index) {
 	sink(type = 'output')
 	cat(paste("Running model", index, "of",
 		length(files), script, "...\n"))
 	sink(null, type = 'output')	
+	start <- Sys.time()
 	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
 			errors[[script]] <<- x
 		})
+	stop.tm <- Sys.time()
+	timeDifference <- stop.tm - start
+	runtimes[[script]] <<- as.double(timeDifference, units = "secs")
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
-			c('errors', 'errorRecover', 'null', 'files', 'directories')))
+			c('errors', 'errorRecover', 'null', 'files', 'directories', 'runtimes')))
 }
 
 if (length(files) > 0) {
@@ -71,4 +79,10 @@ if (length(errors) > 0) {
 
 warnings()
 
+cat("Runtimes:\n")
+for (i in 1:length(runtimes)) {
+       cat(names(runtimes)[[i]], '\t', runtimes[[i]], '\n')
+}
+
 cat("Finished testing models.\n")
+quit(status=errors)

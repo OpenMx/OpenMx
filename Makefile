@@ -11,6 +11,7 @@ PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
 ifdef CPUS
+   # snowfall
    TESTFILE = inst/tools/parallelTestModels.R
 else
    TESTFILE = inst/tools/testModels.R
@@ -169,7 +170,7 @@ torture: prepare-test
 	$(REXEC) --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
-	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
+	$(REXEC) --vanilla --slave -f $(TESTFILE) --args nightly
 
 nightlyPPML:
 	$(REXEC) --vanilla --slave < $(NIGHTLYPPMLFILE)	
