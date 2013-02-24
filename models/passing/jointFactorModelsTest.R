@@ -1,7 +1,7 @@
 require(OpenMx)
 
 # get data
-jointData <- read.table("data/jointData.txt", header=TRUE)
+jointData <- read.table("data/jointdata.txt", header=TRUE)
 
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
