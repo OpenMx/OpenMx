@@ -18,8 +18,8 @@ require(OpenMx)
 data <- matrix(-1, dimnames=list(c("x"), c("x")))
 omxCheckError(mxData(data, type="cov", numObs = 50),
 	paste("The observed covariance matrix is not",
-	"a positive-definite matrix"))
-
+	"a positive-definite matrix:\n",
+	 "1 or more elements of eigen(covMatrix)$values  <= 0"))
 data <- matrix(-1, dimnames=list(c("x"), c("x")))
 omxCheckError(mxData(data, type="cor", numObs = 50),
 	paste("The observed correlation matrix is not",
