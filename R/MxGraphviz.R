@@ -77,7 +77,9 @@ writeDotFile <-function (model, graph, dotFilename)
     }
     outputLines <- c(outputLines, "}\n")
     outputLines <- paste(outputLines, collapse = "\n")
-    cat(outputLines, file = dotFilename)
+    if (!is.null(dotFilename)) {
+	    cat(outputLines, file = dotFilename)
+    }
     return(invisible(outputLines))
 }
 

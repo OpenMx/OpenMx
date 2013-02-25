@@ -27,13 +27,11 @@ run <- function() {
 		mxPath(from=manifests, arrows=2),
 		mxPath(from=latents, arrows=2, free=F, values=1.0),
 		mxData(cov(demoOneFactor), type="cov",numObs=500))
-	omxGraphviz(model1, "temp-files/one-factor-generated.dot")
-	generatedFile <- file("temp-files/one-factor-generated.dot", open="r")
+	generated <- omxGraphviz(model1, dotFilename=NULL)
 	referenceFile <- file("data/one-factor-reference.dot", open="r")
-	on.exit(c(close(generatedFile), close(referenceFile)))
-	generated <- readLines(generatedFile)
+	on.exit(c(close(referenceFile)))
 	reference <- readLines(referenceFile)
-	omxCheckTrue(identical(generated, reference))
+	omxCheckTrue(identical(generated, paste(paste(reference, sep="", collapse="\n"), sep="", "\n")))
 }
 
 run()

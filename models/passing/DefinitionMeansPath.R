@@ -39,8 +39,11 @@ y<-rbind(group1,group2)
 dimnames(y)[2]<-list(c("x","y"))
 def<-rep(c(1,0),each=n)
 selvars<-c("x","y")
-#write data to a file for the mx script to read (not necessary for running in R)
-write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
+
+if (0) {
+  #write data to a file for the mx script to read (not necessary for running in R)
+  write.table(cbind(y,def),file="temp-files/xydefmeans.rec",col.names=F,row.names=F)
+}
 
 #define the model with path commands, triggered by type="RAM"
 defmeansmodel<-mxModel("Definition Means via Paths", 

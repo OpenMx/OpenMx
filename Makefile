@@ -160,13 +160,10 @@ testdocs:
 	$(DOCTESTGEN)
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
-prepare-test:
-	mkdir -p models/passing/temp-files
-
-test: prepare-test
+test:
 	$(REXEC) --vanilla --slave -f $(TESTFILE)
 
-torture: prepare-test
+torture:
 	$(REXEC) --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
@@ -183,8 +180,6 @@ memorytest:
 
 clean:
 	rm -rf $(RBUILD)/*
-	rm -rf models/passing/temp-files/*
-	rm -rf models/failing/temp-files/*
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
