@@ -79,10 +79,7 @@ if (length(errors) > 0) {
 
 warnings()
 
-cat("Runtimes:\n")
-for (i in 1:length(runtimes)) {
-       cat(names(runtimes)[[i]], '\t', runtimes[[i]], '\n')
-}
+write.csv(as.data.frame(runtimes), "runtimes.csv")
 
 cat("Finished testing models.\n")
 quit(status=length(errors))
