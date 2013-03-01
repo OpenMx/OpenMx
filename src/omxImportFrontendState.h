@@ -11,7 +11,7 @@ int omxCompleteMxExpectationEntities();
 void omxInitialMatrixAlgebraCompute();
 void omxProcessFitFunction(SEXP fitFunction);
 void omxProcessCheckpointOptions(SEXP checkpointList);
-void omxProcessFreeVarList(SEXP varList);
+void omxProcessFreeVarList(SEXP varList, int n);
 void omxProcessConfidenceIntervals(SEXP intervalList);
 void omxProcessConstraints(SEXP constraints);
 void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin);

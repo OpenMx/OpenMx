@@ -289,8 +289,7 @@ The second element of the list is the upper bound.  The third element of the lis
 is a vector of mxIndices specifying the dependencies of the free parameter. 
 The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
 */
-void omxProcessFreeVarList(SEXP varList) {
-	int n = globalState->numFreeParams = length(varList);
+void omxProcessFreeVarList(SEXP varList, int n) {
 	SEXP nextVar, nextLoc;
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	globalState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars

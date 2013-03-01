@@ -178,8 +178,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Retrieve All Matrices From the MatList */
 	if(!errOut) errOut = omxProcessMxMatrixEntities(matList);
 	
-	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
-
 	/* Initialize all Expectations Here */
 	if(!errOut) errOut = omxProcessMxExpectationEntities(expectList);
 
@@ -230,7 +228,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	}
 
 	/* Process Free Var List */
-	omxProcessFreeVarList(varList);
+	omxProcessFreeVarList(varList, globalState->numFreeParams);
 
 	/* Processing Constraints */
 	omxProcessConstraints(constraints);
