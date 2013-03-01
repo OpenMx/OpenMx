@@ -87,7 +87,8 @@ residuals <- mxMatrix(type="Diag", nrow=nocc, ncol=nocc, free=FALSE, values=1, l
 regime1 <- mxModel("regime1", factorCovariances, residuals, factorMeans, factorLoadings,
     mxAlgebra(expression=factorLoadings %&% (factorCovariances) + residuals, name="expectedCovariances"),
     mxAlgebra(expression=t(factorLoadings %*% factorMeans), name="expectedMeans"),
-    mxFIMLObjective(covariance="expectedCovariances", means="expectedMeans", vector=TRUE, dimnames = names(dolan2005Data))
+		   mxExpectationNormal(covariance="expectedCovariances", means="expectedMeans", dimnames = names(dolan2005Data)),
+		   mxFitFunctionML(vector=TRUE)
                  )
 # -----------------------------------------------------------------------------
 

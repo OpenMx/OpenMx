@@ -132,7 +132,8 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
         mxAlgebra( expression= cbind((ACE.Threm + t(AgeRm1)),(ACE.Threm + t(AgeRm2))), dimnames=list('th1',selVars), name="expThreMZm"),
     # Data & Objective
         mxData( observed=mzmDataBin, type="raw" ),
-        mxFIMLObjective( covariance="expCovMZm", means="ACE.expMean", dimnames=selVars, thresholds="expThreMZm", vector=T  )
+	    mxExpectationNormal( covariance="expCovMZm", means="ACE.expMean", dimnames=selVars, thresholds="expThreMZm"),
+	    mxFitFunctionML(vector=TRUE)
     ),
     mxModel("DZm", 
     # Matrix for moderating/interacting variable
@@ -157,7 +158,8 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
         mxAlgebra( expression= cbind((ACE.Threm + t(AgeRm1)),(ACE.Threm + t(AgeRm2))), dimnames=list('th1',selVars), name="expThreDZm"),
     # Data & Objective
         mxData( observed=dzmDataBin, type="raw" ),
-        mxFIMLObjective( covariance="expCovDZm", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZm", vector=T  )
+	    mxExpectationNormal( covariance="expCovDZm", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZm"),
+	    mxFitFunctionML(vector=TRUE)
     ),
     mxModel("MZf",
     # Matrix for moderating/interacting variable
@@ -182,7 +184,8 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
         mxAlgebra( expression= cbind((ACE.Thref + t(AgeRf1)),(ACE.Thref + t(AgeRf2))), dimnames=list('th1',selVars), name="expThreMZf"),
     # Data & Objective
         mxData( observed=mzfDataBin, type="raw" ),
-        mxFIMLObjective( covariance="expCovMZf", means="ACE.expMean", dimnames=selVars, thresholds="expThreMZf", vector=T  )
+	    mxExpectationNormal( covariance="expCovMZf", means="ACE.expMean", dimnames=selVars, thresholds="expThreMZf"),
+	    mxFitFunctionML(vector=TRUE)
     ),
     mxModel("DZf", 
     # Matrix for moderating/interacting variable
@@ -207,7 +210,8 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
         mxAlgebra( expression= cbind((ACE.Thref + t(AgeRf1)),(ACE.Thref + t(AgeRf2))), dimnames=list('th1',selVars), name="expThreDZf"),
     # Data & Objective
         mxData( observed=dzfDataBin, type="raw" ),
-        mxFIMLObjective( covariance="expCovDZf", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZf", vector=T  )
+	    mxExpectationNormal( covariance="expCovDZf", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZf"),
+	    mxFitFunctionML(vector=TRUE)
     ),
 
 	    mxModel("DZmf", 

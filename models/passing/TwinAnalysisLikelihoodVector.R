@@ -111,22 +111,24 @@ twinACEModel <- mxModel("twinACE",
 			observed=mzfData, 
 			type="raw"
 		), 
-	    mxFIMLObjective(
+		mxExpectationNormal(
 			covariance="twinACE.expCovMZ", 
 			means="twinACE.expMean", 
-			dimnames=selVars, vector=TRUE			
-		)
+			dimnames=selVars
+		),
+		mxFitFunctionML(vector=TRUE)
 	),
 	mxModel("DZ",
 	    mxData(
 			observed=dzfData, 
 			type="raw"
 		), 
-	    mxFIMLObjective(
+		mxFIMLObjective(
 			covariance="twinACE.expCovDZ", 
 			means="twinACE.expMean", 
-			dimnames=selVars, vector=TRUE
-		)
+			dimnames=selVars
+		),
+		mxFitFunctionML(vector=TRUE)
 	),
     mxAlgebra(
 		expression=-2.0 *sum(log(MZ.objective), log(DZ.objective)), 
