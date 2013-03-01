@@ -56,8 +56,7 @@ struct omxMatrix {						// A matrix
 	unsigned short hasMatrixNumber;		// is this object in the matrix or algebra arrays?
 	int matrixNumber;					// the offset into the matrices or algebras arrays
 
-/* For Memory Administrivia */
-	unsigned short localData;			// If data has been malloc'd, and must be freed.
+	SEXP owner;	// The R object owning data or NULL if we own it.
 
 /* For aliased matrices */				// Maybe this should be a subclass, as well.
 	omxMatrix* aliasedPtr;				// For now, assumes outside data if aliased.

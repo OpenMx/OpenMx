@@ -28,7 +28,7 @@
 #include "omxMatrix.h"
 
 // forward declarations
-omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
+static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber);
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
@@ -36,7 +36,8 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxPrintMatrix(omxMatrix *source, char* header) {
 	int j, k;
 
-	Rprintf("%s: (%d x %d) [%s-major]\n", header, source->rows, source->cols, (source->colMajor?"col":"row"));
+	Rprintf("%s: (%d x %d) [%s-major] SEXP 0x%0x\n",
+		header, source->rows, source->cols, (source->colMajor?"col":"row"), source->owner);
 	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix Printing is at %0x\n", source);}
 
 	if(source->colMajor) {
@@ -70,12 +71,11 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->originalCols = om->cols;
 	om->originalColMajor=om->colMajor;
 
+	om->owner = NULL;
 	if(om->rows == 0 || om->cols == 0) {
 		om->data = NULL;
-		om->localData = FALSE;
 	} else {
 		om->data = (double*) Calloc(nrows * ncols, double);
-		om->localData = TRUE;
 	}
 
 	om->populateFrom = NULL;
@@ -122,7 +122,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	int regenerateMemory = TRUE;
 	int numPopLocs = orig->numPopulateLocations;
 
-	if(dest->localData && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
+	if(!dest->owner && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
 		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
 	}
 
@@ -152,14 +152,12 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	if(dest->rows == 0 || dest->cols == 0) {
 		omxFreeMatrixData(dest);
 		dest->data = NULL;
-		dest->localData=FALSE;
 	} else {
 		if(regenerateMemory) {
 			omxFreeMatrixData(dest);											// Free and regenerate memory
 			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
 		}
 		memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
-		dest->localData = TRUE;
 	}
 
 	dest->aliasedPtr = NULL;
@@ -174,13 +172,12 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 
 void omxFreeMatrixData(omxMatrix * om) {
 
-	if(om->localData && om->data != NULL) {
-		if(OMX_DEBUG_MATRIX) { Rprintf("Freeing matrix at 0x%0x. Localdata = %d.\n", om->data, om->localData); }
+	if(!om->owner && om->data != NULL) {
+		if(OMX_DEBUG_MATRIX) { Rprintf("Freeing matrix data at 0x%0x\n", om->data); }
 		Free(om->data);
-		om->data = NULL;
-		om->localData = FALSE;
 	}
-
+	om->owner = NULL;
+	om->data = NULL;
 }
 
 void omxFreeAllMatrixData(omxMatrix *om) {
@@ -192,11 +189,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 	        om, om->data, om->algebra); 
 	}
 
-	if(om->localData && om->data != NULL) {
-		Free(om->data);
-		om->data = NULL;
-		om->localData = FALSE;
-	}
+	omxFreeMatrixData(om);
 
 	if(om->algebra != NULL) {
 		omxFreeAlgebraArgs(om->algebra);
@@ -279,7 +272,6 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		if(OMX_DEBUG_MATRIX) { Rprintf(" and regenerating memory to do it"); }
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
-		om->localData = TRUE;
 	} else if(om->originalRows * om->originalCols < nrows * ncols) {
 		warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
 	}
@@ -429,7 +421,7 @@ omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* st
 
 
 
-omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
+static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 
 	SEXP matrixDims;
@@ -441,7 +433,9 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	}
 
-	om->data = REAL(AS_NUMERIC(matrix));	// TODO: Class-check first?
+	// TODO: Class-check first?
+	PROTECT(om->owner = coerceVector(matrix, REALSXP));
+	om->data = REAL(om->owner);
 
 	if(isMatrix(matrix)) {
 		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
@@ -456,7 +450,6 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	}
 	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) matrix or MxMatrix.\n", om->rows, om->cols); }
 
-	om->localData = FALSE;
 	om->colMajor = TRUE;
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
@@ -533,11 +526,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 		}
 	}
 
-	if (mat->localData) {
-		Free(mat->data);
-	}
-
-	mat->localData = TRUE;
+	omxFreeMatrixData(mat);
 	mat->data = newdata;
 	mat->colMajor = !mat->colMajor;
 }
