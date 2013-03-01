@@ -27,25 +27,15 @@
 #include "omxState.h"
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, omxState *parentState, int numThreads) {
-		int i;
+	void omxInitState(omxState* state, omxState *parentState) {
 		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numExpects = 0;
-        state->numConstraints = 0;
+		state->numConstraints = 0;
 		state->numData = 0;
 		state->numFreeParams = 0;
-		if (numThreads > 1) {
-			state->numChildren = numThreads;
-			state->childList = (omxState**) Calloc(numThreads, omxState*);
-			for(i = 0; i < numThreads; i++) {
-				state->childList[i] = (omxState*) R_alloc(1, sizeof(omxState));
-				omxInitState(state->childList[i], state, 1);
-			}
-		} else {
 	        state->numChildren = 0;
-			state->childList = NULL;
-		}
+		state->childList = NULL;
 		state->matrixList = NULL;
 		state->algebraList = NULL;
 		state->expectationList = NULL;
@@ -88,6 +78,7 @@
 		if((stateNumber-1) < os->numChildren) {
 			return(os->childList[stateNumber-1]);
 		} else {
+			error("Not implemented");
 			// TODO: Account for unequal numbers of grandchild states
 			int subState = (stateNumber - os->numChildren - 1);
 			return omxGetState(os->childList[subState % os->numChildren], subState / os->numChildren);

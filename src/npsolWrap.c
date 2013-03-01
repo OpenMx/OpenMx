@@ -103,7 +103,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 	/* Create new omxState for current state storage and initialize it. */
 	
 	globalState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(globalState, NULL, 1);
+	omxInitState(globalState, NULL);
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
@@ -193,7 +193,8 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = (omxState*) R_alloc(1, sizeof(omxState));
-	omxInitState(globalState, NULL, numThreads);
+	omxInitState(globalState, NULL);
+	globalState->numThreads = numThreads;
 	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
@@ -229,12 +230,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		// be reported using R's error() function, not
 		// omxRaiseErrorf.
 
-		// disable parallelism until omxDuplicateState() can be invoked
-		globalState->numChildren = 0;
-
 		omxInitialMatrixAlgebraCompute();
-
-		globalState->numChildren = (numThreads > 1) ? numThreads : 0;
 		omxResetStatus(globalState);
 	}
 
@@ -246,8 +242,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	// TODO: Make calculateHessians an option instead.
 
 	if(errOut) error(globalState->statusMsg);
-
-	int numChildren = globalState->numChildren;
 
 	/* Process Matrix and Algebra Population Function */
 	/*
@@ -270,9 +264,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
 
-	for(int i = 0; i < numChildren; i++) {
-		omxDuplicateState(globalState->childList[i], globalState);
-	}
+	omxFitFunctionCreateChildren(globalState, numThreads);
 
 	n = globalState->numFreeParams;
 
