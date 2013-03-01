@@ -34,8 +34,17 @@ null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),
 
 sink(null, type = 'output')	
 
-files <- list.files(directories, pattern = '^.+[.]R$',
-	full.names = TRUE, recursive = TRUE)
+if (any(args == 'gctorture')) {
+	files <- c('models/passing/rfitfunc.R',
+		   'demo/RowObjectiveSimpleExamples.R',
+		   'demo/RowObjectiveFIMLBivariateSaturated.R',
+		   'models/passing/AlgebraComputePassing.R',
+		   'models/passing/TestRowObjective.R',
+		   'models/passing/JointFIMLTest.R')
+} else {
+	files <- list.files(directories, pattern = '^.+[.]R$',
+			    full.names = TRUE, recursive = TRUE)
+}
 	
 errors <- list()
 runtimes <- numeric()
