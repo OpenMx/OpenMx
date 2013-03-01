@@ -131,7 +131,6 @@ struct omxState {													// The Current State of Optimization
 /* Model and Optimizer Pointers */
 
 //	omxOptimizer* optimizer;										// Current Optimizer
-	int numThreads;
 	int numMats, numAlgs, numExpects, numData, numChildren;			// Number of matrices, algebras, and data elements
 	omxMatrix** matrixList;											// Model Matrices
 	omxMatrix** algebraList;										// Model Algebras
@@ -187,7 +186,7 @@ struct omxState {													// The Current State of Optimization
 };
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, omxState *parentState);
+	void omxInitState(omxState* state, omxState *parentState, int numChildren); // Constructor
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
 	void omxFreeState(omxState *state);									// Destructor
 	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.

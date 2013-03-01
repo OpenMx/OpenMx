@@ -72,7 +72,7 @@ struct omxFitFunction {					// A fit function
 	unsigned short int isPrepopulated;											// Object has had some values prepopulated to allow object sharing
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
-	int usesChildModels;    // whether to create child models for parallelization
+
 };
 
 /* Initialize and Destroy */
@@ -96,7 +96,6 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 
 	omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* state, char* const dataSlotName);	// Gets an mxData object from a data slot
-void omxFitFunctionCreateChildren(omxState *globalState, int numThreads);
 
 enum omxFFCompute {
   FF_COMPUTE_FIT      = 1<<0,

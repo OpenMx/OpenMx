@@ -131,27 +131,6 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	}
 }
 
-void omxFitFunctionCreateChildren(omxState *globalState, int numThreads)
-{
-	if (numThreads <= 1) return;
-
-	omxMatrix *fm = globalState->fitMatrix;
-	if (!fm) return;
-
-	omxFitFunction *ff = fm->fitFunction;
-	if (!ff->usesChildModels) return;
-
-	globalState->numChildren = numThreads;
-
-	globalState->childList = (omxState**) Calloc(numThreads, omxState*);
-
-	for(int ii = 0; ii < numThreads; ii++) {
-		globalState->childList[ii] = (omxState*) R_alloc(1, sizeof(omxState));
-		omxInitState(globalState->childList[ii], globalState);
-		omxDuplicateState(globalState->childList[ii], globalState);
-	}
-}
-
 void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
 
 	if(tgt == NULL || src == NULL) return;
