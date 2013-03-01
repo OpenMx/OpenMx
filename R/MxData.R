@@ -231,14 +231,14 @@ verifyCovarianceMatrix <- function(covMatrix) {
 		if(all.equal(covMatrix, t(covMatrix))){
 			msg <- paste("The observed covariance matrix",
 				"is not a symmetric matrix,",
-				" likely due to rounding errors.",
+				" possibly due to rounding errors.\n",
 				"Something like this would be appropriate:\n",
 				"covMatrix[lower.tri(covMatrix)] = t(covMatrix)[lower.tri(t(covMatrix))]\n",
 				"Where covMatrix is the name of your covariance data.",
-				"round(covMatrix, 6) is also an option.")
+				"Another option is \n round(covMatrix, 6)\n.")
 		} else {
 			msg <- paste("The observed covariance matrix",
-				"is not a symmetric matrix.",
+				"is not a symmetric matrix.\n",
 				"Check what you are providing to mxData",
 				"and perhaps try round(yourData, x) for x digits of precision.")
 		}		
