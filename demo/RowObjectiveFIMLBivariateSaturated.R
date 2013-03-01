@@ -20,7 +20,7 @@
 # Date: 2009.08.01 
 #
 # Purpose: 
-#      Demonstrate an mxRowObjective function implementation of FIML
+#      Demonstrate an mxFitFunctionRow function implementation of FIML
 #
 # ModelType: Saturated
 # DataType: Simulated Continuous
@@ -28,7 +28,7 @@
 #
 # RevisionHistory:
 #	HermineMaes -- 2009.10.08 updated & reformatted
-#	RossGore -- 2011.04.10 modified to implement FIML via mxRowObjective
+#	RossGore -- 2011.04.10 modified to implement FIML via mxFitFunctionRow
 #	MikeHunter -- 2011.04.11 debugged Gore implementation above
 #	MikeHunter -- 2011.05.03 Renamed from BivariateCorrelation.R to 
 #                                        FIMLRowObjectiveBivariateCorrelation.R
@@ -120,7 +120,7 @@ bivCorRowObj <- mxModel(
         expression=sum(rowResults),
         name = "reduceAlgebra",
     ),
-    mxRowObjective(
+    mxFitFunctionRow(
         rowAlgebra='rowAlgebra',
         reduceAlgebra='reduceAlgebra',
         dimnames=c('X','Y'),
@@ -131,7 +131,7 @@ bivCorTotal <- bivCorRowObj
 
 # Fit Saturated Model with Raw Data and Matrix-style Input.
 # Estimate with Full Information Maximum Likelihood (FIML).
-# FIML is implemented here as an mxRowObjective function for pedagogical reasons only.
+# FIML is implemented here as an mxFitFunctionRow function for pedagogical reasons only.
 # FIML for one row of data is
 #   2*log(2*pi) + log(det(Cov)) + (Row - Mean) %*% solve(Cov) %*% t(Row - Mean)
 #  where Cov is the filtered expected covariance matrix

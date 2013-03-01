@@ -18,7 +18,7 @@
 # Author: Michael Hunter
 # Filename: TestRowObjective.R
 # Purpose: Have a very basic test of the 
-#  mxRowObjective function
+#  mxFitFunctionRow function
 #-----------------------------------------
 
 #-----------------------------------------
@@ -44,7 +44,7 @@ rmod <- mxModel(
 		mxData(observed=xdat, type='raw'),
 		mxAlgebra(sum(filteredDataRow), name='rowAlgebra'),
 		mxAlgebra(sum(rowResults), name='reduceAlgebra'),
-		mxRowObjective('rowAlgebra', 'reduceAlgebra', dimnames = c('a', 'b'))
+		mxFitFunctionRow('rowAlgebra', 'reduceAlgebra', dimnames = c('a', 'b'))
 )
 #rmodns <- mxOption(rmod, 'No Sort Data', c('a', 'b'))
 #rmodnsRun <- mxRun(rmodns)

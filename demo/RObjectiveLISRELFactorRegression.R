@@ -20,7 +20,7 @@
 # Date: 2011.06.30
 
 # Purpose: To demonstrate an example of LISREL model
-#  specification in OpenMx as an mxRObjective.
+#  specification in OpenMx as an mxFitFunctionR.
 #  Later there will be a model of type LISREL.
 
 # Revision History:
@@ -92,7 +92,7 @@ library(OpenMx)
 # Date: 2011.06.30
 # Purpose: To define a number of helper functions to allow
 #  OpenMx to more easily estimate models under the LISREL
-#  specification.  This implementation uses an mxRObjective
+#  specification.  This implementation uses an mxFitFunctionR
 #  function.  Later these functions will be translated and
 #  moved to the C backend for an mxModel of type LISREL
 #  as opposed to RAM.
@@ -206,7 +206,7 @@ lisrelULS <- function(miCov, obsCov){
 #--------------------------------------
 # Take in an mxModel object and produce a function value to be minimized
 #  to produce maximum likelihood estimates of the free parameters.
-# mxRObjective function
+# mxFitFunctionR function
 
 lisrelCovMx <- function(model, state){
     expectedCov <- lisrelCov(
@@ -324,7 +324,7 @@ Jor82Ex1 <- mxModel(
         free=F,
         values=0
         ),
-    mxRObjective(lisrelCovMx)
+    mxFitFunctionR(lisrelCovMx)
 )
 
 #------------------------------------------------------------------------------

@@ -44,7 +44,7 @@ sumModel = mxModel("sumModel",
 	mxAlgebra(existenceVector, name="rowAlgebra"),
 	mxAlgebra(sum(rowResults), name="reduceAlgebra"),
 	mxData(data, type="raw"),
-	mxRowObjective(
+	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
 		dimnames=c('x1','x2'),
@@ -58,7 +58,7 @@ countModel = mxModel("countModel",
 	mxAlgebra(sum(omxSelectCols(Unity, existenceVector)), name="rowAlgebra"),
 	mxAlgebra(sum(rowResults), name="reduceAlgebra"),
 	mxData(data, type="raw"),
-	mxRowObjective(
+	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
 		dimnames=c('x1','x2'),

@@ -26,7 +26,7 @@ objFunction <- function(model, state) {
 		squared(A[2,1] - 2) +
 		squared(A[2,2] - 1), model))
 }
-objective <- mxRObjective(objFunction)
+objective <- mxFitFunctionR(objFunction)
 
 model <- mxModel('model', A, objective)
 

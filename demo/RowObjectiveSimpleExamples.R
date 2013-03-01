@@ -17,7 +17,7 @@
 #------------------------------------------------
 # Author: Michael Hunter
 # Filename: rowObjectiveSimpleExamples.R
-# Purpose: Test the mxRowObjective Function
+# Purpose: Test the mxFitFunctionRow Function
 # Revision History
 #  Mon Apr 11 20:54:30 EDT 2011 -- Created file
 #  2011.06.17 -- Submitted file to SVN Repository
@@ -38,7 +38,7 @@ amod <- mxModel(
 	mxData(observed=xdat, type='raw'),
 	mxAlgebra(sum(filteredDataRow), name = 'rowAlgebra'),
 	mxAlgebra(sum(rowResults), name = 'reduceAlgebra'),
-	mxRowObjective(
+	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
 		dimnames=c('a','b'))
@@ -63,7 +63,7 @@ bmod <- mxModel(
 	mxMatrix(values=.75, ncol=2, nrow=1, free=TRUE, name='M'),
 	mxAlgebra((filteredDataRow-M)%^%2, name='rowAlgebra'),
 	mxAlgebra(sum(rowResults), name='reduceAlgebra'),
-	mxRowObjective(
+	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
 		dimnames=c('a', 'b'))
@@ -99,7 +99,7 @@ cmod <- mxModel(
 	mxAlgebra(omxSelectCols(M, existenceVector), name='fM'),
 	mxAlgebra((filteredDataRow-fM)%^%2, name='rowAlgebra'),
 	mxAlgebra(sum(rowResults), name='reduceAlgebra'),
-	mxRowObjective(
+	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
 		dimnames=c('a', 'b'))
@@ -144,7 +144,7 @@ emod <- mxModel(
 	name='I will run slow on OpenMx',
 	mxMatrix(name='A', nrow=nobs, ncol=1, free=T, values=0.1),
 	mxMatrix(name='X', nrow=nobs, ncol=1, free=F, values=as.matrix(adat)),
-	mxRObjective(robj1)
+	mxFitFunctionR(robj1)
 )
 
 emodRun <- mxRun(emod) # runs super slow := 10.5 sec
