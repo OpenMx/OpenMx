@@ -35,8 +35,4 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
  */
 extern omp_lock_t GlobalRLock;
 
-PROTECT_INDEX omxProtectSave();
-
-void omxProtectRestore(PROTECT_INDEX initialpix);
-
 #endif // #define _NPSOLWRAP_H

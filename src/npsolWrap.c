@@ -65,30 +65,8 @@ void R_unload_OpenMx(DllInfo *info) {
 	omx_omp_destroy_lock(&GlobalRLock);
 }
 
-PROTECT_INDEX omxProtectSave()
-{
-	PROTECT_INDEX initialpix;
-	PROTECT_WITH_INDEX(R_NilValue, &initialpix);
-	UNPROTECT(1);
-	return initialpix;
-}
-
-void omxProtectRestore(PROTECT_INDEX initialpix)
-{
-	PROTECT_INDEX pix;
-	PROTECT_WITH_INDEX(R_NilValue, &pix);
-	PROTECT_INDEX diff = pix - initialpix;
-	if (diff < 0) {
-		warning("omxProtectRestore diff=%d; you forgot to PROTECT something", diff);
-		diff = 0;
-	}
-	UNPROTECT(1 + diff);
-}
-
 /* Main functions */
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
-
-	PROTECT_INDEX initialpix = omxProtectSave();
 
 	if(OMX_DEBUG) { Rprintf("-----------------------------------------------------------------------\n");}
 	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
@@ -155,8 +133,6 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 		error(output);
 	}
 
-	omxProtectRestore(initialpix);
-
 	return ans;
 }
 
@@ -183,8 +159,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 //	if(!isVector(startVals)) error ("startVals must be a vector");
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
-
-	PROTECT_INDEX initialpix = omxProtectSave();
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
@@ -434,9 +408,10 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Free data memory */
 	omxFreeState(globalState);
 
-	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
+	UNPROTECT(numReturns);						// Unprotect Output Parameters
+	UNPROTECT(8);								// Unprotect internals
 
-	omxProtectRestore(initialpix);
+	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
 	return(ans);
 
