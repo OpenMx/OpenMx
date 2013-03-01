@@ -410,12 +410,33 @@ unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
     return FALSE;
 };
 
+omxMatrix* omxNewMatrixFromMxMatrix(SEXP mxMatrix, omxState* state) {
+/* Creates and populates an omxMatrix with details from an R MxMatrix object. */
+	omxMatrix *om = NULL;
+	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
+	return omxFillMatrixFromMxMatrix(om, mxMatrix, state);
+}
+
 omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	omxMatrix *om = NULL;
 	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
+}
+
+omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP mxMatrix, omxState* state) {
+/* Populates the fields of a omxMatrix with details from an R Matrix. */
+	if(inherits(mxMatrix, "MxMatrix")) {
+		if(OMX_DEBUG) { Rprintf("R matrix is Mx Matrix.  Processing.\n"); }
+		SEXP matrix;
+		PROTECT(matrix = GET_SLOT(mxMatrix,  install("values")));
+		om = fillMatrixHelperFunction(om, matrix, state, 0, 0);
+		UNPROTECT(1);
+	} else {
+		error("Recieved unknown matrix type in omxFillMatrixFromMxMatrix.");
+	}
+	return(om);
 }
 
 omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,

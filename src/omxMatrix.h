@@ -96,6 +96,7 @@ struct omxMatrix {						// A matrix
 	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
 
 /* Matrix Creation Functions */
+	omxMatrix* omxNewMatrixFromMxMatrix(SEXP matrix, omxState *state); 			// Create an omxMatrix from an R MxMatrix
 	omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState *state,
 	unsigned short hasMatrixNumber, int matrixNumber); 							// Create an omxMatrix from an R object
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size
@@ -119,6 +120,7 @@ struct omxMatrix {						// A matrix
 	void omxZeroByZeroMatrix(omxMatrix *source);
 	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
 							unsigned short keepMemory);									// Resize, with or without re-initialization
+	omxMatrix* omxFillMatrixFromMxMatrix(omxMatrix* om, SEXP matrix, omxState *state); 	// Populate an omxMatrix from an R MxMatrix
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
