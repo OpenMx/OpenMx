@@ -88,6 +88,7 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 
 void omxProcessMxAlgebraEntities(SEXP algList) {
 	SEXP nextAlgTuple;
+	globalState->numAlgs = length(algList);
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
 	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", globalState->numAlgs); }
@@ -177,6 +178,8 @@ void omxInitialMatrixAlgebraCompute() {
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(globalState);
+
+	globalState->markMatrices = (int*) R_alloc(numMats + numAlgs, sizeof(int));
 
 	for(int index = 0; index < numMats; index++) {
 		omxRecompute(globalState->matrixList[index]);
