@@ -78,7 +78,7 @@ contModel <- mxModel("contModel",
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
     mxAlgebra(impliedCovs[minCont:maxCont,minCont:maxCont], name="useCov"),
     mxAlgebra(M[1,minCont:maxCont], name="useM"),
-    mxFIMLObjective(covariance="useCov", means="useM", dimnames = continuousNames),
+    mxFitFunctionML(),mxExpectationNormal(covariance="useCov", means="useM", dimnames = continuousNames),
     mxData(observed=jointData, type='raw')
 )
 
@@ -100,7 +100,7 @@ ordModel <- mxModel("ordModel",
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
     mxAlgebra(impliedCovs[minOrd:maxOrd,minOrd:maxOrd], name="useCov"),
     mxAlgebra(M[1,minOrd:maxOrd], name="useM"),
-    mxFIMLObjective(covariance="useCov", means="useM", dimnames = ordinalNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
+    mxFitFunctionML(),mxExpectationNormal(covariance="useCov", means="useM", dimnames = ordinalNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
     mxData(observed=jointData, type='raw')
 )
 
@@ -119,7 +119,7 @@ independentModel <- mxModel("independentComboModel",
            dimnames = list(c(), ordinalNames)),
    mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
    mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-   mxFIMLObjective(covariance="impliedCovs", means="M", dimnames = jointNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
+   mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = jointNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
    mxData(observed=jointData, type='raw')
 )
 
@@ -176,7 +176,7 @@ thresholdModel <- mxModel("thresholdModel",
            dimnames = list(c(), jointNames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-    mxFIMLObjective(covariance="impliedCovs", means="M", dimnames = jointNames, thresholds="thresholdMatrix"),
+    mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = jointNames, thresholds="thresholdMatrix"),
            mxData(observed=ordinalCrossData, type='raw')
 )
 
@@ -194,7 +194,7 @@ continuousModel <- mxModel("continuousModel",
            dimnames = list(c(), jointNames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-    mxFIMLObjective(covariance="impliedCovs", means="M", dimnames = jointNames),
+    mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = jointNames),
     mxData(observed=continuousCrossData, type='raw')
 )
 
@@ -212,7 +212,7 @@ jointModel <- mxModel("jointModel",
            dimnames = list(c(), ordinalNames)),
    mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
    mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-           mxFIMLObjective(covariance="impliedCovs", means="M", dimnames = jointNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
+           mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = jointNames, threshnames = ordinalNames[1:nOrdinalVariables], thresholds="thresholdMatrix"),
            mxData(observed=jointCrossData, type='raw')
 )
 
@@ -276,7 +276,7 @@ contModel1 <- mxModel("contModel1",
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
     mxMatrix("Full", 1, 1, values=c(0), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=cNames1)
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=cNames1)
 )
 
 contModel1A <- mxModel("contModel1A", 
@@ -284,7 +284,7 @@ contModel1A <- mxModel("contModel1A",
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
     mxMatrix("Full", 1, 1, values=c(0), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=cNames1, thresholds="Thresh", threshnames=c("Ona"))
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=cNames1, thresholds="Thresh", threshnames=c("Ona"))
 )
 
 contModel1 <- mxOption(contModel1, "Function precision", 1e-9)
@@ -314,7 +314,7 @@ ordModel1 <- mxModel("ordModel1",
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nVars, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames=oNames1, thresholds="Thresh", threshnames=oNames1)
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=oNames1, thresholds="Thresh", threshnames=oNames1)
 )
 # ordinalData1[,nVars] <- as.numeric(NA)
 ordModel1A <- mxModel("ordModel1A", 
@@ -322,7 +322,7 @@ ordModel1A <- mxModel("ordModel1A",
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nVars-1, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = oNames1, thresholds="Thresh", threshnames=oNames1[1:(nVars-1)])
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = oNames1, thresholds="Thresh", threshnames=oNames1[1:(nVars-1)])
 )
 
 ordModel1 <- mxOption(ordModel1, "Function precision", 1e-9)
@@ -379,7 +379,7 @@ contModel2 <- mxModel("contModel2",
     mxData(continuousData2, type="raw"),
     mxMatrix("Symm", nCont, nCont, values=startCont2, free=useOptimizer, lbound=contBound2, name="Cov"),
     mxMatrix("Full", 1, nCont, values=startMeans2[1:nCont], free=useOptimizer, name="Mean"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = cNames2)
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = cNames2)
     )
 
 ordModel2 <-     mxModel("ordModel2", 
@@ -387,7 +387,7 @@ ordModel2 <-     mxModel("ordModel2",
     mxMatrix("Symm", nOrd, nOrd, values=startOrd2, free=useOptimizer, lbound=ordBound2, name="Cov"),
     mxMatrix("Full", 1, nCont, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = oNames2, thresholds="Thresh")
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = oNames2, thresholds="Thresh")
     )
 
 allModel2 <- mxModel("jointModel2", 
@@ -395,7 +395,7 @@ allModel2 <- mxModel("jointModel2",
     mxMatrix("Symm", nVars, nVars, values=startAll2, free=as.logical(useOptimizer * startAll2), lbound=allBound2, name="Cov"),
     mxMatrix("Full", 1, nVars, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
     )
     
 dubData2 <- rbind(allData2, allData2)
@@ -405,7 +405,7 @@ dubModel2 <- mxModel("jointModel2Double",
     mxMatrix("Symm", nVars, nVars, values=startAll2, free=as.logical(useOptimizer * startAll2), lbound=allBound2, name="Cov"),
     mxMatrix("Full", 1, nVars, values=startMeans2[1:nOrd + nCont], free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = allNames2, thresholds="Thresh", threshnames = oNames2)
     )
 
 
@@ -471,7 +471,7 @@ dubSum2  <- summary(dubFit2)
 #     mxMatrix("Symm", nVars, nVars, values=startAll3, free=as.logical(useOptimizer * startAll3), lbound=allBound3, name="Cov"),
 #     mxMatrix("Full", 1, nVars, values=startMeans3[1:nOrd + nCont], free=useOptimizer, name="Mean"),
 #     mxMatrix("Full", nThresh, nOrd, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-#     mxFIMLObjective(covariance="Cov", means="Mean", dimnames = allNames3, thresholds="Thresh", threshnames = oNames3)
+#     mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = allNames3, thresholds="Thresh", threshnames = oNames3)
 #     )
 # 
 # allModel3 <- mxOption(allModel3, "Function precision", 1e-9)

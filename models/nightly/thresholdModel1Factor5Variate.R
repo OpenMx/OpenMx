@@ -59,7 +59,7 @@ thresholdModel <- mxModel("thresholdModel",
             dimnames = list(c(), fruitynames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-            mxFIMLObjective(covariance="impliedCovs", means="M", dimnames = fruitynames, thresholds="thresholdMatrix"),
+            mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = fruitynames, thresholds="thresholdMatrix"),
             mxData(observed=ordinalData, type='raw')
 )
 

@@ -45,7 +45,7 @@ regModel1 <- mxModel("JointSimpleRegressionTest",
 	mxMatrix("Full", 1, 1, free=TRUE, 
 		labels="threshY", dimnames=list(NA, "y"), 
 		name="thresh"),
-	mxFIMLObjective("cov", "mean", dimnames = names(testData), thresholds="thresh", threshnames="y")
+	mxFitFunctionML(),mxExpectationNormal("cov", "mean", dimnames = names(testData), thresholds="thresh", threshnames="y")
 	)
 # now a logistic regression
 regModel2 <- mxModel(regModel1, iaMat2, name="JointLogisticRegressionTest")

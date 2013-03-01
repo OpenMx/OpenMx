@@ -84,7 +84,7 @@ template <- mxModel(name="stErrSim",
                        mxAlgebra(lambda %*% t(lambda) + specifics,
                                  name="preCov", dimnames=dn),
                        mxData(observed=obsCov, type="cov", numObs=nObs),
-                       mxMLObjective(covariance='preCov'),
+                       mxFitFunctionML(),mxExpectationNormal(covariance='preCov'),
                        independent = TRUE)
 
 topModel <- mxModel(name = 'container')

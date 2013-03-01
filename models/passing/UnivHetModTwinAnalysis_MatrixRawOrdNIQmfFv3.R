@@ -237,7 +237,7 @@ univHetACEModelNIQmfFv <- mxModel("univHetACE",
         mxAlgebra( expression= cbind((ACE.Threm + t(AgeRm1)),(ACE.Thref + t(AgeRf2))), dimnames=list('th1',selVars), name="expThreDZmf"),
     # Data & Objective
         mxData( observed=dzmfDataBin, type="raw" ),
-        mxFIMLObjective( covariance="expCovDZmf", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZmf" )
+        mxFitFunctionML(),mxExpectationNormal( covariance="expCovDZmf", means="ACE.expMean", dimnames=selVars, thresholds="expThreDZmf" )
     ),
 #univModHetACEFit <- mxModel(ACE,MZm,DZm,MZf,DZf,DZmf,
     mxAlgebra( expression=-2*sum(log(rbind(MZm.objective,DZm.objective,MZf.objective,DZf.objective))), 

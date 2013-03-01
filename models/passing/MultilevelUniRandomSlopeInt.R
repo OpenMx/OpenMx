@@ -77,7 +77,7 @@ multilevelModel2 <- mxModel("Multilevel_2",
         name="M"
     ),
 	mxAlgebra(Rand[data.ID,], name="randrow"),
-    mxFIMLObjective(covariance="R", means="M"),
+    mxFitFunctionML(),mxExpectationNormal(covariance="R", means="M"),
     mxData(tDataFrame, type="raw")
 )
 

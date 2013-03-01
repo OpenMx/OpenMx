@@ -72,6 +72,6 @@ factorModel <- mxModel("Two Factor Matrix",
 		name="M"),
 		
       mxData(dataTest, type="raw", numObs=300),
-	  mxRAMObjective("A","S","F","M",dimnames=c("X", "Y", "Z", "G","H"))
+	  mxFitFunctionML(),mxExpectationRAM("A","S","F","M",dimnames=c("X", "Y", "Z", "G","H"))
 			)
 imxTestPPML(factorModel)

@@ -15,13 +15,13 @@ factorModel <- mxModel("One Factor ML",
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A%*%t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
-    mxMLObjective("C", dimnames=manifests),
+    mxFitFunctionML(),mxExpectationNormal("C", dimnames=manifests),
     mxCI(c("P"))
 )
 factorFitCI <- mxRun(factorModel, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 
-factorModelRaw <- mxModel(factorFitCI, mxData(demoOneFactor, type="raw"), mxFIMLObjective("C", "M", dimnames=manifests), name = "One Factor FIML")
+factorModelRaw <- mxModel(factorFitCI, mxData(demoOneFactor, type="raw"), mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests), name = "One Factor FIML")
 factorFitRawCI <- mxRun(factorModelRaw, intervals=TRUE, suppressWarnings = TRUE)
 factorSummRawCI <- summary(factorFitRawCI)
 

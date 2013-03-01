@@ -79,7 +79,7 @@ model<-mxModel("Autoregressive Model, Matrix Specification, Covariance Data",
             dimnames=list(
 				NULL, c("x1","x2","x3","x4","x5")),
             name="M"),
-      mxRAMObjective("A","S","F","M")
+      mxFitFunctionML(),mxExpectationRAM("A","S","F","M")
       )
       
 autoregressiveMatrixCov<-mxRun(model)

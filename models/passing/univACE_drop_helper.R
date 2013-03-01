@@ -90,12 +90,12 @@ modelShare = mxModel("share",
 
 modelMZ <- mxModel("modelMZ", 
   mxData(observed=dataMZ, type="cov", numObs = 100),
-  mxMLObjective(covariance = "share.MZcov",dimnames=selVars)  
+  mxFitFunctionML(),mxExpectationNormal(covariance = "share.MZcov",dimnames=selVars)  
 )
 
 modelDZ <- mxModel("modelDZ",
   mxData(observed=dataDZ, type="cov", numObs = 100),
-  mxMLObjective(covariance = "share.DZcov",dimnames=selVars)
+  mxFitFunctionML(),mxExpectationNormal(covariance = "share.DZcov",dimnames=selVars)
 )
 
 model = mxModel("ACE", 

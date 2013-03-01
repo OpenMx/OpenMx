@@ -90,13 +90,13 @@ if (nthresh2 > 1) {
 }
 
 # Define the objective function
-objective <- mxFIMLObjective(covariance="R", means="M", thresholds="thresholds")
+objective <- mxExpectationNormal(covariance="R", means="M", thresholds="thresholds")
 
 # Define the observed covariance matrix
 dataMatrix <- mxData(data, type='raw')
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, dataMatrix)
+model <- mxModel(model, objective, dataMatrix, mxFitFunctionML())
 
 # Run the job
 model <- mxRun(model)

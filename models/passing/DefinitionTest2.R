@@ -52,7 +52,7 @@ selvars<-c("x","y")
 # One common mean vector, "M"
 
 #define the model, including a FIML objective function, which will optimize the matrix S
-model<-mxModel("model", mxFIMLObjective("S", "M"), 
+model<-mxModel("model", mxFitFunctionML(),mxExpectationNormal("S", "M"), 
 				mxData((data.frame(x,y,def)), type="raw"),
 				mxMatrix("Symm", nrow=2, ncol=2, free=FALSE, values=c(0, 0, 0), labels=c(NA, "data.def", NA),
 					dimnames=list(selvars,selvars), name="def"),

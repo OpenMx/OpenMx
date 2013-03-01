@@ -101,7 +101,7 @@ twinACEModel <- mxModel("twinACE",
 			observed=mzfData, 
 			type="raw"
 		), 
-	    mxFIMLObjective(
+	    mxFitFunctionML(),mxExpectationNormal(
 			covariance="common.expCovMZ", 
 			means="common.expMean", 
 			dimnames=selVars
@@ -112,7 +112,7 @@ twinACEModel <- mxModel("twinACE",
 			observed=dzfData, 
 			type="raw"
 		), 
-	    mxFIMLObjective(
+	    mxFitFunctionML(),mxExpectationNormal(
 			covariance="common.expCovDZ", 
 			means="common.expMean", 
 			dimnames=selVars

@@ -38,7 +38,7 @@ bounds <- mxBounds(c("v1", "v2", "v3"), min = 0)
 constraint <- mxConstraint(s > c, name = "constraint")
 
 model <- mxModel("model", data, s, c, 
-	constraint, bounds, mxMLObjective("s"))
+	constraint, bounds, mxFitFunctionML(),mxExpectationNormal("s"))
 	
 run <- mxRun(model)
 

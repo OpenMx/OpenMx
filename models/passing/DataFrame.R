@@ -69,10 +69,10 @@ model <- mxModel(model, mxMatrix("Symm", values = expectedcov, name = "covarianc
 model <- mxModel(model, mxMatrix("Zero", name = "means", nrow=1, ncol=3,
 			dimnames = list(NULL, c('a','b','c'))))
 data <- mxData(data.frame(x), 'raw')
-objective <- mxMLObjective(covariance = "covariance", means = "means")
+objective <- mxExpectationNormal(covariance = "covariance", means = "means")
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, data)
+model <- mxModel(model, objective, data, mxFitFunctionML())
 
 model <- mxRun(model)
 

@@ -37,11 +37,11 @@ cMZ <- mxAlgebra(rbind(cbind(A+C+E,A+C),cbind(A+C,A+C+E)),
 cDZ <- mxAlgebra(rbind(cbind(A+C+E,h%x%A+C),cbind(h%x%A+C,A+C+E)),
 	name="cDZ")
 
-objMZ <- mxMLObjective("cMZ", dimnames = varNames)
-objDZ <- mxMLObjective("cDZ", dimnames = varNames)
+objMZ <- mxExpectationNormal("cMZ", dimnames = varNames)
+objDZ <- mxExpectationNormal("cDZ", dimnames = varNames)
 
-modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,A,C,E,cMZ, objMZ)
-modelDZ <- mxModel("modelDZ", dataDZ, X,Y,Z,h,A,C,E,cDZ, objDZ)
+modelMZ <- mxModel("modelMZ", dataMZ, X,Y,Z,A,C,E,cMZ, objMZ, mxFitFunctionML())
+modelDZ <- mxModel("modelDZ", dataDZ, X,Y,Z,h,A,C,E,cDZ, objDZ, mxFitFunctionML())
 
 twin <- mxAlgebra(modelMZ.objective + modelDZ.objective, name="twin")
 obj <- mxFitFunctionAlgebra("twin")

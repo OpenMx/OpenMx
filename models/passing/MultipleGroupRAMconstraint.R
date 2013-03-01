@@ -37,11 +37,11 @@ matrixA <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
 matrixF <- mxMatrix("Iden", nrow=1, name="F", dimnames = list('a', 'a'))
 
 #Lets make some objective functions!
-objective <- mxRAMObjective("A", "S", "F")
+objective <- mxExpectationRAM("A", "S", "F")
 
 #Models
-model1<-mxModel("first", matrixA, S1, matrixF, objective, data1)
-model2<-mxModel("second", matrixA, S2, matrixF, objective, data2)
+model1<-mxModel("first", matrixA, S1, matrixF, objective, data1, mxFitFunctionML())
+model2<-mxModel("second", matrixA, S2, matrixF, objective, data2, mxFitFunctionML())
 
 #Run them
 output1<-mxRun(model1, suppressWarnings=TRUE)

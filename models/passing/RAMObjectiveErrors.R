@@ -26,7 +26,7 @@ mxMatrix(type="Diag", nrow=2, ncol=2, values=c(1,1), free=FALSE, name="S"),
 mxMatrix(type="Full", nrow=1, ncol=2, values=c(1,0), free=FALSE, name="F"),
 mxMatrix(type="Full", nrow=1, ncol=2, values=c(0,0), free=FALSE, name="M"),
 mxMatrix(type="Full", nrow=1, ncol=1, free=TRUE, values=st, labels="th1", name="thresh"),
-mxRAMObjective("A", "S", "F", "M", dimnames=c("x","f1"),
+mxFitFunctionML(),mxExpectationRAM("A", "S", "F", "M", dimnames=c("x","f1"),
 thresholds="thresh", threshnames=c("x"))
 )
 omxCheckError(mxRun(prop.Model), paste("The RAM expectation function in model",

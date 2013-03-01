@@ -61,7 +61,7 @@ twinACEModel <- mxModel("twinACE",
 # MZ likelihood is set up as pright*(Likelihood|Zygosity=MZ) + pwrong*(Likelihood|DZ)
 # DZ likelihood is set up as pright*(Likelihood|Zygosity=DZ) + pwrong*(Likelihood|MZ)
 #
-# vector=TRUE argument to mxFIMLObjective allows mixture distribution on individual likelihoods
+# vector=TRUE argument to mxFitFunctionML(),mxExpectationNormal allows mixture distribution on individual likelihoods
 #
         mxModel("MZlike",
                 mxData(DataMZ, type="raw"), 

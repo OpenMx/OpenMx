@@ -30,7 +30,7 @@ model <- mxModel('ErrorModel',
     mxMatrix("Full", 1, 1, F, 1, name="cov", 
                 dimnames=list(c("x"), c("x"))),
     mxData(data, type="cov", numObs = 50),
-    mxMLObjective("cov")
+    mxFitFunctionML(),mxExpectationNormal("cov")
 )
 model$data@observed[1,1] <- -1
 omxCheckError(mxRun(model), 

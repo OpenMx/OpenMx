@@ -14,7 +14,7 @@ factorModel <- mxModel("One Factor ML",
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
-    mxMLObjective("C", "M", dimnames=manifests))
+    mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests))
 
 omxCheckError(mxRun(factorModel), 
 	paste("In model 'One Factor ML' the Normal expectation function",
@@ -28,7 +28,7 @@ factorModel <- mxModel("One Factor ML",
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
-    mxMLObjective("C", "M", dimnames=manifests))
+    mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests))
 
 omxCheckError(mxRun(factorModel),
 	paste("The expected means vector associated with",
@@ -42,7 +42,7 @@ factorModel <- mxModel("One Factor FIML",
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A %*% t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
-    mxFIMLObjective("C", "M", dimnames=manifests))
+    mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests))
 
 omxCheckError(mxRun(factorModel),
 	paste("The expected means vector associated with",

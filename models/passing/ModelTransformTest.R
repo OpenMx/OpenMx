@@ -74,7 +74,7 @@ test <- mxModel("test",
 	mxMatrix("Full", 1, 1, name="A"),
 	mxMatrix("Iden", 1, name="F"),
 	mxMatrix("Full", 1, 1, FALSE, m, name="M"),
-	mxRAMObjective("A", "S", "F", "M", dimnames=c("Y"))
+	mxFitFunctionML(),mxExpectationRAM("A", "S", "F", "M", dimnames=c("Y"))
 	)
 	
 # runs fine

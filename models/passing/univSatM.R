@@ -153,7 +153,7 @@ univSatModel3 <- mxModel("univSat3",
         type="cov", 
         numObs=1000 
     ),
-    mxMLObjective(
+    mxFitFunctionML(),mxExpectationNormal(
         covariance="expCov"
     )
     )
@@ -189,7 +189,7 @@ univSatModel3m <- mxModel("univSat3m",
         numObs=1000,
         means=colMeans(testData) 
     ),
-    mxMLObjective(
+    mxFitFunctionML(),mxExpectationNormal(
         covariance="expCov", 
         means="expMean"
     )
@@ -225,7 +225,7 @@ univSatModel4 <- mxModel("univSat4",
         observed=testData, 
         type="raw", 
     ),
-    mxFIMLObjective(
+    mxFitFunctionML(),mxExpectationNormal(
         covariance="expCov", 
         means="expMean"
     )

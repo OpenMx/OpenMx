@@ -52,7 +52,7 @@ if (0) {
 # One common mean vector, "M"
 
 #define the model, including a FIML objective function, which will optimize the matrix S
-model<-mxModel("model", mxFIMLObjective("Sigma", "Mu", selvars), 
+model<-mxModel("model", mxFitFunctionML(),mxExpectationNormal("Sigma", "Mu", selvars), 
 				mxData((data.frame(y,def)), type="raw"),
 				
 				mxMatrix("Symm", nrow=2, ncol=2, free=TRUE, values=c(1, 0, 1), name="Sigma"),

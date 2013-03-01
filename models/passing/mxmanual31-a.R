@@ -33,9 +33,9 @@ expectedCov <- mxAlgebra(A %*% t(A) + D, "expectedCov",
 observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3), 2, 2, 
 	dimnames = list(varNames, varNames)), 'cov', numObs = 150)
 
-objective <- mxMLObjective(covariance = "expectedCov")
+objective <- mxExpectationNormal(covariance = "expectedCov")
 
-model <- mxModel(A, D, expectedCov, objective, observedCov)
+model <- mxModel(A, D, expectedCov, objective, observedCov, mxFitFunctionML())
 
 model <- mxRun(model)
 

@@ -16,9 +16,9 @@
 
 require(OpenMx)
 cov <- mxMatrix('Full', 2, 2, values = c(0,1,1,0), name = 'cov', free = c(FALSE,TRUE,TRUE,FALSE))
-objective <- mxMLObjective('cov', dimnames = c('a','b'))
+objective <- mxExpectationNormal('cov', dimnames = c('a','b'))
 identity <- diag(2)
 dimnames(identity) <- list(c('a','b'),c('a','b'))
 data <- mxData(identity, 'cov', numObs = 10)
-model <- mxModel('model', cov, objective, data)
+model <- mxModel('model', cov, objective, data,  mxFitFunctionML())
 omxCheckError(mxRun(model), "The job for model 'model' exited abnormally with the error message: Expected covariance matrix is non-positive-definite.")

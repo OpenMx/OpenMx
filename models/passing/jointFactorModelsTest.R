@@ -41,7 +41,7 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 	mxData(jointData, "raw"),
 	loadings, resid, means, thresh,
 	mxAlgebra(t(L) %*% L + U, name="C"),
-	mxFIMLObjective("C", "M",
+	mxFitFunctionML(),mxExpectationNormal("C", "M",
 		dimnames=names(jointData),
 		thresholds="T",
 		threshnames=c("z2", "z4", "z5"))
@@ -52,7 +52,7 @@ jointResults1 <- mxRun(jointModel1, suppressWarnings=TRUE)
 jointModel2 <- mxModel("ContinuousOrdinalData",
   mxData(jointData, "raw"),
   satCov, means, thresh,
-  mxFIMLObjective("C", "M",
+  mxFitFunctionML(),mxExpectationNormal("C", "M",
       dimnames=names(jointData),
       thresholds="T",
       threshnames=c("z2", "z4", "z5"))

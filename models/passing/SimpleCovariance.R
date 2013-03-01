@@ -31,7 +31,7 @@ model[["S"]]@labels[2,2] <- "banana"
 model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
 
 # Define the objective function
-objective <- mxRAMObjective("A", "S", "F")
+objective <- mxExpectationRAM("A", "S", "F")
 
 # Define the observed covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), 
@@ -40,7 +40,7 @@ covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615),
 data <- mxData(covMatrix, 'cov', numObs = 100)
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, data)
+model <- mxModel(model, objective, data, mxFitFunctionML())
 
 #print(model)
 

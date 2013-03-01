@@ -61,7 +61,7 @@ multiRegModel<-mxModel("Multiple Regression Matrix Specification",
         dimnames = list(NULL, selVars),
         name="M"
 	),
-    mxRAMObjective("A","S","F","M")
+    mxFitFunctionML(),mxExpectationRAM("A","S","F","M")
 )
       
 multiRegFit<-mxRun(multiRegModel)

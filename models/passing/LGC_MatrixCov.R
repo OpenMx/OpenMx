@@ -94,7 +94,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Matrix Specification",
         free=c(F,F,F,F,F,T,T),
         labels=c(NA,NA,NA,NA,NA,"meani","means"),
         name="M"),
-    mxRAMObjective("A","S","F","M",dimnames=c("x1","x2","x3","x4","x5","intercept","slope"))
+    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",dimnames=c("x1","x2","x3","x4","x5","intercept","slope"))
     )
       
 growthCurveFit<-mxRun(growthCurveModel, suppressWarnings=TRUE)

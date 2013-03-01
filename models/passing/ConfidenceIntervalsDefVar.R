@@ -51,7 +51,7 @@ mxMatrix(type="Full", nrow=8, ncol=8, values=Aval, free=Afree, labels=Alab, name
 mxMatrix(type="Symm", nrow=8, ncol=8, values=Sval, free=Sfree, labels=Slab, name="S"),
 mxMatrix(type="Full", nrow=6, ncol=8, values=Fval, free=Ffree, labels=Flab, name="F"),
 mxMatrix(type="Full", nrow=1, ncol=8, values=Mval, free=Mfree, labels=Mlab, name="M"),
-mxRAMObjective("A","S","F","M", dimnames=c(ylab, "x", latentLab)),
+mxFitFunctionML(),mxExpectationRAM("A","S","F","M", dimnames=c(ylab, "x", latentLab)),
 mxMatrix(type="Full", nrow=8, ncol=1, values=c(rep(0, 6), 1, 0), free=FALSE, name="s7"),
 mxMatrix(type="Full", nrow=8, ncol=1, values=c(rep(0, 5), 1, 0, 0), free=FALSE, name="s6")
 ) # - end model

@@ -23,11 +23,11 @@ data2 <- mxData(matrix(2, dimnames = list(varNames,varNames)), type="cov", numOb
 mat1 <- mxMatrix("Full",2,free=TRUE, nrow=1, ncol=1, name="mat1")
 mat2 <- mxMatrix("Full",1,free=TRUE, nrow=1, ncol=1, name="mat2")
 
-obj1 <- mxMLObjective("mat1", dimnames = varNames)
-obj2 <- mxMLObjective("mat2", dimnames = varNames)
+obj1 <- mxExpectationNormal("mat1", dimnames = varNames)
+obj2 <- mxExpectationNormal("mat2", dimnames = varNames)
 
-model1 <- mxModel("model1", data1, mat1, obj1)
-model2 <- mxModel("model2", data2, mat2, obj2)
+model1 <- mxModel("model1", data1, mat1, obj1, mxFitFunctionML())
+model2 <- mxModel("model2", data2, mat2, obj2, mxFitFunctionML())
 
 output1 <- mxRun(model1, suppressWarnings = TRUE)
 output2 <- mxRun(model2, suppressWarnings = TRUE)
