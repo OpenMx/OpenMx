@@ -234,11 +234,13 @@ verifyCovarianceMatrix <- function(covMatrix) {
 				" likely due to rounding errors.",
 				"Something like this would be appropriate:\n",
 				"covMatrix[lower.tri(covMatrix)] = t(covMatrix)[lower.tri(t(covMatrix))]\n",
-				"Where covMatrix is the name of your covariance data.")
+				"Where covMatrix is the name of your covariance data.",
+				"round(covMatrix, 6) is also an option.")
 		} else {
 			msg <- paste("The observed covariance matrix",
 				"is not a symmetric matrix.",
-				" Check what you are providing to mxData")
+				"Check what you are providing to mxData",
+				"and perhaps try round(yourData, x) for x digits of precision.")
 		}		
 		stop(msg, call. = FALSE)
 	}
@@ -264,7 +266,9 @@ verifyCorrelationMatrix <- function(corMatrix) {
 	}
 	if (!all(corMatrix == t(corMatrix))) {
 		msg <- paste("The observed correlation matrix",
-			"is not a symmetric matrix")
+			"is not a symmetric matrix.",
+			"Check what you are providing to mxData, and perhaps try using",
+			"round(yourData, x) for x digits of precision.")
 		stop(msg, call. = FALSE)
 	}
 	if (any(eigen(corMatrix)$values <= 0)) {
