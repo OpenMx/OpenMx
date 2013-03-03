@@ -36,7 +36,6 @@ sink(null, type = 'output')
 
 if (any(args == 'gctorture')) {
 	files <- c('models/passing/rfitfunc.R',
-		   'demo/RowObjectiveSimpleExamples.R',
 		   'demo/RowObjectiveFIMLBivariateSaturated.R',
 		   'models/passing/AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R',

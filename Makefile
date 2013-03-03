@@ -21,7 +21,6 @@ BUILDARGS = "--configure-args=--disable-openmp"
 else
 BUILDARGS = "--configure-args=--enable-openmp"
 endif
-NIGHTLYFILE = inst/tools/testNightly.R
 NIGHTLYPPMLFILE = inst/tools/testNightlyPPML.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
@@ -164,7 +163,7 @@ test:
 	$(REXEC) --vanilla --slave -f $(TESTFILE)
 
 torture:
-	$(REXEC) --vanilla --slave -f $(TESTFILE) --args gctorture
+	$(REXEC) -d "gdb --batch --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
 	$(REXEC) --vanilla --slave -f $(TESTFILE) --args nightly
