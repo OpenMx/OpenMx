@@ -533,8 +533,8 @@ insertMeansPathRAM <- function(path, M) {
 	alllbound <- path@lbound
 	allubound <- path@ubound	
 	if (any(arrows != 1)) {
-		stop(paste('The means path to variable', omxQuotes(to),
-			'does not contain a single-headed arrow.'), call. = FALSE)
+		stop(paste('The means path must be a single-headed arrow\n',
+		'path from "one" to variable(s)', omxQuotes(allto)), call. = FALSE)
 	}
 	for(i in 0:(length(allto) - 1)) {
 		to <- allto[[i %% length(allto) + 1]]
