@@ -525,22 +525,22 @@ removeMeansPathRAM <- function(path, M) {
 }
 
 insertMeansPathRAM <- function(path, M) {
-	allto <- path@to
-	arrows <- path@arrows
-	allfree <- path@free
+	allto     <- path@to
+	allarrows <- path@arrows
+	allfree   <- path@free
 	allvalues <- path@values
 	alllabels <- path@labels
 	alllbound <- path@lbound
 	allubound <- path@ubound	
-	if (any(arrows != 1)) {
+	if (any(allarrows != 1)) {
 		stop(paste('The means path must be a single-headed arrow\n',
 		'path from "one" to variable(s)', omxQuotes(allto)), call. = FALSE)
 	}
 	for(i in 0:(length(allto) - 1)) {
 		to <- allto[[i %% length(allto) + 1]]
-		nextvalue <- allvalues[[i %% length(allvalues) + 1]]
-		nextfree <- allfree[[i %% length(allfree) + 1]]
-		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
+		nextvalue  <- allvalues[[i %% length(allvalues) + 1]]
+		nextfree   <- allfree[[i %% length(allfree) + 1]]
+		nextlabel  <- alllabels[[i %% length(alllabels) + 1]]
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
 		M@free[1, to] <- nextfree
