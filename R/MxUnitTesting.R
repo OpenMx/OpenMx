@@ -213,7 +213,7 @@ omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	checkErrorState <- FALSE
 	tryCatch(eval(inputExpression), error = function(x) {
-		if(trim(x$message) != trim(message)) {
+		if(!any(trim(x$message) == trim(message))) {
 			stop(paste("An error was thrown with the wrong message:",
 				x$message), call. = FALSE)
 		} else { checkErrorState <<- TRUE }

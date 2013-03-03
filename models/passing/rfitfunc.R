@@ -17,7 +17,8 @@ omxCheckCloseEnough(model@matrices$param@values, 3.309401, 10^-3)
 infer <- function(marg,state) return(Inf)
 
 model <- mxModel(name="inf", mxFitFunctionR(infer))
-omxCheckError(mxRun(model), "The job for model 'inf' exited abnormally with the error message: Fit function returned inf at iteration 0.1")
+omxCheckError(mxRun(model), c("The job for model 'inf' exited abnormally with the error message: Fit function returned inf at iteration 0.1",
+			      "The job for model 'inf' exited abnormally with the error message: Fit function returned 1.#INF at iteration 0.1"))
 
 ###
 
