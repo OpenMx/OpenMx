@@ -79,6 +79,7 @@ Collate:
     'MxFitFunctionAlgebra.R'
     'MxFitFunctionML.R'
     'MxFitFunctionRow.R'
+    'MxFitFunctionWLS.R'
     'MxRAMObjective.R'
     'MxLISRELObjective.R'
     'MxFIMLObjective.R'
