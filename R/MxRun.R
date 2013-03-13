@@ -113,6 +113,9 @@ runHelper <- function(model, frontendStart,
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 	state <- c()
 	fitfunction <- getFitFunctionIndex(flatModel)
+	
+	useOptimizer <- useOptimizer && imxPPML.Check.UseOptimizer(model@options$UsePPML)
+	
 	options <- generateOptionsList(model, parameters, constraints, useOptimizer)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed

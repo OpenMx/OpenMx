@@ -330,7 +330,7 @@ setMethod("genericExpAddEntities", "MxExpectationRAM",
 		}
 
 		if (enablePPML) {
-			job <- imxTransformModelPPML(job)
+			job <- imxPPMLTransformModel(job)
 			job@.newobjects <- TRUE
 		}
 
