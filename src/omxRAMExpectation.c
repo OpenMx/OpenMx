@@ -21,12 +21,46 @@
 #include "omxMLFitFunction.h"
 #include "omxRAMExpectation.h"
 
-void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix**, omxMatrix**, int*);
-void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result);
-void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
+typedef struct {
+
+	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrix *A, *S, *F, *M, *I;
+	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *bCB, *ZSBC, *Mns, *lilI, *eCov, *beCov;
+    omxMatrix *dA, *dS, *dM, *b, *D, *paramVec;
+    // For gradients
+    omxMatrix ***eqnOuts;
+    omxMatrix **dAdts, **dSdts, **dMdts;
+
+    // Each vector keeps track of the number
+    // of non-zero elements in the
+    // corresponding dXdts matrix.
+    int *dAdtsCount, *dSdtsCount, *dMdtsCount;
+
+    int *dAdtsRowCache, *dAdtsColCache;
+    int *dSdtsRowCache, *dSdtsColCache;
+    int *dMdtsRowCache, *dMdtsColCache;
+
+    omxMatrix *tempVec, *bigSum, *lilSum;
+
+    int *pNums, nParam; // For Fast Gradient/Hessian Computation
+	int numIters;
+	double logDetObserved;
+	double n;
+	double *work;
+	int lwork;
+
+} omxRAMExpectation;
+
+static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix**, omxMatrix**, int*);
+static void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result);
+static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
+    omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
+    omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
+static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
+static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 
 // Speedup Helper
-void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
+static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
         int *DrowCache, int *DcolCache, int matNum, omxFreeVar* varList, 
         int* pNums, int nParam, omxMatrix*** result) {
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
@@ -73,7 +107,7 @@ void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts,
     }
 }
 
-void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result) {
+static void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* result) {
     // Performs outer multiply of column col of A by row row of B.
     // Adds product to beta * result.
     int nrow = A->rows;
@@ -104,18 +138,7 @@ void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMatrix* r
     }
 }
 
-double trAB(omxMatrix* A, omxMatrix* B) {
-    double output = 0.0;
-    // Computes tr(AB)
-    // Note: does not check for conformability
-    for(int j = 0; j < A->rows; j++) 
-        for(int k = 0; k < A->cols; k++)
-            output += omxMatrixElement(A, j, k) * omxMatrixElement(B, k, j);
-    
-    return(output);
-}
-
-void omxCallRAMExpectation(omxExpectation* oo) {
+static void omxCallRAMExpectation(omxExpectation* oo) {
     if(OMX_DEBUG) { Rprintf("RAM Expectation calculating.\n"); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
@@ -129,7 +152,7 @@ void omxCallRAMExpectation(omxExpectation* oo) {
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
 }
 
-void omxDestroyRAMExpectation(omxExpectation* oo) {
+static void omxDestroyRAMExpectation(omxExpectation* oo) {
 
 	if(OMX_DEBUG) { Rprintf("Destroying RAM Expectation.\n"); }
 	
@@ -189,7 +212,7 @@ void omxDestroyRAMExpectation(omxExpectation* oo) {
 
 }
 
-void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
+static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating RAM Attributes.\n"); }
 
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
@@ -243,7 +266,7 @@ void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
+static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
 	omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
 	omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
 	
@@ -411,36 +434,6 @@ void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj) {
 
 }
 
-void omxExpectationSetFitFunction(omxExpectation *ox, omxFitFunction *off) {
-/* Check for fit and make any changes based on the type of the underlying object */
-
-	omxRAMExpectation* RAMexp = (omxRAMExpectation*)(ox->argStruct);
-	// For fast gradient calculations
-	// If this block doesn't execute, we don't use gradients.
-	if(!strncmp("omxMLFitFunction", off->fitType, 14)) {
-		// Mode switch here.  Faster one is:
-		// omxSetMLFitFunctionGradient(off, fastRAMGradientML);
-		// Otherwise, call 
-		// omxSetMLFitFunctionGradientComponents(oo, calculateRAMGradientComponents);
-		// Note that once FIML kicks in, components should still work.
-		// Probably, we'll use the same thing for WLS.
-		RAMexp->D = ((omxMLFitFunction*)(off->argStruct))->observedCov;
-		RAMexp->Mns = ((omxMLFitFunction*)(off->argStruct))->observedMeans;
-		RAMexp->n = ((omxMLFitFunction*)(off->argStruct))->n;
-    }
-}
-
-static inline void omxVectorMultiplyAndSet(double *restrict dest, 
-                                           double *restrict src, 
-                                           int len, double value) {
-
-    for(int offset = 0; offset < len; offset++)
-        dest[offset] = src[offset] * value;
-
-}
-
-
-
 /*
  * fastRAMGradientML
  * 			Calculates the derivatives of the likelihood for a RAM model.  
@@ -457,7 +450,7 @@ static inline void omxVectorMultiplyAndSet(double *restrict dest,
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result) {
+static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result) {
     
     // This calculation is based on von Oertzen and Brick, in prep.
     //
@@ -901,7 +894,7 @@ void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result) 
 }
 
 
-void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
+static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
 
     // Steps:
     // 1) (Re) Calculate current A, S, F, and Z (where Z = (I-A)^-1)
@@ -1033,7 +1026,7 @@ void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigmas, omx
 
 }
 
-omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
 	
 	if(OMX_DEBUG) { Rprintf("RAM expectation: %s requested--", component); }
 
