@@ -308,35 +308,34 @@ updateRAMdimnames <- function(flatExpectation, flatJob) {
 }
 
 setMethod("genericExpAddEntities", "MxExpectationRAM",
-	function(.Object, job, flatJob, labelsData) {
-		precision <- "Function precision"
-		if(!single.na(.Object@thresholds)) {
-			if (is.null(job@options[[precision]])) {
-				job <- mxOption(job, precision, 1e-9)
-			}
-		}
+	  function(.Object, job, flatJob, labelsData) {
+		  precision <- "Function precision"
+		  if(!single.na(.Object@thresholds)) {
+			  if (is.null(job@options[[precision]])) {
+				  job <- mxOption(job, precision, 1e-9)
+			  }
+		  }
 
-        ppmlModelOption <- job@options$UsePPML
-        if (is.null(ppmlModelOption)) {
-            enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
-        } else {
-            enablePPML <- (ppmlModelOption == "Yes")
-        }
+		  ppmlModelOption <- job@options$UsePPML
+		  if (is.null(ppmlModelOption)) {
+			  enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
+		  } else {
+			  enablePPML <- (ppmlModelOption == "Yes")
+		  }
 
-        if (enablePPML) {
-            aMatrix <- job[[.Object@A]]
-            aMatrixFixed <- !is.null(aMatrix) && is(aMatrix, "MxMatrix") && all(!aMatrix@free)
-            enablePPML <- aMatrixFixed
-		}
+		  if (enablePPML) {
+			  aMatrix <- job[[.Object@A]]
+			  aMatrixFixed <- !is.null(aMatrix) && is(aMatrix, "MxMatrix") && all(!aMatrix@free)
+			  enablePPML <- aMatrixFixed
+		  }
 
-		if (enablePPML) {
-			job <- imxPPMLTransformModel(job)
-			job@.newobjects <- TRUE
-		}
+		  if (enablePPML) {
+			  job <- imxPPMLTransformModel(job)
+			  job@.newobjects <- TRUE
+		  }
 
-		return(job)
-	}
-)
+		  return(job)
+	  })
 
 setMethod("genericExpConvertEntities", "MxExpectationRAM",
 	function(.Object, flatModel, namespace, labelsData) {
