@@ -18,7 +18,6 @@
 #include "omxBLAS.h"
 #include "omxFIMLFitFunction.h"
 #include "omxLISRELExpectation.h"
-#include "omxRAMExpectation.h"
 
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
@@ -107,7 +106,7 @@ void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
 	// In general, I do not yet understand what this function needs to do.
 	
 	/*
-	omxFastRAMInverse(numIters, BE, Z, Ax, I ); // Z = (I-A)^-1
+	omxShallowInverse(numIters, BE, Z, Ax, I ); // Z = (I-A)^-1
 	
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.\n", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
@@ -168,7 +167,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
 	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
-	//int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxFastRAMInverse()
+	//int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxShallowInverse()
 	//double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
 	
 	
@@ -193,7 +192,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
-		omxFastRAMInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
@@ -294,7 +293,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
-		omxFastRAMInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
@@ -337,7 +336,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
-	omxFastRAMInverse(numIters, A, Z, Ax, I );
+	omxShallowInverse(numIters, A, Z, Ax, I );
 		
 	// IMPORTANT: Cov = FZSZ'F'
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}

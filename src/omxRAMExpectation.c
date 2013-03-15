@@ -205,7 +205,7 @@ void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     omxRecompute(A);
     omxRecompute(S);
 	
-	omxFastRAMInverse(numIters, A, Z, Ax, I ); // Z = (I-A)^-1
+	omxShallowInverse(numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.\n", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
@@ -224,91 +224,6 @@ void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 				omxMatrixElement(Ax, row, col);
 	setAttrib(algebra, install("UnfilteredExpCov"), expCovExt);
 	UNPROTECT(1);
-}
-
-/*
- * omxFastRAMInverse
- * 			Calculates the inverse of (I-A) using an n-step Neumann series
- * Assumes that A reduces to all zeros after numIters steps
- *
- * params:
- * omxMatrix *A				: The A matrix.  I-A will be inverted.  Size MxM.
- * omxMatrix *Z				: On output: Computed (I-A)^-1. MxM.
- * omxMatrix *Ax			: Space for computation. MxM.
- * omxMatrix *I				: Identity matrix. Will not be changed on exit. MxM.
- */
-
-void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ) {
-	
-	omxMatrix* origZ = Z;
-    double oned = 1, minusOned = -1.0;
-
-	if(numIters == NA_INTEGER) {
-		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.
-		double work[lwork];
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using standard (general) inversion.\n"); }
-
-		/* Z = (I-A)^-1 */
-		if(I->colMajor != A->colMajor) {
-			omxTransposeMatrix(I);
-		}
-		omxCopyMatrix(Z, A);
-
-		/* Z = (I-A)^-1 */
-		// F77_CALL(omxunsafedgemm)(I->majority, Z->majority, &(I->cols), &(I->rows), &(Z->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &minusOned, Z->data, &(Z->cols));
-		//omxDGEMM(FALSE, FALSE, oned, I, Z, minusOned, Z); //Tim, I think this is incorrect: 1.0*I*Z-Z = Z-Z = 0 but you want I-Z.  So this should be omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z). -MDH
-		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z);
-
-		// F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
-		k = omxDGETRF(Z, ipiv);
-		if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
-		if(k > 0) {
-		        char errStr[250];
-		        strncpy(errStr, "(I-A) is exactly singular.", 100);
-		        omxRaiseError(A->currentState, -1, errStr);                    // Raise Error
-		        return;
-		}
-		// F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, &lwork, &k);
-		k = omxDGETRI(Z, ipiv, work, lwork);
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
-
-		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
-
-	} else {
-
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using optimized expansion.\n"); }
-
-		/* Taylor Expansion optimized I-A calculation */
-		if(I->colMajor != A->colMajor) {
-			omxTransposeMatrix(I);
-		}
-
-		if(I->colMajor != Ax->colMajor) {
-			omxTransposeMatrix(Ax);
-		}
-
-		omxCopyMatrix(Z, A);
-
-		/* Optimized I-A inversion: Z = (I-A)^-1 */
-		// F77_CALL(omxunsafedgemm)(I->majority, A->majority, &(I->cols), &(I->rows), &(A->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &oned, Z->data, &(Z->cols));  // Z = I + A = A^0 + A^1
-		// omxDGEMM(FALSE, FALSE, 1.0, I, I, 1.0, Z); // Z == A + I
-        
-		for(int i = 0; i < A->rows; i++)
-			omxSetMatrixElement(Z, i, i, 1);
-
-		for(int i = 1; i <= numIters; i++) { // TODO: Efficiently determine how many times to do this
-			// The sequence goes like this: (I + A), I + (I + A) * A, I + (I + (I + A) * A) * A, ...
-			// Which means only one DGEMM per iteration.
-			if(OMX_DEBUG_ALGEBRA) { Rprintf("....RAM: Iteration #%d/%d\n", i, numIters);}
-			omxCopyMatrix(Ax, I);
-			// F77_CALL(omxunsafedgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
-			omxDGEMM(FALSE, FALSE, oned, A, Z, oned, Ax);
-			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
-		}
-		if(origZ != Z) { 	// Juggling has caused Ax and Z to swap
-			omxCopyMatrix(Z, Ax);
-		}
-	}
 }
 
 /*
@@ -355,7 +270,7 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
-	omxFastRAMInverse(numIters, A, Z, Ax, I );
+	omxShallowInverse(numIters, A, Z, Ax, I );
 
 	if(OMX_DEBUG_ALGEBRA) Rprintf("Status is %d\n", A->currentState->statusCode);
 	

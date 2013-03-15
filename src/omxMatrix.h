@@ -344,5 +344,6 @@ static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert 
 	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 
+void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
 #endif /* _OMXMATRIX_H_ */

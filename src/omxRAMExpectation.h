@@ -54,7 +54,6 @@ void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F,
 
 void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj);
 omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
-void omxFastRAMInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
 
 #endif /* _OMXRAMEXPECTATION_H_ */
