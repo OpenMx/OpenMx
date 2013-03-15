@@ -77,12 +77,6 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	omxFreeMatrixData(argStruct->BOT);
 	omxFreeMatrixData(argStruct->MUX);
 	omxFreeMatrixData(argStruct->MUY);
-	
-	
-	/* Comment out the ppml things I do not use.
-	if(argStruct->ppmlData != NULL) 
-		omxFreeData(argStruct->ppmlData);
-	*/
 }
 
 void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
@@ -450,30 +444,6 @@ void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj) {
 		LISobj->TH = omxInitMatrix(NULL, LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
 	}
 	
-	
-	/* PPML Code: Perhaps comment out this block */
-	/*
-	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
-	LISobj->usePPML = INTEGER(slotValue)[0]; 
-	UNPROTECT(1);
-
-	if(LISobj->usePPML) {
-		PROTECT(slotValue = GET_SLOT(rObj, install("ppmlData")));
-		LISobj->ppmlData = omxNewDataFromMxData(NULL, slotValue, currentState);
-		UNPROTECT(1);
-
-		LISobj->cov = omxDataMatrix(LISobj->ppmlData, NULL);
-
-		if(OMX_DEBUG) { Rprintf("Processing PPML observed means.\n"); }
-		LISobj->ppmlMeans = omxDataMeans(LISobj->ppmlData, 0, NULL);
-		if(OMX_DEBUG && LISobj->means == NULL) { Rprintf("LISREL: No PPML Observed Means.\n"); }
-	} else {
-		LISobj->ppmlData  = NULL;
-		LISobj->ppmlCov   = NULL;
-		LISobj->ppmlMeans = NULL;
-	}
-	*/
 	
 	/* Identity Matrix, Size Of BE */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }

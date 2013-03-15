@@ -34,10 +34,6 @@ typedef struct {
 	//double* work; // used by omxFastRAM/LISRELInverse
 	//int lwork; // used by omxFastRAM/LISRELInverse
 
-	int usePPML;
-	omxData *ppmlData;
-	omxMatrix *ppmlCov, *ppmlMeans;
-
 	omxMatrix **args;
 
 } omxLISRELExpectation;
