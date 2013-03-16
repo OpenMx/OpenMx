@@ -326,37 +326,9 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 			M <- insertMeansPathRAM(path, M)
 		} else {
-			bivariate <- FALSE
-			self      <- FALSE
-			# interpret 'path@connect' argument
-			if ((path@connect == "unique.pairs" ) || (path@connect == "unique.bivariate")){
-				bivariate <- TRUE
-			}
-			if ((path@connect == "all.bivariate") || (path@connect == "unique.bivariate")){
-				self <- TRUE
-			}
-			
-			# if path@connect!="single", expand from and to
-			if ((path@connect != "single")){ 
-				path@from <- rep(path@from, each=length(path@to))
-				path@to   <- rep(path@to, length(path@from)/length(path@to))
-
-				exclude <- rep(FALSE, length(path@from))
-
-				# if 'excluderedundant', then exclude b,a if a,b is present
-				if (bivariate){
-					sortedPairs <- t(apply(matrix(c(path@from, path@to), ncol = 2), 1, sort))
-					exclude <- exclude | duplicated(sortedPairs)
-				}
-
-				# if 'excludeself', then exclude x,x paths
-				if (self){
-					exclude <- exclude | (path@from==path@to)
-				}
-				path@from <- path@from[!exclude]
-				path@to   <- path@to[!exclude]
-				
-			}
+			expanded <- expandPathConnect(path@from, path@to, path@connect)
+			path@from <- expanded$from
+			path@to   <- expanded$to
 			retval <- insertPathRAM(path, A, S)
 			A <- retval[[1]]
 			S <- retval[[2]]	
@@ -390,33 +362,9 @@ removeAllPathsRAM <- function(model, paths) {
 		if (length(path@from) == 1 && (path@from == "one")) {		
 			M <- removeMeansPathRAM(path, M)
 		} else {
-			if ((path@connect != "single")) { 
-				bivariate <- FALSE
-				self      <- FALSE
-				if ((path@connect == "unique.pairs" ) || (path@connect == "unique.bivariate")){
-					bivariate <- TRUE
-				}
-				if ((path@connect == "all.bivariate") || (path@connect == "unique.bivariate")){
-					self <- TRUE
-				}
-				path@from <- rep(path@from, each=length(path@to))
-				path@to   <- rep(path@to, length(path@from)/length(path@to))
-
-				exclude <- rep(FALSE, length(path@from))
-
-				# if 'excluderedundant', then exclude b,a if a,b is present
-				if (bivariate){
-					sortedPairs <- t(apply(matrix(c(path@from, path@to), ncol = 2), 1, sort))
-					exclude <- exclude | duplicated(sortedPairs)
-				}
-				# if 'excludeself', then exclude x,x paths
-				if (self){
-					exclude <- exclude | (path@from==path@to)
-				}
-				path@from <- path@from[!exclude]
-				path@to   <- path@to[!exclude]
-				
-			}
+			expanded <- expandPathConnect(path@from, path@to, path@connect)
+			path@from <- expanded$from
+			path@to   <- expanded$to
 			retval <- removePathRAM(path, A, S)
 			A <- retval[[1]]
 			S <- retval[[2]]

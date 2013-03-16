@@ -42,23 +42,7 @@ setMethod("initialize", "MxPath",
 	}
 )
 
-# returns a list of paths
-generatePath <- function(from, to, 
-		connect, arrows, values, free,
-		labels, lbound, ubound) {
-		
-	# save exactly what the user typed to pass to mxModel for creation
-	unalteredTo <- to
-	unalteredFrom <- from
-		
-	# check if user employed the loop shortcut by only specifying from	
-	if (single.na(to)) {
-		loop <- TRUE
-		to <- from
-	} else {
-		loop <- FALSE
-	}
-	
+expandPathConnect <- function(from, to, connect) {
 	# now expand the paths to check for errors
 	excludeBivariate <- FALSE
 	excludeSelf      <- FALSE
@@ -92,8 +76,31 @@ generatePath <- function(from, to,
 		
 		from <- from[!exclude]
 		to   <- to[!exclude]		
-	} 	
+	}
+	return(list(from=from,to=to))
+}
+
+# returns a list of paths
+generatePath <- function(from, to,
+		connect, arrows, values, free,
+		labels, lbound, ubound) {
+
+	# save exactly what the user typed to pass to mxModel for creation
+	unalteredTo <- to
+	unalteredFrom <- from
+
+	# check if user employed the loop shortcut by only specifying from
+	if (single.na(to)) {
+		loop <- TRUE
+		to <- from
+	} else {
+		loop <- FALSE
+	}
 	
+	expanded <- expandPathConnect(from, to, connect)
+	from <- expanded$from
+	to   <- expanded$to
+
 	# check for a missing to or from
 	pathCheckToAndFrom(from, to)
 
