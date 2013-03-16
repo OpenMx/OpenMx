@@ -555,8 +555,6 @@ insertMeansPathRAM <- function(path, M) {
 removePathRAM <- function(path, A, S) {
 	allfrom <- path@from
 	allto <- path@to
-	print(path@from)
-	print(path@to)
 	allarrows <- path@arrows
 	maxlength <- max(length(allfrom), length(allto))
 	A_free <- A@free
