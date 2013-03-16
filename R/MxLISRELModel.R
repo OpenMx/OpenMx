@@ -31,6 +31,8 @@ setMethod("imxTypeName", "MxLISRELModel",
 
 setMethod("imxInitModel", "MxLISRELModel", 
 	function(model) {
+		stop("Not implemented")
+		
 		if (is.null(model[['LX']])) {
 			model[['LX']] <- createMatrixLoa(model, TRUE)
 		}
@@ -79,6 +81,13 @@ setMethod("imxInitModel", "MxLISRELModel",
 		return(model)
 	}
 )
+
+createMatrixLoa <- function(model, exogenous) {}
+createMatrixReg <- function(model, exogenous) {}
+createMatrixErr <- function(model, exogenous) {}
+createMatrixRes <- function(model, exogenous) {}
+createMatrixMea <- function(model, exogenous) {}
+createMatrixInt <- function(model, exogenous) {}
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
 	function(model, lst, name, 
