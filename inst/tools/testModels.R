@@ -44,7 +44,11 @@ if (any(args == 'gctorture')) {
 	files <- list.files(directories, pattern = '^.+[.]R$',
 			    full.names = TRUE, recursive = TRUE)
 }
-	
+
+if (any(args == 'lisrel')) {
+	files <- grep("LISREL", files, value=TRUE, ignore.case=TRUE)
+}
+
 errors <- list()
 runtimes <- numeric()
 

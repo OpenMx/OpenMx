@@ -162,6 +162,9 @@ testdocs:
 test:
 	$(REXEC) --vanilla --slave -f $(TESTFILE)
 
+test-lisrel:
+	$(REXEC) --vanilla --slave -f $(TESTFILE) --args lisrel
+
 torture:
 	$(REXEC) -d "gdb --batch --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
 
