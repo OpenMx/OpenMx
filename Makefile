@@ -80,7 +80,7 @@ r-libs-user-dir:
 internal-build: build/$(TARGET)
 
 dev-doc:
-	./inst/tools/rox
+	./util/rox
 
 build/$(TARGET): $(RFILES)
 	mkdir -p build

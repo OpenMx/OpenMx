@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o noclobber
 
-if [ ! -x inst/tools/rox ]; then
+if [ ! -x util/rox ]; then
   echo "$0 must be run from the top of the package directory"
   exit 1
 fi
