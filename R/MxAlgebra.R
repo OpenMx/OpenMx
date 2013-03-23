@@ -13,7 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClassUnion("MxListOrNull", c("list", "NULL"))
 setClassUnion("MxAlgebraFormula", c("call", "name", "language", "logical", "numeric"))
 
 setClass(Class = "MxAlgebra",

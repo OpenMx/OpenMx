@@ -39,6 +39,7 @@ Suggests:
 LazyLoad: yes
 LazyData: yes
 Collate:
+    '0ClassUnion.R'
     'MxData.R'
     'DefinitionVars.R'
     'MxReservedNames.R'
@@ -46,7 +47,6 @@ Collate:
     'MxSearchReplace.R'
     'MxFlatSearchReplace.R'
     'MxUntitled.R'
-    'MxCharOrNumber.R'
     'MxAlgebraFunctions.R'
     'MxExponential.R'
     'MxMatrix.R'

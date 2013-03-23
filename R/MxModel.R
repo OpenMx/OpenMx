@@ -13,8 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClassUnion("MxCharOrList", c("character", "list"))
-
 setClass(Class = "MxModel",
 	representation = representation(
 		name = "character",
