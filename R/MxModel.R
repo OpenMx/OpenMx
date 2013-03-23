@@ -66,7 +66,7 @@ setGeneric("imxInitModel", function(model) {
 	return(standardGeneric("imxInitModel")) } )
 
 setGeneric("imxModelBuilder", function(model, lst, name, 
-	manifestVars, latentVars, remove, independent) {
+	manifestVars, latentVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
 setGeneric("imxTypeName", function(model) { 
@@ -186,8 +186,11 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
 	lst <- unlist(lst)
+	filter <- sapply(lst, is, "MxModel")
+	submodels <- lst[filter]
+	lst <- lst[!filter]
 	model <- imxModelBuilder(model, lst, name, manifestVars,
-		latentVars, remove, independent)
+		latentVars, submodels, remove, independent)
 	return(model)
 }
 
@@ -228,9 +231,9 @@ typeArgument <- function(model, type) {
 }
 
 imxGenericModelBuilder <- function(model, lst, name, 
-	manifestVars, latentVars, remove, independent) {
+	manifestVars, latentVars, submodels, remove, independent) {
 	model <- nameArgument(model, name)
-	model <- variablesArgument(model, manifestVars, latentVars, remove)
+	model <- variablesArgument(model, manifestVars, latentVars, submodels, remove)
 	model <- listArgument(model, lst, remove)
 	model <- independentArgument(model, independent)
 	return(model)
@@ -268,7 +271,7 @@ varsToCharacter <- function(vars, vartype) {
 	}
 }
 
-variablesArgument <- function(model, manifestVars, latentVars, remove) {
+variablesArgument <- function(model, manifestVars, latentVars, submodels, remove) {
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
@@ -277,11 +280,19 @@ variablesArgument <- function(model, manifestVars, latentVars, remove) {
 	}
 	if (remove == TRUE) {
 		model <- modelRemoveVariables(model, latentVars, manifestVars)
-	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- varsToCharacter(latentVars, "latent")
-		manifestVars <- varsToCharacter(manifestVars, "manifest")
-		checkVariables(model, latentVars, manifestVars)
-		model <- modelAddVariables(model, latentVars, manifestVars)
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- removeSingleNamedEntity(model, submodels[[i]])
+		}
+	} else {
+		if (length(manifestVars) + length(latentVars) > 0) {
+			latentVars <- varsToCharacter(latentVars, "latent")
+			manifestVars <- varsToCharacter(manifestVars, "manifest")
+			checkVariables(model, latentVars, manifestVars)
+			model <- modelAddVariables(model, latentVars, manifestVars)
+		}
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- addSingleNamedEntity(model, submodels[[i]])
+		}
 	}
 	return(model)
 }
@@ -309,7 +320,7 @@ nameArgument <- function(model, name) {
 	return(model)
 }
 
-checkVariables <- function(model, latentVars, manifestVars) {
+checkVariables <- function(model, latentVars, manifestVars, submodels) {
 	latentVars   <- unlist(latentVars, use.names = FALSE)
 	manifestVars <- unlist(manifestVars, use.names = FALSE)
 	modelLatent <- unlist(model@latentVars, use.names = FALSE)

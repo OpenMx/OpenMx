@@ -91,7 +91,7 @@ createMatrixInt <- function(model, exogenous) {}
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
 	function(model, lst, name, 
-		manifestVars, latentVars, remove, independent) {
+		manifestVars, latentVars, submodels, remove, independent) {
 		stop("Not implemented")
 	}
 )

@@ -48,13 +48,13 @@ setMethod("imxInitModel", "MxRAMModel",
 
 setMethod("imxModelBuilder", "MxRAMModel", 
 	function(model, lst, name, 
-		manifestVars, latentVars, remove, independent) {
-        model <- nameArgument(model, name)		
-		model <- variablesArgumentRAM(model, manifestVars, latentVars, remove)
+		 manifestVars, latentVars, submodels, remove, independent) {
+		model <- nameArgument(model, name)
+		model <- variablesArgumentRAM(model, manifestVars, latentVars, submodels, remove)
 		model <- listArgumentRAM(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), 
-			character(), remove, independent)
+			character(), list(), remove, independent)
 	}
 )
 
@@ -109,7 +109,7 @@ setReplaceMethod("$", "MxRAMModel",
 
 # Helper functions used by the generic functions
 
-variablesArgumentRAM <- function(model, manifestVars, latentVars, remove) {
+variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, remove) {
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
@@ -120,11 +120,19 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, remove) {
 		if (length(latentVars) + length(manifestVars) > 0) {
 			model <- removeVariablesRAM(model, latentVars, manifestVars)
 		}
-	} else if (length(manifestVars) + length(latentVars) > 0) {
-		latentVars <- varsToCharacter(latentVars, "latent")
-		manifestVars <- varsToCharacter(manifestVars, "manifest")
-		checkVariables(model, latentVars, manifestVars)
-		model <- addVariablesRAM(model, latentVars, manifestVars)
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- removeSingleNamedEntity(model, submodels[[i]])
+		}
+	} else {
+		if (length(manifestVars) + length(latentVars) > 0) {
+			latentVars <- varsToCharacter(latentVars, "latent")
+			manifestVars <- varsToCharacter(manifestVars, "manifest")
+			checkVariables(model, latentVars, manifestVars)
+			model <- addVariablesRAM(model, latentVars, manifestVars)
+		}
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- addSingleNamedEntity(model, submodels[[i]])
+		}
 	}
 	return(model)
 }
