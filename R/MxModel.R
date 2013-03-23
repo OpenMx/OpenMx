@@ -178,8 +178,7 @@ imxSameType <- function(a, b) {
 }
 
 mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
-	remove = FALSE, independent = NA, type = NA, name = NA) {
-	func.call <- match.call(expand.dots=FALSE)
+		    remove = FALSE, independent = NA, type = NA, name = NA) {
 	retval <- firstArgument(model, name)
 	first <- retval[[1]]
 	model <- retval[[2]]
