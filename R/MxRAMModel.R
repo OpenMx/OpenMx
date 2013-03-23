@@ -48,13 +48,13 @@ setMethod("imxInitModel", "MxRAMModel",
 
 setMethod("imxModelBuilder", "MxRAMModel", 
 	function(model, lst, name, 
-		manifestVars, latentVars, lst.call, remove, independent) {
+		manifestVars, latentVars, remove, independent) {
         model <- nameArgument(model, name)		
 		model <- variablesArgumentRAM(model, manifestVars, latentVars, remove)
 		model <- listArgumentRAM(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), 
-			character(), lst.call, remove, independent)
+			character(), remove, independent)
 	}
 )
 
