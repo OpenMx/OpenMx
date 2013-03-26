@@ -341,9 +341,10 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 	function(.Object, flatModel, namespace, labelsData) {
 		cache <- new.env(parent = emptyenv())
 		if(is.na(.Object@data)) {
+			modelname <- getModelName(.Object)
 			msg <- paste("The RAM expectation function",
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
 		
