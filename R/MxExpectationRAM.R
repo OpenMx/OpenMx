@@ -363,15 +363,10 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 				stop(msg, call.=FALSE)
 		}
 
-		# Simplest possible check for PPML applicability, imxTransformModelPPML
-		# will check beyond that
-
 		flatModel <- updateRAMdimnames(.Object, flatModel)
 
 		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
-			
 			return(flatModel)
-
 		}
 
 		if (is.na(.Object@M) || is.null(flatModel[[.Object@M]])) {
