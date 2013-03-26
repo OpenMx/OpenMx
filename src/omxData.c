@@ -66,8 +66,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	if(OMX_DEBUG) {Rprintf("Initializing data Element.\n");}
 	if(dataObject == NULL) {
 		error("Null Data Object detected.  This is an internal error, and should be reported on the forums.\n");
-		// Badness has occurred.  This data object does not exist.
-		return NULL;
 	}
 
 	omxData* od = data;
