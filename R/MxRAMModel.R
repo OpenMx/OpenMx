@@ -59,40 +59,39 @@ setMethod("imxModelBuilder", "MxRAMModel",
 )
 
 setMethod("imxVerifyModel", "MxRAMModel",
-	function(model) {
-		if ((length(model$A) == 0) ||
-			(length(model$S) == 0) ||
-			(length(model$F) == 0)) {
-				msg <- paste("The RAM model", omxQuotes(model@name),
-                "does not contain any paths.",
-				" You can add paths to your model like this:",
-				" mxPath(from = 'x1', to = 'y1')")
-				stop(msg, call. = FALSE)
-		}
-		expectation <- model$expectation
-		if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
-			if (!is.null(model@data) && model@data@type == "raw" &&
-   	    	is.null(model$M)) {
-				msg <- paste("The RAM model", omxQuotes(model@name),
-        	       "contains raw data but has not specified any means paths.",
-                   "Add something like mxPath(from = 'one', to = manifests) to your model."
-                   )
-				stop(msg, call. = FALSE)
-			}
-			if (!is.null(model@data) && !single.na(model@data@means) &&
-				is.null(model$M)) {
-				msg <- paste("The RAM model", omxQuotes(model@name),
-					"contains an observed means vector",
-					"but has not specified any means paths.")
-				stop(msg, call. = FALSE)        	
-			}
-		}
-		if (length(model@submodels) > 0) {
-			return(all(sapply(model@submodels, imxVerifyModel)))
-		}
-		return(TRUE)
-	}
-)
+	  function(model) {
+		  if ((length(model$A) == 0) ||
+		      (length(model$S) == 0) ||
+		      (length(model$F) == 0)) {
+			  msg <- paste("The RAM model", omxQuotes(model@name),
+				       "does not contain any paths.",
+				       " You can add paths to your model like this:",
+				       " mxPath(from = 'x1', to = 'y1')")
+			  stop(msg, call. = FALSE)
+		  }
+		  expectation <- model$expectation
+		  if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
+			  if (!is.null(model@data) && model@data@type == "raw" &&
+			      is.null(model$M)) {
+				  msg <- paste("The RAM model", omxQuotes(model@name),
+					       "contains raw data but has not specified any means paths.",
+					       "Add something like mxPath(from = 'one', to = manifests) to your model."
+					       )
+				  stop(msg, call. = FALSE)
+			  }
+			  if (!is.null(model@data) && !single.na(model@data@means) &&
+			      is.null(model$M)) {
+				  msg <- paste("The RAM model", omxQuotes(model@name),
+					       "contains an observed means vector",
+					       "but has not specified any means paths.")
+				  stop(msg, call. = FALSE)
+			  }
+		  }
+		  if (length(model@submodels) > 0) {
+			  return(all(sapply(model@submodels, imxVerifyModel)))
+		  }
+		  return(TRUE)
+	  })
 
 
 setReplaceMethod("[[", "MxRAMModel",
