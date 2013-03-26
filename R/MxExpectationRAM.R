@@ -398,20 +398,20 @@ imxSimpleRAMPredicate <- function(model) {
 	return(is(A, "MxMatrix") && is(S, "MxMatrix"))
 }
 
-mxExpectationRAM <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA,
+mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
 	threshnames = dimnames) {
 
-	if (missing(A) || typeof(A) != "character") {
+	if (typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
 		stop(msg)
 	}	
-	if (missing(S) || typeof(S) != "character") {
+	if (typeof(S) != "character") {
 		msg <- paste("argument 'S' is not a string",
 			"(the name of the 'S' matrix)")
 		stop(msg)
 	}
-	if (missing(F) || typeof(F) != "character") {
+	if (typeof(F) != "character") {
 		msg <- paste("argument 'F' is not a string",
 			"(the name of the 'F' matrix)")
 		stop(msg)
