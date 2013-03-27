@@ -121,7 +121,7 @@ expectationFunctionAddEntities <- function(model, flatModel, labelsData) {
 	return(model)
 }
 
-expectationFunctionModifyEntities <- function(flatModel, namespace, labelsData) {
+expectationFunctionConvertEntities <- function(flatModel, namespace, labelsData) {
 
 	expectations <- flatModel@expectations
 

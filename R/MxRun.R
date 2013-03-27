@@ -87,7 +87,7 @@ runHelper <- function(model, frontendStart,
 		labelsData <- imxGenerateLabels(model)
 	}
 
-	flatModel <- expectationFunctionModifyEntities(flatModel, namespace, labelsData)
+	flatModel <- expectationFunctionConvertEntities(flatModel, namespace, labelsData)
 
 	if (model@.newobjects) {
 		convertArguments <- imxCheckVariables(flatModel, namespace)
