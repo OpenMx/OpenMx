@@ -15,15 +15,15 @@
  */
 
 /***********************************************************
-*
-*  omxData.cc
-*
-*  Created: Timothy R. Brick 	Date: 2009-07-15
-*
-*	Contains code for the omxData class
-*   omxData objects hold data in whatever form it takes
-*
-**********************************************************/
+ *
+ *  omxData.cc
+ *
+ *  Created: Timothy R. Brick 	Date: 2009-07-15
+ *
+ *	Contains code for the omxData class
+ *   omxData objects hold data in whatever form it takes
+ *
+ **********************************************************/
 #include "omxData.h"
 
 omxData* omxInitData(omxData* od, omxState* os) {
@@ -46,9 +46,9 @@ omxData* omxInitData(omxData* od, omxState* os) {
 	od->identicalDefs = NULL;
 	od->identicalMissingness = NULL;
 	od->identicalRows = NULL;
-    od->numFactor = 0;
-    od->numNumeric = 0;
-    od->isDynamic = FALSE;
+	od->numFactor = 0;
+	od->numNumeric = 0;
+	od->isDynamic = FALSE;
 	
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
 
@@ -83,8 +83,8 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("type")));
 	if(dataLoc == NULL) { error("Data has no type.  Sorry.\nThis is an internal error, and should be reported on the forums.\n");}
 	PROTECT(dataVal = STRING_ELT(dataLoc,0));
-		strncpy(od->type, CHAR(dataVal), 249);
-		od->type[249] = '\0';
+	strncpy(od->type, CHAR(dataVal), 249);
+	od->type[249] = '\0';
 	UNPROTECT(2); // dataLoc, dataVec
 	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->type);}
 
@@ -106,7 +106,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
 				od->intData[numInts] = INTEGER(od->columns[j]);
 				od->location[j] = ~(numInts++);
-                od->numFactor++;
+				od->numFactor++;
 			} else if (isInteger(od->columns[j])) {
 				char *errstr = calloc(250, sizeof(char));
 				sprintf(errstr, "Internal error: Column %d is in integer format.", j);
@@ -131,27 +131,27 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		}
 		od->cols = od->dataMat->cols;
 		od->rows = od->dataMat->rows;
-        od->numNumeric = od->cols;
+		od->numNumeric = od->cols;
 	}
 	UNPROTECT(1); // dataLoc
 
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
-		od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
-		if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
-		    (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
-		        !isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
-                    omxFreeMatrixData(od->meansMat); // Clear just-allocated memory.
-                    od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
+	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
+	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
+	    !isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
+		omxFreeMatrixData(od->meansMat); // Clear just-allocated memory.
+		od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
                 // FIXME: The above check may cause problems for dynamic data if the means
                 //          originally is a 1x1 that has not yet been calculated.  This should be
                 //          adjusted.
-            }
+	}
 	UNPROTECT(1); // dataLoc
 	
 	if(OMX_DEBUG) {
 	        if(od->meansMat == NULL) {Rprintf("No means found.\n");}
-            else {omxPrint(od->meansMat, "Means Matrix is:");}
+		else {omxPrint(od->meansMat, "Means Matrix is:");}
         }
 
 	if(strncmp(od->type, "raw", 3) != 0) {
@@ -165,24 +165,24 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		/* For raw data, process sorting metadata. */
 		// Process unsorted indices:  // TODO: Generate reverse lookup table
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("indexVector")));
-			od->indexVector = INTEGER(dataLoc);
-			if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
+		od->indexVector = INTEGER(dataLoc);
+		if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
 		UNPROTECT(1);
 		// Process pre-computed identicality checks
 		if(OMX_DEBUG) {Rprintf("Processing definition variable identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalDefVars")));
-			od->identicalDefs = INTEGER(dataLoc);
-			if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
+		od->identicalDefs = INTEGER(dataLoc);
+		if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
 		UNPROTECT(1);
 		if(OMX_DEBUG) {Rprintf("Processing missingness identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalMissingness")));
-			od->identicalMissingness = INTEGER(dataLoc);
-			if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
+		od->identicalMissingness = INTEGER(dataLoc);
+		if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
 		UNPROTECT(1);
 		if(OMX_DEBUG) {Rprintf("Processing row identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalRows")));
-			od->identicalRows = INTEGER(dataLoc);
-			if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
+		od->identicalRows = INTEGER(dataLoc);
+		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 		UNPROTECT(1);
 	}
 
@@ -238,7 +238,7 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 		}
 		return od->dataMat;
 	}
-									// Otherwise, we must construct the matrix.
+	// Otherwise, we must construct the matrix.
 	int numRows = od->rows, numCols = od->cols;
 
 	if(om == NULL) {
@@ -270,12 +270,12 @@ unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	sprintf(errstr, "Attempted to access column %d of a %d-column data object.\n", col, od->cols);
 	omxRaiseError(od->currentState, -1, errstr);
 	free(errstr);
-    return FALSE;
+	return FALSE;
 }
 
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 
-    if(od->meansMat == NULL) return NULL;
+	if(od->meansMat == NULL) return NULL;
 
 	if(colList == NULL) {
 		if(om == NULL) return od->meansMat;
@@ -327,7 +327,7 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 }
 
 omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om) {
-    // TODO: Might be better to combine this with omxDataRow to make a single accessor omxDataRow with a second signature that accepts an omxContiguousData argument.
+	// TODO: Might be better to combine this with omxDataRow to make a single accessor omxDataRow with a second signature that accepts an omxContiguousData argument.
 	if(row > od->rows) return NULL;	// Sanity check
 
 	if(om == NULL) {
@@ -355,7 +355,7 @@ omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 		omxMatrix* dataMat = od->dataMat;
 		for(int j = 0; j < numcols; j++) {
 			omxSetMatrixElement(om, 0, j, omxMatrixElement(dataMat, row, 
-				omxVectorElement(colList, j)));
+								       omxVectorElement(colList, j)));
 		}
 	} else {		// Data Frame object
 		double dataElement;
@@ -399,31 +399,31 @@ int omxDataNumIdenticalDefs(omxData *od, int row){
 }
 
 int omxDataNumIdenticalContinuousRows(omxData *od, int row) {
-    if(od->numNumeric <= 0) {
-        return od->rows;
-    }
-    return omxDataNumIdenticalRows(od, row);
+	if(od->numNumeric <= 0) {
+		return od->rows;
+	}
+	return omxDataNumIdenticalRows(od, row);
 }
 
 int omxDataNumIdenticalContinuousMissingness(omxData *od, int row) {
-    if(od->numNumeric <= 0) {
-        return od->rows;
-    }
-    return omxDataNumIdenticalMissingness(od, row);
+	if(od->numNumeric <= 0) {
+		return od->rows;
+	}
+	return omxDataNumIdenticalMissingness(od, row);
 }
 
 int omxDataNumIdenticalOrdinalRows(omxData *od, int row) {
-    if(od->numFactor <= 0) {
-        return od->rows;
-    }
-    return omxDataNumIdenticalRows(od, row);
+	if(od->numFactor <= 0) {
+		return od->rows;
+	}
+	return omxDataNumIdenticalRows(od, row);
 }
 
 int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row) {
-    if(od->numFactor <= 0) {
-        return od->rows;
-    }
-    return omxDataNumIdenticalMissingness(od, row);
+	if(od->numFactor <= 0) {
+		return od->rows;
+	}
+	return omxDataNumIdenticalMissingness(od, row);
 }
 
 
@@ -446,13 +446,13 @@ char* omxDataType(omxData *od) {
 
 int elementEqualsDataframe(SEXP column, int offset1, int offset2) {
 	switch (TYPEOF(column)) {
-		case REALSXP:
-			if(ISNA(REAL(column)[offset1])) return ISNA(REAL(column)[offset2]);
-			if(ISNA(REAL(column)[offset2])) return ISNA(REAL(column)[offset1]);
-			return(REAL(column)[offset1] == REAL(column)[offset2]);
-		case LGLSXP:
-		case INTSXP:
-			return(INTEGER(column)[offset1] == INTEGER(column)[offset2]);		
+	case REALSXP:
+		if(ISNA(REAL(column)[offset1])) return ISNA(REAL(column)[offset2]);
+		if(ISNA(REAL(column)[offset2])) return ISNA(REAL(column)[offset1]);
+		return(REAL(column)[offset1] == REAL(column)[offset2]);
+	case LGLSXP:
+	case INTSXP:
+		return(INTEGER(column)[offset1] == INTEGER(column)[offset2]);		
 	}
 	return(0);
 }
@@ -483,13 +483,13 @@ int testRowDataframe(SEXP data, int numrow, int numcol, int i, int *row, int bas
 int elementEqualsMatrix(SEXP data, int row1, int row2, int numrow, int col) {
 	int coloffset = col * numrow;
 	switch (TYPEOF(data)) {
-		case REALSXP:
-			if(ISNA(REAL(data)[row1 + coloffset])) return ISNA(REAL(data)[row2 + coloffset]);
-			if(ISNA(REAL(data)[row2 + coloffset])) return ISNA(REAL(data)[row1 + coloffset]);
-			return(REAL(data)[row1 + coloffset] == REAL(data)[row2 + coloffset]);
-		case LGLSXP:
-		case INTSXP:
-			return(INTEGER(data)[row1 + coloffset] == INTEGER(data)[row2 + coloffset]);
+	case REALSXP:
+		if(ISNA(REAL(data)[row1 + coloffset])) return ISNA(REAL(data)[row2 + coloffset]);
+		if(ISNA(REAL(data)[row2 + coloffset])) return ISNA(REAL(data)[row1 + coloffset]);
+		return(REAL(data)[row1 + coloffset] == REAL(data)[row2 + coloffset]);
+	case LGLSXP:
+	case INTSXP:
+		return(INTEGER(data)[row1 + coloffset] == INTEGER(data)[row2 + coloffset]);
 	}
 	return(0);
 }
@@ -516,7 +516,7 @@ int testRowMatrix(SEXP data, int numrow, int numcol, int i, int *row, int base) 
 }
 
 SEXP findIdenticalMatrix(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingExp, SEXP skipDefvarsExp) {
+			 SEXP skipMissingExp, SEXP skipDefvarsExp) {
 
 	SEXP retval, identicalRows, identicalMissing, identicalDefvars;
 	int i, numrow, numcol, defvarcol;
@@ -537,9 +537,9 @@ SEXP findIdenticalMatrix(SEXP data, SEXP missing, SEXP defvars,
 	imissing = INTEGER(identicalMissing);
 	idefvars = INTEGER(identicalDefvars);
 	if (skipMissing) {
-        for(i = 0; i < numrow; i++) {
-            imissing[i] = numrow - i;
-        }
+		for(i = 0; i < numrow; i++) {
+			imissing[i] = numrow - i;
+		}
 	}
 	if (skipDefvars) {
 		for(i = 0; i < numrow; i++) {
@@ -566,7 +566,7 @@ SEXP findIdenticalMatrix(SEXP data, SEXP missing, SEXP defvars,
 }
 
 SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingExp, SEXP skipDefvarsExp) {
+			    SEXP skipMissingExp, SEXP skipDefvarsExp) {
 
 	SEXP retval, identicalRows, identicalMissing, identicalDefvars;
 	int i, numrow, numcol, defvarcol;
@@ -587,9 +587,9 @@ SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
 	imissing = INTEGER(identicalMissing);
 	idefvars = INTEGER(identicalDefvars);
 	if (skipMissing) {
-        for(i = 0; i < numrow; i++) {
-            imissing[i] = numrow - i;
-        }
+		for(i = 0; i < numrow; i++) {
+			imissing[i] = numrow - i;
+		}
 	}
 	if (skipDefvars) {
 		for(i = 0; i < numrow; i++) {
@@ -616,7 +616,7 @@ SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
 }
 
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingness, SEXP skipDefvars) {
+			   SEXP skipMissingness, SEXP skipDefvars) {
 	if (isMatrix(data)) {
 		return(findIdenticalMatrix(data, missing, defvars, skipMissingness, skipDefvars));
 	} else {
