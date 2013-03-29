@@ -204,8 +204,9 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		omxResetStatus(globalState);
 	}
 
-	if(!errOut) {
-		omxProcessFitFunction(fitfunction);
+	if(!errOut && !isNull(fitfunction)) {
+		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
+		globalState->fitMatrix = omxNewMatrixFromMxIndex(fitfunction, globalState);
 		errOut = globalState->statusMsg[0];
 	}
 	
@@ -277,10 +278,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
 	PROTECT(NAmat = allocMatrix(REALSXP, 1, 1)); // In case of missingness
 	REAL(NAmat)[0] = R_NaReal;
-
-	if(fitfunction == NULL) {
-		REAL(minimum)[0] = R_NaReal;
-	}
 
 	omxSaveState(globalState, REAL(estimate), REAL(minimum)[0]);
 

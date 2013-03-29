@@ -190,16 +190,6 @@ void omxInitialMatrixAlgebraCompute() {
 	}
 }
 
-void omxProcessFitFunction(SEXP fitFunction) {
-	if(!isNull(fitFunction)) {
-		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
-		globalState->fitMatrix = omxNewMatrixFromMxIndex(fitFunction, globalState);
-	} else {
-		globalState->fitMatrix = NULL;
-		globalState->numFreeParams = 0;
-	}
-}
-
 /*
 checkpointList is a list().  Each element refers to one checkpointing request.
 Each interval request is a list of length 5.
