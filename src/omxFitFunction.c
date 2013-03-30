@@ -261,7 +261,7 @@ void omxFitFunctionPrint(omxFitFunction* off, char* d) {
 
 
 /* Helper functions */
-omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* currentState, char* const slotName) {
+omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, char* const slotName) {
 	SEXP slotValue;
 	omxMatrix* newMatrix = NULL;
 	if(strncmp(slotName, "", 1) == 0) return NULL;

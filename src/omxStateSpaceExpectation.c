@@ -243,28 +243,28 @@ void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing State Space Meta Data for expectation.\n"); }
 	
 	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
-	SSMexp->A = omxNewMatrixFromIndexSlot(rObj, currentState, "A");
+	SSMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
 	
 	if(OMX_DEBUG) { Rprintf("Processing B.\n"); }
-	SSMexp->B = omxNewMatrixFromIndexSlot(rObj, currentState, "B");
+	SSMexp->B = omxNewMatrixFromSlot(rObj, currentState, "B");
 	
 	if(OMX_DEBUG) { Rprintf("Processing C.\n"); }
-	SSMexp->C = omxNewMatrixFromIndexSlot(rObj, currentState, "C");
+	SSMexp->C = omxNewMatrixFromSlot(rObj, currentState, "C");
 	
 	if(OMX_DEBUG) { Rprintf("Processing D.\n"); }
-	SSMexp->D = omxNewMatrixFromIndexSlot(rObj, currentState, "D");
+	SSMexp->D = omxNewMatrixFromSlot(rObj, currentState, "D");
 	
 	if(OMX_DEBUG) { Rprintf("Processing Q.\n"); }
-	SSMexp->Q = omxNewMatrixFromIndexSlot(rObj, currentState, "Q");
+	SSMexp->Q = omxNewMatrixFromSlot(rObj, currentState, "Q");
 	
 	if(OMX_DEBUG) { Rprintf("Processing R.\n"); }
-	SSMexp->R = omxNewMatrixFromIndexSlot(rObj, currentState, "R");
+	SSMexp->R = omxNewMatrixFromSlot(rObj, currentState, "R");
 	
 	if(OMX_DEBUG) { Rprintf("Processing initial x.\n"); }
-	SSMexp->x = omxNewMatrixFromIndexSlot(rObj, currentState, "x");
+	SSMexp->x = omxNewMatrixFromSlot(rObj, currentState, "x");
 	
 	if(OMX_DEBUG) { Rprintf("Processing initial P.\n"); }
-	SSMexp->P = omxNewMatrixFromIndexSlot(rObj, currentState, "P");
+	SSMexp->P = omxNewMatrixFromSlot(rObj, currentState, "P");
 	
 	
 	/* Initialize the place holder matrices used in calculations */

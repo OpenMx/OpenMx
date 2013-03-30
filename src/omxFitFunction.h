@@ -93,7 +93,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *oo);	// Does what it says
 	
 	/* Helpers related to fit function initialization */
-	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
+	omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 
 
 enum omxFFCompute {

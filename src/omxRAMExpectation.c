@@ -346,16 +346,16 @@ void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
 
 	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
-	RAMexp->M = omxNewMatrixFromIndexSlot(rObj, currentState, "M");
+	RAMexp->M = omxNewMatrixFromSlot(rObj, currentState, "M");
 
 	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
-	RAMexp->A = omxNewMatrixFromIndexSlot(rObj, currentState, "A");
+	RAMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
 
 	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
-	RAMexp->S = omxNewMatrixFromIndexSlot(rObj, currentState, "S");
+	RAMexp->S = omxNewMatrixFromSlot(rObj, currentState, "S");
 
 	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
-	RAMexp->F = omxNewMatrixFromIndexSlot(rObj, currentState, "F");
+	RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
 
 	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));

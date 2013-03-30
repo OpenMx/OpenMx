@@ -95,11 +95,11 @@ void omxInitNormalExpectation(omxExpectation* ox, SEXP rObj) {
 	
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { Rprintf("Processing cov.\n"); }
-	one->cov = omxNewMatrixFromIndexSlot(rObj, currentState, "covariance");
+	one->cov = omxNewMatrixFromSlot(rObj, currentState, "covariance");
 	if(OMX_DEBUG) { Rprintf("cov is 0x%x.\n", one->cov); }
 
 	if(OMX_DEBUG) { Rprintf("Processing Means.\n"); }
-	one->means = omxNewMatrixFromIndexSlot(rObj, currentState, "means");
+	one->means = omxNewMatrixFromSlot(rObj, currentState, "means");
 	if(OMX_DEBUG) { Rprintf("mean is 0x%x.\n", one->means); }
 }
 

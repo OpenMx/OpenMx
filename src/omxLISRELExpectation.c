@@ -386,43 +386,43 @@ void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for expectation.\n"); }
 	
 	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }
-	LISobj->LX = omxNewMatrixFromIndexSlot(rObj, currentState, "LX");
+	LISobj->LX = omxNewMatrixFromSlot(rObj, currentState, "LX");
 	
 	if(OMX_DEBUG) { Rprintf("Processing LY.\n"); }
-	LISobj->LY = omxNewMatrixFromIndexSlot(rObj, currentState, "LY");
+	LISobj->LY = omxNewMatrixFromSlot(rObj, currentState, "LY");
 	
 	if(OMX_DEBUG) { Rprintf("Processing BE.\n"); }
-	LISobj->BE = omxNewMatrixFromIndexSlot(rObj, currentState, "BE");
+	LISobj->BE = omxNewMatrixFromSlot(rObj, currentState, "BE");
 	
 	if(OMX_DEBUG) { Rprintf("Processing GA.\n"); }
-	LISobj->GA = omxNewMatrixFromIndexSlot(rObj, currentState, "GA");
+	LISobj->GA = omxNewMatrixFromSlot(rObj, currentState, "GA");
 	
 	if(OMX_DEBUG) { Rprintf("Processing PH.\n"); }
-	LISobj->PH = omxNewMatrixFromIndexSlot(rObj, currentState, "PH");
+	LISobj->PH = omxNewMatrixFromSlot(rObj, currentState, "PH");
 	
 	if(OMX_DEBUG) { Rprintf("Processing PS.\n"); }
-	LISobj->PS = omxNewMatrixFromIndexSlot(rObj, currentState, "PS");
+	LISobj->PS = omxNewMatrixFromSlot(rObj, currentState, "PS");
 	
 	if(OMX_DEBUG) { Rprintf("Processing TD.\n"); }
-	LISobj->TD = omxNewMatrixFromIndexSlot(rObj, currentState, "TD");
+	LISobj->TD = omxNewMatrixFromSlot(rObj, currentState, "TD");
 	
 	if(OMX_DEBUG) { Rprintf("Processing TE.\n"); }
-	LISobj->TE = omxNewMatrixFromIndexSlot(rObj, currentState, "TE");
+	LISobj->TE = omxNewMatrixFromSlot(rObj, currentState, "TE");
 	
 	if(OMX_DEBUG) { Rprintf("Processing TH.\n"); }
-	LISobj->TH = omxNewMatrixFromIndexSlot(rObj, currentState, "TH");
+	LISobj->TH = omxNewMatrixFromSlot(rObj, currentState, "TH");
 
 	if(OMX_DEBUG) { Rprintf("Processing TX.\n"); }
-	LISobj->TX = omxNewMatrixFromIndexSlot(rObj, currentState, "TX");
+	LISobj->TX = omxNewMatrixFromSlot(rObj, currentState, "TX");
 
 	if(OMX_DEBUG) { Rprintf("Processing TY.\n"); }
-	LISobj->TY = omxNewMatrixFromIndexSlot(rObj, currentState, "TY");
+	LISobj->TY = omxNewMatrixFromSlot(rObj, currentState, "TY");
 
 	if(OMX_DEBUG) { Rprintf("Processing KA.\n"); }
-	LISobj->KA = omxNewMatrixFromIndexSlot(rObj, currentState, "KA");
+	LISobj->KA = omxNewMatrixFromSlot(rObj, currentState, "KA");
 
 	if(OMX_DEBUG) { Rprintf("Processing AL.\n"); }
-	LISobj->AL = omxNewMatrixFromIndexSlot(rObj, currentState, "AL");
+	LISobj->AL = omxNewMatrixFromSlot(rObj, currentState, "AL");
 	
 	
 	if(LISobj->LY == NULL) {
