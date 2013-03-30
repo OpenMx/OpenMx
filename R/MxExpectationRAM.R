@@ -470,19 +470,6 @@ displayMxExpectationRAM <- function(expectation) {
 	} else {
 		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
-	cat("@info$likelihoods: ", length(expectation@info$likelihoods) > 0, '\n')
-	if (length(expectation@info$expCov) == 0) {
-		cat("@info$expCov: ")
-	} else {
-		cat("@info$expCov:\n")
-	}
-	print(expectation@info$expCov)
-	if (length(expectation@info$expMean) == 0) {
-		cat("@info$expMean: ")
-	} else {
-		cat("@info$expMean:\n")
-	}
-	print(expectation@info$expMean)
 	invisible(expectation)
 }
 

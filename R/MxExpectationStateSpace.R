@@ -290,7 +290,6 @@ displayMxExpectationStateSpace <- function(expectation) {
 	} else {
 		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
-	cat("@info$likelihoods: ", length(expectation@info$likelihoods) > 0, '\n')
 	invisible(expectation)
 }
 

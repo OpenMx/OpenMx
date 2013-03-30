@@ -18,10 +18,10 @@
 # The virtual base class for all expectations
 #
 setClass(Class = "MxBaseExpectation", 
-	representation = representation(
-		name = "character",
-		data = "MxCharOrNumber",
-        info = "list", "VIRTUAL"))
+	 representation = representation(
+	   name = "character",
+	   data = "MxCharOrNumber",
+	   "VIRTUAL"))
 
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
 

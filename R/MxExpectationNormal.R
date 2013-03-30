@@ -478,7 +478,6 @@ displayMxExpectationNormal <- function(expectation) {
 	} else {
 		cat("@threshnames :", omxQuotes(expectation@threshnames), '\n')
 	}
-	cat("@info$likelihoods: ", length(expectation@info$likelihoods) > 0, '\n')
 	invisible(expectation)
 }
 
