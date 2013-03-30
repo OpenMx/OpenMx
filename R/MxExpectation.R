@@ -20,7 +20,9 @@
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
 	   name = "character",
-	   data = "MxCharOrNumber",
+	   data = "MxCharOrNumber",      # filled in during flattening
+	   submodels = "MxCharOrNumber", # filled in during flattening
+	   container = "MxCharOrNumber", # filled in during flattening
 	   "VIRTUAL"))
 
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
@@ -98,8 +100,11 @@ setMethod("genericExpRename", "NULL",
 
 
 convertExpectationFunctions <- function(flatModel, model, labelsData, defVars, dependencies) {
-	retval <- lapply(flatModel@expectations, genericExpFunConvert, 
-		flatModel, model, labelsData, defVars, dependencies)
+	retval <- lapply(flatModel@expectations, function(ex) {
+		ex@container <- imxLocateIndex(flatModel, ex@container, ex@name)
+		ex@submodels <- imxLocateIndex(flatModel, ex@submodels, ex@name)
+		genericExpFunConvert(ex, flatModel, model, labelsData, defVars, dependencies)
+	})
 	return(retval)
 }
 

@@ -181,6 +181,7 @@ collectFitFunctions <- function(model, namespace, defaultData) {
 
 collectExpectations <- function(model, namespace, defaultData) {
 	expectations <- collectExpectationsHelper(model, namespace, defaultData)
+	if (length(expectations) == 0) return(list())
 	names(expectations) <- imxExtractNames(expectations)
 	return(expectations)
 }
@@ -191,22 +192,28 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	
+	container <- character(0)
 	if (!is.null(expectation)) {
 		if(is.na(expectation@data) && is.null(modeldata) && !is.null(defaultData)) {
 			expectation@data <- defaultData@name
 		} else if (is.na(expectation@data) && !is.null(modeldata)) {
 			expectation@data <- modeldata@name
 		}
-		retval <- list(expectation)
-	} else {
-		retval <- list()
+		container <- expectation@name
 	}
+	submodel_expectations <- c()
 	if (length(model@submodels) > 0) {
 		submodel_expectations <- lapply(model@submodels, collectExpectationsHelper, namespace, defaultData)		
 		submodel_expectations <- unlist(submodel_expectations, recursive = FALSE, use.names = FALSE)
-		retval <- append(retval, submodel_expectations)
+		submodel_expectations <- lapply(submodel_expectations, function (e) {
+			e@container <- container
+			e
+		})
+		if (!is.null(expectation)) {
+			expectation@submodels <- unlist(sapply(submodel_expectations, function(e) e@name))
+		}
 	}
-	return(retval)	
+	return(c(expectation, submodel_expectations))
 }
 
 collectFitFunctionsHelper <- function(model, namespace, defaultData) {
