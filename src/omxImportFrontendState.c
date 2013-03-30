@@ -470,6 +470,7 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 *  This function is duplicated from the function of the same name in the R source code.
 *  The function appears in src/main/sysutils.c
 *  Thanks to Michael Spiegel for finding it.
+*  This code is licensed under the terms of the GNU General Public License.
 */
 static int isDir(const char *path)
 {
