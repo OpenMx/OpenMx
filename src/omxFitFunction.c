@@ -272,16 +272,3 @@ omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* currentState, char* co
 	UNPROTECT(1);
 	return newMatrix;
 }
-
-omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* currentState, char* const dataSlotName) {
-	
-	SEXP slotValue;
-	
-	PROTECT(slotValue = GET_SLOT(rObj, install(dataSlotName)));
-	if(OMX_DEBUG) { Rprintf("Data Element %d.\n", AS_INTEGER(slotValue)); }
-	omxData* dataElt = omxNewDataFromMxDataPtr(slotValue, currentState);
-	UNPROTECT(1); // newMatrix
-	
-	return dataElt;
-	
-}

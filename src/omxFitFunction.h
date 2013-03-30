@@ -95,7 +95,6 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	/* Helpers related to fit function initialization */
 	omxMatrix* omxNewMatrixFromIndexSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
 
-	omxData* omxNewDataFromDataSlot(SEXP rObj, omxState* state, char* const dataSlotName);	// Gets an mxData object from a data slot
 
 enum omxFFCompute {
   FF_COMPUTE_FIT      = 1<<0,
