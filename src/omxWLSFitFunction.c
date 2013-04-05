@@ -264,7 +264,7 @@ void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxM
 	
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
-	omxData* dataMat = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
+	omxData* dataMat = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "WLS FitFunction unable to handle data type %s.\n", omxDataType(dataMat));

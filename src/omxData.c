@@ -56,7 +56,7 @@ omxData* omxInitData(omxData* od, omxState* os) {
 
 }
 
-omxData* omxNewDataFromMxDataPtr(SEXP dataObject, omxState* state) {
+omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
 
 	return state->dataList[dataIdx];

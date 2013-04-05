@@ -223,7 +223,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
-	ox->data = omxNewDataFromMxDataPtr(nextMatrix, ox->currentState);
+	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
 	UNPROTECT(1); // nextMatrix
 
 	if(OMX_DEBUG && ox->currentState->parentState == NULL) {

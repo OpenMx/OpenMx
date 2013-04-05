@@ -246,7 +246,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
-	newObj->data = omxNewDataFromMxDataPtr(nextMatrix, oo->matrix->currentState);
+	newObj->data = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No data provided to omxRowFitFunction.");
