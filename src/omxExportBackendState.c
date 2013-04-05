@@ -89,9 +89,12 @@ void omxPopulateFitFunction(omxState *currentState, int numReturns, SEXP *ans, S
 			if(numEls != 0) {
 				if(OMX_DEBUG) { Rprintf("Adding %d sets of fit function Info....", numEls);}
 				for(int i = 0; i < numEls; i++) {
-					PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
-					for(int j = 0; j < orle[i].numValues; j++)
-						REAL(oElement)[j] = orle[i].values[j];
+					if (orle[i].numValues == -1) {
+						PROTECT(oElement = allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
+					} else {
+						PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
+					}
+					memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
 					SET_STRING_ELT(*names, i+numReturns, mkChar(orle[i].label));
 					SET_VECTOR_ELT(*ans, i+numReturns, oElement);
 					UNPROTECT(1); // oElement

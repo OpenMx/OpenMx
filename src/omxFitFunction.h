@@ -47,6 +47,13 @@ typedef struct omxFitFunction omxFitFunction;
 #include "omxState.h"
 #include "omxExpectation.h"
 
+typedef struct {
+	char label[250];
+	double* values;
+	int numValues;
+	int rows, cols;
+} omxRListElement;
+
 struct omxFitFunction {					// A fit function
 
 	/* Fields unique to FitFunction Functions */

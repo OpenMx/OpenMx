@@ -38,7 +38,6 @@
 #include "omxDefines.h"
 
 typedef struct omxExpectation omxExpectation;
-typedef struct omxRListElement omxRListElement;
 typedef struct omxDefinitionVar omxDefinitionVar;
 typedef struct omxThresholdColumn omxThresholdColumn;
 
@@ -47,13 +46,6 @@ typedef struct omxThresholdColumn omxThresholdColumn;
 #include "omxAlgebraFunctions.h"
 #include "omxData.h"
 #include "omxState.h"
-
-struct omxRListElement {
-	char label[250];
-	double* values;
-	int numValues;
-	int rows, cols;
-};
 
 /* Def Var and Threshold Structures */
 struct omxDefinitionVar {		 	// Definition Var
