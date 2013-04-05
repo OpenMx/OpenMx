@@ -256,7 +256,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	UNPROTECT(1); // nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowAlgebra")));
-	newObj->rowAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	newObj->rowAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row-wise algebra in omxRowFitFunction.");
@@ -266,7 +266,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	UNPROTECT(1);// nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("filteredDataRow")));
-	newObj->filteredDataRow = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	newObj->filteredDataRow = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->filteredDataRow == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
@@ -279,7 +279,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	UNPROTECT(1);// nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("existenceVector")));
-	newObj->existenceVector = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	newObj->existenceVector = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
     // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
 	if(newObj->existenceVector == NULL) {
 		char *errstr = calloc(250, sizeof(char));
@@ -291,7 +291,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowResults")));
-	newObj->rowResults = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	newObj->rowResults = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowResults == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
@@ -301,7 +301,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	UNPROTECT(1);// nextMatrix
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("reduceAlgebra")));
-	newObj->reduceAlgebra = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	newObj->reduceAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->reduceAlgebra == NULL) {
 		char *errstr = calloc(250, sizeof(char));
 		sprintf(errstr, "No row reduction algebra in omxRowFitFunction.");

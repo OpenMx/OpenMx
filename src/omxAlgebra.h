@@ -47,7 +47,7 @@ struct omxAlgebra {						// A matrix
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
 	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat, omxState* os, const char *name);	// Create an Algebra from an R mxMatrix
 	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name);	// Populate an Algebra from an R mxMatrix
-	omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
+	omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
 
 /* Other Functions */

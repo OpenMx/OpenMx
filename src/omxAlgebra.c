@@ -256,7 +256,7 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name
 		if(OMX_DEBUG && os->parentState == NULL) { Rprintf("Helper detected list element.  Recursing.\n"); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
-		newMat = omxNewMatrixFromMxIndex(algebraArg, os);
+		newMat = omxMatrixLookupFromState1(algebraArg, os);
 	}
 	
 	return(newMat);
@@ -268,7 +268,7 @@ void omxAlgebraPrint(omxAlgebra* oa, char* d) {
 	Rprintf("has %d args.\n", oa->numArgs);
 }
 
-omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
+omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	if(OMX_DEBUG && os->parentState == NULL) {
 		Rprintf("Attaching pointer to matrix.");
 	}
@@ -305,12 +305,12 @@ omxMatrix* omxNewMatrixFromMxIndex(SEXP matrix, omxState* os) {
 	} else if (isString(matrix)) {
 	  const int MaxErrorLen = 250;
 	  char err[MaxErrorLen];
-	  snprintf(err, MaxErrorLen, "Internal error: string passed to omxNewMatrixFromMxIndex, did you forget to call imxLocateIndex?");
+	  snprintf(err, MaxErrorLen, "Internal error: string passed to omxMatrixLookupFromState1, did you forget to call imxLocateIndex?");
 	  omxRaiseError(os, -1, err);
 	  return NULL;
 	} else {
 		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Internal error: unknown type passed to omxNewMatrixFromMxIndex.");
+		sprintf(errstr, "Internal error: unknown type passed to omxMatrixLookupFromState1.");
 		omxRaiseError(os, -1, errstr);
 		free(errstr);
 		return NULL;

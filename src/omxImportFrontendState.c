@@ -367,7 +367,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		omxConfidenceInterval *oCI = &(globalState->intervalList[index]);
 		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
-		oCI->matrix = omxNewMatrixFromMxIndex( nextVar, globalState);	// Expects an R object
+		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
 		oCI->lbound = intervalInfo[3];
@@ -392,9 +392,9 @@ void omxProcessConstraints(SEXP constraints)  {
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
 		PROTECT(nextVar = VECTOR_ELT(constraints, constraintIndex));
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxNewMatrixFromMxIndex(nextLoc, globalState);
+		arg1 = omxMatrixLookupFromState1(nextLoc, globalState);
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxNewMatrixFromMxIndex(nextLoc, globalState);
+		arg2 = omxMatrixLookupFromState1(nextLoc, globalState);
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
 		globalState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
 		UNPROTECT(4);

@@ -67,7 +67,7 @@ void omxInitAlgebraFitFunction(omxFitFunction* off, SEXP rObj) {
 	
 	omxAlgebraFitFunction *newObj = (omxAlgebraFitFunction*) R_alloc(1, sizeof(omxAlgebraFitFunction));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
-	newObj->algebra = omxNewMatrixFromMxIndex(newptr, off->matrix->currentState);
+	newObj->algebra = omxMatrixLookupFromState1(newptr, off->matrix->currentState);
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Algebra Fit Function Bound to Algebra %d\n", newObj->algebra);
 	}

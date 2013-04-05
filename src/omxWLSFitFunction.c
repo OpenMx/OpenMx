@@ -217,14 +217,14 @@ void omxInitWLSFitFunction(omxFitFunction* oo, SEXP rObj) {
 		}
 		means = NULL;
 	} else {
-		means = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		means = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 		if(OMX_DEBUG) { Rprintf("Means matrix created at 0x%x.\n", means); }
 	}
 	UNPROTECT(1);
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
 	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
-	cov = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+	cov = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("weights")));
@@ -235,7 +235,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo, SEXP rObj) {
 		}
 		weights = NULL;
 	} else {
-		weights = omxNewMatrixFromMxIndex(nextMatrix, oo->matrix->currentState);
+		weights = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 		if(OMX_DEBUG) { Rprintf("Weights matrix created at 0x%x.\n", weights); }
 	}
 	UNPROTECT(1);

@@ -206,7 +206,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if(!errOut && !isNull(fitfunction)) {
 		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
-		globalState->fitMatrix = omxNewMatrixFromMxIndex(fitfunction, globalState);
+		globalState->fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
 		errOut = globalState->statusMsg[0];
 	}
 	

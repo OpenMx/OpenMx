@@ -270,7 +270,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 						ox->thresholds[index].column = 0;
 						ox->thresholds[index].numThresholds = 0;
 					} else {
-						ox->thresholds[index].matrix = omxNewMatrixFromMxIndex(threshMatrix, 
+						ox->thresholds[index].matrix = omxMatrixLookupFromState1(threshMatrix, 
 												       ox->currentState);
 						ox->thresholds[index].column = thresholdColumn[index];
 						ox->thresholds[index].numThresholds = thresholdNumber[index];
