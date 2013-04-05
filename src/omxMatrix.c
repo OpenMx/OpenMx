@@ -699,7 +699,7 @@ void omxRecompute(omxMatrix *matrix) {
 	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
 	}
 }
 
@@ -707,7 +707,7 @@ void omxCompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if (matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
 	}
 }
 
