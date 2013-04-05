@@ -177,8 +177,14 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
     
 	/* Retrieve All Matrices From the MatList */
 	if(!errOut) errOut = omxProcessMxMatrixEntities(matList);
+
+	globalState->numAlgs = length(algList);
+	globalState->markMatrices = (int*) R_alloc(globalState->numMats + globalState->numAlgs, sizeof(int));
 	
 	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
+
+	/* Process Free Var List */
+	omxProcessFreeVarList(varList);
 
 	/* Initialize all Expectations Here */
 	if(!errOut) errOut = omxProcessMxExpectationEntities(expectList);
@@ -229,9 +235,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 		UNPROTECT(1);
 	}
-
-	/* Process Free Var List */
-	omxProcessFreeVarList(varList);
 
 	/* Processing Constraints */
 	omxProcessConstraints(constraints);
