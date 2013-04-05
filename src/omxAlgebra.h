@@ -34,7 +34,7 @@ struct omxAlgebra {						// A matrix
 										//TODO: Improve encapsulation
 /* Fields unique to Algebras */
 	void* funWrapper;					// Wrapper for the algebra function itself
-	omxMatrix** args;					// Arguments to the above function
+	omxMatrix** algArgs;
 	int numArgs;						// Length of args
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
@@ -51,7 +51,6 @@ struct omxAlgebra {						// A matrix
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
 
 /* Other Functions */
-	void omxFillAlgebraFromTableEntry(omxAlgebra *algebra, const omxAlgebraTableEntry* oate);
 	 																	// Adjust an algebra for a table entry
 	void omxAlgebraCopyAlgebra(omxAlgebra *dest, omxAlgebra *src);		// Copy across another element.  
 																		// NOTE: Duplicates.
