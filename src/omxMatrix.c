@@ -441,7 +441,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		dimList = INTEGER(matrixDims);
 		om->rows = dimList[0];
 		om->cols = dimList[1];
-		UNPROTECT(1);	// MatrixDims
 	} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 		if(OMX_DEBUG) { Rprintf("Vector discovered.  Assuming rowity.\n"); }
 		om->rows = 1;
@@ -497,8 +496,6 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		matrix->populateFromCol[i] = locations[2];
 		matrix->populateToRow[i] = locations[3];
 		matrix->populateToCol[i] = locations[4];
-
-		UNPROTECT(1); // subList
 	}
 }
 

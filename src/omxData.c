@@ -85,7 +85,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	PROTECT(dataVal = STRING_ELT(dataLoc,0));
 	strncpy(od->type, CHAR(dataVal), 249);
 	od->type[249] = '\0';
-	UNPROTECT(2); // dataLoc, dataVec
 	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->type);}
 
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("observed")));
@@ -118,7 +117,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				od->location[j] = (numReals++);
 				od->numNumeric++;
 			}
-			UNPROTECT(1); // columns[j]
 		}
 		od->rows = length(VECTOR_ELT(dataLoc, 0));
 		if(OMX_DEBUG) {Rprintf("And %d rows.\n", od->rows);}
@@ -133,7 +131,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		od->rows = od->dataMat->rows;
 		od->numNumeric = od->cols;
 	}
-	UNPROTECT(1); // dataLoc
 
 	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
@@ -147,7 +144,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
                 //          originally is a 1x1 that has not yet been calculated.  This should be
                 //          adjusted.
 	}
-	UNPROTECT(1); // dataLoc
 	
 	if(OMX_DEBUG) {
 	        if(od->meansMat == NULL) {Rprintf("No means found.\n");}
@@ -158,7 +154,6 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("numObs")));
 		od->numObs = REAL(dataLoc)[0];
-		UNPROTECT(1); // dataLoc
 	} else {
 		od->numObs = od->rows;
 		if(OMX_DEBUG) {Rprintf("Processing presort metadata.\n");}
@@ -167,23 +162,19 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("indexVector")));
 		od->indexVector = INTEGER(dataLoc);
 		if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
-		UNPROTECT(1);
 		// Process pre-computed identicality checks
 		if(OMX_DEBUG) {Rprintf("Processing definition variable identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalDefVars")));
 		od->identicalDefs = INTEGER(dataLoc);
 		if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
-		UNPROTECT(1);
 		if(OMX_DEBUG) {Rprintf("Processing missingness identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalMissingness")));
 		od->identicalMissingness = INTEGER(dataLoc);
 		if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
-		UNPROTECT(1);
 		if(OMX_DEBUG) {Rprintf("Processing row identicality.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalRows")));
 		od->identicalRows = INTEGER(dataLoc);
 		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
-		UNPROTECT(1);
 	}
 
 	return od;

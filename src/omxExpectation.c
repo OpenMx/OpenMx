@@ -189,8 +189,6 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 		entry += 1;
 	}
 
-	UNPROTECT(1);	/* ExpectationClass */
-
 	if(!expect->initFun) {
 		char newError[MAX_STRING_LEN];
 		sprintf(newError, "Expectation function %s not implemented.\n", (expect->expType==NULL?"Untyped":expect->expType));
@@ -224,7 +222,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
-	UNPROTECT(1); // nextMatrix
 
 	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
 		Rprintf("Accessing variable mapping structure.\n");
@@ -236,7 +233,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
 			omxPrint(ox->dataColumns, "Variable mapping");
 		}
-		UNPROTECT(1); // dataColumns
 	
 		numCols = ox->dataColumns->cols;
 
@@ -284,7 +280,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				if(OMX_DEBUG && ox->currentState->parentState == NULL) {
 					Rprintf("%d threshold columns processed.\n", numOrdinal);
 				}
-				UNPROTECT(2); /* nextMatrix and itemList ("thresholds" and "thresholdColumns") */
 				ox->numOrdinal = numOrdinal;
 			} else {
 				if (OMX_DEBUG && ox->currentState->parentState == NULL) {
@@ -293,7 +288,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				ox->thresholds = NULL;
 				ox->numOrdinal = 0;
 			}
-			UNPROTECT(1); /* threshMatrix */
 		}
 	}
 
@@ -335,7 +329,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			for(int i = 0; i < numDeps; i++) {
 				ox->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
 			}
-			UNPROTECT(3); // unprotect dataSource, columnSource, and depsSource
 
 			ox->defVars[nextDef].numLocations = length(itemList) - 3;
 			ox->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 3, sizeof(int));
@@ -346,11 +339,8 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				ox->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
 				ox->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
 				ox->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
-				UNPROTECT(1); // unprotect nextItem
 			}
-			UNPROTECT(1); // unprotect itemList
 		}
-		UNPROTECT(1); // unprotect nextMatrix
 	}
 	
 }

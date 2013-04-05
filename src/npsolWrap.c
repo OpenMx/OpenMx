@@ -119,7 +119,6 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				globalState->matrixList[k], globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
 		}
-		UNPROTECT(1); // nextMat
 	}
 
 	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, globalState->matrixList, globalState->numMats, globalState);
@@ -138,8 +137,6 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 		for(j = 0; j < algebra->cols; j++)
 			REAL(ans)[j * algebra->rows + l] =
 				omxMatrixElement(algebra, l, j);
-
-	UNPROTECT(1);	/* algebra */
 
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 
@@ -253,7 +250,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	for(int j = 0; j < globalState->numMats; j++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
-		UNPROTECT(1);
 	}
 
 	/* Processing Constraints */

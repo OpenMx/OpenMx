@@ -224,7 +224,6 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 				if(OMX_DEBUG && om->currentState->parentState == NULL) {
 					Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->algArgs[j], j);
 				}
-			UNPROTECT(1); /* algebraArg */
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
@@ -248,15 +247,10 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 			} else {
 				oa->algArgs[0] = (oa->matrix->currentState->algebraList[value]);
 			}
-			UNPROTECT(1); /* algebraArg */
 		}
-		UNPROTECT(1); /* algebraElt */
 	}
 	om->name        = name;
 	oa->sexpAlgebra = algebra;
-
-	UNPROTECT(1);	/* algebraOperator */
-
 }
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
@@ -295,10 +289,8 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("  Null integer matrix.  Skipping.\n");
 			}
-			UNPROTECT(1);
 			return NULL;
 		}
-		UNPROTECT(1); // intMatrix
 	} else if (IS_NUMERIC(matrix)) {
 		SEXP numericMatrix;
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
@@ -307,10 +299,8 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("   Null numeric matrix.  Skipping.\n");
 			}
-			UNPROTECT(1);
 			return NULL;
 		}
-		UNPROTECT(1); // numericMatrix
 	} else if (matrix == R_NilValue) {
 		return NULL;
 	} else if (isString(matrix)) {

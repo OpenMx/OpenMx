@@ -47,7 +47,6 @@ int omxProcessMxDataEntities(SEXP data) {
 			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
 				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
 		}
-		UNPROTECT(1); // nextMat
 		if(globalState->statusCode < 0) {
 			errOut = TRUE;
 			globalState->numData = index+1;
@@ -75,7 +74,6 @@ int omxProcessMxMatrixEntities(SEXP matList) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
-		UNPROTECT(2); // nextLoc and nextMat
 		if(globalState->statusCode < 0) {
 			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth matrix.\n", index+1);}
 			errOut = TRUE;
@@ -107,15 +105,11 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
 			omxFillMatrixFromRPrimitive(globalState->algebraList[index],
 				initialValue, globalState, 1, index);
-			UNPROTECT(1);	// initialValue
 			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
 				formula, CHAR(STRING_ELT(algListNames, index)));
-			UNPROTECT(1);	// formula
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
-			UNPROTECT(1);	// dependencies
 		}
-		UNPROTECT(1);	// nextAlgTuple
 		if (globalState->statusMsg[0]) return;
 	}
 }
@@ -136,7 +130,6 @@ int omxProcessMxExpectationEntities(SEXP expList) {
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
 		}
-		UNPROTECT(1); // nextExp
 		if(globalState->statusCode < 0) {
 			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth Expectation.\n", index+1);}
 			errOut = TRUE;
@@ -263,9 +256,6 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
 			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
 		}
-
-		UNPROTECT(1); /* nextLoc */
-
 	}
 }
 
@@ -296,13 +286,12 @@ void omxProcessFreeVarList(SEXP varList) {
 		globalState->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
 		if(ISNA(globalState->freeVarList[freeVarIndex].lbound)) globalState->freeVarList[freeVarIndex].lbound = NEG_INF;
 		if(globalState->freeVarList[freeVarIndex].lbound == 0.0) globalState->freeVarList[freeVarIndex].lbound = 0.0;
-		UNPROTECT(1); // nextLoc
+
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
 		globalState->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
 		if(ISNA(globalState->freeVarList[freeVarIndex].ubound)) globalState->freeVarList[freeVarIndex].ubound = INF;
 		if(globalState->freeVarList[freeVarIndex].ubound == 0.0) globalState->freeVarList[freeVarIndex].ubound = -0.0;
-		UNPROTECT(1); // nextLoc
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
 		numDeps = LENGTH(nextLoc);
@@ -311,8 +300,6 @@ void omxProcessFreeVarList(SEXP varList) {
 		for(int i = 0; i < numDeps; i++) {
 			globalState->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
 		}
-		UNPROTECT(1); // nextLoc
-
 
 		if(OMX_DEBUG) { 
 			Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", freeVarIndex, 
@@ -330,9 +317,7 @@ void omxProcessFreeVarList(SEXP varList) {
 			globalState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
 			globalState->freeVarList[freeVarIndex].row[locIndex] = theRow;
 			globalState->freeVarList[freeVarIndex].col[locIndex] = theCol;
-			UNPROTECT(1); // nextLoc
 		}
-		UNPROTECT(1); // nextVar
 	}
 
 	int numMats = globalState->numMats;
@@ -370,7 +355,6 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
 		oCI->lbound = intervalInfo[3];
 		oCI->ubound = intervalInfo[4];
-		UNPROTECT(1);
 		oCI->max = R_NaReal;					// NAs, in case something goes wrong
 		oCI->min = R_NaReal;
 	}
@@ -395,7 +379,6 @@ void omxProcessConstraints(SEXP constraints)  {
 		arg2 = omxMatrixLookupFromState1(nextLoc, globalState);
 		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
 		globalState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
-		UNPROTECT(4);
 		omxMatrix *args[2] = {arg1, arg2};
 		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
 		omxRecompute(globalState->conList[constraintIndex].result);

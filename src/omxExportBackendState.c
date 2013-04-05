@@ -33,7 +33,6 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		omxRecompute(nextMatrix);
 		nextMat = omxExportMatrix(nextMatrix);
 		SET_VECTOR_ELT(matrices, index, nextMat);
-		UNPROTECT(1);	/* nextMat */
 	}
 
 	for(int index = 0; index < currentState->numAlgs; index++) {
@@ -53,8 +52,6 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 
 		if(OMX_DEBUG) { Rprintf("Final Calculation of Algebra %d Complete.\n", index); }
 		SET_VECTOR_ELT(algebras, index, algebra);
-
-		UNPROTECT(1);	/* algebra */
 	}
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 	
@@ -69,7 +66,6 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 			nextExpectation->populateAttrFun(nextExpectation, rExpect);
 	    }
 		SET_VECTOR_ELT(expectations, index, rExpect);
-		UNPROTECT(1); /* rExpect */
 	}
 }
 
@@ -97,7 +93,6 @@ void omxPopulateFitFunction(omxState *currentState, int numReturns, SEXP *ans, S
 					memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
 					SET_STRING_ELT(*names, i+numReturns, mkChar(orle[i].label));
 					SET_VECTOR_ELT(*ans, i+numReturns, oElement);
-					UNPROTECT(1); // oElement
 				}
 			}
 		} else {

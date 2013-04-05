@@ -71,7 +71,6 @@ void omxInitAlgebraFitFunction(omxFitFunction* off, SEXP rObj) {
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Algebra Fit Function Bound to Algebra %d\n", newObj->algebra);
 	}
-	UNPROTECT(1);
 	
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->setFinalReturns = omxSetFinalReturnsAlgebraFitFunction;
