@@ -375,6 +375,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	oo->setFinalReturns = omxSetFinalReturnsRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
 	oo->repopulateFun = NULL;
+	oo->usesChildModels = TRUE;
 
 	oo->argStruct = (void*) newObj;
 }

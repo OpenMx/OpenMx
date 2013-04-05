@@ -542,7 +542,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
 	off->repopulateFun = NULL;
-	
+
+	off->usesChildModels = TRUE;
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing data source.\n");
