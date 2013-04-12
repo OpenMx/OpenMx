@@ -32,10 +32,12 @@ Description: The OpenMx Project intends to rewrite and extend the popular
     models used to analyze the data.
 License: Apache License 2.0
 Depends:
-    methods
+    methods,
+    MASS
 Suggests:
     snowfall,
-    roxygen2
+    roxygen2,
+    mvtnorm
 LazyLoad: yes
 LazyData: yes
 Collate:
