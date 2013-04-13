@@ -40,6 +40,8 @@
 
 #define OMXZERO(ptr, num)	memset(ptr, 0, sizeof(*ptr)*num)
 
+#define OMX_STATIC_ARRAY_SIZE(ar) (sizeof(ar)/sizeof(ar[0]))
+
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
 #define OMX_VERBOSE 1
