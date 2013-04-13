@@ -105,7 +105,6 @@ struct omxExpectation {					// An Expectation
 };
 
 /* Initialize and Destroy */
-	void omxInitEmptyExpectation(omxExpectation *ox);
 	void omxCompleteExpectation(omxExpectation *ox);
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);

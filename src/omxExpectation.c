@@ -52,12 +52,6 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{ "", 0 }
 };
 
-void omxInitEmptyExpectation(omxExpectation *ox) {
-	/* Sets everything to NULL to avoid bad pointer calls */
-	
-  memset(ox, 0, sizeof(*ox));
-}
-
 void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
     
@@ -68,6 +62,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 		ox->destructFun(ox);
 	}
 	Free(ox->submodels);
+	Free(ox);
 }
 
 void omxExpectationRecompute(omxExpectation *ox) {
@@ -113,60 +108,14 @@ omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* new
 
 	if(OMX_DEBUG) {Rprintf("Duplicating Expectation 0x%x\n", src);}
 
-	// if(src == NULL) {
-	// 	return NULL;
-	// }
-	// 
-	// omxExpectation* tgt = (omxExpectation*) R_alloc(1, sizeof(omxExpectation));
-	// omxInitEmptyExpectation(tgt);
-	// 
-	// tgt->initFun 					= src->initFun;
-	// tgt->destructFun 				= src->destructFun;
-	// tgt->repopulateFun 				= src->repopulateFun;
-	// tgt->computeFun 				= src->computeFun;
-	// tgt->componentFun				= src->componentFun;
-	// tgt->populateAttrFun 			= src->populateAttrFun;
-	// tgt->setFinalReturns 			= src->setFinalReturns;
-	// tgt->sharedArgs					= src->sharedArgs;
-	// tgt->currentState				= newState;
-	// tgt->rObj						= src->rObj;
-	// tgt->data						= src->data;
-	// tgt->dataColumns				= omxLookupDuplicateElement(newState, src->dataColumns);
-	// tgt->defVars					= src->defVars;
-	// tgt->numDefs					= src->numDefs;
-	// int numDefs = tgt->numDefs;
-	// // for(int i = 0; i < numDefs; i++) {
-	// // 	int thisCount = tgt->defVars[i].numLocations;
-	// // 	for(int index = 0; index < thisCount; index++) {
-	// // 		tgt->defVars[i].matrices[index] = omxLookupDuplicateElement(newState, src->defVars[i].matrices[index]);
-	// // 	}
-	// // }
-	// 
-	// tgt->numOrdinal					= src->numOrdinal;
-	// tgt->thresholds					= src->thresholds;
-	// int nCols = tgt->dataColumns->rows;
-	// for(int i = 0; i < nCols; i++) {
-	// 	if(tgt->thresholds[i].matrix != NULL) {
-	// 		tgt->thresholds[i].matrix = omxLookupDuplicateElement(newState, src->thresholds[i].matrix);
-	// 	}
-	// }
-	// 
-	// tgt->expNum						= src->expNum;
-	// 
-	//     strncpy(tgt->expType, src->expType, MAX_STRING_LEN);
-	// 
-	// return tgt;
-
 	return omxNewIncompleteExpectation(src->rObj, src->expNum, newState);
-
 }
 
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;
 	const char* expType;
-	omxExpectation* expect = (omxExpectation*) R_alloc(1, sizeof(omxExpectation));
-	omxInitEmptyExpectation(expect);
+	omxExpectation* expect = Calloc(1, omxExpectation);
 	
 	/* Get Expectation Type */
 	PROTECT(ExpectationClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
