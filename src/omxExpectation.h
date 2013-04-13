@@ -99,13 +99,16 @@ struct omxExpectation {					// An Expectation
 	omxState* currentState;
 	int expNum;
 
+	omxExpectation *container;
+	int numSubmodels;
+	omxExpectation **submodels;
 };
 
 /* Initialize and Destroy */
 	void omxInitEmptyExpectation(omxExpectation *ox);
 	void omxCompleteExpectation(omxExpectation *ox);
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
-	omxExpectation* omxNewExpectationFromExpectationIndex(int expIndex, omxState* os);
+omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	omxExpectation* omxNewIncompleteExpectation(SEXP mxobj, int expNum, omxState* os);
 	
 

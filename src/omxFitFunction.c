@@ -244,7 +244,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	if(expNumber == NA_INTEGER) {						// Has no expectation associated with it
 		obj->expectation = NULL;
 	} else {
-		obj->expectation = omxNewExpectationFromExpectationIndex(expNumber, om->currentState);
+		obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
 	}
 	UNPROTECT(1);	/* slotValue */
 	
@@ -284,12 +284,10 @@ void omxFitFunctionPrint(omxFitFunction* off, char* d) {
 /* Helper functions */
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, char* const slotName) {
 	SEXP slotValue;
-	omxMatrix* newMatrix = NULL;
-	if(strncmp(slotName, "", 1) == 0) return NULL;
 	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
-	newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
-	if(newMatrix != NULL) omxRecompute(newMatrix);
-	else if(OMX_DEBUG) Rprintf("No slot %s found.\n", slotName);
+	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
+	if (newMatrix) omxRecompute(newMatrix);
 	UNPROTECT(1);
 	return newMatrix;
 }
+

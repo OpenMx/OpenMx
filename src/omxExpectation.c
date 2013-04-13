@@ -67,6 +67,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 		if(OMX_DEBUG) {Rprintf("Calling Expectation destructor for 0x%x.\n", ox);}
 		ox->destructFun(ox);
 	}
+	Free(ox->submodels);
 }
 
 void omxExpectationRecompute(omxExpectation *ox) {
@@ -106,13 +107,6 @@ void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, char* c
 	if(!strcmp(ox->expType, "omxStateSpaceExpectation")) {
 		ox->mutateFun(ox, off, component, om);
 	}
-}
-
-omxExpectation* omxNewExpectationFromMxExpectation(SEXP mxobj, int expNum, omxState* os) {
-	
-	omxExpectation* expectation = omxNewIncompleteExpectation(mxobj, expNum, os);
-	omxCompleteExpectation(expectation);
-	return expectation;
 }
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
@@ -203,7 +197,11 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	return expect;
 }
 
-omxExpectation* omxNewExpectationFromExpectationIndex(int expIndex, omxState* os) {
+omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
+{
+	if (expIndex < 0 || expIndex >= os->numExpects) {
+		error("Expectation %d out of range [0, %d]", expIndex, os->numExpects);
+	}
 
 	omxExpectation* ox = os->expectationList[expIndex];
 	
@@ -347,19 +345,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 
 void omxCompleteExpectation(omxExpectation *ox) {
 	
+	if(ox->isComplete) return;
+
 	char errorCode[MAX_STRING_LEN];
 	
 	if(OMX_DEBUG) {Rprintf("Completing Expectation 0x%x, type %s.\n", 
 		ox, ((ox==NULL || ox->expType==NULL)?"Untyped":ox->expType));}
 		
-	if(ox == NULL) {
-		if(OMX_DEBUG) { Rprintf("Could not complete NULL expectation.\n Somebody passed NULL to omxCompleteExpectation.  And there's nothing I can do about it.  Hopefully it'll be caught later.");}
-		return;
-		// Nothing to do at this point.
-	}
-	
-	if(ox->isComplete) return;	// Already done; nothing more to do.
-	
 	omxState* os = ox->currentState;
 
 	if(ox->rObj == NULL || ox->initFun == NULL ) {
@@ -367,6 +359,25 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		sprintf(newError, "Could not complete expectation %s.\n", (ox->expType==NULL?"Untyped":ox->expType));
 		omxRaiseError(os, -1, newError);
 		return;
+	}
+
+	SEXP slot;
+	PROTECT(slot = GET_SLOT(ox->rObj, install("container")));
+	if (length(slot) == 1) {
+		int ex = INTEGER(slot)[0];
+		if (ex < 0 || ex >= os->numExpects) error("Expectation container out of range %d", ex);
+		ox->container = os->expectationList[ex];
+	}
+
+	PROTECT(slot = GET_SLOT(ox->rObj, install("submodels")));
+	if (length(slot)) {
+		ox->numSubmodels = length(slot);
+		ox->submodels = Realloc(NULL, length(slot), omxExpectation*);
+		int *submodel = INTEGER(slot);
+		for (int ex=0; ex < ox->numSubmodels; ex++) {
+			int sx = submodel[ex];
+			ox->submodels[ex] = omxExpectationFromIndex(sx, os);
+		}
 	}
 
 	omxExpectationProcessDataStructures(ox, ox->rObj);

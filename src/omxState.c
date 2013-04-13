@@ -282,6 +282,11 @@
 
 		if (state->numChildren > 0) {
 			for(k = 0; k < state->numChildren; k++) {
+				// Data are not modified and not copied. The same memory
+				// is shared across all instances of state. We only need
+				// to free the data once, so let the parent do it.
+				state->childList[k]->numData = 0;
+
 				omxFreeState(state->childList[k]);
 			}
 			Free(state->childList);
