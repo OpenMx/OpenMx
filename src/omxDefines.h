@@ -38,6 +38,8 @@
 
 #define OMXINLINE inline
 
+#define OMXZERO(ptr, num)	memset(ptr, 0, sizeof(*ptr)*num)
+
 #ifdef DEBUGMX
 #define OMX_DEBUG 1
 #define OMX_VERBOSE 1
