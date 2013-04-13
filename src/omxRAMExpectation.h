@@ -18,6 +18,6 @@
 #ifndef _OMXRAMEXPECTATION_H_
 #define _OMXRAMEXPECTATION_H_
 
-void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj);
+void omxInitRAMExpectation(omxExpectation* oo);
 
 #endif /* _OMXRAMEXPECTATION_H_ */

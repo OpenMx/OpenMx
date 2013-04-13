@@ -73,7 +73,7 @@ struct omxThresholdColumn {		 	// Threshold
 struct omxExpectation {					// An Expectation
 
 	/* Fields unique to Expectation Functions */
-	void (*initFun)(omxExpectation *ox, SEXP rObj);								// Wrapper for initialization function (probably not needed)
+	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
 	void (*computeFun)(omxExpectation* ox);										// Wrapper for the Expectation function itself
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
@@ -104,7 +104,9 @@ struct omxExpectation {					// An Expectation
 	omxExpectation **submodels;
 };
 
-/* Initialize and Destroy */
+omxExpectation *
+omxNewInternalExpectation(const char *expType, omxState* os);
+
 	void omxCompleteExpectation(omxExpectation *ox);
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);

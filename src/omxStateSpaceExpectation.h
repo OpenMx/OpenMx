@@ -32,7 +32,7 @@ typedef struct {
 void omxKalmanPredict(omxStateSpaceExpectation* ose);
 void omxKalmanUpdate(omxStateSpaceExpectation* ose);
 
-void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj);
+void omxInitStateSpaceExpectation(omxExpectation* ox);
 
 omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 

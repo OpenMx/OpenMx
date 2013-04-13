@@ -27,7 +27,7 @@ typedef struct {
 
 } omxNormalExpectation;
 
-void omxInitNormalExpectation(omxExpectation* oo, SEXP rObj);
+void omxInitNormalExpectation(omxExpectation* oo);
 omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 // void omxProcessThresholds();
 

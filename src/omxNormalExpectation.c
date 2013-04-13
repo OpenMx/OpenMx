@@ -77,8 +77,9 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 	UNPROTECT(2);
 }
 
-void omxInitNormalExpectation(omxExpectation* ox, SEXP rObj) {
+void omxInitNormalExpectation(omxExpectation* ox) {
 	
+	SEXP rObj = ox->rObj;
 	omxState* currentState = ox->currentState;
 
     if(OMX_DEBUG) { Rprintf("Initializing Normal expectation.\n"); }

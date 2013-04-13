@@ -362,7 +362,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 */
 }
 
-void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj) {
+void omxInitLISRELExpectation(omxExpectation* oo) {
+	SEXP rObj = oo->rObj;
 	
 	if(OMX_DEBUG) { Rprintf("Initializing LISREL Expectation.\n"); }
 		

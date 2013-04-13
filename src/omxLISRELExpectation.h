@@ -40,7 +40,7 @@ typedef struct {
 
 void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);
 
-void omxInitLISRELExpectation(omxExpectation* oo, SEXP rObj);
+void omxInitLISRELExpectation(omxExpectation* oo);
 
 omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
 

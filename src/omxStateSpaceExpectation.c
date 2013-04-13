@@ -218,8 +218,9 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 
 
 
-void omxInitStateSpaceExpectation(omxExpectation* ox, SEXP rObj) {
+void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
+	SEXP rObj = ox->rObj;
 	if(OMX_DEBUG) { Rprintf("Initializing State Space Expectation.\n"); }
 		
 	int nx, ny, nu;

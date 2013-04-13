@@ -322,11 +322,12 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	}
 }
 
-void omxInitRAMExpectation(omxExpectation* oo, SEXP rObj) {
+void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
+	SEXP rObj = oo->rObj;
 
-    if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
+	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
 	
 	int l, k;
 

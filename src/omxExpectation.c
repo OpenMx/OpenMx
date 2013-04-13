@@ -36,20 +36,19 @@ typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {
 	char name[32];
-	void (*initFun)(omxExpectation*, SEXP);
+	void (*initFun)(omxExpectation*);
 };
 
-extern void omxInitNormalExpectation(omxExpectation *ox, SEXP rObj);
-extern void omxInitLISRELExpectation(omxExpectation *ox, SEXP rObj);
-extern void omxInitStateSpaceExpectation(omxExpectation *ox, SEXP rObj);
-extern void omxInitRAMExpectation(omxExpectation *ox, SEXP rObj);
+void omxInitNormalExpectation(omxExpectation *ox);
+void omxInitLISRELExpectation(omxExpectation *ox);
+void omxInitStateSpaceExpectation(omxExpectation *ox);
+void omxInitRAMExpectation(omxExpectation *ox);
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationLISREL",			&omxInitLISRELExpectation},
 	{"MxExpectationStateSpace",			&omxInitStateSpaceExpectation},
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
-	{"MxExpectationRAM",			&omxInitRAMExpectation},
-	{ "", 0 }
+	{"MxExpectationRAM",			&omxInitRAMExpectation}
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {
@@ -114,34 +113,13 @@ omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* new
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;
-	const char* expType;
-	omxExpectation* expect = Calloc(1, omxExpectation);
-	
-	/* Get Expectation Type */
 	PROTECT(ExpectationClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
-	expType = CHAR(ExpectationClass);
+	const char* expType = CHAR(ExpectationClass);
 
-	/* Switch based on Expectation type. */ 
-	const omxExpectationTableEntry *entry = omxExpectationSymbolTable;
-	while (entry->initFun) {
-		if(strncmp(expType, entry->name, MAX_STRING_LEN) == 0) {
-		        expect->expType = entry->name;
-			expect->initFun = entry->initFun;
-			break;
-		}
-		entry += 1;
-	}
-
-	if(!expect->initFun) {
-		char newError[MAX_STRING_LEN];
-		sprintf(newError, "Expectation function %s not implemented.\n", (expect->expType==NULL?"Untyped":expect->expType));
-		omxRaiseError(os, -1, newError);
-		return NULL;
-	}
+	omxExpectation* expect = omxNewInternalExpectation(expType, os);
 
 	expect->rObj = rObj;
 	expect->expNum = expNum;
-	expect->currentState = os;
 	
 	return expect;
 }
@@ -296,62 +274,68 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
 
-	char errorCode[MAX_STRING_LEN];
-	
 	if(OMX_DEBUG) {Rprintf("Completing Expectation 0x%x, type %s.\n", 
 		ox, ((ox==NULL || ox->expType==NULL)?"Untyped":ox->expType));}
 		
 	omxState* os = ox->currentState;
 
-	if(ox->rObj == NULL || ox->initFun == NULL ) {
-		char newError[MAX_STRING_LEN];
-		sprintf(newError, "Could not complete expectation %s.\n", (ox->expType==NULL?"Untyped":ox->expType));
-		omxRaiseError(os, -1, newError);
-		return;
+	if (ox->rObj) {
+		SEXP slot;
+		PROTECT(slot = GET_SLOT(ox->rObj, install("container")));
+		if (length(slot) == 1) {
+			int ex = INTEGER(slot)[0];
+			if (ex < 0 || ex >= os->numExpects) error("Expectation container out of range %d", ex);
+			ox->container = os->expectationList[ex];
+		}
+
+		PROTECT(slot = GET_SLOT(ox->rObj, install("submodels")));
+		if (length(slot)) {
+			ox->numSubmodels = length(slot);
+			ox->submodels = Realloc(NULL, length(slot), omxExpectation*);
+			int *submodel = INTEGER(slot);
+			for (int ex=0; ex < ox->numSubmodels; ex++) {
+				int sx = submodel[ex];
+				ox->submodels[ex] = omxExpectationFromIndex(sx, os);
+			}
+		}
+
+		omxExpectationProcessDataStructures(ox, ox->rObj);
 	}
 
-	SEXP slot;
-	PROTECT(slot = GET_SLOT(ox->rObj, install("container")));
-	if (length(slot) == 1) {
-		int ex = INTEGER(slot)[0];
-		if (ex < 0 || ex >= os->numExpects) error("Expectation container out of range %d", ex);
-		ox->container = os->expectationList[ex];
-	}
+	ox->initFun(ox);
 
-	PROTECT(slot = GET_SLOT(ox->rObj, install("submodels")));
-	if (length(slot)) {
-		ox->numSubmodels = length(slot);
-		ox->submodels = Realloc(NULL, length(slot), omxExpectation*);
-		int *submodel = INTEGER(slot);
-		for (int ex=0; ex < ox->numSubmodels; ex++) {
-			int sx = submodel[ex];
-			ox->submodels[ex] = omxExpectationFromIndex(sx, os);
-		}
-	}
-
-	omxExpectationProcessDataStructures(ox, ox->rObj);
-
-	ox->initFun(ox, ox->rObj);
-
-	if(ox->computeFun == NULL) {// If initialization fails, error code goes in argStruct
-		if(os->statusCode != 0) {
-			strncpy(errorCode, os->statusMsg, 150); // Report a status error
-		} else {
-			// If no error code is reported, we report that.
-  			strncpy(errorCode, "No error code reported.", 25);
-		}
-		if(ox->argStruct != NULL) {
-			strncpy(errorCode, (char*)(ox->argStruct), 51);
-		}
-		char newError[MAX_STRING_LEN];
-		sprintf(newError, "Could not initialize Expectation function %s.  Error: %s\n", 
-				ox->expType, errorCode);
-		omxRaiseError(os, -1, newError);
-		return;
+	if(ox->computeFun == NULL) {
+		// Should never happen
+		error("Could not initialize Expectation function %s", ox->expType);
 	}
 
 	ox->isComplete = TRUE;
 
+}
+
+omxExpectation *
+omxNewInternalExpectation(const char *expType, omxState* os)
+{
+	omxExpectation* expect = Calloc(1, omxExpectation);
+
+	/* Switch based on Expectation type. */ 
+	for (int ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
+		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
+		if(strncmp(expType, entry->name, MAX_STRING_LEN) == 0) {
+		        expect->expType = entry->name;
+			expect->initFun = entry->initFun;
+			break;
+		}
+	}
+
+	if(!expect->initFun) {
+		Free(expect);
+		error("Expectation %s not implemented", expType);
+	}
+
+	expect->currentState = os;
+
+	return expect;
 }
 
 void omxExpectationPrint(omxExpectation* ox, char* d) {
