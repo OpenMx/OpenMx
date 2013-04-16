@@ -228,7 +228,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and fill expectation */
-	ox->expType = "omxStateSpaceExpectation";
 	omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
 	omxState* currentState = ox->currentState;
 	

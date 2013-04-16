@@ -98,7 +98,7 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 }
 
 void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, char* component, omxMatrix* om) {
-	if(!strcmp(ox->expType, "omxStateSpaceExpectation")) {
+	if(!strcmp(ox->expType, "MxExpectationStateSpace")) {
 		ox->mutateFun(ox, off, component, om);
 	}
 }

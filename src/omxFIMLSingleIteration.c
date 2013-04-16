@@ -921,7 +921,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		row += (prevIdentical - 1);
 	}
 	
-	if(row == 0 && !strcmp(expectation->expType, "omxStateSpaceExpectation") ) {
+	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
 		if(OMX_DEBUG){ Rprintf("Resetting State Space state (x) and error cov (P).\n"); }
 		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 	}
@@ -947,15 +947,15 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			omxDataRow(data, row, dataColumns, smallRow);	// Populate data row
 		}
 		if(OMX_DEBUG_ROWS(row)){omxPrint(smallRow, "...smallRow"); }
-		if(!strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			omxSetExpectationComponent(expectation, localobj, "y", smallRow);
 		}
 		//If the expectation is a state space model then
 		// set the y attribute of the state space expectation to smallRow.
 		
 		// Handle Definition Variables.
-		if(numDefs != 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {
-			if(keepCov <= 0 || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {  // If we're keeping covariance from the previous row, do not populate
+		if(numDefs != 0 || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+			if(keepCov <= 0 || !strcmp(expectation->expType, "MxExpectationStateSpace")) {  // If we're keeping covariance from the previous row, do not populate
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
@@ -971,7 +971,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 					keepCov -= numIdentical;
 					keepInverse -= numIdentical;
 					continue;
-				} else if (numVarsFilled || firstRow || !strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+				} else if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					omxExpectationCompute(expectation);
@@ -1016,7 +1016,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		
 		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
-		if((keepInverse <= 0 || keepCov <= 0 || firstRow) && strcmp(expectation->expType, "omxStateSpaceExpectation")) { // If defs and missingness don't change, skip.
+		if((keepInverse <= 0 || keepCov <= 0 || firstRow) && strcmp(expectation->expType, "MxExpectationStateSpace")) { // If defs and missingness don't change, skip.
 			// also skip if this is a state space expectation
 			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to recompute inverse cov for standard models\n"); }
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
@@ -1090,7 +1090,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		}
 		
 		/* If it's a state space expectation, extract the inverse rather than recompute it */
-		if(!strcmp(expectation->expType, "omxStateSpaceExpectation")) {
+		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to extract inverse cov for state space models\n"); }
 			
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix

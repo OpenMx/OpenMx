@@ -85,7 +85,6 @@ void omxInitNormalExpectation(omxExpectation* ox) {
     if(OMX_DEBUG) { Rprintf("Initializing Normal expectation.\n"); }
 
 	omxNormalExpectation *one = (omxNormalExpectation*) R_alloc(1, sizeof(omxNormalExpectation));
-	ox->expType = "omxNormalExpectation";
 	
 	/* Set Expectation Calls and Structures */
 	ox->computeFun = omxComputeNormalExpectation;

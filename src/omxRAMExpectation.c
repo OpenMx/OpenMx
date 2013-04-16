@@ -334,7 +334,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	SEXP slotValue;
 	
 	omxRAMExpectation *RAMexp = (omxRAMExpectation*) R_alloc(1, sizeof(omxRAMExpectation));
-	oo->expType = "omxRAMExpectation";
 	
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallRAMExpectation;

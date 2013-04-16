@@ -372,7 +372,6 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	SEXP slotValue;
 	
 	/* Create and fill expectation */
-	oo->expType = "omxLISRELExpectation";
 	omxLISRELExpectation *LISobj = (omxLISRELExpectation*) R_alloc(1, sizeof(omxLISRELExpectation));
 	omxState* currentState = oo->currentState;
 	
