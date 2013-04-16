@@ -540,7 +540,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
     			if(!returnRowLikelihoods) {
     				char helperstr[200];
     				char *errstr = calloc(250, sizeof(char));
-    				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+    				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that expected covariance matrix is not positive-definite", omxDataIndex(data, row));
     				if(localobj->matrix->currentState->computeCount <= 0) {
     					sprintf(errstr, "%s at starting values.\n", helperstr);
     				} else {
@@ -793,7 +793,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 			if(!returnRowLikelihoods) {
 				char helperstr[200];
 				char *errstr = calloc(250, sizeof(char));
-				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+				sprintf(helperstr, "Improper value detected by integration routine in data row %d: \n Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that the expected covariance matrix is positive-definite", omxDataIndex(data, row));
 				if(localobj->matrix->currentState->computeCount <= 0) {
 					sprintf(errstr, "%s at starting values.\n", helperstr);
 				} else {

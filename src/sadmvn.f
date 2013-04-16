@@ -598,7 +598,7 @@
 *
       EXTERNAL MVNFNC
       INTEGER N, NL, M, INFIN(*), LENWRK, MAXPTS, INFORM, INFIS,
-     &     RULCLS, TOTCLS, NEWCLS, MAXCLS, TID
+     &     RULCLS, TOTCLS, NEWCLS, MAXCLS, TID, I, NNOTINF
       DOUBLE PRECISION
      &     CORREL(*), LOWER(*), UPPER(*), ABSEPS, RELEPS, ERROR, VALUE,
      &     OLDVAL, D, E, MVNNIT, MVNFNC
@@ -606,7 +606,17 @@
       PARAMETER ( LENWRK = 20*NL**2 )
       PARAMETER ( NTHREADS = 64 )
       DOUBLE PRECISION WORK(LENWRK, NTHREADS)
-      IF ( N .GT. 20 .OR. N .LT. 1 ) THEN
+*
+*	MCN change test to number of dimensions with INFIN(I) not <0
+*	 
+	NNOTINF = 0
+	DO I = 1, N 
+		IF (INFIN(I) .GE. 0) THEN
+			NNOTINF = NNOTINF + 1
+		ENDIF
+	END DO
+*	WRITE(6,*) 'NNotinf = ',NNOTINF
+      IF ( NNOTINF .GT. 20 .OR. N .LT. 1 ) THEN
          INFORM = 2
          VALUE = 0
          ERROR = 1

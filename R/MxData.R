@@ -203,19 +203,20 @@ checkNumericData <- function(data) {
 	}
 }
 
-checkNumberOrdinalColumns <- function(data) {
-	if(is.data.frame(data@observed)) {
-		count <- sum(sapply(data@observed, is.factor))
-		if (count > 20) {
-			msg <- paste("The data object",
-				omxQuotes(data@name), "contains", count,
-				"ordered factors but our ordinal integration",
-				"implementation has a limit of 20 ordered factors.")
-			stop(msg, call. = FALSE)
-		}
-	}
-}
-
+# MCN - Skip check and leave it to SADMVN
+  checkNumberOrdinalColumns <- function(data) {
+  	if(is.data.frame(data@observed)) {
+  		count <- sum(sapply(data@observed, is.factor))
+  		if (count > 20) {
+#  			msg <- paste("The data object",
+#  				omxQuotes(data@name), "contains", count,
+#  				"ordered factors but our ordinal integration",
+#  				"implementation has a limit of 20 ordered factors.")
+#  			stop(msg, call. = FALSE)
+  		}
+  	}
+  }
+  
 verifyCovarianceMatrix <- function(covMatrix) {
 	if(nrow(covMatrix) != ncol(covMatrix)) {
 		msg <- paste("The observed covariance matrix",
