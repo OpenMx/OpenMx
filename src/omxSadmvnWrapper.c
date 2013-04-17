@@ -26,9 +26,7 @@
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
 #include "omxOpenmpWrap.h"
-
-extern void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
-	double*, double*, double*, double*, int*, int*);
+#include "omxSadmvnWrapper.h"
 
 void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform) {

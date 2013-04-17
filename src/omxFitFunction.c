@@ -254,7 +254,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	obj->initFun(obj, rObj);
 
 	if(obj->computeFun == NULL) {// If initialization fails, error code goes in argStruct
-		char *errorCode;
+		const char *errorCode;
 		if(om->currentState->statusCode != 0) {
 			errorCode = om->currentState->statusMsg;
 		} else {

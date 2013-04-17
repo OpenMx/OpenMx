@@ -48,6 +48,10 @@ static R_CallMethodDef callMethods[] = {
 	{NULL, NULL, 0}
 };
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 void R_init_OpenMx(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
 
@@ -64,6 +68,10 @@ void R_init_OpenMx(DllInfo *info) {
 void R_unload_OpenMx(DllInfo *info) {
 	omx_omp_destroy_lock(&GlobalRLock);
 }
+
+#ifdef  __cplusplus
+}
+#endif
 
 PROTECT_INDEX omxProtectSave()
 {

@@ -18,6 +18,17 @@
 #ifndef _OMXSADMVNWRAPPER_H
 #define _OMXSADMVNWRAPPER_H
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
+		     double*, double*, double*, double*, int*, int*);
+
+#ifdef  __cplusplus
+}
+#endif
+
 void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 

@@ -34,12 +34,20 @@ const double INF = 2e20;
 
 const char* anonMatrix = "anonymous matrix";
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /* NPSOL-related functions */
 extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
                             double *bl, double *bu, void* funcon, void* funobj, int *inform, int *iter, 
                             int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
                             double *x, int *iw, int *leniw, double *w, int *lenw);
 extern void F77_SUB(npoptn)(char* string, int length);
+
+#ifdef  __cplusplus
+}
+#endif
 
 /****** Objective Function *********/
 void F77_SUB(npsolObjectiveFunction)
