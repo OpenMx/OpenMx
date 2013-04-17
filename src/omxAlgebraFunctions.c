@@ -1970,7 +1970,7 @@ AllIntCleanup:
 	free(currentThresholds);
 }
 
-int omxCompareDoubleHelper(const void* one, const void* two) {
+int omxCompareDoubleHelper(const void* one, const void* two, void *ign) {
 	double diff = *(double*) two - *(double*) one;
 	if(diff > EPSILON) {
 		return 1;
@@ -1980,7 +1980,7 @@ int omxCompareDoubleHelper(const void* one, const void* two) {
 }
 
 
-int omxComparePointerContentsHelper(const void* one, const void* two) {
+int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {
 	double diff = (*(*(double**) two)) - (*(*(double**) one));
 	if(diff > EPSILON) {
 		return 1;
@@ -2014,7 +2014,7 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 		sortArray[i] = sortOrder + i;
 	}
 
-	freebsd_mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper);
+	freebsd_mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper, NULL);
 
 	if(OMX_DEBUG) {Rprintf("Original is (%d x %d), result is (%d x %d).\n", original->rows, original->cols, result->rows, result->cols);}
 
