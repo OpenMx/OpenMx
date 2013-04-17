@@ -57,7 +57,6 @@ typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
 typedef struct omxCheckpoint omxCheckpoint;
-typedef enum omxCheckpointType omxCheckpointType;
 typedef struct omxOptimizerState omxOptimizerState;
 typedef struct omxConfidenceInterval omxConfidenceInterval;
 
@@ -68,7 +67,6 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 #include "omxData.h"
 //#include "omxOptimizer.h"											// omxOptimizer objects coming soon
 
-/* Structure definitions for object evaluation */  // Might be cleaner to give these their own files.
 struct omxFreeVar {			// Free Variables
 	double lbound, ubound;	// Bounds
 	int numLocations;
@@ -100,6 +98,7 @@ enum omxCheckpointType {
 	OMX_SOCKET_CHECKPOINT = 1,
 	OMX_CONNECTION_CHECKPOINT = 2
 };
+typedef enum omxCheckpointType omxCheckpointType;
 
 struct omxCheckpoint {
 	omxCheckpointType type;
@@ -206,8 +205,8 @@ struct omxState {													// The Current State of Optimization
 	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
-	void omxRaiseError(omxState *state, int errorCode, char* errorMsg);	// old API
-void omxRaiseErrorf(omxState *state, char* errorMsg, ...);   // new API
+void omxRaiseError(omxState *state, int errorCode, const char* errorMsg);
+void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 																		// TODO: Move RaiseError to omxOptimizer.
 
 /* Advance a step */

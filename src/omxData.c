@@ -107,10 +107,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 				od->location[j] = ~(numInts++);
 				od->numFactor++;
 			} else if (isInteger(od->columns[j])) {
-				char *errstr = calloc(250, sizeof(char));
-				sprintf(errstr, "Internal error: Column %d is in integer format.", j);
-				omxRaiseError(od->currentState, -1, errstr);
-				free(errstr);
+				error("Internal error: Column %d is in integer format.", j);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
 				od->realData[numReals] = REAL(od->columns[j]);
@@ -257,11 +254,9 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	if(od->dataMat != NULL) return FALSE;
 	if(col <= od->cols) return (od->location[col] < 0);
-	char *errstr = calloc(250, sizeof(char));
-	sprintf(errstr, "Attempted to access column %d of a %d-column data object.\n", col, od->cols);
-	omxRaiseError(od->currentState, -1, errstr);
-	free(errstr);
-	return FALSE;
+
+	error("Attempted to access column %d of a %d-column data object", col, od->cols);
+	return 0; // not reached
 }
 
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {

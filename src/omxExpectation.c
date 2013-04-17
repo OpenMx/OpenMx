@@ -82,7 +82,7 @@ void omxExpectationCompute(omxExpectation *ox) {
 	ox->computeFun(ox);
 }
 
-omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, char* component) {
+omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
 
 	if(component == NULL) return NULL;
 
@@ -97,7 +97,7 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 	
 }
 
-void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, char* component, omxMatrix* om) {
+void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
 	if(!strcmp(ox->expType, "MxExpectationStateSpace")) {
 		ox->mutateFun(ox, off, component, om);
 	}

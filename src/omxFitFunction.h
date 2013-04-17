@@ -94,13 +94,12 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState);
 	
-	void omxFitFunctionPrint(omxFitFunction *source, char* d);					// Pretty-print a (small) matrix
+void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
 	/* Helper functions */
 	void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *oo);	// Does what it says
 	
-	/* Helpers related to fit function initialization */
-	omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
+omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
 void omxFitFunctionCreateChildren(omxState *globalState, int numThreads);
 

@@ -657,7 +657,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
 
     if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
     if(info > 0) {
-        char *errstr = calloc(250, sizeof(char));
+	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
         if(oo->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);
@@ -670,7 +670,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     
     F77_CALL(dpotri)(&u, &(eCov->rows), eCov->data, &(eCov->cols), &info);
     if(info > 0) {
-        char *errstr = calloc(250, sizeof(char));
+	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is not invertible");
         if(oo->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);

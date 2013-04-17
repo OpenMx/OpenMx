@@ -267,7 +267,7 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name
 	return(newMat);
 }
 
-void omxAlgebraPrint(omxAlgebra* oa, char* d) {
+void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 	Rprintf("(Algebra) ");
 	omxPrintMatrix(oa->matrix, d);
 	Rprintf("has %d args.\n", oa->numArgs);
@@ -310,11 +310,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	  omxRaiseError(os, -1, err);
 	  return NULL;
 	} else {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Internal error: unknown type passed to omxMatrixLookupFromState1.");
-		omxRaiseError(os, -1, errstr);
-		free(errstr);
-		return NULL;
+		error("Internal error: unknown type passed to omxMatrixLookupFromState1");
 	}		
 	if(OMX_DEBUG && os->parentState == NULL) {
 		Rprintf("  Pointer is %d.\n", value);
@@ -339,11 +335,7 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
 	if(entry->numArgs >= 0 && entry->numArgs != numArgs) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Internal error: incorrect number of arguments passed to algebra %s.", entry->rName);
-		omxRaiseError(os, -1, errstr);
-		free(errstr);
-		return NULL;
+		error("Internal error: incorrect number of arguments passed to algebra %s.", entry->rName);
 	}
 	
 	om = omxInitAlgebra(oa, os);

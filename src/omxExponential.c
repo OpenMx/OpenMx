@@ -40,7 +40,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	int nrow = inMat->rows;
 	int ncol = inMat->cols;
 	if (nrow != ncol) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Non-square matrix for matrix exponential.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);

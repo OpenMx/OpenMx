@@ -99,7 +99,7 @@ struct omxMatrix {						// A matrix
 	unsigned short hasMatrixNumber, int matrixNumber); 							// Create an omxMatrix from an R object
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size
 	extern omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);	// Create a matrix/algebra from a matrix pointer
-	extern omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, char* const slotName);	// Gets a matrix from an R SEXP slot
+
 	omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState);
 	SEXP omxExportMatrix(omxMatrix *om);
 
@@ -126,7 +126,7 @@ struct omxMatrix {						// A matrix
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */
-	void omxPrint(omxMatrix *source, char* d); 											// Pretty-print a (small) matrix
+	void omxPrint(omxMatrix *source, const char* d);
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
 	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
 	void omxCompute(omxMatrix *matrix);													// Recompute the matrix no matter what.
@@ -139,7 +139,7 @@ struct omxMatrix {						// A matrix
 
 /* Matrix-Internal Helper functions */
 	void omxMatrixLeadingLagging(omxMatrix *matrix);
-	void omxPrintMatrix(omxMatrix *source, char* d);                    // Pretty-print a (small) matrix
+void omxPrintMatrix(omxMatrix *source, const char* header);
 	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 
 /* OMXINLINE functions and helper functions */

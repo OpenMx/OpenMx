@@ -33,7 +33,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
-void omxPrintMatrix(omxMatrix *source, char* header) {
+void omxPrintMatrix(omxMatrix *source, const char* header) {
 	int j, k;
 
 	Rprintf("%s: (%d x %d) [%s-major] SEXP 0x%0x\n",
@@ -308,7 +308,7 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 void vectorElementError(int index, int numrow, int numcol) {
-	char *errstr = calloc(250, sizeof(char));
+	char *errstr = (char*) calloc(250, sizeof(char));
 	if ((numrow > 1) && (numcol > 1)) {
 		sprintf(errstr, "Requested improper index (%d) from a malformed vector of dimensions (%d, %d).", 
 			index, numrow, numcol);
@@ -322,7 +322,7 @@ void vectorElementError(int index, int numrow, int numcol) {
 }
 
 void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
-	char *errstr = calloc(250, sizeof(char));
+	char *errstr = (char*) calloc(250, sizeof(char));
 	static const char *matrixString = "matrix";
 	static const char *algebraString = "algebra";
 	static const char *fitString = "fit function";
@@ -346,7 +346,7 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 }
 
 void matrixElementError(int row, int col, int numrow, int numcol) {
-	char *errstr = calloc(250, sizeof(char));
+	char *errstr = (char*) calloc(250, sizeof(char));
 	sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.",
 		row, col, numrow, numcol);
 	error(errstr);
@@ -354,7 +354,7 @@ void matrixElementError(int row, int col, int numrow, int numcol) {
 }
 
 void setVectorError(int index, int numrow, int numcol) {
-	char *errstr = calloc(250, sizeof(char));
+	char *errstr = (char*) calloc(250, sizeof(char));
 	if ((numrow > 1) && (numcol > 1)) {
 		sprintf(errstr, "Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d).", 
 			index, numrow, numcol);
@@ -370,7 +370,7 @@ void setVectorError(int index, int numrow, int numcol) {
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if(row >= om->originalRows || col >= om->originalCols) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
 			row + 1, col + 1, om->originalRows, om->originalCols);
 		error(errstr);
@@ -648,7 +648,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 }
 
 /* Function wrappers that switch based on inclusion of algebras */
-void omxPrint(omxMatrix *source, char* d) { 					// Pretty-print a (small) matrix
+void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small) matrix
     if(source == NULL) Rprintf("%s is NULL.\n", d);
 	else if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
 	else if(source->fitFunction != NULL) omxFitFunctionPrint(source->fitFunction, d);

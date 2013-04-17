@@ -118,10 +118,10 @@ freebsd_mergesort(void *base, size_t nmemb, size_t size, mergesort_cmp_t cmp, vo
 	if (!(size % ISIZE) && !(((char *)base - (char *)0) % ISIZE))
 		iflag = 1;
 
-	if ((list2 = malloc(nmemb * size + PSIZE)) == NULL)
+	if ((list2 = (unsigned char*) malloc(nmemb * size + PSIZE)) == NULL)
 		return (-1);
 
-	list1 = base;
+	list1 = (unsigned char*) base;
 	setup(list1, list2, nmemb, size, cmp, userdata);
 	last = list2 + nmemb * size;
 	i = big = 0;

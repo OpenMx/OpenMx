@@ -29,11 +29,12 @@ typedef struct omxAlgebra omxAlgebra;
 
 #include "omxSymbolTable.h"
 #include "omxState.h"
+#include "algebraOp.h"
 
 struct omxAlgebra {						// A matrix
 										//TODO: Improve encapsulation
 /* Fields unique to Algebras */
-	void* funWrapper;					// Wrapper for the algebra function itself
+	algebra_op_t funWrapper;					// Wrapper for the algebra function itself
 	omxMatrix** algArgs;
 	int numArgs;						// Length of args
 
@@ -62,7 +63,7 @@ struct omxAlgebra {						// A matrix
 	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 
-	void omxAlgebraPrint(omxAlgebra *source, char* d);					// Pretty-print a (small) matrix
+void omxAlgebraPrint(omxAlgebra *source, const char* d);
 
 #endif /* _OMXALGEBRA_H_ */
 

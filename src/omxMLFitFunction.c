@@ -126,7 +126,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
 	if(info > 0) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
 		if(oo->matrix->currentState->computeCount <= 0) {
 			strncat(errstr, " at starting values", 20);
@@ -289,7 +289,7 @@ void omxInitMLFitFunction(omxFitFunction* oo, SEXP rObj) {
 			omxInitFIMLFitFunction(oo, rObj);
 			return;
 		}
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "ML FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -352,7 +352,7 @@ void omxInitMLFitFunction(omxFitFunction* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
 	if(info != 0) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite.\n");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -476,7 +476,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
 
     if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
     if(info > 0) {
-        char *errstr = calloc(250, sizeof(char));
+	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
         if(oo->matrix->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);
@@ -489,7 +489,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     
     F77_CALL(dpotri)(&u, &(eCov->rows), eCov->data, &(eCov->cols), &info);
     if(info > 0) {
-        char *errstr = calloc(250, sizeof(char));
+	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is not invertible");
         if(oo->matrix->currentState->computeCount <= 0) {
             strncat(errstr, " at starting values", 20);

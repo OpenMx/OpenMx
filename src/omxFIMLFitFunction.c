@@ -149,16 +149,11 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
 		if(defVars[k].source != data) {
-			omxRaiseError(data->currentState, -1, 
-					"Internal error: definition variable population into incorrect data source");
-			error("Internal error: definition variable population into incorrect data source"); // Kept for historical reasons
-			continue; //Do not populate this variable.
+			error("Internal error: definition variable population into incorrect data source");
 		}
 		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
 		if(ISNA(newDefVar)) {
-			omxRaiseError(data->currentState, -1, "Error: NA value for a definition variable is Not Yet Implemented.");
-			error("Error: NA value for a definition variable is Not Yet Implemented."); // Kept for historical reasons
-			return -1;
+			error("Error: NA value for a definition variable is Not Yet Implemented.");
 		}
 		if(newDefVar == oldDefs[k]) {
 			continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison

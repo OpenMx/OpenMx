@@ -24,6 +24,7 @@
 *
 **********************************************************/
 
+#include <stdarg.h>
 #include "omxState.h"
 
 /* Initialize and Destroy */
@@ -379,7 +380,7 @@
 		}
 	}
 
-void omxRaiseErrorf(omxState *state, char* errorMsg, ...)
+void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 {
 	va_list ap;
 	va_start(ap, errorMsg);
@@ -395,7 +396,7 @@ void omxRaiseErrorf(omxState *state, char* errorMsg, ...)
 	state->statusCode = -1;  // this provides no additional information beyond errorMsg[0]!=0 TODO
 }
 
-	void omxRaiseError(omxState *state, int errorCode, char* errorMsg) {
+	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) {
 		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
 		state->statusCode = errorCode;

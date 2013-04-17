@@ -275,14 +275,14 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 
 }
 
-void omxFitFunctionPrint(omxFitFunction* off, char* d) {
+void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
 	Rprintf("(FitFunction, type %s) ", off->fitType);
 	omxPrintMatrix(off->matrix, d);
 }
 
 
 /* Helper functions */
-omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, char* const slotName) {
+omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* slotName) {
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
 	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);

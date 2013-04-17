@@ -105,8 +105,8 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 	contiguousLength = oro->contiguous.length;
 
 	numCols = dataColumns->cols;
-	int *toRemove = malloc(sizeof(int) * dataColumns->cols);
-	int *zeros = calloc(dataColumns->cols, sizeof(int));
+	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
+	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
     resetDefinitionVariables(oldDefs, numDefs);
 
@@ -145,7 +145,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 		// TODO: Determine if this is the correct response.
 		
 		if(numRemoves == numCols) {
-		    char *errstr = calloc(250, sizeof(char));
+			char *errstr = (char*) calloc(250, sizeof(char));
 			sprintf(errstr, "Row %d completely missing.  omxRowFitFunction cannot have completely missing rows.", omxDataIndex(data, row));
 			omxRaiseError(localobj->matrix->currentState, -1, errstr);
 			free(errstr);
@@ -248,7 +248,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	newObj->data = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No data provided to omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -258,7 +258,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowAlgebra")));
 	newObj->rowAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row-wise algebra in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -268,7 +268,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("filteredDataRow")));
 	newObj->filteredDataRow = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->filteredDataRow == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -282,7 +282,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	newObj->existenceVector = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
     // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
 	if(newObj->existenceVector == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No existance matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -293,7 +293,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("rowResults")));
 	newObj->rowResults = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowResults == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
@@ -303,7 +303,7 @@ void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("reduceAlgebra")));
 	newObj->reduceAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->reduceAlgebra == NULL) {
-		char *errstr = calloc(250, sizeof(char));
+		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row reduction algebra in omxRowFitFunction.");
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);

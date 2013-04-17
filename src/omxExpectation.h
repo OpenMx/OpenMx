@@ -120,8 +120,8 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation
 	
-	omxMatrix* omxGetExpectationComponent(omxExpectation *ox, omxFitFunction *off, char* component);	// Get a component
+omxMatrix* omxGetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component);
 	
-	void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, char* component, omxMatrix *om);	// Set a component
+void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component, omxMatrix *om);
 
 #endif /* _OMXEXPECTATION_H_ */

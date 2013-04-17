@@ -26,7 +26,7 @@ output <- paste(
 "#include <R_ext/Lapack.h>",
 "typedef struct omxAlgebraTableEntry omxAlgebraTableEntry;",
 "#include \"omxMatrix.h\"",
-"typedef void (*algebra_op_t)(omxMatrix**, int, omxMatrix*);",
+"#include \"algebraOp.h\"",
 "struct omxAlgebraTableEntry {",
 
 "	unsigned int number;",

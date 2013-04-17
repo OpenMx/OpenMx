@@ -213,9 +213,9 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 
 		PROTECT(nextLoc = VECTOR_ELT(checkpointList, index));
 		int next = 0;
-		oC->type = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
+		oC->type = (omxCheckpointType) INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
-		case OMX_FILE_CHECKPOINT:
+		case OMX_FILE_CHECKPOINT:{
 			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
 			fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 			char sep ='/';
@@ -233,20 +233,20 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 			}
 			Free(fullname);
 			oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
-			break;
+			break;}
 
-		case OMX_SOCKET_CHECKPOINT:
+		case OMX_SOCKET_CHECKPOINT:{
 			serverName = CHAR(VECTOR_ELT(nextLoc, next++));
 			int __attribute__((unused)) portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
 			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			oC->saveHessian = FALSE;
-			break;
+			break;}
 
-		case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
+		case OMX_CONNECTION_CHECKPOINT:{	// NYI :::DEBUG:::
 			oC->connection = VECTOR_ELT(nextLoc, next++);
 			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			oC->saveHessian = FALSE;
-			break;
+			break;}
 		}
 
 		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
