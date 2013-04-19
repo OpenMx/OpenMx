@@ -27,11 +27,9 @@
 #include "omxData.h"
 #include "npsolWrap.h"
 
-omxData* omxInitData(omxData* od, omxState* os) {
+omxData* omxInitData(omxState* os) {
 
-	if(od == NULL) {
-		od = Calloc(1, omxData);
-	}
+	omxData *od = Calloc(1, omxData);
 
 	od->currentState = os;
 	
@@ -47,16 +45,13 @@ omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	return state->dataList[dataIdx];
 }
 
-omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
+omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	if(OMX_DEBUG) {Rprintf("Initializing data Element.\n");}
 	if(dataObject == NULL) {
 		error("Null Data Object detected.  This is an internal error, and should be reported on the forums.\n");
 	}
 
-	omxData* od = data;
-	if(od == NULL) {
-		od = omxInitData(data, state);
-	}
+	omxData* od = omxInitData(state);
 
 	SEXP dataLoc, dataVal;
 	int numCols;

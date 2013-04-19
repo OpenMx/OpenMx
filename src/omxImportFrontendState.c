@@ -42,7 +42,7 @@ int omxProcessMxDataEntities(SEXP data) {
 
 	for(int index = 0; index < length(data); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
-		globalState->dataList[index] = omxNewDataFromMxData(NULL, nextLoc, globalState);
+		globalState->dataList[index] = omxNewDataFromMxData(nextLoc, globalState);
 		if(OMX_DEBUG) {
 			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
 				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);

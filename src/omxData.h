@@ -77,9 +77,9 @@ struct omxData {						// A matrix
 };
 
 /* Initialize and Destroy */
-omxData* omxInitData();						// Set up a data object
+omxData* omxInitData(omxState* os);
+omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state);
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
-omxData* omxNewDataFromMxData(omxData* od, SEXP dataObject, omxState* state);	// Fills the object from a data SEXP
 void omxFreeData(omxData* od);					// Release any held data.
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList);
 
