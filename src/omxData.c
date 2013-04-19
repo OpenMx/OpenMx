@@ -74,22 +74,22 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->cols = length(dataLoc);
 		if(OMX_DEBUG) {Rprintf("Data has %d columns.\n", od->cols);}
 		numCols = od->cols;
-		od->columns = (SEXP*) R_alloc(numCols, sizeof(SEXP));
 		od->realData = (double**) R_alloc(numCols, sizeof(double*));
 		od->intData = (int**) R_alloc(numCols, sizeof(int*));
 		od->location = (int*) R_alloc(numCols, sizeof(int));
 		for(int j = 0; j < numCols; j++) {
-			PROTECT(od->columns[j] = VECTOR_ELT(dataLoc, j));
-			if(isFactor(od->columns[j])) {
+			SEXP rcol;
+			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
+			if(isFactor(rcol)) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
-				od->intData[numInts] = INTEGER(od->columns[j]);
+				od->intData[numInts] = INTEGER(rcol);
 				od->location[j] = ~(numInts++);
 				od->numFactor++;
-			} else if (isInteger(od->columns[j])) {
+			} else if (isInteger(rcol)) {
 				error("Internal error: Column %d is in integer format.", j);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
-				od->realData[numReals] = REAL(od->columns[j]);
+				od->realData[numReals] = REAL(rcol);
 				od->location[j] = (numReals++);
 				od->numNumeric++;
 			}
@@ -602,18 +602,24 @@ void omxPrintData(omxData *od, const char *header) {
 		od->rows, od->cols);
 	Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
 
-	if (od->columns) {
-		for(int j = 0; j < od->cols; j++) {
-			PrintValue(od->columns[j]);
-		}
-	}
-
 	if (od->location) {
-		Rprintf("Location: ");
 		for(int j = 0; j < od->cols; j++) {
-			Rprintf("%d ", od->location[j]);
+			int loc = od->location[j];
+			if (loc < 0) {
+				Rprintf("Integer[%d]:", j);
+				int *val = od->intData[~loc];
+				for (int vx=0; vx < od->numObs; vx++) {
+					Rprintf(" %d", val[vx]);
+				}
+			} else {
+				Rprintf("Numeric[%d]:", j);
+				double *val = od->realData[loc];
+				for (int vx=0; vx < od->numObs; vx++) {
+					Rprintf(" %.3g", val[vx]);
+				}
+			}
+			Rprintf("\n");
 		}
-		Rprintf("\n");
 	}
 
 	if (od->identicalRows) {

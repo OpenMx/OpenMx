@@ -53,9 +53,6 @@ struct omxContiguousData {
 
 struct omxData {						// A matrix
 	//TODO: Improve encapsulation
-	/* The object itself */
-	SEXP dataObject;					// The R object
-	SEXP* columns;						// An array of column SEXPs
 	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	double numObs;						// Number of observations
