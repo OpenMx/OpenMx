@@ -30,26 +30,10 @@
 omxData* omxInitData(omxData* od, omxState* os) {
 
 	if(od == NULL) {
-		od = (omxData*)R_alloc(1, sizeof(omxData));
+		od = Calloc(1, omxData);
 	}
 
-	od->dataObject = NULL;
-	od->columns = NULL;
-	od->dataMat = NULL;
-	od->meansMat = NULL;
-	od->rows = 0;
-	od->cols = 0;
-	od->location = NULL;
-	od->intData = NULL;
-	od->realData = NULL;
 	od->currentState = os;
-	od->indexVector = NULL;
-	od->identicalDefs = NULL;
-	od->identicalMissingness = NULL;
-	od->identicalRows = NULL;
-	od->numFactor = 0;
-	od->numNumeric = 0;
-	od->isDynamic = FALSE;
 	
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
 
@@ -187,8 +171,9 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
 }
 
 void omxFreeData(omxData* od) {
-	if(od->dataMat != NULL) omxFreeAllMatrixData(od->dataMat);
-	if(od->meansMat != NULL) omxFreeAllMatrixData(od->meansMat);
+	omxFreeAllMatrixData(od->dataMat);
+	omxFreeAllMatrixData(od->meansMat);
+	Free(od);
 }
 
 double omxDoubleDataElement(omxData *od, int row, int col) {
