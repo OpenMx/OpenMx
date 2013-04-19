@@ -49,6 +49,7 @@ set.seed(200)
 
 rs=.4
 xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy2 <- xy2[, order(apply(xy2, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
 # group 2
 # --------------------------------------
 # Simulate Data
