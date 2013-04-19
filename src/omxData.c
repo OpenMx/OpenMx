@@ -55,8 +55,6 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 
 	SEXP dataLoc, dataVal;
 	int numCols;
-	int numInts=0;
-	int numReals=0;
 
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {Rprintf("Processing Data Type.\n");}
@@ -82,15 +80,15 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
 			if(isFactor(rcol)) {
 				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
-				od->intData[numInts] = INTEGER(rcol);
-				od->location[j] = ~(numInts++);
+				od->intData[j] = INTEGER(rcol);
+				od->location[j] = ~j;
 				od->numFactor++;
 			} else if (isInteger(rcol)) {
 				error("Internal error: Column %d is in integer format.", j);
 			} else {
 				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
-				od->realData[numReals] = REAL(rcol);
-				od->location[j] = (numReals++);
+				od->realData[j] = REAL(rcol);
+				od->location[j] = j;
 				od->numNumeric++;
 			}
 		}
