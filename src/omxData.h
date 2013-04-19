@@ -59,7 +59,7 @@ struct omxData {						// A matrix
 	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	double numObs;						// Number of observations
-	char type[250];						// The type of data object.
+	const char *_type;
 	
 	int* location;						// Which of the following contains the data column
 	double** realData;					// The actual data objects if numeric
@@ -101,7 +101,7 @@ int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number o
 	
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor
-char* omxDataType(omxData *od);												// Returns the type field // TODO: Should this be an ENUM?
+const char *omxDataType(omxData *od);			      // TODO: Should this be an ENUM?
 	
 int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
 int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set

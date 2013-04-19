@@ -84,9 +84,8 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("type")));
 	if(dataLoc == NULL) { error("Data has no type.  Sorry.\nThis is an internal error, and should be reported on the forums.\n");}
 	PROTECT(dataVal = STRING_ELT(dataLoc,0));
-	strncpy(od->type, CHAR(dataVal), 249);
-	od->type[249] = '\0';
-	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->type);}
+	od->_type = CHAR(dataVal);
+	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->_type);}
 
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("observed")));
 	if(OMX_DEBUG) {Rprintf("Processing Data Elements.\n");}
@@ -122,7 +121,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {Rprintf("Data contains a matrix.\n");}
 		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 		
-		if (od->dataMat->colMajor && strncmp(od->type, "raw", 3) == 0) { 
+		if (od->dataMat->colMajor && strncmp(od->_type, "raw", 3) == 0) { 
 			omxToggleRowColumnMajor(od->dataMat);
 		}
 		od->cols = od->dataMat->cols;
@@ -148,7 +147,7 @@ omxData* omxNewDataFromMxData(omxData* data, SEXP dataObject, omxState* state) {
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
         }
 
-	if(strncmp(od->type, "raw", 3) != 0) {
+	if(strncmp(od->_type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("numObs")));
 		od->numObs = REAL(dataLoc)[0];
@@ -427,8 +426,8 @@ int omxDataNumNumeric(omxData *od) {
 }
 
 
-char* omxDataType(omxData *od) {
-	return od->type;
+const char *omxDataType(omxData *od) {
+	return od->_type;
 }
 
 int elementEqualsDataframe(SEXP column, int offset1, int offset2) {
@@ -619,7 +618,7 @@ void omxPrintData(omxData *od, const char *header) {
 		return;
 	}
 
-	Rprintf("%s(%s): %f observations %d x %d\n", header, od->type, od->numObs,
+	Rprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
 		od->rows, od->cols);
 	Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
 
