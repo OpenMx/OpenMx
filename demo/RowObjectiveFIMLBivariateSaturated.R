@@ -46,6 +46,7 @@ set.seed(200)
 rs <- .5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
 testData <- as.data.frame(xy)
+testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
 testVars <- c('X','Y')
 names(testData) <- testVars
 summary(testData)
