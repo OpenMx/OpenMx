@@ -85,8 +85,8 @@ double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one d
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
-omxMatrix* omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
-omxMatrix* omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
+void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
+void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
 int omxDataNumIdenticalRows(omxData *od, int row);							// Returns the number of rows identical to this one in the data set
 int omxDataNumIdenticalMissingness(omxData *od, int row);					// Returns the number of rows with definition variables and missingness identical to this one in the data set
