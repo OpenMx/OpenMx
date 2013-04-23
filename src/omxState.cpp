@@ -142,20 +142,14 @@
 		tgt->numFreeParams			= src->numFreeParams;
 		tgt->freeVarList 		= new omxFreeVar[tgt->numFreeParams];
 		for(int j = 0; j < tgt->numFreeParams; j++) {
-			int numDeps							= src->freeVarList[j].numDeps;
 
 			tgt->freeVarList[j].lbound			= src->freeVarList[j].lbound;
 			tgt->freeVarList[j].ubound			= src->freeVarList[j].ubound;
 			tgt->freeVarList[j].locations			= src->freeVarList[j].locations;
-			tgt->freeVarList[j].numDeps			= numDeps;
-			
-			tgt->freeVarList[j].deps			= (int*) R_alloc(numDeps, sizeof(int));
 
 			tgt->freeVarList[j].name		= src->freeVarList[j].name;
 
-			for(int k = 0; k < numDeps; k++) {
-				tgt->freeVarList[j].deps[k] = src->freeVarList[j].deps[k];
-			}
+			tgt->freeVarList[j].deps = src->freeVarList[j].deps;
 		}
 		
 		if (src->optimizerState) {

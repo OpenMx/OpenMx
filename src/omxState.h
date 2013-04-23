@@ -75,8 +75,7 @@ struct omxFreeVarLocation {
 struct omxFreeVar {			// Free Variables
 	double lbound, ubound;	// Bounds
 	std::vector<omxFreeVarLocation> locations;
-	int numDeps;            // number of algebra/matrix dependencies
-	int *deps;              // indices of algebra/matrix dependencies
+	std::vector<int> deps;
 	const char* name;
 };
 

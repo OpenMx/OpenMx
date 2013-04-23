@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -24,6 +24,28 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
+
+static omxMatrix *matrixNumberToMatrix(omxState* os, int value)
+{
+	if(value < 0) {
+		return os->matrixList[~value];
+	} else {
+		return os->algebraList[value];
+	}
+}
+
+static void printFreeVarDependencies(omxState* os)
+{
+	for(int freeVarIndex = 0; freeVarIndex < os->numFreeParams; freeVarIndex++) {
+		omxFreeVar* freeVar = os->freeVarList + freeVarIndex;
+		Rprintf("FV %s depends on", freeVar->name);
+		for (size_t index = 0; index < freeVar->deps.size(); index++) {
+			omxMatrix *mat = matrixNumberToMatrix(os, freeVar->deps[index]);
+			Rprintf(" %d(%s)", freeVar->deps[index], mat->name? mat->name : "?");
+		}
+		Rprintf("\n");
+	}
+}
 
 void cacheFreeVarDependencies(omxState* os)
 {
@@ -35,28 +57,37 @@ void cacheFreeVarDependencies(omxState* os)
 
 	for(int freeVarIndex = 0; freeVarIndex < os->numFreeParams; freeVarIndex++) {
 		omxFreeVar* freeVar = os->freeVarList + freeVarIndex;
-		int *deps   = freeVar->deps;
-		int numDeps = freeVar->numDeps;
-		for (int index = 0; index < numDeps; index++) {
-			os->markMatrices[deps[index] + numMats] = 1;
+		for (size_t index = 0; index < freeVar->deps.size(); index++) {
+			os->markMatrices[freeVar->deps[index] + numMats] = 1;
 		}
 	}
 
+	if (0) printFreeVarDependencies(os);
 }
 
-void markFreeVarDependenciesHelper(omxState* os, int varNumber) {
-
-	int numDeps = os->freeVarList[varNumber].numDeps;
-	int *deps = os->freeVarList[varNumber].deps;
-
-	for (int i = 0; i < numDeps; i++) {
-		int value = deps[i];
-
-		if(value < 0) {
-			omxMarkDirty(os->matrixList[~value]);
-		} else {
-			omxMarkDirty(os->algebraList[value]);
+void addFreeVarDependency(omxState *os, omxMatrix *filter, omxMatrix *on) // needed? TODO
+{
+	for(int fx = 0; fx < os->numFreeParams; fx++) {
+		omxFreeVar *fv = os->freeVarList + fx;
+		size_t origNumDeps = fv->deps.size();
+		for (size_t dx = 0; dx < origNumDeps; dx++) {
+			if (fv->deps[dx] == filter->matrixNumber) {
+				fv->deps.push_back(on->matrixNumber);
+				break;
+			}
 		}
+	}	
+}
+
+static void markFreeVarDependenciesHelper(omxState* os, int varNumber)
+{
+	omxFreeVar *fv = &os->freeVarList[varNumber];
+
+	for (size_t i = 0; i < fv->deps.size(); i++) {
+		int value = fv->deps[i];
+
+		omxMatrix *mat = matrixNumberToMatrix(os, value);
+		omxMarkDirty(mat);
 	}
 
 }

@@ -17,6 +17,7 @@
 #ifndef _OMXOPTIMIZER_H
 #define _OMXOPTIMIZER_H
 
+void addFreeVarDependency(omxState *os, omxMatrix *filter, omxMatrix *on);
 void cacheFreeVarDependencies(omxState* os);
 void markFreeVarDependencies(omxState* os, int varNumber);
 void handleFreeVarList(omxFitFunction* oo, double* x, int numVars);

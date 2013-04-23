@@ -242,7 +242,6 @@ void omxProcessFreeVarList(SEXP varList) {
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
 	globalState->freeVarList = new omxFreeVar[n];
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
-		int numDeps;
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
 		int numLocs = length(nextVar) - 3;
 		globalState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
@@ -260,11 +259,9 @@ void omxProcessFreeVarList(SEXP varList) {
 		if(globalState->freeVarList[freeVarIndex].ubound == 0.0) globalState->freeVarList[freeVarIndex].ubound = -0.0;
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
-		numDeps = LENGTH(nextLoc);
-		globalState->freeVarList[freeVarIndex].numDeps = numDeps;
-		globalState->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
+		int numDeps = LENGTH(nextLoc);
 		for(int i = 0; i < numDeps; i++) {
-			globalState->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
+			globalState->freeVarList[freeVarIndex].deps.push_back(INTEGER(nextLoc)[i]);
 		}
 
 		if(OMX_DEBUG) { 
