@@ -43,6 +43,7 @@ set.seed(200)
 rs=.5
 xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 xy1 <- xy1[, order(apply(xy1, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
 set.seed(200)
 # group 1
 # --------------------------------------
@@ -50,6 +51,7 @@ set.seed(200)
 rs=.4
 xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 xy2 <- xy2[, order(apply(xy2, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
 # group 2
 # --------------------------------------
 # Simulate Data
