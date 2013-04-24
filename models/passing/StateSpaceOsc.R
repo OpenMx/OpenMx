@@ -116,7 +116,7 @@ rownames(tx) <- paste('x', 1:xdim, sep='')
 
 smod <- mxModel(
 	name='State Space Example',
-	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b')),
+	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b'), ubound=c(-.6, rep(NA, 8))),
 	mxAlgebra(name='csym', -c),
 	mxConstraint(name='ccon', d == csym),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
@@ -140,6 +140,7 @@ smod <- mxModel(
 #smod <- mxOption(smod, 'Major iterations', 0)
 
 smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
+smod <- mxOption(smod, 'Number of Threads', 1)
 #ssmBegin <- Sys.time()
 srun <- mxRun(smod)
 #ssmEnd <- Sys.time()
