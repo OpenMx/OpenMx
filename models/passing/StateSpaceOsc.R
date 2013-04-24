@@ -116,7 +116,7 @@ rownames(tx) <- paste('x', 1:xdim, sep='')
 
 smod <- mxModel(
 	name='State Space Example',
-	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(T, F, F, F, T, T, F, T, T), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b')),
+	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b')),
 	mxAlgebra(name='csym', -c),
 	mxConstraint(name='ccon', d == csym),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
