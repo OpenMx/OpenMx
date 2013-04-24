@@ -109,6 +109,7 @@ omxNewInternalExpectation(const char *expType, omxState* os);
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	omxExpectation* omxNewIncompleteExpectation(SEXP mxobj, int expNum, omxState* os);
+omxFitFunction *omxGetFitOfExpectation(omxExpectation* oo);
 	
 
 /* Expectation-specific implementations of matrix functions */

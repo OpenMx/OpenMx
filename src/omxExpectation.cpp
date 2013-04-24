@@ -82,6 +82,21 @@ void omxExpectationCompute(omxExpectation *ox) {
 	ox->computeFun(ox);
 }
 
+omxFitFunction *omxGetFitOfExpectation(omxExpectation* oo)
+{
+	omxState *os = oo->currentState;
+	int match = -1;
+	for (size_t fx=0; fx < os->algebraList.size(); fx++) {
+		if (!os->algebraList[fx]->fitFunction) continue;
+		if (os->algebraList[fx]->fitFunction->expectation == oo) {
+			if (match != -1) error("Expectation %p is referenced by fit %d and %d", match, fx);
+			match = fx;
+		}
+	}
+	if (match == -1) return NULL;
+	return os->algebraList[match]->fitFunction;
+}
+
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
 
 	if(component == NULL) return NULL;
