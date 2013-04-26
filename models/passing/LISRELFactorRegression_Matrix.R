@@ -18,7 +18,7 @@
 # Author: Michael D. Hunter
 # Date: 2011.09.22
 # Filename: LISRELFactorRegression_Matrix.R
-# Purpose: Create a test for the mxLISRELObjective function.  The LISREL
+# Purpose: Create a test for the mxExpectationLISREL function.  The LISREL
 #  objective is still under active development and probably has some memory
 #  leaks, but this models estimates correctly and is much fast/easier than the
 #  RObjective implementation: demo/RObjectiveLISRELFactorRegression.R
@@ -147,10 +147,11 @@ th <-     mxMatrix(
 
 
 Jor82Ex1 <- mxModel(
-    name='LISREL Test from 1982 Paper with mxLISRELObjective',
+    name='LISREL Test from 1982 Paper with mxExpectationLISREL',
     mxData(observed=gObsCor, type='cor', numObs=1000),
     lx, ly, be, ga, ph, ps, td, te, th,
-    imxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name, GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name, TE=te@name, TH=th@name)
+    imxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name, GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name, TE=te@name, TH=th@name),
+    mxFitFunctionML()
 )
 
 

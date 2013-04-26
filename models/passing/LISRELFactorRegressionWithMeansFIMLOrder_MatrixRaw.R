@@ -18,7 +18,7 @@
 # Author: Michael D. Hunter
 # Date: 2011.03.24
 # Filename: LISRELFactorRegressionWithMeans_MatrixRaw.R
-# Purpose: Create a test for the mxLISRELObjective function using FIML.  This
+# Purpose: Create a test for the mxExpectationLISREL function using FIML.  This
 #  test includes a model for the means and uses raw data.  The known
 #  parameters are taken from model 3 (AKA threeLatentMultipleReg1 and
 #  threeLatentMultipleReg1Out) in
@@ -165,10 +165,11 @@ lmod <- mxModel(
 	name='LISREL Factor Regression Model with Means',
 	mxData(observed=rawlisdat, type='raw', means=mealisdat),
 	lx, ly, be, ga, ph, ps, td, te, th, tx, ty, ka, al,
-	imxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name,
+	imxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name,
 		GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name,
 		TE=te@name, TH=th@name, TX=tx@name, TY=ty@name,
-		KA=ka@name, AL=al@name)
+		KA=ka@name, AL=al@name),
+	mxFitFunctionML()
 )
 
 

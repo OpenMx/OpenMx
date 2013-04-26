@@ -433,7 +433,7 @@ imxPPML.CheckApplicable <- function(model) {
 
 	if ( hasNoFreeCovariances && allLatentCovsZero ) {
 
-		if ( all(diag(Smatrix@free[realLatents, realLatents])) ) {
+		if ( all(as.logical(diag(Smatrix@free[realLatents, realLatents]))) ) {
 			# All latent variances are free 
 			#if (solveType != "Split") solveType <- "PartialSolve"
 			solveType@hasNoLatentCovariances <- TRUE
@@ -1324,7 +1324,7 @@ imxPPMLMissingData <- function(model, solveType) {
 	objectives <- paste(objectives, collapse = " + ")
 	expression <- paste("mxAlgebra(", objectives, ", name = 'SumObjective')", sep = "")
 	algebra <- eval(parse(text=expression))
-	objective <- mxAlgebraObjective("SumObjective")
+	objective <- mxFitFunctionAlgebra("SumObjective")
 	bigModel <- mxModel(bigModel, objective, algebra)
 	bigModel <- mxOption(bigModel, "UsePPML", "MissingData")
 

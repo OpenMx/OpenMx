@@ -18,7 +18,7 @@
 # Author: Michael D. Hunter
 # Date: 2011.03.22
 # Filename: LISRELFactorRegressionWithMeans_Matrix.R
-# Purpose: Create a test for the mxLISRELObjective function.  This test includes
+# Purpose: Create a test for the mxExpectationLISREL function.  This test includes
 #  a model for the means.  The known parameters are taken from model 3 (AKA 
 #  threeLatentMultipleReg1 and threeLatentMultipleReg1Out) in
 #  models/passing/IntroSEM-ThreeLatentMultipleRegTest1.R.  I re-estimated the
@@ -162,10 +162,11 @@ lmod <- mxModel(
 	mxData(observed=covlisdat, type='cov', means=mealisdat, numObs=nrow(rawlisdat)),
 	#mxData(observed=rawlisdat, type='raw'),
 	lx, ly, be, ga, ph, ps, td, te, th, tx, ty, ka, al,
-	imxLISRELObjective(LX=lx@name, LY=ly@name, BE=be@name,
+	imxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name,
 		GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name,
 		TE=te@name, TH=th@name, TX=tx@name, TY=ty@name,
-		KA=ka@name, AL=al@name)
+		KA=ka@name, AL=al@name),
+	mxFitFunctionML()
 )
 
 
