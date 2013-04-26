@@ -34,43 +34,43 @@ setMethod("imxInitModel", "MxLISRELModel",
 		stop("Not implemented")
 		
 		if (is.null(model[['LX']])) {
-			model[['LX']] <- createMatrixLoa(model, TRUE)
+			model[['LX']] <- createMatrixLX(model)
 		}
 		if (is.null(model[['LY']])) {
-			model[['LY']] <- createMatrixLoa(model, FALSE)
+			model[['LY']] <- createMatrixLY(model)
 		}
 		if (is.null(model[['BE']])) {
-			model[['BE']] <- createMatrixReg(model, FALSE)
+			model[['BE']] <- createMatrixBE(model)
 		}
 		if (is.null(model[['GA']])) {
-			model[['GA']] <- createMatrixReg(model, TRUE)
+			model[['GA']] <- createMatrixGA(model)
 		}
 		if (is.null(model[['PH']])) {
-			model[['PH']] <- createMatrixErr(model, TRUE)
+			model[['PH']] <- createMatrixPH(model)
 		}
 		if (is.null(model[['PS']])) {
-			model[['PS']] <- createMatrixErr(model, FALSE)
+			model[['PS']] <- createMatrixPS(model)
 		}
 		if (is.null(model[['TD']])) {
-			model[['TD']] <- createMatrixRes(model, TRUE)
+			model[['TD']] <- createMatrixTD(model)
 		}
 		if (is.null(model[['TE']])) {
-			model[['TE']] <- createMatrixRes(model, FALSE)
+			model[['TE']] <- createMatrixTE(model)
 		}
 		if (is.null(model[['TH']])) {
-			model[['TH']] <- createMatrixRes(model, 'both')
+			model[['TH']] <- createMatrixTH(model)
 		}
 		if (is.null(model[['TX']])) {
-			model[['TX']] <- createMatrixInt(model, TRUE)
+			model[['TX']] <- createMatrixTX(model)
 		}
 		if (is.null(model[['TY']])) {
-			model[['TY']] <- createMatrixInt(model, FALSE)
+			model[['TY']] <- createMatrixTY(model)
 		}
 		if (is.null(model[['KA']])) {
-			model[['KA']] <- createMatrixMea(model, TRUE)
+			model[['KA']] <- createMatrixKA(model)
 		}
 		if (is.null(model[['AL']])) {
-			model[['AL']] <- createMatrixMea(model, FALSE)
+			model[['AL']] <- createMatrixAL(model)
 		}
 		if (is.null(model[['expectation']])) {
 			model[['expectation']] <- mxExpectationLISREL('LX', 'LY', 'BE', 'GA', 'PH', 'PS', 'TD', 'TE', 'TH', 'TX', 'TY', 'KA', 'AL')
@@ -82,12 +82,75 @@ setMethod("imxInitModel", "MxLISRELModel",
 	}
 )
 
-createMatrixLoa <- function(model, exogenous) {}
-createMatrixReg <- function(model, exogenous) {}
-createMatrixErr <- function(model, exogenous) {}
-createMatrixRes <- function(model, exogenous) {}
-createMatrixMea <- function(model, exogenous) {}
-createMatrixInt <- function(model, exogenous) {}
+
+createMatrixLX <- function(model){
+	lvariables <- c(model@latentVars$exogenous)
+	mvariables <- c(model@maifestVars$exogenous)
+	llen <- length(lvariables)
+	mlen <- length(mvariables)
+	names <- list(mvariables, lvariables)
+	values <- matrix(0, mlen, llen)
+	free <- matrix(FALSE, mlen, llen)
+	labels <- matrix(as.character(NA), mlen, llen)
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "LX")
+	dimnames(retval) <- names
+	return(retval)
+}
+
+createMatrixLY <- function(model){
+	lvariables <- c(model@latentVars$endogenous)
+	mvariables <- c(model@maifestVars$endogenous)
+	llen <- length(lvariables)
+	mlen <- length(mvariables)
+	names <- list(mvariables, lvariables)
+	values <- matrix(0, mlen, llen)
+	free <- matrix(FALSE, mlen, llen)
+	labels <- matrix(as.character(NA), mlen, llen)
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "LY")
+	dimnames(retval) <- names
+	return(retval)
+}
+
+createMatrixBE <- function(model){
+	variables <- c(model@latentVars$endogenous)
+	len <- length(variables)
+	names <- list(variables, variables)
+	values <- matrix(0, len, len)
+	free <- matrix(FALSE, len, len)
+	labels <- matrix(as.character(NA), len, len)
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "BE")
+	dimnames(retval) <- names
+	return(retval)
+}
+
+createMatrixGA <- function(model){
+	xvariables <- c(model@latentVars$exogenous)
+	yvariables <- c(model@latentVars$endogenous)
+	xlen <- length(xvariables)
+	ylen <- length(yvariables)
+	names <- list(yvariables, xvariables)
+	values <- matrix(0, ylen, xlen)
+	free <- matrix(FALSE, ylen, xlen)
+	labels <- matrix(as.character(NA), ylen, xlen)
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "GA")
+	dimnames(retval) <- names
+	return(retval)
+}
+
+# TODO Fill in the rest of the createMatrix* functions
+
+createMatrixPH <- function(model){}
+createMatrixPS <- function(model){}
+createMatrixTD <- function(model){}
+createMatrixTE <- function(model){}
+createMatrixTH <- function(model){}
+createMatrixTX <- function(model){}
+createMatrixTY <- function(model){}
+createMatrixKA <- function(model){}
+createMatrixAL <- function(model){}
+
+# TODO See if there is a way to change an mxMatrix's type.  E.g. TD & TE are often but not always diagonal, and should(?) be stored as diagonal if possible.
+
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
 	function(model, lst, name, 
