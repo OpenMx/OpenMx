@@ -1,3 +1,5 @@
+#options(error = utils::recover)   # uncomment for more help with debugging
+#options(warn=2)
 require(OpenMx)
 require(MASS)
 

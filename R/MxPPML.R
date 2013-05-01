@@ -1192,7 +1192,7 @@ imxPPMLMissingData <- function(model, solveType) {
 			for (removedMan in removedMans) {
 				removedMansLoc <- c(removedMansLoc, which(model$expectation@dims == removedMan))
 			}
-			removedMans <- sort(removedMansLoc)
+			if (length(removedMans)) removedMans <- sort(removedMansLoc)
 			
 			remainingMansLoc <- c()
 			for (remainingMan in remainingMans) {
