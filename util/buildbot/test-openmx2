@@ -1,0 +1,16 @@
+#!/bin/sh
+
+wd=$1
+cd $wd
+echo "cd $wd"
+shift
+
+if [ "x$TMPDIR" != x ]; then
+  export R_LIBS_USER="$TMPDIR"/R
+fi
+
+mkdir -p $(R -q  --vanilla -e 'Sys.getenv("R_LIBS_USER")' | fgrep -v '>' | cut -d '"' -f 2 | sed -e "s,~,$HOME,")
+
+$HOME/bin/test-openmx3 $*
+
+echo $? > ../status

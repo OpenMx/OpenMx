@@ -1,0 +1,35 @@
+#!/bin/sh
+
+#set -o errexit
+
+test=$1
+#echo "test=$test"
+
+declare -i RESULT=0
+
+for rexec in R $HOME/R-2.14/bin/R-2.14 $HOME/R-3.0/bin/R; do
+  $rexec --no-save <<EOF
+install.packages('mvtnorm')
+install.packages('snowfall')
+EOF
+  RESULT+=$?
+  REXEC=$rexec make install
+  RESULT+=$?
+
+  if [ "x$test" = xnightly ]; then
+    REXEC=$rexec make nightly
+    RESULT+=$?
+  elif [ "x$test" = xskip ]; then
+    echo skipped test
+  else
+    REXEC=$rexec make test
+    RESULT+=$?
+  fi
+done
+
+if [ "x$test" = xnightly ]; then
+  make torture
+  RESULT+=$?
+fi
+
+exit $RESULT

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+wd=$(pwd)
+export EXIT_STATUS=../status
+rm -f $EXIT_STATUS
+qsub -I -l select=1:ncpus=2 -l walltime=36:00:00 -- ./bin/test-openmx2 $wd $*
+status=$(cat $EXIT_STATUS)
+exit $status

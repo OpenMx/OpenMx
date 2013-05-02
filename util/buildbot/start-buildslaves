@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# this is run via ssh so we need to get our environment
+. /etc/profile
+. $HOME/.variables.ksh
+
+for n in $(seq 4); do
+  bs=$HOME/buildbot/$n
+  running=1
+
+  if [ -r $bs/twistd.pid ]; then
+    running=$(ps -p $(cat $bs/twistd.pid) | wc -l)
+  fi
+  if [ $running = 1 ]; then
+    $HOME/bin/buildslave start $bs
+  fi
+done
