@@ -139,8 +139,7 @@ smod <- mxModel(
 #smod <- mxOption(smod, 'Standard Errors', 'No')
 #smod <- mxOption(smod, 'Major iterations', 0)
 
-smod <- mxOption(smod, 'No Sort Data', 'State Space Example')
-smod <- mxOption(smod, 'Number of Threads', 1)
+
 #ssmBegin <- Sys.time()
 srun <- mxRun(smod)
 #ssmEnd <- Sys.time()

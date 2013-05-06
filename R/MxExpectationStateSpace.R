@@ -210,9 +210,14 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 # Note: this turns off data sorting for the State Space expectation
 setMethod("genericExpAddEntities", "MxExpectationStateSpace",
         function(.Object, job, flatJob, labelsData) {
+                # Do NOT sort data for state space models
                 key <- "No Sort Data"
                 value <- getModelName(.Object)
                 job <- mxOption(job, key, value)
+                
+                # Run state space models single threaded
+                key <- "Number of Threads"
+                job <- mxOption(job, key, 1)
                 return(job)
         }
 )

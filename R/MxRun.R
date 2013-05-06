@@ -74,11 +74,11 @@ runHelper <- function(model, frontendStart,
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
+	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- convertDatasets(model, defVars, model@options)
 	flatModel@datasets <- collectDatasets(model)
 	labelsData <- imxGenerateLabels(model)
 
-	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)
 
 	if (model@.newobjects) {
