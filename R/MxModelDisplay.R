@@ -16,7 +16,9 @@
 
 omxQuotes <- function(name) {
 	listTerms <- sapply(name, function(x) {
-		if (is.na(x)) {
+		if (typeof(x) == "S4") {
+			return(class(x))
+		} else if (is.na(x)) {
 			return(as.character(x))
 		} else {
 			paste("'", x, "'", sep = '')
