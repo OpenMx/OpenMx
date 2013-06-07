@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+if [ ! -e ./util/package ]; then
+  echo "$0 must be run from the top of the project tree"
+  exit
+fi
+
+cran=
+if [ "${1-x}" = cran ]; then
+  cran=--as-cran
+fi
+
+pkg=OpenMx
+
+rm -f ${pkg}_*.tar.gz
+./util/rox
+R CMD build .
+R CMD check $cran ${pkg}_*.tar.gz || true
+cat ${pkg}.Rcheck/00install.out
+echo Manual is here, ${pkg}.Rcheck/${pkg}-manual.pdf
