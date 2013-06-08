@@ -16,5 +16,6 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(OPENMP_CXXFLAGS) -lnpsol -L$(NPS
 # DEBUGGING_FLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
 # DEBUGGING_FLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 # DEBUGGING_FLAGS=-DDEBUGMX_DEVELOPER             # DEBUGMX_DEVELOPER does additional conformance checking for matrix operations
+# DEBUGGING_FLAGS=-D_GLIBCXX_DEBUG -g3 -fno-inline -O0     # if you are using gcc
 
 PKG_CXXFLAGS=$(COMPILER_SPECIFIC_FLAGS) $(OPENMP_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUGGING_FLAGS)

@@ -73,30 +73,20 @@ void R_unload_OpenMx(DllInfo *info) {
 }
 #endif
 
-PROTECT_INDEX omxProtectSave()
+void string_to_try_error( const std::string& str )
 {
-	PROTECT_INDEX initialpix;
-	PROTECT_WITH_INDEX(R_NilValue, &initialpix);
-	UNPROTECT(1);
-	return initialpix;
+	error("%s", str.c_str());
 }
 
-void omxProtectRestore(PROTECT_INDEX initialpix)
+void exception_to_try_error( const std::exception& ex )
 {
-	PROTECT_INDEX pix;
-	PROTECT_WITH_INDEX(R_NilValue, &pix);
-	PROTECT_INDEX diff = pix - initialpix;
-	if (diff < 0) {
-		warning("omxProtectRestore diff=%d; you forgot to PROTECT something", diff);
-		diff = 0;
-	}
-	UNPROTECT(1 + diff);
+	return string_to_try_error(ex.what());
 }
 
 /* Main functions */
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
+SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
-	PROTECT_INDEX initialpix = omxProtectSave();
+	omxManageProtectInsanity protectManager;
 
 	if(OMX_DEBUG) { Rprintf("-----------------------------------------------------------------------\n");}
 	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
@@ -160,12 +150,21 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options) {
 		error(output);
 	}
 
-	omxProtectRestore(initialpix);
-
 	return ans;
 }
 
-SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
+SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
+{
+	try {
+		return omxCallAlgebra2(matList, algNum, options);
+	} catch( std::exception& __ex__ ) {
+		exception_to_try_error( __ex__ );
+	} catch(...) {
+		string_to_try_error( "c++ exception (unknown reason)" );
+	}
+}
+
+SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
 	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
 
@@ -189,7 +188,7 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
 
-	PROTECT_INDEX initialpix = omxProtectSave();
+	omxManageProtectInsanity protectManager;
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
@@ -429,9 +428,22 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
 
-	omxProtectRestore(initialpix);
-
 	return(ans);
 
+}
+
+SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
+	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state)
+{
+	try {
+		return omxBackend2(fitfunction, startVals, constraints,
+				   matList, varList, algList, expectList,
+				   data, intervalList, checkpointList, options, state);
+	} catch( std::exception& __ex__ ) {
+		exception_to_try_error( __ex__ );
+	} catch(...) {
+		string_to_try_error( "c++ exception (unknown reason)" );
+	}
 }
 

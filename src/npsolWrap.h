@@ -17,6 +17,9 @@
 #ifndef _NPSOLWRAP_H
 #define _NPSOLWRAP_H
 
+#include <exception>
+#include <string>
+
 #include "omxState.h"
 #include "omxOpenmpWrap.h"
 
@@ -43,8 +46,23 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
  */
 extern omp_lock_t GlobalRLock;
 
-PROTECT_INDEX omxProtectSave();
+class omxManageProtectInsanity {
+	PROTECT_INDEX initialpix;
+ public:
+	omxManageProtectInsanity() {
+		PROTECT_WITH_INDEX(R_NilValue, &initialpix);
+		UNPROTECT(1);
+	}
+	~omxManageProtectInsanity() {
+		PROTECT_INDEX pix;
+		PROTECT_WITH_INDEX(R_NilValue, &pix);
+		PROTECT_INDEX diff = pix - initialpix;
+		UNPROTECT(1 + diff);
+	}
+};
 
-void omxProtectRestore(PROTECT_INDEX initialpix);
+void string_to_try_error( const std::string& str) __attribute__ ((noreturn));
+
+void exception_to_try_error( const std::exception& ex ) __attribute__ ((noreturn));
 
 #endif // #define _NPSOLWRAP_H

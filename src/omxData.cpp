@@ -573,7 +573,7 @@ SEXP findIdenticalDataFrame(SEXP data, SEXP missing, SEXP defvars,
 	return retval;
 }
 
-SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
+SEXP findIdenticalRowsData2(SEXP data, SEXP missing, SEXP defvars,
 			   SEXP skipMissingness, SEXP skipDefvars) {
 	if (isMatrix(data)) {
 		return(findIdenticalMatrix(data, missing, defvars, skipMissingness, skipDefvars));
@@ -581,6 +581,22 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 		return(findIdenticalDataFrame(data, missing, defvars, skipMissingness, skipDefvars));
 	}
 }
+
+SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
+			   SEXP skipMissingness, SEXP skipDefvars)
+{
+	omxManageProtectInsanity protectManager;
+
+	try {
+		return findIdenticalRowsData2(data, missing, defvars,
+					      skipMissingness, skipDefvars);
+	} catch( std::exception& __ex__ ) {
+		exception_to_try_error( __ex__ );
+	} catch(...) {
+		string_to_try_error( "c++ exception (unknown reason)" );
+	}
+}
+
 
 void omxPrintData(omxData *od, const char *header) {
 	if (!header) error("omxPrintData: header is NULL");
