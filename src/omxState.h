@@ -38,8 +38,6 @@
 
 #ifdef WIN32
 
-#include <winsock.h>
-
 #else
 
 #include <sys/socket.h>
@@ -94,9 +92,8 @@ struct omxOptimizerState {			// For hessian or confidence interval computation
 };
 
 enum omxCheckpointType {
-	OMX_FILE_CHECKPOINT = 0,
-	OMX_SOCKET_CHECKPOINT = 1,
-	OMX_CONNECTION_CHECKPOINT = 2
+	OMX_FILE_CHECKPOINT,
+	OMX_CONNECTION_CHECKPOINT
 };
 typedef enum omxCheckpointType omxCheckpointType;
 
@@ -106,7 +103,6 @@ struct omxCheckpoint {
 	int numIterations;
 	unsigned long int lastCheckpoint;	// FIXME: Cannot update at sub-second times.
 	FILE* file;						// TODO: Maybe make the connection piece a union instead.
-	int socket;
 	SEXP connection;
 	unsigned short int saveHessian;
 };

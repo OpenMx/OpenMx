@@ -201,7 +201,6 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 		omxCheckpoint *oC = &(globalState->checkpointList[index]);
 
 		/* Initialize Checkpoint object */
-		oC->socket = -1;
 		oC->file = NULL;
 		oC->connection = NULL;
 		oC->time = 0;
@@ -233,13 +232,6 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 			}
 			Free(fullname);
 			oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
-			break;}
-
-		case OMX_SOCKET_CHECKPOINT:{
-			serverName = CHAR(VECTOR_ELT(nextLoc, next++));
-			int __attribute__((unused)) portno = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
-			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
-			oC->saveHessian = FALSE;
 			break;}
 
 		case OMX_CONNECTION_CHECKPOINT:{	// NYI :::DEBUG:::

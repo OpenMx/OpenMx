@@ -339,9 +339,6 @@
 				case OMX_FILE_CHECKPOINT:
 					fclose(oC.file);
 					break;
-				case OMX_SOCKET_CHECKPOINT:	// NYI :::DEBUG:::
-					// TODO: Close socket
-					break;
 				case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
 					// Do nothing: this should be handled by R upon return.
 					break;
@@ -503,15 +500,6 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 						fprintf(oC->file, "%s", os->chkptText2);
 					fprintf(oC->file, "\n");
 					fflush(oC->file);
-				} else if(oC->type == OMX_SOCKET_CHECKPOINT) {
-					n = write(oC->socket, os->chkptText1, strlen(os->chkptText1));
-					if(n != strlen(os->chkptText1)) warning("Error writing checkpoint.");
-					if(oC->saveHessian) {
-						n = write(oC->socket, os->chkptText2, strlen(os->chkptText2));
-						if(n != strlen(os->chkptText1)) warning("Error writing checkpoint.");
-					}
-					n = write(oC->socket, "\n", 1);
-					if(n != 1) warning("Error writing checkpoint.");
 				} else if(oC->type == OMX_CONNECTION_CHECKPOINT) {
 					warning("NYI: R_connections are not yet implemented.");
 					oC->numIterations = 0;
