@@ -101,7 +101,7 @@ struct omxCheckpoint {
 	omxCheckpointType type;
 	time_t time;
 	int numIterations;
-	unsigned long int lastCheckpoint;	// FIXME: Cannot update at sub-second times.
+	time_t lastCheckpoint;	// FIXME: Cannot update at sub-second times.
 	FILE* file;						// TODO: Maybe make the connection piece a union instead.
 	SEXP connection;
 	unsigned short int saveHessian;

@@ -319,7 +319,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	omxExpectation* expect = Calloc(1, omxExpectation);
 
 	/* Switch based on Expectation type. */ 
-	for (int ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
+	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strncmp(expType, entry->name, MAX_STRING_LEN) == 0) {
 		        expect->expType = entry->name;
