@@ -99,8 +99,8 @@ pdf:
 src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
 
-src/omxSymbolTable.c: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
-	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c
+src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
+	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)

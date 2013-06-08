@@ -11,6 +11,7 @@ exit 1
 fi 
 
 # check for gcc compiler
+AC_LANG(C++)
 AC_PROG_CC
 AS_IF([test "x$enable_openmp" != "xno"], [
 AC_OPENMP
@@ -70,9 +71,9 @@ AC_SUBST(npsol_dir)
 AC_SUBST(compiler_specific_flags)
 AC_SUBST(arch_specific_linker_flags)
 AC_SUBST(arch_specific_compiler_flags)
-AC_SUBST(OPENMP_CFLAGS)
+AC_SUBST(OPENMP_CXXFLAGS)
 AC_CONFIG_FILES([src/Makevars])
 
 AC_CONFIG_COMMANDS([src/omxSymbolTable.h],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h],[R_HOME=${R_HOME}])
-AC_CONFIG_COMMANDS([src/omxSymbolTable.c],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.c],[R_HOME=${R_HOME}])
+AC_CONFIG_COMMANDS([src/omxSymbolTable.cpp],[${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp],[R_HOME=${R_HOME}])
 AC_OUTPUT
