@@ -58,40 +58,54 @@ setMethod("imxModelBuilder", "MxRAMModel",
 	}
 )
 
-setMethod("imxVerifyModel", "MxRAMModel",
-	  function(model) {
-		  if ((length(model$A) == 0) ||
-		      (length(model$S) == 0) ||
-		      (length(model$F) == 0)) {
-			  msg <- paste("The RAM model", omxQuotes(model@name),
-				       "does not contain any paths.",
-				       " You can add paths to your model like this:",
-				       " mxPath(from = 'x1', to = 'y1')")
-			  stop(msg, call. = FALSE)
-		  }
-		  expectation <- model$expectation
-		  if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
-			  if (!is.null(model@data) && model@data@type == "raw" &&
-			      is.null(model$M)) {
-				  msg <- paste("The RAM model", omxQuotes(model@name),
-					       "contains raw data but has not specified any means paths.",
-					       "Add something like mxPath(from = 'one', to = manifests) to your model."
-					       )
-				  stop(msg, call. = FALSE)
-			  }
-			  if (!is.null(model@data) && !single.na(model@data@means) &&
-			      is.null(model$M)) {
-				  msg <- paste("The RAM model", omxQuotes(model@name),
-					       "contains an observed means vector",
-					       "but has not specified any means paths.")
-				  stop(msg, call. = FALSE)
-			  }
-		  }
-		  if (length(model@submodels) > 0) {
-			  return(all(sapply(model@submodels, imxVerifyModel)))
-		  }
-		  return(TRUE)
-	  })
+RAMModel.imxVerifyModel <- function(model) {
+	if (isRAMContainerModel(model)) {
+		submodels <- planMultilevelJoin(model)
+		levels <- length(submodels) - 1
+		homer <- match(paste0('H', 1:levels),
+			       sapply(district@matrices, function(m) m@name))
+		if (any(is.na(homer))) {
+			msg <- paste("The hierarchical RAM model", omxQuotes(model@name),
+				     "is missing path matrices",
+				     omxQuotes(paste0('H', 1:levels)[is.na(homer)]))
+			stop(msg, call.=FALSE)
+		}
+	} else {
+		if ((length(model$A) == 0) ||
+		    (length(model$S) == 0) ||
+		    (length(model$F) == 0)) {
+			msg <- paste("The RAM model", omxQuotes(model@name),
+				     "does not contain any paths.",
+				     " You can add paths to your model like this:",
+				     " mxPath(from = 'x1', to = 'y1')")
+			stop(msg, call. = FALSE)
+		}
+		expectation <- model$expectation
+		if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
+			if (!is.null(model@data) && model@data@type == "raw" &&
+			    is.null(model$M)) {
+				msg <- paste("The RAM model", omxQuotes(model@name),
+					     "contains raw data but has not specified any means paths.",
+					     "Add something like mxPath(from = 'one', to = manifests) to your model."
+					     )
+				stop(msg, call. = FALSE)
+			}
+			if (!is.null(model@data) && !single.na(model@data@means) &&
+			    is.null(model$M)) {
+				msg <- paste("The RAM model", omxQuotes(model@name),
+					     "contains an observed means vector",
+					     "but has not specified any means paths.")
+				stop(msg, call. = FALSE)
+			}
+		}
+	}
+	if (length(model@submodels) > 0) {
+		return(all(sapply(model@submodels, imxVerifyModel)))
+	}
+	return(TRUE)
+}
+
+setMethod("imxVerifyModel", "MxRAMModel", RAMModel.imxVerifyModel)
 
 
 setReplaceMethod("[[", "MxRAMModel",
@@ -294,7 +308,71 @@ expectationIsMissingMeans <- function(model) {
 		is.na(expectation@M))
 }
 
+isRAMContainerModel <- function(model) {
+	return (length(model@latentVars)==0 &&
+		length(model@manifestVars)==0 &&
+		length(model@submodels) > 0)
+}
+
+insertHomerPathsRAM <- function(model, paths) {
+	for(i in 1:length(paths)) {
+		path <- paths[[i]]
+		from.modelname <- unlist(strsplit(path@from[[1]], imxSeparatorChar, fixed = TRUE))[[1]]
+		to.modelname <- unlist(strsplit(path@to[[1]], imxSeparatorChar, fixed = TRUE))[[1]]
+
+		submodels <- planMultilevelJoin(model)
+		levels <- match(c(from.modelname, to.modelname),
+				sapply(submodels, function(m) m@name))
+
+		H.name <- paste0("H", levels[[1]])
+		H <- model[[H.name]]
+		if (is.null(H)) { H <- createMatrixH(model, levels[[1]], submodels[levels]) }
+
+		path@values[is.na(path@values)] <- 0
+
+		expanded <- expandPathConnect(path@from, path@to, path@connect)
+		allfrom <- expanded$from
+		allto <- expanded$to
+		allarrows <- path@arrows
+		allfree <- path@free
+		allvalues <- path@values
+		alllabels <- path@labels
+		maxlength <- max(length(allfrom), length(allto))
+		for(i in 0:(maxlength - 1)) {
+			cur.frompath <- allfrom[[i %% length(allfrom) + 1]]
+			cur.topath <- allto[[i %% length(allto) + 1]]
+			cur.from <- unlist(strsplit(cur.frompath, imxSeparatorChar, fixed = TRUE))
+			cur.to <- unlist(strsplit(cur.topath, imxSeparatorChar, fixed = TRUE))
+			if (cur.from[[1]] != from.modelname || cur.to[[1]] != to.modelname) {
+				stop(paste("mxPath from",omxQuotes(from.modelname),
+					   "to",omxQuotes(to.modelname),
+					   "also contains a path from",omxQuotes(cur.from[[1]]),
+					   "to",omxQuotes(cur.to[[1]])))
+			}
+			cur.arrows <- allarrows[[i %% length(allarrows) + 1]]
+			cur.value <- allvalues[[i %% length(allvalues) + 1]]
+			cur.free <- allfree[[i %% length(allfree) + 1]]
+			cur.label <- alllabels[[i %% length(alllabels) + 1]]
+			if (cur.arrows == 2) {
+				stop(paste("Covariance is not allowed in hierarchical paths from",
+					   omxQuotes(from.modelname),"to",omxQuotes(to.modelname)))
+			}
+			if (cur.free) {
+				stop(paste("Hierarchical path weights must be fixed from",
+					   omxQuotes(from.modelname),"to",omxQuotes(to.modelname)))
+			}
+			H@values[cur.to[[2]], cur.from[[2]]] <- cur.value
+			H@labels[cur.to[[2]], cur.from[[2]]] <- cur.label
+		}
+
+		model[[H.name]] <- H
+	}
+	return(model)
+}
+
 insertAllPathsRAM <- function(model, paths) {
+	if (isRAMContainerModel(model)) return(insertHomerPathsRAM(model, paths))
+	
 	A <- model[['A']]
 	S <- model[['S']]
 	M <- model[['M']]
@@ -407,6 +485,7 @@ insertPathRAM <- function(path, A, S) {
 	S_labels <- S@labels
 	S_lbound <- S@lbound
 	S_ubound <- S@ubound
+	# This is an optimization because the @ operator is slow
 	for(i in 0:(maxlength - 1)) {
 		from <- allfrom[[i %% length(allfrom) + 1]]
 		to <- allto[[i %% length(allto) + 1]]
@@ -571,6 +650,18 @@ createMatrixA <- function(model) {
 	labels <- matrix(as.character(NA), len, len)
 	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "A")
 	dimnames(retval) <- names
+	return(retval)
+}
+
+createMatrixH <- function(model, level, submodels) {
+	u.model <- submodels[[1]]
+	u.vars <- c(u.model@manifestVars, u.model@latentVars)
+	l.model <- submodels[[2]]
+	l.vars <- c(l.model@manifestVars, l.model@latentVars)
+	values <- matrix(0, length(l.vars), length(u.vars))
+	retval <- mxMatrix("Full", values = values, free = FALSE, labels = NA,
+			   name = paste0("H", level))
+	dimnames(retval) <- list(l.vars, u.vars)
 	return(retval)
 }
 

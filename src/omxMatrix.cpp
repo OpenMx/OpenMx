@@ -177,6 +177,7 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 
 void omxFreeMatrixData(omxMatrix * om) {
 
+	if (om == NULL) return;
 	if(!om->owner && om->data != NULL) {
 		if(OMX_DEBUG_MATRIX) { Rprintf("Freeing matrix data at 0x%0x\n", om->data); }
 		Free(om->data);
@@ -729,6 +730,8 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 	omxMatrix* origZ = Z;
     double oned = 1, minusOned = -1.0;
+
+    if (numIters == 0) error("Invalid numIters passed to omxShallowInverse");
 
 	if(numIters == NA_INTEGER) {
 		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.

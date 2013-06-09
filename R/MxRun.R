@@ -77,6 +77,7 @@ runHelper <- function(model, frontendStart,
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- convertDatasets(model, defVars, model@options)
 	flatModel@datasets <- collectDatasets(model)
+	flatModel <- resolveForeignKeys(flatModel)
 	labelsData <- imxGenerateLabels(model)
 
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)

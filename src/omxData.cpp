@@ -27,13 +27,15 @@
 #include "omxData.h"
 #include "npsolWrap.h"
 #include "omxGlobalState.h"
+#include <vector>
 
 omxData* omxInitData(omxState* os) {
 
-	omxData *od = Calloc(1, omxData);
+	omxData *od = new omxData();
 
 	od->currentState = os;
-
+	od->primaryKey = NA_INTEGER;
+	
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
 
 	if (os != globalState) error("Too late to create omxData");
@@ -45,6 +47,7 @@ omxData* omxInitData(omxState* os) {
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
+	if (dataIdx == NA_INTEGER) return NULL;
 
 	return state->dataList[dataIdx];
 }
@@ -157,6 +160,26 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
 
+	PROTECT(dataLoc = GET_SLOT(dataObject, install("primaryKey")));
+	if (length(dataLoc) > 0) {
+		if (length(dataLoc) != 1) error("Primary key should be a single integer, not %d", length(dataLoc));
+		od->primaryKey = INTEGER(dataLoc)[0] - 1;
+	}
+	PROTECT(dataLoc = GET_SLOT(dataObject, install("foreignKeys")));
+	if (length(dataLoc)) {
+		int count = length(dataLoc);
+		for (int fx=0; fx < count; fx++) {
+			SEXP fk_r = VECTOR_ELT(dataLoc, fx);
+			if (length(fk_r) != 3) error("Foreign key should have 3 ints, not %d", length(fk_r));
+			int *spec = INTEGER(fk_r);
+			omxForeignKey key;
+			key.column = spec[0] - 1;
+			key.peerData = spec[1] - 1;
+			key.peerColumn = spec[2] - 1;
+			od->foreignKeys.push_back(key);
+		}
+	}
+
 	return od;
 }
 
@@ -172,7 +195,7 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
 void omxFreeData(omxData* od) {
 	omxFreeAllMatrixData(od->dataMat);
 	omxFreeAllMatrixData(od->meansMat);
-	Free(od);
+	delete od;
 }
 
 double omxDoubleDataElement(omxData *od, int row, int col) {
@@ -615,6 +638,14 @@ void omxPrintData(omxData *od, const char *header) {
 	Rprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
 		od->rows, od->cols);
 	Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
+	if (od->primaryKey != NA_INTEGER) {
+		Rprintf("primaryKey %d\n", od->primaryKey);
+	}
+	for (size_t fx=0; fx < od->foreignKeys.size(); fx++) {
+		omxForeignKey *fk = &od->foreignKeys[fx];
+		Rprintf("column %d references column %d in data table %d\n",
+			fk->column, fk->peerColumn, fk->peerData);
+	}
 
 	if (od->location) {
 		for(int j = 0; j < od->cols; j++) {
@@ -646,5 +677,294 @@ void omxPrintData(omxData *od, const char *header) {
 
 	if (od->dataMat) omxPrintMatrix(od->dataMat, "dataMat");
 	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
+}
+
+/* Parents of cross-classified models
+#define MaxCCParent 8
+typedef struct {
+	int numParents;
+	int row[MaxCCParent];
+	struct CCParent *parents[MaxCCParent];
+} CCParent;
+*/
+
+void omxDataOuterLeftJoin(omxData *od, int row, omxData **out_od, int *out_row)
+{
+	omxState* os = od->currentState;
+	if (od->joinVia) {
+		omxData *link = od->joinVia;
+		omxForeignKey *src = NULL;
+		omxForeignKey *dest = NULL;
+		if (link->foreignKeys.size() != 2) error("A link table can only have 2 foreign keys");
+		for (size_t fx=0; fx < link->foreignKeys.size(); fx++) {
+			omxForeignKey *fk = &link->foreignKeys[fx];
+			if (os->dataList[fk->peerData] == od) {
+				src = fk;
+			} else {
+				dest = fk;
+			}
+		}
+		if (!src || !dest) error("Cannot follow link table");
+		omxData *peerData = os->dataList[dest->peerData];
+		int src_id = omxIntDataElement(od, row, src->peerColumn);
+		for (int rx=0; rx < link->rows; rx++) {
+			if (omxIntDataElement(link, rx, src->column) != src_id) continue;
+			int dest_id = omxIntDataElement(link, rx, dest->column);
+			for (int px=0; px < peerData->rows; px++) {
+				if (omxIntDataElement(peerData, px, dest->peerColumn) != dest_id) continue;
+				// save row #
+				*out_od = peerData;
+				*out_row = px;
+				return;
+			}
+		}
+	} else {
+		for (size_t fx=0; fx < od->foreignKeys.size(); fx++) {
+			omxForeignKey *fk = &od->foreignKeys[fx];
+			int dest_id = omxIntDataElement(od, row, fk->column);
+			omxData *peerData = os->dataList[fk->peerData];
+			for (int px=0; px < peerData->rows; px++) {
+				if (omxIntDataElement(peerData, px, fk->peerColumn) != dest_id) continue;
+				// save row #
+				*out_od = peerData;
+				*out_row = px;
+				return;
+				// break; // only 1 match per foreign key
+			}
+		}
+	}
+	error("Failed to join row %d", row);
+}
+
+int omxCountDataFanout(omxData *upperD, omxData *lowerD)
+{
+	int *count = (int*) R_alloc(upperD->numObs, sizeof(int));
+	for (int rx=0; rx < upperD->numObs; rx++) {
+		count[rx] = 0;
+	}
+
+	for (int rx=0; rx < lowerD->rows; rx++) {
+		omxData *curData;
+		int curRow;
+		omxDataOuterLeftJoin(lowerD, rx, &curData, &curRow);
+		if (curData != upperD) error("Joined to wrong data");
+		++count[curRow];
+	}
+
+	int fanout = count[0];
+	for (int rx=1; rx < upperD->numObs; rx++) {
+		if (count[rx] != fanout)
+			error("Hetergenious number of lower levels not implemented");
+	}
+	return fanout;
+}
+
+omxData *omxNewFlatData(omxData *upperD, omxData *lowerD, int fanout)
+{
+	// better to omit all keys from the lower level TODO
+	int flatCols = upperD->cols + lowerD->cols * fanout;
+	//if (lowerD->primaryKey != NA_INTEGER) flatCols -= fanout;
+
+	omxData *fdata = omxInitData(upperD->currentState);
+	fdata->_type = "raw";
+	fdata->rows = fdata->numObs = upperD->numObs;
+	fdata->primaryKey = upperD->primaryKey;
+	fdata->cols = flatCols;
+	fdata->realData = (double**) R_alloc(flatCols, sizeof(double*));
+	OMXZERO(fdata->realData, flatCols);
+	fdata->intData = (int**) R_alloc(flatCols, sizeof(int*));
+	OMXZERO(fdata->intData, flatCols);
+	fdata->location = (int*) R_alloc(flatCols, sizeof(int));
+	fdata->foreignKeys = upperD->foreignKeys;
+
+	for (int cx=0; cx < upperD->cols; cx++) {
+		fdata->location[cx] = upperD->location[cx];
+		fdata->intData[cx]  = upperD->intData[cx];
+		fdata->realData[cx] = upperD->realData[cx];
+	}
+	fdata->numNumeric = upperD->numNumeric;
+	fdata->numFactor = upperD->numFactor;
+
+	for (int rep = 0; rep < fanout; rep++) {
+		for (int lx = 0; lx < lowerD->cols; lx++) {
+			int fx = upperD->cols + rep*lowerD->cols + lx;
+			if (lowerD->location[lx] < 0) {
+				++fdata->numFactor;
+				fdata->location[fx] = ~fx;
+				fdata->intData[fx]  = (int*) R_alloc(fdata->rows, sizeof(int));
+			} else {
+				++fdata->numNumeric;
+				fdata->location[fx] = fx;
+				fdata->realData[fx] = (double*) R_alloc(fdata->rows, sizeof(double));
+			}
+		}
+	}
+
+	return fdata;
+}
+
+omxData *omxNewResidualData(omxData *upperD, omxData *lowerD)
+{
+	omxData *fdata = omxInitData(upperD->currentState);
+	fdata->_type = "raw";
+	fdata->rows = fdata->numObs = lowerD->numObs - upperD->numObs;
+	fdata->primaryKey = lowerD->primaryKey;
+	fdata->cols = lowerD->cols;
+	fdata->realData = (double**) R_alloc(lowerD->cols, sizeof(double*));
+	fdata->intData = (int**) R_alloc(lowerD->cols, sizeof(int*));
+	fdata->location = (int*) R_alloc(lowerD->cols, sizeof(int));
+
+	for (int cx=0; cx < lowerD->cols; cx++) {
+		fdata->location[cx] = lowerD->location[cx];
+		fdata->intData[cx]  = lowerD->intData[cx];
+		fdata->realData[cx] = lowerD->realData[cx];
+	}
+	fdata->numNumeric = lowerD->numNumeric;
+	fdata->numFactor = lowerD->numFactor;
+
+	for (int lx = 0; lx < lowerD->cols; lx++) {
+		if (lowerD->location[lx] < 0) {
+			fdata->location[lx] = ~lx;
+			fdata->intData[lx]  = (int*) R_alloc(fdata->rows, sizeof(int));
+		} else {
+			fdata->location[lx] = lx;
+			fdata->realData[lx] = (double*) R_alloc(fdata->rows, sizeof(double));
+		}
+	}
+
+	return fdata;
+}
+
+void omxFlattenRawData(omxData *upperD, omxMatrix *upperC,
+		       omxData *lowerD, omxMatrix *lowerC,
+		       int fanout,
+		       omxData *&fdata, omxMatrix *&fdataColumns)
+{
+	fdata = omxNewFlatData(upperD, lowerD, fanout);
+
+	int *count = (int*) R_alloc(upperD->numObs, sizeof(int));
+	OMXZERO(count, upperD->numObs);
+
+	for (int rx=0; rx < lowerD->rows; rx++) {
+		omxData *curData;
+		int curRow;
+		omxDataOuterLeftJoin(lowerD, rx, &curData, &curRow);
+		int rep = count[curRow]++;
+		int fx = upperD->cols + rep*lowerD->cols;
+		for (int cx=0; cx < lowerD->cols; cx++) {
+			if (lowerD->location[cx] < 0) {
+				fdata->intData[fx + cx][curRow] = lowerD->intData[cx][rx];
+			} else {
+				fdata->realData[fx + cx][curRow] = lowerD->realData[cx][rx];
+			}
+		}
+	}
+
+	fdataColumns = omxInitTemporaryMatrix(NULL, 1, upperC->cols + lowerC->cols * fanout,
+					      TRUE, upperD->currentState);
+
+	for (int cx=0; cx < upperC->cols; cx++) {
+		omxSetMatrixElement(fdataColumns, 0, cx, omxMatrixElement(upperC, 0, cx));
+	}
+	for (int rep=0; rep < fanout; rep++) {
+		int fx = upperC->cols + rep * lowerC->cols;
+		for (int cx=0; cx < lowerC->cols; cx++) {
+			omxSetMatrixElement(fdataColumns, 0, fx+cx,
+					    upperD->cols + lowerD->cols*rep + omxMatrixElement(lowerC, 0, cx));
+		}
+	}
+}
+
+static void multiplyWithOrthogonalTransformation(const int anzGroups, const int anzObs,
+						 const std::vector<double> &vec, std::vector<double> &erg)
+{
+	erg.assign(erg.size(), 0);
+	double sqrtFanout = sqrt(anzGroups);
+        for (int v=0; v<anzObs; v++) {
+		double f0 = sqrtFanout;
+		erg.at(v) = 0; // redundent? TODO
+		for (int i=0; i<anzGroups; i++) erg.at(v) += vec.at(v+i*anzObs) / f0;
+		for (int i=1; i<anzGroups; i++) {
+			int k=anzGroups-i;
+			f0 = sqrt((double)k / (double)(k+1));
+			double f1 = sqrt(1.0 / (double)(k*(k+1)));
+			erg.at(v+i*anzObs) -= f0*vec.at(v+(i-1)*anzObs);
+			for (int j=i; j<anzGroups; j++) erg.at(v+i*anzObs) += vec.at(v+j*anzObs) * f1;
+		}
+        }
+}
+
+void omxHomerTransformRawData(omxData *upperD, omxMatrix *upperC,
+			      omxData *lowerD, omxMatrix *lowerC,
+			      int fanout,
+			      omxData *&group1D, omxMatrix *&group1C,
+			      omxData *&group2D)
+{
+	omxData *flatD;
+	omxMatrix *flatC;
+	omxFlattenRawData(upperD, upperC, lowerD, lowerC, fanout, flatD, flatC);
+
+	// remove unnecessary columns TODO
+	group1D = omxNewFlatData(upperD, lowerD, 1);
+	group2D = omxNewResidualData(upperD, lowerD);
+
+	int numManifest = flatC->cols - upperC->cols;
+	std::vector<double> vec(numManifest);
+	std::vector<double> work(numManifest);
+
+	for (int rx=0; rx < flatD->rows; rx++) {
+		for (int cx=0; cx < upperD->cols; cx++) {
+			if (upperD->location[cx] < 0) {
+				group1D->intData[cx][rx] = upperD->intData[cx][rx];
+			} else {
+				group1D->realData[cx][rx] = upperD->realData[cx][rx];
+			}
+		}
+		// don't assume all realData TODO
+		// can remove the following chunk, mainly for debugging TODO
+		for (int cx=0; cx < lowerD->cols * fanout; cx++) {
+			if (cx < lowerD->cols) {
+				group1D->realData[upperD->cols + cx][rx] = flatD->realData[upperD->cols + cx][rx];
+			} else {
+				int copy = cx / lowerD->cols - 1;
+				int field = cx % lowerD->cols;
+				group2D->realData[field][rx * (fanout-1) + copy] = flatD->realData[upperD->cols + cx][rx];
+			}
+		}
+
+		for (int ox=0; ox < numManifest; ox++) {
+			int cx = omxVectorElement(flatC, ox + upperC->cols);
+			vec[ox] = omxDoubleDataElement(flatD, rx, cx);
+		}
+
+		// for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", vec[mx]); }
+		// Rprintf("\n");
+		multiplyWithOrthogonalTransformation(fanout, lowerC->cols, vec, work);
+		// for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", work[mx]); }
+		// Rprintf("\n");
+
+		for (int ox=0; ox < numManifest; ox++) {
+			if (ox < lowerC->cols) {
+				int cx = omxVectorElement(flatC, ox + upperC->cols);
+				group1D->realData[cx][rx] = work[ox];
+			} else {
+				int copy = ox / lowerC->cols - 1;
+				int field = ox % lowerC->cols;
+				int cx = omxVectorElement(lowerC, field);
+				group2D->realData[cx][rx * (fanout-1) + copy] = work[ox];
+			}
+		}
+	}
+
+	group1C = omxInitTemporaryMatrix(NULL, 1, upperC->cols + lowerC->cols,
+					 TRUE, upperD->currentState);
+
+	for (int cx=0; cx < upperC->cols; cx++) {
+		omxSetMatrixElement(group1C, 0, cx, omxMatrixElement(upperC, 0, cx));
+	}
+	for (int cx=0; cx < lowerC->cols; cx++) {
+		omxSetMatrixElement(group1C, 0, upperC->cols + cx,
+				    upperD->cols + omxMatrixElement(lowerC, 0, cx));
+	}
 }
 

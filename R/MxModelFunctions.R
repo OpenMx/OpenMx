@@ -177,9 +177,15 @@ removeTail <- function(lst, tailSize) {
 updateModelMatrices <- function(model, flatModel, values) {
 	mList <- names(flatModel@matrices)
 	if (length(mList) != length(values)) {
-		stop(paste("This model has", length(mList), 
-			"matrices, but the backend has returned", length(values),
-			"values"))
+		msg <- paste("This model has", length(mList), 
+			     "matrices, but the backend has returned", length(values),
+			     "values")
+		if (length(values) > length(mList)) {
+			# TODO need something better here
+			warning(msg)
+		} else {
+			stop(msg)
+		}
 	}
 	if (length(values) == 0) {
 		return(model)
@@ -194,9 +200,15 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	oNames <- names(flatModel@fitfunctions)
 	aList <- append(aNames, oNames)
 	if(length(aList) != length(values)) {
-		stop(paste("This model has", length(aList), 
-			"algebras, but the backend has returned", length(values),
-			"values"))
+		msg <- paste("This model has", length(aList), 
+			     "algebras, but the backend has returned", length(values),
+			     "values")
+		if (length(values) > length(aList)) {
+			# TODO need something better here
+			warning(msg)
+		} else {
+			stop(msg)
+		}
 	}
 	if (length(aList) == 0) {
 		return(model)
@@ -246,7 +258,7 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
 
 imxLocateIndex <- function(model, name, referant) {
 	if (length(name) == 0) return(name)
-	if (is.na(name)) { return(as.integer(name)) }
+	if (all(is.na(name))) { return(as.integer(name)) }
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)
@@ -256,17 +268,17 @@ imxLocateIndex <- function(model, name, referant) {
 	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
 	expectationNumber <- match(name, eNames)
-	if (is.na(matrixNumber) && is.na(algebraNumber) 
-		&& is.na(dataNumber) && is.na(expectationNumber)) {
+	if (any(is.na(matrixNumber)) && any(is.na(algebraNumber)) &&
+	    any(is.na(dataNumber))   && any(is.na(expectationNumber))) {
 		msg <- paste("The reference", omxQuotes(name),
 			"does not exist.  It is used by the named entity",
 			omxQuotes(referant),".")
 		stop(msg, call.=FALSE)
-	} else if (!is.na(matrixNumber)) {
+	} else if (!any(is.na(matrixNumber))) {
 		return(- matrixNumber)
-	} else if (!is.na(dataNumber)) {
+	} else if (!any(is.na(dataNumber))) {
 		return(dataNumber - 1L)
-	} else if (!is.na(expectationNumber)) {
+	} else if (!any(is.na(expectationNumber))) {
 		return(expectationNumber - 1L)
 	} else {
 		return(algebraNumber - 1L)
@@ -285,4 +297,15 @@ imxCheckMatrices <- function(model) {
 	lapply(matrices, imxVerifyMatrix)
 	submodels <- imxDependentModels(model)
 	lapply(submodels, imxCheckMatrices)
+}
+
+# Output submodels in order, ignoring linking tables; rename this function?
+planMultilevelJoin <- function(model) {
+  filter <- sapply(model@submodels, function(m) {
+	  if (is.null(m@data)) stop("No data")
+    length(m@data@primaryKey) > 0
+  })
+  # For now, assume the submodels are in the appropriate order.
+  # It would be nice to sort the submodels automatically. TODO
+  return(model@submodels[filter])
 }

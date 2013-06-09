@@ -27,25 +27,30 @@ setClass(Class = "MxNonNullData",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
 		.isSorted = "logical",		
-		name   = "character"))
+		name   = "character",
+		primaryKey = "MxCharOrNumber",
+		foreignKeys = "MxListOrNull"
+	  ))
 
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
 
 setMethod("initialize", "MxNonNullData",
-	function(.Object, observed, means, type, numObs, name = "data") {
+	function(.Object, observed, means, type, numObs, primaryKey, foreignKeys) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
-		.Object@name <- name
+		.Object@name <- "data"
 		.Object@.isSorted <- FALSE
+		.Object@primaryKey <- primaryKey
+		.Object@foreignKeys <- foreignKeys
 		return(.Object)
 	}
 )
 
 imxDataTypes <- c("raw", "cov", "cor", "sscp")
 
-mxData <- function(observed, type, means = NA, numObs = NA) {
+mxData <- function(observed, type, means = NA, numObs = NA, primaryKey = NA, foreignKeys = NULL) {
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
@@ -81,17 +86,70 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxNonNullData", observed, means, type, numObs))
+	if (is.na(primaryKey)) {
+		primaryKey <- character(0)
+	} else if (length(primaryKey)) {
+		if (type != "raw") {
+			stop(paste("Primary key requires raw data"))
+		}
+		if (!(primaryKey %in% colnames(observed))) {
+			stop(paste("Primary key", omxQuotes(primaryKey),
+				   "must be provided in the observed data:",
+				   omxQuotes(colnames(observed))))
+		}
+	}
+	# ensure foreignKeys have columns in this mxData TODO
+	return(new("MxNonNullData", observed, means, type, numObs, primaryKey, foreignKeys))
 }
 
 convertDatasets <- function(model, defVars, modeloptions) {
-	model@data <- sortRawData(model@data, defVars, model@name, modeloptions)
-	model@data <- convertIntegerColumns(model@data)
+	data <- sortRawData(model@data, defVars, model@name, modeloptions)
+	data <- convertIntegerColumns(data)
+	if (!is.null(data) && length(data@primaryKey)) {
+		pk <- match(data@primaryKey, colnames(data@observed))
+		if (is.na(pk)) {
+			stop(paste0("Primary key '", data@primaryKey, "' not found in ", data@name))
+		}
+		data@primaryKey <- pk
+	}
+	model@data <- data
 	if (length(model@submodels) > 0) {
 		model@submodels <- lapply(model@submodels, convertDatasets,
-			defVars, modeloptions)
+					  defVars, modeloptions)
 	}
 	return(model)
+}
+
+resolveForeignKeys <- function(flatModel) {
+	if (length(flatModel@datasets)) for (dx in 1:length(flatModel@datasets)) {
+		data <- flatModel@datasets[[dx]]
+		fk.num <- vector("list", 0)
+		if (length(data@foreignKeys)) for (fk.x in 1:length(data@foreignKeys)) {
+			fk <- data@foreignKeys[[ fk.x ]]
+			col <- match(fk[1], colnames(data@observed))
+			if (is.na(col)) {
+				stop(paste0("Foreign key '", fk[1], "' not found in ", data@name))
+			}
+			target.path <- unlist(strsplit(fk[2], imxSeparatorChar, fixed = TRUE))
+			target.x <- match(paste0(target.path[1], ".data"), names(flatModel@datasets))
+			if (is.na(target.x)) {
+				warning(paste0("Foreign key '", fk[1],
+					    "' missing dataset '", target.path[1], "' (ignored)"))
+				next
+			}
+			target <- flatModel@datasets[[target.x]]
+			target.col <- match(target.path[2], colnames(target@observed))
+			if (is.na(target.col)) {
+				stop(paste0("Foreign key '", fk[1],
+					    "' references unknown column '", target.path[2],
+					    " in dataset ", target.path[1]))
+			}
+			fk.num[[ length(fk.num)+1 ]] <- c(col, target.x, target.col)
+		}
+		data@foreignKeys <- fk.num
+		flatModel@datasets[[dx]] <- data
+	}
+	flatModel
 }
 
 resetDataSortingFlags <- function(model) {
@@ -106,6 +164,7 @@ resetDataSortingFlags <- function(model) {
 	return(model)
 }
 
+# TODO Ignore keys when sorting
 sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	if (is.null(mxData)) {
 		return(mxData)
@@ -309,6 +368,15 @@ displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')
 	cat("numObs :", omxQuotes(object@numObs), '\n')
+	if (length(object@primaryKey)) {
+		cat("primary key :", omxQuotes(object@primaryKey), '\n')
+	}
+	if (length(object@foreignKeys)) {
+		cat("foreign keys :\n")
+		for (kx in 1:length(object@foreignKeys)) {
+			cat(paste("  [",kx,"]",paste(object@foreignKeys[[kx]], collapse=" "),'\n'))
+		}
+	}
 	cat("Data Frame or Matrix : \n") 
 	print(object@observed)
 	if (length(object@means) == 1 && is.na(object@means)) {

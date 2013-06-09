@@ -180,6 +180,17 @@
 		strncpy(tgt->statusMsg, "", 1);
 	}
 
+void omxAddMatrixToState(omxMatrix *mat)
+{
+	omxState *os = mat->currentState;
+	if (os->numChildren) error("State has children; too late to add to matrixList");
+	if (mat->hasMatrixNumber) error("%p already has a matrix number", mat);
+
+	mat->hasMatrixNumber = TRUE;
+	mat->matrixNumber = ~os->matrixList.size();
+	os->matrixList.push_back(mat);
+}
+
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
 		if(os == NULL || element == NULL) return NULL;
 

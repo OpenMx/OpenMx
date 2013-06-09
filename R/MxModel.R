@@ -181,7 +181,7 @@ imxSameType <- function(a, b) {
 			(is(a, "MxData") && is(b, "MxData")))
 }
 
-mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
+mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA, submodules = list(),
 		    remove = FALSE, independent = NA, type = NA, name = NA) {
 	retval <- firstArgument(model, name)
 	first <- retval[[1]]
@@ -512,10 +512,9 @@ modelModifyFilter <- function(model, entries, action) {
 			"that have been passed into the function:",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxModel"))), call. = FALSE)
 	}
-	if (identical(action, 'add')) {
-		return(list(entries[namedEntityFilter], entries[boundsFilter], entries[intervalFilter]))
-	} else if (identical(action, 'remove')) {
-		return(list(entries[characterFilter], entries[boundsFilter], entries[intervalFilter]))
+	if (identical(action, 'add') || identical(action, 'remove')) {
+		return(list(entries[namedEntityFilter], entries[boundsFilter],
+			    entries[intervalFilter]))
 	} else {
 		stop(paste("Internal error, unidentified action:", omxQuotes(action)))
 	}

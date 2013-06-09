@@ -124,7 +124,7 @@ imxPPMLTransformModel <- function(model.original) {
 	model.named <- pair[[1]]
 
 	solveType <- imxPPML.CheckApplicable(model.named)
-
+	print(solveType)
 
 	# PPML not applicable to model
 	if (single.na(solveType))

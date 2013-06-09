@@ -273,59 +273,72 @@ void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 	Rprintf("has %d args.\n", oa->numArgs);
 }
 
-omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
-	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("Attaching pointer to matrix.");
-	}
+static int isValidMatrixIndex(SEXP r_index)
+{
+	if (r_index == R_NilValue) {
+		return 0;
+	} else if (isString(r_index)) {
+		error("String passed to omxNewMatrixFromIndex, did you forget to call imxLocateIndex?");
+	}		
+	return 1;
+}
+
+omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os)
+{
+	if (!isValidMatrixIndex(matrix)) return NULL;
+
+	// length(matrix) can be >1, but we only decode the first element
 
 	int value = 0;
-	omxMatrix* output = NULL;
-
 	if (IS_INTEGER(matrix)) {
-		SEXP intMatrix;
-		PROTECT(intMatrix = AS_INTEGER(matrix));
-		value = INTEGER(intMatrix)[0];
-		if(value == NA_INTEGER) {
-			if(OMX_DEBUG && os->parentState == NULL) {
-				Rprintf("  Null integer matrix.  Skipping.\n");
-			}
-			return NULL;
-		}
+		value = INTEGER(matrix)[0];
+		if (value == NA_INTEGER) return NULL;
 	} else if (IS_NUMERIC(matrix)) {
-		SEXP numericMatrix;
-		PROTECT(numericMatrix = AS_NUMERIC(matrix));
-		value = (int) REAL(numericMatrix)[0];
-		if(value == NA_INTEGER) {
-			if(OMX_DEBUG && os->parentState == NULL) {
-				Rprintf("   Null numeric matrix.  Skipping.\n");
-			}
-			return NULL;
-		}
-	} else if (matrix == R_NilValue) {
-		return NULL;
-	} else if (isString(matrix)) {
-	  const int MaxErrorLen = 250;
-	  char err[MaxErrorLen];
-	  snprintf(err, MaxErrorLen, "Internal error: string passed to omxMatrixLookupFromState1, did you forget to call imxLocateIndex?");
-	  omxRaiseError(os, -1, err);
-	  return NULL;
+		value = REAL(matrix)[0];
 	} else {
 		error("Internal error: unknown type passed to omxMatrixLookupFromState1");
 	}		
 	if(OMX_DEBUG && os->parentState == NULL) {
 		Rprintf("  Pointer is %d.\n", value);
 	}
-	if (value >= 0) {										// Pre-existing algebra.  A-ok.
+
+	omxMatrix *output = NULL;
+	if (value >= 0) {
 		output = os->algebraList[value];
-	} else {												// Pre-existing matrix.  A-ok.
-		output = os->matrixList[~value];						// Value invert for matrices.
+	} else {
+		output = os->matrixList[~value];		// Value invert for matrices
 	}
-	
-	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("Attached.\n");
-	}
+
+	// omxRecompute(output); can do this here?
 	
 	return output;
+}
+
+void omxMatricesLookupFromState(SEXP r_index, omxState *os, int *len_out, omxMatrix **out[])
+{
+	if (!isValidMatrixIndex(r_index)) return;
+
+	if (IS_INTEGER(r_index)) {
+		// OK
+	} else if (IS_NUMERIC(r_index)) {
+		error("Matrix/algebra numbers must be given as integers (not numeric type)");
+	} else {
+		error("Unknown type");
+	}
+
+	*len_out = length(r_index);
+	int *indices = INTEGER(r_index);
+
+	*out = Realloc(NULL, *len_out, omxMatrix*);
+	for (int mx=0; mx < *len_out; mx++) {
+		int value = indices[mx];
+		if (value >= 0) {
+			(*out)[mx] = os->algebraList[value];
+		} else {
+			(*out)[mx] = os->matrixList[~value];	// Value invert for matrices
+		}
+		omxRecompute((*out)[mx]);
+	}
 }
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {

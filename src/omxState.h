@@ -68,7 +68,7 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 #include <vector>
 
 struct omxFreeVarLocation {
-	int matrix;
+	int matrix;             // index into matrixList
 	int row, col;
 };
 
@@ -216,6 +216,7 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 	void omxWriteCheckpointMessage(omxState *os, char *msg);
 	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
+void omxAddMatrixToState(omxMatrix *mat);
 
 #endif /* _OMXSTATE_H_ */
 

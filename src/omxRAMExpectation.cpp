@@ -20,11 +20,14 @@
 #include "omxFIMLFitFunction.h"
 #include "omxMLFitFunction.h"
 #include "omxRAMExpectation.h"
+#include "fitMultigroup.h"
 
 typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
+	int numHomerMatrices;
+	omxMatrix **Homer;
 	omxMatrix *C, *EF, *ZM, *U, *V, *W, *X, *Y, *Z, *Ax, *P, *bCB, *ZSBC, *Mns, *lilI, *eCov, *beCov;
     omxMatrix *dA, *dS, *dM, *b, *D, *paramVec;
     // For gradients
@@ -48,6 +51,9 @@ typedef struct {
 	double n;
 	double *work;
 	int lwork;
+
+	int HomerLevels;
+	bool onlyData;
 
 } omxRAMExpectation;
 
@@ -146,6 +152,8 @@ static void omxCallRAMExpectation(omxExpectation* oo) {
     if(OMX_DEBUG) { Rprintf("RAM Expectation calculating.\n"); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
+	if (oro->onlyData || oro->numHomerMatrices) return;
+
 	omxRecompute(oro->A);
 	omxRecompute(oro->S);
 	omxRecompute(oro->F);
@@ -214,12 +222,21 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 	omxFreeMatrixData(argStruct->C);
 	omxFreeMatrixData(argStruct->eCov);
 
+	for (int hx=0; hx < argStruct->numHomerMatrices; hx++) {
+		omxFreeMatrixData(argStruct->Homer[hx]);
+	}
+	Free(argStruct->Homer);
+
+	Free(argStruct);
 }
 
 static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     if(OMX_DEBUG) { Rprintf("Populating RAM Attributes.\n"); }
 
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
+
+	if (oro->onlyData || oro->numHomerMatrices) return;
+
 	omxMatrix* A = oro->A;
 	omxMatrix* S = oro->S;
 	omxMatrix* X = oro->X;
@@ -326,44 +343,12 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	}
 }
 
-void omxInitRAMExpectation(omxExpectation* oo) {
-	
-	omxState* currentState = oo->currentState;	
-	SEXP rObj = oo->rObj;
+static void omxAllocateScratchArea(omxExpectation* oo)
+{
+	omxRAMExpectation *RAMexp = (omxRAMExpectation *) oo->argStruct;
+	omxState* currentState = oo->currentState;
 
-	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
-	
-	int l, k;
-
-	SEXP slotValue;
-	
-	omxRAMExpectation *RAMexp = (omxRAMExpectation*) R_alloc(1, sizeof(omxRAMExpectation));
-	
-	/* Set Expectation Calls and Structures */
-	oo->computeFun = omxCallRAMExpectation;
-	oo->destructFun = omxDestroyRAMExpectation;
-	oo->componentFun = omxGetRAMExpectationComponent;
-	oo->populateAttrFun = omxPopulateRAMAttributes;
-	oo->argStruct = (void*) RAMexp;
-	
-	/* Set up expectation structures */
-	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
-
-	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
-	RAMexp->M = omxNewMatrixFromSlot(rObj, currentState, "M");
-
-	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
-	RAMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
-
-	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
-	RAMexp->S = omxNewMatrixFromSlot(rObj, currentState, "S");
-
-	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
-	RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
-
-	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
-	UNPROTECT(1);
+	if (RAMexp->I) error("omxAllocateScratchArea called twice on %p", oo);
 
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
@@ -371,16 +356,9 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	omxRecompute(RAMexp->I);
 	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
 	omxRecompute(RAMexp->lilI);
-	
 
-	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
-	RAMexp->numIters = INTEGER(slotValue)[0];
-	if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMexp->numIters); }
-	UNPROTECT(1);
-
-	l = RAMexp->F->rows;
-	k = RAMexp->A->cols;
+	int l = RAMexp->F->rows;
+	int k = RAMexp->A->cols;
 
 	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
 
@@ -435,7 +413,357 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	RAMexp->pNums = NULL;
 	RAMexp->nParam = -1;
 	RAMexp->eCov=       omxInitMatrix(NULL, l, l, TRUE, currentState);
+}
 
+static int omxDataIsLinkTable(omxData *od) {
+	return od->primaryKey == NA_INTEGER && od->foreignKeys.size() == 2;
+}
+
+void omxCopyMatrixTo(omxMatrix *dest, omxMatrix *orig, int toRow, int toCol, double adj)
+{
+	for (int rx=0; rx < orig->rows; rx++) {
+		for (int cx=0; cx < orig->cols; cx++) {
+			omxSetMatrixElement(dest, toRow + rx, toCol + cx,
+					    adj * omxMatrixElement(orig, rx, cx));
+		}
+	}
+
+	omxState *os = orig->currentState;
+	for (int fx=0; fx < os->numFreeParams; fx++) {
+		omxFreeVar *fv = os->freeVarList + fx;
+		size_t origSize = fv->locations.size();
+		for (size_t lx=0; lx < origSize; lx++) {
+			if (fv->locations[lx].matrix != ~orig->matrixNumber) continue;
+			omxFreeVarLocation loc;
+			loc.matrix = ~dest->matrixNumber;
+			loc.row = toRow + fv->locations[lx].row;
+			loc.col = toCol + fv->locations[lx].col;
+			fv->locations.push_back(loc);
+		}
+	}
+}
+
+void omxCopyMatrixTo(omxMatrix *dest, omxMatrix *orig, int toRow, int toCol)
+{
+	omxCopyMatrixTo(dest, orig, toRow, toCol, 1.0);
+}
+
+static omxExpectation *
+uniteHierarchicalMultilevel(omxExpectation* oo, omxRAMExpectation *teacher,
+			    omxRAMExpectation *student, int copies, omxMatrix *homer,
+			    double adjustment)
+{
+	omxState* currentState = oo->currentState;
+	int size = teacher->A->cols + copies * student->A->cols;
+	omxMatrix *fA = omxInitTemporaryMatrix(NULL, size, size, TRUE, currentState);
+	omxMatrix *fS = omxInitTemporaryMatrix(NULL, size, size, TRUE, currentState);
+	omxMatrix *fF = omxInitTemporaryMatrix(NULL, teacher->F->rows + copies * student->F->rows,
+					       size, TRUE, currentState);
+	omxMatrix *fM = omxInitTemporaryMatrix(NULL, 1, size, TRUE, currentState);
+
+	omxAddMatrixToState(fA);
+	omxAddMatrixToState(fS);
+	omxAddMatrixToState(fF);
+	omxAddMatrixToState(fM);
+
+	omxCopyMatrixTo(fA, teacher->A, 0, 0);
+	omxCopyMatrixTo(fS, teacher->S, 0, 0);
+	omxCopyMatrixTo(fF, teacher->F, 0, 0);
+	omxCopyMatrixTo(fM, teacher->M, 0, 0);
+
+	for (int lx=0; lx < copies; lx++) {
+		int block = teacher->A->rows + student->A->rows * lx;
+		omxCopyMatrixTo(fA, student->A, block, block);
+		omxCopyMatrixTo(fS, student->S, block, block);
+		omxCopyMatrixTo(fA, homer, block, 0, adjustment);
+		omxCopyMatrixTo(fF, student->F,
+				teacher->F->rows + student->F->rows * lx,
+				teacher->F->cols + student->F->cols * lx);
+		omxCopyMatrixTo(fM, student->M, 0, block);
+	}
+
+	omxExpectation *flat = omxNewInternalExpectation(oo->expType, currentState);
+	omxCompleteExpectation(flat);
+	omxRAMExpectation *RAMexp = (omxRAMExpectation *) flat->argStruct;
+	RAMexp->A = fA;
+	RAMexp->S = fS;
+	RAMexp->F = fF;
+	RAMexp->M = fM;
+	return flat;
+}
+
+static omxExpectation *RAMcopy(omxExpectation* oo)
+{
+	omxState* os = oo->currentState;
+	omxRAMExpectation *src = (omxRAMExpectation *) oo->argStruct;
+	if (src->numHomerMatrices) error("Not implemented");
+
+	omxExpectation *destE = omxNewInternalExpectation(oo->expType, os);
+	omxCompleteExpectation(destE);
+	omxRAMExpectation *dest = (omxRAMExpectation *) destE->argStruct;
+
+	dest->A = omxInitTemporaryMatrix(NULL, src->A->cols, src->A->cols, TRUE, os);
+	dest->S = omxInitTemporaryMatrix(NULL, src->A->cols, src->A->cols, TRUE, os);
+	dest->F = omxInitTemporaryMatrix(NULL, src->F->rows, src->F->cols, TRUE, os);
+	dest->M = omxInitTemporaryMatrix(NULL, 1, src->A->cols, TRUE, os);
+
+	omxAddMatrixToState(dest->A);
+	omxAddMatrixToState(dest->S);
+	omxAddMatrixToState(dest->F);
+	omxAddMatrixToState(dest->M);
+
+	omxCopyMatrixTo(dest->A, src->A, 0, 0);
+	omxCopyMatrixTo(dest->S, src->S, 0, 0);
+	omxCopyMatrixTo(dest->F, src->F, 0, 0);
+	omxCopyMatrixTo(dest->M, src->M, 0, 0);
+
+	omxAllocateScratchArea(destE);
+
+	return destE;
+}
+
+static void omxInitRAMExpectationH(omxExpectation* oo)
+{
+	SEXP rObj = oo->rObj;
+	omxState* os = oo->currentState;
+	omxRAMExpectation *RAMexp = (omxRAMExpectation *) oo->argStruct;
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("HomerTransform")));
+	bool HomerEnabled = asLogical(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("H")));
+	omxMatricesLookupFromState(slotValue, os, &RAMexp->numHomerMatrices, &RAMexp->Homer);
+
+	if (oo->numSubmodels < 2) {
+		omxRaiseErrorf(os, "Hierarchical RAM models must contain at"
+			       " least 2 RAM submodels (%d found)", oo->numSubmodels);
+		return;
+	}
+
+	// find linking tables, assume models are ordered hierarchically with link tables at the end
+	for (int sx= oo->numSubmodels-1; sx >= 1; sx--) {
+		omxData *od = oo->submodels[sx]->data;
+		if (od->foreignKeys.size()) continue;
+		if (od->primaryKey == NA_INTEGER) {
+			error("Data %d has no primary and no foreign keys", sx);
+		}
+
+		omxData *target = oo->submodels[sx - 1]->data;
+		for (int px=1; px < oo->numSubmodels; px++) {
+			omxData *link = oo->submodels[px]->data;
+			if (!omxDataIsLinkTable(link)) continue;
+
+			int matches = 0;
+			for (size_t fx=0; fx < link->foreignKeys.size(); fx++) {
+				omxForeignKey *fk = &link->foreignKeys[fx];
+				omxData *arm = os->dataList[fk->peerData];
+				if ((arm == od && fk->peerColumn == od->primaryKey) ||
+				    arm == target)
+					{ ++matches; }
+			}
+			if (matches == 2) {
+				if (!od->joinVia) {
+					od->joinVia = link;
+				} else {
+					error("More than one way to join data %d column %d",
+					      sx, od->primaryKey);
+				}
+			}
+		}
+	}
+
+	// count levels by ignoring linking tables
+	for (int px=0; px < oo->numSubmodels; px++) {
+		omxData *od = oo->submodels[px]->data;
+		if (omxDataIsLinkTable(od)) continue;
+		++RAMexp->HomerLevels;
+	}
+
+	if (RAMexp->numHomerMatrices != RAMexp->HomerLevels - 1) {
+		error("Need %d H matrices, only got %d",
+		      RAMexp->HomerLevels - 1, RAMexp->numHomerMatrices);
+	}
+
+	// find the last table of data; we will start joining here
+	omxData *bottom = NULL;
+	for (int sx= oo->numSubmodels-1; sx >= 0; sx--) {
+		omxData *od = oo->submodels[sx]->data;
+		if (od->primaryKey != NA_INTEGER) {
+			bottom = od;
+			break;
+		}
+	}
+
+	// how many copies in each level; this code depends on sorted IDs, need a hash table here
+	if (0) {
+		int levelSize[RAMexp->HomerLevels];
+		for (int lx=0; lx < RAMexp->HomerLevels; lx++) {
+			levelSize[lx] = 1;
+		}
+
+		int prevRow[RAMexp->HomerLevels];
+		prevRow[0] = NA_INTEGER;
+		omxData *od = bottom;
+		for (int rx=0; rx < od->rows; rx++) {
+			omxData *curData = od;
+			int lx=0;
+			int curRow = rx;
+			int row[RAMexp->HomerLevels];
+			while (1) {
+				row[lx++] = curRow;
+				if (!curData->joinVia && curData->foreignKeys.size() == 0) break;
+				omxDataOuterLeftJoin(curData, curRow, &curData, &curRow);
+			}
+			if (prevRow[0] == NA_INTEGER) {
+				memcpy(prevRow, row, sizeof(int) * RAMexp->HomerLevels);
+			}
+
+			// only consider the first row; assume all rows are the same
+			if (prevRow[RAMexp->HomerLevels-1] != row[RAMexp->HomerLevels-1]) break;
+
+			for (int ly=0; ly < lx; ly++) {
+				//Rprintf("[%d] %d != %d %d\n", ly, row[ly], prevRow[ly], levelSize[ly]);
+				if (row[ly] != prevRow[ly]) levelSize[ly] += 1;
+			}
+			memcpy(prevRow, row, sizeof(int) * RAMexp->HomerLevels);
+		}
+	}
+
+	omxFitFunction *mgFit = omxGetFitOfExpectation(oo);
+	const char *perModelFitType = mgFit->fitType;
+	mgFit->rObj = NULL;
+	omxChangeFitType(mgFit, "MxFitFunctionMultigroup");
+	omxInitializeFitFunction(mgFit->matrix);
+
+	omxExpectation *flat = NULL;
+
+	for (int px=oo->numSubmodels - 1; px > 0; px--) {
+		omxExpectation *level = oo->submodels[px];
+		if (omxDataIsLinkTable(level->data)) continue;
+
+		omxExpectation* upperE = oo->submodels[px - 1];
+		omxExpectation* lowerE = (flat? flat : level);
+		// omxPrintData(upperE->data, "upper");
+		// omxPrint(upperE->dataColumns, "upper");
+		// omxPrintData(lowerE->data, "lower");
+		// omxPrint(lowerE->dataColumns, "lower");
+
+		omxRAMExpectation *upper = (omxRAMExpectation*) upperE->argStruct;
+		omxRAMExpectation *lower = (omxRAMExpectation*) lowerE->argStruct;
+
+		int fanout = omxCountDataFanout(upperE->data, lowerE->data);
+
+		if (!HomerEnabled) {
+			omxData *fdata;
+			omxMatrix *fdataColumns;
+			omxFlattenRawData(upperE->data, upperE->dataColumns,
+					  lowerE->data, lowerE->dataColumns, fanout, fdata, fdataColumns);
+			//omxPrintData(fdata, "flat");
+			//omxPrint(fdataColumns, "flat");
+
+			flat = uniteHierarchicalMultilevel(oo, upper, lower, fanout, RAMexp->Homer[px - 1], 1);
+			flat->data = fdata;
+			flat->dataColumns = fdataColumns;
+		} else {
+			omxData *group1D, *group2D;
+			omxMatrix *group1C;
+			omxHomerTransformRawData(upperE->data, upperE->dataColumns,
+						 lowerE->data, lowerE->dataColumns, fanout,
+						 group1D, group1C, group2D);
+			// omxPrintData(group1D, "g1");
+			// omxPrint(group1C, "g2");
+			// omxPrintData(group2D, "g2");
+			// omxPrint(lowerE->dataColumns, "g2");
+
+			flat = uniteHierarchicalMultilevel(oo, upper, lower, 1, RAMexp->Homer[px - 1], sqrt(fanout));
+			flat->data = group1D;
+			flat->dataColumns = group1C;
+
+			omxExpectation *group2 = RAMcopy(lowerE);  // probably don't need to copy? TODO
+			group2->data = group2D;
+			group2->dataColumns = omxDuplicateMatrix(lowerE->dataColumns, os);
+			omxFitFunction *fit2 =
+				omxNewInternalFitFunction(os, perModelFitType, group2, NULL, NULL);
+			omxMultigroupAdd(mgFit, fit2);
+		}
+		//flat->printFun(flat);
+	}
+
+	omxAllocateScratchArea(flat);
+
+	//	flat->printFun(flat);
+	flat->expNum = oo->expNum;
+	os->expectationList[oo->expNum] = flat;  // replace ourselves
+	// oo is leaked, should be deallocated TODO
+
+	omxFitFunction *fit = omxNewInternalFitFunction(os, perModelFitType, flat, NULL, NULL);
+	omxMultigroupAdd(mgFit, fit);
+}
+
+static void RAMprint(omxExpectation* oo)
+{
+	omxRAMExpectation *RAMexp = (omxRAMExpectation *) oo->argStruct;
+
+	if (oo->data) omxPrintData(oo->data, "data");
+	if (oo->dataColumns) omxPrint(oo->dataColumns, "dataColumns");
+	if (RAMexp->A) omxPrint(RAMexp->A, "A");
+	if (RAMexp->S) omxPrint(RAMexp->S, "S");
+	if (RAMexp->F) omxPrint(RAMexp->F, "F");
+	if (RAMexp->M) omxPrint(RAMexp->M, "M");
+}
+
+void omxInitRAMExpectation(omxExpectation* oo)
+{
+	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
+	
+	omxRAMExpectation *RAMexp = Calloc(1, omxRAMExpectation);
+	RAMexp->numIters = NA_INTEGER;
+	
+	/* Set Expectation Calls and Structures */
+	oo->computeFun = omxCallRAMExpectation;
+	oo->destructFun = omxDestroyRAMExpectation;
+	oo->componentFun = omxGetRAMExpectationComponent;
+	oo->populateAttrFun = omxPopulateRAMAttributes;
+	oo->printFun = RAMprint;
+	oo->argStruct = (void*) RAMexp;
+	
+	SEXP rObj = oo->rObj;
+	if (!rObj) return;
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("OnlyData")));
+	RAMexp->onlyData = asLogical(slotValue);
+	if (RAMexp->onlyData) return;
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("H")));
+	if (length(slotValue)) {
+		omxInitRAMExpectationH(oo);
+	} else {
+		omxState* currentState = oo->currentState;
+
+		if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
+		RAMexp->M = omxNewMatrixFromSlot(rObj, currentState, "M");
+
+		if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
+		RAMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
+
+		if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
+		RAMexp->S = omxNewMatrixFromSlot(rObj, currentState, "S");
+
+		if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
+		RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
+
+		// TODO calculate numIters in C
+		SEXP slotValue;
+		if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
+		PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
+		RAMexp->numIters = INTEGER(slotValue)[0];
+		if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMexp->numIters); }
+		UNPROTECT(1);
+
+		omxAllocateScratchArea(oo);
+	}
 }
 
 /*

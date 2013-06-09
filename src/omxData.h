@@ -44,12 +44,19 @@ typedef struct omxContiguousData omxContiguousData;
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
 #include "omxState.h"
+#include <vector>
 
 struct omxContiguousData {
 	int isContiguous;
 	int start;
 	int length;
 };
+
+typedef struct {
+	int column;
+	int peerData;
+	int peerColumn;
+} omxForeignKey;
 
 struct omxData {						// A matrix
 	//TODO: Improve encapsulation
@@ -67,10 +74,15 @@ struct omxData {						// A matrix
 	int* identicalRows;					// Number of consecutive rows with identical data
 	int numFactor, numNumeric;  // Number of ordinal and continuous columns
 	short isDynamic;             // Reserved for when there's actually dynamic data.
-	/* Useful Members */
+
+	/* public members (no accessor function needed) */
 	int rows, cols;						// Matrix size 
 
 	omxState* currentState;				// The Current Optimizer State 	// Might not want this.
+
+	int primaryKey;   // column of primary key
+	std::vector< omxForeignKey > foreignKeys;
+	omxData *joinVia;  // if there is a linking table
 };
 
 /* Initialize and Destroy */
@@ -108,5 +120,20 @@ void resetDefinitionVariables(double *oldDefs, int numDefs);
 /* Function wrappers that switch based on inclusion of algebras */
 
 void omxPrintData(omxData *od, const char *header);
+
+void omxDataOuterLeftJoin(omxData *od, int row, omxData **out_od, int *out_row); // keep static? TODO
+
+int omxCountDataFanout(omxData *upperD, omxData *lowerD);
+
+void omxFlattenRawData(omxData *upperD, omxMatrix *upperC,
+		       omxData *lowerD, omxMatrix *lowerC,
+		       int fanout,
+		       omxData *&fdata, omxMatrix *&fdataColumns);
+
+void omxHomerTransformRawData(omxData *upperD, omxMatrix *upperC,
+			      omxData *lowerD, omxMatrix *lowerC,
+			      int fanout,
+			      omxData *&group1D, omxMatrix *&group1C,
+			      omxData *&group2D);
 
 #endif /* _OMXDATA_H_ */

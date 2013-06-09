@@ -580,7 +580,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;
-	if(OMX_DEBUG){Rprintf("Number of columns found is %d", covCols);}
+	if(OMX_DEBUG){Rprintf("Number of columns found is %d\n", covCols);}
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
     newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
@@ -593,7 +593,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
     if(numOrdinal > 0 && numContinuous <= 0) {
         if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-            Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
+            Rprintf("Ordinal Data detected.  Using Ordinal FIML.\n");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
         newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
@@ -607,7 +607,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
         off->computeFun = omxCallFIMLOrdinalFitFunction;
     } else if(numOrdinal > 0) {
         if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-            Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
+            Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.\n");
         }
 
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));

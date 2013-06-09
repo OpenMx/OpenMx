@@ -105,7 +105,7 @@ generatePath <- function(from, to,
 	pathCheckToAndFrom(from, to)
 
 	# check the labels for illegal references
-	lapply(labels, imxVerifyReference, -1)
+	# lapply(labels, imxVerifyReference, -1) TODO, restore
 	
 	# check for length mismatches
 	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)

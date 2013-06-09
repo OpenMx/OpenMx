@@ -577,11 +577,11 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 
 imxConvertIdentifier <- function(identifier, modelname, namespace) {
 	charidentifier <- as.character(identifier)
-	if (is.na(charidentifier)) {
+	if (all(is.na(charidentifier))) {
 		return(identifier)
 	}
     isLocalEntity <- charidentifier %in% namespace$entities[[modelname]]
-    if (isLocalEntity) {
+    if (all(isLocalEntity)) {
 		return(imxIdentifier(modelname, identifier))
 	} else if (isLocalDefinitionVariable(charidentifier)) {
 		return(imxIdentifier(modelname, identifier))
