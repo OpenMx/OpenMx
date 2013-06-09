@@ -74,7 +74,7 @@ struct omxFreeVarLocation {
 
 struct omxFreeVar {			// Free Variables
 	double lbound, ubound;	// Bounds
-	vector<omxFreeVarLocation> locations;
+	std::vector<omxFreeVarLocation> locations;
 	int numDeps;            // number of algebra/matrix dependencies
 	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
@@ -133,13 +133,13 @@ struct omxState {													// The Current State of Optimization
 //	omxOptimizer* optimizer;										// Current Optimizer
 	int numThreads;
 	int numAlgs, numExpects, numData, numChildren;
-	vector< omxMatrix* > matrixList;
+	std::vector< omxMatrix* > matrixList;
 	omxMatrix** algebraList;										// Model Algebras
 	omxExpectation** expectationList; 							// Model Expectations
 	omxData** dataList;												// Data Objects
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
-	vector<int> markMatrices;
+	std::vector<int> markMatrices;
 
                                                                     // TODO: Need a way to deal with unregistered matrices that have free vars
 	omxMatrix* fitMatrix;											// Fit Function Algebra
