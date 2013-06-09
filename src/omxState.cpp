@@ -161,32 +161,18 @@
 		tgt->hessian 			= src->hessian;
 
 		tgt->numFreeParams			= src->numFreeParams;
-		tgt->freeVarList 		= (omxFreeVar*) R_alloc(tgt->numFreeParams, sizeof(omxFreeVar));
+		tgt->freeVarList 		= new omxFreeVar[tgt->numFreeParams];
 		for(int j = 0; j < tgt->numFreeParams; j++) {
-			int nLocs 							= src->freeVarList[j].numLocations;
 			int numDeps							= src->freeVarList[j].numDeps;
 
 			tgt->freeVarList[j].lbound			= src->freeVarList[j].lbound;
 			tgt->freeVarList[j].ubound			= src->freeVarList[j].ubound;
-			tgt->freeVarList[j].numLocations	= nLocs;
+			tgt->freeVarList[j].locations			= src->freeVarList[j].locations;
 			tgt->freeVarList[j].numDeps			= numDeps;
 			
-			tgt->freeVarList[j].matrices		= (int*) R_alloc(nLocs, sizeof(int));
-			tgt->freeVarList[j].row				= (int*) R_alloc(nLocs, sizeof(int));
-			tgt->freeVarList[j].col				= (int*) R_alloc(nLocs, sizeof(int));
 			tgt->freeVarList[j].deps			= (int*) R_alloc(numDeps, sizeof(int));
 
-			for(int k = 0; k < nLocs; k++) {
-				int theMat 						= src->freeVarList[j].matrices[k];
-				int theRow 						= src->freeVarList[j].row[k];
-				int theCol						= src->freeVarList[j].col[k];
-
-				tgt->freeVarList[j].matrices[k] = theMat;
-				tgt->freeVarList[j].row[k]		= theRow;
-				tgt->freeVarList[j].col[k]		= theCol;
-								
-				tgt->freeVarList[j].name		= src->freeVarList[j].name;
-			}
+			tgt->freeVarList[j].name		= src->freeVarList[j].name;
 
 			for(int k = 0; k < numDeps; k++) {
 				tgt->freeVarList[j].deps[k] = src->freeVarList[j].deps[k];
@@ -324,6 +310,8 @@
 			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, state->dataList[k]); }
 			omxFreeData(state->dataList[k]);
 		}
+
+		delete [] state->freeVarList;
 
         if(OMX_DEBUG) {Rprintf("Freeing %d Children.\n", state->numChildren);}
         for(k = 0; k < state->numChildren; k++) {

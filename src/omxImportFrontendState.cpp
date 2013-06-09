@@ -262,15 +262,11 @@ void omxProcessFreeVarList(SEXP varList) {
 	int n = globalState->numFreeParams = length(varList);
 	SEXP nextVar, nextLoc;
 	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
-	globalState->freeVarList = (omxFreeVar*) R_alloc (n, sizeof (omxFreeVar));			// Data for replacement of free vars
+	globalState->freeVarList = new omxFreeVar[n];
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
 		int numDeps;
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
 		int numLocs = length(nextVar) - 3;
-		globalState->freeVarList[freeVarIndex].numLocations = numLocs;
-		globalState->freeVarList[freeVarIndex].matrices = (int*) R_alloc(numLocs, sizeof(int));
-		globalState->freeVarList[freeVarIndex].row		 = (int*) R_alloc(numLocs, sizeof(int));
-		globalState->freeVarList[freeVarIndex].col		 = (int*) R_alloc(numLocs, sizeof(int));
 		globalState->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
 
 		/* Lower Bound */
@@ -298,17 +294,16 @@ void omxProcessFreeVarList(SEXP varList) {
 				globalState->freeVarList[freeVarIndex].lbound, 
 				globalState->freeVarList[freeVarIndex].ubound, numLocs);
 		}
-		for(int locIndex = 0; locIndex < globalState->freeVarList[freeVarIndex].numLocations; locIndex++) {
+		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+3));
 			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
 
-			int theMat = theVarList[0];			// Matrix is zero-based indexed.
-			int theRow = theVarList[1];			// Row is zero-based.
-			int theCol = theVarList[2];			// Column is zero-based.
+			omxFreeVarLocation loc;
+			loc.matrix = theVarList[0];
+			loc.row = theVarList[1];
+			loc.col = theVarList[2];
 
-			globalState->freeVarList[freeVarIndex].matrices[locIndex] = theMat;
-			globalState->freeVarList[freeVarIndex].row[locIndex] = theRow;
-			globalState->freeVarList[freeVarIndex].col[locIndex] = theCol;
+			globalState->freeVarList[freeVarIndex].locations.push_back(loc);
 		}
 	}
 

@@ -68,7 +68,7 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
     // Minimal error checking.
     if(OMX_DEBUG_ALGEBRA) Rprintf("Beginning ADB.\n"); //:::DEBUG:::
 
-    omxFreeVar var;
+    omxFreeVar var;  // TODO, store a pointer instead of a copy
     int paramNo;
 
     for(int param = 0; param < nParam; param++) {
@@ -85,12 +85,14 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
             omxMatrix *thisD = D[param];
             memset(thisD->data, 0, sizeof(double) * thisD->cols * thisD->rows);
             // Honestly, this should be calculated only once.
-            for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
-                if(~var.matrices[varLoc] == matNum) {
-                    omxSetMatrixElement(thisD, var.row[varLoc], var.col[varLoc], 1.0);
-                    if (DrowCache != NULL) DrowCache[param] = var.row[varLoc];
-                    if (DcolCache != NULL) DcolCache[param] = var.col[varLoc];
-                    nonzero++;
+            for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
+                if(~var.locations[varLoc].matrix == matNum) {
+			int row = var.locations[varLoc].row;
+			int col = var.locations[varLoc].col;
+			omxSetMatrixElement(thisD, row, col, 1.0);
+			if (DrowCache != NULL) DrowCache[param] = row;
+			if (DcolCache != NULL) DcolCache[param] = col;
+			nonzero++;
                 }
             }
             Dcounts[param] = nonzero;
@@ -98,9 +100,11 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
         for(int eqn = 0; eqn < numArgs; eqn++) {
             omxMatrix* thisResult = result[eqn][param];
             memset(thisResult->data, 0, sizeof(double) * thisResult->cols * thisResult->rows);
-            for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
-                if(~var.matrices[varLoc] == matNum) {
-                    sliceCrossUpdate(A[eqn], B[eqn], var.row[varLoc], var.col[varLoc], thisResult);
+            for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
+                if(~var.locations[varLoc].matrix == matNum) {
+                    sliceCrossUpdate(A[eqn], B[eqn],
+				     var.locations[varLoc].row,
+				     var.locations[varLoc].col, thisResult);
                 }
             }
         }
@@ -569,8 +573,8 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
         for(int parm = 0; parm < nTotalParams; parm++) {
             omxFreeVar ofv = varList[parm];
             calc[parm] = 0;
-            for(int loc = 0; loc < ofv.numLocations; loc++) {
-                int varMat = ~(ofv.matrices[loc]);
+            for(size_t loc = 0; loc < ofv.locations.size(); loc++) {
+                int varMat = ~(ofv.locations[loc].matrix);
                 if(varMat == Amat || varMat == Smat || (M != NULL && varMat == Mmat)) {
                     calc[parm] = 1;
                 } else {
@@ -979,14 +983,16 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
         status[param] = 0;
 
         // Create dA, dS, and dM mats for each Free Parameter
-        for(int varLoc = 0; varLoc < var.numLocations; varLoc++) {
-            int varMat = ~var.matrices[varLoc]; // Matrices are numbered from ~0 to ~N
+        for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
+            int varMat = ~var.locations[varLoc].matrix; // Matrices are numbered from ~0 to ~N
+	    int row = var.locations[varLoc].row;
+	    int col = var.locations[varLoc].col;
             if(varMat == Amat) {
-                omxSetMatrixElement(dA, var.row[varLoc], var.col[varLoc], 1);
+                omxSetMatrixElement(dA, row, col, 1);
             } else if(varMat == Smat) {
-                omxSetMatrixElement(dS, var.row[varLoc], var.col[varLoc], 1);
+                omxSetMatrixElement(dS, row, col, 1);
             } else if(varMat == Mmat && M != NULL) {
-                omxSetMatrixElement(dM, var.row[varLoc], var.col[varLoc], 1);
+                omxSetMatrixElement(dM, row, col, 1);
             } else {
                 // This parameter has some outside effect
                 // We cannot directly estimate its effects on the likelihood

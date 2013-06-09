@@ -84,4 +84,7 @@
 #else
 #define OMX_DEBUG_DEVELOPER 0
 #endif /* DEBUGMX_DEVELOPER */
+
+using namespace std;
+
 #endif /* _OMXDEFINES_H_ */

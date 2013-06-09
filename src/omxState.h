@@ -28,7 +28,7 @@
 #ifndef _OMXSTATE_H_
 #define _OMXSTATE_H_
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -65,11 +65,16 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 #include "omxData.h"
 //#include "omxOptimizer.h"											// omxOptimizer objects coming soon
 
+#include <vector>
+
+struct omxFreeVarLocation {
+	int matrix;
+	int row, col;
+};
+
 struct omxFreeVar {			// Free Variables
 	double lbound, ubound;	// Bounds
-	int numLocations;
-	int* matrices;			// Matrix numbers.
-	int *row, *col;			// Locations for copying.
+	vector<omxFreeVarLocation> locations;
 	int numDeps;            // number of algebra/matrix dependencies
 	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;

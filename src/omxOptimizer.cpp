@@ -90,14 +90,15 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars, int *markMatr
 	for(int k = 0; k < numVars; k++) {
 		omxFreeVar* freeVar = freeVarList + k;
 		// if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
-		for(int l = 0; l < freeVar->numLocations; l++) {
-			omxMatrix *matrix = matrixList[freeVar->matrices[l]];
-			int row = freeVar->row[l];
-			int col = freeVar->col[l];
+		for(size_t l = 0; l < freeVar->locations.size(); l++) {
+			omxFreeVarLocation *loc = &freeVar->locations[l];
+			omxMatrix *matrix = matrixList[loc->matrix];
+			int row = loc->row;
+			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, x[k]);
 			if(OMX_DEBUG && os->parentState == NULL) {
 				Rprintf("Setting location (%d, %d) of matrix %d to value %f for var %d\n",
-					row, col, freeVar->matrices[l], x[k], k);
+					row, col, loc->matrix, x[k], k);
 			}
 		}
 	}

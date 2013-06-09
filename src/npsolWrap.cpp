@@ -80,7 +80,7 @@ void string_to_try_error( const std::string& str )
 
 void exception_to_try_error( const std::exception& ex )
 {
-	return string_to_try_error(ex.what());
+	string_to_try_error(ex.what());
 }
 
 /* Main functions */
