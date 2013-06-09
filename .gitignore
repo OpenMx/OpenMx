@@ -1,4 +1,5 @@
-/.Rhistory
+.Rhistory
+*.old
 /build
 /config.log
 /config.status
