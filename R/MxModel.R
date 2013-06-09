@@ -65,6 +65,10 @@ setMethod("initialize", "MxModel",
 setGeneric("imxInitModel", function(model) {
 	return(standardGeneric("imxInitModel")) } )
 
+# TODO: It probably makes sense to split this into separate
+# methods. For example, modelAddVariables and modelRemoveVariables
+# could be their own methods. This would reduce some cut&paste
+# duplication.
 setGeneric("imxModelBuilder", function(model, lst, name, 
 	manifestVars, latentVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
