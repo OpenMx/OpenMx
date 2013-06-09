@@ -174,7 +174,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	SEXP nextLoc;
 
-	int n;
 	int calculateStdErrors = FALSE;
 	int numHessians = 0;
 	int ciMaxIterations = 5;
@@ -218,14 +217,25 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if(!errOut) {
 		omxProcessMxExpectationEntities(expectList);
+		errOut = globalState->statusMsg[0];
+	}
+
+	if(!errOut) {
 		omxProcessMxAlgebraEntities(algList);
 		errOut = globalState->statusMsg[0];
 	}
 
-	/* Complete Expectations */
 	if(!errOut) {
 		omxCompleteMxExpectationEntities();
+		errOut = globalState->statusMsg[0];
+	}
 
+	if(!errOut) {
+		omxProcessMxFitFunction(algList);
+		errOut = globalState->statusMsg[0];
+	}
+
+	if(!errOut) {
 		// This is the chance to check for matrix
 		// conformability, etc.  Any errors encountered should
 		// be reported using R's error() function, not
@@ -271,7 +281,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	omxFitFunctionCreateChildren(globalState, numThreads);
 
-	n = globalState->numFreeParams;
+	int n = globalState->numFreeParams;
 
 	SEXP minimum, estimate, gradient, hessian;
 	PROTECT(minimum = NEW_NUMERIC(1));

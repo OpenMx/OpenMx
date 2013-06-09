@@ -92,8 +92,8 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	for(int index = 0; index < globalState->numAlgs; index++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, globalState->algebraList + index); }
-		if(IS_S4_OBJECT(nextAlgTuple)) {		// This is a fit function object.
-			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple, 1, index);
+		if(IS_S4_OBJECT(nextAlgTuple)) {
+			// delay until expectations are ready
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula, dependencies;
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
@@ -103,6 +103,21 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
 				formula, CHAR(STRING_ELT(algListNames, index)));
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
+		}
+		if (globalState->statusMsg[0]) return;
+	}
+}
+
+void omxProcessMxFitFunction(SEXP algList)
+{
+	SEXP nextAlgTuple;
+
+	for(int index = 0; index < globalState->numAlgs; index++) {
+		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		if(OMX_DEBUG) { Rprintf("Initializing fit %d at location 0x%0x.\n", index, globalState->algebraList + index); }
+		if(IS_S4_OBJECT(nextAlgTuple)) {
+			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple,
+						       TRUE, index);
 		}
 		if (globalState->statusMsg[0]) return;
 	}
