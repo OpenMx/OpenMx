@@ -100,26 +100,26 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	/* Create new omxState for current state storage and initialize it. */
 	
-	globalState = (omxState*) R_alloc(1, sizeof(omxState));
+	globalState = new omxState;
 	omxInitState(globalState, NULL);
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
 
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
-	globalState->numMats = length(matList);
-	globalState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
 
+	omxMatrix *args[length(matList)];
 	for(k = 0; k < length(matList); k++) {
 		PROTECT(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
-		globalState->matrixList[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
+		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
+		globalState->matrixList.push_back(args[k]);
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				globalState->matrixList[k], globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
 		}
 	}
 
-	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, globalState->matrixList, globalState->numMats, globalState);
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, length(matList), globalState);
 
 	if(algebra==NULL) {
 		error(globalState->statusMsg);
@@ -196,7 +196,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		&analyticGradients, length(startVals));
 
 	/* Create new omxState for current state storage and initialize it. */
-	globalState = (omxState*) R_alloc(1, sizeof(omxState));
+	globalState = new omxState;
 	omxInitState(globalState, NULL);
 	globalState->numThreads = numThreads;
 	globalState->numFreeParams = length(startVals);
@@ -207,28 +207,25 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	if(!errOut) errOut = omxProcessMxDataEntities(data);
     
 	/* Retrieve All Matrices From the MatList */
-	if(!errOut) errOut = omxProcessMxMatrixEntities(matList);
+	if(!errOut) omxProcessMxMatrixEntities(matList);
 
 	globalState->numAlgs = length(algList);
-	globalState->markMatrices = (int*) R_alloc(globalState->numMats + globalState->numAlgs, sizeof(int));
 	
 	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
 
 	/* Process Free Var List */
 	omxProcessFreeVarList(varList);
 
-	/* Initialize all Expectations Here */
-	if(!errOut) errOut = omxProcessMxExpectationEntities(expectList);
-
 	if(!errOut) {
+		omxProcessMxExpectationEntities(expectList);
 		omxProcessMxAlgebraEntities(algList);
 		errOut = globalState->statusMsg[0];
 	}
 
 	/* Complete Expectations */
-	if(!errOut) errOut = omxCompleteMxExpectationEntities();
-
 	if(!errOut) {
+		omxCompleteMxExpectationEntities();
+
 		// This is the chance to check for matrix
 		// conformability, etc.  Any errors encountered should
 		// be reported using R's error() function, not
@@ -254,7 +251,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	  populated into it at each iteration.  The first element is already processed, above.
 	  The rest of the list will be processed here.
 	*/
-	for(int j = 0; j < globalState->numMats; j++) {
+	for(int j = 0; j < length(matList); j++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 	}
@@ -267,6 +264,10 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
+
+	// Probably, this is always the same for all children and
+	// doesn't need to be copied to child states.
+	cacheFreeVarDependencies(globalState);
 
 	omxFitFunctionCreateChildren(globalState, numThreads);
 
@@ -292,7 +293,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(status = allocVector(VECSXP, 3));
 	PROTECT(iterations = NEW_NUMERIC(1));
 	PROTECT(evaluations = NEW_NUMERIC(2));
-	PROTECT(matrices = NEW_LIST(globalState->numMats));
+	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 

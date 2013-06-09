@@ -224,7 +224,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         inform = 0;
         iter = 0;
  
-        for(int index = 0; index < globalState->numMats; index++) {
+        for(size_t index = 0; index < globalState->matrixList.size(); index++) {
             omxMarkDirty(globalState->matrixList[index]);
         }
         for(int index = 0; index < globalState->numAlgs; index++) {

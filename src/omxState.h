@@ -132,14 +132,14 @@ struct omxState {													// The Current State of Optimization
 
 //	omxOptimizer* optimizer;										// Current Optimizer
 	int numThreads;
-	int numMats, numAlgs, numExpects, numData, numChildren;			// Number of matrices, algebras, and data elements
-	omxMatrix** matrixList;											// Model Matrices
+	int numAlgs, numExpects, numData, numChildren;
+	vector< omxMatrix* > matrixList;
 	omxMatrix** algebraList;										// Model Algebras
 	omxExpectation** expectationList; 							// Model Expectations
 	omxData** dataList;												// Data Objects
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
-	int* markMatrices;												// An array of [0,1] values used by markFreeVarDependencies()
+	vector<int> markMatrices;
 
                                                                     // TODO: Need a way to deal with unregistered matrices that have free vars
 	omxMatrix* fitMatrix;											// Fit Function Algebra

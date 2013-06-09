@@ -17,6 +17,7 @@
 #ifndef _OMXOPTIMIZER_H
 #define _OMXOPTIMIZER_H
 
+void cacheFreeVarDependencies(omxState* os);
 void markFreeVarDependencies(omxState* os, int varNumber);
 void handleFreeVarList(omxState *os, double* x, int numVars);	// Locates and inserts elements from the optimizer into matrices.
 

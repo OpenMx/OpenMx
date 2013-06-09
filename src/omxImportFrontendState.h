@@ -4,10 +4,10 @@
 
 int matchCaseInsensitive(const char *source, const char *target);
 int omxProcessMxDataEntities(SEXP data);
-int omxProcessMxMatrixEntities(SEXP matList);
+void omxProcessMxMatrixEntities(SEXP matList);
 void omxProcessMxAlgebraEntities(SEXP algList);
-int omxProcessMxExpectationEntities(SEXP expList);
-int omxCompleteMxExpectationEntities();
+void omxProcessMxExpectationEntities(SEXP expList);
+void omxCompleteMxExpectationEntities();
 void omxInitialMatrixAlgebraCompute();
 void omxProcessCheckpointOptions(SEXP checkpointList);
 void omxProcessFreeVarList(SEXP varList);

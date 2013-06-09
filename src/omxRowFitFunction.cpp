@@ -58,14 +58,13 @@ void markDataRowDependencies(omxState* os, omxRowFitFunction* orff) {
 	int numDeps = orff->numDataRowDeps;
 	int *deps = orff->dataRowDeps;
 
-	omxMatrix** matrixList = os->matrixList;
 	omxMatrix** algebraList = os->algebraList;
 
 	for (int i = 0; i < numDeps; i++) {
 		int value = deps[i];
 
 		if(value < 0) {
-			omxMarkDirty(matrixList[~value]);
+			omxMarkDirty(os->matrixList[~value]);
 		} else {
 			omxMarkDirty(algebraList[value]);
 		}

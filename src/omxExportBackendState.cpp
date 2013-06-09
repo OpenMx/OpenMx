@@ -27,7 +27,7 @@
 
 void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras, SEXP expectations) {
 	SEXP nextMat, algebra;
-	for(int index = 0; index < currentState->numMats; index++) {
+	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", index); }
 		omxMatrix* nextMatrix = currentState->matrixList[index];
 		omxRecompute(nextMatrix);

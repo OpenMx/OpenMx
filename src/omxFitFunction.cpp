@@ -29,6 +29,7 @@
 **********************************************************/
 
 #include "omxFitFunction.h"
+#include "omxOptimizer.h"
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 
@@ -146,7 +147,7 @@ void omxFitFunctionCreateChildren(omxState *globalState, int numThreads)
 	globalState->childList = (omxState**) Calloc(numThreads, omxState*);
 
 	for(int ii = 0; ii < numThreads; ii++) {
-		globalState->childList[ii] = (omxState*) R_alloc(1, sizeof(omxState));
+		globalState->childList[ii] = new omxState;
 		omxInitState(globalState->childList[ii], globalState);
 		omxDuplicateState(globalState->childList[ii], globalState);
 	}

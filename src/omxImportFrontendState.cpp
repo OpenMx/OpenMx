@@ -56,32 +56,26 @@ int omxProcessMxDataEntities(SEXP data) {
 	return(errOut);
 }
 
-int omxProcessMxMatrixEntities(SEXP matList) {
+void omxProcessMxMatrixEntities(SEXP matList) {
 	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
-	int errOut = FALSE;
 	SEXP nextLoc, nextMat;
-	globalState->numMats = length(matList);
-	globalState->matrixList = (omxMatrix**) R_alloc(length(matList), sizeof(omxMatrix*));
+	globalState->matrixList.clear();
 	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < length(matList); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		globalState->matrixList[index] = omxNewMatrixFromRPrimitive(
-			nextMat, globalState, 1, -index - 1);
+		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
+		globalState->matrixList.push_back(mat);
 		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
 		if(OMX_DEBUG) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
 		if(globalState->statusCode < 0) {
-			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth matrix.\n", index+1);}
-			errOut = TRUE;
-			globalState->numMats = index+1;
-			break;
+			error("%s", globalState->statusMsg);
 		}
 	}
-	return(errOut);
 }
 
 void omxProcessMxAlgebraEntities(SEXP algList) {
@@ -114,9 +108,8 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	}
 }
 
-int omxProcessMxExpectationEntities(SEXP expList) {
+void omxProcessMxExpectationEntities(SEXP expList) {
 	if(OMX_DEBUG) { Rprintf("Initializing %d Model Expectation(s).\n", length(expList));}
-	int errOut = FALSE;
 	SEXP nextExp;
 	globalState->numExpects = length(expList);
 	globalState->expectationList = (omxExpectation**) R_alloc(length(expList), sizeof(omxExpectation*));
@@ -131,19 +124,14 @@ int omxProcessMxExpectationEntities(SEXP expList) {
 					 globalState->expectationList[index]);
 		}
 		if(globalState->statusCode < 0) {
-			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth Expectation.\n", index+1);}
-			errOut = TRUE;
-			globalState->numMats = index+1;
-			break;
+			error("%s", globalState->statusMsg);
 		}
 	}
-	return(errOut);
 }
 
 
-int omxCompleteMxExpectationEntities() {
+void omxCompleteMxExpectationEntities() {
 	if(OMX_DEBUG) { Rprintf("Completing %d Model Expectation(s).\n", globalState->numExpects);}
-	int errOut = FALSE;
 	
 	for(int index = 0; index < globalState->numExpects; index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
@@ -154,24 +142,20 @@ int omxCompleteMxExpectationEntities() {
 					 globalState->expectationList[index]);
 		}
 		if(globalState->statusCode < 0) {
-			if(OMX_DEBUG) { Rprintf("Initialization Error processing %dth Expectation.\n", index+1);}
-			errOut = TRUE;
-			globalState->numMats = index+1;
-			break;
+			error("%s", globalState->statusMsg);
 		}
 	}
-	return(errOut);
 }
 
 
 void omxInitialMatrixAlgebraCompute() {
-	int numMats = globalState->numMats;
+	size_t numMats = globalState->matrixList.size();
 	int numAlgs = globalState->numAlgs;
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(globalState);
 
-	for(int index = 0; index < numMats; index++) {
+	for(size_t index = 0; index < numMats; index++) {
 		omxRecompute(globalState->matrixList[index]);
 	}
 
@@ -304,17 +288,6 @@ void omxProcessFreeVarList(SEXP varList) {
 			loc.col = theVarList[2];
 
 			globalState->freeVarList[freeVarIndex].locations.push_back(loc);
-		}
-	}
-
-	int numMats = globalState->numMats;
-
-	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
-		omxFreeVar* freeVar = globalState->freeVarList + freeVarIndex;
-		int *deps   = freeVar->deps;
-		int numDeps = freeVar->numDeps;
-		for (int index = 0; index < numDeps; index++) {
-			globalState->markMatrices[deps[index] + numMats] = 1;
 		}
 	}
 

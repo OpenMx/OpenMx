@@ -29,7 +29,6 @@
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
-		state->numMats = 0;
 		state->numAlgs = 0;
 		state->numExpects = 0;
 		state->numConstraints = 0;
@@ -37,7 +36,6 @@
 		state->numFreeParams = 0;
 	        state->numChildren = 0;
 		state->childList = NULL;
-		state->matrixList = NULL;
 		state->algebraList = NULL;
 		state->expectationList = NULL;
 		state->parentState = parentState;
@@ -101,7 +99,6 @@
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src) {
-		tgt->numMats 			= src->numMats;
 		tgt->numAlgs 			= src->numAlgs;
 		tgt->numExpects 		= src->numExpects;
 		tgt->numData 			= src->numData;
@@ -110,20 +107,16 @@
 		
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
-		tgt->matrixList			= (omxMatrix**) R_alloc(tgt->numMats, sizeof(omxMatrix*));
 		tgt->expectationList	= (omxExpectation**) R_alloc(tgt->numExpects, sizeof(omxExpectation*));
 		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
-		tgt->markMatrices		= (int*) R_alloc(tgt->numMats + tgt->numAlgs, sizeof(int));
-
-		memcpy(tgt->markMatrices, src->markMatrices, (tgt->numMats + tgt->numAlgs) * sizeof(int));
+		tgt->markMatrices		= src->markMatrices; // TODO, unused in children?
 				
-		memset(tgt->matrixList, 0, sizeof(omxMatrix*) * tgt->numMats);
 		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
 		memset(tgt->expectationList, 0, sizeof(omxExpectation*) * tgt->numExpects);
 
-		for(int j = 0; j < tgt->numMats; j++) {
+		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 			// TODO: Smarter inference for which matrices to duplicate
-			tgt->matrixList[j] = omxDuplicateMatrix(src->matrixList[j], tgt);
+			tgt->matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], tgt));
 		}
 
 		tgt->numConstraints     = src->numConstraints;
@@ -287,10 +280,10 @@
 			omxFreeAllMatrixData(state->algebraList[k]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", state->numMats);}
-		for(k = 0; k < state->numMats; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", k, state->matrixList[k]); }
-			omxFreeAllMatrixData(state->matrixList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", state->matrixList.size());}
+		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", mk, state->matrixList[mk]); }
+			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
 		if(OMX_DEBUG) { Rprintf("Freeing %d Model Expectations.\n", state->numExpects);}
@@ -339,6 +332,8 @@
 			}
 			// Checkpoint list itself is freed by R.
 		}
+
+		delete state;
 
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}
