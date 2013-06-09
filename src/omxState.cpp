@@ -32,14 +32,12 @@
 		state->numAlgs = 0;
 		state->numExpects = 0;
 		state->numConstraints = 0;
-		state->numData = 0;
 		state->numFreeParams = 0;
 	        state->numChildren = 0;
 		state->childList = NULL;
 		state->algebraList = NULL;
 		state->expectationList = NULL;
 		state->parentState = parentState;
-		state->dataList = NULL;
 		state->fitMatrix = NULL;
 		state->hessian = NULL;
 		state->conList = NULL;
@@ -101,7 +99,6 @@
 	void omxDuplicateState(omxState* tgt, omxState* src) {
 		tgt->numAlgs 			= src->numAlgs;
 		tgt->numExpects 		= src->numExpects;
-		tgt->numData 			= src->numData;
 		tgt->dataList			= src->dataList;
 		tgt->numChildren 		= 0;
 		
@@ -265,7 +262,7 @@
 				// Data are not modified and not copied. The same memory
 				// is shared across all instances of state. We only need
 				// to free the data once, so let the parent do it.
-				state->childList[k]->numData = 0;
+				state->childList[k]->dataList.clear();
 
 				omxFreeState(state->childList[k]);
 			}
@@ -298,10 +295,10 @@
 			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", state->numData);}
-		for(k = 0; k < state->numData; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, state->dataList[k]); }
-			omxFreeData(state->dataList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", state->dataList.size());}
+		for(size_t dx = 0; dx < state->dataList.size(); dx++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", dx, state->dataList[dx]); }
+			omxFreeData(state->dataList[dx]);
 		}
 
 		delete [] state->freeVarList;

@@ -170,8 +170,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Helpful variables */
 
-	int errOut = 0;                 // Error state: Clear
-
 	SEXP nextLoc;
 
 	int calculateStdErrors = FALSE;
@@ -203,10 +201,12 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
 
 	/* Retrieve Data Objects */
-	if(!errOut) errOut = omxProcessMxDataEntities(data);
+	omxProcessMxDataEntities(data);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
     
 	/* Retrieve All Matrices From the MatList */
-	if(!errOut) omxProcessMxMatrixEntities(matList);
+	omxProcessMxMatrixEntities(matList);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
 	globalState->numAlgs = length(algList);
 	
@@ -214,46 +214,35 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Process Free Var List */
 	omxProcessFreeVarList(varList);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	if(!errOut) {
-		omxProcessMxExpectationEntities(expectList);
-		errOut = globalState->statusMsg[0];
-	}
+	omxProcessMxExpectationEntities(expectList);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	if(!errOut) {
-		omxProcessMxAlgebraEntities(algList);
-		errOut = globalState->statusMsg[0];
-	}
+	omxProcessMxAlgebraEntities(algList);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	if(!errOut) {
-		omxCompleteMxExpectationEntities();
-		errOut = globalState->statusMsg[0];
-	}
+	omxCompleteMxExpectationEntities();
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	if(!errOut) {
-		omxProcessMxFitFunction(algList);
-		errOut = globalState->statusMsg[0];
-	}
+	omxProcessMxFitFunction(algList);
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	if(!errOut) {
-		// This is the chance to check for matrix
-		// conformability, etc.  Any errors encountered should
-		// be reported using R's error() function, not
-		// omxRaiseErrorf.
+	// This is the chance to check for matrix
+	// conformability, etc.  Any errors encountered should
+	// be reported using R's error() function, not
+	// omxRaiseErrorf.
 
-		omxInitialMatrixAlgebraCompute();
-		omxResetStatus(globalState);
-	}
+	omxInitialMatrixAlgebraCompute();
+	omxResetStatus(globalState);
 
-	if(!errOut && !isNull(fitfunction)) {
+	if(!isNull(fitfunction)) {
 		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
 		globalState->fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
-		errOut = globalState->statusMsg[0];
 	}
+	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 	
 	// TODO: Make calculateHessians an option instead.
-
-	if(errOut) error(globalState->statusMsg);
 
 	/* Process Matrix and Algebra Population Function */
 	/*
@@ -371,7 +360,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	}  
 
 	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
-	if(!errOut) omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
+	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
 	omxPopulateFitFunction(globalState, numReturns, &ans, &names);
 

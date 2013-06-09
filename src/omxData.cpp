@@ -26,14 +26,18 @@
  **********************************************************/
 #include "omxData.h"
 #include "npsolWrap.h"
+#include "omxGlobalState.h"
 
 omxData* omxInitData(omxState* os) {
 
 	omxData *od = Calloc(1, omxData);
 
 	od->currentState = os;
-	
+
 	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
+
+	if (os != globalState) error("Too late to create omxData");
+	os->dataList.push_back(od);
 
 	return od;
 

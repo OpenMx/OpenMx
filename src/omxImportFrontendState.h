@@ -3,7 +3,7 @@
 
 
 int matchCaseInsensitive(const char *source, const char *target);
-int omxProcessMxDataEntities(SEXP data);
+void omxProcessMxDataEntities(SEXP data);
 void omxProcessMxMatrixEntities(SEXP matList);
 void omxProcessMxAlgebraEntities(SEXP algList);
 void omxProcessMxExpectationEntities(SEXP expList);

@@ -33,27 +33,18 @@ int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
 }
 
-int omxProcessMxDataEntities(SEXP data) {
-	int errOut = FALSE;
+void omxProcessMxDataEntities(SEXP data) {
 	SEXP nextLoc;
 	if(OMX_DEBUG) { Rprintf("Processing %d data source(s).\n", length(data));}
-	globalState->numData = length(data);
-	globalState->dataList = (omxData**) R_alloc(length(data), sizeof(omxData*));
 
 	for(int index = 0; index < length(data); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
-		globalState->dataList[index] = omxNewDataFromMxData(nextLoc, globalState);
+		omxNewDataFromMxData(nextLoc, globalState);
 		if(OMX_DEBUG) {
 			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
 				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
 		}
-		if(globalState->statusCode < 0) {
-			errOut = TRUE;
-			globalState->numData = index+1;
-			break;
-		}
 	}
-	return(errOut);
 }
 
 void omxProcessMxMatrixEntities(SEXP matList) {
