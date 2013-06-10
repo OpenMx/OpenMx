@@ -208,8 +208,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxProcessMxMatrixEntities(matList);
 	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	globalState->numAlgs = length(algList);
-	
 	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
 
 	/* Process Free Var List */
@@ -293,7 +291,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(iterations = NEW_NUMERIC(1));
 	PROTECT(evaluations = NEW_NUMERIC(2));
 	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
-	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
+	PROTECT(algebras = NEW_LIST(globalState->algebraList.size()));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 
 	PROTECT(optimizer = allocVector(VECSXP, 2));

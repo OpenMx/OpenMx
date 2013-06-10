@@ -227,7 +227,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         for(size_t index = 0; index < globalState->matrixList.size(); index++) {
             omxMarkDirty(globalState->matrixList[index]);
         }
-        for(int index = 0; index < globalState->numAlgs; index++) {
+        for(size_t index = 0; index < globalState->algebraList.size(); index++) {
             omxMarkDirty(globalState->algebraList[index]);
         }
         omxStateNextEvaluation(globalState);    // Advance for a final evaluation.
