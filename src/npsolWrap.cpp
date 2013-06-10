@@ -223,8 +223,12 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxCompleteMxExpectationEntities();
 	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 
-	omxProcessMxFitFunction(algList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	for (size_t ax=0; ax < globalState->algebraList.size(); ax++) {
+		omxMatrix *alg = globalState->algebraList[ax];
+		if (!alg->fitFunction) continue;
+		omxInitializeFitFunction(alg);
+		if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	}
 
 	// This is the chance to check for matrix
 	// conformability, etc.  Any errors encountered should

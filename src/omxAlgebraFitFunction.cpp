@@ -57,12 +57,13 @@ omxRListElement* omxSetFinalReturnsAlgebraFitFunction(omxFitFunction *off, int *
 	return retVal;
 }
 
-void omxInitAlgebraFitFunction(omxFitFunction* off, SEXP rObj) {
+void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Initializing Algebra fitFunction function.\n");
 	}
 	
+	SEXP rObj = off->rObj;
 	SEXP newptr;
 	
 	omxAlgebraFitFunction *newObj = (omxAlgebraFitFunction*) R_alloc(1, sizeof(omxAlgebraFitFunction));
