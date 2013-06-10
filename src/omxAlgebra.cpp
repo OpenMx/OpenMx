@@ -249,7 +249,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 			}
 		}
 	}
-	om->name        = name;
+        if (name) om->name        = name;
 	oa->sexpAlgebra = algebra;
 }
 
