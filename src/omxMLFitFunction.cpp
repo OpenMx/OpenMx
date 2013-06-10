@@ -259,7 +259,6 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	
 	/* Set FitFunction Calls to ML FitFunction Calls */
-	oo->fitType = "omxMLFitFunction";
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
@@ -275,7 +274,6 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	int info = 0;
 	double det = 1.0;
 	char u = 'U';
-	SEXP rObj = oo->rObj;
 	
 	/* Read and set expectation */
 	omxSetMLFitFunctionCalls(oo);
@@ -287,7 +285,8 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
 			if(OMX_DEBUG) { Rprintf("Raw Data: Converting to FIML.\n"); }
-			omxInitFIMLFitFunction(oo, rObj);
+			omxChangeFitType(oo, "imxFitFunctionFIML");
+			omxInitializeFitFunction(oo->matrix);
 			return;
 		}
 		char *errstr = (char*) calloc(250, sizeof(char));

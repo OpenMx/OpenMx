@@ -90,6 +90,7 @@ void omxFillMatrixFromMxFitFunction(SEXP rObj, omxMatrix *matrix, omxState *os);
 void omxInitializeFitFunction(omxMatrix *om);
 	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
+void omxChangeFitType(omxFitFunction *oo, const char *fitType);
 
 /* FitFunction-specific implementations of matrix functions */
 void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);

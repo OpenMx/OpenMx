@@ -248,7 +248,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	
 	/* Set FitFunction Calls to WLS FitFunction Calls */
-	oo->fitType = "omxWLSFitFunction";
 	oo->computeFun = omxCallWLSFitFunction;
 	oo->destructFun = omxDestroyWLSFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
