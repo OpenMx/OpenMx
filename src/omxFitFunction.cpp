@@ -30,6 +30,7 @@
 
 #include "omxFitFunction.h"
 #include "omxOptimizer.h"
+#include "fitMultigroup.h"
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 
@@ -52,7 +53,7 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
 	{"MxFitFunctionML", 				&omxInitMLFitFunction},
 	{"MxFitFunctionR",					&omxInitRFitFunction},
-	{"", 0}
+	{"MxFitFunctionMultigroup", &initFitMultigroup}
 };
 
 void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *off) {
@@ -213,15 +214,13 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	{
 	  const char *fitType = CHAR(fitFunctionClass);
 	
-	  /* Switch based on fit function type. */ 
-	  const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable;
-	  while (entry->initFun) {
-	    if(strncmp(fitType, entry->name, MAX_STRING_LEN) == 0) {
-	      obj->fitType = entry->name;
-	      obj->initFun = entry->initFun;
-	      break;
-	    }
-	    entry += 1;
+	  for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
+		  const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
+		  if(strcmp(fitType, entry->name) == 0) {
+			  obj->fitType = entry->name;
+			  obj->initFun = entry->initFun;
+			  break;
+		  }
 	  }
 
 	  if(obj->initFun == NULL) {
@@ -235,17 +234,11 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	UNPROTECT(1);	/* fitType */
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
-	if (LENGTH(slotValue) != 1) {
-	    const int MaxErrorLen = 256;
-	    char newError[MaxErrorLen];
-	    snprintf(newError, MaxErrorLen, "Fit function %s expectation improperly initialized\n", obj->fitType);
-	    error(newError);
-	}
-	int expNumber = INTEGER(slotValue)[0];	
-	if(expNumber == NA_INTEGER) {						// Has no expectation associated with it
-		obj->expectation = NULL;
-	} else {
-		obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
+	if (LENGTH(slotValue) == 1) {
+		int expNumber = INTEGER(slotValue)[0];	
+		if(expNumber != NA_INTEGER) {
+			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
+		}
 	}
 	UNPROTECT(1);	/* slotValue */
 	

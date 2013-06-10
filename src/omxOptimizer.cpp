@@ -72,8 +72,8 @@ void markFreeVarDependencies(omxState* os, int varNumber) {
 	}
 }
 
-static void handleFreeVarListHelper(omxState* os, double* x, int numVars, omxState *topState) {
-
+void handleFreeVarListHelper(omxState* os, double* x, int numVars)
+{
 	int numChildren = os->numChildren;
 
 	if(OMX_DEBUG && os->parentState == NULL) {
@@ -118,7 +118,7 @@ static void handleFreeVarListHelper(omxState* os, double* x, int numVars, omxSta
 	}
 
 	for(size_t i = 0; i < numMats; i++) {
-		if (topState->markMatrices[i]) {
+		if (os->markMatrices[i]) {
 			int offset = ~(i - numMats);
 			omxMarkDirty(os->matrixList[offset]);
 		}
@@ -131,13 +131,14 @@ static void handleFreeVarListHelper(omxState* os, double* x, int numVars, omxSta
 	}
 
 	for(int i = 0; i < numChildren; i++) {
-		handleFreeVarListHelper(os->childList[i], x, numVars, topState);
+		handleFreeVarListHelper(os->childList[i], x, numVars);
 	}
 }
 
 /* Sub Free Vars Into Appropriate Slots */
-void handleFreeVarList(omxState* os, double* x, int numVars) {
-	handleFreeVarListHelper(os, x, numVars, os);
+void handleFreeVarList(omxFitFunction* oo, double* x, int numVars)
+{
+	handleFreeVarListHelper(oo->matrix->currentState, x, numVars);
 }
 
 /* get the list element named str, or return NULL */

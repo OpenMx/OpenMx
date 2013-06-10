@@ -35,7 +35,7 @@ static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, double *gra
 
 	omxRecompute(algebra);
 	
-	// This should really be checked elsewhere.
+	// This should really be checked elsewhere. TODO
 	if(algebra->rows != 1 || algebra->cols != 1) {
 		error("MxAlgebraFitFunction's fit function algebra does not evaluate to a 1x1 matrix.");
 	}
@@ -75,7 +75,8 @@ void omxInitAlgebraFitFunction(omxFitFunction* off, SEXP rObj) {
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->setFinalReturns = omxSetFinalReturnsAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;
-	off->repopulateFun = NULL;
+	off->repopulateFun = handleFreeVarList;
+
 	
 	off->argStruct = (void*) newObj;
 }

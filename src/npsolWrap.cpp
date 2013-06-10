@@ -335,11 +335,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 					for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
 						if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
 						omxFitFunction* oo = globalState->fitMatrix->fitFunction;
-						if(oo->getStandardErrorFun != NULL) {
-							oo->getStandardErrorFun(oo);
-						} else {
-							omxCalculateStdErrorFromHessian(2.0, oo);
-						}
+						omxCalculateStdErrorFromHessian(2.0, oo);
 					}
 				}
 			} else {
@@ -357,7 +353,9 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		omxNPSOLConfidenceIntervals(REAL(minimum), REAL(estimate), REAL(gradient), REAL(hessian), ciMaxIterations);
 	}  
 
-	handleFreeVarList(globalState, globalState->optimalValues, n);  // Restore to optima for final compute
+	// What if fitfunction has its own repopulateFun? TODO
+	handleFreeVarListHelper(globalState, globalState->optimalValues, n);
+
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
 	omxPopulateFitFunction(globalState, numReturns, &ans, &names);
