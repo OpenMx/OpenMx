@@ -77,7 +77,9 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {Rprintf("Data has %d columns.\n", od->cols);}
 		numCols = od->cols;
 		od->realData = (double**) R_alloc(numCols, sizeof(double*));
+		OMXZERO(od->realData, numCols);
 		od->intData = (int**) R_alloc(numCols, sizeof(int*));
+		OMXZERO(od->intData, numCols);
 		od->location = (int*) R_alloc(numCols, sizeof(int));
 		for(int j = 0; j < numCols; j++) {
 			SEXP rcol;
