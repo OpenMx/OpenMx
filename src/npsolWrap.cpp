@@ -296,7 +296,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(evaluations = NEW_NUMERIC(2));
 	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
 	PROTECT(algebras = NEW_LIST(globalState->algebraList.size()));
-	PROTECT(expectations = NEW_LIST(globalState->numExpects));
+	PROTECT(expectations = NEW_LIST(globalState->expectationList.size()));
 
 	PROTECT(optimizer = allocVector(VECSXP, 2));
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));

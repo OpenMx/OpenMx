@@ -29,12 +29,10 @@
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
-		state->numExpects = 0;
 		state->numConstraints = 0;
 		state->numFreeParams = 0;
 	        state->numChildren = 0;
 		state->childList = NULL;
-		state->expectationList = NULL;
 		state->parentState = parentState;
 		state->fitMatrix = NULL;
 		state->hessian = NULL;
@@ -95,17 +93,13 @@
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src) {
-		tgt->numExpects 		= src->numExpects;
 		tgt->dataList			= src->dataList;
 		tgt->numChildren 		= 0;
 		
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
-		tgt->expectationList	= (omxExpectation**) R_alloc(tgt->numExpects, sizeof(omxExpectation*));
 		tgt->markMatrices		= src->markMatrices; // TODO, unused in children?
 				
-		memset(tgt->expectationList, 0, sizeof(omxExpectation*) * tgt->numExpects);
-
 		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], tgt));
@@ -126,7 +120,7 @@
 			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
 		}
 
-		for(int j = 0; j < tgt->numExpects; j++) {
+		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate
 			tgt->expectationList[j] = omxDuplicateExpectation(src->expectationList[j], tgt);
 		}
@@ -135,7 +129,7 @@
 			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
 		}
 
-		for(int j = 0; j < tgt->numExpects; j++) {
+		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate
 			omxCompleteExpectation(tgt->expectationList[j]);
 		}
@@ -277,10 +271,10 @@
 			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
-		if(OMX_DEBUG) { Rprintf("Freeing %d Model Expectations.\n", state->numExpects);}
-		for(k = 0; k < state->numExpects; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Expectation %d at 0x%x.\n", k, state->expectationList[k]); }
-			omxFreeExpectationArgs(state->expectationList[k]);
+		if(OMX_DEBUG) { Rprintf("Freeing %d Model Expectations.\n", state->expectationList.size());}
+		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Expectation %d at 0x%x.\n", ex, state->expectationList[ex]); }
+			omxFreeExpectationArgs(state->expectationList[ex]);
 		}
 
 		if(OMX_DEBUG) { Rprintf("Freeing %d Constraints.\n", state->numConstraints);}
