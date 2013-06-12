@@ -420,7 +420,7 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
  
     if(inform == 0 || inform == 1 || inform == 6) {
         if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
-        globalState->optimizerState = (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
+
         for(int i = 0; i < globalState->numIntervals; i++) {
 
 			omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);

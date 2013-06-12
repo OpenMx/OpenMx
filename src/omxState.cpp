@@ -38,7 +38,6 @@
 		state->hessian = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
-		state->optimizerState = NULL;
 		state->optimalValues = NULL;
 		state->optimum = 9999999999;
 
@@ -156,13 +155,6 @@
 			for(int k = 0; k < numDeps; k++) {
 				tgt->freeVarList[j].deps[k] = src->freeVarList[j].deps[k];
 			}
-		}
-		
-		if (src->optimizerState) {
-			tgt->optimizerState 					= (omxOptimizerState*) R_alloc(1, sizeof(omxOptimizerState));
-			tgt->optimizerState->currentParameter	= src->optimizerState->currentParameter;
-			tgt->optimizerState->offset				= src->optimizerState->offset;
-			tgt->optimizerState->alpha				= src->optimizerState->alpha;
 		}
 		
 		tgt->optimalValues 		= src->optimalValues;

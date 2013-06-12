@@ -55,7 +55,6 @@ typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
 typedef struct omxCheckpoint omxCheckpoint;
-typedef struct omxOptimizerState omxOptimizerState;
 typedef struct omxConfidenceInterval omxConfidenceInterval;
 
 #include "omxMatrix.h"
@@ -86,14 +85,6 @@ struct omxConstraint {		// Free Variable Constraints
 	double* lbound;
 	double* ubound;
 	omxMatrix* result;
-};
-
-struct omxOptimizerState {			// For hessian or confidence interval computation
-	int currentParameter;			// Which parameter is being examined?
-	double offset;					// Current offset of optimization
-	short int alpha;				// Parameter multiplier
-	// NormalFit should be:  (Limit - (-2LL))^2 + alpha * parameter
-	// Alpha should generally be +1 to minimize parameter -1 to maximize
 };
 
 enum omxCheckpointType {
@@ -161,10 +152,6 @@ struct omxState {													// The Current State of Optimization
 	double* hessian;												// Current hessian storage
 	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
 	char optimumMsg[MAX_STRING_LEN];											// Status message of last saved optimum
-	omxOptimizerState* optimizerState;								// Current optimum parameters for limit computation
-
-/* Current Optimization State (optimizer-specific) */
-//	void* optimizerInfo;											// Optimizer specific storage
 
 /* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
