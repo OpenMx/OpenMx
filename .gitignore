@@ -10,3 +10,6 @@
 /man/imxAddDependency.Rd
 /man/MxAlgebraFunction.Rd
 /man/omxCheckCloseEnough.Rd
+/OpenMx.Rcheck
+/OpenMx*.tar.gz
+/runtimes.csv
