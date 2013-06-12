@@ -64,29 +64,6 @@ setReplaceMethod("$", "MxFlatModel",
 	}
 )
 
-setMethod("names", "MxFlatModel",
-	function(x) {
-		generateFlatModelNames(x)
-	}
-)
-
-generateFlatModelNames <- function(model) {
-	matrices <- names(model@matrices)
-	algebras <- names(model@algebras)
-	constraints <- names(model@constraints)
-	datasets <- names(model@datasets)
-	expectations <- names(model@expectations)
-	fitfunctions <- names(model@fitfunctions)
-
-	mat_alg <- union(matrices, algebras)
-	fit_expectations <- union(fitfunctions, expectations)
-	constraints_datasets <- union(constraints, datasets)
-
-	retval <- union(mat_alg, fit_expectations)
-	retval <- union(retval, constraints_datasets)
-	return(retval)
-}
-
 flatExtractMethod <- function(model, index) {
 	return(flatNamespaceSearch(model, index))
 }
