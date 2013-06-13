@@ -23,10 +23,6 @@
 #include "omxState.h"
 #include "omxOpenmpWrap.h"
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
 /* Functions for Export */
 SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SEXP matList, SEXP varList, SEXP algList, SEXP expList,
@@ -35,10 +31,6 @@ SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 	SEXP skipMissingness, SEXP skipDefvars);
-
-#ifdef  __cplusplus
-}
-#endif
 
 /** R is not thread-safe. This lock must be held while manipulating R
  * data structures from a context where there may be multiple threads

@@ -63,11 +63,6 @@
 		strncpy(state->statusMsg, "", 1);
 	}
 
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList,
-						omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction) {
-		error("NYI: Can't fill a state from outside yet. Besides, do you really need a single function to do this?");
-	}
-	
 	omxState* omxGetState(omxState* os, int stateNumber) {
 		// TODO: Need to implement a smarter way to enumerate children
 		if(stateNumber == 0) return os;
@@ -220,30 +215,6 @@
 		if(os == NULL || ox == NULL) return NULL;
 
 		return(os->expectationList[ox->expNum]);
-	}
-
-	int omxCountLeafNodes(omxState *state) {
-		int children = state->numChildren;
-		if (children == 0) {
-			return(1);
-		} else {
-			int sum = 0;
-			for(int i = 0; i < children; i++) {
-				sum += omxCountLeafNodes(state->childList[i]);
-			}
-			return(sum);
-		}
-	}
-
-	/* Traverse to the root of the state hierarchy,
-	 * and then count the number of leaf nodes */
-	int omxTotalThreadCount(omxState *state) {
-
-		while(state->parentState != NULL) {
-			state = state->parentState;
-		}
-	
-		return(omxCountLeafNodes(state));
 	}
 
 	void omxFreeState(omxState *state) {
