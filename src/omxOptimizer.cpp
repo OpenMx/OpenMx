@@ -127,7 +127,7 @@ static void handleFreeVarListHelper(omxState* os, double* x, int numVars, omxSta
 	}
 
 	for(int i = 0; i < numAlgs; i++) {
-		if (topState->markMatrices[i + numMats]) {
+		if (os->markMatrices[i + numMats]) {
 			omxMarkDirty(algebraList[i]);
 		}
 	}
