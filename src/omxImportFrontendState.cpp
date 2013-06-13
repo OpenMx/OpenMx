@@ -77,9 +77,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	// Since algebras can refer to each other, we need to create the result matrices
 	// before we initialize them.
 	for(int index = 0; index < length(algList); index++) {
-		omxMatrix *mat = omxInitMatrix(NULL, 1, 1, TRUE, globalState);
-		mat->name = CHAR(STRING_ELT(algListNames, index));
-		globalState->algebraList.push_back(mat);
+		globalState->algebraList.push_back(omxInitMatrix(NULL, 1, 1, TRUE, globalState));
 	}
 
 	for(int index = 0; index < length(algList); index++) {
@@ -97,7 +95,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 				initialValue, globalState, 1, index);
 			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
-				formula, NULL);
+				formula, CHAR(STRING_ELT(algListNames, index)));
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
 		}
 		if (globalState->statusMsg[0]) return;
