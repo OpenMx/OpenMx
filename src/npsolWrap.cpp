@@ -14,19 +14,21 @@
  *  limitations under the License.
  */
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+
 #include "omxDefines.h"
+#include "types.h"
 #include "npsolWrap.h"
 #include "omxOpenmpWrap.h"
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
 #include "omxState.h"
 #include "omxGlobalState.h"
 #include "omxMatrix.h"
@@ -81,6 +83,20 @@ void string_to_try_error( const std::string& str )
 void exception_to_try_error( const std::exception& ex )
 {
 	string_to_try_error(ex.what());
+}
+
+SEXP asR(MxRList *out)
+{
+       SEXP names, ans;
+       int len = out->size();
+       PROTECT(names = allocVector(STRSXP, len));
+       PROTECT(ans = allocVector(VECSXP, len));
+       for (int lx=0; lx < len; ++lx) {
+               SET_STRING_ELT(names, lx, (*out)[lx].first);
+               SET_VECTOR_ELT(ans,   lx, (*out)[lx].second);
+       }
+       namesgets(ans, names);
+       return ans;
 }
 
 /* Main functions */
@@ -284,10 +300,8 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		       REAL(gradient), REAL(hessian), disableOptimizer);
 
 	SEXP code, status, statusMsg, iterations;
-	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, expectations, optimizer;
-	SEXP intervals, NAmat, intervalCodes, calculatedHessian, stdErrors;
-
-	int numReturns = 14;
+	SEXP evaluations, algebras, matrices, expectations;
+	SEXP intervals, intervalCodes, calculatedHessian, stdErrors;
 
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(status = allocVector(VECSXP, 3));
@@ -297,24 +311,12 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 
-	PROTECT(optimizer = allocVector(VECSXP, 2));
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
 	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1)); // for optimizer
-	PROTECT(names = allocVector(STRSXP, 2)); // for optimizer
 	PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
 	PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
-	PROTECT(NAmat = allocMatrix(REALSXP, 1, 1)); // In case of missingness
-	REAL(NAmat)[0] = R_NaReal;
 
 	omxSaveState(globalState, REAL(estimate), REAL(minimum)[0]);
-
-	/* Fill in details from the optimizer */
-	SET_VECTOR_ELT(optimizer, 0, gradient);
-	SET_VECTOR_ELT(optimizer, 1, hessian);
-
-	SET_STRING_ELT(names, 0, mkChar("minimum"));
-	SET_STRING_ELT(names, 1, mkChar("estimate"));
-	namesgets(optimizer, names);
 
 	REAL(code)[0] = globalState->inform;
 	REAL(iterations)[0] = globalState->iter;
@@ -362,7 +364,9 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
-	omxPopulateFitFunction(globalState, numReturns, &ans, &names);
+	MxRList result;
+
+	omxPopulateFitFunction(globalState, &result);
 
 	if(numHessians) {
 		omxPopulateHessians(numHessians, globalState->fitMatrix, 
@@ -375,60 +379,30 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	
 	REAL(evaluations)[1] = globalState->computeCount;
 
-	int nextEl = 0;
+	result.push_back(std::make_pair(mkChar("minimum"), minimum));
+	result.push_back(std::make_pair(mkChar("estimate"), estimate));
+	result.push_back(std::make_pair(mkChar("gradient"), gradient));
+	result.push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
+	result.push_back(std::make_pair(mkChar("status"), status));
+	result.push_back(std::make_pair(mkChar("iterations"), iterations));
+	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
+	result.push_back(std::make_pair(mkChar("matrices"), matrices));
+	result.push_back(std::make_pair(mkChar("algebras"), algebras));
+	result.push_back(std::make_pair(mkChar("expectations"), expectations));
+	result.push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
+	result.push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
 
-	SET_STRING_ELT(names, nextEl++, mkChar("minimum"));
-	SET_STRING_ELT(names, nextEl++, mkChar("estimate"));
-	SET_STRING_ELT(names, nextEl++, mkChar("gradient"));
-	SET_STRING_ELT(names, nextEl++, mkChar("hessianCholesky"));
-	SET_STRING_ELT(names, nextEl++, mkChar("status"));
-	SET_STRING_ELT(names, nextEl++, mkChar("iterations"));
-	SET_STRING_ELT(names, nextEl++, mkChar("evaluations"));
-	SET_STRING_ELT(names, nextEl++, mkChar("matrices"));
-	SET_STRING_ELT(names, nextEl++, mkChar("algebras"));
-	SET_STRING_ELT(names, nextEl++, mkChar("expectations"));
-	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervals"));
-	SET_STRING_ELT(names, nextEl++, mkChar("confidenceIntervalCodes"));
-	SET_STRING_ELT(names, nextEl++, mkChar("calculatedHessian"));
-	SET_STRING_ELT(names, nextEl++, mkChar("standardErrors"));
-
-	nextEl = 0;
-
-	SET_VECTOR_ELT(ans, nextEl++, minimum);
-	SET_VECTOR_ELT(ans, nextEl++, estimate);
-	SET_VECTOR_ELT(ans, nextEl++, gradient);
-	SET_VECTOR_ELT(ans, nextEl++, hessian);
-	SET_VECTOR_ELT(ans, nextEl++, status);
-	SET_VECTOR_ELT(ans, nextEl++, iterations);
-	SET_VECTOR_ELT(ans, nextEl++, evaluations);
-	SET_VECTOR_ELT(ans, nextEl++, matrices);
-	SET_VECTOR_ELT(ans, nextEl++, algebras);
-	SET_VECTOR_ELT(ans, nextEl++, expectations);
-	SET_VECTOR_ELT(ans, nextEl++, intervals);
-	SET_VECTOR_ELT(ans, nextEl++, intervalCodes);
-	if(numHessians == 0) {
-		SET_VECTOR_ELT(ans, nextEl++, NAmat);
-	} else {
-		SET_VECTOR_ELT(ans, nextEl++, calculatedHessian);
+	if (numHessians != 0) {
+		result.push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 	}
-	if(!calculateStdErrors) {
-		SET_VECTOR_ELT(ans, nextEl++, NAmat);
-	} else {
-		SET_VECTOR_ELT(ans, nextEl++, stdErrors);
-	}
-	namesgets(ans, names);
-
-	if(OMX_VERBOSE) {
-		Rprintf("Inform Value: %d\n", globalState->optimumStatus);
-		Rprintf("--------------------------\n");
+	if (calculateStdErrors) {
+		result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 	}
 
 	/* Free data memory */
 	omxFreeState(globalState);
 
-	if(OMX_DEBUG) {Rprintf("All vectors freed.\n");}
-
-	return(ans);
+	return asR(&result);
 
 }
 

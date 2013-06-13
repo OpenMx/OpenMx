@@ -14,16 +14,17 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <sys/stat.h>
+
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
-
-#include <sys/stat.h>
 
 #include "omxDefines.h"
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "npsolWrap.h"
+#include "omxExportBackendState.h"
 
 void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras, SEXP expectations) {
 	SEXP nextMat, algebra;
@@ -69,40 +70,29 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 	}
 }
 
-void omxPopulateFitFunction(omxState *currentState, int numReturns, SEXP *ans, SEXP *names) {
+void omxPopulateFitFunction(omxState *currentState, MxRList *result)
+{
 	omxMatrix* om = currentState->fitMatrix;
-	if(om != NULL) {					// In the event of a no-fit function run.
-		omxFitFunction* off = om->fitFunction;
-		if(OMX_DEBUG) { Rprintf("Checking for additional fit function info.\n"); }
+	if (om == NULL) return;
 
-		if(off != NULL && off->setFinalReturns != NULL) {
-			if(OMX_DEBUG) { Rprintf("Expecting fit function Info....");}
-			int numEls;
-			SEXP oElement;
-			omxRListElement* orle = off->setFinalReturns(off, &numEls);
-			PROTECT(*ans = allocVector(VECSXP, numReturns + numEls));
-			PROTECT(*names = allocVector(STRSXP, numReturns + numEls));
-			if(numEls != 0) {
-				if(OMX_DEBUG) { Rprintf("Adding %d sets of fit function Info....", numEls);}
-				for(int i = 0; i < numEls; i++) {
-					if (orle[i].numValues == -1) {
-						PROTECT(oElement = allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
-					} else {
-						PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
-					}
-					memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
-					SET_STRING_ELT(*names, i+numReturns, mkChar(orle[i].label));
-					SET_VECTOR_ELT(*ans, i+numReturns, oElement);
-				}
-			}
+	omxFitFunction* off = om->fitFunction;
+	if (off == NULL || off->setFinalReturns == NULL) return;
+
+	if(OMX_DEBUG) { Rprintf("Expecting fit function Info....");}
+	int numEls;
+	SEXP oElement;
+	omxRListElement* orle = off->setFinalReturns(off, &numEls);
+	if(numEls == 0) return;
+
+	if(OMX_DEBUG) { Rprintf("Adding %d sets of fit function Info....", numEls);}
+	for(int i = 0; i < numEls; i++) {
+		if (orle[i].numValues == -1) {
+			PROTECT(oElement = allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
 		} else {
-			PROTECT(*ans = allocVector(VECSXP, numReturns));
-			PROTECT(*names = allocVector(STRSXP, numReturns));
+			PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
 		}
-		if(OMX_DEBUG) { Rprintf("Done.\n");}
-	} else {
-		PROTECT(*ans = allocVector(VECSXP, numReturns));
-		PROTECT(*names = allocVector(STRSXP, numReturns));
+		memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
+		result->push_back(std::make_pair(mkChar(orle[i].label), oElement));
 	}
 }
 
