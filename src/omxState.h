@@ -123,9 +123,9 @@ struct omxState {													// The Current State of Optimization
 
 //	omxOptimizer* optimizer;										// Current Optimizer
 	int numThreads;
-	int numExpects, numChildren;
+	int numAlgs, numExpects, numChildren;
 	std::vector< omxMatrix* > matrixList;
-	std::vector< omxMatrix* > algebraList;
+	omxMatrix** algebraList;										// Model Algebras
 	omxExpectation** expectationList; 							// Model Expectations
 	std::vector< omxData* > dataList;
 	omxState** childList;											// List of child states

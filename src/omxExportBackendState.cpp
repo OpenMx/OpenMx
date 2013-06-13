@@ -35,7 +35,7 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
-	for(size_t index = 0; index < currentState->algebraList.size(); index++) {
+	for(int index = 0; index < currentState->numAlgs; index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Algebra %d.\n", index); }
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
 		omxRecompute(nextAlgebra);

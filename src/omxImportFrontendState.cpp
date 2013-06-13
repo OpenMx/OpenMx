@@ -73,14 +73,16 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	SEXP nextAlgTuple;
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", length(algList)); }
+	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", globalState->numAlgs); }
+	globalState->algebraList = (omxMatrix**) R_alloc(globalState->numAlgs, sizeof(omxMatrix*));
 
-	for(int index = 0; index < length(algList); index++) {
-		globalState->algebraList.push_back(omxInitMatrix(NULL, 0, 0, TRUE, globalState));
+	for(int index = 0; index < globalState->numAlgs; index++) {
+		globalState->algebraList[index] = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	}
 
-	for(int index = 0; index < length(algList); index++) {
+	for(int index = 0; index < globalState->numAlgs; index++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		if(OMX_DEBUG) { Rprintf("Initializing algebra %d at location 0x%0x.\n", index, globalState->algebraList + index); }
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			// delay until expectations are ready
 		} else {								// This is an algebra spec.
@@ -101,8 +103,9 @@ void omxProcessMxFitFunction(SEXP algList)
 {
 	SEXP nextAlgTuple;
 
-	for(int index = 0; index < length(algList); index++) {
+	for(int index = 0; index < globalState->numAlgs; index++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		if(OMX_DEBUG) { Rprintf("Initializing fit %d at location 0x%0x.\n", index, globalState->algebraList + index); }
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple,
 						       TRUE, index);
@@ -153,7 +156,7 @@ void omxCompleteMxExpectationEntities() {
 
 void omxInitialMatrixAlgebraCompute() {
 	size_t numMats = globalState->matrixList.size();
-	int numAlgs = globalState->algebraList.size();
+	int numAlgs = globalState->numAlgs;
 
 	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
 	omxStateNextEvaluation(globalState);
