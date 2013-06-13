@@ -232,11 +232,10 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient
 
 }
 
-void omxInitRowFitFunction(omxFitFunction* oo) {
+void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce fit function.\n"); }
 
-	SEXP rObj = oo->rObj;
 	SEXP nextMatrix, itemList, nextItem;
 	int nextDef, index, numDeps;
 

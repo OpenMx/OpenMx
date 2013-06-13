@@ -58,7 +58,7 @@ typedef struct {
 struct omxFitFunction {					// A fit function
 
 	/* Fields unique to FitFunction Functions */
-	void (*initFun)(omxFitFunction *oo);
+	void (*initFun)(omxFitFunction *oo, SEXP rObj);								// Wrapper for initialization function (probably not needed)
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);
@@ -84,10 +84,9 @@ struct omxFitFunction {					// A fit function
 };
 
 /* Initialize and Destroy */
-omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
-					  omxExpectation *expect, SEXP rObj, omxMatrix *matrix);
-void omxFillMatrixFromMxFitFunction(SEXP rObj, omxMatrix *matrix, omxState *os);
-void omxInitializeFitFunction(omxMatrix *om);
+	void omxInitEmptyFitFunction(omxFitFunction *oo);
+	void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP mxobj, 
+		unsigned short hasMatrixNumber, int matrixNumber);						// Create an omxFitFunction from an R MxFitFunction object
 	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 

@@ -70,24 +70,19 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 }
 
 void omxProcessMxAlgebraEntities(SEXP algList) {
+	SEXP nextAlgTuple;
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
 	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", length(algList)); }
 
-	// Since algebras can refer to each other, we need to create the result matrices
-	// before we initialize them.
 	for(int index = 0; index < length(algList); index++) {
-		globalState->algebraList.push_back(omxInitMatrix(NULL, 1, 1, TRUE, globalState));
+		globalState->algebraList.push_back(omxInitMatrix(NULL, 0, 0, TRUE, globalState));
 	}
 
 	for(int index = 0; index < length(algList); index++) {
-		SEXP nextAlgTuple;
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
-			omxMatrix *result = globalState->algebraList[index];
-			result->hasMatrixNumber = TRUE;
-			result->matrixNumber = index;
-			omxFillMatrixFromMxFitFunction(nextAlgTuple, result, globalState);
+			// delay until expectations are ready
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula, dependencies;
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
@@ -97,6 +92,20 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
 				formula, CHAR(STRING_ELT(algListNames, index)));
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
+		}
+		if (globalState->statusMsg[0]) return;
+	}
+}
+
+void omxProcessMxFitFunction(SEXP algList)
+{
+	SEXP nextAlgTuple;
+
+	for(int index = 0; index < length(algList); index++) {
+		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		if(IS_S4_OBJECT(nextAlgTuple)) {
+			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple,
+						       TRUE, index);
 		}
 		if (globalState->statusMsg[0]) return;
 	}

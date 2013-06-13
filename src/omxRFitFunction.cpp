@@ -101,12 +101,10 @@ omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numRetu
 	return retVal;
 }
 
-void omxInitRFitFunction(omxFitFunction* oo) {
+void omxInitRFitFunction(omxFitFunction* oo, SEXP rObj) {
 	if(OMX_DEBUG) { Rprintf("Initializing R fit function.\n"); }
 	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
 	
-	SEXP rObj = oo->rObj;
-
 	/* Set Fit Function Calls to RFitFunction Calls */
 	oo->computeFun = omxCallRFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsRFitFunction;

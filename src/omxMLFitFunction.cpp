@@ -268,14 +268,13 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 }
 
 
-void omxInitMLFitFunction(omxFitFunction* oo) {
+void omxInitMLFitFunction(omxFitFunction* oo, SEXP rObj) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing ML fit function.\n"); }
 
 	int info = 0;
 	double det = 1.0;
 	char u = 'U';
-	SEXP rObj = oo->rObj;
 	
 	/* Read and set expectation */
 	omxSetMLFitFunctionCalls(oo);

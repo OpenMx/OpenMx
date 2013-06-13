@@ -63,7 +63,7 @@ omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numRe
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target);
 
-void omxInitRowFitFunction(omxFitFunction* oo);
+void omxInitRowFitFunction(omxFitFunction* oo, SEXP rObj);
 
 
 
