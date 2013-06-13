@@ -36,30 +36,25 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxPrintMatrix(omxMatrix *source, const char* header) {
 	int j, k;
 
-	Rprintf("%s: (%d x %d) [%s-major] SEXP 0x%0x\n%s = matrix(c(\n",
-		header, source->rows, source->cols, (source->colMajor?"col":"row"), source->owner, header);
+	Rprintf("%s: (%d x %d) [%s-major] SEXP 0x%0x\n",
+		header, source->rows, source->cols, (source->colMajor?"col":"row"), source->owner);
+	if(OMX_DEBUG_MATRIX) {Rprintf("Matrix Printing is at %0x\n", source);}
 
-	int first=TRUE;
 	if(source->colMajor) {
 		for(j = 0; j < source->rows; j++) {
 			for(k = 0; k < source->cols; k++) {
-				if (first) first=FALSE;
-				else Rprintf(",");
-				Rprintf(" %3.6f", source->data[k*source->rows+j]);
+				Rprintf("\t%3.6f", source->data[k*source->rows+j]);
 			}
 			Rprintf("\n");
 		}
 	} else {
 		for(j = 0; j < source->cols; j++) {
 			for(k = 0; k < source->rows; k++) {
-				if (first) first=FALSE;
-				else Rprintf(",");
-				Rprintf(" %3.6f,", source->data[k*source->cols+j]);
+				Rprintf("\t%3.6f", source->data[k*source->cols+j]);
 			}
 			Rprintf("\n");
 		}
 	}
-	Rprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
 }
 
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
