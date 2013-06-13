@@ -83,7 +83,6 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name);
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
-	omxInitializeFitFunction(tgt);
     }
 
 }

@@ -114,14 +114,14 @@
 			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt);
 		}
 
-		for(size_t j = 0; j < src->algebraList.size(); j++) {
+		for(size_t j = 0; j < tgt->algebraList.size(); j++) {
 			// TODO: Smarter inference for which algebras to duplicate
 			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
 		}
 
 		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate
-			tgt->expectationList.push_back(omxDuplicateExpectation(src->expectationList[j], tgt));
+			tgt->expectationList[j] = omxDuplicateExpectation(src->expectationList[j], tgt);
 		}
 
 		for(size_t j = 0; j < tgt->algebraList.size(); j++) {
