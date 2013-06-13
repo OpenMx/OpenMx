@@ -55,7 +55,7 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 	}
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 	
-	for(size_t index = 0; index < currentState->expectationList.size(); index++) {
+	for(int index = 0; index < currentState->numExpects; index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation of Expectation %d.\n", index); }
 		omxExpectation* nextExpectation = currentState->expectationList[index];
 		omxExpectationRecompute(nextExpectation);

@@ -105,10 +105,12 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 void omxProcessMxExpectationEntities(SEXP expList) {
 	if(OMX_DEBUG) { Rprintf("Initializing %d Model Expectation(s).\n", length(expList));}
 	SEXP nextExp;
+	globalState->numExpects = length(expList);
+	globalState->expectationList = (omxExpectation**) R_alloc(length(expList), sizeof(omxExpectation*));
 
 	for(int index = 0; index < length(expList); index++) {
 		PROTECT(nextExp = VECTOR_ELT(expList, index));
-		globalState->expectationList.push_back(omxNewIncompleteExpectation(nextExp, index, globalState));
+		globalState->expectationList[index] = omxNewIncompleteExpectation(nextExp, index, globalState);
 		if(OMX_DEBUG) {
 			Rprintf("%s incomplete expectation set up at 0x%0xd.\n",
 				(globalState->expectationList[index]->expType
@@ -123,9 +125,9 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 
 
 void omxCompleteMxExpectationEntities() {
-	if(OMX_DEBUG) { Rprintf("Completing %d Model Expectation(s).\n", globalState->expectationList.size());}
+	if(OMX_DEBUG) { Rprintf("Completing %d Model Expectation(s).\n", globalState->numExpects);}
 	
-	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
+	for(int index = 0; index < globalState->numExpects; index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
 		if(OMX_DEBUG) {
 			Rprintf("%s expectation completed at 0x%0xd.\n",
