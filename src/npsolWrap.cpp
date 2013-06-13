@@ -280,7 +280,8 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if (n>0) { memcpy(REAL(estimate), REAL(startVals), sizeof(double)*n); }
 	
-	omxInvokeNPSOL(REAL(minimum), REAL(estimate), REAL(gradient), REAL(hessian), disableOptimizer);
+	omxInvokeNPSOL(globalState->fitMatrix, REAL(minimum), REAL(estimate),
+		       REAL(gradient), REAL(hessian), disableOptimizer);
 
 	SEXP code, status, statusMsg, iterations;
 	SEXP evaluations, ans=NULL, names=NULL, algebras, matrices, expectations, optimizer;
@@ -352,7 +353,8 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
-		omxNPSOLConfidenceIntervals(REAL(minimum), REAL(estimate), REAL(gradient), REAL(hessian), ciMaxIterations);
+		omxNPSOLConfidenceIntervals(globalState->fitMatrix, REAL(minimum), REAL(estimate),
+					    REAL(gradient), REAL(hessian), ciMaxIterations);
 	}  
 
 	// What if fitfunction has its own repopulateFun? TODO

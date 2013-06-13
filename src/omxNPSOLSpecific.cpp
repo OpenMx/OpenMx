@@ -33,6 +33,7 @@ const double NEG_INF = -2e20;
 const double INF = 2e20;
 
 const char* anonMatrix = "anonymous matrix";
+static omxMatrix *NPSOL_fitMatrix = NULL;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -64,7 +65,7 @@ void F77_SUB(npsolObjectiveFunction)
 		checkpointNow = TRUE;					// Only checkpoint at major iterations.
 	} else omxSetMinorIteration(globalState, globalState->minorIteration + 1);
 
-	omxMatrix* fitMatrix = globalState->fitMatrix;
+	omxMatrix* fitMatrix = NPSOL_fitMatrix;
 	omxResetStatus(globalState);						// Clear Error State recursively
 	/* Interruptible? */
 	R_CheckUserInterrupt();
@@ -179,8 +180,11 @@ void F77_SUB(npsolConstraintFunction)
 
 }
 
-void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptimizer) {
+void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R, int disableOptimizer) {
  
+	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	NPSOL_fitMatrix = fitMatrix;
+
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
     int k, ldA, ldJ, ldR, inform, iter, leniw, lenw; 
@@ -211,7 +215,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         x = NULL;
         g = NULL;
  
-        if(globalState->fitMatrix != NULL) {
+        if(fitMatrix != NULL) {
             F77_SUB(npsolObjectiveFunction)(&mode, &n, x, f, g, &nstate);
         };
         globalState->numIntervals = 0;  // No intervals if there's no free params
@@ -327,7 +331,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
  
         if (disableOptimizer) {
             int mode = 0, nstate = -1;      
-            if(globalState->fitMatrix != NULL) {
+            if(fitMatrix != NULL) {
                 F77_SUB(npsolObjectiveFunction)(&mode, &n, x, f, g, &nstate);
             };
  
@@ -352,11 +356,17 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
     globalState->inform = inform;
     globalState->iter   = iter;
  
+    NPSOL_fitMatrix = NULL;
 }
  
  
-void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations) {
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
+				 double *g, double *R, int ciMaxIterations)
+{
  
+	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	NPSOL_fitMatrix = fitMatrix;
+
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
     int ldA, ldJ, ldR, inform, iter, leniw, lenw; 
@@ -558,6 +568,8 @@ void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int
             Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
         }
     }
+
+    NPSOL_fitMatrix = NULL;
 }
  
 static void

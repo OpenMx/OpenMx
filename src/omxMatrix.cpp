@@ -162,7 +162,9 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 			omxFreeMatrixData(dest);											// Free and regenerate memory
 			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
 		}
-		memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
+		if (dest->data != orig->data) {  // if equal then programmer error? TODO
+			memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
+		}
 	}
 
 	dest->aliasedPtr = NULL;
