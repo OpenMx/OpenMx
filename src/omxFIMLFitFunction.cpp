@@ -482,8 +482,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 	}
 }
 
-void omxInitFIMLFitFunction(omxFitFunction* off)
-{
+void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Initializing FIML fit function function.\n");
@@ -492,11 +491,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	SEXP nextMatrix;
 	int numOrdinal = 0, numContinuous = 0;
 	omxMatrix *cov, *means;
-	SEXP rObj = off->rObj;
 
 	omxFIMLFitFunction *newObj = (omxFIMLFitFunction*) R_alloc(1, sizeof(omxFIMLFitFunction));
-	OMXZERO(newObj, 1);
-
 	omxExpectation* expectation = off->expectation;
 	if(expectation == NULL) {
 		omxRaiseError(off->matrix->currentState, -1, "FIML cannot fit without model expectations.");
@@ -522,9 +518,18 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	
     newObj->cov = cov;
     newObj->means = means;
+    newObj->smallMeans = NULL;
+    newObj->ordMeans   = NULL;
+    newObj->contRow    = NULL;
+    newObj->ordRow     = NULL;
+    newObj->ordCov     = NULL;
+    newObj->ordContCov = NULL;
+    newObj->halfCov    = NULL;
+    newObj->reduceCov  = NULL;
     
     /* Set default FitFunction calls to FIML FitFunction Calls */
 	off->computeFun = omxCallFIMLFitFunction;
+	off->fitType = "omxFIMLFitFunction";
 	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
@@ -540,16 +545,14 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing row likelihood option.\n");
 	}
-	if (rObj) {
-		PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector"))));
-		newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
-		UNPROTECT(1);
-	}
+	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
+	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
 	if(newObj->returnRowLikelihoods) {
 	   omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
-	}
-	newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+    }
+    newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+    newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	UNPROTECT(1); // nextMatrix
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
 		Rprintf("Accessing variable mapping structure.\n");

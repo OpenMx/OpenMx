@@ -90,7 +90,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row,
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
 void omxDestroyFIMLFitFunction(omxFitFunction *oo);
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
-void omxInitFIMLFitFunction(omxFitFunction* off);
+void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */

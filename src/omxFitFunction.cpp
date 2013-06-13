@@ -45,7 +45,6 @@ extern void omxInitAlgebraFitFunction(omxFitFunction *off);
 extern void omxInitWLSFitFunction(omxFitFunction *off);
 extern void omxInitRowFitFunction(omxFitFunction *off);
 extern void omxInitMLFitFunction(omxFitFunction *off);
-extern void omxInitFIMLFitFunction(omxFitFunction *off);
 extern void omxInitRFitFunction(omxFitFunction *off);
 
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
@@ -53,7 +52,6 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
 	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
 	{"MxFitFunctionML", 				&omxInitMLFitFunction},
-	{"imxFitFunctionFIML", 				omxInitFIMLFitFunction},
 	{"MxFitFunctionR",					&omxInitRFitFunction},
 	{"MxFitFunctionMultigroup", &initFitMultigroup}
 };
@@ -226,20 +224,6 @@ omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
 	return obj;
 }
 
-void omxChangeFitType(omxFitFunction *oo, const char *fitType)
-{
-	if (oo->initialized) error("Cannot omxChangeFitType of %p to %s; already initialized", oo, fitType);
-
-	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
-		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
-		if(strcmp(fitType, entry->name) == 0) {
-			oo->fitType = entry->name;
-			oo->initFun = entry->initFun;
-			break;
-		}
-	}
-}
-
 void omxFillMatrixFromMxFitFunction(SEXP rObj, omxMatrix *matrix, omxState *os)
 {
 	SEXP slotValue, fitFunctionClass;
@@ -264,12 +248,12 @@ void omxFillMatrixFromMxFitFunction(SEXP rObj, omxMatrix *matrix, omxState *os)
 void omxInitializeFitFunction(omxMatrix *om)
 {
 	omxFitFunction *obj = om->fitFunction;
-	if (!obj) error("Matrix %p has no fit function", om);
+	if (!obj) error("Matrix 0x%p has no fit function", om);
 
 	if (obj->initialized) return;
+	obj->initialized = TRUE;
 
 	obj->initFun(obj);
-	obj->initialized = TRUE;
 
 	if(obj->computeFun == NULL) error("Could not initialize fit function %s", obj->fitType);
 	
