@@ -43,6 +43,6 @@ void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n);
 
 omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns);
 
-void omxInitRFitFunction(omxFitFunction* oo, SEXP rObj);
+void omxInitRFitFunction(omxFitFunction* oo);
 
 #endif /* _OMX_R_FITFUNCTION_ */

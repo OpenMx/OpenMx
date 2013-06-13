@@ -201,10 +201,11 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 
 }
 
-void omxInitWLSFitFunction(omxFitFunction* oo, SEXP rObj) {
+void omxInitWLSFitFunction(omxFitFunction* oo) {
 
 	if(OMX_DEBUG) { Rprintf("Initializing WLS FitFunction function.\n"); }
 
+	SEXP rObj = oo->rObj;
 	SEXP nextMatrix;
 	omxMatrix *cov, *means, *weights;
 	

@@ -58,7 +58,7 @@ typedef struct {
 struct omxFitFunction {					// A fit function
 
 	/* Fields unique to FitFunction Functions */
-	void (*initFun)(omxFitFunction *oo, SEXP rObj);								// Wrapper for initialization function (probably not needed)
+	void (*initFun)(omxFitFunction *oo);
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);

@@ -37,15 +37,15 @@ typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 struct omxFitFunctionTableEntry {
 
 	char name[32];
-	void (*initFun)(omxFitFunction*, SEXP);
+	void (*initFun)(omxFitFunction*);
 
 };
 
-extern void omxInitAlgebraFitFunction(omxFitFunction *off, SEXP rObj);
-extern void omxInitWLSFitFunction(omxFitFunction *off, SEXP rObj);
-extern void omxInitRowFitFunction(omxFitFunction *off, SEXP rObj);
-extern void omxInitMLFitFunction(omxFitFunction *off, SEXP rObj);
-extern void omxInitRFitFunction(omxFitFunction *off, SEXP rObj);
+extern void omxInitAlgebraFitFunction(omxFitFunction *off);
+extern void omxInitWLSFitFunction(omxFitFunction *off);
+extern void omxInitRowFitFunction(omxFitFunction *off);
+extern void omxInitMLFitFunction(omxFitFunction *off);
+extern void omxInitRFitFunction(omxFitFunction *off);
 
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
@@ -245,7 +245,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	if (om->currentState->statusMsg[0]) return;
 
 	obj->rObj = rObj;
-	obj->initFun(obj, rObj);
+	obj->initFun(obj);
 
 	if(obj->computeFun == NULL) {// If initialization fails, error code goes in argStruct
 		const char *errorCode;
