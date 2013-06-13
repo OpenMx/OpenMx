@@ -533,7 +533,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
-	off->repopulateFun = handleFreeVarList;
+	off->repopulateFun = NULL;
 
 	off->usesChildModels = TRUE;
 

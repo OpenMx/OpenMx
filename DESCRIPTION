@@ -80,7 +80,6 @@ Collate:
     'MxFitFunction.R'
     'MxFitFunctionAlgebra.R'
     'MxFitFunctionML.R'
-    'MxFitFunctionMultigroup.R'
     'MxFitFunctionRow.R'
     'MxFitFunctionWLS.R'
     'MxFitFunctionWLSHelpers.R'

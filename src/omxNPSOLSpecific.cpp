@@ -68,8 +68,15 @@ void F77_SUB(npsolObjectiveFunction)
 	omxResetStatus(globalState);						// Clear Error State recursively
 	/* Interruptible? */
 	R_CheckUserInterrupt();
+    /* This allows for abitrary repopulation of the free parameters.
+     * Typically, the default is for repopulateFun to be NULL,
+     * and then handleFreeVarList is invoked */
 
-	fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
+	if (fitMatrix->fitFunction->repopulateFun != NULL) {
+		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
+	} else {
+		handleFreeVarList(globalState, x, *n);
+	}
 
 	if (*mode > 0 && globalState->analyticGradients && globalState->currentInterval < 0) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
@@ -162,8 +169,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	int j, k, l = 0;
 
-	// What if fitfunction has its own repopulateFun? TODO
-	handleFreeVarListHelper(globalState, x, *n);
+	handleFreeVarList(globalState, x, *n);
 
 	for(j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result);
@@ -344,8 +350,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
  
         omxSaveCheckpoint(globalState, x, f, TRUE);
  
-	// What if fitfunction has its own repopulateFun? TODO
-        handleFreeVarListHelper(globalState, x, n);
+        handleFreeVarList(globalState, x, n);
         
     } // END OF PERFORM OPTIMIZATION CASE
  

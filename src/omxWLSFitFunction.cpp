@@ -252,7 +252,7 @@ void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	oo->destructFun = omxDestroyWLSFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
-	oo->repopulateFun = handleFreeVarList;
+	oo->repopulateFun = NULL;	
 }
 
 void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights) {

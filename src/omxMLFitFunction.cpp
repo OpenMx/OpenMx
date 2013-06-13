@@ -264,7 +264,7 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
 	oo->populateAttrFun = omxPopulateMLAttributes;
-	oo->repopulateFun = handleFreeVarList;
+	oo->repopulateFun = NULL;	
 }
 
 

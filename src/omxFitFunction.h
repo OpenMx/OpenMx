@@ -46,7 +46,6 @@ typedef struct omxFitFunction omxFitFunction;
 #include "omxData.h"
 #include "omxState.h"
 #include "omxExpectation.h"
-#include "omxOptimizer.h"
 
 typedef struct {
 	char label[250];
@@ -64,6 +63,7 @@ struct omxFitFunction {					// A fit function
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);
 	void (*repopulateFun)(omxFitFunction* oo, double* x, int n);					// To repopulate any data stored in the fit function
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
+	double* (*getStandardErrorFun)(omxFitFunction* oo);							// To calculate standard errors
 	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
 	
 	SEXP rObj;																	// Original r Object Pointer
@@ -80,7 +80,6 @@ struct omxFitFunction {					// A fit function
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
 	int usesChildModels;    // whether to create child models for parallelization
-	bool initialized;
 };
 
 /* Initialize and Destroy */

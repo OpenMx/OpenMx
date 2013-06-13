@@ -68,8 +68,11 @@ void omxPopulateHessianWork(struct hess_struct *hess_work,
 	omxMatrix *fitMatrix = oo->matrix;
 	hess_work->fitMatrix = fitMatrix;
 
-	handleFreeVarListHelper(state, freeParams, numParams);
-
+	if (fitMatrix->fitFunction->repopulateFun != NULL) {	//  Just in case
+		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+	} else {
+		handleFreeVarList(state, freeParams, numParams);
+	}
 	omxRecompute(fitMatrix);		// Initial recompute in case it matters.	
 	hess_work->f0 = omxMatrixElement(fitMatrix, 0, 0);
 }
@@ -95,6 +98,7 @@ void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work,
 	double functionPrecision   = hess_work->functionPrecision; // read-only
 	double f0                  = hess_work->f0;                // read-only
 	int    r                   = hess_work->r;                 // read-only
+    omxState *currentState     = fitMatrix->currentState;
 
 
 	/* Part the first: Gradient and diagonal */
@@ -104,18 +108,22 @@ void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work,
 	for(int k = 0; k < r; k++) {			// Decreasing step size, starting at k == 0
 		if(OMX_DEBUG) {Rprintf("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.\n", i, k, iOffset);}
 		freeParams[i] = optima[i] + iOffset;
-
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
-
+		if (fitMatrix->fitFunction->repopulateFun != NULL) {	//  Just in case
+			fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		} else {
+			handleFreeVarList(currentState, freeParams, numParams);
+		}
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		if(OMX_DEBUG) {Rprintf("Hessian estimation: One Step Back.\n");}
 
 		freeParams[i] = optima[i] - iOffset;
-
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
-
+		if (fitMatrix->fitFunction->repopulateFun != NULL) {	// Just in case
+			fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		} else {
+			handleFreeVarList(currentState, freeParams, numParams);
+		}
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -154,6 +162,7 @@ void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work,
 	double functionPrecision   = hess_work->functionPrecision; // read-only
 	double f0                  = hess_work->f0;                // read-only
 	int    r                   = hess_work->r;                 // read-only
+    omxState *currentState     = fitMatrix->currentState;
 
 	double iOffset = fabs(functionPrecision*optima[i]);
 	if(fabs(iOffset) < eps) iOffset += eps;
@@ -163,9 +172,11 @@ void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work,
 	for(int k = 0; k < r; k++) {
 		freeParams[i] = optima[i] + iOffset;
 		freeParams[l] = optima[l] + lOffset;
-
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
-
+		if (fitMatrix->fitFunction->repopulateFun != NULL) {	//  Just in case
+			fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		} else {
+			handleFreeVarList(currentState, freeParams, numParams);
+		}
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -173,9 +184,11 @@ void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work,
 
 		freeParams[i] = optima[i] - iOffset;
 		freeParams[l] = optima[l] - lOffset;
-
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
-
+		if (fitMatrix->fitFunction->repopulateFun != NULL) {	// Just in case
+			fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		} else {
+			handleFreeVarList(currentState, freeParams, numParams);
+		}
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
