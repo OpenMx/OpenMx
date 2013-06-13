@@ -90,8 +90,8 @@ void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *grp)
 	if (oo->initFun != initFitMultigroup) error("%s is not the multigroup fit", oo->fitType);
 	if (!oo->initialized) error("Fit %p not initialized", oo);
 
-	int myIndex = ~oo->matrix->matrixNumber;
-	int grpIndex = ~grp->matrix->matrixNumber;
+	int myIndex = oo->matrix->matrixNumber;
+	int grpIndex = grp->matrix->matrixNumber;
 	if (grpIndex == myIndex) error("Cannot add multigroup to itself");
 
 	omxState *os = oo->matrix->currentState;
