@@ -278,7 +278,7 @@ void omxComputeEstimateHessian::compute()
 	}
 	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);
 
-	hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
+	hessian = REAL(calculatedHessian);
 
 	gradient = (double*) R_alloc(numParams, sizeof(double));
   
@@ -299,8 +299,6 @@ void omxComputeEstimateHessian::compute()
 		}
 		Free(hess_work);
 	}
-
-	memcpy(REAL(calculatedHessian), hessian, sizeof(double) * numParams * numParams);
 
 	if (globalState->calculateStdErrors) {
 		// This function calculates the standard errors from the hessian matrix
