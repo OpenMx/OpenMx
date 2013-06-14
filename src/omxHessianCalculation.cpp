@@ -207,14 +207,13 @@ void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work,
 
 }
 
-void doHessianCalculation(int numParams, int numChildren, 
-	struct hess_struct *hess_work, omxState* parentState) {
-
+void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChildren, 
+	struct hess_struct *hess_work, omxState* parentState)
+{
 	int i,j;
 
-	omxFitFunction* parent_oo = parentState->fitMatrix->fitFunction;
-	double* parent_gradient = parent_oo->gradient;
-	double* parent_hessian = parent_oo->hessian;
+	double* parent_gradient = this->gradient;
+	double* parent_hessian = this->hessian;
 	double* parent_optima = parentState->optimalValues;
 
 	int numOffDiagonal = (numParams * (numParams - 1)) / 2;
@@ -255,58 +254,63 @@ void doHessianCalculation(int numParams, int numChildren,
 
 	Free(diags);
 	Free(offDiags);
-
 }
 
-/*************************************************************************************
- *
- *   omxEstimateHessian
- *
- *  author: tbrick, 2010-02-04
- *
- *  Based on code in the numDeriv library for R <citation needed> // TODO: Find NumDeriv Citation
- *
- *  @params functionPrecision	functional precision for the calculation
- *  @params r					number of repetitions for Richardson approximation
- *  @params currentState		the current omxState
- *
- ************************************************************************************/
-void omxEstimateHessian(double functionPrecision, int r)
+void omxComputeEstimateHessian::omxPopulateHessians(int numHessians, int calculateStdErrors, int n)
 {
-	omxState* parentState = globalState;
+	memcpy(REAL(calculatedHessian), this->hessian, sizeof(double) * n * n);
+	/*
+	double* hessian  = REAL(calculatedHessian);
+	for(int k = 0; k < n * n; k++) {
+		if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
+		hessian[k] = off->hessian[k];		// For expediency, ignore majority for symmetric matrices.
+	}
+	*/
+	if(calculateStdErrors && this->stdError) {
+		memcpy(REAL(stdErrors), this->stdError, sizeof(double) * n);
+		/*
+		double* stdError = REAL(stdErrors);
+		if(off->stdError == NULL) {
+			for(int k = 0; k < n; k++) {
+				if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
+				stdError[k] = R_NaReal;
+			}
+		} else {
+			for(int k = 0; k < n; k++) {
+				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
+				stdError[k] = off->stdError[k];
+			}
+		}
+		*/
+	}
+}
 
+void omxComputeEstimateHessian::omxEstimateHessian(double functionPrecision, int r)
+{
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
 
-	int numChildren = parentState->numChildren;
-	int numParams = parentState->numFreeParams;
+	int numChildren = globalState->numChildren;
+	int numParams = globalState->numFreeParams;
 	int i;
 
     struct hess_struct* hess_work;
 	if (numChildren < 2) {
 		hess_work = Calloc(1, struct hess_struct);
-		omxPopulateHessianWork(hess_work, functionPrecision, r, parentState, parentState);
+		omxPopulateHessianWork(hess_work, functionPrecision, r, globalState, globalState);
 	} else {
 		hess_work = Calloc(numChildren, struct hess_struct);
 		for(int i = 0; i < numChildren; i++) {
-			omxPopulateHessianWork(hess_work + i, functionPrecision, r, parentState->childList[i], parentState);
+			omxPopulateHessianWork(hess_work + i, functionPrecision, r, globalState->childList[i], globalState);
 		}
 	}
 	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);
 
-	omxFitFunction* parent_oo = parentState->fitMatrix->fitFunction;
+	this->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
 
-	if(parent_oo->hessian == NULL) {
-		parent_oo->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
-		if(OMX_DEBUG) {Rprintf("Generated hessian memory, (%d x %d), at 0x%x.\n", numParams, numParams, parent_oo->hessian);}
-	}
-
-	if(parent_oo->gradient == NULL) {
-		parent_oo->gradient = (double*) R_alloc(numParams, sizeof(double));
-		if(OMX_DEBUG) {Rprintf("Generated gradient memory, (%d), at 0x%x.\n", numParams, parent_oo->gradient);}
-	}
+	this->gradient = (double*) R_alloc(numParams, sizeof(double));
   
-	doHessianCalculation(numParams, numChildren, hess_work, parentState);
+	this->doHessianCalculation(numParams, numChildren, hess_work, globalState);
 
 	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
 
@@ -325,6 +329,58 @@ void omxEstimateHessian(double functionPrecision, int r)
 	}
 }
 
+void omxComputeEstimateHessian::omxCalculateStdErrorFromHessian(double scale, int numParams)
+{
+	// This function calculates the standard errors from the hessian matrix
+	// sqrt(diag(solve(hessian)))
+
+	this->stdError = (double*) R_alloc(numParams, sizeof(double));
+	
+	double* stdErr = this->stdError;
+	
+	double* hessian = this->hessian;
+	double* workspace = (double *) Calloc(numParams * numParams, double);
+	
+	for(int i = 0; i < numParams; i++)
+		for(int j = 0; j <= i; j++)
+			workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
+	
+	char u = 'U';
+	int ipiv[numParams];  //don't stack allocate TODO
+	int lwork = -1;
+	double temp;
+	int info = 0;
+	
+	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
+	
+	lwork = (temp > numParams?temp:numParams);
+	
+	double* work = (double*) Calloc(lwork, double);
+	
+	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
+	
+	if(info != 0) {
+		
+		this->stdError = NULL;
+		
+	} else {
+		
+		F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
+	
+		if(info != 0) {
+			this->stdError = NULL;
+		} else {
+			for(int i = 0; i < numParams; i++) {
+				stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
+			}
+		}
+	}
+	
+	Free(workspace);
+	Free(work);
+	
+}
+
 class omxCompute *newComputeEstimateHessian()
 {
 	return new omxComputeEstimateHessian;
@@ -339,13 +395,10 @@ void omxComputeEstimateHessian::compute()
 
 	omxEstimateHessian(.0001, 4);
 	if(globalState->calculateStdErrors) {
-		if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
-		omxFitFunction* oo = globalState->fitMatrix->fitFunction;
-		omxCalculateStdErrorFromHessian(2.0, oo);
+		this->omxCalculateStdErrorFromHessian(2.0, n);
 	}
 
-	omxPopulateHessians(globalState->numHessians, globalState->fitMatrix, 
-			    calculatedHessian, stdErrors, globalState->calculateStdErrors, n);
+	this->omxPopulateHessians(globalState->numHessians, globalState->calculateStdErrors, n);
 }
 
 void omxComputeEstimateHessian::reportResults(MxRList *result)

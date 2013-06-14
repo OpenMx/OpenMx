@@ -56,63 +56,6 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionMultigroup", &initFitMultigroup}
 };
 
-void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *off) {
-	/* This function calculates the standard errors from the hessian matrix */
-	// sqrt(diag(solve(hessian)))
-
-	if(off->hessian == NULL) return;
-	
-	int numParams = off->matrix->currentState->numFreeParams;
-	
-	if(off->stdError == NULL) {
-		off->stdError = (double*) R_alloc(numParams, sizeof(double));
-	}
-	
-	double* stdErr = off->stdError;
-	
-	double* hessian = off->hessian;
-	double* workspace = (double *) Calloc(numParams * numParams, double);
-	
-	for(int i = 0; i < numParams; i++)
-		for(int j = 0; j <= i; j++)
-			workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
-	
-	char u = 'U';
-	int ipiv[numParams];
-	int lwork = -1;
-	double temp;
-	int info = 0;
-	
-	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
-	
-	lwork = (temp > numParams?temp:numParams);
-	
-	double* work = (double*) Calloc(lwork, double);
-	
-	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
-	
-	if(info != 0) {
-		
-		off->stdError = NULL;
-		
-	} else {
-		
-		F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
-	
-		if(info != 0) {
-			off->stdError = NULL;
-		} else {
-			for(int i = 0; i < numParams; i++) {
-				stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
-			}
-		}
-	}
-	
-	Free(workspace);
-	Free(work);
-	
-}
-
 void omxInitEmptyFitFunction(omxFitFunction *off) {
 	/* Sets everything to NULL to avoid bad pointer calls */
 	

@@ -96,38 +96,6 @@ void omxPopulateFitFunction(omxState *currentState, MxRList *result)
 	}
 }
 
-void omxPopulateHessians(int numHessians, omxMatrix* currentFit, 
-		SEXP calculatedHessian, SEXP stdErrors, int calculateStdErrors, int n) {
-	if(OMX_DEBUG) { Rprintf("Populating hessians for %d fit functions.\n", numHessians); }
-	omxFitFunction* off = currentFit->fitFunction;
-	if(off->hessian == NULL) {
-		if(OMX_DEBUG) { Rprintf("Fit function 0 has no hessian. Aborting.\n");}
-		return;
-	}
-
-	if(OMX_DEBUG) { Rprintf("Fit function 0 has hessian at 0x%x.\n", off->hessian);}
-
-	double* hessian  = REAL(calculatedHessian);
-	double* stdError = REAL(stdErrors);
-	for(int k = 0; k < n * n; k++) {
-		if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
-		hessian[k] = off->hessian[k];		// For expediency, ignore majority for symmetric matrices.
-	}
-	if(calculateStdErrors) {
-		if(off->stdError == NULL) {
-			for(int k = 0; k < n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
-				stdError[k] = R_NaReal;
-			}
-		} else {
-			for(int k = 0; k < n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-				stdError[k] = off->stdError[k];
-			}
-		}
-	}
-}
-
 void omxPopulateConfidenceIntervals(omxState* currentState, SEXP intervals, SEXP intervalCodes) {
 	int numInts = currentState->numIntervals;
 	if(OMX_DEBUG) { Rprintf("Populating CIs for %d fit functions.\n", numInts); }

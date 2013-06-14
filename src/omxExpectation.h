@@ -85,7 +85,7 @@ struct omxExpectation {					// An Expectation
 	void* sharedArgs;															// Common argument structure
 	void* argStruct;															// Arguments needed for Expectation function
         const char* expType;   // pointer to a static string, no need to allocate or free
-	unsigned short int isPrepopulated;											// Object has had some values prepopulated to allow object sharing
+
 	omxData* data;																// Not sure if this is appropriate, but the expectation passes the actual data object
 	omxMatrix* dataColumns;
 	omxThresholdColumn* thresholds;

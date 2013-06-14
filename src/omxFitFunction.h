@@ -73,10 +73,6 @@ struct omxFitFunction {					// A fit function
 // This is always a pointer to a static string.
 // We do not need to allocate or free it.
 	const char* fitType;														// Type of FitFunction Function
-	double* hessian;															// Hessian details
-	double* gradient;															// Gradient details
-	double* stdError;															// Standard Error estimates
-	unsigned short int isPrepopulated;											// Object has had some values prepopulated to allow object sharing
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
 	int usesChildModels;    // whether to create child models for parallelization
@@ -96,9 +92,6 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
-	
-	/* Helper functions */
-	void omxCalculateStdErrorFromHessian(double scale, omxFitFunction *oo);	// Does what it says
 	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
