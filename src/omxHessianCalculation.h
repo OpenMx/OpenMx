@@ -32,7 +32,6 @@ class omxComputeEstimateHessian : public omxCompute {
 
 	void omxCalculateStdErrorFromHessian(double scale, int numParams);
 	void omxEstimateHessian(double functionPrecision, int r);
-	void omxPopulateHessians(int numHessians, int calculateStdErrors, int n);
 	void doHessianCalculation(int numParams, int numChildren, 
 				  struct hess_struct *hess_work, omxState* parentState);
 

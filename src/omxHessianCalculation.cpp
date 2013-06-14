@@ -256,35 +256,6 @@ void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChild
 	Free(offDiags);
 }
 
-void omxComputeEstimateHessian::omxPopulateHessians(int numHessians, int calculateStdErrors, int n)
-{
-	memcpy(REAL(calculatedHessian), this->hessian, sizeof(double) * n * n);
-	/*
-	double* hessian  = REAL(calculatedHessian);
-	for(int k = 0; k < n * n; k++) {
-		if(OMX_DEBUG) {Rprintf("Populating hessian at %d.\n", k);}
-		hessian[k] = off->hessian[k];		// For expediency, ignore majority for symmetric matrices.
-	}
-	*/
-	if(calculateStdErrors && this->stdError) {
-		memcpy(REAL(stdErrors), this->stdError, sizeof(double) * n);
-		/*
-		double* stdError = REAL(stdErrors);
-		if(off->stdError == NULL) {
-			for(int k = 0; k < n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating NA standard error at %d.\n", k);}
-				stdError[k] = R_NaReal;
-			}
-		} else {
-			for(int k = 0; k < n; k++) {
-				if(OMX_DEBUG) {Rprintf("Populating standard error at %d.\n", k);}
-				stdError[k] = off->stdError[k];
-			}
-		}
-		*/
-	}
-}
-
 void omxComputeEstimateHessian::omxEstimateHessian(double functionPrecision, int r)
 {
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
@@ -334,10 +305,6 @@ void omxComputeEstimateHessian::omxCalculateStdErrorFromHessian(double scale, in
 	// This function calculates the standard errors from the hessian matrix
 	// sqrt(diag(solve(hessian)))
 
-	this->stdError = (double*) R_alloc(numParams, sizeof(double));
-	
-	double* stdErr = this->stdError;
-	
 	double* hessian = this->hessian;
 	double* workspace = (double *) Calloc(numParams * numParams, double);
 	
@@ -360,16 +327,16 @@ void omxComputeEstimateHessian::omxCalculateStdErrorFromHessian(double scale, in
 	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
 	
 	if(info != 0) {
-		
-		this->stdError = NULL;
-		
+		// report error TODO
 	} else {
 		
 		F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
 	
 		if(info != 0) {
-			this->stdError = NULL;
+			// report error TODO
 		} else {
+			this->stdError = (double*) R_alloc(numParams, sizeof(double));
+			double* stdErr = this->stdError;
 			for(int i = 0; i < numParams; i++) {
 				stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
 			}
@@ -394,11 +361,14 @@ void omxComputeEstimateHessian::compute()
 	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1));
 
 	omxEstimateHessian(.0001, 4);
-	if(globalState->calculateStdErrors) {
-		this->omxCalculateStdErrorFromHessian(2.0, n);
-	}
+	memcpy(REAL(calculatedHessian), hessian, sizeof(double) * n * n);
 
-	this->omxPopulateHessians(globalState->numHessians, globalState->calculateStdErrors, n);
+	if (globalState->calculateStdErrors) {
+		this->omxCalculateStdErrorFromHessian(2.0, n);
+		if (stdError) {
+			memcpy(REAL(stdErrors), stdError, sizeof(double) * n);
+		}
+	}
 }
 
 void omxComputeEstimateHessian::reportResults(MxRList *result)
