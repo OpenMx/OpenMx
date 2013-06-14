@@ -28,7 +28,6 @@ class omxComputeEstimateHessian : public omxCompute {
 
 	double *hessian;
 	double *gradient;
-	double *stdError;
 
 	SEXP calculatedHessian;
 	SEXP stdErrors;

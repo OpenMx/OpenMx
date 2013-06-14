@@ -267,7 +267,7 @@ void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChild
 omxComputeEstimateHessian::omxComputeEstimateHessian() :
 	stepSize(.0001),
 	numIter(4),
-	stdError(NULL)
+	stdErrors(NULL)
 {
 }
 
@@ -285,7 +285,6 @@ void omxComputeEstimateHessian::compute()
 	int numParams = globalState->numFreeParams;
 
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
-	PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
@@ -361,8 +360,8 @@ void omxComputeEstimateHessian::compute()
 			if(info != 0) {
 				// report error TODO
 			} else {
-				this->stdError = (double*) R_alloc(numParams, sizeof(double));
-				double* stdErr = this->stdError;
+				PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
+				double* stdErr = REAL(stdErrors);
 				for(int i = 0; i < numParams; i++) {
 					stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
 				}
@@ -372,10 +371,6 @@ void omxComputeEstimateHessian::compute()
 		delete ipiv;
 		Free(workspace);
 		Free(work);
-
-		if (stdError) {
-			memcpy(REAL(stdErrors), stdError, sizeof(double) * numParams);
-		}
 	}
 }
 
@@ -383,7 +378,7 @@ void omxComputeEstimateHessian::reportResults(MxRList *result)
 {
 	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 
-	if (globalState->calculateStdErrors) {
+	if (stdErrors) {
 		result->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 	}
 }
