@@ -39,7 +39,7 @@
 #include "omxDefines.h"
 #include "omxBLAS.h"
 
-typedef struct omxMatrix omxMatrix;
+#include "types.h"
 
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"

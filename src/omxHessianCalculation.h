@@ -20,12 +20,12 @@
 #include "types.h"
 #include "omxCompute.h"
 
-void omxEstimateHessian(double functionPrecision, int r);
-
 class omxComputeEstimateHessian : public omxCompute {
-	const double stepSize;
-	const int numIter;
+	double stepSize;
+	int numIter;
 
+	omxMatrix *fitMat;
+	double minimum;
 	int numParams;
 	double *optima;
 	double *gradient;
@@ -34,6 +34,7 @@ class omxComputeEstimateHessian : public omxCompute {
 	SEXP calculatedHessian;
 	SEXP stdErrors;
 
+	void init();
 	void omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
@@ -41,7 +42,8 @@ class omxComputeEstimateHessian : public omxCompute {
 
  public:
 	omxComputeEstimateHessian();
-	virtual ~omxComputeEstimateHessian();
+	omxComputeEstimateHessian(omxMatrix *fitMat);
+	//virtual ~omxComputeEstimateHessian();
 
         virtual void initFromFrontend(SEXP rObj) {};
         virtual void setStartValues(SEXP startVals) {};

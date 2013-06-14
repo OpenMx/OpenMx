@@ -332,7 +332,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if (globalState->numHessians && globalState->fitMatrix != NULL && globalState->statusCode >= 0 &&
 	    globalState->numConstraints == 0) {
-		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian();
+		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(globalState->fitMatrix);
 		eh->compute();
 		eh->reportResults(&result);
 		delete eh;

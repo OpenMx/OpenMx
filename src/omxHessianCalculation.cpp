@@ -51,13 +51,10 @@ struct hess_struct {
 	double* Haprox;
 	double* Gaprox;
 	omxMatrix* fitMatrix;
-	double  f0;
 };
 
 void omxComputeEstimateHessian::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
 {
-	omxFitFunction* oo = state->fitMatrix->fitFunction;
-
 	double *freeParams = (double*) Calloc(numParams, double);
 
 	hess_work->Haprox = (double*) Calloc(numIter, double);		// Hessian Workspace
@@ -67,13 +64,9 @@ void omxComputeEstimateHessian::omxPopulateHessianWork(struct hess_struct *hess_
 		freeParams[i] = optima[i];
 	}
 
-	omxMatrix *fitMatrix = oo->matrix;
-	hess_work->fitMatrix = fitMatrix;
+	hess_work->fitMatrix = omxLookupDuplicateElement(state, fitMat);
 
 	handleFreeVarListHelper(state, freeParams, numParams);
-
-	omxRecompute(fitMatrix);		// Initial recompute in case it matters.	
-	hess_work->f0 = omxMatrixElement(fitMatrix, 0, 0);
 }
 
 /**
@@ -92,7 +85,6 @@ void omxComputeEstimateHessian::omxEstimateHessianOnDiagonal(int i, struct hess_
 	double *Gaprox             = hess_work->Gaprox;
 	double *freeParams         = hess_work->freeParams;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	double f0                  = hess_work->f0;                // read-only
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = fabs(stepSize * optima[i]);
@@ -117,7 +109,7 @@ void omxComputeEstimateHessian::omxEstimateHessianOnDiagonal(int i, struct hess_
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
-		Haprox[k] = (f1 - 2.0 * f0 + f2) / (iOffset * iOffset);		// This is second derivative
+		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
 		freeParams[i] = optima[i];									// Reset parameter value
 		iOffset /= v;
 		if(OMX_DEBUG) {Rprintf("Hessian estimation: (%d, %d)--Calculating F1: %f F2: %f, Haprox: %f...\n", i, i, f1, f2, Haprox[k]);}
@@ -146,7 +138,6 @@ void omxComputeEstimateHessian::omxEstimateHessianOffDiagonal(int i, int l, stru
 	double *Haprox             = hess_work->Haprox;
 	double *freeParams         = hess_work->freeParams;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	double f0                  = hess_work->f0;                // read-only
 
 	double iOffset = fabs(stepSize*optima[i]);
 	if(fabs(iOffset) < eps) iOffset += eps;
@@ -172,7 +163,7 @@ void omxComputeEstimateHessian::omxEstimateHessianOffDiagonal(int i, int l, stru
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
-		Haprox[k] = (f1 - 2.0 * f0 + f2 - hessian[i*numParams+i]*iOffset*iOffset -
+		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 						hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
 		if(OMX_DEBUG) {Rprintf("Hessian first off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f).\n", Haprox[k], iOffset, lOffset, f1, hessian[i*numParams+i], hessian[l*numParams+l], v, k, pow(v, k), stepSize*optima[i], stepSize*optima[l]);}
 
@@ -238,15 +229,22 @@ void omxComputeEstimateHessian::doHessianCalculation(int numChildren, struct hes
 	Free(offDiags);
 }
 
-omxComputeEstimateHessian::omxComputeEstimateHessian() :
-	stepSize(.0001),
-	numIter(4),
-	stdErrors(NULL)
+void omxComputeEstimateHessian::init()
 {
+	stepSize = .0001;
+	numIter = 4;
+	stdErrors = NULL;
 }
 
-omxComputeEstimateHessian::~omxComputeEstimateHessian()
+omxComputeEstimateHessian::omxComputeEstimateHessian()
 {
+	init();
+}
+
+omxComputeEstimateHessian::omxComputeEstimateHessian(omxMatrix *fitMat)
+{
+	init();
+	this->fitMat = fitMat;
 }
 
 class omxCompute *newComputeEstimateHessian()
@@ -265,6 +263,9 @@ void omxComputeEstimateHessian::compute()
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = globalState->numChildren;
+
+	omxRecompute(fitMat);
+	minimum = omxMatrixElement(fitMat, 0, 0);
 
 	struct hess_struct* hess_work;
 	if (numChildren < 2) {
