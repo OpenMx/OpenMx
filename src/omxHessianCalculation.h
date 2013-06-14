@@ -23,6 +23,9 @@
 void omxEstimateHessian(double functionPrecision, int r);
 
 class omxComputeEstimateHessian : public omxCompute {
+	SEXP calculatedHessian;
+	SEXP stdErrors;
+
  public:
         virtual void initFromFrontend(SEXP rObj) {};
         virtual void setStartValues(SEXP startVals) {};

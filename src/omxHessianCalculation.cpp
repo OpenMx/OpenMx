@@ -36,6 +36,7 @@
 #include "omxOpenmpWrap.h"
 #include "omxHessianCalculation.h"
 #include "omxGlobalState.h"
+#include "omxExportBackendState.h"
 
 struct hess_struct {
 	int     numParams;
@@ -331,8 +332,27 @@ class omxCompute *newComputeEstimateHessian()
 
 void omxComputeEstimateHessian::compute()
 {
+	int n = globalState->numFreeParams;
+
+	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
+	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1));
+
+	omxEstimateHessian(.0001, 4);
+	if(globalState->calculateStdErrors) {
+		if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
+		omxFitFunction* oo = globalState->fitMatrix->fitFunction;
+		omxCalculateStdErrorFromHessian(2.0, oo);
+	}
+
+	omxPopulateHessians(globalState->numHessians, globalState->fitMatrix, 
+			    calculatedHessian, stdErrors, globalState->calculateStdErrors, n);
 }
 
-void omxComputeEstimateHessian::reportResults(MxRList *out)
+void omxComputeEstimateHessian::reportResults(MxRList *result)
 {
+	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
+
+	if (globalState->calculateStdErrors) {
+		result->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
+	}
 }
