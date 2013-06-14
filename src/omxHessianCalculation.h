@@ -33,12 +33,12 @@ class omxComputeEstimateHessian : public omxCompute {
 	SEXP calculatedHessian;
 	SEXP stdErrors;
 
-	void omxCalculateStdErrorFromHessian(double scale, int numParams);
 	void doHessianCalculation(int numParams, int numChildren, 
 				  struct hess_struct *hess_work, omxState* parentState);
 
  public:
 	omxComputeEstimateHessian();
+	virtual ~omxComputeEstimateHessian();
 
         virtual void initFromFrontend(SEXP rObj) {};
         virtual void setStartValues(SEXP startVals) {};

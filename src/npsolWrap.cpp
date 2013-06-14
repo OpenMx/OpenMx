@@ -335,6 +335,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian();
 		eh->compute();
 		eh->reportResults(&result);
+		delete eh;
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */

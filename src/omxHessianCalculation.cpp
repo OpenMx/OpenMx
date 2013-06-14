@@ -271,52 +271,8 @@ omxComputeEstimateHessian::omxComputeEstimateHessian() :
 {
 }
 
-void omxComputeEstimateHessian::omxCalculateStdErrorFromHessian(double scale, int numParams)
+omxComputeEstimateHessian::~omxComputeEstimateHessian()
 {
-	// This function calculates the standard errors from the hessian matrix
-	// sqrt(diag(solve(hessian)))
-
-	double* hessian = this->hessian;
-	double* workspace = (double *) Calloc(numParams * numParams, double);
-	
-	for(int i = 0; i < numParams; i++)
-		for(int j = 0; j <= i; j++)
-			workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
-	
-	char u = 'U';
-	int ipiv[numParams];  //don't stack allocate TODO
-	int lwork = -1;
-	double temp;
-	int info = 0;
-	
-	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
-	
-	lwork = (temp > numParams?temp:numParams);
-	
-	double* work = (double*) Calloc(lwork, double);
-	
-	F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
-	
-	if(info != 0) {
-		// report error TODO
-	} else {
-		
-		F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
-	
-		if(info != 0) {
-			// report error TODO
-		} else {
-			this->stdError = (double*) R_alloc(numParams, sizeof(double));
-			double* stdErr = this->stdError;
-			for(int i = 0; i < numParams; i++) {
-				stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
-			}
-		}
-	}
-	
-	Free(workspace);
-	Free(work);
-	
 }
 
 class omxCompute *newComputeEstimateHessian()
@@ -373,7 +329,50 @@ void omxComputeEstimateHessian::compute()
 	memcpy(REAL(calculatedHessian), hessian, sizeof(double) * numParams * numParams);
 
 	if (globalState->calculateStdErrors) {
-		this->omxCalculateStdErrorFromHessian(2.0, numParams);
+		// This function calculates the standard errors from the hessian matrix
+		// sqrt(diag(solve(hessian)))
+
+		const double scale = 2;
+		double* workspace = (double *) Calloc(numParams * numParams, double);
+	
+		for(int i = 0; i < numParams; i++)
+			for(int j = 0; j <= i; j++)
+				workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
+	
+		char u = 'U';
+		int *ipiv = new int[numParams];
+		int lwork = -1;
+		double temp;
+		int info = 0;
+	
+		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
+	
+		lwork = (temp > numParams?temp:numParams);
+	
+		double* work = (double*) Calloc(lwork, double);
+	
+		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
+	
+		if(info != 0) {
+			// report error TODO
+		} else {
+			F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
+	
+			if(info != 0) {
+				// report error TODO
+			} else {
+				this->stdError = (double*) R_alloc(numParams, sizeof(double));
+				double* stdErr = this->stdError;
+				for(int i = 0; i < numParams; i++) {
+					stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
+				}
+			}
+		}
+	
+		delete ipiv;
+		Free(workspace);
+		Free(work);
+
 		if (stdError) {
 			memcpy(REAL(stdErrors), stdError, sizeof(double) * numParams);
 		}
