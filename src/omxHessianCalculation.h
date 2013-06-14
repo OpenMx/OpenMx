@@ -23,6 +23,9 @@
 void omxEstimateHessian(double functionPrecision, int r);
 
 class omxComputeEstimateHessian : public omxCompute {
+	const double stepSize;
+	const int numIter;
+
 	double *hessian;
 	double *gradient;
 	double *stdError;
@@ -31,11 +34,12 @@ class omxComputeEstimateHessian : public omxCompute {
 	SEXP stdErrors;
 
 	void omxCalculateStdErrorFromHessian(double scale, int numParams);
-	void omxEstimateHessian(double functionPrecision, int r);
 	void doHessianCalculation(int numParams, int numChildren, 
 				  struct hess_struct *hess_work, omxState* parentState);
 
  public:
+	omxComputeEstimateHessian();
+
         virtual void initFromFrontend(SEXP rObj) {};
         virtual void setStartValues(SEXP startVals) {};
         virtual void compute();

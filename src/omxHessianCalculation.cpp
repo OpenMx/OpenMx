@@ -14,6 +14,14 @@
  *  limitations under the License.
  */
 
+/**
+ * Based on:
+ *
+ * Paul Gilbert and Ravi Varadhan (2012). numDeriv: Accurate Numerical Derivatives. R package
+ * version 2012.9-1. http://CRAN.R-project.org/package=numDeriv
+ *
+ **/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -49,7 +57,7 @@ struct hess_struct {
 	int r;
 };
 
-void omxPopulateHessianWork(struct hess_struct *hess_work, 
+static void omxPopulateHessianWork(struct hess_struct *hess_work, 
 	double functionPrecision, int r, omxState* state,
 	omxState *parentState) {
 
@@ -85,7 +93,7 @@ void omxPopulateHessianWork(struct hess_struct *hess_work,
   @params gradient       shared write-only variable
   @params hessian        shared write-only variable
  */
-void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work, 
+static void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work, 
 	double *optima, double *gradient, double *hessian) {
 
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
@@ -145,7 +153,7 @@ void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work,
 
 }
 
-void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work, 
+static void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work, 
 	double *optima, double *gradient, double *hessian) {
 
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
@@ -256,48 +264,11 @@ void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChild
 	Free(offDiags);
 }
 
-void omxComputeEstimateHessian::omxEstimateHessian(double functionPrecision, int r)
+omxComputeEstimateHessian::omxComputeEstimateHessian() :
+	stepSize(.0001),
+	numIter(4),
+	stdError(NULL)
 {
-	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
-	// TODO: Allow more than one hessian value for calculation
-
-	int numChildren = globalState->numChildren;
-	int numParams = globalState->numFreeParams;
-	int i;
-
-    struct hess_struct* hess_work;
-	if (numChildren < 2) {
-		hess_work = Calloc(1, struct hess_struct);
-		omxPopulateHessianWork(hess_work, functionPrecision, r, globalState, globalState);
-	} else {
-		hess_work = Calloc(numChildren, struct hess_struct);
-		for(int i = 0; i < numChildren; i++) {
-			omxPopulateHessianWork(hess_work + i, functionPrecision, r, globalState->childList[i], globalState);
-		}
-	}
-	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);
-
-	this->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
-
-	this->gradient = (double*) R_alloc(numParams, sizeof(double));
-  
-	this->doHessianCalculation(numParams, numChildren, hess_work, globalState);
-
-	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
-
-	if (numChildren < 2) {
-		Free(hess_work->Haprox);
-		Free(hess_work->Gaprox);
-		Free(hess_work->freeParams);
-	    Free(hess_work);
-	} else {
-		for(i = 0; i < numChildren; i++) {
-			Free((hess_work + i)->Haprox);
-			Free((hess_work + i)->Gaprox);
-			Free((hess_work + i)->freeParams);
-		}
-		Free(hess_work);
-	}
 }
 
 void omxComputeEstimateHessian::omxCalculateStdErrorFromHessian(double scale, int numParams)
@@ -355,18 +326,56 @@ class omxCompute *newComputeEstimateHessian()
 
 void omxComputeEstimateHessian::compute()
 {
-	int n = globalState->numFreeParams;
+	int numParams = globalState->numFreeParams;
 
-	PROTECT(calculatedHessian = allocMatrix(REALSXP, n, n));
-	PROTECT(stdErrors = allocMatrix(REALSXP, n, 1));
+	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
+	PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
 
-	omxEstimateHessian(.0001, 4);
-	memcpy(REAL(calculatedHessian), hessian, sizeof(double) * n * n);
+	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
+	// TODO: Allow more than one hessian value for calculation
+
+	int numChildren = globalState->numChildren;
+
+	struct hess_struct* hess_work;
+	if (numChildren < 2) {
+		hess_work = Calloc(1, struct hess_struct);
+		omxPopulateHessianWork(hess_work, stepSize, numIter, globalState, globalState);
+	} else {
+		hess_work = Calloc(numChildren, struct hess_struct);
+		for(int i = 0; i < numChildren; i++) {
+			omxPopulateHessianWork(hess_work + i, stepSize, numIter, globalState->childList[i], globalState);
+		}
+	}
+	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);
+
+	this->hessian = (double*) R_alloc(numParams * numParams, sizeof(double));
+
+	this->gradient = (double*) R_alloc(numParams, sizeof(double));
+  
+	this->doHessianCalculation(numParams, numChildren, hess_work, globalState);
+
+	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
+
+	if (numChildren < 2) {
+		Free(hess_work->Haprox);
+		Free(hess_work->Gaprox);
+		Free(hess_work->freeParams);
+	    Free(hess_work);
+	} else {
+		for(int i = 0; i < numChildren; i++) {
+			Free((hess_work + i)->Haprox);
+			Free((hess_work + i)->Gaprox);
+			Free((hess_work + i)->freeParams);
+		}
+		Free(hess_work);
+	}
+
+	memcpy(REAL(calculatedHessian), hessian, sizeof(double) * numParams * numParams);
 
 	if (globalState->calculateStdErrors) {
-		this->omxCalculateStdErrorFromHessian(2.0, n);
+		this->omxCalculateStdErrorFromHessian(2.0, numParams);
 		if (stdError) {
-			memcpy(REAL(stdErrors), stdError, sizeof(double) * n);
+			memcpy(REAL(stdErrors), stdError, sizeof(double) * numParams);
 		}
 	}
 }
