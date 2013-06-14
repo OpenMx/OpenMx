@@ -26,14 +26,18 @@ class omxComputeEstimateHessian : public omxCompute {
 	const double stepSize;
 	const int numIter;
 
-	double *hessian;
+	int numParams;
+	double *optima;
 	double *gradient;
+	double *hessian;
 
 	SEXP calculatedHessian;
 	SEXP stdErrors;
 
-	void doHessianCalculation(int numParams, int numChildren, 
-				  struct hess_struct *hess_work);
+	void omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state);
+	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
+	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
+	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
 
  public:
 	omxComputeEstimateHessian();
