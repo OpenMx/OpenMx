@@ -33,7 +33,7 @@ class omxComputeEstimateHessian : public omxCompute {
 	SEXP stdErrors;
 
 	void doHessianCalculation(int numParams, int numChildren, 
-				  struct hess_struct *hess_work, omxState* parentState);
+				  struct hess_struct *hess_work);
 
  public:
 	omxComputeEstimateHessian();

@@ -148,9 +148,6 @@ struct omxState {
 	/* Saved Optimum State */ // TODO: Rename saved optimum state
 	double* optimalValues;											// Values of the free parameters at the optimum value
 	double optimum;													// Fit function value at last saved optimum
-	double* hessian;												// Current hessian storage
-	int optimumStatus;												// Optimizer status of last saved optimum (0=converged, 1=green, -1=error, >1=red)
-	char optimumMsg[MAX_STRING_LEN];											// Status message of last saved optimum
 
 /* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
@@ -168,7 +165,6 @@ struct omxState {
 	int inform, iter;													// Status code, if appropriate
 	int statusCode;
 	char statusMsg[MAX_STRING_LEN];											// Status/Error message to report
-	double saturatedModel;											// Saturated model likelihood, where applicable
 	int analyticGradients;
 };
 

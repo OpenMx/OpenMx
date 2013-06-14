@@ -216,13 +216,11 @@ static void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess
 }
 
 void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChildren, 
-	struct hess_struct *hess_work, omxState* parentState)
+	struct hess_struct *hess_work)
 {
 	int i,j;
 
-	double* parent_gradient = this->gradient;
-	double* parent_hessian = this->hessian;
-	double* parent_optima = parentState->optimalValues;
+	double* parent_optima = globalState->optimalValues;
 
 	int numOffDiagonal = (numParams * (numParams - 1)) / 2;
 	int *diags = Calloc(numOffDiagonal, int);
@@ -249,15 +247,14 @@ void omxComputeEstimateHessian::doHessianCalculation(int numParams, int numChild
 	for(i = 0; i < numParams; i++) {
 		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		omxEstimateHessianOnDiagonal(i, hess_work + threadId, 
-			parent_optima, parent_gradient, parent_hessian);
+		parent_optima, gradient, hessian);
 	}
 
 	#pragma omp parallel for num_threads(parallelism) 
 	for(offset = 0; offset < numOffDiagonal; offset++) {
 		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		omxEstimateHessianOffDiagonal(diags[offset], offDiags[offset],
-			hess_work + threadId, parent_optima, parent_gradient,
-			parent_hessian);
+			hess_work + threadId, parent_optima, gradient, hessian);
 	}
 
 	Free(diags);
@@ -307,7 +304,7 @@ void omxComputeEstimateHessian::compute()
 
 	this->gradient = (double*) R_alloc(numParams, sizeof(double));
   
-	this->doHessianCalculation(numParams, numChildren, hess_work, globalState);
+	this->doHessianCalculation(numParams, numChildren, hess_work);
 
 	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
 

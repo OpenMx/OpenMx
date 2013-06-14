@@ -41,7 +41,6 @@
 		state->expectationList = NULL;
 		state->parentState = parentState;
 		state->fitMatrix = NULL;
-		state->hessian = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
 		state->optimalValues = NULL;
@@ -144,7 +143,6 @@
 		tgt->childList 			= NULL;
 
 		tgt->fitMatrix	= omxLookupDuplicateElement(tgt, src->fitMatrix);
-		tgt->hessian 			= src->hessian;
 
 		tgt->numFreeParams			= src->numFreeParams;
 		tgt->freeVarList 		= new omxFreeVar[tgt->numFreeParams];
@@ -309,8 +307,6 @@
 			os->optimalValues[i] = freeVals[i];
 		}
 		os->optimum = minimum;
-		os->optimumStatus = os->statusCode;
-		strncpy(os->optimumMsg, os->statusMsg, 250);
 	}
 
 	void omxResetStatus(omxState *state) {
@@ -426,16 +422,6 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 					for(int j = 0; j < os->numFreeParams; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
-					}
-
-					double* hessian = os->hessian;
-					if(hessian != NULL) {
-						for(int j = 0; j < os->numFreeParams; j++) {
-							for(int k = 0; k <= j; k++) {
-								sprintf(tempstring, " %9.5f", hessian[j]);
-								strncat(os->chkptText2, tempstring, 14);
-							}
-						}
 					}
 				}
 
