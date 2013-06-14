@@ -117,11 +117,10 @@ struct omxConfidenceInterval {		// For Confidence interval request
 
 #define MAX_STRING_LEN 250
 
-struct omxState {													// The Current State of Optimization
+struct omxState {
+	int numHessians;
+	int calculateStdErrors;
 
-/* Model and Optimizer Pointers */
-
-//	omxOptimizer* optimizer;										// Current Optimizer
 	int numThreads;
 	int numAlgs, numExpects, numChildren;
 	std::vector< omxMatrix* > matrixList;

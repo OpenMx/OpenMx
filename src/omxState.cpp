@@ -29,6 +29,8 @@
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
+		state->numHessians = 0;
+		state->calculateStdErrors = FALSE;
 		state->numAlgs = 0;
 		state->numExpects = 0;
 		state->numConstraints = 0;

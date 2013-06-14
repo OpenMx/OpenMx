@@ -24,5 +24,6 @@
 typedef struct omxState omxState;
 typedef struct omxFitFunction omxFitFunction;
 typedef std::vector< std::pair<SEXP, SEXP> > MxRList;
+class omxCompute;
 
 #endif

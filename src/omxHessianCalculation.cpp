@@ -14,18 +14,19 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <errno.h>
+
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+
 #include "omxDefines.h"
 #include "npsolWrap.h"
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -33,6 +34,8 @@
 #include "omxNPSOLSpecific.h"
 #include "omxOptimizer.h"
 #include "omxOpenmpWrap.h"
+#include "omxHessianCalculation.h"
+#include "omxGlobalState.h"
 
 struct hess_struct {
 	int     numParams;
@@ -267,16 +270,13 @@ void doHessianCalculation(int numParams, int numChildren,
  *  @params currentState		the current omxState
  *
  ************************************************************************************/
-unsigned short omxEstimateHessian(int numHessians, double functionPrecision, int r, omxState* parentState) {
+void omxEstimateHessian(double functionPrecision, int r)
+{
+	omxState* parentState = globalState;
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
 
-	if(numHessians > 1) {
-		error("NYI: Cannot yet calculate more than a single hessian per optimization.\n");
-	}
-
-	if(numHessians == 0) return FALSE;
 	int numChildren = parentState->numChildren;
 	int numParams = parentState->numFreeParams;
 	int i;
@@ -322,6 +322,17 @@ unsigned short omxEstimateHessian(int numHessians, double functionPrecision, int
 		}
 		Free(hess_work);
 	}
-	return TRUE;
+}
 
+class omxCompute *newComputeEstimateHessian()
+{
+	return new omxComputeEstimateHessian;
+}
+
+void omxComputeEstimateHessian::compute()
+{
+}
+
+void omxComputeEstimateHessian::reportResults(MxRList *out)
+{
 }

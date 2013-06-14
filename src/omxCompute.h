@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2013 The OpenMx Project
+ *  Copyright 2013 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,23 +14,24 @@
  *  limitations under the License.
  */
 
-#ifndef _OMXHESSIAN_CALCULATION_H
-#define _OMXHESSIAN_CALCULATION_H
+#ifndef _OMX_COMPUTE_H_
+#define _OMX_COMPUTE_H_
+
+#include <R.h>
+#include <Rinternals.h>
 
 #include "types.h"
-#include "omxCompute.h"
 
-void omxEstimateHessian(double functionPrecision, int r);
-
-class omxComputeEstimateHessian : public omxCompute {
+class omxCompute {
  public:
-        virtual void initFromFrontend(SEXP rObj) {};
-        virtual void setStartValues(SEXP startVals) {};
-        virtual void compute();
-        virtual void saveState() {};
-        virtual void reportResults(MxRList *out);
+        virtual void initFromFrontend(SEXP rObj) = 0;
+        virtual void setStartValues(SEXP startVals) = 0;
+        virtual void compute() = 0;
+        virtual void saveState() = 0;
+        virtual void reportResults(MxRList *out) = 0;
+        virtual ~omxCompute() {}
 };
 
-class omxCompute *newComputeEstimateHessian();
+class omxCompute *omxNewCompute(omxState* os, const char *type);
 
-#endif // _OMXHESSIAN_CALCULATION_H
+#endif

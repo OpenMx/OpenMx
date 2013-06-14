@@ -188,8 +188,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	SEXP nextLoc;
 
-	int calculateStdErrors = FALSE;
-	int numHessians = 0;
 	int ciMaxIterations = 5;
 	int disableOptimizer = 0;
 	int numThreads = 1;
@@ -203,14 +201,15 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	omxManageProtectInsanity protectManager;
 
-	/* 	Set NPSOL options */
-	omxSetNPSOLOpts(options, &numHessians, &calculateStdErrors, 
-		&ciMaxIterations, &disableOptimizer, &numThreads, 
-		&analyticGradients, length(startVals));
-
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
 	omxInitState(globalState, NULL);
+
+	/* 	Set NPSOL options */
+	omxSetNPSOLOpts(options, &globalState->numHessians, &globalState->calculateStdErrors, 
+		&ciMaxIterations, &disableOptimizer, &numThreads, 
+		&analyticGradients, length(startVals));
+
 	globalState->numThreads = numThreads;
 	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
@@ -331,26 +330,18 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	SET_STRING_ELT(statusMsg, 0, mkChar(globalState->statusMsg));
 	SET_VECTOR_ELT(status, 2, statusMsg);
 
-	if(numHessians && globalState->fitMatrix != NULL && globalState->optimumStatus >= 0) {		// No hessians or standard errors if the optimum is invalid
-		if(globalState->numConstraints == 0) {
-			if(OMX_DEBUG) { Rprintf("Calculating Hessian for Fit Function.\n");}
-			int gotHessians = omxEstimateHessian(numHessians, .0001, 4, globalState);
-			if(gotHessians) {
-				if(calculateStdErrors) {
-					for(int j = 0; j < numHessians; j++) {		//TODO: Fix Hessian calculation to allow more if requested
-						if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
-						omxFitFunction* oo = globalState->fitMatrix->fitFunction;
-						omxCalculateStdErrorFromHessian(2.0, oo);
-					}
-				}
-			} else {
-				numHessians = 0;
-			}
-		} else {
-			numHessians = 0;
+	MxRList result;
+
+	if (globalState->numHessians && globalState->fitMatrix != NULL && globalState->optimumStatus >= 0 &&
+	    globalState->numConstraints == 0) {
+		omxEstimateHessian(.0001, 4);
+		if(globalState->calculateStdErrors) {
+			if(OMX_DEBUG) { Rprintf("Calculating Standard Errors for Fit Function.\n");}
+			omxFitFunction* oo = globalState->fitMatrix->fitFunction;
+			omxCalculateStdErrorFromHessian(2.0, oo);
 		}
 	} else {
-		numHessians = 0;
+		globalState->numHessians = 0;
 	}
 
 	/* Likelihood-based Confidence Interval Calculation */
@@ -364,13 +355,11 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
-	MxRList result;
-
 	omxPopulateFitFunction(globalState, &result);
 
-	if(numHessians) {
-		omxPopulateHessians(numHessians, globalState->fitMatrix, 
-			calculatedHessian, stdErrors, calculateStdErrors, n);
+	if (globalState->numHessians) {
+		omxPopulateHessians(globalState->numHessians, globalState->fitMatrix, 
+				    calculatedHessian, stdErrors, globalState->calculateStdErrors, n);
 	}
 
 	if(globalState->numIntervals) {	// Populate CIs
@@ -392,10 +381,10 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	result.push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
 	result.push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
 
-	if (numHessians != 0) {
+	if (globalState->numHessians != 0) {
 		result.push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 	}
-	if (calculateStdErrors) {
+	if (globalState->calculateStdErrors) {
 		result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 	}
 
