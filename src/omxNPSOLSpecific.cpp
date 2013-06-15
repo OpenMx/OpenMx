@@ -446,10 +446,10 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
 			char *message = Calloc(msgLength, char);
  
 			if (currentCI->matrix->name == NULL) {
-				sprintf(message, "%s[%d, %d] begin lower interval",
+				snprintf(message, msgLength, "%s[%d, %d] begin lower interval",
 					anonMatrix, currentCI->row + 1, currentCI->col + 1);
 			} else {
-				sprintf(message, "%s[%d, %d] begin lower interval",
+				snprintf(message, msgLength, "%s[%d, %d] begin lower interval",
 					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
@@ -506,10 +506,10 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
             // TODO: Repopulate original optimizer state in between CI calculations
 
 			if (currentCI->matrix->name == NULL) {
-				sprintf(message, "%s[%d, %d] begin upper interval", 
+				snprintf(message, msgLength, "%s[%d, %d] begin upper interval", 
 					anonMatrix, currentCI->row + 1, currentCI->col + 1);
 			} else {
-				sprintf(message, "%s[%d, %d] begin upper interval",
+				snprintf(message, msgLength, "%s[%d, %d] begin upper interval",
 					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
