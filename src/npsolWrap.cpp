@@ -251,9 +251,10 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
+	omxMatrix *fitMatrix = NULL;
 	if(!isNull(fitfunction)) {
 		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
-		globalState->fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
+		fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
 	}
 	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 	
@@ -283,7 +284,8 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	// doesn't need to be copied to child states.
 	cacheFreeVarDependencies(globalState);
 
-	omxFitFunctionCreateChildren(globalState, numThreads);
+	if (fitMatrix && fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
+		omxFitFunctionCreateChildren(globalState, numThreads);
 
 	int n = globalState->numFreeParams;
 
@@ -295,7 +297,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if (n>0) { memcpy(REAL(estimate), REAL(startVals), sizeof(double)*n); }
 	
-	omxInvokeNPSOL(globalState->fitMatrix, REAL(minimum), REAL(estimate),
+	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
 		       REAL(gradient), REAL(hessian), disableOptimizer);
 
 	SEXP code, status, statusMsg, iterations;
@@ -330,9 +332,9 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	MxRList result;
 
-	if (globalState->numHessians && globalState->fitMatrix != NULL && globalState->statusCode >= 0 &&
+	if (globalState->numHessians && fitMatrix != NULL && globalState->statusCode >= 0 &&
 	    globalState->numConstraints == 0) {
-		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(globalState->fitMatrix);
+		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(fitMatrix);
 		eh->compute();
 		eh->reportResults(&result);
 		delete eh;
@@ -340,7 +342,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
-		omxNPSOLConfidenceIntervals(globalState->fitMatrix, REAL(minimum), REAL(estimate),
+		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum), REAL(estimate),
 					    REAL(gradient), REAL(hessian), ciMaxIterations);
 	}  
 
@@ -349,7 +351,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
-	omxPopulateFitFunction(globalState, &result);
+	if (fitMatrix) omxPopulateFitFunction(fitMatrix, &result);
 
 	if(globalState->numIntervals) {	// Populate CIs
 		omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);

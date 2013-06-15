@@ -40,7 +40,6 @@
 		state->algebraList = NULL;
 		state->expectationList = NULL;
 		state->parentState = parentState;
-		state->fitMatrix = NULL;
 		state->conList = NULL;
 		state->freeVarList = NULL;
 		state->optimalValues = NULL;
@@ -141,8 +140,6 @@
 		}
 
 		tgt->childList 			= NULL;
-
-		tgt->fitMatrix	= omxLookupDuplicateElement(tgt, src->fitMatrix);
 
 		tgt->numFreeParams			= src->numFreeParams;
 		tgt->freeVarList 		= new omxFreeVar[tgt->numFreeParams];

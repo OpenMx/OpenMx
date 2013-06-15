@@ -131,8 +131,7 @@ struct omxState {
 	omxState* parentState;											// Parent State
 	std::vector<int> markMatrices;
 
-                                                                    // TODO: Need a way to deal with unregistered matrices that have free vars
-	omxMatrix* fitMatrix;											// Fit Function Algebra
+	// TODO: Need a way to deal with unregistered matrices that have free vars
 
 	/* May want to farm these out to the omxFitFunction object. */
 	int numConstraints;

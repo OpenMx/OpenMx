@@ -70,11 +70,8 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 	}
 }
 
-void omxPopulateFitFunction(omxState *currentState, MxRList *result)
+void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
 {
-	omxMatrix* om = currentState->fitMatrix;
-	if (om == NULL) return;
-
 	omxFitFunction* off = om->fitFunction;
 	if (off == NULL || off->setFinalReturns == NULL) return;
 

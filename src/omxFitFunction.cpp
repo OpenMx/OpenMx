@@ -80,12 +80,6 @@ void omxFitFunctionCreateChildren(omxState *globalState, int numThreads)
 {
 	if (numThreads <= 1) return;
 
-	omxMatrix *fm = globalState->fitMatrix;
-	if (!fm) return;
-
-	omxFitFunction *ff = fm->fitFunction;
-	if (!ff->usesChildModels) return;
-
 	globalState->numChildren = numThreads;
 
 	globalState->childList = (omxState**) Calloc(numThreads, omxState*);
