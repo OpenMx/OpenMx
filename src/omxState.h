@@ -138,15 +138,10 @@ struct omxState {
 	int nclin, ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 	int numIntervals;
-	int currentInterval;											// The interval currently being calculated
 	omxConfidenceInterval* intervalList;							// List of confidence intervals requested
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
-
-	/* Saved Optimum State */ // TODO: Rename saved optimum state
-	double* optimalValues;											// Values of the free parameters at the optimum value
-	double optimum;													// Fit function value at last saved optimum
 
 /* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
@@ -171,10 +166,6 @@ struct omxState {
 	void omxInitState(omxState* state, omxState *parentState);
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
 	void omxFreeState(omxState *state);									// Destructor
-	void omxSaveState(omxState *os, double* freeVals, double minimum);	// Saves the current optimization values //TODO: Rename omxSaveState.
-	void omxUpdateState(omxState* tgt, omxState* src, int copyStatus);	// Updates the tgt state with the contents of src state
-	void omxPartialUpdateState(omxState* tgt, omxState* src, omxMatrix *tgtMatrix,
-                               omxMatrix *srcMatrix, int copyStatus);    // Updates the tgt state with the contents of src state ONLY for the specific matrix and its dependencies
 	void omxDuplicateState(omxState *tgt, omxState* src); 
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
@@ -186,7 +177,7 @@ struct omxState {
 	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
-void omxRaiseError(omxState *state, int errorCode, const char* errorMsg);
+void omxRaiseError(omxState *state, int errorCode, const char* errorMsg); // DEPRECATED
 void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 																		// TODO: Move RaiseError to omxOptimizer.
 

@@ -315,8 +315,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
 	PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
 
-	omxSaveState(globalState, REAL(estimate), REAL(minimum)[0]);
-
 	REAL(code)[0] = globalState->inform;
 	REAL(iterations)[0] = globalState->iter;
 	REAL(evaluations)[0] = globalState->computeCount;
@@ -334,7 +332,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if (globalState->numHessians && fitMatrix != NULL && globalState->statusCode >= 0 &&
 	    globalState->numConstraints == 0) {
-		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(fitMatrix);
+		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(fitMatrix, REAL(estimate));
 		eh->compute();
 		eh->reportResults(&result);
 		delete eh;
@@ -342,13 +340,14 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
-		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum), REAL(estimate),
+		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum)[0], REAL(estimate),
 					    REAL(gradient), REAL(hessian), ciMaxIterations);
 	}  
 
 	// What if fitfunction has its own repopulateFun? TODO
-	handleFreeVarListHelper(globalState, globalState->optimalValues, n);
+	handleFreeVarListHelper(globalState, REAL(estimate), n);
 
+	// Is this needed if omxNPSOLConfidenceIntervals is skipped?
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
 
 	if (fitMatrix) omxPopulateFitFunction(fitMatrix, &result);

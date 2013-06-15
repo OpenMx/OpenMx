@@ -42,8 +42,6 @@
 		state->parentState = parentState;
 		state->conList = NULL;
 		state->freeVarList = NULL;
-		state->optimalValues = NULL;
-		state->optimum = 9999999999;
 
 		state->majorIteration = 0;
 		state->minorIteration = 0;
@@ -53,8 +51,6 @@
 		state->checkpointList = NULL;
 		state->chkptText1 = NULL;
 		state->chkptText2 = NULL;
-
-        state->currentInterval = -1;
 
 		state->computeCount = -1;
 		state->currentRow = -1;
@@ -160,9 +156,6 @@
 			}
 		}
 		
-		tgt->optimalValues 		= src->optimalValues;
-		tgt->optimum 			= 9999999999;
-                                  
 		tgt->majorIteration 	= 0;
 		tgt->minorIteration 	= 0;
 		tgt->startTime 			= src->startTime;
@@ -295,17 +288,6 @@
 		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
 	}
 
-	void omxSaveState(omxState *os, double* freeVals, double minimum) {
-		if(os->optimalValues == NULL) {
-			os->optimalValues = (double*) R_alloc(os->numFreeParams, sizeof(double));
-		}
-
-		for(int i = 0; i < os->numFreeParams; i++) {
-			os->optimalValues[i] = freeVals[i];
-		}
-		os->optimum = minimum;
-	}
-
 	void omxResetStatus(omxState *state) {
 		int numChildren = state->numChildren;
 		state->statusCode = 0;
@@ -331,7 +313,7 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 	state->statusCode = -1;  // this provides no additional information beyond errorMsg[0]!=0 TODO
 }
 
-	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) {
+	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) { // DEPRECATED
 		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
 		state->statusCode = errorCode;

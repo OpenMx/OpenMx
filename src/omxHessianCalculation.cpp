@@ -234,6 +234,7 @@ void omxComputeEstimateHessian::init()
 	stepSize = .0001;
 	numIter = 4;
 	stdErrors = NULL;
+	optima = NULL;
 }
 
 omxComputeEstimateHessian::omxComputeEstimateHessian()
@@ -241,10 +242,11 @@ omxComputeEstimateHessian::omxComputeEstimateHessian()
 	init();
 }
 
-omxComputeEstimateHessian::omxComputeEstimateHessian(omxMatrix *fitMat)
+omxComputeEstimateHessian::omxComputeEstimateHessian(omxMatrix *fitMat, double *at)
 {
 	init();
 	this->fitMat = fitMat;
+	optima = at;
 }
 
 class omxCompute *newComputeEstimateHessian()
@@ -254,7 +256,6 @@ class omxCompute *newComputeEstimateHessian()
 
 void omxComputeEstimateHessian::compute()
 {
-	optima = globalState->optimalValues;
 	numParams = globalState->numFreeParams;
 
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));

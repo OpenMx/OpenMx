@@ -34,6 +34,7 @@ const double INF = 2e20;
 
 const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
+static int NPSOL_currentInterval = -1;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -72,7 +73,7 @@ void F77_SUB(npsolObjectiveFunction)
 
 	fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
 
-	if (*mode > 0 && globalState->analyticGradients && globalState->currentInterval < 0) {
+	if (*mode > 0 && globalState->analyticGradients && NPSOL_currentInterval < 0) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
@@ -105,11 +106,11 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", globalState->currentInterval, (globalState->intervalList[globalState->currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (globalState->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxConfidenceInterval *oCI = &(globalState->intervalList[globalState->currentInterval]);
+		omxConfidenceInterval *oCI = &(globalState->intervalList[NPSOL_currentInterval]);
 		
 		omxRecompute(oCI->matrix);
 		
@@ -360,10 +361,9 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
 }
  
  
-void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
 				 double *g, double *R, int ciMaxIterations)
 {
- 
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 
@@ -380,6 +380,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
     int n = globalState->numFreeParams;
+    double f = optimum;
+    std::vector< double > x(n, *optimalValues);
+
     inform = globalState->inform;
  
     /* NPSOL Arguments */
@@ -455,11 +458,11 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
  
 			omxWriteCheckpointMessage(globalState, message);
  
-            memcpy(x, globalState->optimalValues, n * sizeof(double)); // Reset to previous optimum
-            globalState->currentInterval = i;
+			memcpy(x.data(), optimalValues, n * sizeof(double)); // Reset to previous optimum
+			NPSOL_currentInterval = i;
 
-            currentCI->lbound += globalState->optimum;          // Convert from offsets to targets
-            currentCI->ubound += globalState->optimum;          // Convert from offsets to targets
+            currentCI->lbound += optimum;          // Convert from offsets to targets
+            currentCI->ubound += optimum;          // Convert from offsets to targets
  
             /* Set up for the lower bound */
             inform = -1;
@@ -472,13 +475,13 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
                 currentCI->calcLower = TRUE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-                    clambda, f, g, R, x, iw, &leniw, w, &lenw);
+				clambda, &f, g, R, x.data(), iw, &leniw, w, &lenw);
  
                 currentCI->lCode = inform;
-                if(*f < value) {
+                if(f < value) {
                     currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                    value = *f;
-					omxSaveCheckpoint(globalState, x, f, TRUE);
+                    value = f;
+		    omxSaveCheckpoint(globalState, x.data(), &f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -489,14 +492,14 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
                 if(inform != 0) {
                     unsigned int jitter = TRUE;
                     for(int j = 0; j < n; j++) {
-                        if(fabs(x[j] - globalState->optimalValues[j]) > objDiff) {
+                        if(fabs(x[j] - optimalValues[j]) > objDiff) {
                             jitter = FALSE;
                             break;
                         }
                     }
                     if(jitter) {
                         for(int j = 0; j < n; j++) {
-                            x[j] = globalState->optimalValues[j] + objDiff;
+                            x[j] = optimalValues[j] + objDiff;
                         }
                     }
                 }
@@ -517,7 +520,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
  
 			Free(message);
  
-            memcpy(x, globalState->optimalValues, n * sizeof(double));
+			memcpy(x.data(), optimalValues, n * sizeof(double));
  
             /* Reset for the upper bound */
             value = INF;
@@ -529,13 +532,13 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
                 currentCI->calcLower = FALSE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-                                    clambda, f, g, R, x, iw, &leniw, w, &lenw);
+				clambda, &f, g, R, x.data(), iw, &leniw, w, &lenw);
  
                 currentCI->uCode = inform;
-                if(*f < value) {
+                if(f < value) {
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                    value = *f;
-					omxSaveCheckpoint(globalState, x, f, TRUE);
+                    value = f;
+		    omxSaveCheckpoint(globalState, x.data(), &f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -546,14 +549,14 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
                 if(inform != 0) {
                     unsigned int jitter = TRUE;
                     for(int j = 0; j < n; j++) {
-                        if(fabs(x[j] - globalState->optimalValues[j]) > objDiff){
+                        if(fabs(x[j] - optimalValues[j]) > objDiff){
                             jitter = FALSE;
                             break;
                         }
                     }
                     if(jitter) {
                         for(int j = 0; j < n; j++) {
-                            x[j] = globalState->optimalValues[j] + objDiff;
+                            x[j] = optimalValues[j] + objDiff;
                         }
                     }
                 }
@@ -570,6 +573,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double *f, double *x,
     }
 
     NPSOL_fitMatrix = NULL;
+    NPSOL_currentInterval = -1;
 }
  
 static void

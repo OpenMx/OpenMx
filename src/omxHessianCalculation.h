@@ -42,7 +42,7 @@ class omxComputeEstimateHessian : public omxCompute {
 
  public:
 	omxComputeEstimateHessian();
-	omxComputeEstimateHessian(omxMatrix *fitMat);
+	omxComputeEstimateHessian(omxMatrix *fitMat, double *at);
 	//virtual ~omxComputeEstimateHessian();
 
         virtual void initFromFrontend(SEXP rObj) {};
