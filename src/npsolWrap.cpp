@@ -302,7 +302,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	SEXP code, status, statusMsg, iterations;
 	SEXP evaluations, algebras, matrices, expectations;
-	SEXP intervals, intervalCodes;
 
 	PROTECT(code = NEW_NUMERIC(1));
 	PROTECT(status = allocVector(VECSXP, 3));
@@ -311,9 +310,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
-
-	PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
-	PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
 
 	REAL(code)[0] = globalState->inform;
 	REAL(iterations)[0] = globalState->iter;
@@ -340,8 +336,17 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
+		SEXP intervals, intervalCodes;
+
+		PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
+		PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
+
 		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum)[0], REAL(estimate),
 					    ciMaxIterations);
+		omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
+
+		result.push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
+		result.push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
 	}  
 
 	// What if fitfunction has its own repopulateFun? TODO
@@ -352,10 +357,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	if (fitMatrix) omxPopulateFitFunction(fitMatrix, &result);
 
-	if(globalState->numIntervals) {	// Populate CIs
-		omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
-	}
-	
 	REAL(evaluations)[1] = globalState->computeCount;
 
 	result.push_back(std::make_pair(mkChar("minimum"), minimum));
@@ -368,8 +369,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	result.push_back(std::make_pair(mkChar("matrices"), matrices));
 	result.push_back(std::make_pair(mkChar("algebras"), algebras));
 	result.push_back(std::make_pair(mkChar("expectations"), expectations));
-	result.push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
-	result.push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
 
 	/* Free data memory */
 	omxFreeState(globalState);
