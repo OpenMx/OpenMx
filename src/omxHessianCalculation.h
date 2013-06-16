@@ -18,7 +18,7 @@
 #define _OMXHESSIAN_CALCULATION_H
 
 #include "types.h"
-#include "omxCompute.h"
+#include "Compute.h"
 
 class omxComputeEstimateHessian : public omxCompute {
 	double stepSize;

@@ -15,7 +15,7 @@
  */
 
 #include "omxDefines.h"
-#include "omxCompute.h"
+#include "Compute.h"
 #include "omxHessianCalculation.h"
 
 struct omxComputeTableEntry {
