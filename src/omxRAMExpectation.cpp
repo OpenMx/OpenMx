@@ -299,9 +299,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	
 	omxShallowInverse(numIters, A, Z, Ax, I );
 
-	if(OMX_DEBUG_ALGEBRA) Rprintf("Status is %d\n", A->currentState->statusCode);
-	
-    if(A->currentState->statusCode < 0) return;
+	if (isErrorRaised(A->currentState)) return;
 	
 	/* Cov = FZSZ'F' */
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}

@@ -40,6 +40,8 @@ class omxComputeGD : public omxCompute {
 	omxMatrix *fitMatrix;
 
 	SEXP minimum, estimate, gradient, hessian;
+	SEXP intervals, intervalCodes;
+	int inform, iter;
 
 public:
 	virtual void initFromFrontend(SEXP rObj);
@@ -48,8 +50,9 @@ public:
 	virtual void reportResults(MxRList *out);
 
 	// remove TODO
-	omxComputeGD() {}
-	omxComputeGD(omxMatrix *fm) { fitMatrix = fm; }
+	omxComputeGD() { init(); }
+	omxComputeGD(omxMatrix *fm) { init(); fitMatrix = fm; }
+	void init();
 	double getMinimum() { return REAL(minimum)[0]; }
 	double *getEstimate() { return REAL(estimate); }
 };

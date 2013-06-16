@@ -120,6 +120,7 @@ struct omxConfidenceInterval {		// For Confidence interval request
 struct omxState {
 	int numHessians;
 	int calculateStdErrors;
+	int ciMaxIterations;
 
 	int numThreads;
 	int numAlgs, numExpects, numChildren;
@@ -156,9 +157,7 @@ struct omxState {
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
 
-	int inform, iter;													// Status code, if appropriate
-	int statusCode;
-	char statusMsg[MAX_STRING_LEN];											// Status/Error message to report
+	char statusMsg[MAX_STRING_LEN];
 	int analyticGradients;
 };
 
@@ -177,6 +176,7 @@ struct omxState {
 	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
+inline bool isErrorRaised(omxState *state) { return state->statusMsg[0] != 0; }
 void omxRaiseError(omxState *state, int errorCode, const char* errorMsg); // DEPRECATED
 void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 																		// TODO: Move RaiseError to omxOptimizer.

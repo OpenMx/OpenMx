@@ -136,7 +136,7 @@ iterateMxRun <- function(model, maxIterations) {
 }
 
 iterateMxRunHelper <- function(model, maxIterations, iteration) {
-	if (length(model@output) > 0 && model@output$status[[1]] == 0) {
+	if (length(model@output) > 0 && is.null(model@output$error)) {
 		return(model)
 	} else if (iteration < maxIterations) {
 		return(iterateMxRunHelper(mxRun(model), maxIterations, iteration + 1))

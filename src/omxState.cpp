@@ -29,6 +29,7 @@
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
+		state->ciMaxIterations = 5;
 		state->numThreads = 1;
 		state->numHessians = 0;
 		state->calculateStdErrors = FALSE;
@@ -56,7 +57,6 @@
 		state->computeCount = -1;
 		state->currentRow = -1;
 
-		state->statusCode = 0;
 		strncpy(state->statusMsg, "", 1);
 	}
 
@@ -171,7 +171,6 @@
 		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;
 
-		tgt->statusCode 		= 0;
 		strncpy(tgt->statusMsg, "", 1);
 	}
 
@@ -291,7 +290,6 @@
 
 	void omxResetStatus(omxState *state) {
 		int numChildren = state->numChildren;
-		state->statusCode = 0;
 		state->statusMsg[0] = '\0';
 		for(int i = 0; i < numChildren; i++) {
 			omxResetStatus(state->childList[i]);
@@ -311,18 +309,13 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 			Rprintf("Error raised: %s\n", state->statusMsg);
 		}
 	}
-	state->statusCode = -1;  // this provides no additional information beyond errorMsg[0]!=0 TODO
 }
 
 	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) { // DEPRECATED
 		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
-		state->statusCode = errorCode;
 		strncpy(state->statusMsg, errorMsg, 249);
 		state->statusMsg[249] = '\0';
-		if(state->computeCount <= 0 && errorCode < 0) {
-			state->statusCode--;			// Decrement status for init errors.
-		}
 	}
 
 	void omxStateNextRow(omxState *state) {

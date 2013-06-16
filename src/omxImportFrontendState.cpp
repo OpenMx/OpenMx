@@ -63,9 +63,7 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
 				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
-		if(globalState->statusCode < 0) {
-			error("%s", globalState->statusMsg);
-		}
+		if (isErrorRaised(globalState)) return;
 	}
 }
 
@@ -95,7 +93,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 				formula, CHAR(STRING_ELT(algListNames, index)));
 			PROTECT(dependencies = VECTOR_ELT(nextAlgTuple, 2));
 		}
-		if (globalState->statusMsg[0]) return;
+		if (isErrorRaised(globalState)) return;
 	}
 }
 
@@ -110,7 +108,7 @@ void omxProcessMxFitFunction(SEXP algList)
 			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], nextAlgTuple,
 						       TRUE, index);
 		}
-		if (globalState->statusMsg[0]) return;
+		if (isErrorRaised(globalState)) return;
 	}
 }
 
@@ -129,9 +127,7 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
 		}
-		if(globalState->statusCode < 0) {
-			error("%s", globalState->statusMsg);
-		}
+		if (isErrorRaised(globalState)) return;
 	}
 }
 
@@ -147,9 +143,7 @@ void omxCompleteMxExpectationEntities() {
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
 		}
-		if(globalState->statusCode < 0) {
-			error("%s", globalState->statusMsg);
-		}
+		if (isErrorRaised(globalState)) return;
 	}
 }
 

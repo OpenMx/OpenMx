@@ -96,20 +96,20 @@ processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 
 processErrorConditions <- function(model, unsafe, suppressWarnings) {
 	output <- model@output
-    if (output$status[[1]] > 0 && !suppressWarnings) {
-    	npsolWarnings(paste("In model", omxQuotes(model@name)), output$status[[1]])
+	if (!is.null(output$npsol.code) && !suppressWarnings) {
+		npsolWarnings(paste("In model", omxQuotes(model@name)), output$npsol.code)
 	}
-    if (output$status[[1]] < 0 || output$status[[2]] < 0) {
+    if (!is.null(output$error)) {
     	if (unsafe) {
     		warning(paste("The job for model", omxQuotes(model@name),
 	            "exited abnormally with the error message:",
-	            output$status[[3]]), call. = FALSE)
+	            output$error), call. = FALSE)
     	} else {
 			unlockErrorPool()
 			.errorPoolList[[model@name]] <<- model
 	        stop(paste("The job for model", omxQuotes(model@name),
 	            "exited abnormally with the error message:",
-	            output$status[[3]]), call. = FALSE)
+	            output$error), call. = FALSE)
 	    }
     }
 }

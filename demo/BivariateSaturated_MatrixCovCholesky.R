@@ -33,6 +33,7 @@
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
 # -----------------------------------------------------------------------
 
+options(error = utils::recover)
 require(OpenMx)
 require(MASS)
 # Load Libraries

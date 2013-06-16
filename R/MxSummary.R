@@ -673,8 +673,8 @@ setMethod("summary", "MxModel",
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
 		retval$CI <- generateConfidenceIntervalTable(model)
 		retval$CIcodes <- model@output$confidenceIntervalCodes
-		if (!is.null(model@output$status)) {
-			message <- npsolMessages[[as.character(model@output$status[[1]])]]
+		if (!is.null(model@output$npsol.code)) {
+			message <- npsolMessages[[as.character(model@output$npsol.code)]]
 			retval[['npsolMessage']] <- message
 		}
 		retval$timestamp <- model@output$timestamp

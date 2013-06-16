@@ -217,10 +217,8 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient
 		}
 
 		for(int i = 0; i < parallelism; i++) {
-			if (parentState->childList[i]->statusCode < 0) {
-				parentState->statusCode = parentState->childList[i]->statusCode;
-				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, 249);
-				parentState->statusMsg[249] = '\0';
+			if (isErrorRaised(parentState->childList[i])) {
+				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, MAX_STRING_LEN);
 			}
 		}
 

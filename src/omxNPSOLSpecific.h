@@ -22,7 +22,8 @@
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND, NEG_INF, INF;
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R, int disableOptimizer);
+void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
+		    int disableOptimizer, int *inform_out, int *iter_out);
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
 				 int ciMaxIterations);

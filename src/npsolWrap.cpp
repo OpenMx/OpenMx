@@ -112,8 +112,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	omxMatrix* algebra;
 	int algebraNum = INTEGER(algNum)[0];
 	SEXP ans, nextMat;
-	char output[250];
-	int errOut = 0;
+	char output[MAX_STRING_LEN];
 
 	/* Create new omxState for current state storage and initialize it. */
 	
@@ -155,17 +154,15 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
 
-	if(globalState->statusCode != 0) {
-		errOut = globalState->statusCode;
-		strncpy(output, globalState->statusMsg, 250);
+	output[0] = 0;
+	if (isErrorRaised(globalState)) {
+		strncpy(output, globalState->statusMsg, MAX_STRING_LEN);
 	}
 
 	omxFreeAllMatrixData(algebra);
 	omxFreeState(globalState);
 
-	if(errOut != 0) {
-		error(output);
-	}
+	if(output[0]) error(output);
 
 	return ans;
 }
@@ -189,7 +186,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	SEXP nextLoc;
 
-	int ciMaxIterations = 5;
 	int disableOptimizer = 0;
 	int analyticGradients = 0;
 
@@ -207,7 +203,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &globalState->numHessians, &globalState->calculateStdErrors, 
-		&ciMaxIterations, &disableOptimizer, &globalState->numThreads, 
+		&globalState->ciMaxIterations, &disableOptimizer, &globalState->numThreads, 
 		&analyticGradients, length(startVals));
 
 	globalState->numFreeParams = length(startVals);
@@ -250,15 +246,16 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
+	// maybe require a Compute object? TODO
+	omxComputeGD *topCompute = NULL;
 	omxMatrix *fitMatrix = NULL;
 	if(!isNull(fitfunction)) {
 		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
 		fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
+		topCompute = new omxComputeGD(fitMatrix);
 	}
 	if (globalState->statusMsg[0]) error(globalState->statusMsg);
 	
-	// TODO: Make calculateHessians an option instead.
-
 	/* Process Matrix and Algebra Population Function */
 	/*
 	  Each matrix is a list containing a matrix and the other matrices/algebras that are
@@ -283,87 +280,58 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	// doesn't need to be copied to child states.
 	cacheFreeVarDependencies(globalState);
 
-	if (fitMatrix && fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
-		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
-
 	int n = globalState->numFreeParams;
 
-	SEXP minimum, estimate, gradient, hessian;
-	PROTECT(minimum = NEW_NUMERIC(1));
-	PROTECT(estimate = allocVector(REALSXP, n));
-	PROTECT(gradient = allocVector(REALSXP, n));
-	PROTECT(hessian = allocMatrix(REALSXP, n, n));
-
-	if (n>0) { memcpy(REAL(estimate), REAL(startVals), sizeof(double)*n); }
+	if (topCompute) topCompute->setStartValues(startVals);
 	
-	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
-		       REAL(gradient), REAL(hessian), disableOptimizer);
+	if (topCompute) topCompute->compute(disableOptimizer);
 
-	SEXP code, status, statusMsg, iterations;
 	SEXP evaluations, algebras, matrices, expectations;
 
-	PROTECT(code = NEW_NUMERIC(1));
-	PROTECT(status = allocVector(VECSXP, 3));
-	PROTECT(iterations = NEW_NUMERIC(1));
 	PROTECT(evaluations = NEW_NUMERIC(2));
 	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
 	PROTECT(algebras = NEW_LIST(globalState->numAlgs));
 	PROTECT(expectations = NEW_LIST(globalState->numExpects));
 
-	REAL(code)[0] = globalState->inform;
-	REAL(iterations)[0] = globalState->iter;
 	REAL(evaluations)[0] = globalState->computeCount;
-
-	/* Fill Status code. */
-	SET_VECTOR_ELT(status, 0, code);
-	PROTECT(code = NEW_NUMERIC(1));
-	REAL(code)[0] = globalState->statusCode;
-	SET_VECTOR_ELT(status, 1, code);
-	PROTECT(statusMsg = allocVector(STRSXP, 1));
-	SET_STRING_ELT(statusMsg, 0, mkChar(globalState->statusMsg));
-	SET_VECTOR_ELT(status, 2, statusMsg);
 
 	MxRList result;
 
-	if (globalState->numHessians && fitMatrix != NULL && globalState->statusCode >= 0 &&
+	if (!isErrorRaised(globalState) && globalState->numHessians && fitMatrix != NULL &&
 	    globalState->numConstraints == 0) {
-		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(fitMatrix, REAL(estimate));
+		omxComputeEstimateHessian *eh =
+			new omxComputeEstimateHessian(fitMatrix, topCompute->getEstimate());
 		eh->compute(FALSE);
 		eh->reportResults(&result);
 		delete eh;
 	}
 
-	/* Likelihood-based Confidence Interval Calculation */
-	if(globalState->numIntervals) {
-		SEXP intervals, intervalCodes;
-
-		PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2)); // for optimizer
-		PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2)); // for optimizer
-
-		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum)[0], REAL(estimate),
-					    ciMaxIterations);
-		omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
-
-		result.push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
-		result.push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
-	}  
-
 	// What if fitfunction has its own repopulateFun? TODO
-	handleFreeVarListHelper(globalState, REAL(estimate), n);
+	if (topCompute) handleFreeVarListHelper(globalState, topCompute->getEstimate(), n);
 
-	// Is this needed if omxNPSOLConfidenceIntervals is skipped?
 	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
-
-	if (fitMatrix) omxPopulateFitFunction(fitMatrix, &result);
 
 	REAL(evaluations)[1] = globalState->computeCount;
 
-	result.push_back(std::make_pair(mkChar("minimum"), minimum));
-	result.push_back(std::make_pair(mkChar("estimate"), estimate));
-	result.push_back(std::make_pair(mkChar("gradient"), gradient));
-	result.push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
-	result.push_back(std::make_pair(mkChar("status"), status));
-	result.push_back(std::make_pair(mkChar("iterations"), iterations));
+	if (topCompute) {
+		topCompute->reportResults(&result);
+		delete topCompute;
+	}
+
+	MxRList backwardCompatStatus;
+	backwardCompatStatus.push_back(std::make_pair(mkChar("code"), NA_STRING));
+	backwardCompatStatus.push_back(std::make_pair(mkChar("status"),
+						      ScalarInteger(-isErrorRaised(globalState))));
+
+	if (isErrorRaised(globalState)) {
+		SEXP msg;
+		PROTECT(msg = allocVector(STRSXP, 1));
+		SET_STRING_ELT(msg, 0, mkChar(globalState->statusMsg));
+		result.push_back(std::make_pair(mkChar("error"), msg));
+		backwardCompatStatus.push_back(std::make_pair(mkChar("statusMsg"), msg));
+	}
+
+	result.push_back(std::make_pair(mkChar("status"), asR(&backwardCompatStatus)));
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
 	result.push_back(std::make_pair(mkChar("matrices"), matrices));
 	result.push_back(std::make_pair(mkChar("algebras"), algebras));

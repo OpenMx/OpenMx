@@ -81,7 +81,7 @@ void F77_SUB(npsolObjectiveFunction)
 
 	omxExamineFitOutput(globalState, fitMatrix, mode);
 
-	if(globalState->statusCode <= -1) {		// At some point, we'll add others
+	if (isErrorRaised(globalState)) {
 		if(OMX_DEBUG) {
 			Rprintf("Error status reported.\n");
 		}
@@ -181,8 +181,9 @@ void F77_SUB(npsolConstraintFunction)
 
 }
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R, int disableOptimizer) {
- 
+void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
+		    int disableOptimizer, int *inform_out, int *iter_out)
+{
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 
@@ -354,8 +355,8 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
         
     } // END OF PERFORM OPTIMIZATION CASE
  
-    globalState->inform = inform;
-    globalState->iter   = iter;
+    *inform_out = inform;
+    *iter_out   = iter;
  
     NPSOL_fitMatrix = NULL;
 }
@@ -385,8 +386,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
     std::vector< double > gradient(n);
     std::vector< double > hessian(n * n);
 
-    inform = globalState->inform;
- 
     /* NPSOL Arguments */
     void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
  
@@ -433,7 +432,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
     omxSetupBoundsAndConstraints(bl, bu, n, nclin);     
  
-    if(inform == 0 || inform == 1 || inform == 6) {
         if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
 
         for(int i = 0; i < globalState->numIntervals; i++) {
@@ -565,14 +563,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
             }
             if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
         }
-    } else {
-        // Improper code. No intervals calculated.
-        // TODO: Throw a warning, allow force()
-        warning("Not calculating confidence intervals because of error status.");
-        if(OMX_DEBUG) {
-            Rprintf("Calculation of all intervals failed: Bad inform value of %d", inform);
-        }
-    }
 
     NPSOL_fitMatrix = NULL;
     NPSOL_currentInterval = -1;

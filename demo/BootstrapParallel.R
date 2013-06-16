@@ -30,6 +30,7 @@
 #      Ross Gore -- 2011.06.16 updated & reformatted
 # -----------------------------------------------------------------------
 
+options(error = utils::recover)
 require(OpenMx)
 
 
@@ -78,7 +79,7 @@ createNewModel <- function(index, prefix, model) {
 }
 
 getStats <- function(model) {
-	retval <- c(model@output$status[[1]],
+	retval <- c(is.null(model@output$error),
 		max(abs(model@output$gradient)),
 		model@output$estimate,
 		sqrt(diag(solve(model@output$hessian))))

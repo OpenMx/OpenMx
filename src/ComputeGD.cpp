@@ -26,6 +26,14 @@ class omxCompute *newComputeGradientDescent()
 	return new omxComputeGD();
 }
 
+void omxComputeGD::init()
+{
+	intervals = 0;
+	intervalCodes = 0;
+	inform = 0;
+	iter = 0;
+}
+
 void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
@@ -49,7 +57,22 @@ void omxComputeGD::setStartValues(SEXP startVals)
 void omxComputeGD::compute(bool disableOpt)  // remove flag TODO
 {
 	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
-		       REAL(gradient), REAL(hessian), disableOpt);
+		       REAL(gradient), REAL(hessian), disableOpt, &inform, &iter);
+
+
+	if (globalState->numIntervals) {
+		if (!(inform == 0 || inform == 1 || inform == 6)) {
+			// TODO: Throw a warning, allow force()
+			warning("Not calculating confidence intervals because of NPSOL status %d", inform);
+		} else {
+			PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2));
+			PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2));
+
+			omxNPSOLConfidenceIntervals(fitMatrix, getMinimum(),
+						    getEstimate(), globalState->ciMaxIterations);
+			omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
+		}
+	}  
 }
 
 void omxComputeGD::reportResults(MxRList *out)
@@ -60,5 +83,19 @@ void omxComputeGD::reportResults(MxRList *out)
 	out->push_back(std::make_pair(mkChar("estimate"), estimate));
 	out->push_back(std::make_pair(mkChar("gradient"), gradient));
 	out->push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
-}
 
+	if (intervals && intervalCodes) {
+		out->push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
+		out->push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
+	}
+
+	SEXP code, iterations;
+
+	PROTECT(code = NEW_NUMERIC(1));
+	REAL(code)[0] = inform;
+	out->push_back(std::make_pair(mkChar("npsol.code"), code));
+
+	PROTECT(iterations = NEW_NUMERIC(1));
+	REAL(iterations)[0] = iter;
+	out->push_back(std::make_pair(mkChar("npsol.iterations"), iterations));
+}
