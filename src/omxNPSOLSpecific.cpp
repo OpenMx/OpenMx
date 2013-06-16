@@ -362,7 +362,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
  
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
-				 double *g, double *R, int ciMaxIterations)
+				 int ciMaxIterations)
 {
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
@@ -382,6 +382,8 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
     int n = globalState->numFreeParams;
     double f = optimum;
     std::vector< double > x(n, *optimalValues);
+    std::vector< double > gradient(n);
+    std::vector< double > hessian(n * n);
 
     inform = globalState->inform;
  
@@ -475,7 +477,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 currentCI->calcLower = TRUE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-				clambda, &f, g, R, x.data(), iw, &leniw, w, &lenw);
+				clambda, &f, gradient.data(), hessian.data(), x.data(), iw, &leniw, w, &lenw);
  
                 currentCI->lCode = inform;
                 if(f < value) {
@@ -532,7 +534,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 currentCI->calcLower = FALSE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-				clambda, &f, g, R, x.data(), iw, &leniw, w, &lenw);
+				clambda, &f, gradient.data(), hessian.data(), x.data(), iw, &leniw, w, &lenw);
  
                 currentCI->uCode = inform;
                 if(f < value) {

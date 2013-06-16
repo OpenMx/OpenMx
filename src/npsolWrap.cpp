@@ -341,7 +341,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Likelihood-based Confidence Interval Calculation */
 	if(globalState->numIntervals) {
 		omxNPSOLConfidenceIntervals(fitMatrix, REAL(minimum)[0], REAL(estimate),
-					    REAL(gradient), REAL(hessian), ciMaxIterations);
+					    ciMaxIterations);
 	}  
 
 	// What if fitfunction has its own repopulateFun? TODO
