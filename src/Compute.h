@@ -26,12 +26,32 @@ class omxCompute {
  public:
         virtual void initFromFrontend(SEXP rObj) = 0;
         virtual void setStartValues(SEXP startVals) = 0;
-        virtual void compute() = 0;
-        virtual void saveState() = 0;
+        virtual void compute(bool disableOpt) = 0;
         virtual void reportResults(MxRList *out) = 0;
         virtual ~omxCompute() {}
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);
+
+class omxCompute *newComputeGradientDescent();
+
+// hide impl TODO
+class omxComputeGD : public omxCompute {
+	omxMatrix *fitMatrix;
+
+	SEXP minimum, estimate, gradient, hessian;
+
+public:
+	virtual void initFromFrontend(SEXP rObj);
+	virtual void setStartValues(SEXP startVals);
+	virtual void compute(bool disableOpt);
+	virtual void reportResults(MxRList *out);
+
+	// remove TODO
+	omxComputeGD() {}
+	omxComputeGD(omxMatrix *fm) { fitMatrix = fm; }
+	double getMinimum() { return REAL(minimum)[0]; }
+	double *getEstimate() { return REAL(estimate); }
+};
 
 #endif

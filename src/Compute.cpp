@@ -25,6 +25,7 @@ struct omxComputeTableEntry {
 
 static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeEstimateHessian", &newComputeEstimateHessian},
+        {"MxComputeGradientDescent", &newComputeGradientDescent},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)

@@ -254,7 +254,7 @@ class omxCompute *newComputeEstimateHessian()
 	return new omxComputeEstimateHessian;
 }
 
-void omxComputeEstimateHessian::compute()
+void omxComputeEstimateHessian::compute(bool disableOpt)
 {
 	numParams = globalState->numFreeParams;
 

@@ -40,6 +40,7 @@
 #include "omxExportBackendState.h"
 #include "omxOptimizer.h"
 #include "omxHessianCalculation.h"
+#include "Compute.h"
 
 omp_lock_t GlobalRLock;
 
@@ -190,7 +191,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	int ciMaxIterations = 5;
 	int disableOptimizer = 0;
-	int numThreads = 1;
 	int analyticGradients = 0;
 
 	/* Sanity Check and Parse Inputs */
@@ -207,10 +207,9 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* 	Set NPSOL options */
 	omxSetNPSOLOpts(options, &globalState->numHessians, &globalState->calculateStdErrors, 
-		&ciMaxIterations, &disableOptimizer, &numThreads, 
+		&ciMaxIterations, &disableOptimizer, &globalState->numThreads, 
 		&analyticGradients, length(startVals));
 
-	globalState->numThreads = numThreads;
 	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
 	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
@@ -285,7 +284,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	cacheFreeVarDependencies(globalState);
 
 	if (fitMatrix && fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
-		omxFitFunctionCreateChildren(globalState, numThreads);
+		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
 
 	int n = globalState->numFreeParams;
 
@@ -329,7 +328,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	if (globalState->numHessians && fitMatrix != NULL && globalState->statusCode >= 0 &&
 	    globalState->numConstraints == 0) {
 		omxComputeEstimateHessian *eh = new omxComputeEstimateHessian(fitMatrix, REAL(estimate));
-		eh->compute();
+		eh->compute(FALSE);
 		eh->reportResults(&result);
 		delete eh;
 	}

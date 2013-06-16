@@ -42,13 +42,12 @@ class omxComputeEstimateHessian : public omxCompute {
 
  public:
 	omxComputeEstimateHessian();
-	omxComputeEstimateHessian(omxMatrix *fitMat, double *at);
+	omxComputeEstimateHessian(omxMatrix *fitMat, double *at); // remove and move class definition into cpp file TODO
 	//virtual ~omxComputeEstimateHessian();
 
         virtual void initFromFrontend(SEXP rObj) {};
         virtual void setStartValues(SEXP startVals) {};
-        virtual void compute();
-        virtual void saveState() {};
+        virtual void compute(bool disableOpt);
         virtual void reportResults(MxRList *out);
 };
 
