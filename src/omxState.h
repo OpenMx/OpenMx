@@ -123,10 +123,10 @@ struct omxState {
 	int ciMaxIterations;
 
 	int numThreads;
-	int numExpects, numChildren;
+	int numChildren;
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
-	omxExpectation** expectationList; 							// Model Expectations
+	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State

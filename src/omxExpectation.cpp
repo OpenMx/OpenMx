@@ -126,14 +126,8 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 {
-	if (expIndex < 0 || expIndex >= os->numExpects) {
-		error("Expectation %d out of range [0, %d]", expIndex, os->numExpects);
-	}
-
-	omxExpectation* ox = os->expectationList[expIndex];
-	
-	if(!ox->isComplete) omxCompleteExpectation(ox);
-	
+	omxExpectation* ox = os->expectationList.at(expIndex);
+	if (!ox->isComplete) omxCompleteExpectation(ox);
 	return ox;
 }
 
@@ -284,8 +278,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		PROTECT(slot = GET_SLOT(ox->rObj, install("container")));
 		if (length(slot) == 1) {
 			int ex = INTEGER(slot)[0];
-			if (ex < 0 || ex >= os->numExpects) error("Expectation container out of range %d", ex);
-			ox->container = os->expectationList[ex];
+			ox->container = os->expectationList.at(ex);
 		}
 
 		PROTECT(slot = GET_SLOT(ox->rObj, install("submodels")));
@@ -296,6 +289,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 			for (int ex=0; ex < ox->numSubmodels; ex++) {
 				int sx = submodel[ex];
 				ox->submodels[ex] = omxExpectationFromIndex(sx, os);
+				omxCompleteExpectation(ox->submodels[ex]);
 			}
 		}
 
