@@ -33,13 +33,12 @@
 		state->numThreads = 1;
 		state->numHessians = 0;
 		state->calculateStdErrors = FALSE;
-		state->numAlgs = 0;
+
 		state->numExpects = 0;
 		state->numConstraints = 0;
 		state->numFreeParams = 0;
 	        state->numChildren = 0;
 		state->childList = NULL;
-		state->algebraList = NULL;
 		state->expectationList = NULL;
 		state->parentState = parentState;
 		state->conList = NULL;
@@ -88,7 +87,6 @@
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src) {
-		tgt->numAlgs 			= src->numAlgs;
 		tgt->numExpects 		= src->numExpects;
 		tgt->dataList			= src->dataList;
 		tgt->numChildren 		= 0;
@@ -96,10 +94,8 @@
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
 		tgt->expectationList	= (omxExpectation**) R_alloc(tgt->numExpects, sizeof(omxExpectation*));
-		tgt->algebraList		= (omxMatrix**) R_alloc(tgt->numAlgs, sizeof(omxMatrix*));
 		tgt->markMatrices		= src->markMatrices; // TODO, unused in children?
 				
-		memset(tgt->algebraList, 0, sizeof(omxMatrix*) * tgt->numAlgs);
 		memset(tgt->expectationList, 0, sizeof(omxExpectation*) * tgt->numExpects);
 
 		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
@@ -117,9 +113,9 @@
 			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt);
 		}
 
-		for(int j = 0; j < tgt->numAlgs; j++) {
+		for(size_t j = 0; j < src->algebraList.size(); j++) {
 			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList[j] = omxDuplicateMatrix(src->algebraList[j], tgt);
+			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
 		}
 
 		for(int j = 0; j < tgt->numExpects; j++) {
@@ -127,7 +123,7 @@
 			tgt->expectationList[j] = omxDuplicateExpectation(src->expectationList[j], tgt);
 		}
 
-		for(int j = 0; j < tgt->numAlgs; j++) {
+		for(size_t j = 0; j < tgt->algebraList.size(); j++) {
 			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
 		}
 
@@ -224,10 +220,9 @@
 			state->numChildren = 0;
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Algebras.\n", state->numAlgs);}
-		for(k = 0; k < state->numAlgs; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", k, state->algebraList[k]); }
-			omxFreeAllMatrixData(state->algebraList[k]);
+		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
+			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", ax, state->algebraList[ax]); }
+			omxFreeAllMatrixData(state->algebraList[ax]);
 		}
 
 		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", state->matrixList.size());}

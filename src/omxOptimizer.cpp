@@ -28,9 +28,10 @@
 void cacheFreeVarDependencies(omxState* os)
 {
 	size_t numMats = os->matrixList.size();
+	size_t numAlgs = os->algebraList.size();
 
 	os->markMatrices.clear();
-	os->markMatrices.resize(numMats + os->numAlgs, 0);
+	os->markMatrices.resize(numMats + numAlgs, 0);
 
 	for(int freeVarIndex = 0; freeVarIndex < os->numFreeParams; freeVarIndex++) {
 		omxFreeVar* freeVar = os->freeVarList + freeVarIndex;
@@ -48,15 +49,13 @@ void markFreeVarDependenciesHelper(omxState* os, int varNumber) {
 	int numDeps = os->freeVarList[varNumber].numDeps;
 	int *deps = os->freeVarList[varNumber].deps;
 
-	omxMatrix** algebraList = os->algebraList;
-
 	for (int i = 0; i < numDeps; i++) {
 		int value = deps[i];
 
 		if(value < 0) {
 			omxMarkDirty(os->matrixList[~value]);
 		} else {
-			omxMarkDirty(algebraList[value]);
+			omxMarkDirty(os->algebraList[value]);
 		}
 	}
 
@@ -85,9 +84,8 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 	if(numVars == 0) return;
 
 	omxFreeVar* freeVarList = os->freeVarList;
-	omxMatrix** algebraList = os->algebraList;
 	size_t numMats = os->matrixList.size();
-	int numAlgs = os->numAlgs;
+	int numAlgs = os->algebraList.size();
 
 	os->computeCount++;
 
@@ -128,7 +126,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 
 	for(int i = 0; i < numAlgs; i++) {
 		if (os->markMatrices[i + numMats]) {
-			omxMarkDirty(algebraList[i]);
+			omxMarkDirty(os->algebraList[i]);
 		}
 	}
 
