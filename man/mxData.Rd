@@ -41,6 +41,7 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 \item{cov}{The contents of the \sQuote{observed} argument are treated as a covariance matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
+}
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxAlgebraObjective} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
 

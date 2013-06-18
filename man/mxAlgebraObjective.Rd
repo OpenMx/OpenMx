@@ -54,6 +54,7 @@ Returns a list containing a NULL MxExpectation object and an MxFitFunctionAlgebr
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+}
 
 \seealso{
 \link{mxAlgebra} to create an algebra suitable as a reference function to be minimized. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
