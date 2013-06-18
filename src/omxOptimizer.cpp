@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -24,21 +24,25 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
+#include "omxGlobalState.h"
 
-void cacheFreeVarDependencies(omxState* os)
+static std::vector<int> markMatrices;   // constant, therefore thread-safe
+
+void cacheFreeVarDependencies()
 {
+	omxState *os = globalState;
 	size_t numMats = os->matrixList.size();
 	size_t numAlgs = os->algebraList.size();
 
-	os->markMatrices.clear();
-	os->markMatrices.resize(numMats + numAlgs, 0);
+	markMatrices.clear();
+	markMatrices.resize(numMats + numAlgs, 0);
 
 	for(int freeVarIndex = 0; freeVarIndex < os->numFreeParams; freeVarIndex++) {
 		omxFreeVar* freeVar = os->freeVarList + freeVarIndex;
 		int *deps   = freeVar->deps;
 		int numDeps = freeVar->numDeps;
 		for (int index = 0; index < numDeps; index++) {
-			os->markMatrices[deps[index] + numMats] = 1;
+			markMatrices[deps[index] + numMats] = 1;
 		}
 	}
 
@@ -118,14 +122,14 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 	}
 
 	for(size_t i = 0; i < numMats; i++) {
-		if (os->markMatrices[i]) {
+		if (markMatrices[i]) {
 			int offset = ~(i - numMats);
 			omxMarkDirty(os->matrixList[offset]);
 		}
 	}
 
 	for(int i = 0; i < numAlgs; i++) {
-		if (os->markMatrices[i + numMats]) {
+		if (markMatrices[i + numMats]) {
 			omxMarkDirty(os->algebraList[i]);
 		}
 	}

@@ -274,9 +274,7 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
 
-	// Probably, this is always the same for all children and
-	// doesn't need to be copied to child states.
-	cacheFreeVarDependencies(globalState);
+	cacheFreeVarDependencies();
 
 	int n = globalState->numFreeParams;
 

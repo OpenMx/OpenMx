@@ -90,7 +90,6 @@
 		
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
-		tgt->markMatrices		= src->markMatrices; // TODO, unused in children?
 				
 		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 			// TODO: Smarter inference for which matrices to duplicate

@@ -130,7 +130,6 @@ struct omxState {
 	std::vector< omxData* > dataList;
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
-	std::vector<int> markMatrices;
 
 	// TODO: Need a way to deal with unregistered matrices that have free vars
 
