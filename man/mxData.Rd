@@ -28,7 +28,7 @@ mxData(observed, type, means = NA, numObs = NA)
 
 \arguments{
    \item{observed}{A matrix or data.frame which provides data to the MxData object.}
-   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, or \dQuote{sscp}.}
+   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, or \dQuote{cor}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
 }
@@ -42,16 +42,13 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
 
-\item{sscp}{The contents of the \sQuote{observed} argument are treated as a sums-of-squares and cross-products matrix. The \sQuote{means} argument is not used. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
-}
-
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxAlgebraObjective} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
 
 While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not recognized as variable names in \link{MxPath} objects. Variable names must be specified using the \sQuote{manifestVars} argument of the \link{mxModel} function prior to use in MxPath objects.
 
-The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance, correlation or sscp matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
+The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
 
-OpenMx uses the names of variables to map them onto the objective functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c("your", "columns"). Covariance cor and sscp matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
+OpenMx uses the names of variables to map them onto the objective functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c("your", "columns"). Covariance  and cor matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
 
 
 }

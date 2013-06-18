@@ -16,14 +16,22 @@
 \name{mxMLObjective}
 \alias{mxMLObjective}
 
-\title{Create MxMLObjective Object}
+\title{DEPRECATED: Create MxMLObjective Object}
 
 \description{
-   This function creates a new MxMLObjective object.
+   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use mxExpectationNormal() and mxFitFunctionML() instead.  As a temporary workaround, mxMLObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.
 }
 
 \usage{
 mxMLObjective(covariance, means = NA, dimnames = NA, thresholds = NA)
+All occurrences of
+
+mxMLObjective(covariance, means = NA, dimnames = NA, thresholds = NA)
+
+Should be changed to
+
+mxExpectationNormal(covariance, means = NA, dimnames = NA, thresholds = NA, threshnames = dimnames)
+mxFitFunctionML(vector = FALSE)
 }
 
 
@@ -35,6 +43,8 @@ mxMLObjective(covariance, means = NA, dimnames = NA, thresholds = NA)
 }
 
 \details{
+NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectationNormal} and \link{mxFitFunctionML} as shown in the example below.
+
 Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxMLObjective function uses full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the 'covariance' argument given the covariance of an \link{MxData} object. The 'covariance' argument takes an \link{MxAlgebra} object, which defines the expected covariance of an associated \link{MxData} object. The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the dimnames of the means vector, and the row and columns dimnames of the covariance matrix.
 
 mxMLObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxMLObjective function, but must be included in the \link{MxModel} object. mxMLObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov', 'cov', or 'sscp'. The 'covariance' argument of this function evaluates with respect to the 'matrix' argument of the associated \link{MxData} object, while the 'means' argument of this function evaluates with respect to the 'vector' argument of the associated \link{MxData} object. The 'means' and 'vector' arguments are optional in both functions. If the 'means' argument is not specified (NA), the optional 'vector' argument of the \link{MxData} object is ignored. If the 'means' argument is specified, the associated \link{MxData} object should specify a 'means' argument of equivalent dimension as the 'means' algebra.
@@ -45,7 +55,7 @@ To evaluate, place MxMLObjective objects, the \link{mxData} object for which the
 }
 
 \value{
-	Returns a new MxMLObjective object. MxMLObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
+Returns a list containing an MxExpectationNormal object and an MxFitFunctionML object. 
 }
 
 \references{
@@ -54,21 +64,43 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-vars <- c('x','y')
+# Create and fit a model using mxMatrix, mxAlgebra, mxExpectationNormal, and mxFitFunctionML
 
-A <- mxMatrix(values = 0.5, nrow = 2, ncol = 1,
-   free = TRUE, name = "A")
-D <- mxMatrix(type = "Diag", values = c(0, 0.5),
-   free = c(FALSE, TRUE), nrow = 2, name = "D")
+library(OpenMx)
 
-expectedCov <- mxAlgebra(A \%*\% t(A) + D, "expectedCov")
-observedCov <- mxData(matrix(c(1.2, 0.8, 0.8, 1.3),
-   nrow = 2, ncol = 2, dimnames = list(vars,vars)), 'cov', numObs = 150)
+# Simulate some data
 
-objective <- mxMLObjective(covariance = "expectedCov", dimnames = vars)
+x=rnorm(1000, mean=0, sd=1)
+y= 0.5*x + rnorm(1000, mean=0, sd=1)
+tmpFrame <- data.frame(x, y)
+tmpNames <- names(tmpFrame)
 
-model <- mxModel("mxMLObjective example", A, D, expectedCov, objective, observedCov)
+# Define the matrices
 
-\dontrun{summary(mxRun(model))}
+S <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(1,0,0,1), 
+              free=c(TRUE,FALSE,FALSE,TRUE), labels=c("Vx", NA, NA, "Vy"), name = "S")
+A <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(0,1,0,0), 
+              free=c(FALSE,TRUE,FALSE,FALSE), labels=c(NA, "b", NA, NA), name = "A")
+I <- mxMatrix(type="Iden", nrow=2, ncol=2, name="I")
+
+# Define the expectation
+
+expCov <- mxAlgebra(solve(I-A) \%*\% S \%*\% t(solve(I-A)), name="expCov")
+expFunction <- mxExpectationNormal(covariance="expCov", dimnames=tmpNames)
+
+# Choose a fit function
+
+fitFunction <- mxFitFunctionML()
+
+# Define the model
+
+tmpModel <- mxModel("exampleModel", S, A, I, expCov, expFunction, fitFunction, 
+                    mxData(observed=cov(tmpFrame), type="sscp", numObs=dim(tmpFrame)[1]))
+
+# Fit the model and print a summary
+
+tmpModelOut <- mxRun(tmpModel)
+summary(tmpModelOut)
+
 
 }

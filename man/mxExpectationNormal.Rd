@@ -16,21 +16,14 @@
 \name{mxFIMLObjective}
 \alias{mxFIMLObjective}
 
-\title{DEPRECATED: Create MxFIMLObjective Object}
+\title{Create MxFitFunctionML Object}
 
 \description{
-   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use mxExpectationNormal() and mxFitFunctionML() instead.  As a temporary workaround, mxFIMLObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.
+   This function creates an MxExpectationNormal object.
 }
 
 \usage{
-All occurrences of
-
-mxFIMLObjective(covariance, means, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
-
-Should be changed to
-
 mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA, threshnames = dimnames)
-mxFitFunctionML(vector = FALSE)
 }
 
 \arguments{
@@ -38,17 +31,11 @@ mxFitFunctionML(vector = FALSE)
    \item{means}{A character string indicating the name of the expected means algebra.}
    \item{dimnames}{An optional character vector to be assigned to the dimnames of the covariance and means algebras.}
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
-   \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
 }
 
 \details{
-
-NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectationNormal} and \link{mxFitFunctionML} as shown in the example below.
-
-Objective functions were functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxFIMLObjective function used full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the 'covariance' and 'means' arguments. The 'covariance' argument takes an \link{MxAlgebra} object, which defines the expected covariance of an associated \link{MxData} object. The 'means' argument takes an \link{MxAlgebra} object, which defines the expected means of an associated \link{MxData} object. The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector is used to assign the dimnames of the means vector as well as the row and columns dimnames of the covariance matrix.
-
-The 'vector' argument is either TRUE or FALSE, and determines whether the objective function returns a column vector of the likelihoods, or a single -2*(log likelihood) value.
+Expectation functions define the way that model expectations are calculated. The mxExpectationNormal function used the algebra defined by the 'covariance' and 'means' arguments to define the expected covariance and means under the assumption of multivariate normality. The 'covariance' argument takes an \link{MxAlgebra} object, which defines the expected covariance of an associated \link{MxData} object. The 'means' argument takes an \link{MxAlgebra} object, which defines the expected means of an associated \link{MxData} object. The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector is used to assign the dimnames of the means vector as well as the row and columns dimnames of the covariance matrix.
 
 thresholds: The name of the thresholds matrix. When needed (for modelling ordinal data), this matrix should be created using  \link{mxMatrix}(). The thresholds matrix must have as many columns as there are ordinal variables in the model, and number of rows equal to one fewer than the maximum number of levels found in the ordinal variables. The starting values  of this matrix must also be set to reasonable values. Fill each column with a set of ordered start thresholds, one for each level of this column's factor levels minus 1. These thresholds may be free if you wish them to be estimated, or fixed. The unused rows in each column, if any, can be set to any value including NA.
 
@@ -57,15 +44,15 @@ threshnames: A character vector consisting of the variables in the thresholds ma
 Usage Notes: 
 dimnames must be supplied where the matrices referenced by the covariance and means algebras are not themselves labeled. Failure to do so leads to an error noting that the covariance or means matrix associated with the FIML objective does not contain dimnames.
 
-mxFIMLObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxFIMLObjective function, but must be included in the \link{MxModel} object. mxFIMLObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'raw'. Missing values are permitted in the associated \link{MxData} object.
+mxExpectationNormal evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxExpectationNormal function, but must be included in the \link{MxModel} object. When the 'type' argument in the associated \link{MxData} object is equal to 'raw', missing values are permitted in the associated \link{MxData} object.
 
-To evaluate, place MxFIMLObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. 
+To evaluate, place an mxExpectationNormal object, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, optional \link{MxBounds} or \link{MxConstraint} objects, and an mxFitFunction such as \link{mxFitFunctionML} in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. 
 
 The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName@output). Components of the output may be referenced using the \link{Extract} functionality.
 }
 
 \value{
-Returns a list containing an MxExpectationNormal object and an MxFitFunctionML object. 
+Returns an MxExpectationNormal object. 
 }
 
 \references{
