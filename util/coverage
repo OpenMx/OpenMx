@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+
+# 1. edit Makevars.in to enable --coverage
+# 2. make install
+# 3. run this script
+
+if ! test -x util/coverage; then
+  echo "Run $0 from the top level"
+  exit 1
+fi
+
+rm -rf out
+rm -f coverage.info
+
+install_dir=$(R -q  --vanilla -e 'Sys.getenv("R_LIBS_USER")' | fgrep -v '>' | cut -d '"' -f 2 | sed -e "s,~,$HOME,")/OpenMx
+if ! cp $install_dir/debug/*.gcno src/; then
+  echo "Cannot find gcno files. Did you 'make install' with --coverage enabled?"
+  exit 1
+fi
+
+# Ignore nightly tests. We need good coverage without waiting a long time.
+GCOV_PREFIX_STRIP=4 make test
+
+lcov --capture --directory src --output-file coverage.info
+genhtml coverage.info --output-directory out

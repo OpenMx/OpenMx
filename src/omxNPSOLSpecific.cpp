@@ -568,7 +568,9 @@ void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
-#ifndef OMX_DEBUG
+#if OMX_DEBUG
+				Rprintf("Notice: OMX_DEBUG is enabled; openmp threads disabled\n");
+#else
 				// Rprintf is not thread safe, switch to thread safe debugging TODO
 				*numThreads = atoi(nextOptionValue);
 #endif
