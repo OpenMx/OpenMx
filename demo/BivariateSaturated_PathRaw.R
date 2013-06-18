@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2012 The OpenMx Project
+#   Copyright 2007-2013 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ set.seed(200)
 rs=.5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
+testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
 selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)

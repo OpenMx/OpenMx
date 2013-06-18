@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2012 The OpenMx Project
+#   Copyright 2007-2013 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -38,17 +38,28 @@ require(MASS)
 # -----------------------------------------------------------------------------
 
 
-set.seed(200)
-rs=.5
-xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
-set.seed(200)
-# group 1
-# -------------------------------------
+if (0) {
+	set.seed(200)
+	rs=.5
+	xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+	set.seed(200)
+	# group 1
+	# -------------------------------------
 
-rs=.4
-xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
-# group 2
-# -------------------------------------
+	rs=.4
+	xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+	# group 2
+	# -------------------------------------
+
+	xy1 <- round(xy1, 12)
+	write.csv(xy1, "data/BivariateHeterogeneity1.csv", row.names=FALSE)
+	xy2 <- round(xy2, 12)
+	write.csv(xy2, "data/BivariateHeterogeneity2.csv", row.names=FALSE)
+	stop("data generated")
+} else {
+	xy1 <- as.matrix(read.csv("data/BivariateHeterogeneity1.csv"))
+	xy2 <- as.matrix(read.csv("data/BivariateHeterogeneity2.csv"))
+}
 
 selVars <- c("X","Y")
 summary(xy1)
