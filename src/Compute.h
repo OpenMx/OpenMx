@@ -28,6 +28,7 @@ class omxCompute {
         virtual void setStartValues(SEXP startVals) = 0;
         virtual void compute(bool disableOpt) = 0;
         virtual void reportResults(MxRList *out) = 0;
+	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute() {}
 };
 
@@ -48,6 +49,7 @@ public:
 	virtual void setStartValues(SEXP startVals);
 	virtual void compute(bool disableOpt);
 	virtual void reportResults(MxRList *out);
+	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 
 	// remove TODO
 	omxComputeGD() { init(); }

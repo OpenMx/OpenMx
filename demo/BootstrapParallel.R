@@ -79,7 +79,7 @@ createNewModel <- function(index, prefix, model) {
 }
 
 getStats <- function(model) {
-	retval <- c(is.null(model@output$error),
+	retval <- c(model@output$status[[1]],
 		max(abs(model@output$gradient)),
 		model@output$estimate,
 		sqrt(diag(solve(model@output$hessian))))

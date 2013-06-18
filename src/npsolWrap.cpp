@@ -311,13 +311,15 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	REAL(evaluations)[1] = globalState->computeCount;
 
+	double optStatus = NA_REAL;
 	if (topCompute) {
 		topCompute->reportResults(&result);
+		optStatus = topCompute->getOptimizerStatus();
 		delete topCompute;
 	}
 
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.push_back(std::make_pair(mkChar("code"), NA_STRING));
+	backwardCompatStatus.push_back(std::make_pair(mkChar("code"), ScalarReal(optStatus)));
 	backwardCompatStatus.push_back(std::make_pair(mkChar("status"),
 						      ScalarInteger(-isErrorRaised(globalState))));
 

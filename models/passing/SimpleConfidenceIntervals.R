@@ -13,7 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-options(error = utils::recover)
 require(OpenMx)
 
 #Prepare Data
@@ -137,7 +136,7 @@ iterateMxRun <- function(model, maxIterations) {
 }
 
 iterateMxRunHelper <- function(model, maxIterations, iteration) {
-	if (length(model@output) > 0 && is.null(model@output$error)) {
+	if (length(model@output) > 0 && model@output$status[[1]] == 0) {
 		return(model)
 	} else if (iteration < maxIterations) {
 		return(iterateMxRunHelper(mxRun(model), maxIterations, iteration + 1))
