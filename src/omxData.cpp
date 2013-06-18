@@ -126,9 +126,29 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	}
 	
 	if(OMX_DEBUG) {
-	        if(od->meansMat == NULL) {Rprintf("No means found.\n");}
+		if(od->meansMat == NULL) {Rprintf("No means found.\n");}
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
-        }
+	}
+
+	if(OMX_DEBUG) {Rprintf("Processing Asymptotic Covariance Matrix.\n");}
+	PROTECT(dataLoc = GET_SLOT(dataObject, install("acov")));
+	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
+	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
+	    !isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
+		omxFreeMatrixData(od->acovMat); // Clear just-allocated memory.
+		od->acovMat = NULL;
+	}
+
+	if(OMX_DEBUG) {Rprintf("Processing Observed Thresholds Matrix.\n");}
+	PROTECT(dataLoc = GET_SLOT(dataObject, install("thresholds")));
+	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
+	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
+	    !isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
+		omxFreeMatrixData(od->obsThresholdsMat); // Clear just-allocated memory.
+		od->obsThresholdsMat = NULL;
+	}
 
 	if(strncmp(od->_type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
@@ -172,6 +192,8 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
 void omxFreeData(omxData* od) {
 	omxFreeAllMatrixData(od->dataMat);
 	omxFreeAllMatrixData(od->meansMat);
+	omxFreeAllMatrixData(od->acovMat);
+	omxFreeAllMatrixData(od->obsThresholdsMat);
 	Free(od);
 }
 
@@ -235,6 +257,42 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 	return om;
 }
 
+omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
+	double dataElement;
+	
+	if(od->acovMat != NULL) {		// acov was entered as a matrix.
+		if(om != NULL) {			// It stays as such
+			omxCopyMatrix(om, od->acovMat);
+			return om;
+		}
+		return od->acovMat;
+	}
+	// Otherwise, we must construct the matrix.
+	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
+	
+	if(om == NULL) {
+		om = omxInitMatrix(om, numRows, numRows, TRUE, od->currentState);
+	}
+	
+	if(om->rows != numRows || om->cols != numRows) {
+		omxResizeMatrix(om, numRows, numRows, FALSE);
+	}
+	
+	// The below is wrong.  I'm unsure how to populate the acov matrix. -MDH
+	for(int j = 0; j < numRows; j++) {
+		for(int k = 0; k < numRows; k++) {
+			int location = od->location[j];
+			if(location < 0) {
+				dataElement = (double) od->intData[~location][k];
+			} else {
+				dataElement = od->realData[location][k];
+			}
+			omxSetMatrixElement(om, k, j, dataElement);
+		}
+	}
+	return om;
+}
+
 unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	if(od->dataMat != NULL) return FALSE;
 	if(col <= od->cols) return (od->location[col] < 0);
@@ -273,6 +331,9 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 	return om;
 }
 
+//omxThresholdColumn* omxDataThresholds(omxData *od) {
+//	return ;
+//}
 
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList) {
 

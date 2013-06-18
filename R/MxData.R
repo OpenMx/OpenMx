@@ -51,6 +51,8 @@ imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA) {
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
+	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))
+	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
@@ -82,6 +84,12 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	if (type == "acov") {
 		verifyCovarianceMatrix(observed)
 		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
+		# possibly add something like the following for thresholds processing
+		#verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
+		#.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+		#retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
+		#.Object@thresholdColumns <- retval[[1]]
+		#.Object@thresholdLevels <- retval[[2]]
 	}
 	if (type != "acov") {
 		if (any(!is.na(acov))) {

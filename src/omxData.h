@@ -55,6 +55,8 @@ struct omxData {						// A matrix
 	//TODO: Improve encapsulation
 	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
+	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
+	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
 	double numObs;						// Number of observations
 	const char *_type;
 	
@@ -85,6 +87,9 @@ double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one d
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
+omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); //TODO check this definition
+//omxThresholdColumn* omxDataThresholds(omxData *od); //TODO define this
+// PROBLEM: omxThresholdColumn does not exist because data are prior to expectations.
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
