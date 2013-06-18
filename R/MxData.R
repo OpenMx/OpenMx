@@ -22,6 +22,8 @@ setClass(Class = "MxNonNullData",
 		means  = "matrix",
 		type   = "character",
 		numObs = "numeric",
+		acov   = "matrix",
+		thresholds = "matrix",
 		indexVector = "integer",
 		identicalDefVars = "integer",
 		identicalMissingness = "integer",
@@ -32,20 +34,22 @@ setClass(Class = "MxNonNullData",
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
 
 setMethod("initialize", "MxNonNullData",
-	function(.Object, observed, means, type, numObs, name = "data") {
+	function(.Object, observed, means, type, numObs, acov, thresholds, name = "data") {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
+		.Object@acov <- acov
+		.Object@thresholds <- thresholds
 		.Object@name <- name
 		.Object@.isSorted <- FALSE
 		return(.Object)
 	}
 )
 
-imxDataTypes <- c("raw", "cov", "cor", "sscp")
+imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 
-mxData <- function(observed, type, means = NA, numObs = NA) {
+mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA) {
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
@@ -75,13 +79,25 @@ mxData <- function(observed, type, means = NA, numObs = NA) {
 	if (type == "cor") {
 		verifyCorrelationMatrix(observed)
 	}
+	if (type == "acov") {
+		verifyCovarianceMatrix(observed)
+		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
+	}
+	if (type != "acov") {
+		if (any(!is.na(acov))) {
+			stop("The acov argument to mxData is only allowed for data with type='acov'")
+		}
+		if (any(!is.na(thresholds))) {
+			stop("The thresholds argument to mxData is only allowed for data with type='acov'")
+		}
+	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	meanNames <- names(means)
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxNonNullData", observed, means, type, numObs))
+	return(new("MxNonNullData", observed, means, type, numObs, acov, thresholds))
 }
 
 convertDatasets <- function(model, defVars, modeloptions) {
@@ -217,20 +233,20 @@ checkNumericData <- function(data) {
   	}
   }
   
-verifyCovarianceMatrix <- function(covMatrix) {
+verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 	if(nrow(covMatrix) != ncol(covMatrix)) {
-		msg <- paste("The observed covariance matrix",
+		msg <- paste("The", nameMatrix, "covariance matrix",
 			"is not a square matrix")
 		stop(msg, call. = FALSE)
 	}
 	if (any(is.na(covMatrix))) {
-		msg <- paste("The observed covariance matrix",
+		msg <- paste("The", nameMatrix, "covariance matrix",
 			"contains NA values")
 		stop(msg, call. = FALSE)	
 	}
 	if (!all(covMatrix == t(covMatrix))) {
 		if(all.equal(covMatrix, t(covMatrix))){
-			msg <- paste("The observed covariance matrix",
+			msg <- paste("The", nameMatrix, "covariance matrix",
 				"is not a symmetric matrix,",
 				" possibly due to rounding errors.\n",
 				"Something like this would be appropriate:\n",
@@ -238,7 +254,7 @@ verifyCovarianceMatrix <- function(covMatrix) {
 				"Where covMatrix is the name of your covariance data.",
 				"Another option is \n round(covMatrix, 6)\n.")
 		} else {
-			msg <- paste("The observed covariance matrix",
+			msg <- paste("The", nameMatrix, "covariance matrix",
 				"is not a symmetric matrix.\n",
 				"Check what you are providing to mxData",
 				"and perhaps try round(yourData, x) for x digits of precision.")
@@ -246,7 +262,7 @@ verifyCovarianceMatrix <- function(covMatrix) {
 		stop(msg, call. = FALSE)
 	}
 	if (any(eigen(covMatrix)$values <= 0)) {
-		msg <- paste("The observed covariance matrix",
+		msg <- paste("The", nameMatrix, "covariance matrix",
 			"is not a positive-definite matrix:\n",
 			"1 or more elements of eigen(covMatrix)$values ",
 			"<= 0")
