@@ -37,7 +37,7 @@ model2 <- mxModel("model2", data2, mat2, obj2, mxFitFunctionML())
 
 alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
 if (1) {
-	obj <- mxFitFunctionMultigroup(paste0("model", 1:2))
+	obj <- mxFitFunctionMultigroup(paste("model", 1:2, sep=""))
 	model <- mxModel("both", obj, model1, model2)
         model.est <- mxRun(model, suppressWarnings = TRUE)
         omxCheckCloseEnough(model.est@output$estimate, c(1, 2), 0.001)
