@@ -126,15 +126,10 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 
 	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
 	if(info > 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
-		if(oo->matrix->currentState->computeCount <= 0) {
-			strncat(errstr, " at starting values", 20);
-		}
-		strncat(errstr, ".\n", 3);
-		omxRaiseError(oo->matrix->currentState, -1, errstr);						// Raise error
-		free(errstr);
-		return;																		// Leave output untouched
+		omxRaiseErrorf(oo->matrix->currentState,
+			       "Expected covariance matrix is non-positive-definite after %d evaluations",
+			       oo->matrix->currentState->computeCount);
+		return;
 	}
 
 	//det = log(det)	// TVO: changed multiplication of det to first log and the summing up; this line should just set det to zero.

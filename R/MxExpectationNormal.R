@@ -41,7 +41,7 @@ setMethod("initialize", "MxExpectationNormal",
 	}
 )
 
-setMethod("genericExpFunNamespace", signature("MxExpectationNormal"), 
+setMethod("qualifyNames", signature("MxExpectationNormal"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 

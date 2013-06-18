@@ -199,6 +199,12 @@ combineDefaultOptions <- function(input) {
 	if (length(temp) > 0) {
 		keys <- sapply(names(temp), as.character)
 		values <- sapply(temp, as.character)
+		ynOptions <- options[keys]=='Yes' | options[keys]=='No'
+		badYN <- values[ynOptions] != 'Yes' & values[ynOptions] != 'No'
+		if (any(badYN)) {
+			stop(paste("mxOption '", keys[badYN],
+				   "' must be either 'Yes' or 'No'\n", sep=''))
+		}
 		options[keys] <- values
 	}
 	if (!is.null(input[["Major iterations"]])) {

@@ -18,23 +18,18 @@
 # The virtual base class for all fit functions
 #
 setClass(Class = "MxBaseFitFunction", 
-	representation = representation(
-		name = "character",
-        info = "list",
+	 representation = representation(
+	   info = "list",
 		dependencies = "integer",
 		expectation = "integer",
-		result = "matrix", "VIRTUAL"))
+		result = "matrix", "VIRTUAL"),
+	 contains = "MxBaseNamed")
 
 setClassUnion("MxFitFunction", c("NULL", "MxBaseFitFunction"))
 
 setGeneric("genericFitDependencies",
 	function(.Object, flatModel, dependencies) {
 	return(standardGeneric("genericFitDependencies"))
-})
-
-setGeneric("genericFitFunNamespace", 
-	function(.Object, modelname, namespace) {
-	return(standardGeneric("genericFitFunNamespace"))
 })
 
 setGeneric("genericFitRename",

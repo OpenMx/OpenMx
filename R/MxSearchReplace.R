@@ -234,8 +234,10 @@ localNamespaceSearchReplace <- function(model, name, value) {
 		model@data <- value
 	} else if (is(test,"MxConstraint")) {
 		model@constraints[[name]] <- value
+	} else if (is(test, "MxCompute")) {
+		model@compute <- value
 	} else {
-		stop(paste(test, "is of unknown value for replacement using name",
+		stop(paste(deparse(test), "is of unknown value for replacement using name",
 			name, "in model", model@name), call. = FALSE)
 	}
 	return(model)

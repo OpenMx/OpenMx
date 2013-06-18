@@ -61,7 +61,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 		return(.Object)
 })
 
-setMethod("genericFitFunNamespace", signature("MxFitFunctionAlgebra"), 
+setMethod("qualifyNames", signature("MxFitFunctionAlgebra"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace)

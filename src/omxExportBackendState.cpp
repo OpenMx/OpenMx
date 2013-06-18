@@ -26,7 +26,16 @@
 #include "npsolWrap.h"
 #include "omxExportBackendState.h"
 
-void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP algebras, SEXP expectations) {
+void omxExportResults(omxState *currentState, MxRList *out)
+{
+	SEXP matrices;
+	SEXP algebras;
+	SEXP expectations;
+
+	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
+	PROTECT(algebras = NEW_LIST(globalState->algebraList.size()));
+	PROTECT(expectations = NEW_LIST(globalState->expectationList.size()));
+
 	SEXP nextMat, algebra;
 	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
 		if(OMX_DEBUG) { Rprintf("Final Calculation and Copy of Matrix %d.\n", index); }
@@ -68,6 +77,10 @@ void omxFinalAlgebraCalculation(omxState *currentState, SEXP matrices, SEXP alge
 	    }
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
+
+	out->push_back(std::make_pair(mkChar("matrices"), matrices));
+	out->push_back(std::make_pair(mkChar("algebras"), algebras));
+	out->push_back(std::make_pair(mkChar("expectations"), expectations));
 }
 
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result)

@@ -147,7 +147,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 		
 	for(int j = 0; j < oa->numArgs; j++) {
 		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
-		omxCompute(oa->algArgs[j]);
+		omxForceCompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
 	

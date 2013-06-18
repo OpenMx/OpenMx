@@ -91,6 +91,7 @@ displayModel <- function(model, expand = FALSE) {
 	cat("@submodels :", omxQuotes(names(model@submodels)), '\n')
 	expectation <- model@expectation
 	fitfunction <- model@fitfunction
+	compute <- model@compute
 	if (is.null(expectation)) {
 		expectationType <- "NULL"
 	} else {
@@ -104,6 +105,13 @@ displayModel <- function(model, expand = FALSE) {
 		fitfunctionType <- class(fitfunction)[[1]]
 	}
 	cat("@fitfunction :", fitfunctionType, '\n')
+
+	if (is.null(compute)) {
+		computeType <- "NULL"
+	} else {
+		computeType <- class(compute)[[1]]
+	}
+	cat("@compute :", computeType, '\n')
 	cat("@independent :", model@independent, '\n')
 	cat("@options :", printOptions(model@options), '\n')
 	cat("@output :", length(model@output) > 0, '\n')
@@ -131,6 +139,10 @@ displayModel <- function(model, expand = FALSE) {
 		if(!is.null(model@fitfunction) > 0) {
 			cat("\n--------FIT FUNCTION--------\n")
 			print(model@fitfunction)
+		}
+		if(!is.null(model@compute) > 0) {
+			cat("\n--------COMPUTE--------\n")
+			print(model@compute)
 		}
 		if(length(model@output) > 0) {
 			cat("\n--------OUTPUT--------\n")

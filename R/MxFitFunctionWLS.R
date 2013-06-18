@@ -41,7 +41,7 @@ setMethod("initialize", "MxFitFunctionWLS",
 )
 
 # **DONE**
-setMethod("genericFitFunNamespace", signature("MxFitFunctionWLS"), 
+setMethod("qualifyNames", signature("MxFitFunctionWLS"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@weights <- imxConvertIdentifier(.Object@weights,

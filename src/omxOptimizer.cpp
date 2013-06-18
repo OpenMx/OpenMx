@@ -24,7 +24,6 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
-#include "omxGlobalState.h"
 
 static std::vector<int> markMatrices;   // constant, therefore thread-safe
 

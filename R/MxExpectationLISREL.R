@@ -124,7 +124,7 @@ setMethod("genericExpConvertEntities", "MxExpectationLISREL",
 
 #--------------------------------------------------------------------
 # **DONE**
-setMethod("genericExpFunNamespace", signature("MxExpectationLISREL"), 
+setMethod("qualifyNames", signature("MxExpectationLISREL"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@LX <- imxConvertIdentifier(.Object@LX, modelname, namespace)

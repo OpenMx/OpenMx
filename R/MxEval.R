@@ -30,7 +30,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 		expression <- formulaEliminateObjectiveFunctions(expression)
 		namespace <- imxGenerateNamespace(model)
 		model <- imxFlattenModel(model, namespace)
-		expression <- namespaceConvertFormula(expression, model@name, namespace)
+		expression <- qualifyNamesFormula(expression, model@name, namespace)
 	}
 	if (show) {
 		tuple <- evaluateExpression(expression, deparse(expression), model, 

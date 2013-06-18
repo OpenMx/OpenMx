@@ -14,25 +14,15 @@
  *  limitations under the License.
  */
 
-/***********************************************************
-*
-*  omxState.cc
-*
-*  Created: Timothy R. Brick 	Date: 2009-06-05
-*
-*	omxStates carry the current optimization state
-*
-**********************************************************/
-
 #include <stdarg.h>
 #include "omxState.h"
+#include "Compute.h"
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
 		state->ciMaxIterations = 5;
 		state->numThreads = 1;
 		state->numHessians = 0;
-		state->calculateStdErrors = FALSE;
 
 		state->numConstraints = 0;
 		state->numFreeParams = 0;
@@ -51,7 +41,7 @@
 		state->chkptText1 = NULL;
 		state->chkptText2 = NULL;
 
-		state->computeCount = -1;
+		state->computeCount = 0;
 		state->currentRow = -1;
 
 		strncpy(state->statusMsg, "", 1);
@@ -269,6 +259,10 @@
 				Free(state->chkptText2);
 			}
 			// Checkpoint list itself is freed by R.
+		}
+
+		for (size_t ex = 0; ex < state->computeList.size(); ex++) {
+			delete state->computeList[ex];
 		}
 
 		delete state;

@@ -94,7 +94,7 @@ setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 
 #--------------------------------------------------------------------
 # **DONE**
-setMethod("genericExpFunNamespace", signature("MxExpectationStateSpace"), 
+setMethod("qualifyNames", signature("MxExpectationStateSpace"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)

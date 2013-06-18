@@ -30,7 +30,6 @@
 #include "npsolWrap.h"
 #include "omxOpenmpWrap.h"
 #include "omxState.h"
-#include "omxGlobalState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
@@ -39,7 +38,6 @@
 #include "omxImportFrontendState.h"
 #include "omxExportBackendState.h"
 #include "omxOptimizer.h"
-#include "omxHessianCalculation.h"
 #include "Compute.h"
 
 omp_lock_t GlobalRLock;
@@ -88,16 +86,17 @@ void exception_to_try_error( const std::exception& ex )
 
 SEXP asR(MxRList *out)
 {
-       SEXP names, ans;
-       int len = out->size();
-       PROTECT(names = allocVector(STRSXP, len));
-       PROTECT(ans = allocVector(VECSXP, len));
-       for (int lx=0; lx < len; ++lx) {
-               SET_STRING_ELT(names, lx, (*out)[lx].first);
-               SET_VECTOR_ELT(ans,   lx, (*out)[lx].second);
-       }
-       namesgets(ans, names);
-       return ans;
+	// change to a set to avoid duplicate keys TODO
+	SEXP names, ans;
+	int len = out->size();
+	PROTECT(names = allocVector(STRSXP, len));
+	PROTECT(ans = allocVector(VECSXP, len));
+	for (int lx=0; lx < len; ++lx) {
+		SET_STRING_ELT(names, lx, (*out)[lx].first);
+		SET_VECTOR_ELT(ans,   lx, (*out)[lx].second);
+	}
+	namesgets(ans, names);
+	return ans;
 }
 
 /* Main functions */
@@ -178,15 +177,12 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 	}
 }
 
-SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state) {
-
-	/* Helpful variables */
-
+SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
+		 SEXP matList, SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
+	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
+{
 	SEXP nextLoc;
 
-	int disableOptimizer = 0;
 	int analyticGradients = 0;
 
 	/* Sanity Check and Parse Inputs */
@@ -202,9 +198,8 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxInitState(globalState, NULL);
 
 	/* 	Set NPSOL options */
-	omxSetNPSOLOpts(options, &globalState->numHessians, &globalState->calculateStdErrors, 
-		&globalState->ciMaxIterations, &disableOptimizer, &globalState->numThreads, 
-		&analyticGradients, length(startVals));
+	omxSetNPSOLOpts(options, &globalState->ciMaxIterations, &globalState->numThreads, 
+			&analyticGradients, length(startVals));
 
 	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
@@ -212,29 +207,29 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	/* Retrieve Data Objects */
 	omxProcessMxDataEntities(data);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
     
 	/* Retrieve All Matrices From the MatList */
 	omxProcessMxMatrixEntities(matList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
 
 	/* Process Free Var List */
 	omxProcessFreeVarList(varList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxExpectationEntities(expectList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxAlgebraEntities(algList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxCompleteMxExpectationEntities();
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxFitFunction(algList);
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	// This is the chance to check for matrix
 	// conformability, etc.  Any errors encountered should
@@ -244,16 +239,15 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
+	omxProcessMxComputeEntities(computeList);
+
 	// maybe require a Compute object? TODO
-	omxComputeGD *topCompute = NULL;
-	omxMatrix *fitMatrix = NULL;
-	if(!isNull(fitfunction)) {
-		if(OMX_DEBUG) { Rprintf("Processing fit function.\n"); }
-		fitMatrix = omxMatrixLookupFromState1(fitfunction, globalState);
-		topCompute = new omxComputeGD(fitMatrix);
+	omxCompute *topCompute = NULL;
+	if (!isNull(computeIndex)) {
+		int ox = INTEGER(computeIndex)[0];
+		topCompute = globalState->computeList[ox];
 	}
-	if (globalState->statusMsg[0]) error(globalState->statusMsg);
-	
+
 	/* Process Matrix and Algebra Population Function */
 	/*
 	  Each matrix is a list containing a matrix and the other matrices/algebras that are
@@ -265,7 +259,6 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 	}
 
-	/* Processing Constraints */
 	omxProcessConstraints(constraints);
 
 	/* Process Confidence Interval List */
@@ -278,42 +271,32 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	int n = globalState->numFreeParams;
 
-	if (topCompute) topCompute->setStartValues(startVals);
-	
-	if (topCompute) topCompute->compute(disableOptimizer);
+	if (topCompute && !isErrorRaised(globalState)) {
+		double *sv = NULL;
+		if (n) sv = REAL(startVals);
+		topCompute->compute(sv);
+	}
 
-	SEXP evaluations, algebras, matrices, expectations;
-
+	SEXP evaluations;
 	PROTECT(evaluations = NEW_NUMERIC(2));
-	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
-	PROTECT(algebras = NEW_LIST(globalState->algebraList.size()));
-	PROTECT(expectations = NEW_LIST(globalState->expectationList.size()));
 
 	REAL(evaluations)[0] = globalState->computeCount;
 
 	MxRList result;
 
-	if (!isErrorRaised(globalState) && globalState->numHessians && fitMatrix != NULL &&
-	    globalState->numConstraints == 0) {
-		omxComputeEstimateHessian *eh =
-			new omxComputeEstimateHessian(fitMatrix, topCompute->getEstimate());
-		eh->compute(FALSE);
-		eh->reportResults(&result);
-		delete eh;
+	// What if fitfunction has its own repopulateFun? TODO
+	if (topCompute && !isErrorRaised(globalState) && n > 0) {
+		handleFreeVarListHelper(globalState, topCompute->getEstimate(), n);
 	}
 
-	// What if fitfunction has its own repopulateFun? TODO
-	if (topCompute) handleFreeVarListHelper(globalState, topCompute->getEstimate(), n);
-
-	omxFinalAlgebraCalculation(globalState, matrices, algebras, expectations); 
+	omxExportResults(globalState, &result); 
 
 	REAL(evaluations)[1] = globalState->computeCount;
 
 	double optStatus = NA_REAL;
-	if (topCompute) {
+	if (topCompute && !isErrorRaised(globalState)) {
 		topCompute->reportResults(&result);
 		optStatus = topCompute->getOptimizerStatus();
-		delete topCompute;
 	}
 
 	MxRList backwardCompatStatus;
@@ -331,25 +314,21 @@ SEXP omxBackend2(SEXP fitfunction, SEXP startVals, SEXP constraints,
 
 	result.push_back(std::make_pair(mkChar("status"), asR(&backwardCompatStatus)));
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
-	result.push_back(std::make_pair(mkChar("matrices"), matrices));
-	result.push_back(std::make_pair(mkChar("algebras"), algebras));
-	result.push_back(std::make_pair(mkChar("expectations"), expectations));
 
-	/* Free data memory */
 	omxFreeState(globalState);
 
 	return asR(&result);
 
 }
 
-SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
-	SEXP matList, SEXP varList, SEXP algList, SEXP expectList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options, SEXP state)
+SEXP omxBackend(SEXP computeIndex, SEXP startVals, SEXP constraints,
+		SEXP matList, SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
+		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
 	try {
-		return omxBackend2(fitfunction, startVals, constraints,
-				   matList, varList, algList, expectList,
-				   data, intervalList, checkpointList, options, state);
+		return omxBackend2(computeIndex, startVals, constraints,
+				   matList, varList, algList, expectList, computeList,
+				   data, intervalList, checkpointList, options);
 	} catch( std::exception& __ex__ ) {
 		exception_to_try_error( __ex__ );
 	} catch(...) {

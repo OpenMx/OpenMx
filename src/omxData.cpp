@@ -26,7 +26,7 @@
  **********************************************************/
 #include "omxData.h"
 #include "npsolWrap.h"
-#include "omxGlobalState.h"
+#include "omxState.h"
 
 omxData* omxInitData(omxState* os) {
 

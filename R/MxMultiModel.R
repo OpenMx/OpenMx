@@ -84,19 +84,21 @@ imxFreezeModel <- function(model) {
 }
 
 imxFlattenModel <- function(model, namespace) {
-	flatModel <- new("MxFlatModel", model, list(), list(), list())
+	flatModel <- new("MxFlatModel", model, list(), list(), list(), list())
 	name <- model@name
-	flatModel@fitfunction <- namespaceConvertFitFunction(model@fitfunction, name, namespace)
-	flatModel@expectation <- namespaceConvertExpectation(model@expectation, name, namespace)
-	defaultData <- namespaceConvertData(model@data, name)
+	flatModel@fitfunction <- safeQualifyNames(model@fitfunction, name, namespace)
+	flatModel@expectation <- safeQualifyNames(model@expectation, name, namespace)
+	flatModel@compute   <- safeQualifyNames(model@compute, name, namespace)
+	defaultData <- qualifyNamesData(model@data, name)
 	flatModel@data <- defaultData
 	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
-	flatModel@algebras <- collectComponents(model, namespace, "algebras", namespaceConvertAlgebra)
-	flatModel@constraints <- collectComponents(model, namespace, "constraints", namespaceConvertConstraint)	
-	flatModel@intervals <- collectComponents(model, namespace, "intervals", namespaceConvertInterval)
+	flatModel@algebras <- collectComponents(model, namespace, "algebras", qualifyNamesAlgebra)
+	flatModel@constraints <- collectComponents(model, namespace, "constraints", qualifyNamesConstraint)	
+	flatModel@intervals <- collectComponents(model, namespace, "intervals", qualifyNamesInterval)
 	flatModel@datasets <- collectDatasets(model)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
+	flatModel@computes <- collectComputes(model, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
 }
@@ -129,7 +131,7 @@ collectDatasets <- function(model) {
 collectDatasetsHelper <- function(model) {
 	modeldata <- model@data
 	if (!is.null(modeldata)) {
-		modeldata <- namespaceConvertData(modeldata, model@name)
+		modeldata <- qualifyNamesData(modeldata, model@name)
 		retval <- list(modeldata)
 	} else {
 		retval <- list()
@@ -149,7 +151,7 @@ collectMatrices <- function(model, namespace, defaultData) {
 }
 
 collectMatricesHelper <- function(model, namespace, defaultData) {
-	modeldata <- namespaceConvertData(model@data, model@name)
+	modeldata <- qualifyNamesData(model@data, model@name)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 
@@ -159,10 +161,10 @@ collectMatricesHelper <- function(model, namespace, defaultData) {
 		defaultDataName <- defaultData@name
 	}
 	if (is.null(modeldata)) {
-		retval <- lapply(model@matrices, namespaceConvertMatrix,
+		retval <- lapply(model@matrices, qualifyNamesMatrix,
 			model@name, defaultDataName, namespace)
 	} else {
-		retval <- lapply(model@matrices, namespaceConvertMatrix,
+		retval <- lapply(model@matrices, qualifyNamesMatrix,
 			model@name, modeldata@name, namespace)
 	}
 	if (length(model@submodels) > 0) {
@@ -179,6 +181,12 @@ collectFitFunctions <- function(model, namespace, defaultData) {
 	return(fitfunctions)
 }
 
+collectComputes <- function(model, namespace) {
+	computes <- collectComputesHelper(model, namespace)
+	names(computes) <- imxExtractNames(computes)
+	computes
+}
+
 collectExpectations <- function(model, namespace, defaultData) {
 	expectations <- collectExpectationsHelper(model, namespace, defaultData)
 	if (length(expectations) == 0) return(list())
@@ -187,8 +195,8 @@ collectExpectations <- function(model, namespace, defaultData) {
 }
 
 collectExpectationsHelper <- function(model, namespace, defaultData) {
-	expectation <- namespaceConvertExpectation(model@expectation, model@name, namespace)
-	modeldata <- namespaceConvertData(model@data, model@name)	
+	expectation <- safeQualifyNames(model@expectation, model@name, namespace)
+	modeldata <- qualifyNamesData(model@data, model@name)	
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	
@@ -217,8 +225,8 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 }
 
 collectFitFunctionsHelper <- function(model, namespace, defaultData) {
-	fitfunction <- namespaceConvertFitFunction(model@fitfunction, model@name, namespace)
-	modeldata <- namespaceConvertData(model@data, model@name)	
+	fitfunction <- safeQualifyNames(model@fitfunction, model@name, namespace)
+	modeldata <- qualifyNamesData(model@data, model@name)	
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	
@@ -242,6 +250,20 @@ collectFitFunctionsHelper <- function(model, namespace, defaultData) {
 		retval <- append(retval, submodel_fitfunctions)
 	}
 	return(retval)	
+}
+
+collectComputesHelper <- function(model, namespace) {
+	compute <- safeQualifyNames(model@compute, model@name, namespace)
+
+	retval <- list()
+	if (!is.null(compute)) retval <- append(retval, compute)
+
+	if (length(model@submodels) > 0) {
+		submodel_opts <- lapply(model@submodels, collectComputesHelper, namespace)
+		submodel_opts <- unlist(submodel_opts, recursive = FALSE, use.names = FALSE)
+		retval <- append(retval, submodel_opts)
+	}
+	retval
 }
 
 imxDependentModels <- function(model) {

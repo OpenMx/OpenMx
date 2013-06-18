@@ -58,7 +58,7 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	return(dependencies)
 })
 
-setMethod("genericExpFunNamespace", signature("MxExpectationRAM"), 
+setMethod("qualifyNames", signature("MxExpectationRAM"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)

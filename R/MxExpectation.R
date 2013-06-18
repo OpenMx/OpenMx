@@ -19,22 +19,17 @@
 #
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
-	   name = "character",
 	   data = "MxCharOrNumber",      # filled in during flattening
 	   submodels = "MxOptionalCharOrNumber", # filled in during flattening
 	   container = "MxOptionalCharOrNumber", # filled in during flattening
-	   "VIRTUAL"))
+	   "VIRTUAL"),
+	 contains = "MxBaseNamed")
 
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
 
 setGeneric("genericExpDependencies",
 	function(.Object, dependencies) {
 	return(standardGeneric("genericExpDependencies"))
-})
-
-setGeneric("genericExpFunNamespace", 
-	function(.Object, modelname, namespace) {
-	return(standardGeneric("genericExpFunNamespace"))
 })
 
 setGeneric("genericExpRename",

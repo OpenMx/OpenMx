@@ -42,6 +42,7 @@ LazyLoad: yes
 LazyData: yes
 Collate:
     '0ClassUnion.R'
+    'MxBaseNamed.R'
     'MxData.R'
     'DefinitionVars.R'
     'MxReservedNames.R'
@@ -94,6 +95,7 @@ Collate:
     'MxConstraint.R'
     'MxInterval.R'
     'MxTypes.R'
+    'MxCompute.R'
     'MxModel.R'
     'MxRAMModel.R'
     'MxLISRELModel.R'

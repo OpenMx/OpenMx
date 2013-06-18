@@ -73,7 +73,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionRow"),
 })
 
 
-setMethod("genericFitFunNamespace", signature("MxFitFunctionRow"), 
+setMethod("qualifyNames", signature("MxFitFunctionRow"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@rowAlgebra <- imxConvertIdentifier(.Object@rowAlgebra, 

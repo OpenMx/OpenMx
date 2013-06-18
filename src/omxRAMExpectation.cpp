@@ -359,10 +359,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
 	RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
 
-	if(OMX_DEBUG) { Rprintf("Processing usePPML.\n"); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("usePPML")));
-	UNPROTECT(1);
-
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
 	RAMexp->I = omxNewIdentityMatrix(RAMexp->A->rows, currentState);

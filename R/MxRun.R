@@ -31,6 +31,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
 		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
+
 	model <- imxPreprocessModel(model)
 	model <- eliminateObjectiveFunctions(model)
 	imxCheckMatrices(model)
@@ -50,6 +51,7 @@ runHelper <- function(model, frontendStart,
 		return(processHollowModel(model, independents, 
 			frontendStart, indepElapsed))
 	}
+
 	dataList <- generateDataList(model)
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
@@ -107,22 +109,48 @@ runHelper <- function(model, frontendStart,
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- flatModel@datasets
+	numAlgebras <- length(algebras)
 	algebras <- append(algebras, fitfunctions)
 	constraints <- convertConstraints(flatModel)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
-	state <- c()
-	fitfunction <- getFitFunctionIndex(flatModel)
-	
+
 	useOptimizer <- useOptimizer && imxPPML.Check.UseOptimizer(model@options$UsePPML)
-	
 	options <- generateOptionsList(model, parameters, constraints, useOptimizer)
+	
+	compute <- NULL
+	computes <- list()
+	if (!is.null(model@fitfunction) && is.null(model@compute)) {
+		# horrible hack, sorry
+		fitNum <- match(flatModel@fitfunction@name, names(flatModel@fitfunctions)) - 1L + numAlgebras
+		if (!useOptimizer || length(startVals) == 0) {
+			computes <- list(mxComputeOnce(fitfunction=fitNum))
+		} else {
+			if (options[["Calculate Hessian"]] == "No") {
+				computes <- list(mxComputeGradientDescent(type="Quasi-Newton",
+									  fitfunction=fitNum))
+			} else {
+				want.se <- options[["Standard Errors"]] == "Yes"
+				steps <- list(mxComputeGradientDescent(fitfunction=fitNum, type="Quasi-Newton"),
+					      mxComputeEstimatedHessian(fitfunction=fitNum, want.se=want.se))
+				computes <- list(mxComputeSequence(steps))
+			}
+		}
+		compute <- 0L
+	} else {
+		computes <- convertComputes(flatModel, model)
+		if (!is.null(flatModel@compute)) {
+			compute <- imxLocateIndex(flatModel, flatModel@compute@name, flatModel@name)
+		}
+	}
+	
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
-	output <- .Call(omxBackend, fitfunction, startVals,
-		constraints, matrices, parameters, 
-		algebras, expectations, data, intervalList, communication, options, state, PACKAGE = "OpenMx")
+	output <- .Call(omxBackend, compute, startVals,
+			constraints, matrices, parameters, 
+			algebras, expectations, computes,
+			data, intervalList, communication, options, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)

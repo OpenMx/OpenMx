@@ -129,7 +129,7 @@ struct omxMatrix {						// A matrix
 	void omxPrint(omxMatrix *source, const char* d);
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
 	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
-	void omxCompute(omxMatrix *matrix);													// Recompute the matrix no matter what.
+	void omxForceCompute(omxMatrix *matrix);
 
 /* Aliased Matrix Functions */
 	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.

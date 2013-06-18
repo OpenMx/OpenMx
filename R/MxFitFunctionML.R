@@ -27,7 +27,7 @@ setMethod("initialize", "MxFitFunctionML",
 	}
 )
 
-setMethod("genericFitFunNamespace", signature("MxFitFunctionML"), 
+setMethod("qualifyNames", signature("MxFitFunctionML"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)

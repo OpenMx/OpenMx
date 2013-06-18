@@ -42,9 +42,38 @@
 #include "omxNPSOLSpecific.h"
 #include "omxOptimizer.h"
 #include "omxOpenmpWrap.h"
-#include "omxHessianCalculation.h"
-#include "omxGlobalState.h"
 #include "omxExportBackendState.h"
+#include "Compute.h"
+
+class omxComputeEstimatedHessian : public omxCompute {
+	double stepSize;
+	int numIter;
+	bool wantSE;
+
+	omxMatrix *fitMat;
+	double minimum;
+	int numParams;
+	double *optima;
+	double *gradient;
+	double *hessian;
+
+	SEXP calculatedHessian;
+	SEXP stdErrors;
+
+	void init();
+	void omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state);
+	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
+	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
+	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
+
+ public:
+	omxComputeEstimatedHessian();
+        virtual void initFromFrontend(SEXP rObj);
+        virtual void compute(double *at);
+        virtual void reportResults(MxRList *out);
+	virtual double getFit() { return 0; }
+	virtual double *getEstimate() { return optima; }
+};
 
 struct hess_struct {
 	double* freeParams;
@@ -53,7 +82,7 @@ struct hess_struct {
 	omxMatrix* fitMatrix;
 };
 
-void omxComputeEstimateHessian::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
+void omxComputeEstimatedHessian::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
 {
 	double *freeParams = (double*) Calloc(numParams, double);
 
@@ -76,7 +105,7 @@ void omxComputeEstimateHessian::omxPopulateHessianWork(struct hess_struct *hess_
   @params gradient       shared write-only variable
   @params hessian        shared write-only variable
  */
-void omxComputeEstimateHessian::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
+void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
 {
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 	static const double eps = 1E-4;	// Kept here for access purposes.
@@ -130,7 +159,7 @@ void omxComputeEstimateHessian::omxEstimateHessianOnDiagonal(int i, struct hess_
 
 }
 
-void omxComputeEstimateHessian::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
+void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
 {
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
     static const double eps = 1E-4; // Kept here for access purposes.
@@ -187,7 +216,7 @@ void omxComputeEstimateHessian::omxEstimateHessianOffDiagonal(int i, int l, stru
 
 }
 
-void omxComputeEstimateHessian::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
+void omxComputeEstimatedHessian::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
 {
 	int i,j;
 
@@ -229,7 +258,7 @@ void omxComputeEstimateHessian::doHessianCalculation(int numChildren, struct hes
 	Free(offDiags);
 }
 
-void omxComputeEstimateHessian::init()
+void omxComputeEstimatedHessian::init()
 {
 	stepSize = .0001;
 	numIter = 4;
@@ -237,26 +266,29 @@ void omxComputeEstimateHessian::init()
 	optima = NULL;
 }
 
-omxComputeEstimateHessian::omxComputeEstimateHessian()
+omxComputeEstimatedHessian::omxComputeEstimatedHessian()
 {
 	init();
 }
 
-omxComputeEstimateHessian::omxComputeEstimateHessian(omxMatrix *fitMat, double *at)
-{
-	init();
-	this->fitMat = fitMat;
-	optima = at;
-}
-
-class omxCompute *newComputeEstimateHessian()
-{
-	return new omxComputeEstimateHessian;
-}
-
-void omxComputeEstimateHessian::compute(bool disableOpt)
+void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 {
 	numParams = globalState->numFreeParams;
+	if (numParams <= 0) error("Model has no free parameters");
+
+	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("se")));
+	wantSE = asLogical(slotValue);
+	UNPROTECT(1);
+}
+
+void omxComputeEstimatedHessian::compute(double *at)
+{
+	numParams = globalState->numFreeParams;
+
+	optima = at;
 
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
 
@@ -302,7 +334,7 @@ void omxComputeEstimateHessian::compute(bool disableOpt)
 		Free(hess_work);
 	}
 
-	if (globalState->calculateStdErrors) {
+	if (wantSE) {
 		// This function calculates the standard errors from the hessian matrix
 		// sqrt(diag(solve(hessian)))
 
@@ -314,23 +346,23 @@ void omxComputeEstimateHessian::compute(bool disableOpt)
 				workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
 	
 		char u = 'U';
-		int *ipiv = new int[numParams];
+		std::vector<int> ipiv(numParams);
 		int lwork = -1;
 		double temp;
 		int info = 0;
 	
-		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, &temp, &lwork, &info);
+		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv.data(), &temp, &lwork, &info);
 	
 		lwork = (temp > numParams?temp:numParams);
 	
 		double* work = (double*) Calloc(lwork, double);
 	
-		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv, work, &lwork, &info);
+		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv.data(), work, &lwork, &info);
 	
 		if(info != 0) {
 			// report error TODO
 		} else {
-			F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv, work, &info);
+			F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv.data(), work, &info);
 	
 			if(info != 0) {
 				// report error TODO
@@ -343,13 +375,12 @@ void omxComputeEstimateHessian::compute(bool disableOpt)
 			}
 		}
 	
-		delete ipiv;
 		Free(workspace);
 		Free(work);
 	}
 }
 
-void omxComputeEstimateHessian::reportResults(MxRList *result)
+void omxComputeEstimatedHessian::reportResults(MxRList *result)
 {
 	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 
@@ -357,3 +388,13 @@ void omxComputeEstimateHessian::reportResults(MxRList *result)
 		result->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 	}
 }
+
+omxCompute *newComputeEstimatedHessian()
+{
+	if (globalState->numConstraints != 0) {
+		error("Cannot compute estimated Hessian with constraints (%d constraints found)",
+		      globalState->numConstraints);
+	}
+	return new omxComputeEstimatedHessian;
+}
+

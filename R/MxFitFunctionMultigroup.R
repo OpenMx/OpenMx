@@ -33,7 +33,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionMultigroup"),
 	return(dependencies)
 })
 
-setMethod("genericFitFunNamespace", signature("MxFitFunctionMultigroup"), 
+setMethod("qualifyNames", signature("MxFitFunctionMultigroup"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)

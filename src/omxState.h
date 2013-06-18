@@ -62,7 +62,6 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
 #include "omxData.h"
-//#include "omxOptimizer.h"											// omxOptimizer objects coming soon
 
 #include <vector>
 
@@ -119,7 +118,6 @@ struct omxConfidenceInterval {		// For Confidence interval request
 
 struct omxState {
 	int numHessians;
-	int calculateStdErrors;
 	int ciMaxIterations;
 
 	int numThreads;
@@ -128,10 +126,9 @@ struct omxState {
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
+	std::vector< class omxCompute* > computeList;
 	omxState** childList;											// List of child states
 	omxState* parentState;											// Parent State
-
-	// TODO: Need a way to deal with unregistered matrices that have free vars
 
 	/* May want to farm these out to the omxFitFunction object. */
 	int numConstraints;
@@ -159,6 +156,8 @@ struct omxState {
 	char statusMsg[MAX_STRING_LEN];
 	int analyticGradients;
 };
+
+extern omxState* globalState;
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState);

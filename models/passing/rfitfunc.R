@@ -16,7 +16,9 @@ omxCheckCloseEnough(model@matrices$param@values, 3.309401, 10^-3)
 
 infer <- function(marg,state) return(Inf)
 
-model <- mxModel(name="inf", mxFitFunctionR(infer))
+model <- mxModel(name="inf",
+		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
+		 mxFitFunctionR(infer))
 omxCheckError(mxRun(model), c("The job for model 'inf' exited abnormally with the error message: Fit function returned inf at iteration 0.1",
 			      "The job for model 'inf' exited abnormally with the error message: Fit function returned 1.#INF at iteration 0.1"))
 
@@ -24,7 +26,9 @@ omxCheckError(mxRun(model), c("The job for model 'inf' exited abnormally with th
 
 NAer <- function(marg,state) return(NA)
 
-model <- mxModel(name="na", mxFitFunctionR(NAer))
+model <- mxModel(name="na",
+		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
+		 mxFitFunctionR(NAer))
 omxCheckError(mxRun(model), "The job for model 'na' exited abnormally with the error message: Fit function returned nan at iteration 0.1");
 
 ###
@@ -36,7 +40,9 @@ count <- function(marg,state) {
 	return(list(1, state))
 }
 
-model <- mxModel(name="count", mxFitFunctionR(count, 1))
+model <- mxModel(name="count",
+		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
+		 mxFitFunctionR(count, 1))
 model <- mxRun(model, silent=TRUE)
 omxCheckTrue(counter > 1)
 
@@ -46,5 +52,7 @@ toomany <- function(marg,state) {
 	return(list(1, state, 5))
 }
 
-model <- mxModel(name="toomany", mxFitFunctionR(toomany))
+model <- mxModel(name="toomany",
+		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
+		 mxFitFunctionR(toomany))
 omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: FitFunction returned more than 2 arguments")

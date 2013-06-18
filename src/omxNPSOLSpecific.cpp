@@ -20,7 +20,6 @@
 #include <Rdefines.h>
 
 #include "omxState.h"
-#include "omxGlobalState.h"
 #include "omxNPSOLSpecific.h"
 #include "omxOptimizer.h"
 #include "omxMatrix.h"
@@ -182,7 +181,7 @@ void F77_SUB(npsolConstraintFunction)
 }
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
-		    int disableOptimizer, int *inform_out, int *iter_out)
+		    int *inform_out, int *iter_out)
 {
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
@@ -207,33 +206,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
  
     funcon = F77_SUB(npsolConstraintFunction);
  
-    int n = globalState->numFreeParams;
- 
-    if(n == 0) {            // Special Case for the evaluation-only condition
- 
-        if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
-        int mode = 0, nstate = -1;
-        *f = 0;
-        x = NULL;
-        g = NULL;
- 
-        if(fitMatrix != NULL) {
-            F77_SUB(npsolObjectiveFunction)(&mode, &n, x, f, g, &nstate);
-        };
-        globalState->numIntervals = 0;  // No intervals if there's no free params
-        inform = 0;
-        iter = 0;
- 
-        for(size_t index = 0; index < globalState->matrixList.size(); index++) {
-            omxMarkDirty(globalState->matrixList[index]);
-        }
-        for(size_t index = 0; index < globalState->algebraList.size(); index++) {
-            omxMarkDirty(globalState->algebraList[index]);
-        }
-        omxStateNextEvaluation(globalState);    // Advance for a final evaluation.
- 
-    } else {
- 
         /* Set boundaries and widths. */
         if(nclin <= 0) {
             nclin = 0;                  // This should never matter--nclin should always be non-negative.
@@ -248,6 +220,8 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
         } else {                        // nlnwid is used to calculate ldJ, and eventually the size of J.
             nlnwid = ncnln;
         }
+ 
+	int n = globalState->numFreeParams;
  
         nctotl = n + nlinwid + nlnwid;
  
@@ -279,7 +253,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
             Rprintf("Starting Values (%d) are:\n", n);
         }
         for(k = 0; k < n; k++) {
-            if((x[k] == 0.0) && !disableOptimizer) {
+            if((x[k] == 0.0)) {
                 x[k] += 0.1;
                 markFreeVarDependencies(globalState, k);
             }
@@ -331,29 +305,16 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
             Rprintf("Set.\n");
         }
  
-        if (disableOptimizer) {
-            int mode = 0, nstate = -1;      
-            if(fitMatrix != NULL) {
-                F77_SUB(npsolObjectiveFunction)(&mode, &n, x, f, g, &nstate);
-            };
- 
-            inform = 0;
-            iter = 0;
- 
-            omxStateNextEvaluation(globalState);    // Advance for a final evaluation.      
-        } else {
-            F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-                            (void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
-                            clambda, f, g, R, x, iw, &leniw, w, &lenw);
-        }
+	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
+			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
+			clambda, f, g, R, x, iw, &leniw, w, &lenw);
+
         if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", *f); }
  
         omxSaveCheckpoint(globalState, x, f, TRUE);
  
 	// What if fitfunction has its own repopulateFun? TODO
         handleFreeVarListHelper(globalState, x, n);
-        
-    } // END OF PERFORM OPTIMIZATION CASE
  
     *inform_out = inform;
     *iter_out   = iter;
@@ -591,10 +552,9 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 	*out = newVal;
 }
 
-void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors, 
-	int *ciMaxIterations, int *disableOptimizer, int *numThreads,
-	int *analyticGradients, int numFreeParams) {
-
+void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
+		     int *analyticGradients, int numFreeParams)
+{
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
 		SEXP optionNames;
@@ -602,33 +562,16 @@ void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-			if(matchCaseInsensitive(nextOptionName, "Calculate Hessian")) {
-				if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
-				if(!matchCaseInsensitive(nextOptionValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
-					if (numFreeParams > 0) {
-						*numHessians = 1;
-					}
-				}
-			} else if(matchCaseInsensitive(nextOptionName, "Standard Errors")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, calculateStdErrors);
-				if (*calculateStdErrors == TRUE && numFreeParams > 0) {
-					*numHessians = 1;
-				}
-			} else if(matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
+			if (matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
 				int newvalue = atoi(nextOptionValue);
 				if (newvalue > 0) *ciMaxIterations = newvalue;
-			} else if(matchCaseInsensitive(nextOptionName, "useOptimizer")) {
-				if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};	
-				if(matchCaseInsensitive(nextOptionValue, "No")) {
-					if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
-					*disableOptimizer = 1;
-				}
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
+#ifndef OMX_DEBUG
+				// Rprintf is not thread safe, switch to thread safe debugging TODO
 				*numThreads = atoi(nextOptionValue);
-				if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};
+#endif
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));

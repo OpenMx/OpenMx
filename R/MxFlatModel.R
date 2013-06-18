@@ -20,12 +20,13 @@ setClass(Class = "MxFlatModel",
 		fitfunctions = "list",
 		datasets = "list",
 		constMatrices = "list",
-		freeMatrices = "list"
+		freeMatrices = "list",
+		computes = "list"
 	),
 	contains = "MxModel")
 	
 setMethod("initialize", "MxFlatModel",
-	function(.Object, model, expectations, fitfunctions, datasets) {
+	function(.Object, model, expectations, fitfunctions, datasets, computes) {
 		modelSlotNames <- slotNames(model)
 		for(i in 1:length(modelSlotNames)) {
 			name <- modelSlotNames[[i]]
@@ -36,6 +37,7 @@ setMethod("initialize", "MxFlatModel",
 		.Object@datasets <- datasets
 		.Object@constMatrices <- list()
 		.Object@freeMatrices <- list()
+		.Object@computes <- computes
 		return(.Object)
 	}
 )
@@ -269,20 +271,15 @@ identicalNA <- function(x, y) {
 	return((is.na(x) && is.na(y)) || (identical(x,y)))
 }
 
-setMethod("print", "MxFlatModel", function(x,...) {
-	callNextMethod()
+displayFlatModel <- function(fm) {
 	cat("expectations : ")
-	print(object@expectations)
+	print(fm@expectations)
 	cat("fitfunctions : ")
-	print(object@fitfunctions)
-	cat("datasets :", length(x@datasets), '\n') 
-})
+	print(fm@fitfunctions)
+	cat("computes : ")
+	print(fm@computes)
+	cat("datasets :", length(fm@datasets), '\n') 
+}
 
-setMethod("show", "MxFlatModel", function(object) { 
-	callNextMethod()
-	cat("expectations : ")
-	print(object@expectations)
-	cat("fitfunctions : ")
-	print(object@fitfunctions)
-	cat("datasets :", length(object@datasets), '\n') 
-})
+setMethod("print", "MxFlatModel", function(x,...) { callNextMethod(); displayFlatModel(x) })
+setMethod("show", "MxFlatModel", function(object) { callNextMethod(); displayFlatModel(object) })

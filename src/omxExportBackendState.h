@@ -4,7 +4,7 @@
 #include "types.h"
 #include "omxState.h"
 
-void omxFinalAlgebraCalculation(omxState* currentState, SEXP matrices, SEXP algebras, SEXP expectations);
+void omxExportResults(omxState *currentState, MxRList *out);
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result);
 void omxPopulateConfidenceIntervals(omxState* currentState, SEXP intervals, SEXP intervalCodes);
 

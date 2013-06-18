@@ -624,7 +624,7 @@ imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	return(imxConvertIdentifier(label, modelname, namespace))
 }
 
-namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
+qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
 	matrix@name <- imxIdentifier(modelname, matrix@name)
 	free <- matrix@free
 	labels <- matrix@labels
@@ -636,13 +636,13 @@ namespaceConvertMatrix <- function(matrix, modelname, dataname, namespace) {
 	return(matrix)
 }
 
-namespaceConvertAlgebra <- function(algebra, modelname, namespace) {
+qualifyNamesAlgebra <- function(algebra, modelname, namespace) {
 	algebra@name <- imxIdentifier(modelname, algebra@name)
-	algebra@formula <- namespaceConvertFormula(algebra@formula, modelname, namespace)
+	algebra@formula <- qualifyNamesFormula(algebra@formula, modelname, namespace)
 	return(algebra)
 }
 
-namespaceConvertFormula <- function(formula, modelname, namespace) {
+qualifyNamesFormula <- function(formula, modelname, namespace) {
 	if (length(formula) == 1) {
         if (is.symbol(formula) && 
             (as.character(formula) %in% namespace$parameters || 
@@ -659,38 +659,31 @@ namespaceConvertFormula <- function(formula, modelname, namespace) {
         }
 	} else {
 		for (i in 2:length(formula)) {
-			formula[[i]] <- namespaceConvertFormula(formula[[i]], modelname, namespace)
+			formula[[i]] <- qualifyNamesFormula(formula[[i]], modelname, namespace)
 		}
 	}
 	return(formula)
 }
 
-namespaceConvertConstraint <- function(constraint, modelname, namespace) {
+qualifyNamesConstraint <- function(constraint, modelname, namespace) {
 	constraint@name <- imxIdentifier(modelname, constraint@name)
-	constraint@formula <- namespaceConvertFormula(constraint@formula, modelname, namespace)
+	constraint@formula <- qualifyNamesFormula(constraint@formula, modelname, namespace)
 	return(constraint)
 }
 
-namespaceConvertInterval <- function(interval, modelname, namespace) {
+qualifyNamesInterval <- function(interval, modelname, namespace) {
 	interval@reference <- imxConvertLabel(interval@reference, modelname, NULL, namespace)
 	return(interval)
 }
 
-namespaceConvertExpectation <- function(expectation, modelname, namespace) {
-	if (!is.null(expectation)) {
-		expectation <- genericExpFunNamespace(expectation, modelname, namespace)
+safeQualifyNames <- function(obj, modelname, namespace) {
+	if (!is.null(obj)) {
+		obj <- qualifyNames(obj, modelname, namespace)
 	}
-	return(expectation)
+	obj
 }
 
-namespaceConvertFitFunction <- function(fitfunction, modelname, namespace) {
-	if (!is.null(fitfunction)) {
-		fitfunction <- genericFitFunNamespace(fitfunction, modelname, namespace)
-	}
-	return(fitfunction)
-}
-
-namespaceConvertData <- function(data, modelname) {
+qualifyNamesData <- function(data, modelname) {
 	if (!is.null(data)) {
 		data@name <- imxIdentifier(modelname, data@name)
 	}

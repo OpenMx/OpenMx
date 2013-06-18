@@ -16,6 +16,8 @@
 #   A very big thank you to Tim Bates for writing this script.
 
 require(OpenMx)
+#options(error = utils::recover)
+#options(warn = 2)
 
 stdErr <- function(x) {
 	sqrt(var(x)/length(x))
@@ -37,8 +39,8 @@ factorModel <- mxModel("test SE", type="RAM",
       mxData(known, type="raw")
 )
 factorModel <- mxOption(factorModel, "Standard Errors", "Fnord")
-ignore <- omxCheckWarning(mxRun(factorModel),
-			  "Expecting 'Yes' or 'No' for 'Standard Errors' but got 'Fnord', ignoring");
+ignore <- omxCheckError(mxRun(factorModel),
+			  "mxOption 'Standard Errors' must be either 'Yes' or 'No'");
 factorModel <- mxOption(factorModel, "Standard Errors", "Yes")
 fit <- mxRun(factorModel)
 test.summary <- summary(mxRun(factorModel, suppressWarnings=TRUE))

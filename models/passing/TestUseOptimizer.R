@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 library(OpenMx)
+options(error = utils::recover)
 
 # Define a model
 model <- mxModel('model')

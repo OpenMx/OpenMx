@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
 
@@ -23,8 +23,8 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
-#include "omxGlobalState.h"
 #include "omxNPSOLSpecific.h"
+#include "Compute.h"
 
 /* Outside R Functions */
 static int isDir(const char *path);
@@ -142,6 +142,18 @@ void omxCompleteMxExpectationEntities() {
 	}
 }
 
+void omxProcessMxComputeEntities(SEXP computeList)
+{
+	SEXP rObj, s4class;
+
+	for(int index = 0; index < length(computeList); index++) {
+		PROTECT(rObj = VECTOR_ELT(computeList, index));
+		PROTECT(s4class = STRING_ELT(getAttrib(rObj, install("class")), 0));
+		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
+		compute->initFromFrontend(rObj);
+		globalState->computeList.push_back(compute);
+	}
+}
 
 void omxInitialMatrixAlgebraCompute() {
 	size_t numMats = globalState->matrixList.size();

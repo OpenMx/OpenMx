@@ -127,15 +127,6 @@ generateValueHelper <- function(triple, mList) {
 	return(val)
 }
 
-getFitFunctionIndex <- function(flatModel) {
-	fitfunction <- flatModel@fitfunction
-	if(is.null(fitfunction)) {
-		return(NULL)
-	} else {
-		return(imxLocateIndex(flatModel, fitfunction@name, flatModel@name))
-	}
-}
-
 imxUpdateModelValues <- function(model, flatModel, pList, values) {
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
@@ -251,13 +242,16 @@ imxLocateIndex <- function(model, name, referant) {
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)
 	eNames <- names(model@expectations)
+	oNames <- names(model@computes)
 	dNames <- names(model@datasets)		
 	matrixNumber <- match(name, mNames)
 	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
 	expectationNumber <- match(name, eNames)
+	computeNumber <- match(name, oNames)
 	if (is.na(matrixNumber) && is.na(algebraNumber) 
-		&& is.na(dataNumber) && is.na(expectationNumber)) {
+		&& is.na(dataNumber) && is.na(expectationNumber) &&
+	    is.na(computeNumber)) {
 		msg <- paste("The reference", omxQuotes(name),
 			"does not exist.  It is used by the named entity",
 			omxQuotes(referant),".")
@@ -268,6 +262,8 @@ imxLocateIndex <- function(model, name, referant) {
 		return(dataNumber - 1L)
 	} else if (!is.na(expectationNumber)) {
 		return(expectationNumber - 1L)
+	} else if (!is.na(computeNumber)) {
+		return(computeNumber - 1L)
 	} else {
 		return(algebraNumber - 1L)
 	}

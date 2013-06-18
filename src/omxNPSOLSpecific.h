@@ -23,13 +23,12 @@
 extern const double NPSOL_BIGBND, NEG_INF, INF;
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
-		    int disableOptimizer, int *inform_out, int *iter_out);
+		    int *inform_out, int *iter_out);
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
 				 int ciMaxIterations);
  
-void omxSetNPSOLOpts(SEXP options, int *numHessians, 
-    int *calculateStdErrors, int *ciMaxIterations, int *disableOptimizer,
-    int *numThreads, int *analyticGradients, int numFreeParams);
+void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
+		     int *analyticGradients, int numFreeParams);
 
 #endif // #define _OMX_NPSOL_SPECIFIC_H

@@ -14,12 +14,12 @@
  *  limitations under the License.
  */
 
-#include "omxGlobalState.h"
+#include "omxState.h"
 #include "omxFitFunction.h"
 #include "omxOptimizer.h"
 #include "omxNPSOLSpecific.h"
-#include "omxHessianCalculation.h"
 #include "omxExportBackendState.h"
+#include "Compute.h"
 
 class omxCompute *newComputeGradientDescent()
 {
@@ -37,28 +37,28 @@ void omxComputeGD::init()
 void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-}
 
-void omxComputeGD::setStartValues(SEXP startVals)
-{
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
 
-	int numFree = globalState->numFreeParams;
+	numFree = globalState->numFreeParams;
+	if (numFree <= 0) {
+		error("Model has no free parameters");
+		return;
+	}
 
 	PROTECT(minimum = NEW_NUMERIC(1));
 	PROTECT(estimate = allocVector(REALSXP, numFree));
 	PROTECT(gradient = allocVector(REALSXP, numFree));
 	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
-
-	if (numFree>0) { memcpy(REAL(estimate), REAL(startVals), sizeof(double)*numFree); }
 }
 
-void omxComputeGD::compute(bool disableOpt)  // remove flag TODO
+void omxComputeGD::compute(double *startVals)
 {
-	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
-		       REAL(gradient), REAL(hessian), disableOpt, &inform, &iter);
+	memcpy(REAL(estimate), startVals, sizeof(double)*numFree);
 
+	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
+		       REAL(gradient), REAL(hessian), &inform, &iter);
 
 	if (globalState->numIntervals) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
@@ -68,7 +68,7 @@ void omxComputeGD::compute(bool disableOpt)  // remove flag TODO
 			PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2));
 			PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2));
 
-			omxNPSOLConfidenceIntervals(fitMatrix, getMinimum(),
+			omxNPSOLConfidenceIntervals(fitMatrix, getFit(),
 						    getEstimate(), globalState->ciMaxIterations);
 			omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
 		}

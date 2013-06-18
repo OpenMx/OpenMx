@@ -75,8 +75,8 @@ processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 		}
 	}
 	if (!is.null(output$calculatedHessian) && 
-		nrow(output$calculatedHessian) == length(parameterNames) &&
-		ncol(output$calculatedHessian) == length(parameterNames)) {
+	    nrow(output$calculatedHessian) == length(parameterNames) &&
+	    ncol(output$calculatedHessian) == length(parameterNames)) {
 		dimnames(output$calculatedHessian) <- list(parameterNames, parameterNames)
 	}
 	if (length(output$matrices) == length(matrixNames)) {

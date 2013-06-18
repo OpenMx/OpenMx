@@ -26,6 +26,7 @@ setClass(Class = "MxModel",
 		submodels = "list",
 		expectation = "MxExpectation",
 		fitfunction = "MxFitFunction",
+		compute = "MxCompute",
 		independent = "logical",
 		options = "list",
 		output = "list",
@@ -49,6 +50,7 @@ setMethod("initialize", "MxModel",
 		.Object@submodels <- list()
 		.Object@expectation <- NULL
 		.Object@fitfunction <- NULL
+		.Object@compute <- NULL
 		.Object@independent <- FALSE
 		.Object@options <- list()
 		.Object@output <- list()
@@ -177,6 +179,7 @@ imxSameType <- function(a, b) {
 			(is(a, "MxAlgebra") && is(b, "MxAlgebra")) ||
 			(is(a, "MxExpectation") && is(b, "MxExpectation")) ||
 			(is(a, "MxFitFunction") && is(b, "MxFitFunction")) ||
+			(is(a, "MxCompute") && is(b, "MxCompute")) ||
 			(is(a, "MxConstraint") && is(b, "MxConstraint")) ||
 			(is(a, "MxData") && is(b, "MxData")))
 }
