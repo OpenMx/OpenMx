@@ -139,15 +139,15 @@ createMatrixGA <- function(model){
 
 # TODO Fill in the rest of the createMatrix* functions
 
-createMatrixPH <- function(model){}
-createMatrixPS <- function(model){}
-createMatrixTD <- function(model){}
-createMatrixTE <- function(model){}
-createMatrixTH <- function(model){}
-createMatrixTX <- function(model){}
-createMatrixTY <- function(model){}
-createMatrixKA <- function(model){}
-createMatrixAL <- function(model){}
+createMatrixPH <- function(model){} #Latent cov of xi
+createMatrixPS <- function(model){} #Latent cov of eta
+createMatrixTD <- function(model){} #residu cov of x
+createMatrixTE <- function(model){} #residu cov of y
+createMatrixTH <- function(model){} #residu cov of xy
+createMatrixTX <- function(model){} #interc of x
+createMatrixTY <- function(model){} #interc of y
+createMatrixKA <- function(model){} #mean of xi
+createMatrixAL <- function(model){} #mean of eta
 
 # TODO See if there is a way to change an mxMatrix's type.  E.g. TD & TE are often but not always diagonal, and should(?) be stored as diagonal if possible.
 

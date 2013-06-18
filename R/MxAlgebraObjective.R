@@ -28,5 +28,5 @@ mxAlgebraObjective <- function(algebra, numObs = NA, numStats = NA) {
 	msg <- paste("Objective functions have been deprecated.",
 		"Please use mxFitFunctionAlgebra() instead.")
 	warning(msg)
-	return(list(expectation, fitfunction))
+	return(list(expectation=expectation, fitfunction=fitfunction))
 }
