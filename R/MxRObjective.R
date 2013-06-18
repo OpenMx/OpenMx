@@ -25,7 +25,7 @@ mxRObjective <- function(objfun, ...) {
 	msg <- paste("Objective functions have been deprecated.",
 		"Please use mxFitFunctionR() instead.")
 	warning(msg)
-	return(list(expectation, fitfunction))
+	return(list(expectation=expectation, fitfunction=fitfunction))
 }
 
 

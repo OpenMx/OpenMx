@@ -36,7 +36,7 @@ mxRowObjective <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "ro
 	msg <- paste("Objective functions have been deprecated.",
 		"Please use mxFitFunctionRow() instead.")
 	warning(msg)
-	return(list(expectation, fitfunction))
+	return(list(expectation=expectation, fitfunction=fitfunction))
 }
 
 

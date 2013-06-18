@@ -73,7 +73,7 @@ imxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, 
 	msg <- paste("Objective functions have been deprecated.",
 		"Please use imxExpectationLISREL() and mxFitFunctionML() instead.")
 	warning(msg)
-	return(list(expectation, fitfunction))
+	return(list(expectation=expectation, fitfunction=fitfunction))
 }
 
 
