@@ -21,8 +21,10 @@ if ! cp $install_dir/debug/*.gcno src/; then
   exit 1
 fi
 
+strip=$(strings $install_dir/libs/OpenMx.so |grep .gcda |head -1 | perl -lne '$c++ while m,/,g; END { print $c - 2; }')
+
 # Ignore nightly tests. We need good coverage without waiting a long time.
-GCOV_PREFIX_STRIP=4 make test
+GCOV_PREFIX_STRIP=$strip make test
 
 lcov --capture --directory src --output-file coverage.info
 genhtml coverage.info --output-directory out
