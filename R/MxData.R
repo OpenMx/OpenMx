@@ -341,6 +341,18 @@ displayMxData <- function(object) {
 		cat("Means : \n") 
 		print(object@means)		
 	}
+	if (length(object@acov) == 1 && is.na(object@acov)) {
+		cat("Acov : NA \n")
+	} else {
+		cat("Acov : \n")
+		print(object@acov)
+	}
+	if (length(object@thresholds) == 1 && is.na(object@athresholds)) {
+		cat("Thresholds : NA \n")
+	} else {
+		cat("Thresholds : \n")
+		print(object@Thresholds)
+	}
 	invisible(object)
 }
 
