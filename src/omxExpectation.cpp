@@ -70,9 +70,10 @@ void omxExpectationRecompute(omxExpectation *ox) {
 	}
 	
 	if(ox->thresholds != NULL) {
-        for(int i = 0; i < ox->numOrdinal; i++) {
-            omxRecompute(ox->thresholds[i].matrix);
-        }
+		for(int i = 0; i < ox->numOrdinal; i++) {
+			if (!ox->thresholds[i].matrix) continue;
+			omxRecompute(ox->thresholds[i].matrix);
+		}
 	}
 
 	omxExpectationCompute(ox);
