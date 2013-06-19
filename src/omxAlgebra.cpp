@@ -268,8 +268,8 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
-	mxLog("(Algebra has %d args.", oa->numArgs);
-	omxPrintMatrix(oa->matrix, d);
+	std::string name = string_snprintf("%s_%d", d, oa->numArgs);
+	omxPrintMatrix(oa->matrix, name.c_str());
 }
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {

@@ -93,14 +93,15 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 	os->computeCount++;
 
 	if(OMX_VERBOSE && os->parentState == NULL) {
-		mxLog("--------------------------");
-		mxLog("Call: %d.%d (%d)", os->majorIteration, os->minorIteration, os->computeCount);
-		mxLog("Estimates: [");
+		std::string buf;
+		buf += "--------------------------\n";
+		buf += string_snprintf("Call: %d.%d (%d)", os->majorIteration, os->minorIteration, os->computeCount);
+		buf += ("Estimates: [");
 		for(int k = 0; k < numVars; k++) {
-			mxLog(" %f", x[k]);
+			buf += string_snprintf(" %f", x[k]);
 		}
-		mxLog("] ");
-		mxLog("--------------------------");
+		buf += ("]\n");
+		buf += "--------------------------\n";
 	}
 
 	/* Fill in Free Var Estimates */

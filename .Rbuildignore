@@ -6,3 +6,4 @@ inst/tools/rox
 .dir-locals.el
 src/omxSymbolTable.*
 .gdbinit
+.*.log

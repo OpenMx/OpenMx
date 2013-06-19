@@ -56,7 +56,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 			for(int k = 0; k < source->rows; k++) {
 				if (first) first=FALSE;
 				else buf += ",";
-				buf += string_snprintf(" %3.6f,", source->data[k*source->cols+j]);
+				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
 			}
 		}
 	}
@@ -124,7 +124,13 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
-	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("omxCopyMatrix"); }
+	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) {
+		const char *oname = "?";
+		if (orig->name) oname = orig->name;
+		const char *dname = "?";
+		if (dest->name) dname = dest->name;
+		mxLog("omxCopyMatrix from %s (%p) to %s (%p)", oname, orig, dname, dest);
+	}
 
 	int regenerateMemory = TRUE;
 	int numPopLocs = orig->numPopulateLocations;
@@ -266,6 +272,7 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
+	newMat->name = src->name;
     
     return newMat;    
 }
@@ -689,15 +696,18 @@ void omxMatrixLeadingLagging(omxMatrix *om) {
 }
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
-	if (OMX_DEBUG_ALGEBRA) 
-		mxLog("Matrix 0x%0x needs update: ", matrix);
+	bool yes;
 	if (matrix->hasMatrixNumber && !matrix->isDirty) {
-		if (OMX_DEBUG_ALGEBRA) mxLog("No");
-		return(FALSE);
+		yes = FALSE;
 	} else {
-		if (OMX_DEBUG_ALGEBRA) mxLog("Yes");
-		return(TRUE);
+		yes = TRUE;
 	}
+	const char *name = "?";
+	if (matrix->name) name = matrix->name;
+	if (OMX_DEBUG_ALGEBRA) {
+		mxLog("Matrix %s (%p) %s update", name, matrix, yes? "needs" : "does not need");
+	}
+	return yes;
 }
 
 void omxRecompute(omxMatrix *matrix) {
