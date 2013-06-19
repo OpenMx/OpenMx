@@ -28,7 +28,7 @@
 
 void omxDestroyMLFitFunction(omxFitFunction *oo) {
 
-	if(OMX_DEBUG) {Rprintf("Freeing ML Fit Function.");}
+	if(OMX_DEBUG) {mxLog("Freeing ML Fit Function.");}
 	omxMLFitFunction* omlo = ((omxMLFitFunction*)oo->argStruct);
 
 	if(omlo->localCov != NULL)	omxFreeMatrixData(omlo->localCov);
@@ -69,7 +69,7 @@ omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numRet
 		// We sum logs instead of logging the product.
 		det += log(omxMatrixElement(cov, i, i));
 	}
-	if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxMLFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1)); }
+	if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, ((omxMLFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1)); }
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 	retVal[2].values[0] = (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1);
 
@@ -78,7 +78,7 @@ omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numRet
 
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning ML Evaluation.\n");}
+	if(OMX_DEBUG) { mxLog("Beginning ML Evaluation.");}
 	// Requires: Data, means, covariances.
 
 	double sum = 0.0, det = 0.0;
@@ -124,7 +124,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 //	F77_CALL(dgetrf)(&(localCov->cols), &(localCov->rows), localCov->data, &(localCov->cols), ipiv, &info);
 	F77_CALL(dpotrf)(&u, &(localCov->cols), localCov->data, &(localCov->cols), &info);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
 	if(info > 0) {
 		omxRaiseErrorf(oo->matrix->currentState,
 			       "Expected covariance matrix is non-positive-definite after %d evaluations",
@@ -138,21 +138,21 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 	}
 	det *= 2.0;		// TVO: instead of det *= det;
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Determinant of Expected Cov: %f\n", exp(det)); }
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Determinant of Expected Cov: %f", exp(det)); }
 	// TVO: removed det = log(fabs(det))
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Log of Determinant of Expected Cov: %f\n", det); }
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Log of Determinant of Expected Cov: %f", det); }
 
 	/* Calculate Expected^(-1) */
 //	F77_CALL(dgetri)(&(localCov->rows), localCov->data, &(localCov->cols), ipiv, work, lwork, &info);
 	F77_CALL(dpotri)(&u, &(localCov->rows), localCov->data, &(localCov->cols), &info);
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", info); }
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Info on Invert: %d", info); }
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(cov, "Expected Covariance Matrix:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(localCov, "Inverted Matrix:");}
 
 	/* Calculate C = Observed * expected^(-1) */
 
-	if(OMX_DEBUG_ALGEBRA) {Rprintf("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
+	if(OMX_DEBUG_ALGEBRA) {mxLog("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
 					(scov->rows), (localCov->cols), oned, scov->data, (localCov->leading),
 					localCov->data, (localCov->leading), zerod, localProd->data, (localProd->leading));}
 
@@ -181,7 +181,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(localProd, "Product Matrix:");}
 
 	if(means != NULL) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Means Likelihood Calculation"); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Means Likelihood Calculation"); }
 		omxRecompute(means);
 		omxCopyMatrix(P, means);
 		// P = means - smeans
@@ -194,18 +194,18 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient)
 		// P = C * P'
 		fmean = F77_CALL(ddot)(&(C->cols), P->data, &onei, C->data, &onei);
 
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Mean contribution to likelihood is %f per row.\n", fmean); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Mean contribution to likelihood is %f per row.", fmean); }
 		if(fmean < 0.0) fmean = 0.0;
 	}
 
 	oo->matrix->data[0] = (sum + det) * (n - 1) + fmean * (n);
 
-	if(OMX_DEBUG) { Rprintf("MLFitFunction value comes to: %f (Chisq: %f).\n", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
+	if(OMX_DEBUG) { mxLog("MLFitFunction value comes to: %f (Chisq: %f).", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
 
 }
 
 void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating ML Attributes.\n"); }
+    if(OMX_DEBUG) { mxLog("Populating ML Attributes."); }
 
 	omxMLFitFunction *argStruct = ((omxMLFitFunction*)oo->argStruct);
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
@@ -265,7 +265,7 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 
 void omxInitMLFitFunction(omxFitFunction* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing ML fit function.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
 
 	int info = 0;
 	double det = 1.0;
@@ -281,7 +281,7 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 
 	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
-			if(OMX_DEBUG) { Rprintf("Raw Data: Converting to FIML.\n"); }
+			if(OMX_DEBUG) { mxLog("Raw Data: Converting to FIML."); }
 			omxInitFIMLFitFunction(oo, rObj);
 			return;
 		}
@@ -289,18 +289,18 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 		sprintf(errstr, "ML FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
-		if(OMX_DEBUG) { Rprintf("ML FitFunction unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
+		if(OMX_DEBUG) { mxLog("ML FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
 		return;
 	}
 
 	omxMLFitFunction *newObj = (omxMLFitFunction*) R_alloc(1, sizeof(omxMLFitFunction));
 
-	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataMatrix(dataMat, NULL);
-	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Observed Means."); }
 	newObj->observedMeans = omxDataMeans(dataMat, NULL, NULL);
-	if(OMX_DEBUG && newObj->observedMeans == NULL) { Rprintf("ML: No Observed Means.\n"); }
-	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
+	if(OMX_DEBUG && newObj->observedMeans == NULL) { mxLog("ML: No Observed Means."); }
+	if(OMX_DEBUG) { mxLog("Processing n."); }
 	newObj->n = omxDataNumObs(dataMat);
 
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
@@ -346,7 +346,7 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 
 	F77_CALL(dpotrf)(&u, &(newObj->localCov->cols), newObj->localCov->data, &(newObj->localCov->cols), &info);
 
-	if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", info); }
+	if(OMX_DEBUG) { mxLog("Info on LU Decomp: %d", info); }
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite.\n");
@@ -359,9 +359,9 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	}
 	det *= det;					// Product of squares.
 
-	if(OMX_DEBUG) { Rprintf("Determinant of Observed Cov: %f\n", det); }
+	if(OMX_DEBUG) { mxLog("Determinant of Observed Cov: %f", det); }
 	newObj->logDetObserved = log(det);
-	if(OMX_DEBUG) { Rprintf("Log Determinant of Observed Cov: %f\n", newObj->logDetObserved); }
+	if(OMX_DEBUG) { mxLog("Log Determinant of Observed Cov: %f", newObj->logDetObserved); }
 
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
     oo->argStruct = (void*)newObj;
@@ -387,9 +387,9 @@ void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFi
 }
 
 void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
-    if(OMX_DEBUG) { Rprintf("Setting up gradient component function for ML FitFunction."); }
+    if(OMX_DEBUG) { mxLog("Setting up gradient component function for ML FitFunction."); }
     if(!strncmp("omxFIMLFitFunction", oo->fitType, 16)) {
-        if(OMX_DEBUG) { Rprintf("FIML FitFunction gradients not yet implemented. Skipping."); }
+        if(OMX_DEBUG) { mxLog("FIML FitFunction gradients not yet implemented. Skipping."); }
         return; // ERROR:NYI.
     }
     
@@ -421,8 +421,8 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
 
 void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
 
-    if(OMX_DEBUG) { Rprintf("Beginning ML Gradient Calculation.\n"); }
-    // Rprintf("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
+    if(OMX_DEBUG) { mxLog("Beginning ML Gradient Calculation."); }
+    // mxLog("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
         // oo->matrix->currentState->majorIteration, oo->matrix->currentState->minorIteration,
         // oo->matrix->currentState->computeCount); //:::DEBUG:::
     // 1) Calculate current Expected Covariance
@@ -470,7 +470,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     
     F77_CALL(dpotrf)(&u, &(eCov->cols), eCov->data, &(eCov->cols), &info);
 
-    if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
+    if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
@@ -512,7 +512,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     // Calculate parameter-level derivatives
     // TODO: Parallelize Here.
 
-    if(OMX_DEBUG)  { Rprintf("Calling component function.\n"); }
+    if(OMX_DEBUG)  { mxLog("Calling component function."); }
     omo->derivativeFun(oo, dSigmas, dMus, status);
     
     for(int currentLoc = 0; currentLoc < nLocs; currentLoc++) {
@@ -536,7 +536,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
         }
         gradient[currentLoc] = (covInfluence * (n-1)) - (meanInfluence * n);
         if(OMX_DEBUG) { 
-            Rprintf("Calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f\n",
+            mxLog("Calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f",
             currentLoc, covInfluence, meanInfluence, gradient[currentLoc]); 
         }
     }

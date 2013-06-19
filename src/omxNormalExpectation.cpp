@@ -24,25 +24,23 @@
 #include "omxNormalExpectation.h"
 
 void omxComputeNormalExpectation(omxExpectation* ox) {
-    if(OMX_DEBUG && ox->currentState->parentState == NULL) { Rprintf("Normal Expectation calculating."); }
+    if(OMX_DEBUG && ox->currentState->parentState == NULL) { mxLog("Normal Expectation calculating."); }
 
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
 
 	omxRecompute(one->cov);
 	if(one->means != NULL)
 	    omxRecompute(one->means);
-
-    if(OMX_DEBUG) { Rprintf("Complete.\n"); }
 }
 
 void omxDestroyNormalExpectation(omxExpectation* ox) {
 
-	if(OMX_DEBUG&& ox->currentState->parentState == NULL) { Rprintf("Destroying Normal Expectation.\n"); }
+	if(OMX_DEBUG&& ox->currentState->parentState == NULL) { mxLog("Destroying Normal Expectation."); }
 
 }
 
 void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating Normal Attributes.\n"); }
+    if(OMX_DEBUG) { mxLog("Populating Normal Attributes."); }
 
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
     
@@ -82,7 +80,7 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 	SEXP rObj = ox->rObj;
 	omxState* currentState = ox->currentState;
 
-    if(OMX_DEBUG) { Rprintf("Initializing Normal expectation.\n"); }
+    if(OMX_DEBUG) { mxLog("Initializing Normal expectation."); }
 
 	omxNormalExpectation *one = (omxNormalExpectation*) R_alloc(1, sizeof(omxNormalExpectation));
 	
@@ -94,18 +92,18 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 	ox->argStruct = (void*) one;
 	
 	/* Set up expectation structures */
-	if(OMX_DEBUG) { Rprintf("Processing cov.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing cov."); }
 	one->cov = omxNewMatrixFromSlot(rObj, currentState, "covariance");
-	if(OMX_DEBUG) { Rprintf("cov is 0x%x.\n", one->cov); }
+	if(OMX_DEBUG) { mxLog("cov is 0x%x.", one->cov); }
 
-	if(OMX_DEBUG) { Rprintf("Processing Means.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Means."); }
 	one->means = omxNewMatrixFromSlot(rObj, currentState, "means");
-	if(OMX_DEBUG) { Rprintf("mean is 0x%x.\n", one->means); }
+	if(OMX_DEBUG) { mxLog("mean is 0x%x.", one->means); }
 }
 
 omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
-	if(OMX_DEBUG) { Rprintf("Normal expectation: %s requested--", component); }
+	if(OMX_DEBUG) { mxLog("Normal expectation: %s requested--", component); }
 
 	omxNormalExpectation* one = (omxNormalExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
@@ -118,7 +116,7 @@ omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* 
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
 
 	return retval;
 	

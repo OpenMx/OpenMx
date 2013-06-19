@@ -102,7 +102,7 @@ omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numRetu
 }
 
 void omxInitRFitFunction(omxFitFunction* oo) {
-	if(OMX_DEBUG) { Rprintf("Initializing R fit function.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing R fit function."); }
 	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
 	
 	SEXP rObj = oo->rObj;

@@ -34,7 +34,7 @@ omxData* omxInitData(omxState* os) {
 
 	od->currentState = os;
 
-	if(OMX_DEBUG) {Rprintf("Data's state object is at 0x%x.\n", od->currentState);}
+	if(OMX_DEBUG) {mxLog("Data's state object is at 0x%x.", od->currentState);}
 
 	if (os != globalState) error("Too late to create omxData");
 	os->dataList.push_back(od);
@@ -50,7 +50,7 @@ omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 }
 
 omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
-	if(OMX_DEBUG) {Rprintf("Initializing data Element.\n");}
+	if(OMX_DEBUG) {mxLog("Initializing data Element.");}
 	if(dataObject == NULL) {
 		error("Null Data Object detected.  This is an internal error, and should be reported on the forums.\n");
 	}
@@ -61,20 +61,20 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	int numCols;
 
 	// PARSE MxData Structure
-	if(OMX_DEBUG) {Rprintf("Processing Data Type.\n");}
+	if(OMX_DEBUG) {mxLog("Processing Data Type.");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("type")));
 	if(dataLoc == NULL) { error("Data has no type.  Sorry.\nThis is an internal error, and should be reported on the forums.\n");}
 	PROTECT(dataVal = STRING_ELT(dataLoc,0));
 	od->_type = CHAR(dataVal);
-	if(OMX_DEBUG) {Rprintf("Element is type %s.\n", od->_type);}
+	if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("observed")));
-	if(OMX_DEBUG) {Rprintf("Processing Data Elements.\n");}
+	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if(isFrame(dataLoc)) {
-		if(OMX_DEBUG) {Rprintf("Data is a frame.\n");}
+		if(OMX_DEBUG) {mxLog("Data is a frame.");}
 		// Process Data Frame into Columns
 		od->cols = length(dataLoc);
-		if(OMX_DEBUG) {Rprintf("Data has %d columns.\n", od->cols);}
+		if(OMX_DEBUG) {mxLog("Data has %d columns.", od->cols);}
 		numCols = od->cols;
 		od->realData = (double**) R_alloc(numCols, sizeof(double*));
 		OMXZERO(od->realData, numCols);
@@ -85,23 +85,23 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 			SEXP rcol;
 			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
 			if(isFactor(rcol)) {
-				if(OMX_DEBUG) {Rprintf("Column %d is a factor.\n", j);}
+				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
 				od->intData[j] = INTEGER(rcol);
 				od->location[j] = ~j;
 				od->numFactor++;
 			} else if (isInteger(rcol)) {
 				error("Internal error: Column %d is in integer format.", j);
 			} else {
-				if(OMX_DEBUG) {Rprintf("Column %d is a numeric.\n", j);}
+				if(OMX_DEBUG) {mxLog("Column %d is a numeric.", j);}
 				od->realData[j] = REAL(rcol);
 				od->location[j] = j;
 				od->numNumeric++;
 			}
 		}
 		od->rows = length(VECTOR_ELT(dataLoc, 0));
-		if(OMX_DEBUG) {Rprintf("And %d rows.\n", od->rows);}
+		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
 	} else {
-		if(OMX_DEBUG) {Rprintf("Data contains a matrix.\n");}
+		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
 		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 		
 		if (od->dataMat->colMajor && strncmp(od->_type, "raw", 3) == 0) { 
@@ -112,7 +112,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->numNumeric = od->cols;
 	}
 
-	if(OMX_DEBUG) {Rprintf("Processing Means Matrix.\n");}
+	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("means")));
 	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
@@ -126,11 +126,11 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	}
 	
 	if(OMX_DEBUG) {
-		if(od->meansMat == NULL) {Rprintf("No means found.\n");}
+	        if(od->meansMat == NULL) {mxLog("No means found.");}
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
 	}
 
-	if(OMX_DEBUG) {Rprintf("Processing Asymptotic Covariance Matrix.\n");}
+	if(OMX_DEBUG) {mxlog("Processing Asymptotic Covariance Matrix.");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("acov")));
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
@@ -140,7 +140,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->acovMat = NULL;
 	}
 
-	if(OMX_DEBUG) {Rprintf("Processing Observed Thresholds Matrix.\n");}
+	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("thresholds")));
 	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
@@ -151,27 +151,27 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	}
 
 	if(strncmp(od->_type, "raw", 3) != 0) {
-		if(OMX_DEBUG) {Rprintf("Processing Observation Count.\n");}
+		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("numObs")));
 		od->numObs = REAL(dataLoc)[0];
 	} else {
 		od->numObs = od->rows;
-		if(OMX_DEBUG) {Rprintf("Processing presort metadata.\n");}
+		if(OMX_DEBUG) {mxLog("Processing presort metadata.");}
 		/* For raw data, process sorting metadata. */
 		// Process unsorted indices:  // TODO: Generate reverse lookup table
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("indexVector")));
 		od->indexVector = INTEGER(dataLoc);
 		if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
 		// Process pre-computed identicality checks
-		if(OMX_DEBUG) {Rprintf("Processing definition variable identicality.\n");}
+		if(OMX_DEBUG) {mxLog("Processing definition variable identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalDefVars")));
 		od->identicalDefs = INTEGER(dataLoc);
 		if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
-		if(OMX_DEBUG) {Rprintf("Processing missingness identicality.\n");}
+		if(OMX_DEBUG) {mxLog("Processing missingness identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalMissingness")));
 		od->identicalMissingness = INTEGER(dataLoc);
 		if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
-		if(OMX_DEBUG) {Rprintf("Processing row identicality.\n");}
+		if(OMX_DEBUG) {mxLog("Processing row identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalRows")));
 		od->identicalRows = INTEGER(dataLoc);
 		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
@@ -669,38 +669,37 @@ void omxPrintData(omxData *od, const char *header) {
 	if (!header) error("omxPrintData: header is NULL");
 
 	if (!od) {
-		Rprintf("%s: NULL\n", header);
+		mxLog("%s: NULL", header);
 		return;
 	}
 
-	Rprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
+	mxLog("%s(%s): %f observations %d x %d", header, od->_type, od->numObs,
 		od->rows, od->cols);
-	Rprintf("numNumeric %d numFactor %d\n", od->numNumeric, od->numFactor);
+	mxLog("numNumeric %d numFactor %d", od->numNumeric, od->numFactor);
 
 	if (od->location) {
 		for(int j = 0; j < od->cols; j++) {
 			int loc = od->location[j];
 			if (loc < 0) {
-				Rprintf("Integer[%d]:", j);
+				mxLog("Integer[%d]:", j);
 				int *val = od->intData[~loc];
 				for (int vx=0; vx < od->numObs; vx++) {
-					Rprintf(" %d", val[vx]);
+					mxLog(" %d", val[vx]);
 				}
 			} else {
-				Rprintf("Numeric[%d]:", j);
+				mxLog("Numeric[%d]:", j);
 				double *val = od->realData[loc];
 				for (int vx=0; vx < od->numObs; vx++) {
-					Rprintf(" %.3g", val[vx]);
+					mxLog(" %.3g", val[vx]);
 				}
 			}
-			Rprintf("\n");
 		}
 	}
 
 	if (od->identicalRows) {
-		Rprintf("\trow\tmissing\tdefvars\n");
+		mxLog("\trow\tmissing\tdefvars");
 		for(int j = 0; j < od->rows; j++) {
-			Rprintf("[%d]\t%d\t%d\t%d\n", j, od->identicalRows[j],
+			mxLog("[%d]\t%d\t%d\t%d", j, od->identicalRows[j],
 				od->identicalMissingness[j], od->identicalDefs[j]);
 		}
 	}

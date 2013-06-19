@@ -67,7 +67,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	}
 	
 	if(OMX_DEBUG && om->currentState->parentState == NULL) { 
-		Rprintf("Initializing algebra 0x%0x with 0x%0x.\n", oa, om);
+		mxLog("Initializing algebra 0x%0x with 0x%0x.", oa, om);
 	}
 	
 	omxAlgebraAllocArgs(oa, 0);
@@ -91,14 +91,14 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
 	if(OMX_DEBUG) { 
-	    Rprintf("Freeing algebra at 0x%0x with %d args.\n", 
+	    mxLog("Freeing algebra at 0x%0x with %d args.", 
 	        oa, oa->numArgs); 
 	}
 	
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
 		if(OMX_DEBUG) {
-			Rprintf("Freeing argument %d at 0x%0x.\n",
+			mxLog("Freeing argument %d at 0x%0x.",
 				j, oa->algArgs[j]);
 		}
 		omxFreeAllMatrixData(oa->algArgs[j]);
@@ -110,12 +110,12 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 
 void omxAlgebraRecompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		Rprintf("Algebra compute (%s): 0x%0x.\n", 
+		mxLog("Algebra compute (%s): 0x%0x.", 
 			oa->matrix->name, oa->matrix);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at 0x%0x (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxRecompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -128,7 +128,7 @@ void omxAlgebraRecompute(omxAlgebra *oa) {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}
 	} else {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Activating function with %d args.", oa->numArgs); }
 		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
@@ -141,12 +141,12 @@ void omxAlgebraRecompute(omxAlgebra *oa) {
 
 void omxAlgebraCompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		Rprintf("Algebra compute (%s): 0x%0x.\n", 
+		mxLog("Algebra compute (%s): 0x%0x.", 
 			oa->matrix->name, oa->matrix);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Recomputing arg %d at 0x%0x (Which %s need it).\n", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at 0x%0x (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxForceCompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -159,7 +159,7 @@ void omxAlgebraCompute(omxAlgebra *oa) {
 			error("Internal Error: Empty algebra evaluated.\n");
 		}
 	} else {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Activating function with %d args.\n", oa->numArgs); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Activating function with %d args.", oa->numArgs); }
 		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
@@ -191,12 +191,12 @@ omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, c
 	if(oa == NULL) error("Internal Error: Null Algebra Detected in fillAlgebra.");
 
 	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
-		Rprintf("Filling from table entry %d (%s)....", oate->number, oate->rName);
+		mxLog("Filling from table entry %d (%s)....", oate->number, oate->rName);
 	}
 	oa->funWrapper = oate->funWrapper;
 	omxAlgebraAllocArgs(oa, oate->numArgs==-1? realNumArgs : oate->numArgs);
 	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
-		Rprintf("Table Entry processed.\n");
+		mxLog("Table Entry processed.");
 	}
 }
 
@@ -209,20 +209,20 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	PROTECT(algebraOperator = AS_INTEGER(VECTOR_ELT(algebra, 0)));
 	value = INTEGER(algebraOperator)[0];
 
-	if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Creating Algebra from Sexp.\n");}
+	if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Creating Algebra from Sexp.");}
 
 	if(value > 0) { 			// This is an operator.
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 		omxInitAlgebraWithMatrix(oa, om);
-		if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Retrieving Table Entry %d.\n", value);}
+		if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
-		if(OMX_DEBUG && om->currentState->parentState == NULL) {Rprintf("Table Entry %d (at 0x%0x) is %s.\n", value, entry, entry->opName);}
+		if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Table Entry %d (at 0x%0x) is %s.", value, entry, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
 				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
 				if(OMX_DEBUG && om->currentState->parentState == NULL) {
-					Rprintf("fillFromMxAlgebra got 0x%0x from helper, arg %d.\n", oa->algArgs[j], j);
+					mxLog("fillFromMxAlgebra got 0x%0x from helper, arg %d.", oa->algArgs[j], j);
 				}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
@@ -255,10 +255,10 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
 	omxMatrix* newMat;
-	if(OMX_DEBUG && os->parentState == NULL) { Rprintf("Helper: processing next arg..."); }
+	if(OMX_DEBUG && os->parentState == NULL) { mxLog("Helper: processing next arg..."); }
 	
 	if(!IS_INTEGER(algebraArg)) {
-		if(OMX_DEBUG && os->parentState == NULL) { Rprintf("Helper detected list element.  Recursing.\n"); }
+		if(OMX_DEBUG && os->parentState == NULL) { mxLog("Helper detected list element.  Recursing."); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
 		newMat = omxMatrixLookupFromState1(algebraArg, os);
@@ -268,14 +268,13 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
-	Rprintf("(Algebra) ");
+	mxLog("(Algebra has %d args.", oa->numArgs);
 	omxPrintMatrix(oa->matrix, d);
-	Rprintf("has %d args.\n", oa->numArgs);
 }
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("Attaching pointer to matrix.");
+		mxLog("Attaching pointer to matrix.");
 	}
 
 	int value = 0;
@@ -287,7 +286,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
 			if(OMX_DEBUG && os->parentState == NULL) {
-				Rprintf("  Null integer matrix.  Skipping.\n");
+				mxLog("  Null integer matrix.  Skipping.");
 			}
 			return NULL;
 		}
@@ -297,7 +296,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
 			if(OMX_DEBUG && os->parentState == NULL) {
-				Rprintf("   Null numeric matrix.  Skipping.\n");
+				mxLog("   Null numeric matrix.  Skipping.");
 			}
 			return NULL;
 		}
@@ -313,7 +312,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		error("Internal error: unknown type passed to omxMatrixLookupFromState1");
 	}		
 	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("  Pointer is %d.\n", value);
+		mxLog("  Pointer is %d.", value);
 	}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.
 		output = os->algebraList[value];
@@ -322,7 +321,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	}
 	
 	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("Attached.\n");
+		mxLog("Attached.");
 	}
 	
 	return output;
@@ -330,7 +329,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {
 	
-	if(OMX_DEBUG) {Rprintf("Generating new algebra from opcode %d (%s).\n", opCode, omxAlgebraSymbolTable[opCode].rName);}
+	if(OMX_DEBUG) {mxLog("Generating new algebra from opcode %d (%s).", opCode, omxAlgebraSymbolTable[opCode].rName);}
 	omxMatrix *om;
 	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
@@ -342,10 +341,10 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	omxFillAlgebraFromTableEntry(oa, entry, entry->numArgs);
 	om->name = entry->opName;
 
-	if(OMX_DEBUG) {Rprintf("Calculating args for %s.\n", entry->rName);}
+	if(OMX_DEBUG) {mxLog("Calculating args for %s.", entry->rName);}
 	omxAlgebraAllocArgs(oa, numArgs);
 	
-	if(OMX_DEBUG) {Rprintf("Populating args for %s.\n", entry->rName);}
+	if(OMX_DEBUG) {mxLog("Populating args for %s.", entry->rName);}
 	
 	for(int i = 0; i < numArgs;i++) {
 		oa->algArgs[i] = args[i];

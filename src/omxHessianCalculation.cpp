@@ -118,9 +118,9 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 	/* Part the first: Gradient and diagonal */
 	double iOffset = fabs(stepSize * optima[i]);
 	if(fabs(iOffset) < eps) iOffset += eps;
-	if(OMX_DEBUG) {Rprintf("Hessian estimation: iOffset: %f.\n", iOffset);}
+	if(OMX_DEBUG) {mxLog("Hessian estimation: iOffset: %f.", iOffset);}
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
-		if(OMX_DEBUG) {Rprintf("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.\n", i, k, iOffset);}
+		if(OMX_DEBUG) {mxLog("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.", i, k, iOffset);}
 		freeParams[i] = optima[i] + iOffset;
 
 		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
@@ -128,7 +128,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		if(OMX_DEBUG) {Rprintf("Hessian estimation: One Step Back.\n");}
+		if(OMX_DEBUG) {mxLog("Hessian estimation: One Step Back.");}
 
 		freeParams[i] = optima[i] - iOffset;
 
@@ -141,7 +141,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
 		freeParams[i] = optima[i];									// Reset parameter value
 		iOffset /= v;
-		if(OMX_DEBUG) {Rprintf("Hessian estimation: (%d, %d)--Calculating F1: %f F2: %f, Haprox: %f...\n", i, i, f1, f2, Haprox[k]);}
+		if(OMX_DEBUG) {mxLog("Hessian estimation: (%d, %d)--Calculating F1: %f F2: %f, Haprox: %f...", i, i, f1, f2, Haprox[k]);}
 	}
 
 	for(int m = 1; m < numIter; m++) {						// Richardson Step
@@ -151,11 +151,11 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		}
 	}
 
-	if(OMX_DEBUG) { Rprintf("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d) with value %f...\n", hessian, i, i, i*numParams+i, Haprox[0]); }
+	if(OMX_DEBUG) { mxLog("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d) with value %f...", hessian, i, i, i*numParams+i, Haprox[0]); }
 	gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
 	hessian[i*numParams + i] = Haprox[0];
 
-	if(OMX_DEBUG) {Rprintf("Done with parameter %d.\n", i);}
+	if(OMX_DEBUG) {mxLog("Done with parameter %d.", i);}
 
 }
 
@@ -182,7 +182,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		if(OMX_DEBUG) {Rprintf("Hessian estimation: One Step Back.\n");}
+		if(OMX_DEBUG) {mxLog("Hessian estimation: One Step Back.");}
 
 		freeParams[i] = optima[i] - iOffset;
 		freeParams[l] = optima[l] - lOffset;
@@ -194,7 +194,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 						hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
-		if(OMX_DEBUG) {Rprintf("Hessian first off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f).\n", Haprox[k], iOffset, lOffset, f1, hessian[i*numParams+i], hessian[l*numParams+l], v, k, pow(v, k), stepSize*optima[i], stepSize*optima[l]);}
+		if(OMX_DEBUG) {mxLog("Hessian first off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f).", Haprox[k], iOffset, lOffset, f1, hessian[i*numParams+i], hessian[l*numParams+l], v, k, pow(v, k), stepSize*optima[i], stepSize*optima[l]);}
 
 		freeParams[i] = optima[i];				// Reset parameter values
 		freeParams[l] = optima[l];
@@ -205,12 +205,12 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 	for(int m = 1; m < numIter; m++) {						// Richardson Step
 		for(int k = 0; k < (numIter - m); k++) {
-			if(OMX_DEBUG) {Rprintf("Hessian off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f, and %f).\n", Haprox[k], iOffset, lOffset, stepSize, optima[i], optima[l], v, m, pow(4.0, m), stepSize*optima[i], stepSize*optima[l], k);}
+			if(OMX_DEBUG) {mxLog("Hessian off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f, and %f).", Haprox[k], iOffset, lOffset, stepSize, optima[i], optima[l], v, m, pow(4.0, m), stepSize*optima[i], stepSize*optima[l], k);}
 			Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k]) / (pow(4.0, m)-1);
 		}
 	}
 
-	if(OMX_DEBUG) {Rprintf("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
+	if(OMX_DEBUG) {mxLog("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
 	hessian[i*numParams+l] = Haprox[0];
 	hessian[l*numParams+i] = Haprox[0];
 
@@ -310,7 +310,7 @@ void omxComputeEstimatedHessian::compute(double *at)
 			omxPopulateHessianWork(hess_work + i, globalState->childList[i]);
 		}
 	}
-	if(OMX_DEBUG) Rprintf("Hessian Calculation using %d children\n", numChildren);
+	if(OMX_DEBUG) mxLog("Hessian Calculation using %d children", numChildren);
 
 	hessian = REAL(calculatedHessian);
 
@@ -318,7 +318,7 @@ void omxComputeEstimatedHessian::compute(double *at)
   
 	doHessianCalculation(numChildren, hess_work);
 
-	if(OMX_DEBUG) {Rprintf("Hessian Computation complete.\n");}
+	if(OMX_DEBUG) {mxLog("Hessian Computation complete.");}
 
 	if (numChildren < 2) {
 		Free(hess_work->Haprox);

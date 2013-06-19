@@ -34,7 +34,7 @@ void omxFIMLAdvanceRow(int *keepCov, int *keepInverse, int *row,
 	int rowVal = *row;
 	if(*keepCov <= 0) *keepCov = omxDataNumIdenticalDefs(data, rowVal);
 	if(*keepInverse  <= 0) *keepInverse = omxDataNumIdenticalMissingness(data, rowVal);
-	// Rprintf("Incrementing Row."); //:::DEBUG:::
+	// mxLog("Incrementing Row."); //:::DEBUG:::
 	*row += numIdentical;
 	*keepCov -= numIdentical;
 	*keepInverse -= numIdentical;
@@ -178,7 +178,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
         omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
         
         if(OMX_DEBUG_ROWS(row)) {
-            Rprintf("Identicality check. Is %sfirst. Total: %d rows identical, %d defs, %d missingness: Continuous: %d rows, %d missingness; Ordinal: %d rows, %d missingness.\n", 
+            mxLog("Identicality check. Is %sfirst. Total: %d rows identical, %d defs, %d missingness: Continuous: %d rows, %d missingness; Ordinal: %d rows, %d missingness.", 
                     (firstRow?"":"not "), numIdentical, numIdenticalDefs, omxDataNumIdenticalRows(data, row), 
                     numIdenticalContinuousRows, numIdenticalContinuousMissingness, 
                     numIdenticalOrdinalRows, numIdenticalOrdinalMissingness);
@@ -188,7 +188,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
             // Handle Definition Variables.
             if((numDefs != 0 && numIdenticalDefs > 0) || firstRow) {
 				int numVarsFilled = 0;
-				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
 				if (numVarsFilled < 0) {
 					for(int nid = 0; nid < numIdentical; nid++) {
@@ -224,7 +224,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                     contRemove[j] = 1;
     				Infin[j] = -1;
                     if(OMX_DEBUG_ROWS(row)) { 
-    				    Rprintf("Row %d, column %d, value %d.  NA.\n", row, j, value);
+    				    mxLog("Row %d, column %d, value %d.  NA.", row, j, value);
                     }
     				continue;
     			} else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
@@ -232,20 +232,20 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                     ordRemove[j] = 0;
                     contRemove[j] = 1;
                     if(OMX_DEBUG_ROWS(row)) { 
-    			        Rprintf("Row %d, column %d, value %d.  Ordinal.\n", row, j, value);
+    			        mxLog("Row %d, column %d, value %d.  Ordinal.", row, j, value);
                     }
     			} else {
     			    numOrdRemoves++;
                     ordRemove[j] = 1;
                     contRemove[j] = 0;
                     if(OMX_DEBUG_ROWS(row)) { 
-    			        Rprintf("Row %d, column %d, value %d.  Continuous.\n", row, j, value);
+    			        mxLog("Row %d, column %d, value %d.  Continuous.", row, j, value);
                     }
     			}
     		}
     		
             if(OMX_DEBUG_ROWS(row)) {
-                Rprintf("\n\nRemovals: %d ordinal, %d continuous out of %d total.", numOrdRemoves, numContRemoves, dataColumns->cols);
+                mxLog("\n\nRemovals: %d ordinal, %d continuous out of %d total.", numOrdRemoves, numContRemoves, dataColumns->cols);
             }
     		
 			for(int j=0; j < dataColumns->cols; j++) {
@@ -361,7 +361,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 					        omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
                         omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
                     }
-                    if(OMX_DEBUG) {Rprintf("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
+                    if(OMX_DEBUG) {mxLog("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
    					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 						&numIdenticalContinuousMissingness,
 						&numIdenticalOrdinalMissingness, 
@@ -443,19 +443,19 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                     
                     // Recalculate Ordinal and Ordinal/Continuous covariance matrices.
                     if(OMX_DEBUG_ROWS(row)) {
-                        Rprintf("Resetting Ordinal Covariance Matrix.\n");
+                        mxLog("Resetting Ordinal Covariance Matrix.");
                         omxPrint(ordCov, "Was:");
                     }
 
                     omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
                     if(OMX_DEBUG_ROWS(row)) {
-                        Rprintf("Resetting/Filtering Ordinal Covariance Matrix.\n");
+                        mxLog("Resetting/Filtering Ordinal Covariance Matrix.");
                         omxPrint(ordCov, "Reset to:");
                     }
 
                     omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
                     if(OMX_DEBUG_ROWS(row)) {
-                        Rprintf("Resetting/Filtering Ordinal Covariance Matrix.\n");
+                        mxLog("Resetting/Filtering Ordinal Covariance Matrix.");
                         omxPrint(ordCov, "Filtered to:");
                     }
                 
@@ -496,9 +496,9 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                 if(ordRemove[j]) continue;         // NA or non-ordinal
                 int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var); //  TODO: Compare with extraction from dataRow.
-                // Rprintf("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
+                // mxLog("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
     	        value--;		// Correct for C indexing: value is now the index of the upper bound.
-                // Rprintf("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
+                // mxLog("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
     			double offset;
     			if(means == NULL) offset = 0;
     			else offset = omxVectorElement(ordMeans, count);
@@ -524,9 +524,9 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
     				Infin[count] = 1;
     			}
     			if(OMX_DEBUG) { 
-    			    Rprintf("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d).  Offset is %f and weight is %f\n",
+    			    mxLog("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d).  Offset is %f and weight is %f",
     			            row, count, j, value, lThresh[count], uThresh[count], Infin[count], offset, weight);
-    			    Rprintf("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.\n",
+    			    mxLog("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.",
     			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
     			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
                             weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
@@ -554,7 +554,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
   					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
    				}
-                if(OMX_DEBUG) {Rprintf("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+                if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
 				omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 					&numIdenticalContinuousMissingness,
 					&numIdenticalOrdinalMissingness, 
@@ -568,11 +568,11 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 		double rowLikelihood = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
 
 		if(returnRowLikelihoods) {
-		    if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", 
+		    if(OMX_DEBUG_ROWS(row)) {mxLog("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f", 
 		        pow(2 * M_PI, -.5 * numContinuous), (1.0/exp(determinant)), exp(-.5 * Q), 
 		        pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q));}
             
-			if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d likelihood is %3.3f.\n", row, rowLikelihood);}
+			if(OMX_DEBUG_ROWS(row)) {mxLog("Row %d likelihood is %3.3f.", row, rowLikelihood);}
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, rowLikelihood);
 				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, rowLikelihood);
@@ -588,7 +588,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 			omxSetMatrixElement(rowLogLikelihoods, row, 0, logLikelihood);
 			
 			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, \n", 
+				mxLog("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, ", 
 				    localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * numContinuous), 
 				    -2  * log(rowLikelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * numContinuous));
 			} 
@@ -685,7 +685,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 	}
 
 	while(row < data->rows && (row - rowbegin) < rowcount) {
-        if(OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);}
+        if(OMX_DEBUG_ROWS(row)) {mxLog("Row %d.", row);}
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
@@ -701,7 +701,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
         if(numDefs != 0) {
 			if(keepCov <= 0) {  // If we're keeping covariance from the previous row, do not populate 
 				int numVarsFilled = 0;
-				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
 				if (numVarsFilled < 0) {
 					for(int nid = 0; nid < numIdentical; nid++) {
@@ -743,7 +743,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 				double mean = (means == NULL) ? 0 : omxVectorElement(means, j);
 				double weight = weights[j];
 				if(OMX_DEBUG_ROWS(row)) { 
-					Rprintf("Row %d, column %d. Mean is %f and weight is %f\n", row, j, mean, weight);
+					mxLog("Row %d, column %d. Mean is %f and weight is %f", row, j, mean, weight);
 				}
 				if(value == 0) { 									// Lowest threshold = -Inf
 					lThresh[j] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - mean) / weight;
@@ -767,7 +767,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 				}
 
 				if(OMX_DEBUG_ROWS(row)) { 
-					Rprintf("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)\n", 
+					mxLog("Row %d, column %d.  Thresholds for data column %d and row %d are %f -> %f. (Infin=%d)", 
 						row, j, var, value, lThresh[j], uThresh[j], Infin[j]);
 				}
 			}
@@ -813,7 +813,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 
 		if(returnRowLikelihoods) {
 			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("Row %d likelihood is %3.3f.\n", row, likelihood);
+				mxLog("Row %d likelihood is %3.3f.", row, likelihood);
 			} 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, likelihood);
@@ -829,7 +829,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 			omxSetMatrixElement(rowLogLikelihoods, row, 0, logDet);
 
 			if(OMX_DEBUG_ROWS(row)) { 
-				Rprintf("-2 Log Likelihood this row is %3.3f, total change %3.3f\n",
+				mxLog("-2 Log Likelihood this row is %3.3f, total change %3.3f",
 				    logDet, logDet + Q + (log(2 * M_PI) * (cov->cols - numRemoves)));
 			}
 		}
@@ -863,7 +863,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
  * 
  */
 void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
-    if(OMX_DEBUG_ALGEBRA) {Rprintf("Entering FIML Single Iteration\n"); }
+    if(OMX_DEBUG_ALGEBRA) {mxLog("Entering FIML Single Iteration"); }
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 
@@ -922,14 +922,14 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 	}
 	
 	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
-		if(OMX_DEBUG){ Rprintf("Resetting State Space state (x) and error cov (P).\n"); }
+		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
 		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 	}
 
 	resetDefinitionVariables(oldDefs, numDefs);
 
 	while(row < data->rows && (row - rowbegin) < rowcount) {
-        if (OMX_DEBUG_ROWS(row)) {Rprintf("Row %d.\n", row);} //:::DEBUG:::
+        if (OMX_DEBUG_ROWS(row)) {mxLog("Row %d.", row);} //:::DEBUG:::
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
@@ -957,7 +957,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		if(numDefs != 0 || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			if(keepCov <= 0 || !strcmp(expectation->expType, "MxExpectationStateSpace")) {  // If we're keeping covariance from the previous row, do not populate
 				int numVarsFilled = 0;
-				if(OMX_DEBUG_ROWS(row)) { Rprintf("Handling Definition Vars.\n"); }
+				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
 				if (numVarsFilled < 0) {
 					for(int nid = 0; nid < numIdentical; nid++) {
@@ -966,7 +966,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 					}
 					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-					// Rprintf("Incrementing Row."); //:::DEBUG:::
+					// mxLog("Incrementing Row."); //:::DEBUG:::
 					row += numIdentical;
 					keepCov -= numIdentical;
 					keepInverse -= numIdentical;
@@ -975,9 +975,9 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
 					omxExpectationCompute(expectation);
-					if(OMX_DEBUG_ROWS(row)){ Rprintf("Successfully finished expectation compute.\n"); }
+					if(OMX_DEBUG_ROWS(row)){ mxLog("Successfully finished expectation compute."); }
 				}
-			} else if(OMX_DEBUG_ROWS(row)){ Rprintf("Identical def vars: Not repopulating"); }
+			} else if(OMX_DEBUG_ROWS(row)){ mxLog("Identical def vars: Not repopulating"); }
 		}
 
 		if(OMX_DEBUG_ROWS(row)) { omxPrint(means, "Local Means"); }
@@ -1014,11 +1014,11 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		
 		omxRemoveElements(smallRow, numRemoves, toRemove); 	// Reduce it.
 		
-		if(OMX_DEBUG_ROWS(row)) { Rprintf("Keeper codes: inverse: %d, cov:%d, identical:%d\n", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
+		if(OMX_DEBUG_ROWS(row)) { mxLog("Keeper codes: inverse: %d, cov:%d, identical:%d", keepInverse, keepCov, omxDataNumIdenticalRows(data, row)); }
 
 		if((keepInverse <= 0 || keepCov <= 0 || firstRow) && strcmp(expectation->expType, "MxExpectationStateSpace")) { // If defs and missingness don't change, skip.
 			// also skip if this is a state space expectation
-			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to recompute inverse cov for standard models\n"); }
+			if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to recompute inverse cov for standard models"); }
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
 			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
@@ -1064,7 +1064,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			determinant = 0.0;
 			for(int diag = 0; diag < (smallCov->rows); diag++) {
 				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
-                // if(OMX_DEBUG_ROWS) { Rprintf("Next det is: %3.3d\n", determinant);} //:::DEBUG:::
+                // if(OMX_DEBUG_ROWS) { mxLog("Next det is: %3.3d", determinant);} //:::DEBUG:::
 			}
             // determinant = determinant * determinant; // Delayed for now.
 			
@@ -1091,7 +1091,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		
 		/* If it's a state space expectation, extract the inverse rather than recompute it */
 		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
-			if(OMX_DEBUG_ROWS(row)) { Rprintf("Beginning to extract inverse cov for state space models\n"); }
+			if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
 			
 			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
 			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
@@ -1099,7 +1099,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
 			
 			determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
-			if(OMX_DEBUG_ROWS(row)) { Rprintf("0.5*log(det(Cov)) is: %3.3f\n", determinant);}
+			if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
 		}
 
 		/* Calculate Row Likelihood */
@@ -1109,7 +1109,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 
 		double likelihood = pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q);
 		if(returnRowLikelihoods) {
-			if(OMX_DEBUG_ROWS(row)) {Rprintf("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f\n", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
+			if(OMX_DEBUG_ROWS(row)) {mxLog("Change in Total Likelihood is %3.3f * %3.3f * %3.3f = %3.3f", pow(2 * M_PI, -.5 * smallRow->cols), (1.0/exp(determinant)), exp(-.5 * Q), pow(2 * M_PI, -.5 * smallRow->cols) * (1.0/exp(determinant)) * exp(-.5 * Q));}
 
 			for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
 				omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, j), 0, likelihood);
@@ -1123,7 +1123,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			omxSetMatrixElement(rowLogLikelihoods, row, 0, logLikelihood);
 
 			if(OMX_DEBUG_ROWS(row)) {
-				Rprintf("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
+				mxLog("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
 			}
 		}
 		if(firstRow) firstRow = 0;

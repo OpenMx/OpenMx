@@ -57,7 +57,7 @@ void F77_SUB(npsolObjectiveFunction)
 {
 	unsigned short int checkpointNow = FALSE;
 
-	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
+	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
 
 	if(*mode == 1) {
 		omxSetMajorIteration(globalState, globalState->majorIteration + 1);
@@ -82,17 +82,17 @@ void F77_SUB(npsolObjectiveFunction)
 
 	if (isErrorRaised(globalState)) {
 		if(OMX_DEBUG) {
-			Rprintf("Error status reported.\n");
+			mxLog("Error status reported.");
 		}
 		*mode = -1;
 	}
 
 	*f = fitMatrix->data[0];
 	if(OMX_VERBOSE) {
-		Rprintf("Fit function value is: %f, Mode is %d.\n", fitMatrix->data[0], *mode);
+		mxLog("Fit function value is: %f, Mode is %d.", fitMatrix->data[0], *mode);
 	}
 
-	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
+	if(OMX_DEBUG) { mxLog("-======================================================-"); }
 
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
 		omxSaveCheckpoint(globalState, x, f, FALSE);		// Check about saving a checkpoint
@@ -105,7 +105,7 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) Rprintf("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (globalState->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (globalState->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
@@ -116,7 +116,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 
 		if(OMX_DEBUG) {
-			Rprintf("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.\n",
+			mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
 				oCI->lbound, oCI->ubound, *f, CIElement);
 		}
 
@@ -139,7 +139,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 		}
 
 		if(OMX_DEBUG) {
-			Rprintf("Interval fit function in previous iteration was calculated to be %f.\n", *f);
+			mxLog("Interval fit function in previous iteration was calculated to be %f.", *f);
 		}
 }
 
@@ -150,12 +150,12 @@ void F77_SUB(npsolConstraintFunction)
 		double *c, double *cJac, int *nstate)
 {
 
-	if(OMX_DEBUG) { Rprintf("Constraint function called.\n");}
+	if(OMX_DEBUG) { mxLog("Constraint function called.");}
 
 	if(*mode==1) {
 		if(OMX_DEBUG) {
-			Rprintf("But only gradients requested.  Returning.\n");
-			Rprintf("-=====================================================-\n");
+			mxLog("But only gradients requested.  Returning.");
+			mxLog("-=====================================================-");
 		}
 
 		return;
@@ -174,7 +174,7 @@ void F77_SUB(npsolConstraintFunction)
 		}
 	}
 
-	if(OMX_DEBUG) { Rprintf("-=======================================================-\n"); }
+	if(OMX_DEBUG) { mxLog("-=======================================================-"); }
 
 	return;
 
@@ -249,19 +249,19 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
  
         /* Initialize Starting Values */
         if(OMX_VERBOSE) {
-            Rprintf("--------------------------\n");
-            Rprintf("Starting Values (%d) are:\n", n);
+            mxLog("--------------------------");
+            mxLog("Starting Values (%d) are:", n);
         }
         for(k = 0; k < n; k++) {
             if((x[k] == 0.0)) {
                 x[k] += 0.1;
                 markFreeVarDependencies(globalState, k);
             }
-            if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, x[k]); }
+            if(OMX_VERBOSE) { mxLog("%d: %f", k, x[k]); }
         }
         if(OMX_DEBUG) {
-            Rprintf("--------------------------\n");
-            Rprintf("Setting up optimizer...");
+            mxLog("--------------------------");
+            mxLog("Setting up optimizer...");
         }
  
     /*  F77_CALL(npsol)
@@ -302,14 +302,14 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
         */
  
         if(OMX_DEBUG) {
-            Rprintf("Set.\n");
+            mxLog("Set.");
         }
  
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
 			clambda, f, g, R, x, iw, &leniw, w, &lenw);
 
-        if(OMX_DEBUG) { Rprintf("Final Objective Value is: %f.\n", *f); }
+        if(OMX_DEBUG) { mxLog("Final Objective Value is: %f.", *f); }
  
         omxSaveCheckpoint(globalState, x, f, TRUE);
  
@@ -393,7 +393,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
     omxSetupBoundsAndConstraints(bl, bu, n, nclin);     
  
-        if(OMX_DEBUG) { Rprintf("Calculating likelihood-based confidence intervals.\n"); }
+        if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
         for(int i = 0; i < globalState->numIntervals; i++) {
 
@@ -446,7 +446,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
-                    Rprintf("Calculation of lower interval %d failed: Bad inform value of %d\n",
+                    mxLog("Calculation of lower interval %d failed: Bad inform value of %d",
                             i, inform);
                 }
                 cycles--;
@@ -466,7 +466,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 }
             }
  
-            if(OMX_DEBUG) { Rprintf("Found lower bound %d.  Seeking upper.\n", i); }
+            if(OMX_DEBUG) { mxLog("Found lower bound %d.  Seeking upper.", i); }
             // TODO: Repopulate original optimizer state in between CI calculations
 
 			if (currentCI->matrix->name == NULL) {
@@ -503,7 +503,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
-                    Rprintf("Calculation of upper interval %d failed: Bad inform value of %d\n",
+                    mxLog("Calculation of upper interval %d failed: Bad inform value of %d",
                             i, inform);
                 }
                 cycles--;
@@ -522,7 +522,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                     }
                 }
             }
-            if(OMX_DEBUG) {Rprintf("Found Upper bound %d.\n", i);}
+            if(OMX_DEBUG) {mxLog("Found Upper bound %d.", i);}
         }
 
     NPSOL_fitMatrix = NULL;
@@ -548,7 +548,7 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 		warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
 		return;
 	}
-	if(OMX_DEBUG) { Rprintf("%s=%d\n", key, newVal); }
+	if(OMX_DEBUG) { mxLog("%s=%d", key, newVal); }
 	*out = newVal;
 }
 
@@ -568,16 +568,11 @@ void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
-#if OMX_DEBUG
-				Rprintf("Notice: OMX_DEBUG is enabled; openmp threads disabled\n");
-#else
-				// Rprintf is not thread safe, switch to thread safe debugging TODO
 				*numThreads = atoi(nextOptionValue);
-#endif
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-				if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
+				if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
 			}
 		}
 		UNPROTECT(1); // optionNames

@@ -66,10 +66,10 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
     
 	/* Completely destroy the fit function structures */
-	if(OMX_DEBUG) {Rprintf("Freeing fit function object at 0x%x.\n", off);}
+	if(OMX_DEBUG) {mxLog("Freeing fit function object at 0x%x.", off);}
 	if(off->matrix != NULL) {
 		if(off->destructFun != NULL) {
-			if(OMX_DEBUG) {Rprintf("Calling fit function destructor for 0x%x.\n", off);}
+			if(OMX_DEBUG) {mxLog("Calling fit function destructor for 0x%x.", off);}
 			off->destructFun(off);
 		}
 		off->matrix = NULL;
@@ -102,7 +102,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState) {
 
-	if(OMX_DEBUG) {Rprintf("Duplicating fit function 0x%x into 0x%x.", src, tgt);}
+	if(OMX_DEBUG) {mxLog("Duplicating fit function 0x%x into 0x%x.", src, tgt);}
 
 	if(src == NULL) {
 		return NULL;
@@ -124,7 +124,7 @@ omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitF
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
 	if(OMX_DEBUG_ALGEBRA) { 
-	    Rprintf("FitFunction compute: 0x%0x (needed: %s).\n", off, (off->matrix->isDirty?"Yes":"No"));
+	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
 	}
 
 	off->computeFun(off, want, gradient);
@@ -207,7 +207,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
-	Rprintf("(FitFunction, type %s) ", off->fitType);
+	mxLog("(FitFunction, type %s)", off->fitType);
 	omxPrintMatrix(off->matrix, d);
 }
 

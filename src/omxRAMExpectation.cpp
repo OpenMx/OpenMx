@@ -66,7 +66,7 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
     // Also populates the matrices called D if it appears.
     // Minimal error checking.
-    if(OMX_DEBUG_ALGEBRA) Rprintf("Beginning ADB.\n"); //:::DEBUG:::
+    if(OMX_DEBUG_ALGEBRA) mxLog("Beginning ADB."); //:::DEBUG:::
 
     omxFreeVar var;  // TODO, store a pointer instead of a copy
     int paramNo;
@@ -143,7 +143,7 @@ static void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMa
 }
 
 static void omxCallRAMExpectation(omxExpectation* oo) {
-    if(OMX_DEBUG) { Rprintf("RAM Expectation calculating.\n"); }
+    if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
 	omxRecompute(oro->A);
@@ -158,7 +158,7 @@ static void omxCallRAMExpectation(omxExpectation* oo) {
 
 static void omxDestroyRAMExpectation(omxExpectation* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Destroying RAM Expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Destroying RAM Expectation."); }
 	
 	omxRAMExpectation* argStruct = (omxRAMExpectation*)(oo->argStruct);
 
@@ -217,7 +217,7 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 }
 
 static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating RAM Attributes.\n"); }
+    if(OMX_DEBUG) { mxLog("Populating RAM Attributes."); }
 
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
 	omxMatrix* A = oro->A;
@@ -234,11 +234,11 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	
 	omxShallowInverse(numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.\n", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
 	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Ax->majority, Z->minority, &(Ax->rows), &(Z->rows), &(Z->cols), &oned, Ax->data, &(Ax->leading), Z->data, &(Z->leading), &zerod, Ax->data, &(Ax->leading)); 
 	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
 	// Ax = ZSZ' = Covariance matrix including latent variables
@@ -274,7 +274,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
 	omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
 	
-	if(OMX_DEBUG) { Rprintf("Running RAM computation with numIters is %d\n.", numIters); }
+	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	double oned = 1.0, zerod=0.0;
 	
@@ -302,15 +302,15 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	if (isErrorRaised(A->currentState)) return;
 	
 	/* Cov = FZSZ'F' */
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
 	// F77_CALL(omxunsafedgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
 	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), oned, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), oned, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
 	// F77_CALL(omxunsafedgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &oned, Y->data, &(Y->leading), S->data, &(S->leading), &zerod, X->data, &(X->leading)); 	// X = FZS
 	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), oned, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), oned, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
 	// F77_CALL(omxunsafedgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &oned, X->data, &(X->leading), Y->data, &(Y->leading), &zerod, Cov->data, &(Cov->leading));
 	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, Cov);
 	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
@@ -329,7 +329,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	omxState* currentState = oo->currentState;	
 	SEXP rObj = oo->rObj;
 
-	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
 	
 	int l, k;
 
@@ -345,38 +345,38 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	oo->argStruct = (void*) RAMexp;
 	
 	/* Set up expectation structures */
-	if(OMX_DEBUG) { Rprintf("Initializing RAM expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
 
-	if(OMX_DEBUG) { Rprintf("Processing M.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing M."); }
 	RAMexp->M = omxNewMatrixFromSlot(rObj, currentState, "M");
 
-	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing A."); }
 	RAMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
 
-	if(OMX_DEBUG) { Rprintf("Processing S.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing S."); }
 	RAMexp->S = omxNewMatrixFromSlot(rObj, currentState, "S");
 
-	if(OMX_DEBUG) { Rprintf("Processing F.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing F."); }
 	RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
 
 	/* Identity Matrix, Size Of A */
-	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating I."); }
 	RAMexp->I = omxNewIdentityMatrix(RAMexp->A->rows, currentState);
 	omxRecompute(RAMexp->I);
 	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
 	omxRecompute(RAMexp->lilI);
 	
 
-	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
 	RAMexp->numIters = INTEGER(slotValue)[0];
-	if(OMX_DEBUG) { Rprintf("Using %d iterations.", RAMexp->numIters); }
+	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
 	UNPROTECT(1);
 
 	l = RAMexp->F->rows;
 	k = RAMexp->A->cols;
 
-	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
 	RAMexp->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
 	RAMexp->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
@@ -486,7 +486,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
 
     //  Right.  All the * elements are saved for hessian computation.
  
-    if(OMX_DEBUG) {Rprintf("Calculating fast RAM/ML gradient.\n"); }
+    if(OMX_DEBUG) {mxLog("Calculating fast RAM/ML gradient."); }
     
     omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
                                     // Size reference: A is axa, F is fxa
@@ -560,7 +560,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     if(nParam < 0) {
         nParam = 0;
         int nTotalParams = oo->currentState->numFreeParams;
-        if(OMX_DEBUG) { Rprintf("Planning Memory for Fast Gradient Calculation: Using %d params.\n", nParam); }
+        if(OMX_DEBUG) { mxLog("Planning Memory for Fast Gradient Calculation: Using %d params.", nParam); }
         unsigned short int calc[nTotalParams]; 
         // Work out the set of parameters for which we can calculate gradients
         // TODO: Potential speedup by splitting this to calculate dA, dS, and dM separately
@@ -653,7 +653,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     
     F77_CALL(dpotrf)(&u, &(eCov->cols), eCov->data, &(eCov->cols), &info);
 
-    if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on LU Decomp: %d\n", info);}
+    if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
@@ -882,7 +882,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
         int nextP = pNums[pNum]; // Original varList parameter number
         result[pNum] = (covInfluence[pNum] * (n-1)) - (meanInfluence[pNum] * n);
         if(OMX_DEBUG) {
-            Rprintf("Revised calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f\n",
+            mxLog("Revised calculation for Gradient value %d: Cov: %3.9f, Mean: %3.9f, total: %3.9f",
                 nextP, covInfluence[pNum], meanInfluence[pNum], result[pNum]);
         }
     }
@@ -993,7 +993,7 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
                 // For now, skip.
                 // TODO: Find a way to deal with these situations
                 status[param] = -1;
-                if(OMX_DEBUG) { Rprintf("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.\n", param, varLoc, varMat, Amat, Smat, Mmat);}
+                if(OMX_DEBUG) { mxLog("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.", param, varLoc, varMat, Amat, Smat, Mmat);}
                 break;
             }
         }
@@ -1028,7 +1028,7 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
 	
-	if(OMX_DEBUG) { Rprintf("RAM expectation: %s requested--", component); }
+	if(OMX_DEBUG) { mxLog("RAM expectation: %s requested--", component); }
 
 	omxRAMExpectation* ore = (omxRAMExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
@@ -1041,7 +1041,7 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFuncti
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
 
 	return retval;
 

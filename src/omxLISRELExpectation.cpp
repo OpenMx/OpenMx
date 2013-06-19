@@ -23,7 +23,7 @@ extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov
 // TODO: Merge ML and FIML Fit Functions into one unit.
 
 void omxCallLISRELExpectation(omxExpectation* oo) {
-    if(OMX_DEBUG) { Rprintf("LISREL Expectation Called.\n"); }
+    if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
 	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	
 	omxRecompute(oro->LX);
@@ -49,7 +49,7 @@ void omxCallLISRELExpectation(omxExpectation* oo) {
 
 void omxDestroyLISRELExpectation(omxExpectation* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Destroying LISREL Expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Destroying LISREL Expectation."); }
 	
 	omxLISRELExpectation* argStruct = (omxLISRELExpectation*)(oo->argStruct);
 
@@ -79,7 +79,7 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 }
 
 void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating LISREL Attributes.  Currently this does very little!\n"); }
+    if(OMX_DEBUG) { mxLog("Populating LISREL Attributes.  Currently this does very little!"); }
 	
 	/*
 	omxLISRELExpectation* oro = (omxLISRELExpectation*) (oo->argStruct);
@@ -108,11 +108,11 @@ void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
 	/*
 	omxShallowInverse(numIters, BE, Z, Ax, I ); // Z = (I-A)^-1
 	
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.\n", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
 	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Ax->majority, Z->minority, &(Ax->rows), &(Z->rows), &(Z->cols), &oned, Ax->data, &(Ax->leading), Z->data, &(Z->leading), &zerod, Ax->data, &(Ax->leading)); 
 	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
 	// Ax = ZSZ' = Covariance matrix including latent variables
@@ -165,7 +165,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxMatrix* MUX = oro->MUX;
 	omxMatrix* MUY = oro->MUY;
 	omxMatrix** args = oro->args;
-	if(OMX_DEBUG) { Rprintf("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans.\n"); }
+	if(OMX_DEBUG) { mxLog("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans."); }
 	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
 	//int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxShallowInverse()
 	//double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
@@ -184,14 +184,14 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(LX->cols != 0 && LY->cols != 0) {
 	//if( (LX != NULL) && (LY != NULL) ) {
-		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
+		if(OMX_DEBUG) {mxLog("Calculating Lower Right Quadrant of Expected Covariance Matrix."); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
 		omxCopyMatrix(B, TD); // B = TD
 		omxDGEMM(FALSE, TRUE, oned, A, LX, oned, B);  // B = LX*PH*LX^T + TD
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....LISREL: Lower Right Quadrant of Model-implied Covariance Matrix:");}
 		
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
-		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
+		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
 		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
@@ -203,7 +203,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....LISREL: LY*(I-BE)^(-1)");}
 		
 		/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
-		if(OMX_DEBUG) {Rprintf("Calculating Lower Left Quadrant of Expected Covariance Matrix.\n"); }
+		if(OMX_DEBUG) {mxLog("Calculating Lower Left Quadrant of Expected Covariance Matrix."); }
 		omxDGEMM(FALSE, TRUE, oned, A, GA, zerod, E); // E = A*GA^T = LX*PH*GA^T
 		omxCopyMatrix(F, TH); // F = TH
 		omxDGEMM(FALSE, TRUE, oned, E, D, oned, F); // F = E*D^T + F = LX*PH*GA^T * (LY * (I - BE)^(-1))^T + TH
@@ -215,12 +215,12 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		
 		
 		/* Calculate the upper left quadrant: the covariance of the Ys */
-		if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
-		if(OMX_DEBUG_ALGEBRA) {Rprintf("Calculating G = GA*PH.\n");}
+		if(OMX_DEBUG) {mxLog("Calculating Upper Left Quadrant of Expected Covariance Matrix."); }
+		if(OMX_DEBUG_ALGEBRA) {mxLog("Calculating G = GA*PH.");}
 		omxDGEMM(FALSE, FALSE, oned, GA, PH, zerod, G); // G = GA*PH
-		if(OMX_DEBUG_ALGEBRA) {Rprintf("Copying C = PS.\n");}
+		if(OMX_DEBUG_ALGEBRA) {mxLog("Copying C = PS.");}
 		omxCopyMatrix(C, PS); // C = PS
-		if(OMX_DEBUG_ALGEBRA) {Rprintf("Calculating G = GA*PH.\n");}
+		if(OMX_DEBUG_ALGEBRA) {mxLog("Calculating G = GA*PH.");}
 		omxDGEMM(FALSE, TRUE, oned, G, GA, oned, C); // C = G*GA^T + C = GA*PH*GA^T + PS
 		omxDGEMM(FALSE, FALSE, oned, D, C, zerod, H); // H = D*C = LY * (I - BE)^(-1) * (GA*PH*GA^T + PS)
 		omxCopyMatrix(J, TE); // J = TE
@@ -277,7 +277,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	}
 	else if(LX->cols != 0) { /* IF THE MODEL ONLY HAS Xs */
 	//else if(LX != NULL) { /* IF THE MODEL ONLY HAS Xs */
-		if(OMX_DEBUG) {Rprintf("Calculating Lower Right Quadrant of Expected Covariance Matrix.\n"); }
+		if(OMX_DEBUG) {mxLog("Calculating Lower Right Quadrant of Expected Covariance Matrix."); }
 		omxDGEMM(FALSE, FALSE, oned, LX, PH, zerod, A); // A = LX*PH
 		omxCopyMatrix(Cov, TD); // Cov = TD
 		omxDGEMM(FALSE, TRUE, oned, A, LX, oned, Cov);  // Cov = LX*PH*LX^T + Cov
@@ -292,7 +292,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	else if(LY->cols != 0) {
 	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
-		if(OMX_DEBUG) {Rprintf("Calculating Inverse of I-BE.\n"); }
+		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
 		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
@@ -301,8 +301,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		omxDGEMM(FALSE, FALSE, oned, LY, C, zerod, D); // D = LY*C = LY * (I - BE)^(-1)
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....LISREL: LY*(I-BE)^(-1)");}
 		/* Calculate the upper left quadrant: the covariance of the Ys */
-		if(OMX_DEBUG) {Rprintf("Calculating Upper Left Quadrant of Expected Covariance Matrix.\n"); }
-		if(OMX_DEBUG_ALGEBRA) {Rprintf("Copying C = PS.\n");}
+		if(OMX_DEBUG) {mxLog("Calculating Upper Left Quadrant of Expected Covariance Matrix."); }
+		if(OMX_DEBUG_ALGEBRA) {mxLog("Copying C = PS.");}
 		omxDGEMM(FALSE, FALSE, oned, D, PS, zerod, H); // H = D*PS = LY * (I - BE)^(-1) * PS
 		omxCopyMatrix(Cov, TE); // Cov = TE
 		omxDGEMM(FALSE, TRUE, oned, H, D, oned, Cov); // Cov = H*D^T + Cov = LY * (I - BE)^(-1) * PS * (LY * (I - BE)^(-1))^T + TE
@@ -313,7 +313,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		}
 	}
 /*	
-	if(OMX_DEBUG) { Rprintf("Running RAM computation."); }
+	if(OMX_DEBUG) { mxLog("Running RAM computation."); }
 		
 	double oned = 1.0, zerod=0.0;
 	
@@ -339,15 +339,15 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxShallowInverse(numIters, A, Z, Ax, I );
 		
 	// IMPORTANT: Cov = FZSZ'F'
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
 	// F77_CALL(omxunsafedgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
 	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), oned, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), oned, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
 	// F77_CALL(omxunsafedgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &oned, Y->data, &(Y->leading), S->data, &(S->leading), &zerod, X->data, &(X->leading)); 	// X = FZS
 	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
 
-	if(OMX_DEBUG_ALGEBRA) { Rprintf("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.\n", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), oned, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), oned, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
 	// F77_CALL(omxunsafedgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &oned, X->data, &(X->leading), Y->data, &(Y->leading), &zerod, Cov->data, &(Cov->leading));
 	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, Cov);
 	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
@@ -365,7 +365,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 void omxInitLISRELExpectation(omxExpectation* oo) {
 	SEXP rObj = oo->rObj;
 	
-	if(OMX_DEBUG) { Rprintf("Initializing LISREL Expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }
 		
 	int nx, nxi, ny, neta, ntotal;
 	
@@ -383,45 +383,45 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	oo->argStruct = (void*) LISobj;
 	
 	/* Set up expectation structures */
-	if(OMX_DEBUG) { Rprintf("Initializing LISREL Meta Data for expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing LISREL Meta Data for expectation."); }
 	
-	if(OMX_DEBUG) { Rprintf("Processing LX.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing LX."); }
 	LISobj->LX = omxNewMatrixFromSlot(rObj, currentState, "LX");
 	
-	if(OMX_DEBUG) { Rprintf("Processing LY.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing LY."); }
 	LISobj->LY = omxNewMatrixFromSlot(rObj, currentState, "LY");
 	
-	if(OMX_DEBUG) { Rprintf("Processing BE.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing BE."); }
 	LISobj->BE = omxNewMatrixFromSlot(rObj, currentState, "BE");
 	
-	if(OMX_DEBUG) { Rprintf("Processing GA.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing GA."); }
 	LISobj->GA = omxNewMatrixFromSlot(rObj, currentState, "GA");
 	
-	if(OMX_DEBUG) { Rprintf("Processing PH.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing PH."); }
 	LISobj->PH = omxNewMatrixFromSlot(rObj, currentState, "PH");
 	
-	if(OMX_DEBUG) { Rprintf("Processing PS.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing PS."); }
 	LISobj->PS = omxNewMatrixFromSlot(rObj, currentState, "PS");
 	
-	if(OMX_DEBUG) { Rprintf("Processing TD.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing TD."); }
 	LISobj->TD = omxNewMatrixFromSlot(rObj, currentState, "TD");
 	
-	if(OMX_DEBUG) { Rprintf("Processing TE.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing TE."); }
 	LISobj->TE = omxNewMatrixFromSlot(rObj, currentState, "TE");
 	
-	if(OMX_DEBUG) { Rprintf("Processing TH.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing TH."); }
 	LISobj->TH = omxNewMatrixFromSlot(rObj, currentState, "TH");
 
-	if(OMX_DEBUG) { Rprintf("Processing TX.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing TX."); }
 	LISobj->TX = omxNewMatrixFromSlot(rObj, currentState, "TX");
 
-	if(OMX_DEBUG) { Rprintf("Processing TY.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing TY."); }
 	LISobj->TY = omxNewMatrixFromSlot(rObj, currentState, "TY");
 
-	if(OMX_DEBUG) { Rprintf("Processing KA.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing KA."); }
 	LISobj->KA = omxNewMatrixFromSlot(rObj, currentState, "KA");
 
-	if(OMX_DEBUG) { Rprintf("Processing AL.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing AL."); }
 	LISobj->AL = omxNewMatrixFromSlot(rObj, currentState, "AL");
 	
 	
@@ -445,16 +445,16 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	
 	
 	/* Identity Matrix, Size Of BE */
-	if(OMX_DEBUG) { Rprintf("Generating I.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating I."); }
 	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
 	omxRecompute(LISobj->I);
 	
 	
 	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */
-	if(OMX_DEBUG) { Rprintf("Processing expansion iteration depth.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
 	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
 	LISobj->numIters = INTEGER(slotValue)[0];
-	if(OMX_DEBUG) { Rprintf("Using %d iterations.", LISobj->numIters); }
+	if(OMX_DEBUG) { mxLog("Using %d iterations.", LISobj->numIters); }
 	UNPROTECT(1);
 	
 	
@@ -466,7 +466,7 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	ntotal = nx + ny;
 	
 	
-	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	
 	LISobj->A = 	omxInitMatrix(NULL, nx, nxi, TRUE, currentState);
 	LISobj->B = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
@@ -509,7 +509,7 @@ omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* 
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
 
 	return retval;
 }

@@ -80,8 +80,8 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 	int numChildren = os->numChildren;
 
 	if(OMX_DEBUG && os->parentState == NULL) {
-		Rprintf("Processing Free Parameter Estimates.\n");
-		Rprintf("Number of free parameters is %d.\n", numVars);
+		mxLog("Processing Free Parameter Estimates.");
+		mxLog("Number of free parameters is %d.", numVars);
 	}
 
 	if(numVars == 0) return;
@@ -93,20 +93,20 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 	os->computeCount++;
 
 	if(OMX_VERBOSE && os->parentState == NULL) {
-		Rprintf("--------------------------\n");
-		Rprintf("Call: %d.%d (%d)\n", os->majorIteration, os->minorIteration, os->computeCount);
-		Rprintf("Estimates: [");
+		mxLog("--------------------------");
+		mxLog("Call: %d.%d (%d)", os->majorIteration, os->minorIteration, os->computeCount);
+		mxLog("Estimates: [");
 		for(int k = 0; k < numVars; k++) {
-			Rprintf(" %f", x[k]);
+			mxLog(" %f", x[k]);
 		}
-		Rprintf("] \n");
-		Rprintf("--------------------------\n");
+		mxLog("] ");
+		mxLog("--------------------------");
 	}
 
 	/* Fill in Free Var Estimates */
 	for(int k = 0; k < numVars; k++) {
 		omxFreeVar* freeVar = freeVarList + k;
-		// if(OMX_DEBUG) { Rprintf("%d: %f - %d\n", k,  x[k], freeVarList[k].numLocations); }
+		// if(OMX_DEBUG) { mxLog("%d: %f - %d", k,  x[k], freeVarList[k].numLocations); }
 		for(size_t l = 0; l < freeVar->locations.size(); l++) {
 			omxFreeVarLocation *loc = &freeVar->locations[l];
 			omxMatrix *matrix = os->matrixList[loc->matrix];
@@ -114,7 +114,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, x[k]);
 			if(OMX_DEBUG && os->parentState == NULL) {
-				Rprintf("Setting location (%d, %d) of matrix %d to value %f for var %d\n",
+				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %d",
 					row, col, loc->matrix, x[k], k);
 			}
 		}

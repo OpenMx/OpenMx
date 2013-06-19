@@ -37,7 +37,7 @@
 
 
 void omxCallStateSpaceExpectation(omxExpectation* ox) {
-    if(OMX_DEBUG) { Rprintf("State Space Expectation Called.\n"); }
+    if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
 	omxRecompute(ose->A);
@@ -56,7 +56,7 @@ void omxCallStateSpaceExpectation(omxExpectation* ox) {
 
 void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	
-	if(OMX_DEBUG) { Rprintf("Destroying State Space Expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Destroying State Space Expectation."); }
 	
 	omxStateSpaceExpectation* argStruct = (omxStateSpaceExpectation*)(ox->argStruct);
 	
@@ -76,7 +76,7 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 
 
 void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating State Space Attributes.  Currently this does very little!\n"); }
+    if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
 	
 }
 
@@ -84,7 +84,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 
 
 void omxKalmanPredict(omxStateSpaceExpectation* ose) {
-    if(OMX_DEBUG) { Rprintf("Kalman Predict Called.\n"); }
+    if(OMX_DEBUG) { mxLog("Kalman Predict Called."); }
 	/* Creat local copies of State Space Matrices */
 	omxMatrix* A = ose->A;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
@@ -130,7 +130,7 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 
 
 void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
-    if(OMX_DEBUG) { Rprintf("Kalman Update Called.\n"); }
+    if(OMX_DEBUG) { mxLog("Kalman Update Called."); }
 	/* Creat local copies of State Space Matrices */
 	//omxMatrix* A = ose->A;
 	//omxMatrix* B = ose->B;
@@ -221,7 +221,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
 	SEXP rObj = ox->rObj;
-	if(OMX_DEBUG) { Rprintf("Initializing State Space Expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing State Space Expectation."); }
 		
 	int nx, ny, nu;
 	
@@ -240,30 +240,30 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	ox->argStruct = (void*) SSMexp;
 	
 	/* Set up expectation structures */
-	if(OMX_DEBUG) { Rprintf("Initializing State Space Meta Data for expectation.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing State Space Meta Data for expectation."); }
 	
-	if(OMX_DEBUG) { Rprintf("Processing A.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing A."); }
 	SSMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
 	
-	if(OMX_DEBUG) { Rprintf("Processing B.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing B."); }
 	SSMexp->B = omxNewMatrixFromSlot(rObj, currentState, "B");
 	
-	if(OMX_DEBUG) { Rprintf("Processing C.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing C."); }
 	SSMexp->C = omxNewMatrixFromSlot(rObj, currentState, "C");
 	
-	if(OMX_DEBUG) { Rprintf("Processing D.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing D."); }
 	SSMexp->D = omxNewMatrixFromSlot(rObj, currentState, "D");
 	
-	if(OMX_DEBUG) { Rprintf("Processing Q.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Q."); }
 	SSMexp->Q = omxNewMatrixFromSlot(rObj, currentState, "Q");
 	
-	if(OMX_DEBUG) { Rprintf("Processing R.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing R."); }
 	SSMexp->R = omxNewMatrixFromSlot(rObj, currentState, "R");
 	
-	if(OMX_DEBUG) { Rprintf("Processing initial x.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing initial x."); }
 	SSMexp->x = omxNewMatrixFromSlot(rObj, currentState, "x");
 	
-	if(OMX_DEBUG) { Rprintf("Processing initial P.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing initial P."); }
 	SSMexp->P = omxNewMatrixFromSlot(rObj, currentState, "P");
 	
 	
@@ -272,7 +272,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	ny = SSMexp->C->rows;
 	nu = SSMexp->D->cols;
 	
-	if(OMX_DEBUG) { Rprintf("Processing first data row for y.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
 	SSMexp->y = omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
 		omxSetMatrixElement(SSMexp->y, i, 0, omxMatrixElement(ox->data->dataMat, 0, i));
@@ -281,13 +281,13 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
 	// TODO Make x0 and P0 static (if possible) to save memory
 	// TODO Look into omxMatrix.c/h for a possible new matrix from omxMatrix function
-	if(OMX_DEBUG) { Rprintf("Generating static internals for resetting initial values.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating static internals for resetting initial values."); }
 	SSMexp->x0 = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
 	SSMexp->P0 = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
 	omxCopyMatrix(SSMexp->x0, SSMexp->x);
 	omxCopyMatrix(SSMexp->P0, SSMexp->P);
 	
-	if(OMX_DEBUG) { Rprintf("Generating internals for computation.\n"); }
+	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	
 	SSMexp->det = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
 	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
@@ -320,7 +320,7 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->det;
 	}
 	
-	if(OMX_DEBUG) { Rprintf("Returning 0x%x.\n", retval); }
+	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
 
 	return retval;
 }

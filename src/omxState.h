@@ -48,6 +48,8 @@
 
 #include <time.h>
 #include <unistd.h>
+#include <string>
+
 #include "omxDefines.h"
 
 /* Forward declarations for later includes */
@@ -186,6 +188,10 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 	void omxWriteCheckpointMessage(omxState *os, char *msg);
 	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
+
+void mxLog(const char* msg, ...);   // thread-safe
+void mxLogBig(const std::string str);
+std::string string_snprintf(const std::string fmt, ...);
 
 #endif /* _OMXSTATE_H_ */
 

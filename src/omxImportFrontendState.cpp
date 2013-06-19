@@ -35,20 +35,20 @@ int matchCaseInsensitive(const char *source, const char *target) {
 
 void omxProcessMxDataEntities(SEXP data) {
 	SEXP nextLoc;
-	if(OMX_DEBUG) { Rprintf("Processing %d data source(s).\n", length(data));}
+	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", length(data));}
 
 	for(int index = 0; index < length(data); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc, globalState);
 		if(OMX_DEBUG) {
-			Rprintf("Data initialized at 0x%0xd = (%d x %d).\n",
+			mxLog("Data initialized at 0x%0xd = (%d x %d).",
 				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
 		}
 	}
 }
 
 void omxProcessMxMatrixEntities(SEXP matList) {
-	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
+	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", length(matList));}
 	SEXP nextLoc, nextMat;
 	globalState->matrixList.clear();
 	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
@@ -60,7 +60,7 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 		globalState->matrixList.push_back(mat);
 		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
 		if(OMX_DEBUG) {
-			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
+			mxLog("Matrix initialized at 0x%0xd = (%d x %d).",
 				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
 		if (isErrorRaised(globalState)) return;
@@ -71,7 +71,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	SEXP nextAlgTuple;
 	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
-	if(OMX_DEBUG) { Rprintf("Processing %d algebras.\n", length(algList)); }
+	if(OMX_DEBUG) { mxLog("Processing %d algebras.", length(algList)); }
 
 	for(int index = 0; index < length(algList); index++) {
 		globalState->algebraList.push_back(omxInitMatrix(NULL, 0, 0, TRUE, globalState));
@@ -110,14 +110,14 @@ void omxProcessMxFitFunction(SEXP algList)
 }
 
 void omxProcessMxExpectationEntities(SEXP expList) {
-	if(OMX_DEBUG) { Rprintf("Initializing %d Model Expectation(s).\n", length(expList));}
+	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", length(expList));}
 	SEXP nextExp;
 
 	for(int index = 0; index < length(expList); index++) {
 		PROTECT(nextExp = VECTOR_ELT(expList, index));
 		globalState->expectationList.push_back(omxNewIncompleteExpectation(nextExp, index, globalState));
 		if(OMX_DEBUG) {
-			Rprintf("%s incomplete expectation set up at 0x%0xd.\n",
+			mxLog("%s incomplete expectation set up at 0x%0xd.",
 				(globalState->expectationList[index]->expType
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
@@ -128,12 +128,12 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 
 
 void omxCompleteMxExpectationEntities() {
-	if(OMX_DEBUG) { Rprintf("Completing %d Model Expectation(s).\n", globalState->expectationList.size());}
+	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", globalState->expectationList.size());}
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
 		if(OMX_DEBUG) {
-			Rprintf("%s expectation completed at 0x%0xd.\n",
+			mxLog("%s expectation completed at 0x%0xd.",
 				(globalState->expectationList[index]->expType
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
@@ -159,7 +159,7 @@ void omxInitialMatrixAlgebraCompute() {
 	size_t numMats = globalState->matrixList.size();
 	int numAlgs = globalState->algebraList.size();
 
-	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
+	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 	omxStateNextEvaluation(globalState);
 
 	for(size_t index = 0; index < numMats; index++) {
@@ -182,9 +182,9 @@ After that is an integer <type> specifier.  0 means minutes, 1 means iterations.
 The last element is an integer count, indicating the number of <type>s per checkpoint.
 */
 void omxProcessCheckpointOptions(SEXP checkpointList) {
-	if(OMX_VERBOSE) { Rprintf("Processing Checkpoint Requests.\n");}
+	if(OMX_VERBOSE) { mxLog("Processing Checkpoint Requests.");}
 	globalState->numCheckpoints = length(checkpointList);
-	if(OMX_DEBUG) {Rprintf("Found %d checkpoints.\n", globalState->numCheckpoints); }
+	if(OMX_DEBUG) {mxLog("Found %d checkpoints.", globalState->numCheckpoints); }
 	globalState->checkpointList = (omxCheckpoint*) R_alloc(globalState->numCheckpoints, sizeof(omxCheckpoint));
 	SEXP nextLoc;
 
@@ -216,7 +216,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 
 			char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
 			sprintf(fullname, "%s%c%s", pathName, sep, fileName);
-			if(OMX_VERBOSE) { Rprintf("Opening File: %s\n", fullname); }
+			if(OMX_VERBOSE) { mxLog("Opening File: %s", fullname); }
 			oC->file = fopen(fullname, "w");
 			if(!oC->file) {
 				error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
@@ -227,7 +227,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 
 		case OMX_CONNECTION_CHECKPOINT:{	// NYI :::DEBUG:::
 			oC->connection = VECTOR_ELT(nextLoc, next++);
-			Rprintf("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
+			error("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			oC->saveHessian = FALSE;
 			break;}
 		}
@@ -252,7 +252,7 @@ The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, r
 void omxProcessFreeVarList(SEXP varList) {
 	int n = globalState->numFreeParams = length(varList);
 	SEXP nextVar, nextLoc;
-	if(OMX_VERBOSE) { Rprintf("Processing Free Parameters.\n"); }
+	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
 	globalState->freeVarList = new omxFreeVar[n];
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
 		int numDeps;
@@ -281,7 +281,7 @@ void omxProcessFreeVarList(SEXP varList) {
 		}
 
 		if(OMX_DEBUG) { 
-			Rprintf("Free parameter %d bounded (%f, %f): %d locations\n", freeVarIndex, 
+			mxLog("Free parameter %d bounded (%f, %f): %d locations", freeVarIndex, 
 				globalState->freeVarList[freeVarIndex].lbound, 
 				globalState->freeVarList[freeVarIndex].ubound, numLocs);
 		}
@@ -309,9 +309,9 @@ void omxProcessFreeVarList(SEXP varList) {
 */
 void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	SEXP nextVar;
-	if(OMX_VERBOSE) { Rprintf("Processing Confidence Interval Requests.\n");}
+	if(OMX_VERBOSE) { mxLog("Processing Confidence Interval Requests.");}
 	globalState->numIntervals = length(intervalList);
-	if(OMX_DEBUG) {Rprintf("Found %d requests.\n", globalState->numIntervals); }
+	if(OMX_DEBUG) {mxLog("Found %d requests.", globalState->numIntervals); }
 	globalState->intervalList = (omxConfidenceInterval*) R_alloc(globalState->numIntervals, sizeof(omxConfidenceInterval));
 	for(int index = 0; index < globalState->numIntervals; index++) {
 		omxConfidenceInterval *oCI = &(globalState->intervalList[index]);
@@ -325,17 +325,17 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->max = R_NaReal;					// NAs, in case something goes wrong
 		oCI->min = R_NaReal;
 	}
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d intervals requested.\n", globalState->numIntervals); }
+	if(OMX_VERBOSE) { mxLog("Processed."); }
+	if(OMX_DEBUG) { mxLog("%d intervals requested.", globalState->numIntervals); }
 }
 
 void omxProcessConstraints(SEXP constraints)  {
 	int ncnln = 0; 
-	if(OMX_VERBOSE) { Rprintf("Processing Constraints.\n");}
+	if(OMX_VERBOSE) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
 	globalState->numConstraints = length(constraints);
-	if(OMX_DEBUG) {Rprintf("Found %d constraints.\n", globalState->numConstraints); }
+	if(OMX_DEBUG) {mxLog("Found %d constraints.", globalState->numConstraints); }
 	globalState->conList = (omxConstraint*) R_alloc(globalState->numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
@@ -354,8 +354,8 @@ void omxProcessConstraints(SEXP constraints)  {
 		globalState->conList[constraintIndex].size = nrows * ncols;
 		ncnln += globalState->conList[constraintIndex].size;
 	}
-	if(OMX_VERBOSE) { Rprintf("Processed.\n"); }
-	if(OMX_DEBUG) { Rprintf("%d effective constraints.\n", ncnln); }
+	if(OMX_VERBOSE) { mxLog("Processed."); }
+	if(OMX_DEBUG) { mxLog("%d effective constraints.", ncnln); }
 	globalState->ncnln = ncnln;
 	globalState->nclin = 0;
 }
@@ -374,10 +374,10 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 
 	int index = n + nclin;
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
-		if(OMX_DEBUG) { Rprintf("Constraint %d: ", constraintIndex);}
+		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
 		switch(globalState->conList[constraintIndex].opCode) {
 		case 0:									// Less than: Must be strictly less than 0.
-			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, 0).\n");}
+			if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = NEG_INF;
 				bu[index] = -0.0;
@@ -385,7 +385,7 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 			}
 			break;
 		case 1:									// Equal: Must be roughly equal to 0.
-			if(OMX_DEBUG) { Rprintf("Bounded at (-0, 0).\n");}
+			if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = -0.0;
 				bu[index] = 0.0;
@@ -393,16 +393,16 @@ void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin) {
 			}
 			break;
 		case 2:									// Greater than: Must be strictly greater than 0.
-			if(OMX_DEBUG) { Rprintf("Bounded at (0, INF).\n");}
+			if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				if(OMX_DEBUG) { Rprintf("\tBounds set for constraint %d.%d.\n", constraintIndex, offset);}
+				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
 				bl[index] = 0.0;
 				bu[index] = INF;
 				index++;
 			}
 			break;
 		default:
-			if(OMX_DEBUG) { Rprintf("Bounded at (-INF, INF).\n");}
+			if(OMX_DEBUG) { mxLog("Bounded at (-INF, INF).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = NEG_INF;
 				bu[index] = INF;

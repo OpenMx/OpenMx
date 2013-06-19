@@ -15,8 +15,11 @@
  */
 
 #include <stdarg.h>
+#include <errno.h>
+
 #include "omxState.h"
 #include "Compute.h"
+#include "omxOpenmpWrap.h"
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
@@ -204,45 +207,45 @@
 		}
 
 		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Algebra %d at 0x%x.\n", ax, state->algebraList[ax]); }
+			if(OMX_DEBUG) { mxLog("Freeing Algebra %d at 0x%x.", ax, state->algebraList[ax]); }
 			omxFreeAllMatrixData(state->algebraList[ax]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Matrices.\n", state->matrixList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", state->matrixList.size());}
 		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Matrix %d at 0x%x.\n", mk, state->matrixList[mk]); }
+			if(OMX_DEBUG) { mxLog("Freeing Matrix %d at 0x%x.", mk, state->matrixList[mk]); }
 			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
-		if(OMX_DEBUG) { Rprintf("Freeing %d Model Expectations.\n", state->expectationList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", state->expectationList.size());}
 		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Expectation %d at 0x%x.\n", ex, state->expectationList[ex]); }
+			if(OMX_DEBUG) { mxLog("Freeing Expectation %d at 0x%x.", ex, state->expectationList[ex]); }
 			omxFreeExpectationArgs(state->expectationList[ex]);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Constraints.\n", state->numConstraints);}
+		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", state->numConstraints);}
 		for(k = 0; k < state->numConstraints; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Constraint %d at 0x%x.\n", k, state->conList[k]); }
+			if(OMX_DEBUG) { mxLog("Freeing Constraint %d at 0x%x.", k, state->conList[k]); }
 			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Data Sets.\n", state->dataList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Data Sets.", state->dataList.size());}
 		for(size_t dx = 0; dx < state->dataList.size(); dx++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", dx, state->dataList[dx]); }
+			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", dx, state->dataList[dx]); }
 			omxFreeData(state->dataList[dx]);
 		}
 
 		delete [] state->freeVarList;
 
-        if(OMX_DEBUG) {Rprintf("Freeing %d Children.\n", state->numChildren);}
+        if(OMX_DEBUG) {mxLog("Freeing %d Children.", state->numChildren);}
         for(k = 0; k < state->numChildren; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Child State %d at 0x%x.\n", k, state->childList[k]); }
+			if(OMX_DEBUG) { mxLog("Freeing Child State %d at 0x%x.", k, state->childList[k]); }
 			omxFreeState(state->childList[k]);            
         }
 
-		if(OMX_DEBUG) { Rprintf("Freeing %d Checkpoints.\n", state->numCheckpoints);}
+		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
 		for(k = 0; k < state->numCheckpoints; k++) {
-			if(OMX_DEBUG) { Rprintf("Freeing Data Set %d at 0x%x.\n", k, state->checkpointList[k]); }
+			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", k, state->checkpointList[k]); }
 			omxCheckpoint oC = state->checkpointList[k];
 			switch(oC.type) {
 				case OMX_FILE_CHECKPOINT:
@@ -267,7 +270,7 @@
 
 		delete state;
 
-		if(OMX_DEBUG) { Rprintf("State Freed.\n");}
+		if(OMX_DEBUG) { mxLog("State Freed.");}
 	}
 
 	void omxResetStatus(omxState *state) {
@@ -278,6 +281,64 @@
 		}
 	}
 
+std::string string_snprintf(const std::string fmt, ...)
+{
+    int size = 100;
+    std::string str;
+    va_list ap;
+    while (1) {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.c_str(), size, fmt.c_str(), ap);
+        va_end(ap);
+        if (n > -1 && n < size) {
+            str.resize(n);
+            return str;
+        }
+        if (n > -1)
+            size = n + 1;
+        else
+            size *= 2;
+    }
+    return str;
+}
+
+void mxLogBig(const std::string str)   // thread-safe
+{
+	size_t len = str.size();
+	ssize_t wrote = 0;
+	while (1) {
+		ssize_t got = write(2, str.data() + wrote, len - wrote);
+		if (got == EINTR) continue;
+		if (got <= 0) error("mxLogBig failed with errno=%d", got);
+		wrote += got;
+		if (wrote == len) break;
+	}
+}
+
+void mxLog(const char* msg, ...)   // thread-safe
+{
+	const int maxLen = 240;
+	char buf1[maxLen];
+	char buf2[maxLen];
+
+	va_list ap;
+	va_start(ap, msg);
+	vsnprintf(buf1, maxLen, msg, ap);
+	va_end(ap);
+
+	int len = snprintf(buf2, maxLen, "[%d] %s\n", omx_absolute_thread_num(), buf1);
+
+	ssize_t wrote = 0;
+	while (1) {
+		ssize_t got = write(2, buf2 + wrote, len - wrote); // will usually succeed in 1 attempt
+		if (got == EINTR) continue;
+		if (got <= 0) error("mxLog failed with errno=%d", got);
+		wrote += got;
+		if (wrote == len) break;
+	}
+}
+
 void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 {
 	va_list ap;
@@ -286,16 +347,16 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 	va_end(ap);
 	if(OMX_DEBUG) {
 		if (!(fit > -1 && fit < MAX_STRING_LEN)) {
-			Rprintf("Error exceeded maximum length: %s\n", errorMsg);
+			mxLog("Error exceeded maximum length: %s", errorMsg);
 		} else {
-			Rprintf("Error raised: %s\n", state->statusMsg);
+			mxLog("Error raised: %s", state->statusMsg);
 		}
 	}
 }
 
 	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) { // DEPRECATED
-		if(OMX_DEBUG && errorCode) { Rprintf("Error %d raised: %s\n", errorCode, errorMsg);}
-		if(OMX_DEBUG && !errorCode) { Rprintf("Error status cleared."); }
+		if(OMX_DEBUG && errorCode) { mxLog("Error %d raised: %s", errorCode, errorMsg);}
+		if(OMX_DEBUG && !errorCode) { mxLog("Error status cleared."); }
 		strncpy(state->statusMsg, errorMsg, 249);
 		state->statusMsg[249] = '\0';
 	}

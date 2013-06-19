@@ -33,39 +33,40 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 
-void omxPrintMatrix(omxMatrix *source, const char* header) {
-	int j, k;
-
-	Rprintf("%s: (%d x %d) [%s-major] SEXP 0x%0x\n%s = matrix(c(\n",
-		header, source->rows, source->cols, (source->colMajor?"col":"row"), source->owner, header);
+void omxPrintMatrix(omxMatrix *source, const char* header)
+{
+	std::string buf;
+	buf += string_snprintf("[%d] %s: (%d x %d) [%s-major] SEXP 0x%0x\n%s = matrix(c(",
+			       omx_absolute_thread_num(),
+			       header, source->rows, source->cols, (source->colMajor?"col":"row"),
+			       source->owner, header);
 
 	int first=TRUE;
 	if(source->colMajor) {
-		for(j = 0; j < source->rows; j++) {
-			for(k = 0; k < source->cols; k++) {
+		for(int j = 0; j < source->rows; j++) {
+			for(int k = 0; k < source->cols; k++) {
 				if (first) first=FALSE;
-				else Rprintf(",");
-				Rprintf(" %3.6f", source->data[k*source->rows+j]);
+				else buf += ",";
+				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
 			}
-			Rprintf("\n");
 		}
 	} else {
-		for(j = 0; j < source->cols; j++) {
-			for(k = 0; k < source->rows; k++) {
+		for(int j = 0; j < source->cols; j++) {
+			for(int k = 0; k < source->rows; k++) {
 				if (first) first=FALSE;
-				else Rprintf(",");
-				Rprintf(" %3.6f,", source->data[k*source->cols+j]);
+				else buf += ",";
+				buf += string_snprintf(" %3.6f,", source->data[k*source->cols+j]);
 			}
-			Rprintf("\n");
 		}
 	}
-	Rprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
+	buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
+	mxLogBig(buf);
 }
 
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-	if(OMX_DEBUG_MATRIX) { Rprintf("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.\n", om, nrows, ncols, os); }
+	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.", om, nrows, ncols, os); }
 
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
@@ -122,7 +123,7 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
-	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("omxCopyMatrix"); }
+	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("omxCopyMatrix"); }
 
 	int regenerateMemory = TRUE;
 	int numPopLocs = orig->numPopulateLocations;
@@ -180,7 +181,7 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 void omxFreeMatrixData(omxMatrix * om) {
 
 	if(!om->owner && om->data != NULL) {
-		if(OMX_DEBUG_MATRIX) { Rprintf("Freeing matrix data at 0x%0x\n", om->data); }
+		if(OMX_DEBUG_MATRIX) { mxLog("Freeing matrix data at 0x%0x", om->data); }
 		Free(om->data);
 	}
 	om->owner = NULL;
@@ -192,7 +193,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
     if(om == NULL) return;
 
 	if(OMX_DEBUG) { 
-	    Rprintf("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and fit function 0x%x.\n", 
+	    mxLog("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and fit function 0x%x.", 
 	        om, om->data, om->algebra); 
 	}
 
@@ -271,19 +272,19 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { 
-		Rprintf("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", 
+		mxLog("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", 
 			om->rows, om->cols, 
 			nrows, ncols, keepMemory);
 	}
 	if((keepMemory == FALSE) && (om->rows != nrows || om->cols != ncols)) {
-		if(OMX_DEBUG_MATRIX) { Rprintf(" and regenerating memory to do it"); }
+		if(OMX_DEBUG_MATRIX) { mxLog(" and regenerating memory to do it"); }
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
 	} else if(om->originalRows * om->originalCols < nrows * ncols) {
 		warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
 	}
 
-	if(OMX_DEBUG_MATRIX) { Rprintf(".\n"); }
+	if(OMX_DEBUG_MATRIX) { mxLog("."); }
 	om->rows = nrows;
 	om->cols = ncols;
 	if(keepMemory == FALSE) {
@@ -434,7 +435,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	SEXP matrixDims;
 	int* dimList;
 
-	if(OMX_DEBUG) { Rprintf("Filling omxMatrix from R matrix.\n"); }
+	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
 
 	if(om == NULL) {
 		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
@@ -449,11 +450,11 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		om->rows = dimList[0];
 		om->cols = dimList[1];
 	} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
-		if(OMX_DEBUG) { Rprintf("Vector discovered.  Assuming rowity.\n"); }
+		if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
 		om->rows = 1;
 		om->cols = length(matrix);
 	}
-	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) matrix or MxMatrix.\n", om->rows, om->cols); }
+	if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
 	om->colMajor = TRUE;
 	om->originalRows = om->rows;
@@ -467,9 +468,9 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->matrixNumber = matrixNumber;
 	om->isDirty = FALSE;
 
-	if(OMX_DEBUG) { Rprintf("Pre-compute call.\n");}
+	if(OMX_DEBUG) { mxLog("Pre-compute call.");}
 	omxMatrixLeadingLagging(om);
-	if(OMX_DEBUG) { Rprintf("Post-compute call.\n");}
+	if(OMX_DEBUG) { mxLog("Post-compute call.");}
 
 	if(OMX_DEBUG) {
 		omxPrintMatrix(om, "Finished importing matrix");
@@ -480,7 +481,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
-	if(OMX_DEBUG) { Rprintf("Processing Population List: %d elements.\n", length(matStruct) - 1); }
+	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", length(matStruct) - 1); }
 	SEXP subList;
 
 	if(length(matStruct) > 1) {
@@ -497,7 +498,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
 
 		int* locations = INTEGER(subList);
-		if(OMX_DEBUG) { Rprintf("."); } //:::
+		if(OMX_DEBUG) { mxLog("."); } //:::
 		matrix->populateFrom[i] = locations[0];
 		matrix->populateFromRow[i] = locations[1];
 		matrix->populateFromCol[i] = locations[2];
@@ -593,7 +594,7 @@ void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
     // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
-//	if(OMX_DEBUG_MATRIX) { Rprintf("Removing %d rows and %d columns from 0x%0x.\n", numRowsRemoved, numColsRemoved, om);}
+//	if(OMX_DEBUG_MATRIX) { mxLog("Removing %d rows and %d columns from 0x%0x.", numRowsRemoved, numColsRemoved, om);}
 
 	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
 
@@ -623,30 +624,30 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
 	for(int j = 0; j < oldCols; j++) {
-		if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Handling column %d/%d...", j, oldCols);}
+		if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Handling column %d/%d...", j, oldCols);}
 		if(colsRemoved[j]) {
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Removed.\n");}
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Removed.");}
 			continue;
 		} else {
 			nextRow = 0;
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Rows (max %d): ", oldRows); }
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Rows (max %d): ", oldRows); }
 			for(int k = 0; k < oldRows; k++) {
 				if(rowsRemoved[k]) {
-					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("%d removed....", k);}
+					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("%d removed....", k);}
 					continue;
 				} else {
-					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("%d kept....", k);}
+					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("%d kept....", k);}
 					if(om->aliasedPtr == NULL) {
-						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Self-aliased matrix access.\n");}
+						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Self-aliased matrix access.");}
 						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
 					} else {
-						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("Matrix 0x%x re-aliasing to 0x%x.\n", om, om->aliasedPtr);}
+						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Matrix 0x%x re-aliasing to 0x%x.", om, om->aliasedPtr);}
 						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
 					}
 					nextRow++;
 				}
 			}
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { Rprintf("\n");}
+			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("");}
 			nextCol++;
 		}
 	}
@@ -656,7 +657,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 /* Function wrappers that switch based on inclusion of algebras */
 void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small) matrix
-    if(source == NULL) Rprintf("%s is NULL.\n", d);
+    if(source == NULL) mxLog("%s is NULL.", d);
 	else if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
 	else if(source->fitFunction != NULL) omxFitFunctionPrint(source->fitFunction, d);
 	else omxPrintMatrix(source, d);
@@ -688,12 +689,12 @@ void omxMatrixLeadingLagging(omxMatrix *om) {
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	if (OMX_DEBUG_ALGEBRA) 
-		Rprintf("Matrix 0x%0x needs update: ", matrix);
+		mxLog("Matrix 0x%0x needs update: ", matrix);
 	if (matrix->hasMatrixNumber && !matrix->isDirty) {
-		if (OMX_DEBUG_ALGEBRA) Rprintf("No\n");
+		if (OMX_DEBUG_ALGEBRA) mxLog("No");
 		return(FALSE);
 	} else {
-		if (OMX_DEBUG_ALGEBRA) Rprintf("Yes\n");
+		if (OMX_DEBUG_ALGEBRA) mxLog("Yes");
 		return(TRUE);
 	}
 }
@@ -735,7 +736,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 	if(numIters == NA_INTEGER) {
 		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.
 		double work[lwork];
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using standard (general) inversion.\n"); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("RAM Algebra (I-A) inversion using standard (general) inversion."); }
 
 		/* Z = (I-A)^-1 */
 		if(I->colMajor != A->colMajor) {
@@ -750,7 +751,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 		// F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
 		k = omxDGETRF(Z, ipiv);
-		if(OMX_DEBUG) { Rprintf("Info on LU Decomp: %d\n", k); }
+		if(OMX_DEBUG) { mxLog("Info on LU Decomp: %d", k); }
 		if(k > 0) {
 		        char errStr[250];
 		        strncpy(errStr, "(I-A) is exactly singular.", 100);
@@ -759,13 +760,13 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 		}
 		// F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, &lwork, &k);
 		k = omxDGETRI(Z, ipiv, work, lwork);
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("Info on Invert: %d\n", k); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Info on Invert: %d", k); }
 
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
 
 	} else {
 
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("RAM Algebra (I-A) inversion using optimized expansion.\n"); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("RAM Algebra (I-A) inversion using optimized expansion."); }
 
 		/* Taylor Expansion optimized I-A calculation */
 		if(I->colMajor != A->colMajor) {
@@ -788,7 +789,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 		for(int i = 1; i <= numIters; i++) { // TODO: Efficiently determine how many times to do this
 			// The sequence goes like this: (I + A), I + (I + A) * A, I + (I + (I + A) * A) * A, ...
 			// Which means only one DGEMM per iteration.
-			if(OMX_DEBUG_ALGEBRA) { Rprintf("....RAM: Iteration #%d/%d\n", i, numIters);}
+			if(OMX_DEBUG_ALGEBRA) { mxLog("....RAM: Iteration #%d/%d", i, numIters);}
 			omxCopyMatrix(Ax, I);
 			// F77_CALL(omxunsafedgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
 			omxDGEMM(FALSE, FALSE, oned, A, Z, oned, Ax);

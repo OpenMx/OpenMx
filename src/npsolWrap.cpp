@@ -104,8 +104,8 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	omxManageProtectInsanity protectManager;
 
-	if(OMX_DEBUG) { Rprintf("-----------------------------------------------------------------------\n");}
-	if(OMX_DEBUG) { Rprintf("Explicit call to algebra %d.\n", INTEGER(algNum));}
+	if(OMX_DEBUG) { mxLog("-----------------------------------------------------------------------");}
+	if(OMX_DEBUG) { mxLog("Explicit call to algebra %d.", INTEGER(algNum));}
 
 	int j,k,l;
 	omxMatrix* algebra;
@@ -117,11 +117,11 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	
 	globalState = new omxState;
 	omxInitState(globalState, NULL);
-	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
+	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
 
-	if(OMX_DEBUG) { Rprintf("Processing %d matrix(ces).\n", length(matList));}
+	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", length(matList));}
 
 	omxMatrix *args[length(matList)];
 	for(k = 0; k < length(matList); k++) {
@@ -129,7 +129,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
 		globalState->matrixList.push_back(args[k]);
 		if(OMX_DEBUG) {
-			Rprintf("Matrix initialized at 0x%0xd = (%d x %d).\n",
+			mxLog("Matrix initialized at 0x%0xd = (%d x %d).",
 				globalState->matrixList[k], globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
 		}
 	}
@@ -140,7 +140,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 		error(globalState->statusMsg);
 	}
 
-	if(OMX_DEBUG) {Rprintf("Completed Algebras and Matrices.  Beginning Initial Compute.\n");}
+	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 	omxStateNextEvaluation(globalState);
 
 	omxRecompute(algebra);
@@ -151,7 +151,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 			REAL(ans)[j * algebra->rows + l] =
 				omxMatrixElement(algebra, l, j);
 
-	if(OMX_DEBUG) { Rprintf("All Algebras complete.\n"); }
+	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
 
 	output[0] = 0;
 	if (isErrorRaised(globalState)) {
@@ -203,7 +203,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	globalState->numFreeParams = length(startVals);
 	globalState->analyticGradients = analyticGradients;
-	if(OMX_DEBUG) { Rprintf("Created state object at 0x%x.\n", globalState);}
+	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve Data Objects */
 	omxProcessMxDataEntities(data);

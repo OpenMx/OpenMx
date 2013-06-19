@@ -35,7 +35,7 @@
 
 /* FIML Function body */
 void omxDestroyFIMLFitFunction(omxFitFunction *off) {
-	if(OMX_DEBUG) { Rprintf("Destroying FIML fit function object.\n"); }
+	if(OMX_DEBUG) { mxLog("Destroying FIML fit function object."); }
 	omxFIMLFitFunction *argStruct = (omxFIMLFitFunction*) (off->argStruct);
 
 	if(argStruct->smallMeans != NULL) omxFreeMatrixData(argStruct->smallMeans);
@@ -139,7 +139,7 @@ void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar) {
 
 int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
 
-	if(OMX_DEBUG_ROWS(row)) { Rprintf("Processing Definition Vars.\n"); }
+	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars."); }
 	
 	int numVarsFilled = 0;
 
@@ -160,7 +160,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 
 		for(int l = 0; l < defVars[k].numLocations; l++) {
 			if(OMX_DEBUG_ROWS(row)) {
-				Rprintf("Populating column %d (value %3.2f) into matrix %d.\n", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
+				mxLog("Populating column %d (value %3.2f) into matrix %d.", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
 			}
 			int matrixNumber = defVars[k].matrices[l];
 			int matrow = defVars[k].rows[l];
@@ -180,7 +180,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 	// TODO: Current implementation may fail on all-continuous-missing or all-ordinal-missing rows.
 	
     if(OMX_DEBUG) { 
-	    Rprintf("Beginning Joint FIML Evaluation.\n");
+	    mxLog("Beginning Joint FIML Evaluation.");
     }
 	// Requires: Data, means, covariances, thresholds
 
@@ -212,7 +212,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 
 
     if(numDefs == 0) {
-        if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
+        if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(expectation);
 		// MCN Also do the threshold formulae!
 		
@@ -276,10 +276,10 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
 			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
-//			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
+//			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
-		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+		if(OMX_VERBOSE || OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
 		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 
@@ -287,7 +287,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 
 static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning FIML Evaluation.\n"); }
+	if(OMX_DEBUG) { mxLog("Beginning FIML Evaluation."); }
 	// Requires: Data, means, covariances.
 	// Potential Problem: Definition variables currently are assumed to be at the end of the data matrix.
 
@@ -311,7 +311,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 	expectation = off->expectation;
 
 	if(numDefs == 0 && strcmp(expectation->expType, "MxExpectationStateSpace")) {
-		if(OMX_DEBUG) {Rprintf("Precalculating cov and means for all rows.\n");}
+		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationCompute(expectation);
 		
 		for(int index = 0; index < numChildren; index++) {
@@ -363,17 +363,17 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
 			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
-//			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
+//			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
-		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+		if(OMX_VERBOSE || OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
 		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 }
 
 static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
-	if(OMX_DEBUG) { Rprintf("Beginning Ordinal FIML Evaluation.\n");}
+	if(OMX_DEBUG) { mxLog("Beginning Ordinal FIML Evaluation.");}
 	// Requires: Data, means, covariances, thresholds
 
 	int numDefs;
@@ -406,7 +406,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 	expectation = off->expectation;
 	
 	if(numDefs == 0) {
-		if(OMX_DEBUG_ALGEBRA) { Rprintf("No Definition Vars: precalculating."); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("No Definition Vars: precalculating."); }
 		omxExpectationCompute(expectation);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
@@ -468,10 +468,10 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
 			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
-//			Rprintf("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
+//			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
-		if(OMX_VERBOSE || OMX_DEBUG) {Rprintf("Total Likelihood is %3.3f\n", sum);}
+		if(OMX_VERBOSE || OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
 		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 }
@@ -479,7 +479,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Initializing FIML fit function function.\n");
+		mxLog("Initializing FIML fit function function.");
 	}
 
 	SEXP nextMatrix;
@@ -507,7 +507,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	}
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("FIML Initialization Completed.");
+		mxLog("FIML Initialization Completed.");
 	}
 	
     newObj->cov = cov;
@@ -532,12 +532,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	off->usesChildModels = TRUE;
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Accessing data source.\n");
+		mxLog("Accessing data source.");
 	}
 	newObj->data = off->expectation->data;
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Accessing row likelihood option.\n");
+		mxLog("Accessing row likelihood option.");
 	}
 	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
 	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
@@ -549,12 +549,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	UNPROTECT(1); // nextMatrix
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Accessing variable mapping structure.\n");
+		mxLog("Accessing variable mapping structure.");
 	}
 	newObj->dataColumns = off->expectation->dataColumns;
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Accessing Threshold matrix.\n");
+		mxLog("Accessing Threshold matrix.");
 	}
 	newObj->thresholdCols = off->expectation->thresholds;
 	numOrdinal = off->expectation->numOrdinal;
@@ -567,7 +567,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Accessing definition variables structure.\n");
+		mxLog("Accessing definition variables structure.");
 	}
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	memset(newObj->oldDefs, NA_REAL, sizeof(double) * newObj->numDefs);			// Does this work?
@@ -577,7 +577,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;
-	if(OMX_DEBUG){Rprintf("Number of columns found is %d", covCols);}
+	if(OMX_DEBUG){mxLog("Number of columns found is %d", covCols);}
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
     newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
@@ -590,7 +590,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
     if(numOrdinal > 0 && numContinuous <= 0) {
         if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-            Rprintf("Ordinal Data detected.  Using Ordinal FIML.");
+            mxLog("Ordinal Data detected.  Using Ordinal FIML.");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
         newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
@@ -604,7 +604,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
         off->computeFun = omxCallFIMLOrdinalFitFunction;
     } else if(numOrdinal > 0) {
         if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-            Rprintf("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
+            mxLog("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
         }
 
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));

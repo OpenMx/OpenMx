@@ -68,23 +68,23 @@ void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov,
    		strcpy(infinCodes[0], "(-INF, upper]");
    		strcpy(infinCodes[1], "[lower, INF)");
    		strcpy(infinCodes[2], "[lower, upper]");
-   		Rprintf("Input to sadmvn is (%d rows):\n", numVars); //:::DEBUG:::
+   		mxLog("Input to sadmvn is (%d rows):", numVars); //:::DEBUG:::
 		omxPrint(ordCov, "Ordinal Covariance Matrix"); //:::DEBUG:::
 		for(int i = 0; i < numVars; i++) {
-			Rprintf("Row %d: %f, %f, %d(%s)\n", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
+			mxLog("Row %d: %f, %f, %d(%s)", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
 		}
 
-		Rprintf("Cor: (Lower %d x %d):", cov->rows, cov->cols); //:::DEBUG:::
+		mxLog("Cor: (Lower %d x %d):", cov->rows, cov->cols); //:::DEBUG:::
 		for(int i = 0; i < cov->rows*(cov->rows-1)/2; i++) {
-			// Rprintf("Row %d of Cor: ", i);
+			// mxLog("Row %d of Cor: ", i);
 			// for(int j = 0; j < i; j++)
-			Rprintf(" %f", corList[i]); // (i*(i-1)/2) + j]);
-			// Rprintf("\n");
+			mxLog(" %f", corList[i]); // (i*(i-1)/2) + j]);
+			// mxLog("");
 		}
-		Rprintf("\n");
+		mxLog("");
 	}
 
 	if(OMX_DEBUG) {
-		Rprintf("Output of sadmvn is %f, %f, %d.\n", Error, *likelihood, *inform); 
+		mxLog("Output of sadmvn is %f, %f, %d.", Error, *likelihood, *inform); 
 	}
 } 

@@ -110,7 +110,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
 
 		// Handle Definition Variables.
-        if(OMX_DEBUG_ROWS(row)) { Rprintf("numDefs is %d", numDefs);}
+        if(OMX_DEBUG_ROWS(row)) { mxLog("numDefs is %d", numDefs);}
 		if(numDefs != 0) {		// With defs, just copy repeatedly to the rowResults matrix.
 			handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
 		}
@@ -161,7 +161,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 }
 
 static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
-    if(OMX_DEBUG) { Rprintf("Beginning Row Evaluation.\n");}
+    if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
@@ -186,7 +186,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient
 
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
 		if(OMX_DEBUG_ROWS(1)) { 
-			Rprintf("Resizing rowResults from %dx%d to %dx%d.\n", 
+			mxLog("Resizing rowResults from %dx%d to %dx%d.", 
 				rowResults->rows, rowResults->cols, 
 				data->rows, rowAlgebra->cols); 
 		}
@@ -232,7 +232,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient
 
 void omxInitRowFitFunction(omxFitFunction* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing Row/Reduce fit function.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing Row/Reduce fit function."); }
 
 	SEXP rObj = oo->rObj;
 	SEXP nextMatrix, itemList, nextItem;
@@ -240,7 +240,7 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 
 	omxRowFitFunction *newObj = (omxRowFitFunction*) R_alloc(1, sizeof(omxRowFitFunction));
 
-	if(OMX_DEBUG) {Rprintf("Accessing data source.\n"); }
+	if(OMX_DEBUG) {mxLog("Accessing data source."); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	newObj->data = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
@@ -306,13 +306,13 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	}
 	UNPROTECT(1);// nextMatrix
 	
-	if(OMX_DEBUG) {Rprintf("Accessing variable mapping structure.\n"); }
+	if(OMX_DEBUG) {mxLog("Accessing variable mapping structure."); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
 	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
 	UNPROTECT(1);
 
-	if(OMX_DEBUG) {Rprintf("Accessing data row dependencies.\n"); }
+	if(OMX_DEBUG) {mxLog("Accessing data row dependencies."); }
 	PROTECT(nextItem = GET_SLOT(rObj, install("dataRowDeps")));
 	numDeps = LENGTH(nextItem);
 	newObj->numDataRowDeps = numDeps;
@@ -322,22 +322,22 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	}
 	UNPROTECT(1);
 
-	if(OMX_DEBUG) {Rprintf("Accessing definition variables structure.\n"); }
+	if(OMX_DEBUG) {mxLog("Accessing definition variables structure."); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 	newObj->numDefs = length(nextMatrix);
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
-	if(OMX_DEBUG) {Rprintf("Number of definition variables is %d.\n", newObj->numDefs); }
+	if(OMX_DEBUG) {mxLog("Number of definition variables is %d.", newObj->numDefs); }
 	newObj->defVars = (omxDefinitionVar *) R_alloc(newObj->numDefs, sizeof(omxDefinitionVar));
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		SEXP dataSource, columnSource, depsSource; 
 
 		PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 		PROTECT(dataSource = VECTOR_ELT(itemList, 0));
-		if(OMX_DEBUG) {Rprintf("Data source number is %d.\n", INTEGER(dataSource)[0]); }
+		if(OMX_DEBUG) {mxLog("Data source number is %d.", INTEGER(dataSource)[0]); }
 		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
 		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
 		PROTECT(columnSource = VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG) {Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]); }
+		if(OMX_DEBUG) {mxLog("Data column number is %d.", INTEGER(columnSource)[0]); }
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
 		PROTECT(depsSource = VECTOR_ELT(itemList, 2));
 		numDeps = LENGTH(depsSource);

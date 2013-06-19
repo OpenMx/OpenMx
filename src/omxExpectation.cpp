@@ -55,9 +55,9 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
     
 	/* Completely destroy the Expectation function tree */
-	if(OMX_DEBUG) {Rprintf("Freeing %s Expectation object at 0x%x.\n", (ox->expType == NULL?"untyped":ox->expType), ox);}
+	if(OMX_DEBUG) {mxLog("Freeing %s Expectation object at 0x%x.", (ox->expType == NULL?"untyped":ox->expType), ox);}
 	if(ox->destructFun != NULL) {
-		if(OMX_DEBUG) {Rprintf("Calling Expectation destructor for 0x%x.\n", ox);}
+		if(OMX_DEBUG) {mxLog("Calling Expectation destructor for 0x%x.", ox);}
 		ox->destructFun(ox);
 	}
 	Free(ox->submodels);
@@ -66,7 +66,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 
 void omxExpectationRecompute(omxExpectation *ox) {
 	if(OMX_DEBUG_ALGEBRA) { 
-	    Rprintf("Expectation recompute: 0x%0x\n", ox);
+	    mxLog("Expectation recompute: 0x%0x", ox);
 	}
 
 	omxExpectationCompute(ox);
@@ -76,7 +76,7 @@ void omxExpectationCompute(omxExpectation *ox) {
 	if (!ox) return;
 
 	if(OMX_DEBUG_ALGEBRA) { 
-	    Rprintf("Expectation compute: 0x%0x\n", ox);
+	    mxLog("Expectation compute: 0x%0x", ox);
 	}
 
 	ox->computeFun(ox);
@@ -105,7 +105,7 @@ void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const c
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
 
-	if(OMX_DEBUG) {Rprintf("Duplicating Expectation 0x%x\n", src);}
+	if(OMX_DEBUG) {mxLog("Duplicating Expectation 0x%x", src);}
 
 	return omxNewIncompleteExpectation(src->rObj, src->expNum, newState);
 }
@@ -138,12 +138,12 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	
 	if(rObj == NULL) return;
 
-	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
+	if(OMX_DEBUG) { mxLog("Retrieving data."); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
 
 	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-		Rprintf("Accessing variable mapping structure.\n");
+		mxLog("Accessing variable mapping structure.");
 	}
 
 	if (R_has_slot(rObj, install("dataColumns"))) {
@@ -157,13 +157,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 
 		if (R_has_slot(rObj, install("thresholds"))) {
 			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-				Rprintf("Accessing Threshold matrix.\n");
+				mxLog("Accessing Threshold matrix.");
 			}
 			PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
 
 			if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 				if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-					Rprintf("Accessing Threshold Mappings.\n");
+					mxLog("Accessing Threshold Mappings.");
 				}
         
 				/* Process the data and threshold mapping structures */
@@ -179,7 +179,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				for(index = 0; index < numCols; index++) {
 					if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
 						if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-							Rprintf("Column %d is continuous.\n", index);
+							mxLog("Column %d is continuous.", index);
 						}
 						ox->thresholds[index].matrix = NULL;
 						ox->thresholds[index].column = 0;
@@ -190,19 +190,19 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 						ox->thresholds[index].column = thresholdColumn[index];
 						ox->thresholds[index].numThresholds = thresholdNumber[index];
 						if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-							Rprintf("Column %d is ordinal with %d thresholds in threshold column %d.\n", 
+							mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
 								index, thresholdColumn[index], thresholdNumber[index]);
 						}
 						numOrdinal++;
 					}
 				}
 				if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-					Rprintf("%d threshold columns processed.\n", numOrdinal);
+					mxLog("%d threshold columns processed.", numOrdinal);
 				}
 				ox->numOrdinal = numOrdinal;
 			} else {
 				if (OMX_DEBUG && ox->currentState->parentState == NULL) {
-					Rprintf("No thresholds matrix; not processing thresholds.");
+					mxLog("No thresholds matrix; not processing thresholds.");
 				}
 				ox->thresholds = NULL;
 				ox->numOrdinal = 0;
@@ -215,13 +215,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 		ox->defVars = NULL;
 	} else {	
 		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-			Rprintf("Accessing definition variables structure.\n");
+			mxLog("Accessing definition variables structure.");
 		}
 		PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 		numDefs = length(nextMatrix);
 		ox->numDefs = numDefs;
 		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-			Rprintf("Number of definition variables is %d.\n", numDefs);
+			mxLog("Number of definition variables is %d.", numDefs);
 		}
 		ox->defVars = (omxDefinitionVar *) R_alloc(numDefs, sizeof(omxDefinitionVar));
 		for(nextDef = 0; nextDef < numDefs; nextDef++) {
@@ -232,13 +232,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			PROTECT(dataSource = VECTOR_ELT(itemList, 0));
 			nextDataSource = INTEGER(dataSource)[0];
 			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-				Rprintf("Data source number is %d.\n", nextDataSource);
+				mxLog("Data source number is %d.", nextDataSource);
 			}
 			ox->defVars[nextDef].data = nextDataSource;
 			ox->defVars[nextDef].source = ox->currentState->dataList[nextDataSource];
 			PROTECT(columnSource = VECTOR_ELT(itemList, 1));
 			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
-				Rprintf("Data column number is %d.\n", INTEGER(columnSource)[0]);
+				mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
 			}
 			ox->defVars[nextDef].column = INTEGER(columnSource)[0];
 			PROTECT(depsSource = VECTOR_ELT(itemList, 2));
@@ -268,7 +268,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
 
-	if(OMX_DEBUG) {Rprintf("Completing Expectation 0x%x, type %s.\n", 
+	if(OMX_DEBUG) {mxLog("Completing Expectation 0x%x, type %s.", 
 		ox, ((ox==NULL || ox->expType==NULL)?"Untyped":ox->expType));}
 		
 	omxState* os = ox->currentState;
@@ -336,6 +336,6 @@ void omxExpectationPrint(omxExpectation* ox, char* d) {
 	if(ox->printFun != NULL) {
 		ox->printFun(ox);
 	} else {
-		Rprintf("(Expectation, type %s) ", (ox->expType==NULL?"Untyped":ox->expType));
+		mxLog("(Expectation, type %s) ", (ox->expType==NULL?"Untyped":ox->expType));
 	}
 }

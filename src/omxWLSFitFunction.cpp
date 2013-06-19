@@ -41,7 +41,7 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix* vector) {
 
 void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
-	if(OMX_DEBUG) {Rprintf("Freeing WLS FitFunction.");}
+	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
 
     if(owo->observedFlattened != NULL) omxFreeMatrixData(owo->observedFlattened);
@@ -94,7 +94,7 @@ omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numRe
     //  // We sum logs instead of logging the product.
     //  det += log(omxMatrixElement(cov, i, i));
     // }
-    // if(OMX_DEBUG) { Rprintf("det: %f, tr: %f, n= %d, total:%f\n", det, ncols, ((omxWLSFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1)); }
+    // if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, ((omxWLSFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1)); }
     // if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
     // retVal[2].values[0] = (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1);
 
@@ -103,7 +103,7 @@ omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numRe
 
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
 
-	if(OMX_DEBUG) { Rprintf("Beginning WLS Evaluation.\n");}
+	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
 
 	double sum = 0.0;
@@ -141,12 +141,12 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
 
     oo->matrix->data[0] = sum;
 
-	if(OMX_DEBUG) { Rprintf("WLSFitFunction value comes to: %f.\n", oo->matrix->data[0]); }
+	if(OMX_DEBUG) { mxLog("WLSFitFunction value comes to: %f.", oo->matrix->data[0]); }
 
 }
 
 void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
-    if(OMX_DEBUG) { Rprintf("Populating WLS Attributes.\n"); }
+    if(OMX_DEBUG) { mxLog("Populating WLS Attributes."); }
 
 	omxWLSFitFunction *argStruct = ((omxWLSFitFunction*)oo->argStruct);
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
@@ -203,7 +203,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 
 void omxInitWLSFitFunction(omxFitFunction* oo) {
 
-	if(OMX_DEBUG) { Rprintf("Initializing WLS FitFunction function.\n"); }
+	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
 
 	SEXP rObj = oo->rObj;
 	SEXP nextMatrix;
@@ -211,33 +211,33 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	
 	/* Read and set expected means, variances, and weights */
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Means.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Expected Means."); }
 	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
 		if(OMX_DEBUG) {
-			Rprintf("WLS: No Expected Means.\n");
+			mxLog("WLS: No Expected Means.");
 		}
 		means = NULL;
 	} else {
 		means = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
-		if(OMX_DEBUG) { Rprintf("Means matrix created at 0x%x.\n", means); }
+		if(OMX_DEBUG) { mxLog("Means matrix created at 0x%x.", means); }
 	}
 	UNPROTECT(1);
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Covariance.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Expected Covariance."); }
 	cov = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("weights")));
-	if(OMX_DEBUG) { Rprintf("Processing Expected Weights.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Expected Weights."); }
 	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
 		if(OMX_DEBUG) {
-			Rprintf("WLS: No Expected Weights--using ULS.\n");
+			mxLog("WLS: No Expected Weights--using ULS.");
 		}
 		weights = NULL;
 	} else {
 		weights = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
-		if(OMX_DEBUG) { Rprintf("Weights matrix created at 0x%x.\n", weights); }
+		if(OMX_DEBUG) { mxLog("Weights matrix created at 0x%x.", weights); }
 	}
 	UNPROTECT(1);
 	
@@ -263,7 +263,7 @@ void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxM
 	
 	omxSetWLSFitFunctionCalls(oo);
 	
-	if(OMX_DEBUG) { Rprintf("Retrieving data.\n"); }
+	if(OMX_DEBUG) { mxLog("Retrieving data."); }
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	omxData* dataMat = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
@@ -271,7 +271,7 @@ void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxM
 		sprintf(errstr, "WLS FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
 		omxRaiseError(oo->matrix->currentState, -1, errstr);
 		free(errstr);
-		if(OMX_DEBUG) { Rprintf("WLS FitFunction unable to handle data type %s.  Aborting.\n", omxDataType(dataMat)); }
+		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
 		return;
 	}
 	
@@ -307,12 +307,12 @@ void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxM
 	}
     newObj->weights = weights;
 
-	if(OMX_DEBUG) { Rprintf("Processing Observed Covariance.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataMatrix(dataMat, NULL);
-	if(OMX_DEBUG) { Rprintf("Processing Observed Means.\n"); }
+	if(OMX_DEBUG) { mxLog("Processing Observed Means."); }
 	newObj->observedMeans = omxDataMeans(dataMat, NULL, NULL);
-	if(OMX_DEBUG && newObj->observedMeans == NULL) { Rprintf("WLS: No Observed Means.\n"); }
-//	if(OMX_DEBUG) { Rprintf("Processing n.\n"); }
+	if(OMX_DEBUG && newObj->observedMeans == NULL) { mxLog("WLS: No Observed Means."); }
+//	if(OMX_DEBUG) { mxLog("Processing n."); }
 //	newObj->n = omxDataNumObs(dataMat);
 	UNPROTECT(1); // nextMatrix
 	

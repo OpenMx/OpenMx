@@ -30,7 +30,7 @@ void omxDestroyAlgebraFitFunction(omxFitFunction *off) {
 }
 
 static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
-	if(OMX_DEBUG_ALGEBRA) {Rprintf("Beginning Algebra Fit Function Computation.\n");}
+	if(OMX_DEBUG_ALGEBRA) {mxLog("Beginning Algebra Fit Function Computation.");}
 	omxMatrix* algebra = ((omxAlgebraFitFunction*)(off->argStruct))->algebra;
 
 	omxRecompute(algebra);
@@ -42,7 +42,7 @@ static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, double *gra
 	
 	off->matrix->data[0] = algebra->data[0];
 	
-	if(OMX_DEBUG) {Rprintf("Algebra Fit Function value is %f.\n", off->matrix->data[0]);}
+	if(OMX_DEBUG) {mxLog("Algebra Fit Function value is %f.", off->matrix->data[0]);}
 }
 
 omxRListElement* omxSetFinalReturnsAlgebraFitFunction(omxFitFunction *off, int *numReturns) {
@@ -60,7 +60,7 @@ omxRListElement* omxSetFinalReturnsAlgebraFitFunction(omxFitFunction *off, int *
 void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Initializing Algebra fitFunction function.\n");
+		mxLog("Initializing Algebra fitFunction function.");
 	}
 	
 	SEXP rObj = off->rObj;
@@ -70,7 +70,7 @@ void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxMatrixLookupFromState1(newptr, off->matrix->currentState);
 	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
-		Rprintf("Algebra Fit Function Bound to Algebra %d\n", newObj->algebra);
+		mxLog("Algebra Fit Function Bound to Algebra %d", newObj->algebra);
 	}
 	
 	off->computeFun = omxCallAlgebraFitFunction;

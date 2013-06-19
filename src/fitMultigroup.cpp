@@ -58,7 +58,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad)
 		}
 		fitMatrix->data[0] += f1->data[0];
 	}
-	if(OMX_DEBUG) { Rprintf("Fit Function sum of %d groups is %f.\n", mg->fits.size(), fitMatrix->data[0]); }
+	if(OMX_DEBUG) { mxLog("Fit Function sum of %d groups is %f.", mg->fits.size(), fitMatrix->data[0]); }
 }
 
 void initFitMultigroup(omxFitFunction *oo)
