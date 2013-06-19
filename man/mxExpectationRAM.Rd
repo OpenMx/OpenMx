@@ -16,20 +16,14 @@
 \name{mxRAMObjective}
 \alias{mxRAMObjective}
 
-\title{DEPRECATED: Create MxRAMObjective Object}
+\title{Create an MxExpectationRAM Object}
 
 \description{
-   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use mxExpectationRAM() and mxFitFunctionML() instead.  As a temporary workaround, mxRAMObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.}
+This function creates an MxExpectationRAM object.
+}
 
 \usage{
-All occurrences of
-
-mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
-
-Should be changed to
-
-mxExpectationRAM(A, S, F, M = NA, dimnames = NA, thresholds = NA, threshnames = dimnames)
-mxFitFunctionML(vector = FALSE)
+mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA, threshnames = dimnames)
 }
 
 
@@ -40,14 +34,11 @@ mxFitFunctionML(vector = FALSE)
    \item{M}{An optional character string indicating the name of the 'M' matrix.}
    \item{dimnames}{An optional character vector to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
-   \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
 }
 
 \details{
-NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectationRAM} and \link{mxFitFunctionML} as shown in the example below.
-
-Objective functions were functions for which free parameter values are chosen such that the value of the objective function was minimized. The mxRAMObjective provided maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
+Expectation functions define the way that model expectations are calculated. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
 
 The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the 'F' matrix and optionally to the 'M' matrix, if the 'M' matrix exists.
 
@@ -67,7 +58,7 @@ To evaluate, place MxRAMObjective objects, the \link{mxData} object for which th
 }
 
 \value{
-Returns a list containing an MxExpectationRAM object and an MxFitFunctionML object. 
+	Returns a new MxExpectationRAM object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \references{
@@ -78,7 +69,6 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
    
-
 # Create and fit a model using mxMatrix, mxAlgebra, mxExpectationNormal, and mxFitFunctionML
 
 library(OpenMx)

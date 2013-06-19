@@ -16,14 +16,22 @@
 \name{mxRObjective}
 \alias{mxRObjective}
 
-\title{Function to Create MxRObjective Object}
+\title{DEPRECATED: Create MxRObjective Object}
 
 \description{
-   This function creates a new MxRObjective object.
+   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use mxExpectationR() and mxFitFunctionML() instead.  As a temporary workaround, mxRObjective returns a list containing an MxExpectationR object and an MxFitFunctionML object.
 }
 
 \usage{
    mxRObjective(objfun, ...)
+All occurrences of
+
+mxRObjective(objfun, ...)
+
+Should be changed to
+
+mxExpectationR(objfun, ...)
+mxFitFunctionML(vector = FALSE)
 }
 
 \arguments{
@@ -32,6 +40,8 @@
 }
 
 \details{
+NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectationNormal} and \link{mxFitFunctionML} as shown in the example below.
+
 	The objfun argument must be a function that accepts two arguments. The first argument
 	is the mxModel that should be evaluated, and the second argument is some persistent 
 	state information that can be stored between one iteration of optimization to the next
@@ -51,7 +61,7 @@
 }
 
 \value{
-Returns a new MxRObjective object.
+Returns a list containing an mxExpectationR object and an MxFitFunctionML object. 
 }
 
 \references{
@@ -60,17 +70,32 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-A <- mxMatrix(nrow = 2, ncol = 2, values = c(1:4), free = TRUE, name = 'A')
+# Create and fit a model using mxExpectationR, and mxFitFunctionML
 
+library(OpenMx)
+
+A <- mxMatrix(nrow = 2, ncol = 2, values = c(1:4), free = TRUE, name = 'A')
 squared <- function(x) { x ^ 2 }
+
+# Define the objective function in R
 
 objFunction <- function(model, state) {
 	values <- model[['A']]@values 
 	return(squared(values[1,1] - 4) + squared(values[1,2] - 3) +
 		squared(values[2,1] - 2) + squared(values[2,2] - 1))
 }
-objective <- mxRObjective(objFunction)
 
-model <- mxModel('model', A, objective)
+# Define the expectation function
+
+fitFunction <- mxFitFunctionR(objFunction)
+
+# Define the model
+
+tmpModel <- mxModel('exampleModel', A, fitFunction)
+
+# Fit the model and print a summary
+
+tmpModelOut <- mxRun(tmpModel)
+summary(tmpModelOut)
 
 }
