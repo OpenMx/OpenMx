@@ -151,8 +151,14 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
 
 	omxDAXPY(-1.0, eFlat, B);
 
-    omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
-	sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
+    if(weights != NULL) {
+        omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
+    } else {
+        // ULS Case: Memcpy faster than dgemv.
+        // TODO: Better to use an omxMatrix duplicator here.
+        memcpy(P, B, B->cols*sizeof(double));
+    }
+    sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
 
     oo->matrix->data[0] = sum;
 
@@ -229,9 +235,6 @@ void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 
 void omxInitWLSFitFunction(omxFitFunction* oo) {
     
-    
-    SEXP rObj = oo->rObj;
-	SEXP nextMatrix;
 	omxMatrix *cov, *means, *weights;
 	
     if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
@@ -265,37 +268,12 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     // FIXME: threshold structure should be asked for by omxGetExpectationComponent
 
 	/* Read and set expected means, variances, and weights */
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
-	if(OMX_DEBUG) { mxLog("Processing Expected Means."); }
-	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
-		if(OMX_DEBUG) {
-			mxLog("WLS: No Expected Means.");
-		}
-		means = NULL;
-	} else {
-		means = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
-		if(OMX_DEBUG) { mxLog("Means matrix created at 0x%x.", means); }
-	}
-    newObj->observedMeans = means;
-	UNPROTECT(1);
+    cov = omxDataMatrix(dataMat, NULL);
+    means = omxDataMeans(dataMat, NULL, NULL);
+    weights = omxDataAcov(dataMat, NULL);
 
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
-	if(OMX_DEBUG) { mxLog("Processing Expected Covariance."); }
-	cov = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
     newObj->observedCov = cov;
-	UNPROTECT(1);
-	
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("weights")));
-	if(OMX_DEBUG) { mxLog("Processing Expected Weights."); }
-	if(!R_FINITE(INTEGER(nextMatrix)[0])) {
-		if(OMX_DEBUG) {
-			mxLog("WLS: No Expected Weights--using ULS.");
-		}
-		weights = NULL;
-	} else {
-		weights = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
-		if(OMX_DEBUG) { mxLog("Weights matrix created at 0x%x.", weights); }
-	}
+    newObj->observedMeans = means;
     newObj->weights = weights;
     newObj->n = omxDataNumObs(dataMat);
     newObj->nThresholds = omxDataNumFactor(dataMat);
@@ -338,8 +316,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
             vectorSize = vectorSize + newObj->observedThresholds[i].numThresholds;
         }
     }
-    
-    if(weights->rows != weights->cols && weights->cols != vectorSize) {
+
+    if(weights != NULL && weights->rows != weights->cols && weights->cols != vectorSize) {
         omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
          "Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
      return;
