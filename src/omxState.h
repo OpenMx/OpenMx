@@ -164,7 +164,8 @@ extern omxState* globalState;
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState);
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
-	void omxFreeState(omxState *state);									// Destructor
+void omxFreeChildStates(omxState *state);
+void omxFreeState(omxState *state);
 	void omxDuplicateState(omxState *tgt, omxState* src); 
                                                                         // Duplicates the current state object
 	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number

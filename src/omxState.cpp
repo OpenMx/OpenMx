@@ -189,22 +189,25 @@
 		return(os->expectationList[ox->expNum]);
 	}
 
+void omxFreeChildStates(omxState *state)
+{
+	if (state->numChildren == 0) return;
+
+	for(int k = 0; k < state->numChildren; k++) {
+		// Data are not modified and not copied. The same memory
+		// is shared across all instances of state. We only need
+		// to free the data once, so let the parent do it.
+		state->childList[k]->dataList.clear();
+
+		omxFreeState(state->childList[k]);
+	}
+	Free(state->childList);
+	state->childList = NULL;
+	state->numChildren = 0;
+}
+
 	void omxFreeState(omxState *state) {
-		int k;
-
-		if (state->numChildren > 0) {
-			for(k = 0; k < state->numChildren; k++) {
-				// Data are not modified and not copied. The same memory
-				// is shared across all instances of state. We only need
-				// to free the data once, so let the parent do it.
-				state->childList[k]->dataList.clear();
-
-				omxFreeState(state->childList[k]);
-			}
-			Free(state->childList);
-			state->childList = NULL;
-			state->numChildren = 0;
-		}
+		omxFreeChildStates(state);
 
 		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
 			if(OMX_DEBUG) { mxLog("Freeing Algebra %d at 0x%x.", ax, state->algebraList[ax]); }
@@ -224,7 +227,7 @@
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", state->numConstraints);}
-		for(k = 0; k < state->numConstraints; k++) {
+		for(int k = 0; k < state->numConstraints; k++) {
 			if(OMX_DEBUG) { mxLog("Freeing Constraint %d at 0x%x.", k, state->conList[k]); }
 			omxFreeAllMatrixData(state->conList[k].result);
 		}
@@ -238,13 +241,13 @@
 		delete [] state->freeVarList;
 
         if(OMX_DEBUG) {mxLog("Freeing %d Children.", state->numChildren);}
-        for(k = 0; k < state->numChildren; k++) {
+        for(int k = 0; k < state->numChildren; k++) {
 			if(OMX_DEBUG) { mxLog("Freeing Child State %d at 0x%x.", k, state->childList[k]); }
 			omxFreeState(state->childList[k]);            
         }
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
-		for(k = 0; k < state->numCheckpoints; k++) {
+		for(int k = 0; k < state->numCheckpoints; k++) {
 			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", k, state->checkpointList[k]); }
 			omxCheckpoint oC = state->checkpointList[k];
 			switch(oC.type) {

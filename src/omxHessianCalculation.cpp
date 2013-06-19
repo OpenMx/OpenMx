@@ -286,6 +286,8 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 
 void omxComputeEstimatedHessian::compute(double *at)
 {
+	omxFitFunctionCreateChildren(globalState, globalState->numThreads);
+
 	numParams = globalState->numFreeParams;
 
 	optima = at;
@@ -378,6 +380,8 @@ void omxComputeEstimatedHessian::compute(double *at)
 		Free(workspace);
 		Free(work);
 	}
+
+	omxFreeChildStates(globalState);
 }
 
 void omxComputeEstimatedHessian::reportResults(MxRList *result)

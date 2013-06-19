@@ -38,9 +38,6 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 
-	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
-		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
-
 	numFree = globalState->numFreeParams;
 	if (numFree <= 0) {
 		error("Model has no free parameters");
@@ -57,8 +54,13 @@ void omxComputeGD::compute(double *startVals)
 {
 	memcpy(REAL(estimate), startVals, sizeof(double)*numFree);
 
+	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
+		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
+
 	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
 		       REAL(gradient), REAL(hessian), &inform, &iter);
+
+	omxFreeChildStates(globalState);
 
 	if (globalState->numIntervals) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
