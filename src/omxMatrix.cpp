@@ -26,6 +26,7 @@
 *
 **********************************************************/
 #include "omxMatrix.h"
+#include "omxOpenmpWrap.h"
 
 // forward declarations
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,

@@ -130,7 +130,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
 	}
 
-	if(OMX_DEBUG) {mxlog("Processing Asymptotic Covariance Matrix.");}
+	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	PROTECT(dataLoc = GET_SLOT(dataObject, install("acov")));
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
