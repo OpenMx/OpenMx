@@ -149,6 +149,8 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		omxFreeMatrixData(od->obsThresholdsMat); // Clear just-allocated memory.
 		od->obsThresholdsMat = NULL;
 	}
+	
+	// TODO: Match threshold column names
 
 	if(strncmp(od->_type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
@@ -331,9 +333,9 @@ omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
 	return om;
 }
 
-//omxThresholdColumn* omxDataThresholds(omxData *od) {
-//	return ;
-//}
+omxThresholdColumn* omxDataThresholds(omxData *od) {
+    return od->thresholdCols;
+}
 
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList) {
 

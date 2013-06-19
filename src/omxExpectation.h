@@ -39,7 +39,6 @@
 
 typedef struct omxExpectation omxExpectation;
 typedef struct omxDefinitionVar omxDefinitionVar;
-typedef struct omxThresholdColumn omxThresholdColumn;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -58,14 +57,6 @@ struct omxDefinitionVar {		 	// Definition Var
 	int* matrices;			// matrix numbers
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
-
-};
-
-struct omxThresholdColumn {		 	// Threshold
-
-	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
-	int column;				// Which column has the thresholds
-	int numThresholds;		// And how many thresholds
 
 };
 

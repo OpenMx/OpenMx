@@ -18,17 +18,23 @@
 #ifndef _OMX_WLS_FITFUNCTION_
 #define _OMX_WLS_FITFUNCTION_ TRUE
 
+#include "omxData.h"
+
 typedef struct omxWLSFitFunction {
 
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
+	omxThresholdColumn* observedThresholds;
 	omxMatrix* expectedCov;
 	omxMatrix* expectedMeans;
+	omxThresholdColumn* expectedThresholds;
 	omxMatrix* observedFlattened;
 	omxMatrix* expectedFlattened;
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
+	int n;
+	int nThresholds;
 
 } omxWLSFitFunction;
 

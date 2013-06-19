@@ -40,6 +40,8 @@
 
 typedef struct omxData omxData;
 typedef struct omxContiguousData omxContiguousData;
+typedef struct omxThresholdColumn omxThresholdColumn;
+
 
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
@@ -51,12 +53,21 @@ struct omxContiguousData {
 	int length;
 };
 
+struct omxThresholdColumn {		 	// Threshold
+
+	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
+	int column;				// Which column has the thresholds
+	int numThresholds;		// And how many thresholds
+
+};
+
 struct omxData {						// A matrix
 	//TODO: Improve encapsulation
 	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
 	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
+	omxThresholdColumn* thresholdCols;  // Wrapper structure for thresholds
 	double numObs;						// Number of observations
 	const char *_type;
 	
@@ -88,7 +99,7 @@ int omxIntDataElement(omxData *od, int row, int col);						// Returns one data o
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
 omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); //TODO check this definition
-//omxThresholdColumn* omxDataThresholds(omxData *od); //TODO define this
+omxThresholdColumn* omxDataThresholds(omxData *od); //TODO define this
 // PROBLEM: omxThresholdColumn does not exist because data are prior to expectations.
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row

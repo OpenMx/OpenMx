@@ -23,7 +23,8 @@
 #include "omxAlgebraFunctions.h"
 #include "omxWLSFitFunction.h"
 
-void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix* vector) {
+void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* thresholds, int nThresholds, omxMatrix* vector) {
+    // TODO: vectorize data flattening
     int nextLoc = 0;
     for(int j = 0; j < cov->rows; j++) {
         for(int k = 0; k <= j; k++) {
@@ -35,6 +36,15 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix* vector) {
         for(int j = 0; j < cov->rows; j++) {
             omxSetVectorElement(vector, nextLoc, omxVectorElement(means, j));
             nextLoc++;
+        }
+    }
+    if (thresholds != NULL) {
+        for(int j = 0; j < nThresholds; j++) {
+            omxThresholdColumn* thresh = thresholds + j;
+            for(int k = 0; k < thresh->numThresholds; k++) {
+                omxSetVectorElement(vector, nextLoc, omxMatrixElement(thresh->matrix, k, thresh->column));
+                nextLoc++;
+            }
         }
     }
 }
@@ -109,19 +119,24 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
 	double sum = 0.0;
 
 	omxMatrix *oCov, *oMeans, *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
+	
+    omxThresholdColumn *oThresh, *eThresh;
 
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
     /* Locals for readability.  Compiler should cut through this. */
 	oCov 		= owo->observedCov;
 	oMeans		= owo->observedMeans;
+	oThresh		= owo->observedThresholds;
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
+	eThresh 	= owo->expectedThresholds;
 	oFlat		= owo->observedFlattened;
 	eFlat		= owo->expectedFlattened;
 	weights		= owo->weights;
 	B			= owo->B;
 	P			= owo->P;
+    int nThresh = owo->nThresholds;
     int onei    = 1;
 	
 	omxExpectation* expectation = oo->expectation;
@@ -129,8 +144,8 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
     /* Recompute and recopy */
 	omxExpectationCompute(expectation);
 
-	flattenDataToVector(oCov, oMeans, oFlat);
-	flattenDataToVector(eCov, eMeans, eFlat);
+	flattenDataToVector(oCov, oMeans, oThresh, nThresh, oFlat);
+	flattenDataToVector(eCov, eMeans, eThresh, nThresh, eFlat);
 
 	omxCopyMatrix(B, oFlat);
 
@@ -201,14 +216,54 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 
 }
 
+void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
+	
+	/* Set FitFunction Calls to WLS FitFunction Calls */
+	oo->fitType = "omxWLSFitFunction";
+	oo->computeFun = omxCallWLSFitFunction;
+	oo->destructFun = omxDestroyWLSFitFunction;
+	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
+	oo->populateAttrFun = omxPopulateWLSAttributes;
+	oo->repopulateFun = handleFreeVarList;
+}
+
 void omxInitWLSFitFunction(omxFitFunction* oo) {
-
-	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
-
-	SEXP rObj = oo->rObj;
+    
+    
+    SEXP rObj = oo->rObj;
 	SEXP nextMatrix;
 	omxMatrix *cov, *means, *weights;
 	
+    if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
+	
+    int vectorSize = 0;
+	
+	omxSetWLSFitFunctionCalls(oo);
+	
+	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
+	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
+	
+	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
+    omxData* dataMat = oo->expectation->data;
+	
+	if(strncmp(omxDataType(dataMat), "acov", 4) != 0 || strncmp(omxDataType(dataMat), "cov", 3) != 0) {
+		char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "WLS FitFunction unable to handle data type %s.  Data must be of type 'acov'.\n", omxDataType(dataMat));
+		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		free(errstr);
+		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
+		return;
+	}
+
+	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
+
+    /* Get Expectation Elements */
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
+    newObj->nThresholds = oo->expectation->numOrdinal;
+    newObj->expectedThresholds = oo->expectation->thresholds;
+    // FIXME: threshold structure should be asked for by omxGetExpectationComponent
+
 	/* Read and set expected means, variances, and weights */
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("means")));
 	if(OMX_DEBUG) { mxLog("Processing Expected Means."); }
@@ -221,11 +276,13 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		means = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 		if(OMX_DEBUG) { mxLog("Means matrix created at 0x%x.", means); }
 	}
+    newObj->observedMeans = means;
 	UNPROTECT(1);
 
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("covariance")));
 	if(OMX_DEBUG) { mxLog("Processing Expected Covariance."); }
 	cov = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
+    newObj->observedCov = cov;
 	UNPROTECT(1);
 	
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("weights")));
@@ -239,82 +296,10 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		weights = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 		if(OMX_DEBUG) { mxLog("Weights matrix created at 0x%x.", weights); }
 	}
-	UNPROTECT(1);
-	
-	// omxCreateWLSFitFunction(oo, rObj, cov, means, weights); // FIXME: Add WLS Expectation-handling abilities
-	
-}
-
-void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
-	
-	/* Set FitFunction Calls to WLS FitFunction Calls */
-	oo->fitType = "omxWLSFitFunction";
-	oo->computeFun = omxCallWLSFitFunction;
-	oo->destructFun = omxDestroyWLSFitFunction;
-	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
-	oo->populateAttrFun = omxPopulateWLSAttributes;
-	oo->repopulateFun = handleFreeVarList;
-}
-
-void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means, omxMatrix* weights) {
-	
-	SEXP nextMatrix;
-    int vectorSize = 0;
-	
-	omxSetWLSFitFunctionCalls(oo);
-	
-	if(OMX_DEBUG) { mxLog("Retrieving data."); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
-	omxData* dataMat = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
-	if(strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "WLS FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
-		omxRaiseError(oo->matrix->currentState, -1, errstr);
-		free(errstr);
-		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
-		return;
-	}
-	
-	if(cov == NULL) {
-		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
-			"Developer Error in WLS-based FitFunction object: WLS-based expectations must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
-			// TODO: Revise WLS to accept something besides cov/means
-		return;
-	}
-
-	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
-
-	newObj->expectedCov = cov;
-	newObj->expectedMeans = means;
-    vectorSize = (cov->rows * (cov->rows + 1) ) / 2;
-    if(means != NULL) {
-        vectorSize += cov->rows;
-    }
-	if(weights == NULL) {
-	    // No weights specified--set up ULS weight matrix.
-        weights = omxInitMatrix(NULL, vectorSize, vectorSize, TRUE, oo->matrix->currentState);
-        for(int j = 0; j < vectorSize; j++) {
-            for(int k = 0; k < j; k++) {
-                omxSetMatrixElement(weights, j, k, 0.0);
-                omxSetMatrixElement(weights, k, j, 0.0);
-            }
-            omxSetMatrixElement(weights, j, j, 1.0);
-        }
-	} else if(weights->rows != weights->cols && weights->cols != vectorSize) {
-	    omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
-			"Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
-		return;
-	}
     newObj->weights = weights;
-
-	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
-	newObj->observedCov = omxDataMatrix(dataMat, NULL);
-	if(OMX_DEBUG) { mxLog("Processing Observed Means."); }
-	newObj->observedMeans = omxDataMeans(dataMat, NULL, NULL);
-	if(OMX_DEBUG && newObj->observedMeans == NULL) { mxLog("WLS: No Observed Means."); }
-//	if(OMX_DEBUG) { mxLog("Processing n."); }
-//	newObj->n = omxDataNumObs(dataMat);
-	UNPROTECT(1); // nextMatrix
+    newObj->n = omxDataNumObs(dataMat);
+    newObj->nThresholds = omxDataNumFactor(dataMat);
+	UNPROTECT(1);
 	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
@@ -330,14 +315,47 @@ void omxCreateWLSFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxM
 	    }
 	}
 
+	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
+	    if(newObj->expectedMeans != NULL) {
+		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			    "Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+		    return;
+	    } else {
+		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			    "Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+		    return;	        
+	    }
+	}
+
+    /* Error check weight matrix size */
+    int ncol = newObj->observedCov->cols;
+    vectorSize = (ncol * (ncol + 1) ) / 2;
+    if(newObj->expectedMeans != NULL) {
+        vectorSize = vectorSize + ncol;
+    }
+    if(newObj->observedThresholds != NULL) {
+        for(int i = 0; i < newObj->nThresholds; i++) {
+            vectorSize = vectorSize + newObj->observedThresholds[i].numThresholds;
+        }
+    }
+    
+    if(weights->rows != weights->cols && weights->cols != vectorSize) {
+        omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
+         "Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+     return;
+    }
+
+	
+	// FIXME: More error checking for incoming Fit Functions
+
 	/* Temporary storage for calculation */
 	newObj->observedFlattened = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->expectedFlattened = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->P = omxInitMatrix(NULL, 1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
 
-    flattenDataToVector(newObj->observedCov, newObj->observedMeans, newObj->observedFlattened);
-    flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedFlattened);
+    flattenDataToVector(newObj->observedCov, newObj->observedMeans, newObj->observedThresholds, newObj->nThresholds, newObj->observedFlattened);
+    flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedThresholds, newObj->nThresholds, newObj->expectedFlattened);
 
     oo->argStruct = (void*)newObj;
 

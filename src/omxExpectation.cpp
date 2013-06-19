@@ -68,6 +68,12 @@ void omxExpectationRecompute(omxExpectation *ox) {
 	if(OMX_DEBUG_ALGEBRA) { 
 	    mxLog("Expectation recompute: 0x%0x", ox);
 	}
+	
+	if(ox->thresholds != NULL) {
+        for(int i = 0; i < ox->numOrdinal; i++) {
+            omxRecompute(ox->thresholds[i].matrix);
+        }
+	}
 
 	omxExpectationCompute(ox);
 }
