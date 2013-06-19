@@ -30,34 +30,48 @@
 #-------------------------------------------------------------------------------------
 # Revision History
 # Tue Oct 23 00:55:48 Central Daylight Time 2012 -- Michael Hunter copied file from personal work
+# Wed 19 Jun 2013 12:23:45 Central Daylight Time -- Michael Hunter added ordinal support etc with aid of Mike Neale and Ryne Estabrook
 # 
 
 
 #-------------------------------------------------------------------------------------
-# TODO Add a data argument to allow users to give mxSaturatedModel a data set
 # TODO Add ability to fit multiple groups
-# TODO Add run=FALSE argument to function
+# TODO If given a model whose data set has 10 variables but the model only uses 2
+#  variables, adjust function to make a saturated model of only the 2 used variables.
+
 
 
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-omxSaturatedModel <- function(model) {
-	if (!(isS4(model) && is(model, "MxModel"))) {
-		stop("'model' argument must be a MxModel object")
+omxSaturatedModel <- function(x, run=FALSE) {
+	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
+		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
 	}
-	datasource <- model$data
-	if (is.null(datasource)) {
-		stop("'model' argument does not contain any data")
+	if ( is(x, "MxModel") ) {
+		datasource <- x$data
+		if (is.null(datasource)) {
+			stop("'model' argument does not contain any data")
+		}
+		obsdata <- datasource@observed
+		datatype <- datasource@type
+		modelName <- x@name
+	} else {
+		obsdata <- x
+		if(ncol(obsdata) != nrow(obsdata)) {
+			datatype <- "raw"
+		}
+		else {datatype <- "cov"}
+		datasource <- mxData(observed=obsdata, type=datatype)
+		modelName <- "Data Model"
 	}
-	obsdata <- datasource@observed
 	numVar <- ncol(obsdata)
 	varnam <- colnames(obsdata)
 	if(is.null(varnam)) {
 		varnam <- paste("V", 1:numVar, sep="")
 		dimnames(obsdata) <- list(varnam, varnam)
 	}
-	if(datasource@type == "raw") {
+	if(datatype == "raw") {
 		if (is.data.frame(obsdata)) {
 			ordinalCols <- sapply(obsdata, is.ordered)
 		}
@@ -80,7 +94,7 @@ omxSaturatedModel <- function(model) {
 		startmea <- 3.0
 	}
 	saturatedModel <- mxModel(
-		name=paste("Saturated", model@name),
+		name=paste("Saturated", modelName),
 		datasource,
 		mxMatrix(type="Lower",
 			nrow=numVar,
@@ -90,14 +104,13 @@ omxSaturatedModel <- function(model) {
 			name="ltCov"),
 		mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	)
-	if(datasource@type == "raw" || !any(is.na(datasource@means)) ) {
+	if(datatype == "raw" || !any(is.na(datasource@means)) ) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
 			mxExpectationNormal("satCov", "satMea"),
 			mxFitFunctionML()
 		)
-	}
-	if(any(ordinalCols)) {
+	} else if(any(ordinalCols)) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
 			mxMatrix("Full", 
@@ -114,13 +127,14 @@ omxSaturatedModel <- function(model) {
 	} else {
 		saturatedModel <- mxModel(saturatedModel,
 			mxExpectationNormal("satCov"),
-			MxFitFunctionML()
+			mxFitFunctionML()
 		)
 	}
 	
 	saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
 	saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")
-	return(saturatedModel)
+	if(run) {return(mxRun(saturatedModel))}
+	else { return(saturatedModel) }
 }
 
 
