@@ -35,8 +35,8 @@
 
 #-------------------------------------------------------------------------------------
 # TODO Add a data argument to allow users to give mxSaturatedModel a data set
-# TODO Add ability to fit models to ordinal data
 # TODO Add ability to fit multiple groups
+# TODO Add run=FALSE argument to function
 
 
 #-------------------------------------------------------------------------------------
@@ -50,16 +50,31 @@ omxSaturatedModel <- function(model) {
 	if (is.null(datasource)) {
 		stop("'model' argument does not contain any data")
 	}
-	numVar <- ncol(datasource@observed)
-	varnam <- colnames(datasource@observed)
+	obsdata <- datasource@observed
+	numVar <- ncol(obsdata)
+	varnam <- colnames(obsdata)
 	if(is.null(varnam)) {
-		varnam <- paste("x", 1:numVar, sep="")
-		dimnames(datasource@observed) <- list(varnam, varnam)
+		varnam <- paste("V", 1:numVar, sep="")
+		dimnames(obsdata) <- list(varnam, varnam)
 	}
 	if(datasource@type == "raw") {
-		startcov <- t(chol(cov(datasource@observed, use="pairwise.complete.obs")))
-		startcov <- startcov[lower.tri(startcov, TRUE)]
-		startmea <- colMeans(datasource@observed, na.rm=TRUE)
+		if (is.data.frame(obsdata)) {
+			ordinalCols <- sapply(obsdata, is.ordered)
+		}
+		if(!any(ordinalCols)){
+			startcov <- t(chol(cov(obsdata, use="pairwise.complete.obs")))
+			startcov <- startcov[lower.tri(startcov, TRUE)]
+			startmea <- colMeans(obsdata, na.rm=TRUE)
+		}
+		else {
+			ordinalLevels <- lapply(obsdata[,ordinalCols], levels)
+			numOrdinal <- sum(ordinalCols)
+			maxLevels <- max(sapply(ordinalLevels, length))
+			numThresholds <- maxLevels-1
+			startcov <- t(chol(diag(1, numVar)))
+			startcov <- startcov[lower.tri(startcov, TRUE)]
+			startmea <- rep(0, numVar)
+		}
 	} else {
 		startcov <- 0.3
 		startmea <- 3.0
@@ -79,6 +94,21 @@ omxSaturatedModel <- function(model) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
 			mxExpectationNormal("satCov", "satMea"),
+			mxFitFunctionML()
+		)
+	}
+	if(any(ordinalCols)) {
+		saturatedModel <- mxModel(saturatedModel,
+			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
+			mxMatrix("Full", 
+				name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
+				values=.2,
+				free = TRUE, 
+				lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
+				dimnames = list(c(), varnam[ordinalCols])), # TODO Add threshold names
+			mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower"),
+			mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
+			mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix"),
 			mxFitFunctionML()
 		)
 	} else {
