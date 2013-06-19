@@ -347,7 +347,7 @@ displayMxData <- function(object) {
 		cat("Acov : \n")
 		print(object@acov)
 	}
-	if (length(object@thresholds) == 1 && is.na(object@athresholds)) {
+	if (length(object@thresholds) == 1 && is.na(object@thresholds)) {
 		cat("Thresholds : NA \n")
 	} else {
 		cat("Thresholds : \n")
