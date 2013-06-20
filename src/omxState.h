@@ -124,10 +124,13 @@ struct omxGlobal {
 	int numThreads;
 	int analyticGradients;
 	int numChildren;
+
+	int numIntervals;
+	omxConfidenceInterval* intervalList;
 };
 extern struct omxGlobal Global;
 
-// omxState is for stuff that duplication for thread safety.
+// omxState is for stuff that must be duplicated for thread safety.
 struct omxState {
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -141,8 +144,6 @@ struct omxState {
 	int numConstraints;
 	int nclin, ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
-	int numIntervals;
-	omxConfidenceInterval* intervalList;							// List of confidence intervals requested
 
 	int numFreeParams;
 	omxFreeVar* freeVarList;										// List of Free Variables and where they go.

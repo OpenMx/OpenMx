@@ -62,17 +62,17 @@ void omxComputeGD::compute(double *startVals)
 
 	omxFreeChildStates(globalState);
 
-	if (globalState->numIntervals) {
+	if (Global.numIntervals) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: Throw a warning, allow force()
 			warning("Not calculating confidence intervals because of NPSOL status %d", inform);
 		} else {
-			PROTECT(intervals = allocMatrix(REALSXP, globalState->numIntervals, 2));
-			PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2));
+			PROTECT(intervals = allocMatrix(REALSXP, Global.numIntervals, 2));
+			PROTECT(intervalCodes = allocMatrix(INTSXP, Global.numIntervals, 2));
 
 			omxNPSOLConfidenceIntervals(fitMatrix, getFit(),
 						    getEstimate(), Global.ciMaxIterations);
-			omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
+			omxPopulateConfidenceIntervals(intervals, intervalCodes);
 		}
 	}  
 }

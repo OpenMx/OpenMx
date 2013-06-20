@@ -310,11 +310,11 @@ void omxProcessFreeVarList(SEXP varList) {
 void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	SEXP nextVar;
 	if(OMX_VERBOSE) { mxLog("Processing Confidence Interval Requests.");}
-	globalState->numIntervals = length(intervalList);
-	if(OMX_DEBUG) {mxLog("Found %d requests.", globalState->numIntervals); }
-	globalState->intervalList = (omxConfidenceInterval*) R_alloc(globalState->numIntervals, sizeof(omxConfidenceInterval));
-	for(int index = 0; index < globalState->numIntervals; index++) {
-		omxConfidenceInterval *oCI = &(globalState->intervalList[index]);
+	Global.numIntervals = length(intervalList);
+	if(OMX_DEBUG) {mxLog("Found %d requests.", Global.numIntervals); }
+	Global.intervalList = (omxConfidenceInterval*) R_alloc(Global.numIntervals, sizeof(omxConfidenceInterval));
+	for(int index = 0; index < Global.numIntervals; index++) {
+		omxConfidenceInterval *oCI = &(Global.intervalList[index]);
 		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
@@ -326,7 +326,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->min = R_NaReal;
 	}
 	if(OMX_VERBOSE) { mxLog("Processed."); }
-	if(OMX_DEBUG) { mxLog("%d intervals requested.", globalState->numIntervals); }
+	if(OMX_DEBUG) { mxLog("%d intervals requested.", Global.numIntervals); }
 }
 
 void omxProcessConstraints(SEXP constraints)  {

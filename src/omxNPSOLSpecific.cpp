@@ -105,11 +105,11 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (globalState->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global.intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxConfidenceInterval *oCI = &(globalState->intervalList[NPSOL_currentInterval]);
+		omxConfidenceInterval *oCI = &(Global.intervalList[NPSOL_currentInterval]);
 		
 		omxRecompute(oCI->matrix);
 		
@@ -395,9 +395,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
         if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
-        for(int i = 0; i < globalState->numIntervals; i++) {
+        for(int i = 0; i < Global.numIntervals; i++) {
 
-			omxConfidenceInterval *currentCI = &(globalState->intervalList[i]);
+			omxConfidenceInterval *currentCI = &(Global.intervalList[i]);
 
 			int msgLength = 45;
  
