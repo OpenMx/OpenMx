@@ -445,6 +445,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
+		# TODO Add check for if it has at least one of LX or LY
 		#
 		# Raw data error checking
 		#  Set the canonical order of observed variable names.

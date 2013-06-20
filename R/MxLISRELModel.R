@@ -32,6 +32,8 @@ setMethod("imxTypeName", "MxLISRELModel",
 setMethod("imxInitModel", "MxLISRELModel", 
 	function(model) {
 		stop("Not implemented")
+		#TODO change this to return an ML fitfunction and an expectation with all NA matrices
+		# Then later add matrices when I know what dims they have.
 		
 		if (is.null(model[['LX']])) {
 			model[['LX']] <- createMatrixLX(model)
@@ -161,6 +163,7 @@ setMethod("imxModelBuilder", "MxLISRELModel",
 
 setMethod("imxVerifyModel", "MxLISRELModel",
 	function(model) {
+		# TODO somewhere in here add check that at least one of LX or LY exist
 		return(TRUE)
 	}
 )

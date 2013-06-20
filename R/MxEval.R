@@ -161,6 +161,9 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 			if (is.list(lookup) && length(lookup) == 2 && is(lookup[[2]], "MxFitFunction")) {
 				lookup <- lookup[[2]]
 			}
+			if (is.list(lookup) && length(lookup) == 2 && is(lookup[[2]], "MxExpectation")) {
+				lookup <- lookup[[2]]
+			}
 			if (imxIsDefinitionVariable(key)) {
 				result <- definitionStartingValue(key, contextString, model, defvar.row)
 			} else if (is.null(lookup)) {
@@ -184,17 +187,30 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 					result <- lookup@observed
 				}
 			} else if (is(lookup, "MxFitFunction")) {
-		        if (length(lookup@result) == 0) {
+				if (length(lookup@result) == 0) {
 					if (compute) {
-			            result <- genericFitInitialMatrix(lookup, model)
+						result <- genericFitInitialMatrix(lookup, model)
 					} else {
 						result <- matrix(0, 0, 0)
 					}
-		        } else if (show) {
+				} else if (show) {
 					result <- substitute(.zzz[[x]]@result, list(x = key))
 				} else {
-		    		result <- lookup@result
-		        }
+					result <- lookup@result
+				}
+			} else if (is(lookup, "MxExpectation")) {
+				stop("mxEval for Expectations is not yet implemented.")
+				#if (length(lookup@result) == 0) {
+				#	if (compute) {
+				#		result <- genericFitInitialMatrix(lookup, model)
+				#	} else {
+				#		result <- matrix(0, 0, 0)
+				#	}
+				#} else if (show) {
+				#	result <- substitute(.zzz[[x]]@result, list(x = key))
+				#} else {
+				#	result <- lookup@result
+				#}
 			} else {
 				stop(paste("Cannot evaluate the object",
 					omxQuotes(key), "in the model",
@@ -298,6 +314,8 @@ getEntityType <- function(object) {
 		entity <- "MxMatrix"
 	} else if(is(object, "MxAlgebra")) {
 		entity <- "MxAlgebra"
+	} else if(is(object, "MxExpectation")) {
+		entity <- "MxExpectation"
 	} else if(is(object, "MxFitFunction")) {
 		entity <- "MxFitFunction"
 	} else {
