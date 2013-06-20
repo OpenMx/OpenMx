@@ -188,8 +188,8 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 	void omxStateNextRow(omxState *state);								// Advance Row
 	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
 
-	void omxWriteCheckpointMessage(omxState *os, char *msg);
-	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
+	void omxWriteCheckpointMessage(char *msg);
+	void omxSaveCheckpoint(double* x, double* f, int force);	// Save out checkpoints
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 
 void mxLog(const char* msg, ...);   // thread-safe

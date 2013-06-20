@@ -349,7 +349,7 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 		state->computeCount++;
 	};
 
-	void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
+static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 		// FIXME: Is it faster to allocate this on the stack?
 		os->chkptText1 = (char*) Calloc((24 + 15 * os->numFreeParams), char);
 		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * os->numFreeParams*
@@ -369,7 +369,8 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 		}
 	}
  
-	void omxWriteCheckpointMessage(omxState *os, char *msg) {
+	void omxWriteCheckpointMessage(char *msg) {
+		omxState *os = globalState;
 		for(int i = 0; i < os->numCheckpoints; i++) {
 			omxCheckpoint* oC = &(os->checkpointList[i]);
 			if(os->chkptText1 == NULL) {    // First one: set up output
@@ -385,7 +386,8 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 		}
 	}
 
-	void omxSaveCheckpoint(omxState *os, double* x, double* f, int force) {
+	void omxSaveCheckpoint(double* x, double* f, int force) {
+		omxState *os = globalState;
 		time_t now = time(NULL);
 		int soFar = now - os->startTime;		// Translated into minutes
 		int n;

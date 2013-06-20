@@ -95,7 +95,7 @@ void F77_SUB(npsolObjectiveFunction)
 	if(OMX_DEBUG) { mxLog("-======================================================-"); }
 
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(globalState, x, f, FALSE);		// Check about saving a checkpoint
+		omxSaveCheckpoint(x, f, FALSE);		// Check about saving a checkpoint
 	}
 
 }
@@ -311,7 +311,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f.", *f); }
  
-        omxSaveCheckpoint(globalState, x, f, TRUE);
+        omxSaveCheckpoint(x, f, TRUE);
  
 	// What if fitfunction has its own repopulateFun? TODO
         handleFreeVarListHelper(globalState, x, n);
@@ -417,7 +417,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
 					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
-			omxWriteCheckpointMessage(globalState, message);
+			omxWriteCheckpointMessage(message);
  
 			memcpy(x.data(), optimalValues, n * sizeof(double)); // Reset to previous optimum
 			NPSOL_currentInterval = i;
@@ -442,7 +442,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 if(f < value) {
                     currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(globalState, x.data(), &f, TRUE);
+		    omxSaveCheckpoint(x.data(), &f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -477,7 +477,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
 					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
 			}
  
-			omxWriteCheckpointMessage(globalState, message);
+			omxWriteCheckpointMessage(message);
  
 			Free(message);
  
@@ -499,7 +499,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 if(f < value) {
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(globalState, x.data(), &f, TRUE);
+		    omxSaveCheckpoint(x.data(), &f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
