@@ -22,8 +22,4 @@ void markFreeVarDependencies(omxState* os, int varNumber);
 void handleFreeVarList(omxFitFunction* oo, double* x, int numVars);
 void handleFreeVarListHelper(omxState* os, double* x, int numVars); // seems like this should be static TODO
 
-SEXP getListElement(SEXP list, const char *str); 				// Gets the value named str from SEXP list.  From "Writing R Extensions"
-SEXP getVar(SEXP str, SEXP env);								// Gets the object named str from environment env.  From "Writing R Extensions"
-
-
 #endif // _OMXOPTIMIZER_H

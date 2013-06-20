@@ -404,20 +404,6 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
 void omxMarkClean(omxMatrix *om) { om->isDirty = FALSE; }
 
-unsigned short omxMatrixNeedsUpdate(omxMatrix *om) {
-	for(int i = 0; i < om->numPopulateLocations; i++) {
-		int index = om->populateFrom[i];
-		omxMatrix* sourceMatrix;
-		if (index < 0) {
-			sourceMatrix = om->currentState->matrixList[~index];
-		} else {
-			sourceMatrix = om->currentState->algebraList[index];
-		}
-		if(omxNeedsUpdate(sourceMatrix)) return TRUE;	// Make sure it's up to date
-	}
-    return FALSE;
-};
-
 omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */

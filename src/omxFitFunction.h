@@ -89,7 +89,6 @@ struct omxFitFunction {					// A fit function
 /* FitFunction-specific implementations of matrix functions */
 void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
-	omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	

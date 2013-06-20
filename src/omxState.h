@@ -168,13 +168,10 @@ void omxFreeChildStates(omxState *state);
 void omxFreeState(omxState *state);
 	void omxDuplicateState(omxState *tgt, omxState* src); 
                                                                         // Duplicates the current state object
-	omxState* omxGetState(omxState *os, int stateNum);					// Retrieve a child by number
-
 	void omxSetMajorIteration(omxState *state, int value);				// Recursively set major iteration number
 	void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
-	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox);
 
 	void omxResetStatus(omxState *state);    
 inline bool isErrorRaised(omxState *state) { return state->statusMsg[0] != 0; }

@@ -144,28 +144,3 @@ void handleFreeVarList(omxFitFunction* oo, double* x, int numVars)
 {
 	handleFreeVarListHelper(oo->matrix->currentState, x, numVars);
 }
-
-/* get the list element named str, or return NULL */
-SEXP getListElement(SEXP list, const char *str) {
-/* Attribution: modified from the code given in Writing R Extensions */
-	SEXP elmt = R_NilValue, names = getAttrib(list, R_NamesSymbol);
-	int i;
-	for (i = 0; i < length(list); i++)
-		if(strcmp(CHAR(STRING_ELT(names, i)), str) == 0) {
-			elmt = VECTOR_ELT(list, i);
-			break;
-		}
-	return elmt;
-}
-
-SEXP getVar(SEXP str, SEXP env) {
-/* Attribution: modified from the code given in Writing R Extensions */
-   SEXP ans;
-   if(!isString(str) || length(str) != 1)
-        error("getVar: variable name is not a single string");
-   if(!isEnvironment(env))
-	error("getVar: env should be an environment");
-   ans = findVar(install(CHAR(STRING_ELT(str, 0))), env);
-   return(ans);
-}
-

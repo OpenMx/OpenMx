@@ -140,7 +140,6 @@ struct omxMatrix {						// A matrix
 /* Matrix-Internal Helper functions */
 	void omxMatrixLeadingLagging(omxMatrix *matrix);
 void omxPrintMatrix(omxMatrix *source, const char* header);
-	unsigned short int omxMatrixNeedsUpdate(omxMatrix *matrix);
 
 /* OMXINLINE functions and helper functions */
 

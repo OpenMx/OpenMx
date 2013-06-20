@@ -50,19 +50,6 @@
 		strncpy(state->statusMsg, "", 1);
 	}
 
-	omxState* omxGetState(omxState* os, int stateNumber) {
-		// TODO: Need to implement a smarter way to enumerate children
-		if(stateNumber == 0) return os;
-		if((stateNumber-1) < os->numChildren) {
-			return(os->childList[stateNumber-1]);
-		} else {
-			error("Not implemented");
-			// TODO: Account for unequal numbers of grandchild states
-			int subState = (stateNumber - os->numChildren - 1);
-			return omxGetState(os->childList[subState % os->numChildren], subState / os->numChildren);
-		}
-	}
-
 	void omxSetMajorIteration(omxState *state, int value) {
 		state->majorIteration = value;
 		for(int i = 0; i < state->numChildren; i++) {
@@ -183,12 +170,6 @@
 		return NULL;
 	}
 	
-	omxExpectation* omxLookupDuplicateExpectation(omxState* os, omxExpectation* ox) {
-		if(os == NULL || ox == NULL) return NULL;
-
-		return(os->expectationList[ox->expNum]);
-	}
-
 void omxFreeChildStates(omxState *state)
 {
 	if (state->numChildren == 0) return;
@@ -239,12 +220,6 @@ void omxFreeChildStates(omxState *state)
 		}
 
 		delete [] state->freeVarList;
-
-        if(OMX_DEBUG) {mxLog("Freeing %d Children.", state->numChildren);}
-        for(int k = 0; k < state->numChildren; k++) {
-			if(OMX_DEBUG) { mxLog("Freeing Child State %d at 0x%x.", k, state->childList[k]); }
-			omxFreeState(state->childList[k]);            
-        }
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
 		for(int k = 0; k < state->numCheckpoints; k++) {

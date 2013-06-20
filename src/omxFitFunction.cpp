@@ -100,28 +100,6 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 }
 
-omxFitFunction* omxCreateDuplicateFitFunction(omxFitFunction *tgt, const omxFitFunction *src, omxState* newState) {
-
-	if(OMX_DEBUG) {mxLog("Duplicating fit function 0x%x into 0x%x.", src, tgt);}
-
-	if(src == NULL) {
-		return NULL;
-	}
-	
-	if(tgt == NULL) {
-        tgt = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
-        omxInitEmptyFitFunction(tgt);
-    } else {
-		omxRaiseError(newState, -1,
-			"omxCreateDuplicateFitFunction requested to overwrite target");
-		return NULL;
-	}
-
-	memcpy(tgt, src, sizeof(omxFitFunction));
-	return tgt;
-
-}
-
 void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
 	if(OMX_DEBUG_ALGEBRA) { 
 	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
