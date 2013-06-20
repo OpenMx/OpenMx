@@ -52,7 +52,7 @@ The 'M' argument refers to the M or means matrix in the RAM approach.  It is a 1
 
 The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxRAMObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
 
-mxRAMObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxRAMObjective function, but must be included in the \link{MxModel} object. mxRAMObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov', 'cor' or 'sscp'.
+mxRAMObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxRAMObjective function, but must be included in the \link{MxModel} object. mxRAMObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov' or 'cor'.
 
 To evaluate, place MxRAMObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function..
 }

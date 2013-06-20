@@ -13,17 +13,17 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{imxLISRELObjective}
-\alias{imxLISRELObjective}
+\name{mxExpectationLISREL}
+\alias{mxExpectationLISREL}
 
-\title{Create MxLISRELObjective Object}
+\title{Create MxExpectationLISREL Object}
 
 \description{
-   This function creates a new MxLISRELObjective object.
+   This function creates a new MxExpectationLISREL object.
 }
 
 \usage{
-imxLISRELObjective(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
+mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
    TX = NA, TY = NA, KA = NA, AL = NA,
    dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
 }
@@ -50,7 +50,7 @@ imxLISRELObjective(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxLISRELObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
+Expectation functions define the way that model expectations are calculated. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
 
 The full LISREL specification has 13 matrices and is sometimes called the extended LISREL model.  It is defined by the following equations.
 
@@ -114,7 +114,7 @@ To evaluate, place MxLISRELObjective objects, the \link{mxData} object for which
 }
 
 \value{
-    Returns a new MxLISRELObjective object. MxLISRELObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
+    Returns a new MxExpectationLISREL object. One and only one MxExpectationLISREL object can be included with models using one and only one fit function object (e.g., MxFitFunctionML) and with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \references{
@@ -127,15 +127,35 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
    
-   #####------------------------------#####
-   ##### Factor Model
-   mLX <- mxMatrix("Full", values=c(.5, .6, .8, rep(0, 6), .4, .7, .5), name="LX", nrow=6, ncol=2, free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE))
-   mTD <- mxMatrix("Diag", values=c(rep(.2, 6)), name="TD", nrow=6, ncol=6, free=TRUE)
-   mPH <- mxMatrix("Symm", values=c(1, .3, 1), name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE))
-   
-   # Create a LISREL objective with LX, TD, and PH matrix names
-   objective <- imxLISRELObjective(LX="LX", TD="TD", PH="PH")
-   
-   model <- mxModel(mLX, mTD, mPH, objective)
+# Create and fit a model using mxExpectationLISREL, and mxFitFunctionML
+
+library(OpenMx)
+
+covData <- matrix(c(0.9223099, 0.1862938, 0.4374359, 0.8959973, 0.9928430, 0.5320662,
+                    0.1862938, 0.2889364, 0.3927790, 0.3321639, 0.3371594, 0.4476898,
+                    0.4374359, 0.3927790, 1.0069552, 0.6918755, 0.7482155, 0.9013952,
+                    0.8959973, 0.3321639, 0.6918755, 1.8059956, 1.6142005, 0.8040448,
+                    0.9928430, 0.3371594, 0.7482155, 1.6142005, 1.9223567, 0.8777786,
+                    0.5320662, 0.4476898, 0.9013952, 0.8040448, 0.8777786, 1.3997558
+                  ), nrow=6, ncol=6, byrow=TRUE)
+
+# Create LISREL matrices
+
+mLX <- mxMatrix("Full", values=c(.5, .6, .8, rep(0, 6), .4, .7, .5), 
+          name="LX", nrow=6, ncol=2, free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE))
+mTD <- mxMatrix("Diag", values=c(rep(.2, 6)), 
+          name="TD", nrow=6, ncol=6, free=TRUE)
+mPH <- mxMatrix("Symm", values=c(1, .3, 1), 
+          name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE))
+
+# Create a LISREL objective with LX, TD, and PH matrix names
+
+expFunction <- mxExpectationLISREL(LX="LX", TD="TD", PH="PH")
+
+# Create the model, fit it, and print a summary.
+
+tmpModel <- mxModel("exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov"))
+tmpModelOut <- mxRun(tmpModel)
+summary(tmpModelOut)
 
 }
