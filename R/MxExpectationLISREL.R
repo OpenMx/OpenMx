@@ -445,7 +445,12 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
-		# TODO Add check for if it has at least one of LX or LY
+		# Check if both LX and LY are missing
+		if(is.null(lyMatrix) && is.null(lxMatrix)){
+			msg <- paste("The model", omxQuotes(modelname), "must have at least",
+				"one of the 'LX' matrix or the 'LY' matrix, but both appear to be missing.")
+			stop(msg, call. = FALSE)
+		}
 		#
 		# Raw data error checking
 		#  Set the canonical order of observed variable names.

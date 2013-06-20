@@ -200,6 +200,7 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				}
 			} else if (is(lookup, "MxExpectation")) {
 				stop("mxEval for Expectations is not yet implemented.")
+				#signpost
 				#if (length(lookup@result) == 0) {
 				#	if (compute) {
 				#		result <- genericFitInitialMatrix(lookup, model)

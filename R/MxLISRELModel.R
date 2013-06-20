@@ -32,50 +32,10 @@ setMethod("imxTypeName", "MxLISRELModel",
 setMethod("imxInitModel", "MxLISRELModel", 
 	function(model) {
 		stop("Not implemented")
-		#TODO change this to return an ML fitfunction and an expectation with all NA matrices
+		# Returns an ML fitfunction and an expectation with all NA matrices
 		# Then later add matrices when I know what dims they have.
-		
-		if (is.null(model[['LX']])) {
-			model[['LX']] <- createMatrixLX(model)
-		}
-		if (is.null(model[['LY']])) {
-			model[['LY']] <- createMatrixLY(model)
-		}
-		if (is.null(model[['BE']])) {
-			model[['BE']] <- createMatrixBE(model)
-		}
-		if (is.null(model[['GA']])) {
-			model[['GA']] <- createMatrixGA(model)
-		}
-		if (is.null(model[['PH']])) {
-			model[['PH']] <- createMatrixPH(model)
-		}
-		if (is.null(model[['PS']])) {
-			model[['PS']] <- createMatrixPS(model)
-		}
-		if (is.null(model[['TD']])) {
-			model[['TD']] <- createMatrixTD(model)
-		}
-		if (is.null(model[['TE']])) {
-			model[['TE']] <- createMatrixTE(model)
-		}
-		if (is.null(model[['TH']])) {
-			model[['TH']] <- createMatrixTH(model)
-		}
-		if (is.null(model[['TX']])) {
-			model[['TX']] <- createMatrixTX(model)
-		}
-		if (is.null(model[['TY']])) {
-			model[['TY']] <- createMatrixTY(model)
-		}
-		if (is.null(model[['KA']])) {
-			model[['KA']] <- createMatrixKA(model)
-		}
-		if (is.null(model[['AL']])) {
-			model[['AL']] <- createMatrixAL(model)
-		}
 		if (is.null(model[['expectation']])) {
-			model[['expectation']] <- mxExpectationLISREL('LX', 'LY', 'BE', 'GA', 'PH', 'PS', 'TD', 'TE', 'TH', 'TX', 'TY', 'KA', 'AL')
+			model[['expectation']] <- mxExpectationLISREL()
 		}
 		if (is.null(model[['fitfunction']])) {
 			model[['fitfunction']] <- mxFitFunctionML()
@@ -151,7 +111,7 @@ createMatrixTY <- function(model){} #interc of y
 createMatrixKA <- function(model){} #mean of xi
 createMatrixAL <- function(model){} #mean of eta
 
-# TODO See if there is a way to change an mxMatrix's type.  E.g. TD & TE are often but not always diagonal, and should(?) be stored as diagonal if possible.
+
 
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
