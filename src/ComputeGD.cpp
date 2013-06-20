@@ -55,7 +55,7 @@ void omxComputeGD::compute(double *startVals)
 	memcpy(REAL(estimate), startVals, sizeof(double)*numFree);
 
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
-		omxFitFunctionCreateChildren(globalState, globalState->numThreads);
+		omxFitFunctionCreateChildren(globalState);
 
 	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
 		       REAL(gradient), REAL(hessian), &inform, &iter);
@@ -71,7 +71,7 @@ void omxComputeGD::compute(double *startVals)
 			PROTECT(intervalCodes = allocMatrix(INTSXP, globalState->numIntervals, 2));
 
 			omxNPSOLConfidenceIntervals(fitMatrix, getFit(),
-						    getEstimate(), globalState->ciMaxIterations);
+						    getEstimate(), Global.ciMaxIterations);
 			omxPopulateConfidenceIntervals(globalState, intervals, intervalCodes);
 		}
 	}  

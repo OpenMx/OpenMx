@@ -118,12 +118,17 @@ struct omxConfidenceInterval {		// For Confidence interval request
 
 #define MAX_STRING_LEN 250
 
-struct omxState {
-	int numHessians;
+// omxGlobal is for state that is read-only during parallel sections.
+struct omxGlobal {
 	int ciMaxIterations;
-
 	int numThreads;
+	int analyticGradients;
 	int numChildren;
+};
+extern struct omxGlobal Global;
+
+// omxState is for stuff that duplication for thread safety.
+struct omxState {
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
@@ -156,7 +161,6 @@ struct omxState {
 	int numCheckpoints;												// Number of checkpoints
 
 	char statusMsg[MAX_STRING_LEN];
-	int analyticGradients;
 };
 
 extern omxState* globalState;

@@ -183,8 +183,6 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 {
 	SEXP nextLoc;
 
-	int analyticGradients = 0;
-
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
 //	if(!isVector(startVals)) error ("startVals must be a vector");
@@ -197,12 +195,14 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	globalState = new omxState;
 	omxInitState(globalState, NULL);
 
-	/* 	Set NPSOL options */
-	omxSetNPSOLOpts(options, &globalState->ciMaxIterations, &globalState->numThreads, 
-			&analyticGradients, length(startVals));
+	Global.ciMaxIterations = 5;
+	Global.numThreads = 1;
+	Global.analyticGradients = 0;
+	Global.numChildren = 0;
+	omxSetNPSOLOpts(options, &Global.ciMaxIterations, &Global.numThreads, 
+			&Global.analyticGradients);
 
 	globalState->numFreeParams = length(startVals);
-	globalState->analyticGradients = analyticGradients;
 	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve Data Objects */

@@ -94,7 +94,7 @@ void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
-void omxFitFunctionCreateChildren(omxState *globalState, int numThreads);
+void omxFitFunctionCreateChildren(omxState *globalState);
 
 enum omxFFCompute {
   FF_COMPUTE_FIT      = 1<<0,

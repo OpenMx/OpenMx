@@ -21,15 +21,12 @@
 #include "Compute.h"
 #include "omxOpenmpWrap.h"
 
+struct omxGlobal Global;
+
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
-		state->ciMaxIterations = 5;
-		state->numThreads = 1;
-		state->numHessians = 0;
-
 		state->numConstraints = 0;
 		state->numFreeParams = 0;
-	        state->numChildren = 0;
 		state->childList = NULL;
 		state->parentState = parentState;
 		state->conList = NULL;
@@ -52,21 +49,22 @@
 
 	void omxSetMajorIteration(omxState *state, int value) {
 		state->majorIteration = value;
-		for(int i = 0; i < state->numChildren; i++) {
+		if (!state->childList) return;
+		for(int i = 0; i < Global.numChildren; i++) {
 			omxSetMajorIteration(state->childList[i], value);
 		}
 	}
 
 	void omxSetMinorIteration(omxState *state, int value) {
 		state->minorIteration = value;
-		for(int i = 0; i < state->numChildren; i++) {
+		if (!state->childList) return;
+		for(int i = 0; i < Global.numChildren; i++) {
 			omxSetMinorIteration(state->childList[i], value);
 		}
 	}
 	
 	void omxDuplicateState(omxState* tgt, omxState* src) {
 		tgt->dataList			= src->dataList;
-		tgt->numChildren 		= 0;
 		
 		// Duplicate matrices and algebras and build parentLists.
 		tgt->parentState 		= src;
@@ -172,9 +170,9 @@
 	
 void omxFreeChildStates(omxState *state)
 {
-	if (state->numChildren == 0) return;
+	if (!state->childList || Global.numChildren == 0) return;
 
-	for(int k = 0; k < state->numChildren; k++) {
+	for(int k = 0; k < Global.numChildren; k++) {
 		// Data are not modified and not copied. The same memory
 		// is shared across all instances of state. We only need
 		// to free the data once, so let the parent do it.
@@ -184,7 +182,7 @@ void omxFreeChildStates(omxState *state)
 	}
 	Free(state->childList);
 	state->childList = NULL;
-	state->numChildren = 0;
+	Global.numChildren = 0;
 }
 
 	void omxFreeState(omxState *state) {
@@ -252,8 +250,9 @@ void omxFreeChildStates(omxState *state)
 	}
 
 	void omxResetStatus(omxState *state) {
-		int numChildren = state->numChildren;
+		int numChildren = Global.numChildren;
 		state->statusMsg[0] = '\0';
+		if (!state->childList) return;
 		for(int i = 0; i < numChildren; i++) {
 			omxResetStatus(state->childList[i]);
 		}

@@ -286,7 +286,7 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 
 void omxComputeEstimatedHessian::compute(double *at)
 {
-	omxFitFunctionCreateChildren(globalState, globalState->numThreads);
+	omxFitFunctionCreateChildren(globalState);
 
 	numParams = globalState->numFreeParams;
 
@@ -297,7 +297,7 @@ void omxComputeEstimatedHessian::compute(double *at)
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
 
-	int numChildren = globalState->numChildren;
+	int numChildren = Global.numChildren;
 
 	omxRecompute(fitMat);
 	minimum = omxMatrixElement(fitMat, 0, 0);

@@ -66,9 +66,11 @@ void markFreeVarDependenciesHelper(omxState* os, int varNumber) {
 
 void markFreeVarDependencies(omxState* os, int varNumber) {
 
-	int numChildren = os->numChildren;
+	int numChildren = Global.numChildren;
 
 	markFreeVarDependenciesHelper(os, varNumber);
+
+	if (!os->childList) return;
 
 	for(int i = 0; i < numChildren; i++) {
 		markFreeVarDependencies(os->childList[i], varNumber);
@@ -77,7 +79,7 @@ void markFreeVarDependencies(omxState* os, int varNumber) {
 
 void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 {
-	int numChildren = os->numChildren;
+	int numChildren = Global.numChildren;
 
 	if(OMX_DEBUG && os->parentState == NULL) {
 		mxLog("Processing Free Parameter Estimates.");
@@ -133,6 +135,8 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 			omxMarkDirty(os->algebraList[i]);
 		}
 	}
+
+	if (!os->childList) return;
 
 	for(int i = 0; i < numChildren; i++) {
 		handleFreeVarListHelper(os->childList[i], x, numVars);

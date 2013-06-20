@@ -72,7 +72,7 @@ void F77_SUB(npsolObjectiveFunction)
 
 	fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
 
-	if (*mode > 0 && globalState->analyticGradients && NPSOL_currentInterval < 0) {
+	if (*mode > 0 && Global.analyticGradients && NPSOL_currentInterval < 0) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
@@ -553,7 +553,7 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 }
 
 void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
-		     int *analyticGradients, int numFreeParams)
+		     int *analyticGradients)
 {
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);

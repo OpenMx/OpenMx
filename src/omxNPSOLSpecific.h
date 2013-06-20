@@ -29,6 +29,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
 				 int ciMaxIterations);
  
 void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
-		     int *analyticGradients, int numFreeParams);
+		     int *analyticGradients);
 
 #endif // #define _OMX_NPSOL_SPECIFIC_H
