@@ -141,8 +141,8 @@ wlsOrdinalOnlyHelper <- function(data, type="WLS", useMinusTwo=FALSE){
 	# check type
 	# must be a better way
 	# MDH: Put in a better way
-	if (!(type %in% c("ULS", "DLS", "WLS"))){
-		stop("Type must be either 'ULS', 'DLS' or 'WLS'")
+	if (!(type %in% c("ULS", "DLS", "WLS", "XLS"))){
+		stop("Type must be either 'ULS', 'DLS', 'WLS', 'XLS'")
 		}
 		
 	# select ordinal variables

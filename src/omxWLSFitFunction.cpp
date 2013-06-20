@@ -284,11 +284,11 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 	    if(newObj->expectedMeans != NULL) {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			    "Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
 		    return;
 	    } else {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			    "Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
 		    return;	        
 	    }
 	}
@@ -296,11 +296,11 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
 	    if(newObj->expectedMeans != NULL) {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			    "Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 		    return;
 	    } else {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
-			    "Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			    "Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
 		    return;	        
 	    }
 	}
