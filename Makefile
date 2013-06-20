@@ -86,6 +86,7 @@ dev-doc:
 	./util/rox
 
 build/$(TARGET): $(RFILES)
+	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
