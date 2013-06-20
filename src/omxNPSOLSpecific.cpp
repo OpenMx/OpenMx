@@ -221,7 +221,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
             nlnwid = ncnln;
         }
  
-	int n = globalState->numFreeParams;
+	int n = Global.numFreeParams;
  
         nctotl = n + nlinwid + nlnwid;
  
@@ -341,7 +341,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
-    int n = globalState->numFreeParams;
+    int n = Global.numFreeParams;
     double f = optimum;
     std::vector< double > x(n, *optimalValues);
     std::vector< double > gradient(n);

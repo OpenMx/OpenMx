@@ -26,11 +26,9 @@ struct omxGlobal Global;
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
 		state->numConstraints = 0;
-		state->numFreeParams = 0;
 		state->childList = NULL;
 		state->parentState = parentState;
 		state->conList = NULL;
-		state->freeVarList = NULL;
 
 		state->majorIteration = 0;
 		state->minorIteration = 0;
@@ -105,25 +103,6 @@ struct omxGlobal Global;
 
 		tgt->childList 			= NULL;
 
-		tgt->numFreeParams			= src->numFreeParams;
-		tgt->freeVarList 		= new omxFreeVar[tgt->numFreeParams];
-		for(int j = 0; j < tgt->numFreeParams; j++) {
-			int numDeps							= src->freeVarList[j].numDeps;
-
-			tgt->freeVarList[j].lbound			= src->freeVarList[j].lbound;
-			tgt->freeVarList[j].ubound			= src->freeVarList[j].ubound;
-			tgt->freeVarList[j].locations			= src->freeVarList[j].locations;
-			tgt->freeVarList[j].numDeps			= numDeps;
-			
-			tgt->freeVarList[j].deps			= (int*) R_alloc(numDeps, sizeof(int));
-
-			tgt->freeVarList[j].name		= src->freeVarList[j].name;
-
-			for(int k = 0; k < numDeps; k++) {
-				tgt->freeVarList[j].deps[k] = src->freeVarList[j].deps[k];
-			}
-		}
-		
 		tgt->majorIteration 	= 0;
 		tgt->minorIteration 	= 0;
 		tgt->startTime 			= src->startTime;
@@ -216,8 +195,6 @@ void omxFreeChildStates(omxState *state)
 			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", dx, state->dataList[dx]); }
 			omxFreeData(state->dataList[dx]);
 		}
-
-		delete [] state->freeVarList;
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
 		for(int k = 0; k < state->numCheckpoints; k++) {
@@ -351,18 +328,18 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 
 static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 		// FIXME: Is it faster to allocate this on the stack?
-		os->chkptText1 = (char*) Calloc((24 + 15 * os->numFreeParams), char);
-		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * os->numFreeParams*
-			(os->numFreeParams + 1.0) / 2.0, char);
+		os->chkptText1 = (char*) Calloc((24 + 15 * Global.numFreeParams), char);
+		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * Global.numFreeParams*
+			(Global.numFreeParams + 1.0) / 2.0, char);
 		if (oC->type == OMX_FILE_CHECKPOINT) {
 			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
-			for(int j = 0; j < os->numFreeParams; j++) {
-				if(strcmp(os->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
-					fprintf(oC->file, "%s", os->freeVarList[j].name);
+			for(int j = 0; j < Global.numFreeParams; j++) {
+				if(strcmp(Global.freeVarList[j].name, CHAR(NA_STRING)) == 0) {
+					fprintf(oC->file, "%s", Global.freeVarList[j].name);
 				} else {
-					fprintf(oC->file, "\"%s\"", os->freeVarList[j].name);
+					fprintf(oC->file, "\"%s\"", Global.freeVarList[j].name);
 				}
-				if (j != os->numFreeParams - 1) fprintf(oC->file, "\t");
+				if (j != Global.numFreeParams - 1) fprintf(oC->file, "\t");
 			}
 			fprintf(oC->file, "\n");
 			fflush(oC->file);
@@ -378,7 +355,7 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 			}
 			if (oC->type == OMX_FILE_CHECKPOINT) {
 				fprintf(oC->file, "%d \"%s\" NA ", os->majorIteration, msg);
-				for(int j = 0; j < os->numFreeParams; j++) {
+				for(int j = 0; j < Global.numFreeParams; j++) {
 					fprintf(oC->file, "NA ");
 				}
 				fprintf(oC->file, "\n");
@@ -416,7 +393,7 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
 					strftime(tempstring, 25, "%b %d %Y %I:%M:%S %p", nowTime);
 					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f[0]);
-					for(int j = 0; j < os->numFreeParams; j++) {
+					for(int j = 0; j < Global.numFreeParams; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
 					}

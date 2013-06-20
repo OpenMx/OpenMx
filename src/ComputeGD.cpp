@@ -38,7 +38,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 
-	numFree = globalState->numFreeParams;
+	numFree = Global.numFreeParams;
 	if (numFree <= 0) {
 		error("Model has no free parameters");
 		return;

@@ -127,6 +127,9 @@ struct omxGlobal {
 
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
+
+	int numFreeParams;
+	omxFreeVar* freeVarList;
 };
 extern struct omxGlobal Global;
 
@@ -144,9 +147,6 @@ struct omxState {
 	int numConstraints;
 	int nclin, ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
-
-	int numFreeParams;
-	omxFreeVar* freeVarList;										// List of Free Variables and where they go.
 
 /* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?

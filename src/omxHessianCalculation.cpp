@@ -273,7 +273,7 @@ omxComputeEstimatedHessian::omxComputeEstimatedHessian()
 
 void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 {
-	numParams = globalState->numFreeParams;
+	numParams = Global.numFreeParams;
 	if (numParams <= 0) error("Model has no free parameters");
 
 	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
@@ -288,7 +288,7 @@ void omxComputeEstimatedHessian::compute(double *at)
 {
 	omxFitFunctionCreateChildren(globalState);
 
-	numParams = globalState->numFreeParams;
+	numParams = Global.numFreeParams;
 
 	optima = at;
 

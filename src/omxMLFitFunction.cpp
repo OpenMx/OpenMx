@@ -229,8 +229,8 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 	}   
 
 	if (0) {  // TODO, fix for new gradient internal API
-		int nLocs = oo->matrix->currentState->numFreeParams;
-		double gradient[oo->matrix->currentState->numFreeParams];
+		int nLocs = Global.numFreeParams;
+		double gradient[Global.numFreeParams];
 		for(int loc = 0; loc < nLocs; loc++) {
 			gradient[loc] = NA_REAL;
 		}
@@ -403,7 +403,7 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
     omxMLFitFunction *omo = ((omxMLFitFunction*) oo->argStruct);
     int rows = omo->observedCov->rows;
     int cols = omo->observedCov->cols;
-    int nFreeVars = oo->matrix->currentState->numFreeParams;
+    int nFreeVars = Global.numFreeParams;
             
     omo->derivativeFun = derivativeFun;
     omo->X  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
@@ -451,14 +451,14 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     omxMatrix** dSigmas     = omo->dSigma;
     omxMatrix** dMus        = omo->dMu;
     
-    int gradientSize = oo->matrix->currentState->numFreeParams;
+    int gradientSize = Global.numFreeParams;
     
     char u = 'U';
     int info;
     double minusoned = -1.0;
     int onei = 1;
     int status[gradientSize];
-    int nLocs = oo->matrix->currentState->numFreeParams;
+    int nLocs = Global.numFreeParams;
     
     // Calculate current FitFunction values
     // We can safely assume this has been done

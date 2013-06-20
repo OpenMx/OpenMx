@@ -202,7 +202,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	omxSetNPSOLOpts(options, &Global.ciMaxIterations, &Global.numThreads, 
 			&Global.analyticGradients);
 
-	globalState->numFreeParams = length(startVals);
+	Global.numFreeParams = length(startVals);
 	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve Data Objects */
@@ -269,7 +269,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	cacheFreeVarDependencies();
 
-	int n = globalState->numFreeParams;
+	int n = Global.numFreeParams;
 
 	if (topCompute && !isErrorRaised(globalState)) {
 		double *sv = NULL;
