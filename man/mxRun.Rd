@@ -42,7 +42,7 @@ mxRun(model, ..., intervals = FALSE, silent = FALSE, suppressWarnings = FALSE,
 }
 
 \details{
-The mxRun function is used to optimize free parameters in \link{MxModel} objects based on an objective function. MxModel objects included in the mxRun function must include an appropriate objective function.
+The mxRun function is used to optimize free parameters in \link{MxModel} objects based on an expectation function and fit function. MxModel objects included in the mxRun function must include an appropriate expectation and fit functions.
 
 If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal.
 
@@ -50,9 +50,9 @@ If the \sQuote{suppressWarnings} flag is TRUE, then model execution will not iss
 
 If the \sQuote{unsafe} flag is TRUE, then any error conditions will throw a warning instead of an error.  It is strongly recommended to use this feature only for debugging purposes.
 
-Free parameters are estimated or updated based on the objective function. These estimated values, along with estimation information and model fit, can be found in the 'output' slot of MxModel objects after mxRun has been used.
+Free parameters are estimated or updated based on the expectation and fit functions. These estimated values, along with estimation information and model fit, can be found in the 'output' slot of MxModel objects after mxRun has been used.
 
-If a model is dependent on or shares parameters with another model, both models must be included as arguments in another MxModel object. This top-level MxModel object must include objective functions in both submodels, as well as an additional objective function describing how the results of the first two should be combined.
+If a model is dependent on or shares parameters with another model, both models must be included as arguments in another MxModel object. This top-level MxModel object must include expectation and fit functions in both submodels, as well as an additional fit function describing how the results of the first two should be combined.
 }
 
 \value{
@@ -67,31 +67,31 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 # Create and run the 1-factor CFA on the openmx.psyc.virginia.edu front page
-\dontrun{
-require(OpenMx)
+
+library(OpenMx)
 data(demoOneFactor)  # load the demoOneFactor dataframe
 manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
 latents   <- c("G")  # define 1 latent variable
 model <- mxModel("One Factor", type="RAM",
     manifestVars = manifests,
     latentVars   = latents,
-    mxPath(from=latents  , to=manifests),
-    mxPath(from=manifests, arrows=2),
+    mxPath(from=latents, to=manifests, labels=paste("b", 1:5, sep="")),
+    mxPath(from=manifests, arrows=2, labels=paste("u", 1:5, sep="")),
     mxPath(from=latents  , arrows=2, free=FALSE, values=1.0),
     mxData(cov(demoOneFactor), type="cov", numObs=500)
 )
 model <- mxRun(model) #run model, returning the result
 summary(model) #show summary of the fitted model
 
-#Create a model that includes data, matrices A, S and F, and an objective function
+#Create a model that includes data, matrices A, S and F, and an expectation and fit function
 data <- mxData(mydata, type="cov", numObs = 100)
-objective <- mxRAMObjective('A', 'S', 'F')
-model <- mxModel("mymodel", A, S, F, data, objective)
+expectation <- mxExpectationRAM('A', 'S', 'F')
+fitfunction <- mxFitFunctionML()
+model <- mxModel("mymodel", A, S, F, data, expectation, fitfunction)
 
 #Use mxRun to optimize the free parameters in the matrices A and S
-model <- mxRun(model)
+modelOut <- mxRun(model)
 
 # print the output
-model@output  #can be directly access by slot name instead of via summary()
-}
+summary(modelOut)  
 }

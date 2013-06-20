@@ -38,7 +38,7 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA, th
 }
 
 \details{
-Expectation functions define the way that model expectations are calculated. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
+Expectation functions define the way that model expectations are calculated. The mxExpectationRAM calculates the expected covariance and means of a given \link{MxData} object given a RAM model. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'S', and 'F' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, S, and F matrices in the RAM modeling approach.
 
 The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the 'F' matrix and optionally to the 'M' matrix, if the 'M' matrix exists.
 
@@ -50,15 +50,15 @@ The 'F' argument refers to the F or filter matrix in the RAM approach. If no lat
 
 The 'M' argument refers to the M or means matrix in the RAM approach.  It is a 1 x n matrix, where n is the number of manifest variables + the number of latent variables. The M matrix must be specified if either the mxData type is \dQuote{cov} or \dQuote{cor} and a means vector is provided, or if the mxData type is \dQuote{raw}.  Otherwise the M matrix is ignored.
 
-The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxRAMObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
+The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxExpectationRAM will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
 
-mxRAMObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxRAMObjective function, but must be included in the \link{MxModel} object. mxRAMObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov' or 'cor'.
+mxExpectationRAM evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxExpectationRAM function, but must be included in the \link{MxModel} object. 
 
-To evaluate, place MxRAMObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function..
+To evaluate, place mxExpectationRAM objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function..
 }
 
 \value{
-    Returns a new MxExpectationRAM object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
+    Returns a new MxExpectationRAM object. mxExpectationRAM objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \references{

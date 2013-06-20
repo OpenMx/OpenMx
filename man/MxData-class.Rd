@@ -41,21 +41,21 @@ The 'name' slot is the name of the MxData object. %Use of MxData objects in othe
 
 The \sQuote{observed} slot is used to contain data, either as a matrix or as a data frame. Use of the data in this slot by other functions depends on the value of the 'type' slot. When 'type' is equal to 'cov' or 'cor', the data input into the 'matrix' slot should be a symmetric matrix or data frame.
 
-The 'vector' slot is used to contain a vector of numeric values, which is used as a vector of means for MxData objects with 'type' equal to 'cov' or 'cor'. This slot may be used in estimation using the \link{mxMLObjective} function. 
+The 'vector' slot is used to contain a vector of numeric values, which is used as a vector of means for MxData objects with 'type' equal to 'cov' or 'cor'. This slot may be used in estimation using the \link{mxFitFunctionML} function. 
 
 The 'type' slot may take one of four supported values:
 \describe{
-\item{raw}{The contents of the \sQuote{observed} slot are treated as raw data. Missing values are permitted and must be designated as the system missing value. The 'vector' and 'numObs' slots cannot be specified, as the 'vector' argument is not relevant and the 'numObs' argument is automatically populated with the number of rows in the data. Data of this type must use the \link{mxFIMLObjective} function as its objective function in MxModel objects, which deals with covariance estimation under full-information maximum likelihood.}
+\item{raw}{The contents of the \sQuote{observed} slot are treated as raw data. Missing values are permitted and must be designated as the system missing value. The 'vector' and 'numObs' slots cannot be specified, as the 'vector' argument is not relevant and the 'numObs' argument is automatically populated with the number of rows in the data. Data of this type may use the \link{mxFitFunctionML} function as its fit function in MxModel objects, which can deal with covariance estimation under full-information maximum likelihood.}
 
-\item{cov}{The contents of the \sQuote{observed} slot are treated as a covariance matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' slot is required. Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
+\item{cov}{The contents of the \sQuote{observed} slot are treated as a covariance matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' slot is required. Data of this type may use fit functions such as the \link{mxFitFunctionML}, depending on the specified model.}
 
-\item{cor}{The contents of the \sQuote{observed} slot are treated as a correlation matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' slot is required.  Data of this type may use the \link{mxMLObjective}, or \link{mxRAMObjective} functions, depending on the specified model.}
+\item{cor}{The contents of the \sQuote{observed} slot are treated as a correlation matrix. The 'vector' argument is not required, but may be included for estimations involving means. The 'numObs' slot is required.  Data of this type may use fit functions such as the \link{mxFitFunctionML}, depending on the specified model.}
 
 }
 
 The 'numObs' slot describes the number of observations in the data. If 'type' equals 'raw', then 'numObs' is automatically populated as the number of rows in the matrix or data frame in the \sQuote{observed} slot. If 'type' equals 'cov' or 'cor', then this slot must be input using the 'numObs' argument in the \link{mxData} function when the MxData argument is created.
 
-MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxAlgebraObjective} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
+MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
 
 While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not recognized as variable names in \link{MxPath} objects. Variable names must be specified using the 'manifestVars' argument of the \link{mxModel} function prior to use in MxPath objects.
 

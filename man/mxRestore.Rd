@@ -51,8 +51,9 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 #matrices A, S and F, and an objective function
 \dontrun{
 data <- mxData(mydata, type="cov", numObs = 100)
-objective <- mxRAMObjective('A', 'S', 'F')
-model <- mxModel("mymodel", A, S, F, data, objective)
+expectation <- mxExpecationRAM('A', 'S', 'F')
+fitfunction <- mxFitFunctionML()
+model <- mxModel("mymodel", A, S, F, data, expectation, fitfunction)
 
 #Use mxRun to optimize the free parameters in the matrices A and S
 modelOut <- mxRun(model, checkpoint = TRUE)

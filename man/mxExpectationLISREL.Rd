@@ -24,8 +24,8 @@
 
 \usage{
 mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
-   TX = NA, TY = NA, KA = NA, AL = NA,
-   dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
+                    TX = NA, TY = NA, KA = NA, AL = NA,
+                    dimnames = NA, thresholds = NA, threshnames = dimnames)
 }
 
 
@@ -45,12 +45,11 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
    \item{AL}{An optional character string indicating the name of the 'AL' matrix.}
    \item{dimnames}{An optional character vector that is currently ignored}%to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
-   \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
 }
 
 \details{
-Expectation functions define the way that model expectations are calculated. The mxRAMObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
+Expectation functions define the way that model expectations are calculated. The mxExpectationLISREL calculates the expected covariance and means of a given \link{MxData} object given a LISREL model. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
 
 The full LISREL specification has 13 matrices and is sometimes called the extended LISREL model.  It is defined by the following equations.
 
@@ -77,7 +76,7 @@ Matrix \tab Word \tab Abbreviation \tab Dimensions \tab Expression\tab Descripti
 \eqn{\alpha} \tab alpha \tab AL \tab NE x 1 \tab \tab Residual Means of Latent Endogenous Variables \cr
 }
 
-From the extended LISREL model, several submodels can be defined.  Subtypes of the LISREL model are defined by setting some of the arguments of the LISREL objective to NA.  Note that because the default values of each LISREL matrix is NA, setting a matrix to NA can be accomplished by simply not giving it any other value.
+From the extended LISREL model, several submodels can be defined.  Subtypes of the LISREL model are defined by setting some of the arguments of the LISREL expectation function to NA.  Note that because the default values of each LISREL matrix is NA, setting a matrix to NA can be accomplished by simply not giving it any other value.
 
 The first submodel is the LISREL model without means.
 
@@ -106,11 +105,11 @@ The model that is run depends on the matrices that are not NA.  If all 9 matrice
 
 %The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the 'F' matrix and optionally to the 'M' matrix, if the 'M' matrix exists.
 
-The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxLISRELObjective will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
+The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxExpectationLISREL will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
 
-Like the \link{mxRAMObjective}, the mxLISRELObjective evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxLISRELObjective function, but must be included in the \link{MxModel} object. mxLISRELObjective requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov', 'cor', or 'raw'.
+Like the \link{mxExpectationRAM}, the mxExpectationLISREL evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxExpectationLISREL function, but must be included in the \link{MxModel} object. mxExpectationLISREL requires that the 'type' argument in the associated \link{MxData} object be equal to 'cov', 'cor', or 'raw'.
 
-To evaluate, place MxLISRELObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
+To evaluate, place mxExpectationLISREL objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
 }
 
 \value{
