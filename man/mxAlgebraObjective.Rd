@@ -19,7 +19,9 @@
 \title{DEPRECATED:  Create MxAlgebraObjective Object}
 
 \description{
-   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use MxFitFunctionAlgebra() instead.  As a temporary workaround, MxAlgebraObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionAlgebra object.
+WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
+
+Please use MxFitFunctionAlgebra() instead.  As a temporary workaround, MxAlgebraObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionAlgebra object.
 }
 
 \usage{

@@ -28,8 +28,8 @@ mxRestore(model, chkpt.directory = ".", chkpt.prefix = "")
 
 \arguments{
     \item{model}{\link{MxModel} object to be loaded.}    
-	\item{chkpt.directory}{character. Directory where the checkpoint file is located.}
-	\item{chkpt.prefix}{character. Prefix of the checkpoint file.}
+    \item{chkpt.directory}{character. Directory where the checkpoint file is located.}
+    \item{chkpt.prefix}{character. Prefix of the checkpoint file.}
 }
 
 \details{

@@ -43,7 +43,7 @@ Multiple parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebr
 
 Confidence interval estimation may result in model non-convergence at the confidence limit. Separate optimizer messages may be passed for each confidence limit. This has no impact on the parameter estimates themselves, but may indicate a problem with the referenced confidence limit. Model non-convergence for a particular confidence limit may indicate parameter interdependence or the influence of a parameter boundary. Checking the validity of a confidence limit can be done my estimating a model with the appropriate parameter fixed at the confidence limit in question. If the confidence limit is valid, the -2 log likelihoods of these two models should differ by the chi-squared criterion specified in the \link[=MxCI]{MxCI's} \sQuote{lowerdelta} or \sQuote{upperdelta} slot. 
 }
-	
+    
 \value{
 Returns a new \link{MxCI} object. If used as an argument in an \link{MxModel} object, the parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} listed in the 'reference' argument must also be included prior to optimization.
 }
@@ -59,27 +59,27 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \examples{
 # generate data
 covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), 
-	nrow=2, 
-	dimnames=list(c("a", "b"), c("a", "b")))
-	
+    nrow=2, 
+    dimnames=list(c("a", "b"), c("a", "b")))
+    
 data <- mxData(covariance, "cov", numObs=100)
 
 # create an expected covariance matrix
 expect <- mxMatrix("Symm", 2, 2,
-	free=TRUE,
-	values=c(1, .5, 1),
-	labels=c("var1", "cov12", "var2"),
-	name="expectedCov")
+    free=TRUE,
+    values=c(1, .5, 1),
+    labels=c("var1", "cov12", "var2"),
+    name="expectedCov")
 
-# request 95 percent confidence intervals	
+# request 95 percent confidence intervals   
 ci <- mxCI(c("var1", "cov12", "var2"))
 
 # specify the model
 model <- mxModel("Confidence Interval Example",
-	data, expect, ci,
-	mxMLObjective("expectedCov", dimnames=c("a", "b")))
+    data, expect, ci,
+    mxMLObjective("expectedCov", dimnames=c("a", "b")))
 
-# run the model	
+# run the model 
 results <- mxRun(model, intervals=TRUE)
 
 # view confidence intervals

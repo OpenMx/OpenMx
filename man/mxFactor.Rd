@@ -29,15 +29,15 @@ Also, the \sQuote{levels} parameter is optional in R's \code{factor} function. H
 
 \usage{
 mxFactor(x = character(), levels, labels = levels, 
-	exclude = NA, ordered = TRUE)
+    exclude = NA, ordered = TRUE)
 }
 
 \arguments{
-	\item{x}{either a vector of data or a data.frame object.}
-	\item{levels}{a mandatory vector of the values that 'x' might have taken.}
-	\item{labels}{_either_ an optional vector of labels for the levels, _or_ a character string of length 1.}
-	\item{exclude}{a vector of values to be excluded from the set of levels.}
-	\item{ordered}{logical flag to determine if the levels should be regarded as ordered (in the order given).  Required to be TRUE.}
+    \item{x}{either a vector of data or a data.frame object.}
+    \item{levels}{a mandatory vector of the values that 'x' might have taken.}
+    \item{labels}{_either_ an optional vector of labels for the levels, _or_ a character string of length 1.}
+    \item{exclude}{a vector of values to be excluded from the set of levels.}
+    \item{ordered}{logical flag to determine if the levels should be regarded as ordered (in the order given).  Required to be TRUE.}
 }
 
 \details{

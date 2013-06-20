@@ -24,7 +24,7 @@
 
 \usage{
 mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
-	cache = new.env(parent = emptyenv()), cacheBack = FALSE)
+    cache = new.env(parent = emptyenv()), cacheBack = FALSE)
 }
 
 \arguments{
@@ -57,7 +57,7 @@ and \link{mxModel} for the model object mxEval looks inside when evaluating.
 \examples{
 
 matrixA <- mxMatrix("Full", nrow = 1, ncol = 1, 
-	values = 1, name = "A")
+    values = 1, name = "A")
 algebraB <- mxAlgebra(A + A, name = "B")
 
 model <- mxModel(matrixA, algebraB, name = "test")
@@ -68,7 +68,7 @@ A <- get("test.A", envir = results[[2]])
 
 \dontrun{
 
-start <- mxEval(-pi * A, model)	
+start <- mxEval(-pi * A, model) 
 mxEval(plot(sin, start, B * pi), model)
 
 # The statement above is equivalent to:

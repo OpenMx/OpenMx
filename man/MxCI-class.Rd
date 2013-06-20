@@ -28,10 +28,10 @@
 The MxCI class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	reference \tab - \tab The name of the object \cr
-	lowerdelta \tab - \tab Either a matrix or a data frame \cr
-	upperdelta \tab - \tab A vector for means, or NA if missing \cr
+    \tab \tab \cr
+    reference \tab - \tab The name of the object \cr
+    lowerdelta \tab - \tab Either a matrix or a data frame \cr
+    upperdelta \tab - \tab A vector for means, or NA if missing \cr
   }
   
 The reference slot contains a character vector of named free parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} on which confidence intervals are desired. Individual elements of \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} may be listed as well, using the syntax \dQuote{matrix[row,col]} (see \link{Extract} for more information).

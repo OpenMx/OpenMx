@@ -24,8 +24,8 @@
 
 \usage{
 omxSetParameters(model, labels, free = NULL, values = NULL,
-	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
-	strict = TRUE, name = NULL)
+    newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
+    strict = TRUE, name = NULL)
 }
 
 \arguments{

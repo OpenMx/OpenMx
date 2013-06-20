@@ -27,10 +27,10 @@
 The MxAlgebra class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	name \tab - \tab The name of the object \cr
-	formula \tab - \tab The R expression to be evaluated \cr 
-	result \tab - \tab a matrix with the computation result
+    \tab \tab \cr
+    name \tab - \tab The name of the object \cr
+    formula \tab - \tab The R expression to be evaluated \cr 
+    result \tab - \tab a matrix with the computation result
   }
   
 The \sQuote{name} slot is the name of the MxAlgebra object. Use of MxAlgebra objects in the \code{\link{mxConstraint}} function or an objective function requires reference by name.

@@ -99,7 +99,7 @@ RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization i
 }
 
 }
-	
+    
 \value{
 Returns the model with the optimizer option either set or cleared.
 }

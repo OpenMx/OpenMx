@@ -28,11 +28,11 @@ mxErrorPool(modelnames = NA, reset = FALSE)
 
 \arguments{
     \item{modelnames}{Either NA or a character vector of model names.}    
-	\item{reset}{Either TRUE or FALSE.}
+    \item{reset}{Either TRUE or FALSE.}
 }
 
 \details{
-	If \sQuote{modelnames} is NA, then the list of all error models will be returned. Otherwise a subset of models will be returned, basedon the model names passed in as a argument.  If \sQuote{reset} is TRUE, then the error pool is reset to the empty list.
+    If \sQuote{modelnames} is NA, then the list of all error models will be returned. Otherwise a subset of models will be returned, basedon the model names passed in as a argument.  If \sQuote{reset} is TRUE, then the error pool is reset to the empty list.
 }
 
 \references{

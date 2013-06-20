@@ -114,7 +114,7 @@ To evaluate, place MxLISRELObjective objects, the \link{mxData} object for which
 }
 
 \value{
-	Returns a new MxLISRELObjective object. MxLISRELObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
+    Returns a new MxLISRELObjective object. MxLISRELObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \references{

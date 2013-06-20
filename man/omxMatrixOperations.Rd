@@ -30,14 +30,14 @@
 \usage{
 
 omxCbind(..., allowUnlabeled = 
-	getOption("mxOptions")[["Allow Unlabeled"]], 
-	dimnames = NA, name = NA)
+    getOption("mxOptions")[["Allow Unlabeled"]], 
+    dimnames = NA, name = NA)
 omxRbind(..., allowUnlabeled = 
-	getOption("mxOptions")[["Allow Unlabeled"]], 
-	dimnames = NA, name = NA)
+    getOption("mxOptions")[["Allow Unlabeled"]], 
+    dimnames = NA, name = NA)
 omxTranspose(matrix, allowUnlabeled = 
-	getOption("mxOptions")[["Allow Unlabeled"]], 
-	dimnames = NA, name = NA)
+    getOption("mxOptions")[["Allow Unlabeled"]], 
+    dimnames = NA, name = NA)
 }
 
 \arguments{

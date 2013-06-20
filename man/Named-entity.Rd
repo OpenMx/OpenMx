@@ -22,7 +22,7 @@
 \title{Named Entities}
 
 \description{
-	A named entity is an S4 object that can be referenced by name.
+    A named entity is an S4 object that can be referenced by name.
 }
 
 \details{

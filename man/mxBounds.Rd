@@ -37,7 +37,7 @@ Creates a set of boundaries or limits for a parameter or set of parameters. Para
 
 Minima and maxima may be specified as scalar numeric values.
 }
-	
+    
 \value{
 Returns a new \link{MxBounds} object. If used as an argument in an \link{MxModel} object, the parameters referenced in the 'parameters' argument must also be included prior to optimization.
 }

@@ -24,8 +24,8 @@
 
 \usage{
 mxMatrix(type = "Full", nrow = NA, ncol = NA, 
-	free = FALSE, values = NA, labels = NA, lbound = NA, 
-	ubound = NA, byrow = getOption('mxByrow'), dimnames = NA, name = NA)
+    free = FALSE, values = NA, labels = NA, lbound = NA, 
+    ubound = NA, byrow = getOption('mxByrow'), dimnames = NA, name = NA)
 }
 
 \arguments{
@@ -87,21 +87,21 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 # Create a 3 x 3 identity matrix
 
 idenMatrix <- mxMatrix(type = "Iden", nrow = 3, 
-	ncol = 3, name = "I")
+    ncol = 3, name = "I")
 
 # Create a full 4 x 2 matrix from existing 
 # value matrix with all free parameters
 
 vals <- matrix(1:8, nrow = 4)
 fullMatrix <- mxMatrix(type = "Full", values = vals, 
-	free = TRUE, name = "foo")
+    free = TRUE, name = "foo")
  
 # Create a 3 x 3 symmetric matrix with free off-
 # diagonal parameters and starting values
 
 symmMatrix <- mxMatrix(type = "Symm", nrow = 3, ncol = 3,
-	free = c(FALSE, TRUE, TRUE, FALSE, TRUE, FALSE),
-	values = c(1, .8, .8, 1, .8, 1),
-	labels = c(NA, "free1", "free2", NA, "free3", NA),
-	name = "bar")
+    free = c(FALSE, TRUE, TRUE, FALSE, TRUE, FALSE),
+    values = c(1, .8, .8, 1, .8, 1),
+    labels = c(NA, "free1", "free2", NA, "free3", NA),
+    name = "bar")
 }

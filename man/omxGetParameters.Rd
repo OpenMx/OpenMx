@@ -24,7 +24,7 @@
 
 \usage{
 omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
-	fetch = c('values', 'free', 'lbound', 'ubound', 'all'))
+    fetch = c('values', 'free', 'lbound', 'ubound', 'all'))
 }
 
 \arguments{
@@ -45,7 +45,7 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 \examples{
 
 A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, 
-	free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
+    free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
 
 # Request all free parameters in model
@@ -84,7 +84,7 @@ manifestVars <- names(demoOneFactor)
 nVar = length(manifestVars) # 5 variables
 factorModel <- mxModel("One Factor",
     mxMatrix(name="A", type="Full", nrow=nVar, ncol=1, values=0.2, free=TRUE, 
-		lbound = 0.0, labels=letters[1:nVar]),
+        lbound = 0.0, labels=letters[1:nVar]),
     mxMatrix(name="L", type="Symm", nrow=1, ncol=1, values=1, free=FALSE),
     # the "U" matrix has nVar (5) anonymous free parameters
     mxMatrix(name="U", type="Diag", nrow=nVar, ncol=nVar, values=1, free=TRUE),

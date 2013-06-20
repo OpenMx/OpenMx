@@ -26,8 +26,8 @@
 \usage{
 mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
     "all.bivariate", "unique.bivariate"), arrows = 1,
-	free = TRUE, values = NA, labels = NA, 
-	lbound = NA, ubound = NA, ...)
+    free = TRUE, values = NA, labels = NA, 
+    lbound = NA, ubound = NA, ...)
 }
 
 \arguments{
@@ -54,17 +54,17 @@ Paths are specified as going "from" one variable (or set of variables) "to" anot
 
 \sQuote{connect} has five possible connection types: "single", "all.pairs", "all.bivariate", "unique.pairs", "unique.bivariate". The default value is "single". Assuming the values c(\sQuote{a},\sQuote{b},\sQuote{c}) for the \sQuote{to} and \sQuote{from} fields the paths produced by each connection type are as follows:
 
-	\describe{
-	\item{"all.pairs":}{(a,a), (a,b), (a,c), (b,a), (b,b), (b,c), (c,a), (c,b), (c,c).} 
-	\item{"unique.pairs":}{(a,a), (a,b), (a,c), (b,b), (b,c), (c,c). }
-	\item{"all.bivariate":}{(a,b), (a,c), (b,a), (b,c), (c,a), (c,b).} 
-	\item{"unique.bivariate":}{(a,b), (a,c), (b,c).} 
-	\item{"single":}{(a,a), (b,b), (c,c).}	
-	}
-	
+    \describe{
+    \item{"all.pairs":}{(a,a), (a,b), (a,c), (b,a), (b,b), (b,c), (c,a), (c,b), (c,c).} 
+    \item{"unique.pairs":}{(a,a), (a,b), (a,c), (b,b), (b,c), (c,c). }
+    \item{"all.bivariate":}{(a,b), (a,c), (b,a), (b,c), (c,a), (c,b).} 
+    \item{"unique.bivariate":}{(a,b), (a,c), (b,c).} 
+    \item{"single":}{(a,a), (b,b), (c,c).}  
+    }
+    
 Multiple variables may be input as a vector of variable names. If the \sQuote{connect} argument is set to "single", then paths are created going from each entry in the \sQuote{from} vector to the corresponding entry in the \sQuote{to} vector. If the \sQuote{to} and \sQuote{from} vectors are of different lengths when the \sQuote{connect} argument is set to "single", the shorter vector is repeated to make the vectors of equal length.
 
-	
+    
 The \sQuote{free} argument specifies whether the paths created by the mxPath function are free or fixed parameters. This argument may take either TRUE for free parameters, FALSE for fixed parameters, or a vector of TRUEs and FALSEs to be applied in order to the created paths.
 
 The \sQuote{arrows} argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the \sQuote{to} variable on the \sQuote{from} variable, such that the arrow points to the \sQuote{to} variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the \sQuote{arrows} argument may take a vector of 1s and 2s to be applied to the set of created paths.
@@ -131,7 +131,7 @@ singles <- list()
 for (i in 1:5) {
     j <- i*20
     singles <- append(singles, mxPath(
-						from = myLatent[i], to = myManifest[(j - 19):j], 
+                        from = myLatent[i], to = myManifest[(j - 19):j], 
                         arrows = 1,
                         free   = c(FALSE, rep(TRUE, 19)), 
                         values = c(1, rep(0.75, 19))))

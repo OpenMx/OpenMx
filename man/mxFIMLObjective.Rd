@@ -19,7 +19,9 @@
 \title{DEPRECATED: Create MxFIMLObjective Object}
 
 \description{
-   WARNING: Objective functions have been deprecated as of OpenMx 2.0.  Please use mxExpectationNormal() and mxFitFunctionML() instead.  As a temporary workaround, mxFIMLObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.
+WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
+   
+Please use mxExpectationNormal() and mxFitFunctionML() instead.  As a temporary workaround, mxFIMLObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.
 }
 
 \usage{

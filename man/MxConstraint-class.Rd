@@ -28,9 +28,9 @@
 The MxConstraint class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	name \tab - \tab The name of the object \cr
-	formula \tab - \tab The R expression to be evaluated
+    \tab \tab \cr
+    name \tab - \tab The name of the object \cr
+    formula \tab - \tab The R expression to be evaluated
   }
   
 The \sQuote{name} slot is the name of the MxConstraint object. Use of MxConstraint objects in other functions in the \link{OpenMx} library may require reference by name.

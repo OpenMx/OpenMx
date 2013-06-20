@@ -27,21 +27,21 @@
   The MxModel class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	name \tab - \tab The name of the object \cr
-	matrices \tab - \tab A list of \link{MxMatrix} objects \cr
-	algebras \tab - \tab A list of \link{MxAlgebra} objects \cr
-	submodels \tab - \tab A list of MxModel objects \cr
-	constraints \tab - \tab A list of MxConstraint objects \cr
-	intervals \tab - \tab A list of confidence intervals requested in MxCI objects \cr
-	bounds \tab - \tab A list of MxBounds objects \cr
-	latentVars \tab - \tab A list of latent variables \cr
-	manifestVars \tab - \tab A list of manifest variables \cr
-	data \tab - \tab A \link{MxData} object \cr
-	objective \tab - \tab Either NULL or a MxObjective object \cr
-	independent \tab - \tab TRUE if-and-only-if the model is independent \cr
-	options \tab - \tab A list of optimizer options \cr
-	output \tab - \tab A list with optimization results
+    \tab \tab \cr
+    name \tab - \tab The name of the object \cr
+    matrices \tab - \tab A list of \link{MxMatrix} objects \cr
+    algebras \tab - \tab A list of \link{MxAlgebra} objects \cr
+    submodels \tab - \tab A list of MxModel objects \cr
+    constraints \tab - \tab A list of MxConstraint objects \cr
+    intervals \tab - \tab A list of confidence intervals requested in MxCI objects \cr
+    bounds \tab - \tab A list of MxBounds objects \cr
+    latentVars \tab - \tab A list of latent variables \cr
+    manifestVars \tab - \tab A list of manifest variables \cr
+    data \tab - \tab A \link{MxData} object \cr
+    objective \tab - \tab Either NULL or a MxObjective object \cr
+    independent \tab - \tab TRUE if-and-only-if the model is independent \cr
+    options \tab - \tab A list of optimizer options \cr
+    output \tab - \tab A list with optimization results
   }
   
 The \sQuote{name} slot is the name of the MxModel object.

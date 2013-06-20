@@ -32,7 +32,7 @@ omxBrownie(quantity=1, walnuts=TRUE)
 }
 
 \details{
-	Returns a brownie recipe. Alter the `quantity` variable to make more pans of brownies. Ingredients, equipment and procedure are listed, but neither ingredients nor equipment are provided.
+    Returns a brownie recipe. Alter the `quantity` variable to make more pans of brownies. Ingredients, equipment and procedure are listed, but neither ingredients nor equipment are provided.
 }
 
 \value{

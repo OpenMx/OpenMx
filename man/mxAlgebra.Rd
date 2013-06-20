@@ -97,7 +97,7 @@ Functions
 }}
 
 \value{
-	Returns a new \link{MxAlgebra} object.
+    Returns a new \link{MxAlgebra} object.
 }
 
 \references{

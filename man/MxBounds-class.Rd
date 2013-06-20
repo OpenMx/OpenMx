@@ -27,10 +27,10 @@
   The MxBounds class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	min \tab - \tab The lower bound \cr 
-	max \tab - \tab The upper bound \cr
-	parameters \tab - \tab The vector of parameter names \cr     
+    \tab \tab \cr
+    min \tab - \tab The lower bound \cr 
+    max \tab - \tab The upper bound \cr
+    parameters \tab - \tab The vector of parameter names \cr     
   }
   
 The 'min' and 'max' slots hold scalar numeric values for the lower and upper bounds on the list of parameters, respectively.

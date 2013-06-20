@@ -13,8 +13,8 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{mxAlgebraObjective}
-\alias{mxAlgebraObjective}
+\name{mxFitFunctionAlgebra}
+\alias{mxFitFunctionAlgebra}
 
 \title{Create MxFitFunctionAlgebra Object}
 

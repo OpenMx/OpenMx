@@ -15,7 +15,7 @@
 
 \name{MxMatrix-class}
 \alias{MxMatrix}
-	
+    
 \title{MxMatrix Class}
 
 \description{
@@ -23,16 +23,16 @@
    New instances of this class can be created using the function \link{mxMatrix}.
    MxMatrix objects may be used as arguments in other functions from the OpenMx library, including \link{mxAlgebra}, \link{mxConstraint}, and \link{mxModel}.
 }
-	
-	\details{
+    
+    \details{
 The MxMatrix class has the following slots:
-	  \tabular{rcl}{
-	        name \tab - \tab the name of the object \cr
-	        free \tab - \tab  the free matrix \cr
-	        values \tab - \tab the values matrix \cr
-	        labels \tab - \tab  the labels matrix \cr
-	  }
-	  
+      \tabular{rcl}{
+            name \tab - \tab the name of the object \cr
+            free \tab - \tab  the free matrix \cr
+            values \tab - \tab the values matrix \cr
+            labels \tab - \tab  the labels matrix \cr
+      }
+      
 The 'name' slot is the name of the MxMatrix object. Use of MxMatrix objects in an \link{mxAlgebra} or \link{mxConstraint} function requires reference by name.
 
 The 'free' slot takes a matrix which describes the location of free and fixed parameters. A variable is a free parameter if-and-only-if the corresponding value in the 'free' matrix is 'TRUE'. Free parameters are elements of an MxMatrix object whose values may be changed by an objective function when that MxMatrix object is included in an \link{MxModel} object and evaluated using the \link{mxRun} function.

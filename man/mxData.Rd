@@ -55,7 +55,7 @@ OpenMx uses the names of variables to map them onto the objective functions and 
 }
 
 \value{
-	Returns a new \link{MxData} object.
+    Returns a new \link{MxData} object.
 }
 
 \references{
@@ -66,7 +66,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \link{MxData} for the S4 class created by mxData. \link{matrix} and \link{data.frame} for objects which may be entered as arguments in the \sQuote{observed} slot. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
-\examples{	
+\examples{  
 #Create a covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 
     0.39590663, 0.49115615), 

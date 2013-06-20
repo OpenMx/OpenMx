@@ -60,9 +60,9 @@ constraint <- mxConstraint(A > B, name = 'AdominatesB')
 model <- mxModel("con_test", 
     mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K"),
     mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE, name="limit", values=1:4),
-	mxConstraint(K == limit, name = "Klimit_equality"), 
-	mxAlgebra(min(K), name="minK"), 
-	mxAlgebraObjective("minK")
+    mxConstraint(K == limit, name = "Klimit_equality"), 
+    mxAlgebra(min(K), name="minK"), 
+    mxAlgebraObjective("minK")
 )
 \dontrun{
 fit <- mxRun(model)

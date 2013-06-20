@@ -29,12 +29,12 @@
 The MxNonNullData class has the following slots:
 
   \tabular{rcl}{
-	\tab \tab \cr
-	name \tab - \tab The name of the object \cr
-	observed \tab - \tab Either a matrix or a data frame \cr
-	vector \tab - \tab A vector for means, or NA if missing \cr
-	type \tab - \tab Either 'raw', 'cov', 'cor', or 'sscp' \cr
-	numObs \tab - \tab The number of oberservations \cr
+    \tab \tab \cr
+    name \tab - \tab The name of the object \cr
+    observed \tab - \tab Either a matrix or a data frame \cr
+    vector \tab - \tab A vector for means, or NA if missing \cr
+    type \tab - \tab Either 'raw', 'cov', 'cor', or 'sscp' \cr
+    numObs \tab - \tab The number of oberservations \cr
   }
   
 The 'name' slot is the name of the MxData object. %Use of MxData objects in other functions in the \link{OpenMx} library may require reference by name.

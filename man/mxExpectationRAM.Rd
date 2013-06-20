@@ -13,8 +13,8 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{mxRAMObjective}
-\alias{mxRAMObjective}
+\name{mxExpectationRAM}
+\alias{mxExpectationRAM}
 
 \title{Create an MxExpectationRAM Object}
 
@@ -58,7 +58,7 @@ To evaluate, place MxRAMObjective objects, the \link{mxData} object for which th
 }
 
 \value{
-	Returns a new MxExpectationRAM object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
+    Returns a new MxExpectationRAM object. MxRAMObjective objects should be included with models with referenced \link{MxAlgebra}, \link{MxData} and \link{MxMatrix} objects.
 }
 
 \references{

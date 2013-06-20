@@ -19,26 +19,16 @@
 %                                 Modified from mxFIMLObjective.Rd
 
 
-\name{mxRowObjective}
-\alias{mxRowObjective}
+\name{mxFitFunctionRow}
+\alias{mxFitFunctionRow}
 
-\title{DEPRECATED: Create MxRowObjective Object}
+\title{Create an MxFitFunctionRow Object}
 
 \description{
-WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
-   
-Please use mxFitFunctionRow() instead.  As a temporary workaround, mxRowObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionRow object.
+mxFitFunctionRow returns an MxFitFunctionRow object.
 }
 
 \usage{
-All occurrences of
-
-mxRowObjective(rowAlgebra, reduceAlgebra, dimnames,
-   rowResults = "rowResults", filteredDataRow = "filteredDataRow",
-   existenceVector = "existenceVector")
-
-Should be changed to
-
 mxFitFunctionRow(rowAlgebra, reduceAlgebra, dimnames,
    rowResults = "rowResults", filteredDataRow = "filteredDataRow",
    existenceVector = "existenceVector")
@@ -55,13 +45,13 @@ mxFitFunctionRow(rowAlgebra, reduceAlgebra, dimnames,
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxRowObjective function evaluates a user-defined \link{MxAlgebra} object called the \sQuote{rowAlgebra} in a row-wise fashion.  It then stores results of the row-wise evaluation in another \link{MxAlgebra} object called the \sQuote{rowResults}.  Finally, the mxRowObjective function collapses the row results into a single number which is then used for optimization.  The \link{MxAlgebra} object named by the \sQuote{reduceAlgebra} collapses the row results into a single number.
+Fit functions are functions for which free parameter values are optimized such that the value of a cost function is minimized.  The mxFitFunctionRow function evaluates a user-defined \link{MxAlgebra} object called the \sQuote{rowAlgebra} in a row-wise fashion.  It then stores results of the row-wise evaluation in another \link{MxAlgebra} object called the \sQuote{rowResults}.  Finally, the mxFitFunctionRow function collapses the row results into a single number which is then used for optimization.  The \link{MxAlgebra} object named by the \sQuote{reduceAlgebra} collapses the row results into a single number.
 
 The \sQuote{filteredDataRow} is populated in a row-by-row fashion with all the non-missing data from the current row.  You cannot assume that the length of the filteredDataRow matrix remains constant (unless you have no missing data). The \sQuote{existenceVector} is populated in a row-by-row fashion with a value of 1.0 in column j if a non-missing value is present in the data set in column j, and a value of 0.0 otherwise. Use the functions \link{omxSelectRows}, \link{omxSelectCols}, and \link{omxSelectRowsAndCols} to shrink other matrices so that their dimensions will be conformable to the size of \sQuote{filteredDataRow}. 
 }
 
 \value{
-Please use mxFitFunctionRow() instead.  As a temporary workaround, mxRowObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionRow object.
+Returns a new MxFitFunctionRow object. Only one MxFitFunction object should be included in each model.  There is no need for an MxExpectation object when using mxFitFunctionRow.
 }
 
 \references{
