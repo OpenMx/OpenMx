@@ -1,12 +1,3 @@
-
-NPSOL_DIR=@npsol_dir@
-
-# Currently this sets -Wall if compiler is gcc
-COMPILER_SPECIFIC_FLAGS=@compiler_specific_flags@
-ARCH_SPECIFIC_LINKER_FLAGS=@arch_specific_linker_flags@
-ARCH_SPECIFIC_COMPILER_FLAGS=@arch_specific_compiler_flags@
-OPENMP_CXXFLAGS=@OPENMP_CXXFLAGS@
-
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # DEBUG_CXXFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # DEBUG_CXXFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
@@ -20,8 +11,8 @@ OPENMP_CXXFLAGS=@OPENMP_CXXFLAGS@
 # DEBUG_CXXFLAGS=--coverage
 # DEBUG_LDFLAGS=--coverage
 
-PKG_CXXFLAGS=$(COMPILER_SPECIFIC_FLAGS) $(OPENMP_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS)
-PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(OPENMP_CXXFLAGS) -lnpsol -L$(NPSOL_DIR) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
+PKG_CXXFLAGS=$(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS)
+PKG_LIBS=$(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol -L$(NPSOL_DIR) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
 
 save-gcno: $(SHLIB)
 	mkdir -p ../inst/debug

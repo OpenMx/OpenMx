@@ -16,11 +16,6 @@ ifdef CPUS
 else
    TESTFILE = inst/tools/testModels.R
 endif
-ifeq ($(OPENMP),FALSE)
-BUILDARGS = "--configure-args=--disable-openmp"
-else
-BUILDARGS = "--configure-args=--enable-openmp"
-endif
 NIGHTLYPPMLFILE = inst/tools/testNightlyPPML.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
@@ -85,7 +80,7 @@ internal-build: build/$(TARGET)
 dev-doc:
 	./util/rox
 
-build/$(TARGET): $(RFILES)
+build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	mkdir -p build
 	cp DESCRIPTION DESCRIPTION.bak
@@ -101,10 +96,10 @@ pdf:
 	cd docs; make latex; cd build/latex; make all-pdf
 
 src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
-	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
+	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
 
 src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
-	$(REXEC) --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
+	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
 html: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
