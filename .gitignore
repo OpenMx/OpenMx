@@ -13,3 +13,4 @@
 /OpenMx.Rcheck
 /OpenMx*.tar.gz
 /runtimes.csv
+/.Rbuildignore

@@ -83,13 +83,27 @@ dev-doc:
 build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	mkdir -p build
+	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
+	cp .Rbuildignore-npsol .Rbuildignore
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
 		man/omxCheckCloseEnough.Rd
+
+# Developers only. This rule is for testing builds without NPSOL. 
+cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
+	mkdir -p build
+	touch inst/no-npsol
+	cp DESCRIPTION DESCRIPTION.bak
+	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
+	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
+	cp .Rbuildignore-cran .Rbuildignore
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
+	mv DESCRIPTION.bak DESCRIPTION
+	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET)
 
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .

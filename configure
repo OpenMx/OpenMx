@@ -63,15 +63,19 @@ case "$os" in
 	;;
 esac
 
-npsol_file="${npsol_library}/libnpsol.a"
-if [ ! -f "$npsol_file" ]; then
-  echo "$npsol_file not found"
-  exit 1
-fi
-
 echo "### Generated $(date)" > src/Makevars
 echo >> src/Makevars
-echo "NPSOL_DIR=../${npsol_library}" >> src/Makevars
+
+if [ ! -e inst/no-npsol ]; then
+    npsol_file="${npsol_library}/libnpsol.a"
+    if [ ! -f "$npsol_file" ]; then
+	echo "$npsol_file not found"
+	exit 1
+    else
+	echo "NPSOL_LDFLAGS=-L../${npsol_library} -lnpsol" >> src/Makevars
+    fi
+fi
+
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars

@@ -1,0 +1,9 @@
+Makefile
+build
+support
+.gitignore
+inst/npsol
+inst/tools/rox
+.dir-locals.el
+.gdbinit
+.*.log
