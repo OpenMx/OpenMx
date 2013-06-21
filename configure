@@ -15,8 +15,9 @@ CXX=$($REXEC CMD config CXX)
 cxx_info=$($CXX --version | head -1)
 
 COMPILER_CXXFLAGS=
-arch_LDFLAGS=
+COMPILER_LDFLAGS=
 arch_CXXFLAGS=
+arch_LDFLAGS=
 
 if echo "$cxx_info" | grep -q '^g++'; then
     cxx_type=gcc
