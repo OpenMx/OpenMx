@@ -141,7 +141,6 @@ struct omxState {
 	std::vector< omxData* > dataList;
 	std::vector< class omxCompute* > computeList;
 	omxState** childList;											// List of child states
-	omxState* parentState;											// Parent State
 
 	/* May want to farm these out to the omxFitFunction object. */
 	int numConstraints;
@@ -167,7 +166,7 @@ struct omxState {
 extern omxState* globalState;
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, omxState *parentState);
+	void omxInitState(omxState* state);
 	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
 void omxFreeChildStates(omxState *state);
 void omxFreeState(omxState *state);

@@ -478,7 +478,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 
 void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Initializing FIML fit function function.");
 	}
 
@@ -506,7 +506,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 		return;
 	}
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("FIML Initialization Completed.");
 	}
 	
@@ -531,12 +531,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
 	off->usesChildModels = TRUE;
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing data source.");
 	}
 	newObj->data = off->expectation->data;
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
 	}
 	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
@@ -548,12 +548,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
     newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	UNPROTECT(1); // nextMatrix
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
 	}
 	newObj->dataColumns = off->expectation->dataColumns;
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing Threshold matrix.");
 	}
 	newObj->thresholdCols = off->expectation->thresholds;
@@ -566,7 +566,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 	newObj->defVars = off->expectation->defVars;
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 
-	if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing definition variables structure.");
 	}
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
@@ -589,7 +589,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
     off->argStruct = (void*)newObj;
 
     if(numOrdinal > 0 && numContinuous <= 0) {
-        if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+        if(OMX_DEBUG) {
             mxLog("Ordinal Data detected.  Using Ordinal FIML.");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
@@ -603,7 +603,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
 
         off->computeFun = omxCallFIMLOrdinalFitFunction;
     } else if(numOrdinal > 0) {
-        if(OMX_DEBUG && off->matrix->currentState->parentState == NULL) {
+        if(OMX_DEBUG) {
             mxLog("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
         }
 

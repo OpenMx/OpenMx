@@ -24,7 +24,7 @@
 #include "omxNormalExpectation.h"
 
 void omxComputeNormalExpectation(omxExpectation* ox) {
-    if(OMX_DEBUG && ox->currentState->parentState == NULL) { mxLog("Normal Expectation calculating."); }
+    if(OMX_DEBUG) { mxLog("Normal Expectation calculating."); }
 
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
 
@@ -35,7 +35,7 @@ void omxComputeNormalExpectation(omxExpectation* ox) {
 
 void omxDestroyNormalExpectation(omxExpectation* ox) {
 
-	if(OMX_DEBUG&& ox->currentState->parentState == NULL) { mxLog("Destroying Normal Expectation."); }
+	if(OMX_DEBUG) { mxLog("Destroying Normal Expectation."); }
 
 }
 

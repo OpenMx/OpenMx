@@ -24,10 +24,9 @@
 struct omxGlobal Global;
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state, omxState *parentState) {
+	void omxInitState(omxState* state) {
 		state->numConstraints = 0;
 		state->childList = NULL;
-		state->parentState = parentState;
 		state->conList = NULL;
 
 		state->majorIteration = 0;
@@ -64,9 +63,6 @@ struct omxGlobal Global;
 	void omxDuplicateState(omxState* tgt, omxState* src) {
 		tgt->dataList			= src->dataList;
 		
-		// Duplicate matrices and algebras and build parentLists.
-		tgt->parentState 		= src;
-				
 		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 			// TODO: Smarter inference for which matrices to duplicate
 			tgt->matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], tgt));
@@ -132,7 +128,7 @@ struct omxGlobal Global;
 			}
 		}
 
-		omxConstraint* parentConList = os->parentState->conList;
+		omxConstraint* parentConList = globalState->conList;
 
 		for(int i = 0; i < os->numConstraints; i++) {
 			if(parentConList[i].result == element) {

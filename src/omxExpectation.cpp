@@ -149,27 +149,27 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
 	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
 
-	if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
 	}
 
 	if (R_has_slot(rObj, install("dataColumns"))) {
 		PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
 		ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
-		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		if(OMX_DEBUG) {
 			omxPrint(ox->dataColumns, "Variable mapping");
 		}
 	
 		numCols = ox->dataColumns->cols;
 
 		if (R_has_slot(rObj, install("thresholds"))) {
-			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("Accessing Threshold matrix.");
 			}
 			PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
 
 			if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-				if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+				if(OMX_DEBUG) {
 					mxLog("Accessing Threshold Mappings.");
 				}
         
@@ -185,7 +185,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				ox->thresholds = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
 				for(index = 0; index < numCols; index++) {
 					if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-						if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+						if(OMX_DEBUG) {
 							mxLog("Column %d is continuous.", index);
 						}
 						ox->thresholds[index].matrix = NULL;
@@ -196,19 +196,19 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 												       ox->currentState);
 						ox->thresholds[index].column = thresholdColumn[index];
 						ox->thresholds[index].numThresholds = thresholdNumber[index];
-						if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+						if(OMX_DEBUG) {
 							mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
 								index, thresholdColumn[index], thresholdNumber[index]);
 						}
 						numOrdinal++;
 					}
 				}
-				if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+				if(OMX_DEBUG) {
 					mxLog("%d threshold columns processed.", numOrdinal);
 				}
 				ox->numOrdinal = numOrdinal;
 			} else {
-				if (OMX_DEBUG && ox->currentState->parentState == NULL) {
+				if (OMX_DEBUG) {
 					mxLog("No thresholds matrix; not processing thresholds.");
 				}
 				ox->thresholds = NULL;
@@ -221,13 +221,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 		ox->numDefs = 0;
 		ox->defVars = NULL;
 	} else {	
-		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		if(OMX_DEBUG) {
 			mxLog("Accessing definition variables structure.");
 		}
 		PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
 		numDefs = length(nextMatrix);
 		ox->numDefs = numDefs;
-		if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+		if(OMX_DEBUG) {
 			mxLog("Number of definition variables is %d.", numDefs);
 		}
 		ox->defVars = (omxDefinitionVar *) R_alloc(numDefs, sizeof(omxDefinitionVar));
@@ -238,13 +238,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
 			PROTECT(dataSource = VECTOR_ELT(itemList, 0));
 			nextDataSource = INTEGER(dataSource)[0];
-			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("Data source number is %d.", nextDataSource);
 			}
 			ox->defVars[nextDef].data = nextDataSource;
 			ox->defVars[nextDef].source = ox->currentState->dataList[nextDataSource];
 			PROTECT(columnSource = VECTOR_ELT(itemList, 1));
-			if(OMX_DEBUG && ox->currentState->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
 			}
 			ox->defVars[nextDef].column = INTEGER(columnSource)[0];

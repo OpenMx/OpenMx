@@ -81,7 +81,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 {
 	int numChildren = Global.numChildren;
 
-	if(OMX_DEBUG && os->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Processing Free Parameter Estimates.");
 		mxLog("Number of free parameters is %d.", numVars);
 	}
@@ -94,7 +94,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 
 	os->computeCount++;
 
-	if(OMX_VERBOSE && os->parentState == NULL) {
+	if(OMX_VERBOSE) {
 		std::string buf;
 		buf += "--------------------------\n";
 		buf += string_snprintf("Call: %d.%d (%d)", os->majorIteration, os->minorIteration, os->computeCount);
@@ -116,7 +116,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 			int row = loc->row;
 			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, x[k]);
-			if(OMX_DEBUG && os->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %d",
 					row, col, loc->matrix, x[k], k);
 			}

@@ -66,7 +66,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	}
 	
-	if(OMX_DEBUG && om->currentState->parentState == NULL) { 
+	if(OMX_DEBUG) { 
 		mxLog("Initializing algebra 0x%0x with 0x%0x.", oa, om);
 	}
 	
@@ -190,12 +190,12 @@ omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, c
 	/* TODO: check for full initialization */
 	if(oa == NULL) error("Internal Error: Null Algebra Detected in fillAlgebra.");
 
-	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Filling from table entry %d (%s)....", oate->number, oate->rName);
 	}
 	oa->funWrapper = oate->funWrapper;
 	omxAlgebraAllocArgs(oa, oate->numArgs==-1? realNumArgs : oate->numArgs);
-	if(OMX_DEBUG && oa->matrix->currentState->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Table Entry processed.");
 	}
 }
@@ -209,19 +209,19 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	PROTECT(algebraOperator = AS_INTEGER(VECTOR_ELT(algebra, 0)));
 	value = INTEGER(algebraOperator)[0];
 
-	if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Creating Algebra from Sexp.");}
+	if(OMX_DEBUG) {mxLog("Creating Algebra from Sexp.");}
 
 	if(value > 0) { 			// This is an operator.
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 		omxInitAlgebraWithMatrix(oa, om);
-		if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Retrieving Table Entry %d.", value);}
+		if(OMX_DEBUG) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
-		if(OMX_DEBUG && om->currentState->parentState == NULL) {mxLog("Table Entry %d (at 0x%0x) is %s.", value, entry, entry->opName);}
+		if(OMX_DEBUG) {mxLog("Table Entry %d (at 0x%0x) is %s.", value, entry, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
 				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
-				if(OMX_DEBUG && om->currentState->parentState == NULL) {
+				if(OMX_DEBUG) {
 					mxLog("fillFromMxAlgebra got 0x%0x from helper, arg %d.", oa->algArgs[j], j);
 				}
 		}
@@ -255,10 +255,10 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
 	omxMatrix* newMat;
-	if(OMX_DEBUG && os->parentState == NULL) { mxLog("Helper: processing next arg..."); }
+	if(OMX_DEBUG) { mxLog("Helper: processing next arg..."); }
 	
 	if(!IS_INTEGER(algebraArg)) {
-		if(OMX_DEBUG && os->parentState == NULL) { mxLog("Helper detected list element.  Recursing."); }
+		if(OMX_DEBUG) { mxLog("Helper detected list element.  Recursing."); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
 		newMat = omxMatrixLookupFromState1(algebraArg, os);
@@ -273,7 +273,7 @@ void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 }
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
-	if(OMX_DEBUG && os->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Attaching pointer to matrix.");
 	}
 
@@ -285,7 +285,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		PROTECT(intMatrix = AS_INTEGER(matrix));
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
-			if(OMX_DEBUG && os->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("  Null integer matrix.  Skipping.");
 			}
 			return NULL;
@@ -295,7 +295,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
-			if(OMX_DEBUG && os->parentState == NULL) {
+			if(OMX_DEBUG) {
 				mxLog("   Null numeric matrix.  Skipping.");
 			}
 			return NULL;
@@ -311,7 +311,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	} else {
 		error("Internal error: unknown type passed to omxMatrixLookupFromState1");
 	}		
-	if(OMX_DEBUG && os->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("  Pointer is %d.", value);
 	}
 	if (value >= 0) {										// Pre-existing algebra.  A-ok.
@@ -320,7 +320,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		output = os->matrixList[~value];						// Value invert for matrices.
 	}
 	
-	if(OMX_DEBUG && os->parentState == NULL) {
+	if(OMX_DEBUG) {
 		mxLog("Attached.");
 	}
 	

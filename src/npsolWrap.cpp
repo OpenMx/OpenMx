@@ -116,7 +116,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	/* Create new omxState for current state storage and initialize it. */
 	
 	globalState = new omxState;
-	omxInitState(globalState, NULL);
+	omxInitState(globalState);
 	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
@@ -193,7 +193,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
-	omxInitState(globalState, NULL);
+	omxInitState(globalState);
 
 	Global.ciMaxIterations = 5;
 	Global.numThreads = 1;

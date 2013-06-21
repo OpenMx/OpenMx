@@ -86,7 +86,7 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 
 	for(int ii = 0; ii < numThreads; ii++) {
 		globalState->childList[ii] = new omxState;
-		omxInitState(globalState->childList[ii], globalState);
+		omxInitState(globalState->childList[ii]);
 		omxDuplicateState(globalState->childList[ii], globalState);
 	}
 }
