@@ -3,6 +3,21 @@
 set -o errexit
 set -o nounset
 
+isdef() {
+    tmp1=/tmp/openmx.$$.cpp
+    trap 'rm -f $tmp1' EXIT
+    cat >$tmp1 <<EOF
+int main()
+{
+#ifndef $1
+crash me
+#endif
+	; return 0;
+}
+EOF
+    $CXX $tmp1 > /dev/null 2>&1
+}
+
 : ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then 
    echo "could not determine R_HOME" 
@@ -12,23 +27,27 @@ fi
 REXEC=${R_HOME}/bin/R
 
 CXX=$($REXEC CMD config CXX)
-cxx_info=$($CXX --version | head -1)
 
 COMPILER_CXXFLAGS=
 COMPILER_LDFLAGS=
 arch_CXXFLAGS=
 arch_LDFLAGS=
 
-if echo "$cxx_info" | grep -q '^g++'; then
-    cxx_type=gcc
-    COMPILER_CXXFLAGS="-Wall -fopenmp"
-    COMPILER_LDFLAGS="-fopenmp"
-elif echo "$cxx_info" | grep -q LLVM; then
+if isdef __clang__; then
+    cxx_type=clang
+elif isdef __llvm__; then
     cxx_type=llvm
+elif isdef __GNUC__; then
+    cxx_type=gcc
 else
     echo "Compiler unrecognized:"
-    echo "$cxx_info"
+    $CXX --version
     exit 1
+fi
+
+if [ "$cxx_type" = gcc ]; then
+    COMPILER_CXXFLAGS="-Wall -fopenmp"
+    COMPILER_LDFLAGS="-fopenmp"
 fi
 
 cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
