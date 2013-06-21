@@ -116,7 +116,12 @@ createMatrixAL <- function(model){} #mean of eta
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
 	function(model, lst, name, 
-		manifestVars, latentVars, submodels, remove, independent) {
+		 manifestVars, latentVars, submodels, remove, independent) {
+		model <- nameArgument(model, name)
+		model <- variablesArgumentLISREL()
+		model <- listArgumentLISREL(model, lst, remove)
+		notPathOrData <- getNotPathsOrData(lst)
+		callNextMethod()
 		stop("Not implemented")
 	}
 )
@@ -140,3 +145,8 @@ setReplaceMethod("$", "MxLISRELModel",
 		stop("Not implemented")
 	}
 )
+
+# Helpers for LISREL models
+variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, remove){
+	# include check prior to varsToCharacter to see if length(names(latentVars)) == 0 (and if same for manifestVars
+}

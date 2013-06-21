@@ -250,7 +250,7 @@ varsToCharacter <- function(vars, vartype) {
 	if (is.list(vars)) {
 		varnames <- names(vars)
 		if (length(varnames) == 0) {
-			return(as.character(vars))	
+			return(as.character(unlist(vars)))	
 		} else {
 			result <- pmatch(varnames, imxVariableTypes)
 			illegal <- which(is.na(result))
