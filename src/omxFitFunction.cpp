@@ -41,26 +41,15 @@ struct omxFitFunctionTableEntry {
 
 };
 
-extern void omxInitAlgebraFitFunction(omxFitFunction *off);
-extern void omxInitWLSFitFunction(omxFitFunction *off);
-extern void omxInitRowFitFunction(omxFitFunction *off);
-extern void omxInitMLFitFunction(omxFitFunction *off);
-extern void omxInitRFitFunction(omxFitFunction *off);
-
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
 	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
 	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
 	{"MxFitFunctionML", 				&omxInitMLFitFunction},
+	{"imxFitFunctionFIML", &omxInitFIMLFitFunction},
 	{"MxFitFunctionR",					&omxInitRFitFunction},
 	{"MxFitFunctionMultigroup", &initFitMultigroup}
 };
-
-void omxInitEmptyFitFunction(omxFitFunction *off) {
-	/* Sets everything to NULL to avoid bad pointer calls */
-	
-	memset(off, 0, sizeof(omxFitFunction));
-}
 
 void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
@@ -94,13 +83,17 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
 
 	if(tgt == NULL || src == NULL) return;
-	if(src->fitFunction == NULL) return;
-    
-	omxFillMatrixFromMxFitFunction(tgt, src->fitFunction->rObj, src->hasMatrixNumber, src->matrixNumber);
 
+	omxFitFunction *ff = src->fitFunction;
+	if(ff == NULL) return;
+    
+	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber);
+	omxCompleteFitFunction(tgt, ff->rObj);
 }
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
+	if (!off->initialized) error("FitFunction not initialized");
+
 	if(OMX_DEBUG_ALGEBRA) { 
 	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
 	}
@@ -110,44 +103,37 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
 	omxMarkClean(off->matrix);
 }
 
-void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
-	unsigned short hasMatrixNumber, int matrixNumber) {
-
-	SEXP slotValue, fitFunctionClass;
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber)
+{
 	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
-	omxInitEmptyFitFunction(obj);
+	memset(obj, 0, sizeof(omxFitFunction));
 
 	/* Register FitFunction and Matrix with each other */
 	obj->matrix = om;
 	omxResizeMatrix(om, 1, 1, FALSE);					// FitFunction matrices MUST be 1x1.
 	om->fitFunction = obj;
-	om->hasMatrixNumber = hasMatrixNumber;
+	om->hasMatrixNumber = TRUE;
 	om->matrixNumber = matrixNumber;
 	
-	/* Get FitFunction Type */
-	PROTECT(fitFunctionClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
-	{
-	  const char *fitType = CHAR(fitFunctionClass);
-	
-	  for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
-		  const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
-		  if(strcmp(fitType, entry->name) == 0) {
-			  obj->fitType = entry->name;
-			  obj->initFun = entry->initFun;
-			  break;
-		  }
-	  }
-
-	  if(obj->initFun == NULL) {
-	    const int MaxErrorLen = 256;
-	    char newError[MaxErrorLen];
-	    snprintf(newError, MaxErrorLen, "Fit function %s not implemented.\n", fitType);
-	    omxRaiseError(om->currentState, -1, newError);
-	    return;
-	  }
+	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
+		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
+		if(strcmp(fitType, entry->name) == 0) {
+			obj->fitType = entry->name;
+			obj->initFun = entry->initFun;
+			break;
+		}
 	}
-	UNPROTECT(1);	/* fitType */
 
+	if (obj->initFun == NULL) error("Fit function %s not implemented", fitType);
+}
+
+void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
+{
+	omxFitFunction *obj = om->fitFunction;
+	if (obj->initialized) return;
+	obj->rObj = rObj;
+
+	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
 	if (LENGTH(slotValue) == 1) {
 		int expNumber = INTEGER(slotValue)[0];	
@@ -157,31 +143,12 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP rObj,
 	}
 	UNPROTECT(1);	/* slotValue */
 	
-	if (om->currentState->statusMsg[0]) return;
-
-	obj->rObj = rObj;
 	obj->initFun(obj);
 
-	if(obj->computeFun == NULL) {// If initialization fails, error code goes in argStruct
-		const char *errorCode;
-		if(isErrorRaised(om->currentState)) {
-			errorCode = om->currentState->statusMsg;
-		} else {
-			// If no error code is reported, we report that.
-  			errorCode = "No error code reported.";
-		}
-		if(obj->argStruct != NULL) {
-			errorCode = (char*)(obj->argStruct);
-		}
-        const int MaxErrorLen = 256;
-        char newError[MaxErrorLen];
-        snprintf(newError, MaxErrorLen, "Could not initialize fit function %s.  Error: %s\n",
-			obj->fitType, errorCode); 
-		omxRaiseError(om->currentState, -1, newError);
-	}
+	if(obj->computeFun == NULL) error("Failed to initialize fit function %s", obj->fitType); 
 	
 	obj->matrix->isDirty = TRUE;
-
+	obj->initialized = TRUE;
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
@@ -195,7 +162,6 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
 	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
-	if (newMatrix) omxRecompute(newMatrix);
 	UNPROTECT(1);
 	return newMatrix;
 }

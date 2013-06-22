@@ -254,7 +254,6 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	
 	/* Set FitFunction Calls to ML FitFunction Calls */
-	oo->fitType = "omxMLFitFunction";
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
@@ -282,7 +281,7 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
 		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
 			if(OMX_DEBUG) { mxLog("Raw Data: Converting to FIML."); }
-			omxInitFIMLFitFunction(oo, rObj);
+			omxInitFIMLFitFunction(oo);
 			return;
 		}
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -294,6 +293,7 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	}
 
 	omxMLFitFunction *newObj = (omxMLFitFunction*) R_alloc(1, sizeof(omxMLFitFunction));
+	oo->argStruct = (void*)newObj;
 
 	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataMatrix(dataMat, NULL);
@@ -364,8 +364,6 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Log Determinant of Observed Cov: %f", newObj->logDetObserved); }
 
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
-    oo->argStruct = (void*)newObj;
-
 }
 
 void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, double*)) {

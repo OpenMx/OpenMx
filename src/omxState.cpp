@@ -291,8 +291,14 @@ void mxLog(const char* msg, ...)   // thread-safe
 	}
 }
 
+void _omxRaiseError()
+{
+	// keep for debugger breakpoints
+}
+
 void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 {
+	_omxRaiseError();
 	va_list ap;
 	va_start(ap, errorMsg);
 	int fit = vsnprintf(state->statusMsg, MAX_STRING_LEN, errorMsg, ap);
@@ -307,6 +313,7 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 }
 
 	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) { // DEPRECATED
+		_omxRaiseError();
 		if(OMX_DEBUG && errorCode) { mxLog("Error %d raised: %s", errorCode, errorMsg);}
 		if(OMX_DEBUG && !errorCode) { mxLog("Error status cleared."); }
 		strncpy(state->statusMsg, errorMsg, 249);

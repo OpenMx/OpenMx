@@ -80,9 +80,9 @@ struct omxFitFunction {					// A fit function
 };
 
 /* Initialize and Destroy */
-	void omxInitEmptyFitFunction(omxFitFunction *oo);
-	void omxFillMatrixFromMxFitFunction(omxMatrix* om, SEXP mxobj, 
-		unsigned short hasMatrixNumber, int matrixNumber);						// Create an omxFitFunction from an R MxFitFunction object
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber);
+void omxCompleteFitFunction(omxMatrix *om, SEXP rObj);
+
 	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
@@ -101,5 +101,12 @@ enum omxFFCompute {
   FF_COMPUTE_GRADIENT = 1<<1,
   FF_COMPUTE_HESSIAN  = 1<<2
 };
+
+void omxInitFIMLFitFunction(omxFitFunction* off);
+void omxInitAlgebraFitFunction(omxFitFunction *off);
+void omxInitWLSFitFunction(omxFitFunction *off);
+void omxInitRowFitFunction(omxFitFunction *off);
+void omxInitMLFitFunction(omxFitFunction *off);
+void omxInitRFitFunction(omxFitFunction *off);
 
 #endif /* _OMXFITFUNCTION_H_ */

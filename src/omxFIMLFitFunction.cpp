@@ -476,11 +476,12 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 	}
 }
 
-void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
-
+void omxInitFIMLFitFunction(omxFitFunction* off)
+{
 	if(OMX_DEBUG) {
 		mxLog("Initializing FIML fit function function.");
 	}
+	SEXP rObj = off->rObj;
 
 	SEXP nextMatrix;
 	int numOrdinal = 0, numContinuous = 0;
@@ -523,7 +524,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off, SEXP rObj) {
     
     /* Set default FitFunction calls to FIML FitFunction Calls */
 	off->computeFun = omxCallFIMLFitFunction;
-	off->fitType = "omxFIMLFitFunction";
+	off->fitType = "imxFitFunctionFIML";
 	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;

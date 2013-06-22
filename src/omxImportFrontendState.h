@@ -9,6 +9,7 @@ void omxProcessMxAlgebraEntities(SEXP algList);
 void omxProcessMxExpectationEntities(SEXP expList);
 void omxCompleteMxExpectationEntities();
 void omxProcessMxFitFunction(SEXP algList);
+void omxCompleteMxFitFunction(SEXP algList);
 void omxProcessMxComputeEntities(SEXP computeList);
 void omxInitialMatrixAlgebraCompute();
 void omxProcessCheckpointOptions(SEXP checkpointList);
