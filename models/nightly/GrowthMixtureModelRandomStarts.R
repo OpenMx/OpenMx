@@ -30,7 +30,7 @@
 #      Ross Gore -- 2011.06.16 updated & reformatted
 # -----------------------------------------------------------------------
 
-
+library(OpenMx)
 demo(GrowthMixtureModel_MatrixRaw)
 
 

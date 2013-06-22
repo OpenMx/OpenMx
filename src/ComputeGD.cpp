@@ -100,4 +100,5 @@ void omxComputeGD::reportResults(MxRList *out)
 	PROTECT(iterations = NEW_NUMERIC(1));
 	REAL(iterations)[0] = iter;
 	out->push_back(std::make_pair(mkChar("npsol.iterations"), iterations));
+	out->push_back(std::make_pair(mkChar("iterations"), iterations)); // backward compatibility
 }
