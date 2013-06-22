@@ -144,7 +144,7 @@ struct omxState {
 
 	/* May want to farm these out to the omxFitFunction object. */
 	int numConstraints;
-	int nclin, ncnln;                                               // Number of linear and nonlinear constraints
+	int ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 
 /* Data members for use by Fit Function and Algebra Calculations */
