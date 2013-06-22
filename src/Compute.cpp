@@ -139,6 +139,12 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 void omxComputeOnce::compute(double *startVals)
 {
 	est = startVals;
+        for(size_t index = 0; index < globalState->matrixList.size(); index++) {
+            omxMarkDirty(globalState->matrixList[index]);
+        }
+        for(size_t index = 0; index < globalState->algebraList.size(); index++) {
+            omxMarkDirty(globalState->algebraList[index]);
+        }
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
 	fit = fitMatrix->data[0];
 }
