@@ -68,7 +68,6 @@ struct omxFitFunction {					// A fit function
 	
 	SEXP rObj;																	// Original r Object Pointer
 	omxExpectation* expectation;												// Data expectation object
-	void* sharedArgs;															// Common argument structure
 	void* argStruct;															// Arguments needed for fit function
 // This is always a pointer to a static string.
 // We do not need to allocate or free it.

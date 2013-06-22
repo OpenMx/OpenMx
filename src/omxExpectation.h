@@ -73,7 +73,6 @@ struct omxExpectation {					// An Expectation
 	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation
 	
 	SEXP rObj;																	// Original r Object Pointer
-	void* sharedArgs;															// Common argument structure
 	void* argStruct;															// Arguments needed for Expectation function
         const char* expType;   // pointer to a static string, no need to allocate or free
 
