@@ -225,16 +225,17 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	omxProcessMxAlgebraEntities(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
-	omxCompleteMxExpectationEntities();
+	omxProcessMxFitFunction(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
-	omxProcessMxFitFunction(algList);
+	omxProcessMxComputeEntities(computeList);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+
+	omxCompleteMxExpectationEntities();
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxCompleteMxFitFunction(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
-
-	omxProcessMxComputeEntities(computeList);
 
 	// This is the chance to check for matrix
 	// conformability, etc.  Any errors encountered should
