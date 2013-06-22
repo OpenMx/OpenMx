@@ -30,8 +30,6 @@ void omxDestroyRFitFunction(omxFitFunction *off) {
 }
 
 static void omxCallRFitFunction(omxFitFunction *oo, int want, double *gradient) {
-	omx_omp_set_lock(&GlobalRLock);
-
 	omxState* currentState = oo->matrix->currentState;
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
@@ -56,13 +54,9 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, double *gradient) 
 	}
 
 	UNPROTECT(2); // theCall and theReturn
-
-	omx_omp_unset_lock(&GlobalRLock);
 }
 
 void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n) {
-	omx_omp_set_lock(&GlobalRLock);
-
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
 	SEXP theCall, estimate;
@@ -84,7 +78,6 @@ void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n) {
 	REPROTECT(rFitFunction->model = eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
 
 	UNPROTECT(2); // theCall, estimate
-	omx_omp_unset_lock(&GlobalRLock);
 
 	omxMarkDirty(oo->matrix);
 }
@@ -103,6 +96,7 @@ omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numRetu
 
 void omxInitRFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Initializing R fit function."); }
+	Global.numThreads = 1;
 	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
 	
 	SEXP rObj = oo->rObj;

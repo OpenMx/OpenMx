@@ -40,8 +40,6 @@
 #include "omxOptimizer.h"
 #include "Compute.h"
 
-omp_lock_t GlobalRLock;
-
 static R_CallMethodDef callMethods[] = {
 	{"omxBackend", (DL_FUNC) omxBackend, 12},
 	{"omxCallAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -56,8 +54,6 @@ extern "C" {
 void R_init_OpenMx(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
 
-	omx_omp_init_lock(&GlobalRLock);
-
 	// There is no code that will change behavior whether openmp
 	// is set for nested or not. I'm just keeping this in case it
 	// makes a difference with older versions of openmp. 2012-12-24 JNP
@@ -67,7 +63,7 @@ void R_init_OpenMx(DllInfo *info) {
 }
 
 void R_unload_OpenMx(DllInfo *info) {
-	omx_omp_destroy_lock(&GlobalRLock);
+	// keep this stub in case we need it
 }
 
 #ifdef  __cplusplus
