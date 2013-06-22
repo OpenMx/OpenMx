@@ -47,36 +47,6 @@ void cacheFreeVarDependencies()
 
 }
 
-void markFreeVarDependenciesHelper(omxState* os, int varNumber) {
-
-	int numDeps = Global.freeVarList[varNumber].numDeps;
-	int *deps = Global.freeVarList[varNumber].deps;
-
-	for (int i = 0; i < numDeps; i++) {
-		int value = deps[i];
-
-		if(value < 0) {
-			omxMarkDirty(os->matrixList[~value]);
-		} else {
-			omxMarkDirty(os->algebraList[value]);
-		}
-	}
-
-}
-
-void markFreeVarDependencies(omxState* os, int varNumber) {
-
-	int numChildren = Global.numChildren;
-
-	markFreeVarDependenciesHelper(os, varNumber);
-
-	if (!os->childList) return;
-
-	for(int i = 0; i < numChildren; i++) {
-		markFreeVarDependencies(os->childList[i], varNumber);
-	}
-}
-
 void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 {
 	int numChildren = Global.numChildren;

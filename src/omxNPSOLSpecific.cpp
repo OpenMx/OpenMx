@@ -304,7 +304,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
         for(k = 0; k < n; k++) {
             if((x[k] == 0.0)) {
                 x[k] += 0.1;
-                markFreeVarDependencies(globalState, k);
             }
             if(OMX_VERBOSE) { mxLog("%d: %f", k, x[k]); }
         }
