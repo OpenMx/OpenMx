@@ -5,7 +5,8 @@ set -o nounset
 
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
-    trap 'rm -f $tmp1' EXIT
+    tmp2=/tmp/openmx.$$.out
+    trap 'rm -f $tmp1 $tmp2' EXIT
     cat >$tmp1 <<EOF
 int main()
 {
@@ -15,7 +16,7 @@ crash me
 	; return 0;
 }
 EOF
-    $CXX $tmp1 > /dev/null 2>&1
+    $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
 }
 
 : ${R_HOME:=`R RHOME`}
