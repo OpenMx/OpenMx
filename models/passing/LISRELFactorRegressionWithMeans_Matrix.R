@@ -162,7 +162,7 @@ lmod <- mxModel(
 	mxData(observed=covlisdat, type='cov', means=mealisdat, numObs=nrow(rawlisdat)),
 	#mxData(observed=rawlisdat, type='raw'),
 	lx, ly, be, ga, ph, ps, td, te, th, tx, ty, ka, al,
-	imxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name,
+	mxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name,
 		GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name,
 		TE=te@name, TH=th@name, TX=tx@name, TY=ty@name,
 		KA=ka@name, AL=al@name),

@@ -211,9 +211,13 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 setMethod("genericExpAddEntities", "MxExpectationStateSpace",
         function(.Object, job, flatJob, labelsData) {
                 # Do NOT sort data for state space models
-                key <- "No Sort Data"
-                value <- getModelName(.Object)
-                job <- mxOption(job, key, value)
+                if(is.null(job@options$`No Sort Data`)){
+                    # Only add the option if it wasn't there before.
+                    # Do not clobber existing option
+                    key <- "No Sort Data"
+                    value <- getModelName(.Object)
+                    job <- mxOption(job, key, value)
+                }
                 
                 # Run state space models single threaded
                 key <- "Number of Threads"

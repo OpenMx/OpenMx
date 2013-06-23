@@ -31,7 +31,6 @@ setMethod("imxTypeName", "MxLISRELModel",
 
 setMethod("imxInitModel", "MxLISRELModel", 
 	function(model) {
-		stop("Not implemented")
 		# Returns an ML fitfunction and an expectation with all NA matrices
 		# Then later add matrices when I know what dims they have.
 		if (is.null(model[['expectation']])) {
@@ -115,13 +114,12 @@ createMatrixAL <- function(model){} #mean of eta
 
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
-	function(model, lst, name, 
-		 manifestVars, latentVars, submodels, remove, independent) {
+	function(model, lst, name, manifestVars, latentVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
-		model <- variablesArgumentLISREL()
+		model <- variablesArgumentLISREL(model, manifestVars, latentVars, submodels, remove)
 		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
-		callNextMethod()
+		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
 		stop("Not implemented")
 	}
 )
@@ -136,7 +134,7 @@ setMethod("imxVerifyModel", "MxLISRELModel",
 
 setReplaceMethod("[[", "MxLISRELModel",
 	function(x, i, j, value) {
-		stop("Not implemented")
+		return(replaceMethodLISREL(x, i, value))
 	}
 )
 
@@ -148,5 +146,72 @@ setReplaceMethod("$", "MxLISRELModel",
 
 # Helpers for LISREL models
 variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, remove){
+	if (single.na(manifestVars)) {
+		manifestVars <- character()
+	}
+	if (single.na(latentVars)) {
+		latentVars <- character()
+	}
+	if (remove == TRUE) {
+		if (length(latentVars) + length(manifestVars) > 0) {
+			model <- removeVariablesLISREL(model, latentVars, manifestVars)
+		}
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- removeSingleNamedEntity(model, submodels[[i]])
+		}
+	} else {
+		if (length(manifestVars) + length(latentVars) > 0) {
+			if(length(names(latentVars)) == 0 || !is.list(latentVars) ){
+				stop("The latentVars argument of a LISREL models must be a named list.")
+			}
+			if(length(names(manifestVars)) == 0 || !is.list(manifestVars) ){
+				stop("The manifestVars argument of a LISREL models must be a named list.")
+			}
+			latentVars <- varsToCharacter(latentVars, "latent")
+			manifestVars <- varsToCharacter(manifestVars, "manifest")
+			checkVariables(model, latentVars, manifestVars)
+			model <- addVariablesLISREL(model, latentVars, manifestVars)
+		}
+		if (length(submodels)) for(i in 1:length(submodels)) {
+			model <- addSingleNamedEntity(model, submodels[[i]])
+		}
+	}
+	return(model)
 	# include check prior to varsToCharacter to see if length(names(latentVars)) == 0 (and if same for manifestVars
+}
+
+removeVariablesLISREL <- function(model, latent, manifest){
+	return(model)
+}
+
+addVariablesLISREL <- function(model, latent, manifest){
+	return(model)
+}
+
+addVariablesMatrixLISREL <- function(oldMatrix, value, model, numNewRows, numNewCols, varType, varSubtype){
+	slot(model, varType)[[varSubtype]] #e.g. get the manifestVars$exogenous with varType="manifestVars" and varSubtype="exogenous"
+}
+
+replaceMethodLISREL <- function(model, index, value){
+	pair <- imxReverseIdentifier(model, index)
+	namespace <- pair[[1]]
+	name <- pair[[2]]
+	if (namespace == model@name && name == "data") {
+		hasExogenousVars <- length(c(model@manifestVars$exogenous, model@latentVars$exogenous)) > 0
+		hasEndogenousVars <- length(c(model@manifestVars$endogenous, model@latentVars$endogenous)) > 0
+		model@data <- value
+		if (requireMeansVector(value)) {
+			if(hasExogenousVars){
+				model@expectation@TX <- "TX"
+				model@expectation@KA <- "KA"
+			}
+			if(hasExogenousVars){
+				model@expectation@TY <- "TY"
+				model@expectation@AL <- "AL"
+			}
+		}
+	} else {
+		model <- imxReplaceMethod(model, index, value)
+	}
+	return(model)
 }
