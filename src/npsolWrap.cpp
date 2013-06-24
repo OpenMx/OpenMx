@@ -109,8 +109,8 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	SEXP ans, nextMat;
 	char output[MAX_STRING_LEN];
 
-	/* Create new omxState for current state storage and initialize it. */
-	
+	Global = new omxGlobal;
+
 	globalState = new omxState;
 	omxInitState(globalState);
 	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
@@ -157,6 +157,9 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	omxFreeAllMatrixData(algebra);
 	omxFreeState(globalState);
 
+	delete Global;
+	Global = NULL;
+
 	if(output[0]) error(output);
 
 	return ans;
@@ -187,18 +190,20 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	omxManageProtectInsanity protectManager;
 
+	Global = new omxGlobal;
+
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
 	omxInitState(globalState);
 
-	Global.ciMaxIterations = 5;
-	Global.numThreads = 1;
-	Global.analyticGradients = 0;
-	Global.numChildren = 0;
-	omxSetNPSOLOpts(options, &Global.ciMaxIterations, &Global.numThreads, 
-			&Global.analyticGradients);
+	Global->ciMaxIterations = 5;
+	Global->numThreads = 1;
+	Global->analyticGradients = 0;
+	Global->numChildren = 0;
+	omxSetNPSOLOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
+			&Global->analyticGradients);
 
-	Global.numFreeParams = length(startVals);
+	Global->numFreeParams = length(startVals);
 	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	/* Retrieve Data Objects */
@@ -269,7 +274,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	cacheFreeVarDependencies();
 
-	int n = Global.numFreeParams;
+	int n = Global->numFreeParams;
 
 	if (topCompute && !isErrorRaised(globalState)) {
 		double *sv = NULL;
@@ -316,6 +321,8 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
 
 	omxFreeState(globalState);
+	delete Global;
+	Global = NULL;
 
 	return asR(&result);
 

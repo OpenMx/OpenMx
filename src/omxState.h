@@ -131,7 +131,7 @@ struct omxGlobal {
 	int numFreeParams;
 	omxFreeVar* freeVarList;
 };
-extern struct omxGlobal Global;
+extern struct omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
 struct omxState {

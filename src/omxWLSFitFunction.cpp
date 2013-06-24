@@ -199,8 +199,8 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	
 	
 	if(0) {  // TODO fix for new internal API
-		int nLocs = Global.numFreeParams;
-		double gradient[Global.numFreeParams];
+		int nLocs = Global->numFreeParams;
+		double gradient[Global->numFreeParams];
 		for(int loc = 0; loc < nLocs; loc++) {
 			gradient[loc] = NA_REAL;
 		}

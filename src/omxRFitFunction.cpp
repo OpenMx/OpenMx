@@ -96,7 +96,7 @@ omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numRetu
 
 void omxInitRFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Initializing R fit function."); }
-	Global.numThreads = 1;
+	Global->numThreads = 1;
 	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
 	
 	SEXP rObj = oo->rObj;

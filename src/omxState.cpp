@@ -21,7 +21,7 @@
 #include "Compute.h"
 #include "omxOpenmpWrap.h"
 
-struct omxGlobal Global;
+struct omxGlobal *Global = NULL;
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state) {
@@ -47,7 +47,7 @@ struct omxGlobal Global;
 	void omxSetMajorIteration(omxState *state, int value) {
 		state->majorIteration = value;
 		if (!state->childList) return;
-		for(int i = 0; i < Global.numChildren; i++) {
+		for(int i = 0; i < Global->numChildren; i++) {
 			omxSetMajorIteration(state->childList[i], value);
 		}
 	}
@@ -55,7 +55,7 @@ struct omxGlobal Global;
 	void omxSetMinorIteration(omxState *state, int value) {
 		state->minorIteration = value;
 		if (!state->childList) return;
-		for(int i = 0; i < Global.numChildren; i++) {
+		for(int i = 0; i < Global->numChildren; i++) {
 			omxSetMinorIteration(state->childList[i], value);
 		}
 	}
@@ -145,9 +145,9 @@ struct omxGlobal Global;
 	
 void omxFreeChildStates(omxState *state)
 {
-	if (!state->childList || Global.numChildren == 0) return;
+	if (!state->childList || Global->numChildren == 0) return;
 
-	for(int k = 0; k < Global.numChildren; k++) {
+	for(int k = 0; k < Global->numChildren; k++) {
 		// Data are not modified and not copied. The same memory
 		// is shared across all instances of state. We only need
 		// to free the data once, so let the parent do it.
@@ -157,7 +157,7 @@ void omxFreeChildStates(omxState *state)
 	}
 	Free(state->childList);
 	state->childList = NULL;
-	Global.numChildren = 0;
+	Global->numChildren = 0;
 }
 
 	void omxFreeState(omxState *state) {
@@ -223,7 +223,7 @@ void omxFreeChildStates(omxState *state)
 	}
 
 	void omxResetStatus(omxState *state) {
-		int numChildren = Global.numChildren;
+		int numChildren = Global->numChildren;
 		state->statusMsg[0] = '\0';
 		if (!state->childList) return;
 		for(int i = 0; i < numChildren; i++) {
@@ -331,18 +331,18 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 
 static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 		// FIXME: Is it faster to allocate this on the stack?
-		os->chkptText1 = (char*) Calloc((24 + 15 * Global.numFreeParams), char);
-		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * Global.numFreeParams*
-			(Global.numFreeParams + 1.0) / 2.0, char);
+		os->chkptText1 = (char*) Calloc((24 + 15 * Global->numFreeParams), char);
+		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * Global->numFreeParams*
+			(Global->numFreeParams + 1.0) / 2.0, char);
 		if (oC->type == OMX_FILE_CHECKPOINT) {
 			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
-			for(int j = 0; j < Global.numFreeParams; j++) {
-				if(strcmp(Global.freeVarList[j].name, CHAR(NA_STRING)) == 0) {
-					fprintf(oC->file, "%s", Global.freeVarList[j].name);
+			for(int j = 0; j < Global->numFreeParams; j++) {
+				if(strcmp(Global->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
+					fprintf(oC->file, "%s", Global->freeVarList[j].name);
 				} else {
-					fprintf(oC->file, "\"%s\"", Global.freeVarList[j].name);
+					fprintf(oC->file, "\"%s\"", Global->freeVarList[j].name);
 				}
-				if (j != Global.numFreeParams - 1) fprintf(oC->file, "\t");
+				if (j != Global->numFreeParams - 1) fprintf(oC->file, "\t");
 			}
 			fprintf(oC->file, "\n");
 			fflush(oC->file);
@@ -358,7 +358,7 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 			}
 			if (oC->type == OMX_FILE_CHECKPOINT) {
 				fprintf(oC->file, "%d \"%s\" NA ", os->majorIteration, msg);
-				for(int j = 0; j < Global.numFreeParams; j++) {
+				for(int j = 0; j < Global->numFreeParams; j++) {
 					fprintf(oC->file, "NA ");
 				}
 				fprintf(oC->file, "\n");
@@ -396,7 +396,7 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
 					strftime(tempstring, 25, "%b %d %Y %I:%M:%S %p", nowTime);
 					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f[0]);
-					for(int j = 0; j < Global.numFreeParams; j++) {
+					for(int j = 0; j < Global->numFreeParams; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
 					}

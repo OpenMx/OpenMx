@@ -38,7 +38,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 
-	numFree = Global.numFreeParams;
+	numFree = Global->numFreeParams;
 	if (numFree <= 0) {
 		error("Model has no free parameters");
 		return;
@@ -62,16 +62,16 @@ void omxComputeGD::compute(double *startVals)
 
 	omxFreeChildStates(globalState);
 
-	if (Global.numIntervals) {
+	if (Global->numIntervals) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: Throw a warning, allow force()
 			warning("Not calculating confidence intervals because of NPSOL status %d", inform);
 		} else {
-			PROTECT(intervals = allocMatrix(REALSXP, Global.numIntervals, 2));
-			PROTECT(intervalCodes = allocMatrix(INTSXP, Global.numIntervals, 2));
+			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
+			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
 
 			omxNPSOLConfidenceIntervals(fitMatrix, getFit(),
-						    getEstimate(), Global.ciMaxIterations);
+						    getEstimate(), Global->ciMaxIterations);
 			omxPopulateConfidenceIntervals(intervals, intervalCodes);
 		}
 	}  

@@ -166,7 +166,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, double *gradient
 
 	omxMatrix* objMatrix  = oo->matrix;
 	omxState* parentState = objMatrix->currentState;
-	int numChildren = parentState==globalState? Global.numChildren : 0;
+	int numChildren = parentState==globalState? Global->numChildren : 0;
 
     omxMatrix *reduceAlgebra;
 	omxData *data;

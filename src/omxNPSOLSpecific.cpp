@@ -54,8 +54,8 @@ static void omxSetupBoundsAndConstraints(double * bl, double * bu, int n)
 {
 	/* Set min and max limits */
 	for(int index = 0; index < n; index++) {
-		bl[index] = Global.freeVarList[index].lbound;				// -Infinity'd be -10^20.
-		bu[index] = Global.freeVarList[index].ubound;				// Infinity would be at 10^20.
+		bl[index] = Global->freeVarList[index].lbound;				// -Infinity'd be -10^20.
+		bu[index] = Global->freeVarList[index].ubound;				// Infinity would be at 10^20.
 	}
 
 	int index = n;
@@ -121,7 +121,7 @@ void F77_SUB(npsolObjectiveFunction)
 
 	fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
 
-	if (*mode > 0 && Global.analyticGradients && NPSOL_currentInterval < 0) {
+	if (*mode > 0 && Global->analyticGradients && NPSOL_currentInterval < 0) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
@@ -154,11 +154,11 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global.intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxConfidenceInterval *oCI = &(Global.intervalList[NPSOL_currentInterval]);
+		omxConfidenceInterval *oCI = &(Global->intervalList[NPSOL_currentInterval]);
 		
 		omxRecompute(oCI->matrix);
 		
@@ -270,7 +270,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
             nlnwid = ncnln;
         }
  
-	int n = Global.numFreeParams;
+	int n = Global->numFreeParams;
  
         nctotl = n + nlinwid + nlnwid;
  
@@ -389,7 +389,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
-    int n = Global.numFreeParams;
+    int n = Global->numFreeParams;
     double f = optimum;
     std::vector< double > x(n, *optimalValues);
     std::vector< double > gradient(n);
@@ -443,9 +443,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
         if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
-        for(int i = 0; i < Global.numIntervals; i++) {
+        for(int i = 0; i < Global->numIntervals; i++) {
 
-			omxConfidenceInterval *currentCI = &(Global.intervalList[i]);
+			omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
 
 			int msgLength = 45;
  

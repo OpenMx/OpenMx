@@ -553,13 +553,13 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     char u = 'U';
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = Global.freeVarList;
+    omxFreeVar* varList = Global->freeVarList;
 
     omxMatrix *eqnList1[1], *eqnList2[1];
 
     if(nParam < 0) {
         nParam = 0;
-        int nTotalParams = Global.numFreeParams;
+        int nTotalParams = Global->numFreeParams;
         if(OMX_DEBUG) { mxLog("Planning Memory for Fast Gradient Calculation: Using %d params.", nParam); }
         unsigned short int calc[nTotalParams]; 
         // Work out the set of parameters for which we can calculate gradients
@@ -930,8 +930,8 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
     int Mmat = 0;
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = Global.freeVarList;
-    int nLocs = Global.numFreeParams;
+    omxFreeVar* varList = Global->freeVarList;
+    int nLocs = Global->numFreeParams;
 
     // Assumed.
     // if(omxNeedsUpdate(Z)) {

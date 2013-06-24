@@ -156,7 +156,7 @@ void omxComputeOnce::reportResults(MxRList *out)
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fit)));
 
 	if (est) {
-		int numFree = Global.numFreeParams;
+		int numFree = Global->numFreeParams;
 		SEXP estimate;
 		PROTECT(estimate = allocVector(REALSXP, numFree));
 		memcpy(REAL(estimate), est, sizeof(double)*numFree);

@@ -67,9 +67,9 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 
 void omxFitFunctionCreateChildren(omxState *globalState)
 {
-	if (Global.numThreads <= 1) return;
+	if (Global->numThreads <= 1) return;
 
-	int numThreads = Global.numChildren = Global.numThreads;
+	int numThreads = Global->numChildren = Global->numThreads;
 
 	globalState->childList = (omxState**) Calloc(numThreads, omxState*);
 

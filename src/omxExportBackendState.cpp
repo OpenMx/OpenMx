@@ -107,12 +107,12 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
 }
 
 void omxPopulateConfidenceIntervals(SEXP intervals, SEXP intervalCodes) {
-	int numInts = Global.numIntervals;
+	int numInts = Global->numIntervals;
 	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
 	double* interval = REAL(intervals);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
-		omxConfidenceInterval *oCI = Global.intervalList + j;
+		omxConfidenceInterval *oCI = Global->intervalList + j;
 		interval[j] = oCI->min;
 		interval[j + numInts] = oCI->max;
 		intervalCode[j] = oCI->lCode;

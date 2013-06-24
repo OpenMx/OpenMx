@@ -267,40 +267,40 @@ is a vector of mxIndices specifying the dependencies of the free parameter.
 The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
 */
 void omxProcessFreeVarList(SEXP varList) {
-	int n = Global.numFreeParams = length(varList);
+	int n = Global->numFreeParams = length(varList);
 	SEXP nextVar, nextLoc;
 	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
-	Global.freeVarList = new omxFreeVar[n];
+	Global->freeVarList = new omxFreeVar[n];
 	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
 		int numDeps;
 		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
 		int numLocs = length(nextVar) - 3;
-		Global.freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
+		Global->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
 
 		/* Lower Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
-		Global.freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
-		if(ISNA(Global.freeVarList[freeVarIndex].lbound)) Global.freeVarList[freeVarIndex].lbound = NEG_INF;
-		if(Global.freeVarList[freeVarIndex].lbound == 0.0) Global.freeVarList[freeVarIndex].lbound = 0.0;
+		Global->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
+		if(ISNA(Global->freeVarList[freeVarIndex].lbound)) Global->freeVarList[freeVarIndex].lbound = NEG_INF;
+		if(Global->freeVarList[freeVarIndex].lbound == 0.0) Global->freeVarList[freeVarIndex].lbound = 0.0;
 
 		/* Upper Bound */
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
-		Global.freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
-		if(ISNA(Global.freeVarList[freeVarIndex].ubound)) Global.freeVarList[freeVarIndex].ubound = INF;
-		if(Global.freeVarList[freeVarIndex].ubound == 0.0) Global.freeVarList[freeVarIndex].ubound = -0.0;
+		Global->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
+		if(ISNA(Global->freeVarList[freeVarIndex].ubound)) Global->freeVarList[freeVarIndex].ubound = INF;
+		if(Global->freeVarList[freeVarIndex].ubound == 0.0) Global->freeVarList[freeVarIndex].ubound = -0.0;
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
 		numDeps = LENGTH(nextLoc);
-		Global.freeVarList[freeVarIndex].numDeps = numDeps;
-		Global.freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
+		Global->freeVarList[freeVarIndex].numDeps = numDeps;
+		Global->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
 		for(int i = 0; i < numDeps; i++) {
-			Global.freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
+			Global->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
 		}
 
 		if(OMX_DEBUG) { 
 			mxLog("Free parameter %d bounded (%f, %f): %d locations", freeVarIndex, 
-				Global.freeVarList[freeVarIndex].lbound, 
-				Global.freeVarList[freeVarIndex].ubound, numLocs);
+				Global->freeVarList[freeVarIndex].lbound, 
+				Global->freeVarList[freeVarIndex].ubound, numLocs);
 		}
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
 			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+3));
@@ -311,7 +311,7 @@ void omxProcessFreeVarList(SEXP varList) {
 			loc.row = theVarList[1];
 			loc.col = theVarList[2];
 
-			Global.freeVarList[freeVarIndex].locations.push_back(loc);
+			Global->freeVarList[freeVarIndex].locations.push_back(loc);
 		}
 	}
 
@@ -327,11 +327,11 @@ void omxProcessFreeVarList(SEXP varList) {
 void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	SEXP nextVar;
 	if(OMX_VERBOSE) { mxLog("Processing Confidence Interval Requests.");}
-	Global.numIntervals = length(intervalList);
-	if(OMX_DEBUG) {mxLog("Found %d requests.", Global.numIntervals); }
-	Global.intervalList = (omxConfidenceInterval*) R_alloc(Global.numIntervals, sizeof(omxConfidenceInterval));
-	for(int index = 0; index < Global.numIntervals; index++) {
-		omxConfidenceInterval *oCI = &(Global.intervalList[index]);
+	Global->numIntervals = length(intervalList);
+	if(OMX_DEBUG) {mxLog("Found %d requests.", Global->numIntervals); }
+	Global->intervalList = (omxConfidenceInterval*) R_alloc(Global->numIntervals, sizeof(omxConfidenceInterval));
+	for(int index = 0; index < Global->numIntervals; index++) {
+		omxConfidenceInterval *oCI = &(Global->intervalList[index]);
 		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
@@ -343,7 +343,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->min = R_NaReal;
 	}
 	if(OMX_VERBOSE) { mxLog("Processed."); }
-	if(OMX_DEBUG) { mxLog("%d intervals requested.", Global.numIntervals); }
+	if(OMX_DEBUG) { mxLog("%d intervals requested.", Global->numIntervals); }
 }
 
 void omxProcessConstraints(SEXP constraints)  {
