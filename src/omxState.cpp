@@ -218,6 +218,23 @@ void omxFreeChildStates(omxState *state)
 		if(OMX_DEBUG) { mxLog("State Freed.");}
 	}
 
+FreeVarGroup::~FreeVarGroup()
+{
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		delete vars[vx];
+	}
+}
+
+omxGlobal::~omxGlobal()
+{
+	for (size_t cx=0; cx < computeList.size(); ++cx) {
+		delete computeList[cx];
+	}
+	for (size_t gx=0; gx < freeGroup.size(); ++gx) {
+		delete freeGroup[gx];
+	}
+}
+
 	void omxResetStatus(omxState *state) {
 		int numChildren = Global->numChildren;
 		state->statusMsg[0] = '\0';

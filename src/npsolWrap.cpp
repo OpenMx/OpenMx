@@ -108,7 +108,6 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	SEXP ans, nextMat;
 	char output[MAX_STRING_LEN];
 
-	if (Global) delete Global;
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 
@@ -157,6 +156,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	omxFreeAllMatrixData(algebra);
 	omxFreeState(globalState);
+	delete Global;
 
 	if(output[0]) error(output);
 
@@ -187,7 +187,6 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames
 
 	omxManageProtectInsanity protectManager;
 
-	if (Global) delete Global;
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 
@@ -308,9 +307,9 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
 
 	omxFreeState(globalState);
+	delete Global;
 
 	return asR(&result);
-
 }
 
 SEXP omxBackend(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames,

@@ -84,6 +84,7 @@ struct omxFreeVar {
 struct FreeVarGroup {
 	const char *name;
 	std::vector< omxFreeVar* > vars;
+	~FreeVarGroup();
 };
 
 struct omxConstraint {		// Free Variable Constraints
@@ -125,7 +126,8 @@ struct omxConfidenceInterval {		// For Confidence interval request
 #define MAX_STRING_LEN 250
 
 // omxGlobal is for state that is read-only during parallel sections.
-struct omxGlobal {
+class omxGlobal {
+ public:
 	int ciMaxIterations;
 	int numThreads;
 	int analyticGradients;
@@ -136,6 +138,8 @@ struct omxGlobal {
 
 	std::vector< omxCompute* > computeList;
 	std::vector< FreeVarGroup* > freeGroup;
+
+	~omxGlobal();
 };
 
 // Use a pointer to ensure correct initialization and destruction
