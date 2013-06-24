@@ -72,12 +72,18 @@ struct omxFreeVarLocation {
 	int row, col;
 };
 
-struct omxFreeVar {			// Free Variables
-	double lbound, ubound;	// Bounds
+struct omxFreeVar {
+	double start;
+	double lbound, ubound;
 	std::vector<omxFreeVarLocation> locations;
 	int numDeps;            // number of algebra/matrix dependencies
 	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
+};
+
+struct FreeVarGroup {
+	const char *name;
+	std::vector< omxFreeVar* > vars;
 };
 
 struct omxConstraint {		// Free Variable Constraints
@@ -128,21 +134,23 @@ struct omxGlobal {
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
 
-	int numFreeParams;
-	omxFreeVar* freeVarList;
+	std::vector< omxCompute* > computeList;
+	std::vector< FreeVarGroup* > freeGroup;
 };
+
+// Use a pointer to ensure correct initialization and destruction
 extern struct omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
 struct omxState {
+	// move to FitContext? TOOD
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
-	std::vector< class omxCompute* > computeList;
 	omxState** childList;											// List of child states
 
-	/* May want to farm these out to the omxFitFunction object. */
+	// move all constraint stuff to omxGlobal TODO
 	int numConstraints;
 	int ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
@@ -151,7 +159,7 @@ struct omxState {
 	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
 
-	/* For Checkpointing */
+	// move all checkpointing stuff to omxGlobal TODO
 	int majorIteration;												// Major iteration number
 	int minorIteration;												// Minor iteration within major iteration
 	time_t startTime;												// Time of first computation
@@ -188,7 +196,7 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
 
 	void omxWriteCheckpointMessage(char *msg);
-	void omxSaveCheckpoint(double* x, double* f, int force);	// Save out checkpoints
+void omxSaveCheckpoint(double* x, double f, int force);
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 
 void mxLog(const char* msg, ...);   // thread-safe

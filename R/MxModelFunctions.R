@@ -48,7 +48,65 @@ isExpectation <- function(name) {
 	return(length(grep("expectation", name, fixed=TRUE)) > 0)
 }
 
-parameterDependencyList <- function(pList, flatModel, dependencies) {
+parameterDependencyList <- function(pList, flatModel, dependencies, freeGroupNames) {
+	if (length(pList) == 3) {
+		return(retval)
+	}
+	pList[[3]] <- match(pList[[3]], freeGroupNames) - 1L
+	locations <- pList[4:length(pList)]
+	deps <- lapply(locations, findDependencies, flatModel, dependencies)
+	depnames <- Reduce(union, deps, character())
+	depnames <- Filter(Negate(isExpectation), depnames)
+	depnumbers <- sapply(depnames, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
+	depnumbers <- as.integer(depnumbers)
+	retval <- append(pList[1:3], list(depnumbers))
+	append(retval, locations)
+}
+
+generateFreeVarGroups <- function(flatModel) {
+	mList <- flatModel@matrices
+	if (length(mList) == 0) {
+		return(list())
+	}
+	free.group <- sapply(mList, slot, 'free.group')
+	if (is.list(free.group) || any(nchar(free.group) == 0)) {
+		stop(paste("Invalid free.group name", omxQuotes(free.group)))
+	}
+	flatModel@freeGroupNames <- append(setdiff(unique(free.group), "default"), "default", after=0)
+	flatModel
+}
+
+generateParameterList <- function(flatModel, dependencies) {
+	mList <- flatModel@matrices
+	pList <- list()
+	for(i in 1:length(mList)) {
+		matrix <- mList[[i]]
+		pList <- generateParameterListHelper(matrix, pList, i - 1L)
+	}
+	pList <- lapply(pList, parameterDependencyList, flatModel, dependencies,
+			flatModel@freeGroupNames)
+
+	if (length(pList)) for(i in 1:length(pList)) {
+		original <- pList[[i]]
+		svalues <- original[5:length(original)]
+		svalue <- NA
+		if (length(svalues) > 1) {
+			values <- sapply(svalues, generateValueHelper, mList)
+			if (!all(values == values[[1]])) {
+				warning(paste('Parameter',i,'has multiple start values.',
+					      'Selecting', values[[1]]))
+			}
+			svalue <- values[[1]]
+		} else {
+			svalue <- generateValueHelper(svalues[[1]], mList)
+		}
+		pList[[i]] <- c(original, svalue)
+	}
+	flatModel@parameters <- pList
+	flatModel
+}
+
+definitionDependencyList <- function(pList, flatModel, dependencies) {
 	if (length(pList) == 2) {
 		retval <- list(pList[[1]], pList[[2]], integer())
 		return(retval)
@@ -63,20 +121,6 @@ parameterDependencyList <- function(pList, flatModel, dependencies) {
 	return(append(retval, locations))
 }
 
-generateParameterList <- function(flatModel, dependencies) {
-	result <- list()
-	if (length(flatModel@matrices) == 0) {
-		return(result)
-	}
-	for(i in 1:length(flatModel@matrices)) {
-		matrix <- flatModel@matrices[[i]]
-		result <- generateParameterListHelper(
-			matrix, result, i - 1L)
-	}
-	result <- lapply(result, parameterDependencyList, flatModel, dependencies)
-	return(result)
-}
-
 generateDefinitionList <- function(flatModel, dependencies) {
 	result <- list()
 	defLocations <- generateDefinitionLocations(flatModel@datasets)
@@ -88,38 +132,15 @@ generateDefinitionList <- function(flatModel, dependencies) {
 			flatModel@matrices[[i]], 
 			result, defLocations, i - 1L)
 	}
-	result <- lapply(result, parameterDependencyList, flatModel, dependencies)
+	result <- lapply(result, definitionDependencyList, flatModel, dependencies)
 	return(result)
-}
-
-generateValueList <- function(mList, pList) {
-	mList <- lapply(mList, function(x) { x[[1]] })
-	retval <- vector()
-	if (length(pList) == 0) {
-		return(retval)
-	}
-	for(i in 1:length(pList)) {
-		parameter <- pList[[i]]
-		parameter <- parameter[4:length(parameter)] # Remove (min, max, dependencies)
-		if (length(parameter) > 1) {
-			values <- sapply(parameter, generateValueHelper, mList)
-			if (!all(values == values[[1]])) {
-				warning(paste('Parameter',i,'has multiple start values.',
-					'Selecting', values[[1]]))
-			}
-			retval[i] <- values[[1]]
-		} else {
-			retval[i] <- generateValueHelper(parameter[[1]], mList)
-		}
-	}
-	return(retval)	
 }
 
 generateValueHelper <- function(triple, mList) {
 	mat <- triple[1] + 1
 	row <- triple[2] + 1
 	col <- triple[3] + 1
-	val <- mList[[mat]][row,col]
+	val <- mList[[mat]]@values[row,col]
 	if (is.na(val)) {
 		stop(paste("Starting value in ",names(mList)[[mat]],
 			   "[",row,",",col,"] is missing", sep=""))
@@ -127,7 +148,8 @@ generateValueHelper <- function(triple, mList) {
 	return(val)
 }
 
-imxUpdateModelValues <- function(model, flatModel, pList, values) {
+imxUpdateModelValues <- function(model, flatModel, values) {
+	pList <- flatModel@parameters
 	if(length(pList) != length(values)) {
 		stop(paste("This model has", length(pList), 
 			"parameters, but you have given me", length(values),
@@ -138,7 +160,7 @@ imxUpdateModelValues <- function(model, flatModel, pList, values) {
 	}
 	for(i in 1:length(pList)) {
 		parameters <- pList[[i]]
-		parameters <- parameters[4:length(parameters)] # Remove min, max, and dependencies
+		parameters <- parameters[5:(length(parameters)-1)]
 		model <- updateModelValuesHelper(parameters, values[[i]], flatModel, model)
     }
 	return(model)

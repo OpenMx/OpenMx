@@ -17,16 +17,15 @@
 #ifndef _OMX_NPSOL_SPECIFIC_H
 #define _OMX_NPSOL_SPECIFIC_H
 
-#include "omxMatrix.h"
+#include "types.h"
 
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND, NEG_INF, INF;
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
+void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out);
  
-void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
-				 int ciMaxIterations);
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc);
  
 void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		     int *analyticGradients);

@@ -1,5 +1,4 @@
 #include "omxExpectation.h"
-#include "omxOptimizer.h"
 #include "fitMultigroup.h"
 #include <vector>
 
@@ -7,26 +6,12 @@
 
 struct FitMultigroup {
 	std::vector< int > fits;  // store pointers or index numbers? TODO
-	bool checkedRepopulate;
-	FitMultigroup() : checkedRepopulate(0) {}
 };
 
 static void mgDestroy(omxFitFunction* oo)
 {
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
 	delete mg;
-}
-
-static void checkRepopulate(omxFitFunction* oo)
-{
-	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
-	omxState *os = oo->matrix->currentState;
-	for (size_t ex=0; ex < mg->fits.size(); ex++) {
-		omxMatrix* f1 = os->algebraList[mg->fits[ex]];
-		omxFitFunction *ff = f1->fitFunction;
-		if (!ff || ff->repopulateFun == handleFreeVarList) continue;
-		error("Cannot add %s to multigroup fit", f1->name);
-	}
 }
 
 static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad)
@@ -36,11 +21,6 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad)
 	fitMatrix->data[0] = 0;
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
-
-	if (!mg->checkedRepopulate) {
-		checkRepopulate(oo);
-		mg->checkedRepopulate = TRUE;
-	}
 
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = os->algebraList[mg->fits[ex]];
@@ -66,7 +46,6 @@ void initFitMultigroup(omxFitFunction *oo)
 	oo->expectation = NULL;  // don't care about this
 	oo->computeFun = mgCompute;
 	oo->destructFun = mgDestroy;
-	oo->repopulateFun = handleFreeVarList;
 
 	FitMultigroup *mg = new FitMultigroup;
 	oo->argStruct = mg;

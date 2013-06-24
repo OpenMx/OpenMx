@@ -37,7 +37,6 @@
 #include "omxNPSOLSpecific.h"
 #include "omxImportFrontendState.h"
 #include "omxExportBackendState.h"
-#include "omxOptimizer.h"
 #include "Compute.h"
 
 static R_CallMethodDef callMethods[] = {
@@ -109,6 +108,8 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	SEXP ans, nextMat;
 	char output[MAX_STRING_LEN];
 
+	if (Global) delete Global;
+	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 
 	globalState = new omxState;
@@ -157,9 +158,6 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	omxFreeAllMatrixData(algebra);
 	omxFreeState(globalState);
 
-	delete Global;
-	Global = NULL;
-
 	if(output[0]) error(output);
 
 	return ans;
@@ -176,25 +174,27 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 	}
 }
 
-SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
-		 SEXP matList, SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-	SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
+SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames,
+		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
+		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
 	SEXP nextLoc;
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
-//	if(!isVector(startVals)) error ("startVals must be a vector");
 //	if(!isVector(matList)) error ("matList must be a list");
 //	if(!isVector(algList)) error ("algList must be a list");
 
 	omxManageProtectInsanity protectManager;
 
+	if (Global) delete Global;
+	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
 	omxInitState(globalState);
+	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
 
 	Global->ciMaxIterations = 5;
 	Global->numThreads = 1;
@@ -203,21 +203,13 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	omxSetNPSOLOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
 
-	Global->numFreeParams = length(startVals);
-	if(OMX_DEBUG) { mxLog("Created state object at 0x%x.", globalState);}
-
-	/* Retrieve Data Objects */
 	omxProcessMxDataEntities(data);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
     
-	/* Retrieve All Matrices From the MatList */
 	omxProcessMxMatrixEntities(matList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
-	if (length(startVals) != length(varList)) error("varList and startVals must be the same length");
-
-	/* Process Free Var List */
-	omxProcessFreeVarList(varList);
+	omxProcessFreeVarList(fgNames, varList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxExpectationEntities(expectList);
@@ -250,7 +242,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	omxCompute *topCompute = NULL;
 	if (!isNull(computeIndex)) {
 		int ox = INTEGER(computeIndex)[0];
-		topCompute = globalState->computeList[ox];
+		topCompute = Global->computeList[ox];
 	}
 
 	/* Process Matrix and Algebra Population Function */
@@ -266,20 +258,16 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	omxProcessConstraints(constraints);
 
-	/* Process Confidence Interval List */
 	omxProcessConfidenceIntervals(intervalList);
 
-	/* Process Checkpoint List */
 	omxProcessCheckpointOptions(checkpointList);
 
-	cacheFreeVarDependencies();
+	FitContext::cacheFreeVarDependencies();
 
-	int n = Global->numFreeParams;
+	FitContext fc;
 
 	if (topCompute && !isErrorRaised(globalState)) {
-		double *sv = NULL;
-		if (n) sv = REAL(startVals);
-		topCompute->compute(sv);
+		topCompute->compute(&fc);
 	}
 
 	SEXP evaluations;
@@ -289,9 +277,8 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	MxRList result;
 
-	// What if fitfunction has its own repopulateFun? TODO
-	if (topCompute && !isErrorRaised(globalState) && n > 0) {
-		handleFreeVarListHelper(globalState, topCompute->getEstimate(), n);
+	if (topCompute && !isErrorRaised(globalState)) {
+		fc.copyParamToModel(globalState); // probably unnecessary to do this again? TODO
 	}
 
 	omxExportResults(globalState, &result); 
@@ -300,7 +287,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 
 	double optStatus = NA_REAL;
 	if (topCompute && !isErrorRaised(globalState)) {
-		topCompute->reportResults(&result);
+		topCompute->reportResults(&fc, &result);
 		optStatus = topCompute->getOptimizerStatus();
 	}
 
@@ -321,20 +308,18 @@ SEXP omxBackend2(SEXP computeIndex, SEXP startVals, SEXP constraints,
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
 
 	omxFreeState(globalState);
-	delete Global;
-	Global = NULL;
 
 	return asR(&result);
 
 }
 
-SEXP omxBackend(SEXP computeIndex, SEXP startVals, SEXP constraints,
-		SEXP matList, SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
+SEXP omxBackend(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames,
+		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
 	try {
-		return omxBackend2(computeIndex, startVals, constraints,
-				   matList, varList, algList, expectList, computeList,
+		return omxBackend2(computeIndex, constraints, matList, fgNames,
+				   varList, algList, expectList, computeList,
 				   data, intervalList, checkpointList, options);
 	} catch( std::exception& __ex__ ) {
 		exception_to_try_error( __ex__ );

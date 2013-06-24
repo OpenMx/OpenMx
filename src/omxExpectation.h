@@ -35,11 +35,8 @@
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+
 #include "omxDefines.h"
-
-typedef struct omxExpectation omxExpectation;
-typedef struct omxDefinitionVar omxDefinitionVar;
-
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxAlgebraFunctions.h"
@@ -90,12 +87,15 @@ struct omxExpectation {					// An Expectation
 	omxExpectation *container;
 	int numSubmodels;
 	omxExpectation **submodels;
+	FreeVarGroup *freeVarGroup;
 };
 
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os);
 
 	void omxCompleteExpectation(omxExpectation *ox);
+void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg);
+
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	omxExpectation* omxNewIncompleteExpectation(SEXP mxobj, int expNum, omxState* os);

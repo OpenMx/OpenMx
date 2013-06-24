@@ -19,7 +19,6 @@ setClass(Class = "MxFitFunctionR",
 		fitfun = "function",
 		model = "MxModel",
 		flatModel = "MxFlatModel",
-		parameters = "list",
 		state = "list"),
 	contains = "MxBaseFitFunction")
 
@@ -37,7 +36,6 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionR"),
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
-		.Object@parameters <- generateParameterList(flatModel, dependencies)
 		return(.Object)
 })
 

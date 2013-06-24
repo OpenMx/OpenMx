@@ -35,13 +35,24 @@ setMethod("qualifyNames", signature("MxBaseCompute"),
 setMethod("convertForBackend", signature("MxBaseCompute"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		}
+		fg <- match(.Object@free.group, flatModel@freeGroupNames)
+		if (is.na(fg)) {
+			stop(paste("Cannot find free group", .Object@free.group,
+				   "in list of free groups:",
+				   omxQuotes(flatModel@freeGroupNames)))
+		} else {
+			.Object@free.group <- fg - 1L
+		}
 		.Object
 	})
 
 setClass(Class = "MxComputeOperation",
 	 contains = "MxBaseCompute",
 	 representation = representation(
+	   free.group = "MxCharOrNumber",
 	   fitfunction = "MxCharOrNumber"))
 
 setClass(Class = "MxComputeOnce",
@@ -64,14 +75,15 @@ setClass(Class = "MxComputeEstimatedHessian",
 	   se = "logical"))
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, fit) {
+	  function(.Object, free.group, fit) {
 		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
 		  .Object@fitfunction <- fit
 		  .Object
 	  })
 
-mxComputeOnce <- function(fitfunction='fitfunction') {
-	new("MxComputeOnce", fitfunction)
+mxComputeOnce <- function(free.group='default', fitfunction='fitfunction') {
+	new("MxComputeOnce", free.group, fitfunction)
 }
 
 setMethod("initialize", "MxComputeSequence",
@@ -99,42 +111,37 @@ mxComputeSequence <- function(steps) {
 }
 
 setMethod("initialize", "MxComputeEstimatedHessian",
-	  function(.Object, want.se=TRUE, fit) {
+	  function(.Object, free.group, fit, want.se) {
 		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
 		  .Object@fitfunction <- fit
 		  .Object@se <- want.se
 		  .Object
 	  })
 
-mxComputeEstimatedHessian <- function(want.se, fitfunction='fitfunction') {
-	new("MxComputeEstimatedHessian", want.se=want.se, fitfunction)
+mxComputeEstimatedHessian <- function(free.group='default', fitfunction='fitfunction', want.se=TRUE) {
+	new("MxComputeEstimatedHessian", free.group, fitfunction, want.se)
 }
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, type, engine, fit) {
+	  function(.Object, free.group, type, engine, fit) {
 		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
 		  .Object@fitfunction <- fit
 		  .Object@type <- type
 		  .Object@engine <- engine
 		  .Object
 	  })
 
-mxComputeGradientDescent <- function(type, engine=NULL, fitfunction='fitfunction') {
-	if (length(type) != 1) stop("Specific 1 compute type")
+mxComputeGradientDescent <- function(type, free.group='default',
+				     engine=NULL, fitfunction='fitfunction') {
+#	if (length(type) != 1) stop("Specific 1 compute type")
 
+	if (is.null(type)) type <- as.character(NA)
 	if (is.null(engine)) engine <- as.character(NA)
 
-	new("MxComputeGradientDescent", type, engine, fitfunction)
+	new("MxComputeGradientDescent", free.group, type, engine, fitfunction)
 }
-
-displayMxBaseCompute <- function(opt) {
-	# remove after initial development TODO
-	cat(class(opt), omxQuotes(opt@name), '\n')
-	invisible(opt)
-}
-
-setMethod("print", "MxBaseCompute", function(x, ...) displayMxBaseCompute(x))
-setMethod("show",  "MxBaseCompute", function(object) displayMxBaseCompute(object))
 
 displayMxComputeSequence <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
@@ -149,6 +156,7 @@ setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequenc
 
 displayMxComputeOperation <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
+	cat("@free.group :", omxQuotes(opt@free.group), '\n')
 	cat("@fitfunction :", omxQuotes(opt@fitfunction), '\n')
 	invisible(opt)
 }

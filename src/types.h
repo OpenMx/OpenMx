@@ -23,7 +23,12 @@
 
 typedef struct omxMatrix omxMatrix;
 typedef struct omxState omxState;
+class FitContext;
+struct FreeVarGroup;
 typedef struct omxFitFunction omxFitFunction;
+typedef struct omxExpectation omxExpectation;
+typedef struct omxDefinitionVar omxDefinitionVar;
+typedef struct omxRFitFunction omxRFitFunction;
 typedef std::vector< std::pair<SEXP, SEXP> > MxRList;
 class omxCompute;
 

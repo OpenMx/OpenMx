@@ -61,14 +61,14 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFuncti
 
 // Speedup Helper
 static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
-        int *DrowCache, int *DcolCache, int matNum, omxFreeVar* varList, 
+        int *DrowCache, int *DcolCache, int matNum, std::vector< omxFreeVar* > &varList, 
         int* pNums, int nParam, omxMatrix*** result) {
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
     // Also populates the matrices called D if it appears.
     // Minimal error checking.
     if(OMX_DEBUG_ALGEBRA) mxLog("Beginning ADB."); //:::DEBUG:::
 
-    omxFreeVar var;  // TODO, store a pointer instead of a copy
+    omxFreeVar *var;
     int paramNo;
 
     for(int param = 0; param < nParam; param++) {
@@ -85,10 +85,10 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
             omxMatrix *thisD = D[param];
             memset(thisD->data, 0, sizeof(double) * thisD->cols * thisD->rows);
             // Honestly, this should be calculated only once.
-            for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
-                if(~var.locations[varLoc].matrix == matNum) {
-			int row = var.locations[varLoc].row;
-			int col = var.locations[varLoc].col;
+            for(size_t varLoc = 0; varLoc < var->locations.size(); varLoc++) {
+                if(~var->locations[varLoc].matrix == matNum) {
+			int row = var->locations[varLoc].row;
+			int col = var->locations[varLoc].col;
 			omxSetMatrixElement(thisD, row, col, 1.0);
 			if (DrowCache != NULL) DrowCache[param] = row;
 			if (DcolCache != NULL) DcolCache[param] = col;
@@ -100,11 +100,11 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
         for(int eqn = 0; eqn < numArgs; eqn++) {
             omxMatrix* thisResult = result[eqn][param];
             memset(thisResult->data, 0, sizeof(double) * thisResult->cols * thisResult->rows);
-            for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
-                if(~var.locations[varLoc].matrix == matNum) {
+            for(size_t varLoc = 0; varLoc < var->locations.size(); varLoc++) {
+                if(~var->locations[varLoc].matrix == matNum) {
                     sliceCrossUpdate(A[eqn], B[eqn],
-				     var.locations[varLoc].row,
-				     var.locations[varLoc].col, thisResult);
+				     var->locations[varLoc].row,
+				     var->locations[varLoc].col, thisResult);
                 }
             }
         }
@@ -543,6 +543,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     
     int* pNums = oro->pNums;
     int nParam = oro->nParam;
+    std::vector< omxFreeVar* > &varList = oo->freeVarGroup->vars;
     
     int Amat = A->matrixNumber;
     int Smat = S->matrixNumber;
@@ -553,22 +554,22 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     char u = 'U';
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = Global->freeVarList;
+    FreeVarGroup *freeVarGroup = oo->freeVarGroup;
 
     omxMatrix *eqnList1[1], *eqnList2[1];
 
     if(nParam < 0) {
         nParam = 0;
-        int nTotalParams = Global->numFreeParams;
+        size_t nTotalParams = freeVarGroup->vars.size();
         if(OMX_DEBUG) { mxLog("Planning Memory for Fast Gradient Calculation: Using %d params.", nParam); }
         unsigned short int calc[nTotalParams]; 
         // Work out the set of parameters for which we can calculate gradients
         // TODO: Potential speedup by splitting this to calculate dA, dS, and dM separately
-        for(int parm = 0; parm < nTotalParams; parm++) {
-            omxFreeVar ofv = varList[parm];
+        for(size_t parm = 0; parm < nTotalParams; parm++) {
+            omxFreeVar *ofv = freeVarGroup->vars[parm];
             calc[parm] = 0;
-            for(size_t loc = 0; loc < ofv.locations.size(); loc++) {
-                int varMat = ~(ofv.locations[loc].matrix);
+            for(size_t loc = 0; loc < ofv->locations.size(); loc++) {
+                int varMat = ~(ofv->locations[loc].matrix);
                 if(varMat == Amat || varMat == Smat || (M != NULL && varMat == Mmat)) {
                     calc[parm] = 1;
                 } else {
@@ -585,7 +586,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
 
         int nextFree = 0;
         // Populate pNums with numbers of the parameters to calculate
-        for(int parm = 0; parm < nTotalParams && nextFree < nParam; parm++) {
+        for(size_t parm = 0; parm < nTotalParams && nextFree < nParam; parm++) {
             if(calc[parm]) {
                 pNums[nextFree] = parm;
                 nextFree++;
@@ -930,8 +931,8 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
     int Mmat = 0;
     if(M != NULL) Mmat = M->matrixNumber;
     
-    omxFreeVar* varList = Global->freeVarList;
-    int nLocs = Global->numFreeParams;
+    std::vector< omxFreeVar* > &varList = oo->freeVarGroup->vars;
+    size_t nLocs = varList.size();
 
     // Assumed.
     // if(omxNeedsUpdate(Z)) {
@@ -960,11 +961,11 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
     //  given in the sequence.  Always write to the appropriate location so that writes
     //  can be shared across thread-level parallelism.
     
-    for(int param = 0; param < nLocs; param++) {
+    for(size_t param = 0; param < nLocs; param++) {
         //  Repeated from above.  For each parameter:
         //      1) Calculate dA/dt, dS/dt, and dM/dt by substituting 1s into empty matrices
         
-        omxFreeVar var = varList[param];
+        omxFreeVar *var = varList[param];
         
         // Zero dA, dS, and dM.  // TODO: speed
         for( int k = 0; k < dA->cols; k++) {
@@ -977,10 +978,10 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
         status[param] = 0;
 
         // Create dA, dS, and dM mats for each Free Parameter
-        for(size_t varLoc = 0; varLoc < var.locations.size(); varLoc++) {
-            int varMat = ~var.locations[varLoc].matrix; // Matrices are numbered from ~0 to ~N
-	    int row = var.locations[varLoc].row;
-	    int col = var.locations[varLoc].col;
+        for(size_t varLoc = 0; varLoc < var->locations.size(); varLoc++) {
+            int varMat = ~var->locations[varLoc].matrix; // Matrices are numbered from ~0 to ~N
+	    int row = var->locations[varLoc].row;
+	    int col = var->locations[varLoc].col;
             if(varMat == Amat) {
                 omxSetMatrixElement(dA, row, col, 1);
             } else if(varMat == Smat) {

@@ -22,42 +22,57 @@
 
 #include "types.h"
 
+// The idea of FitContext is to eventually enable fitting from
+// multiple starting values in parallel.
+
+class FitContext {
+	static std::vector<int> markMatrices;   // constant, therefore thread-safe
+	static omxFitFunction *RFitFunction;
+
+	FitContext *parent;
+ protected:
+	FreeVarGroup *varGroup;
+ public:
+	size_t numParam;
+	double fit;
+	double *est;
+	//	double *denom;
+	double *grad;
+	double *hess;
+
+	void init();
+	FitContext();
+	FitContext(FitContext *parent);
+	FitContext(FitContext *parent, int group);
+	void copyParamToModel(omxState* os, double *at);
+	void copyParamToModel(omxState *os);
+	void copyParamToModel(omxMatrix *mat, double *at);
+	void copyParamToModel(omxMatrix *mat);
+	void updateParentAndFree();
+	~FitContext();
+	
+	static void cacheFreeVarDependencies();
+	static void setRFitFunction(omxFitFunction *rff);
+};
+
 class omxCompute {
  public:
+	int paramGroup;  // probably better to store FreeVarGroup* here TODO
         virtual void initFromFrontend(SEXP rObj) = 0;
-        virtual void compute(double *startVals) = 0;
-        virtual void reportResults(MxRList *out) = 0;
+        virtual void compute(FitContext *fc) = 0;
+        virtual void reportResults(FitContext *fc, MxRList *out) = 0;
 	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
-	virtual double getFit() = 0;
-	virtual double *getEstimate() = 0;
-        virtual ~omxCompute() {}
+        virtual ~omxCompute();
+};
+
+class omxComputeOperation : public omxCompute {
+ public:
+        virtual void initFromFrontend(SEXP rObj);
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);
 
 class omxCompute *newComputeGradientDescent();
 class omxCompute *newComputeEstimatedHessian();
-
-// hide impl TODO
-class omxComputeGD : public omxCompute {
-	omxMatrix *fitMatrix;
-
-	int numFree;
-	SEXP minimum, estimate, gradient, hessian;
-	SEXP intervals, intervalCodes;
-	int inform, iter;
-
-public:
-	virtual void initFromFrontend(SEXP rObj);
-	virtual void compute(double *startVals);
-	virtual void reportResults(MxRList *out);
-	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
-	virtual double getFit() { return REAL(minimum)[0]; }
-	virtual double *getEstimate() { return REAL(estimate); }
-
-	// remove TODO
-	omxComputeGD() { init(); }
-	void init();
-};
 
 #endif

@@ -24,10 +24,12 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
+#include "Compute.h"
+#include "omxRFitFunction.h"
 
-static std::vector<int> markMatrices;   // constant, therefore thread-safe
+// TODO move code to other FitContext method defs
 
-void cacheFreeVarDependencies()
+void FitContext::cacheFreeVarDependencies()
 {
 	omxState *os = globalState;
 	size_t numMats = os->matrixList.size();
@@ -36,62 +38,87 @@ void cacheFreeVarDependencies()
 	markMatrices.clear();
 	markMatrices.resize(numMats + numAlgs, 0);
 
-	for(int freeVarIndex = 0; freeVarIndex < Global->numFreeParams; freeVarIndex++) {
-		omxFreeVar* freeVar = Global->freeVarList + freeVarIndex;
+	// More efficient to use the appropriate group instead of the default group. TODO
+	FreeVarGroup *varGroup = Global->freeGroup[0];
+	for (size_t freeVarIndex = 0; freeVarIndex < varGroup->vars.size(); freeVarIndex++) {
+		omxFreeVar* freeVar = varGroup->vars[freeVarIndex];
 		int *deps   = freeVar->deps;
 		int numDeps = freeVar->numDeps;
 		for (int index = 0; index < numDeps; index++) {
 			markMatrices[deps[index] + numMats] = 1;
 		}
 	}
-
 }
 
-void handleFreeVarListHelper(omxState* os, double* x, int numVars)
+static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 {
-	int numChildren = Global->numChildren;
+	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
-	if(OMX_DEBUG) {
-		mxLog("Processing Free Parameter Estimates.");
-		mxLog("Number of free parameters is %d.", numVars);
+	SEXP theCall, estimate;
+
+	PROTECT(estimate = allocVector(REALSXP, n));
+	double *est = REAL(estimate);
+	for(int i = 0; i < n ; i++) {
+		est[i] = x[i];
 	}
 
-	if(numVars == 0) return;
+	PROTECT(theCall = allocVector(LANGSXP, 4));
 
-	omxFreeVar* freeVarList = Global->freeVarList;
+	SETCAR(theCall, install("imxUpdateModelValues"));
+	SETCADR(theCall, rFitFunction->model);
+	SETCADDR(theCall, rFitFunction->flatModel);
+	SETCADDDR(theCall, estimate);
+
+	REPROTECT(rFitFunction->model = eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
+
+	UNPROTECT(2); // theCall, estimate
+}
+
+void FitContext::copyParamToModel(omxState* os)
+{
+	copyParamToModel(os, est);
+}
+
+void FitContext::copyParamToModel(omxState* os, double *at)
+{
+	if(OMX_DEBUG) {
+		mxLog("Copying %d free parameter estimates to model %p", numParam, os);
+	}
+
+	if(numParam == 0) return;
+
 	size_t numMats = os->matrixList.size();
-	int numAlgs = os->algebraList.size();
+	size_t numAlgs = os->algebraList.size();
 
 	os->computeCount++;
 
 	if(OMX_VERBOSE) {
 		std::string buf;
-		buf += "--------------------------\n";
-		buf += string_snprintf("Call: %d.%d (%d)", os->majorIteration, os->minorIteration, os->computeCount);
+		buf += string_snprintf("Call: %d.%d (%d) ", os->majorIteration, os->minorIteration, os->computeCount);
 		buf += ("Estimates: [");
-		for(int k = 0; k < numVars; k++) {
-			buf += string_snprintf(" %f", x[k]);
+		for(size_t k = 0; k < numParam; k++) {
+			buf += string_snprintf(" %f", at[k]);
 		}
 		buf += ("]\n");
-		buf += "--------------------------\n";
+		mxLogBig(buf);
 	}
 
-	/* Fill in Free Var Estimates */
-	for(int k = 0; k < numVars; k++) {
-		omxFreeVar* freeVar = freeVarList + k;
-		// if(OMX_DEBUG) { mxLog("%d: %f - %d", k,  x[k], freeVarList[k].numLocations); }
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
 		for(size_t l = 0; l < freeVar->locations.size(); l++) {
 			omxFreeVarLocation *loc = &freeVar->locations[l];
 			omxMatrix *matrix = os->matrixList[loc->matrix];
 			int row = loc->row;
 			int col = loc->col;
-			omxSetMatrixElement(matrix, row, col, x[k]);
+			omxSetMatrixElement(matrix, row, col, at[k]);
 			if(OMX_DEBUG) {
 				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %d",
-					row, col, loc->matrix, x[k], k);
+					row, col, loc->matrix, at[k], k);
 			}
 		}
 	}
+
+	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, at, numParam);
 
 	for(size_t i = 0; i < numMats; i++) {
 		if (markMatrices[i]) {
@@ -100,7 +127,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 		}
 	}
 
-	for(int i = 0; i < numAlgs; i++) {
+	for(size_t i = 0; i < numAlgs; i++) {
 		if (markMatrices[i + numMats]) {
 			omxMarkDirty(os->algebraList[i]);
 		}
@@ -108,13 +135,7 @@ void handleFreeVarListHelper(omxState* os, double* x, int numVars)
 
 	if (!os->childList) return;
 
-	for(int i = 0; i < numChildren; i++) {
-		handleFreeVarListHelper(os->childList[i], x, numVars);
+	for(int i = 0; i < Global->numChildren; i++) {
+		copyParamToModel(os->childList[i]);
 	}
-}
-
-/* Sub Free Vars Into Appropriate Slots */
-void handleFreeVarList(omxFitFunction* oo, double* x, int numVars)
-{
-	handleFreeVarListHelper(oo->matrix->currentState, x, numVars);
 }

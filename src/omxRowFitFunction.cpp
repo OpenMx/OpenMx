@@ -370,7 +370,6 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	oo->computeFun = omxCallRowFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
-	oo->repopulateFun = handleFreeVarList;
 	oo->usesChildModels = TRUE;
 
 	oo->argStruct = (void*) newObj;

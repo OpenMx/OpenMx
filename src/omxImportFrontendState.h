@@ -13,9 +13,8 @@ void omxCompleteMxFitFunction(SEXP algList);
 void omxProcessMxComputeEntities(SEXP computeList);
 void omxInitialMatrixAlgebraCompute();
 void omxProcessCheckpointOptions(SEXP checkpointList);
-void omxProcessFreeVarList(SEXP varList);
+void omxProcessFreeVarList(SEXP fgNames, SEXP varList);
 void omxProcessConfidenceIntervals(SEXP intervalList);
 void omxProcessConstraints(SEXP constraints);
-void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin);
 
 #endif // #define _OMX_IMPORT_FRONTEND_STATE_H

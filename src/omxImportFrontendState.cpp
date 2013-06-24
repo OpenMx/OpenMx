@@ -168,7 +168,7 @@ void omxProcessMxComputeEntities(SEXP computeList)
 		PROTECT(s4class = STRING_ELT(getAttrib(rObj, install("class")), 0));
 		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 		compute->initFromFrontend(rObj);
-		globalState->computeList.push_back(compute);
+		Global->computeList.push_back(compute);
 	}
 }
 
@@ -259,62 +259,72 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 	}
 }
 
-/*
-varList is a list().  Each element of this list corresponds to one free parameter.
-Each free parameter is a list.  The first element of this list is the lower bound.
-The second element of the list is the upper bound.  The third element of the list
-is a vector of mxIndices specifying the dependencies of the free parameter. 
-The remaining elements of the list are 3-tuples.  These 3-tuples are (mxIndex, row, col).
-*/
-void omxProcessFreeVarList(SEXP varList) {
-	int n = Global->numFreeParams = length(varList);
-	SEXP nextVar, nextLoc;
+void omxProcessFreeVarList(SEXP fgNames, SEXP varList)
+{
 	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
-	Global->freeVarList = new omxFreeVar[n];
-	for(int freeVarIndex = 0; freeVarIndex < n; freeVarIndex++) {
-		int numDeps;
-		PROTECT(nextVar = VECTOR_ELT(varList, freeVarIndex));
-		int numLocs = length(nextVar) - 3;
-		Global->freeVarList[freeVarIndex].name = CHAR(STRING_ELT(GET_NAMES(varList), freeVarIndex));
 
-		/* Lower Bound */
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));							// Position 0 is lower bound.
-		Global->freeVarList[freeVarIndex].lbound = REAL(nextLoc)[0];
-		if(ISNA(Global->freeVarList[freeVarIndex].lbound)) Global->freeVarList[freeVarIndex].lbound = NEG_INF;
-		if(Global->freeVarList[freeVarIndex].lbound == 0.0) Global->freeVarList[freeVarIndex].lbound = 0.0;
+	int ng = length(fgNames);
+	for (int gx=0; gx < ng; ++gx) {
+		FreeVarGroup *fvg = new FreeVarGroup;
+		fvg->name = CHAR(STRING_ELT(fgNames, gx));
+		Global->freeGroup.push_back(fvg);
+	}
 
-		/* Upper Bound */
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));							// Position 1 is upper bound.
-		Global->freeVarList[freeVarIndex].ubound = REAL(nextLoc)[0];
-		if(ISNA(Global->freeVarList[freeVarIndex].ubound)) Global->freeVarList[freeVarIndex].ubound = INF;
-		if(Global->freeVarList[freeVarIndex].ubound == 0.0) Global->freeVarList[freeVarIndex].ubound = -0.0;
+	SEXP nextVar, nextLoc;
+	int numVars = length(varList);
+	for (int fx = 0; fx < numVars; fx++) {
+		omxFreeVar *fv = new omxFreeVar;
+		Global->freeGroup[0]->vars.push_back(fv);
 
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));							// Position 2 is a vector of dependencies.
-		numDeps = LENGTH(nextLoc);
-		Global->freeVarList[freeVarIndex].numDeps = numDeps;
-		Global->freeVarList[freeVarIndex].deps = (int*) R_alloc(numDeps, sizeof(int));
-		for(int i = 0; i < numDeps; i++) {
-			Global->freeVarList[freeVarIndex].deps[i] = INTEGER(nextLoc)[i];
+		fv->name = CHAR(STRING_ELT(GET_NAMES(varList), fx));
+		PROTECT(nextVar = VECTOR_ELT(varList, fx));
+
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
+		fv->lbound = REAL(nextLoc)[0];
+		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
+		if (fv->lbound == 0.0) fv->lbound = 0.0;
+
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
+		fv->ubound = REAL(nextLoc)[0];
+		if (ISNA(fv->ubound)) fv->ubound = INF;
+		if (fv->ubound == 0.0) fv->ubound = -0.0;
+
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));
+		int groupCount = length(nextLoc);
+		if (groupCount == 0) error("Free variable %d not assigned to any group", fx);
+		for (int gx=0; gx < groupCount; ++gx) {
+			int group = INTEGER(nextLoc)[gx];
+			if (group == 0) continue; // all variables are already in group 0 (default)
+			Global->freeGroup[group]->vars.push_back(fv);
 		}
 
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, 3));
+		int numDeps = LENGTH(nextLoc);
+		fv->numDeps = numDeps;
+		fv->deps = (int*) R_alloc(numDeps, sizeof(int));
+		for (int i = 0; i < numDeps; i++) {
+			fv->deps[i] = INTEGER(nextLoc)[i];
+		}
+
+		int numLocs = length(nextVar) - 5;
 		if(OMX_DEBUG) { 
-			mxLog("Free parameter %d bounded (%f, %f): %d locations", freeVarIndex, 
-				Global->freeVarList[freeVarIndex].lbound, 
-				Global->freeVarList[freeVarIndex].ubound, numLocs);
+			mxLog("Free parameter %d bounded (%f, %f): %d locations", fx, 
+			      fv->lbound, fv->ubound, numLocs);
 		}
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
-			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+3));
-			int* theVarList = INTEGER(nextLoc);			// These come through as integers.
+			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+4));
+			int* theVarList = INTEGER(nextLoc);
 
 			omxFreeVarLocation loc;
 			loc.matrix = theVarList[0];
 			loc.row = theVarList[1];
 			loc.col = theVarList[2];
 
-			Global->freeVarList[freeVarIndex].locations.push_back(loc);
+			fv->locations.push_back(loc);
 		}
+		PROTECT(nextLoc = VECTOR_ELT(nextVar, length(nextVar)-1));
+		fv->start = REAL(nextLoc)[0];
 	}
-
 }
 
 /*

@@ -101,10 +101,10 @@ runHelper <- function(model, frontendStart,
 	dependencies <- transitiveClosure(flatModel, dependencies)
 	flatModel <- populateDefInitialValues(flatModel)
 	flatModel <- checkEvaluation(model, flatModel)
-	parameters <- generateParameterList(flatModel, dependencies)
+	flatModel <- generateFreeVarGroups(flatModel)
+	flatModel <- generateParameterList(flatModel, dependencies)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
-	startVals <- generateValueList(matrices, parameters)
 	defVars <- generateDefinitionList(flatModel, dependencies)		
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
@@ -112,18 +112,20 @@ runHelper <- function(model, frontendStart,
 	numAlgebras <- length(algebras)
 	algebras <- append(algebras, fitfunctions)
 	constraints <- convertConstraints(flatModel)
+	parameters <- flatModel@parameters
+	numParam <- length(parameters)
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && imxPPML.Check.UseOptimizer(model@options$UsePPML)
-	options <- generateOptionsList(model, parameters, constraints, useOptimizer)
+	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
 	
 	compute <- NULL
 	computes <- list()
 	if (!is.null(model@fitfunction) && is.null(model@compute)) {
 		# horrible hack, sorry
 		fitNum <- match(flatModel@fitfunction@name, names(flatModel@fitfunctions)) - 1L + numAlgebras
-		if (!useOptimizer || length(startVals) == 0) {
+		if (!useOptimizer || numParam == 0) {
 			computes <- list(mxComputeOnce(fitfunction=fitNum))
 		} else {
 			if (options[["Calculate Hessian"]] == "No") {
@@ -136,19 +138,21 @@ runHelper <- function(model, frontendStart,
 				computes <- list(mxComputeSequence(steps))
 			}
 		}
+		flatModel@computes <- computes		
 		compute <- 0L
 	} else {
-		computes <- convertComputes(flatModel, model)
 		if (!is.null(flatModel@compute)) {
 			compute <- imxLocateIndex(flatModel, flatModel@compute@name, flatModel@name)
 		}
 	}
+
+	computes <- convertComputes(flatModel, model)
 	
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
-	output <- .Call(omxBackend, compute, startVals,
-			constraints, matrices, parameters, 
+	output <- .Call(omxBackend, compute,
+			constraints, matrices, flatModel@freeGroupNames, parameters,
 			algebras, expectations, computes,
 			data, intervalList, communication, options, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()

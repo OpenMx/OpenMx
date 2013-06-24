@@ -139,17 +139,20 @@ makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
 generateIntervalListHelper <- function(interval, flatModel, modelname, 
 			parameters, labelsData) {
 
-	pnames <- names(parameters)
 	reference <- interval@reference
 	entity <- flatModel[[reference]]
-	if(reference %in% pnames) {
-		location <- parameters[[reference]][[4]]
-		location[[1]] <- - location[[1]] - 1
-		retval <- list()
-		retval[[reference]] <- c(location, 
-			interval@lowerdelta, interval@upperdelta)
-		return(retval)
-	} else if (!is.null(entity)) {
+	for (gx in length(parameters)) {
+		pgroup <- parameters[[gx]]
+		if(reference %in% names(pgroup)) {
+			location <- pgroup[[reference]][[5]]
+			location[[1]] <- - location[[1]] - 1
+			retval <- list()
+			retval[[reference]] <-
+			  c(location, interval@lowerdelta, interval@upperdelta)
+			return(retval)
+		}
+	}
+	if (!is.null(entity)) {
 		tuple <- evaluateMxObject(reference, flatModel, labelsData, new.env(parent = emptyenv()))
 		entityValue <- as.matrix(tuple[[1]])
 		rows <- nrow(entityValue)

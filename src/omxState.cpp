@@ -213,10 +213,6 @@ void omxFreeChildStates(omxState *state)
 			// Checkpoint list itself is freed by R.
 		}
 
-		for (size_t ex = 0; ex < state->computeList.size(); ex++) {
-			delete state->computeList[ex];
-		}
-
 		delete state;
 
 		if(OMX_DEBUG) { mxLog("State Freed.");}
@@ -330,26 +326,32 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
 	};
 
 static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
-		// FIXME: Is it faster to allocate this on the stack?
-		os->chkptText1 = (char*) Calloc((24 + 15 * Global->numFreeParams), char);
-		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * Global->numFreeParams*
-			(Global->numFreeParams + 1.0) / 2.0, char);
+	// rewrite with std::string TODO
+	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
+	size_t numParam = vars.size();
+
+		os->chkptText1 = (char*) Calloc((24 + 15 * numParam), char);
+		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * numParam*
+			(numParam + 1.0) / 2.0, char);
 		if (oC->type == OMX_FILE_CHECKPOINT) {
 			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
-			for(int j = 0; j < Global->numFreeParams; j++) {
-				if(strcmp(Global->freeVarList[j].name, CHAR(NA_STRING)) == 0) {
-					fprintf(oC->file, "%s", Global->freeVarList[j].name);
+			for(size_t j = 0; j < numParam; j++) {
+				if(strcmp(vars[j]->name, CHAR(NA_STRING)) == 0) {
+					fprintf(oC->file, "%s", vars[j]->name);
 				} else {
-					fprintf(oC->file, "\"%s\"", Global->freeVarList[j].name);
+					fprintf(oC->file, "\"%s\"", vars[j]->name);
 				}
-				if (j != Global->numFreeParams - 1) fprintf(oC->file, "\t");
+				if (j != numParam - 1) fprintf(oC->file, "\t");
 			}
 			fprintf(oC->file, "\n");
 			fflush(oC->file);
 		}
 	}
  
-	void omxWriteCheckpointMessage(char *msg) {
+void omxWriteCheckpointMessage(char *msg) {
+	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
+	size_t numParam = vars.size();
+
 		omxState *os = globalState;
 		for(int i = 0; i < os->numCheckpoints; i++) {
 			omxCheckpoint* oC = &(os->checkpointList[i]);
@@ -358,7 +360,7 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 			}
 			if (oC->type == OMX_FILE_CHECKPOINT) {
 				fprintf(oC->file, "%d \"%s\" NA ", os->majorIteration, msg);
-				for(int j = 0; j < Global->numFreeParams; j++) {
+				for(size_t j = 0; j < numParam; j++) {
 					fprintf(oC->file, "NA ");
 				}
 				fprintf(oC->file, "\n");
@@ -366,7 +368,11 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 		}
 	}
 
-	void omxSaveCheckpoint(double* x, double* f, int force) {
+void omxSaveCheckpoint(double* x, double f, int force) {
+	// rewrite with std::string TODO
+	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
+	size_t numParam = vars.size();
+
 		omxState *os = globalState;
 		time_t now = time(NULL);
 		int soFar = now - os->startTime;		// Translated into minutes
@@ -395,8 +401,8 @@ static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
 				if(strncmp(os->chkptText1, tempstring, strlen(tempstring))) {	// Returns zero if they're the same.
 					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
 					strftime(tempstring, 25, "%b %d %Y %I:%M:%S %p", nowTime);
-					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f[0]);
-					for(int j = 0; j < Global->numFreeParams; j++) {
+					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f);
+					for(size_t j = 0; j < numParam; j++) {
 						sprintf(tempstring, " %9.5f", x[j]);
 						strncat(os->chkptText1, tempstring, 14);
 					}

@@ -25,21 +25,18 @@
 #include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 
-typedef struct {
+typedef struct omxRFitFunction {
 
 	SEXP fitfun;
 	SEXP model;
 	PROTECT_INDEX modelIndex;
 	SEXP flatModel;
-	SEXP parameters;
 	SEXP state;
 	PROTECT_INDEX stateIndex;
 
 } omxRFitFunction;
 
 void omxDestroyRFitFunction(omxFitFunction *oo);
-
-void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n);
 
 omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns);
 

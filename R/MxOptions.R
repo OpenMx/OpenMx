@@ -133,7 +133,7 @@ otherOptions <- list(
 	"Allow Unlabeled" = FALSE
 )
 
-generateOptionsList <- function(model, parameters, constraints, useOptimizer) {
+generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 	input <- model@options
 	if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
 		input[["Standard Errors"]] <- "No"
@@ -150,7 +150,7 @@ generateOptionsList <- function(model, parameters, constraints, useOptimizer) {
 	options <- combineDefaultOptions(input)
 	mIters <- options[["Major iterations"]]
 	if (typeof(mIters) == "closure") {
-		mIters <- do.call(mIters, list(length(parameters), length(constraints)))
+		mIters <- do.call(mIters, list(numParam, length(constraints)))
 	}
 	options[["Major iterations"]] <- as.character(mIters)
 	if (useOptimizer) {

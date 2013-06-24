@@ -314,6 +314,11 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 }
 
+void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
+{
+	ox->freeVarGroup = fvg;
+}
+
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {

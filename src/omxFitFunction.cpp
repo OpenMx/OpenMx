@@ -29,7 +29,6 @@
 **********************************************************/
 
 #include "omxFitFunction.h"
-#include "omxOptimizer.h"
 #include "fitMultigroup.h"
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
@@ -88,6 +87,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	if(ff == NULL) return;
     
 	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber);
+	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
 	omxCompleteFitFunction(tgt, ff->rObj);
 }
 
@@ -139,6 +139,7 @@ void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
 		int expNumber = INTEGER(slotValue)[0];	
 		if(expNumber != NA_INTEGER) {
 			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
+			setFreeVarGroup(obj->expectation, obj->freeVarGroup);
 		}
 	}
 	UNPROTECT(1);	/* slotValue */
@@ -149,6 +150,11 @@ void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
 	
 	obj->matrix->isDirty = TRUE;
 	obj->initialized = TRUE;
+}
+
+void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
+{
+	ff->freeVarGroup = fvg;
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {

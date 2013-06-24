@@ -73,8 +73,10 @@ setClass(Class = "MxMatrix",
 		free = "matrix", name = "character", 
 		lbound = "matrix", ubound = "matrix",
 		.squareBrackets = "matrix",
-		display = "character", dependencies = "integer", "VIRTUAL"))
-		
+		display = "character", dependencies = "integer",
+		free.group = "character",
+	  "VIRTUAL"))
+
 setMethod("imxCreateMatrix", "MxMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
@@ -271,7 +273,7 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
-	dimnames = NA, name = NA) {
+	dimnames = NA, name = NA, free.group = 'default') {
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
@@ -315,6 +317,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	newMatrix <- new(typeName)
 	newMatrix <- imxCreateMatrix(newMatrix, labels, values, 
 		free, lbound, ubound, nrow, ncol, byrow, name)
+	newMatrix@free.group <- free.group
 	if(length(dimnames) == 1 && is.na(dimnames)) {
 	} else {
 		dimnames(newMatrix) <- dimnames
@@ -401,6 +404,7 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber) {
 	lbound <- mxMatrix@lbound
 	ubound <- mxMatrix@ubound
 	isSymmetric <- imxSymmetricMatrix(mxMatrix)
+	group <- mxMatrix@free.group
 
 	if (all(free == FALSE)) {
 		return(result)
@@ -423,31 +427,29 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber) {
 		minBounds <- lbound[i]
 		maxBounds <- ubound[i]
 		if (is.na(parameterName)) {
-			result[[length(result)+1]] <-  list(minBounds, maxBounds, 
-				c(matrixNumber, row, col))
+			entry <- list(minBounds, maxBounds, group,
+				      c(matrixNumber, row, col))
 			if (isSymmetric && row != col) {
-				original <- result[[length(result)]]
-				original[[length(original) + 1]] <- c(matrixNumber, col, row)
-				result[[length(result)]] <- original
+				entry[[length(entry) + 1]] <- c(matrixNumber, col, row)
 			}
+			result[[length(result)+1]] <- entry
 			names(result)[[length(result)]] <- paste(mxMatrix@name, 
 				"[", rows[i], ",", cols[i], "]", sep ="")
 		} else if (length(grep(imxSeparatorChar, parameterName, fixed = TRUE)) == 0) {
 			if (!is.null(result[[parameterName]])) {
 				original <- result[[parameterName]]
+				original[[3]] <- union(original[[3]], group)
 				original[[length(original) + 1]] <- c(matrixNumber, row, col)
 				if (isSymmetric && row != col) {
 					original[[length(original) + 1]] <- c(matrixNumber, col, row)
 				}
 				result[[parameterName]] <- original
 			} else {
-				result[[parameterName]] <- list(minBounds, maxBounds, 
-					c(matrixNumber, row, col))
+				entry <- list(minBounds, maxBounds, group, c(matrixNumber, row, col))
 				if (isSymmetric && row != col) {
-					original <- result[[parameterName]]
-					original[[length(original) + 1]] <- c(matrixNumber, col, row)
-					result[[parameterName]] <- original
+					entry[[length(entry) + 1]] <- c(matrixNumber, col, row)
 				}
+				result[[parameterName]] <- entry
 			}
 		}
 	}

@@ -198,7 +198,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 				omxMatrixElement(weightInt, row, col);
 	
 	
-	if(0) {  // TODO fix for new internal API
+	if(0) {  /* TODO fix for new internal API
 		int nLocs = Global->numFreeParams;
 		double gradient[Global->numFreeParams];
 		for(int loc = 0; loc < nLocs; loc++) {
@@ -209,6 +209,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 
 		for(int loc = 0; loc < nLocs; loc++)
 			REAL(gradients)[loc] = gradient[loc];
+		 */
 	} else {
 		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
 	}
@@ -229,7 +230,6 @@ void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	oo->destructFun = omxDestroyWLSFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
-	oo->repopulateFun = handleFreeVarList;
 }
 
 void omxInitWLSFitFunction(omxFitFunction* oo) {

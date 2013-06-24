@@ -19,31 +19,149 @@
 #include "omxState.h"
 #include "omxExportBackendState.h"
 
+std::vector<int> FitContext::markMatrices;
+
+void FitContext::init()
+{
+	numParam = varGroup->vars.size();
+	fit = 0;
+	est = new double[numParam];
+	grad = new double[numParam];
+	hess = new double[numParam * numParam];
+}
+
+FitContext::FitContext()
+{
+	parent = NULL;
+	varGroup = Global->freeGroup[0];
+	init();
+
+	for (size_t v1=0; v1 < numParam; v1++) {
+		est[v1] = Global->freeGroup[0]->vars[v1]->start;
+		grad[v1] = nan("unset");
+		for (size_t v2=0; v2 < numParam; v2++) {
+			hess[v1 * numParam + v2] = nan("unset");
+		}
+	}
+}
+
+FitContext::FitContext(FitContext *parent)
+{
+	varGroup = parent->varGroup;
+	init();
+	fit = parent->fit;
+	memcpy(est, parent->est, sizeof(double) * numParam);
+	memcpy(grad, parent->grad, sizeof(double) * numParam);
+	memcpy(hess, parent->hess, sizeof(double) * numParam * numParam);
+}
+
+// arg to control what to copy? usually don't want everything TODO
+FitContext::FitContext(FitContext *parent, int group)
+{
+	this->parent = parent;
+	varGroup = Global->freeGroup[group];
+	init();
+
+	FreeVarGroup *src = parent->varGroup;
+	FreeVarGroup *dest = varGroup;
+
+	size_t d1 = 0;
+	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
+		if (src->vars[s1] != dest->vars[d1]) continue;
+		est[d1] = parent->est[s1];
+		grad[d1] = parent->grad[s1];
+		++d1;
+
+		size_t d2 = 0;
+		for (size_t s2=0; s2 < src->vars.size(); ++s2) {
+			if (src->vars[s2] != dest->vars[d2]) continue;
+			size_t cell = s1 * numParam + s2;
+			hess[cell] = parent->hess[cell];
+			++d2;
+		}
+	}
+	if (d1 != numParam-1) error("Parent free parameter group is not a superset");
+}
+
+void FitContext::copyParamToModel(omxMatrix *mat)
+{ copyParamToModel(mat->currentState); }
+
+void FitContext::copyParamToModel(omxMatrix *mat, double *at)
+{ copyParamToModel(mat->currentState, at); }
+
+void FitContext::updateParentAndFree()
+{
+	FreeVarGroup *src = varGroup;
+	FreeVarGroup *dest = parent->varGroup;
+
+	size_t s1 = 0;
+	for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
+		if (dest->vars[d1] != src->vars[s1]) continue;
+		parent->est[d1] = est[s1];
+		parent->grad[d1] = grad[s1];
+		++s1;
+
+		size_t s2 = 0;
+		for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
+			if (dest->vars[d2] != src->vars[s2]) continue;
+			size_t cell = d1 * numParam + d2;
+			parent->hess[cell] = hess[cell];
+			++s2;
+		}
+	}
+	
+	delete this;
+}
+
+FitContext::~FitContext()
+{
+	delete [] est;
+	delete [] grad;
+	delete [] hess;
+}
+
+omxFitFunction *FitContext::RFitFunction = NULL;
+
+void FitContext::setRFitFunction(omxFitFunction *rff)
+{
+	if (rff) {
+		Global->numThreads = 1;
+		if (RFitFunction) {
+			error("You can only create 1 MxRFitFunction per independent model");
+		}
+	}
+	RFitFunction = rff;
+}
+
+omxCompute::~omxCompute()
+{}
+
+void omxComputeOperation::initFromFrontend(SEXP rObj)
+{
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("free.group")));
+	paramGroup = INTEGER(slotValue)[0];
+}
+
 class omxComputeSequence : public omxCompute {
 	std::vector< omxCompute* > clist;
-	double *est;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(double *startVals);
-        virtual void reportResults(MxRList *out);
-	virtual double getFit() { return 0; }
-	virtual double *getEstimate() { return est; }
+        virtual void compute(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *out);
 	virtual double getOptimizerStatus();
 	virtual ~omxComputeSequence();
 };
 
-class omxComputeOnce : public omxCompute {
+class omxComputeOnce : public omxComputeOperation {
+	typedef omxComputeOperation super;
 	omxMatrix *fitMatrix;
-	double fit;
-	double *est;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(double *startVals);
-        virtual void reportResults(MxRList *out);
-	virtual double getFit() { return fit; }
-	virtual double *getEstimate() { return est; }
+        virtual void compute(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *out);
 };
 
 static class omxCompute *newComputeSequence()
@@ -97,20 +215,27 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 	}
 }
 
-void omxComputeSequence::compute(double *startVals)
+void omxComputeSequence::compute(FitContext *fc)
 {
-	est = startVals;
 	for (size_t cx=0; cx < clist.size(); ++cx) {
-		clist[cx]->compute(est);
-		est = clist[cx]->getEstimate();
+		FitContext *context = fc;
+		int cgroup = clist[cx]->paramGroup;
+		if (cgroup) context = new FitContext(fc, cgroup);
+		clist[cx]->compute(context);
+		if (cgroup) context->updateParentAndFree();
 		if (isErrorRaised(globalState)) break;
 	}
 }
 
-void omxComputeSequence::reportResults(MxRList *out)
+void omxComputeSequence::reportResults(FitContext *fc, MxRList *out)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
-		clist[cx]->reportResults(out);
+		FitContext *context = fc;
+		int cgroup = clist[cx]->paramGroup;
+		if (cgroup) context = new FitContext(fc, cgroup);
+		clist[cx]->reportResults(context, out);
+		if (cgroup) context->updateParentAndFree();
+		if (isErrorRaised(globalState)) break;
 	}
 }
 
@@ -133,12 +258,13 @@ omxComputeSequence::~omxComputeSequence()
 
 void omxComputeOnce::initFromFrontend(SEXP rObj)
 {
+	super::initFromFrontend(rObj);
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	setFreeVarGroup(fitMatrix->fitFunction, Global->freeGroup[paramGroup]);
 }
 
-void omxComputeOnce::compute(double *startVals)
+void omxComputeOnce::compute(FitContext *fc)
 {
-	est = startVals;
         for(size_t index = 0; index < globalState->matrixList.size(); index++) {
             omxMarkDirty(globalState->matrixList[index]);
         }
@@ -146,20 +272,20 @@ void omxComputeOnce::compute(double *startVals)
             omxMarkDirty(globalState->algebraList[index]);
         }
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
-	fit = fitMatrix->data[0];
+	fc->fit = fitMatrix->data[0];
 }
 
-void omxComputeOnce::reportResults(MxRList *out)
+void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
 
-	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fit)));
+	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 
-	if (est) {
-		int numFree = Global->numFreeParams;
+	size_t numFree = fc->numParam;
+	if (numFree) {
 		SEXP estimate;
 		PROTECT(estimate = allocVector(REALSXP, numFree));
-		memcpy(REAL(estimate), est, sizeof(double)*numFree);
+		memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
 		out->push_back(std::make_pair(mkChar("estimate"), estimate));
 	}
 }

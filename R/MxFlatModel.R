@@ -21,7 +21,9 @@ setClass(Class = "MxFlatModel",
 		datasets = "list",
 		constMatrices = "list",
 		freeMatrices = "list",
-		computes = "list"
+		computes = "list",
+		parameters = "list",
+		freeGroupNames = "character"
 	),
 	contains = "MxModel")
 	
@@ -38,6 +40,8 @@ setMethod("initialize", "MxFlatModel",
 		.Object@constMatrices <- list()
 		.Object@freeMatrices <- list()
 		.Object@computes <- computes
+		.Object@parameters <- list()
+		.Object@freeGroupNames <- character(0)
 		return(.Object)
 	}
 )

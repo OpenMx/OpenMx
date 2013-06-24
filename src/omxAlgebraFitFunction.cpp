@@ -76,8 +76,6 @@ void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->setFinalReturns = omxSetFinalReturnsAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;
-	off->repopulateFun = handleFreeVarList;
-
 	
 	off->argStruct = (void*) newObj;
 }

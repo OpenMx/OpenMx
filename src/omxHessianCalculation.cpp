@@ -40,16 +40,17 @@
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
 #include "omxNPSOLSpecific.h"
-#include "omxOptimizer.h"
 #include "omxOpenmpWrap.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-class omxComputeEstimatedHessian : public omxCompute {
+class omxComputeEstimatedHessian : public omxComputeOperation {
+	typedef omxComputeOperation super;
 	double stepSize;
 	int numIter;
 	bool wantSE;
 
+	FitContext *fitContext;
 	omxMatrix *fitMat;
 	double minimum;
 	int numParams;
@@ -57,6 +58,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 	double *gradient;
 	double *hessian;
 
+	// move to FitContext? TODO
 	SEXP calculatedHessian;
 	SEXP stdErrors;
 
@@ -69,10 +71,8 @@ class omxComputeEstimatedHessian : public omxCompute {
  public:
 	omxComputeEstimatedHessian();
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(double *at);
-        virtual void reportResults(MxRList *out);
-	virtual double getFit() { return 0; }
-	virtual double *getEstimate() { return optima; }
+        virtual void compute(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *out);
 };
 
 struct hess_struct {
@@ -94,8 +94,6 @@ void omxComputeEstimatedHessian::omxPopulateHessianWork(struct hess_struct *hess
 	}
 
 	hess_work->fitMatrix = omxLookupDuplicateElement(state, fitMat);
-
-	handleFreeVarListHelper(state, freeParams, numParams);
 }
 
 /**
@@ -123,7 +121,8 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		if(OMX_DEBUG) {mxLog("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.", i, k, iOffset);}
 		freeParams[i] = optima[i] + iOffset;
 
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		
+		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
@@ -132,7 +131,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 
 		freeParams[i] = optima[i] - iOffset;
 
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
@@ -177,7 +176,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 		freeParams[i] = optima[i] + iOffset;
 		freeParams[l] = optima[l] + lOffset;
 
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
@@ -187,7 +186,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 		freeParams[i] = optima[i] - iOffset;
 		freeParams[l] = optima[l] - lOffset;
 
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, freeParams, numParams);
+		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
@@ -273,10 +272,10 @@ omxComputeEstimatedHessian::omxComputeEstimatedHessian()
 
 void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 {
-	numParams = Global->numFreeParams;
-	if (numParams <= 0) error("Model has no free parameters");
+	super::initFromFrontend(rObj);
 
 	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	setFreeVarGroup(fitMat->fitFunction, Global->freeGroup[paramGroup]);
 
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("se")));
@@ -284,13 +283,15 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 	UNPROTECT(1);
 }
 
-void omxComputeEstimatedHessian::compute(double *at)
+void omxComputeEstimatedHessian::compute(FitContext *fc)
 {
+	fitContext = fc;
+	numParams = int(fc->numParam);
+	if (numParams <= 0) error("Model has no free parameters");
+
 	omxFitFunctionCreateChildren(globalState);
 
-	numParams = Global->numFreeParams;
-
-	optima = at;
+	optima = fc->est;
 
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
 
@@ -384,7 +385,7 @@ void omxComputeEstimatedHessian::compute(double *at)
 	omxFreeChildStates(globalState);
 }
 
-void omxComputeEstimatedHessian::reportResults(MxRList *result)
+void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *result)
 {
 	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 

@@ -228,17 +228,8 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
 	}   
 
-	if (0) {  // TODO, fix for new gradient internal API
-		int nLocs = Global->numFreeParams;
-		double gradient[Global->numFreeParams];
-		for(int loc = 0; loc < nLocs; loc++) {
-			gradient[loc] = NA_REAL;
-		}
-		//oo->gradientFun(oo, gradient);
-		PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
-
-		for(int loc = 0; loc < nLocs; loc++)
-			REAL(gradients)[loc] = gradient[loc];
+	if (0) {
+		// TODO, fix for new gradient internal API
 	} else {
 		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
 	}
@@ -258,7 +249,6 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
 	oo->populateAttrFun = omxPopulateMLAttributes;
-	oo->repopulateFun = handleFreeVarList;
 }
 
 
@@ -269,7 +259,6 @@ void omxInitMLFitFunction(omxFitFunction* oo) {
 	int info = 0;
 	double det = 1.0;
 	char u = 'U';
-	SEXP rObj = oo->rObj;
 	
 	/* Read and set expectation */
 	omxSetMLFitFunctionCalls(oo);
@@ -401,7 +390,7 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
     omxMLFitFunction *omo = ((omxMLFitFunction*) oo->argStruct);
     int rows = omo->observedCov->rows;
     int cols = omo->observedCov->cols;
-    int nFreeVars = Global->numFreeParams;
+    size_t nFreeVars = oo->freeVarGroup->vars.size();
             
     omo->derivativeFun = derivativeFun;
     omo->X  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
@@ -410,7 +399,7 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
     omo->Mu = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
     omo->dSigma = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
     omo->dMu = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
-    for(int i = 0; i < nFreeVars; i++) {
+    for(size_t i = 0; i < nFreeVars; i++) {
         omo->dSigma[i] = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
         omo->dMu[i] = omxInitMatrix(NULL, rows, 1, TRUE, oo->matrix->currentState);
     }
@@ -449,14 +438,14 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     omxMatrix** dSigmas     = omo->dSigma;
     omxMatrix** dMus        = omo->dMu;
     
-    int gradientSize = Global->numFreeParams;
+    size_t gradientSize = oo->freeVarGroup->vars.size();
     
     char u = 'U';
     int info;
     double minusoned = -1.0;
     int onei = 1;
     int status[gradientSize];
-    int nLocs = Global->numFreeParams;
+    int nLocs = gradientSize;
     
     // Calculate current FitFunction values
     // We can safely assume this has been done

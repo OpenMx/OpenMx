@@ -21,10 +21,10 @@
 
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
-#include "omxOptimizer.h"
 #include "omxMatrix.h"
 #include "npsolWrap.h"
 #include "omxImportFrontendState.h"
+#include "Compute.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -34,6 +34,7 @@ const double INF = 2e20;
 const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
 static int NPSOL_currentInterval = -1;
+static FitContext *NPSOL_fc = NULL;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -50,12 +51,16 @@ extern void F77_SUB(npoptn)(char* string, int length);
 }
 #endif
 
-static void omxSetupBoundsAndConstraints(double * bl, double * bu, int n)
+// NOTE: All non-linear constraints are applied regardless of free TODO
+// variable group.  This is probably wrong. TODO
+static void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu)
 {
+	size_t n = freeVarGroup->vars.size();
+
 	/* Set min and max limits */
-	for(int index = 0; index < n; index++) {
-		bl[index] = Global->freeVarList[index].lbound;				// -Infinity'd be -10^20.
-		bu[index] = Global->freeVarList[index].ubound;				// Infinity would be at 10^20.
+	for(size_t index = 0; index < n; index++) {
+		bl[index] = freeVarGroup->vars[index]->lbound;
+		bu[index] = freeVarGroup->vars[index]->ubound;
 	}
 
 	int index = n;
@@ -119,7 +124,7 @@ void F77_SUB(npsolObjectiveFunction)
 	/* Interruptible? */
 	R_CheckUserInterrupt();
 
-	fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, x, *n);
+	NPSOL_fc->copyParamToModel(globalState, x);
 
 	if (*mode > 0 && Global->analyticGradients && NPSOL_currentInterval < 0) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
@@ -144,7 +149,7 @@ void F77_SUB(npsolObjectiveFunction)
 	if(OMX_DEBUG) { mxLog("-======================================================-"); }
 
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(x, f, FALSE);		// Check about saving a checkpoint
+		omxSaveCheckpoint(x, *f, FALSE);		// Check about saving a checkpoint
 	}
 
 }
@@ -212,8 +217,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	int j, k, l = 0;
 
-	// What if fitfunction has its own repopulateFun? TODO
-	handleFreeVarListHelper(globalState, x, *n);
+	NPSOL_fc->copyParamToModel(globalState, x);
 
 	for(j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result);
@@ -222,18 +226,20 @@ void F77_SUB(npsolConstraintFunction)
 			c[l++] = globalState->conList[j].result->data[k];
 		}
 	}
-
 	if(OMX_DEBUG) { mxLog("-=======================================================-"); }
-
-	return;
-
 }
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, double *R,
+void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out)
 {
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
+	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
+
+	NPSOL_fc = fc;
+	double *x = fc->est;
+	double *g = fc->grad;
+	double *R = fc->hess;
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
@@ -270,7 +276,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
             nlnwid = ncnln;
         }
  
-	int n = Global->numFreeParams;
+	int n = int(freeVarGroup->vars.size());
  
         nctotl = n + nlinwid + nlnwid;
  
@@ -294,7 +300,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
  
         /* Set up actual run */
  
-        omxSetupBoundsAndConstraints(bl, bu, n);
+        omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
  
         /* Initialize Starting Values */
         if(OMX_VERBOSE) {
@@ -355,27 +361,29 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, double *f, double *x, double *g, doubl
  
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
-			clambda, f, g, R, x, iw, &leniw, w, &lenw);
+			clambda, &fc->fit, g, R, x, iw, &leniw, w, &lenw);
 
-        if(OMX_DEBUG) { mxLog("Final Objective Value is: %f.", *f); }
+        if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
  
-        omxSaveCheckpoint(x, f, TRUE);
+        omxSaveCheckpoint(x, fc->fit, TRUE);
  
-	// What if fitfunction has its own repopulateFun? TODO
-        handleFreeVarListHelper(globalState, x, n);
+	NPSOL_fc->copyParamToModel(globalState);
  
     *inform_out = inform;
     *iter_out   = iter;
  
     NPSOL_fitMatrix = NULL;
+    NPSOL_fc = NULL;
 }
  
  
-void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *optimalValues,
-				 int ciMaxIterations)
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
 {
+	int ciMaxIterations = Global->ciMaxIterations;
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
+	NPSOL_fc = fc;
+	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
@@ -389,7 +397,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
  
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
-    int n = Global->numFreeParams;
+    int n = int(freeVarGroup->vars.size());
+    double optimum = fc->fit;
+    double *optimalValues = fc->est;
     double f = optimum;
     std::vector< double > x(n, *optimalValues);
     std::vector< double > gradient(n);
@@ -439,7 +449,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
     iw      = (int*) R_alloc (leniw, sizeof ( int ));
  
  
-    omxSetupBoundsAndConstraints(bl, bu, n);
+    omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
  
         if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
@@ -490,7 +500,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 if(f < value) {
                     currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(x.data(), &f, TRUE);
+		    omxSaveCheckpoint(x.data(), f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -547,7 +557,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
                 if(f < value) {
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(x.data(), &f, TRUE);
+		    omxSaveCheckpoint(x.data(), f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -573,8 +583,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, double optimum, double *o
             if(OMX_DEBUG) {mxLog("Found Upper bound %d.", i);}
         }
 
-    NPSOL_fitMatrix = NULL;
-    NPSOL_currentInterval = -1;
+	NPSOL_fc = NULL;
+	NPSOL_fitMatrix = NULL;
+	NPSOL_currentInterval = -1;
 }
  
 static void

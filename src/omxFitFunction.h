@@ -29,24 +29,20 @@
 #ifndef _OMXFITFUNCTION_H_
 #define _OMXFITFUNCTION_H_
 
-#include "R.h"
+#include <R.h>
 #include <Rinternals.h> 
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+
 #include "omxDefines.h"
-
-typedef struct omxFitFunction omxFitFunction;
-
-
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxAlgebraFunctions.h"
 #include "omxData.h"
 #include "omxState.h"
 #include "omxExpectation.h"
-#include "omxOptimizer.h"
 
 typedef struct {
 	char label[250];
@@ -62,7 +58,6 @@ struct omxFitFunction {					// A fit function
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);
-	void (*repopulateFun)(omxFitFunction* oo, double* x, int n);					// To repopulate any data stored in the fit function
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
 	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
 	
@@ -76,11 +71,13 @@ struct omxFitFunction {					// A fit function
 	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
 	int usesChildModels;    // whether to create child models for parallelization
 	bool initialized;
+	FreeVarGroup *freeVarGroup;
 };
 
 /* Initialize and Destroy */
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber);
 void omxCompleteFitFunction(omxMatrix *om, SEXP rObj);
+void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
 	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors

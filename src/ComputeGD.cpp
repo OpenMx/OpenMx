@@ -16,17 +16,31 @@
 
 #include "omxState.h"
 #include "omxFitFunction.h"
-#include "omxOptimizer.h"
 #include "omxNPSOLSpecific.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
+
+class omxComputeGD : public omxComputeOperation {
+	typedef omxComputeOperation super;
+	omxMatrix *fitMatrix;
+
+	SEXP intervals, intervalCodes; // move to FitContext? TODO
+	int inform, iter;
+
+public:
+	omxComputeGD();
+	virtual void initFromFrontend(SEXP rObj);
+	virtual void compute(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
+};
 
 class omxCompute *newComputeGradientDescent()
 {
 	return new omxComputeGD();
 }
 
-void omxComputeGD::init()
+omxComputeGD::omxComputeGD()
 {
 	intervals = 0;
 	intervalCodes = 0;
@@ -36,29 +50,22 @@ void omxComputeGD::init()
 
 void omxComputeGD::initFromFrontend(SEXP rObj)
 {
+	super::initFromFrontend(rObj);
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	setFreeVarGroup(fitMatrix->fitFunction, Global->freeGroup[paramGroup]);
+}
 
-	numFree = Global->numFreeParams;
-	if (numFree <= 0) {
+void omxComputeGD::compute(FitContext *fc)
+{
+	if (fc->numParam <= 0) {
 		error("Model has no free parameters");
 		return;
 	}
 
-	PROTECT(minimum = NEW_NUMERIC(1));
-	PROTECT(estimate = allocVector(REALSXP, numFree));
-	PROTECT(gradient = allocVector(REALSXP, numFree));
-	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
-}
-
-void omxComputeGD::compute(double *startVals)
-{
-	memcpy(REAL(estimate), startVals, sizeof(double)*numFree);
-
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
 
-	omxInvokeNPSOL(fitMatrix, REAL(minimum), REAL(estimate),
-		       REAL(gradient), REAL(hessian), &inform, &iter);
+	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter);
 
 	omxFreeChildStates(globalState);
 
@@ -70,16 +77,28 @@ void omxComputeGD::compute(double *startVals)
 			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
 			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
 
-			omxNPSOLConfidenceIntervals(fitMatrix, getFit(),
-						    getEstimate(), Global->ciMaxIterations);
-			omxPopulateConfidenceIntervals(intervals, intervalCodes);
+			omxNPSOLConfidenceIntervals(fitMatrix, fc);
+			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
 		}
 	}  
 }
 
-void omxComputeGD::reportResults(MxRList *out)
+void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
+
+	int numFree = fc->numParam;
+
+	SEXP minimum, estimate, gradient, hessian;
+	PROTECT(minimum = NEW_NUMERIC(1));
+	PROTECT(estimate = allocVector(REALSXP, numFree));
+	PROTECT(gradient = allocVector(REALSXP, numFree));
+	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
+
+	REAL(minimum)[0] = fc->fit;
+	memcpy(REAL(estimate), fc->est, sizeof(double) * numFree);
+	memcpy(REAL(gradient), fc->grad, sizeof(double) * numFree);
+	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
 
 	out->push_back(std::make_pair(mkChar("minimum"), minimum));
 	out->push_back(std::make_pair(mkChar("estimate"), estimate));

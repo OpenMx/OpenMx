@@ -528,7 +528,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
-	off->repopulateFun = handleFreeVarList;
 
 	off->usesChildModels = TRUE;
 
