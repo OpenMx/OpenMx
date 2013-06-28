@@ -850,47 +850,55 @@ ba81SetupQuadrature(omxExpectation* oo, int numPoints, double *points, double *a
 	}
 }
 
-// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
-// model. Journal of Educational Statistics, 12, 339-368.
-//
-// For now, we'll just reuse the same quadrature and the
-// already-computed E-step data.
-
-// TODO better to do all persons at a time
 static void
-ba81EAP1(omxExpectation *oo, int row, double *ability, double *psd)
+ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique, double *ability)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
-	int maxDims = state->maxDims;
 	double *patternLik = state->patternLik;
-	OMXZERO(ability, maxDims);
-	OMXZERO(psd, maxDims);
-	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, state->quadGridSize, quad);
-		double where[maxDims];
-		pointToWhere(state, quad, where, maxDims);
-		double logArea = logAreaProduct(state, quad, maxDims);
-		double *lxk = ba81LikelihoodFast(oo, 0, quad);
-		double plik = exp(lxk[row] + logArea - patternLik[row]);
+	int quad[maxDims];
+	decodeLocation(qx, maxDims, state->quadGridSize, quad);
+	double where[maxDims];
+	pointToWhere(state, quad, where, maxDims);
+	double logArea = logAreaProduct(state, quad, maxDims);
+	double *lxk = ba81LikelihoodFast(oo, 0, quad);
+
+	for (int px=0; px < numUnique; px++) {
+		double piece[maxDims];
+		double plik = exp(lxk[px] + logArea - patternLik[px]);
 		for (int dx=0; dx < maxDims; dx++) {
-			ability[dx] += where[dx] * plik;
+			piece[dx] = where[dx] * plik;
+		}
+		double *arow = ability + px * 2 * maxDims;
+#pragma omp critical(EAP1Update)
+		for (int dx=0; dx < maxDims; dx++) {
+			arow[dx*2] += piece[dx];
 		}
 	}
-	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, state->quadGridSize, quad);
-		double where[maxDims];
-		pointToWhere(state, quad, where, maxDims);
-		double logArea = logAreaProduct(state, quad, maxDims);
-		double *lxk = ba81LikelihoodFast(oo, 0, quad);
+}
+
+static void
+ba81EAP2(omxExpectation *oo, long qx, int maxDims, int numUnique, double *ability)
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	double *patternLik = state->patternLik;
+	int quad[maxDims];
+	decodeLocation(qx, maxDims, state->quadGridSize, quad);
+	double where[maxDims];
+	pointToWhere(state, quad, where, maxDims);
+	double logArea = logAreaProduct(state, quad, maxDims);
+	double *lxk = ba81LikelihoodFast(oo, 0, quad);
+
+	for (int px=0; px < numUnique; px++) {
+		double psd[maxDims];
+		double *arow = ability + px * 2 * maxDims;
 		for (int dx=0; dx < maxDims; dx++) {
-			double ldiff = log(fabs(where[dx] - ability[dx]));
-			psd[dx] += exp(2 * ldiff + lxk[row] + logArea - patternLik[row]);
+			double ldiff = log(fabs(where[dx] - arow[dx*2]));
+			psd[dx] = exp(2 * ldiff + lxk[px] + logArea - patternLik[px]);
 		}
-	}
-	for (int dx=0; dx < maxDims; dx++) {
-		psd[dx] = sqrt(psd[dx]);
+#pragma omp critical(EAP1Update)
+		for (int dx=0; dx < maxDims; dx++) {
+			arow[dx*2+1] += psd[dx];
+		}
 	}
 }
 
@@ -899,6 +907,10 @@ void ba81EAP(omxExpectation *oo, omxRListElement *out)
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	int maxDims = state->maxDims;
 	omxData *data = state->data;
+	int numUnique = state->numUnique;
+
+	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
+	// model. Journal of Educational Statistics, 12, 339-368.
 
 	int numQpoints = state->numQpoints * 2;  // make configurable TODO
 	double Qpoint[numQpoints];
@@ -911,28 +923,47 @@ void ba81EAP(omxExpectation *oo, omxRListElement *out)
 	ba81SetupQuadrature(oo, numQpoints, Qpoint, Qarea);
 	ba81Estep(oo);   // recalc patternLik with a flat prior
 
+	// Need a separate work space because the destination needs
+	// to be in unsorted order with duplicated rows.
+	double *ability = Calloc(numUnique * maxDims * 2, double);
+
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+	for (long qx=0; qx < state->totalQuadPoints; qx++) {
+		ba81EAP1(oo, qx, maxDims, numUnique, ability);
+	}
+
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+	for (long qx=0; qx < state->totalQuadPoints; qx++) {
+		ba81EAP2(oo, qx, maxDims, numUnique, ability);
+	}
+
+	for (int px=0; px < numUnique; px++) {
+		double *arow = ability + px * 2 * maxDims;
+		for (int dx=0; dx < maxDims; dx++) {
+			arow[dx*2+1] = sqrt(arow[dx*2+1]);
+		}
+	}
+
 	strcpy(out->label, "ability");
 	out->numValues = -1;
 	out->rows = data->rows;
 	out->cols = 2 * maxDims;
 	out->values = (double*) R_alloc(out->rows * out->cols, sizeof(double));
 
-	for (int rx=0; rx < state->numUnique; rx++) {
-		double ability[maxDims];
-		double psd[maxDims];
-
-		ba81EAP1(oo, rx, ability, psd);
+	for (int rx=0; rx < numUnique; rx++) {
+		double *pa = ability + rx * 2 * maxDims;
 
 		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
 		for (int dup=0; dup < dups; dup++) {
 			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
 			int col=-1;
 			for (int dx=0; dx < maxDims; dx++) {
-				out->values[++col * out->rows + dest] = ability[dx];
-				out->values[++col * out->rows + dest] = psd[dx];
+				out->values[++col * out->rows + dest] = pa[col];
+				out->values[++col * out->rows + dest] = pa[col];
 			}
 		}
 	}
+	Free(ability);
 }
 
 static void ba81Destroy(omxExpectation *oo) {
