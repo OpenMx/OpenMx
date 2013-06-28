@@ -21,9 +21,11 @@ for (ix in 1:numItems) {
 	correct[[ix]] <- rpf.rparam(items[[ix]])
 	if (ix>1) correct[[ix]][[4]] <- 0   # no guessing, for now
 }
-correct[[1]][[3]] <- 0   # no guessing, for now
-correct[[1]][[5]] <- 1
+correct[[1]][[5]] <- 1   # make all vectors the same length
 correct.mat <- simplify2array(correct)
+correct.mat[5,] <- 1
+correct.mat[4,1] <- 1
+correct.mat[3,1] <- 0
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
 maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
@@ -34,9 +36,9 @@ design <- matrix(c(1, 1,1,1,2,
 ability <- array(rnorm(numPeople * 2), dim=c(2, numPeople))
 #cov <- matrix(c(1, .68, .68, 1), nrow=2)
 #ability <- rmvnorm(numPeople, sigma=cov)
-data <- rpf.sample(ability, items, correct, design)
+data <- rpf.sample(ability, items, correct.mat, design)
 
-spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
@@ -83,5 +85,5 @@ m1 <- mxRun(m1, silent=TRUE)
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
 			c(correct.mat)), .91, .04)
 max.se <- max(m1@output$ability[c(2,4),])
-omxCheckCloseEnough(m1@output$ability[c(1,3),], ability, max.se*2.5)
-omxCheckCloseEnough(.696, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)
+omxCheckCloseEnough(sum(abs(m1@output$ability[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .01)
+omxCheckCloseEnough(.672, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)

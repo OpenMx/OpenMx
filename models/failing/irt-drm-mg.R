@@ -4,18 +4,19 @@ library(rpf)
 set.seed(9)
 
 numItems <- 30
-i1 <- rpf.drm(numChoices=4, multidimensional=TRUE)
+i1 <- rpf.drm(multidimensional=TRUE)
 items <- list()
 items[1:numItems] <- i1
 correct <- matrix(NA, 4, numItems)
 for (x in 1:numItems) correct[,x] <- rpf.rparam(i1)
 correct[1,] <- 1
 correct[3,] <- 0
+correct[4,] <- 1
 
 data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 
 if (1) {
-  spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+  spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
                    values=sapply(items, function(m) slot(m,'spec')),
                    free=FALSE, byrow=TRUE)
   
@@ -43,14 +44,14 @@ if (1) {
   m2 <- mxOption(m2, "Standard Errors", "No")
   m2 <- mxRun(m2)
   
-  omxCheckCloseEnough(m2@output$minimum, 14097, 1)
-  omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.518, .01)
+  omxCheckCloseEnough(m2@output$minimum, 14130.2, 1)
+  omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.357, .01)
   
   #print(m2@matrices$itemParam@values)
   #print(correct.mat)
   got <- cor(c(m2@matrices$itemParam@values),
              c(correct))
-  omxCheckCloseEnough(got, .996, .01)
+  omxCheckCloseEnough(got, .994, .01)
 }
 
 if (0) {
@@ -63,10 +64,10 @@ if (0) {
   pars[pars$name=="a1",'est'] <- FALSE
   pars[pars$name=="COV_11",'est'] <- TRUE
   fit <- mirt(rdata, 1, itemtype="2PL", D=1, quadpts=49, pars=pars)
-  # LL -6905.250 * -2 = 13810.5
+  # LL -7064.519 * -2 = 14129.04
   got <- coef(fit)
   print(got$GroupPars)
-  # COV 4.913
+  # COV 4.551
   got$GroupPars <- NULL
   round(m2@matrices$itemParam@values - simplify2array(got), 2)
   

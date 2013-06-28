@@ -19,6 +19,7 @@ for (ix in 1:numItems) {
 	items[[ix]] <- rpf.drm(factors=maxDim)
 	correct[[ix]] <- rpf.rparam(items[[ix]])
 	correct[[ix]][[4]] <- 0   # no guessing, for now
+	correct[[ix]][[5]] <- 1   # upper cound
 }
 correct.mat <- simplify2array(correct)
 
@@ -31,7 +32,7 @@ design <- matrix(c(rep(1,numItems),
 theta <- t(rmvnorm(numPersons, mean=rnorm(3, sd=.25)))
 data <- rpf.sample(theta, items, correct, design)
 
-spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
@@ -76,9 +77,9 @@ m1 <- mxRun(m1, silent=TRUE)
 #print(m1@matrices$ItemParam@values)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
 omxCheckCloseEnough(got, .966, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[1,]), c(theta[1,])), .832, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[3,]), c(theta[2,])), .710, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[5,]), c(theta[3,])), .727, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[1,]), c(theta[1,])), .747, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[3,]), c(theta[2,])), .781, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[5,]), c(theta[3,])), .679, .01)
 
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 898)
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 980)
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 925)
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 996)
