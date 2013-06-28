@@ -54,7 +54,8 @@ m1 <- mxModel(model="bifactor",
 	     ItemSpec="ItemSpec",
 	     Design="Design",
 	     ItemParam="ItemParam",
-	    qpoints=29),
+	    qpoints=29,
+	    scores="full"),
           mxFitFunctionBA81()
 )
 

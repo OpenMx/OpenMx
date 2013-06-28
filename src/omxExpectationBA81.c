@@ -31,6 +31,12 @@ static const struct rpf *rpf_model = NULL;
 static int rpf_numModels;
 static const double MIN_PATTERNLIK = 1e-100;
 
+enum score_option {
+	SCORES_OMIT,
+	SCORES_UNIQUE,
+	SCORES_FULL
+};
+
 typedef struct {
 
 	// data characteristics
@@ -81,7 +87,8 @@ typedef struct {
 	double *latentCov1;       // maxDims * maxDims ; only lower triangle is used
 	double *latentMeanOut;    // maxAbilities
 	double *latentCovOut;     // maxAbilities * maxAbilities ; only lower triangle is used
-	// also need corresponding label matrices for equating
+	enum score_option scores;
+
 	int *freeMean;
 	int *freeCov;
 	int choleskyError;
@@ -1101,48 +1108,17 @@ ba81ComputeFit(omxExpectation* oo, int want, double *gradient, double *hessian)
 	}
 }
 
-/**
- * MAP is not affected by the number of items. EAP is. Likelihood can
- * get concentrated in a single quadrature ordinate. For 3PL, response
- * patterns can have a bimodal likelihood. This will confuse MAP and
- * is a key advantage of EAP (Thissen & Orlando, 2001, p. 136).
- *
- * Thissen, D. & Orlando, M. (2001). IRT for items scored in two
- * categories. In D. Thissen & H. Wainer (Eds.), \emph{Test scoring}
- * (pp 73-140). Lawrence Erlbaum Associates, Inc.
- */
-omxRListElement *
-ba81EAP(omxExpectation *oo, int *numReturns)
+static double *
+realEAP(omxExpectation *oo)
 {
+	// add openmp parallelization stuff TODO
+
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
-	int maxDims = state->maxDims;
 	int numSpecific = state->numSpecific;
+	int maxDims = state->maxDims;
 	int priDims = maxDims - (numSpecific? 1 : 0);
-	int maxAbilities = state->maxAbilities;
-
-	*numReturns = 4; // + (maxDims > 1) + (numSpecific > 1);
-	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
-	int ox=0;
-
-	out[ox].numValues = -1;
-	strcpy(out[ox].label, "latent.cov");
-	out[ox].rows = maxAbilities;
-	out[ox].cols = maxAbilities;
-	out[ox].values = state->latentCovOut;
-	++ox;
-
-	out[ox].numValues = maxAbilities;
-	strcpy(out[ox].label, "latent.mean");
-	out[ox].values = state->latentMeanOut;
-	++ox;
-
-	out[ox].numValues = 1;
-	strcpy(out[ox].label, "EM.LL");
-	out[ox].values = &state->lastEMLL;
-	++ox;
-
-	omxData *data = state->data;
 	int numUnique = state->numUnique;
+	int maxAbilities = state->maxAbilities;
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
@@ -1266,23 +1242,75 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		}
 	}
 
-	strcpy(out[ox].label, "ability");
+	return ability;
+}
+
+/**
+ * MAP is not affected by the number of items. EAP is. Likelihood can
+ * get concentrated in a single quadrature ordinate. For 3PL, response
+ * patterns can have a bimodal likelihood. This will confuse MAP and
+ * is a key advantage of EAP (Thissen & Orlando, 2001, p. 136).
+ *
+ * Thissen, D. & Orlando, M. (2001). IRT for items scored in two
+ * categories. In D. Thissen & H. Wainer (Eds.), \emph{Test scoring}
+ * (pp 73-140). Lawrence Erlbaum Associates, Inc.
+ */
+omxRListElement *
+ba81EAP(omxExpectation *oo, int *numReturns)   // rename to "return stuff to user"
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	int maxAbilities = state->maxAbilities;
+
+	*numReturns = 3 + (state->scores != SCORES_OMIT);
+	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
+	int ox=0;
+
 	out[ox].numValues = -1;
-	out[ox].rows = 2 * maxAbilities;
-	out[ox].cols = data->rows;
-	out[ox].values = (double*) R_alloc(out[ox].rows * out[ox].cols, sizeof(double));
-
-	for (int rx=0; rx < numUnique; rx++) {
-		double *pa = ability + rx * 2 * maxAbilities;
-
-		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
-		for (int dup=0; dup < dups; dup++) {
-			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-			memcpy(out[ox].values + dest * out[ox].rows, pa, sizeof(double) * 2 * maxAbilities);
-		}
-	}
-	Free(ability);
+	strcpy(out[ox].label, "latent.cov");
+	out[ox].rows = maxAbilities;
+	out[ox].cols = maxAbilities;
+	out[ox].values = state->latentCovOut;
 	++ox;
+
+	out[ox].numValues = maxAbilities;
+	strcpy(out[ox].label, "latent.mean");
+	out[ox].values = state->latentMeanOut;
+	++ox;
+
+	out[ox].numValues = 1;
+	strcpy(out[ox].label, "EM.LL");
+	out[ox].values = &state->lastEMLL;
+	++ox;
+
+	if (state->scores != SCORES_OMIT) {
+		double *ability = realEAP(oo);
+		int numUnique = state->numUnique;
+		omxData *data = state->data;
+
+		int cols = state->scores == SCORES_FULL? data->rows : numUnique;
+
+		strcpy(out[ox].label, "ability");
+		out[ox].numValues = -1;
+		out[ox].rows = 2 * maxAbilities;
+		out[ox].cols = cols;
+		out[ox].values = (double*) R_alloc(out[ox].rows * out[ox].cols, sizeof(double));
+
+		if (state->scores == SCORES_FULL) {
+			for (int rx=0; rx < numUnique; rx++) {
+				double *pa = ability + rx * 2 * maxAbilities;
+
+				int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
+				for (int dup=0; dup < dups; dup++) {
+					int dest = omxDataIndex(data, state->rowMap[rx]+dup);
+					memcpy(out[ox].values + dest * out[ox].rows, pa, sizeof(double) * 2 * maxAbilities);
+				}
+			}
+		} else {
+			memcpy(out[ox].values, ability, sizeof(double) * numUnique * 2 * maxAbilities);
+		}
+		Free(ability);
+		++ox;
+	}
 
 	for (int ix=0; ix < state->itemParam->cols; ix++) {
 		double *spec = omxMatrixColumn(state->itemSpec, ix);
@@ -1616,6 +1644,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	PROTECT(tmp = GET_SLOT(rObj, install("qwidth")));
 	state->Qwidth = asReal(tmp);
+
+	PROTECT(tmp = GET_SLOT(rObj, install("scores")));
+	const char *score_option = CHAR(asChar(tmp));
+	if (strcmp(score_option, "omit")==0) state->scores = SCORES_OMIT;
+	if (strcmp(score_option, "unique")==0) state->scores = SCORES_UNIQUE;
+	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 
 	state->latentMean = Realloc(NULL, state->maxAbilities * numUnique, double);
 	state->latentCov = Realloc(NULL, state->maxAbilities * state->maxAbilities * numUnique, double);

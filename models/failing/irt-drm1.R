@@ -31,7 +31,8 @@ m2 <- mxModel(model="drm1", ip.mat, spec,
               mxExpectationBA81(
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam",
-		qpoints=30),
+		qpoints=30,
+		scores="full"),
               mxFitFunctionBA81())
 
 m2 <- mxOption(m2, "Analytic Gradients", 'no')

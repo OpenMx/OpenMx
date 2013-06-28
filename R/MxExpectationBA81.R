@@ -25,13 +25,14 @@ setClass(Class = "MxExpectationBA81",
 	   qwidth = "numeric",
 	   cache = "logical",
 	   rescale = "logical",
+	   scores = "character",
 	   free.mean = "MxOptionalLogical",
 	   free.cov = "MxOptionalMatrix"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   qpoints, qwidth, cache, free.mean, free.cov, rescale,
+		   qpoints, qwidth, cache, free.mean, free.cov, rescale, scores,
 		   name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
@@ -42,6 +43,7 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@qwidth <- qwidth
             .Object@cache <- cache
             .Object@rescale <- rescale
+            .Object@scores <- scores
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
 	    .Object@free.mean <- free.mean
@@ -131,7 +133,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=NULL, Design=NULL,
 			      qpoints=NULL, qwidth=6.0, cache=TRUE, free.mean=NULL, free.cov=NULL,
-			      rescale=TRUE) {
+			      rescale=TRUE, scores="omit") {
 
 	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
@@ -146,8 +148,13 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=
 		stop("free.cov must be symmetric")
 	}
 
+	score.options <- c("omit", "unique", "full")
+	if (!match(scores, score.options)) {
+		stop(paste("Valid score options are", deparse(score.options)))
+	}
+
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   qpoints, qwidth, cache, free.mean, free.cov, rescale))
+		   qpoints, qwidth, cache, free.mean, free.cov, rescale, scores))
 }
 
 imxEqualIntervalQuadratureData <- function(n, width) {
