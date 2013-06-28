@@ -35,6 +35,7 @@ typedef struct {
 	// data characteristics
 	omxData *data;
 	int numUnique;
+	int *numIdentical;        // length numUnique
 	double *logNumIdentical;  // length numUnique
 	int *rowMap;              // length numUnique
 
@@ -70,15 +71,21 @@ typedef struct {
 	double *lxk;              // wo/cache, numUnique * thread
 	double *allSlxk;          // numUnique * thread
 	double *Slxk;             // numUnique * #specific dimensions * thread
-	double *patternLik;       // length numUnique
-	double ll;                // the most recent finite ll
+	double *patternLik;       // numUnique
+	double *SpatternLik;      // numSpecific * numUnique
+	double ll;                // the most recent finite ll; TODO obsolete by lbound/ubound
+	// for multi-group, need to know the reference group TODO
+	double *latentMean;       // maxAbilities * numUnique
+	double *latentCov;        // maxAbilities * maxAbilities * numUnique ; only lower triangle is used
+	double *latentMean1;      // maxDims
+	double *latentCov1;       // maxDims * maxDims ; only lower triangle is used
 
 	int gradientCount;
 	int fitCount;
 } omxBA81State;
 
 static void
-pda(const double *ar, int rows, int cols) {
+pda(const double *ar, int rows, int cols) {   // column major order
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
 			Rprintf("%.6g ", ar[cx * rows + rx]);
@@ -90,7 +97,7 @@ pda(const double *ar, int rows, int cols) {
 
 #if 0
 static void
-pia(const int *ar, int rows, int cols) {
+pia(const int *ar, int rows, int cols) {   // column major order
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
 			Rprintf("%d ", ar[cx * rows + rx]);
@@ -351,6 +358,42 @@ ba81LikelihoodFast(omxExpectation *oo, int specific, const int *restrict quad)
 
 }
 
+OMXINLINE static void
+mapLatentSpacePrimary(omxBA81State *state, int px, double piece, const double *where)
+{
+	double *latentMean = state->latentMean;
+	double *latentCov = state->latentCov;
+	int maxDims = state->maxDims;
+	int maxAbilities = state->maxAbilities;
+	int pmax = maxDims;
+	if (state->numSpecific) pmax -= 1;
+
+	for (int d1=0; d1 < pmax; d1++) {
+		double piece_w1 = piece * where[d1];
+		latentMean[px * maxAbilities + d1] += piece_w1;
+		for (int d2=0; d2 <= d1; d2++) {
+			int loc = px * maxAbilities * maxAbilities + d2 * maxAbilities + d1;
+			latentCov[loc] += piece_w1 * where[d2];
+		}
+	}
+}
+
+OMXINLINE static void
+mapLatentSpaceSpecific(omxBA81State *state, int specific, int px, double piece, const double where)
+{
+	double *latentMean = state->latentMean;
+	double *latentCov = state->latentCov;
+	int maxDims = state->maxDims;
+	int maxAbilities = state->maxAbilities;
+	int sdim = maxDims + specific - 1;
+
+	double piece_w1 = piece * where;
+	latentMean[px * maxAbilities + sdim] += piece_w1;
+
+	int loc = px * maxAbilities * maxAbilities + sdim * maxAbilities + sdim;
+	latentCov[loc] += piece_w1 * where;
+}
+
 #define CALC_ALLSLXK(state, numUnique) \
 	(state->allSlxk + omx_absolute_thread_num() * (numUnique))
 
@@ -379,6 +422,9 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 
 		for (int qx=0; qx < quadGridSize; qx++) {
 			quad[sDim] = qx;
+			double where[maxDims];
+			pointToWhere(state, quad, where, maxDims);
+
 			double *lxk;
 			if (recompute) {
 				lxk = ba81Likelihood(oo, sx, quad);
@@ -387,7 +433,12 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				eis[ix] += exp(lxk[ix] + state->logQarea[qx]);
+				double tmp = exp(lxk[ix] + state->logQarea[qx]);
+				eis[ix] += tmp;
+				if (recompute) {
+					mapLatentSpaceSpecific(state, sx, ix, tmp, where[sDim]);
+					state->SpatternLik[sx * numUnique + ix] += tmp;
+				}
 			}
 		}
 
@@ -428,17 +479,24 @@ decodeLocation(long qx, const int dims, const long *restrict grid,
 }
 
 static void
-ba81Estep(omxExpectation *oo) {
+ba81Estep1(omxExpectation *oo) {
 	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
 
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	double *patternLik = state->patternLik;
+	double *SpatternLik = state->SpatternLik;
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
-
-	omxCopyMatrix(state->EitemParam, state->itemParam);
+	double *latentMean = state->latentMean;
+	double *latentCov = state->latentCov;
+	int maxDims = state->maxDims;
+	int maxAbilities = state->maxAbilities;
+	int primaryDims = maxDims;
 
 	OMXZERO(patternLik, numUnique);
+	if (numSpecific) OMXZERO(SpatternLik, numSpecific * numUnique);
+	OMXZERO(latentMean, numUnique * maxAbilities);
+	OMXZERO(latentCov, numUnique * maxAbilities * maxAbilities);
 
 	// E-step, marginalize person ability
 	//
@@ -450,42 +508,171 @@ ba81Estep(omxExpectation *oo) {
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
-			int quad[state->maxDims];
-			decodeLocation(qx, state->maxDims, state->quadGridSize, quad);
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->quadGridSize, quad);
+			double where[maxDims];
+			pointToWhere(state, quad, where, maxDims);
 
 			double *lxk = ba81Likelihood(oo, 0, quad);
 
-			double logArea = logAreaProduct(state, quad, state->maxDims);
+			double logArea = logAreaProduct(state, quad, maxDims);
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(lxk[px] + logArea);
 				patternLik[px] += tmp;
+				mapLatentSpacePrimary(state, px, tmp, where);
 			}
 		}
 	} else {
-		int sDim = state->maxDims-1;
+		primaryDims -= 1;
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
-			int quad[state->maxDims];
-			decodeLocation(qx, sDim, state->quadGridSize, quad);
+			int quad[maxDims];
+			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
+			double where[primaryDims];
+			pointToWhere(state, quad, where, primaryDims);
 
 			double *allSlxk = CALC_ALLSLXK(state, numUnique);
 			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
 			cai2010(oo, TRUE, quad, allSlxk, Slxk);
 
-			double logArea = logAreaProduct(state, quad, sDim);
+			double logArea = logAreaProduct(state, quad, primaryDims);
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(allSlxk[px] + logArea);
 				patternLik[px] += tmp;
+				mapLatentSpacePrimary(state, px, tmp, where);
 			}
 		}
 	}
 
+	int *numIdentical = state->numIdentical;
 	for (int px=0; px < numUnique; px++) {
+		double weight = numIdentical[px] / patternLik[px];
+		for (int d1=0; d1 < primaryDims; d1++) {
+			latentMean[px * maxAbilities + d1] *= weight;
+			for (int d2=0; d2 <= d1; d2++) {
+				int loc = px * maxAbilities * maxAbilities + d2 * maxAbilities + d1;
+				latentCov[loc] *= weight;
+			}
+		}
+		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
+			double weight = numIdentical[px] / SpatternLik[(sdim-primaryDims) * numUnique + px];
+			latentMean[px + maxAbilities + sdim] *= weight;
+			int loc = px * maxAbilities * maxAbilities + sdim * maxAbilities + sdim;
+			latentCov[loc] *= weight;
+		}
 		patternLik[px] = log(patternLik[px]);
 	}
+
+	for (int px=1; px < numUnique; px++) {
+		for (int d1=0; d1 < primaryDims; d1++) {
+			latentMean[d1] += latentMean[px * maxAbilities + d1];
+			for (int d2=0; d2 <= d1; d2++) {
+				int cell = d2 * maxAbilities + d1;
+				int loc = px * maxAbilities * maxAbilities + cell;
+				latentCov[cell] += latentCov[loc];
+			}
+		}
+		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
+			latentMean[sdim] += latentMean[px * maxAbilities + sdim];
+			int cell = sdim * maxAbilities + sdim;
+			int loc = px * maxAbilities * maxAbilities + cell;
+			latentCov[cell] += latentCov[loc];
+		}
+	}
+
+	//pda(latentMean, state->maxAbilities, 1);
+	//pda(latentCov, state->maxAbilities, state->maxAbilities);
+
+	// only consider reference group TODO
+	omxData *data = state->data;
+	for (int d1=0; d1 < maxAbilities; d1++) {
+		latentMean[d1] /= data->rows;
+	}
+
+	for (int d1=0; d1 < primaryDims; d1++) {
+		for (int d2=0; d2 <= d1; d2++) {
+			int cell = d2 * maxAbilities + d1;
+			int tcell = d1 * maxAbilities + d2;
+			latentCov[tcell] = latentCov[cell] =
+				latentCov[cell] / data->rows - latentMean[d1] * latentMean[d2];
+		}
+	}
+	for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
+		int cell = sdim * maxAbilities + sdim;
+		latentCov[cell] = latentCov[cell] / data->rows - latentMean[sdim] * latentMean[sdim];
+	}
+
+	pda(latentMean, state->maxAbilities, 1);
+	pda(latentCov, state->maxAbilities, state->maxAbilities);
+
+	int info = 0;
+	const char triangle = 'L';
+	F77_CALL(dpotrf)(&triangle, &maxAbilities, latentCov, &maxAbilities, &info);
+	if (info != 0) error("Cholesky failed with %d", info);
+}
+
+static void
+schilling_bock_2005_rescale(omxExpectation *oo)
+{
+	omxBA81State *state = (omxBA81State*) oo->argStruct;
+	omxMatrix *itemSpec = state->itemSpec;
+	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *design = state->design;
+	double *latentMean = state->latentMean;
+	double *latentCov = state->latentCov;
+	double *latentMean1 = state->latentMean1;
+	double *latentCov1 = state->latentCov1;
+	int maxAbilities = state->maxAbilities;
+	int maxDims = state->maxDims;
+
+	Rprintf("schilling bock\n");
+	pda(latentMean, maxAbilities, 1);
+	pda(latentCov, maxAbilities, maxAbilities);
+	//omxPrint(design, "design");
+
+	int numItems = itemParam->cols;
+	for (int ix=0; ix < numItems; ix++) {
+		const double *spec = omxMatrixColumn(itemSpec, ix);
+		int id = spec[RPF_ISpecID];
+		const double *rawDesign = omxMatrixColumn(design, ix);
+		int idesign[design->rows];
+		int idx = 0;
+		for (int dx=0; dx < design->rows; dx++) {
+			if (isfinite(rawDesign[dx])) idesign[idx++] = rawDesign[dx]-1;
+		}
+		for (int d1=0; d1 < idx; d1++) {
+			latentMean1[d1] = latentMean[idesign[d1]];
+			for (int d2=0; d2 <= d1; d2++) {
+				latentCov1[d2 * maxDims + d1] =
+					latentCov[idesign[d2] * maxAbilities + idesign[d1]];
+			}
+		}
+		if (1) {  // make optional TODO
+			for (int d1=idx; d1 < maxDims; d1++) latentMean1[d1] = nan("");
+			for (int d1=0; d1 < maxDims; d1++) {
+				for (int d2=0; d2 < maxDims; d2++) {
+					if (d1 < idx && d2 < idx) continue;
+					latentCov1[d2 * maxDims + d1] = nan("");
+				}
+			}
+		}
+		//pda(latentMean1, maxDims, 1);
+		//pda(latentCov1, maxDims, maxDims);
+		double *iparam = omxMatrixColumn(itemParam, ix);
+		int *mask = state->paramMap + itemParam->rows * ix;
+		rpf_model[id].rescale(spec, iparam, mask, latentMean1, latentCov1);
+	}
+}
+
+static void
+ba81Estep(omxExpectation *oo) {
+	omxBA81State *state = (omxBA81State*) oo->argStruct;
+	omxCopyMatrix(state->EitemParam, state->itemParam);
+	ba81Estep1(oo);
+	schilling_bock_2005_rescale(oo);
 }
 
 OMXINLINE static void
@@ -633,7 +820,7 @@ static double
 ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
-	omxState* currentState = oo->currentState;
+	omxState* currentState = oo->currentState;  // only used in #pragma omp
 	omxMatrix *customPrior = state->customPrior;
 	omxMatrix *itemParam = state->itemParam;
 	omxMatrix *itemSpec = state->itemSpec;
@@ -764,8 +951,6 @@ ba81ComputeFit(omxExpectation* oo, int want, double *gradient)
 
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxState* currentState = oo->currentState;
-
-	if (!state->paramMap) buildParamMap(oo);
 
 	if (want & FF_COMPUTE_FIT) {
 		++state->fitCount;
@@ -950,7 +1135,7 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		Qarea[qx] = 1.0/numQpoints;
 	}
 	ba81SetupQuadrature(oo, numQpoints, Qpoint, Qarea);
-	ba81Estep(oo);   // recalc patternLik with a flat prior
+	ba81Estep1(oo);   // recalc patternLik with a flat prior
 
 	double *cov = NULL;
 	/*
@@ -1046,19 +1231,25 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->customPrior);
 	Free(state->logNumIdentical);
+	Free(state->numIdentical);
 	Free(state->Qpoint);
 	Free(state->Qarea);
 	Free(state->logQarea);
 	Free(state->rowMap);
 	Free(state->patternLik);
+	Free(state->SpatternLik);
 	Free(state->lxk);
 	Free(state->Slxk);
 	Free(state->allSlxk);
 	Free(state->Sgroup);
 	Free(state->paramMap);
-	Free(state->paramUseCount);
+	//Free(state->paramUseCount);
 	Free(state->thrGradient);
 	Free(state->thrGradient1);
+	Free(state->latentMean);
+	Free(state->latentCov);
+	Free(state->latentMean1);
+	Free(state->latentCov1);
 	Free(state);
 }
 
@@ -1071,7 +1262,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		Rprintf("Initializing %s.\n", NAME);
 	}
 	if (!rpf_model) {
-		const int wantVersion = 2;
+		const int wantVersion = 3;
 		int version;
 		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model");
 		(*get_librpf)(&version, &rpf_numModels, &rpf_model);
@@ -1134,6 +1325,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->numUnique = numUnique;
 
 	state->rowMap = Realloc(NULL, numUnique, int);
+	state->numIdentical = Realloc(NULL, numUnique, int);
 	state->logNumIdentical = Realloc(NULL, numUnique, double);
 
 	int numItems = state->itemParam->cols;
@@ -1151,6 +1343,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 		int dups = omxDataNumIdenticalRows(state->data, rx);
+		state->numIdentical[ux] = dups;
 		state->logNumIdentical[ux] = log(dups);
 		state->rowMap[ux] = rx;
 		rx += dups;
@@ -1206,8 +1399,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->design = omxInitTemporaryMatrix(NULL, state->maxDims, numItems,
 				       TRUE, currentState);
 		for (int ix=0; ix < numItems; ix++) {
+			const double *spec = omxMatrixColumn(state->itemSpec, ix);
+			int dims = spec[RPF_ISpecDims];
 			for (int dx=0; dx < state->maxDims; dx++) {
-				omxSetMatrixElement(state->design, dx, ix, (double)dx+1);
+				omxSetMatrixElement(state->design, dx, ix, dx < dims? (double)dx+1 : nan(""));
 			}
 		}
 	} else {
@@ -1223,9 +1418,19 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		for (int ix=0; ix < design->rows * design->cols; ix++) {
 			double got = design->data[ix];
 			if (!R_FINITE(got)) continue;
-			if (round(got) != got) error("Design matrix can only contain integers"); // TODO better way?
+			if (round(got) != (int)got) error("Design matrix can only contain integers"); // TODO better way?
 			if (state->maxAbilities < got)
 				state->maxAbilities = got;
+		}
+		for (int ix=0; ix < design->cols; ix++) {
+			const double *idesign = omxMatrixColumn(design, ix);
+			int ddim = 0;
+			for (int rx=0; rx < design->rows; rx++) {
+				if (isfinite(idesign[rx])) ddim += 1;
+			}
+			const double *spec = omxMatrixColumn(state->itemSpec, ix);
+			int dims = spec[RPF_ISpecDims];
+			if (ddim != dims) error("Item %d has %d dims but design assigns %d", ix, dims, ddim);
 		}
 	}
 	if (state->maxAbilities <= state->maxDims) {
@@ -1260,6 +1465,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
 		state->allSlxk = Realloc(NULL, numUnique * numThreads, double);
 		state->Slxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
+		state->SpatternLik = Realloc(NULL, numUnique * state->numSpecific, double);
 	}
 
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
@@ -1274,6 +1480,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (numQPoints != length(tmp)) error("length(GHpoints) != length(GHarea)");
 
 	ba81SetupQuadrature(oo, numQPoints, qpoints, qarea);
+
+	state->latentMean = Realloc(NULL, state->maxAbilities * numUnique, double);
+	state->latentCov = Realloc(NULL, state->maxAbilities * state->maxAbilities * numUnique, double);
+	state->latentMean1 = Realloc(NULL, state->maxDims, double);
+	state->latentCov1 = Realloc(NULL, state->maxDims * state->maxDims, double);
+
+	buildParamMap(oo);
 
 	// verify data bounded between 1 and numOutcomes TODO
 	// hm, looks like something could be added to omxData for column summary stats?

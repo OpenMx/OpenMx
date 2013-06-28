@@ -141,7 +141,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL
 		if (GHpoints < 3) {
 			error("GHpoints should be 3 or greater")
 		}
-		quadrature <- imxGaussHermiteData(GHpoints)
+		quadrature <- rpf.GaussHermiteData(GHpoints)
 	}
   
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design, RPF,

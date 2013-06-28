@@ -27,7 +27,7 @@ maxParam <- max(vapply(items, function(i) i@numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i@numOutcomes, 0))
 
 design <- matrix(c(1, 1,1,1,2,
-		   NA,2,2,2,1), byrow=TRUE, nrow=2)
+                  NA,2,2,2,1), byrow=TRUE, nrow=2)
 
 ability <- array(rnorm(numPeople * 2), dim=c(numPeople, 2))
 data <- rpf.sample(ability, items, correct, design)
@@ -37,14 +37,14 @@ spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
          free=FALSE, byrow=TRUE)
 
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
-		   values=design)
+                  values=design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1, 1.4, 0, 0),
-		   lbound=c(1e-6, -1e6, 0, 0,
-		     rep(c(1e-6, 1e-6, -1e6, 0), 4)),
+                  lbound=c(1e-6, -1e6, 0, 0,
+                    rep(c(1e-6, 1e-6, -1e6, 0), 4)),
          free=c(TRUE, TRUE, FALSE, FALSE,
-	   rep(c(TRUE, TRUE, TRUE, FALSE), 4)))
+          rep(c(TRUE, TRUE, TRUE, FALSE), 4)))
 
 m1 <- mxModel(model="2dim",
           spec, design,
@@ -70,11 +70,14 @@ if (1) {
 
 	m1 <- mxRun(m1, silent=TRUE)
 
+	#print(m1@matrices$ItemParam@values)
+	#print(correct.mat)
+
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .958, .01)
+				c(correct.mat)), .941, .01)
 	max.se <- max(m1@output$ability[,c(2,4)])
-	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*3)
-	omxCheckCloseEnough(.587, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
+	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*2.5)
+	omxCheckCloseEnough(.576, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
 
 } else { ################
 
