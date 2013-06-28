@@ -74,7 +74,7 @@ typedef struct {
 	int fitCount;
 } omxBA81State;
 
-/*
+#if 0
 static void
 pda(const double *ar, int rows, int cols) {
 	for (int rx=0; rx < rows; rx++) {
@@ -85,7 +85,7 @@ pda(const double *ar, int rows, int cols) {
 	}
 
 }
-*/
+#endif
 
 static int
 findFreeVarLocation(omxMatrix *itemParam, const omxFreeVar *fv)
@@ -551,6 +551,13 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
 		double out[outcomes];
 		ba81Weight(oo, ix, quad, outcomes, out);
 		for (int ox=0; ox < outcomes; ox++) {
+#if 0
+			if (!isnormal(outcomeProb[ix * maxOutcomes + ox])) {
+				pda(itemParam->data, itemParam->rows, itemParam->cols);
+				pda(outcomeProb, outcomes, numItems);
+				error("RPF produced NAs");
+			}
+#endif
 			double got = out[ox] * outcomeProb[ix * maxOutcomes + ox];
 			areaProduct(state, quad, maxDims, &got);
 			thr_ll += got;
@@ -585,6 +592,8 @@ ba81ComputeFit1(omxExpectation* oo)
 			ll += (*rpf_model[id].prior)(spec, iparam);
 		}
 	}
+
+	if (!isnormal(ll)) error("Bayesian prior returned NA");
 
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
