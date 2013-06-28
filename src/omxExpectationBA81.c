@@ -1397,8 +1397,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->ll = 1e20;   // finite but big
 	
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
-	state->data = omxNewDataFromMxDataPtr(tmp, currentState);
-        UNPROTECT(1);
+	state->data = omxDataLookupFromState(tmp, currentState);
 
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
 		omxRaiseErrorf(currentState, "%s unable to handle data type %s", NAME, omxDataType(state->data));
@@ -1413,16 +1412,16 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	state->itemSpec =
-		omxNewMatrixFromIndexSlot(rObj, currentState, "ItemSpec");
+		omxNewMatrixFromSlot(rObj, currentState, "ItemSpec");
 	state->design =
-		omxNewMatrixFromIndexSlot(rObj, currentState, "Design");
+		omxNewMatrixFromSlot(rObj, currentState, "Design");
 	state->itemParam =
-		omxNewMatrixFromIndexSlot(rObj, currentState, "ItemParam");
+		omxNewMatrixFromSlot(rObj, currentState, "ItemParam");
 	state->EitemParam =
 		omxInitTemporaryMatrix(NULL, state->itemParam->rows, state->itemParam->cols,
 				       TRUE, currentState);
 	state->customPrior =
-		omxNewMatrixFromIndexSlot(rObj, currentState, "CustomPrior");
+		omxNewMatrixFromSlot(rObj, currentState, "CustomPrior");
 	
 	oo->computeFun = ba81Estep;
 	oo->destructFun = ba81Destroy;
