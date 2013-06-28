@@ -851,7 +851,8 @@ ba81SetupQuadrature(omxExpectation* oo, int numPoints, double *points, double *a
 }
 
 static void
-ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique, double *ability)
+ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique,
+	 double *ability, double *cov, double *spstats)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	double *patternLik = state->patternLik;
@@ -864,20 +865,36 @@ ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique, double *abilit
 
 	for (int px=0; px < numUnique; px++) {
 		double piece[maxDims];
+		double covPiece[maxDims*maxDims];
 		double plik = exp(lxk[px] + logArea - patternLik[px]);
 		for (int dx=0; dx < maxDims; dx++) {
 			piece[dx] = where[dx] * plik;
 		}
 		double *arow = ability + px * 2 * maxDims;
+		for (int d1=0; d1 < maxDims; d1++) {
+			for (int d2=0; d2 <= d1; d2++) {
+				covPiece[d1 * maxDims + d2] = piece[d1] * piece[d2];
+			}
+		}
 #pragma omp critical(EAP1Update)
-		for (int dx=0; dx < maxDims; dx++) {
-			arow[dx*2] += piece[dx];
+		if (1) {
+			for (int dx=0; dx < maxDims; dx++) {
+				arow[dx*2] += piece[dx];
+			}
+			// TODO verify calculation
+			for (int d1=0; d1 < maxDims; d1++) {
+				for (int d2=0; d2 <= d1; d2++) {
+					int loc = d1 * maxDims + d2;
+					cov[loc] += covPiece[loc];
+				}
+			}
 		}
 	}
 }
 
 static void
-ba81EAP2(omxExpectation *oo, long qx, int maxDims, int numUnique, double *ability)
+ba81EAP2(omxExpectation *oo, long qx, int maxDims, int numUnique,
+	 double *ability, double *spstats)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	double *patternLik = state->patternLik;
@@ -902,10 +919,21 @@ ba81EAP2(omxExpectation *oo, long qx, int maxDims, int numUnique, double *abilit
 	}
 }
 
-void ba81EAP(omxExpectation *oo, omxRListElement *out)
+omxRListElement *
+ba81EAP(omxExpectation *oo, int *numReturns)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	int maxDims = state->maxDims;
+	int numSpecific = state->numSpecific;
+
+	*numReturns = 2 + (maxDims > 1) + (numSpecific > 1);
+	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
+
+	out[0].numValues = 1;
+	out[0].values = (double*) R_alloc(1, sizeof(double));
+	strcpy(out[0].label, "Minus2LogLikelihood");
+	out[0].values[0] = state->ll;
+
 	omxData *data = state->data;
 	int numUnique = state->numUnique;
 
@@ -923,18 +951,45 @@ void ba81EAP(omxExpectation *oo, omxRListElement *out)
 	ba81SetupQuadrature(oo, numQpoints, Qpoint, Qarea);
 	ba81Estep(oo);   // recalc patternLik with a flat prior
 
+	double *cov = NULL;
+	if (maxDims > 1) {
+		strcpy(out[2].label, "ability.cov");
+		out[2].numValues = -1;
+		out[2].rows = maxDims;
+		out[2].cols = maxDims;
+		out[2].values = (double*) R_alloc(out[2].rows * out[2].cols, sizeof(double));
+		cov = out[2].values;
+		OMXZERO(cov, out[2].rows * out[2].cols);
+	}
+	double *spstats = NULL;
+	if (numSpecific) {
+		strcpy(out[3].label, "specific");
+		out[3].numValues = -1;
+		out[3].rows = numSpecific;
+		out[3].cols = 2;
+		out[3].values = (double*) R_alloc(out[3].rows * out[3].cols, sizeof(double));
+		spstats = out[3].values;
+	}
+
 	// Need a separate work space because the destination needs
 	// to be in unsorted order with duplicated rows.
 	double *ability = Calloc(numUnique * maxDims * 2, double);
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		ba81EAP1(oo, qx, maxDims, numUnique, ability);
+		ba81EAP1(oo, qx, maxDims, numUnique, ability, cov, spstats);
+	}
+
+	// make symmetric
+	for (int d1=0; d1 < maxDims; d1++) {
+		for (int d2=0; d2 < d1; d2++) {
+			cov[d2 * maxDims + d1] = cov[d1 * maxDims + d2];
+		}
 	}
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		ba81EAP2(oo, qx, maxDims, numUnique, ability);
+		ba81EAP2(oo, qx, maxDims, numUnique, ability, spstats);
 	}
 
 	for (int px=0; px < numUnique; px++) {
@@ -944,11 +999,11 @@ void ba81EAP(omxExpectation *oo, omxRListElement *out)
 		}
 	}
 
-	strcpy(out->label, "ability");
-	out->numValues = -1;
-	out->rows = data->rows;
-	out->cols = 2 * maxDims;
-	out->values = (double*) R_alloc(out->rows * out->cols, sizeof(double));
+	strcpy(out[1].label, "ability");
+	out[1].numValues = -1;
+	out[1].rows = data->rows;
+	out[1].cols = 2 * maxDims;
+	out[1].values = (double*) R_alloc(out[1].rows * out[1].cols, sizeof(double));
 
 	for (int rx=0; rx < numUnique; rx++) {
 		double *pa = ability + rx * 2 * maxDims;
@@ -956,14 +1011,15 @@ void ba81EAP(omxExpectation *oo, omxRListElement *out)
 		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
 		for (int dup=0; dup < dups; dup++) {
 			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-			int col=-1;
+			int col=0;
 			for (int dx=0; dx < maxDims; dx++) {
-				out->values[++col * out->rows + dest] = pa[col];
-				out->values[++col * out->rows + dest] = pa[col];
+				out[1].values[col * out[1].rows + dest] = pa[col]; ++col;
+				out[1].values[col * out[1].rows + dest] = pa[col]; ++col;
 			}
 		}
 	}
 	Free(ability);
+	return out;
 }
 
 static void ba81Destroy(omxExpectation *oo) {
