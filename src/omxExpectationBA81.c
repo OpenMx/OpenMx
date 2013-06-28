@@ -87,7 +87,7 @@ static void
 pda(const double *ar, int rows, int cols) {   // column major order
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
-			Rprintf("%.6g ", ar[cx * rows + rx]);
+			Rprintf("%.6g, ", ar[cx * rows + rx]);
 		}
 		Rprintf("\n");
 	}
@@ -97,7 +97,7 @@ static void
 pia(const int *ar, int rows, int cols) {   // column major order
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
-			Rprintf("%d ", ar[cx * rows + rx]);
+			Rprintf("%d, ", ar[cx * rows + rx]);
 		}
 		Rprintf("\n");
 	}
