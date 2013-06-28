@@ -105,9 +105,9 @@ static void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl
 }
 
 /****** Objective Function *********/
-void F77_SUB(npsolObjectiveFunction)
-	(	int* mode, int* n, double* x,
-		double* f, double* g, int* nstate )
+static void
+npsolObjectiveFunction1(int* mode, int* n, double* x,
+			double* f, double* g, double *hessian, int* nstate )
 {
 	unsigned short int checkpointNow = FALSE;
 
@@ -127,9 +127,9 @@ void F77_SUB(npsolObjectiveFunction)
 	NPSOL_fc->copyParamToModel(globalState, x);
 
 	if (*mode > 0 && Global->analyticGradients && NPSOL_currentInterval < 0) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, g);
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN, g, hessian);
 	} else {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL, NULL);
 	}
 
 	omxExamineFitOutput(globalState, fitMatrix, mode);
@@ -152,6 +152,13 @@ void F77_SUB(npsolObjectiveFunction)
 		omxSaveCheckpoint(x, *f, FALSE);		// Check about saving a checkpoint
 	}
 
+}
+
+void F77_SUB(npsolObjectiveFunction)
+	(	int* mode, int* n, double* x,
+		double* f, double* g, int* nstate )
+{
+	npsolObjectiveFunction1(mode, n, x, f, g, NULL, nstate);
 }
 
 /* Objective function for confidence interval limit finding. 

@@ -173,7 +173,7 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *gradient) {	
+static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *gradient, double *hession) {
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
@@ -285,7 +285,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 
 }
 
-static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { mxLog("Beginning FIML Evaluation."); }
 	// Requires: Data, means, covariances.
@@ -371,7 +371,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 	}
 }
 
-static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { mxLog("Beginning Ordinal FIML Evaluation.");}
 	// Requires: Data, means, covariances, thresholds

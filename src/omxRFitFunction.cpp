@@ -30,7 +30,7 @@ void omxDestroyRFitFunction(omxFitFunction *off) {
 	UNPROTECT(4); 			// fitfun, model, flatModel, and state
 }
 
-static void omxCallRFitFunction(omxFitFunction *oo, int want, double *gradient) {
+static void omxCallRFitFunction(omxFitFunction *oo, int want, double *gradient, double *hessian) {
 	omxState* currentState = oo->matrix->currentState;
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 

@@ -3,7 +3,7 @@
 
 SEXP omx_get_rpf_names();
 void ba81Gradient(omxExpectation* oo, double *out);
-double ba81ComputeFit(omxExpectation* oo, int want, double *gradient);
+double ba81ComputeFit(omxExpectation* oo, int want, double *gradient, double *hessian);
 
 omxRListElement *
 ba81EAP(omxExpectation *oo, int *numReturns);

@@ -111,7 +111,7 @@ omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numRe
 	return retVal;
 }
 
-static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.

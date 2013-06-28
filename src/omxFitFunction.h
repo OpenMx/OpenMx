@@ -57,7 +57,7 @@ struct omxFitFunction {					// A fit function
 	void (*initFun)(omxFitFunction *oo);
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
-	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad);
+	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad, double *hessian);
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
 	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
 	
@@ -83,7 +83,7 @@ void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
-void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient);
+void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient, double *hessian);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);

@@ -32,12 +32,12 @@ static omxRListElement *ba81SetFinalReturns(omxFitFunction *off, int *numReturns
 	return ba81EAP(off->expectation, numReturns);
 }
 
-static void ba81Compute(omxFitFunction *oo, int want, double *gradient) {
+static void ba81Compute(omxFitFunction *oo, int want, double *gradient, double *hessian) {
 	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
 
 	omxExpectation* expectation = oo->expectation;
   
-	oo->matrix->data[0] = ba81ComputeFit(expectation, want, gradient);
+	oo->matrix->data[0] = ba81ComputeFit(expectation, want, gradient, hessian);
 }
 
 void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {

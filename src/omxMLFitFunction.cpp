@@ -76,7 +76,7 @@ omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numRet
 	return retVal;
 }
 
-static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
 
 	if(OMX_DEBUG) { mxLog("Beginning ML Evaluation.");}
 	// Requires: Data, means, covariances.

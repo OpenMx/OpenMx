@@ -944,7 +944,7 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 }
 
 double
-ba81ComputeFit(omxExpectation* oo, int want, double *gradient)
+ba81ComputeFit(omxExpectation* oo, int want, double *gradient, double *hessian)
 {
 	if (!want) return 0;
 
@@ -955,11 +955,12 @@ ba81ComputeFit(omxExpectation* oo, int want, double *gradient)
 		++state->fitCount;
 	}
 
-	if (want & FF_COMPUTE_GRADIENT) {
+	if (want & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN)) {
 		++state->gradientCount;
 
 		int numFreeParams = currentState->numFreeParams;
 		OMXZERO(gradient, numFreeParams);
+		OMXZERO(hessian, numFreeParams * numFreeParams);
 
 		omxMatrix *itemParam = state->itemParam;
 		OMXZERO(state->thrGradient, itemParam->rows * itemParam->cols * getNumThreads(oo));
@@ -1247,7 +1248,7 @@ static void ba81Destroy(omxExpectation *oo) {
 		Rprintf("Freeing %s function.\n", NAME);
 	}
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
-	Rprintf("fit %d gradient %d\n", state->fitCount, state->gradientCount);
+	//Rprintf("fit %d gradient %d\n", state->fitCount, state->gradientCount);
 	omxFreeAllMatrixData(state->itemSpec);
 	omxFreeAllMatrixData(state->itemParam);
 	omxFreeAllMatrixData(state->EitemParam);
