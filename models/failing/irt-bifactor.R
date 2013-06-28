@@ -6,7 +6,7 @@
 require(OpenMx)
 require(rpf)
 
-#set.seed(5)
+set.seed(5)
 
 numItems <- 5
 numPersons <- 1000
@@ -72,4 +72,5 @@ m1 <- mxOption(m1, "Standard Errors", "No")
 m1 <- mxRun(m1, silent=TRUE)
 print(correct.mat)
 print(m1@matrices$ItemParam@values)
-print(cor(c(m1@matrices$ItemParam@values), c(correct.mat)))
+got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
+omxCheckCloseEnough(got, .93395, .001)

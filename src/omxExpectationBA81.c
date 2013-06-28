@@ -61,7 +61,7 @@ typedef struct {
 	SEXP rpf;
 	rpf_fn_t computeRPF;
 
-	double **lxk;             // numUnique * thread  TODO, allocate in one memory blob
+	double *lxk;              // numUnique * #specific quad points * thread
 	double *allSlxk;          // numUnique * thread
 	double *Slxk;             // numUnique * #specific dimensions * thread
 
@@ -97,6 +97,7 @@ static const double quadLogArea[] = {
 	-1.135380, -1.925519, -3.505891, -5.876352, -9.036387
 };
 
+/*
 static void
 pda(const double *ar, int rows, int cols) {
 	for (int rx=0; rx < rows; rx++) {
@@ -107,6 +108,7 @@ pda(const double *ar, int rows, int cols) {
 	}
 
 }
+*/
 
 OMXINLINE static void
 pointToWhere(const int *quad, double *where, int upto)
@@ -260,13 +262,13 @@ OMXINLINE static double *
 ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)   // TODO optimize more
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
-	double *restrict lxk = state->lxk[omx_absolute_thread_num()];
 	int numUnique = state->numUnique;
 	int maxOutcomes = state->maxOutcomes;
 	omxData *data = state->data;
 	int numItems = state->itemSpec->cols;
 	rpf_fn_t rpf_fn = state->computeRPF;
 	int *restrict Sgroup = state->Sgroup;
+	double *restrict lxk = state->lxk + numUnique * omx_absolute_thread_num();
 
 	const double *outcomeProb = (*rpf_fn)(oo, state->EitemParam, quad);
 	if (!outcomeProb) {
@@ -291,7 +293,9 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)   // 
 	return lxk;
 }
 
-// only pass in the primary quad TODO
+#define CALC_ALLSLXK(state, numUnique) (state->allSlxk + omx_absolute_thread_num() * (numUnique))
+#define CALC_SLXK(state, numUnique, numSpecific) (state->Slxk + omx_absolute_thread_num() * (numUnique) * (numSpecific))
+
 OMXINLINE static void
 cai2010(omxExpectation* oo, const int *restrict primaryQuad,
 	double *restrict allSlxk, double *restrict Slxk)
@@ -304,10 +308,6 @@ cai2010(omxExpectation* oo, const int *restrict primaryQuad,
 
 	int quad[maxDims];
 	memcpy(quad, primaryQuad, sizeof(int)*sDim);
-
-	// remove debug assertions TODO
-	if (Slxk != state->Slxk + omx_absolute_thread_num() * numUnique * numSpecific) error("oops");
-	if (allSlxk != state->allSlxk + omx_absolute_thread_num() * numUnique) error("oops");
 
 	OMXZERO(Slxk, numUnique * numSpecific);
 	OMXZERO(allSlxk, numUnique);
@@ -343,73 +343,6 @@ areaProduct(const int *restrict quad, const int upto)
 }
 
 OMXINLINE static void
-expectedUpdate(omxData *restrict data, int *restrict row, const int item,
-	       const double observed, const int outcomes, double *out)
-{
-	int pick = omxIntDataElement(data, *row, item);
-	if (pick == NA_INTEGER) {
-		double slice = exp(observed - log(outcomes));
-		for (int ox=0; ox < outcomes; ox++) {
-			out[ox] += slice;
-		}
-	} else {
-		out[pick-1] += exp(observed);
-	}
-	*row += omxDataNumIdenticalRows(data, *row);
-}
-
-/** 
- * This is the weight used in the likelihood function.
- *
- * \param quad a vector that indexes into a multidimensional quadrature
- * \param out points to an array numOutcomes wide
- */
-// TODO can pass in #outcomes
-static void
-ba81LogExpected(omxExpectation* oo, const int item, const int *quad, double *out)
-{
-	omxBA81State *state = (omxBA81State*) oo->argStruct;
-	omxData *data = state->data;
-	int specific = state->Sgroup[item];
-	int numItems = state->itemSpec->cols;
-	if (item < 0 || item >= numItems) error("ba81LogExpected: item %d out of range", item);
-
-	double *patternLik = state->patternLik;
-	double *logNumIdentical = state->logNumIdentical;
-	int numUnique = state->numUnique;
-	int numSpecific = state->numSpecific;
-	int outcomes = omxMatrixElement(state->itemSpec, ISpecOutcomes, item);
-
-	OMXZERO(out, outcomes);
-
-	if (numSpecific) {
-		double *allSlxk = state->allSlxk + omx_absolute_thread_num() * numUnique;
-		double *Slxk = state->Slxk + omx_absolute_thread_num() * numUnique * numSpecific;
-		cai2010(oo, quad, allSlxk, Slxk);
-		double *eis = Slxk + numUnique * specific;
-		double *lxk = ba81Likelihood(oo, specific, quad); // don't recalc TODO
-
-		for (int px=0, row=0; px < numUnique; px++) {
-			double observed = logNumIdentical[px] + (allSlxk[px] - eis[px]) +
-				(lxk[px] - patternLik[px]);
-			expectedUpdate(data, &row, item, observed, outcomes, out);
-		}
-	} else {
-		double *lxk = ba81Likelihood(oo, specific, quad);
-		for (int px=0, row=0; px < numUnique; px++) {
-			double observed = logNumIdentical[px] + lxk[px] - patternLik[px];
-			expectedUpdate(data, &row, item, observed, outcomes, out);
-		}
-	}
-
-	double logArea = areaProduct(quad, state->maxDims);
-
-	for (int ox=0; ox < outcomes; ox++) {
-		out[ox] = log(out[ox]) + logArea;
-	}
-}
-
-OMXINLINE static void
 decodeLocation(long qx, const int dims, const long *restrict grid,
 	       int *restrict quad)
 {
@@ -439,7 +372,22 @@ ba81Estep(omxExpectation *oo) {
 	// loop is over quadrature points and the outer loop is over
 	// all response patterns.
 	//
-	if (numSpecific) {
+	if (numSpecific == 0) {
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			int quad[state->maxDims];
+			decodeLocation(qx, state->maxDims, state->numQuadPoints, quad);
+
+			double *lxk = ba81Likelihood(oo, 0, quad);
+
+			double logArea = areaProduct(quad, state->maxDims);
+#pragma omp critical(EstepUpdate)
+			for (int px=0; px < numUnique; px++) {
+				double tmp = exp(lxk[px] + logArea);
+				patternLik[px] += tmp;
+			}
+		}
+	} else {
 		int sDim = state->maxDims-1;
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
@@ -447,34 +395,15 @@ ba81Estep(omxExpectation *oo) {
 			int quad[state->maxDims];
 			decodeLocation(qx, sDim, state->numQuadPoints, quad);
 
-			double *allSlxk = state->allSlxk + omx_absolute_thread_num() * numUnique;
-			double *Slxk = state->Slxk + omx_absolute_thread_num() * numUnique * numSpecific;
+			double *allSlxk = CALC_ALLSLXK(state, numUnique);
+			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
 			cai2010(oo, quad, allSlxk, Slxk);
-			
+
 			double logArea = areaProduct(quad, sDim);
 #pragma omp critical(EstepUpdate)
-			{
-				for (int px=0; px < numUnique; px++) {
-					double tmp = exp(allSlxk[px] + logArea);
-					patternLik[px] += tmp;
-				}
-			}
-		}
-	} else {
-#pragma omp parallel for num_threads(oo->currentState->numThreads)
-		for (long qx=0; qx < state->totalQuadPoints; qx++) {
-			int quad[state->maxDims];
-			decodeLocation(qx, state->maxDims, state->numQuadPoints, quad);
-			
-			double *lxk = ba81Likelihood(oo, 0, quad);
-		
-			double logArea = areaProduct(quad, state->maxDims);
-#pragma omp critical(EstepUpdate)
-			{
-				for (int px=0; px < numUnique; px++) {
-					double tmp = exp(lxk[px] + logArea);
-					patternLik[px] += tmp;
-				}
+			for (int px=0; px < numUnique; px++) {
+				double tmp = exp(allSlxk[px] + logArea);
+				patternLik[px] += tmp;
 			}
 		}
 	}
@@ -484,43 +413,141 @@ ba81Estep(omxExpectation *oo) {
 	}
 }
 
+OMXINLINE static void
+expectedUpdate(omxData *restrict data, int *restrict row, const int item,
+	       const double observed, const int outcomes, double *out)
+{
+	int pick = omxIntDataElement(data, *row, item);
+	if (pick == NA_INTEGER) {
+		double slice = exp(observed - log(outcomes));
+		for (int ox=0; ox < outcomes; ox++) {
+			out[ox] += slice;
+		}
+	} else {
+		out[pick-1] += exp(observed);
+	}
+	*row += omxDataNumIdenticalRows(data, *row);
+}
+
+/** 
+ * \param quad a vector that indexes into a multidimensional quadrature
+ * \param out points to an array numOutcomes wide
+ */
+static void
+ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, double *out)
+{
+	omxBA81State *state = (omxBA81State*) oo->argStruct;
+	omxData *data = state->data;
+	int specific = state->Sgroup[item];
+	int numItems = state->itemSpec->cols;
+	if (item < 0 || item >= numItems) error("ba81Weight: item %d out of range", item);
+
+	double *patternLik = state->patternLik;
+	double *logNumIdentical = state->logNumIdentical;
+	int numUnique = state->numUnique;
+	int numSpecific = state->numSpecific;
+	int maxDims = state->maxDims;
+	int sDim = state->maxDims-1;
+
+	OMXZERO(out, outcomes);
+
+	if (numSpecific == 0) {
+		double *lxk = ba81Likelihood(oo, specific, quad);
+		for (int px=0, row=0; px < numUnique; px++) {
+			double observed = logNumIdentical[px] + lxk[px] - patternLik[px];
+			expectedUpdate(data, &row, item, observed, outcomes, out);
+		}
+	} else {
+		double *allSlxk = CALC_ALLSLXK(state, numUnique);
+		double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
+		if (quad[sDim] == 0) {
+			// allSlxk, Slxk only depend on the ordinate of the primary dimensions
+			cai2010(oo, quad, allSlxk, Slxk);
+		}
+		double *eis = Slxk + numUnique * specific;
+		double *lxk = ba81Likelihood(oo, specific, quad);
+
+		for (int px=0, row=0; px < numUnique; px++) {
+			double observed = logNumIdentical[px] + (allSlxk[px] - eis[px]) +
+				(lxk[px] - patternLik[px]);
+			expectedUpdate(data, &row, item, observed, outcomes, out);
+		}
+	}
+
+	double logArea = areaProduct(quad, maxDims);
+
+	for (int ox=0; ox < outcomes; ox++) {
+		out[ox] = log(out[ox]) + logArea;
+	}
+}
+
+OMXINLINE static double
+ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
+{
+	omxBA81State *state = (omxBA81State*) oo->argStruct;
+	omxMatrix *itemParam = state->itemParam;
+	int numItems = itemParam->cols;
+	rpf_fn_t rpf_fn = state->computeRPF;
+	int maxOutcomes = state->maxOutcomes;
+
+	double *outcomeProb = (*rpf_fn)(oo, itemParam, quad);
+	if (!outcomeProb) return 0;
+
+	double thr_ll = 0;
+	for (int ix=0; ix < numItems; ix++) {
+		int outcomes = omxMatrixElement(state->itemSpec, ISpecOutcomes, ix);
+		double out[outcomes];
+		ba81Weight(oo, ix, quad, outcomes, out);
+		for (int ox=0; ox < outcomes; ox++) {
+			double got = exp(out[ox]) * outcomeProb[ix * maxOutcomes + ox];
+			thr_ll += got;
+		}
+	}
+
+	Free(outcomeProb);
+	return thr_ll;
+}
+
 static double
 ba81ComputeFit1(omxExpectation* oo)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxMatrix *itemPrior = state->itemPrior;
-	omxMatrix *itemParam = state->itemParam;
-	int numItems = itemParam->cols;
+	int numSpecific = state->numSpecific;
+	int maxDims = state->maxDims;
 
 	omxRecompute(itemPrior);
 	double ll = itemPrior->data[0];
-	int maxOutcomes = state->maxOutcomes;
-	rpf_fn_t rpf_fn = state->computeRPF;
+
+	if (numSpecific == 0) {
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->numQuadPoints, quad);
+
+			double thr_ll = ba81Fit1Ordinate(oo, quad);
+
+#pragma omp atomic
+			ll += thr_ll;
+		}
+	} else {
+		int sDim = state->maxDims-1;
+		long *numQuadPoints = state->numQuadPoints;
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
-	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		int quad[state->maxDims];
-		decodeLocation(qx, state->maxDims, state->numQuadPoints, quad);
+		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->numQuadPoints, quad);
 
-		double *outcomeProb = (*rpf_fn)(oo, itemParam, quad);
-		if (!outcomeProb) continue;
-
-		double thr_ll = 0;
-
-		for (int ix=0; ix < numItems; ix++) {
-			int outcomes = omxMatrixElement(state->itemSpec, ISpecOutcomes, ix);
-			double out[outcomes];
-			ba81LogExpected(oo, ix, quad, out);
-			for (int ox=0; ox < outcomes; ox++) {
-				double got = exp(out[ox]) * outcomeProb[ix * maxOutcomes + ox];
-				thr_ll += got;
+			double thr_ll = 0;
+			long specificPoints = numQuadPoints[sDim];
+			for (long sx=0; sx < specificPoints; sx++) {
+				quad[sDim] = sx;
+				thr_ll += ba81Fit1Ordinate(oo, quad);
 			}
+#pragma omp atomic
+			ll += thr_ll;
 		}
-
-		Free(outcomeProb);
-
-		#pragma omp atomic
-		ll += thr_ll;
 	}
 
 	if (isinf(ll)) {
@@ -550,6 +577,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->itemPrior);
 	if (state->patternLik) Free(state->patternLik);
+	if (state->lxk) Free(state->lxk);
 	if (state->Slxk) Free(state->Slxk);
 	if (state->allSlxk) Free(state->allSlxk);
 	if (state->Sgroup) Free(state->Sgroup);
@@ -646,11 +674,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int numThreads = oo->currentState->numThreads;
 	if (numThreads < 1) numThreads = 1;
-
-	state->lxk = (double**) R_alloc(numThreads, sizeof(double*));
-	for (int th=0; th < numThreads; th++) {
-		state->lxk[th] = (double*) R_alloc(numUnique, sizeof(double));
-	}
 
 	if (state->itemSpec->cols != data->cols || state->itemSpec->rows != ISpecRowCount) {
 		omxRaiseErrorf(currentState, "ItemSpec must have %d item columns and %d rows",
@@ -754,7 +777,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 	}
 
+	state->lxk = Realloc(NULL, numUnique * numThreads, double);
+
 	// verify data bounded between 1 and numOutcomes TODO
+	// hm, looks like something could be added to omxData?
 }
 
 SEXP omx_get_rpf_names()

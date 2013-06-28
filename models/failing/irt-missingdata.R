@@ -2,9 +2,7 @@ library(OpenMx)
 library(rpf)
 
 mcar <- function(data, pct) {
-  data <- good.data
-  pct <- 1/3
-  size <- prod(dim(data))
+	size <- prod(dim(data))
 	erase <- rep(TRUE, size * pct)
 	mask <- c(erase, rep(FALSE, size - length(erase)))[order(runif(size))]
 	shaped.mask <- array(mask, dim=dim(data))
@@ -26,8 +24,7 @@ correct.mat <- t(simplify2array(correct))
 
 good.data <- rpf.sample(250, items, correct)
 data <- mcar(good.data, 1/3)
-data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove all missing
-colnames(data) <- paste("item", 1:dim(data)[2], sep='')
+data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove when all items are missing
 #head(data)
 
 spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
