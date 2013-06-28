@@ -851,7 +851,7 @@ ba81SetupQuadrature(omxExpectation* oo, int numPoints, double *points, double *a
 }
 
 static void
-ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique,
+ba81EAP1(omxExpectation *oo, double *workspace, long qx, int maxDims, int numUnique,
 	 double *ability, double *cov, double *spstats)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
@@ -862,38 +862,42 @@ ba81EAP1(omxExpectation *oo, long qx, int maxDims, int numUnique,
 	pointToWhere(state, quad, where, maxDims);
 	double logArea = logAreaProduct(state, quad, maxDims);
 	double *lxk = ba81LikelihoodFast(oo, 0, quad);
+	double *myspace = workspace + 2 * maxDims * numUnique * omx_absolute_thread_num();
 
 	for (int px=0; px < numUnique; px++) {
-		double piece[maxDims];
-		double covPiece[maxDims*maxDims];
+		double *piece = myspace + px * 2 * maxDims;
 		double plik = exp(lxk[px] + logArea - patternLik[px]);
 		for (int dx=0; dx < maxDims; dx++) {
 			piece[dx] = where[dx] * plik;
 		}
-		double *arow = ability + px * 2 * maxDims;
+		/*
 		for (int d1=0; d1 < maxDims; d1++) {
 			for (int d2=0; d2 <= d1; d2++) {
-				covPiece[d1 * maxDims + d2] = piece[d1] * piece[d2];
+				covPiece[d1 * maxDims + d2] += piece[d1] * piece[d2];
 			}
 		}
+		*/
+	}
 #pragma omp critical(EAP1Update)
-		if (1) {
-			for (int dx=0; dx < maxDims; dx++) {
-				arow[dx*2] += piece[dx];
-			}
-			// TODO verify calculation
-			for (int d1=0; d1 < maxDims; d1++) {
-				for (int d2=0; d2 <= d1; d2++) {
-					int loc = d1 * maxDims + d2;
-					cov[loc] += covPiece[loc];
-				}
+	for (int px=0; px < numUnique; px++) {
+		double *piece = myspace + px * 2 * maxDims;
+		double *arow = ability + px * 2 * maxDims;
+		for (int dx=0; dx < maxDims; dx++) {
+			arow[dx*2] += piece[dx];
+		}
+		/*
+		for (int d1=0; d1 < maxDims; d1++) {
+			for (int d2=0; d2 <= d1; d2++) {
+				int loc = d1 * maxDims + d2;
+				cov[loc] += covPiece[loc];
 			}
 		}
+		*/
 	}
 }
 
 static void
-ba81EAP2(omxExpectation *oo, long qx, int maxDims, int numUnique,
+ba81EAP2(omxExpectation *oo, double *workspace, long qx, int maxDims, int numUnique,
 	 double *ability, double *spstats)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
@@ -926,7 +930,7 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 	int maxDims = state->maxDims;
 	int numSpecific = state->numSpecific;
 
-	*numReturns = 2 + (maxDims > 1) + (numSpecific > 1);
+	*numReturns = 2; // + (maxDims > 1) + (numSpecific > 1);
 	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 
 	out[0].numValues = 1;
@@ -952,6 +956,7 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 	ba81Estep(oo);   // recalc patternLik with a flat prior
 
 	double *cov = NULL;
+	/*
 	if (maxDims > 1) {
 		strcpy(out[2].label, "ability.cov");
 		out[2].numValues = -1;
@@ -961,7 +966,9 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		cov = out[2].values;
 		OMXZERO(cov, out[2].rows * out[2].cols);
 	}
+	*/
 	double *spstats = NULL;
+	/*
 	if (numSpecific) {
 		strcpy(out[3].label, "specific");
 		out[3].numValues = -1;
@@ -970,6 +977,11 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		out[3].values = (double*) R_alloc(out[3].rows * out[3].cols, sizeof(double));
 		spstats = out[3].values;
 	}
+	*/
+
+	// allocation of workspace could be optional
+	int numThreads = getNumThreads(oo);
+	double *workspace = Realloc(NULL, numUnique * maxDims * 2 * numThreads, double);
 
 	// Need a separate work space because the destination needs
 	// to be in unsorted order with duplicated rows.
@@ -977,19 +989,21 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		ba81EAP1(oo, qx, maxDims, numUnique, ability, cov, spstats);
+		ba81EAP1(oo, workspace, qx, maxDims, numUnique, ability, cov, spstats);
 	}
 
+	/*
 	// make symmetric
 	for (int d1=0; d1 < maxDims; d1++) {
 		for (int d2=0; d2 < d1; d2++) {
 			cov[d2 * maxDims + d1] = cov[d1 * maxDims + d2];
 		}
 	}
+	*/
 
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		ba81EAP2(oo, qx, maxDims, numUnique, ability, spstats);
+		ba81EAP2(oo, workspace, qx, maxDims, numUnique, ability, spstats);
 	}
 
 	for (int px=0; px < numUnique; px++) {
@@ -1019,6 +1033,7 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		}
 	}
 	Free(ability);
+	Free(workspace);
 	return out;
 }
 
