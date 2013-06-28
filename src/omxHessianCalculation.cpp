@@ -275,7 +275,7 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 
 	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMat->fitFunction, Global->freeGroup[paramGroup]);
+	setFreeVarGroup(fitMat->fitFunction, varGroup);
 
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("se")));
@@ -286,7 +286,7 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 void omxComputeEstimatedHessian::compute(FitContext *fc)
 {
 	fitContext = fc;
-	numParams = int(fc->numParam);
+	numParams = int(fc->varGroup->vars.size());
 	if (numParams <= 0) error("Model has no free parameters");
 
 	omxFitFunctionCreateChildren(globalState);

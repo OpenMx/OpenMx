@@ -448,3 +448,12 @@ void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode)
 		*mode = -1;
 	}
 }
+
+omxFreeVarLocation *omxFreeVar::getLocation(int matrix)
+{
+	for (size_t lx=0; lx < locations.size(); lx++) {
+		omxFreeVarLocation *loc = &locations[lx];
+		if (~loc->matrix == matrix) return loc;
+	}
+	return NULL;
+}

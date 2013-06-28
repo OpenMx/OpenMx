@@ -30,10 +30,8 @@ class FitContext {
 	static omxFitFunction *RFitFunction;
 
 	FitContext *parent;
- protected:
-	FreeVarGroup *varGroup;
  public:
-	size_t numParam;
+	FreeVarGroup *varGroup;
 	double fit;
 	double *est;
 	//	double *denom;
@@ -43,7 +41,7 @@ class FitContext {
 	void init();
 	FitContext();
 	FitContext(FitContext *parent);
-	FitContext(FitContext *parent, int group);
+	FitContext(FitContext *parent, FreeVarGroup *group);
 	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);
 	void copyParamToModel(omxMatrix *mat, double *at);
@@ -57,7 +55,7 @@ class FitContext {
 
 class omxCompute {
  public:
-	int paramGroup;  // probably better to store FreeVarGroup* here TODO
+	FreeVarGroup *varGroup;
         virtual void initFromFrontend(SEXP rObj) = 0;
         virtual void compute(FitContext *fc) = 0;
         virtual void reportResults(FitContext *fc, MxRList *out) = 0;

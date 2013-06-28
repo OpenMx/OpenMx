@@ -24,7 +24,7 @@ std::vector<int> FitContext::markMatrices;
 
 void FitContext::init()
 {
-	numParam = varGroup->vars.size();
+	size_t numParam = varGroup->vars.size();
 	fit = 0;
 	est = new double[numParam];
 	grad = new double[numParam];
@@ -37,6 +37,7 @@ FitContext::FitContext()
 	varGroup = Global->freeGroup[0];
 	init();
 
+	size_t numParam = varGroup->vars.size();
 	for (size_t v1=0; v1 < numParam; v1++) {
 		est[v1] = Global->freeGroup[0]->vars[v1]->start;
 		grad[v1] = nan("unset");
@@ -51,20 +52,21 @@ FitContext::FitContext(FitContext *parent)
 	varGroup = parent->varGroup;
 	init();
 	fit = parent->fit;
+	size_t numParam = varGroup->vars.size();
 	memcpy(est, parent->est, sizeof(double) * numParam);
 	memcpy(grad, parent->grad, sizeof(double) * numParam);
 	memcpy(hess, parent->hess, sizeof(double) * numParam * numParam);
 }
 
 // arg to control what to copy? usually don't want everything TODO
-FitContext::FitContext(FitContext *parent, int group)
+FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 {
 	this->parent = parent;
-	varGroup = Global->freeGroup[group];
 	init();
 
 	FreeVarGroup *src = parent->varGroup;
 	FreeVarGroup *dest = varGroup;
+	size_t numParam = varGroup->vars.size();
 
 	size_t d1 = 0;
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
@@ -94,6 +96,7 @@ void FitContext::updateParentAndFree()
 {
 	FreeVarGroup *src = varGroup;
 	FreeVarGroup *dest = parent->varGroup;
+	size_t numParam = varGroup->vars.size();
 
 	size_t s1 = 0;
 	for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
@@ -166,6 +169,7 @@ void FitContext::copyParamToModel(omxState* os)
 
 void FitContext::copyParamToModel(omxState* os, double *at)
 {
+	size_t numParam = varGroup->vars.size();
 	if(OMX_DEBUG) {
 		mxLog("Copying %d free parameter estimates to model %p", numParam, os);
 	}
@@ -252,8 +256,21 @@ void omxComputeOperation::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("free.group")));
-	paramGroup = INTEGER(slotValue)[0];
+	int paramGroup = INTEGER(slotValue)[0];
+	varGroup = Global->freeGroup[paramGroup];
 }
+
+class omxComputeAssign : public omxComputeOperation {
+	typedef omxComputeOperation super;
+	std::vector< int > from;
+	std::vector< int > to;
+	std::vector< int > pmap;
+
+ public:
+        virtual void initFromFrontend(SEXP rObj);
+        virtual void compute(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *out);
+};
 
 class omxComputeSequence : public omxCompute {
 	std::vector< omxCompute* > clist;
@@ -282,6 +299,9 @@ static class omxCompute *newComputeSequence()
 static class omxCompute *newComputeOnce()
 { return new omxComputeOnce(); }
 
+static class omxCompute *newComputeAssign()
+{ return new omxComputeAssign(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -292,6 +312,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeGradientDescent", &newComputeGradientDescent},
 	{"MxComputeSequence", &newComputeSequence },
 	{"MxComputeOnce", &newComputeOnce },
+	{"MxComputeAssign", &newComputeAssign },
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -310,6 +331,70 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
 
         return got;
 }
+
+void omxComputeAssign::initFromFrontend(SEXP rObj)
+{
+	super::initFromFrontend(rObj);
+
+	SEXP slotValue;
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("from")));
+	for (int mx=0; mx < length(slotValue); ++mx) {
+		from.push_back(INTEGER(slotValue)[mx]);
+	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("to")));
+	for (int mx=0; mx < length(slotValue); ++mx) {
+		to.push_back(INTEGER(slotValue)[mx]);
+	}
+
+	if (to.size() != from.size()) {
+		error("omxComputeAssign: length of from and to must match");
+	}
+
+	pmap.assign(varGroup->vars.size(), -1);
+	size_t offset=0;
+	for (size_t mx=0; mx < from.size(); mx++) {
+		int fmat = from[mx];
+		int tmat = to[mx];
+		for (size_t p1=0; p1 < varGroup->vars.size(); ++p1) {
+			omxFreeVarLocation *l1 = varGroup->vars[p1]->getLocation(fmat);
+			if (!l1) continue;
+			bool found = FALSE;
+			for (size_t r1=0; r1 < varGroup->vars.size(); ++r1) {
+				size_t p2 = (r1 + offset) % varGroup->vars.size();
+				omxFreeVarLocation *l2 = varGroup->vars[p2]->getLocation(tmat);
+				if (!l2) continue;
+				if (l1->row != l2->row || l1->col != l2->col) continue;
+				if (pmap[p1] != -1) {
+					error("omxComputeAssign: cannot copy %s to more than 1 place",
+					      globalState->matrixList[~fmat]->name);
+				}
+				if (p1 == p2) error("omxComputeAssign: cannot copy %s to itself",
+						    globalState->matrixList[~fmat]->name);
+				pmap[p1] = p2;
+				offset = p2+1;  // probably a good guess
+				found = TRUE;
+				break;
+			}
+			if (!found) error("omxComputeAssign: %s[%d,%d] is fixed, cannot copy %s",
+					  globalState->matrixList[~tmat]->name, 1+l1->row, 1+l1->col,
+					  globalState->matrixList[~fmat]->name);
+		}
+	}
+}
+
+void omxComputeAssign::compute(FitContext *fc)
+{
+	for (size_t px=0; px < varGroup->vars.size(); ++px) {
+		if (pmap[px] == -1) continue;
+		fc->est[ pmap[px] ] = fc->est[px];
+	}
+	fc->copyParamToModel(globalState);
+}
+
+void omxComputeAssign::reportResults(FitContext *fc, MxRList *out)
+{}
 
 void omxComputeSequence::initFromFrontend(SEXP rObj)
 {
@@ -331,10 +416,11 @@ void omxComputeSequence::compute(FitContext *fc)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		FitContext *context = fc;
-		int cgroup = clist[cx]->paramGroup;
-		if (cgroup) context = new FitContext(fc, cgroup);
+		if (fc->varGroup != clist[cx]->varGroup) {
+			context = new FitContext(fc, clist[cx]->varGroup);
+		}
 		clist[cx]->compute(context);
-		if (cgroup) context->updateParentAndFree();
+		if (context != fc) context->updateParentAndFree();
 		if (isErrorRaised(globalState)) break;
 	}
 }
@@ -343,10 +429,11 @@ void omxComputeSequence::reportResults(FitContext *fc, MxRList *out)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		FitContext *context = fc;
-		int cgroup = clist[cx]->paramGroup;
-		if (cgroup) context = new FitContext(fc, cgroup);
+		if (fc->varGroup != clist[cx]->varGroup) {
+			context = new FitContext(fc, clist[cx]->varGroup);
+		}
 		clist[cx]->reportResults(context, out);
-		if (cgroup) context->updateParentAndFree();
+		if (context != fc) context->updateParentAndFree();
 		if (isErrorRaised(globalState)) break;
 	}
 }
@@ -372,7 +459,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, Global->freeGroup[paramGroup]);
+	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 }
 
 void omxComputeOnce::compute(FitContext *fc)
@@ -393,7 +480,7 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 
-	size_t numFree = fc->numParam;
+	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {
 		SEXP estimate;
 		PROTECT(estimate = allocVector(REALSXP, numFree));

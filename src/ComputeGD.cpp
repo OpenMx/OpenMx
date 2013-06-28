@@ -52,12 +52,13 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, Global->freeGroup[paramGroup]);
+	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 }
 
 void omxComputeGD::compute(FitContext *fc)
 {
-	if (fc->numParam <= 0) {
+	size_t numParam = varGroup->vars.size();
+	if (numParam <= 0) {
 		error("Model has no free parameters");
 		return;
 	}
@@ -87,7 +88,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
 
-	int numFree = fc->numParam;
+	size_t numFree = varGroup->vars.size();
 
 	SEXP minimum, estimate, gradient, hessian;
 	PROTECT(minimum = NEW_NUMERIC(1));

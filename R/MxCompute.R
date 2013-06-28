@@ -25,19 +25,22 @@ setGeneric("convertForBackend",
 		return(standardGeneric("convertForBackend"))
 	})
 
-setMethod("qualifyNames", signature("MxBaseCompute"),
+#----------------------------------------------------
+
+setClass(Class = "MxComputeOperation",
+	 contains = "MxBaseCompute",
+	 representation = representation(
+	   free.group = "MxCharOrNumber"))
+
+setMethod("qualifyNames", signature("MxComputeOperation"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxBaseCompute"),
+setMethod("convertForBackend", signature("MxComputeOperation"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
-		}
 		fg <- match(.Object@free.group, flatModel@freeGroupNames)
 		if (is.na(fg)) {
 			stop(paste("Cannot find free group", .Object@free.group,
@@ -49,30 +52,71 @@ setMethod("convertForBackend", signature("MxBaseCompute"),
 		.Object
 	})
 
-setClass(Class = "MxComputeOperation",
-	 contains = "MxBaseCompute",
+#----------------------------------------------------
+
+setClass(Class = "MxComputeAssign",  # good name? or ComputeCopy?
+	 contains = "MxComputeOperation",
 	 representation = representation(
-	   free.group = "MxCharOrNumber",
-	   fitfunction = "MxCharOrNumber"))
+	   from = "MxCharOrNumber",
+	   to = "MxCharOrNumber"))
+
+setMethod("initialize", "MxComputeAssign",
+	  function(.Object, from, to, free.group) {
+		  .Object@name <- 'compute'
+		  .Object@from <- from
+		  .Object@to <- to
+		  .Object@free.group <- free.group
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeAssign"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod();
+		.Object@from <- imxIdentifier(modelname, .Object@from)
+		.Object@to <- imxIdentifier(modelname, .Object@to)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeAssign"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		.Object@from <- - match(.Object@from, names(flatModel@matrices))
+		.Object@to <- - match(.Object@to, names(flatModel@matrices))
+		.Object
+	})
+
+mxComputeAssign <- function(from, to, free.group="default") {
+	if (length(from) != length(to)) {
+		stop("Arguments 'from' and 'to' must be the same length")
+	}
+	new("MxComputeAssign", from=from, to=to, free.group=free.group)
+}
+
+#----------------------------------------------------
 
 setClass(Class = "MxComputeOnce",
-	 contains = "MxComputeOperation")
-
-setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   type = "character",
-	   engine = "character"))
+	   fitfunction = "MxCharOrNumber"
+	   ))
 
-setClass(Class = "MxComputeSequence",
-	 contains = "MxBaseCompute",
-	 representation = representation(
-	   steps = "list"))
+setMethod("qualifyNames", signature("MxComputeOnce"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object
+	})
 
-setClass(Class = "MxComputeEstimatedHessian",
-	 contains = "MxComputeOperation",
-	 representation = representation(
-	   se = "logical"))
+setMethod("convertForBackend", signature("MxComputeOnce"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		}
+		.Object
+	})
 
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, free.group, fit) {
@@ -85,6 +129,97 @@ setMethod("initialize", "MxComputeOnce",
 mxComputeOnce <- function(free.group='default', fitfunction='fitfunction') {
 	new("MxComputeOnce", free.group, fitfunction)
 }
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeGradientDescent",
+	 contains = "MxComputeOperation",
+	 representation = representation(
+	   fitfunction = "MxCharOrNumber",
+	   type = "character",
+	   engine = "character"))
+
+setMethod("qualifyNames", signature("MxComputeGradientDescent"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeGradientDescent"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeGradientDescent",
+	  function(.Object, free.group, type, engine, fit) {
+		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
+		  .Object@fitfunction <- fit
+		  .Object@type <- type
+		  .Object@engine <- engine
+		  .Object
+	  })
+
+mxComputeGradientDescent <- function(type, free.group='default',
+				     engine=NULL, fitfunction='fitfunction') {
+#	if (length(type) != 1) stop("Specific 1 compute type")
+
+	if (is.null(type)) type <- as.character(NA)
+	if (is.null(engine)) engine <- as.character(NA)
+
+	new("MxComputeGradientDescent", free.group, type, engine, fitfunction)
+}
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeEstimatedHessian",
+	 contains = "MxComputeOperation",
+	 representation = representation(
+	   fitfunction = "MxCharOrNumber",
+	   se = "logical"))
+
+setMethod("qualifyNames", signature("MxComputeEstimatedHessian"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeEstimatedHessian",
+	  function(.Object, free.group, fit, want.se) {
+		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
+		  .Object@fitfunction <- fit
+		  .Object@se <- want.se
+		  .Object
+	  })
+
+mxComputeEstimatedHessian <- function(free.group='default', fitfunction='fitfunction', want.se=TRUE) {
+	new("MxComputeEstimatedHessian", free.group, fitfunction, want.se)
+}
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeSequence",
+	 contains = "MxBaseCompute",
+	 representation = representation(
+	   steps = "list"))
 
 setMethod("initialize", "MxComputeSequence",
 	  function(.Object, steps) {
@@ -110,39 +245,6 @@ mxComputeSequence <- function(steps) {
 	new("MxComputeSequence", steps=steps)
 }
 
-setMethod("initialize", "MxComputeEstimatedHessian",
-	  function(.Object, free.group, fit, want.se) {
-		  .Object@name <- 'compute'
-		  .Object@free.group <- free.group
-		  .Object@fitfunction <- fit
-		  .Object@se <- want.se
-		  .Object
-	  })
-
-mxComputeEstimatedHessian <- function(free.group='default', fitfunction='fitfunction', want.se=TRUE) {
-	new("MxComputeEstimatedHessian", free.group, fitfunction, want.se)
-}
-
-setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.group, type, engine, fit) {
-		  .Object@name <- 'compute'
-		  .Object@free.group <- free.group
-		  .Object@fitfunction <- fit
-		  .Object@type <- type
-		  .Object@engine <- engine
-		  .Object
-	  })
-
-mxComputeGradientDescent <- function(type, free.group='default',
-				     engine=NULL, fitfunction='fitfunction') {
-#	if (length(type) != 1) stop("Specific 1 compute type")
-
-	if (is.null(type)) type <- as.character(NA)
-	if (is.null(engine)) engine <- as.character(NA)
-
-	new("MxComputeGradientDescent", free.group, type, engine, fitfunction)
-}
-
 displayMxComputeSequence <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
 	for (step in 1:length(opt@steps)) {
@@ -154,10 +256,11 @@ displayMxComputeSequence <- function(opt) {
 setMethod("print", "MxComputeSequence", function(x, ...) displayMxComputeSequence(x))
 setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequence(object))
 
+#----------------------------------------------------
+
 displayMxComputeOperation <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
 	cat("@free.group :", omxQuotes(opt@free.group), '\n')
-	cat("@fitfunction :", omxQuotes(opt@fitfunction), '\n')
 	invisible(opt)
 }
 
@@ -167,6 +270,7 @@ setMethod("show",  "MxComputeOperation", function(object) displayMxComputeOperat
 displayMxComputeGradientDescent <- function(opt) {
 	cat("@type :", omxQuotes(opt@type), '\n')
 	cat("@engine :", omxQuotes(opt@engine), '\n')
+	cat("@fitfunction :", omxQuotes(opt@fitfunction), '\n')
 	invisible(opt)
 }
 

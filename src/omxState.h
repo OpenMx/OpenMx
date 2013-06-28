@@ -79,6 +79,8 @@ struct omxFreeVar {
 	int numDeps;            // number of algebra/matrix dependencies
 	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
+	
+	omxFreeVarLocation *getLocation(int matrix);
 };
 
 struct FreeVarGroup {
