@@ -46,7 +46,7 @@ design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(
 		     rep(1,numItems),
-		     rep(1,numItems),
+		     rep(1.4,numItems),
 		     rep(0,numItems),
 		     rep(0,numItems)),
          free=c(rep(TRUE, numItems),
@@ -62,14 +62,16 @@ m1 <- mxModel(model="2dim",
           mxExpectationBA81(
 	     ItemSpec="ItemSpec",
 	     Design="Design",
-	     ItemParam="ItemParam"),
+	     ItemParam="ItemParam",
+	    GHpoints=21),
           mxFitFunctionBA81())
 
 m1 <- mxOption(m1, "Analytic Gradients", 'no')
-if (0) {
+if (1) {
 	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
 }
+m1 <- mxOption(m1, "Function precision", '1.0E-5')
 m1 <- mxOption(m1, "Calculate Hessian", "No")
 m1 <- mxOption(m1, "Standard Errors", "No")
 
@@ -78,10 +80,10 @@ if (1) {
 	m1 <- mxRun(m1, silent=TRUE)
 
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .899, .01)
+				c(correct.mat)), .936, .01)
 	max.se <- max(m1@output$ability[,c(2,4)])
 	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*3)
-	omxCheckCloseEnough(.512, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
+	omxCheckCloseEnough(.587, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
 
 } else { ################
 

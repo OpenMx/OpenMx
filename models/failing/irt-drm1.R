@@ -44,6 +44,7 @@ if (1) {
 	m2 <- mxOption(m2, "Analytic Gradients", 'yes')
 	m2 <- mxOption(m2, "Verify level", '-1')
 }
+m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxOption(m2, "Calculate Hessian", "No")
 m2 <- mxOption(m2, "Standard Errors", "No")
 m2 <- mxRun(m2)
@@ -52,8 +53,8 @@ m2 <- mxRun(m2)
 #print(correct.mat)
 got <- cor(c(m2@matrices$itemParam@values),
            c(correct.mat))
-omxCheckCloseEnough(got, .974, .01)
+omxCheckCloseEnough(got, .947, .01)
 ability <- scale(ability)
 omxCheckCloseEnough(m2@output$ability[,1], as.vector(ability), 4*max(m2@output$ability[,2]))
-omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .819, .01)
+omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .80, .01)
 q()

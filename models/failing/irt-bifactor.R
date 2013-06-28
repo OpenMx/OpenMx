@@ -8,7 +8,7 @@ require(rpf)
 
 set.seed(5)
 
-numItems <- 5
+numItems <- 6
 numPersons <- 1000
 maxDim <- 2
 
@@ -25,7 +25,7 @@ maxParam <- max(vapply(items, function(i) i@numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i@numOutcomes, 0))
 
 design <- matrix(c(rep(1,numItems),
-		   2,2,2,3,3), byrow=TRUE, nrow=2)
+		   2,2,2,3,3,3), byrow=TRUE, nrow=2)
 
 data <- rpf.sample(numPersons, items, correct, design)
 
@@ -63,10 +63,11 @@ m1 <- mxModel(model="bifactor",
 )
 
 m1 <- mxOption(m1, "Analytic Gradients", 'no')
-if (0) {
+if (1) {
 	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
 }
+m1 <- mxOption(m1, "Function precision", '1.0E-5')
 m1 <- mxOption(m1, "Calculate Hessian", "No")
 m1 <- mxOption(m1, "Standard Errors", "No")
 

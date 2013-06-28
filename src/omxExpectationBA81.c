@@ -685,7 +685,7 @@ OMXINLINE static void
 ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
 			 int maxDims, int *quad, int item, int id,
 			 int dims, int outcomes,
-			 double *iparam, int *paramMask, double *gq)
+			 double *iparam, int numParam, int *paramMask, double *gq)
 {
 	double where[maxDims];
 	pointToWhere(state, quad, where, maxDims);
@@ -694,7 +694,8 @@ ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
 
 	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, where, weight, gq);
 
-	for (int ox=0; ox < outcomes; ox++) {
+	for (int ox=0; ox < numParam; ox++) {
+		if (paramMask[ox] == -1) continue;
 		areaProduct(state, quad, maxDims, gq+ox);
 	}
 }
@@ -714,13 +715,13 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 			double gq[numParam];
-			OMXZERO(gq, numParam);
+			//			for (int gx=0; gx < numParam; gx++) gq[gx] = 3.14159; // debugging TODO
 
 			ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
-						 outcomes, iparam, paramMask, gq);
+						 outcomes, iparam, numParam, paramMask, gq);
 
 #pragma omp critical(GradientUpdate)
-			for (int ox=0; ox < outcomes; ox++) {
+			for (int ox=0; ox < numParam; ox++) {
 				gradient[ox] += gq[ox];
 			}
 		}
@@ -731,18 +732,22 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, quadGridSize, quad);
-			double gq[numParam];
-			OMXZERO(gq, numParam);
+			double gsubtotal[numParam];
+			OMXZERO(gsubtotal, numParam);
 
 			long specificPoints = quadGridSize[sDim];
 			for (long sx=0; sx < specificPoints; sx++) {
+				double gq[numParam];
 				quad[sDim] = sx;
 				ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
-							 outcomes, iparam, paramMask, gq);
+							 outcomes, iparam, numParam, paramMask, gq);
+				for (int gx=0; gx < numParam; gx++) {
+					gsubtotal[gx] += gq[gx];
+				}
 			}
 #pragma omp critical(GradientUpdate)
-			for (int ox=0; ox < outcomes; ox++) {
-				gradient[ox] += gq[ox];
+			for (int gx=0; gx < numParam; gx++) {
+				gradient[gx] += gsubtotal[gx];
 			}
 		}
 	}
@@ -750,8 +755,9 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, NULL, NULL, gradient);
 
 	for (int px=0; px < numParam; px++) {
-		if (paramMask[px] == -1) continue;
-		out[paramMask[px]] = -2 * gradient[px];
+		int loc = paramMask[px];
+		if (loc == -1) continue;
+		out[loc] = -2 * gradient[px];
 	}
 }
 
@@ -783,12 +789,20 @@ void ba81Gradient(omxExpectation* oo, double *out)
 	    int paramMask[numParam];
 	    for (int px=0; px < numParam; px++) { paramMask[px] = -1; }
 
+	    if (fv->row[vloc] >= numParam) {
+		    warning("Item %d has too many free parameters", item);
+		    continue;
+	    }
 	    paramMask[fv->row[vloc]] = vx;
 
 	    while (++vx < numFreeParams) {
 		    omxFreeVar *fv = currentState->freeVarList + state->paramMap[vx];
 		    int vloc = findFreeVarLocation(itemParam, fv);
 		    if (fv->col[vloc] != item) break;
+		    if (fv->row[vloc] >= numParam) {
+			    warning("Item %d has too many free parameters", item);
+			    continue;
+		    }
 		    paramMask[fv->row[vloc]] = vx;
 	    }
 
@@ -913,6 +927,7 @@ ba81EAP2(omxExpectation *oo, double *workspace, long qx, int maxDims, int numUni
 		double psd[maxDims];
 		double *arow = ability + px * 2 * maxDims;
 		for (int dx=0; dx < maxDims; dx++) {
+			// is this just sqrt(variance) and redundant with the covariance matrix? TODO
 			double ldiff = log(fabs(where[dx] - arow[dx*2]));
 			psd[dx] = exp(2 * ldiff + lxk[px] + logArea - patternLik[px]);
 		}
