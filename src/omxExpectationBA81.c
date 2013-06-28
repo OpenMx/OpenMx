@@ -59,10 +59,10 @@ typedef struct {
 	omxMatrix *EitemParam;    // E step version
 	int userEitemParam;
 	omxMatrix *itemParam;     // M step version
-	omxMatrix *customPrior;
-	int *paramMap;
-	double *thrGradient1;     // thread * length(itemParam)
-	double *thrGradient;      // thread * length(itemParam)
+	omxMatrix *customPrior;   // TODO remove?
+	int derivPadSize;         // maxParam + maxParam*(1+maxParam)/2
+	double *thrDeriv;         // itemParam->cols * derivPadSize * thread
+	int *paramMap;            // itemParam->cols * derivPadSize -> index of free parameter
 	int cacheLXK;		  // w/cache,  numUnique * #specific quad points * totalQuadPoints
 	double *lxk;              // wo/cache, numUnique * thread
 	double *allSlxk;          // numUnique * thread
@@ -116,7 +116,7 @@ static void buildParamMap(omxExpectation* oo)
 	omxState* currentState = oo->currentState;
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	omxMatrix *itemParam = state->itemParam;
-	int size = itemParam->rows * itemParam->cols;
+	int size = itemParam->cols * state->derivPadSize;
 
 	state->paramMap = Realloc(NULL, size, int);
 	for (int px=0; px < size; px++) {
@@ -124,19 +124,41 @@ static void buildParamMap(omxExpectation* oo)
 	}
 
 	int numFreeParams = currentState->numFreeParams;
+	int *pRow = Realloc(NULL, numFreeParams, int);
+	int *pCol = Realloc(NULL, numFreeParams, int);
+
 	for (int px=0; px < numFreeParams; px++) {
 		omxFreeVar *fv = currentState->freeVarList + px;
 		for (int lx=0; lx < fv->numLocations; lx++) {
 			if (~fv->matrices[lx] == itemParam->matrixNumber) {
-				state->paramMap[fv->col[lx] * itemParam->rows + fv->row[lx]] = px;
+				pRow[px] = fv->row[lx];
+				pCol[px] = fv->col[lx];
+				int at = pCol[px] * state->derivPadSize + pRow[px];
+				state->paramMap[at] = px;
 			}
 		}
 	}
 
-	//pia(state->paramMap, itemParam->rows, itemParam->cols);
+	for (int p1=0; p1 < numFreeParams; p1++) {
+		for (int p2=p1; p2 < numFreeParams; p2++) {
+			if (pCol[p1] != pCol[p2]) continue;
+			const double *spec = omxMatrixColumn(state->itemSpec, pCol[p1]);
+			int id = spec[RPF_ISpecID];
+			int numParam = (*rpf_model[id].numParam)(spec);
+			int r1 = pRow[p1];
+			int r2 = pRow[p2];
+			if (r1 > r2) { int tmp=r1; r1=r2; r2=tmp; }
+			int rowOffset = 0;
+			for (int rx=1; rx <= r2; rx++) rowOffset += rx;
+			int at = pCol[p1] * state->derivPadSize + numParam + rowOffset + r1;
+			state->paramMap[at] = numFreeParams + p1 * numFreeParams + p2;
+		}
+	}
 
-	state->thrGradient = Realloc(NULL, size * getNumThreads(oo), double);
-	state->thrGradient1 = Realloc(NULL, size * getNumThreads(oo), double);
+	Free(pRow);
+	Free(pCol);
+
+	state->thrDeriv = Realloc(NULL, itemParam->cols * state->derivPadSize * getNumThreads(oo), double);
 }
 
 OMXINLINE static void
@@ -250,7 +272,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 			if (specific != Sgroup[ix]) continue;
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
-			double piece = outcomeProb[ix * maxOutcomes + pick-1];
+			double piece = outcomeProb[ix * maxOutcomes + pick-1];  // move -1 elsewhere TODO
 			lxk1 += piece;
 		}
 #if 0
@@ -382,15 +404,6 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 			eis[px] = log(eis[px]);
 			allSlxk[px] += eis[px];
 		}
-	}
-}
-
-// The idea of this API is to allow passing in a number larger than 1.
-OMXINLINE static void
-areaProduct(omxBA81State *state, const int *restrict quad, const int upto, double *restrict out)
-{
-	for (int dx=0; dx < upto; dx++) {
-		*out *= state->Qarea[quad[dx]];
 	}
 }
 
@@ -646,19 +659,22 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 		//pda(latentMean1, maxDims, 1);
 		//pda(latentCov1, maxDims, maxDims);
 		double *iparam = omxMatrixColumn(itemParam, ix);
-		int *mask = state->paramMap + itemParam->rows * ix;
+		int *mask = state->paramMap + state->derivPadSize * ix;
 		rpf_model[id].rescale(spec, iparam, mask, latentMean1, latentCov1);
 	}
 
-	// this is an egregious hack :-)
+	// This is an egregious hack :-)
 	omxState* currentState = oo->currentState;
 	int numFreeParams = currentState->numFreeParams;
 	double param[numFreeParams];
 	for (int rx=0; rx < itemParam->rows; rx++) {
 		for (int cx=0; cx < itemParam->cols; cx++) {
-			int vx = state->paramMap[cx * itemParam->rows + rx];
-			if (vx == -1) continue;
-			param[vx] = omxMatrixElement(itemParam, rx, cx);
+			int vx = state->paramMap[cx * state->derivPadSize + rx];
+			if (vx >= 0 && vx < numFreeParams) {
+				// Look for gradient entries to determine what to copy.
+				// I said it was a hack, no?
+				param[vx] = omxMatrixElement(itemParam, rx, cx);
+			}
 		}
 	}
 	handleFreeVarList(currentState, param, numFreeParams);
@@ -745,11 +761,12 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 	int numItems = itemParam->cols;
 	int maxOutcomes = state->maxOutcomes;
 	int maxDims = state->maxDims;
-	double *gradient = state->thrGradient1 + itemParam->rows * itemParam->cols * omx_absolute_thread_num();
-	int do_gradient = want & FF_COMPUTE_GRADIENT;
+	double *myDeriv = state->thrDeriv + itemParam->cols * state->derivPadSize * omx_absolute_thread_num();
+	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
 
 	double where[maxDims];
 	pointToWhere(state, quad, where, maxDims);
+	const double area = exp(logAreaProduct(state,  quad, maxDims));
 
 	double *outcomeProb = computeRPF(oo, itemParam, quad); // avoid malloc/free? TODO
 	if (!outcomeProb) return 0;
@@ -772,61 +789,23 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 			}
 #endif
 			double got = weight[ox] * outcomeProb[ix * maxOutcomes + ox];
-			areaProduct(state, quad, maxDims, &got);
-			thr_ll += got;
+			thr_ll += got * area;
 		}
 
-		if (do_gradient) {
-			int *map = state->paramMap + itemParam->rows * ix;
-			int mask[itemParam->rows];
-			for (int mx=0; mx < itemParam->rows; mx++) {
-				mask[mx] = (map[mx] >= 0)? mx : -1;
-			}
+		if (do_deriv) {
 			double *iparam = omxMatrixColumn(itemParam, ix);
-			(*rpf_model[id].gradient)(spec, iparam, mask, where, weight,
-						  gradient + itemParam->rows * ix);
+			double *pad = myDeriv + ix * state->derivPadSize;
+			(*rpf_model[id].deriv)(spec, iparam, where, area, weight, pad);
 		}
 	}
 
 	Free(outcomeProb);
 
-	if (do_gradient) {
-		double *thrG = state->thrGradient + itemParam->rows * itemParam->cols * omx_absolute_thread_num();
-
-		for (int ox=0; ox < itemParam->rows * itemParam->cols; ox++) {
-			if (state->paramMap[ox] == -1) continue;
-#if 0
-#pragma omp critical(ba81Fit1OrdinateDebug2)
-			if (!isfinite(gradient[ox])) {
-				int item = ox / itemParam->rows;
-				const double *spec = omxMatrixColumn(itemSpec, item);
-				int id = spec[RPF_ISpecID];
-				Rprintf("item spec:\n");
-				pda(spec, (*rpf_model[id].numSpec)(spec), 1);
-				Rprintf("item parameters:\n");
-				const double *iparam = omxMatrixColumn(itemParam, item);
-				pda(iparam, itemParam->rows, 1);
-				Rprintf("where:\n");
-				pda(where, maxDims, 1);
-				int outcomes = spec[RPF_ISpecOutcomes];
-				double weight[outcomes];
-				ba81Weight(oo, item, quad, outcomes, weight);
-				Rprintf("weight:\n");
-				pda(weight, outcomes, 1);
-				error("Gradient for item %d param %d is %f; are you missing a lbound/ubound?",
-				      item, ox, gradient[ox]);
-			}
-#endif
-			areaProduct(state, quad, maxDims, gradient+ox);
-			thrG[ox] += gradient[ox];
-		}
-	}
-
 	return thr_ll;
 }
 
 static double
-ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
+ba81ComputeFit1(omxExpectation* oo, int want, double *gradient, double *hessian)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxState* currentState = oo->currentState;  // only used in #pragma omp
@@ -886,39 +865,32 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 	}
 
 	if (!customPrior && gradient) {
-		double *thr0 = state->thrGradient;
+		double *deriv0 = state->thrDeriv;
 
-		int numParams = itemParam->rows * itemParam->cols;
+		int perThread = itemParam->cols * state->derivPadSize;
 		for (int th=1; th < getNumThreads(oo); th++) {
-			double *thrG = state->thrGradient + th * numParams;
-
-			for (int ox=0; ox < numParams; ox++) {
-				if (state->paramMap[ox] == -1) continue;
-				thr0[ox] += thrG[ox];
-			}
+			double *thrD = state->thrDeriv + th * perThread;
+			for (int ox=0; ox < perThread; ox++) deriv0[ox] += thrD[ox];
 		}
 
 		int numItems = itemParam->cols;
 		for (int ix=0; ix < numItems; ix++) {
 			const double *spec = omxMatrixColumn(itemSpec, ix);
 			int id = spec[RPF_ISpecID];
-			int *map = state->paramMap + itemParam->rows * ix;
-			int mask[itemParam->rows];
-			for (int mx=0; mx < itemParam->rows; mx++) {
-				mask[mx] = (map[mx] >= 0)? mx : -1;
-			}
 			double *iparam = omxMatrixColumn(itemParam, ix);
-			(*rpf_model[id].gradient)(spec, iparam, mask, NULL, NULL,
-						  thr0 + itemParam->rows * ix);
+			double *pad = deriv0 + ix * state->derivPadSize;
+			(*rpf_model[id].deriv)(spec, iparam, NULL, 0, NULL, pad);
 		}
 
+		int numFreeParams = currentState->numFreeParams;
+		int numParams = itemParam->cols * state->derivPadSize;
 		for (int ox=0; ox < numParams; ox++) {
 			int to = state->paramMap[ox];
 			if (to == -1) continue;
 
 			// Need to check because this can happen if
 			// lbounds/ubounds are not set appropriately.
-			if (!isfinite(thr0[ox])) {
+			if (0 && !isfinite(deriv0[ox])) {
 				int item = ox / itemParam->rows;
 				Rprintf("item parameters:\n");
 				const double *spec = omxMatrixColumn(itemSpec, item);
@@ -927,11 +899,15 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 				double *iparam = omxMatrixColumn(itemParam, item);
 				pda(iparam, numParam, 1);
 				// Perhaps bounds can be pulled in from librpf? TODO
-				error("Gradient for item %d is %f; are you missing a lbound/ubound?",
-				      item, thr0[ox]);
+				error("Deriv %d for item %d is %f; are you missing a lbound/ubound?",
+				      ox, item, deriv0[ox]);
 			}
 
-			gradient[to] += -2 * thr0[ox];
+			if (to < numFreeParams) {
+				gradient[to] += -2 * deriv0[ox];
+			} else {
+				if (hessian) hessian[to - numFreeParams] += -2 * deriv0[ox];
+			}
 		}
 	}
 
@@ -955,13 +931,13 @@ ba81ComputeFit(omxExpectation* oo, int want, double *gradient, double *hessian)
 
 		int numFreeParams = currentState->numFreeParams;
 		OMXZERO(gradient, numFreeParams);
-		OMXZERO(hessian, numFreeParams * numFreeParams);
+		if (hessian) OMXZERO(hessian, numFreeParams * numFreeParams);
 
 		omxMatrix *itemParam = state->itemParam;
-		OMXZERO(state->thrGradient, itemParam->rows * itemParam->cols * getNumThreads(oo));
+		OMXZERO(state->thrDeriv, state->derivPadSize * itemParam->cols * getNumThreads(oo));
 	}
 
-	double got = ba81ComputeFit1(oo, want, gradient);
+	double got = ba81ComputeFit1(oo, want, gradient, hessian);
 	return got;
 }
 
@@ -1255,8 +1231,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->allSlxk);
 	Free(state->Sgroup);
 	Free(state->paramMap);
-	Free(state->thrGradient);
-	Free(state->thrGradient1);
+	Free(state->thrDeriv);
 	Free(state->latentMean);
 	Free(state->latentCov);
 	Free(state->latentMean1);
@@ -1277,7 +1252,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (!rpf_model) {
 		const int wantVersion = 3;
 		int version;
-		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model");
+		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
 		(*get_librpf)(&version, &rpf_numModels, &rpf_model);
 		if (version < wantVersion) error("librpf binary API %d installed, at least %d is required",
 						 version, wantVersion);
@@ -1423,6 +1398,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
 		return;
 	}
+
+	state->derivPadSize = maxParam + maxParam*(1+maxParam)/2;
 
 	if (state->design == NULL) {
 		state->maxAbilities = state->maxDims;
