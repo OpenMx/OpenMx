@@ -4,7 +4,7 @@ library(rpf)
 set.seed(9)
 
 numItems <- 10
-i1 <- rpf.drm()
+i1 <- rpf.drm(numChoices=4)
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
@@ -17,10 +17,8 @@ correct.mat <- simplify2array(correct)
 ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct)
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=c(rep(mxLookupIRTItemModelID("drm1"), numItems),
-		 rep(2, numItems),  # outcomes
-		 rep(1, numItems)), # dim
+spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+         values=sapply(items, rpf.as.vector),
          free=FALSE, byrow=TRUE)
 
 ip.mat <- mxMatrix(name="itemParam", byrow=TRUE, nrow=3, ncol=numItems,

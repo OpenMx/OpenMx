@@ -27,50 +27,6 @@ static const char *NAME = "ExpectationBA81";
 
 typedef double *(*rpf_fn_t)(omxExpectation *oo, omxMatrix *itemParam, const int *quad);
 
-typedef int (*rpf_numParam_t)(const int numDims, const int numOutcomes);
-// TODO arguments ought to be in the same order
-typedef void (*rpf_logprob_t)(const int numDims, const double *restrict param,
-			      const double *restrict th,
-			      const int numOutcomes, double *restrict out);
-typedef double (*rpf_prior_t)(const int numDims, const int numOutcomes,
-			      const double *restrict param);
-
-typedef void (*rpf_gradient_t)(const int numDims, const int numOutcomes,
-			       const double *restrict param, const int *paramMask,
-			       const double *where, const double *weight, double *out);
-
-struct rpf {
-	const char name[8];
-	rpf_numParam_t numParam;
-	rpf_logprob_t logprob;
-	rpf_prior_t prior;
-	rpf_gradient_t gradient;
-};
-
-// configuration of priors, probably via itemSpec TODO
-
-static const struct rpf rpf_table[] = {
-	{ "drm1",
-	  irt_rpf_1dim_drm_numParam,
-	  irt_rpf_1dim_drm_logprob,
-	  irt_rpf_1dim_drm_prior,
-	  irt_rpf_1dim_drm_gradient,
-	},
-	{ "drm",
-	  irt_rpf_mdim_drm_numParam,
-	  irt_rpf_mdim_drm_logprob,
-	  irt_rpf_mdim_drm_prior,
-	  irt_rpf_mdim_drm_gradient,
-	},
-	{ "gpcm1",
-	  irt_rpf_1dim_gpcm_numParam,
-	  irt_rpf_1dim_gpcm_logprob,
-	  irt_rpf_1dim_gpcm_prior,
-	  irt_rpf_1dim_gpcm_gradient,
-	}
-};
-static const int numStandardRPF = (sizeof(rpf_table) / sizeof(struct rpf));
-
 typedef struct {
 
 	// data characteristics
@@ -114,13 +70,6 @@ typedef struct {
 	int gradientCount;
 	int fitCount;
 } omxBA81State;
-
-enum ISpecRow {
-	ISpecID,
-	ISpecOutcomes,
-	ISpecDims,
-	ISpecRowCount
-};
 
 /*
 static void
@@ -213,14 +162,14 @@ standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 	double *outcomeProb = Realloc(NULL, numItems * state->maxOutcomes, double);
 
 	for (int ix=0; ix < numItems; ix++) {
-		int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, ix);
+		const double *spec = omxMatrixColumn(itemSpec, ix);
 		double *iparam = omxMatrixColumn(itemParam, ix);
 		double *out = outcomeProb + ix * state->maxOutcomes;
-		int id = omxMatrixElement(itemSpec, ISpecID, ix);
-		int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
+		int id = spec[RPF_ISpecID];
+		int dims = spec[RPF_ISpecDims];
 		double ptheta[dims];
 		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta);
-		(*rpf_table[id].logprob)(dims, iparam, ptheta, outcomes, out);
+		(*librpf_model[id].logprob)(spec, iparam, ptheta, out);
 	}
 
 	return outcomeProb;
@@ -248,7 +197,7 @@ RComputeRPF1(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 	PROTECT(where = allocMatrix(REALSXP, maxDims, itemParam->cols));
 	double *ptheta = REAL(where);
 	for (int ix=0; ix < itemParam->cols; ix++) {
-		int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
+		int dims = omxMatrixElement(itemSpec, RPF_ISpecDims, ix);
 		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta + ix*maxDims);
 		for (int dx=dims; dx < maxDims; dx++) {
 			ptheta[ix*maxDims + dx] = NA_REAL;
@@ -287,7 +236,7 @@ RComputeRPF1(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 
 	// Double check there aren't NAs in the wrong place
 	for (int ix=0; ix < numItems; ix++) {
-		int numOutcomes = omxMatrixElement(state->itemSpec, ISpecOutcomes, ix);
+		int numOutcomes = omxMatrixElement(state->itemSpec, RPF_ISpecOutcomes, ix);
 		for (int ox=0; ox < numOutcomes; ox++) {
 			int vx = ix * maxOutcomes + ox;
 			if (isnan(got[vx])) {
@@ -595,7 +544,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
 
 	double thr_ll = 0;
 	for (int ix=0; ix < numItems; ix++) {
-		int outcomes = omxMatrixElement(state->itemSpec, ISpecOutcomes, ix);
+		int outcomes = omxMatrixElement(state->itemSpec, RPF_ISpecOutcomes, ix);
 		double out[outcomes];
 		ba81Weight(oo, ix, quad, outcomes, out);
 		for (int ox=0; ox < outcomes; ox++) {
@@ -627,11 +576,10 @@ ba81ComputeFit1(omxExpectation* oo)
 		omxMatrix *itemParam = state->itemParam;
 		int numItems = itemSpec->cols;
 		for (int ix=0; ix < numItems; ix++) {
-			int id = omxMatrixElement(itemSpec, ISpecID, ix);
-			int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
-			int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, ix);
+			const double *spec = omxMatrixColumn(itemSpec, ix);
+			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
-			ll += (*rpf_table[id].prior)(dims, outcomes, iparam);
+			ll += (*librpf_model[id].prior)(spec, iparam);
 		}
 	}
 
@@ -683,16 +631,15 @@ ba81ComputeFit(omxExpectation* oo)
 
 OMXINLINE static void
 ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
-			 int maxDims, int *quad, int item, int id,
-			 int dims, int outcomes,
-			 double *iparam, int numParam, int *paramMask, double *gq)
+			 int maxDims, int *quad, int item, const double *spec, int id,
+			 int outcomes, double *iparam, int numParam, int *paramMask, double *gq)
 {
 	double where[maxDims];
 	pointToWhere(state, quad, where, maxDims);
 	double weight[outcomes];
 	ba81Weight(oo, item, quad, outcomes, weight);
 
-	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, where, weight, gq);
+	(*librpf_model[id].gradient)(spec, iparam, paramMask, where, weight, gq);
 
 	for (int ox=0; ox < numParam; ox++) {
 		if (paramMask[ox] == -1) continue;
@@ -701,8 +648,8 @@ ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
 }
 
 OMXINLINE static void
-ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
-		 int item, int id, int dims, int outcomes, int numParam, int *paramMask, double *out)
+ba81ItemGradient(omxExpectation* oo, omxBA81State *state, const double *spec, omxMatrix *itemParam,
+		 int item, int id, int outcomes, int numParam, int *paramMask, double *out)
 {
 	int maxDims = state->maxDims;
 	double *iparam = omxMatrixColumn(itemParam, item);
@@ -717,7 +664,7 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 			double gq[numParam];
 			//			for (int gx=0; gx < numParam; gx++) gq[gx] = 3.14159; // debugging TODO
 
-			ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
+			ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, spec, id,
 						 outcomes, iparam, numParam, paramMask, gq);
 
 #pragma omp critical(GradientUpdate)
@@ -739,7 +686,7 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 			for (long sx=0; sx < specificPoints; sx++) {
 				double gq[numParam];
 				quad[sDim] = sx;
-				ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
+				ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, spec, id,
 							 outcomes, iparam, numParam, paramMask, gq);
 				for (int gx=0; gx < numParam; gx++) {
 					gsubtotal[gx] += gq[gx];
@@ -752,7 +699,7 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
 		}
 	}
 
-	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, NULL, NULL, gradient);
+	(*librpf_model[id].gradient)(spec, iparam, paramMask, NULL, NULL, gradient);
 
 	for (int px=0; px < numParam; px++) {
 		int loc = paramMask[px];
@@ -781,10 +728,10 @@ void ba81Gradient(omxExpectation* oo, double *out)
 	    }
 
 	    int item = fv->col[vloc];
-	    int id = omxMatrixElement(itemSpec, ISpecID, item);
-	    int dims = omxMatrixElement(itemSpec, ISpecDims, item);
-	    int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, item);
-	    int numParam = (*rpf_table[id].numParam)(dims, outcomes);
+	    const double *spec = omxMatrixColumn(itemSpec, item);
+	    int id = spec[RPF_ISpecID];
+	    int outcomes = spec[RPF_ISpecOutcomes];
+	    int numParam = (*librpf_model[id].numParam)(spec);
 
 	    int paramMask[numParam];
 	    for (int px=0; px < numParam; px++) { paramMask[px] = -1; }
@@ -806,8 +753,8 @@ void ba81Gradient(omxExpectation* oo, double *out)
 		    paramMask[fv->row[vloc]] = vx;
 	    }
 
-	    ba81ItemGradient(oo, state, itemParam, item,
-			     id, dims, outcomes, numParam, paramMask, out);
+	    ba81ItemGradient(oo, state, spec, itemParam, item,
+			     id, outcomes, numParam, paramMask, out);
 	}
 }
 
@@ -943,7 +890,7 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
 	int maxDims = state->maxDims;
-	int numSpecific = state->numSpecific;
+	//int numSpecific = state->numSpecific;
 
 	*numReturns = 2; // + (maxDims > 1) + (numSpecific > 1);
 	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
@@ -1173,37 +1120,42 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int numThreads = getNumThreads(oo);
 
-	if (state->itemSpec->cols != data->cols || state->itemSpec->rows != ISpecRowCount) {
-		omxRaiseErrorf(currentState, "ItemSpec must have %d item columns and %d rows",
-			       data->cols, ISpecRowCount);
-		return;
-	}
-
+	int maxSpec = 0;
 	int maxParam = 0;
 	state->maxDims = 0;
 	state->maxOutcomes = 0;
 
 	for (int cx = 0; cx < data->cols; cx++) {
-		int id = omxMatrixElement(state->itemSpec, ISpecID, cx);
-		if (id < 0 || id >= numStandardRPF) {
+		const double *spec = omxMatrixColumn(state->itemSpec, cx);
+		int id = spec[RPF_ISpecID];
+		if (id < 0 || id >= librpf_numModels) {
 			omxRaiseErrorf(currentState, "ItemSpec column %d has unknown item model %d", cx, id);
 			return;
 		}
 
-		int dims = omxMatrixElement(state->itemSpec, ISpecDims, cx);
+		int dims = spec[RPF_ISpecDims];
 		if (state->maxDims < dims)
 			state->maxDims = dims;
 
 		// TODO verify that item model can have requested number of outcomes
-		int no = omxMatrixElement(state->itemSpec, ISpecOutcomes, cx);
+		int no = spec[RPF_ISpecOutcomes];
 		if (state->maxOutcomes < no)
 			state->maxOutcomes = no;
 
-		int numParam = (*rpf_table[id].numParam)(dims, no);
+		int numSpec = (*librpf_model[id].numSpec)(spec);
+		if (maxSpec < numSpec)
+			maxSpec = numSpec;
+
+		int numParam = (*librpf_model[id].numParam)(spec);
 		if (maxParam < numParam)
 			maxParam = numParam;
 	}
 
+	if (state->itemSpec->cols != data->cols || state->itemSpec->rows != maxSpec) {
+		omxRaiseErrorf(currentState, "ItemSpec must have %d item columns and %d rows",
+			       data->cols, maxSpec);
+		return;
+	}
 	if (state->itemParam->rows != maxParam) {
 		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
 		return;
@@ -1284,9 +1236,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 SEXP omx_get_rpf_names()
 {
 	SEXP outsxp;
-	PROTECT(outsxp = allocVector(STRSXP, numStandardRPF));
-	for (int sx=0; sx < numStandardRPF; sx++) {
-		SET_STRING_ELT(outsxp, sx, mkChar(rpf_table[sx].name));
+	PROTECT(outsxp = allocVector(STRSXP, librpf_numModels));
+	for (int sx=0; sx < librpf_numModels; sx++) {
+		SET_STRING_ELT(outsxp, sx, mkChar(librpf_model[sx].name));
 	}
 	UNPROTECT(1);
 	return outsxp;

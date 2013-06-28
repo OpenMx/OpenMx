@@ -29,10 +29,8 @@ design <- matrix(c(rep(1,numItems),
 
 data <- rpf.sample(numPersons, items, correct, design)
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=c(rep(mxLookupIRTItemModelID("drm"), numItems),
-		 rep(2, numItems),
-		 rep(2, numItems)),
+spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+         values=sapply(items, rpf.as.vector),
          free=FALSE, byrow=TRUE)
 
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,

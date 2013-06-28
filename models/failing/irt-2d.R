@@ -34,10 +34,8 @@ data <- rpf.sample(ability, items, correct, design)
 
 colnames(data) <- paste("item", 1:dim(data)[2], sep='')
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=c(rep(mxLookupIRTItemModelID("drm"), numItems),
-		 rep(2, numItems),
-		 c(1,2,2,2,2)),
+spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+         values=sapply(items, rpf.as.vector),
          free=FALSE, byrow=TRUE)
 
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,

@@ -160,14 +160,3 @@ imxAdhocGaussHermiteData <- function(n, width) {
 
 imxGaussHermiteData <- function(n) .Call(omxGaussHermiteData, n)
 
-##' Convert an IRT item model name to an ID
-##'
-##' drm1 is the standard 3PL. drm is the multidimensional version of
-##' the 3PL. gpcm1 is Generalized Partial Credit Model.
-##'
-##' @param name name of the item model (string)
-##' @return the integer ID assigned to the given model
-mxLookupIRTItemModelID <- function(name) {
-	models <- .Call(omx_get_rpf_names)
-	match(name, models) - 1;
-}

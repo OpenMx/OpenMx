@@ -27,10 +27,8 @@ data <- mcar(good.data, 1/3)
 data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove when all items are missing
 #head(data)
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=c(rep(mxLookupIRTItemModelID("gpcm1"), numItems),
-		 rep(3, numItems),  # outcomes
-		 rep(1, numItems)), # dim
+spec <- mxMatrix(name="ItemSpec", nrow=4, ncol=numItems,
+         values=sapply(items, rpf.as.vector),
          free=FALSE, byrow=TRUE)
 
 ip.mat <- mxMatrix(name="itemParam",
