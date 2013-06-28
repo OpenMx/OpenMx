@@ -111,6 +111,14 @@ int omxDataNumIdenticalContinuousMissingness(omxData *od, int row);         // N
 int omxDataNumIdenticalOrdinalRows(omxData *od, int row);
 int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row);
 int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number of rows with definition variables identical to this one in the data set
+
+static int OMXINLINE
+omxIntDataElementUnsafe(omxData *od, int row, int col)
+{
+	// All columns must be factors for this to work. You have been warned.
+	//	int location = od->location[col];
+	return od->intData[col][row];
+}
 	
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor

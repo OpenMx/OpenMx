@@ -280,7 +280,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)   // 
 		double lxk1 = 0;
 		for (int ix=0; ix < numItems; ix++) {
 			if (specific != Sgroup[ix]) continue;
-			int pick = omxIntDataElement(data, row, ix);
+			int pick = omxIntDataElementUnsafe(data, row, ix);
 			if (pick == NA_INTEGER) continue;
 			lxk1 += outcomeProb[ix * maxOutcomes + pick-1];
 		}
@@ -417,7 +417,7 @@ OMXINLINE static void
 expectedUpdate(omxData *restrict data, int *restrict row, const int item,
 	       const double observed, const int outcomes, double *out)
 {
-	int pick = omxIntDataElement(data, *row, item);
+	int pick = omxIntDataElementUnsafe(data, *row, item);
 	if (pick == NA_INTEGER) {
 		double slice = exp(observed - log(outcomes));
 		for (int ox=0; ox < outcomes; ox++) {
