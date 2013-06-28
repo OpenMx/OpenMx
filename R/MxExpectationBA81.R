@@ -26,13 +26,13 @@ setClass(Class = "MxExpectationBA81",
 	   cache = "logical",
 	   rescale = "logical",
 	   scores = "character",
-	   free.mean = "MxOptionalLogical",
-	   free.cov = "MxOptionalMatrix"),
+	   mean = "MxCharOrNumber",
+	   cov = "MxCharOrNumber"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   qpoints, qwidth, cache, free.mean, free.cov, rescale, scores,
+		   qpoints, qwidth, cache, mean, cov, rescale, scores,
 		   name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
@@ -46,8 +46,8 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@scores <- scores
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
-	    .Object@free.mean <- free.mean
-	    .Object@free.cov <- free.cov
+	    .Object@mean <- mean
+	    .Object@cov <- cov
             return(.Object)
           }
 )
@@ -56,6 +56,7 @@ setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  function(.Object, dependencies) {
 		  sources <- c(.Object@CustomPrior, .Object@ItemParam,
 			       .Object@EItemParam,
+			       .Object@mean, .Object@cov,
 			       .Object@ItemSpec, .Object@Design)
 		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		  return(dependencies)
@@ -71,7 +72,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			  stop(msg, call.=FALSE)
 		  }
 		  name <- .Object@name
-		  for (s in c("data", "ItemParam", "EItemParam", "CustomPrior", "ItemSpec", "Design")) {
+		  for (s in c("data", "ItemParam", "EItemParam", "CustomPrior",
+			      "ItemSpec", "Design", "mean", "cov")) {
 			  if (is.null(slot(.Object, s))) next;
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -87,7 +89,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 setMethod("genericExpFunNamespace", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("ItemParam", "EItemParam", "CustomPrior", "ItemSpec", "Design")) {
+		for (s in c("ItemParam", "EItemParam", "CustomPrior", "ItemSpec",
+			    "Design", "mean", "cov")) {
 			if (is.null(slot(.Object, s))) next;
 			slot(.Object, s) <-
 			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
@@ -132,7 +135,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=NULL, Design=NULL,
-			      qpoints=NULL, qwidth=6.0, cache=TRUE, free.mean=NULL, free.cov=NULL,
+			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
 			      rescale=TRUE, scores="omit") {
 
 	if (missing(qpoints)) qpoints <- 49
@@ -144,20 +147,11 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=
 		stop("qwidth must be positive")
 	}
   
-	if (!is.null(free.cov) && any(free.cov != t(free.cov))) {
-		stop("free.cov must be symmetric")
-	}
-
 	score.options <- c("omit", "unique", "full")
 	if (!match(scores, score.options)) {
 		stop(paste("Valid score options are", deparse(score.options)))
 	}
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   qpoints, qwidth, cache, free.mean, free.cov, rescale, scores))
-}
-
-imxEqualIntervalQuadratureData <- function(n, width) {
-  x <- seq(-width, width, length.out=n)
-  list(x=x, w=dnorm(x)/sum(dnorm(x)))
+		   qpoints, qwidth, cache, mean, cov, rescale, scores))
 }

@@ -46,11 +46,14 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
 #ip.mat@values[2,1] <- correct.mat[2,1]
 #ip.mat@free[2,1] <- FALSE
 
+m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
+cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
+
 m1 <- mxModel(model="bifactor",
           spec, design,
-          ip.mat,
+          ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(
+          mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec="ItemSpec",
 	     Design="Design",
 	     ItemParam="ItemParam",

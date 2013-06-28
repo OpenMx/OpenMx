@@ -37,9 +37,12 @@ ip.mat <- mxMatrix(name="itemParam", nrow=3, ncol=numItems,
 		   lbound=c(1e-6, -1e6, -1e6),
                    free=TRUE)
 
-m2 <- mxModel(model="test3", ip.mat, spec,
+m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+
+m2 <- mxModel(model="test3", ip.mat, spec, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(
+              mxExpectationBA81(mean="mean", cov="cov",
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam"),
               mxFitFunctionBA81())

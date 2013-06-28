@@ -51,11 +51,14 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
 ip.mat@values[4,1] <- 1
 
+m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
+cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
+
 m1 <- mxModel(model="2dim",
           spec, design,
-          ip.mat,
+          ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(
+          mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec="ItemSpec",
 	     Design="Design",
 	     ItemParam="ItemParam",
@@ -74,12 +77,11 @@ m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
 
-print(m1@output$latent.mean)
-print(m1@output$latent.cov)
 					#print(m1@matrices$ItemParam@values)
 					#print(correct.mat)
+# sometimes found as low as .89, maybe solution is unstable
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-			c(correct.mat)), .916, .01)
+			c(correct.mat)), .93, .01)
 max.se <- max(m1@output$ability[c(2,4),])
 omxCheckCloseEnough(m1@output$ability[c(1,3),], ability, max.se*2.5)
 omxCheckCloseEnough(.57, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)
