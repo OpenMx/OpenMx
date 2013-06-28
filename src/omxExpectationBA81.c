@@ -888,6 +888,16 @@ ba81EAP2(omxExpectation *oo, double *workspace, long qx, int maxDims, int numUni
 	}
 }
 
+/**
+ * MAP is not affected by the number of items. EAP is. Likelihood can
+ * get concentrated in a single quadrature ordinate. For 3PL, response
+ * patterns can have a bimodal likelihood. This will confuse MAP and
+ * is a key advantage of EAP (Thissen & Orlando, 2001, p. 136).
+ *
+ * Thissen, D. & Orlando, M. (2001). IRT for items scored in two
+ * categories. In D. Thissen & H. Wainer (Eds.), \emph{Test scoring}
+ * (pp 73-140). Lawrence Erlbaum Associates, Inc.
+ */
 omxRListElement *
 ba81EAP(omxExpectation *oo, int *numReturns)
 {
@@ -910,6 +920,12 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 	// model. Journal of Educational Statistics, 12, 339-368.
 
 	int numQpoints = state->numQpoints * 2;  // make configurable TODO
+
+	if (numQpoints < 1 + 2.0 * sqrt(state->itemSpec->cols)) {
+		// Thissen & Orlando (2001, p. 136)
+		warning("EAP requires at least 2*sqrt(items) quadrature points");
+	}
+
 	double Qpoint[numQpoints];
 	double Qarea[numQpoints];
 	const double Qwidth = 4;
