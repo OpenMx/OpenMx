@@ -132,3 +132,12 @@ dmvnorm(int dim, double *loc, double *mean, double *sigma)
 	if (err[0]) error("%s", err);
 	return ret;
 }
+
+SEXP dmvnorm_wrapper(SEXP Rloc, SEXP Rmean, SEXP Rsigma)
+{
+	SEXP ret;
+	PROTECT(ret = allocVector(REALSXP, 1));
+	REAL(ret)[0] = dmvnorm(length(Rloc), REAL(Rloc), REAL(Rmean), REAL(Rsigma));
+	UNPROTECT(1);
+	return ret;
+}

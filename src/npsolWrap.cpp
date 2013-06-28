@@ -38,11 +38,13 @@
 #include "omxImportFrontendState.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
+#include "dmvnorm.h"
 
 static R_CallMethodDef callMethods[] = {
 	{"omxBackend", (DL_FUNC) omxBackend, 12},
 	{"omxCallAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
+	{"imxDmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{NULL, NULL, 0}
 };
 
