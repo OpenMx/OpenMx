@@ -35,8 +35,8 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@Design <- Design
             .Object@ItemParam <- ItemParam
             .Object@RPF <- RPF
-            .Object@GHpoints <- gh$x
-            .Object@GHarea <- log(gh$w)
+            .Object@GHpoints <- gh[[1]]
+            .Object@GHarea <- log(gh[[2]])
             .Object@cache <- cache
             .Object@ItemPrior <- ItemPrior
             .Object@data <- as.integer(NA)
@@ -100,6 +100,24 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' to provide analytic gradients from R. If you want to provide
 ##' analytic gradients then you need to implement them in C.
 ##'
+##' The standard Normal distribution of the quadrature acts like a
+##' prior distribution for difficulty. It is not necessary to impose
+##' any additional Bayesian prior on difficulty estimates (Baker &
+##' Kim, 2004, p. 196).
+##' 
+##' The cache more than halves CPU time, especially if you have many
+##' specific dimensions. With the cache enabled, memory usage is about
+##' 8 * (numItems + numUnique * (2 + numThreads * (numSpecific+1)) +
+##' numUnique * product(quadrature grids) * numSpecific). With the
+##' cache disabled, memory use is limited to about 8 * (numItems + 2 *
+##' numUnique + (numUnique+1) * (numThreads * (numSpecific+1)) bytes.
+##' For example, suppose your model has 20 items, 500 unique response
+##' patterns, 2 primary dimensions, 3 specific dimensions, a 40 point
+##' quadrature and your computer offers 8 way multiprocessing. With
+##' the cache enabled, 8 * (20 + 500 * (2+8 * (3+1)) + 500 * 40^3 * 3)
+##' = 733 MiB. With the cache disabled, 8 * (20 + 2 * 500 + (500 + 1) *
+##' (8 * (3 + 1))) = 134 KiB.
+##'
 ##' @param ItemSpec one column for each item containing the model ID
 ##' (see \code{\link{mxLookupIRTItemModelID}}), numDimensions, and
 ##' numOutcomes (3 rows)
@@ -109,39 +127,38 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' to item dimensions (optional)
 ##' @param RPF a function to turn item parameters into a response
 ##' probability matrix (optional)
-##' @param GHpoints number of points to use for Gauss-Hermite quadrature integrations (optional)
-##' @param GHwidth the range of the quadrature [-width, width]
-##' @param cache whether to cache part of the expectation
-##' calculation. With the cache enabled, estimation takes about 8 *
-##' (numItems + numUnique * (2 + numThreads * (numSpecific+1)) +
-##' numUnique * product(quadrature grids) * numSpecific). With the
-##' cache disabled, memory use is limited to about 8 * (numItems + 2 *
-##' numUnique + (numUnique+1) * (numThreads * (numSpecific+1)) bytes.
-##' For example, suppose your model has 20 items, 500 unique response
-##' patterns, 2 primary dimensions, 3 specific dimensions, a 10 point
-##' quadrature and your computer offers 8 way multiprocessing. With
-##' the cache enabled, 8 * (20 + 500 * (2+8 * (3+1)) + 500 * 10^3 * 3)
-##' = 12 MiB. With the cache disabled, 8 * (20 + 2 * 500 + (500 + 1) *
-##' (8 * (3 + 1))) = 134 KiB.  The cache more than halves CPU time,
-##' especially if you have many specific dimensions. (enabled by
-##' default)
+##' @param GHpoints number of points to use for Gauss-Hermite quadrature integrations (default 10)
+##' See Seong (1990) for some considerations on specifying this parameter.
+##' @param cache whether to cache part of the expectation calculation
+##' (enabled by default).
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 ##' parameters: Application of an EM algorithm. Psychometrika, 46, 443-459.
+##'
+##' Cai, L. (2010). A two-tier full-information item factor analysis
+##' model with applications. Psychometrika, 75, 581-612.
+##'
+##' Seong, T. J. (1990). Sensitivity of marginal maximum likelihood
+##' estimation of item and ability parameters to the characteristics
+##' of the prior ability distributions. Applied Psychological
+##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam, ItemPrior, Design=NULL, RPF=NULL, GHpoints=10, GHwidth=4, cache=TRUE) {
+mxExpectationBA81 <- function(ItemSpec, ItemParam, ItemPrior, Design=NULL, RPF=NULL, GHpoints=10, cache=TRUE) {
   if (GHpoints < 3) {
     error("GHpoints should be 3 or greater")
   }
-  gh <- imxGaussHermiteData(GHpoints, GHwidth)
+  gh <- imxGaussHermiteData(GHpoints)
   
   return(new("MxExpectationBA81", ItemSpec, ItemParam, ItemPrior, Design, RPF, gh, cache))
 }
 
-imxGaussHermiteData <- function(n, width) {
+# Not used, just informational
+imxAdhocGaussHermiteData <- function(n, width) {
   x <- seq(-width, width, length.out=n)
   list(x=x, w=dnorm(x)/sum(dnorm(x)))
 }
+
+imxGaussHermiteData <- function(n) .Call(omxGaussHermiteData, n)
 
 ##' Convert an IRT item model name to an ID
 ##'
@@ -154,4 +171,3 @@ mxLookupIRTItemModelID <- function(name) {
 	models <- .Call(omx_get_rpf_names)
 	match(name, models) - 1;
 }
-

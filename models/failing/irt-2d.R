@@ -76,7 +76,7 @@ if (1) {
 	m1 <- mxRun(m1, silent=TRUE)
 
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .93, .01)
+				c(correct.mat)), .934, .01)
 
 } else { ################
 
@@ -101,5 +101,5 @@ if (1) {
 
 	m2 <- mxRun(m2, silent=TRUE) # 23min, ugh
 	omxCheckCloseEnough(cor(c(m2@matrices$ItemParam@values),
-				c(correct.mat)), .93, .01)
+				c(correct.mat)), .934, .01)
 }

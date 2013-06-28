@@ -82,25 +82,6 @@ enum ISpecRow {
 	ISpecRowCount
 };
 
-// This acts like a prior distribution for difficulty.
-// PC-BILOG does not impose any additional prior
-// on difficulty estimates (Baker & Kim, 2004, p. 196).
-//
-// quadrature points and weights via BILOG
-//static const int numQuadratures = 10;
-static const double BILOGquadPoint[] = {
-	-4.000, -3.111,-2.222,-1.333,-0.4444,
-	0.4444, 1.333, 2.222, 3.111, 4.000
-};
-static const double BILOGquadArea[] = {
-       0.000119, 0.002805, 0.03002, 0.1458, 0.3213,
-       0.3213, 0.1458, 0.03002, 0.002805, 0.000119
-};
-static const double BILOGquadLogArea[] = {
-	-9.036387, -5.876352, -3.505891, -1.925519, -1.135380,
-	-1.135380, -1.925519, -3.505891, -5.876352, -9.036387
-};
-
 /*
 static void
 pda(const double *ar, int rows, int cols) {

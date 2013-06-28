@@ -53,4 +53,4 @@ m2 <- mxRun(m2)
 
 got <- cor(c(m2@matrices$itemParam@values),
            c(t(correct.mat)))
-omxCheckCloseEnough(got, .9424, .01)
+omxCheckCloseEnough(got, .958, .01)
