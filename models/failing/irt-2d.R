@@ -40,16 +40,11 @@ design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
 		   values=design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(
-		     rep(1,numItems),
-		     rep(1.4,numItems),
-		     rep(0,numItems),
-		     rep(0,numItems)),
-         free=c(rep(TRUE, numItems),
-	        rep(TRUE, numItems),
-	        FALSE, rep(TRUE, numItems-1),
-		 rep(FALSE, numItems)),
-         byrow=TRUE)
+                   values=c(1, 1.4, 0, 0),
+		   lbound=c(1e-6, -1e6, 0, 0,
+		     rep(c(1e-6, 1e-6, -1e6, 0), 4)),
+         free=c(TRUE, TRUE, FALSE, FALSE,
+	   rep(c(TRUE, TRUE, TRUE, FALSE), 4)))
 
 m1 <- mxModel(model="2dim",
           spec, design,
@@ -76,7 +71,7 @@ if (1) {
 	m1 <- mxRun(m1, silent=TRUE)
 
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .936, .01)
+				c(correct.mat)), .958, .01)
 	max.se <- max(m1@output$ability[,c(2,4)])
 	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*3)
 	omxCheckCloseEnough(.587, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)

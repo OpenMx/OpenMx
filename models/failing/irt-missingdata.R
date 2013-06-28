@@ -31,9 +31,10 @@ spec <- mxMatrix(name="ItemSpec", nrow=4, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
-ip.mat <- mxMatrix(name="itemParam",
-                   values=c(rep(1,numItems), rep(0,numItems*2)),
-                   nrow=3, ncol=numItems, byrow=TRUE, free=TRUE)
+ip.mat <- mxMatrix(name="itemParam", nrow=3, ncol=numItems,
+                   values=c(1,0,0),
+		   lbound=c(1e-6, -1e6, -1e6),
+                   free=TRUE)
 
 m2 <- mxModel(model="test3", ip.mat, spec,
               mxData(observed=data, type="raw"),

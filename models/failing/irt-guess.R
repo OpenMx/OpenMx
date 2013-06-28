@@ -25,7 +25,11 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0,.5,NA,
                             1,1.4,0,.5),
                    free=c(rep(TRUE,3),FALSE,
-                          rep(TRUE,4)))
+                          rep(TRUE,4)),
+		   lbound=c(1e-6, -1e6, 1e-6, NA,
+		     1e-6, 1e-6, -1e6, 1e-6),
+		   ubound=c(1e3, 1e6, 1-1e-3, NA,
+		     1e3, 1e3, 1e6, 1-1e-3))
 
 m2 <- mxModel(model="guess", ip.mat, spec,
               mxData(observed=data, type="raw"),

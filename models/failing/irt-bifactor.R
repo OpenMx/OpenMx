@@ -37,14 +37,9 @@ design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
 		   values=design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(
-		     rep(1.414,numItems),
-		     rep(1,numItems),
-		     rep(0,numItems),
-		     rep(0,numItems)),
-         free=c(rep(TRUE, numItems*3),
-		 rep(FALSE, numItems*1)),
-         byrow=TRUE)
+                   values=c(1.414, 1, 0, 0),
+		   lbound=c(1e-6, 1e-6, -1e6, 0),
+		   free=c(rep(TRUE, 3), FALSE))
 
 #ip.mat@values[2,1] <- correct.mat[2,1]
 #ip.mat@free[2,1] <- FALSE
@@ -70,7 +65,7 @@ m1 <- mxOption(m1, "Calculate Hessian", "No")
 m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
-print(correct.mat)
-print(m1@matrices$ItemParam@values)
+#print(correct.mat)
+#print(m1@matrices$ItemParam@values)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
-omxCheckCloseEnough(got, .957, .01) # caution, not converged yet
+omxCheckCloseEnough(got, .957, .01)
