@@ -30,7 +30,7 @@ design <- matrix(c(rep(1,numItems),
 data <- rpf.sample(numPersons, items, correct, design)
 
 spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
-         values=sapply(items, rpf.as.vector),
+         values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,

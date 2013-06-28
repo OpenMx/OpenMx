@@ -25,6 +25,9 @@
 
 static const char *NAME = "ExpectationBA81";
 
+static const struct rpf *rpf_model = NULL;
+static int rpf_numModels;
+
 typedef double *(*rpf_fn_t)(omxExpectation *oo, omxMatrix *itemParam, const int *quad);
 
 typedef struct {
@@ -169,7 +172,7 @@ standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 		int dims = spec[RPF_ISpecDims];
 		double ptheta[dims];
 		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta);
-		(*librpf_model[id].logprob)(spec, iparam, ptheta, out);
+		(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
 	}
 
 	return outcomeProb;
@@ -579,7 +582,7 @@ ba81ComputeFit1(omxExpectation* oo)
 			const double *spec = omxMatrixColumn(itemSpec, ix);
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
-			ll += (*librpf_model[id].prior)(spec, iparam);
+			ll += (*rpf_model[id].prior)(spec, iparam);
 		}
 	}
 
@@ -639,7 +642,7 @@ ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
 	double weight[outcomes];
 	ba81Weight(oo, item, quad, outcomes, weight);
 
-	(*librpf_model[id].gradient)(spec, iparam, paramMask, where, weight, gq);
+	(*rpf_model[id].gradient)(spec, iparam, paramMask, where, weight, gq);
 
 	for (int ox=0; ox < numParam; ox++) {
 		if (paramMask[ox] == -1) continue;
@@ -699,7 +702,7 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, const double *spec, om
 		}
 	}
 
-	(*librpf_model[id].gradient)(spec, iparam, paramMask, NULL, NULL, gradient);
+	(*rpf_model[id].gradient)(spec, iparam, paramMask, NULL, NULL, gradient);
 
 	for (int px=0; px < numParam; px++) {
 		int loc = paramMask[px];
@@ -731,7 +734,7 @@ void ba81Gradient(omxExpectation* oo, double *out)
 	    const double *spec = omxMatrixColumn(itemSpec, item);
 	    int id = spec[RPF_ISpecID];
 	    int outcomes = spec[RPF_ISpecOutcomes];
-	    int numParam = (*librpf_model[id].numParam)(spec);
+	    int numParam = (*rpf_model[id].numParam)(spec);
 
 	    int paramMask[numParam];
 	    for (int px=0; px < numParam; px++) { paramMask[px] = -1; }
@@ -1038,6 +1041,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if(OMX_DEBUG) {
 		Rprintf("Initializing %s.\n", NAME);
 	}
+	if (!rpf_model) {
+		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model");
+		(*get_librpf)(&rpf_numModels, &rpf_model);
+	}
 	
 	omxBA81State *state = Calloc(1, omxBA81State);
 	oo->argStruct = (void*) state;
@@ -1128,7 +1135,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	for (int cx = 0; cx < data->cols; cx++) {
 		const double *spec = omxMatrixColumn(state->itemSpec, cx);
 		int id = spec[RPF_ISpecID];
-		if (id < 0 || id >= librpf_numModels) {
+		if (id < 0 || id >= rpf_numModels) {
 			omxRaiseErrorf(currentState, "ItemSpec column %d has unknown item model %d", cx, id);
 			return;
 		}
@@ -1142,11 +1149,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		if (state->maxOutcomes < no)
 			state->maxOutcomes = no;
 
-		int numSpec = (*librpf_model[id].numSpec)(spec);
+		int numSpec = (*rpf_model[id].numSpec)(spec);
 		if (maxSpec < numSpec)
 			maxSpec = numSpec;
 
-		int numParam = (*librpf_model[id].numParam)(spec);
+		int numParam = (*rpf_model[id].numParam)(spec);
 		if (maxParam < numParam)
 			maxParam = numParam;
 	}
@@ -1231,15 +1238,4 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	// verify data bounded between 1 and numOutcomes TODO
 	// hm, looks like something could be added to omxData for column summary stats?
-}
-
-SEXP omx_get_rpf_names()
-{
-	SEXP outsxp;
-	PROTECT(outsxp = allocVector(STRSXP, librpf_numModels));
-	for (int sx=0; sx < librpf_numModels; sx++) {
-		SET_STRING_ELT(outsxp, sx, mkChar(librpf_model[sx].name));
-	}
-	UNPROTECT(1);
-	return outsxp;
 }

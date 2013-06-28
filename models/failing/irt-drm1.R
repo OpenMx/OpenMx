@@ -18,7 +18,7 @@ ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct)
 
 spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
-         values=sapply(items, rpf.as.vector),
+         values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
 ip.mat <- mxMatrix(name="itemParam", byrow=TRUE, nrow=3, ncol=numItems,

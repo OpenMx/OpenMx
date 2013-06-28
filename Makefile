@@ -92,7 +92,7 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
 		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd man/mxLookupIRTItemModelID.Rd
+		man/mxExpectationBA81.Rd
 
 # Developers only. This rule is for testing builds without NPSOL. 
 cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean

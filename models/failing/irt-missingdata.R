@@ -28,7 +28,7 @@ data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove when all items a
 #head(data)
 
 spec <- mxMatrix(name="ItemSpec", nrow=4, ncol=numItems,
-         values=sapply(items, rpf.as.vector),
+         values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
 ip.mat <- mxMatrix(name="itemParam",
