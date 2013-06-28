@@ -109,7 +109,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, double *gradient,
 	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
-	omxExpectationCompute(expectation);
+	omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 
 	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
 

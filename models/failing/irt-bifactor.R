@@ -5,10 +5,11 @@
 #options(error = browser)
 require(OpenMx)
 require(rpf)
+library(mvtnorm)
 
 set.seed(5)
 
-numItems <- 6
+numItems <- 20
 numPersons <- 1000
 maxDim <- 2
 
@@ -25,9 +26,10 @@ maxParam <- max(vapply(items, rpf.numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
 
 design <- matrix(c(rep(1,numItems),
-		   2,2,2,3,3,3), byrow=TRUE, nrow=2)
+		   rep(2,numItems/2), rep(3, numItems/2)), byrow=TRUE, nrow=2)
 
-data <- rpf.sample(numPersons, items, correct, design)
+theta <- t(rmvnorm(numPersons, mean=rnorm(3, sd=.25)))
+data <- rpf.sample(theta, items, correct, design)
 
 spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
@@ -51,7 +53,8 @@ m1 <- mxModel(model="bifactor",
           mxExpectationBA81(
 	     ItemSpec="ItemSpec",
 	     Design="Design",
-	     ItemParam="ItemParam"),
+	     ItemParam="ItemParam",
+	    qpoints=29),
           mxFitFunctionBA81()
 )
 
@@ -68,4 +71,10 @@ m1 <- mxRun(m1, silent=TRUE)
 #print(correct.mat)
 #print(m1@matrices$ItemParam@values)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
-omxCheckCloseEnough(got, .975, .01)
+omxCheckCloseEnough(got, .966, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[1,]), c(theta[1,])), .774, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[3,]), c(theta[2,])), .657, .01)
+omxCheckCloseEnough(cor(c(m1@output$ability[5,]), c(theta[3,])), .683, .01)
+
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 919)
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 987)

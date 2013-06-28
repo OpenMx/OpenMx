@@ -81,14 +81,15 @@ void omxExpectationRecompute(omxExpectation *ox) {
 	omxExpectationCompute(ox);
 }
 
-void omxExpectationCompute(omxExpectation *ox) {
+void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ctx)
+{
 	if (!ox) return;
 
 	if(OMX_DEBUG_ALGEBRA) { 
 	    mxLog("Expectation compute: 0x%0x", ox);
 	}
 
-	ox->computeFun(ox);
+	ox->computeFun(ox, ctx);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {

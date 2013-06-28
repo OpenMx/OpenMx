@@ -31,7 +31,7 @@ m2 <- mxModel(model="drm1", ip.mat, spec,
               mxExpectationBA81(
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam",
-		GHpoints=30),
+		qpoints=30),
               mxFitFunctionBA81())
 
 m2 <- mxOption(m2, "Analytic Gradients", 'no')
@@ -50,6 +50,5 @@ got <- cor(c(m2@matrices$itemParam@values),
            c(correct.mat))
 omxCheckCloseEnough(got, .988, .01)
 ability <- scale(ability)
-omxCheckCloseEnough(m2@output$ability[,1], as.vector(ability), 3.5*max(m2@output$ability[,2]))
-omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .80, .01)
-q()
+omxCheckCloseEnough(m2@output$ability[1,], as.vector(ability), 3.5*max(m2@output$ability[,2]))
+omxCheckCloseEnough(cor(c(m2@output$ability[1,]), ability), .80, .01)

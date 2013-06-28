@@ -142,7 +142,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
 	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
-	omxExpectationCompute(expectation);
+	omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 
 	flattenDataToVector(oCov, oMeans, oThresh, nThresh, oFlat);
 	flattenDataToVector(eCov, eMeans, eThresh, nThresh, eFlat);

@@ -21,24 +21,27 @@ setClass(Class = "MxExpectationBA81",
            ItemParam = "MxCharOrNumber",
            EItemParam = "MxOptionalCharOrNumber",
            CustomPrior = "MxOptionalCharOrNumber",
-	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
-	   GHarea = "numeric",
+	   qpoints = "numeric",
+	   qwidth = "numeric",
 	   cache = "logical",
+	   rescale = "logical",
 	   free.mean = "MxOptionalLogical",
 	   free.cov = "MxOptionalMatrix"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   quadrature, cache, free.mean, free.cov, name = 'expectation') {
+		   qpoints, qwidth, cache, free.mean, free.cov, rescale,
+		   name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
             .Object@ItemParam <- ItemParam
             .Object@EItemParam <- EItemParam
-            .Object@GHpoints <- quadrature[[1]]
-            .Object@GHarea <- quadrature[[2]]
+            .Object@qpoints <- qpoints
+            .Object@qwidth <- qwidth
             .Object@cache <- cache
+            .Object@rescale <- rescale
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
 	    .Object@free.mean <- free.mean
@@ -103,9 +106,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' any additional Bayesian prior on difficulty estimates (Baker &
 ##' Kim, 2004, p. 196).
 ##' 
-##' The cache more than halves CPU time, especially if you have many
-##' specific dimensions.
-##'
 ##' @param ItemSpec one column for each item containing the model ID
 ##' (see \code{\link{mxLookupIRTItemModelID}}), numDimensions, and
 ##' numOutcomes (3 rows)
@@ -113,7 +113,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' at row 1 and extra rows filled with NA
 ##' @param Design one column per item assignment of person abilities
 ##' to item dimensions (optional)
-##' @param GHpoints number of points to use for Gauss-Hermite quadrature integrations (default 10)
+##' @param qpoints number of points to use for rectangular quadrature integrations (default 49)
 ##' See Seong (1990) for some considerations on specifying this parameter.
 ##' @param cache whether to cache part of the expectation calculation
 ##' (enabled by default).
@@ -130,13 +130,16 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=NULL, Design=NULL,
-			      GHpoints=NULL, cache=TRUE, quadrature=NULL, free.mean=NULL, free.cov=NULL) {
-	if (missing(quadrature)) {
-		if (missing(GHpoints)) GHpoints <- 29
-		if (GHpoints < 3) {
-			stop("GHpoints should be 3 or greater")
-		}
-		quadrature <- imxEqualIntervalQuadratureData(GHpoints,6)
+			      qpoints=NULL, qwidth=6.0, cache=TRUE, free.mean=NULL, free.cov=NULL,
+			      rescale=TRUE) {
+
+	if (missing(qpoints)) qpoints <- 49
+	if (qpoints < 3) {
+		stop("qpoints should be 3 or greater")
+	}
+	if (missing(qwidth)) qwidth <- 6
+	if (qwidth <= 0) {
+		stop("qwidth must be positive")
 	}
   
 	if (!is.null(free.cov) && any(free.cov != t(free.cov))) {
@@ -144,7 +147,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=
 	}
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   quadrature, cache, free.mean, free.cov))
+		   qpoints, qwidth, cache, free.mean, free.cov, rescale))
 }
 
 imxEqualIntervalQuadratureData <- function(n, width) {

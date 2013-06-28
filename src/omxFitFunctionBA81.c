@@ -53,7 +53,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {
 	
 	//newObj->data = oo->expectation->data;
 
-	omxExpectationCompute(oo->expectation);
+	omxExpectationCompute(oo->expectation, COMPUTE_EXPECT_INITIALIZE);
 
 	oo->computeFun = ba81Compute;
 	oo->setFinalReturns = ba81SetFinalReturns;

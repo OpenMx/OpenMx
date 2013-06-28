@@ -142,7 +142,7 @@ static void sliceCrossUpdate(omxMatrix* A, omxMatrix* B, int row, int col, omxMa
     }
 }
 
-static void omxCallRAMExpectation(omxExpectation* oo) {
+static void omxCallRAMExpectation(omxExpectation* oo, enum ComputeExpectationContext ign) {
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	

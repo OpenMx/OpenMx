@@ -206,7 +206,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
 					// Recalculate means and covariances.
-					omxExpectationCompute(expectation);
+					omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 				}
 			}
             // Filter down correlation matrix and calculate thresholds.
@@ -713,7 +713,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 				} else if (numVarsFilled || firstRow) {
 					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					omxExpectationCompute(expectation);
+					omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 					for(int j=0; j < dataColumns->cols; j++) {
 						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 							omxRecompute(thresholdCols[j].matrix);
@@ -974,7 +974,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 				} else if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
 				// N.B. handling of definition var lists always happens, regardless of firstRow.
-					omxExpectationCompute(expectation);
+					omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 					if(OMX_DEBUG_ROWS(row)){ mxLog("Successfully finished expectation compute."); }
 				}
 			} else if(OMX_DEBUG_ROWS(row)){ mxLog("Identical def vars: Not repopulating"); }

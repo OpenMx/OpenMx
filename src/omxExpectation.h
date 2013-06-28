@@ -57,13 +57,21 @@ struct omxDefinitionVar {		 	// Definition Var
 
 };
 
+enum ComputeExpectationContext {
+	COMPUTE_EXPECT_GENERIC,
+	COMPUTE_EXPECT_INITIALIZE,
+	COMPUTE_EXPECT_PREFIT,
+	COMPUTE_EXPECT_POSTFIT,
+	COMPUTE_EXPECT_EXPORT
+};
+
 /* Expectation structure itself */
 struct omxExpectation {					// An Expectation
 
 	/* Fields unique to Expectation Functions */
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
-	void (*computeFun)(omxExpectation* ox);										// Wrapper for the Expectation function itself
+	void (*computeFun)(omxExpectation* ox, enum ComputeExpectationContext ctx);
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
@@ -102,8 +110,8 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	
 
 /* Expectation-specific implementations of matrix functions */
-	void omxExpectationRecompute(omxExpectation *ox);
-	void omxExpectationCompute(omxExpectation *ox);
+void omxExpectationRecompute(omxExpectation *ox);
+void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ctx);
 	omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState);
 	
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation

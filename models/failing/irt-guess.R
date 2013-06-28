@@ -36,7 +36,7 @@ m2 <- mxModel(model="guess", ip.mat, spec,
               mxExpectationBA81(
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam",
-		GHpoints=19),  # use less points since accuracy is bad anyway
+		qpoints=19),  # use less points since accuracy is bad anyway
               mxFitFunctionBA81())
 
 m2 <- mxOption(m2, "Analytic Gradients", 'no')
