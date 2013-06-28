@@ -71,6 +71,7 @@ typedef struct {
 
 	double *patternLik;       // length numUnique
 	double *logNumIdentical;  // length numUnique
+	int *rowMap;              // length numUnique
 	double ll;                // the most recent finite ll
 
 } omxBA81State;
@@ -278,16 +279,16 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 		return lxk;
 	}
 
-	for (int px=0, row=0; px < numUnique; px++) {
+	const int *rowMap = state->rowMap;
+	for (int px=0; px < numUnique; px++) {
 		double lxk1 = 0;
 		for (int ix=0; ix < numItems; ix++) {
 			if (specific != Sgroup[ix]) continue;
-			int pick = omxIntDataElementUnsafe(data, row, ix);
+			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
 			lxk1 += outcomeProb[ix * maxOutcomes + pick-1];
 		}
 		lxk[px] = lxk1;
-		row += omxDataNumIdenticalRows(data, row);
 	}
 
 	Free(outcomeProb);
@@ -436,10 +437,10 @@ ba81Estep(omxExpectation *oo) {
 }
 
 OMXINLINE static void
-expectedUpdate(omxData *restrict data, int *restrict row, const int item,
+expectedUpdate(omxData *restrict data, const int *rowMap, const int px, const int item,
 	       const double observed, const int outcomes, double *out)
 {
-	int pick = omxIntDataElementUnsafe(data, *row, item);
+	int pick = omxIntDataElementUnsafe(data, rowMap[px], item);
 	if (pick == NA_INTEGER) {
 		double slice = exp(observed - log(outcomes));
 		for (int ox=0; ox < outcomes; ox++) {
@@ -448,7 +449,6 @@ expectedUpdate(omxData *restrict data, int *restrict row, const int item,
 	} else {
 		out[pick-1] += exp(observed);
 	}
-	*row += omxDataNumIdenticalRows(data, *row);
 }
 
 /** 
@@ -460,6 +460,7 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxData *data = state->data;
+	const int *rowMap = state->rowMap;
 	int specific = state->Sgroup[item];
 	double *patternLik = state->patternLik;
 	double *logNumIdentical = state->logNumIdentical;
@@ -472,9 +473,9 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 
 	if (numSpecific == 0) {
 		double *lxk = ba81LikelihoodFast(oo, specific, quad);
-		for (int px=0, row=0; px < numUnique; px++) {
+		for (int px=0; px < numUnique; px++) {
 			double observed = logNumIdentical[px] + lxk[px] - patternLik[px];
-			expectedUpdate(data, &row, item, observed, outcomes, out);
+			expectedUpdate(data, rowMap, px, item, observed, outcomes, out);
 		}
 	} else {
 		double *allSlxk = CALC_ALLSLXK(state, numUnique);
@@ -486,10 +487,10 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 		double *eis = Slxk + numUnique * specific;
 		double *lxk = ba81LikelihoodFast(oo, specific, quad);
 
-		for (int px=0, row=0; px < numUnique; px++) {
+		for (int px=0; px < numUnique; px++) {
 			double observed = logNumIdentical[px] + (allSlxk[px] - eis[px]) +
 				(lxk[px] - patternLik[px]);
-			expectedUpdate(data, &row, item, observed, outcomes, out);
+			expectedUpdate(data, rowMap, px, item, observed, outcomes, out);
 		}
 	}
 
@@ -596,6 +597,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->itemPrior);
 	Free(state->logNumIdentical);
+	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->lxk);
 	Free(state->Slxk);
@@ -676,11 +678,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	state->numUnique = numUnique;
 
+	state->rowMap = Realloc(NULL, numUnique, int);
 	state->logNumIdentical = Realloc(NULL, numUnique, double);
 
 	int numItems = state->itemParam->cols;
 
-	for (int rx=0, ux=0; rx < data->rows;) {
+	for (int rx=0, ux=0; rx < data->rows; ux++) {
 		if (rx == 0) {
 			// all NA rows will sort to the top
 			int na=0;
@@ -693,7 +696,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 		int dups = omxDataNumIdenticalRows(state->data, rx);
-		state->logNumIdentical[ux++] = log(dups);
+		state->logNumIdentical[ux] = log(dups);
+		state->rowMap[ux] = rx;
 		rx += dups;
 	}
 
