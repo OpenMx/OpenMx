@@ -43,12 +43,14 @@ void omxInitNormalExpectation(omxExpectation *ox);
 void omxInitLISRELExpectation(omxExpectation *ox);
 void omxInitStateSpaceExpectation(omxExpectation *ox);
 void omxInitRAMExpectation(omxExpectation *ox);
+void omxInitExpectationBA81(omxExpectation* oo);
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationLISREL",			&omxInitLISRELExpectation},
 	{"MxExpectationStateSpace",			&omxInitStateSpaceExpectation},
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
-	{"MxExpectationRAM",			&omxInitRAMExpectation}
+	{"MxExpectationRAM",			&omxInitRAMExpectation},
+	{"MxExpectationBA81", &omxInitExpectationBA81}
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {

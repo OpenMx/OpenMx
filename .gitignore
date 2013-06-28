@@ -14,3 +14,4 @@
 /OpenMx*.tar.gz
 /runtimes.csv
 /.Rbuildignore
+/man/mxExpectationBA81.Rd

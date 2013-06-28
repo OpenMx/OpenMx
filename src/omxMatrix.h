@@ -196,6 +196,12 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	return om->data[index];
 }
 
+static OMXINLINE double *omxMatrixColumn(omxMatrix *om, int col) {
+  if (!om->colMajor) error("omxMatrixColumn requires colMajor order");
+  if (col < 0 || col >= om->cols) error(0, col, om->rows, om->cols);
+  return om->data + col * om->rows;
+}
+
 static OMXINLINE void omxAccumulateVectorElement(omxMatrix *om, int index, double value) {
 	if (index < 0 || index >= (om->rows * om->cols)) {
 		setVectorError(index + 1, om->rows, om->cols);

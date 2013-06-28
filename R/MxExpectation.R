@@ -15,7 +15,8 @@
 
 
 #
-# The virtual base class for all expectations
+# The virtual base class for all expectations. Expectations contain
+# enough information to generate simulated data.
 #
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
