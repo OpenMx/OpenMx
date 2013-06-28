@@ -43,34 +43,38 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0, 0, 1),
 		   lbound=c(1e-6, 1e-6, -1e6, 0, 0),
 		   free=c(rep(TRUE, 3), FALSE, FALSE))
+ip.mat@free.group <- 'param'
 
 #ip.mat@values[2,1] <- correct.mat[2,1]
 #ip.mat@free[2,1] <- FALSE
+
+eip.mat <- mxMatrix(name="EItemParam", nrow=maxParam, ncol=numItems,
+                   values=c(1.414, 1, 0, 0, 1), free=TRUE)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
 
 m1 <- mxModel(model="bifactor",
           spec, design,
-          ip.mat, m.mat, cov.mat,
+          ip.mat, m.mat, cov.mat, eip.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec="ItemSpec",
 	     Design="Design",
-	     ItemParam="ItemParam",
+	     EItemParam="EItemParam",
 	    qpoints=29,
 	    scores="full"),
-          mxFitFunctionBA81()
-)
+          mxFitFunctionBA81(ItemParam="ItemParam"),
+              mxComputeIterate(steps=list(
+                mxComputeAssign(from="ItemParam", to="EItemParam"),
+                mxComputeOnce(expectation='expectation', context='E'),
+                mxComputeGradientDescent(free.group='param'),
+                mxComputeOnce(expectation='expectation', context='M'),
+                mxComputeOnce(fitfunction='fitfunction'))))
 
-m1 <- mxOption(m1, "Analytic Gradients", 'no')
-if (1) {
-	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
+	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
-}
 m1 <- mxOption(m1, "Function precision", '1.0E-5')
-m1 <- mxOption(m1, "Calculate Hessian", "No")
-m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
 #print(correct.mat)
@@ -81,5 +85,5 @@ omxCheckCloseEnough(cor(c(m1@output$ability[1,]), c(theta[1,])), .747, .01)
 omxCheckCloseEnough(cor(c(m1@output$ability[3,]), c(theta[2,])), .781, .01)
 omxCheckCloseEnough(cor(c(m1@output$ability[5,]), c(theta[3,])), .679, .01)
 
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 925)
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 996)
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 929)
+omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 998)

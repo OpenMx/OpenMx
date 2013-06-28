@@ -37,6 +37,7 @@ ability <- array(rnorm(numPeople * 2), dim=c(2, numPeople))
 #cov <- matrix(c(1, .68, .68, 1), nrow=2)
 #ability <- rmvnorm(numPeople, sigma=cov)
 data <- rpf.sample(ability, items, correct.mat, design)
+write.csv(data, file="2d-new.csv")
 
 spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
@@ -52,30 +53,35 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
 ip.mat@values[4,1] <- 1
+ip.mat@free.group <- "param"
+
+eip.mat <- mxMatrix(name="EItemParam", nrow=maxParam, ncol=numItems,
+                   values=ip.mat@values, free=ip.mat@free)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
 
 m1 <- mxModel(model="2dim",
           spec, design,
-          ip.mat, m.mat, cov.mat,
+          ip.mat, m.mat, cov.mat, eip.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec="ItemSpec",
+                            EItemParam="EItemParam",
 	     Design="Design",
-	     ItemParam="ItemParam",
 	    qpoints=29,
 	    scores="full"),
-          mxFitFunctionBA81())
+          mxFitFunctionBA81(ItemParam="ItemParam"),
+              mxComputeIterate(steps=list(
+                mxComputeAssign(from="ItemParam", to="EItemParam"),
+                mxComputeOnce(expectation='expectation', context='E'),
+                mxComputeGradientDescent(free.group='param'),
+                mxComputeOnce(expectation='expectation', context='M'),
+                mxComputeOnce(fitfunction='fitfunction'))))
 
-m1 <- mxOption(m1, "Analytic Gradients", 'no')
-if (1) {
-	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
+	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
-}
 m1 <- mxOption(m1, "Function precision", '1.0E-5')
-m1 <- mxOption(m1, "Calculate Hessian", "No")
-m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
 
@@ -85,5 +91,5 @@ m1 <- mxRun(m1, silent=TRUE)
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
 			c(correct.mat)), .91, .04)
 max.se <- max(m1@output$ability[c(2,4),])
-omxCheckCloseEnough(sum(abs(m1@output$ability[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .01)
+omxCheckCloseEnough(sum(abs(m1@output$ability[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .02)
 omxCheckCloseEnough(.672, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)
