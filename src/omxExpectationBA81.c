@@ -15,6 +15,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// Consider replacing log() with log2() in some places? Not worth it?
+
 #include "omxExpectation.h"
 #include "omxOpenmpWrap.h"
 #include "npsolWrap.h"
@@ -25,19 +27,37 @@ static const char *NAME = "ExpectationBA81";
 typedef double *(*rpf_fn_t)(omxExpectation *oo, omxMatrix *itemParam, const int *quad);
 
 typedef int (*rpf_numParam_t)(const int numDims, const int numOutcomes);
+// TODO arguments ought to be in the same order
 typedef void (*rpf_logprob_t)(const int numDims, const double *restrict param,
 			      const double *restrict th,
 			      const int numOutcomes, double *restrict out);
+typedef double (*rpf_gradient_t)(const int numDims, const int numOutcomes,
+				 const double *restrict param, const int which,
+				 const int outcome, const double *where);
+
 struct rpf {
 	const char name[8];
 	rpf_numParam_t numParam;
 	rpf_logprob_t logprob;
+	rpf_gradient_t gradient;
 };
 
 static const struct rpf rpf_table[] = {
-	{ "drm1",  irt_rpf_1dim_drm_numParam,  irt_rpf_1dim_drm_logprob },
-	{ "drm",   irt_rpf_mdim_drm_numParam,  irt_rpf_mdim_drm_logprob },
-	{ "gpcm1", irt_rpf_1dim_gpcm_numParam, irt_rpf_1dim_gpcm_logprob }
+	{ "drm1",
+	  irt_rpf_1dim_drm_numParam,
+	  irt_rpf_1dim_drm_logprob,
+	  irt_rpf_1dim_drm_gradient,
+	},
+	{ "drm",
+	  irt_rpf_mdim_drm_numParam,
+	  irt_rpf_mdim_drm_logprob,
+	  NULL //irt_rpf_mdim_drm_gradient,
+	},
+	{ "gpcm1",
+	  irt_rpf_1dim_gpcm_numParam,
+	  irt_rpf_1dim_gpcm_logprob,
+	  irt_rpf_1dim_gpcm_gradient,
+	}
 };
 static const int numStandardRPF = (sizeof(rpf_table) / sizeof(struct rpf));
 
@@ -51,6 +71,7 @@ typedef struct {
 	int maxDims;
 	int numGHpoints;
 	double *GHpoint;
+	double *logGHarea;
 	double *GHarea;
 	long *quadGridSize;       // maxDims
 	long totalPrimaryPoints;  // product of quadGridSize except specific dim
@@ -74,6 +95,8 @@ typedef struct {
 	int *rowMap;              // length numUnique
 	double ll;                // the most recent finite ll
 
+	int gradientCount;
+	int fitCount;
 } omxBA81State;
 
 enum ISpecRow {
@@ -344,7 +367,7 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				eis[ix] += exp(lxk[ix] + state->GHarea[qx]);
+				eis[ix] += exp(lxk[ix] + state->logGHarea[qx]);
 			}
 		}
 
@@ -356,13 +379,22 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 }
 
 OMXINLINE static double
-areaProduct(omxBA81State *state, const int *restrict quad, const int upto)
+logAreaProduct(omxBA81State *state, const int *restrict quad, const int upto)
 {
 	double logArea = 0;
 	for (int dx=0; dx < upto; dx++) {
-		logArea += state->GHarea[quad[dx]];
+		logArea += state->logGHarea[quad[dx]];
 	}
 	return logArea;
+}
+
+// The idea of this API is to allow passing in a number larger than 1.
+OMXINLINE static void
+areaProduct(omxBA81State *state, const int *restrict quad, const int upto, double *restrict out)
+{
+	for (int dx=0; dx < upto; dx++) {
+		*out *= state->GHarea[quad[dx]];
+	}
 }
 
 OMXINLINE static void
@@ -403,7 +435,7 @@ ba81Estep(omxExpectation *oo) {
 
 			double *lxk = ba81Likelihood(oo, 0, quad);
 
-			double logArea = areaProduct(state, quad, state->maxDims);
+			double logArea = logAreaProduct(state, quad, state->maxDims);
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(lxk[px] + logArea);
@@ -422,7 +454,7 @@ ba81Estep(omxExpectation *oo) {
 			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
 			cai2010(oo, TRUE, quad, allSlxk, Slxk);
 
-			double logArea = areaProduct(state, quad, sDim);
+			double logArea = logAreaProduct(state, quad, sDim);
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(allSlxk[px] + logArea);
@@ -466,7 +498,6 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 	double *logNumIdentical = state->logNumIdentical;
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
-	int maxDims = state->maxDims;
 	int sDim = state->maxDims-1;
 
 	OMXZERO(out, outcomes);
@@ -493,12 +524,6 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 			expectedUpdate(data, rowMap, px, item, observed, outcomes, out);
 		}
 	}
-
-	double logArea = areaProduct(state, quad, maxDims);
-
-	for (int ox=0; ox < outcomes; ox++) {
-		out[ox] = log(out[ox]) + logArea;
-	}
 }
 
 OMXINLINE static double
@@ -509,6 +534,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
 	int numItems = itemParam->cols;
 	rpf_fn_t rpf_fn = state->computeRPF;
 	int maxOutcomes = state->maxOutcomes;
+	int maxDims = state->maxDims;
 
 	double *outcomeProb = (*rpf_fn)(oo, itemParam, quad);
 	if (!outcomeProb) return 0;
@@ -519,7 +545,8 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
 		double out[outcomes];
 		ba81Weight(oo, ix, quad, outcomes, out);
 		for (int ox=0; ox < outcomes; ox++) {
-			double got = exp(out[ox]) * outcomeProb[ix * maxOutcomes + ox];
+			double got = out[ox] * outcomeProb[ix * maxOutcomes + ox];
+			areaProduct(state, quad, maxDims, &got);
 			thr_ll += got;
 		}
 	}
@@ -532,6 +559,7 @@ static double
 ba81ComputeFit1(omxExpectation* oo)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
+	++state->fitCount;
 	omxMatrix *itemPrior = state->itemPrior;
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
@@ -544,7 +572,6 @@ ba81ComputeFit1(omxExpectation* oo)
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
-
 			double thr_ll = ba81Fit1Ordinate(oo, quad);
 
 #pragma omp atomic
@@ -559,6 +586,7 @@ ba81ComputeFit1(omxExpectation* oo)
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 
+			// copy loop structure to gradient TODO
 			double thr_ll = 0;
 			long specificPoints = quadGridSize[sDim];
 			for (long sx=0; sx < specificPoints; sx++) {
@@ -573,9 +601,9 @@ ba81ComputeFit1(omxExpectation* oo)
 	if (isinf(ll)) {
 		return 2*state->ll;
 	} else {
-		// TODO need to *2 also?
-		state->ll = -ll;
-		return -ll;
+		ll = -2 * ll;
+		state->ll = ll;
+		return ll;
 	}
 }
 
@@ -586,17 +614,64 @@ ba81ComputeFit(omxExpectation* oo)
 	return got;
 }
 
+void ba81Gradient(omxExpectation* oo, double *out)
+{
+	omxState* currentState = oo->currentState;
+	int numFreeParams = currentState->numFreeParams;
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	++state->gradientCount;
+	omxMatrix *itemSpec = state->itemSpec;
+	omxMatrix *itemParam = state->itemParam;
+	int maxDims = state->maxDims;
+
+	// sort & do all of an item's parameters together TODO
+        for (int vx = 0; vx < numFreeParams; vx++) {
+            omxFreeVar *fv = currentState->freeVarList + vx;
+	    // TODO match the matrix number
+	    int item = fv->col[0];
+	    int which = fv->row[0];
+	    int id = omxMatrixElement(itemSpec, ISpecID, item);
+	    int dims = omxMatrixElement(itemSpec, ISpecDims, item);
+	    int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, item);
+	    double *iparam = omxMatrixColumn(itemParam, item);
+	    double grad=0;
+
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+	    for (long qx=0; qx < state->totalQuadPoints; qx++) {
+		    int quad[maxDims];
+		    decodeLocation(qx, maxDims, state->quadGridSize, quad);
+		    double where[maxDims];
+		    pointToWhere(state, quad, where, maxDims);
+
+		    double out[outcomes];
+		    ba81Weight(oo, item, quad, outcomes, out); // thread safe with cache off? TODO
+
+		    for (int ox=0; ox < outcomes; ox++) {
+			    double got = (*rpf_table[id].gradient)(dims, outcomes, iparam, which, ox, where);
+			    double piece = out[ox] * got;
+			    areaProduct(state, quad, maxDims, &piece);
+#pragma omp atomic
+			    grad += piece;
+		    }
+	    }
+	    double got = (*rpf_table[id].gradient)(dims, outcomes, iparam, which, -1, NULL);
+	    out[vx] = -2 * grad * got;
+	}
+}
+
 static void ba81Destroy(omxExpectation *oo) {
 	if(OMX_DEBUG) {
 		Rprintf("Freeing %s function.\n", NAME);
 	}
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	Rprintf("fit %d gradient %d\n", state->fitCount, state->gradientCount);
 	omxFreeAllMatrixData(state->itemSpec);
 	omxFreeAllMatrixData(state->itemParam);
 	omxFreeAllMatrixData(state->EitemParam);
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->itemPrior);
 	Free(state->logNumIdentical);
+	Free(state->logGHarea);
 	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->lxk);
@@ -604,6 +679,12 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->allSlxk);
 	Free(state->Sgroup);
 	Free(state);
+}
+
+int ba81ExpectationHasGradients(omxExpectation* oo)
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	return state->computeRPF == standardComputeRPF;
 }
 
 void omxInitExpectationBA81(omxExpectation* oo) {
@@ -626,6 +707,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->numGHpoints != length(tmp)) error("length(GHpoints) != length(GHarea)");
 	state->GHarea = REAL(tmp);
 
+	state->logGHarea = Realloc(NULL, state->numGHpoints, double);
+	for (int px=0; px < state->numGHpoints; px++) {
+		state->logGHarea[px] = log(state->GHarea[px]);
+	}
+
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
 	state->data = omxNewDataFromMxDataPtr(tmp, currentState);
         UNPROTECT(1);
@@ -638,7 +724,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	PROTECT(state->rpf = GET_SLOT(rObj, install("RPF")));
 	if (state->rpf == R_NilValue) {
 		state->computeRPF = standardComputeRPF;
-		// and analytic gradient TODO
 	} else {
 		state->computeRPF = RComputeRPF;
 	}
@@ -656,7 +741,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		omxNewMatrixFromIndexSlot(rObj, currentState, "ItemPrior");
 	
 	oo->computeFun = ba81Estep;
-	//	oo->gradientFun = ba81Gradient;
 	oo->destructFun = ba81Destroy;
 	
 	oo->argStruct = (void*) state;
@@ -820,7 +904,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	// verify data bounded between 1 and numOutcomes TODO
-	// hm, looks like something could be added to omxData?
+	// hm, looks like something could be added to omxData for column summary stats?
 }
 
 SEXP omx_get_rpf_names()

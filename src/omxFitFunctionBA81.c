@@ -6,9 +6,7 @@
  */
 
 #include "omxFitFunction.h"
-
-#ifndef _OMX_FITFUNCTION_BA81_
-#define _OMX_FITFUNCTION_BA81_ TRUE
+#include "omxExpectationBA81.h"
 
 static const char *NAME = "FitFunctionBA81";
 
@@ -45,7 +43,10 @@ static omxRListElement* ba81SetFinalReturns(omxFitFunction *off, int *numReturns
 
 // TODO: Don't trample the Expectation/FitFunction separation.
 
-extern double ba81ComputeFit(omxExpectation* oo);
+static void ba81GradientHook(omxFitFunction* oo, double *out)
+{
+	ba81Gradient(oo->expectation, out);
+}
 
 static void ba81Compute(omxFitFunction *oo) {
 	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
@@ -73,7 +74,8 @@ void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {
 	oo->computeFun = ba81Compute;
 	oo->setFinalReturns = ba81SetFinalReturns;
 	oo->destructFun = ba81Destroy;
+
+	if (ba81ExpectationHasGradients(oo->expectation)) {
+		oo->gradientFun = ba81GradientHook;
+	}
 }
-
-
-#endif // _OMX_FITFUNCTION_BA81_

@@ -36,7 +36,7 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@ItemParam <- ItemParam
             .Object@RPF <- RPF
             .Object@GHpoints <- gh[[1]]
-            .Object@GHarea <- log(gh[[2]])
+            .Object@GHarea <- gh[[2]]
             .Object@cache <- cache
             .Object@ItemPrior <- ItemPrior
             .Object@data <- as.integer(NA)
