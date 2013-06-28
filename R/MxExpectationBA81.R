@@ -14,8 +14,6 @@
 #   limitations under the License.
 
 
-setClassUnion("MxOptionalFunction", c("NULL", "function"))
-
 setClass(Class = "MxExpectationBA81",
          representation = representation(
 	   ItemSpec = "MxCharOrNumber",
@@ -26,12 +24,13 @@ setClass(Class = "MxExpectationBA81",
 	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
 	   GHarea = "numeric",
 	   cache = "logical",
-	   doRescale = "logical"),
+	   free.mean = "MxOptionalLogical",
+	   free.cov = "MxOptionalMatrix"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   quadrature, cache, doRescale, name = 'expectation') {
+		   quadrature, cache, free.mean, free.cov, name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
@@ -42,7 +41,8 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@cache <- cache
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
-	    .Object@doRescale <- doRescale
+	    .Object@free.mean <- free.mean
+	    .Object@free.cov <- free.cov
             return(.Object)
           }
 )
@@ -74,7 +74,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 					# How to get the data object?
 		  ## if (.Object@data@type != 'raw') {
-		  ##   error(paste(typeof(.Object), "only supports raw data"));
+		  ##   stop(paste(typeof(.Object), "only supports raw data"));
 		  ## }
 		  return(.Object)
 	  })
@@ -130,22 +130,21 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=NULL, Design=NULL,
-			      GHpoints=NULL, cache=TRUE, quadrature=NULL, doRescale=TRUE) {
+			      GHpoints=NULL, cache=TRUE, quadrature=NULL, free.mean=NULL, free.cov=NULL) {
 	if (missing(quadrature)) {
-		if (missing(GHpoints)) GHpoints <- 10
+		if (missing(GHpoints)) GHpoints <- 29
 		if (GHpoints < 3) {
-			error("GHpoints should be 3 or greater")
+			stop("GHpoints should be 3 or greater")
 		}
-		quadrature <- rpf.GaussHermiteData(GHpoints)
+		quadrature <- imxEqualIntervalQuadratureData(GHpoints,6)
 	}
   
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
-		   quadrature, cache, doRescale))
-}
+	if (!is.null(free.cov) && any(free.cov != t(free.cov))) {
+		stop("free.cov must be symmetric")
+	}
 
-imxUniformQuadratureData <- function(n, width) {
-  x <- seq(-width, width, length.out=n)
-  list(x=x, w=rep(1/n, n))
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
+		   quadrature, cache, free.mean, free.cov))
 }
 
 imxEqualIntervalQuadratureData <- function(n, width) {

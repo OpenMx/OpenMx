@@ -75,7 +75,8 @@ typedef struct {
 	double *latentCov1;       // maxDims * maxDims ; only lower triangle is used
 	double *latentMeanOut;    // maxAbilities
 	double *latentCovOut;     // maxAbilities * maxAbilities ; only lower triangle is used
-	int doRescale;
+	int *freeMean;
+	int *freeCov;
 	int choleskyError;
 
 	int converged;
@@ -563,7 +564,6 @@ ba81Estep1(omxExpectation *oo) {
 	//pda(latentMean, state->maxAbilities, 1);
 	//pda(latentCov, state->maxAbilities, state->maxAbilities);
 
-	// only consider reference group TODO
 	omxData *data = state->data;
 	for (int d1=0; d1 < maxAbilities; d1++) {
 		latentMean[d1] /= data->rows;
@@ -589,12 +589,6 @@ ba81Estep1(omxExpectation *oo) {
 
 	memcpy(state->latentMeanOut, state->latentMean, maxAbilities * sizeof(double));
 	memcpy(state->latentCovOut, state->latentCov, maxAbilities * maxAbilities * sizeof(double));
-
-	const char triangle = 'L';
-	F77_CALL(dpotrf)(&triangle, &maxAbilities, latentCov, &maxAbilities, &state->choleskyError);
-	if (state->choleskyError != 0) {
-		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
-	}
 }
 
 static void
@@ -616,10 +610,16 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 	//pda(latentCov, maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
 
-	if (state->choleskyError != 0) return;
+	const char triangle = 'L';
+	F77_CALL(dpotrf)(&triangle, &maxAbilities, latentCov, &maxAbilities, &state->choleskyError);
+	if (state->choleskyError != 0) {
+		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
+		return;
+	}
 
 	int numItems = itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
+		// refactor this because we need the mean,cov for the quadrature TODO
 		const double *spec = omxMatrixColumn(itemSpec, ix);
 		int id = spec[RPF_ISpecID];
 		const double *rawDesign = omxMatrixColumn(design, ix);
@@ -633,21 +633,21 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 			}
 		}
 		for (int d1=0; d1 < idx; d1++) {
-			if (idesign[d1] == -1) {
+			if (idesign[d1] == -1 || state->freeMean[idesign[d1]]) {
 				latentMean1[d1] = 0;
 			} else {
 				latentMean1[d1] = latentMean[idesign[d1]];
 			}
 			for (int d2=0; d2 <= d1; d2++) {
-				if (idesign[d1] == -1 || idesign[d2] == -1) {
-					latentCov1[d2 * maxDims + d1] = 0;
+				int cell = idesign[d2] * maxAbilities + idesign[d1];
+				if (idesign[d1] == -1 || idesign[d2] == -1 || state->freeCov[cell]) {
+					latentCov1[d2 * maxDims + d1] = d1==d2? 1 : 0;
 				} else {
-					latentCov1[d2 * maxDims + d1] =
-						latentCov[idesign[d2] * maxAbilities + idesign[d1]];
+					latentCov1[d2 * maxDims + d1] = latentCov[cell];
 				}
 			}
 		}
-		if (1) {  // make optional TODO
+		if (1) {  // ease debugging, make optional TODO
 			for (int d1=idx; d1 < maxDims; d1++) latentMean1[d1] = nan("");
 			for (int d1=0; d1 < maxDims; d1++) {
 				for (int d2=0; d2 < maxDims; d2++) {
@@ -689,7 +689,7 @@ ba81Estep(omxExpectation *oo) {
 		omxCopyMatrix(state->EitemParam, state->itemParam);
 	}
 	ba81Estep1(oo);
-	if (state->doRescale) schilling_bock_2005_rescale(oo);
+	schilling_bock_2005_rescale(oo);
 }
 
 OMXINLINE static void
@@ -1234,6 +1234,16 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state);
 }
 
+void getMatrixDims(SEXP r_theta, int *rows, int *cols)
+{
+    SEXP matrixDims;
+    PROTECT(matrixDims = getAttrib(r_theta, R_DimSymbol));
+    int *dimList = INTEGER(matrixDims);
+    *rows = dimList[0];
+    *cols = dimList[1];
+    UNPROTECT(1);
+}
+
 void omxInitExpectationBA81(omxExpectation* oo) {
 	omxState* currentState = oo->currentState;	
 	SEXP rObj = oo->rObj;
@@ -1374,6 +1384,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
 		} else if (dataMax < no) {
 			warning("Data for item %d has only %d outcomes, not %d", cx+1, dataMax, no);
+			// promote to error?
+			// should complain if an outcome is not represented in the data TODO
 		}
 
 		int numSpec = (*rpf_model[id].numSpec)(spec);
@@ -1470,8 +1482,32 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->Slxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
 	}
 
-	PROTECT(tmp = GET_SLOT(rObj, install("doRescale")));
-	state->doRescale = asLogical(tmp);
+	PROTECT(tmp = GET_SLOT(rObj, install("free.mean")));
+	state->freeMean = Realloc(NULL, state->maxAbilities, int);
+	if (isNull(tmp)) {
+		OMXZERO(state->freeMean, state->maxAbilities);
+	} else {
+		if (length(tmp) != state->maxAbilities) {
+			error("Specify for %d means whether to freely estimate", state->maxAbilities);
+		}
+		memcpy(state->freeMean, LOGICAL(tmp), sizeof(int)*state->maxAbilities);
+	}
+
+	PROTECT(tmp = GET_SLOT(rObj, install("free.cov")));
+	state->freeCov = Realloc(NULL, state->maxAbilities * state->maxAbilities, int);
+	if (isNull(tmp)) {
+		OMXZERO(state->freeCov, state->maxAbilities * state->maxAbilities);
+	} else {
+		int rows;
+		int cols;
+		getMatrixDims(tmp, &rows, &cols);
+		if (rows != state->maxAbilities && cols != state->maxAbilities) {
+			error("free.cov must be a %d by %d matrix of logicals",
+			      state->maxAbilities, state->maxAbilities);
+		}
+		memcpy(state->freeCov, LOGICAL(tmp),
+		       sizeof(int)*state->maxAbilities * state->maxAbilities);
+	}
 
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
 	state->cacheLXK = asLogical(tmp);

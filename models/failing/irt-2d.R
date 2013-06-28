@@ -58,8 +58,7 @@ m1 <- mxModel(model="2dim",
           mxExpectationBA81(
 	     ItemSpec="ItemSpec",
 	     Design="Design",
-	     ItemParam="ItemParam",
-	    GHpoints=21),
+	     ItemParam="ItemParam"),
           mxFitFunctionBA81())
 
 m1 <- mxOption(m1, "Analytic Gradients", 'no')
@@ -73,13 +72,13 @@ m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
 
+print(m1@output$latent.mean)
+print(m1@output$latent.cov)
 					#print(m1@matrices$ItemParam@values)
 					#print(correct.mat)
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-			c(correct.mat)), .941, .01)
+			c(correct.mat)), .921, .01)
 max.se <- max(m1@output$ability[,c(2,4)])
 omxCheckCloseEnough(m1@output$ability[,c(1,3)], t(ability), max.se*2.5)
-omxCheckCloseEnough(.588, cor(c(m1@output$ability[,c(1,3)]), c(t(ability))), .01)
+omxCheckCloseEnough(.617, cor(c(m1@output$ability[,c(1,3)]), c(t(ability))), .01)
 
-					#	print(m1@output$latent.mean)
-					#	print(m1@output$latent.cov)
