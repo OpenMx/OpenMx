@@ -738,6 +738,7 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 	}
 
 	if (flat) {
+		// not sure why this is useful, remove? TODO
 		double flatd = log(1) - log(state->totalPrimaryPoints);
 		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
 			state->priLogQarea[qx] = flatd;
@@ -1132,8 +1133,8 @@ realEAP(omxExpectation *oo)
 		warning("EAP requires at least 2*sqrt(items) quadrature points");
 	}
 
-	ba81SetupQuadrature(oo, numQpoints, 1);
-	ba81Estep1(oo);   // recalc patternLik with a flat prior
+	ba81SetupQuadrature(oo, numQpoints, 0);
+	ba81Estep1(oo);
 
 	/*
 	double *cov = NULL;
