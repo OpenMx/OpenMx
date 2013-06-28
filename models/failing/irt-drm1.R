@@ -3,7 +3,7 @@ library(rpf)
 
 set.seed(9)
 
-numItems <- 30
+numItems <- 10
 i1 <- rpf.drm()
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
@@ -14,7 +14,8 @@ for (ix in 1:numItems) {
 }
 correct.mat <- simplify2array(correct)
 
-data <- rpf.sample(500, items, correct)
+ability <- rnorm(500)
+data <- rpf.sample(ability, items, correct)
 
 spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=c(rep(mxLookupIRTItemModelID("drm1"), numItems),
@@ -47,11 +48,12 @@ m2 <- mxOption(m2, "Calculate Hessian", "No")
 m2 <- mxOption(m2, "Standard Errors", "No")
 m2 <- mxRun(m2)
 
-print(m2@matrices$itemParam@values)
-print(correct.mat)
+#print(m2@matrices$itemParam@values)
+#print(correct.mat)
 got <- cor(c(m2@matrices$itemParam@values),
            c(correct.mat))
-print(got)
-#omxCheckCloseEnough(got, .946, .01)
-
+omxCheckCloseEnough(got, .974, .01)
+ability <- scale(ability)
+omxCheckCloseEnough(m2@output$ability[,1], as.vector(ability), 4*max(m2@output$ability[,2]))
+omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .819, .01)
 q()

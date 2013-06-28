@@ -25,23 +25,23 @@ static void ba81Destroy(omxFitFunction *oo) {
 	// nothing to do yet
 }
 
+// TODO: Don't trample the Expectation/FitFunction separation.
+
 static omxRListElement* ba81SetFinalReturns(omxFitFunction *off, int *numReturns) {
 
-	omxRListElement* retVal;
+	*numReturns = 2;
 
-	*numReturns = 1;
+	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 
-	retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+	out[0].numValues = 1;
+	out[0].values = (double*) R_alloc(1, sizeof(double));
+	strcpy(out[0].label, "Minus2LogLikelihood");
+	out[0].values[0] = omxMatrixElement(off->matrix, 0, 0);
 
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strcpy(retVal[0].label, "Minus2LogLikelihood");
-	retVal[0].values[0] = omxMatrixElement(off->matrix, 0, 0);
+	ba81EAP(off->expectation, out+1);
 
-	return retVal;
+	return out;
 }
-
-// TODO: Don't trample the Expectation/FitFunction separation.
 
 static void ba81GradientHook(omxFitFunction* oo, double *out)
 {

@@ -47,6 +47,8 @@ struct rpf {
 	rpf_gradient_t gradient;
 };
 
+// configuration of priors, probably via itemSpec TODO
+
 static const struct rpf rpf_table[] = {
 	{ "drm1",
 	  irt_rpf_1dim_drm_numParam,
@@ -63,7 +65,7 @@ static const struct rpf rpf_table[] = {
 	{ "gpcm1",
 	  irt_rpf_1dim_gpcm_numParam,
 	  irt_rpf_1dim_gpcm_logprob,
-	  NULL,
+	  irt_rpf_1dim_gpcm_prior,
 	  irt_rpf_1dim_gpcm_gradient,
 	}
 };
@@ -71,37 +73,42 @@ static const int numStandardRPF = (sizeof(rpf_table) / sizeof(struct rpf));
 
 typedef struct {
 
-	int *paramMap;
+	// data characteristics
 	omxData *data;
 	int numUnique;
+	double *logNumIdentical;  // length numUnique
+	int *rowMap;              // length numUnique
+
+	// item description related
 	omxMatrix *itemSpec;
-	int *Sgroup;              // item's specific group 0..numSpecific-1
 	int maxOutcomes;
 	int maxDims;
-	int numGHpoints;
-	double *GHpoint;
-	double *logGHarea;
-	double *GHarea;
+	int maxAbilities;
+	int numSpecific;
+	int *Sgroup;              // item's specific group 0..numSpecific-1
+	omxMatrix *design;        // items * maxDims
+
+	// quadrature related
+	int numQpoints;
+	double *Qpoint;
+	double *Qarea;
+	double *logQarea;
 	long *quadGridSize;       // maxDims
 	long totalPrimaryPoints;  // product of quadGridSize except specific dim
 	long totalQuadPoints;     // product of quadGridSize
-	int maxAbilities;
-	int numSpecific;
-	omxMatrix *design;        // items * maxDims
-	omxMatrix *itemPrior;
-	omxMatrix *itemParam;     // M step version
+
+	// estimation related
 	omxMatrix *EitemParam;    // E step version
+	omxMatrix *itemParam;     // M step version
 	SEXP rpf;
 	rpf_fn_t computeRPF;
-
+	omxMatrix *customPrior;
+	int *paramMap;
 	int cacheLXK;		  // w/cache,  numUnique * #specific quad points * totalQuadPoints
 	double *lxk;              // wo/cache, numUnique * thread
 	double *allSlxk;          // numUnique * thread
 	double *Slxk;             // numUnique * #specific dimensions * thread
-
 	double *patternLik;       // length numUnique
-	double *logNumIdentical;  // length numUnique
-	int *rowMap;              // length numUnique
 	double ll;                // the most recent finite ll
 
 	int gradientCount;
@@ -168,7 +175,7 @@ OMXINLINE static void
 pointToWhere(omxBA81State *state, const int *quad, double *where, int upto)
 {
 	for (int dx=0; dx < upto; dx++) {
-		where[dx] = state->GHpoint[quad[dx]];
+		where[dx] = state->Qpoint[quad[dx]];
 	}
 }
 
@@ -412,7 +419,7 @@ cai2010(omxExpectation* oo, int recompute, const int *restrict primaryQuad,
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				eis[ix] += exp(lxk[ix] + state->logGHarea[qx]);
+				eis[ix] += exp(lxk[ix] + state->logQarea[qx]);
 			}
 		}
 
@@ -428,7 +435,7 @@ logAreaProduct(omxBA81State *state, const int *restrict quad, const int upto)
 {
 	double logArea = 0;
 	for (int dx=0; dx < upto; dx++) {
-		logArea += state->logGHarea[quad[dx]];
+		logArea += state->logQarea[quad[dx]];
 	}
 	return logArea;
 }
@@ -438,7 +445,7 @@ OMXINLINE static void
 areaProduct(omxBA81State *state, const int *restrict quad, const int upto, double *restrict out)
 {
 	for (int dx=0; dx < upto; dx++) {
-		*out *= state->GHarea[quad[dx]];
+		*out *= state->Qarea[quad[dx]];
 	}
 }
 
@@ -607,22 +614,23 @@ ba81ComputeFit1(omxExpectation* oo)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	++state->fitCount;
-	omxMatrix *itemPrior = state->itemPrior;
+	omxMatrix *customPrior = state->customPrior;
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
 
-	omxRecompute(itemPrior);
-	double ll = itemPrior->data[0];
 	double ll = 0;
-	omxMatrix *itemSpec = state->itemSpec;
-	omxMatrix *itemParam = state->itemParam;
-	int numItems = itemSpec->cols;
-	for (int ix=0; ix < numItems; ix++) {
-		int id = omxMatrixElement(itemSpec, ISpecID, ix);
-		int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
-		int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, ix);
-		double *iparam = omxMatrixColumn(itemParam, ix);
-		if (rpf_table[id].prior) {
+	if (customPrior) {
+		omxRecompute(customPrior);
+		ll = customPrior->data[0];
+	} else {
+		omxMatrix *itemSpec = state->itemSpec;
+		omxMatrix *itemParam = state->itemParam;
+		int numItems = itemSpec->cols;
+		for (int ix=0; ix < numItems; ix++) {
+			int id = omxMatrixElement(itemSpec, ISpecID, ix);
+			int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
+			int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, ix);
+			double *iparam = omxMatrixColumn(itemParam, ix);
 			ll += (*rpf_table[id].prior)(dims, outcomes, iparam);
 		}
 	}
@@ -789,6 +797,144 @@ void ba81Gradient(omxExpectation* oo, double *out)
 	}
 }
 
+static int
+getNumThreads(omxExpectation* oo)
+{
+	int numThreads = oo->currentState->numThreads;
+	if (numThreads < 1) numThreads = 1;
+	return numThreads;
+}
+
+static void
+ba81SetupQuadrature(omxExpectation* oo, int numPoints, double *points, double *area)
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	int numUnique = state->numUnique;
+	int numThreads = getNumThreads(oo);
+
+	state->numQpoints = numPoints;
+
+	Free(state->Qpoint);
+	Free(state->Qarea);
+	state->Qpoint = Realloc(NULL, numPoints, double);
+	state->Qarea = Realloc(NULL, numPoints, double);
+	memcpy(state->Qpoint, points, sizeof(double)*numPoints);
+	memcpy(state->Qarea, area, sizeof(double)*numPoints);
+
+	Free(state->logQarea);
+
+	state->logQarea = Realloc(NULL, state->numQpoints, double);
+	for (int px=0; px < state->numQpoints; px++) {
+		state->logQarea[px] = log(state->Qarea[px]);
+	}
+
+	state->totalQuadPoints = 1;
+	state->totalPrimaryPoints = 1;
+	state->quadGridSize = (long*) R_alloc(state->maxDims, sizeof(long));
+	for (int dx=0; dx < state->maxDims; dx++) {
+		state->quadGridSize[dx] = state->numQpoints;
+		state->totalQuadPoints *= state->quadGridSize[dx];
+		if (dx < state->maxDims-1) {
+			state->totalPrimaryPoints *= state->quadGridSize[dx];
+		}
+	}
+
+	Free(state->lxk);
+
+	if (!state->cacheLXK) {
+		state->lxk = Realloc(NULL, numUnique * numThreads, double);
+	} else {
+		int ns = state->numSpecific;
+		if (ns == 0) ns = 1;
+		state->lxk = Realloc(NULL, numUnique * state->totalQuadPoints * ns, double);
+	}
+}
+
+// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
+// model. Journal of Educational Statistics, 12, 339-368.
+//
+// For now, we'll just reuse the same quadrature and the
+// already-computed E-step data.
+
+// TODO better to do all persons at a time
+static void
+ba81EAP1(omxExpectation *oo, int row, double *ability, double *psd)
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	int maxDims = state->maxDims;
+	double *patternLik = state->patternLik;
+	OMXZERO(ability, maxDims);
+	OMXZERO(psd, maxDims);
+	for (long qx=0; qx < state->totalQuadPoints; qx++) {
+		int quad[maxDims];
+		decodeLocation(qx, maxDims, state->quadGridSize, quad);
+		double where[maxDims];
+		pointToWhere(state, quad, where, maxDims);
+		double logArea = logAreaProduct(state, quad, maxDims);
+		double *lxk = ba81LikelihoodFast(oo, 0, quad);
+		double plik = exp(lxk[row] + logArea - patternLik[row]);
+		for (int dx=0; dx < maxDims; dx++) {
+			ability[dx] += where[dx] * plik;
+		}
+	}
+	for (long qx=0; qx < state->totalQuadPoints; qx++) {
+		int quad[maxDims];
+		decodeLocation(qx, maxDims, state->quadGridSize, quad);
+		double where[maxDims];
+		pointToWhere(state, quad, where, maxDims);
+		double logArea = logAreaProduct(state, quad, maxDims);
+		double *lxk = ba81LikelihoodFast(oo, 0, quad);
+		for (int dx=0; dx < maxDims; dx++) {
+			double ldiff = log(fabs(where[dx] - ability[dx]));
+			psd[dx] += exp(2 * ldiff + lxk[row] + logArea - patternLik[row]);
+		}
+	}
+	for (int dx=0; dx < maxDims; dx++) {
+		psd[dx] = sqrt(psd[dx]);
+	}
+}
+
+void ba81EAP(omxExpectation *oo, omxRListElement *out)
+{
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	int maxDims = state->maxDims;
+	omxData *data = state->data;
+
+	int numQpoints = state->numQpoints * 2;  // make configurable TODO
+	double Qpoint[numQpoints];
+	double Qarea[numQpoints];
+	const double Qwidth = 4;
+	for (int qx=0; qx < numQpoints; qx++) {
+		Qpoint[qx] = Qwidth - qx * Qwidth*2 / (numQpoints-1);
+		Qarea[qx] = 1.0/numQpoints;
+	}
+	ba81SetupQuadrature(oo, numQpoints, Qpoint, Qarea);
+	ba81Estep(oo);   // recalc patternLik with a flat prior
+
+	strcpy(out->label, "ability");
+	out->numValues = -1;
+	out->rows = data->rows;
+	out->cols = 2 * maxDims;
+	out->values = (double*) R_alloc(out->rows * out->cols, sizeof(double));
+
+	for (int rx=0; rx < state->numUnique; rx++) {
+		double ability[maxDims];
+		double psd[maxDims];
+
+		ba81EAP1(oo, rx, ability, psd);
+
+		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
+		for (int dup=0; dup < dups; dup++) {
+			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
+			int col=-1;
+			for (int dx=0; dx < maxDims; dx++) {
+				out->values[++col * out->rows + dest] = ability[dx];
+				out->values[++col * out->rows + dest] = psd[dx];
+			}
+		}
+	}
+}
+
 static void ba81Destroy(omxExpectation *oo) {
 	if(OMX_DEBUG) {
 		Rprintf("Freeing %s function.\n", NAME);
@@ -799,9 +945,11 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->itemParam);
 	omxFreeAllMatrixData(state->EitemParam);
 	omxFreeAllMatrixData(state->design);
-	omxFreeAllMatrixData(state->itemPrior);
+	omxFreeAllMatrixData(state->customPrior);
 	Free(state->logNumIdentical);
-	Free(state->logGHarea);
+	Free(state->Qpoint);
+	Free(state->Qarea);
+	Free(state->logQarea);
 	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->lxk);
@@ -830,21 +978,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	omxBA81State *state = Calloc(1, omxBA81State);
 	oo->argStruct = (void*) state;
 
-	state->ll = 10^9;   // finite but big
+	state->ll = 1e20;   // finite but big
 	
-	PROTECT(tmp = GET_SLOT(rObj, install("GHpoints")));
-	state->numGHpoints = length(tmp);
-	state->GHpoint = REAL(tmp);
-
-	PROTECT(tmp = GET_SLOT(rObj, install("GHarea")));
-	if (state->numGHpoints != length(tmp)) error("length(GHpoints) != length(GHarea)");
-	state->GHarea = REAL(tmp);
-
-	state->logGHarea = Realloc(NULL, state->numGHpoints, double);
-	for (int px=0; px < state->numGHpoints; px++) {
-		state->logGHarea[px] = log(state->GHarea[px]);
-	}
-
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
 	state->data = omxNewDataFromMxDataPtr(tmp, currentState);
         UNPROTECT(1);
@@ -870,13 +1005,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->EitemParam =
 		omxInitTemporaryMatrix(NULL, state->itemParam->rows, state->itemParam->cols,
 				       TRUE, currentState);
-	state->itemPrior =
-		omxNewMatrixFromIndexSlot(rObj, currentState, "ItemPrior");
+	state->customPrior =
+		omxNewMatrixFromIndexSlot(rObj, currentState, "CustomPrior");
 	
 	oo->computeFun = ba81Estep;
 	oo->destructFun = ba81Destroy;
-	//	oo->setFinalReturns = ba81finalReturn;
-	//	omxRListElement* (*setFinalReturns)(omxExpectation* ox, int *numVals);		// Sets any R returns.
 	
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we don't waste RAM.
@@ -921,8 +1054,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->patternLik = Realloc(NULL, numUnique, double);
 
-	int numThreads = oo->currentState->numThreads;
-	if (numThreads < 1) numThreads = 1;
+	int numThreads = getNumThreads(oo);
 
 	if (state->itemSpec->cols != data->cols || state->itemSpec->rows != ISpecRowCount) {
 		omxRaiseErrorf(currentState, "ItemSpec must have %d item columns and %d rows",
@@ -1015,27 +1147,18 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->Slxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
 	}
 
-	state->totalQuadPoints = 1;
-	state->totalPrimaryPoints = 1;
-	state->quadGridSize = (long*) R_alloc(state->maxDims, sizeof(long));
-	for (int dx=0; dx < state->maxDims; dx++) {
-		state->quadGridSize[dx] = state->numGHpoints;
-		state->totalQuadPoints *= state->quadGridSize[dx];
-		if (dx < state->maxDims-1) {
-			state->totalPrimaryPoints *= state->quadGridSize[dx];
-		}
-	}
-
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
 	state->cacheLXK = asLogical(tmp);
 
-	if (!state->cacheLXK) {
-		state->lxk = Realloc(NULL, numUnique * numThreads, double);
-	} else {
-		int ns = state->numSpecific;
-		if (ns == 0) ns = 1;
-		state->lxk = Realloc(NULL, numUnique * state->totalQuadPoints * ns, double);
-	}
+	PROTECT(tmp = GET_SLOT(rObj, install("GHpoints")));
+	double *qpoints = REAL(tmp);
+	int numQPoints = length(tmp);
+
+	PROTECT(tmp = GET_SLOT(rObj, install("GHarea")));
+	double *qarea = REAL(tmp);
+	if (numQPoints != length(tmp)) error("length(GHpoints) != length(GHarea)");
+
+	ba81SetupQuadrature(oo, numQPoints, qpoints, qarea);
 
 	// verify data bounded between 1 and numOutcomes TODO
 	// hm, looks like something could be added to omxData for column summary stats?

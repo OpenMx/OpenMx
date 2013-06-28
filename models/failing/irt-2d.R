@@ -9,7 +9,7 @@ require(rpf)
 set.seed(7)
 
 numItems <- 5
-numPersons <- 500
+numPeople <- 500
 maxDim <- 2
 
 items <- vector("list", numItems)
@@ -29,7 +29,8 @@ maxOutcomes <- max(vapply(items, function(i) i@numOutcomes, 0))
 design <- matrix(c(1, 1,1,1,2,
 		   NA,2,2,2,1), byrow=TRUE, nrow=2)
 
-data <- rpf.sample(numPersons, items, correct, design)
+ability <- array(rnorm(numPeople * 2), dim=c(numPeople, 2))
+data <- rpf.sample(ability, items, correct, design)
 
 colnames(data) <- paste("item", 1:dim(data)[2], sep='')
 
@@ -65,7 +66,7 @@ m1 <- mxModel(model="2dim",
           mxFitFunctionBA81())
 
 m1 <- mxOption(m1, "Analytic Gradients", 'no')
-if (1) {
+if (0) {
 	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
 }
@@ -77,7 +78,10 @@ if (1) {
 	m1 <- mxRun(m1, silent=TRUE)
 
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .934, .01)
+				c(correct.mat)), .947, .01)
+	max.se <- max(m1@output$ability[,c(2,4)])
+	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*3)
+	omxCheckCloseEnough(.55, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
 
 } else { ################
 
@@ -106,6 +110,3 @@ if (1) {
 }
 
 q()
-
--2LL 2462.88979 (gradients)
--2LL 2131.76436

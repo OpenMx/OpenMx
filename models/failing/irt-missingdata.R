@@ -38,17 +38,14 @@ ip.mat <- mxMatrix(name="itemParam",
                    nrow=3, ncol=numItems, byrow=TRUE, free=TRUE)
 
 m2 <- mxModel(model="test3", ip.mat, spec,
-              mxMatrix(name="A", values=c(1,0,0), nrow=1, ncol=3, free=FALSE),
-              mxAlgebra(name="prior",
-                        sum(dlnorm(omxSelectRows(itemParam, A), 0, .5, 1))),
               mxData(observed=data, type="raw"),
               mxExpectationBA81(
                 ItemSpec="ItemSpec",
-                ItemParam="itemParam",
-                ItemPrior="prior"),
+                ItemParam="itemParam"),
               mxFitFunctionBA81())
 m2 <- mxOption(m2, "Calculate Hessian", "No")
 m2 <- mxOption(m2, "Standard Errors", "No")
+m2 <- mxOption(m2, "Analytic Gradients", 0)
 m2 <- mxRun(m2)
 
 got <- cor(c(m2@matrices$itemParam@values),
