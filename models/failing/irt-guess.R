@@ -10,7 +10,7 @@ items <- vector("list", numItems)
 for (ix in seq(1,numItems,2)) items[[ix]] <- i1
 for (ix in seq(2,numItems,2)) items[[ix]] <- i2
 correct <- lapply(items, rpf.rparam)
-correct.mat <- lapply(correct, function(p) if (length(p)==3) c(p,NA) else p)
+correct.mat <- lapply(correct, function(p) if (length(p)==4) c(p,NA) else p)
 correct.mat <- simplify2array(correct.mat)
 
 numPeople <- 1000
@@ -21,15 +21,15 @@ spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
-ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-                   values=c(1,0,.5,NA,
-                            1,1.4,0,.5),
-                   free=c(rep(TRUE,3),FALSE,
-                          rep(TRUE,4)),
-		   lbound=c(1e-6, -1e6, 1e-6, NA,
-		     1e-6, 1e-6, -1e6, 1e-6),
-		   ubound=c(1e3, 1e6, 1-1e-3, NA,
-		     1e3, 1e3, 1e6, 1-1e-3))
+ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
+                   values=c(1,0,.5,1,NA,
+                            1,1.4,0,.5,1),
+                   free=c(rep(TRUE,3), FALSE, FALSE,
+                          rep(TRUE,4), FALSE),
+		   lbound=c(1e-6, -1e6, 1e-6, 0, NA,
+		     1e-6, 1e-6, -1e6, 1e-6, 0),
+		   ubound=c(1e3, 1e6, 1-1e-3, 1, NA,
+		     1e3, 1e3, 1e6, 1-1e-3, 1))
 
 m2 <- mxModel(model="guess", ip.mat, spec,
               mxData(observed=data, type="raw"),
@@ -54,7 +54,7 @@ m2 <- mxRun(m2)
 ipv <- m2@matrices$itemParam@values
 got <- cor(c(ipv[!is.na(ipv)]),
            c(correct.mat[!is.na(correct.mat)]))
-omxCheckCloseEnough(got, .702, .01)
+omxCheckCloseEnough(got, .5058, .01)   # removed prior so accuracy is bad
 #ability <- scale(ability)
 #omxCheckCloseEnough(m2@output$ability[,1], as.vector(ability), 4*max(m2@output$ability[,2]))
 #omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .80, .01)

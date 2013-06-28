@@ -19,9 +19,10 @@ for (ix in 1:numItems) {
 	items[[ix]] <- rpf.drm(factors=min(ix,maxDim),
                                multidimensional=TRUE)
 	correct[[ix]] <- rpf.rparam(items[[ix]])
-	correct[[ix]][[4]] <- 0   # no guessing, for now
+	if (ix>1) correct[[ix]][[4]] <- 0   # no guessing, for now
 }
 correct[[1]][[3]] <- 0   # no guessing, for now
+correct[[1]][[5]] <- 1
 correct.mat <- simplify2array(correct)
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
@@ -43,11 +44,12 @@ design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
                   values=design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(1, 1.4, 0, 0),
-                  lbound=c(1e-6, -1e6, 0, 0,
-                    rep(c(1e-6, 1e-6, -1e6, 0), 4)),
-         free=c(TRUE, TRUE, FALSE, FALSE,
-          rep(c(TRUE, TRUE, TRUE, FALSE), 4)))
+                   values=c(1, 1.4, 0, 0, 1),
+                  lbound=c(1e-6, -1e6, 0,  0, 0,
+                    rep(c(1e-6, 1e-6, -1e6, 0, 0), 4)),
+         free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
+          rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
+ip.mat@values[4,1] <- 1
 
 m1 <- mxModel(model="2dim",
           spec, design,

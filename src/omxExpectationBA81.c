@@ -820,14 +820,6 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient, double *hessian)
 	if (customPrior) {
 		omxRecompute(customPrior);
 		ll = customPrior->data[0];
-	} else {
-		int numItems = itemSpec->cols;
-		for (int ix=0; ix < numItems; ix++) {
-			const double *spec = omxMatrixColumn(itemSpec, ix);
-			int id = spec[RPF_ISpecID];
-			double *iparam = omxMatrixColumn(itemParam, ix);
-			ll += (*rpf_model[id].prior)(spec, iparam);
-		}
 	}
 
 	if (!isfinite(ll)) {
