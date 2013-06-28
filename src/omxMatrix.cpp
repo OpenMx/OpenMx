@@ -218,9 +218,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 	
 	if(om->isTemporary) {
 		Free(om);
-		om = NULL;
 	}
-
 }
 
 /**

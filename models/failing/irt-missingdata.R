@@ -2,8 +2,11 @@ library(OpenMx)
 library(rpf)
 
 mcar <- function(data, pct) {
-	erase <- rep(TRUE, length(data) * pct)
-	mask <- c(erase, rep(FALSE, length(data) - length(erase)))[order(runif(length(data)))]
+  data <- good.data
+  pct <- 1/3
+  size <- prod(dim(data))
+	erase <- rep(TRUE, size * pct)
+	mask <- c(erase, rep(FALSE, size - length(erase)))[order(runif(size))]
 	shaped.mask <- array(mask, dim=dim(data))
 	data[shaped.mask] <- NA
 	data
@@ -25,6 +28,7 @@ good.data <- rpf.sample(250, items, correct)
 data <- mcar(good.data, 1/3)
 data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove all missing
 colnames(data) <- paste("item", 1:dim(data)[2], sep='')
+#head(data)
 
 spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=c(rep(mxLookupIRTItemModelID("gpcm1"), numItems),
@@ -46,6 +50,8 @@ m2 <- mxModel(model="test3", ip.mat, spec,
                 ItemParam="itemParam",
                 ItemPrior="prior"),
               mxFitFunctionBA81())
+m2 <- mxOption(m2, "Calculate Hessian", "No")
+m2 <- mxOption(m2, "Standard Errors", "No")
 m2 <- mxRun(m2)
 
 got <- cor(c(m2@matrices$itemParam@values),
