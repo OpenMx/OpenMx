@@ -54,7 +54,7 @@ m2 <- mxRun(m2)
 ipv <- m2@matrices$itemParam@values
 got <- cor(c(ipv[!is.na(ipv)]),
            c(correct.mat[!is.na(correct.mat)]))
-omxCheckCloseEnough(got, .734, .01)
+omxCheckCloseEnough(got, .702, .01)
 #ability <- scale(ability)
 #omxCheckCloseEnough(m2@output$ability[,1], as.vector(ability), 4*max(m2@output$ability[,2]))
 #omxCheckCloseEnough(cor(c(m2@output$ability[,1]), ability), .80, .01)

@@ -5,6 +5,7 @@
 #options(error = browser)
 require(OpenMx)
 require(rpf)
+#library(mvtnorm)
 
 set.seed(7)
 
@@ -30,6 +31,8 @@ design <- matrix(c(1, 1,1,1,2,
                   NA,2,2,2,1), byrow=TRUE, nrow=2)
 
 ability <- array(rnorm(numPeople * 2), dim=c(numPeople, 2))
+#cov <- matrix(c(1, .68, .68, 1), nrow=2)
+#ability <- rmvnorm(numPeople, sigma=cov)
 data <- rpf.sample(ability, items, correct, design)
 
 spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
@@ -72,12 +75,14 @@ if (1) {
 
 	#print(m1@matrices$ItemParam@values)
 	#print(correct.mat)
-
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
 				c(correct.mat)), .941, .01)
 	max.se <- max(m1@output$ability[,c(2,4)])
 	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*2.5)
 	omxCheckCloseEnough(.576, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
+	
+#	print(m1@output$latent.mean)
+#	print(m1@output$latent.cov)
 
 } else { ################
 
@@ -104,5 +109,3 @@ if (1) {
 	omxCheckCloseEnough(cor(c(m2@matrices$ItemParam@values),
 				c(correct.mat)), .934, .01)
 }
-
-q()

@@ -25,12 +25,13 @@ setClass(Class = "MxExpectationBA81",
            CustomPrior = "MxOptionalCharOrNumber",
 	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
 	   GHarea = "numeric",
-	   cache = "logical"),
+	   cache = "logical",
+	   doRescale = "logical"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, CustomPrior, Design, RPF,
-		   quadrature, cache, name = 'expectation') {
+		   quadrature, cache, doRescale, name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
@@ -41,6 +42,7 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@cache <- cache
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
+	    .Object@doRescale <- doRescale
             return(.Object)
           }
 )
@@ -135,7 +137,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL,
-			      RPF=NULL, GHpoints=NULL, cache=TRUE, quadrature=NULL) {
+			      RPF=NULL, GHpoints=NULL, cache=TRUE, quadrature=NULL, doRescale=TRUE) {
 	if (missing(quadrature)) {
 		if (missing(GHpoints)) GHpoints <- 10
 		if (GHpoints < 3) {
@@ -145,7 +147,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL
 	}
   
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design, RPF,
-		   quadrature, cache))
+		   quadrature, cache, doRescale))
 }
 
 imxUniformQuadratureData <- function(n, width) {

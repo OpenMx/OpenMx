@@ -21,7 +21,7 @@
 #include "omxOpenmpWrap.h"
 #include "npsolWrap.h"
 #include "libirt-rpf.h"
-#include "merge.h"
+#include "omxOptimizer.h"  // remove TODO
 
 static const char *NAME = "ExpectationBA81";
 
@@ -64,7 +64,6 @@ typedef struct {
 	rpf_fn_t computeRPF;
 	omxMatrix *customPrior;
 	int *paramMap;
-	//	int *paramUseCount;
 	double *thrGradient1;     // thread * length(itemParam)
 	double *thrGradient;      // thread * length(itemParam)
 	int cacheLXK;		  // w/cache,  numUnique * #specific quad points * totalQuadPoints
@@ -72,14 +71,18 @@ typedef struct {
 	double *allSlxk;          // numUnique * thread
 	double *Slxk;             // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
-	double *SpatternLik;      // maxAbilities * numUnique
 	double ll;                // the most recent finite ll; TODO obsolete by lbound/ubound
 	// for multi-group, need to know the reference group TODO
 	double *latentMean;       // maxAbilities * numUnique
 	double *latentCov;        // maxAbilities * maxAbilities * numUnique ; only lower triangle is used
 	double *latentMean1;      // maxDims
 	double *latentCov1;       // maxDims * maxDims ; only lower triangle is used
+	double *latentMeanOut;    // maxAbilities
+	double *latentCovOut;     // maxAbilities * maxAbilities ; only lower triangle is used
+	int doRescale;
+	int choleskyError;
 
+	int converged;
 	int gradientCount;
 	int fitCount;
 } omxBA81State;
@@ -92,10 +95,8 @@ pda(const double *ar, int rows, int cols) {   // column major order
 		}
 		Rprintf("\n");
 	}
-
 }
 
-#if 0
 static void
 pia(const int *ar, int rows, int cols) {   // column major order
 	for (int rx=0; rx < rows; rx++) {
@@ -104,9 +105,7 @@ pia(const int *ar, int rows, int cols) {   // column major order
 		}
 		Rprintf("\n");
 	}
-
 }
-#endif
 
 static int
 getNumThreads(omxExpectation* oo)
@@ -129,13 +128,11 @@ static void buildParamMap(omxExpectation* oo)
 	}
 
 	int numFreeParams = currentState->numFreeParams;
-	//	state->paramUseCount = Calloc(numFreeParam, int);
 	for (int px=0; px < numFreeParams; px++) {
 		omxFreeVar *fv = currentState->freeVarList + px;
 		for (int lx=0; lx < fv->numLocations; lx++) {
 			if (~fv->matrices[lx] == itemParam->matrixNumber) {
 				state->paramMap[fv->col[lx] * itemParam->rows + fv->row[lx]] = px;
-				//				state->paramUseCount = fv->numLocations;
 			}
 		}
 	}
@@ -186,6 +183,7 @@ standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 	pointToWhere(state, quad, theta, maxDims);
 
 	double *outcomeProb = Realloc(NULL, numItems * state->maxOutcomes, double);
+	//double *outcomeProb = Calloc(numItems * state->maxOutcomes, double);
 
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = omxMatrixColumn(itemSpec, ix);
@@ -196,6 +194,19 @@ standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 		double ptheta[dims];
 		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta);
 		(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
+#if 0
+		for (int ox=0; ox < spec[RPF_ISpecOutcomes]; ox++) {
+			if (!isfinite(out[ox]) || out[ox] > 0) {
+				Rprintf("spec\n");
+				pda(spec, itemSpec->rows, 1);
+				Rprintf("item param\n");
+				pda(iparam, itemParam->rows, 1);
+				Rprintf("where\n");
+				pda(ptheta, dims, 1);
+				error("RPF returned %20.20f", out[ox]);
+			}
+		}
+#endif
 	}
 
 	return outcomeProb;
@@ -336,8 +347,21 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 			if (specific != Sgroup[ix]) continue;
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
-			lxk1 += outcomeProb[ix * maxOutcomes + pick-1];
+			double piece = outcomeProb[ix * maxOutcomes + pick-1];
+			lxk1 += piece;
 		}
+#if 0
+#pragma omp critical(ba81LikelihoodDebug1)
+		if (!isfinite(lxk1) || lxk1 > numItems) {
+			Rprintf("where\n");
+			double where[state->maxDims];
+			pointToWhere(state, quad, where, state->maxDims);
+			pda(where, state->maxDims, 1);
+			Rprintf("prob\n");
+			pda(outcomeProb, numItems, maxOutcomes);
+			error("Likelihood of row %d is %f", rowMap[px], lxk1);
+		}
+#endif
 		lxk[px] = lxk1;
 	}
 
@@ -483,7 +507,6 @@ ba81Estep1(omxExpectation *oo) {
 
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	double *patternLik = state->patternLik;
-	double *SpatternLik = state->SpatternLik;
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
 	double *latentMean = state->latentMean;
@@ -493,7 +516,6 @@ ba81Estep1(omxExpectation *oo) {
 	int primaryDims = maxDims;
 
 	OMXZERO(patternLik, numUnique);
-	if (numSpecific) OMXZERO(SpatternLik, numSpecific * numUnique);
 	OMXZERO(latentMean, numUnique * maxAbilities);
 	OMXZERO(latentCov, numUnique * maxAbilities * maxAbilities);
 
@@ -518,6 +540,14 @@ ba81Estep1(omxExpectation *oo) {
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(lxk[px] + logArea);
+#if 0
+				if (!isfinite(tmp)) {
+					Rprintf("where\n");
+					pda(where, maxDims, 1);
+					error("Row %d lxk %f logArea %f tmp %f",
+					      state->rowMap[px], lxk[px], logArea, tmp);
+				}
+#endif
 				patternLik[px] += tmp;
 				mapLatentSpace(state, px, 0, tmp, where);
 			}
@@ -585,11 +615,15 @@ ba81Estep1(omxExpectation *oo) {
 			}
 		}
 		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-			//	double weight = numIdentical[px] / SpatternLik[(sdim-primaryDims) * numUnique + px];
 			latentMean[px * maxAbilities + sdim] *= weight;
 			int loc = px * maxAbilities * maxAbilities + sdim * maxAbilities + sdim;
 			latentCov[loc] *= weight;
 		}
+#if 0
+		if (!isfinite(patternLik[px])) {
+			error("Likelihood of row %d is %f", state->rowMap[px], patternLik[px]);
+		}
+#endif
 		patternLik[px] = log(patternLik[px]);
 	}
 
@@ -632,13 +666,19 @@ ba81Estep1(omxExpectation *oo) {
 		latentCov[cell] = latentCov[cell] / data->rows - latentMean[sdim] * latentMean[sdim];
 	}
 
+	if (state->converged) return;
+
 	//pda(latentMean, state->maxAbilities, 1);
 	//pda(latentCov, state->maxAbilities, state->maxAbilities);
 
-	int info = 0;
+	memcpy(state->latentMeanOut, state->latentMean, maxAbilities * sizeof(double));
+	memcpy(state->latentCovOut, state->latentCov, maxAbilities * maxAbilities * sizeof(double));
+
 	const char triangle = 'L';
-	F77_CALL(dpotrf)(&triangle, &maxAbilities, latentCov, &maxAbilities, &info);
-	if (info != 0) error("Cholesky failed with %d", info);
+	F77_CALL(dpotrf)(&triangle, &maxAbilities, latentCov, &maxAbilities, &state->choleskyError);
+	if (state->choleskyError != 0) {
+		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
+	}
 }
 
 static void
@@ -660,6 +700,8 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 	//pda(latentCov, maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
 
+	if (state->choleskyError != 0) return;
+
 	int numItems = itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = omxMatrixColumn(itemSpec, ix);
@@ -668,13 +710,25 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 		int idesign[design->rows];
 		int idx = 0;
 		for (int dx=0; dx < design->rows; dx++) {
-			if (isfinite(rawDesign[dx])) idesign[idx++] = rawDesign[dx]-1;
+			if (isfinite(rawDesign[dx])) {
+				idesign[idx++] = rawDesign[dx]-1;
+			} else {
+				idesign[idx++] = -1;
+			}
 		}
 		for (int d1=0; d1 < idx; d1++) {
-			latentMean1[d1] = latentMean[idesign[d1]];
+			if (idesign[d1] == -1) {
+				latentMean1[d1] = 0;
+			} else {
+				latentMean1[d1] = latentMean[idesign[d1]];
+			}
 			for (int d2=0; d2 <= d1; d2++) {
-				latentCov1[d2 * maxDims + d1] =
-					latentCov[idesign[d2] * maxAbilities + idesign[d1]];
+				if (idesign[d1] == -1 || idesign[d2] == -1) {
+					latentCov1[d2 * maxDims + d1] = 0;
+				} else {
+					latentCov1[d2 * maxDims + d1] =
+						latentCov[idesign[d2] * maxAbilities + idesign[d1]];
+				}
 			}
 		}
 		if (1) {  // make optional TODO
@@ -692,6 +746,19 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 		int *mask = state->paramMap + itemParam->rows * ix;
 		rpf_model[id].rescale(spec, iparam, mask, latentMean1, latentCov1);
 	}
+
+	// this is an egregious hack :-)
+	omxState* currentState = oo->currentState;
+	int numFreeParams = currentState->numFreeParams;
+	double param[numFreeParams];
+	for (int rx=0; rx < itemParam->rows; rx++) {
+		for (int cx=0; cx < itemParam->cols; cx++) {
+			int vx = state->paramMap[cx * itemParam->rows + rx];
+			if (vx == -1) continue;
+			param[vx] = omxMatrixElement(itemParam, rx, cx);
+		}
+	}
+	handleFreeVarList(currentState, param, numFreeParams);
 }
 
 static void
@@ -699,7 +766,7 @@ ba81Estep(omxExpectation *oo) {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxCopyMatrix(state->EitemParam, state->itemParam);
 	ba81Estep1(oo);
-	schilling_bock_2005_rescale(oo);
+	if (state->doRescale) schilling_bock_2005_rescale(oo);
 }
 
 OMXINLINE static void
@@ -791,6 +858,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 		ba81Weight(oo, ix, quad, outcomes, weight);
 		for (int ox=0; ox < outcomes; ox++) {
 #if 0
+#pragma omp critical(ba81Fit1OrdinateDebug1)
 			if (!isfinite(outcomeProb[ix * maxOutcomes + ox])) {
 				pda(itemParam->data, itemParam->rows, itemParam->cols);
 				pda(outcomeProb, outcomes, numItems);
@@ -822,13 +890,21 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 		for (int ox=0; ox < itemParam->rows * itemParam->cols; ox++) {
 			if (state->paramMap[ox] == -1) continue;
 #if 0
+#pragma omp critical(ba81Fit1OrdinateDebug2)
 			if (!isfinite(gradient[ox])) {
+				int item = ox / itemParam->rows;
+				const double *spec = omxMatrixColumn(itemSpec, item);
+				int id = spec[RPF_ISpecID];
 				Rprintf("item spec:\n");
 				pda(spec, (*rpf_model[id].numSpec)(spec), 1);
 				Rprintf("item parameters:\n");
-				pda(iparam, numParam, 1);
+				const double *iparam = omxMatrixColumn(itemParam, item);
+				pda(iparam, itemParam->rows, 1);
 				Rprintf("where:\n");
 				pda(where, maxDims, 1);
+				int outcomes = spec[RPF_ISpecOutcomes];
+				double weight[outcomes];
+				ba81Weight(oo, item, quad, outcomes, weight);
 				Rprintf("weight:\n");
 				pda(weight, outcomes, 1);
 				error("Gradient for item %d param %d is %f; are you missing a lbound/ubound?",
@@ -950,15 +1026,9 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 
 			gradient[to] += -2 * thr0[ox];
 		}
-		/*
-		int numFreeParams = currentState->numFreeParams;
-		for (int px=0; px < numFreeParams; px++) {
-			//			if (paramUseCount[px] == 0) continue;
-			gradient[px] *= -2; // paramUseCount[px];
-			} */
 	}
 
-	if (isinf(ll)) {
+	if (!isfinite(ll)) {
 		// This is a hack to avoid the need to specify
 		// ubound/lbound on parameters. Bounds are necessary
 		// mainly for debugging derivatives.
@@ -1130,16 +1200,31 @@ omxRListElement *
 ba81EAP(omxExpectation *oo, int *numReturns)
 {
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	state->converged = 1;
 	int maxDims = state->maxDims;
 	//int numSpecific = state->numSpecific;
 
-	*numReturns = 2; // + (maxDims > 1) + (numSpecific > 1);
+	*numReturns = 4; // + (maxDims > 1) + (numSpecific > 1);
 	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
+	int ox=0;
 
-	out[0].numValues = 1;
-	out[0].values = (double*) R_alloc(1, sizeof(double));
-	strcpy(out[0].label, "Minus2LogLikelihood");
-	out[0].values[0] = state->ll;
+	out[ox].numValues = 1;
+	out[ox].values = (double*) R_alloc(1, sizeof(double));
+	strcpy(out[ox].label, "Minus2LogLikelihood");
+	out[ox].values[0] = state->ll;
+	++ox;
+
+	out[ox].numValues = -1;
+	strcpy(out[ox].label, "latent.cov");
+	out[ox].rows = state->maxAbilities;
+	out[ox].cols = state->maxAbilities;
+	out[ox].values = state->latentCovOut;
+	++ox;
+
+	out[ox].numValues = state->maxAbilities;
+	strcpy(out[ox].label, "latent.mean");
+	out[ox].values = state->latentMeanOut;
+	++ox;
 
 	omxData *data = state->data;
 	int numUnique = state->numUnique;
@@ -1222,11 +1307,11 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 		}
 	}
 
-	strcpy(out[1].label, "ability");
-	out[1].numValues = -1;
-	out[1].rows = data->rows;
-	out[1].cols = 2 * maxDims;
-	out[1].values = (double*) R_alloc(out[1].rows * out[1].cols, sizeof(double));
+	strcpy(out[ox].label, "ability");
+	out[ox].numValues = -1;
+	out[ox].rows = data->rows;
+	out[ox].cols = 2 * maxDims;
+	out[ox].values = (double*) R_alloc(out[ox].rows * out[ox].cols, sizeof(double));
 
 	for (int rx=0; rx < numUnique; rx++) {
 		double *pa = ability + rx * 2 * maxDims;
@@ -1236,13 +1321,22 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
 			int col=0;
 			for (int dx=0; dx < maxDims; dx++) {
-				out[1].values[col * out[1].rows + dest] = pa[col]; ++col;
-				out[1].values[col * out[1].rows + dest] = pa[col]; ++col;
+				out[ox].values[col * out[ox].rows + dest] = pa[col]; ++col;
+				out[ox].values[col * out[ox].rows + dest] = pa[col]; ++col;
 			}
 		}
 	}
 	Free(ability);
 	Free(workspace);
+	++ox;
+
+	for (int ix=0; ix < state->itemParam->cols; ix++) {
+		double *spec = omxMatrixColumn(state->itemSpec, ix);
+		int id = spec[RPF_ISpecID];
+		double *param = omxMatrixColumn(state->itemParam, ix);
+		rpf_model[id].postfit(spec, param);
+	}
+
 	return out;
 }
 
@@ -1264,19 +1358,19 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->logQarea);
 	Free(state->rowMap);
 	Free(state->patternLik);
-	Free(state->SpatternLik);
 	Free(state->lxk);
 	Free(state->Slxk);
 	Free(state->allSlxk);
 	Free(state->Sgroup);
 	Free(state->paramMap);
-	//Free(state->paramUseCount);
 	Free(state->thrGradient);
 	Free(state->thrGradient1);
 	Free(state->latentMean);
 	Free(state->latentCov);
 	Free(state->latentMean1);
 	Free(state->latentCov1);
+	Free(state->latentMeanOut);
+	Free(state->latentCovOut);
 	Free(state);
 }
 
@@ -1385,14 +1479,21 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->maxDims = 0;
 	state->maxOutcomes = 0;
 
-	for (int cx = 0; cx < data->cols; cx++) {
-		const double *spec = omxMatrixColumn(state->itemSpec, cx);
+	for (int ix=0; ix < numItems; ix++) {
+		double *spec = omxMatrixColumn(state->itemSpec, ix);
 		int id = spec[RPF_ISpecID];
 		if (id < 0 || id >= rpf_numModels) {
-			omxRaiseErrorf(currentState, "ItemSpec column %d has unknown item model %d", cx, id);
+			omxRaiseErrorf(currentState, "ItemSpec column %d has unknown item model %d", ix, id);
 			return;
 		}
 
+		double *param = omxMatrixColumn(state->itemParam, ix);
+		rpf_model[id].prefit(spec, param);
+	}
+
+	for (int cx = 0; cx < data->cols; cx++) {
+		const double *spec = omxMatrixColumn(state->itemSpec, cx);
+		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		if (state->maxDims < dims)
 			state->maxDims = dims;
@@ -1401,6 +1502,19 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		int no = spec[RPF_ISpecOutcomes];
 		if (state->maxOutcomes < no)
 			state->maxOutcomes = no;
+
+		// TODO this summary stat should be available from omxData
+		int dataMax=0;
+		for (int rx=0; rx < data->rows; rx++) {
+			int pick = omxIntDataElementUnsafe(data, rx, cx);
+			if (dataMax < pick)
+				dataMax = pick;
+		}
+		if (dataMax > no) {
+			error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
+		} else if (dataMax < no) {
+			warning("Data for item %d has only %d outcomes, not %d", cx+1, dataMax, no);
+		}
 
 		int numSpec = (*rpf_model[id].numSpec)(spec);
 		if (maxSpec < numSpec)
@@ -1457,7 +1571,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 			const double *spec = omxMatrixColumn(state->itemSpec, ix);
 			int dims = spec[RPF_ISpecDims];
-			if (ddim != dims) error("Item %d has %d dims but design assigns %d", ix, dims, ddim);
+			if (ddim > dims) error("Item %d has %d dims but design assigns %d", ix, dims, ddim);
 		}
 	}
 	if (state->maxAbilities <= state->maxDims) {
@@ -1492,8 +1606,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
 		state->allSlxk = Realloc(NULL, numUnique * numThreads, double);
 		state->Slxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
-		state->SpatternLik = Realloc(NULL, numUnique * state->numSpecific, double);
 	}
+
+	PROTECT(tmp = GET_SLOT(rObj, install("doRescale")));
+	state->doRescale = asLogical(tmp);
 
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
 	state->cacheLXK = asLogical(tmp);
@@ -1512,6 +1628,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->latentCov = Realloc(NULL, state->maxAbilities * state->maxAbilities * numUnique, double);
 	state->latentMean1 = Realloc(NULL, state->maxDims, double);
 	state->latentCov1 = Realloc(NULL, state->maxDims * state->maxDims, double);
+	state->latentMeanOut = Realloc(NULL, state->maxAbilities, double);
+	state->latentCovOut = Realloc(NULL, state->maxAbilities * state->maxAbilities, double);
 
 	buildParamMap(oo);
 

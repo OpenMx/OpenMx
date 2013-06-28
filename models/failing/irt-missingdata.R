@@ -1,3 +1,4 @@
+#options(error = utils::recover)
 library(OpenMx)
 library(rpf)
 
@@ -7,6 +8,7 @@ mcar <- function(data, pct) {
 	mask <- c(erase, rep(FALSE, size - length(erase)))[order(runif(size))]
 	shaped.mask <- array(mask, dim=dim(data))
 	data[shaped.mask] <- NA
+	data <- data[apply(is.na(data), 1, sum) != dim(data)[2],]  # remove when all items are missing
 	data
 }
 
@@ -24,10 +26,9 @@ correct.mat <- t(simplify2array(correct))
 
 good.data <- rpf.sample(250, items, correct)
 data <- mcar(good.data, 1/3)
-data <- data[apply(is.na(data), 1, sum) != numItems,]  # remove when all items are missing
 #head(data)
 
-spec <- mxMatrix(name="ItemSpec", nrow=4, ncol=numItems,
+spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),
          free=FALSE, byrow=TRUE)
 
@@ -54,4 +55,4 @@ m2 <- mxRun(m2)
 
 got <- cor(c(m2@matrices$itemParam@values),
            c(t(correct.mat)))
-omxCheckCloseEnough(got, .958, .01)
+omxCheckCloseEnough(got, .894, .01)

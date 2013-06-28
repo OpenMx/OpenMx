@@ -2,7 +2,7 @@
 # R --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 # R -d gdb --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 
-options(error = utils::recover)
+#options(error = utils::recover)
 library(ggplot2)
 library(OpenMx)
 library(rpf)
@@ -34,8 +34,9 @@ if(0) {
 }
 
 design.3d <- matrix(c(rep(1,10),rep(NA,10),
-                   rep(NA,10),rep(2,10),
-                   3,3,rep(NA,3),4,4,rep(NA,3),5,5,rep(NA,3),6,6,rep(NA,3)), byrow=TRUE, nrow=3)
+                      rep(NA,10),rep(2,10),
+                      3,3,rep(NA,3),4,4,rep(NA,3),5,5,rep(NA,3),6,6,rep(NA,3)),
+                    byrow=TRUE, nrow=3)
 
 cov <- matrix(c(1, .68, .68, 1), nrow=2)
 
@@ -107,7 +108,9 @@ setwd("/opt/OpenMx")
 rda <- "irt-cai2010.rda"
 load(rda)
 for (seed in 1:500) {
-  if (any(seed == sapply(bank, function (b) b$seed))) next;
+  if (length(bank)) {
+    if (any(seed == sapply(bank, function (b) b$seed))) next;
+  }
   bi <- length(bank) + 1
   bank[[bi]] <- fit1(ghp=13, seed=seed)
   save(bank, file=rda)
@@ -115,7 +118,7 @@ for (seed in 1:500) {
   print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
 }
 
-#calc.bias(bank[sapply(bank, function (b) b$ghp == 13)])
+calc.bias(bank[sapply(bank, function (b) b$ghp == 13)])
 
 if (1) {
   var.type <- apply(ip.mat@free,1,sum)

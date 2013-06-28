@@ -6,8 +6,8 @@ library(ggplot2)
 numItems <- 20
 numPersons <- 500
 
-i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.5, multidimensional=TRUE)
-#i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.5)
+i1 <- rpf.drm(numChoices=4)
+#i1 <- rpf.drm(numChoices=4, poor=TRUE)
 items <- list()
 items[1:numItems] <- i1
 
@@ -26,15 +26,11 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                    lbound=c(1e-5, -1e6, 0))
 
 fit1 <- function(seed=5, ghp=11) {
-  result <- list(seed=seed, ghp=ghp, sdlog=i1@a.prior.sdlog, mdim=(class(i1) == "rpf.mdim.drm"))
+  result <- list(seed=seed, ghp=ghp, mdim=(class(i1) == "rpf.mdim.drm"))
   
   set.seed(seed)
   ability <- rnorm(numPersons)
-  gen.param <- correct
-  if (class(i1) == "rpf.mdim.drm") {
-    gen.param[2,] <- gen.param[2,] * -gen.param[1,]
-  }
-  data <- rpf.sample(ability, items, gen.param)
+  data <- rpf.sample(ability, items, correct)
 
   m1 <- mxModel(model="drm1", ip.mat,
               mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
@@ -63,9 +59,6 @@ fit1 <- function(seed=5, ghp=11) {
   result$cpuTime <- m1@output$cpuTime
   result$LL <- m1@output$Minus2LogLikelihood
   result$param <- m1@matrices$ItemParam@values
-  if (class(i1) == "rpf.mdim.drm") {
-    result$param[2,] <- result$param[2,] / -result$param[1,]
-  }
   result
 }
 
