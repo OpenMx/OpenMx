@@ -201,7 +201,7 @@ combineDefaultOptions <- function(input) {
 		ynOptions <- options[keys]=='Yes' | options[keys]=='No'
 		badYN <- values[ynOptions] != 'Yes' & values[ynOptions] != 'No'
 		if (any(badYN)) {
-			stop(paste("mxOption '", keys[badYN],
+			stop(paste("mxOption '", names(badYN),
 				   "' must be either 'Yes' or 'No'\n", sep=''))
 		}
 		options[keys] <- values
