@@ -567,7 +567,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad)
 }
 
 static double
-ba81ComputeFit1(omxExpectation* oo)
+ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	++state->fitCount;
@@ -637,9 +637,10 @@ ba81ComputeFit1(omxExpectation* oo)
 }
 
 double
-ba81ComputeFit(omxExpectation* oo)
+ba81ComputeFit(omxExpectation* oo, int want, double *gradient)
 {
-	double got = ba81ComputeFit1(oo);
+	// TODO ignore call from omxInitialMatrixAlgebraCompute
+	double got = ba81ComputeFit1(oo, want, gradient);
 	return got;
 }
 
@@ -1080,12 +1081,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->Sgroup);
 	Free(state->paramMap);
 	Free(state);
-}
-
-int ba81ExpectationHasGradients(omxExpectation* oo)
-{
-	omxBA81State *state = (omxBA81State *) oo->argStruct;
-	return state->computeRPF == standardComputeRPF;
 }
 
 void omxInitExpectationBA81(omxExpectation* oo) {

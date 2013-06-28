@@ -32,17 +32,12 @@ static omxRListElement *ba81SetFinalReturns(omxFitFunction *off, int *numReturns
 	return ba81EAP(off->expectation, numReturns);
 }
 
-static void ba81GradientHook(omxFitFunction* oo, double *out)
-{
-	ba81Gradient(oo->expectation, out);
-}
-
-static void ba81Compute(omxFitFunction *oo) {
+static void ba81Compute(omxFitFunction *oo, int want, double *gradient) {
 	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
 
 	omxExpectation* expectation = oo->expectation;
   
-	oo->matrix->data[0] = ba81ComputeFit(expectation);
+	oo->matrix->data[0] = ba81ComputeFit(expectation, want, gradient);
 }
 
 void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {
@@ -63,8 +58,4 @@ void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {
 	oo->computeFun = ba81Compute;
 	oo->setFinalReturns = ba81SetFinalReturns;
 	oo->destructFun = ba81Destroy;
-
-	if (ba81ExpectationHasGradients(oo->expectation)) {
-		oo->gradientFun = ba81GradientHook;
-	}
 }
