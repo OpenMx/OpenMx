@@ -21,6 +21,7 @@
 #include "omxOpenmpWrap.h"
 #include "npsolWrap.h"
 #include "libirt-rpf.h"
+#include "merge.h"
 
 static const char *NAME = "ExpectationBA81";
 
@@ -31,14 +32,18 @@ typedef int (*rpf_numParam_t)(const int numDims, const int numOutcomes);
 typedef void (*rpf_logprob_t)(const int numDims, const double *restrict param,
 			      const double *restrict th,
 			      const int numOutcomes, double *restrict out);
-typedef double (*rpf_gradient_t)(const int numDims, const int numOutcomes,
-				 const double *restrict param, const int which,
-				 const int outcome, const double *where);
+typedef double (*rpf_prior_t)(const int numDims, const int numOutcomes,
+			      const double *restrict param);
+
+typedef void (*rpf_gradient_t)(const int numDims, const int numOutcomes,
+			       const double *restrict param, const int *paramMask,
+			       const double *where, const double *weight, double *out);
 
 struct rpf {
 	const char name[8];
 	rpf_numParam_t numParam;
 	rpf_logprob_t logprob;
+	rpf_prior_t prior;
 	rpf_gradient_t gradient;
 };
 
@@ -46,16 +51,19 @@ static const struct rpf rpf_table[] = {
 	{ "drm1",
 	  irt_rpf_1dim_drm_numParam,
 	  irt_rpf_1dim_drm_logprob,
+	  irt_rpf_1dim_drm_prior,
 	  irt_rpf_1dim_drm_gradient,
 	},
 	{ "drm",
 	  irt_rpf_mdim_drm_numParam,
 	  irt_rpf_mdim_drm_logprob,
-	  NULL //irt_rpf_mdim_drm_gradient,
+	  irt_rpf_mdim_drm_prior,
+	  irt_rpf_mdim_drm_gradient,
 	},
 	{ "gpcm1",
 	  irt_rpf_1dim_gpcm_numParam,
 	  irt_rpf_1dim_gpcm_logprob,
+	  NULL,
 	  irt_rpf_1dim_gpcm_gradient,
 	}
 };
@@ -63,6 +71,7 @@ static const int numStandardRPF = (sizeof(rpf_table) / sizeof(struct rpf));
 
 typedef struct {
 
+	int *paramMap;
 	omxData *data;
 	int numUnique;
 	omxMatrix *itemSpec;
@@ -118,6 +127,42 @@ pda(const double *ar, int rows, int cols) {
 
 }
 */
+
+static int
+findFreeVarLocation(omxMatrix *itemParam, const omxFreeVar *fv)
+{
+	for (int lx=0; lx < fv->numLocations; lx++) {
+		if (~fv->matrices[lx] == itemParam->matrixNumber) return lx;
+	}
+	return -1;
+}
+
+static int
+compareFV(const int *fv1x, const int *fv2x, omxExpectation* oo)
+{
+	omxState* currentState = oo->currentState;
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	omxMatrix *itemParam = state->itemParam;
+	omxFreeVar *fv1 = currentState->freeVarList + *fv1x;
+	omxFreeVar *fv2 = currentState->freeVarList + *fv2x;
+	int l1 = findFreeVarLocation(itemParam, fv1);
+	int l2 = findFreeVarLocation(itemParam, fv2);
+	if (l1 == -1 && l2 == -1) return 0;
+	if ((l1 == -1) ^ (l2 == -1)) return l1 == -1? 1:-1;  // TODO reversed?
+	// Columns are items. Sort columns together
+	return fv1->col[l1] - fv2->col[l1];
+}
+
+static void buildParamMap(omxExpectation* oo)
+{
+	omxState* currentState = oo->currentState;
+	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	int numFreeParams = currentState->numFreeParams;
+	state->paramMap = Realloc(NULL, numFreeParams, int);
+	for (int px=0; px < numFreeParams; px++) { state->paramMap[px] = px; }
+	freebsd_mergesort(state->paramMap, numFreeParams, sizeof(int),
+			  (mergesort_cmp_t)compareFV, oo);
+}
 
 OMXINLINE static void
 pointToWhere(omxBA81State *state, const int *quad, double *where, int upto)
@@ -516,6 +561,8 @@ ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, do
 			cai2010(oo, !state->cacheLXK, quad, allSlxk, Slxk);
 		}
 		double *eis = Slxk + numUnique * specific;
+
+		// Avoid recalc when cache disabled with modest buffer? TODO
 		double *lxk = ba81LikelihoodFast(oo, specific, quad);
 
 		for (int px=0; px < numUnique; px++) {
@@ -566,6 +613,19 @@ ba81ComputeFit1(omxExpectation* oo)
 
 	omxRecompute(itemPrior);
 	double ll = itemPrior->data[0];
+	double ll = 0;
+	omxMatrix *itemSpec = state->itemSpec;
+	omxMatrix *itemParam = state->itemParam;
+	int numItems = itemSpec->cols;
+	for (int ix=0; ix < numItems; ix++) {
+		int id = omxMatrixElement(itemSpec, ISpecID, ix);
+		int dims = omxMatrixElement(itemSpec, ISpecDims, ix);
+		int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, ix);
+		double *iparam = omxMatrixColumn(itemParam, ix);
+		if (rpf_table[id].prior) {
+			ll += (*rpf_table[id].prior)(dims, outcomes, iparam);
+		}
+	}
 
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
@@ -584,9 +644,8 @@ ba81ComputeFit1(omxExpectation* oo)
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
 			int quad[maxDims];
-			decodeLocation(qx, maxDims, state->quadGridSize, quad);
+			decodeLocation(qx, maxDims, quadGridSize, quad);
 
-			// copy loop structure to gradient TODO
 			double thr_ll = 0;
 			long specificPoints = quadGridSize[sDim];
 			for (long sx=0; sx < specificPoints; sx++) {
@@ -614,48 +673,119 @@ ba81ComputeFit(omxExpectation* oo)
 	return got;
 }
 
+OMXINLINE static void
+ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
+			 int maxDims, int *quad, int item, int id,
+			 int dims, int outcomes,
+			 double *iparam, int *paramMask, double *gq)
+{
+	double where[maxDims];
+	pointToWhere(state, quad, where, maxDims);
+	double weight[outcomes];
+	ba81Weight(oo, item, quad, outcomes, weight);
+
+	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, where, weight, gq);
+
+	for (int ox=0; ox < outcomes; ox++) {
+		areaProduct(state, quad, maxDims, gq+ox);
+	}
+}
+
+OMXINLINE static void
+ba81ItemGradient(omxExpectation* oo, omxBA81State *state, omxMatrix *itemParam,
+		 int item, int id, int dims, int outcomes, int numParam, int *paramMask, double *out)
+{
+	int maxDims = state->maxDims;
+	double *iparam = omxMatrixColumn(itemParam, item);
+	double gradient[numParam];
+	OMXZERO(gradient, numParam);
+
+	if (state->numSpecific == 0) {
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->quadGridSize, quad);
+			double gq[numParam];
+			OMXZERO(gq, numParam);
+
+			ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
+						 outcomes, iparam, paramMask, gq);
+
+#pragma omp critical(GradientUpdate)
+			for (int ox=0; ox < outcomes; ox++) {
+				gradient[ox] += gq[ox];
+			}
+		}
+	} else {
+		int sDim = state->maxDims-1;
+		long *quadGridSize = state->quadGridSize;
+#pragma omp parallel for num_threads(oo->currentState->numThreads)
+		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, quadGridSize, quad);
+			double gq[numParam];
+			OMXZERO(gq, numParam);
+
+			long specificPoints = quadGridSize[sDim];
+			for (long sx=0; sx < specificPoints; sx++) {
+				quad[sDim] = sx;
+				ba81ItemGradientOrdinate(oo, state, maxDims, quad, item, id, dims,
+							 outcomes, iparam, paramMask, gq);
+			}
+#pragma omp critical(GradientUpdate)
+			for (int ox=0; ox < outcomes; ox++) {
+				gradient[ox] += gq[ox];
+			}
+		}
+	}
+
+	(*rpf_table[id].gradient)(dims, outcomes, iparam, paramMask, NULL, NULL, gradient);
+
+	for (int px=0; px < numParam; px++) {
+		if (paramMask[px] == -1) continue;
+		out[paramMask[px]] = -2 * gradient[px];
+	}
+}
+
 void ba81Gradient(omxExpectation* oo, double *out)
 {
 	omxState* currentState = oo->currentState;
 	int numFreeParams = currentState->numFreeParams;
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
+	if (!state->paramMap) buildParamMap(oo);
 	++state->gradientCount;
 	omxMatrix *itemSpec = state->itemSpec;
 	omxMatrix *itemParam = state->itemParam;
-	int maxDims = state->maxDims;
 
-	// sort & do all of an item's parameters together TODO
-        for (int vx = 0; vx < numFreeParams; vx++) {
-            omxFreeVar *fv = currentState->freeVarList + vx;
-	    // TODO match the matrix number
-	    int item = fv->col[0];
-	    int which = fv->row[0];
+	int vx = 0;
+        while (vx < numFreeParams) {
+            omxFreeVar *fv = currentState->freeVarList + state->paramMap[vx];
+	    int vloc = findFreeVarLocation(itemParam, fv);
+	    if (vloc < 0) {
+		    ++vx;
+		    continue;
+	    }
+
+	    int item = fv->col[vloc];
 	    int id = omxMatrixElement(itemSpec, ISpecID, item);
 	    int dims = omxMatrixElement(itemSpec, ISpecDims, item);
 	    int outcomes = omxMatrixElement(itemSpec, ISpecOutcomes, item);
-	    double *iparam = omxMatrixColumn(itemParam, item);
-	    double grad=0;
+	    int numParam = (*rpf_table[id].numParam)(dims, outcomes);
 
-#pragma omp parallel for num_threads(oo->currentState->numThreads)
-	    for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		    int quad[maxDims];
-		    decodeLocation(qx, maxDims, state->quadGridSize, quad);
-		    double where[maxDims];
-		    pointToWhere(state, quad, where, maxDims);
+	    int paramMask[numParam];
+	    for (int px=0; px < numParam; px++) { paramMask[px] = -1; }
 
-		    double out[outcomes];
-		    ba81Weight(oo, item, quad, outcomes, out); // thread safe with cache off? TODO
+	    paramMask[fv->row[vloc]] = vx;
 
-		    for (int ox=0; ox < outcomes; ox++) {
-			    double got = (*rpf_table[id].gradient)(dims, outcomes, iparam, which, ox, where);
-			    double piece = out[ox] * got;
-			    areaProduct(state, quad, maxDims, &piece);
-#pragma omp atomic
-			    grad += piece;
-		    }
+	    while (++vx < numFreeParams) {
+		    omxFreeVar *fv = currentState->freeVarList + state->paramMap[vx];
+		    int vloc = findFreeVarLocation(itemParam, fv);
+		    if (fv->col[vloc] != item) break;
+		    paramMask[fv->row[vloc]] = vx;
 	    }
-	    double got = (*rpf_table[id].gradient)(dims, outcomes, iparam, which, -1, NULL);
-	    out[vx] = -2 * grad * got;
+
+	    ba81ItemGradient(oo, state, itemParam, item,
+			     id, dims, outcomes, numParam, paramMask, out);
 	}
 }
 
@@ -678,6 +808,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->Slxk);
 	Free(state->allSlxk);
 	Free(state->Sgroup);
+	Free(state->paramMap);
 	Free(state);
 }
 
@@ -697,6 +828,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	
 	omxBA81State *state = Calloc(1, omxBA81State);
+	oo->argStruct = (void*) state;
+
 	state->ll = 10^9;   // finite but big
 	
 	PROTECT(tmp = GET_SLOT(rObj, install("GHpoints")));
@@ -742,9 +875,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	
 	oo->computeFun = ba81Estep;
 	oo->destructFun = ba81Destroy;
+	//	oo->setFinalReturns = ba81finalReturn;
+	//	omxRListElement* (*setFinalReturns)(omxExpectation* ox, int *numVals);		// Sets any R returns.
 	
-	oo->argStruct = (void*) state;
-
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we don't waste RAM.
 	// The following summary stats would be cheaper to calculate too.
@@ -752,6 +885,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	int numUnique = 0;
 	omxData *data = state->data;
 	if (omxDataNumFactor(data) != data->cols) {
+		// verify they are ordered factors TODO
 		omxRaiseErrorf(currentState, "%s: all columns must be factors", NAME);
 		return;
 	}

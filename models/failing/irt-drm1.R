@@ -1,9 +1,9 @@
 library(OpenMx)
 library(rpf)
 
-set.seed(8)
+set.seed(9)
 
-numItems <- 1
+numItems <- 30
 i1 <- rpf.drm()
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
@@ -23,23 +23,18 @@ spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          free=FALSE, byrow=TRUE)
 
 ip.mat <- mxMatrix(name="itemParam", byrow=TRUE, nrow=3, ncol=numItems,
-                   values=c(correct.mat[1,], #rep(1,numItems),
+                   values=c(rep(1,numItems),
 		     rep(0,numItems*2)),
                    free=c(
-		     rep(FALSE,numItems),
+		     rep(TRUE,numItems),
 		     rep(TRUE,numItems),
 		     rep(FALSE,numItems)))
 
 m2 <- mxModel(model="drm1", ip.mat, spec,
-              mxMatrix(name="A", values=c(1,0,0), nrow=1, ncol=3, free=FALSE),
-#              mxAlgebra(name="prior",
-#                        sum(dlnorm(omxSelectRows(itemParam, A), 0, .5, 1))),
-              mxAlgebra(name="prior", 0),
               mxData(observed=data, type="raw"),
               mxExpectationBA81(
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam",
-                ItemPrior="prior",
 		GHpoints=30),
               mxFitFunctionBA81())
 

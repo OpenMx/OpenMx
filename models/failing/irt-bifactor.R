@@ -54,18 +54,19 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
 m1 <- mxModel(model="bifactor",
           spec, design,
           ip.mat,
-          mxMatrix(name="A", values=c(1,1,0,0), nrow=1, ncol=maxParam, free=FALSE),
-          mxAlgebra(name="prior",
-                    sum(dlnorm(omxSelectRows(ItemParam, A), 0, .5, 1))),
           mxData(observed=data, type="raw"),
           mxExpectationBA81(
 	     ItemSpec="ItemSpec",
 	     Design="Design",
-	     ItemParam="ItemParam",
-	     ItemPrior="prior"),
+	     ItemParam="ItemParam"),
           mxFitFunctionBA81()
 )
 
+m1 <- mxOption(m1, "Analytic Gradients", 'no')
+if (1) {
+	m1 <- mxOption(m1, "Analytic Gradients", 'yes')
+	m1 <- mxOption(m1, "Verify level", '-1')
+}
 m1 <- mxOption(m1, "Calculate Hessian", "No")
 m1 <- mxOption(m1, "Standard Errors", "No")
 
