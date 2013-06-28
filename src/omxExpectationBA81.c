@@ -74,7 +74,6 @@ typedef struct {
 	int fitCount;
 } omxBA81State;
 
-#if 0
 static void
 pda(const double *ar, int rows, int cols) {
 	for (int rx=0; rx < rows; rx++) {
@@ -85,7 +84,6 @@ pda(const double *ar, int rows, int cols) {
 	}
 
 }
-#endif
 
 static int
 findFreeVarLocation(omxMatrix *itemParam, const omxFreeVar *fv)
@@ -593,7 +591,11 @@ ba81ComputeFit1(omxExpectation* oo)
 		}
 	}
 
-	if (!isnormal(ll)) error("Bayesian prior returned NA");
+	if (!isnormal(ll)) {
+		omxMatrix *itemParam = state->itemParam;
+		omxPrint(itemParam, "item param");
+		error("Bayesian prior returned NA; do you need to add a lbound/ubound?");
+	}
 
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(oo->currentState->numThreads)
@@ -655,6 +657,22 @@ ba81ItemGradientOrdinate(omxExpectation* oo, omxBA81State *state,
 
 	for (int ox=0; ox < numParam; ox++) {
 		if (paramMask[ox] == -1) continue;
+
+#if 0
+		if (!isnormal(gq[ox])) {
+			Rprintf("item spec:\n");
+			pda(spec, (*rpf_model[id].numSpec)(spec), 1);
+			Rprintf("item parameters:\n");
+			pda(iparam, numParam, 1);
+			Rprintf("where:\n");
+			pda(where, maxDims, 1);
+			Rprintf("weight:\n");
+			pda(weight, outcomes, 1);
+			error("Gradient for item %d param %d is %f; are you missing a lbound/ubound?",
+			      item, ox, gq[ox]);
+		}
+#endif
+
 		areaProduct(state, quad, maxDims, gq+ox);
 	}
 }
@@ -716,6 +734,18 @@ ba81ItemGradient(omxExpectation* oo, omxBA81State *state, const double *spec, om
 	for (int px=0; px < numParam; px++) {
 		int loc = paramMask[px];
 		if (loc == -1) continue;
+
+		// Need to check because this can happen if
+		// lbounds/ubounds are not set appropriately.
+		if (!isnormal(gradient[px])) {
+			Rprintf("item spec:\n");
+			pda(spec, (*rpf_model[id].numSpec)(spec), 1);
+			Rprintf("item parameters:\n");
+			pda(iparam, numParam, 1);
+			error("Gradient for item %d param %d is %f; are you missing a lbound/ubound?",
+			      item, px, gradient[px]);
+	        }
+
 		out[loc] = -2 * gradient[px];
 	}
 }
@@ -1223,6 +1253,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->maxAbilities <= state->maxDims) {
 		state->Sgroup = Calloc(numItems, int);
 	} else {
+		// Not sure if this is correct, revisit TODO
 		int Sgroup0 = -1;
 		state->Sgroup = Realloc(NULL, numItems, int);
 		for (int dx=0; dx < state->maxDims; dx++) {
