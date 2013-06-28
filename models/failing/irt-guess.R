@@ -5,7 +5,7 @@ set.seed(9)
 
 numItems <- 8
 i1 <- rpf.drm(numChoices=2)
-i2 <- rpf.drm(numChoices=2, dimensions=2)
+i2 <- rpf.drm(numChoices=2, factors=2)
 items <- vector("list", numItems)
 for (ix in seq(1,numItems,2)) items[[ix]] <- i1
 for (ix in seq(2,numItems,2)) items[[ix]] <- i2
@@ -14,7 +14,7 @@ correct.mat <- lapply(correct, function(p) if (length(p)==3) c(p,NA) else p)
 correct.mat <- simplify2array(correct.mat)
 
 numPeople <- 1000
-ability <- cbind(rnorm(numPeople), rnorm(numPeople))
+ability <- rbind(rnorm(numPeople), rnorm(numPeople))
 data <- rpf.sample(ability, items, correct)
 
 spec <- mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,

@@ -714,6 +714,7 @@ expectedUpdate(omxData *restrict data, const int *rowMap, const int px, const in
 OMXINLINE static void
 ba81Weight(omxExpectation* oo, const int item, const int *quad, int outcomes, double *out)
 {
+	// TODO move this to the E step and discard the lxk cache ASAP
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
@@ -795,7 +796,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 		if (do_deriv) {
 			double *iparam = omxMatrixColumn(itemParam, ix);
 			double *pad = myDeriv + ix * state->derivPadSize;
-			(*rpf_model[id].deriv)(spec, iparam, where, area, weight, pad);
+			(*rpf_model[id].dLL1)(spec, iparam, where, area, weight, pad);
 		}
 	}
 
@@ -879,7 +880,7 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient, double *hessian)
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
 			double *pad = deriv0 + ix * state->derivPadSize;
-			(*rpf_model[id].deriv)(spec, iparam, NULL, 0, NULL, pad);
+			(*rpf_model[id].dLL2)(spec, iparam, pad);
 		}
 
 		int numFreeParams = currentState->numFreeParams;
@@ -1314,6 +1315,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->logNumIdentical = Realloc(NULL, numUnique, double);
 
 	int numItems = state->itemParam->cols;
+	if (data->cols != numItems) {
+		error("Data has %d columns for %d items", data->cols, numItems);
+	}
 
 	for (int rx=0, ux=0; rx < data->rows; ux++) {
 		if (rx == 0) {

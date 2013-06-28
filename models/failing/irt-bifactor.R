@@ -15,14 +15,14 @@ maxDim <- 2
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
-	items[[ix]] <- rpf.drm(dimensions=maxDim)
+	items[[ix]] <- rpf.drm(factors=maxDim)
 	correct[[ix]] <- rpf.rparam(items[[ix]])
 	correct[[ix]][[4]] <- 0   # no guessing, for now
 }
 correct.mat <- simplify2array(correct)
 
-maxParam <- max(vapply(items, function(i) i@numParam, 0))
-maxOutcomes <- max(vapply(items, function(i) i@numOutcomes, 0))
+maxParam <- max(vapply(items, rpf.numParam, 0))
+maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
 
 design <- matrix(c(rep(1,numItems),
 		   2,2,2,3,3,3), byrow=TRUE, nrow=2)
