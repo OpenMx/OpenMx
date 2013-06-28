@@ -1051,14 +1051,14 @@ ba81ComputeMFit1(omxExpectation* oo, int want, double *gradient, double *hessian
 			}
 
 			if (to < numFreeParams) {
-				gradient[to] += -2 * deriv0[ox];
+				gradient[to] -= deriv0[ox];
 			} else {
-				if (hessian) hessian[to - numFreeParams] += -2 * deriv0[ox];
+				if (hessian) hessian[to - numFreeParams] -= deriv0[ox];
 			}
 		}
 	}
 
-	return -2 * ll;
+	return -ll;
 }
 
 double
