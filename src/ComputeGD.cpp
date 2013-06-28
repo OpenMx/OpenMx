@@ -53,6 +53,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
+	omxCompleteFitFunction(fitMatrix);
 }
 
 void omxComputeGD::compute(FitContext *fc)
@@ -62,6 +63,8 @@ void omxComputeGD::compute(FitContext *fc)
 		error("Model has no free parameters");
 		return;
 	}
+
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);

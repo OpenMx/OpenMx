@@ -43,6 +43,7 @@
 #include "omxData.h"
 #include "omxState.h"
 #include "omxExpectation.h"
+#include "Compute.h"
 
 typedef struct {
 	char label[250];
@@ -57,9 +58,10 @@ struct omxFitFunction {					// A fit function
 	void (*initFun)(omxFitFunction *oo);
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
-	void (*computeFun)(omxFitFunction* oo, int ffcompute, double* grad, double *hessian);
+	void (*computeFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
 	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
+	void (*setVarGroup)(omxFitFunction*, FreeVarGroup *);
 	
 	SEXP rObj;																	// Original r Object Pointer
 	omxExpectation* expectation;												// Data expectation object
@@ -76,14 +78,14 @@ struct omxFitFunction {					// A fit function
 
 /* Initialize and Destroy */
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber);
-void omxCompleteFitFunction(omxMatrix *om, SEXP rObj);
+void omxCompleteFitFunction(omxMatrix *om);
 void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
 	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
-void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient, double *hessian);
+void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
@@ -92,17 +94,13 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName
 
 void omxFitFunctionCreateChildren(omxState *globalState);
 
-enum omxFFCompute {
-  FF_COMPUTE_FIT      = 1<<0,
-  FF_COMPUTE_GRADIENT = 1<<1,
-  FF_COMPUTE_HESSIAN  = 1<<2
-};
-
 void omxInitFIMLFitFunction(omxFitFunction* off);
 void omxInitAlgebraFitFunction(omxFitFunction *off);
 void omxInitWLSFitFunction(omxFitFunction *off);
 void omxInitRowFitFunction(omxFitFunction *off);
 void omxInitMLFitFunction(omxFitFunction *off);
 void omxInitRFitFunction(omxFitFunction *off);
+void omxInitFitFunctionBA81(omxFitFunction* oo); // TODO fold into ML/FIMLFitFunction
+void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 
 #endif /* _OMXFITFUNCTION_H_ */

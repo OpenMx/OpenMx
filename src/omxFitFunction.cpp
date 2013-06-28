@@ -37,17 +37,27 @@ struct omxFitFunctionTableEntry {
 
 	char name[32];
 	void (*initFun)(omxFitFunction*);
+	void (*setVarGroup)(omxFitFunction*, FreeVarGroup *);  // TODO ugh, just convert to C++
 
 };
 
+static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
+{
+	if (ff->freeVarGroup && ff->freeVarGroup != fvg) {
+		error("setFreeVarGroup called with different group on %p", ff);
+	}
+	ff->freeVarGroup = fvg;
+}
+
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
-	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
-	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
-	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
-	{"MxFitFunctionML", 				&omxInitMLFitFunction},
-	{"imxFitFunctionFIML", &omxInitFIMLFitFunction},
-	{"MxFitFunctionR",					&omxInitRFitFunction},
-	{"MxFitFunctionMultigroup", &initFitMultigroup}
+	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionWLS",				&omxInitWLSFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionRow", 				&omxInitRowFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionML", 				&omxInitMLFitFunction, defaultSetFreeVarGroup},
+	{"imxFitFunctionFIML", &omxInitFIMLFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionR",					&omxInitRFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionMultigroup", &initFitMultigroup, defaultSetFreeVarGroup},
+	{"MxFitFunctionBA81", &omxInitFitFunctionBA81, ba81SetFreeVarGroup}
 };
 
 void omxFreeFitFunctionArgs(omxFitFunction *off) {
@@ -88,10 +98,11 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
     
 	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber);
 	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
-	omxCompleteFitFunction(tgt, ff->rObj);
+	tgt->fitFunction->rObj = ff->rObj;
+	omxCompleteFitFunction(tgt);
 }
 
-void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient, double *hessian)
+void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (!off->initialized) error("FitFunction not initialized");
 
@@ -99,7 +110,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient, doub
 	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
 	}
 
-	off->computeFun(off, want, gradient, hessian);
+	off->computeFun(off, want, fc);
 
 	omxMarkClean(off->matrix);
 }
@@ -121,6 +132,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 		if(strcmp(fitType, entry->name) == 0) {
 			obj->fitType = entry->name;
 			obj->initFun = entry->initFun;
+			obj->setVarGroup = entry->setVarGroup; // ugh!
 			break;
 		}
 	}
@@ -128,11 +140,11 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 	if (obj->initFun == NULL) error("Fit function %s not implemented", fitType);
 }
 
-void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
+void omxCompleteFitFunction(omxMatrix *om)
 {
 	omxFitFunction *obj = om->fitFunction;
 	if (obj->initialized) return;
-	obj->rObj = rObj;
+	SEXP rObj = obj->rObj;
 
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
@@ -141,6 +153,7 @@ void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
 		if(expNumber != NA_INTEGER) {
 			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
 			setFreeVarGroup(obj->expectation, obj->freeVarGroup);
+			omxCompleteExpectation(obj->expectation);
 		}
 	}
 	UNPROTECT(1);	/* slotValue */
@@ -155,7 +168,7 @@ void omxCompleteFitFunction(omxMatrix *om, SEXP rObj)
 
 void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
 {
-	ff->freeVarGroup = fvg;
+	(*ff->setVarGroup)(ff, fvg);
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {

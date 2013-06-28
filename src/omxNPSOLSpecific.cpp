@@ -127,9 +127,9 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 	NPSOL_fc->copyParamToModel(globalState, x);
 
 	if (*mode > 0 && Global->analyticGradients && NPSOL_currentInterval < 0) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN, g, hessian);
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
 	} else {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL, NULL);
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
 	}
 
 	omxExamineFitOutput(globalState, fitMatrix, mode);
@@ -635,6 +635,10 @@ void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
+				if (*numThreads < 1) {
+					warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
+					*numThreads = 1;
+				}
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));

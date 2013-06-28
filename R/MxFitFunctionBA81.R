@@ -16,25 +16,30 @@
 
 setClass(Class = "MxFitFunctionBA81",
 	representation = representation(
-          data = "MxCharOrNumber"
+          data = "MxCharOrNumber",
+	  rescale = "logical",
+	  ItemParam = "MxCharOrNumber",
+	  CustomPrior = "MxOptionalCharOrNumber"
           ),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionBA81",
-	function(.Object, name = 'fitfunction') {
-                .Object@name <- name
+	function(.Object, ItemParam, rescale, CustomPrior) {
+                .Object@name <- 'fitfunction'
 		.Object@data <- as.integer(NA)
+		.Object@rescale <- rescale
+		.Object@ItemParam <- ItemParam
+		.Object@CustomPrior <- CustomPrior
 		return(.Object)
 	}
 )
 
-## setMethod("genericFitDependencies", signature("MxFitFunctionBA81"),
-## 	function(.Object, dependencies) {
-## 		dependencies <- callNextMethod()
-## 		sources <- c()
-## 		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
-## 		return(dependencies)
-## })
+setMethod("genericFitDependencies", signature("MxFitFunctionBA81"),
+	  function(.Object, dependencies) {
+		  sources <- c(.Object@ItemParam, .Object@CustomPrior)
+		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
+		  return(dependencies)
+	  })
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
@@ -48,9 +53,10 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 		}
 		.Object@expectation <- expectIndex
 
-                for (s in c("data")) {
-                  slot(.Object, s) <-
-                    imxLocateIndex(flatModel, slot(.Object, s), name)
+                for (s in c("data", "ItemParam", "CustomPrior")) {
+			if (is.null(slot(.Object, s))) next
+			slot(.Object, s) <-
+			  imxLocateIndex(flatModel, slot(.Object, s), name)
                 }
 		return(.Object)
 })
@@ -58,6 +64,11 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 setMethod("qualifyNames", signature("MxFitFunctionBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
+		for (s in c("ItemParam", "CustomPrior")) {
+			if (is.null(slot(.Object, s))) next
+			slot(.Object, s) <-
+			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
+		}
 		return(.Object)
 })
 
@@ -67,6 +78,6 @@ setMethod("genericFitRename", signature("MxFitFunctionBA81"),
 		return(.Object)
 })
 
-mxFitFunctionBA81 <- function() {
-	return(new("MxFitFunctionBA81"))
+mxFitFunctionBA81 <- function(ItemParam, rescale=TRUE, CustomPrior=NULL) {
+	return(new("MxFitFunctionBA81", ItemParam, rescale=rescale, CustomPrior))
 }

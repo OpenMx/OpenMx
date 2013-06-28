@@ -173,12 +173,14 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *gradient, double *hession) {
+static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContext *) {
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
 	// TODO: Current implementation may fail on all-continuous-missing or all-ordinal-missing rows.
 	
+	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+
     if(OMX_DEBUG) { 
 	    mxLog("Beginning Joint FIML Evaluation.");
     }
@@ -285,7 +287,9 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, double *g
 
 }
 
-static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) {
+
+	if (want & FF_COMPUTE_PREOPTIMIZE) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning FIML Evaluation."); }
 	// Requires: Data, means, covariances.
@@ -312,7 +316,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 
 	if(numDefs == 0 && strcmp(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
-		omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
+		omxExpectationCompute(expectation, NULL);
 		
 		for(int index = 0; index < numChildren; index++) {
 			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
@@ -371,7 +375,9 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 	}
 }
 
-static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitContext *) {
+	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { mxLog("Beginning Ordinal FIML Evaluation.");}
 	// Requires: Data, means, covariances, thresholds
@@ -407,7 +413,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 	
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("No Definition Vars: precalculating."); }
-		omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
+		omxExpectationCompute(expectation, NULL);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;

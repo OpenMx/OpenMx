@@ -96,6 +96,10 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
 
 	if(OMX_DEBUG) { mxLog("Adding %d sets of fit function Info....", numEls);}
 	for(int i = 0; i < numEls; i++) {
+		if (!orle[i].values) {
+			warning("Ignored %s in omxPopulateFitFunction", orle[i].label);
+			continue;
+		}
 		if (orle[i].numValues == -1) {
 			PROTECT(oElement = allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
 		} else {

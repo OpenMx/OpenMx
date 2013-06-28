@@ -39,12 +39,6 @@ struct omxExpectationTableEntry {
 	void (*initFun)(omxExpectation*);
 };
 
-void omxInitNormalExpectation(omxExpectation *ox);
-void omxInitLISRELExpectation(omxExpectation *ox);
-void omxInitStateSpaceExpectation(omxExpectation *ox);
-void omxInitRAMExpectation(omxExpectation *ox);
-void omxInitExpectationBA81(omxExpectation* oo);
-
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationLISREL",			&omxInitLISRELExpectation},
 	{"MxExpectationStateSpace",			&omxInitStateSpaceExpectation},
@@ -78,10 +72,10 @@ void omxExpectationRecompute(omxExpectation *ox) {
 		}
 	}
 
-	omxExpectationCompute(ox, COMPUTE_EXPECT_GENERIC);
+	omxExpectationCompute(ox, NULL);
 }
 
-void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ctx)
+void omxExpectationCompute(omxExpectation *ox, const char *context)
 {
 	if (!ox) return;
 
@@ -89,7 +83,7 @@ void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ct
 	    mxLog("Expectation compute: 0x%0x", ox);
 	}
 
-	ox->computeFun(ox, ctx);
+	ox->computeFun(ox, context);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
@@ -137,7 +131,6 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 {
 	omxExpectation* ox = os->expectationList.at(expIndex);
-	if (!ox->isComplete) omxCompleteExpectation(ox);
 	return ox;
 }
 
@@ -317,15 +310,24 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 }
 
+static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
+{
+	if (ox->freeVarGroup && ox->freeVarGroup != fvg) {
+		error("setFreeVarGroup called with different group on %p", ox);
+	}
+	ox->freeVarGroup = fvg;
+}
+
 void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
-	ox->freeVarGroup = fvg;
+	(*ox->setVarGroup)(ox, fvg);
 }
 
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
 	omxExpectation* expect = Calloc(1, omxExpectation);
+	expect->setVarGroup = defaultSetVarGroup;
 
 	/* Switch based on Expectation type. */ 
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {

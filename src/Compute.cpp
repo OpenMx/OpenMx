@@ -62,28 +62,37 @@ FitContext::FitContext(FitContext *parent)
 FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 {
 	this->parent = parent;
+	this->varGroup = varGroup;
 	init();
 
 	FreeVarGroup *src = parent->varGroup;
 	FreeVarGroup *dest = varGroup;
-	size_t numParam = varGroup->vars.size();
+	size_t svars = parent->varGroup->vars.size();
+	size_t dvars = varGroup->vars.size();
 
 	size_t d1 = 0;
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 		if (src->vars[s1] != dest->vars[d1]) continue;
 		est[d1] = parent->est[s1];
 		grad[d1] = parent->grad[s1];
-		++d1;
 
 		size_t d2 = 0;
 		for (size_t s2=0; s2 < src->vars.size(); ++s2) {
 			if (src->vars[s2] != dest->vars[d2]) continue;
-			size_t cell = s1 * numParam + s2;
-			hess[cell] = parent->hess[cell];
-			++d2;
+			hess[d1 * dvars + d2] = parent->hess[s1 * svars + s2];
+			if (++d2 == dvars) break;
 		}
+
+		if (++d1 == dvars) break;
 	}
-	if (d1 != numParam-1) error("Parent free parameter group is not a superset");
+	if (d1 != dvars) error("Parent free parameter group is not a superset");
+
+	// pda(parent->est, 1, svars);
+	// pda(est, 1, dvars);
+	// pda(parent->grad, 1, svars);
+	// pda(grad, 1, dvars);
+	// pda(parent->hess, svars, svars);
+	// pda(hess, dvars, dvars);
 }
 
 void FitContext::copyParamToModel(omxMatrix *mat)
@@ -96,25 +105,49 @@ void FitContext::updateParentAndFree()
 {
 	FreeVarGroup *src = varGroup;
 	FreeVarGroup *dest = parent->varGroup;
-	size_t numParam = varGroup->vars.size();
+	size_t svars = varGroup->vars.size();
+	size_t dvars = parent->varGroup->vars.size();
 
 	size_t s1 = 0;
 	for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
 		if (dest->vars[d1] != src->vars[s1]) continue;
 		parent->est[d1] = est[s1];
 		parent->grad[d1] = grad[s1];
-		++s1;
 
 		size_t s2 = 0;
 		for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
 			if (dest->vars[d2] != src->vars[s2]) continue;
-			size_t cell = d1 * numParam + d2;
-			parent->hess[cell] = hess[cell];
-			++s2;
+			parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
+			if (++s2 == svars) break;
 		}
+
+		if (++s1 == svars) break;
 	}
 	
+	// pda(est, 1, svars);
+	// pda(parent->est, 1, dvars);
+	// pda(grad, 1, svars);
+	// pda(parent->grad, 1, dvars);
+	// pda(hess, svars, svars);
+	// pda(parent->hess, dvars, dvars);
+
 	delete this;
+}
+
+void FitContext::log(enum omxFFCompute what)
+{
+	size_t count = varGroup->vars.size();
+	std::string buf;
+	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.2g\n", fit);
+	if (what & FF_COMPUTE_ESTIMATE) {
+		buf += "est: c(";
+		for (size_t vx=0; vx < count; ++vx) {
+			buf += string_snprintf("%.2g", est[vx]);
+			if (vx < count - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
+	mxLogBig(buf);
 }
 
 void FitContext::cacheFreeVarDependencies()
@@ -283,9 +316,24 @@ class omxComputeSequence : public omxCompute {
 	virtual ~omxComputeSequence();
 };
 
+class omxComputeIterate : public omxCompute {
+	std::vector< omxCompute* > clist;
+	int maxIter;
+	double tolerance;
+
+ public:
+        virtual void initFromFrontend(SEXP rObj);
+        virtual void compute(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual double getOptimizerStatus();
+	virtual ~omxComputeIterate();
+};
+
 class omxComputeOnce : public omxComputeOperation {
 	typedef omxComputeOperation super;
 	omxMatrix *fitMatrix;
+	omxExpectation *expectation;
+	const char *context;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -295,6 +343,9 @@ class omxComputeOnce : public omxComputeOperation {
 
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
+
+static class omxCompute *newComputeIterate()
+{ return new omxComputeIterate(); }
 
 static class omxCompute *newComputeOnce()
 { return new omxComputeOnce(); }
@@ -311,6 +362,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeEstimatedHessian", &newComputeEstimatedHessian},
         {"MxComputeGradientDescent", &newComputeGradientDescent},
 	{"MxComputeSequence", &newComputeSequence },
+	{"MxComputeIterate", &newComputeIterate },
 	{"MxComputeOnce", &newComputeOnce },
 	{"MxComputeAssign", &newComputeAssign },
 };
@@ -455,27 +507,138 @@ omxComputeSequence::~omxComputeSequence()
 	}
 }
 
+void omxComputeIterate::initFromFrontend(SEXP rObj)
+{
+	SEXP slotValue;
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
+	maxIter = INTEGER(slotValue)[0];
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
+	tolerance = REAL(slotValue)[0];
+	if (tolerance <= 0) error("tolerance must be positive");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("steps")));
+
+	for (int cx = 0; cx < length(slotValue); cx++) {
+		SEXP step = VECTOR_ELT(slotValue, cx);
+		SEXP s4class;
+		PROTECT(s4class = STRING_ELT(getAttrib(step, install("class")), 0));
+		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
+		compute->initFromFrontend(step);
+		if (isErrorRaised(globalState)) break;
+		clist.push_back(compute);
+	}
+}
+
+void omxComputeIterate::compute(FitContext *fc)
+{
+	int iter = 0;
+	double prevFit = 0;
+	double change = tolerance * 10;
+	while (1) {
+		for (size_t cx=0; cx < clist.size(); ++cx) {
+			FitContext *context = fc;
+			if (fc->varGroup != clist[cx]->varGroup) {
+				context = new FitContext(fc, clist[cx]->varGroup);
+			}
+			clist[cx]->compute(context);
+			if (context != fc) context->updateParentAndFree();
+			if (isErrorRaised(globalState)) break;
+		}
+		if (prevFit != 0) {
+			change = prevFit - fc->fit;
+			mxLog("fit %.9g change %.9g", fc->fit, change); // add verbose option TODO
+		}
+		prevFit = fc->fit;
+		if (isErrorRaised(globalState) || ++iter > maxIter || fabs(change) < tolerance) break;
+	}
+}
+
+void omxComputeIterate::reportResults(FitContext *fc, MxRList *out)
+{
+	for (size_t cx=0; cx < clist.size(); ++cx) {
+		FitContext *context = fc;
+		if (fc->varGroup != clist[cx]->varGroup) {
+			context = new FitContext(fc, clist[cx]->varGroup);
+		}
+		clist[cx]->reportResults(context, out);
+		if (context != fc) context->updateParentAndFree();
+		if (isErrorRaised(globalState)) break;
+	}
+}
+
+double omxComputeIterate::getOptimizerStatus()
+{
+	// for backward compatibility, not indended to work generally
+	for (size_t cx=0; cx < clist.size(); ++cx) {
+		double got = clist[cx]->getOptimizerStatus();
+		if (got != NA_REAL) return got;
+	}
+	return NA_REAL;
+}
+
+omxComputeIterate::~omxComputeIterate()
+{
+	for (size_t cx=0; cx < clist.size(); ++cx) {
+		delete clist[cx];
+	}
+}
+
 void omxComputeOnce::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
+
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
+	if (fitMatrix) {
+		setFreeVarGroup(fitMatrix->fitFunction, varGroup);
+		omxCompleteFitFunction(fitMatrix);
+	}
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
+	if (length(slotValue)) {
+		int expNumber = INTEGER(slotValue)[0];	
+		expectation = omxExpectationFromIndex(expNumber, globalState);
+		setFreeVarGroup(expectation, varGroup);
+		omxCompleteExpectation(expectation);
+	}
+
+	if (fitMatrix && expectation) {
+		error("Cannot evaluate a fitfunction and expectation simultaneously");
+	}
+	if (!fitMatrix && !expectation) error("No function specified to evaluate");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
+	if (length(slotValue) == 0) {
+		// OK
+	} else if (length(slotValue) == 1) {
+		SEXP elem;
+		PROTECT(elem = STRING_ELT(slotValue, 0));
+		context = CHAR(elem);
+	}
 }
 
 void omxComputeOnce::compute(FitContext *fc)
 {
-        for(size_t index = 0; index < globalState->matrixList.size(); index++) {
-            omxMarkDirty(globalState->matrixList[index]);
-        }
-        for(size_t index = 0; index < globalState->algebraList.size(); index++) {
-            omxMarkDirty(globalState->algebraList[index]);
-        }
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL, NULL);
-	fc->fit = fitMatrix->data[0];
+	if (fitMatrix) {
+		for(size_t index = 0; index < globalState->matrixList.size(); index++) {
+			omxMarkDirty(globalState->matrixList[index]);
+		}
+		for(size_t index = 0; index < globalState->algebraList.size(); index++) {
+			omxMarkDirty(globalState->algebraList[index]);
+		}
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
+		fc->fit = fitMatrix->data[0];
+	} else if (expectation) {
+		omxExpectationCompute(expectation, context);
+	}
 }
 
 void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 {
+	if (!fitMatrix) return;
+
 	omxPopulateFitFunction(fitMatrix, out);
 
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));

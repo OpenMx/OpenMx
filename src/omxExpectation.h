@@ -57,25 +57,18 @@ struct omxDefinitionVar {		 	// Definition Var
 
 };
 
-enum ComputeExpectationContext {
-	COMPUTE_EXPECT_GENERIC,
-	COMPUTE_EXPECT_INITIALIZE,
-	COMPUTE_EXPECT_PREFIT,
-	COMPUTE_EXPECT_POSTFIT,
-	COMPUTE_EXPECT_EXPORT
-};
-
 /* Expectation structure itself */
 struct omxExpectation {					// An Expectation
 
 	/* Fields unique to Expectation Functions */
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
-	void (*computeFun)(omxExpectation* ox, enum ComputeExpectationContext ctx);
+	void (*computeFun)(omxExpectation* ox, const char *context);
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
 	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation
+	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);
 	
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
@@ -111,7 +104,7 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 
 /* Expectation-specific implementations of matrix functions */
 void omxExpectationRecompute(omxExpectation *ox);
-void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ctx);
+void omxExpectationCompute(omxExpectation *ox, const char *context);
 	omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState);
 	
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation
@@ -119,5 +112,11 @@ void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ct
 omxMatrix* omxGetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component);
 	
 void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component, omxMatrix *om);
+
+void omxInitNormalExpectation(omxExpectation *ox);
+void omxInitLISRELExpectation(omxExpectation *ox);
+void omxInitStateSpaceExpectation(omxExpectation *ox);
+void omxInitRAMExpectation(omxExpectation *ox);
+void omxInitExpectationBA81(omxExpectation* oo);
 
 #endif /* _OMXEXPECTATION_H_ */

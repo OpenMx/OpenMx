@@ -218,12 +218,16 @@ void omxFreeChildStates(omxState *state)
 		if(OMX_DEBUG) { mxLog("State Freed.");}
 	}
 
+/*
+ * I don't understand why this results in double frees. TODO
+ *
 FreeVarGroup::~FreeVarGroup()
 {
 	for (size_t vx=0; vx < vars.size(); ++vx) {
 		delete vars[vx];
 	}
 }
+*/
 
 omxGlobal::~omxGlobal()
 {

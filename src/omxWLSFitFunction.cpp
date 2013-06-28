@@ -111,7 +111,8 @@ omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numRe
 	return retVal;
 }
 
-static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient, double *hessian) {	// TODO: Figure out how to give access to other per-iteration structures.
+static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
+	if (want & FF_COMPUTE_PREOPTIMIZE) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
@@ -142,7 +143,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, double *gradient
 	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
-	omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
+	omxExpectationCompute(expectation, NULL);
 
 	flattenDataToVector(oCov, oMeans, oThresh, nThresh, oFlat);
 	flattenDataToVector(eCov, eMeans, eThresh, nThresh, eFlat);

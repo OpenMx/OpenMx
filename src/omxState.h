@@ -86,7 +86,6 @@ struct omxFreeVar {
 struct FreeVarGroup {
 	const char *name;
 	std::vector< omxFreeVar* > vars;
-	~FreeVarGroup();
 };
 
 struct omxConstraint {		// Free Variable Constraints

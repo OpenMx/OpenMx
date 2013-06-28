@@ -576,6 +576,7 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 }
 
 imxConvertIdentifier <- function(identifier, modelname, namespace) {
+	if (length(identifier) == 0) return(identifier)
 	charidentifier <- as.character(identifier)
 	if (is.na(charidentifier)) {
 		return(identifier)

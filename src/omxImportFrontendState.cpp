@@ -105,7 +105,9 @@ void omxProcessMxFitFunction(SEXP algList)
 			SEXP fitFunctionClass;
 			PROTECT(fitFunctionClass = STRING_ELT(getAttrib(nextAlgTuple, install("class")), 0));
 			const char *fitType = CHAR(fitFunctionClass);
-			omxFillMatrixFromMxFitFunction(globalState->algebraList[index], fitType, index);
+			omxMatrix *fm = globalState->algebraList[index];
+			omxFillMatrixFromMxFitFunction(fm, fitType, index);
+			fm->fitFunction->rObj = nextAlgTuple;
 			UNPROTECT(1);	// fitFunctionClass
 		}
 		if (isErrorRaised(globalState)) return;
@@ -118,9 +120,11 @@ void omxCompleteMxFitFunction(SEXP algList)
 	SEXP nextAlgTuple;
 
 	for(int index = 0; index < length(algList); index++) {
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));             // The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
-			omxCompleteFitFunction(globalState->algebraList[index], nextAlgTuple);
+			omxMatrix *fm = globalState->algebraList[index];
+			setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
+			omxCompleteFitFunction(fm);
 		}
 		UNPROTECT(1);
 	}

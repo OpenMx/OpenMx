@@ -81,8 +81,15 @@ setMethod("convertForBackend", signature("MxComputeAssign"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod();
 		name <- .Object@name
-		.Object@from <- - match(.Object@from, names(flatModel@matrices))
-		.Object@to <- - match(.Object@to, names(flatModel@matrices))
+		for (sl in c('from', 'to')) {
+			mat <- match(slot(.Object, sl), names(flatModel@matrices))
+			if (any(is.na(mat))) {
+				stop(paste("MxComputeAssign: cannot find",
+					   omxQuotes(slot(.Object, sl)[is.na(mat)]),
+					   "mentioned in slot '", sl, "'"))
+			}
+			slot(.Object, sl) <- -mat
+		}
 		.Object
 	})
 
@@ -98,13 +105,15 @@ mxComputeAssign <- function(from, to, free.group="default") {
 setClass(Class = "MxComputeOnce",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   fitfunction = "MxCharOrNumber"
-	   ))
+	   fitfunction = "MxOptionalCharOrNumber",
+	   expectation = "MxOptionalCharOrNumber",
+	   context = "character"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object@expectation <- imxConvertIdentifier(.Object@expectation, modelname, namespace)
 		.Object
 	})
 
@@ -115,19 +124,27 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 		if (is.character(.Object@fitfunction)) {
 			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
 		}
+		if (is.character(.Object@expectation)) {
+			.Object@expectation <- imxLocateIndex(flatModel, .Object@expectation, name)
+		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, free.group, fit) {
+	  function(.Object, free.group, fit, expectation, context) {
 		  .Object@name <- 'compute'
 		  .Object@free.group <- free.group
+		  if (!is.null(fit) && !is.null(expectation)) {
+			  stop("Cannot evaluate a fitfunction and expectation simultaneously")
+		  }
 		  .Object@fitfunction <- fit
+		  .Object@expectation <- expectation
+		  .Object@context <- context
 		  .Object
 	  })
 
-mxComputeOnce <- function(free.group='default', fitfunction='fitfunction') {
-	new("MxComputeOnce", free.group, fitfunction)
+mxComputeOnce <- function(free.group='default', fitfunction=NULL, expectation=NULL, context=character(0)) {
+	new("MxComputeOnce", free.group, fitfunction, expectation, context)
 }
 
 #----------------------------------------------------
@@ -136,7 +153,6 @@ setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
 	   fitfunction = "MxCharOrNumber",
-	   type = "character",
 	   engine = "character"))
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
@@ -157,24 +173,71 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.group, type, engine, fit) {
+	  function(.Object, free.group, engine, fit) {
 		  .Object@name <- 'compute'
 		  .Object@free.group <- free.group
 		  .Object@fitfunction <- fit
-		  .Object@type <- type
 		  .Object@engine <- engine
 		  .Object
 	  })
 
 mxComputeGradientDescent <- function(type, free.group='default',
 				     engine=NULL, fitfunction='fitfunction') {
+# What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
-	if (is.null(type)) type <- as.character(NA)
 	if (is.null(engine)) engine <- as.character(NA)
 
-	new("MxComputeGradientDescent", free.group, type, engine, fitfunction)
+	new("MxComputeGradientDescent", free.group, engine, fitfunction)
 }
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeIterate",
+	 contains = "MxBaseCompute",
+	 representation = representation(
+	   steps = "list",
+	   maxIter = "integer",
+	   tolerance = "numeric"))
+
+setMethod("initialize", "MxComputeIterate",
+	  function(.Object, steps, maxIter, tolerance) {
+		  .Object@name <- 'compute'
+		  .Object@steps <- steps
+		  .Object@maxIter <- maxIter
+		  .Object@tolerance <- tolerance
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeIterate"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@steps <- lapply(.Object@steps, function (c) qualifyNames(c, modelname, namespace))
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeIterate"),
+	function(.Object, flatModel, model) {
+		.Object@steps <- lapply(.Object@steps, function (c) convertForBackend(c, flatModel, model))
+		.Object
+	})
+
+mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4) {
+	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance)
+}
+
+displayMxComputeIterate <- function(opt) {
+	cat(class(opt), omxQuotes(opt@name), '\n')
+	cat("@tolerance :", omxQuotes(opt@tolerance), '\n')
+	cat("@maxIter :", omxQuotes(opt@maxIter), '\n')
+	for (step in 1:length(opt@steps)) {
+		cat("[[", step, "]] :", class(opt@steps[[step]]), '\n')
+	}
+	invisible(opt)
+}
+
+setMethod("print", "MxComputeIterate", function(x, ...) displayMxComputeIterate(x))
+setMethod("show",  "MxComputeIterate", function(object) displayMxComputeIterate(object))
 
 #----------------------------------------------------
 
