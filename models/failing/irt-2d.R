@@ -78,10 +78,10 @@ if (1) {
 	m1 <- mxRun(m1, silent=TRUE)
 
 	omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-				c(correct.mat)), .947, .01)
+				c(correct.mat)), .899, .01)
 	max.se <- max(m1@output$ability[,c(2,4)])
 	omxCheckCloseEnough(m1@output$ability[,c(1,3)], ability, max.se*3)
-	omxCheckCloseEnough(.55, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
+	omxCheckCloseEnough(.512, cor(c(m1@output$ability[,c(1,3)]), c(ability)), .01)
 
 } else { ################
 

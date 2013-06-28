@@ -74,4 +74,4 @@ m1 <- mxRun(m1, silent=TRUE)
 print(correct.mat)
 print(m1@matrices$ItemParam@values)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
-omxCheckCloseEnough(got, .942, .01) # caution, not converged yet
+omxCheckCloseEnough(got, .957, .01) # caution, not converged yet
