@@ -57,6 +57,7 @@ typedef struct {
 
 	// estimation related
 	omxMatrix *EitemParam;    // E step version
+	int userEitemParam;
 	omxMatrix *itemParam;     // M step version
 	omxMatrix *customPrior;
 	int *paramMap;
@@ -667,7 +668,11 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 static void
 ba81Estep(omxExpectation *oo) {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
-	omxCopyMatrix(state->EitemParam, state->itemParam);
+	if (state->userEitemParam) {
+		state->userEitemParam = FALSE;
+	} else {
+		omxCopyMatrix(state->EitemParam, state->itemParam);
+	}
 	ba81Estep1(oo);
 	if (state->doRescale) schilling_bock_2005_rescale(oo);
 }
@@ -1314,8 +1319,15 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, currentState, "ItemParam");
 	state->EitemParam =
-		omxInitTemporaryMatrix(NULL, state->itemParam->rows, state->itemParam->cols,
-				       TRUE, currentState);
+		omxNewMatrixFromSlot(rObj, currentState, "EItemParam");
+	if (state->EitemParam) {
+		state->userEitemParam = TRUE;
+	} else {
+		state->EitemParam =
+			omxInitTemporaryMatrix(NULL, state->itemParam->rows, state->itemParam->cols,
+					       TRUE, currentState);
+	}
+
 	state->customPrior =
 		omxNewMatrixFromSlot(rObj, currentState, "CustomPrior");
 	

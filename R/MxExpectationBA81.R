@@ -21,6 +21,7 @@ setClass(Class = "MxExpectationBA81",
 	   ItemSpec = "MxCharOrNumber",
 	   Design = "MxOptionalCharOrNumber",
            ItemParam = "MxCharOrNumber",
+           EItemParam = "MxOptionalCharOrNumber",
            CustomPrior = "MxOptionalCharOrNumber",
 	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
 	   GHarea = "numeric",
@@ -29,12 +30,13 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, CustomPrior, Design,
+          function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
 		   quadrature, cache, doRescale, name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
             .Object@ItemParam <- ItemParam
+            .Object@EItemParam <- EItemParam
             .Object@GHpoints <- quadrature[[1]]
             .Object@GHarea <- quadrature[[2]]
             .Object@cache <- cache
@@ -48,6 +50,7 @@ setMethod("initialize", "MxExpectationBA81",
 setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  function(.Object, dependencies) {
 		  sources <- c(.Object@CustomPrior, .Object@ItemParam,
+			       .Object@EItemParam,
 			       .Object@ItemSpec, .Object@Design)
 		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		  return(dependencies)
@@ -63,7 +66,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			  stop(msg, call.=FALSE)
 		  }
 		  name <- .Object@name
-		  for (s in c("data", "ItemParam", "CustomPrior", "ItemSpec", "Design")) {
+		  for (s in c("data", "ItemParam", "EItemParam", "CustomPrior", "ItemSpec", "Design")) {
 			  if (is.null(slot(.Object, s))) next;
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -79,7 +82,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 setMethod("genericExpFunNamespace", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("ItemParam", "CustomPrior", "ItemSpec", "Design")) {
+		for (s in c("ItemParam", "EItemParam", "CustomPrior", "ItemSpec", "Design")) {
 			if (is.null(slot(.Object, s))) next;
 			slot(.Object, s) <-
 			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
@@ -126,7 +129,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL,
+mxExpectationBA81 <- function(ItemSpec, ItemParam, EItemParam=NULL, CustomPrior=NULL, Design=NULL,
 			      GHpoints=NULL, cache=TRUE, quadrature=NULL, doRescale=TRUE) {
 	if (missing(quadrature)) {
 		if (missing(GHpoints)) GHpoints <- 10
@@ -136,7 +139,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL
 		quadrature <- rpf.GaussHermiteData(GHpoints)
 	}
   
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design,
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, Design,
 		   quadrature, cache, doRescale))
 }
 
