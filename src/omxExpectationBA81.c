@@ -68,7 +68,6 @@ typedef struct {
 	double *allSlxk;          // numUnique * thread
 	double *Slxk;             // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
-	double ll;                // the most recent finite ll; TODO obsolete by lbound/ubound
 	// for multi-group, need to know the reference group TODO
 	double *latentMean;       // maxAbilities * numUnique
 	double *latentCov;        // maxAbilities * maxAbilities * numUnique ; only lower triangle is used
@@ -927,6 +926,7 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 				int numParam = (*rpf_model[id].numParam)(spec);
 				double *iparam = omxMatrixColumn(itemParam, item);
 				pda(iparam, numParam, 1);
+				// Perhaps bounds can be pulled in from librpf? TODO
 				error("Gradient for item %d is %f; are you missing a lbound/ubound?",
 				      item, thr0[ox]);
 			}
@@ -935,17 +935,7 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 		}
 	}
 
-	if (!isfinite(ll)) {
-		// This is a hack to avoid the need to specify
-		// ubound/lbound on parameters. Bounds are necessary
-		// mainly for debugging derivatives.
-		// Perhaps bounds can be pull in from librpf? TODO
-		return 2*state->ll;
-	} else {
-		ll = -2 * ll;
-		state->ll = ll;
-		return ll;
-	}
+	return -2 * ll;
 }
 
 double
@@ -1112,15 +1102,9 @@ ba81EAP(omxExpectation *oo, int *numReturns)
 	int maxDims = state->maxDims;
 	//int numSpecific = state->numSpecific;
 
-	*numReturns = 4; // + (maxDims > 1) + (numSpecific > 1);
+	*numReturns = 3; // + (maxDims > 1) + (numSpecific > 1);
 	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 	int ox=0;
-
-	out[ox].numValues = 1;
-	out[ox].values = (double*) R_alloc(1, sizeof(double));
-	strcpy(out[ox].label, "Minus2LogLikelihood");
-	out[ox].values[0] = state->ll;
-	++ox;
 
 	out[ox].numValues = -1;
 	strcpy(out[ox].label, "latent.cov");
@@ -1302,8 +1286,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	omxBA81State *state = Calloc(1, omxBA81State);
 	oo->argStruct = (void*) state;
 
-	state->ll = 1e20;   // finite but big
-	
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
 	state->data = omxDataLookupFromState(tmp, currentState);
 
