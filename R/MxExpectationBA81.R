@@ -23,20 +23,21 @@ setClass(Class = "MxExpectationBA81",
            ItemParam = "MxCharOrNumber",
 	   RPF = "MxOptionalFunction",
            CustomPrior = "MxOptionalCharOrNumber",
-	   GHpoints = "numeric",
+	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
 	   GHarea = "numeric",
 	   cache = "logical"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, CustomPrior, Design, RPF, gh, cache, name = 'expectation') {
+          function(.Object, ItemSpec, ItemParam, CustomPrior, Design, RPF,
+		   quadrature, cache, name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
             .Object@ItemParam <- ItemParam
             .Object@RPF <- RPF
-            .Object@GHpoints <- gh[[1]]
-            .Object@GHarea <- gh[[2]]
+            .Object@GHpoints <- quadrature[[1]]
+            .Object@GHarea <- quadrature[[2]]
             .Object@cache <- cache
             .Object@CustomPrior <- CustomPrior
             .Object@data <- as.integer(NA)
@@ -106,17 +107,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Kim, 2004, p. 196).
 ##' 
 ##' The cache more than halves CPU time, especially if you have many
-##' specific dimensions. With the cache enabled, memory usage is about
-##' 8 * (numItems + numUnique * (2 + numThreads * (numSpecific+1)) +
-##' numUnique * product(quadrature grids) * numSpecific). With the
-##' cache disabled, memory use is limited to about 8 * (numItems + 2 *
-##' numUnique + (numUnique+1) * (numThreads * (numSpecific+1)) bytes.
-##' For example, suppose your model has 20 items, 500 unique response
-##' patterns, 2 primary dimensions, 3 specific dimensions, a 40 point
-##' quadrature and your computer offers 8 way multiprocessing. With
-##' the cache enabled, 8 * (20 + 500 * (2+8 * (3+1)) + 500 * 40^3 * 3)
-##' = 733 MiB. With the cache disabled, 8 * (20 + 2 * 500 + (500 + 1) *
-##' (8 * (3 + 1))) = 134 KiB.
+##' specific dimensions.
 ##'
 ##' @param ItemSpec one column for each item containing the model ID
 ##' (see \code{\link{mxLookupIRTItemModelID}}), numDimensions, and
@@ -143,20 +134,26 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL, RPF=NULL, GHpoints=10, cache=TRUE) {
-  if (GHpoints < 3) {
-    error("GHpoints should be 3 or greater")
-  }
-  gh <- imxGaussHermiteData(GHpoints)
+mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL,
+			      RPF=NULL, GHpoints=NULL, cache=TRUE, quadrature=NULL) {
+	if (missing(quadrature)) {
+		if (missing(GHpoints)) GHpoints <- 10
+		if (GHpoints < 3) {
+			error("GHpoints should be 3 or greater")
+		}
+		quadrature <- imxGaussHermiteData(GHpoints)
+	}
   
-  return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design, RPF, gh, cache))
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design, RPF,
+		   quadrature, cache))
 }
 
-# Not used, just informational
-imxAdhocGaussHermiteData <- function(n, width) {
+imxUniformQuadratureData <- function(n, width) {
+  x <- seq(-width, width, length.out=n)
+  list(x=x, w=rep(1/n, n))
+}
+
+imxEqualIntervalQuadratureData <- function(n, width) {
   x <- seq(-width, width, length.out=n)
   list(x=x, w=dnorm(x)/sum(dnorm(x)))
 }
-
-imxGaussHermiteData <- function(n) .Call(omxGaussHermiteData, n)
-

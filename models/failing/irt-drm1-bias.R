@@ -1,10 +1,13 @@
+options(error = utils::recover)
 library(OpenMx)
 library(rpf)
+library(ggplot2)
 
 numItems <- 20
 numPersons <- 500
 
-i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.25)
+i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.5, multidimensional=TRUE)
+#i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.5)
 items <- list()
 items[1:numItems] <- i1
 
@@ -20,14 +23,18 @@ if (0) {
 ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                    values=c(1,0,0),
                    free=c(TRUE,TRUE,FALSE),
-                   lbound=c(1e-6, -1e6, 0))
+                   lbound=c(1e-5, -1e6, 0))
 
 fit1 <- function(seed=5, ghp=11) {
-  result <- list(seed=seed, ghp=ghp, sdlog=i1@a.prior.sdlog)
+  result <- list(seed=seed, ghp=ghp, sdlog=i1@a.prior.sdlog, mdim=(class(i1) == "rpf.mdim.drm"))
   
   set.seed(seed)
   ability <- rnorm(numPersons)
-  data <- rpf.sample(ability, items, correct)
+  gen.param <- correct
+  if (class(i1) == "rpf.mdim.drm") {
+    gen.param[2,] <- gen.param[2,] * -gen.param[1,]
+  }
+  data <- rpf.sample(ability, items, gen.param)
 
   m1 <- mxModel(model="drm1", ip.mat,
               mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
@@ -56,6 +63,9 @@ fit1 <- function(seed=5, ghp=11) {
   result$cpuTime <- m1@output$cpuTime
   result$LL <- m1@output$Minus2LogLikelihood
   result$param <- m1@matrices$ItemParam@values
+  if (class(i1) == "rpf.mdim.drm") {
+    result$param[2,] <- result$param[2,] / -result$param[1,]
+  }
   result
 }
 
@@ -75,32 +85,57 @@ setwd("/opt/OpenMx")
 rda <- "irt-drm1-bias.rda"
 load(rda)
 for (cnt in 1:500) {
-  if (any(sapply(bank, function (b) b$seed==cnt & b$gradient==1 & b$sdlog==.25))) next;
+  filter <- sapply(bank, function (b) b$mdim==(class(i1) == "rpf.mdim.drm") & b$sdlog == .5 & b$ghp==17)
+  if (any(sapply(bank, function (b) b$seed==cnt) & filter)) next;
   bi <- length(bank) + 1
   bank[[bi]] <- fit1(ghp=17, seed=cnt)
   save(bank, file=rda)
   
-  filter <- sapply(bank, function (b) b$gradient==1)
   print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
-  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
+#  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
 }
 
+for (cnt in 7:50) {
+  filter <- sapply(bank, function (b) b$mdim==(class(i1) == "rpf.mdim.drm") & b$sdlog == .5)
+  if (any(sapply(bank, function (b) b$ghp==cnt) & filter)) next;
+  bi <- length(bank) + 1
+  bank[[bi]] <- fit1(ghp=cnt, seed=1)
+  save(bank, file=rda)
+  
+  print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
+  #  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
+}
 
 #abs(calc.bias(bank[filter])[ip.mat@free])
 
-if(0) {
-  library(ggplot2)
+if(1) {
   df <- list()
-  for (sdlog in c(.25,.5,1)) {
+  for (mdim in c(TRUE,FALSE)) {
     x <- correct[ip.mat@free]
-    bias <- calc.bias(bank[sapply(bank, function (b) b$sdlog == sdlog)])[ip.mat@free]
-    df <- rbind(df, data.frame(sdlog=sdlog, bias=bias, x=x))
+    bias <- calc.bias(bank[sapply(bank, function (b) b$mdim == mdim & b$ghp==17)])[ip.mat@free]
+    df <- rbind(df, data.frame(mdim=mdim, bias=bias, x=x))
   }
-  df$sdlog <- factor(df$sdlog)
-  ggplot(df, aes(x=x, y=bias, color=sdlog)) + geom_point()
+  df$mdim <- factor(df$mdim)
+  ggplot(df, aes(x=x, y=bias, color=mdim)) + geom_point()
 }
 
-qplot(c(0, 3), stat="function", fun=function (x) dlnorm(x, sdlog=.25), geom="line") + ylim(0,1.5)
+if(1) {
+  bygh <- bank[sapply(bank, function (b) b$seed == 1)]
+  df <- as.data.frame(t(sapply(bygh, function(b) c(points=b$ghp, LL=b$LL, mdim=b$mdim))))
+  df$mdim <- factor(df$mdim)
+  ggplot(df, aes(x=points, y=LL, color=mdim)) + geom_line()
+}
 
-plot(correct[ip.mat@free],
-    calc.bias(bank[sapply(bank, function (b) b$gradient == 1 & b$sdlog==.5)])[ip.mat@free])
+if(1) {
+  bygh <- bank[sapply(bank, function (b) b$seed == 1)]
+  df <- as.data.frame(t(sapply(bygh, function(b) c(mdim=b$mdim, points=b$ghp,
+                                                   time=as.numeric(b$cpuTime)))))
+  df$mdim <- factor(df$mdim)
+  ggplot(df, aes(x=points, y=time, color=mdim)) + geom_line()
+}
+
+#qplot(c(0, 3), stat="function", fun=function (x) dlnorm(x, sdlog=.25), geom="line") + ylim(0,1.5)
+if (0) {
+  plot(correct[ip.mat@free],
+       calc.bias(bank[sapply(bank, function (b) b$mdim==TRUE & b$sdlog==.5)])[ip.mat@free])
+}

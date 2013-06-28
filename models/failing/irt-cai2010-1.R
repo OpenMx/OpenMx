@@ -3,6 +3,7 @@
 # R -d gdb --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 
 options(error = utils::recover)
+library(ggplot2)
 library(OpenMx)
 library(rpf)
 library(mvtnorm)
@@ -38,6 +39,19 @@ design.3d <- matrix(c(rep(1,10),rep(NA,10),
 
 cov <- matrix(c(1, .68, .68, 1), nrow=2)
 
+ip.labels <- matrix(NA, nrow=maxParam.3d, ncol=numItems)
+ip.labels[3,1:2] <- "s1"
+ip.labels[3,6:7] <- "s2"
+ip.labels[3,11:12] <- "s3"
+ip.labels[3,16:17] <- "s4"
+
+ip.free <- correct != 0
+ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam.3d, ncol=numItems,
+                   values=c(1.414, 1.414, 1, 0, 0),
+                   free=ip.free, labels=ip.labels,
+                   lbound=c(1*10^-9, 1*10^-9, 1*10^-9, -10^9,0))
+ip.mat@values[!ip.free] <- 0
+
 fit1 <- function(seed=5, ghp=11) {
   result <- list(seed=seed, ghp=ghp)
   
@@ -47,19 +61,6 @@ fit1 <- function(seed=5, ghp=11) {
   design.full <- design.3d
   design.full[is.na(design.3d)] <- 1  # ignored because of item parameters
   data.3d <- rpf.sample(ability, items.3d, correct, design.full)
-  
-  ip.labels <- matrix(NA, nrow=maxParam.3d, ncol=numItems)
-  ip.labels[3,1:2] <- "s1"
-  ip.labels[3,6:7] <- "s2"
-  ip.labels[3,11:12] <- "s3"
-  ip.labels[3,16:17] <- "s4"
-  
-  ip.free <- correct != 0
-  ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam.3d, ncol=numItems,
-                     values=c(1.414, 1.414, 1, 0, 0),
-                     free=ip.free, labels=ip.labels,
-                     lbound=c(1*10^-9, 1*10^-9, 1*10^-9, -10^9,0))
-  ip.mat@values[!ip.free] <- 0
   
   m1 <- mxModel(model="cai1",
                 mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
@@ -105,10 +106,32 @@ if (0) {
 setwd("/opt/OpenMx")
 rda <- "irt-cai2010.rda"
 load(rda)
-for (seed in 1:300) {
+for (seed in 1:500) {
   if (any(seed == sapply(bank, function (b) b$seed))) next;
-  bank[[length(bank) + 1]] <- fit1(ghp=13, seed=seed)
+  bi <- length(bank) + 1
+  bank[[bi]] <- fit1(ghp=13, seed=seed)
   save(bank, file=rda)
+
+  print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
 }
 
-calc.bias(bank[sapply(bank, function (b) b$ghp == 13)])
+#calc.bias(bank[sapply(bank, function (b) b$ghp == 13)])
+
+if (1) {
+  var.type <- apply(ip.mat@free,1,sum)
+  bias <- calc.bias(bank[sapply(bank, function (b) b$ghp == 13)])
+  df <- data.frame(x=t(correct)[t(ip.mat@free)],
+                   var=c(rep('a1', var.type[1]),
+                         rep('a2', var.type[2]),
+                         rep('a3', var.type[3]),
+                         rep('b', var.type[4])),
+                   bias=t(bias)[t(ip.mat@free)])
+  df$var <- factor(df$var)
+  ggplot(df, aes(x, bias, color=var)) + geom_point() + xlab("true parameter value")
+}
+
+if(0) {
+  bygh <- bank #bank[sapply(bank, function (b) b$seed == 1)]
+  df <- data.frame(time=sapply(bygh, function(b) c(as.numeric(b$cpuTime))))
+  ggplot(df, aes(time)) + geom_histogram(binwidth=5)
+}
