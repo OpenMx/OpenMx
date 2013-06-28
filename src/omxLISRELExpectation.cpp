@@ -22,7 +22,7 @@
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
 
-void omxCallLISRELExpectation(omxExpectation* oo) {
+void omxCallLISRELExpectation(omxExpectation* oo, enum ComputeExpectationContext) {
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
 	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	

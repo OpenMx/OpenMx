@@ -78,7 +78,7 @@ void omxExpectationRecompute(omxExpectation *ox) {
 		}
 	}
 
-	omxExpectationCompute(ox);
+	omxExpectationCompute(ox, COMPUTE_EXPECT_GENERIC);
 }
 
 void omxExpectationCompute(omxExpectation *ox, enum ComputeExpectationContext ctx)

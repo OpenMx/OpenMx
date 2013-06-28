@@ -383,7 +383,7 @@ void omxComputeOnce::compute(FitContext *fc)
         for(size_t index = 0; index < globalState->algebraList.size(); index++) {
             omxMarkDirty(globalState->algebraList[index]);
         }
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL, NULL);
 	fc->fit = fitMatrix->data[0];
 }
 

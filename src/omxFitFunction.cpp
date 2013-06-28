@@ -91,14 +91,15 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	omxCompleteFitFunction(tgt, ff->rObj);
 }
 
-void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient) {
+void omxFitFunctionCompute(omxFitFunction *off, int want, double* gradient, double *hessian)
+{
 	if (!off->initialized) error("FitFunction not initialized");
 
 	if(OMX_DEBUG_ALGEBRA) { 
 	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
 	}
 
-	off->computeFun(off, want, gradient);
+	off->computeFun(off, want, gradient, hessian);
 
 	omxMarkClean(off->matrix);
 }

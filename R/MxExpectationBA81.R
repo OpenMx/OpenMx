@@ -86,7 +86,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  return(.Object)
 	  })
 
-setMethod("genericExpFunNamespace", signature("MxExpectationBA81"), 
+setMethod("qualifyNames", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		for (s in c("ItemParam", "EItemParam", "CustomPrior", "ItemSpec",

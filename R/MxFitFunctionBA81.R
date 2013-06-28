@@ -55,7 +55,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 		return(.Object)
 })
 
-setMethod("genericFitFunNamespace", signature("MxFitFunctionBA81"), 
+setMethod("qualifyNames", signature("MxFitFunctionBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)

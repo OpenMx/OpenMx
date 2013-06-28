@@ -14,7 +14,7 @@ static void mgDestroy(omxFitFunction* oo)
 	delete mg;
 }
 
-static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad)
+static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad, double *hessian)
 {
 	omxMatrix *fitMatrix  = oo->matrix;
 	omxState *os = fitMatrix->currentState;
@@ -26,7 +26,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, double* grad)
 		omxMatrix* f1 = os->algebraList[mg->fits[ex]];
 		if (f1->fitFunction) {
 			// possibly invalidate gradients TODO
-			omxFitFunctionCompute(f1->fitFunction, ffcompute, grad);
+			omxFitFunctionCompute(f1->fitFunction, ffcompute, grad, hessian);
 		} else {
 			// invalidate gradients TODO
 			omxRecompute(f1);

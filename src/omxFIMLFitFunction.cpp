@@ -312,7 +312,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, double *gradie
 
 	if(numDefs == 0 && strcmp(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
-		omxExpectationCompute(expectation);
+		omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 		
 		for(int index = 0; index < numChildren; index++) {
 			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], objMatrix);
@@ -407,7 +407,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, double 
 	
 	if(numDefs == 0) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("No Definition Vars: precalculating."); }
-		omxExpectationCompute(expectation);
+		omxExpectationCompute(expectation, COMPUTE_EXPECT_GENERIC);
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;
