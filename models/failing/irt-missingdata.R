@@ -43,9 +43,13 @@ m2 <- mxModel(model="test3", ip.mat, spec,
                 ItemSpec="ItemSpec",
                 ItemParam="itemParam"),
               mxFitFunctionBA81())
+m2 <- mxOption(m2, "Analytic Gradients", 0)
+if (1) {
+	m2 <- mxOption(m2, "Analytic Gradients", 'yes')
+	m2 <- mxOption(m2, "Verify level", '-1')
+}
 m2 <- mxOption(m2, "Calculate Hessian", "No")
 m2 <- mxOption(m2, "Standard Errors", "No")
-m2 <- mxOption(m2, "Analytic Gradients", 0)
 m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
