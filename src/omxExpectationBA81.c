@@ -1214,12 +1214,17 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->maxAbilities <= state->maxDims) {
 		state->Sgroup = Calloc(numItems, int);
 	} else {
-		int Sgroup0 = state->maxDims;
+		int Sgroup0 = -1;
 		state->Sgroup = Realloc(NULL, numItems, int);
-		for (int ix=0; ix < numItems; ix++) {
-			int ss=-1;
-			for (int dx=0; dx < state->maxDims; dx++) {
+		for (int dx=0; dx < state->maxDims; dx++) {
+			for (int ix=0; ix < numItems; ix++) {
 				int ability = omxMatrixElement(state->design, dx, ix);
+				if (dx < state->maxDims - 1) {
+					if (Sgroup0 <= ability)
+						Sgroup0 = ability+1;
+					continue;
+				}
+				int ss=-1;
 				if (ability >= Sgroup0) {
 					if (ss == -1) {
 						ss = ability;
@@ -1230,9 +1235,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 						return;
 					}
 				}
+				if (ss == -1) ss = Sgroup0;
+				state->Sgroup[ix] = ss - Sgroup0;
 			}
-			if (ss == -1) ss = 0;
-			state->Sgroup[ix] = ss - Sgroup0;
 		}
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
 		state->allSlxk = Realloc(NULL, numUnique * numThreads, double);
