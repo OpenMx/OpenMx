@@ -1,0 +1,106 @@
+library(OpenMx)
+library(rpf)
+
+numItems <- 20
+numPersons <- 500
+
+i1 <- rpf.drm(numChoices=4, a.prior.sdlog=.25)
+items <- list()
+items[1:numItems] <- i1
+
+if (0) {
+  correct <- sapply(items, rpf.rparam)
+  correct[2,] <- scale(correct[2,])
+  correct[3,] <- 0
+  cat(deparse(correct))
+} else {
+  correct <- structure(c(1.54250842425733, 1.29865606045677, 0, 0.582738899753006,  0.439074405155082, 0, 0.479997481961601, 1.6288972150727, 0,  1.69444870619279, 0.415803213429429, 0, 0.617838919096744, 0.0339637225500039,  0, 0.89104263140429, -0.310656987834084, 0, 0.856862341680302,  -1.39777061130952, 0, 0.399785394294146, 0.452539004701956, 0,  1.13750982818114, -1.12551515354692, 0, 0.551920087175635, 0.234962883698946,  0, 0.317228172309584, -0.767585189231164, 0, 1.06680521649664,  -0.17744848799824, 0, 0.820181809806619, 0.397978914209079, 0,  1.2446674744156, 0.579329622962913, 0, 3.17834154396065, 0.0422351712197786,  0, 0.29268733199003, -1.50421669038342, 0, 0.620813738032935,  -1.72835375813844, 0, 0.57191713624839, 0.748756461527565, 0,  1.44045131430693, 1.69557125401783, 0, 0.462792889649201, -0.956221050560265,  0), .Dim = c(3L, 20L), .Dimnames = list(c("a", "b", "c"), NULL))
+}
+
+ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
+                   values=c(1,0,0),
+                   free=c(TRUE,TRUE,FALSE),
+                   lbound=c(1e-6, -1e6, 0))
+
+fit1 <- function(seed=5, ghp=11) {
+  result <- list(seed=seed, ghp=ghp, sdlog=i1@a.prior.sdlog)
+  
+  set.seed(seed)
+  ability <- rnorm(numPersons)
+  data <- rpf.sample(ability, items, correct)
+
+  m1 <- mxModel(model="drm1", ip.mat,
+              mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
+                       values=sapply(items, function(m) slot(m,'spec')),
+                       free=FALSE, byrow=TRUE),
+              mxData(observed=data, type="raw"),
+              mxExpectationBA81(
+                ItemSpec="ItemSpec",
+                ItemParam="ItemParam",
+            		GHpoints=ghp),
+              mxFitFunctionBA81())
+
+  if (1) {
+    result$gradient <- 1
+    m1 <- mxOption(m1, "Analytic Gradients", 'yes')
+    m1 <- mxOption(m1, "Verify level", '-1')
+  } else {
+    result$gradient <- 0
+    m1 <- mxOption(m1, "Analytic Gradients", 'no')
+  }
+  m1 <- mxOption(m1, "Function precision", '1.0E-5')
+  m1 <- mxOption(m1, "Calculate Hessian", "No")
+  m1 <- mxOption(m1, "Standard Errors", "No")
+  m1 <- mxRun(m1)
+
+  result$cpuTime <- m1@output$cpuTime
+  result$LL <- m1@output$Minus2LogLikelihood
+  result$param <- m1@matrices$ItemParam@values
+  result
+}
+
+calc.bias <- function (bank) {
+  bias <- matrix(0, nrow=dim(correct)[1], ncol=dim(correct)[2])
+  for (sx in 1:length(bank)) {
+    bias <- bias + bank[[sx]]$param
+  }
+  bias <- (bias / length(bank)) - correct
+  bias
+}
+
+if (0) {
+  bank <- list()
+}
+setwd("/opt/OpenMx")
+rda <- "irt-drm1-bias.rda"
+load(rda)
+for (cnt in 1:500) {
+  if (any(sapply(bank, function (b) b$seed==cnt & b$gradient==1 & b$sdlog==.25))) next;
+  bi <- length(bank) + 1
+  bank[[bi]] <- fit1(ghp=17, seed=cnt)
+  save(bank, file=rda)
+  
+  filter <- sapply(bank, function (b) b$gradient==1)
+  print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
+  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
+}
+
+
+#abs(calc.bias(bank[filter])[ip.mat@free])
+
+if(0) {
+  library(ggplot2)
+  df <- list()
+  for (sdlog in c(.25,.5,1)) {
+    x <- correct[ip.mat@free]
+    bias <- calc.bias(bank[sapply(bank, function (b) b$sdlog == sdlog)])[ip.mat@free]
+    df <- rbind(df, data.frame(sdlog=sdlog, bias=bias, x=x))
+  }
+  df$sdlog <- factor(df$sdlog)
+  ggplot(df, aes(x=x, y=bias, color=sdlog)) + geom_point()
+}
+
+qplot(c(0, 3), stat="function", fun=function (x) dlnorm(x, sdlog=.25), geom="line") + ylim(0,1.5)
+
+plot(correct[ip.mat@free],
+    calc.bias(bank[sapply(bank, function (b) b$gradient == 1 & b$sdlog==.5)])[ip.mat@free])
