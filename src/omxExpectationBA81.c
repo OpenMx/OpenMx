@@ -1,5 +1,5 @@
 /*
-  Copyright 2012 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -639,7 +639,7 @@ ba81ComputeFit1(omxExpectation* oo, int want, double *gradient)
 double
 ba81ComputeFit(omxExpectation* oo, int want, double *gradient)
 {
-	// TODO ignore call from omxInitialMatrixAlgebraCompute
+	if (!want) return 0;
 	double got = ba81ComputeFit1(oo, want, gradient);
 	return got;
 }
