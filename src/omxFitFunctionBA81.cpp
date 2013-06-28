@@ -18,9 +18,6 @@ typedef struct {
 
 
 static void ba81Destroy(omxFitFunction *oo) {
-	if(OMX_DEBUG) {
-		Rprintf("Freeing %s function.\n", NAME);
-	}
 	//omxBA81State *mml = (omxBA81State *) oo->argStruct;
 	// nothing to do yet
 }
@@ -33,8 +30,6 @@ static omxRListElement *ba81SetFinalReturns(omxFitFunction *off, int *numReturns
 }
 
 static void ba81Compute(omxFitFunction *oo, int want, double *gradient, double *hessian) {
-	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
-
 	omxExpectation* expectation = oo->expectation;
   
 	oo->matrix->data[0] = ba81ComputeFit(expectation, want, gradient, hessian);
@@ -44,10 +39,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo, SEXP rObj) {
 	//omxExpectation* expectation = oo->expectation;
 
 	//omxState* currentState = oo->matrix->currentState;
-	
-	if(OMX_DEBUG) {
-	  Rprintf("Initializing %s.\n", NAME);
-	}
 	
 	//omxBA81State *newObj = (omxBA81State*) R_alloc(1, sizeof(omxBA81State));
 	

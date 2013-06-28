@@ -97,22 +97,26 @@ typedef struct {
 
 static void
 pda(const double *ar, int rows, int cols) {   // column major order
+	std::string buf;
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
-			Rprintf("%.6g, ", ar[cx * rows + rx]);
+			buf += string_snprintf("%.6g, ", ar[cx * rows + rx]);
 		}
-		Rprintf("\n");
+		buf += "\n";
 	}
+	mxLogBig(buf);
 }
 
 static void
 pia(const int *ar, int rows, int cols) {   // column major order
+	std::string buf;
 	for (int rx=0; rx < rows; rx++) {
 		for (int cx=0; cx < cols; cx++) {
-			Rprintf("%d, ", ar[cx * rows + rx]);
+			buf += string_snprintf("%d, ", ar[cx * rows + rx]);
 		}
-		Rprintf("\n");
+		buf += "\n";
 	}
+	mxLogBig(buf);
 }
 
 static int
@@ -225,11 +229,11 @@ computeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 #if 0
 		for (int ox=0; ox < spec[RPF_ISpecOutcomes]; ox++) {
 			if (!isfinite(out[ox]) || out[ox] > 0) {
-				Rprintf("spec\n");
+				mxLog("spec\n");
 				pda(spec, itemSpec->rows, 1);
-				Rprintf("item param\n");
+				mxLog("item param\n");
 				pda(iparam, itemParam->rows, 1);
-				Rprintf("where\n");
+				mxLog("where\n");
 				pda(ptheta, dims, 1);
 				error("RPF returned %20.20f", out[ox]);
 			}
@@ -300,11 +304,11 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 #if 0
 #pragma omp critical(ba81LikelihoodDebug1)
 		if (!isfinite(lxk1) || lxk1 > numItems) {
-			Rprintf("where\n");
+			mxLog("where\n");
 			double where[state->maxDims];
 			pointToWhere(state, quad, where, state->maxDims);
 			pda(where, state->maxDims, 1);
-			Rprintf("prob\n");
+			mxLog("prob\n");
 			pda(outcomeProb, numItems, maxOutcomes);
 			error("Likelihood of row %d is %f", rowMap[px], lxk1);
 		}
@@ -445,7 +449,7 @@ decodeLocation(long qx, const int dims, const long grid,
 
 static void
 ba81Estep1(omxExpectation *oo) {
-	if(OMX_DEBUG_MML) {Rprintf("Beginning %s Computation.\n", NAME);}
+	if(OMX_DEBUG) {mxLog("Beginning %s Computation.\n", NAME);}
 
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	double *patternLik = state->patternLik;
@@ -484,7 +488,7 @@ ba81Estep1(omxExpectation *oo) {
 				double tmp = exp(lxk[px] + logArea);
 #if 0
 				if (!isfinite(tmp)) {
-					Rprintf("where\n");
+					mxLog("where\n");
 					pda(where, maxDims, 1);
 					error("Row %d lxk %f logArea %f tmp %f",
 					      state->rowMap[px], lxk[px], logArea, tmp);
@@ -535,15 +539,15 @@ ba81Estep1(omxExpectation *oo) {
 	int *numIdentical = state->numIdentical;
 
 	if(0) {
-		Rprintf("weight\n");
+		mxLog("weight\n");
 		for (int px=0; px < numUnique; px++) {
 			double weight = numIdentical[px] / patternLik[px];
-			Rprintf("%20.20f\n", weight);
+			mxLog("%20.20f\n", weight);
 		}
 
-		Rprintf("per item mean\n");
+		mxLog("per item mean\n");
 		for (int px=0; px < numUnique; px++) {
-			Rprintf("[%d] %20.20f\n", px, ElatentMean[px * maxAbilities]);
+			mxLog("[%d] %20.20f\n", px, ElatentMean[px * maxAbilities]);
 		}
 	}
 
@@ -613,7 +617,7 @@ ba81Estep1(omxExpectation *oo) {
 		ElatentCov[cell] = ElatentCov[cell] / data->rows - ElatentMean[sdim] * ElatentMean[sdim];
 	}
 
-	//Rprintf("E-step\n");
+	//mxLog("E-step\n");
 	//pda(ElatentMean, state->maxAbilities, 1);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
 }
@@ -632,7 +636,7 @@ schilling_bock_2005_rescale(omxExpectation *oo)
 	int maxAbilities = state->maxAbilities;
 	int maxDims = state->maxDims;
 
-	//Rprintf("schilling bock\n");
+	//mxLog("schilling bock\n");
 	//pda(ElatentMean, maxAbilities, 1);
 	//pda(ElatentCov, maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
@@ -764,9 +768,9 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 		totalArea = log(totalArea);
 		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
 			state->priLogQarea[qx] -= totalArea;
-			//Rprintf("%.5g,", state->priLogQarea[qx]);
+			//mxLog("%.5g,", state->priLogQarea[qx]);
 		}
-		//Rprintf("\n");
+		//mxLog("\n");
 
 		for (int sx=0; sx < numSpecific; sx++) {
 			totalArea = 0;
@@ -1049,7 +1053,7 @@ ba81ComputeMFit1(omxExpectation* oo, int want, double *gradient, double *hessian
 			// lbounds/ubounds are not set appropriately.
 			if (0 && !isfinite(deriv0[ox])) {
 				int item = ox / itemParam->rows;
-				Rprintf("item parameters:\n");
+				mxLog("item parameters:\n");
 				const double *spec = omxMatrixColumn(itemSpec, item);
 				int id = spec[RPF_ISpecID];
 				int numParam = (*rpf_model[id].numParam)(spec);
@@ -1315,10 +1319,10 @@ ba81EAP(omxExpectation *oo, int *numReturns)   // rename to "return stuff to use
 
 static void ba81Destroy(omxExpectation *oo) {
 	if(OMX_DEBUG) {
-		Rprintf("Freeing %s function.\n", NAME);
+		mxLog("Freeing %s function.\n", NAME);
 	}
 	omxBA81State *state = (omxBA81State *) oo->argStruct;
-	//Rprintf("fit %d gradient %d\n", state->fitCount, state->gradientCount);
+	//mxLog("fit %d gradient %d\n", state->fitCount, state->gradientCount);
 	omxFreeAllMatrixData(state->itemSpec);
 	omxFreeAllMatrixData(state->itemParam);
 	omxFreeAllMatrixData(state->EitemParam);
@@ -1362,7 +1366,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	SEXP tmp;
 	
 	if(OMX_DEBUG) {
-		Rprintf("Initializing %s.\n", NAME);
+		mxLog("Initializing %s.\n", NAME);
 	}
 	if (!rpf_model) {
 		const int wantVersion = 3;
