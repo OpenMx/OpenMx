@@ -21,7 +21,6 @@ setClass(Class = "MxExpectationBA81",
 	   ItemSpec = "MxCharOrNumber",
 	   Design = "MxOptionalCharOrNumber",
            ItemParam = "MxCharOrNumber",
-	   RPF = "MxOptionalFunction",
            CustomPrior = "MxOptionalCharOrNumber",
 	   GHpoints = "numeric",  # rename, not necessarily G-H TODO
 	   GHarea = "numeric",
@@ -30,13 +29,12 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, CustomPrior, Design, RPF,
+          function(.Object, ItemSpec, ItemParam, CustomPrior, Design,
 		   quadrature, cache, doRescale, name = 'expectation') {
             .Object@name <- name
             .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
             .Object@ItemParam <- ItemParam
-            .Object@RPF <- RPF
             .Object@GHpoints <- quadrature[[1]]
             .Object@GHarea <- quadrature[[2]]
             .Object@cache <- cache
@@ -97,12 +95,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
-##' The RPF function is an optional argument for experimenting with
-##' novel response probability functions. The model ID in the ItemSpec
-##' is ignored if you provide your own function. There is no provision
-##' to provide analytic gradients from R. If you want to provide
-##' analytic gradients then you need to implement them in C.
-##'
 ##' The standard Normal distribution of the quadrature acts like a
 ##' prior distribution for difficulty. It is not necessary to impose
 ##' any additional Bayesian prior on difficulty estimates (Baker &
@@ -118,8 +110,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' at row 1 and extra rows filled with NA
 ##' @param Design one column per item assignment of person abilities
 ##' to item dimensions (optional)
-##' @param RPF a function to turn item parameters into a response
-##' probability matrix (optional)
 ##' @param GHpoints number of points to use for Gauss-Hermite quadrature integrations (default 10)
 ##' See Seong (1990) for some considerations on specifying this parameter.
 ##' @param cache whether to cache part of the expectation calculation
@@ -137,7 +127,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL,
-			      RPF=NULL, GHpoints=NULL, cache=TRUE, quadrature=NULL, doRescale=TRUE) {
+			      GHpoints=NULL, cache=TRUE, quadrature=NULL, doRescale=TRUE) {
 	if (missing(quadrature)) {
 		if (missing(GHpoints)) GHpoints <- 10
 		if (GHpoints < 3) {
@@ -146,7 +136,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, Design=NULL
 		quadrature <- rpf.GaussHermiteData(GHpoints)
 	}
   
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design, RPF,
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, Design,
 		   quadrature, cache, doRescale))
 }
 

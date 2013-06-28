@@ -28,8 +28,6 @@ static const char *NAME = "ExpectationBA81";
 static const struct rpf *rpf_model = NULL;
 static int rpf_numModels;
 
-typedef double *(*rpf_fn_t)(omxExpectation *oo, omxMatrix *itemParam, const int *quad);
-
 typedef struct {
 
 	// data characteristics
@@ -60,8 +58,6 @@ typedef struct {
 	// estimation related
 	omxMatrix *EitemParam;    // E step version
 	omxMatrix *itemParam;     // M step version
-	SEXP rpf;
-	rpf_fn_t computeRPF;
 	omxMatrix *customPrior;
 	int *paramMap;
 	double *thrGradient1;     // thread * length(itemParam)
@@ -163,15 +159,11 @@ assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix
 }
 
 /**
- * This is the main function needed to generate simulated data from
- * the model. It could be argued that the rest of the estimation
- * machinery belongs in the fitfunction.
- *
  * \param theta Vector of ability parameters, one per ability
  * \returns A numItems by maxOutcomes colMajor vector of doubles. Caller must Free it.
  */
 static double *
-standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
+computeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 {
 	omxBA81State *state = (omxBA81State*) oo->argStruct;
 	omxMatrix *itemSpec = state->itemSpec;
@@ -212,94 +204,6 @@ standardComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
 	return outcomeProb;
 }
 
-static double *
-RComputeRPF1(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
-{
-	omxBA81State *state = (omxBA81State*) oo->argStruct;
-	int maxOutcomes = state->maxOutcomes;
-	omxMatrix *design = state->design;
-	omxMatrix *itemSpec = state->itemSpec;
-	int maxDims = state->maxDims;
-
-	double theta[maxDims];
-	pointToWhere(state, quad, theta, maxDims);
-
-	SEXP invoke;
-	PROTECT(invoke = allocVector(LANGSXP, 4));
-	SETCAR(invoke, state->rpf);
-	SETCADR(invoke, omxExportMatrix(itemParam));
-	SETCADDR(invoke, omxExportMatrix(itemSpec));
-
-	SEXP where;
-	PROTECT(where = allocMatrix(REALSXP, maxDims, itemParam->cols));
-	double *ptheta = REAL(where);
-	for (int ix=0; ix < itemParam->cols; ix++) {
-		int dims = omxMatrixElement(itemSpec, RPF_ISpecDims, ix);
-		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta + ix*maxDims);
-		for (int dx=dims; dx < maxDims; dx++) {
-			ptheta[ix*maxDims + dx] = NA_REAL;
-		}
-	}
-	SETCADDDR(invoke, where);
-
-	SEXP matrix;
-	PROTECT(matrix = eval(invoke, R_GlobalEnv));
-
-	if (!isMatrix(matrix)) {
-		omxRaiseError(oo->currentState, -1,
-			      "RPF must return an item by outcome matrix");
-		return NULL;
-	}
-
-	SEXP matrixDims;
-	PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
-	int *dimList = INTEGER(matrixDims);
-	int numItems = state->itemSpec->cols;
-	if (dimList[0] != maxOutcomes || dimList[1] != numItems) {
-		const int errlen = 200;
-		char errstr[errlen];
-		snprintf(errstr, errlen, "RPF must return a %d outcomes by %d items matrix",
-			 maxOutcomes, numItems);
-		omxRaiseError(oo->currentState, -1, errstr);
-		return NULL;
-	}
-
-	// Unlikely to be of type INTSXP, but just to be safe
-	PROTECT(matrix = coerceVector(matrix, REALSXP));
-	double *restrict got = REAL(matrix);
-
-	// Need to copy because threads cannot share SEXP
-	double *restrict outcomeProb = Realloc(NULL, numItems * maxOutcomes, double);
-
-	// Double check there aren't NAs in the wrong place
-	for (int ix=0; ix < numItems; ix++) {
-		int numOutcomes = omxMatrixElement(state->itemSpec, RPF_ISpecOutcomes, ix);
-		for (int ox=0; ox < numOutcomes; ox++) {
-			int vx = ix * maxOutcomes + ox;
-			if (isnan(got[vx])) {
-				const int errlen = 200;
-				char errstr[errlen];
-				snprintf(errstr, errlen, "RPF returned NA in [%d,%d]", ox,ix);
-				omxRaiseError(oo->currentState, -1, errstr);
-			}
-			outcomeProb[vx] = got[vx];
-		}
-	}
-
-	return outcomeProb;
-}
-
-static double *
-RComputeRPF(omxExpectation *oo, omxMatrix *itemParam, const int *quad)
-{
-	omx_omp_set_lock(&GlobalRLock);
-	PROTECT_INDEX pi = omxProtectSave();
-	double *ret = RComputeRPF1(oo, itemParam, quad);
-	omxProtectRestore(pi);
-	omx_omp_unset_lock(&GlobalRLock);  // hope there was no exception!
-	return ret;
-}
-
 OMXINLINE static long
 encodeLocation(const int dims, const long *restrict grid, const int *restrict quad)
 {
@@ -324,7 +228,6 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 	int maxOutcomes = state->maxOutcomes;
 	omxData *data = state->data;
 	int numItems = state->itemSpec->cols;
-	rpf_fn_t rpf_fn = state->computeRPF;
 	int *restrict Sgroup = state->Sgroup;
 	double *restrict lxk;
 
@@ -334,7 +237,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *restrict quad)
 		lxk = CALC_LXK_CACHED(state, numUnique, quad, state->totalQuadPoints, specific);
 	}
 
-	const double *outcomeProb = (*rpf_fn)(oo, state->EitemParam, quad);
+	const double *outcomeProb = computeRPF(oo, state->EitemParam, quad);
 	if (!outcomeProb) {
 		OMXZERO(lxk, numUnique);
 		return lxk;
@@ -836,7 +739,6 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 	omxMatrix *itemSpec = state->itemSpec;
 	omxMatrix *itemParam = state->itemParam;
 	int numItems = itemParam->cols;
-	rpf_fn_t rpf_fn = state->computeRPF;
 	int maxOutcomes = state->maxOutcomes;
 	int maxDims = state->maxDims;
 	double *gradient = state->thrGradient1 + itemParam->rows * itemParam->cols * omx_absolute_thread_num();
@@ -845,7 +747,7 @@ ba81Fit1Ordinate(omxExpectation* oo, const int *quad, int want)
 	double where[maxDims];
 	pointToWhere(state, quad, where, maxDims);
 
-	double *outcomeProb = (*rpf_fn)(oo, itemParam, quad); // avoid malloc/free? TODO
+	double *outcomeProb = computeRPF(oo, itemParam, quad); // avoid malloc/free? TODO
 	if (!outcomeProb) return 0;
 
 	double thr_ll = 0;
@@ -1402,13 +1304,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
 		omxRaiseErrorf(currentState, "%s unable to handle data type %s", NAME, omxDataType(state->data));
 		return;
-	}
-
-	PROTECT(state->rpf = GET_SLOT(rObj, install("RPF")));
-	if (state->rpf == R_NilValue) {
-		state->computeRPF = standardComputeRPF;
-	} else {
-		state->computeRPF = RComputeRPF;
 	}
 
 	state->itemSpec =
