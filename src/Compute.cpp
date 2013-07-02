@@ -320,6 +320,7 @@ class omxComputeIterate : public omxCompute {
 	std::vector< omxCompute* > clist;
 	int maxIter;
 	double tolerance;
+	bool verbose;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -529,6 +530,9 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 		if (isErrorRaised(globalState)) break;
 		clist.push_back(compute);
 	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
+	verbose = asLogical(slotValue);
 }
 
 void omxComputeIterate::compute(FitContext *fc)
@@ -548,7 +552,7 @@ void omxComputeIterate::compute(FitContext *fc)
 		}
 		if (prevFit != 0) {
 			change = prevFit - fc->fit;
-			mxLog("fit %.9g change %.9g", fc->fit, change); // add verbose option TODO
+			if (verbose) mxLog("fit %.9g change %.9g", fc->fit, change);
 		}
 		prevFit = fc->fit;
 		if (isErrorRaised(globalState) || ++iter > maxIter || fabs(change) < tolerance) break;

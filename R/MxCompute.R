@@ -198,14 +198,16 @@ setClass(Class = "MxComputeIterate",
 	 representation = representation(
 	   steps = "list",
 	   maxIter = "integer",
-	   tolerance = "numeric"))
+	   tolerance = "numeric",
+	   verbose = "logical"))
 
 setMethod("initialize", "MxComputeIterate",
-	  function(.Object, steps, maxIter, tolerance) {
+	  function(.Object, steps, maxIter, tolerance, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@steps <- steps
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
@@ -222,8 +224,8 @@ setMethod("convertForBackend", signature("MxComputeIterate"),
 		.Object
 	})
 
-mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4) {
-	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance)
+mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=FALSE) {
+	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
 }
 
 displayMxComputeIterate <- function(opt) {
