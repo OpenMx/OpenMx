@@ -239,6 +239,13 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
+	for(size_t index = 0; index < globalState->matrixList.size(); index++) {
+		omxMarkDirty(globalState->matrixList[index]);
+	}
+	for(size_t index = 0; index < globalState->algebraList.size(); index++) {
+		omxMarkDirty(globalState->algebraList[index]);
+	}
+
 	// maybe require a Compute object? TODO
 	omxCompute *topCompute = NULL;
 	if (!isNull(computeIndex)) {

@@ -626,12 +626,6 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 void omxComputeOnce::compute(FitContext *fc)
 {
 	if (fitMatrix) {
-		for(size_t index = 0; index < globalState->matrixList.size(); index++) {
-			omxMarkDirty(globalState->matrixList[index]);
-		}
-		for(size_t index = 0; index < globalState->algebraList.size(); index++) {
-			omxMarkDirty(globalState->algebraList[index]);
-		}
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
 		fc->fit = fitMatrix->data[0];
 	} else if (expectation) {
