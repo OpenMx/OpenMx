@@ -98,6 +98,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 void omxProcessMxFitFunction(SEXP algList)
 {
 	SEXP nextAlgTuple;
+	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
 
 	for(int index = 0; index < length(algList); index++) {
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
@@ -108,6 +109,7 @@ void omxProcessMxFitFunction(SEXP algList)
 			omxMatrix *fm = globalState->algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index);
 			fm->fitFunction->rObj = nextAlgTuple;
+			fm->name = CHAR(STRING_ELT(algListNames, index));
 			UNPROTECT(1);	// fitFunctionClass
 		}
 		if (isErrorRaised(globalState)) return;
