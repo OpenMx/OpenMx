@@ -22,7 +22,6 @@ setClass(Class = "MxAlgebra",
 		dirty = "logical",
 		.dimnames = "MxListOrNull",
 		initial = "matrix",
-		dependencies = "integer",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
@@ -118,7 +117,7 @@ generateAlgebraHelper <- function(algebra, matrixNumbers, algebraNumbers) {
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	return(list(algebra@initial, retval, algebra@dependencies))
+	return(list(algebra@initial, retval))
 }
 
 substituteOperators <- function(algebra, name) {
