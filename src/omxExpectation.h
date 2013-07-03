@@ -68,7 +68,7 @@ struct omxExpectation {					// An Expectation
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
 	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation
-	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);
+	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);  // TODO remove
 	
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
@@ -88,7 +88,9 @@ struct omxExpectation {					// An Expectation
 	omxExpectation *container;
 	int numSubmodels;
 	omxExpectation **submodels;
-	FreeVarGroup *freeVarGroup;
+
+	// omxExpectation should not need to know about free variables.
+	FreeVarGroup *freeVarGroup; // TODO remove
 };
 
 omxExpectation *
