@@ -134,16 +134,35 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
-void FitContext::log(enum omxFFCompute what)
+void FitContext::log(int what)
 {
 	size_t count = varGroup->vars.size();
 	std::string buf;
-	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.2g\n", fit);
+	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.3f\n", fit);
 	if (what & FF_COMPUTE_ESTIMATE) {
 		buf += "est: c(";
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.2g", est[vx]);
+			buf += string_snprintf("%.3f", est[vx]);
 			if (vx < count - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
+	if (what & FF_COMPUTE_GRADIENT) {
+		buf += "grad: c(";
+		for (size_t vx=0; vx < count; ++vx) {
+			buf += string_snprintf("%.3f", grad[vx]);
+			if (vx < count - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
+	if (what & FF_COMPUTE_HESSIAN) {
+		buf += "hess: c(";
+		for (size_t v1=0; v1 < count; ++v1) {
+			for (size_t v2=0; v2 < count; ++v2) {
+				buf += string_snprintf("%.3f", hess[v1 * count + v2]);
+				if (v1 < count-1 || v2 < count-1) buf += ", ";
+			}
+			buf += "\n";
 		}
 		buf += ")\n";
 	}

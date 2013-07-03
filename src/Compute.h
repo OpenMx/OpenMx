@@ -47,7 +47,7 @@ class FitContext {
 	void copyParamToModel(omxMatrix *mat, double *at);
 	void copyParamToModel(omxMatrix *mat);
 	void updateParentAndFree();
-	void log(enum omxFFCompute what);
+	void log(int what);
 	~FitContext();
 	
 	static void cacheFreeVarDependencies();
