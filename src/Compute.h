@@ -73,5 +73,6 @@ class omxCompute *omxNewCompute(omxState* os, const char *type);
 
 class omxCompute *newComputeGradientDescent();
 class omxCompute *newComputeEstimatedHessian();
+class omxCompute *newComputeNewtonRaphson();
 
 #endif

@@ -28,6 +28,7 @@ struct BA81FitState {
 	int derivPadSize;         // maxParam + maxParam*(1+maxParam)/2
 	double *thrDeriv;         // itemParam->cols * derivPadSize * thread
 	int *paramMap;            // itemParam->cols * derivPadSize -> index of free parameter
+	std::vector<int> NAtriangle;
 	bool rescale;
 	omxMatrix *customPrior;
 	int choleskyError;
@@ -95,6 +96,7 @@ static void buildParamMap(omxFitFunction* oo)
 			for (int rx=1; rx <= r2; rx++) rowOffset += rx;
 			int at = pCol[p1] * state->derivPadSize + numParam + rowOffset + r1;
 			state->paramMap[at] = numFreeParams + p1 * numFreeParams + p2;
+			if (p2 != p1) state->NAtriangle.push_back(p2 * numFreeParams + p1);
 		}
 	}
 
@@ -262,6 +264,7 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 	//pda(ElatentCov, maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
 
+	// use omxDPOTRF instead? TODO
 	const char triangle = 'L';
 	F77_CALL(dpotrf)(&triangle, &maxAbilities, ElatentCov, &maxAbilities, &state->choleskyError);
 	if (state->choleskyError != 0) {
@@ -368,6 +371,8 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg) // too ad hoc? T
 	state->varGroups.push_back(fvg);
 	if (state->varGroups.size() == 2) {
 		int small = 0;
+		if (state->varGroups[0]->vars.size() == state->varGroups[1]->vars.size())
+			warning("Cannot recognize correct free parameter groups");
 		if (state->varGroups[0]->vars.size() > state->varGroups[1]->vars.size())
 			small = 1;
 		oo->freeVarGroup = state->varGroups[small];
@@ -387,7 +392,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (!state->paramMap) buildParamMap(oo);
 
 	if (want & FF_COMPUTE_PREOPTIMIZE) {
-		if (state->rescale) schilling_bock_2005_rescale(oo, fc);
+		if (state->rescale) schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
 		return 0;
 	}
 
@@ -400,16 +405,14 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		++state->gradientCount;
 
-		size_t numFreeParams = oo->freeVarGroup->vars.size();
-		double *gradient = fc->grad;
-		double *hessian = fc->hess;
-		OMXZERO(gradient, numFreeParams);
-		OMXZERO(hessian, numFreeParams * numFreeParams);
-
 		omxMatrix *itemParam = state->itemParam;
 		OMXZERO(state->thrDeriv, state->derivPadSize * itemParam->cols * Global->numThreads);
 
-		double got = ba81ComputeMFit1(oo, want, gradient, hessian);
+		for (size_t nx=0; nx < state->NAtriangle.size(); ++nx) {
+			fc->hess[ state->NAtriangle[nx] ] = nan("symmetric");
+		}
+
+		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
 		return got;
 	} else {
 		// Major EM iteration, note completely different LL calculation
@@ -466,6 +469,8 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	oo->setVarGroup = ba81SetFreeVarGroup;
 	oo->setFinalReturns = ba81SetFinalReturns;
 	oo->destructFun = ba81Destroy;
+	oo->gradientAvailable = TRUE;
+	oo->hessianAvailable = TRUE;
 
 	SEXP tmp;
 	PROTECT(tmp = GET_SLOT(rObj, install("rescale")));

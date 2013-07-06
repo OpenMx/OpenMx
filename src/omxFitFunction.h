@@ -74,6 +74,8 @@ struct omxFitFunction {					// A fit function
 	int usesChildModels;    // whether to create child models for parallelization
 	bool initialized;
 	FreeVarGroup *freeVarGroup;
+	bool gradientAvailable;
+	bool hessianAvailable;
 };
 
 /* Initialize and Destroy */

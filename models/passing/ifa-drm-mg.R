@@ -40,7 +40,8 @@ if (1) {
 		mxComputeIterate(steps=list(
 				   mxComputeOnce("EItemParam"),
 				   mxComputeOnce('expectation', context='E'),
-				   mxComputeGradientDescent(free.group='param'),
+#				   mxComputeGradientDescent(free.group='param'),
+				   mxComputeNewtonRaphson(free.group='param'),
 				   # list=(matrix, free parameter, models)
 				   # can recompute just from dependencies?
 				   mxComputeOnce('expectation', context='M'),

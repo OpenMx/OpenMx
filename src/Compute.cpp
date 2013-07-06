@@ -371,6 +371,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeSequence", &newComputeSequence },
 	{"MxComputeIterate", &newComputeIterate },
 	{"MxComputeOnce", &newComputeOnce },
+        {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)

@@ -74,7 +74,8 @@ m1 <- mxModel(model="2dim",
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
-                mxComputeGradientDescent(free.group='param'),
+				 mxComputeNewtonRaphson(free.group='param'),
+#				 mxComputeGradientDescent(free.group='param'),
                 mxComputeOnce('expectation', context='M'),
                 mxComputeOnce('fitfunction'))))
 
@@ -88,7 +89,7 @@ m1 <- mxRun(m1, silent=TRUE)
 					#print(correct.mat)
 # sometimes found as low as .89, maybe solution is unstable
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-			c(correct.mat)), .91, .04)
+			c(correct.mat)), .9, .06)
 max.se <- max(m1@output$ability[c(2,4),])
 omxCheckCloseEnough(sum(abs(m1@output$ability[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .02)
 omxCheckCloseEnough(.672, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)

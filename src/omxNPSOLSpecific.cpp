@@ -126,7 +126,11 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	NPSOL_fc->copyParamToModel(globalState, x);
 
-	if (*mode > 0 && Global->analyticGradients && NPSOL_currentInterval < 0) {
+	if (*mode > 0 && Global->analyticGradients &&
+	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
+		size_t numParams = NPSOL_fc->varGroup->vars.size();
+		OMXZERO(NPSOL_fc->grad, numParams);
+
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
@@ -246,7 +250,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 	NPSOL_fc = fc;
 	double *x = fc->est;
 	double *g = fc->grad;
-	double *R = fc->hess;
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
@@ -366,9 +369,13 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             mxLog("Set.");
         }
  
+	std::vector<double> hessOut(n * n);
+
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
-			clambda, &fc->fit, g, R, x, iw, &leniw, w, &lenw);
+			clambda, &fc->fit, g, hessOut.data(), x, iw, &leniw, w, &lenw);
+
+	memcpy(fc->hess, hessOut.data(), sizeof(double) * n * n);
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
  

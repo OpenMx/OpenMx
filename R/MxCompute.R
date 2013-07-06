@@ -151,6 +151,48 @@ mxComputeGradientDescent <- function(type, free.group='default',
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeNewtonRaphson",
+	 contains = "MxComputeOperation",
+	 representation = representation(
+	   fitfunction = "MxCharOrNumber",
+	   maxIter = "integer",
+	   tolerance = "numeric"))
+
+setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeNewtonRaphson",
+	  function(.Object, free.group, fit, maxIter, tolerance) {
+		  .Object@name <- 'compute'
+		  .Object@free.group <- free.group
+		  .Object@fitfunction <- fit
+		  .Object@maxIter <- maxIter
+		  .Object@tolerance <- tolerance
+		  .Object
+	  })
+
+mxComputeNewtonRaphson <- function(type, free.group='default',
+				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7) {
+
+	new("MxComputeNewtonRaphson", free.group, fitfunction, maxIter, tolerance)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeIterate",
 	 contains = "MxBaseCompute",
 	 representation = representation(

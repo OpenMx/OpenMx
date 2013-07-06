@@ -54,7 +54,8 @@ m2 <- mxModel(model="test3", ip.mat, spec, m.mat, cov.mat, eip.mat,
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
-                mxComputeGradientDescent(free.group='param'),
+				   mxComputeNewtonRaphson(free.group='param'),
+#                mxComputeGradientDescent(free.group='param'),
                 mxComputeOnce('expectation', context='M'),
                 mxComputeOnce('fitfunction'))))
 
