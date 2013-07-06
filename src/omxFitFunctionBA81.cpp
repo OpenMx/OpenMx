@@ -28,6 +28,8 @@ struct BA81FitState {
 	int derivPadSize;         // maxParam + maxParam*(1+maxParam)/2
 	double *thrDeriv;         // itemParam->cols * derivPadSize * thread
 	int *paramMap;            // itemParam->cols * derivPadSize -> index of free parameter
+	std::vector<int> latentMeanMap;
+	std::vector<int> latentCovMap;
 	std::vector<int> NAtriangle;
 	bool rescale;
 	omxMatrix *customPrior;
@@ -45,11 +47,15 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
+	itemParam = NULL;
+	thrDeriv = NULL;
 	paramMap = NULL;
 	latentFVG = NULL;
 	customPrior = NULL;
 	fitCount = 0;
 	gradientCount = 0;
+	tmpLatentMean = NULL;
+	tmpLatentCov = NULL;
 }
 
 static void buildParamMap(omxFitFunction* oo)
@@ -58,6 +64,26 @@ static void buildParamMap(omxFitFunction* oo)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemParam = state->itemParam;
 	int size = itemParam->cols * state->derivPadSize;
+	int maxAbilities = estate->maxAbilities;
+	int meanNum = estate->latentMeanOut->matrixNumber;
+	int covNum = estate->latentCovOut->matrixNumber;
+	FreeVarGroup *fvg = state->latentFVG;
+
+	state->latentMeanMap.assign(maxAbilities, -1);
+	state->latentCovMap.assign(maxAbilities * maxAbilities, -1);
+
+	for (size_t px=0; px < fvg->vars.size(); px++) {
+		omxFreeVar *fv = fvg->vars[px];
+		for (size_t lx=0; lx < fv->locations.size(); lx++) {
+			omxFreeVarLocation *loc = &fv->locations[lx];
+			int matNum = ~loc->matrix;
+			if (matNum == meanNum) {
+				state->latentMeanMap[loc->row + loc->col] = px;
+			} else if (matNum == covNum) {
+				state->latentCovMap[loc->col * maxAbilities + loc->row] = px;
+			}
+		}
+	}
 
 	state->paramMap = Realloc(NULL, size, int);  // matrix location to free param index
 	for (int px=0; px < size; px++) {
@@ -74,7 +100,8 @@ static void buildParamMap(omxFitFunction* oo)
 		omxFreeVar *fv = oo->freeVarGroup->vars[px];
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
-			if (~loc->matrix == itemParam->matrixNumber) {
+			int matNum = ~loc->matrix;
+			if (matNum == itemParam->matrixNumber) {
 				pRow[px] = loc->row;
 				pCol[px] = loc->col;
 				int at = pCol[px] * state->derivPadSize + pRow[px];
@@ -245,34 +272,18 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 }
 
 static void
-schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
+moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
+		       double *ElatentMean, double *ElatentCov)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemSpec = estate->itemSpec;
 	omxMatrix *itemParam = state->itemParam;
 	omxMatrix *design = estate->design;
-	double *ElatentMean = estate->ElatentMean;
-	double *ElatentCov = estate->ElatentCov;
 	double *tmpLatentMean = state->tmpLatentMean;
 	double *tmpLatentCov = state->tmpLatentCov;
-	int maxAbilities = estate->maxAbilities;
 	int maxDims = estate->maxDims;
-
-	//mxLog("schilling bock\n");
-	//pda(ElatentMean, maxAbilities, 1);
-	//pda(ElatentCov, maxAbilities, maxAbilities);
-	//omxPrint(design, "design");
-
-	// use omxDPOTRF instead? TODO
-	const char triangle = 'L';
-	F77_CALL(dpotrf)(&triangle, &maxAbilities, ElatentCov, &maxAbilities, &state->choleskyError);
-	if (state->choleskyError != 0) {
-		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
-		return;
-	}
-
-	//fc->log(FF_COMPUTE_ESTIMATE);
+	int maxAbilities = estate->maxAbilities;
 
 	int numItems = itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
@@ -326,8 +337,32 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 			}
 		}
 	}
+}
+
+static void
+schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
+{
+	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	double *ElatentMean = estate->ElatentMean;
+	double *ElatentCov = estate->ElatentCov;
+	int maxAbilities = estate->maxAbilities;
+
+	//mxLog("schilling bock\n");
+	//pda(ElatentMean, maxAbilities, 1);
+	//pda(ElatentCov, maxAbilities, maxAbilities);
+	//omxPrint(design, "design");
+
+	// use omxDPOTRF instead? TODO
+	const char triangle = 'L';
+	F77_CALL(dpotrf)(&triangle, &maxAbilities, ElatentCov, &maxAbilities, &state->choleskyError);
+	if (state->choleskyError != 0) {
+		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
+		return;
+	}
+
+	moveLatentDistribution(oo, fc, ElatentMean, ElatentCov);
 	fc->copyParamToModel(globalState);
-	//fc->log(FF_COMPUTE_ESTIMATE);
 }
 
 OMXINLINE static void
@@ -336,26 +371,19 @@ updateLatentParam(omxFitFunction* oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	int maxAbilities = estate->maxAbilities;
-	int meanNum = estate->latentMeanOut->matrixNumber;
-	int covNum = estate->latentCovOut->matrixNumber;
-	FreeVarGroup *latentFVG = state->latentFVG;
 
 	// TODO need denom for multigroup
-	size_t numFreeParams = latentFVG->vars.size();
-	for (size_t px=0; px < numFreeParams; px++) {
-		omxFreeVar *fv = latentFVG->vars[px];
-		for (size_t lx=0; lx < fv->locations.size(); ++lx) {
-			omxFreeVarLocation *loc = &fv->locations[lx];
-			int matNum = ~loc->matrix;
-			if (matNum == meanNum) {
-				int dx = loc->row * loc->col;
-				fc->est[px] = estate->ElatentMean[dx];
-			} else if (matNum == covNum) {
-				int cell = loc->col * maxAbilities + loc->row;
-				fc->est[px] = estate->ElatentCov[cell];
-			}
+	for (int a1=0; a1 < maxAbilities; ++a1) {
+		if (state->latentMeanMap[a1] >= 0) {
+			fc->est[ state->latentMeanMap[a1] ] = estate->ElatentMean[a1];
+		}
+		for (int a2=0; a2 < maxAbilities; ++a2) {
+			int cell = a2 * maxAbilities + a1;
+			if (state->latentCovMap[cell] < 0) continue;
+			fc->est[ state->latentCovMap[cell] ] = estate->ElatentCov[cell];
 		}
 	}
+
 	fc->copyParamToModel(globalState);
 }
 
@@ -403,6 +431,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (want & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN)) {
 		// M-step
 
+		if (fc->varGroup != oo->freeVarGroup) error("FreeVarGroup mismatch");
+
 		++state->gradientCount;
 
 		omxMatrix *itemParam = state->itemParam;
@@ -416,6 +446,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		return got;
 	} else {
 		// Major EM iteration, note completely different LL calculation
+
+		if (fc->varGroup != state->latentFVG) error("FreeVarGroup mismatch");
 
 		updateLatentParam(oo, fc);
 
