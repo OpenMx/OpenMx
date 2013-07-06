@@ -38,12 +38,15 @@ if (1) {
 				  ItemSpec="ItemSpec",
 				  EItemParam="EItemParam"),
                 mxFitFunctionBA81(ItemParam="itemParam"),
+		# integrate FitFuncBA81 into FitFuncML
 		mxComputeIterate(steps=list(
-				   mxComputeAssign(from="itemParam", to="EItemParam"),
-				   mxComputeOnce(expectation='expectation', context='E'),
+				   mxComputeAssign(from="itemParam", to="EItemParam"), # replace with "fixed" mxAlgebra
+				   mxComputeOnce('expectation', context='E'),
 				   mxComputeGradientDescent(free.group='param'),
-				   mxComputeOnce(expectation='expectation', context='M'),
-				   mxComputeOnce(fitfunction='fitfunction')
+				   # list=(matrix, free parameter, models)
+				   # can recompute just from dependencies?
+				   mxComputeOnce('expectation', context='M'),
+				   mxComputeOnce('fitfunction')
 				 )))
   
   m2 <- mxOption(m2, "Analytic Gradients", 'Yes')

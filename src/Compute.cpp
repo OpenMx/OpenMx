@@ -351,9 +351,11 @@ class omxComputeIterate : public omxCompute {
 
 class omxComputeOnce : public omxComputeOperation {
 	typedef omxComputeOperation super;
-	omxMatrix *fitMatrix;
+	omxMatrix *algebra;
 	omxExpectation *expectation;
 	const char *context;
+	bool gradient;
+	bool hessian;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -499,6 +501,8 @@ void omxComputeSequence::compute(FitContext *fc)
 
 void omxComputeSequence::reportResults(FitContext *fc, MxRList *out)
 {
+	// put this stuff in a new list?
+	// merge with Iterate TODO
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		FitContext *context = fc;
 		if (fc->varGroup != clist[cx]->varGroup) {
@@ -612,25 +616,20 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
 
-	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	if (fitMatrix) {
-		setFreeVarGroup(fitMatrix->fitFunction, varGroup);
-		omxCompleteFitFunction(fitMatrix);
-	}
-
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
-	if (length(slotValue)) {
-		int expNumber = INTEGER(slotValue)[0];	
-		expectation = omxExpectationFromIndex(expNumber, globalState);
+	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
+	int objNum = INTEGER(slotValue)[0];
+	if (objNum >= 0) {
+		algebra = globalState->algebraList[objNum];
+		if (algebra->fitFunction) {
+			setFreeVarGroup(algebra->fitFunction, varGroup);
+			omxCompleteFitFunction(algebra);
+		}
+	} else {
+		expectation = globalState->expectationList[~objNum];
 		setFreeVarGroup(expectation, varGroup);
 		omxCompleteExpectation(expectation);
 	}
-
-	if (fitMatrix && expectation) {
-		error("Cannot evaluate a fitfunction and expectation simultaneously");
-	}
-	if (!fitMatrix && !expectation) error("No function specified to evaluate");
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
 	if (length(slotValue) == 0) {
@@ -640,13 +639,26 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		PROTECT(elem = STRING_ELT(slotValue, 0));
 		context = CHAR(elem);
 	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("gradient")));
+	gradient = asLogical(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("hessian")));
+	hessian = asLogical(slotValue);
 }
 
 void omxComputeOnce::compute(FitContext *fc)
 {
-	if (fitMatrix) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
-		fc->fit = fitMatrix->data[0];
+	if (algebra) {
+		if (algebra->fitFunction) {
+			int want = FF_COMPUTE_FIT;
+			if (gradient) want |= FF_COMPUTE_GRADIENT;
+			if (hessian)  want |= FF_COMPUTE_HESSIAN;
+			omxFitFunctionCompute(algebra->fitFunction, want, fc);
+			fc->fit = algebra->data[0];
+		} else {
+			omxForceCompute(algebra);
+		}
 	} else if (expectation) {
 		omxExpectationCompute(expectation, context);
 	}
@@ -654,9 +666,9 @@ void omxComputeOnce::compute(FitContext *fc)
 
 void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 {
-	if (!fitMatrix) return;
+	if (!algebra || !algebra->fitFunction) return;
 
-	omxPopulateFitFunction(fitMatrix, out);
+	omxPopulateFitFunction(algebra, out);
 
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 
@@ -666,5 +678,19 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 		PROTECT(estimate = allocVector(REALSXP, numFree));
 		memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
 		out->push_back(std::make_pair(mkChar("estimate"), estimate));
+
+		if (gradient) {
+			SEXP Rgradient;
+			PROTECT(Rgradient = allocVector(REALSXP, numFree));
+			memcpy(REAL(Rgradient), fc->grad, sizeof(double) * numFree);
+			out->push_back(std::make_pair(mkChar("gradient"), Rgradient));
+		}
+
+		if (hessian) {
+			SEXP Rhessian;
+			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
+			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
+			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
+		}
 	}
 }

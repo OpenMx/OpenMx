@@ -54,10 +54,10 @@ m2 <- mxModel(model="test3", ip.mat, spec, m.mat, cov.mat, eip.mat,
               mxFitFunctionBA81(ItemParam="itemParam"),
               mxComputeIterate(steps=list(
                 mxComputeAssign(from="itemParam", to="EItemParam"),
-                mxComputeOnce(expectation='expectation', context='E'),
+                mxComputeOnce('expectation', context='E'),
                 mxComputeGradientDescent(free.group='param'),
-                mxComputeOnce(expectation='expectation', context='M'),
-                mxComputeOnce(fitfunction='fitfunction'))))
+                mxComputeOnce('expectation', context='M'),
+                mxComputeOnce('fitfunction'))))
 
 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 	m2 <- mxOption(m2, "Verify level", '-1')

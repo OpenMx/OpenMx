@@ -105,15 +105,15 @@ mxComputeAssign <- function(from, to, free.group="default") {
 setClass(Class = "MxComputeOnce",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   fitfunction = "MxOptionalCharOrNumber",
-	   expectation = "MxOptionalCharOrNumber",
-	   context = "character"))
+	   what = "MxOptionalCharOrNumber",
+	   context = "character",
+	   gradient = "logical",
+	   hessian = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
-		.Object@expectation <- imxConvertIdentifier(.Object@expectation, modelname, namespace)
+		.Object@what <- imxConvertIdentifier(.Object@what, modelname, namespace)
 		.Object
 	})
 
@@ -121,30 +121,36 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod();
 		name <- .Object@name
-		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
-		}
-		if (is.character(.Object@expectation)) {
-			.Object@expectation <- imxLocateIndex(flatModel, .Object@expectation, name)
+		if (length(.Object@what) != 1) stop("Can only apply MxComputeOnce to one object")
+		if (!is.integer(.Object@what)) {
+			expNum <- match(.Object@what, names(flatModel@expectations))
+			algNum <- match(.Object@what, append(names(flatModel@algebras),
+							     names(flatModel@fitfunctions)))
+			if (is.na(expNum) && is.na(algNum)) {
+				stop("Can only apply MxComputeOnce to MxAlgebra or MxExpectation")
+			}
+			if (!is.na(expNum)) {
+				.Object@what <- - expNum  # usually negative numbers indicate matrices
+			} else {
+				.Object@what <- algNum - 1L
+			}
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, free.group, fit, expectation, context) {
+	  function(.Object, what, free.group, context, gradient, hessian) {
 		  .Object@name <- 'compute'
+		  .Object@what <- what
 		  .Object@free.group <- free.group
-		  if (!is.null(fit) && !is.null(expectation)) {
-			  stop("Cannot evaluate a fitfunction and expectation simultaneously")
-		  }
-		  .Object@fitfunction <- fit
-		  .Object@expectation <- expectation
 		  .Object@context <- context
+		  .Object@gradient <- gradient
+		  .Object@hessian <- hessian
 		  .Object
 	  })
 
-mxComputeOnce <- function(free.group='default', fitfunction=NULL, expectation=NULL, context=character(0)) {
-	new("MxComputeOnce", free.group, fitfunction, expectation, context)
+mxComputeOnce <- function(what, free.group='default', context=character(0), gradient=FALSE, hessian=FALSE) {
+	new("MxComputeOnce", what, free.group, context, gradient, hessian)
 }
 
 #----------------------------------------------------
