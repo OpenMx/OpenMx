@@ -1,7 +1,7 @@
 /*
   Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
 
-  libirt-rpf is free software: you can redistribute it and/or modify
+  libifa-rpf is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "libirt-rpf.h"
+#include "libifa-rpf.h"
 
 #ifndef M_LN2
 #define M_LN2           0.693147180559945309417232121458        /* ln(2) */
@@ -38,15 +38,6 @@ static const double EXP_STABLE_DOMAIN = 35;
 // unstable as athb < -25. For symmetry, it is necessary to clamp at
 // 25 as well.
 static const double GRADIENT_STABLE_DOMAIN = 25;
-
-static int
-model_name_to_id(const char *target)
-{
-  for (int sx=0; sx < librpf_numModels; sx++) {
-    if (strcmp(librpf_model[sx].name, target) == 0) return sx;
-  }
-  return -1;
-}
 
 static void
 irt_rpf_logprob_adapter(const double *spec,
@@ -147,19 +138,6 @@ irt_rpf_1dim_drm_prob(const double *spec,
   out[1] = pp;
 }
 
-static double
-irt_rpf_1dim_drm_prior(const double *spec,
-		       const double *restrict param)
-{
-  const double *prior = spec + RPF_ISpecCount;
-  double ll = 0; //lognormal_pdf(param[0], prior[0]);
-  double cc = param[2];
-  if (cc > 0) {
-    ll += logitnormal_pdf(cc, prior[1], prior[2]);
-  }
-  return ll;
-}
-
 static void
 set_deriv_nan(const double *spec, double *out)
 {
@@ -245,20 +223,6 @@ irt_rpf_1dim_drm_rescale(const double *spec, double *restrict param, const int *
   }
 }
 
-static void
-irt_rpf_1dim_drm_prefit(double *spec, double *restrict param)
-{
-  param[1] *= -param[0];
-  spec[RPF_ISpecID] = model_name_to_id("drm1+");
-}
-
-static void
-irt_rpf_1dim_drm_postfit(double *spec, double *restrict param)
-{
-  param[1] /= -param[0];
-  spec[RPF_ISpecID] = model_name_to_id("drm1");
-}
-
 static int
 irt_rpf_mdim_drm_numSpec(const double *spec)
 { return RPF_ISpecCount; }
@@ -304,23 +268,6 @@ irt_rpf_mdim_drm_prob2(const double *spec,
   tmp = guessing + (upper-guessing) * tmp;
   out2[0] = 1-tmp;
   out2[1] = tmp;
-}
-
-static double
-irt_rpf_mdim_drm_prior(const double *spec,
-		       const double *restrict param)
-{
-  int numDims = spec[RPF_ISpecDims];
-  const double *prior = spec + RPF_ISpecCount;
-  double ll=0;
-  for (int dx=0; dx < numDims; dx++) {
-    //if (param[dx] > 0) ll += lognormal_pdf(param[dx], prior[0]);
-  }
-  double cc = param[numDims+1];
-  if (cc > 0) {
-    ll += logitnormal_pdf(cc, prior[1], prior[2]);
-  }
-  return ll;
 }
 
 static void
@@ -1209,152 +1156,6 @@ irt_rpf_mdim_nrm_rescale(const double *spec, double *restrict param, const int *
   }
 }
 
-static int
-irt_rpf_1dim_gpcm_numSpec(const double *spec)
-{ return RPF_ISpecCount; }
-
-static int
-irt_rpf_1dim_gpcm_numParam(const double *spec)
-{ return spec[RPF_ISpecOutcomes]; }
-
-static void
-irt_rpf_1dim_gpcm_prob(const double *spec,
-		       const double *restrict param, const double *restrict th,
-		       double *restrict out)
-{
-  int numOutcomes = spec[RPF_ISpecOutcomes];
-  double discr = param[0];
-  double term1[numOutcomes];
-
-  term1[numOutcomes - 1] = 0;
-
-  for (int tx=0; tx < numOutcomes-1; tx++) {
-    term1[tx] = -discr * (*th - param[tx+1]);
-  }
-  double sum = 0;
-  double denom = 0;
-  double term2[numOutcomes];
-  for (int tx=numOutcomes-1; tx >= 0; tx--) {
-    sum += term1[tx];
-    double safe_sum;
-    if (sum < -EXP_STABLE_DOMAIN) safe_sum = -EXP_STABLE_DOMAIN;
-    else if (sum > EXP_STABLE_DOMAIN) safe_sum = EXP_STABLE_DOMAIN;
-    else safe_sum = sum;
-    term2[tx] = safe_sum;
-    denom += exp(safe_sum);
-  }
-  for (int tx=0; tx < numOutcomes; tx++) {
-    out[tx] = exp(term2[tx]) / denom;
-  }
-}
-
-/**
- * Based on Muraki (1992, p. 167). I am not sure exactly how the
- * parameterization here relates to the parameterization in Muraki (1992).
- *
- * GPCM(3)
- * irf1(a,b1,b2,th) := 1/(exp(-a*(th-b2) + -a*(th-b1))+exp(-a*(th-b2))+ 1);
- * irf2(a,b1,b2,th) := (exp(-a*(th-b2)))/(exp(-a*(th-b2) + -a*(th-b1))+exp(-a*(th-b2))+ 1);
- * irf3(a,b1,b2,th) := (exp(-a*(th-b2) + -a*(th-b1)))/(exp(-a*(th-b2) + -a*(th-b1))+exp(-a*(th-b2))+ 1);
- * plot2d([irf1(1.5,-1,1,th), irf2(1.5,-1,1,th), irf3(1.5,-1,1,th)],[th,-3,3]);
- *
- * Muraki (1992) reparameterization?
- * P_0 irf1(a,b,d2,d1,th) := 1/(exp(-a*(th-b+d1) + -a*(th-b+d2))+exp(-a*(th-b+d1))+ 1)
- * P_1 irf2(a,b,d2,d1,th) := (exp(-a*(th-b+d1)))/(exp(-a*(th-b+d1) + -a*(th-b+d2))+exp(-a*(th-b+d1))+ 1)
- * P_2 irf3(a,b,d2,d1,th) := (exp(-a*(th-b+d1) + -a*(th-b+d2)))/(exp(-a*(th-b+d1) + -a*(th-b+d2))+exp(-a*(th-b+d1))+ 1)
- * plot2d([irf1(1.5,-1,0,-2,th), irf2(1.5,-1,0,-2,th), irf3(1.5,-1,0,-2,th)],[th,-3,3]);
- *
- * -b1 = -b+d2
- * -b2 = -b+d1
- */
-
-static double
-_1dim_gpcm_z(const int kk, const double *restrict param, double th)
-{
-  double sum=0;
-  for (int vv=1; vv < kk; vv++) {
-    sum += th - param[vv];
-  }
-  return param[0] * sum;
-}
-
-static void
-irt_rpf_1dim_gpcm_deriv1(const double *spec,
-			 const double *restrict param,
-			 const double *where, const double area,
-			 const double *weight, double *out)
-{
-  int numOutcomes = spec[RPF_ISpecOutcomes];
-  double pout[numOutcomes];
-  irt_rpf_1dim_gpcm_prob(spec, param, where, pout);
-
-  double th = where[0];
-
-  {
-    double grad=0;
-    for (int kx=1; kx <= numOutcomes; kx++) {
-      double sum=0;
-      for (int cc=1; cc <= numOutcomes; cc++) {
-	sum += _1dim_gpcm_z(cc, param, th) * pout[cc-1];
-      }
-      grad += weight[kx-1] * (_1dim_gpcm_z(kx, param, th) - sum);
-    }
-    out[0] += area * grad;
-  }
-  double total_weight=0;
-  for (int cc=0; cc < numOutcomes; cc++) {
-    total_weight += weight[cc];
-  }
-  for (int bx=1; bx < numOutcomes; bx++) {
-    double grad = 0;
-    for (int kx=0; kx <= bx-1; kx++) {
-      grad += weight[kx] - pout[kx] * total_weight;
-    }
-    out[bx] += area * grad;
-  }
-}
-
-static void
-irt_rpf_1dim_gpcm_deriv2(const double *spec,
-			 const double *restrict param,
-			 double *out)
-{
-  int numOutcomes = spec[RPF_ISpecOutcomes];
-  double aa = param[0];
-  if (aa <= 0) {
-    set_deriv_nan(spec, out);
-    return;
-  }
-  //const double *prior = spec + RPF_ISpecCount;
-  out[0] /= aa;
-  //out[0] += lognormal_gradient(aa, prior[0]);
-  for (int bx=1; bx < numOutcomes; bx++) {
-    out[bx] *= aa;
-  }
-  const int numH = numOutcomes * (numOutcomes+1) / 2;
-  for (int px=numOutcomes; px < numOutcomes + numH; px++) out[px] = nan("I");
-}
-
-static void
-irt_rpf_1dim_gpcm_rescale(const double *spec, double *restrict param, const int *paramMask,
-			  const double *restrict mean, const double *restrict choleskyCov)
-{
-  int numOutcomes = spec[RPF_ISpecOutcomes];
-  double thresh[numOutcomes-1];
-  for (int tx=0; tx < numOutcomes-1; tx++) {
-    thresh[tx] = param[tx+1] * -param[0];
-  }
-  if (paramMask[0] >= 0) {
-    param[0] *= choleskyCov[0];
-  }
-  double shift = param[0] * mean[0];
-  for (int tx=0; tx < numOutcomes-1; tx++) {
-    if (paramMask[tx+1] < 0) continue;
-    thresh[tx] += shift;
-    param[tx+1] = thresh[tx] / -param[0];
-  }
-}
-
 static void noop() {}
 static void notimplemented() { error("Not implemented"); }
 
@@ -1368,8 +1169,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_1dim_drm_deriv2,
     notimplemented,
     irt_rpf_1dim_drm_rescale,
-    noop,
-    noop,
   },
   { "drm1",
     irt_rpf_1dim_drm_numSpec,
@@ -1380,8 +1179,6 @@ const struct rpf librpf_model[] = {
     notimplemented,
     irt_rpf_1dim_drm_dTheta,
     notimplemented,
-    irt_rpf_1dim_drm_prefit,
-    noop,
   },
   { "drm1+",
     irt_rpf_mdim_drm_numSpec,
@@ -1392,8 +1189,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_mdim_drm_deriv2,
     notimplemented,
     irt_rpf_mdim_drm_rescale,
-    noop,
-    irt_rpf_1dim_drm_postfit,
   },
   { "drm",
     irt_rpf_mdim_drm_numSpec,
@@ -1404,20 +1199,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_mdim_drm_deriv2,
     irt_rpf_mdim_drm_dTheta,
     irt_rpf_mdim_drm_rescale,
-    noop,
-    noop
-  },
-  { "gpcm1",
-    irt_rpf_1dim_gpcm_numSpec,
-    irt_rpf_1dim_gpcm_numParam,
-    irt_rpf_1dim_gpcm_prob,
-    irt_rpf_logprob_adapter,
-    irt_rpf_1dim_gpcm_deriv1,
-    irt_rpf_1dim_gpcm_deriv2,
-    notimplemented,
-    irt_rpf_1dim_gpcm_rescale,
-    noop,
-    noop
   },
   { "grm1",
     irt_rpf_mdim_grm_numSpec,
@@ -1428,8 +1209,6 @@ const struct rpf librpf_model[] = {
     noop,
     notimplemented,
     noop,
-    noop,
-    noop
   },
   { "grm",
     irt_rpf_mdim_grm_numSpec,
@@ -1440,8 +1219,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_mdim_grm_deriv2,
     irt_rpf_mdim_grm_dTheta,
     irt_rpf_mdim_grm_rescale,
-    noop,
-    noop
   },
   { "nominal",
     irt_rpf_nominal_numSpec,
@@ -1452,8 +1229,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_nominal_deriv2,
     irt_rpf_mdim_nrm_dTheta,
     irt_rpf_mdim_nrm_rescale,
-    noop,
-    noop
   }
 };
 

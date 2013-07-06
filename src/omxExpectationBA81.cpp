@@ -21,7 +21,7 @@
 #include "omxExpectationBA81.h"
 #include "omxOpenmpWrap.h"
 #include "npsolWrap.h"
-#include "libirt-rpf.h"
+#include "libifa-rpf.h"
 #include "dmvnorm.h"
 
 static const char *NAME = "ExpectationBA81";

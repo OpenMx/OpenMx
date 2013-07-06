@@ -1,7 +1,7 @@
 /*
   Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
 
-  libirt-rpf is free software: you can redistribute it and/or modify
+  libifa-rpf is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
@@ -15,8 +15,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _LIBIRT_RPF_
-#define _LIBIRT_RPF_
+#ifndef _LIBIFA_RPF_
+#define _LIBIFA_RPF_
 
 enum RPF_ISpec {
   RPF_ISpecID,
@@ -39,7 +39,6 @@ typedef void (*rpf_dLL1_t)(const double *spec,
 typedef void (*rpf_dLL2_t)(const double *spec, const double *param, double *out);
 typedef void (*rpf_rescale_t)(const double *spec, double *param, const int *paramMask,
 			      const double *mean, const double *choleskyCov);
-typedef void (*rpf_transform_t)(double *spec, double *param);
 typedef void (*rpf_dTheta_t)(const double *spec, const double *param,
 			     const double *where, const double *dir,
 			     double *grad, double *hess);
@@ -54,8 +53,6 @@ struct rpf {
   rpf_dLL2_t dLL2;
   rpf_dTheta_t dTheta;
   rpf_rescale_t rescale;
-  rpf_transform_t prefit;
-  rpf_transform_t postfit;
 };
 
 /* R_GetCCallable */

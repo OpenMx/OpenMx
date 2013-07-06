@@ -18,7 +18,7 @@
 #include "omxFitFunction.h"
 #include "omxExpectationBA81.h"
 #include "omxOpenmpWrap.h"
-#include "libirt-rpf.h"
+#include "libifa-rpf.h"
 
 static const char *NAME = "FitFunctionBA81";
 
@@ -451,16 +451,6 @@ static omxRListElement *ba81SetFinalReturns(omxFitFunction *oo, int *numReturns)
 {
 	omxRListElement *ret = ba81EAP(oo->expectation, numReturns);
 
-	BA81FitState *state = (BA81FitState *) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-
-	for (int ix=0; ix < state->itemParam->cols; ix++) {
-		double *spec = omxMatrixColumn(estate->itemSpec, ix);
-		int id = spec[RPF_ISpecID];
-		double *param = omxMatrixColumn(state->itemParam, ix);
-		rpf_model[id].postfit(spec, param); // TODO copy back through
-	}
-
 	return ret;
 }
 
@@ -507,8 +497,5 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		if (id < 0 || id >= rpf_numModels) {
 			error("ItemSpec column %d has unknown item model %d", ix, id);
 		}
-
-		double *param = omxMatrixColumn(state->itemParam, ix);
-		rpf_model[id].prefit(spec, param);
 	}
 }
