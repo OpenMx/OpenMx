@@ -90,22 +90,7 @@ void ComputeNR::compute(FitContext *fc)
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 
-		// make non-symmetric entries symmetric, if possible
-		for (size_t h1=0; h1 < numParam; h1++) {
-			for (size_t h2=0; h2 < numParam; h2++) {
-				if (h1 == h2) continue;
-				double upper = fc->hess[h1 * numParam + h2];
-				double lower = fc->hess[h2 * numParam + h1];
-				if (isfinite(upper) && isfinite(lower)) continue;
-				if (isfinite(upper)) {
-					fc->hess[h2 * numParam + h1] = upper;
-				} else if (isfinite(lower)) {
-					fc->hess[h1 * numParam + h2] = lower;
-				} else {
-					error("Hessian is not finite at [%d,%d]", h1,h2);
-				}
-			}
-		}
+		fc->fixHessianSymmetry();
 		//fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 
 		std::vector<double> ihess(numParam * numParam);
