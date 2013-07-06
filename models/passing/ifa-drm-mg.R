@@ -25,9 +25,7 @@ if (1) {
                      free=c(FALSE, TRUE, FALSE, FALSE))
   ip.mat@free.group <- 'param'
   
-  eip.mat <- mxMatrix(name="EItemParam", nrow=4, ncol=numItems,
-		      values=c(1,0,0, 1),
-		      free=TRUE)
+  eip.mat <- mxAlgebra(itemParam, name="EItemParam", fixed=TRUE)
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
   cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
@@ -40,7 +38,7 @@ if (1) {
                 mxFitFunctionBA81(ItemParam="itemParam"),
 		# integrate FitFuncBA81 into FitFuncML
 		mxComputeIterate(steps=list(
-				   mxComputeAssign(from="itemParam", to="EItemParam"), # replace with "fixed" mxAlgebra
+				   mxComputeOnce("EItemParam"),
 				   mxComputeOnce('expectation', context='E'),
 				   mxComputeGradientDescent(free.group='param'),
 				   # list=(matrix, free parameter, models)

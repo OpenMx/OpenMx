@@ -59,7 +59,7 @@ struct omxAlgebra {						// A matrix
 
 /* Algebra-specific implementations of matrix functions */
 	void omxAlgebraRecompute(omxAlgebra *oa);
-	void omxAlgebraCompute(omxAlgebra *oa);
+	void omxAlgebraForceCompute(omxAlgebra *oa);
 	int omxAlgebraNeedsUpdate(omxAlgebra *oa);
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 

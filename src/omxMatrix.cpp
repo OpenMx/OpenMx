@@ -705,7 +705,7 @@ void omxRecompute(omxMatrix *matrix) {
 
 void omxForceCompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
-	else if (matrix->algebra != NULL) omxAlgebraCompute(matrix->algebra);
+	else if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
 	}

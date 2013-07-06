@@ -139,7 +139,7 @@ void omxAlgebraRecompute(omxAlgebra *oa) {
 
 
 
-void omxAlgebraCompute(omxAlgebra *oa) {
+void omxAlgebraForceCompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
 		mxLog("Algebra compute (%s): 0x%0x.", 
 			oa->matrix->name, oa->matrix);

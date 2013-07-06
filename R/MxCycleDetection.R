@@ -120,6 +120,7 @@ addMatrixDetection <- function(matrix, dependencies) {
 }
 
 addAlgebraDetection <- function(algebra, dependencies) {
+	if (algebra@fixed) return(dependencies)
 	sink <- algebra@name
 	formula <- algebra@formula
 	dependencies <- addFormulaDetection(formula, sink, dependencies)

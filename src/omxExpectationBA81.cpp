@@ -643,6 +643,11 @@ static void
 ba81Estep(omxExpectation *oo, const char *context) {
 	if (!context) return;
 
+	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	omxRecompute(state->EitemParam);
+	omxRecompute(state->latentMeanOut);
+	omxRecompute(state->latentCovOut);
+
 	ba81Estep1(oo);
 	if (strcmp(context, "E")==0) {
 		// for E-M LL
@@ -918,6 +923,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
+	// change to regular matrices instead of MxMatrix TODO
 	state->itemSpec =
 		omxNewMatrixFromSlot(rObj, currentState, "ItemSpec");
 	state->design =
@@ -930,7 +936,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->EitemParam =
 		omxNewMatrixFromSlot(rObj, currentState, "EItemParam");
-	if (!state->EitemParam) error("Must supply EItemParam MxMatrix");
+	if (!state->EitemParam) error("Must supply EItemParam");
 
 	oo->computeFun = ba81Estep;
 	oo->setVarGroup = ignoreSetVarGroup;

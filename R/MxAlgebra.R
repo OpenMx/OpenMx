@@ -19,16 +19,16 @@ setClass(Class = "MxAlgebra",
 	representation = representation(
 		formula = "MxAlgebraFormula",
 		name = "character",
-		dirty = "logical",
+		fixed = "logical",
 		.dimnames = "MxListOrNull",
 		initial = "matrix",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
-	function(.Object, formula, name) {
+	function(.Object, formula, name, fixed=FALSE) {
 		.Object@formula <- sys.call(which=-3)[[3]]
 		.Object@name <- name
-		.Object@dirty <- FALSE
+		.Object@fixed <- fixed
 		.Object@.dimnames <- NULL
 		return(.Object)
 	}
@@ -53,12 +53,12 @@ setReplaceMethod("dimnames", "MxAlgebra",
 
 
 
-mxAlgebra <- function(expression, name = NA, dimnames = NA) {
+mxAlgebra <- function(expression, name = NA, dimnames = NA, fixed = FALSE) {
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
-	retval <- new("MxAlgebra", NA, name)
+	retval <- new("MxAlgebra", NA, name, fixed)
 	retval@formula <- match.call()$expression
     algebraErrorChecking(retval@formula, "mxAlgebra")
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {

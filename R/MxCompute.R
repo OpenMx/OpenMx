@@ -54,54 +54,6 @@ setMethod("convertForBackend", signature("MxComputeOperation"),
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeAssign",  # good name? or ComputeCopy?
-	 contains = "MxComputeOperation",
-	 representation = representation(
-	   from = "MxCharOrNumber",
-	   to = "MxCharOrNumber"))
-
-setMethod("initialize", "MxComputeAssign",
-	  function(.Object, from, to, free.group) {
-		  .Object@name <- 'compute'
-		  .Object@from <- from
-		  .Object@to <- to
-		  .Object@free.group <- free.group
-		  .Object
-	  })
-
-setMethod("qualifyNames", signature("MxComputeAssign"),
-	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod();
-		.Object@from <- imxIdentifier(modelname, .Object@from)
-		.Object@to <- imxIdentifier(modelname, .Object@to)
-		.Object
-	})
-
-setMethod("convertForBackend", signature("MxComputeAssign"),
-	function(.Object, flatModel, model) {
-		.Object <- callNextMethod();
-		name <- .Object@name
-		for (sl in c('from', 'to')) {
-			mat <- match(slot(.Object, sl), names(flatModel@matrices))
-			if (any(is.na(mat))) {
-				stop(paste("MxComputeAssign: cannot find",
-					   omxQuotes(slot(.Object, sl)[is.na(mat)]),
-					   "mentioned in slot '", sl, "'"))
-			}
-			slot(.Object, sl) <- -mat
-		}
-		.Object
-	})
-
-mxComputeAssign <- function(from, to, free.group="default") {
-	if (length(from) != length(to)) {
-		stop("Arguments 'from' and 'to' must be the same length")
-	}
-	new("MxComputeAssign", from=from, to=to, free.group=free.group)
-}
-
-#----------------------------------------------------
-
 setClass(Class = "MxComputeOnce",
 	 contains = "MxComputeOperation",
 	 representation = representation(

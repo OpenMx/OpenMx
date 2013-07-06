@@ -40,8 +40,7 @@ ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
                    free=c(TRUE,FALSE,FALSE,TRUE,TRUE))
 ip.mat@free.group <- 'param'
 
-eip.mat <- mxMatrix(name="EItemParam", nrow=5, ncol=numItems,
-                   values=c(1,1,0,0,0), free=TRUE)
+eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
@@ -53,7 +52,7 @@ m2 <- mxModel(model="test3", ip.mat, spec, m.mat, cov.mat, eip.mat,
                                 EItemParam="EItemParam"),
               mxFitFunctionBA81(ItemParam="itemParam"),
               mxComputeIterate(steps=list(
-                mxComputeAssign(from="itemParam", to="EItemParam"),
+                mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
                 mxComputeGradientDescent(free.group='param'),
                 mxComputeOnce('expectation', context='M'),
