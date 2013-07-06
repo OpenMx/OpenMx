@@ -575,20 +575,20 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 	return(result)
 }
 
-imxConvertIdentifier <- function(identifier, modelname, namespace) {
-	if (length(identifier) == 0) return(identifier)
-	charidentifier <- as.character(identifier)
-	if (is.na(charidentifier)) {
-		return(identifier)
-	}
-    isLocalEntity <- charidentifier %in% namespace$entities[[modelname]]
-    if (isLocalEntity) {
-		return(imxIdentifier(modelname, identifier))
-	} else if (isLocalDefinitionVariable(charidentifier)) {
-		return(imxIdentifier(modelname, identifier))
-    } else {
-		return(identifier)
-	}
+imxConvertIdentifier <- function(identifiers, modelname, namespace) {
+	if (length(identifiers) == 0) return(identifiers)
+	identifiers <- as.character(identifiers)
+	if (all(is.na(identifiers))) return(identifiers)
+	vapply(identifiers, function(identifier) {
+		isLocalEntity <- identifier %in% namespace$entities[[modelname]]
+		if (isLocalEntity) {
+			return(imxIdentifier(modelname, identifier))
+		} else if (isLocalDefinitionVariable(identifier)) {
+			return(imxIdentifier(modelname, identifier))
+		} else {
+			return(identifier)
+		}
+	}, "", USE.NAMES=FALSE)
 }
 
 getModelName <- function(object) {

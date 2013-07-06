@@ -339,8 +339,8 @@ class omxComputeIterate : public omxCompute {
 
 class omxComputeOnce : public omxComputeOperation {
 	typedef omxComputeOperation super;
-	omxMatrix *algebra;
-	omxExpectation *expectation;
+	std::vector< omxMatrix* > algebras;
+	std::vector< omxExpectation* > expectations;
 	const char *context;
 	bool gradient;
 	bool hessian;
@@ -539,17 +539,21 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
-	int objNum = INTEGER(slotValue)[0];
-	if (objNum >= 0) {
-		algebra = globalState->algebraList[objNum];
-		if (algebra->fitFunction) {
-			setFreeVarGroup(algebra->fitFunction, varGroup);
-			omxCompleteFitFunction(algebra);
+	for (int wx=0; wx < length(slotValue); ++wx) {
+		int objNum = INTEGER(slotValue)[wx];
+		if (objNum >= 0) {
+			omxMatrix *algebra = globalState->algebraList[objNum];
+			if (algebra->fitFunction) {
+				setFreeVarGroup(algebra->fitFunction, varGroup);
+				omxCompleteFitFunction(algebra);
+			}
+			algebras.push_back(algebra);
+		} else {
+			omxExpectation *expectation = globalState->expectationList[~objNum];
+			setFreeVarGroup(expectation, varGroup);
+			omxCompleteExpectation(expectation);
+			expectations.push_back(expectation);
 		}
-	} else {
-		expectation = globalState->expectationList[~objNum];
-		setFreeVarGroup(expectation, varGroup);
-		omxCompleteExpectation(expectation);
 	}
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
@@ -570,24 +574,33 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 
 void omxComputeOnce::compute(FitContext *fc)
 {
-	if (algebra) {
-		if (algebra->fitFunction) {
-			int want = FF_COMPUTE_FIT;
-			if (gradient) want |= FF_COMPUTE_GRADIENT;
-			if (hessian)  want |= FF_COMPUTE_HESSIAN;
-			omxFitFunctionCompute(algebra->fitFunction, want, fc);
-			fc->fit = algebra->data[0];
-		} else {
-			omxForceCompute(algebra);
+	if (algebras.size()) {
+		int want = FF_COMPUTE_FIT;
+		if (gradient) want |= FF_COMPUTE_GRADIENT;
+		if (hessian)  want |= FF_COMPUTE_HESSIAN;
+
+		for (size_t wx=0; wx < algebras.size(); ++wx) {
+			omxMatrix *algebra = algebras[wx];
+			if (algebra->fitFunction) {
+				omxFitFunctionCompute(algebra->fitFunction, want, fc);
+				fc->fit = algebra->data[0];
+			} else {
+				omxForceCompute(algebra);
+			}
 		}
-	} else if (expectation) {
-		omxExpectationCompute(expectation, context);
+	} else if (expectations.size()) {
+		for (size_t wx=0; wx < expectations.size(); ++wx) {
+			omxExpectation *expectation = expectations[wx];
+			omxExpectationCompute(expectation, context);
+		}
 	}
 }
 
 void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 {
-	if (!algebra || !algebra->fitFunction) return;
+	if (algebras.size()==0 || algebras[0]->fitFunction == NULL) return;
+
+	omxMatrix *algebra = algebras[0];
 
 	omxPopulateFitFunction(algebra, out);
 

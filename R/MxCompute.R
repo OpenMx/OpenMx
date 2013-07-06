@@ -57,7 +57,7 @@ setMethod("convertForBackend", signature("MxComputeOperation"),
 setClass(Class = "MxComputeOnce",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   what = "MxOptionalCharOrNumber",
+	   what = "MxCharOrNumber",
 	   context = "character",
 	   gradient = "logical",
 	   hessian = "logical"))
@@ -73,20 +73,24 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod();
 		name <- .Object@name
-		if (length(.Object@what) != 1) stop("Can only apply MxComputeOnce to one object")
-		if (!is.integer(.Object@what)) {
+		if (any(!is.integer(.Object@what))) {
 			expNum <- match(.Object@what, names(flatModel@expectations))
 			algNum <- match(.Object@what, append(names(flatModel@algebras),
 							     names(flatModel@fitfunctions)))
-			if (is.na(expNum) && is.na(algNum)) {
+			if (any(is.na(expNum)) && any(is.na(algNum))) {
 				stop("Can only apply MxComputeOnce to MxAlgebra or MxExpectation")
 			}
-			if (!is.na(expNum)) {
-				.Object@what <- - expNum  # usually negative numbers indicate matrices
+			if (!any(is.na(expNum))) {
+					# Usually negative numbers indicate matrices; not here
+				.Object@what <- - expNum
 			} else {
+				if (any(algNum > length(flatModel@algebras)) && length(algNum) > 1) {
+					stop("MxComputeOnce cannot evaluate more than 1 fit function")
+				}
 				.Object@what <- algNum - 1L
 			}
 		}
+		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
 		.Object
 	})
 
@@ -186,7 +190,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 	  })
 
 mxComputeNewtonRaphson <- function(type, free.group='default',
-				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7) {
+				   fitfunction='fitfunction', maxIter = 500L, tolerance=1e-7) {
 
 	new("MxComputeNewtonRaphson", free.group, fitfunction, maxIter, tolerance)
 }
