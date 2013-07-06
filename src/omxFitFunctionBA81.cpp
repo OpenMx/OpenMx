@@ -371,7 +371,7 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg) // too ad hoc? T
 	state->varGroups.push_back(fvg);
 	if (state->varGroups.size() == 2) {
 		int small = 0;
-		if (state->varGroups[0]->vars.size() == state->varGroups[1]->vars.size())
+		if (state->varGroups[0] == state->varGroups[1])
 			warning("Cannot recognize correct free parameter groups");
 		if (state->varGroups[0]->vars.size() > state->varGroups[1]->vars.size())
 			small = 1;

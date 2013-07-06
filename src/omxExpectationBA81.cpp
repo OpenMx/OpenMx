@@ -500,6 +500,11 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 			}
 		}
 	} else {
+		if (0) {
+			pda(state->latentMeanOut->data, 1, state->maxAbilities);
+			pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
+		}
+
 		double totalArea = 0;
 		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
 			int quad[priDims];

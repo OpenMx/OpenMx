@@ -56,7 +56,7 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionML", 				&omxInitMLFitFunction, defaultSetFreeVarGroup},
 	{"imxFitFunctionFIML", &omxInitFIMLFitFunction, defaultSetFreeVarGroup},
 	{"MxFitFunctionR",					&omxInitRFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionMultigroup", &initFitMultigroup, defaultSetFreeVarGroup},
+	{"MxFitFunctionMultigroup", &initFitMultigroup, mgSetFreeVarGroup},
 	{"MxFitFunctionBA81", &omxInitFitFunctionBA81, ba81SetFreeVarGroup}
 };
 
@@ -132,6 +132,10 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 		if(strcmp(fitType, entry->name) == 0) {
 			obj->fitType = entry->name;
 			obj->initFun = entry->initFun;
+
+			// We need to set up the FreeVarGroup before calling initFun
+			// because older fit functions expect to know the number of
+			// free variables during initFun.
 			obj->setVarGroup = entry->setVarGroup; // ugh!
 			break;
 		}

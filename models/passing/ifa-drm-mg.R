@@ -43,7 +43,6 @@ if (1) {
 #				   mxComputeGradientDescent(free.group='param'),
 				   mxComputeNewtonRaphson(free.group='param'),
 				   # list=(matrix, free parameter, models)
-				   # can recompute just from dependencies?
 				   mxComputeOnce('expectation', context='M'),
 				   mxComputeOnce('fitfunction')
 				 )))

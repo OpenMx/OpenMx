@@ -4,15 +4,11 @@ library(rpf)
 library(ggplot2)
 library(stringr)
 
-qwidth <- 5
-quad <- imxEqualIntervalQuadratureData(21, qwidth)
-
 data.raw <- read.csv("/opt/OpenMx/models/failing/data/cai-2009.csv")
-data.g1 <- data.raw[data.raw$G==1, 2:13]
-data.g2 <- data.raw[data.raw$G==2, 2:17]
-colnames(data.g2) <- str_replace(colnames(data.g2), 'I', 'J')
-data <- as.data.frame(cbind(data.g1, data.g2))
-for (col in colnames(data)) data[[col]] <- ordered(data[[col]])
+data.g1 <- as.data.frame(data.raw[data.raw$G==1, 2:13])
+data.g2 <- as.data.frame(data.raw[data.raw$G==2, 2:17])
+for (col in colnames(data.g1)) data.g1[[col]] <- ordered(data.g1[[col]])
+for (col in colnames(data.g2)) data.g2[[col]] <- ordered(data.g2[[col]])
 
 correct.g1 <- matrix(c(0.99, 1.42, 1.77, 2.19,  1.38, 1.8, 2.16, 1.18, 1.8, 2.61, 1.02, 1.69,
                        0.65,1.26, 1.21, 0.85, 1.06, 0.81, 1.58, 1.56, 1.08, 1.24, 0.73, 1.39,
@@ -23,65 +19,77 @@ correct.g2 <- matrix(c(0.99, 1.42, 1.77, 2.19, 1.38, 1.8,  2.16, 1.18, 1.8,  2.6
                        0.88, 0.08,-0.35,-0.98, 0.99, 0.21,-0.42,-1.24, 0.81, 0.06,-0.29,-1.14, 0.88, 0.2, -0.35,-1.09,
                        rep(0,16)), byrow=TRUE, nrow=4)
 
-# 
-numItems <- dim(data)[2]
-numPersons <- dim(data)[1]
+mk.model <- function(model.name, data, latent.free) {
+#   name <- "g1"
+#   data <- data.g1
+#   latent.free <- TRUE
+#   
+  numItems <- dim(data)[2]
+  numPersons <- dim(data)[1]
+  spec <- list()
+  spec[1:numItems] <- rpf.grm(factors = 2)
+  
+  dims <- (1 + numItems/4)
+  design <- matrix(c(rep(1,numItems),
+                     kronecker(2:dims,rep(1,4))), byrow=TRUE, ncol=numItems)
+  
+  ispec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
+           values=sapply(spec, function(m) slot(m,'spec')),
+           free=FALSE)
 
-spec <- list()
-spec[1:numItems] <- rpf.drm(dimensions = 2)
-
-fit.g1 <- rpf.ot2000.chisq(spec[1:12], correct.g1, correct.g1!=0, data[1:12], quad)
-fit.g2 <- rpf.ot2000.chisq(spec[13:numItems], correct.g2, correct.g2!=0, data[13:numItems], quad)
-print(sum(sapply(fit.g1, function (f) f$statistic), sapply(fit.g2, function (f) f$statistic)))
-
-design <- matrix(c(rep(c(1,2),4),
-                   rep(c(1,3),4),
-                   rep(c(1,4),4),
-                   rep(c(1,5),4),
-                   rep(c(1,6),4),
-                   rep(c(1,7),4),
-                   rep(c(1,8),4)), ncol=12+16)
-
-ip.mat <- mxMatrix(name="ItemParam", nrow=4, ncol=numItems,
-                   values=c(1.4,1,0,0),
-                   free=c(TRUE,TRUE,TRUE,FALSE),
-                   lbound=c(1e-5, 1e-5, -qwidth, 0),
-                   ubound=c(10, 10, qwidth, 0))
-
-for (ix in 1:12) {
-  for (px in 1:3) {
-    name <- paste(c('p',px,',',ix), collapse='')
-    ip.mat@labels[px,ix] <- name
-    ip.mat@labels[px,12+ix] <- name
+  ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
+                     values=c(1.4,1,0),
+                     free=c(TRUE,TRUE,TRUE),
+                     lbound=c(1e-5, 1e-5, NA))
+  ip.mat@free.group <- 'param'
+  
+  for (ix in 1:numItems) {
+    for (px in 1:3) {
+      name <- paste(c('p',ix,',',px), collapse='')
+      ip.mat@labels[px,ix] <- name
+    }
   }
-}
+  eip.mat <- mxAlgebra(ItemParam, name="EItemParam", fixed=TRUE)
 
-fit1 <- function() {  
-  m1 <- mxModel(model="drm1", ip.mat,
-              mxMatrix(name="ItemSpec", nrow=6, ncol=numItems,
-                       values=sapply(spec, function(m) slot(m,'spec')),
-                       free=FALSE, byrow=TRUE),
-              mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
-              mxData(observed=data, type="raw"),
-              mxExpectationBA81(
-                ItemSpec="ItemSpec",
-                ItemParam="ItemParam",
-                Design="Design",
-            		quadrature=quad),
-              mxFitFunctionBA81())
-
-  if (1) {
-    m1 <- mxOption(m1, "Analytic Gradients", 'yes')
-    m1 <- mxOption(m1, "Verify level", '-1')
-  } else {
-    m1 <- mxOption(m1, "Analytic Gradients", 'no')
-  }
-  m1 <- mxOption(m1, "Function precision", '1.0E-5')
-  m1 <- mxOption(m1, "Calculate Hessian", "No")
-  m1 <- mxOption(m1, "Standard Errors", "No")
-  m1 <- mxRun(m1)
+  m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
+  cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims), free=latent.free)
+  
+  m1 <- mxModel(model=model.name, ip.mat, eip.mat, ispec, m.mat, cov.mat,
+                mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
+                mxData(observed=data, type="raw"),
+                mxExpectationBA81(
+                  ItemSpec="ItemSpec",
+                  Design="Design",
+                  EItemParam="EItemParam",
+                  mean="mean", cov="cov",
+                  qpoints=21),
+                mxFitFunctionBA81(ItemParam="ItemParam"))
   m1
 }
+
+g1 <- mk.model("g1", data.g1, TRUE)
+g2 <- mk.model("g2", data.g2, FALSE)
+
+groups <- paste("g", 1:2, sep="")
+grpModel <- mxModel(model="groupModel", g1, g2,
+                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                    mxComputeIterate(steps=list(
+                      mxComputeOnce(paste(groups, "EItemParam", sep=".")),
+                      mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'),
+#                      mxComputeGradientDescent(free.group='param'),
+                      mxComputeNewtonRaphson(free.group='param'),
+                      mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                      mxComputeOnce('fitfunction')
+                      ), verbose=TRUE))
+
+#grpModel <- mxOption(grpModel, "Number of Threads", 1)
+
+# NPSOL options:
+grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
+grpModel <- mxOption(grpModel, "Verify level", '-1')
+grpModel <- mxOption(grpModel, "Function precision", '1.0E-7')
+
+grpModel <- mxRun(grpModel)
 
 calc.bias <- function (bank) {
   bias <- matrix(0, nrow=dim(correct)[1], ncol=dim(correct)[2])
@@ -91,24 +99,6 @@ calc.bias <- function (bank) {
   bias <- (bias / length(bank)) - correct
   bias
 }
-
-rda <- "cai2009-fit.rda"
-if(0) {
-  fit <- fit1()
-  save(fit, file=rda)
-} else {
-  load(rda)
-}
-
-
-openmx.itemparam <- fit@matrices$ItemParam@values
-openmx.g1 <- openmx.itemparam[,1:12]
-openmx.g2 <- openmx.itemparam[,13:28]
-
-fit.g1 <- rpf.ot2000.chisq(spec[1:12], openmx.g1, openmx.g1!=0, data[1:12], quad)
-fit.g2 <- rpf.ot2000.chisq(spec[13:numItems], openmx.g2, openmx.g2!=0, data[13:numItems], quad)
-print(sum(sapply(fit.g1, function (f) f$statistic), sapply(fit.g2, function (f) f$statistic)))
-# 881
 
 #abs(calc.bias(bank[filter])[ip.mat@free])
 
@@ -129,3 +119,4 @@ if (0) {
   df$var <- factor(df$var)
   ggplot(df, aes(x, bias, color=var)) + geom_point() + xlab("true parameter value")
 }
+

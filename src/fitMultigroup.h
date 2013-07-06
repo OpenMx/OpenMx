@@ -3,5 +3,6 @@
 
 void initFitMultigroup(omxFitFunction *off);
 void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *grp);
+void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 
 #endif

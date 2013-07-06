@@ -272,7 +272,6 @@ void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 	omxPrintMatrix(oa->matrix, name.c_str());
 }
 
-// TODO possible cleanup: change callers to use omxNewMatrixFromIndexSlot
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	if(OMX_DEBUG) {
 		mxLog("Attaching pointer to matrix.");
