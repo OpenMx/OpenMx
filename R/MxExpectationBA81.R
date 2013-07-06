@@ -23,6 +23,7 @@ setClass(Class = "MxExpectationBA81",
 	   qwidth = "numeric",
 	   cache = "logical",
 	   scores = "character",
+	   scores.out = "matrix",
 	   mean = "MxCharOrNumber",
 	   cov = "MxCharOrNumber"),
          contains = "MxBaseExpectation")
@@ -42,6 +43,7 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@data <- as.integer(NA)
 	    .Object@mean <- mean
 	    .Object@cov <- cov
+	    .Object@scores.out <- matrix()
             return(.Object)
           }
 )

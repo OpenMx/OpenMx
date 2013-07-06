@@ -90,6 +90,7 @@ m1 <- mxRun(m1, silent=TRUE)
 # sometimes found as low as .89, maybe solution is unstable
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
 			c(correct.mat)), .9, .06)
-max.se <- max(m1@output$ability[c(2,4),])
-omxCheckCloseEnough(sum(abs(m1@output$ability[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .02)
-omxCheckCloseEnough(.672, cor(c(m1@output$ability[c(1,3),]), c(ability)), .01)
+scores.out <- m1@expectation@scores.out
+max.se <- max(scores.out[c(2,4),])
+omxCheckCloseEnough(sum(abs(scores.out[c(1,3),] - ability) < max.se) / (numPeople*2), .797, .02)
+omxCheckCloseEnough(.672, cor(c(scores.out[c(1,3),]), c(ability)), .01)

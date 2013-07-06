@@ -63,5 +63,6 @@ got <- cor(c(m2@matrices$itemParam@values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
 ability <- scale(ability)
-omxCheckCloseEnough(m2@output$ability[1,], as.vector(ability), 3.5*max(m2@output$ability[,2]))
-omxCheckCloseEnough(cor(c(m2@output$ability[1,]), ability), .737, .01)
+scores <- m2@expectation@scores.out
+omxCheckCloseEnough(scores[1,], as.vector(ability), 3.5*max(scores[,2]))
+omxCheckCloseEnough(cor(c(scores[1,]), ability), .737, .01)

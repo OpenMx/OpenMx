@@ -115,6 +115,9 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	omxMarkClean(off->matrix);
 }
 
+void defaultAddOutput(omxFitFunction* oo, MxRList *out)
+{}
+
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber)
 {
 	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
@@ -137,6 +140,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 			// because older fit functions expect to know the number of
 			// free variables during initFun.
 			obj->setVarGroup = entry->setVarGroup; // ugh!
+			obj->addOutput = defaultAddOutput;
 			break;
 		}
 	}

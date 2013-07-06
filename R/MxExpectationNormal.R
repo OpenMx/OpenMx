@@ -23,7 +23,9 @@ setClass(Class = "MxExpectationNormal",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
-		threshnames = "character"),
+		threshnames = "character",
+		ExpCov = "matrix",
+		ExpMean = "matrix"),
 	contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationNormal",
@@ -37,6 +39,8 @@ setMethod("initialize", "MxExpectationNormal",
 		.Object@thresholds <- thresholds
 		.Object@dims <- dims
 		.Object@threshnames <- threshnames
+		.Object@ExpCov <- matrix()
+		.Object@ExpMean <- matrix()
 		return(.Object)
 	}
 )

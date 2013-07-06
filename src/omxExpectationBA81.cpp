@@ -813,47 +813,39 @@ realEAP(omxExpectation *oo)
  * categories. In D. Thissen & H. Wainer (Eds.), \emph{Test scoring}
  * (pp 73-140). Lawrence Erlbaum Associates, Inc.
  */
-omxRListElement *
-ba81EAP(omxExpectation *oo, int *numReturns)   // rename to "return stuff to user"
+static void
+ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+
+	if (state->scores == SCORES_OMIT) return;
+
+	double *ability = realEAP(oo);
+	int numUnique = state->numUnique;
+	omxData *data = state->data;
 	int maxAbilities = state->maxAbilities;
+	int cols = state->scores == SCORES_FULL? data->rows : numUnique;
+	int rows = 2 * maxAbilities;
+	SEXP Rscores;
+	PROTECT(Rscores = allocMatrix(REALSXP, 2 * maxAbilities, cols));
+	double *scores = REAL(Rscores);
 
-	*numReturns = state->scores != SCORES_OMIT;
-	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
-	int ox=0;
+	if (state->scores == SCORES_FULL) {
+		for (int rx=0; rx < numUnique; rx++) {
+			double *pa = ability + rx * rows;
 
-	if (state->scores != SCORES_OMIT) {
-		double *ability = realEAP(oo);
-		int numUnique = state->numUnique;
-		omxData *data = state->data;
-
-		int cols = state->scores == SCORES_FULL? data->rows : numUnique;
-
-		strcpy(out[ox].label, "ability");
-		out[ox].numValues = -1;
-		out[ox].rows = 2 * maxAbilities;
-		out[ox].cols = cols;
-		out[ox].values = (double*) R_alloc(out[ox].rows * out[ox].cols, sizeof(double));
-
-		if (state->scores == SCORES_FULL) {
-			for (int rx=0; rx < numUnique; rx++) {
-				double *pa = ability + rx * 2 * maxAbilities;
-
-				int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
-				for (int dup=0; dup < dups; dup++) {
-					int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-					memcpy(out[ox].values + dest * out[ox].rows, pa, sizeof(double) * 2 * maxAbilities);
-				}
+			int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
+			for (int dup=0; dup < dups; dup++) {
+				int dest = omxDataIndex(data, state->rowMap[rx]+dup);
+				memcpy(scores + dest * rows, pa, sizeof(double) * rows);
 			}
-		} else {
-			memcpy(out[ox].values, ability, sizeof(double) * numUnique * 2 * maxAbilities);
 		}
-		Free(ability);
-		++ox;
+	} else {
+		memcpy(scores, ability, sizeof(double) * numUnique * rows);
 	}
+	Free(ability);
 
-	return out;
+	setAttrib(robj, install("scores.out"), Rscores);
 }
 
 static void ba81Destroy(omxExpectation *oo) {
@@ -946,6 +938,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	oo->computeFun = ba81Estep;
 	oo->setVarGroup = ignoreSetVarGroup;
 	oo->destructFun = ba81Destroy;
+	oo->populateAttrFun = ba81PopulateAttributes;
 	
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we don't waste RAM.

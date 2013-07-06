@@ -159,6 +159,7 @@ runHelper <- function(model, frontendStart,
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
+	model <- updateModelExpectations(model, flatModel, output$expectations)
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)

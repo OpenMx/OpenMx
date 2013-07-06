@@ -1,3 +1,10 @@
+# This data is from an email:
+#
+# Date: Wed, 06 Feb 2013 19:49:24 -0800
+# From: Li Cai <lcai@ucla.edu>
+# To: Joshua N Pritikin <jpritikin@pobox.com>
+# Subject: Re: how did you control item bias in Cai (2010, p. 592) ?
+
 options(error = utils::recover)
 library(OpenMx)
 library(rpf)
@@ -7,17 +14,12 @@ library(stringr)
 data.raw <- read.csv("/opt/OpenMx/models/failing/data/cai-2009.csv")
 data.g1 <- as.data.frame(data.raw[data.raw$G==1, 2:13])
 data.g2 <- as.data.frame(data.raw[data.raw$G==2, 2:17])
+if (0) {
+  write.table(data.g1, "cai2009-g1.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
+  write.table(data.g2, "cai2009-g2.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)  
+}
 for (col in colnames(data.g1)) data.g1[[col]] <- ordered(data.g1[[col]])
 for (col in colnames(data.g2)) data.g2[[col]] <- ordered(data.g2[[col]])
-
-correct.g1 <- matrix(c(0.99, 1.42, 1.77, 2.19,  1.38, 1.8, 2.16, 1.18, 1.8, 2.61, 1.02, 1.69,
-                       0.65,1.26, 1.21, 0.85, 1.06, 0.81, 1.58, 1.56, 1.08, 1.24, 0.73, 1.39,
-                       0.88, 0.08, -0.35, -0.98, 0.99, 0.21, -0.42, -1.24, 0.81, 0.06, -0.29, -1.14,
-                       rep(0,12)), byrow=TRUE, nrow=4)
-correct.g2 <- matrix(c(0.99, 1.42, 1.77, 2.19, 1.38, 1.8,  2.16, 1.18, 1.8,  2.61, 1.02, 1.69, 1.76, 1.26, 1.45, 1.9,
-                       0.65, 1.26, 1.21, 0.85, 1.06, 0.81, 1.58, 1.56, 1.08, 1.24, 0.73, 1.39, 1.21, 1.25, 0.99, 0.85,
-                       0.88, 0.08,-0.35,-0.98, 0.99, 0.21,-0.42,-1.24, 0.81, 0.06,-0.29,-1.14, 0.88, 0.2, -0.35,-1.09,
-                       rep(0,16)), byrow=TRUE, nrow=4)
 
 mk.model <- function(model.name, data, latent.free) {
 #   name <- "g1"
@@ -52,7 +54,8 @@ mk.model <- function(model.name, data, latent.free) {
   eip.mat <- mxAlgebra(ItemParam, name="EItemParam", fixed=TRUE)
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
-  cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims), free=latent.free)
+  cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
+                      free=latent.free)
   
   m1 <- mxModel(model=model.name, ip.mat, eip.mat, ispec, m.mat, cov.mat,
                 mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
@@ -62,8 +65,8 @@ mk.model <- function(model.name, data, latent.free) {
                   Design="Design",
                   EItemParam="EItemParam",
                   mean="mean", cov="cov",
-                  qpoints=21),
-                mxFitFunctionBA81(ItemParam="ItemParam"))
+                  qpoints=21, qwidth=5, scores="full"),
+                mxFitFunctionBA81(ItemParam="ItemParam", rescale=FALSE))
   m1
 }
 
@@ -71,6 +74,33 @@ g1 <- mk.model("g1", data.g1, TRUE)
 g2 <- mk.model("g2", data.g2, FALSE)
 
 groups <- paste("g", 1:2, sep="")
+
+if (1) {
+  fm <- read.flexmirt("~/irt/cai2009/cai2009-prm.txt")  # use relative path TODO
+  cg1 <- g1
+  cg1@matrices$ItemParam@values <-
+    rbind(fm$G1$param[1,], apply(fm$G1$param[2:4,], 2, sum), fm$G1$param[5,])
+  cg1@matrices$mean@values <- t(fm$G1$mean)
+  cg1@matrices$cov@values <- fm$G1$cov
+  cg2 <- g2
+  cg2@matrices$ItemParam@values <-
+    rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
+  cModel <- mxModel(model="cModel", cg1, cg2,
+                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                    mxComputeSequence(steps=list(
+                      mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                      mxComputeOnce('fitfunction'))))
+  cModel <- mxRun(cModel)
+  # latent distribution is totally wrong:
+#  cModel@submodels$g1@matrices$mean@values - fm$G1$mean
+  print("correct:")
+  print(fm$G1$mean)
+  print(fm$G1$cov)
+#  cModel@submodels$g1@matrices$cov@values - fm$G1$cov
+#  cModel@output$minimum
+}
+
+if(0) {
 grpModel <- mxModel(model="groupModel", g1, g2,
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                     mxComputeIterate(steps=list(
@@ -119,4 +149,4 @@ if (0) {
   df$var <- factor(df$var)
   ggplot(df, aes(x, bias, color=var)) + geom_point() + xlab("true parameter value")
 }
-
+}

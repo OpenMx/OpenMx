@@ -59,8 +59,15 @@ struct omxFitFunction {					// A fit function
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
 	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
-	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals);		// Sets any R returns.
-	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);					// Add attributes to the result algebra object
+
+	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals); // DEPRECATED, use addOutput instead
+
+	// addOutput should only be used for returning global results
+	void (*addOutput)(omxFitFunction* oo, MxRList *out);
+
+	// populateAttrFun should be used for returning results specific to fit functions or expectations
+	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);
+
 	void (*setVarGroup)(omxFitFunction*, FreeVarGroup *);
 	
 	SEXP rObj;																	// Original r Object Pointer

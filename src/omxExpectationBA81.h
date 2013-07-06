@@ -78,9 +78,6 @@ double *
 computeRPF(omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
 	   int maxDims, int maxOutcomes, const int *quad, const double *Qpoint);
 
-omxRListElement *
-ba81EAP(omxExpectation *oo, int *numReturns);
-
 OMXINLINE static void
 pointToWhere(const double *Qpoint, const int *quad, double *where, int upto)
 {

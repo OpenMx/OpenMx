@@ -480,13 +480,6 @@ static void ba81Destroy(omxFitFunction *oo) {
 	delete state;
 }
 
-static omxRListElement *ba81SetFinalReturns(omxFitFunction *oo, int *numReturns)
-{
-	omxRListElement *ret = ba81EAP(oo->expectation, numReturns);
-
-	return ret;
-}
-
 void omxInitFitFunctionBA81(omxFitFunction* oo)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
@@ -499,7 +492,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 
 	oo->computeFun = ba81Compute;
 	oo->setVarGroup = ba81SetFreeVarGroup;
-	oo->setFinalReturns = ba81SetFinalReturns;
 	oo->destructFun = ba81Destroy;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;

@@ -218,6 +218,16 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	return(model)
 }
 
+updateModelExpectations <- function(model, flatModel, values) {
+	eNames <- names(flatModel@expectations)
+	if (length(eNames) != length(values)) {
+		stop(paste("This model has", length(eNames),
+			   "expectations, but the backend has returned", length(values),
+			   "values"))
+	}
+	if (length(eNames) == 0) return(model)
+	updateModelEntitiesHelper(eNames, values, model)
+}
 
 updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMapping) {
     nextName <- model@name
@@ -238,6 +248,10 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 				} else if(is(candidate, "MxMatrix")) {
 					dimnames(value) <- dimnames(candidate)
 					candidate@values <- value
+				} else if (is(candidate, "MxExpectation")) {
+					for (sl in names(attributes(value))) {
+						slot(candidate, sl) <- attr(value, sl)
+					}
 				}
 				model[[name]] <- candidate
 			}

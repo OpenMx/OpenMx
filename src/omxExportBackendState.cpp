@@ -70,7 +70,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		omxExpectation* nextExpectation = currentState->expectationList[index];
 		omxExpectationRecompute(nextExpectation);
 		SEXP rExpect;
-		PROTECT(rExpect = allocVector(LGLSXP, 1));
+		PROTECT(rExpect = allocVector(LGLSXP, 1)); // placeholder to attach attributes
 		if(nextExpectation->populateAttrFun != NULL) {
 			if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", index); }
 			nextExpectation->populateAttrFun(nextExpectation, rExpect);
@@ -86,9 +86,12 @@ void omxExportResults(omxState *currentState, MxRList *out)
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
 {
 	omxFitFunction* off = om->fitFunction;
-	if (off == NULL || off->setFinalReturns == NULL) return;
+	if (!off) return;
 
-	if(OMX_DEBUG) { mxLog("Expecting fit function Info....");}
+	off->addOutput(off, result);
+
+	if (off->setFinalReturns == NULL) return;
+
 	int numEls;
 	SEXP oElement;
 	omxRListElement* orle = off->setFinalReturns(off, &numEls);

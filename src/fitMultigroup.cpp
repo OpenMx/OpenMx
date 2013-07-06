@@ -1,5 +1,6 @@
 #include "omxExpectation.h"
 #include "fitMultigroup.h"
+#include "omxExportBackendState.h"
 #include <vector>
 
 // http://openmx.psyc.virginia.edu/issue/2013/01/multigroup-fit-function
@@ -63,12 +64,24 @@ void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
 	}
 }
 
+void mgAddOutput(omxFitFunction* oo, MxRList *out)
+{
+	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
+
+	for (size_t ex=0; ex < mg->fits.size(); ex++) {
+		omxMatrix* f1 = mg->fits[ex];
+		if (!f1->fitFunction) continue;
+		omxPopulateFitFunction(f1, out);
+	}
+}
+
 void initFitMultigroup(omxFitFunction *oo)
 {
 	oo->expectation = NULL;  // don't care about this
 	oo->computeFun = mgCompute;
 	oo->destructFun = mgDestroy;
 	oo->setVarGroup = mgSetFreeVarGroup;
+	oo->addOutput = mgAddOutput;
 
 	if (!oo->argStruct) oo->argStruct = new FitMultigroup;
 	FitMultigroup *mg = (FitMultigroup *) oo->argStruct;

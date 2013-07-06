@@ -29,7 +29,8 @@ setClass(Class = "MxExpectationRAM",
 		depth = "integer",
 		threshnames = "character",
 		usePPML = "logical",
-		ppmlData = "MxData"),
+		ppmlData = "MxData",
+		UnfilteredExpCov = "matrix"),
 	contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationRAM",
@@ -46,6 +47,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
+		.Object@UnfilteredExpCov <- matrix()
 		return(.Object)
 	}
 )

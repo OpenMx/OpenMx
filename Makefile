@@ -82,6 +82,7 @@ dev-doc:
 
 build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
+	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 8 ]; then echo "*** setFinalReturns is deprecated. Use addOutput."; exit 1; fi
 	mkdir -p build
 	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
