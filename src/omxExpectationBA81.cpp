@@ -809,15 +809,9 @@ ba81EAP(omxExpectation *oo, int *numReturns)   // rename to "return stuff to use
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	int maxAbilities = state->maxAbilities;
 
-	*numReturns = 1 + (state->scores != SCORES_OMIT);
+	*numReturns = state->scores != SCORES_OMIT;
 	omxRListElement *out = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
 	int ox=0;
-
-	out[ox].numValues = 1;
-	strcpy(out[ox].label, "EM.LL");
-	//	out[ox].values = &state->lastEMLL;  TODO
-	out[ox].values = NULL;
-	++ox;
 
 	if (state->scores != SCORES_OMIT) {
 		double *ability = realEAP(oo);

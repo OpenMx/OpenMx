@@ -35,7 +35,6 @@ struct BA81FitState {
 	double *tmpLatentCov;     // maxDims * maxDims ; only lower triangle is used
 	int fitCount;
 	int gradientCount;
-	double lastEMLL;
 
 	std::vector< FreeVarGroup* > varGroups;
 	FreeVarGroup *latentFVG;
@@ -411,7 +410,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		OMXZERO(state->thrDeriv, state->derivPadSize * itemParam->cols * Global->numThreads);
 
 		double got = ba81ComputeMFit1(oo, want, gradient, hessian);
-		state->lastEMLL = got;
 		return got;
 	} else {
 		// Major EM iteration, note completely different LL calculation
