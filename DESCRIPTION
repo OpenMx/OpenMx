@@ -37,7 +37,8 @@ Depends:
 Suggests:
     snowfall,
     roxygen2,
-    mvtnorm
+    mvtnorm,
+    rpf
 LazyLoad: yes
 LazyData: yes
 Collate:
