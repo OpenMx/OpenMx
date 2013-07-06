@@ -482,8 +482,9 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 	state->Qpoint = Realloc(state->Qpoint, state->quadGridSize, double);
 	state->priLogQarea = Realloc(state->priLogQarea, state->totalPrimaryPoints, double);
 
+	double qgs = state->quadGridSize-1;
 	for (int px=0; px < state->quadGridSize; px ++) {
-		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / (state->quadGridSize-1);
+		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / qgs;
 	}
 
 	if (flat) {

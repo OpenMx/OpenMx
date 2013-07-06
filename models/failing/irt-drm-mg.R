@@ -52,7 +52,7 @@ if (1) {
   m2 <- mxRun(m2)
   
 #  omxCheckCloseEnough(m2@output$minimum, 14130.2, 1) TODO
-  omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.357, .01)
+  omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
   
   #print(m2@matrices$itemParam@values)
   #print(correct.mat)
