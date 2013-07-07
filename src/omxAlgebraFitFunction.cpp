@@ -45,18 +45,6 @@ static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, FitContext 
 	if(OMX_DEBUG) {mxLog("Algebra Fit Function value is %f.", off->matrix->data[0]);}
 }
 
-omxRListElement* omxSetFinalReturnsAlgebraFitFunction(omxFitFunction *off, int *numReturns) {
-	*numReturns = 1;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(off->matrix, 0, 0);
-
-	return retVal;
-}
-
 void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	
 	if(OMX_DEBUG) {
@@ -74,7 +62,6 @@ void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	}
 	
 	off->computeFun = omxCallAlgebraFitFunction;
-	off->setFinalReturns = omxSetFinalReturnsAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;
 	
 	off->argStruct = (void*) newObj;

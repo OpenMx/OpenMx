@@ -170,15 +170,3 @@ convertFitFunctions <- function(flatModel, model, labelsData, defVars, dependenc
 		flatModel, model, labelsData, defVars, dependencies)
 	return(retval)
 }
-
-fitFunctionReadAttributes <- function(fitFunction, values) {
-        attr <- attributes(values)
-        attributes(values) <- list('dim' = attr$dim)
-
-		dimnames(values) <- dimnames(fitFunction)
-        attr$dim <- NULL
-
-		fitFunction@result <- values
-        fitFunction@info <- attr
-		return(fitFunction)
-}

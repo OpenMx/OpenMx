@@ -624,6 +624,7 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 	omxPopulateFitFunction(algebra, out);
 
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
+	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
 
 	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {

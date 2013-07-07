@@ -61,56 +61,6 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
     if(owo->P != NULL) omxFreeMatrixData(owo->P);
 }
 
-omxRListElement* omxSetFinalReturnsWLSFitFunction(omxFitFunction *oo, int *numReturns) {
-	*numReturns = 4;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
-
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
-
-	retVal[1].numValues = 1;
-	retVal[1].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
-    retVal[1].values[0] = 0;
-
-	retVal[2].numValues = 1;
-	retVal[2].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[2].label, "IndependenceLikelihood", 23);
-    retVal[2].values[0] = 0;
-
-	retVal[3].numValues = 1;
-	retVal[3].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[3].label, "ADFMisfit", 20);
-	retVal[3].values[0] = omxMatrixElement(oo->matrix, 0, 0);
-
-    // retVal[1].numValues = 1;
-    // retVal[1].values = (double*) R_alloc(1, sizeof(double));
-    // strncpy(retVal[1].label, "SaturatedADFMisfit", 20);
-    // retVal[1].values[0] = (((omxWLSFitFunction*)oo->argStruct)->logDetObserved + ncols) * (((omxWLSFitFunction*)oo->argStruct)->n - 1);
-    // 
-    // retVal[2].numValues = 1;
-    // retVal[2].values = (double*) R_alloc(1, sizeof(double));
-    // strncpy(retVal[2].label, "IndependenceLikelihood", 23);
-    // // Independence model assumes all-zero manifest covariances.
-    // // (det(expected) + tr(observed * expected^-1)) * (n - 1);
-    // // expected is the diagonal of the observed.  Inverse expected is 1/each diagonal value.
-    // // Therefore the diagonal elements of observed * expected^-1 are each 1.
-    // // So the trace of the matrix is the same as the number of columns.
-    // // The determinant of a diagonal matrix is the product of the diagonal elements.
-    // // Since these are the same in the expected as in the observed, we can get 'em direct.
-    // for(int i = 0; i < ncols; i++) {
-    //  // We sum logs instead of logging the product.
-    //  det += log(omxMatrixElement(cov, i, i));
-    // }
-    // if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, ((omxWLSFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1)); }
-    // if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-    // retVal[2].values[0] = (ncols + det) * (((omxWLSFitFunction*)oo->argStruct)->n - 1);
-
-	return retVal;
-}
-
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if (want & FF_COMPUTE_PREOPTIMIZE) return;
 
@@ -220,8 +170,11 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	setAttrib(algebra, install("weights"), weightExt);
 	setAttrib(algebra, install("gradients"), gradients);
 	
-	UNPROTECT(4);
+	setAttrib(algebra, install("SaturatedLikelihood"), ScalarReal(0));
+	setAttrib(algebra, install("IndependenceLikelihood"), ScalarReal(0));
+	setAttrib(algebra, install("ADFMisfit"), ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
 
+	UNPROTECT(4);
 }
 
 void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
@@ -229,7 +182,6 @@ void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	/* Set FitFunction Calls to WLS FitFunction Calls */
 	oo->computeFun = omxCallWLSFitFunction;
 	oo->destructFun = omxDestroyWLSFitFunction;
-	oo->setFinalReturns = omxSetFinalReturnsWLSFitFunction;
 	oo->populateAttrFun = omxPopulateWLSAttributes;
 }
 

@@ -59,18 +59,6 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	UNPROTECT(2); // theCall and theReturn
 }
 
-omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns) {
-	*numReturns = 1;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = oo->matrix->data[0];
-
-	return retVal;
-}
-
 void omxInitRFitFunction(omxFitFunction* oo) {
 	FitContext::setRFitFunction(oo);
 
@@ -81,7 +69,6 @@ void omxInitRFitFunction(omxFitFunction* oo) {
 
 	/* Set Fit Function Calls to RFitFunction Calls */
 	oo->computeFun = omxCallRFitFunction;
-	oo->setFinalReturns = omxSetFinalReturnsRFitFunction;
 	oo->destructFun = omxDestroyRFitFunction;
 	oo->argStruct = (void*) newObj;
 	

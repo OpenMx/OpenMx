@@ -38,26 +38,15 @@ void omxDestroyMLFitFunction(omxFitFunction *oo) {
 	if(omlo->I != NULL)			omxFreeMatrixData(omlo->I);
 }
 
-omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numReturns) {
-	*numReturns = 3;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(*numReturns, sizeof(omxRListElement));
+static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, double *independence_out)
+{
+	omxMLFitFunction *state = (omxMLFitFunction*) oo->argStruct;
 	double det = 0.0;
-	omxMatrix* cov = ((omxMLFitFunction*)oo->argStruct)->observedCov;
-	int ncols = ((omxMLFitFunction*)oo->argStruct)->observedCov->cols;
+	omxMatrix* cov = state->observedCov;
+	int ncols = state->observedCov->cols;
     
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(oo->matrix, 0, 0);
+	*saturated_out = (state->logDetObserved + ncols) * (state->n - 1);
 
-	retVal[1].numValues = 1;
-	retVal[1].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[1].label, "SaturatedLikelihood", 20);
-	retVal[1].values[0] = (((omxMLFitFunction*)oo->argStruct)->logDetObserved + ncols) * (((omxMLFitFunction*)oo->argStruct)->n - 1);
-
-	retVal[2].numValues = 1;
-	retVal[2].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[2].label, "IndependenceLikelihood", 23);
 	// Independence model assumes all-zero manifest covariances.
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
 	// expected is the diagonal of the observed.  Inverse expected is 1/each diagonal value.
@@ -65,15 +54,27 @@ omxRListElement* omxSetFinalReturnsMLFitFunction(omxFitFunction *oo, int *numRet
 	// So the trace of the matrix is the same as the number of columns.
 	// The determinant of a diagonal matrix is the product of the diagonal elements.
 	// Since these are the same in the expected as in the observed, we can get 'em direct.
+
 	for(int i = 0; i < ncols; i++) {
 		// We sum logs instead of logging the product.
 		det += log(omxMatrixElement(cov, i, i));
 	}
-	if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, ((omxMLFitFunction*)oo->argStruct)->n, (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1)); }
+	if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, state->n, (ncols + det) * (state->n - 1)); }
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
-	retVal[2].values[0] = (ncols + det) * (((omxMLFitFunction*)oo->argStruct)->n - 1);
 
-	return retVal;
+	*independence_out = (ncols + det) * (state->n - 1);
+}
+
+static void addOutput(omxFitFunction *oo, MxRList *out)
+{
+	// DEPRECATED, use omxPopulateMLAttributes
+	double saturated_out;
+	double independence_out;
+	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
+	out->push_back(std::make_pair(mkChar("SaturatedLikelihood"),
+				      ScalarReal(saturated_out)));
+	out->push_back(std::make_pair(mkChar("IndependenceLikelihood"),
+				      ScalarReal(independence_out)));
 }
 
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
@@ -240,8 +241,13 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 	setAttrib(algebra, install("expMean"), expMeanExt);
 	setAttrib(algebra, install("gradients"), gradients);
 	
-	UNPROTECT(3);
+	double saturated_out;
+	double independence_out;
+	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
+	setAttrib(algebra, install("SaturatedLikelihood"), ScalarReal(saturated_out));
+	setAttrib(algebra, install("IndependenceLikelihood"), ScalarReal(independence_out));
 
+	UNPROTECT(3);
 }
 
 void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
@@ -249,7 +255,7 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 	/* Set FitFunction Calls to ML FitFunction Calls */
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
-	oo->setFinalReturns = omxSetFinalReturnsMLFitFunction;
+	oo->addOutput = addOutput;
 	oo->populateAttrFun = omxPopulateMLAttributes;
 }
 

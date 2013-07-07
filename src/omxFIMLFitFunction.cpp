@@ -91,31 +91,17 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	UNPROTECT(3); // expCovExp, expCovInt, rowLikelihoodsExt
 }
 
-omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *off, int *numReturns) {
-
+omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *off, int *numReturns)
+{
+	// DEPRECATED use omxPopulateFIMLAttributes
 	omxFIMLFitFunction* ofiml = (omxFIMLFitFunction *) (off->argStruct);
 
-	omxRListElement* retVal;
+	if(!ofiml->returnRowLikelihoods) return NULL;
 
-	*numReturns = 1;
-
-	if(!ofiml->returnRowLikelihoods) {
-		retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-	} else {
-		retVal = (omxRListElement*) R_alloc(2, sizeof(omxRListElement));
-	}
-
-	retVal[0].numValues = 1;
-	retVal[0].values = (double*) R_alloc(1, sizeof(double));
-	strncpy(retVal[0].label, "Minus2LogLikelihood", 20);
-	retVal[0].values[0] = omxMatrixElement(off->matrix, 0, 0);
-
-
-	if(ofiml->returnRowLikelihoods) {
-		omxData* data = ofiml->data;
-		retVal[1].numValues = data->rows;
-		retVal[1].values = (double*) R_alloc(data->rows, sizeof(double));
-	}
+	omxRListElement *retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
+	omxData* data = ofiml->data;
+	retVal[0].numValues = data->rows;
+	retVal[0].values = (double*) R_alloc(data->rows, sizeof(double));
 
 	return retVal;
 }

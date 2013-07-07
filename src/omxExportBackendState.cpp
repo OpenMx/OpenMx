@@ -95,7 +95,7 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
 	int numEls;
 	SEXP oElement;
 	omxRListElement* orle = off->setFinalReturns(off, &numEls);
-	if(numEls == 0) return;
+	if (!orle || numEls == 0) return;
 
 	if(OMX_DEBUG) { mxLog("Adding %d sets of fit function Info....", numEls);}
 	for(int i = 0; i < numEls; i++) {

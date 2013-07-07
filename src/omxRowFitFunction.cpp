@@ -34,16 +34,6 @@ void omxDestroyRowFitFunction(omxFitFunction *oo) {
 	omxFreeMatrixData(argStruct->dataRow);
 }
 
-omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numReturns) {
-	*numReturns = 0;
-	omxRListElement* retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-
-	retVal[0].numValues = 0;
-
-	return retVal;
-}
-
-
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
 	
 	int i;
@@ -370,7 +360,6 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 
 	oo->computeFun = omxCallRowFitFunction;
-	oo->setFinalReturns = omxSetFinalReturnsRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
 	oo->usesChildModels = TRUE;
 
