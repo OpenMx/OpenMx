@@ -450,6 +450,7 @@ ba81Estep1(omxExpectation *oo) {
 	//mxLog("E-step\n");
 	//pda(ElatentMean, state->maxAbilities, 1);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
+	state->validExpectation = TRUE;
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
@@ -681,6 +682,7 @@ realEAP(omxExpectation *oo)
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
 
+	/*
 	int numQpoints = state->targetQpoints * 2;  // make configurable TODO
 
 	if (numQpoints < 1 + 2.0 * sqrt(state->itemSpec->cols)) {
@@ -690,6 +692,7 @@ realEAP(omxExpectation *oo)
 
 	ba81SetupQuadrature(oo, numQpoints, 0);
 	ba81Estep1(oo);
+	*/
 
 	/*
 	double *cov = NULL;
@@ -818,7 +821,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 
-	if (state->scores == SCORES_OMIT) return;
+	if (state->scores == SCORES_OMIT || !state->validExpectation) return;
 
 	double *ability = realEAP(oo);
 	int numUnique = state->numUnique;
@@ -829,6 +832,21 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	SEXP Rscores;
 	PROTECT(Rscores = allocMatrix(REALSXP, 2 * maxAbilities, cols));
 	double *scores = REAL(Rscores);
+
+	SEXP names;
+	PROTECT(names = allocVector(STRSXP, 2 * maxAbilities));
+	for (int nx=0; nx < maxAbilities; ++nx) {
+		const int SMALLBUF = 10;
+		char buf[SMALLBUF];
+		snprintf(buf, SMALLBUF, "s%d", nx+1);
+		SET_STRING_ELT(names, nx*2, mkChar(buf));
+		snprintf(buf, SMALLBUF, "se%d", nx+1);
+		SET_STRING_ELT(names, nx*2+1, mkChar(buf));
+	}
+	SEXP dimnames;
+	PROTECT(dimnames = allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(dimnames, 0, names);
+	setAttrib(Rscores, R_DimNamesSymbol, dimnames);
 
 	if (state->scores == SCORES_FULL) {
 		for (int rx=0; rx < numUnique; rx++) {

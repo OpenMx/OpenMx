@@ -68,6 +68,7 @@ typedef struct {
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
 
+	bool validExpectation;
 	enum score_option scores;
 } BA81Expect;
 
