@@ -40,7 +40,6 @@ class FitContext {
 
 	void init();
 	FitContext();
-	FitContext(FitContext *parent);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);

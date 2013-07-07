@@ -413,8 +413,6 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg) // too ad hoc? T
 static double
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 {
-	if (!want) return 0;
-
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 
 	if (!state->paramMap) buildParamMap(oo);
@@ -465,6 +463,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 {
+	if (!want) return;
 	oo->matrix->data[0] = ba81ComputeFit(oo, want, fc);
 }
 

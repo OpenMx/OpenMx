@@ -70,7 +70,7 @@ if(1) {
 		m2 <- mxOption(m2, "Function precision", '1.0E-7')
 		m2 <- mxRun(m2)
 		
-					#  omxCheckCloseEnough(m2@output$minimum, 14130.2, 1) TODO
+		omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)
 		omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
 		
 					#print(m2@matrices$itemParam@values)

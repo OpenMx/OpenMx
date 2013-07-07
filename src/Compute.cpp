@@ -25,7 +25,7 @@ std::vector<int> FitContext::markMatrices;
 void FitContext::init()
 {
 	size_t numParam = varGroup->vars.size();
-	fit = 0;
+	fit = parent? parent->fit : 0;
 	est = new double[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
@@ -45,17 +45,6 @@ FitContext::FitContext()
 			hess[v1 * numParam + v2] = nan("unset");
 		}
 	}
-}
-
-FitContext::FitContext(FitContext *parent)
-{
-	varGroup = parent->varGroup;
-	init();
-	fit = parent->fit;
-	size_t numParam = varGroup->vars.size();
-	memcpy(est, parent->est, sizeof(double) * numParam);
-	memcpy(grad, parent->grad, sizeof(double) * numParam);
-	memcpy(hess, parent->hess, sizeof(double) * numParam * numParam);
 }
 
 // arg to control what to copy? usually don't want everything TODO

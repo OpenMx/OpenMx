@@ -165,11 +165,12 @@ void ComputeNR::reportResults(FitContext *fc, MxRList *out)
 	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
 	out->push_back(std::make_pair(mkChar("estimate"), estimate));
 
-	SEXP code, iterations;
+	SEXP code;
+	SEXP iterations;
 
-	PROTECT(code = NEW_NUMERIC(1));
-	REAL(code)[0] = inform;
-	out->push_back(std::make_pair(mkChar("nr.code"), code));
+	// PROTECT(code = NEW_NUMERIC(1));
+	// REAL(code)[0] = inform;
+	// out->push_back(std::make_pair(mkChar("nr.code"), code));
 
 	PROTECT(iterations = NEW_NUMERIC(1));
 	REAL(iterations)[0] = iter;
