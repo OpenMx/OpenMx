@@ -98,7 +98,7 @@ if (1) {
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
   cModel.eap <- mxRun(cModel)
   
-  fm.sco <- suppressWarnings(try(read.table("models/passing/data/2d-mg-sco.txt"), silent=TRUE))
+  fm.sco <- suppressWarnings(try(read.table("models/nightly/data/2d-mg-sco.txt"), silent=TRUE))
   if (is(fm.sco, "try-error")) fm.sco <- read.table("data/2d-mg-sco.txt")
   colnames(fm.sco) <- c("group", "row", "s1", "s2", "se1", "se2", paste("cov",1:3,sep=""))
   
