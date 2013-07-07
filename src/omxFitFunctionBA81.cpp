@@ -482,6 +482,11 @@ static void ba81Destroy(omxFitFunction *oo) {
 
 void omxInitFitFunctionBA81(omxFitFunction* oo)
 {
+	if (!oo->argStruct) { // ugh!
+		BA81FitState *state = new BA81FitState;
+		oo->argStruct = state;
+	}
+
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	SEXP rObj = oo->rObj;
 

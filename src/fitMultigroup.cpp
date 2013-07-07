@@ -26,11 +26,9 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
 		if (f1->fitFunction) {
-			// possibly invalidate gradients TODO
 			omxFitFunctionCompute(f1->fitFunction, ffcompute, fc);
 			if (OMX_DEBUG) { mxLog("mg fit %s %d", f1->name, ffcompute); }
 		} else {
-			// invalidate gradients TODO
 			omxRecompute(f1);
 
 			// This should really be checked elsewhere. TODO
@@ -91,6 +89,9 @@ void initFitMultigroup(omxFitFunction *oo)
 
 	if (mg->fits.size()) return; // hack to prevent double initialization, remove TOOD
 
+	oo->gradientAvailable = TRUE;
+	oo->hessianAvailable = TRUE;
+
 	omxState *os = oo->matrix->currentState;
 
 	SEXP slotValue;
@@ -101,7 +102,7 @@ void initFitMultigroup(omxFitFunction *oo)
 		if (fits[gx] >= 0) {
 			mat = os->algebraList[fits[gx]];
 		} else {
-			mat = os->matrixList[~fits[gx]];
+			error("Can only add algebra and fitfunction");
 		}
 		if (mat == oo->matrix) error("Cannot add multigroup to itself");
 		mg->fits.push_back(mat);
@@ -110,11 +111,18 @@ void initFitMultigroup(omxFitFunction *oo)
 				setFreeVarGroup(mat->fitFunction, mg->varGroups[vg]);
 				oo->freeVarGroup = mat->fitFunction->freeVarGroup;
 			}
+			omxCompleteFitFunction(mat);
+			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
+			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
+		} else {
+			// TODO derivs for algebra
+			oo->gradientAvailable = FALSE;
+			oo->hessianAvailable = FALSE;
 		}
 	}
 }
 
-// needs more sanity checking TODO
+/* TODO
 void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *fit)
 {
 	if (oo->initFun != initFitMultigroup) error("%s is not the multigroup fit", oo->fitType);
@@ -124,3 +132,4 @@ void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *fit)
 	mg->fits.push_back(fit->matrix);
 	//addFreeVarDependency(oo->matrix->currentState, oo->matrix, fit->matrix);
 }
+*/

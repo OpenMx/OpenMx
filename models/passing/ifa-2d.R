@@ -37,7 +37,7 @@ ability <- array(rnorm(numPeople * 2), dim=c(2, numPeople))
 #cov <- matrix(c(1, .68, .68, 1), nrow=2)
 #ability <- rmvnorm(numPeople, sigma=cov)
 data <- rpf.sample(ability, items, correct.mat, design)
-write.csv(data, file="2d-new.csv")
+#write.csv(data, file="2d-new.csv")
 
 spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
          values=sapply(items, function(m) slot(m,'spec')),

@@ -49,6 +49,7 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 				ff <- paste(path, "fitfunction", sep=".")
 				length(model@algebras) + imxLocateIndex(flatModel, ff, name)
 			} else if (length(path) == 2) {
+				# restrict to algebra or fitfunction TODO
 				imxLocateIndex(flatModel, group, name)
 			}
 		}, 1L)
