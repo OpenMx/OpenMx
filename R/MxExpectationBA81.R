@@ -137,6 +137,9 @@ mxExpectationBA81 <- function(ItemSpec, EItemParam, Design=NULL,
 	if (qpoints < 3) {
 		stop("qpoints should be 3 or greater")
 	}
+	if (qpoints %% 2 == 0) {
+		warning("An even number of qpoints can obtain a better than true fit; Use an odd number of qpoints")
+	}
 	if (missing(qwidth)) qwidth <- 6
 	if (qwidth <= 0) {
 		stop("qwidth must be positive")
