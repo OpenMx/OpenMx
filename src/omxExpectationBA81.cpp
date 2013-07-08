@@ -250,7 +250,7 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
 	int sDim = maxDims-1;
-
+	int quadGridSize = state->quadGridSize;
 	int quad[maxDims];
 	memcpy(quad, primaryQuad, sizeof(int)*sDim);
 
@@ -259,28 +259,25 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
 
 	for (int sx=0; sx < numSpecific; sx++) {
 		double *eis = Slxk + numUnique * sx;
-		int quadGridSize = state->quadGridSize;
 
 		for (int qx=0; qx < quadGridSize; qx++) {
 			quad[sDim] = qx;
-			double where[maxDims];
-			pointToWhere(state->Qpoint, quad, where, maxDims);
 
-			double *lxk;
+			double *lxk;     // a.k.a. "L_is"
 			if (recompute) {
 				lxk = ba81Likelihood(oo, sx, quad);
 			} else {
-				lxk = getLXKcache(state, quad, sx);
+				lxk = ba81LikelihoodFast(oo, sx, quad);
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				eis[ix] += exp(lxk[ix] + state->priLogQarea[qx]);
+				eis[ix] += exp(lxk[ix] + state->speLogQarea[sx * quadGridSize + qx]);
 			}
 		}
 
 		for (int px=0; px < numUnique; px++) {
 			eis[px] = log(eis[px]);
-			allSlxk[px] += eis[px];
+			allSlxk[px] += eis[px];  // allSlxk a.k.a. "E_i"
 		}
 	}
 }
