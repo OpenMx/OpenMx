@@ -375,12 +375,22 @@ updateLatentParam(omxFitFunction* oo, FitContext *fc)
 	// TODO need denom for multigroup
 	for (int a1=0; a1 < maxAbilities; ++a1) {
 		if (state->latentMeanMap[a1] >= 0) {
-			fc->est[ state->latentMeanMap[a1] ] = estate->ElatentMean[a1];
+			double val = estate->ElatentMean[a1];
+			int vx = state->latentMeanMap[a1];
+			omxFreeVar *fv = fc->varGroup->vars[vx];
+			if (val < fv->lbound) val = fv->lbound;
+			if (val > fv->ubound) val = fv->ubound;
+			fc->est[vx] = val;
 		}
 		for (int a2=0; a2 < maxAbilities; ++a2) {
 			int cell = a2 * maxAbilities + a1;
 			if (state->latentCovMap[cell] < 0) continue;
-			fc->est[ state->latentCovMap[cell] ] = estate->ElatentCov[cell];
+			double val = estate->ElatentCov[cell];
+			int vx = state->latentCovMap[cell];
+			omxFreeVar *fv = fc->varGroup->vars[vx];
+			if (val < fv->lbound) val = fv->lbound;
+			if (val > fv->ubound) val = fv->ubound;
+			fc->est[vx] = val;
 		}
 	}
 
