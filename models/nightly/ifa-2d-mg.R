@@ -102,12 +102,14 @@ if (1) {
   if (is(fm.sco, "try-error")) fm.sco <- read.table("data/2d-mg-sco.txt")
   colnames(fm.sco) <- c("group", "row", "s1", "s2", "se1", "se2", paste("cov",1:3,sep=""))
   
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,c("s1","se1","s2","se2")]),
-                      t(cModel.eap@submodels$g1@expectation@scores.out), 1e-3)
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,c("s1","se1","s2","se2")]),
-                      t(cModel.eap@submodels$g2@expectation@scores.out), 1e-3)
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,c("s1","se1","s2","se2")]),
-                      t(cModel.eap@submodels$g3@expectation@scores.out), 1e-3)
+  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,-1:-2]),
+                      cModel.eap@submodels$g1@expectation@scores.out, 1e-3)
+#  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,3:4]),
+#                      cModel.eap@submodels$g2@expectation@scores.out[,1:2], 1e-3)
+  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,-1:-2]),
+                      cModel.eap@submodels$g2@expectation@scores.out, 1e-3)
+  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,-1:-2]),
+                      cModel.eap@submodels$g3@expectation@scores.out, 1e-3)
 
   cModel <- mxModel(cModel,
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),

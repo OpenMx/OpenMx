@@ -40,7 +40,7 @@ m2 <- mxModel(model="drm1", ip.mat, spec, m.mat, cov.mat, eip.mat,
               mxExpectationBA81(
                 ItemSpec="ItemSpec", EItemParam="EItemParam",
                 mean="mean", cov="cov",
-		qpoints=30,
+		qpoints=31,
 		scores="full"),
               mxFitFunctionBA81(ItemParam="itemParam"),
 	      mxComputeIterate(steps=list(
@@ -64,5 +64,5 @@ got <- cor(c(m2@matrices$itemParam@values[1:2,]),
 omxCheckCloseEnough(got, .988, .01)
 ability <- scale(ability)
 scores <- m2@expectation@scores.out
-omxCheckCloseEnough(scores[1,], as.vector(ability), 3.5*max(scores[,2]))
-omxCheckCloseEnough(cor(c(scores[1,]), ability), .737, .01)
+omxCheckCloseEnough(scores[,1], as.vector(ability), 3.5*max(scores[,2]))
+omxCheckCloseEnough(cor(c(scores[,1]), ability), .737, .01)

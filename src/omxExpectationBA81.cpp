@@ -54,6 +54,14 @@ void pia(const int *ar, int rows, int cols)
 	mxLogBig(buf);
 }
 
+OMXINLINE static int
+triangleLoc0(int diag)
+{ return (diag+1) * (diag+2) / 2 - 1; }
+
+OMXINLINE static int
+triangleLoc1(int diag)
+{ return (diag) * (diag+1) / 2; }
+
 OMXINLINE static void
 assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix,
 	   const double *theta, double *ptheta)
@@ -642,6 +650,122 @@ ba81Expected(omxExpectation* oo)
 }
 
 static void
+EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
+{
+	// add openmp parallelization stuff TODO
+	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	int numUnique = state->numUnique;
+	int maxAbilities = state->maxAbilities;
+	int covEntries = triangleLoc1(maxAbilities);
+	int maxDims = state->maxDims;
+	int numSpecific = state->numSpecific;
+	int priDims = maxDims - (numSpecific? 1 : 0);
+
+	mean->assign(numUnique * maxAbilities, 0);
+	cov->assign(numUnique * covEntries, 0);
+
+	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+		int quad[priDims];
+		decodeLocation(qx, priDims, state->quadGridSize, quad);
+		double where[priDims];
+		pointToWhere(state->Qpoint, quad, where, priDims);
+		double logArea = state->priLogQarea[qx];
+
+		double *lxk;
+		if (numSpecific == 0) {
+			lxk = ba81LikelihoodFast(oo, 0, quad);
+		} else {
+			double *allSlxk = CALC_ALLSLXK(state, numUnique);
+			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
+			cai2010(oo, FALSE, quad, allSlxk, Slxk);
+			lxk = allSlxk;
+		}
+
+		for (int px=0; px < numUnique; px++) {
+			double plik = exp(logArea + lxk[px]);
+			int cx=0;
+			for (int d1=0; d1 < priDims; d1++) {
+				double piece = where[d1] * plik;
+				(*mean)[px * maxAbilities + d1] += piece;
+				for (int d2=0; d2 <= d1; d2++) {
+					(*cov)[px * covEntries + cx] += where[d2] * piece;
+					++cx;
+				}
+			}
+		}
+	}
+
+	if (numSpecific) {
+		std::vector<double> ris(numUnique);
+		for (int sx=0; sx < numSpecific; sx++) {
+			for (int sqx=0; sqx < state->quadGridSize; sqx++) {
+				double area = exp(state->speLogQarea[sx * state->quadGridSize + sqx]);
+				double ptArea = area * state->Qpoint[sqx];
+				ris.assign(numUnique, 0);
+				for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+					int quad[maxDims];
+					decodeLocation(qx, priDims, state->quadGridSize, quad);
+					quad[priDims] = sqx;
+
+					double *allSlxk = CALC_ALLSLXK(state, numUnique);
+					double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
+					cai2010(oo, FALSE, quad, allSlxk, Slxk);
+
+					double *eis = Slxk + numUnique * sx;
+					double *lxk = ba81LikelihoodFast(oo, sx, quad);
+
+					double logArea = state->priLogQarea[qx];
+					for (int px=0; px < numUnique; px++) {
+						ris[px] += exp(logArea + lxk[px] + allSlxk[px] - eis[px]);
+					}
+				}
+				for (int px=0; px < numUnique; px++) {
+					double piece = ris[px] * ptArea;
+					int dim = priDims + sx;
+					(*mean)[px * maxAbilities + dim] += piece;
+					(*cov)[px * covEntries + triangleLoc0(dim)] += piece * state->Qpoint[sqx];
+				}
+			}
+		}
+	}
+	//mxLog("step1");
+	//pda(mean->data(), maxAbilities, 2);
+	//pda(cov->data(), covEntries, numUnique);
+
+	double *patternLik = state->patternLik;
+	for (int px=0; px < numUnique; px++) {
+		double denom = exp(patternLik[px]);
+		for (int ax=0; ax < maxAbilities; ax++) {
+			(*mean)[px * maxAbilities + ax] /= denom;
+		}
+		for (int cx=0; cx < triangleLoc1(priDims); ++cx) {
+			(*cov)[px * covEntries + cx] /= denom;
+		}
+		for (int sx=0; sx < numSpecific; sx++) {
+			(*cov)[px * covEntries + triangleLoc0(priDims + sx)] /= denom;
+		}
+
+		int cx=0;
+		for (int a1=0; a1 < priDims; ++a1) {
+			for (int a2=0; a2 <= a1; ++a2) {
+				double ma1 = (*mean)[px * maxAbilities + a1];
+				double ma2 = (*mean)[px * maxAbilities + a2];
+				(*cov)[px * covEntries + cx] -= ma1 * ma2;
+				++cx;
+			}
+		}
+		for (int sx=0; sx < numSpecific; sx++) {
+			int sdim = priDims + sx;
+			double ma1 = (*mean)[px * maxAbilities + sdim];
+			(*cov)[px * covEntries + triangleLoc0(sdim)] -= ma1 * ma1;
+		}
+        }
+	//mxLog("step2");
+	//pda(mean->data(), maxAbilities, 2);
+	//pda(cov->data(), covEntries, numUnique);
+}
+
+static void
 ba81Estep(omxExpectation *oo, const char *context) {
 	if (!context) return;
 
@@ -663,143 +787,21 @@ ba81Estep(omxExpectation *oo, const char *context) {
 	}
 }
 
-static double *
-realEAP(omxExpectation *oo)
+static void
+copyScore(int rows, int maxAbilities, std::vector<double> &mean,
+	  std::vector<double> &cov, const int rx, double *scores, const int dest)
 {
-	// add openmp parallelization stuff TODO
-
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	int numSpecific = state->numSpecific;
-	int maxDims = state->maxDims;
-	int priDims = maxDims - (numSpecific? 1 : 0);
-	int numUnique = state->numUnique;
-	int maxAbilities = state->maxAbilities;
-
-	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
-	// model. Journal of Educational Statistics, 12, 339-368.
-
-	/*
-	int numQpoints = state->targetQpoints * 2;  // make configurable TODO
-
-	if (numQpoints < 1 + 2.0 * sqrt(state->itemSpec->cols)) {
-		// Thissen & Orlando (2001, p. 136)
-		warning("EAP requires at least 2*sqrt(items) quadrature points");
+	for (int ax=0; ax < maxAbilities; ++ax) {
+		scores[rows * ax + dest] = mean[maxAbilities * rx + ax];
 	}
-
-	ba81SetupQuadrature(oo, numQpoints, 0);
-	ba81Estep1(oo);
-	*/
-
-	/*
-	double *cov = NULL;
-	if (maxDims > 1) {
-		strcpy(out[2].label, "ability.cov");
-		out[2].numValues = -1;
-		out[2].rows = maxDims;
-		out[2].cols = maxDims;
-		out[2].values = (double*) R_alloc(out[2].rows * out[2].cols, sizeof(double));
-		cov = out[2].values;
-		OMXZERO(cov, out[2].rows * out[2].cols);
+	for (int ax=0; ax < maxAbilities; ++ax) {
+		scores[rows * (maxAbilities + ax) + dest] =
+			sqrt(cov[triangleLoc1(maxAbilities) * rx + triangleLoc0(ax)]);
 	}
-	*/
-
-	// Need a separate work space because the destination needs
-	// to be in unsorted order with duplicated rows.
-	double *ability = Calloc(numUnique * maxAbilities * 2, double);
-
-	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-		int quad[priDims];
-		decodeLocation(qx, priDims, state->quadGridSize, quad);
-		double where[priDims];
-		pointToWhere(state->Qpoint, quad, where, priDims);
-		double logArea = state->priLogQarea[qx];
-
-		double *lxk;
-		if (numSpecific == 0) {
-			lxk = ba81LikelihoodFast(oo, 0, quad);
-		} else {
-			double *allSlxk = CALC_ALLSLXK(state, numUnique);
-			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-			cai2010(oo, FALSE, quad, allSlxk, Slxk);
-			lxk = allSlxk;
-		}
-
-		double *row = ability;
-		for (int px=0; px < numUnique; px++) {
-			double plik = exp(logArea + lxk[px]);
-			for (int dx=0; dx < priDims; dx++) {
-				double piece = where[dx] * plik;
-				row[dx*2] += piece;
-				row[dx*2 + 1] += where[dx] * piece;
-				// ignore cov, for now
-			}
-			row += 2 * maxAbilities;
-		}
+	for (int ax=0; ax < triangleLoc1(maxAbilities); ++ax) {
+		scores[rows * (2*maxAbilities + ax) + dest] =
+			cov[triangleLoc1(maxAbilities) * rx + ax];
 	}
-
-	double *ris = Realloc(NULL, numUnique, double);
-	for (int sx=0; sx < numSpecific; sx++) {
-		for (int sqx=0; sqx < state->quadGridSize; sqx++) {
-			double area = exp(state->speLogQarea[sx * state->quadGridSize + sqx]);
-			double ptArea = area * state->Qpoint[sqx];
-			OMXZERO(ris, numUnique);
-			for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-				int quad[maxDims];
-				decodeLocation(qx, priDims, state->quadGridSize, quad);
-				quad[priDims] = sqx;
-
-				double *allSlxk = CALC_ALLSLXK(state, numUnique);
-				double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-				cai2010(oo, FALSE, quad, allSlxk, Slxk);
-
-				double *eis = Slxk + numUnique * sx;
-				double *lxk = ba81LikelihoodFast(oo, sx, quad);
-
-				double logArea = state->priLogQarea[qx];
-				for (int px=0; px < numUnique; px++) {
-					ris[px] += exp(logArea + lxk[px] + allSlxk[px] - eis[px]);
-				}
-			}
-			double *row = ability;
-			for (int px=0; px < numUnique; px++) {
-				double piece = ris[px] * ptArea;
-			        row[(priDims + sx) * 2] += piece;
-			        row[(priDims + sx) * 2 + 1] += piece * state->Qpoint[sqx];
-				row += 2 * maxAbilities;
-		        }
-		}
-	}
-	Free(ris);
-
-	double *patternLik = state->patternLik;
-	double *row = ability;
-	for (int px=0; px < numUnique; px++) {
-		double denom = exp(patternLik[px]);
-		for (int ax=0; ax < maxAbilities; ax++) {
-			row[ax * 2] /= denom;
-			row[ax * 2 + 1] /= denom;
-			row[ax * 2 + 1] -= row[ax * 2] * row[ax * 2];
-		}
-		row += 2 * maxAbilities;
-        }
-
-	/*
-	// make symmetric
-	for (int d1=0; d1 < maxDims; d1++) {
-		for (int d2=0; d2 < d1; d2++) {
-			cov[d2 * maxDims + d1] = cov[d1 * maxDims + d2];
-		}
-	}
-	*/
-
-	for (int px=0; px < numUnique; px++) {
-		double *arow = ability + px * 2 * maxAbilities;
-		for (int dx=0; dx < maxAbilities; dx++) {
-			arow[dx*2+1] = sqrt(arow[dx*2+1]);
-		}
-	}
-
-	return ability;
 }
 
 /**
@@ -819,45 +821,68 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	if (state->scores == SCORES_OMIT || !state->validExpectation) return;
 
-	double *ability = realEAP(oo);
+	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
+	// model. Journal of Educational Statistics, 12, 339-368.
+
+	/*
+	int numQpoints = state->targetQpoints * 2;  // make configurable TODO
+
+	if (numQpoints < 1 + 2.0 * sqrt(state->itemSpec->cols)) {
+		// Thissen & Orlando (2001, p. 136)
+		warning("EAP requires at least 2*sqrt(items) quadrature points");
+	}
+
+	ba81SetupQuadrature(oo, numQpoints, 0);
+	ba81Estep1(oo);
+	*/
+
+	std::vector<double> mean;
+	std::vector<double> cov;
+	EAPinternal(oo, &mean, &cov);
+
 	int numUnique = state->numUnique;
 	omxData *data = state->data;
 	int maxAbilities = state->maxAbilities;
-	int cols = state->scores == SCORES_FULL? data->rows : numUnique;
-	int rows = 2 * maxAbilities;
+	int rows = state->scores == SCORES_FULL? data->rows : numUnique;
+	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
-	PROTECT(Rscores = allocMatrix(REALSXP, 2 * maxAbilities, cols));
+	PROTECT(Rscores = allocMatrix(REALSXP, rows, cols));
 	double *scores = REAL(Rscores);
 
+	const int SMALLBUF = 10;
+	char buf[SMALLBUF];
 	SEXP names;
-	PROTECT(names = allocVector(STRSXP, 2 * maxAbilities));
+	PROTECT(names = allocVector(STRSXP, cols));
 	for (int nx=0; nx < maxAbilities; ++nx) {
-		const int SMALLBUF = 10;
-		char buf[SMALLBUF];
 		snprintf(buf, SMALLBUF, "s%d", nx+1);
-		SET_STRING_ELT(names, nx*2, mkChar(buf));
+		SET_STRING_ELT(names, nx, mkChar(buf));
 		snprintf(buf, SMALLBUF, "se%d", nx+1);
-		SET_STRING_ELT(names, nx*2+1, mkChar(buf));
+		SET_STRING_ELT(names, maxAbilities + nx, mkChar(buf));
+	}
+	for (int nx=0; nx < triangleLoc1(maxAbilities); ++nx) {
+		snprintf(buf, SMALLBUF, "cov%d", nx+1);
+		SET_STRING_ELT(names, maxAbilities*2 + nx, mkChar(buf));
 	}
 	SEXP dimnames;
 	PROTECT(dimnames = allocVector(VECSXP, 2));
-	SET_VECTOR_ELT(dimnames, 0, names);
+	SET_VECTOR_ELT(dimnames, 1, names);
 	setAttrib(Rscores, R_DimNamesSymbol, dimnames);
 
 	if (state->scores == SCORES_FULL) {
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int rx=0; rx < numUnique; rx++) {
-			double *pa = ability + rx * rows;
-
 			int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
 			for (int dup=0; dup < dups; dup++) {
 				int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-				memcpy(scores + dest * rows, pa, sizeof(double) * rows);
+				copyScore(rows, maxAbilities, mean, cov, rx, scores, dest);
 			}
 		}
 	} else {
-		memcpy(scores, ability, sizeof(double) * numUnique * rows);
+#pragma omp parallel for num_threads(Global->numThreads)
+		for (int rx=0; rx < numUnique; rx++) {
+			copyScore(rows, maxAbilities, mean, cov, rx, scores, rx);
+		}
 	}
-	Free(ability);
 
 	setAttrib(robj, install("scores.out"), Rscores);
 }
