@@ -83,7 +83,7 @@ void exception_to_try_error( const std::exception& ex )
 
 SEXP asR(MxRList *out)
 {
-	// change to a set to avoid duplicate keys TODO
+	// detect duplicate keys TODO
 	SEXP names, ans;
 	int len = out->size();
 	PROTECT(names = allocVector(STRSXP, len));

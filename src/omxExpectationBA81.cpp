@@ -93,11 +93,11 @@ computeRPF(omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
 #if 0
 		for (int ox=0; ox < spec[RPF_ISpecOutcomes]; ox++) {
 			if (!isfinite(out[ox]) || out[ox] > 0) {
-				mxLog("spec\n");
+				mxLog("spec");
 				pda(spec, itemSpec->rows, 1);
-				mxLog("item param\n");
+				mxLog("item param");
 				pda(iparam, itemParam->rows, 1);
-				mxLog("where\n");
+				mxLog("where");
 				pda(ptheta, dims, 1);
 				error("RPF returned %20.20f", out[ox]);
 			}
@@ -158,11 +158,11 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 #if 0
 #pragma omp critical(ba81LikelihoodDebug1)
 		if (!isfinite(lxk1) || lxk1 > numItems) {
-			mxLog("where\n");
+			mxLog("where");
 			double where[state->maxDims];
 			pointToWhere(state->Qpoint, quad, where, state->maxDims);
 			pda(where, state->maxDims, 1);
-			mxLog("prob\n");
+			mxLog("prob");
 			pda(outcomeProb, numItems, maxOutcomes);
 			error("Likelihood of row %d is %f", rowMap[px], lxk1);
 		}
@@ -279,7 +279,7 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
 
 static void
 ba81Estep1(omxExpectation *oo) {
-	if(OMX_DEBUG) {mxLog("Beginning %s Computation.\n", NAME);}
+	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", NAME);}
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	double *patternLik = state->patternLik;
@@ -318,7 +318,7 @@ ba81Estep1(omxExpectation *oo) {
 				double tmp = exp(lxk[px] + logArea);
 #if 0
 				if (!isfinite(tmp)) {
-					mxLog("where\n");
+					mxLog("where");
 					pda(where, maxDims, 1);
 					error("Row %d lxk %f logArea %f tmp %f",
 					      state->rowMap[px], lxk[px], logArea, tmp);
@@ -368,17 +368,15 @@ ba81Estep1(omxExpectation *oo) {
 
 	int *numIdentical = state->numIdentical;
 
-	if(0) {
-		mxLog("weight\n");
+	if (0) {
+		mxLog("weight");
 		for (int px=0; px < numUnique; px++) {
 			double weight = numIdentical[px] / patternLik[px];
-			mxLog("%20.20f\n", weight);
+			mxLog("%20.20f", weight);
 		}
 
-		mxLog("per item mean\n");
-		for (int px=0; px < numUnique; px++) {
-			mxLog("[%d] %20.20f\n", px, ElatentMean[px * maxAbilities]);
-		}
+		mxLog("per item mean");
+		pda(ElatentMean, maxAbilities, numUnique);
 	}
 
 	for (int px=0; px < numUnique; px++) {
@@ -426,7 +424,7 @@ ba81Estep1(omxExpectation *oo) {
 		}
 	}
 
-	//pda(ElatentMean, state->maxAbilities, 1);
+	//pda(ElatentMean, 1, state->maxAbilities);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
 
 	omxData *data = state->data;
@@ -447,8 +445,8 @@ ba81Estep1(omxExpectation *oo) {
 		ElatentCov[cell] = ElatentCov[cell] / data->rows - ElatentMean[sdim] * ElatentMean[sdim];
 	}
 
-	//mxLog("E-step\n");
-	//pda(ElatentMean, state->maxAbilities, 1);
+	//mxLog("E-step");
+	//pda(ElatentMean, 1, state->maxAbilities);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
 	state->validExpectation = TRUE;
 }
@@ -501,10 +499,8 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 			}
 		}
 	} else {
-		if (0) {
-			pda(state->latentMeanOut->data, 1, state->maxAbilities);
-			pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
-		}
+		//pda(state->latentMeanOut->data, 1, state->maxAbilities);
+		//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
 
 		double totalArea = 0;
 		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
@@ -522,7 +518,7 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 			state->priLogQarea[qx] -= totalArea;
 			//mxLog("%.5g,", state->priLogQarea[qx]);
 		}
-		//mxLog("\n");
+		//mxLog("");
 
 		for (int sx=0; sx < numSpecific; sx++) {
 			totalArea = 0;
@@ -663,7 +659,7 @@ ba81Estep(omxExpectation *oo, const char *context) {
 		BA81Expect *state = (BA81Expect *) oo->argStruct;
 		ba81SetupQuadrature(oo, state->targetQpoints, 0);
 	} else {
-		error("Unknown context '%s'", context);
+		omxRaiseErrorf(globalState, "Unknown context '%s'", context);
 	}
 }
 
@@ -868,7 +864,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 static void ba81Destroy(omxExpectation *oo) {
 	if(OMX_DEBUG) {
-		mxLog("Freeing %s function.\n", NAME);
+		mxLog("Freeing %s function.", NAME);
 	}
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	omxFreeAllMatrixData(state->itemSpec);
@@ -911,7 +907,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	SEXP tmp;
 	
 	if(OMX_DEBUG) {
-		mxLog("Initializing %s.\n", NAME);
+		mxLog("Initializing %s.", NAME);
 	}
 	if (!rpf_model) {
 		if (0) {

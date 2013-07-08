@@ -191,6 +191,7 @@ void FitContext::fixHessianSymmetry()
 			if (isfinite(lower)) {
 				hess[h1 * numParam + h2] = lower;
 			} else {
+				log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 				error("Hessian is not finite at [%d,%d]", h1,h2);
 			}
 		}
