@@ -54,13 +54,28 @@ void pia(const int *ar, int rows, int cols)
 	mxLogBig(buf);
 }
 
+// state->speLogQarea[sIndex(state, sx, qx)]
+OMXINLINE static
+int sIndex(BA81Expect *state, int sx, int qx)
+{
+	//if (sx < 0 || sx >= state->numSpecific) error("Out of domain");
+	//if (qx < 0 || qx >= state->quadGridSize) error("Out of domain");
+	return sx * state->quadGridSize + qx;
+}
+
 OMXINLINE static int
 triangleLoc0(int diag)
-{ return (diag+1) * (diag+2) / 2 - 1; }
+{
+	//if (diag < 0) error("Out of domain");
+	return (diag+1) * (diag+2) / 2 - 1;  // 0 2 5 9 14 ..
+}
 
 OMXINLINE static int
 triangleLoc1(int diag)
-{ return (diag) * (diag+1) / 2; }
+{
+	//if (diag < 1) error("Out of domain");
+	return (diag) * (diag+1) / 2;   // 1 3 6 10 15 ..
+}
 
 OMXINLINE static void
 assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix,
@@ -78,13 +93,13 @@ assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix
  * \returns A numItems by maxOutcomes colMajor vector of doubles. Caller must Free it.
  */
 double *
-computeRPF(omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
-	   int maxDims, int maxOutcomes, const int *quad, const double *Qpoint)
+computeRPF(BA81Expect *state, omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
+	   int maxDims, int maxOutcomes, const int *quad)
 {
 	int numItems = itemSpec->cols;
 
 	double theta[maxDims];
-	pointToWhere(Qpoint, quad, theta, maxDims);
+	pointToWhere(state, quad, theta, maxDims);
 
 	double *outcomeProb = Realloc(NULL, numItems * maxOutcomes, double);
 	//double *outcomeProb = Calloc(numItems * maxOutcomes, double);
@@ -146,8 +161,8 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 		lxk = getLXKcache(state, quad, specific);
 	}
 
-	const double *outcomeProb = computeRPF(state->itemSpec, state->design, state->EitemParam,
-					       state->maxDims, state->maxOutcomes, quad, state->Qpoint);
+	const double *outcomeProb = computeRPF(state, state->itemSpec, state->design, state->EitemParam,
+					       state->maxDims, state->maxOutcomes, quad);
 	if (!outcomeProb) {
 		OMXZERO(lxk, numUnique);
 		return lxk;
@@ -162,13 +177,14 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 			if (pick == NA_INTEGER) continue;
 			double piece = outcomeProb[ix * maxOutcomes + pick-1];  // move -1 elsewhere TODO
 			lxk1 += piece;
+			//mxLog("%d pick %d piece %.3f", ix, pick, piece);
 		}
 #if 0
 #pragma omp critical(ba81LikelihoodDebug1)
 		if (!isfinite(lxk1) || lxk1 > numItems) {
 			mxLog("where");
 			double where[state->maxDims];
-			pointToWhere(state->Qpoint, quad, where, state->maxDims);
+			pointToWhere(state, quad, where, state->maxDims);
 			pda(where, state->maxDims, 1);
 			mxLog("prob");
 			pda(outcomeProb, numItems, maxOutcomes);
@@ -180,6 +196,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 
 	Free(outcomeProb);
 
+	//mxLog("L.is(%d) at (%d %d) %.2f", specific, quad[0], quad[1], lxk[0]);
 	return lxk;
 }
 
@@ -235,15 +252,24 @@ mapLatentSpace(BA81Expect *state, int px, int sgroup, double piece, const double
 	}
 }
 
-#define CALC_ALLSLXK(state, numUnique) \
-	(state->allSlxk + omx_absolute_thread_num() * (numUnique))
+// state->allElxk[eIndex(state, px)]
+OMXINLINE static int
+eIndex(BA81Expect *state, int px)
+{
+	return omx_absolute_thread_num() * state->numUnique + px;
+}
 
-#define CALC_SLXK(state, numUnique, numSpecific) \
-	(state->Slxk + omx_absolute_thread_num() * (numUnique) * (numSpecific))
+// state->Eslxk[esIndex(state, sx, px)]
+OMXINLINE static int
+esIndex(BA81Expect *state, int sx, int px)
+{
+	return (omx_absolute_thread_num() * state->numUnique * state->numSpecific +
+		state->numUnique * sx + px);
+}
 
+// Eslxk, allElxk (Ei, Eis) depend on the ordinate of the primary dimensions
 OMXINLINE static void
-cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
-	double *allSlxk, double *Slxk)
+cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -254,12 +280,14 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
 	int quad[maxDims];
 	memcpy(quad, primaryQuad, sizeof(int)*sDim);
 
-	OMXZERO(Slxk, numUnique * numSpecific);
-	OMXZERO(allSlxk, numUnique);
+	for (int px=0; px < numUnique; px++) {
+		state->allElxk[eIndex(state, px)] = 0;
+		for (int sx=0; sx < numSpecific; sx++) {
+			state->Eslxk[esIndex(state, sx, px)] = 0;
+		}
+	}
 
 	for (int sx=0; sx < numSpecific; sx++) {
-		double *eis = Slxk + numUnique * sx;
-
 		for (int qx=0; qx < quadGridSize; qx++) {
 			quad[sDim] = qx;
 
@@ -271,13 +299,20 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad,
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				eis[ix] += exp(lxk[ix] + state->speLogQarea[sx * quadGridSize + qx]);
+				double area = state->speLogQarea[sIndex(state, sx, qx)];
+				double piece = lxk[ix] + area;
+				//mxLog("E.is(%d) at (%d, %d) %.2f + %.2f = %.2f",
+				//  sx, primaryQuad[0], qx, lxk[ix], area, piece);
+				state->Eslxk[esIndex(state, sx, ix)] += exp(piece);
 			}
 		}
 
 		for (int px=0; px < numUnique; px++) {
-			eis[px] = log(eis[px]);
-			allSlxk[px] += eis[px];  // allSlxk a.k.a. "E_i"
+			state->Eslxk[esIndex(state, sx, px)] =
+				log(state->Eslxk[esIndex(state, sx, px)]);
+			//mxLog("E.is(%d) at (%d) %.2f", sx, primaryQuad[0], state->Eslxk[esIndex(state, sx, 0)]);
+			state->allElxk[eIndex(state, px)] +=
+				state->Eslxk[esIndex(state, sx, px)];  // allSlxk a.k.a. "E_i"
 		}
 	}
 }
@@ -313,7 +348,7 @@ ba81Estep1(omxExpectation *oo) {
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 			double where[maxDims];
-			pointToWhere(state->Qpoint, quad, where, maxDims);
+			pointToWhere(state, quad, where, maxDims);
 
 			double *lxk = ba81Likelihood(oo, 0, quad);
 
@@ -343,20 +378,19 @@ ba81Estep1(omxExpectation *oo) {
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
-			double *allSlxk = CALC_ALLSLXK(state, numUnique);
-			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-			cai2010(oo, TRUE, quad, allSlxk, Slxk);
+			cai2010(oo, TRUE, quad);
 
 			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-				double *eis = Slxk + numUnique * sgroup;
 				for (long sx=0; sx < specificPoints; sx++) {
 					quad[sDim] = sx;
 					double where[maxDims];
-					pointToWhere(state->Qpoint, quad, where, maxDims);
+					pointToWhere(state, quad, where, maxDims);
 					double logArea = logAreaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double tmp = exp((allSlxk[px] - eis[px]) + lxk[px] + logArea);
+						double Ei = state->allElxk[eIndex(state, px)];
+						double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
 						mapLatentSpace(state, px, sgroup, tmp, where);
 					}
 				}
@@ -365,7 +399,8 @@ ba81Estep1(omxExpectation *oo) {
 			double priLogArea = state->priLogQarea[qx];
 #pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
-				double tmp = exp(allSlxk[px] + priLogArea);
+				double Ei = state->allElxk[eIndex(state, px)];
+				double tmp = exp(Ei + priLogArea);
 				patternLik[px] += tmp;  // is it faster to make this line atomic? TODO
 			}
 		}
@@ -480,11 +515,11 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 
 	if (numSpecific) {
 		state->totalPrimaryPoints /= state->quadGridSize;
-		state->speLogQarea = Realloc(state->speLogQarea, state->quadGridSize * gridsize, double);
+		state->speLogQarea.resize(gridsize * numSpecific);
 	}
 
-	state->Qpoint = Realloc(state->Qpoint, state->quadGridSize, double);
-	state->priLogQarea = Realloc(state->priLogQarea, state->totalPrimaryPoints, double);
+	state->Qpoint.resize(gridsize);
+	state->priLogQarea.resize(state->totalPrimaryPoints);
 
 	double qgs = state->quadGridSize-1;
 	for (int px=0; px < state->quadGridSize; px ++) {
@@ -500,7 +535,7 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 		flatd = log(1) - log(state->quadGridSize);
 		for (int sx=0; sx < numSpecific; sx++) {
 			for (int qx=0; qx < state->quadGridSize; qx++) {
-				state->speLogQarea[ sx * state->quadGridSize + qx] = flatd;
+				state->speLogQarea[sIndex(state, sx, qx)] = flatd;
 			}
 		}
 	} else {
@@ -512,7 +547,7 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 			int quad[priDims];
 			decodeLocation(qx, priDims, state->quadGridSize, quad);
 			double where[priDims];
-			pointToWhere(state->Qpoint, quad, where, priDims);
+			pointToWhere(state, quad, where, priDims);
 			state->priLogQarea[qx] = dmvnorm(priDims, where,
 							 state->latentMeanOut->data,
 							 state->latentCovOut->data);
@@ -523,22 +558,23 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 			state->priLogQarea[qx] -= totalArea;
 			//mxLog("%.5g,", state->priLogQarea[qx]);
 		}
-		//mxLog("");
 
 		for (int sx=0; sx < numSpecific; sx++) {
 			totalArea = 0;
+			int covCell = (priDims + sx) * state->maxAbilities + priDims + sx;
+			double mean = state->latentMeanOut->data[priDims + sx];
+			double var = state->latentCovOut->data[covCell];
+			//mxLog("setup[%d] %.2f %.2f", sx, mean, var);
 			for (int qx=0; qx < state->quadGridSize; qx++) {
-				int covCell = (priDims + sx) * state->maxAbilities + priDims + sx;
-				double den = dnorm(state->Qpoint[qx],
-						   state->latentMeanOut->data[priDims + sx],
-						   state->latentCovOut->data[covCell], TRUE);
-				state->speLogQarea[sx * state->quadGridSize + qx] = den;
+				double den = dnorm(state->Qpoint[qx], mean, sqrt(var), TRUE);
+				state->speLogQarea[sIndex(state, sx, qx)] = den;
 				totalArea += exp(den);
 			}
 			totalArea = log(totalArea);
 			for (int qx=0; qx < state->quadGridSize; qx++) {
-				state->speLogQarea[sx * state->quadGridSize + qx] -= totalArea;
+				state->speLogQarea[sIndex(state, sx, qx)] -= totalArea;
 			}
+			//pda(state->speLogQarea.data() + sIndex(state, sx, 0), 1, state->quadGridSize);
 		}
 	}
 
@@ -612,17 +648,13 @@ ba81Expected(omxExpectation* oo)
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 
-			// allSlxk, Slxk only depend on the ordinate of the primary dimensions
-			double *allSlxk = CALC_ALLSLXK(state, numUnique);
-			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-			cai2010(oo, !state->cacheLXK, quad, allSlxk, Slxk);
+			cai2010(oo, !state->cacheLXK, quad);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
 				long qloc = encodeLocation(state->maxDims, state->quadGridSize, quad);
 
 				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-					double *eis = Slxk + numUnique * sgroup;
 					double *lxk = ba81LikelihoodFast(oo, sgroup, quad);
 
 					for (int px=0; px < numUnique; px++) {
@@ -632,7 +664,9 @@ ba81Expected(omxExpectation* oo)
 							const double *spec = omxMatrixColumn(itemSpec, ix);
 							int outcomes = spec[RPF_ISpecOutcomes];
 							if (state->Sgroup[ix] == sgroup) {
-								double observed = logNumIdentical[px] + (allSlxk[px] - eis[px]) +
+								double Ei = state->allElxk[eIndex(state, px)];
+								double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+								double observed = logNumIdentical[px] + (Ei - Eis) +
 									(lxk[px] - patternLik[px]);
 								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
 							}
@@ -665,17 +699,15 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 		int quad[priDims];
 		decodeLocation(qx, priDims, state->quadGridSize, quad);
 		double where[priDims];
-		pointToWhere(state->Qpoint, quad, where, priDims);
+		pointToWhere(state, quad, where, priDims);
 		double logArea = state->priLogQarea[qx];
 
 		double *lxk;
 		if (numSpecific == 0) {
 			lxk = ba81LikelihoodFast(oo, 0, quad);
 		} else {
-			double *allSlxk = CALC_ALLSLXK(state, numUnique);
-			double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-			cai2010(oo, FALSE, quad, allSlxk, Slxk);
-			lxk = allSlxk;
+			cai2010(oo, FALSE, quad);
+			lxk = state->allElxk.data() + eIndex(state, 0);
 		}
 
 		for (int px=0; px < numUnique; px++) {
@@ -696,7 +728,7 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 		std::vector<double> ris(numUnique);
 		for (int sx=0; sx < numSpecific; sx++) {
 			for (int sqx=0; sqx < state->quadGridSize; sqx++) {
-				double area = exp(state->speLogQarea[sx * state->quadGridSize + sqx]);
+				double area = exp(state->speLogQarea[sIndex(state, sx, sqx)]);
 				double ptArea = area * state->Qpoint[sqx];
 				ris.assign(numUnique, 0);
 				for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
@@ -704,16 +736,15 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 					decodeLocation(qx, priDims, state->quadGridSize, quad);
 					quad[priDims] = sqx;
 
-					double *allSlxk = CALC_ALLSLXK(state, numUnique);
-					double *Slxk = CALC_SLXK(state, numUnique, numSpecific);
-					cai2010(oo, FALSE, quad, allSlxk, Slxk);
+					cai2010(oo, FALSE, quad);
 
-					double *eis = Slxk + numUnique * sx;
 					double *lxk = ba81LikelihoodFast(oo, sx, quad);
 
 					double logArea = state->priLogQarea[qx];
 					for (int px=0; px < numUnique; px++) {
-						ris[px] += exp(logArea + lxk[px] + allSlxk[px] - eis[px]);
+						double Ei = state->allElxk[eIndex(state, px)];
+						double Eis = state->Eslxk[esIndex(state, sx, px)];
+						ris[px] += exp(logArea + lxk[px] + Ei - Eis);
 					}
 				}
 				for (int px=0; px < numUnique; px++) {
@@ -741,7 +772,6 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 		for (int sx=0; sx < numSpecific; sx++) {
 			(*cov)[px * covEntries + triangleLoc0(priDims + sx)] /= denom;
 		}
-
 		int cx=0;
 		for (int a1=0; a1 < priDims; ++a1) {
 			for (int a2=0; a2 <= a1; ++a2) {
@@ -772,7 +802,8 @@ ba81Estep(omxExpectation *oo, const char *context) {
 	omxRecompute(state->latentCovOut);
 
 	ba81Estep1(oo);
-	if (strcmp(context, "E")==0) {
+
+	if (strcmp(context, "E")==0) {  // use "EM" and "" instead TODO
 		// for E-M LL
 		ba81Expected(oo);
 	} else if (strcmp(context, "M")==0) {
@@ -896,18 +927,14 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->latentCovOut);
 	Free(state->logNumIdentical);
 	Free(state->numIdentical);
-	Free(state->Qpoint);
-	Free(state->priLogQarea);
 	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->lxk);
-	Free(state->Slxk);
-	Free(state->allSlxk);
 	Free(state->Sgroup);
 	Free(state->expected);
 	Free(state->ElatentMean);
 	Free(state->ElatentCov);
-	Free(state);
+	delete state;
 }
 
 void getMatrixDims(SEXP r_theta, int *rows, int *cols)
@@ -945,7 +972,18 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 	}
 	
-	BA81Expect *state = Calloc(1, BA81Expect);
+	BA81Expect *state = new BA81Expect;
+	state->numSpecific = 0;
+	state->numIdentical = NULL;
+	state->logNumIdentical = NULL;
+	state->rowMap = NULL;
+	state->lxk = NULL;
+	state->patternLik = NULL;
+	state->expected = NULL;
+	state->ElatentMean = NULL;
+	state->ElatentCov = NULL;
+	state->validExpectation = false;
+	state->scores = SCORES_OMIT;
 	oo->argStruct = (void*) state;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
@@ -962,7 +1000,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->design =
 		omxNewMatrixFromSlot(rObj, currentState, "Design");
 
-	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean"); // move to FitFunction? TODO
+	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) error("Failed to retrieve mean matrix");
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 	if (!state->latentCovOut) error("Failed to retrieve cov matrix");
@@ -1149,8 +1187,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
-		state->allSlxk = Realloc(NULL, numUnique * numThreads, double);
-		state->Slxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
+		state->allElxk.resize(numUnique * numThreads);
+		state->Eslxk.resize(numUnique * state->numSpecific * numThreads);
 	}
 
 	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {

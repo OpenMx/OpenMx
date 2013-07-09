@@ -67,8 +67,8 @@ m1 <- mxModel(model="bifactor",
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
-#			   mxComputeNewtonRaphson(free.group='param', tolerance=1e-5),
-                mxComputeGradientDescent(free.group='param'),
+			   mxComputeNewtonRaphson(free.group='param'),
+#                mxComputeGradientDescent(free.group='param'),
                 mxComputeOnce('expectation', context='M'),
                 mxComputeOnce('fitfunction'))))
 
@@ -80,10 +80,11 @@ m1 <- mxRun(m1, silent=TRUE)
 #print(correct.mat)
 #print(m1@matrices$ItemParam@values)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
-omxCheckCloseEnough(got, .966, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[1,]), c(theta[1,])), .747, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[3,]), c(theta[2,])), .781, .01)
-omxCheckCloseEnough(cor(c(m1@output$ability[5,]), c(theta[3,])), .679, .01)
+omxCheckCloseEnough(got, .977, .01)
+scores <- m1@expectation@scores.out
+omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)
+omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
+omxCheckCloseEnough(cor(c(scores[,3]), c(theta[3,])), .679, .01)
 
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 2*m1@output$ability[4,]), 927, 5)
-omxCheckCloseEnough(sum(abs(m1@output$ability[3,] - theta[2,]) < 3*m1@output$ability[4,]), 997, 2)
+omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 2*scores[,5]), 933, 5)
+omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 2)

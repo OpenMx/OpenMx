@@ -33,7 +33,7 @@ typedef struct {
 	int numUnique;
 	int *numIdentical;        // length numUnique
 	double *logNumIdentical;  // length numUnique
-	int *rowMap;              // length numUnique
+	int *rowMap;              // length numUnique, index of first instance of pattern
 
 	// item description related
 	omxMatrix *itemSpec;
@@ -50,16 +50,16 @@ typedef struct {
 	long quadGridSize;
 	long totalQuadPoints;     // quadGridSize ^ maxDims
 	long totalPrimaryPoints;  // totalQuadPoints except for specific dim TODO
-	double *Qpoint;           // quadGridSize
-	double *priLogQarea;      // totalPrimaryPoints
-	double *speLogQarea;      // quadGridSize * numSpecific
+	std::vector<double> Qpoint;           // quadGridSize
+	std::vector<double> priLogQarea;      // totalPrimaryPoints
+	std::vector<double> speLogQarea;      // quadGridSize * numSpecific
 
 	// estimation related
 	omxMatrix *EitemParam;    // E step version
 	int cacheLXK;
 	double *lxk;              // wo/cache, numUnique * thread
-	double *allSlxk;          // numUnique * thread
-	double *Slxk;             // numUnique * #specific dimensions * thread
+	std::vector<double> allElxk;          // numUnique * thread
+	std::vector<double> Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
 	int totalOutcomes;
 	double *expected;         // totalOutcomes * totalQuadPoints
@@ -76,14 +76,14 @@ extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
 double *
-computeRPF(omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
-	   int maxDims, int maxOutcomes, const int *quad, const double *Qpoint);
+computeRPF(BA81Expect *state, omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
+	   int maxDims, int maxOutcomes, const int *quad);
 
 OMXINLINE static void
-pointToWhere(const double *Qpoint, const int *quad, double *where, int upto)
+pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
 {
 	for (int dx=0; dx < upto; dx++) {
-		where[dx] = Qpoint[quad[dx]];
+		where[dx] = state->Qpoint[quad[dx]];
 	}
 }
 

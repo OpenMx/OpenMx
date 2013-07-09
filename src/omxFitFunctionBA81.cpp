@@ -147,10 +147,10 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
 
 	double where[maxDims];
-	pointToWhere(estate->Qpoint, quad, where, maxDims);
+	pointToWhere(estate, quad, where, maxDims);
 
-	double *outcomeProb = computeRPF(estate->itemSpec, estate->design, itemParam, estate->maxDims,
-					 estate->maxOutcomes, quad, estate->Qpoint); // avoid malloc/free? TODO
+	double *outcomeProb = computeRPF(estate, estate->itemSpec, estate->design, itemParam, estate->maxDims,
+					 estate->maxOutcomes, quad); // avoid malloc/free? TODO
 	if (!outcomeProb) return 0;
 
 	double thr_ll = 0;
@@ -163,7 +163,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 		for (int ox=0; ox < iOutcomes; ox++) {
 #if 0
 #pragma omp critical(ba81Fit1OrdinateDebug1)
-			if (!isfinite(outcomeProb[ix * maxOutcomes + ox])) {
+			if (!std::isfinite(outcomeProb[ix * maxOutcomes + ox])) {
 				pda(itemParam->data, itemParam->rows, itemParam->cols);
 				pda(outcomeProb, outcomes, numItems);
 				error("RPF produced NAs");
