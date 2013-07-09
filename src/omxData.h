@@ -70,7 +70,7 @@ struct omxData {						// A matrix
 	omxThresholdColumn* thresholdCols;  // Wrapper structure for thresholds
 	double numObs;						// Number of observations
 	const char *_type;
-	
+
 	int* location;						// Which of the following contains the data column
 	double** realData;					// The actual data objects if numeric
 	int** intData;						// The actual data objects if ordinal
@@ -78,8 +78,8 @@ struct omxData {						// A matrix
 	int* identicalDefs;					// Number of consecutive rows with identical def. vars
 	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
 	int* identicalRows;					// Number of consecutive rows with identical data
-	int numFactor, numNumeric;  // Number of ordinal and continuous columns
-	short isDynamic;             // Reserved for when there's actually dynamic data.
+	int numFactor, numNumeric;			// Number of ordinal and continuous columns
+	short isDynamic;					// Reserved for when there's actually dynamic data.
 	/* Useful Members */
 	int rows, cols;						// Matrix size 
 
@@ -98,9 +98,9 @@ double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one d
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
 omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
-omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); //TODO check this definition
-omxThresholdColumn* omxDataThresholds(omxData *od); //TODO define this
-// PROBLEM: omxThresholdColumn does not exist because data are prior to expectations.
+omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); 						// Populates a matrix with the asymptotic covariance matrix
+omxThresholdColumn* omxDataThresholds(omxData *od); 						// Populates a thresholdCols structure with data thresholds
+
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row

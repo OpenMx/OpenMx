@@ -24,11 +24,13 @@ setClass(Class = "MxNonNullData",
 		numObs = "numeric",
 		acov   = "matrix",
 		thresholds = "matrix",
+		thresholdColumns = "integer",
+		thresholdLevels = "integer",
 		indexVector = "integer",
 		identicalDefVars = "integer",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
-		.isSorted = "logical",		
+		.isSorted = "logical",
 		name   = "character"))
 
 setClassUnion("MxData", c("NULL", "MxNonNullData"))
@@ -84,12 +86,8 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	if (type == "acov") {
 		verifyCovarianceMatrix(observed)
 		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
-		# possibly add something like the following for thresholds processing
-		#verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-		#.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-		#retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
-		#.Object@thresholdColumns <- retval[[1]]
-		#.Object@thresholdLevels <- retval[[2]]
+
+		verifyThresholdNames(thresholds, observed)
 	}
 	if (type != "acov") {
 		if (any(!is.na(acov))) {
@@ -111,6 +109,10 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 convertDatasets <- function(model, defVars, modeloptions) {
 	model@data <- sortRawData(model@data, defVars, model@name, modeloptions)
 	model@data <- convertIntegerColumns(model@data)
+	
+	if(!is.null(model@data) && !single.na(model@data@thresholds)) {
+		verifyThresholdNames(model@data@thresholds, model@data@observed, model@name)
+	}
 	if (length(model@submodels) > 0) {
 		model@submodels <- lapply(model@submodels, convertDatasets,
 			defVars, modeloptions)
@@ -202,7 +204,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 convertIntegerColumns <- function(mxData) {
 	if (is.null(mxData)) return(mxData)
 	if (is.data.frame(mxData@observed)) {
-		dimnames <- dimnames(mxData@observed)	
+		dimnames <- dimnames(mxData@observed)
 		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
 		dimnames(mxData@observed) <- dimnames
 	}
@@ -216,6 +218,20 @@ convertIntegerSingleColumn <- function(column) {
 	} else {
 		return(column)
 	}
+}
+
+convertObservedThresholds <- function(data) {
+	thresholdColumnNames <- dimnames(data@thresholds)[[2]]
+	datasource <- data@observed
+	for(i in 1:length(thresholdColumnNames)) {
+		oneThresholdName <- thresholdColumnNames[[i]]
+		numThresholds <- length(levels(datasource[, oneThresholdName])) - 1
+		columnIndex <- match(oneThresholdName, covarianceColumnNames)
+		thresholdColumns[[columnIndex]] <- as.integer(i - 1)
+		thresholdLevels[[columnIndex]] <- as.integer(numThresholds)
+	}
+	data@thresholdColumns <- thresholdColumns
+	data@thresholdLevels <- thresholdLevels
 }
 
 checkNumericData <- function(data) {
@@ -351,7 +367,7 @@ displayMxData <- function(object) {
 		cat("Thresholds : NA \n")
 	} else {
 		cat("Thresholds : \n")
-		print(object@Thresholds)
+		print(object@thresholds)
 	}
 	invisible(object)
 }

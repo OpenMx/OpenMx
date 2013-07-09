@@ -55,72 +55,99 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 	tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 	thresholds <- tuple[[1]]
 	observed <- flatModel@datasets[[dataName]]@observed
-	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
-		stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), "for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
+	dataType <- flatModel@datasets[[dataName]]@type
+
+	threshNames <- verifyThresholdNames(thresholds, observed, modelName, observedThresholds=FALSE)
+
+	dataThresh <- NA
+	if(dataType == "acov") {
+		dataThresh <- flatModel@datasets[[dataName]]@thresholds
 	}
-	if (!is.data.frame(observed)) {
-		stop(paste("The observed data for model", 
-			omxQuotes(modelName), "is not a data.frame object"), call. = FALSE)
-	}
-	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
-		stop(paste("The observed data frame for model", 
-			omxQuotes(modelName), "does not contain column names"), call. = FALSE)
-	}
-	threshNames <- dimnames(thresholds)[[2]]
-	obsNames <- dimnames(observed)[[2]]
-	missingNames <- setdiff(threshNames, obsNames)
-	if (length(missingNames) > 0) {
-		stop(paste("The column name(s)", omxQuotes(missingNames), 
-			"appear in the thresholds matrix",
-			omxQuotes(simplifyName(threshName, modelName)), "but not",
-			"in the observed data.frame or matrix",
-			"in model", omxQuotes(modelName)), call. = FALSE)
-	}
-	missingNames <- setdiff(threshNames, covNames)
-	if (length(missingNames) > 0) {
-		stop(paste("The column name(s)", omxQuotes(missingNames), 
-			"appear in the thresholds matrix",
-			omxQuotes(simplifyName(threshName, modelName)), "but not",
-			"the manifest variables of model", omxQuotes(modelName)), call. = FALSE)
-	}
+
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
 		tColumn <- thresholds[,i]
-		observedColumn <- observed[,tName]
-		if (!all(is.na(observedColumn))) {
-			if (!is.ordered(observedColumn)) {
-				stop(paste("In model",
-					omxQuotes(modelName),
-					"column",
-					omxQuotes(tName),
-					"is not an ordered factor.",
-					"Use mxFactor() on this column."), call. = FALSE)
+		values = NA
+		if(dataType=="raw") {
+			observedColumn <- observed[,tName]
+			if(!all(is.na(observedColumn))) {
+				if (!is.ordered(observedColumn)) {
+						stop(paste("In model",
+							omxQuotes(modelName),
+							"column",
+							omxQuotes(tName),
+							"is not an ordered factor.",
+							"Use mxFactor() on this column."), call. = FALSE)
+				}
+				expectedThreshCount <- length(levels(observedColumn)) - 1
+				if (nrow(thresholds) < expectedThreshCount) {
+					if(!observedThresholds) {
+						stop(paste("In model",
+							omxQuotes(modelName),
+							"the number of thresholds in column",
+							omxQuotes(tName),
+							"is less than the (l - 1), where l is equal",
+							"to the number of levels in the ordinal",
+							"data. Use mxFactor() on this column."), 
+							call. = FALSE)
+					} else {
+						stop(paste("The number of thresholds in column",
+							omxQuotes(tName),
+							"is less than the (l - 1), where l is equal",
+							"to the number of levels in the ordinal",
+							"data. Use mxFactor() on this column."), 
+							call. = FALSE)
+					}
+				}
+				values <- tColumn[1:expectedThreshCount]
+				if (any(is.na(values))) {
+					stop(paste("In model", 
+						omxQuotes(modelName),
+						"I was expecting", expectedThreshCount, 
+						"thresholds in column", omxQuotes(tName), 
+						"of matrix/algebra", 
+						omxQuotes(simplifyName(threshName, modelName)),
+						"but I hit NA values after only", 
+						length(values[!is.na(values)]), "thresholds.",
+						"You need to increase the number of",
+						"free thresholds for", omxQuotes(tName), 
+						"and give them values other than NA"), call. = FALSE)	
+				}
 			}
-			expectedThreshCount <- length(levels(observedColumn)) - 1
-			if (nrow(thresholds) < expectedThreshCount) {
-				stop(paste("In model",
-					omxQuotes(modelName),
-					"the number of thresholds in column",
-					omxQuotes(tName),
-					"is less than the (l - 1), where l is equal",
-					"to the number of levels in the ordinal",
-					"data. Use mxFactor() on this column."), call. = FALSE)
+		} else if(dataType == "acov") {
+			observedThresh <- dataThresh[,tName]
+			if( !single.na(observedThresh)) {
+				expectedThreshCount <- sum(!is.na(observedThresh))
+				if (nrow(thresholds) < expectedThreshCount) {
+					stop(paste("In model",
+						omxQuotes(modelName),
+						"the number of expected thresholds in column",
+						omxQuotes(tName),
+						"(", nrow(thresholds), "), is less than the number of thresholds",
+						"observed in the data (", expectedThreshCount , "). If you use",
+						"a prep function to set up your mxData object,",
+						"be sure you ran mxFactor() on your data first.",
+						"Otherwise, be sure all unused thresholds in your",
+						"data thresholds argument are NA."),
+						call. = FALSE)
+				}
+				values <- tColumn[1:expectedThreshCount]
+				if (any(is.na(values))) {
+					stop(paste("In model", 
+						omxQuotes(modelName),
+						"I was expecting", expectedThreshCount, 
+						"thresholds in column", omxQuotes(tName), 
+						"of matrix/algebra", 
+						omxQuotes(simplifyName(threshName, modelName)),
+						"but I hit NA values after only", 
+						length(values[!is.na(values)]), "thresholds.",
+						"You need to increase the number of",
+						"free thresholds for", omxQuotes(tName), 
+						"and give them values other than NA"), call. = FALSE)	
+				}
 			}
-			values <- tColumn[1:expectedThreshCount]
-			if (any(is.na(values))) {
-				stop(paste("In model", 
-					omxQuotes(modelName),
-					"I was expecting", expectedThreshCount, 
-					"thresholds in column", omxQuotes(tName), 
-					"of matrix/algebra", 
-					omxQuotes(simplifyName(threshName, modelName)),
-					"but I hit NA values after only", 
-					length(values[!is.na(values)]), "thresholds.",
-					"You need to increase the number of",
-					"free thresholds for", omxQuotes(tName), 
-					"and give them values other than NA"), call. = FALSE)	
-			}
+		}
+		if(!single.na(values)) {
 			sortValues <- sort(values, na.last = NA)
 			if (!identical(sortValues, values)) {
 				stop(paste("In model", 
@@ -134,10 +161,56 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 					"ascending order is: ",
 					omxQuotes(sortValues),".",
 					"Only the first", expectedThreshCount,
-					"element(s) of this column are inspected."), call. = FALSE)	
+					"element(s) of this column are inspected."), 
+					call. = FALSE)	
 			}
 		}
 	}
+}
+
+verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThresholds=TRUE) {
+	if(is.na(modelName)) {
+		modelName = "[Model Name Unknown]"
+	}
+
+	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
+		if(!observedThresholds) {
+			stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), 
+			"for model", omxQuotes(modelName), "does not contain column names"),
+			call. = FALSE)	
+		} else {
+			stop(paste(
+				"The observed thresholds matrix does not contain column names"),
+				 call. = FALSE)
+		}
+	}
+	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
+		if(!observedThresholds) {
+			stop(paste("The observed data frame for model", 
+				omxQuotes(modelName), "does not contain column names"), 
+				call. = FALSE)
+		} else {
+			stop(paste("The observed data does not contain column names"), 
+			call. = FALSE)
+		}
+	}
+	threshNames <- dimnames(thresholds)[[2]]
+	obsNames <- dimnames(observed)[[2]]
+	missingNames <- setdiff(threshNames, obsNames)
+	if (length(missingNames) > 0) {
+		if(!observedThresholds) {
+			stop(paste("The column name(s)", omxQuotes(missingNames),
+				"appear in the thresholds matrix",
+				omxQuotes(simplifyName(threshName, modelName)), "but not",
+				"in the observed data.frame or matrix",
+				"in model", omxQuotes(modelName)), call. = FALSE)
+		} else {
+			stop(paste("The column name(s)", omxQuotes(missingNames), 
+				"appear in the thresholds but not",
+				"in the observed data."), call. = FALSE)
+		}
+	}
+	return(threshNames)
 }
 
 mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ordered = TRUE) {

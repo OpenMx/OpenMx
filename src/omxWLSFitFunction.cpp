@@ -25,6 +25,9 @@
 
 void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* thresholds, int nThresholds, omxMatrix* vector) {
     // TODO: vectorize data flattening
+    // if(OMX_DEBUG) { mxLog("Flattening out data vectors: cov 0x%x, mean 0x%x, thresh 0x%x[n=%d] ==> 0x%x", 
+    //         cov, means, thresholds, nThresholds, vector); }
+    
     int nextLoc = 0;
     for(int j = 0; j < cov->rows; j++) {
         for(int k = 0; k <= j; k++) {
@@ -52,13 +55,14 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* t
 void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
-	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
+    if(oo->argStruct == NULL) return;
 
-    if(owo->observedFlattened != NULL) omxFreeMatrixData(owo->observedFlattened);
-    if(owo->expectedFlattened != NULL) omxFreeMatrixData(owo->expectedFlattened);
-    if(owo->weights != NULL) omxFreeMatrixData(owo->weights);
-    if(owo->B != NULL) omxFreeMatrixData(owo->B);
-    if(owo->P != NULL) omxFreeMatrixData(owo->P);
+	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
+    omxFreeMatrixData(owo->observedFlattened);
+    omxFreeMatrixData(owo->expectedFlattened);
+    omxFreeMatrixData(owo->weights);
+    omxFreeMatrixData(owo->B);
+    omxFreeMatrixData(owo->P);
 }
 
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
@@ -93,15 +97,17 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	omxExpectation* expectation = oo->expectation;
 
     /* Recompute and recopy */
+	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(expectation, NULL);
 
+    // TODO: Flatten data only once.
 	flattenDataToVector(oCov, oMeans, oThresh, nThresh, oFlat);
 	flattenDataToVector(eCov, eMeans, eThresh, nThresh, eFlat);
 
 	omxCopyMatrix(B, oFlat);
 
 	omxDAXPY(-1.0, eFlat, B);
-
+	
     if(weights != NULL) {
         omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
     } else {
@@ -109,6 +115,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
         // TODO: Better to use an omxMatrix duplicator here.
         memcpy(P, B, B->cols*sizeof(double));
     }
+
     sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
 
     oo->matrix->data[0] = sum;
@@ -211,6 +218,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	}
 
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
+	
+    if(OMX_DEBUG) { mxLog("WLS being intialized is at 0x%x (within 0x%x).", oo, newObj); }
 
     /* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
@@ -223,6 +232,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     cov = omxDataMatrix(dataMat, NULL);
     means = omxDataMeans(dataMat, NULL, NULL);
     weights = omxDataAcov(dataMat, NULL);
+	newObj->observedThresholds  = omxDataThresholds(dataMat);
 
     newObj->observedCov = cov;
     newObj->observedMeans = means;
@@ -246,7 +256,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	}
 
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
-	    if(newObj->expectedMeans != NULL) {
+	    if(newObj->expectedThresholds != NULL) {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
 			    "Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 		    return;

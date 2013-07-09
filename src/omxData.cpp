@@ -148,9 +148,20 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	    !isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
 		omxFreeMatrixData(od->obsThresholdsMat); // Clear just-allocated memory.
 		od->obsThresholdsMat = NULL;
+	} else {
+        int nCol = od->obsThresholdsMat->cols;
+		/* Match threshold column names and build ThresholdCols structure */
+		od->thresholdCols = (omxThresholdColumn*) R_alloc(nCol, sizeof(omxThresholdColumn));
+        PROTECT(dataLoc = GET_SLOT(dataObject, install("thresholdColumns")));
+        int *columns = INTEGER(dataLoc);
+        PROTECT(dataVal = GET_SLOT(dataObject, install("thresholdLevels")));
+        int *levels = INTEGER(dataVal);
+        for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
+            od->thresholdCols[i].matrix = od->obsThresholdsMat;
+            od->thresholdCols[i].column = columns[i];
+            od->thresholdCols[i].numThresholds = levels[i];
+        }
 	}
-	
-	// TODO: Match threshold column names
 
 	if(strncmp(od->_type, "raw", 3) != 0) {
 		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
@@ -178,7 +189,6 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->identicalRows = INTEGER(dataLoc);
 		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
-
 	return od;
 }
 
@@ -264,7 +274,7 @@ omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
 	
 	if(od->acovMat != NULL) {		// acov was entered as a matrix.
 		if(om != NULL) {			// It stays as such
-			omxCopyMatrix(om, od->acovMat);
+			omxAliasMatrix(om, od->acovMat);
 			return om;
 		}
 		return od->acovMat;
@@ -275,23 +285,8 @@ omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
 	if(om == NULL) {
 		om = omxInitMatrix(om, numRows, numRows, TRUE, od->currentState);
 	}
-	
-	if(om->rows != numRows || om->cols != numRows) {
-		omxResizeMatrix(om, numRows, numRows, FALSE);
-	}
-	
-	// The below is wrong.  I'm unsure how to populate the acov matrix. -MDH
-	for(int j = 0; j < numRows; j++) {
-		for(int k = 0; k < numRows; k++) {
-			int location = od->location[j];
-			if(location < 0) {
-				dataElement = (double) od->intData[~location][k];
-			} else {
-				dataElement = od->realData[location][k];
-			}
-			omxSetMatrixElement(om, k, j, dataElement);
-		}
-	}
+    if(OMX_DEBUG) {mxLog("Acov Data created at 0x%x (0x%x).  Returning.", om, om->data);}
+	omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
 	return om;
 }
 
@@ -465,7 +460,6 @@ int omxDataNumFactor(omxData *od) {
 int omxDataNumNumeric(omxData *od) {
 	return od->numNumeric;
 }
-
 
 const char *omxDataType(omxData *od) {
 	return od->_type;
