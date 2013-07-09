@@ -19,7 +19,7 @@
 \title{Create an MxExpectationStateSpace Object}
 
 \description{
-This function creates an MxExpectationStateSpace object.
+This function creates a new MxExpectationStateSpace object.
 }
 
 \usage{
@@ -44,6 +44,11 @@ mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P
 
 \details{
 Expectation functions define the way that model expectations are calculated. The mxExpectationStateSpace provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'B', 'C', 'D', 'Q', 'R', 'x0', and 'P0' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, B, C, D, Q, R, x0, and P0 matrices in the RAM modeling approach.
+
+The state space expectation is defined by the following equations.
+
+\deqn{x_{t+1} = A x_t + B u_t + q_t}
+\deqn{y_t = C x_t + D u_t + r_t}
 
 The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the '?' matrix and optionally to the '?' matrix, if the '?' matrix exists.
 

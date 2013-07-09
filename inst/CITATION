@@ -32,7 +32,8 @@ citEntry(entry="article",
               	"Timothy R. Brick, Jeffrey Spies, Ryne Estabrook,",
               	"Sarah Kenny, Timothy C. Bates, Paras Mehta, and John Fox.",
               	"(2011) OpenMx: An Open Source Extended",
-		"Structural Equation Modeling Framework. Psychometrika."),
+		"Structural Equation Modeling Framework. Psychometrika.",
+		"April 1. 76(2): 306-317."),
               note = "Article available at www.springerlink.com/content/dg37445107026711")
 
 citEntry(entry="manual",
