@@ -1,4 +1,4 @@
-options(error = utils::recover)
+#options(error = utils::recover)
 library(OpenMx)
 library(rpf)
 
