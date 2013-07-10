@@ -106,6 +106,13 @@ static void buildParamMap(omxFitFunction* oo)
 				pCol[px] = loc->col;
 				int at = pCol[px] * state->derivPadSize + pRow[px];
 				state->paramMap[at] = px;
+
+				const double *spec = omxMatrixColumn(estate->itemSpec, loc->col);
+				int id = spec[RPF_ISpecID];
+				double upper, lower;
+				(*rpf_model[id].paramBound)(spec, loc->row, &upper, &lower);
+				if (fv->lbound == NEG_INF && isfinite(lower)) fv->lbound = lower;
+				if (fv->ubound == INF && isfinite(upper)) fv->ubound = upper;
 			}
 		}
 	}

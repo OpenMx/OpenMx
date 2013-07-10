@@ -45,8 +45,7 @@ mkgroup <- function(model.name, data, latent.free) {
                    free=FALSE, byrow=TRUE)
   
   ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                     values=c(1, 1.4, 0),
-                     lbound=c(1e-6, 1e-6, NA), free=TRUE)
+                     values=c(1, 1.4, 0), free=TRUE)
   ip.mat@values[correct.mat==0] <- 0
   ip.mat@free[correct.mat==0] <- FALSE
   

@@ -88,6 +88,9 @@ struct FreeVarGroup {
 	std::vector< omxFreeVar* > vars;
 };
 
+#define NEG_INF -2e20
+#define INF 2e20
+
 struct omxConstraint {		// Free Variable Constraints
 	int size;
 	int opCode;

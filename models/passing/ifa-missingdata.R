@@ -36,7 +36,6 @@ spec <- mxMatrix(name="ItemSpec", nrow=19, ncol=numItems,
 
 ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
                    values=c(1,1,0,0,0),
-		   lbound=c(1e-6, rep(NA,4)),
                    free=c(TRUE,FALSE,FALSE,TRUE,TRUE))
 
 eip.mat <- mxAlgebra(itemParam, name="EItemParam")

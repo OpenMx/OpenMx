@@ -29,6 +29,8 @@ enum RPF_ISpec {
 
 typedef int (*rpf_numSpec_t)(const double *spec);
 typedef int (*rpf_numParam_t)(const double *spec);
+typedef void (*rpf_paramBound_t)(const double *spec, const int param,
+				 double *upper, double *lower);
 typedef void (*rpf_prob_t)(const double *spec,
 			   const double *param, const double *th,
 			   double *out);
@@ -47,6 +49,7 @@ struct rpf {
   const char name[10];
   rpf_numSpec_t numSpec;
   rpf_numParam_t numParam;
+  rpf_paramBound_t paramBound;
   rpf_prob_t prob;
   rpf_prob_t logprob;
   rpf_dLL1_t dLL1;

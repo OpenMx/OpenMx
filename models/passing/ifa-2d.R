@@ -48,8 +48,6 @@ design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1, 1.4, 0, 0, 1),
-                  lbound=c(1e-6, -1e6, 0,  0, 0,
-                    rep(c(1e-6, 1e-6, -1e6, 0, 0), 4)),
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
 ip.mat@values[4,1] <- 1

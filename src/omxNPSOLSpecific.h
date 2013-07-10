@@ -20,7 +20,7 @@
 #include "types.h"
 
 /* NPSOL-specific globals */
-extern const double NPSOL_BIGBND, NEG_INF, INF;
+extern const double NPSOL_BIGBND;
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out);
