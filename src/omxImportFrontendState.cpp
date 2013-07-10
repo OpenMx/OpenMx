@@ -264,21 +264,19 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 	}
 }
 
-void omxProcessFreeVarList(SEXP fgNames, SEXP varList)
+void omxProcessFreeVarList(SEXP varList)
 {
 	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
 
-	int ng = length(fgNames);
-	for (int gx=0; gx < ng; ++gx) {
-		FreeVarGroup *fvg = new FreeVarGroup;
-		fvg->name = CHAR(STRING_ELT(fgNames, gx));
-		Global->freeGroup.push_back(fvg);
-	}
+	FreeVarGroup *fvg = new FreeVarGroup;
+	fvg->id = 0;
+	Global->freeGroup.push_back(fvg);
 
 	SEXP nextVar, nextLoc;
 	int numVars = length(varList);
 	for (int fx = 0; fx < numVars; fx++) {
 		omxFreeVar *fv = new omxFreeVar;
+		// default group has free all variables
 		Global->freeGroup[0]->vars.push_back(fv);
 
 		fv->name = CHAR(STRING_ELT(GET_NAMES(varList), fx));
@@ -296,11 +294,10 @@ void omxProcessFreeVarList(SEXP fgNames, SEXP varList)
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));
 		int groupCount = length(nextLoc);
-		if (groupCount == 0) error("Free variable %d not assigned to any group", fx);
 		for (int gx=0; gx < groupCount; ++gx) {
 			int group = INTEGER(nextLoc)[gx];
-			if (group == 0) continue; // all variables are already in group 0 (default)
-			Global->freeGroup[group]->vars.push_back(fv);
+			if (group == 0) continue;
+			Global->findOrCreateVarGroup(group)->vars.push_back(fv);
 		}
 
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, 3));

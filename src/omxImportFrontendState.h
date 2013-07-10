@@ -13,7 +13,7 @@ void omxCompleteMxFitFunction(SEXP algList);
 void omxProcessMxComputeEntities(SEXP computeList);
 void omxInitialMatrixAlgebraCompute();
 void omxProcessCheckpointOptions(SEXP checkpointList);
-void omxProcessFreeVarList(SEXP fgNames, SEXP varList);
+void omxProcessFreeVarList(SEXP varList);
 void omxProcessConfidenceIntervals(SEXP intervalList);
 void omxProcessConstraints(SEXP constraints);
 

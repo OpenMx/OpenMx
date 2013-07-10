@@ -47,7 +47,6 @@ mkgroup <- function(model.name, data, latent.free) {
   ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                      values=c(1, 1.4, 0),
                      lbound=c(1e-6, 1e-6, NA), free=TRUE)
-  ip.mat@free.group <- "param"
   ip.mat@values[correct.mat==0] <- 0
   ip.mat@free[correct.mat==0] <- FALSE
   
@@ -131,8 +130,7 @@ if (1) {
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, "EItemParam", sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'),
-                        #                      mxComputeGradientDescent(free.group='param'),
-                        mxComputeNewtonRaphson(free.group='param'),
+                        mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
                         mxComputeOnce('fitfunction')
                       )))

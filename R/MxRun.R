@@ -73,6 +73,7 @@ runHelper <- function(model, frontendStart,
 	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
+	freeVarGroups <- buildFreeVarGroupList(flatModel)
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
@@ -101,8 +102,7 @@ runHelper <- function(model, frontendStart,
 	dependencies <- transitiveClosure(flatModel, dependencies)
 	flatModel <- populateDefInitialValues(flatModel)
 	flatModel <- checkEvaluation(model, flatModel)
-	flatModel <- generateFreeVarGroups(flatModel)
-	flatModel <- generateParameterList(flatModel, dependencies)
+	flatModel <- generateParameterList(flatModel, dependencies, freeVarGroups)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
 	defVars <- generateDefinitionList(flatModel, dependencies)		
@@ -152,7 +152,7 @@ runHelper <- function(model, frontendStart,
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
 	output <- .Call(omxBackend, compute,
-			constraints, matrices, flatModel@freeGroupNames, parameters,
+			constraints, matrices, parameters,
 			algebras, expectations, computes,
 			data, intervalList, communication, options, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()

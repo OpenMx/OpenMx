@@ -98,7 +98,8 @@ imxFlattenModel <- function(model, namespace) {
 	flatModel@datasets <- collectDatasets(model)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
-	flatModel@computes <- collectComputes(model, namespace)
+	computes <- assignComputeId(collectComputes(model, namespace))
+	flatModel@computes <- computes
 	flatModel@submodels <- list()
 	return(flatModel)
 }
@@ -179,6 +180,15 @@ collectFitFunctions <- function(model, namespace, defaultData) {
 	fitfunctions <- collectFitFunctionsHelper(model, namespace, defaultData)
 	names(fitfunctions) <- imxExtractNames(fitfunctions)
 	return(fitfunctions)
+}
+
+assignComputeId <- function(computes) {
+	id <- 1L
+	if (length(computes)) for (cx in 1:length(computes)) {
+		computes[[cx]] <- assignId(computes[[cx]], id)
+		id <- computes[[cx]]@id + 1L
+	}
+	computes
 }
 
 collectComputes <- function(model, namespace) {

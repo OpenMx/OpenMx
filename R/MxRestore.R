@@ -82,8 +82,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	flatModel <- imxFlattenModel(model, namespace)
 	dependencies <- cycleDetection(flatModel)
 	dependencies <- transitiveClosure(flatModel, dependencies)
-	flatModel <- generateFreeVarGroups(flatModel)
-	flatModel <- generateParameterList(flatModel, dependencies)
+	flatModel <- generateParameterList(flatModel, dependencies, list())
 	for(i in 1:length(chkpt.files)) {
 		filename <- chkpt.files[[i]]
 		modelname <- substr(filename, nchar(chkpt.prefix) + 1, nchar(filename) - 4)

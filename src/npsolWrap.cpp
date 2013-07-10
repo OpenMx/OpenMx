@@ -41,7 +41,7 @@
 #include "dmvnorm.h"
 
 static R_CallMethodDef callMethods[] = {
-	{"omxBackend", (DL_FUNC) omxBackend, 12},
+	{"omxBackend", (DL_FUNC) omxBackend, 11},
 	{"omxCallAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"imxDmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
@@ -176,7 +176,7 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 	}
 }
 
-SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames,
+SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
@@ -210,7 +210,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames
 	omxProcessMxMatrixEntities(matList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
-	omxProcessFreeVarList(fgNames, varList);
+	omxProcessFreeVarList(varList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxExpectationEntities(expectList);
@@ -322,12 +322,12 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames
 	return asR(&result);
 }
 
-SEXP omxBackend(SEXP computeIndex, SEXP constraints, SEXP matList, SEXP fgNames,
+SEXP omxBackend(SEXP computeIndex, SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
 	try {
-		return omxBackend2(computeIndex, constraints, matList, fgNames,
+		return omxBackend2(computeIndex, constraints, matList,
 				   varList, algList, expectList, computeList,
 				   data, intervalList, checkpointList, options);
 	} catch( std::exception& __ex__ ) {

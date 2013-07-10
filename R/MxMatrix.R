@@ -74,7 +74,6 @@ setClass(Class = "MxMatrix",
 		lbound = "matrix", ubound = "matrix",
 		.squareBrackets = "matrix",
 		display = "character", dependencies = "integer",
-		free.group = "character",
 	  "VIRTUAL"))
 
 setMethod("imxCreateMatrix", "MxMatrix",
@@ -273,7 +272,7 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
-	dimnames = NA, name = NA, free.group = 'default') {
+	dimnames = NA, name = NA) {
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
@@ -317,7 +316,6 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	newMatrix <- new(typeName)
 	newMatrix <- imxCreateMatrix(newMatrix, labels, values, 
 		free, lbound, ubound, nrow, ncol, byrow, name)
-	newMatrix@free.group <- free.group
 	if(length(dimnames) == 1 && is.na(dimnames)) {
 	} else {
 		dimnames(newMatrix) <- dimnames
@@ -397,14 +395,20 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	}
 }
 
-generateParameterListHelper <- function(mxMatrix, result, matrixNumber) {
+generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarGroups) {
 
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
 	lbound <- mxMatrix@lbound
 	ubound <- mxMatrix@ubound
 	isSymmetric <- imxSymmetricMatrix(mxMatrix)
-	group <- mxMatrix@free.group
+
+	group <- c(0L)
+	if (length(freeVarGroups)) for (gx in seq(2, length(freeVarGroups), 2)) {
+		if (any(mxMatrix@name %in% freeVarGroups[[gx]])) {
+			group <- union(group, freeVarGroups[[gx - 1L]])
+		}
+	}
 
 	if (all(free == FALSE)) {
 		return(result)

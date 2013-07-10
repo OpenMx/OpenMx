@@ -23,6 +23,26 @@
 
 struct omxGlobal *Global = NULL;
 
+FreeVarGroup *omxGlobal::findVarGroup(int id)
+{
+	size_t numGroups = Global->freeGroup.size();
+	for (size_t vx=0; vx < numGroups; ++vx) {
+		if (Global->freeGroup[vx]->id == id) return Global->freeGroup[vx];
+	}
+	return NULL;
+}
+
+FreeVarGroup *omxGlobal::findOrCreateVarGroup(int id)
+{
+	FreeVarGroup *old = findVarGroup(id);
+	if (old) return old;
+
+	FreeVarGroup *fvg = new FreeVarGroup;
+	fvg->id = id;
+	Global->freeGroup.push_back(fvg);
+	return fvg;
+}
+
 /* Initialize and Destroy */
 	void omxInitState(omxState* state) {
 		state->numConstraints = 0;

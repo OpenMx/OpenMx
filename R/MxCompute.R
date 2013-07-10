@@ -15,6 +15,7 @@
 
 setClass(Class = "MxBaseCompute", 
 	 representation = representation(
+	   id = "integer",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
@@ -25,30 +26,53 @@ setGeneric("convertForBackend",
 		return(standardGeneric("convertForBackend"))
 	})
 
+setGeneric("assignId",
+	function(.Object, id) {
+		return(standardGeneric("assignId"))
+	})
+
+setMethod("assignId", signature("MxBaseCompute"),
+	function(.Object, id) {
+		.Object@id <- id
+		.Object
+	})
+
+setGeneric("getFreeVarGroup",
+	function(.Object) {
+		return(standardGeneric("getFreeVarGroup"))
+	})
+
+setMethod("getFreeVarGroup", signature("MxBaseCompute"),
+	function(.Object) {
+		list()
+	})
+
 #----------------------------------------------------
 
 setClass(Class = "MxComputeOperation",
 	 contains = "MxBaseCompute",
 	 representation = representation(
-	   free.group = "MxCharOrNumber"))
+	   free.set = "MxOptionalChar"))
 
 setMethod("qualifyNames", signature("MxComputeOperation"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@free.set <- imxConvertIdentifier(.Object@free.set, modelname, namespace)
 		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeOperation"),
+	function(.Object) {
+		if (length(.Object@free.set)) {
+			list(.Object@id, .Object@free.set)
+		} else {
+			list()
+		}
 	})
 
 setMethod("convertForBackend", signature("MxComputeOperation"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		fg <- match(.Object@free.group, flatModel@freeGroupNames)
-		if (is.na(fg)) {
-			stop(paste("Cannot find free group", .Object@free.group,
-				   "in list of free groups:",
-				   omxQuotes(flatModel@freeGroupNames)))
-		} else {
-			.Object@free.group <- fg - 1L
-		}
 		.Object
 	})
 
@@ -64,7 +88,7 @@ setClass(Class = "MxComputeOnce",
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object <- callNextMethod();
 		.Object@what <- imxConvertIdentifier(.Object@what, modelname, namespace)
 		.Object
 	})
@@ -95,18 +119,18 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.group, context, gradient, hessian) {
+	  function(.Object, what, free.set, context, gradient, hessian) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
-		  .Object@free.group <- free.group
+		  .Object@free.set <- free.set
 		  .Object@context <- context
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
 		  .Object
 	  })
 
-mxComputeOnce <- function(what, free.group='default', context=character(0), gradient=FALSE, hessian=FALSE) {
-	new("MxComputeOnce", what, free.group, context, gradient, hessian)
+mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FALSE, hessian=FALSE) {
+	new("MxComputeOnce", what, free.set, context, gradient, hessian)
 }
 
 #----------------------------------------------------
@@ -119,7 +143,7 @@ setClass(Class = "MxComputeGradientDescent",
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object <- callNextMethod();
 		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
 		.Object
 	})
@@ -135,22 +159,22 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.group, engine, fit) {
+	  function(.Object, free.set, engine, fit) {
 		  .Object@name <- 'compute'
-		  .Object@free.group <- free.group
+		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
 		  .Object
 	  })
 
-mxComputeGradientDescent <- function(type, free.group='default',
+mxComputeGradientDescent <- function(type, free.set=NULL,
 				     engine=NULL, fitfunction='fitfunction') {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
 	if (is.null(engine)) engine <- as.character(NA)
 
-	new("MxComputeGradientDescent", free.group, engine, fitfunction)
+	new("MxComputeGradientDescent", free.set, engine, fitfunction)
 }
 
 #----------------------------------------------------
@@ -164,7 +188,7 @@ setClass(Class = "MxComputeNewtonRaphson",
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object <- callNextMethod();
 		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
 		.Object
 	})
@@ -180,27 +204,68 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.group, fit, maxIter, tolerance) {
+	  function(.Object, free.set, fit, maxIter, tolerance) {
 		  .Object@name <- 'compute'
-		  .Object@free.group <- free.group
+		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object
 	  })
 
-mxComputeNewtonRaphson <- function(type, free.group='default',
+mxComputeNewtonRaphson <- function(type, free.set=NULL,
 				   fitfunction='fitfunction', maxIter = 500L, tolerance=1e-7) {
 
-	new("MxComputeNewtonRaphson", free.group, fitfunction, maxIter, tolerance)
+	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance)
 }
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeIterate",
+setClass(Class = "MxComputeSteps",
 	 contains = "MxBaseCompute",
 	 representation = representation(
-	   steps = "list",
+	   steps = "list"))
+
+setMethod("getFreeVarGroup", signature("MxComputeSteps"),
+	function(.Object) {
+		result <- list()
+		for (step in .Object@steps) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("assignId", signature("MxComputeSteps"),
+	function(.Object, id) {
+		steps <- .Object@steps
+		for (sx in 1:length(steps)) {
+			steps[[sx]] <- assignId(steps[[sx]], id)
+			id <- steps[[sx]]@id + 1L
+		}
+		.Object@steps <- steps
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxComputeSteps"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@steps <- lapply(.Object@steps, function (c) qualifyNames(c, modelname, namespace))
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeSteps"),
+	function(.Object, flatModel, model) {
+		.Object@steps <- lapply(.Object@steps, function (c) convertForBackend(c, flatModel, model))
+		.Object
+	})
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeIterate",
+	 contains = "MxComputeSteps",
+	 representation = representation(
 	   maxIter = "integer",
 	   tolerance = "numeric",
 	   verbose = "logical"))
@@ -214,19 +279,6 @@ setMethod("initialize", "MxComputeIterate",
 		  .Object@verbose <- verbose
 		  .Object
 	  })
-
-setMethod("qualifyNames", signature("MxComputeIterate"),
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@steps <- lapply(.Object@steps, function (c) qualifyNames(c, modelname, namespace))
-		.Object
-	})
-
-setMethod("convertForBackend", signature("MxComputeIterate"),
-	function(.Object, flatModel, model) {
-		.Object@steps <- lapply(.Object@steps, function (c) convertForBackend(c, flatModel, model))
-		.Object
-	})
 
 mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=FALSE) {
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
@@ -255,7 +307,7 @@ setClass(Class = "MxComputeEstimatedHessian",
 
 setMethod("qualifyNames", signature("MxComputeEstimatedHessian"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object <- callNextMethod();
 		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
 		.Object
 	})
@@ -271,24 +323,22 @@ setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
 	})
 
 setMethod("initialize", "MxComputeEstimatedHessian",
-	  function(.Object, free.group, fit, want.se) {
+	  function(.Object, free.set, fit, want.se) {
 		  .Object@name <- 'compute'
-		  .Object@free.group <- free.group
+		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@se <- want.se
 		  .Object
 	  })
 
-mxComputeEstimatedHessian <- function(free.group='default', fitfunction='fitfunction', want.se=TRUE) {
-	new("MxComputeEstimatedHessian", free.group, fitfunction, want.se)
+mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction', want.se=TRUE) {
+	new("MxComputeEstimatedHessian", free.set, fitfunction, want.se)
 }
 
 #----------------------------------------------------
 
 setClass(Class = "MxComputeSequence",
-	 contains = "MxBaseCompute",
-	 representation = representation(
-	   steps = "list"))
+	 contains = "MxComputeSteps")
 
 setMethod("initialize", "MxComputeSequence",
 	  function(.Object, steps) {
@@ -296,19 +346,6 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object@steps <- steps
 		  .Object
 	  })
-
-setMethod("qualifyNames", signature("MxComputeSequence"),
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@steps <- lapply(.Object@steps, function (c) qualifyNames(c, modelname, namespace))
-		.Object
-	})
-
-setMethod("convertForBackend", signature("MxComputeSequence"),
-	function(.Object, flatModel, model) {
-		.Object@steps <- lapply(.Object@steps, function (c) convertForBackend(c, flatModel, model))
-		.Object
-	})
 
 mxComputeSequence <- function(steps) {
 	new("MxComputeSequence", steps=steps)
@@ -329,7 +366,8 @@ setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequenc
 
 displayMxComputeOperation <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("@free.group :", omxQuotes(opt@free.group), '\n')
+	cat("@id :", opt@id, '\n')
+	cat("@free.set :", omxQuotes(opt@free.set), '\n')
 	invisible(opt)
 }
 

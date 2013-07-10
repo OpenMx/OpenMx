@@ -84,7 +84,7 @@ struct omxFreeVar {
 };
 
 struct FreeVarGroup {
-	const char *name;
+	int id;
 	std::vector< omxFreeVar* > vars;
 };
 
@@ -140,6 +140,8 @@ class omxGlobal {
 	std::vector< omxCompute* > computeList;
 	std::vector< FreeVarGroup* > freeGroup;
 
+	FreeVarGroup *findOrCreateVarGroup(int id);
+	FreeVarGroup *findVarGroup(int id);
 	~omxGlobal();
 };
 

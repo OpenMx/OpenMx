@@ -48,11 +48,10 @@ isExpectation <- function(name) {
 	return(length(grep("expectation", name, fixed=TRUE)) > 0)
 }
 
-parameterDependencyList <- function(pList, flatModel, dependencies, freeGroupNames) {
+parameterDependencyList <- function(pList, flatModel, dependencies) {
 	if (length(pList) == 3) {
 		return(retval)
 	}
-	pList[[3]] <- match(pList[[3]], freeGroupNames) - 1L
 	locations <- pList[4:length(pList)]
 	deps <- lapply(locations, findDependencies, flatModel, dependencies)
 	depnames <- Reduce(union, deps, character())
@@ -63,28 +62,30 @@ parameterDependencyList <- function(pList, flatModel, dependencies, freeGroupNam
 	append(retval, locations)
 }
 
-generateFreeVarGroups <- function(flatModel) {
-	mList <- flatModel@matrices
-	if (length(mList) == 0) {
-		return(list())
+buildFreeVarGroupList <- function(flatModel) {
+	result <- list()
+	for (step in flatModel@computes) {
+		got <- getFreeVarGroup(step)
+		if (length(got)) result <- append(result, got)
 	}
-	free.group <- sapply(mList, slot, 'free.group')
-	if (is.list(free.group) || any(nchar(free.group) == 0)) {
-		stop(paste("Invalid free.group name", omxQuotes(free.group)))
+	if (length(result)) {
+		members <- unlist(result[seq(2,length(result),2)])
+		recog <- match(members, names(flatModel@matrices))
+		if (any(is.na(recog))) {
+			stop(paste("free.set component", omxQuotes(members[is.na(recog)]), "not found"))
+		}
 	}
-	flatModel@freeGroupNames <- append(setdiff(unique(free.group), "default"), "default", after=0)
-	flatModel
+	result
 }
 
-generateParameterList <- function(flatModel, dependencies) {
+generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
 	mList <- flatModel@matrices
 	pList <- list()
 	for(i in 1:length(mList)) {
 		matrix <- mList[[i]]
-		pList <- generateParameterListHelper(matrix, pList, i - 1L)
+		pList <- generateParameterListHelper(matrix, pList, i - 1L, freeVarGroups)
 	}
-	pList <- lapply(pList, parameterDependencyList, flatModel, dependencies,
-			flatModel@freeGroupNames)
+	pList <- lapply(pList, parameterDependencyList, flatModel, dependencies)
 
 	if (length(pList)) for(i in 1:length(pList)) {
 		original <- pList[[i]]

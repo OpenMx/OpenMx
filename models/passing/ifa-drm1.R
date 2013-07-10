@@ -1,4 +1,4 @@
-#options(error = utils::recover)
+options(error = utils::recover)
 library(OpenMx)
 library(rpf)
 
@@ -28,7 +28,6 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0,0, 1),
                    free=c(TRUE, TRUE, FALSE, FALSE),
 		   lbound=c(1e-6, -1e6, 0, 0))
-ip.mat@free.group <- 'param'
 
 eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 
@@ -46,8 +45,8 @@ m2 <- mxModel(model="drm1", ip.mat, spec, m.mat, cov.mat, eip.mat,
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce("EItemParam"),
 				 mxComputeOnce('expectation', context='E'),
-				   mxComputeNewtonRaphson(free.group='param'),
-#				 mxComputeGradientDescent(free.group='param'),
+				   mxComputeNewtonRaphson(free.set='itemParam'),
+#				 mxComputeGradientDescent(free.set='param'),
 				 mxComputeOnce('expectation', context='M'),
 				 mxComputeOnce('fitfunction')
 				 )))

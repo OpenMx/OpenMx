@@ -237,6 +237,7 @@ isLocalDefinitionVariable <- function(name) {
 
 
 imxIdentifier <- function(namespace, name) {
+	if (is.null(name)) return(NULL)
 	return(paste(namespace, name, sep = imxSeparatorChar))
 }
 

@@ -43,7 +43,6 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0, 0, 1),
 		   lbound=c(1e-6, 1e-6, -1e6, 0, 0),
 		   free=c(rep(TRUE, 3), FALSE, FALSE))
-ip.mat@free.group <- 'param'
 
 #ip.mat@values[2,1] <- correct.mat[2,1]
 #ip.mat@free[2,1] <- FALSE
@@ -67,8 +66,8 @@ m1 <- mxModel(model="bifactor",
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
-			   mxComputeNewtonRaphson(free.group='param'),
-#                mxComputeGradientDescent(free.group='param'),
+			   mxComputeNewtonRaphson(free.set='ItemParam'),
+#                mxComputeGradientDescent(free.set='ItemParam'),
                 mxComputeOnce('expectation', context='M'),
                 mxComputeOnce('fitfunction'))))
 

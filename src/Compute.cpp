@@ -315,9 +315,10 @@ omxCompute::~omxCompute()
 void omxComputeOperation::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("free.group")));
-	int paramGroup = INTEGER(slotValue)[0];
-	varGroup = Global->freeGroup[paramGroup];
+	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
+	int id = INTEGER(slotValue)[0];
+	varGroup = Global->findVarGroup(id);
+	if (!varGroup) varGroup = Global->freeGroup[0];
 }
 
 class omxComputeSequence : public omxCompute {

@@ -53,7 +53,6 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
 ip.mat@values[4,1] <- 1
-ip.mat@free.group <- "param"
 
 eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
 
@@ -74,8 +73,8 @@ m1 <- mxModel(model="2dim",
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='E'),
-				 mxComputeNewtonRaphson(free.group='param'),
-#				 mxComputeGradientDescent(free.group='param'),
+				 mxComputeNewtonRaphson(free.set='ItemParam'),
+#				 mxComputeGradientDescent(free.set='ItemParam'),
                 mxComputeOnce('expectation', context='M'),
                 mxComputeOnce('fitfunction'))))
 
