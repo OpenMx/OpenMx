@@ -33,6 +33,8 @@ COMPILER_CXXFLAGS=
 COMPILER_LDFLAGS=
 arch_CXXFLAGS=
 arch_LDFLAGS=
+OPENMP_CXXFLAGS=
+OPENMP_LDFLAGS=
 
 if isdef __clang__; then
     cxx_type=clang
@@ -47,8 +49,9 @@ else
 fi
 
 if [ "$cxx_type" = gcc ]; then
-    COMPILER_CXXFLAGS="-Wall -fopenmp"
-    COMPILER_LDFLAGS="-fopenmp"
+    COMPILER_CXXFLAGS="-Wall"
+    OPENMP_CXXFLAGS="-fopenmp"
+    OPENMP_LDFLAGS="-fopenmp"
 fi
 
 cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
@@ -100,6 +103,8 @@ echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars
 echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars
+echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
+echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars
 echo >> src/Makevars
 echo "# ---- appending Makevars.in ----" >> src/Makevars
 echo >> src/Makevars
