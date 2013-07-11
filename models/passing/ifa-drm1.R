@@ -43,10 +43,10 @@ m2 <- mxModel(model="drm1", ip.mat, spec, m.mat, cov.mat, eip.mat,
               mxFitFunctionBA81(ItemParam="itemParam"),
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce("EItemParam"),
-				 mxComputeOnce('expectation', context='E'),
+				 mxComputeOnce('expectation', context='EM'),
 				   mxComputeNewtonRaphson(free.set='itemParam'),
 #				 mxComputeGradientDescent(free.set='param'),
-				 mxComputeOnce('expectation', context='M'),
+				 mxComputeOnce('expectation'),
 				 mxComputeOnce('fitfunction')
 				 )))
 

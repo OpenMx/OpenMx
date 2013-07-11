@@ -70,10 +70,10 @@ m1 <- mxModel(model="2dim",
           mxFitFunctionBA81(ItemParam="ItemParam"),
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
-                mxComputeOnce('expectation', context='E'),
+                mxComputeOnce('expectation', context='EM'),
 				 mxComputeNewtonRaphson(free.set='ItemParam'),
 #				 mxComputeGradientDescent(free.set='ItemParam'),
-                mxComputeOnce('expectation', context='M'),
+                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction'))))
 
 	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')

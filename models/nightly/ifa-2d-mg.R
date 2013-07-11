@@ -92,7 +92,7 @@ if (1) {
   g3@matrices$cov@values <- fm$G3$cov
   
   cModel <- mxModel(model="cModel", g1,g2,g3,
-                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'))
+                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'))
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
   cModel.eap <- mxRun(cModel)
   
@@ -112,7 +112,7 @@ if (1) {
   cModel <- mxModel(cModel,
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                     mxComputeSequence(steps=list(
-                      mxComputeOnce(paste(groups, 'expectation', sep='.'), context='M'),
+                      mxComputeOnce(paste(groups, 'expectation', sep='.')),
                       mxComputeOnce('fitfunction'))))
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'omit'
   cModel.fit <- mxRun(cModel)
@@ -128,9 +128,9 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, "EItemParam", sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'),
+                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction')
                       )))
 

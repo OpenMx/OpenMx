@@ -91,7 +91,7 @@ if (1) {
     rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
   
   cModel <- mxModel(model="cModel", g1,g2,
-                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'))
+                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'))
 #  cModel <- mxOption(cModel, "Number of Threads", 1)
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
   cModel.eap <- mxRun(cModel)
@@ -112,7 +112,7 @@ if (1) {
     cModel <- mxModel(cModel,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
-                        mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction'))))
     cModel <- mxRun(cModel)
     omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
@@ -125,9 +125,9 @@ if(0) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, "EItemParam", sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'),
+                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction')
                       ), verbose=TRUE))
   

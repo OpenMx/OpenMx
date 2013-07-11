@@ -66,9 +66,9 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, "EItemParam", sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='E'),
+                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep="."), context='M'),
+                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction')
                       )))
   

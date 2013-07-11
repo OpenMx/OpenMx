@@ -565,6 +565,8 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		}
 	}
 
+	context = "";
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
 	if (length(slotValue) == 0) {
 		// OK

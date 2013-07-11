@@ -794,7 +794,10 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 
 static void
 ba81Estep(omxExpectation *oo, const char *context) {
-	if (!context) return;
+	if (!context) {
+		//warning("%s: No context specified hence expectation cannot be evaluated", NAME);
+		return;
+	}
 
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	omxRecompute(state->EitemParam);
@@ -803,10 +806,10 @@ ba81Estep(omxExpectation *oo, const char *context) {
 
 	ba81Estep1(oo);
 
-	if (strcmp(context, "E")==0) {  // use "EM" and "" instead TODO
+	if (strcmp(context, "EM")==0) {
 		// for E-M LL
 		ba81Expected(oo);
-	} else if (strcmp(context, "M")==0) {
+	} else if (context[0] == 0) {
 		// for regular LL
 		BA81Expect *state = (BA81Expect *) oo->argStruct;
 		ba81SetupQuadrature(oo, state->targetQpoints, 0);

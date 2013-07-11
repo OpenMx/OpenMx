@@ -38,10 +38,10 @@ if(1) {
 					# integrate FitFuncBA81 into FitFuncML
 		      mxComputeIterate(steps=list(
 					 mxComputeOnce("EItemParam"),
-					 mxComputeOnce('expectation', context='E'),
+					 mxComputeOnce('expectation', context='EM'),
 					#				   mxComputeGradientDescent(free.set='itemParam'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
-					 mxComputeOnce('expectation', context='M'),
+					 mxComputeOnce('expectation'),
 					 mxComputeOnce('fitfunction')
 					 )))
 	
@@ -55,7 +55,7 @@ if(1) {
 						    ItemSpec="ItemSpec",
 						    EItemParam="EItemParam", scores="full"),
 				  mxComputeSequence(steps=list(
-						      mxComputeOnce('expectation', context='M'),
+						      mxComputeOnce('expectation'),
 						      mxComputeOnce('fitfunction'))))
 		cModel <- mxRun(cModel)
 		cModel@matrices$cov@values - fm$G1$cov
