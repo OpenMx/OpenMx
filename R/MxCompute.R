@@ -138,6 +138,7 @@ mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FA
 setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
+	   useGradient = "logical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character"))
 
@@ -159,22 +160,23 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.set, engine, fit) {
+	  function(.Object, free.set, engine, fit, useGradient) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
+		  .Object@useGradient <- useGradient
 		  .Object
 	  })
 
-mxComputeGradientDescent <- function(type, free.set=NULL,
+mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.logical(NA),
 				     engine=NULL, fitfunction='fitfunction') {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
 	if (is.null(engine)) engine <- as.character(NA)
 
-	new("MxComputeGradientDescent", free.set, engine, fitfunction)
+	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient)
 }
 
 #----------------------------------------------------

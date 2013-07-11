@@ -23,6 +23,7 @@
 class omxComputeGD : public omxComputeOperation {
 	typedef omxComputeOperation super;
 	omxMatrix *fitMatrix;
+	bool useGradient;
 
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
 	int inform, iter;
@@ -54,6 +55,14 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
+	if (LOGICAL(slotValue)[0] == NA_LOGICAL) {
+		useGradient = Global->analyticGradients;
+	} else {
+		useGradient = LOGICAL(slotValue)[0];
+	}
 }
 
 void omxComputeGD::compute(FitContext *fc)
@@ -69,7 +78,7 @@ void omxComputeGD::compute(FitContext *fc)
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
 
-	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter);
+	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup);
 
 	omxFreeChildStates(globalState);
 

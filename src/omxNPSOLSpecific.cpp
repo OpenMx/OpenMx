@@ -33,6 +33,7 @@ const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
 static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
+static bool NPSOL_useGradient;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -124,7 +125,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	NPSOL_fc->copyParamToModel(globalState, x);
 
-	if (*mode > 0 && Global->analyticGradients &&
+	if (*mode > 0 && NPSOL_useGradient &&
 	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
 		size_t numParams = NPSOL_fc->varGroup->vars.size();
 		OMXZERO(NPSOL_fc->grad, numParams);
@@ -239,12 +240,12 @@ void F77_SUB(npsolConstraintFunction)
 }
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-		    int *inform_out, int *iter_out)
+		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup)
 {
 	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
-	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
 
+	NPSOL_useGradient = useGradient;
 	NPSOL_fc = fc;
 	double *x = fc->est;
 	double *g = fc->grad;
