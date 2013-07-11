@@ -488,7 +488,6 @@ ba81Estep1(omxExpectation *oo) {
 	//mxLog("E-step");
 	//pda(ElatentMean, 1, state->maxAbilities);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
-	state->validExpectation = TRUE;
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
@@ -793,28 +792,36 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 }
 
 static void
-ba81Estep(omxExpectation *oo, const char *context) {
+ba81Estep(omxExpectation *oo, const char *context)
+{
 	if (!context) {
 		//warning("%s: No context specified hence expectation cannot be evaluated", NAME);
 		return;
 	}
 
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+
+	if (strcmp(context, "EM")==0) {
+		state->type = EXPECTATION_AUGMENTED;
+	} else if (context[0] == 0) {
+		state->type = EXPECTATION_OBSERVED;
+	} else {
+		omxRaiseErrorf(globalState, "Unknown context '%s'", context);
+		return;
+	}
+
 	omxRecompute(state->EitemParam);
 	omxRecompute(state->latentMeanOut);
 	omxRecompute(state->latentCovOut);
 
+	if (state->Qpoint.size() == 0 || state->type == EXPECTATION_AUGMENTED) {
+		ba81SetupQuadrature(oo, state->targetQpoints, 0);
+	}
+
 	ba81Estep1(oo);
 
-	if (strcmp(context, "EM")==0) {
-		// for E-M LL
+	if (state->type == EXPECTATION_AUGMENTED) {
 		ba81Expected(oo);
-	} else if (context[0] == 0) {
-		// for regular LL
-		BA81Expect *state = (BA81Expect *) oo->argStruct;
-		ba81SetupQuadrature(oo, state->targetQpoints, 0);
-	} else {
-		omxRaiseErrorf(globalState, "Unknown context '%s'", context);
 	}
 }
 
@@ -850,7 +857,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 
-	if (state->scores == SCORES_OMIT || !state->validExpectation) return;
+	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
@@ -985,7 +992,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->expected = NULL;
 	state->ElatentMean = NULL;
 	state->ElatentCov = NULL;
-	state->validExpectation = false;
+	state->type = EXPECTATION_UNINITIALIZED;
 	state->scores = SCORES_OMIT;
 	oo->argStruct = (void*) state;
 
@@ -1221,8 +1228,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->ElatentMean = Realloc(NULL, state->maxAbilities * numUnique, double);
 	state->ElatentCov = Realloc(NULL, state->maxAbilities * state->maxAbilities * numUnique, double);
-
-	ba81SetupQuadrature(oo, state->targetQpoints, 0);
 
 	// verify data bounded between 1 and numOutcomes TODO
 	// hm, looks like something could be added to omxData for column summary stats?

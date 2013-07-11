@@ -26,6 +26,12 @@ enum score_option {
 	SCORES_FULL
 };
 
+enum expectation_type {
+	EXPECTATION_UNINITIALIZED,
+	EXPECTATION_AUGMENTED, // E-M
+	EXPECTATION_OBSERVED,  // regular
+};
+
 typedef struct {
 
 	// data characteristics
@@ -68,7 +74,7 @@ typedef struct {
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
 
-	bool validExpectation;
+	enum expectation_type type;
 	enum score_option scores;
 } BA81Expect;
 

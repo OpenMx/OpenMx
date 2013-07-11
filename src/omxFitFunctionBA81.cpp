@@ -439,16 +439,14 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		return 0;
 	}
 
-	if (want & FF_COMPUTE_FIT) {
-		++state->fitCount;
-	}
+	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
-	if (want & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN)) {
-		// M-step
+	++state->fitCount;
 
+	if (estate->type == EXPECTATION_AUGMENTED) {
 		if (fc->varGroup != oo->freeVarGroup) error("FreeVarGroup mismatch");
 
-		++state->gradientCount;
+		if (want & FF_COMPUTE_GRADIENT) ++state->gradientCount;
 
 		omxMatrix *itemParam = state->itemParam;
 		OMXZERO(state->thrDeriv, state->derivPadSize * itemParam->cols * Global->numThreads);
@@ -459,14 +457,11 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
 		return got;
-	} else {
-		// Major EM iteration, note completely different LL calculation
-
+	} else if (estate->type == EXPECTATION_OBSERVED) {
 		if (fc->varGroup != state->latentFVG) error("FreeVarGroup mismatch");
 
 		updateLatentParam(oo, fc);
 
-		BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 		double *patternLik = estate->patternLik;
 		int *numIdentical = estate->numIdentical;
 		int numUnique = estate->numUnique;
