@@ -118,7 +118,7 @@ if (1) {
     omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
 }
 
-if(0) {
+if(1) {
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
   grpModel <- mxModel(model="groupModel", g1, g2,
@@ -129,7 +129,7 @@ if(0) {
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction')
-                      ), verbose=TRUE))
+                      )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
