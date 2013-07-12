@@ -85,6 +85,14 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 			SEXP rcol;
 			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
 			if(isFactor(rcol)) {
+				SEXP attr;
+				PROTECT(attr = getAttrib(rcol, install("mxFactor")));
+				if (!isLogical(attr) || length(attr) != 1 || LOGICAL(attr)[0] != TRUE) {
+					warning("Data column %d is a factor but was not created using mxFactor", j+1);
+				}
+				if (isUnordered(rcol)) {
+					warning("Data column %d must be an ordered factor", j+1);
+				}
 				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
 				od->intData[j] = INTEGER(rcol);
 				od->location[j] = ~j;
