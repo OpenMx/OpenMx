@@ -685,86 +685,102 @@ ba81Expected(omxExpectation* oo)
 	//pda(state->expected, state->totalOutcomes, state->totalQuadPoints);
 }
 
-static void
-EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
+OMXINLINE static void
+accumulateScores(BA81Expect *state, int px, int sgroup, double piece, const double *where,
+		 int primaryDims, int covEntries, std::vector<double> *mean, std::vector<double> *cov)
 {
-	// add openmp parallelization stuff TODO
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	int numUnique = state->numUnique;
-	int maxAbilities = state->maxAbilities;
-	int covEntries = triangleLoc1(maxAbilities);
 	int maxDims = state->maxDims;
+	int maxAbilities = state->maxAbilities;
+
+	if (sgroup == 0) {
+		int cx=0;
+		for (int d1=0; d1 < primaryDims; d1++) {
+			double piece_w1 = piece * where[d1];
+			double &dest1 = (*mean)[px * maxAbilities + d1];
+#pragma omp atomic
+			dest1 += piece_w1;
+			for (int d2=0; d2 <= d1; d2++) {
+				double &dest2 = (*cov)[px * covEntries + cx];
+#pragma omp atomic
+				dest2 += where[d2] * piece_w1;
+				++cx;
+			}
+		}
+	}
+
+	if (state->numSpecific) {
+		int sdim = maxDims + sgroup - 1;
+		double piece_w1 = piece * where[primaryDims];
+		double &dest3 = (*mean)[px * maxAbilities + sdim];
+#pragma omp atomic
+		dest3 += piece_w1;
+
+		double &dest4 = (*cov)[px * covEntries + triangleLoc0(sdim)];
+#pragma omp atomic
+		dest4 += piece_w1 * where[primaryDims];
+	}
+}
+
+static void
+EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
+{
+	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
-	int priDims = maxDims - (numSpecific? 1 : 0);
+	int maxDims = state->maxDims;
+	int maxAbilities = state->maxAbilities;
+	int primaryDims = maxDims;
+	int covEntries = triangleLoc1(maxAbilities);
 
 	mean->assign(numUnique * maxAbilities, 0);
 	cov->assign(numUnique * covEntries, 0);
 
-	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-		int quad[priDims];
-		decodeLocation(qx, priDims, state->quadGridSize, quad);
-		double where[priDims];
-		pointToWhere(state, quad, where, priDims);
-		double logArea = state->priLogQarea[qx];
+	if (numSpecific == 0) {
+#pragma omp parallel for num_threads(Global->numThreads)
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->quadGridSize, quad);
+			double where[maxDims];
+			pointToWhere(state, quad, where, maxDims);
 
-		double *lxk;
-		if (numSpecific == 0) {
-			lxk = ba81LikelihoodFast(oo, 0, quad);
-		} else {
-			cai2010(oo, FALSE, quad);
-			lxk = state->allElxk.data() + eIndex(state, 0);
-		}
+			double *lxk = ba81LikelihoodFast(oo, 0, quad);
 
-		for (int px=0; px < numUnique; px++) {
-			double plik = exp(logArea + lxk[px]);
-			int cx=0;
-			for (int d1=0; d1 < priDims; d1++) {
-				double piece = where[d1] * plik;
-				(*mean)[px * maxAbilities + d1] += piece;
-				for (int d2=0; d2 <= d1; d2++) {
-					(*cov)[px * covEntries + cx] += where[d2] * piece;
-					++cx;
-				}
+			double logArea = state->priLogQarea[qx];
+			for (int px=0; px < numUnique; px++) {
+				double tmp = exp(lxk[px] + logArea);
+				accumulateScores(state, px, 0, tmp, where, primaryDims, covEntries, mean, cov);
 			}
 		}
-	}
+	} else {
+		primaryDims -= 1;
+		int sDim = primaryDims;
+		long specificPoints = state->quadGridSize;
 
-	if (numSpecific) {
-		// rewrite using math from E-step TODO
-		std::vector<double> ris(numUnique);
-		for (int sx=0; sx < numSpecific; sx++) {
-			for (int sqx=0; sqx < state->quadGridSize; sqx++) {
-				double area = exp(state->speLogQarea[sIndex(state, sx, sqx)]);
-				double ptArea = area * state->Qpoint[sqx];
-				ris.assign(numUnique, 0);
-				for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-					int quad[maxDims];
-					decodeLocation(qx, priDims, state->quadGridSize, quad);
-					quad[priDims] = sqx;
+#pragma omp parallel for num_threads(Global->numThreads)
+		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
-					cai2010(oo, FALSE, quad);
+			cai2010(oo, FALSE, quad);
 
-					double *lxk = ba81LikelihoodFast(oo, sx, quad);
-
-					double logArea = state->priLogQarea[qx];
+			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
+				for (long sx=0; sx < specificPoints; sx++) {
+					quad[sDim] = sx;
+					double where[maxDims];
+					pointToWhere(state, quad, where, maxDims);
+					double logArea = logAreaProduct(state, quad, sgroup);
+					double *lxk = ba81LikelihoodFast(oo, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = state->allElxk[eIndex(state, px)];
-						double Eis = state->Eslxk[esIndex(state, sx, px)];
-						ris[px] += exp(logArea + lxk[px] + Ei - Eis);
+						double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
+						accumulateScores(state, px, sgroup, tmp, where, primaryDims,
+								 covEntries, mean, cov);
 					}
-				}
-				for (int px=0; px < numUnique; px++) {
-					double piece = ris[px] * ptArea;
-					int dim = priDims + sx;
-					(*mean)[px * maxAbilities + dim] += piece;
-					(*cov)[px * covEntries + triangleLoc0(dim)] += piece * state->Qpoint[sqx];
 				}
 			}
 		}
 	}
-	//mxLog("step1");
-	//pda(mean->data(), maxAbilities, 2);
-	//pda(cov->data(), covEntries, numUnique);
 
 	double *patternLik = state->patternLik;
 	for (int px=0; px < numUnique; px++) {
@@ -772,14 +788,14 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
 		}
-		for (int cx=0; cx < triangleLoc1(priDims); ++cx) {
+		for (int cx=0; cx < triangleLoc1(primaryDims); ++cx) {
 			(*cov)[px * covEntries + cx] /= denom;
 		}
 		for (int sx=0; sx < numSpecific; sx++) {
-			(*cov)[px * covEntries + triangleLoc0(priDims + sx)] /= denom;
+			(*cov)[px * covEntries + triangleLoc0(primaryDims + sx)] /= denom;
 		}
 		int cx=0;
-		for (int a1=0; a1 < priDims; ++a1) {
+		for (int a1=0; a1 < primaryDims; ++a1) {
 			for (int a2=0; a2 <= a1; ++a2) {
 				double ma1 = (*mean)[px * maxAbilities + a1];
 				double ma2 = (*mean)[px * maxAbilities + a2];
@@ -788,14 +804,11 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 			}
 		}
 		for (int sx=0; sx < numSpecific; sx++) {
-			int sdim = priDims + sx;
+			int sdim = primaryDims + sx;
 			double ma1 = (*mean)[px * maxAbilities + sdim];
 			(*cov)[px * covEntries + triangleLoc0(sdim)] -= ma1 * ma1;
 		}
         }
-	//mxLog("step2");
-	//pda(mean->data(), maxAbilities, 2);
-	//pda(cov->data(), covEntries, numUnique);
 }
 
 static void
@@ -883,7 +896,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	std::vector<double> mean;
 	std::vector<double> cov;
-	EAPinternal(oo, &mean, &cov);
+	EAPinternalFast(oo, &mean, &cov);
 
 	int numUnique = state->numUnique;
 	omxData *data = state->data;
