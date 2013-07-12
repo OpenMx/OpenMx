@@ -92,10 +92,12 @@ assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix
  * \param theta Vector of ability parameters, one per ability
  * \returns A numItems by maxOutcomes colMajor vector of doubles. Caller must Free it.
  */
-double *
-computeRPF(BA81Expect *state, omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
-	   int maxDims, int maxOutcomes, const int *quad)
+double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad)
 {
+	omxMatrix *itemSpec = state->itemSpec;
+	omxMatrix *design = state->design;
+	int maxDims = state->maxDims;
+	int maxOutcomes = state->maxOutcomes;
 	int numItems = itemSpec->cols;
 
 	double theta[maxDims];
@@ -145,7 +147,7 @@ getLXKcache(BA81Expect *state, const int *quad, const int specific)
 }
 
 OMXINLINE static double *
-ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
+ba81Likelihood(omxExpectation *oo, int specific, const int *quad, const double *outcomeProb)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -159,13 +161,6 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 		lxk = state->lxk + numUnique * omx_absolute_thread_num();
 	} else {
 		lxk = getLXKcache(state, quad, specific);
-	}
-
-	const double *outcomeProb = computeRPF(state, state->itemSpec, state->design, state->EitemParam,
-					       state->maxDims, state->maxOutcomes, quad);
-	if (!outcomeProb) {
-		OMXZERO(lxk, numUnique);
-		return lxk;
 	}
 
 	const int *rowMap = state->rowMap;
@@ -194,8 +189,6 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad)
 		lxk[px] = lxk1;
 	}
 
-	Free(outcomeProb);
-
 	//mxLog("L.is(%d) at (%d %d) %.2f", specific, quad[0], quad[1], lxk[0]);
 	return lxk;
 }
@@ -205,7 +198,10 @@ ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (!state->cacheLXK) {
-		return ba81Likelihood(oo, specific, quad);
+		const double *outcomeProb = computeRPF(state, state->EitemParam, quad);
+		double *ret = ba81Likelihood(oo, specific, quad, outcomeProb);
+		Free(outcomeProb);
+		return ret;
 	} else {
 		return getLXKcache(state, quad, specific);
 	}
@@ -287,15 +283,20 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 		}
 	}
 
-	for (int sx=0; sx < numSpecific; sx++) {
-		for (int qx=0; qx < quadGridSize; qx++) {
-			quad[sDim] = qx;
+	if (!state->cacheLXK) recompute = TRUE;
 
+	for (int qx=0; qx < quadGridSize; qx++) {
+		quad[sDim] = qx;
+		double *outcomeProb = NULL;
+		if (recompute) {
+			outcomeProb = computeRPF(state, state->EitemParam, quad);
+		}
+		for (int sx=0; sx < numSpecific; sx++) {
 			double *lxk;     // a.k.a. "L_is"
 			if (recompute) {
-				lxk = ba81Likelihood(oo, sx, quad);
+				lxk = ba81Likelihood(oo, sx, quad, outcomeProb);
 			} else {
-				lxk = ba81LikelihoodFast(oo, sx, quad);
+				lxk = getLXKcache(state, quad, sx);
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
@@ -306,7 +307,10 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 				state->Eslxk[esIndex(state, sx, ix)] += exp(piece);
 			}
 		}
+		Free(outcomeProb);
+	}
 
+	for (int sx=0; sx < numSpecific; sx++) {
 		for (int px=0; px < numUnique; px++) {
 			state->Eslxk[esIndex(state, sx, px)] =
 				log(state->Eslxk[esIndex(state, sx, px)]);
@@ -350,7 +354,9 @@ ba81Estep1(omxExpectation *oo) {
 			double where[maxDims];
 			pointToWhere(state, quad, where, maxDims);
 
-			double *lxk = ba81Likelihood(oo, 0, quad);
+			const double *outcomeProb = computeRPF(state, state->EitemParam, quad);
+			double *lxk = ba81Likelihood(oo, 0, quad, outcomeProb);
+			Free(outcomeProb);
 
 			double logArea = state->priLogQarea[qx];
 #pragma omp critical(EstepUpdate)
@@ -647,7 +653,7 @@ ba81Expected(omxExpectation* oo)
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 
-			cai2010(oo, !state->cacheLXK, quad);
+			cai2010(oo, FALSE, quad);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -724,6 +730,7 @@ EAPinternal(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *
 	}
 
 	if (numSpecific) {
+		// rewrite using math from E-step TODO
 		std::vector<double> ris(numUnique);
 		for (int sx=0; sx < numSpecific; sx++) {
 			for (int sqx=0; sqx < state->quadGridSize; sqx++) {

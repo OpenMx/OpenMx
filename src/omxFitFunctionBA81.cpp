@@ -156,8 +156,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 	double where[maxDims];
 	pointToWhere(estate, quad, where, maxDims);
 
-	double *outcomeProb = computeRPF(estate, estate->itemSpec, estate->design, itemParam, estate->maxDims,
-					 estate->maxOutcomes, quad); // avoid malloc/free? TODO
+	double *outcomeProb = computeRPF(estate, itemParam, quad); // avoid malloc/free? TODO
 	if (!outcomeProb) return 0;
 
 	double thr_ll = 0;

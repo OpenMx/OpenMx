@@ -81,9 +81,7 @@ typedef struct {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-double *
-computeRPF(BA81Expect *state, omxMatrix *itemSpec, omxMatrix *design, omxMatrix *itemParam,
-	   int maxDims, int maxOutcomes, const int *quad);
+double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad);
 
 OMXINLINE static void
 pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
