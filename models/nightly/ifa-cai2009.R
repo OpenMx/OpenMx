@@ -8,8 +8,6 @@
 #options(error = utils::recover)
 library(OpenMx)
 library(rpf)
-library(ggplot2)
-library(stringr)
 
 correct.LL <- 29995.30
 data.raw <- suppressWarnings(try(read.csv("models/nightly/data/cai2009.csv"), silent=TRUE))
@@ -143,16 +141,4 @@ if(1) {
   omxCheckCloseEnough(grpModel@fitfunction@result, correct.LL, .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$cov@values, fm$G1$cov, .01)
-  
-  #qplot(c(0, 3), stat="function", fun=function (x) dlnorm(x, sdlog=.25), geom="line") + ylim(0,1.5)
-  if (0) {
-    var.type <- apply(ip.mat@free,1,sum)
-    bias <- calc.bias(bank[sapply(bank, function (b) b$ghp == 40)])
-    df <- data.frame(x=t(correct)[t(ip.mat@free)],
-                     var=c(rep('a', var.type[1]),
-                           rep('b', var.type[2])),
-                     bias=t(bias)[t(ip.mat@free)])
-    df$var <- factor(df$var)
-    ggplot(df, aes(x, bias, color=var)) + geom_point() + xlab("true parameter value")
-  }
 }
