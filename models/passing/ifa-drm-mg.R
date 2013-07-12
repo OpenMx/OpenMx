@@ -16,10 +16,6 @@ correct[4,] <- 1
 data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 
 if(1) {
-	spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-			 values=sapply(items, function(m) slot(m,'spec')),
-			 free=FALSE, byrow=TRUE)
-	
 	ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
 			   values=c(1,0,0, 1),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
@@ -29,10 +25,10 @@ if(1) {
 	m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 	cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
 
-	m2 <- mxModel(model="drmmg", ip.mat, spec, m.mat, cov.mat, eip.mat,
+	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
 		      mxData(observed=data, type="raw"),
 		      mxExpectationBA81(mean="mean", cov="cov",
-					ItemSpec="ItemSpec",
+					ItemSpec=items,
 					EItemParam="EItemParam"),
 		      mxFitFunctionBA81(ItemParam="itemParam"),
 					# integrate FitFuncBA81 into FitFuncML

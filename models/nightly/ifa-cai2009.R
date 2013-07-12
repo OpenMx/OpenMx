@@ -43,10 +43,6 @@ mk.model <- function(model.name, data, latent.free) {
   design <- matrix(c(rep(1,numItems),
                      kronecker(2:dims,rep(1,4))), byrow=TRUE, ncol=numItems)
   
-  ispec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-           values=sapply(spec, function(m) slot(m,'spec')),
-           free=FALSE)
-
   ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                      values=c(1.4,1,0),
                      free=c(TRUE,TRUE,TRUE))
@@ -63,11 +59,11 @@ mk.model <- function(model.name, data, latent.free) {
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=latent.free)
   
-  m1 <- mxModel(model=model.name, ip.mat, eip.mat, ispec, m.mat, cov.mat,
+  m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
                 mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
-                  ItemSpec="ItemSpec",
+                  ItemSpec=spec,
                   Design="Design",
                   EItemParam="EItemParam",
                   mean="mean", cov="cov",

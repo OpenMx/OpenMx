@@ -32,10 +32,6 @@ design <- matrix(c(rep(1,numItems),
 theta <- t(rmvnorm(numPersons, mean=rnorm(3, sd=.25)))
 data <- rpf.sample(theta, items, correct, design)
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=sapply(items, function(m) slot(m,'spec')),
-         free=FALSE, byrow=TRUE)
-
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
 		   values=design)
 
@@ -52,11 +48,11 @@ m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
 
 m1 <- mxModel(model="bifactor",
-          spec, design,
+          design,
           ip.mat, m.mat, cov.mat, eip.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
-	     ItemSpec="ItemSpec",
+	     ItemSpec=items,
 	     Design="Design",
 	     EItemParam="EItemParam",
 	    qpoints=29,

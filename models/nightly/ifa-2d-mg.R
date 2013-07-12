@@ -40,10 +40,6 @@ if (0) {
 }
 
 mkgroup <- function(model.name, data, latent.free) {  
-  spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-                   values=sapply(items, function(m) slot(m,'spec')),
-                   free=FALSE, byrow=TRUE)
-  
   ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                      values=c(1, 1.4, 0), free=TRUE)
   ip.mat@values[correct.mat==0] <- 0
@@ -62,10 +58,10 @@ mkgroup <- function(model.name, data, latent.free) {
   cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=latent.free)
   
   m1 <- mxModel(model=model.name,
-                spec, ip.mat, m.mat, cov.mat, eip.mat,
+                ip.mat, m.mat, cov.mat, eip.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec="ItemSpec",
+                                  ItemSpec=items,
                                   EItemParam="EItemParam",
                                   qpoints=21, qwidth=5),
                 mxFitFunctionBA81(ItemParam="ItemParam"))

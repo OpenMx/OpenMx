@@ -20,10 +20,6 @@ correct.mat[2,] <- correct.mat[2,] * -correct.mat[1,]
 ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct.mat)
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=sapply(items, function(m) slot(m,'spec')),
-         free=FALSE, byrow=TRUE)
-
 ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0,0, 1),
                    free=c(TRUE, TRUE, FALSE, FALSE))
@@ -33,10 +29,10 @@ eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
-m2 <- mxModel(model="drm1", ip.mat, spec, m.mat, cov.mat, eip.mat,
+m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(
-                ItemSpec="ItemSpec", EItemParam="EItemParam",
+                ItemSpec=items, EItemParam="EItemParam",
                 mean="mean", cov="cov",
 		qpoints=31,
 		scores="full"),

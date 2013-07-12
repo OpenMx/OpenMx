@@ -16,7 +16,7 @@
 
 setClass(Class = "MxExpectationBA81",
          representation = representation(
-	   ItemSpec = "MxCharOrNumber",
+	   ItemSpec = "list",
 	   Design = "MxOptionalCharOrNumber",
            EItemParam = "MxOptionalCharOrNumber",
 	   qpoints = "numeric",
@@ -33,7 +33,7 @@ setMethod("initialize", "MxExpectationBA81",
 		   qpoints, qwidth, cache, mean, cov, scores,
 		   name = 'expectation') {
             .Object@name <- name
-            .Object@ItemSpec <- ItemSpec
+	    .Object@ItemSpec <- ItemSpec
             .Object@Design <- Design
             .Object@EItemParam <- EItemParam
             .Object@qpoints <- qpoints
@@ -52,7 +52,7 @@ setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  function(.Object, dependencies) {
 		  sources <- c(.Object@EItemParam,
 			       .Object@mean, .Object@cov,
-			       .Object@ItemSpec, .Object@Design)
+			       .Object@Design)
 		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		  return(dependencies)
 	  })
@@ -68,7 +68,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  }
 		  name <- .Object@name
 		  for (s in c("data", "EItemParam",
-			      "ItemSpec", "Design", "mean", "cov")) {
+			      "Design", "mean", "cov")) {
 			  if (is.null(slot(.Object, s))) next;
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -84,7 +84,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 setMethod("qualifyNames", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("EItemParam", "ItemSpec",
+		for (s in c("EItemParam",
 			    "Design", "mean", "cov")) {
 			if (is.null(slot(.Object, s))) next;
 			slot(.Object, s) <-
@@ -106,9 +106,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' any additional Bayesian prior on difficulty estimates (Baker &
 ##' Kim, 2004, p. 196).
 ##' 
-##' @param ItemSpec one column for each item containing the model ID
-##' (see \code{\link{mxLookupIRTItemModelID}}), numDimensions, and
-##' numOutcomes (3 rows)
 ##' @param ItemParam one column for each item with parameters starting
 ##' at row 1 and extra rows filled with NA
 ##' @param Design one column per item assignment of person abilities

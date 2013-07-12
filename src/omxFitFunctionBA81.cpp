@@ -107,7 +107,7 @@ static void buildParamMap(omxFitFunction* oo)
 				int at = pCol[px] * state->derivPadSize + pRow[px];
 				state->paramMap[at] = px;
 
-				const double *spec = omxMatrixColumn(estate->itemSpec, loc->col);
+				const double *spec = estate->itemSpec[loc->col];
 				int id = spec[RPF_ISpecID];
 				double upper, lower;
 				(*rpf_model[id].paramBound)(spec, loc->row, &upper, &lower);
@@ -120,7 +120,7 @@ static void buildParamMap(omxFitFunction* oo)
 	for (size_t p1=0; p1 < numFreeParams; p1++) {
 		for (size_t p2=p1; p2 < numFreeParams; p2++) {
 			if (pCol[p1] == -1 || pCol[p1] != pCol[p2]) continue;
-			const double *spec = omxMatrixColumn(estate->itemSpec, pCol[p1]);
+			const double *spec = estate->itemSpec[pCol[p1]];
 			int id = spec[RPF_ISpecID];
 			int numParam = (*rpf_model[id].numParam)(spec);
 			int r1 = pRow[p1];
@@ -145,7 +145,6 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *itemSpec = estate->itemSpec;
 	omxMatrix *itemParam = state->itemParam;
 	int numItems = itemParam->cols;
 	int maxOutcomes = estate->maxOutcomes;
@@ -161,7 +160,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 
 	double thr_ll = 0;
 	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = omxMatrixColumn(itemSpec, ix);
+		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		int iOutcomes = spec[RPF_ISpecOutcomes];
 
@@ -199,7 +198,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *customPrior = state->customPrior;
 	omxMatrix *itemParam = state->itemParam;
-	omxMatrix *itemSpec = estate->itemSpec;
+	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
 	int maxDims = estate->maxDims;
 	const int totalOutcomes = estate->totalOutcomes;
 
@@ -238,7 +237,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 
 		int numItems = itemParam->cols;
 		for (int ix=0; ix < numItems; ix++) {
-			const double *spec = omxMatrixColumn(itemSpec, ix);
+			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
 			double *pad = deriv0 + ix * state->derivPadSize;
@@ -256,7 +255,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 			if (0 && !isfinite(deriv0[ox])) {
 				int item = ox / itemParam->rows;
 				mxLog("item parameters:\n");
-				const double *spec = omxMatrixColumn(itemSpec, item);
+				const double *spec = itemSpec[item];
 				int id = spec[RPF_ISpecID];
 				int numParam = (*rpf_model[id].numParam)(spec);
 				double *iparam = omxMatrixColumn(itemParam, item);
@@ -283,7 +282,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *itemSpec = estate->itemSpec;
+	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
 	omxMatrix *itemParam = state->itemParam;
 	omxMatrix *design = estate->design;
 	double *tmpLatentMean = state->tmpLatentMean;
@@ -293,7 +292,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 
 	int numItems = itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = omxMatrixColumn(itemSpec, ix);
+		const double *spec = itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		const double *rawDesign = omxMatrixColumn(design, ix);
 		int idesign[design->rows];
@@ -469,6 +468,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			got += numIdentical[ux] * patternLik[ux];
 		}
 		return -2 * got;
+	} else {
+		error("Confused");
 	}
 }
 
@@ -534,10 +535,10 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 
 	int numItems = state->itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
-		double *spec = omxMatrixColumn(estate->itemSpec, ix);
+		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		if (id < 0 || id >= rpf_numModels) {
-			error("ItemSpec column %d has unknown item model %d", ix, id);
+			error("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
 }

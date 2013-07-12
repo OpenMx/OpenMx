@@ -22,10 +22,6 @@ if (0) {
 }
 
 mkgroup <- function(model.name, data, latent.free) {
-  ispec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-                    values=sapply(items, function(m) slot(m,'spec')),
-                   free=FALSE, byrow=TRUE)
-  
   ip.mat <- mxMatrix(name="ItemParam", nrow=2, ncol=numItems,
                      values=c(1,0), free=TRUE)
   
@@ -43,10 +39,10 @@ mkgroup <- function(model.name, data, latent.free) {
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=latent.free)
   
-  m1 <- mxModel(model=model.name, ip.mat, eip.mat, ispec, m.mat, cov.mat,
+  m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
-                  ItemSpec="ItemSpec",
+                  ItemSpec=items,
                   EItemParam="EItemParam",
                   mean="mean", cov="cov"),
                 mxFitFunctionBA81(ItemParam="ItemParam", rescale=FALSE))

@@ -77,28 +77,16 @@ triangleLoc1(int diag)
 	return (diag) * (diag+1) / 2;   // 1 3 6 10 15 ..
 }
 
-OMXINLINE static void
-assignDims(omxMatrix *itemSpec, omxMatrix *design, int dims, int maxDims, int ix,
-	   const double *theta, double *ptheta)
-{
-	for (int dx=0; dx < dims; dx++) {
-		int ability = (int)omxMatrixElement(design, dx, ix) - 1;
-		if (ability >= maxDims) ability = maxDims-1;
-		ptheta[dx] = theta[ability];
-	}
-}
-
 /**
  * \param theta Vector of ability parameters, one per ability
  * \returns A numItems by maxOutcomes colMajor vector of doubles. Caller must Free it.
  */
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad)
 {
-	omxMatrix *itemSpec = state->itemSpec;
 	omxMatrix *design = state->design;
 	int maxDims = state->maxDims;
 	int maxOutcomes = state->maxOutcomes;
-	int numItems = itemSpec->cols;
+	size_t numItems = state->itemSpec.size();
 
 	double theta[maxDims];
 	pointToWhere(state, quad, theta, maxDims);
@@ -106,20 +94,24 @@ double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad)
 	double *outcomeProb = Realloc(NULL, numItems * maxOutcomes, double);
 	//double *outcomeProb = Calloc(numItems * maxOutcomes, double);
 
-	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = omxMatrixColumn(itemSpec, ix);
+	for (size_t ix=0; ix < numItems; ix++) {
+		const double *spec = state->itemSpec[ix];
 		double *iparam = omxMatrixColumn(itemParam, ix);
 		double *out = outcomeProb + ix * maxOutcomes;
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		double ptheta[dims];
-		assignDims(itemSpec, design, dims, maxDims, ix, theta, ptheta);
+
+		for (int dx=0; dx < dims; dx++) {
+			int ability = (int)omxMatrixElement(design, dx, ix) - 1;
+			if (ability >= maxDims) ability = maxDims-1;
+			ptheta[dx] = theta[ability];
+		}
+
 		(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
 #if 0
 		for (int ox=0; ox < spec[RPF_ISpecOutcomes]; ox++) {
 			if (!isfinite(out[ox]) || out[ox] > 0) {
-				mxLog("spec");
-				pda(spec, itemSpec->rows, 1);
 				mxLog("item param");
 				pda(iparam, itemParam->rows, 1);
 				mxLog("where");
@@ -153,7 +145,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad, const double *
 	int numUnique = state->numUnique;
 	int maxOutcomes = state->maxOutcomes;
 	omxData *data = state->data;
-	int numItems = state->itemSpec->cols;
+	size_t numItems = state->itemSpec.size();
 	int *Sgroup = state->Sgroup;
 	double *lxk;
 
@@ -166,7 +158,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad, const double *
 	const int *rowMap = state->rowMap;
 	for (int px=0; px < numUnique; px++) {
 		double lxk1 = 0;
-		for (int ix=0; ix < numItems; ix++) {
+		for (size_t ix=0; ix < numItems; ix++) {
 			if (specific != Sgroup[ix]) continue;
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
@@ -622,7 +614,6 @@ ba81Expected(omxExpectation* oo)
 	int numUnique = state->numUnique;
 	int maxDims = state->maxDims;
 	int numItems = state->EitemParam->cols;
-	omxMatrix *itemSpec = state->itemSpec;
 	int totalOutcomes = state->totalOutcomes;
 
 	OMXZERO(state->expected, totalOutcomes * state->totalQuadPoints);
@@ -637,7 +628,7 @@ ba81Expected(omxExpectation* oo)
 				double *out = state->expected + qx * totalOutcomes;
 				double observed = logNumIdentical[px] + lxk[px] - patternLik[px];
 				for (int ix=0; ix < numItems; ix++) {
-					const double *spec = omxMatrixColumn(itemSpec, ix);
+					const double *spec = state->itemSpec[ix];
 					int outcomes = spec[RPF_ISpecOutcomes];
 					expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
 					out += outcomes;
@@ -666,7 +657,7 @@ ba81Expected(omxExpectation* oo)
 						double *out = state->expected + totalOutcomes * qloc;
 
 						for (int ix=0; ix < numItems; ix++) {
-							const double *spec = omxMatrixColumn(itemSpec, ix);
+							const double *spec = state->itemSpec[ix];
 							int outcomes = spec[RPF_ISpecOutcomes];
 							if (state->Sgroup[ix] == sgroup) {
 								double Ei = state->allElxk[eIndex(state, px)];
@@ -950,7 +941,6 @@ static void ba81Destroy(omxExpectation *oo) {
 		mxLog("Freeing %s function.", NAME);
 	}
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	omxFreeAllMatrixData(state->itemSpec);
 	omxFreeAllMatrixData(state->EitemParam);
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->latentMeanOut);
@@ -1024,9 +1014,17 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	// change to regular matrices instead of MxMatrix TODO
-	state->itemSpec =
-		omxNewMatrixFromSlot(rObj, currentState, "ItemSpec");
+	PROTECT(tmp = GET_SLOT(rObj, install("ItemSpec")));
+	for (int sx=0; sx < length(tmp); ++sx) {
+		SEXP model = VECTOR_ELT(tmp, sx);
+		if (!OBJECT(model)) {
+			error("Item models must inherit rpf.base");
+		}
+		SEXP spec;
+		PROTECT(spec = GET_SLOT(model, install("spec")));
+		state->itemSpec.push_back(REAL(spec));
+	}
+
 	state->design =
 		omxNewMatrixFromSlot(rObj, currentState, "Design");
 
@@ -1101,7 +1099,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int totalOutcomes = 0;
 	for (int cx = 0; cx < data->cols; cx++) {
-		const double *spec = omxMatrixColumn(state->itemSpec, cx);
+		const double *spec = state->itemSpec[cx];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		if (state->maxDims < dims)
@@ -1138,9 +1136,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->totalOutcomes = totalOutcomes;
 
-	if (state->itemSpec->cols != data->cols || state->itemSpec->rows != maxSpec) {
-		omxRaiseErrorf(currentState, "ItemSpec must have %d item columns and %d rows",
-			       data->cols, maxSpec);
+	if (int(state->itemSpec.size()) != data->cols) {
+		omxRaiseErrorf(currentState, "ItemSpec must contain %d item model specifications",
+			       data->cols);
 		return;
 	}
 	if (state->EitemParam->rows != maxParam) {
@@ -1153,7 +1151,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->design = omxInitTemporaryMatrix(NULL, state->maxDims, numItems,
 				       TRUE, currentState);
 		for (int ix=0; ix < numItems; ix++) {
-			const double *spec = omxMatrixColumn(state->itemSpec, ix);
+			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
 			for (int dx=0; dx < state->maxDims; dx++) {
 				omxSetMatrixElement(state->design, dx, ix, dx < dims? (double)dx+1 : nan(""));
@@ -1182,7 +1180,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			for (int rx=0; rx < design->rows; rx++) {
 				if (isfinite(idesign[rx])) ddim += 1;
 			}
-			const double *spec = omxMatrixColumn(state->itemSpec, ix);
+			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
 			if (ddim > dims) error("Item %d has %d dims but design assigns %d", ix, dims, ddim);
 		}

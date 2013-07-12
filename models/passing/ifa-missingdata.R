@@ -30,10 +30,6 @@ good.data <- rpf.sample(250, items, correct.mat)
 data <- mcar(good.data, 1/3)
 #head(data)
 
-spec <- mxMatrix(name="ItemSpec", nrow=19, ncol=numItems,
-         values=sapply(items, function(m) slot(m,'spec')),
-         free=FALSE, byrow=TRUE)
-
 ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
                    values=c(1,1,0,0,0),
                    free=c(TRUE,FALSE,FALSE,TRUE,TRUE))
@@ -43,10 +39,10 @@ eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
-m2 <- mxModel(model="test3", ip.mat, spec, m.mat, cov.mat, eip.mat,
+m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec="ItemSpec",
+                                ItemSpec=items,
                                 EItemParam="EItemParam"),
               mxFitFunctionBA81(ItemParam="itemParam"),
               mxComputeIterate(steps=list(

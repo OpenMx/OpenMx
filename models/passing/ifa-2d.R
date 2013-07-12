@@ -39,10 +39,6 @@ ability <- array(rnorm(numPeople * 2), dim=c(2, numPeople))
 data <- rpf.sample(ability, items, correct.mat, design)
 #write.csv(data, file="2d-new.csv")
 
-spec <- mxMatrix(name="ItemSpec", nrow=3, ncol=numItems,
-         values=sapply(items, function(m) slot(m,'spec')),
-         free=FALSE, byrow=TRUE)
-
 design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
                   values=design)
 
@@ -58,11 +54,11 @@ m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
 
 m1 <- mxModel(model="2dim",
-          spec, design,
+	      design,
           ip.mat, m.mat, cov.mat, eip.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
-	     ItemSpec="ItemSpec",
+	     ItemSpec=items,
                             EItemParam="EItemParam",
 	     Design="Design",
 	    qpoints=29,

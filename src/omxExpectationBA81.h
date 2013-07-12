@@ -42,7 +42,7 @@ typedef struct {
 	int *rowMap;              // length numUnique, index of first instance of pattern
 
 	// item description related
-	omxMatrix *itemSpec;
+	std::vector<const double*> itemSpec;
 	int maxOutcomes;
 	int maxDims;
 	int maxAbilities;
