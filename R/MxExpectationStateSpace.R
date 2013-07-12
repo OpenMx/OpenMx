@@ -210,13 +210,15 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 # Note: this turns off data sorting for the State Space expectation
 setMethod("genericExpAddEntities", "MxExpectationStateSpace",
         function(.Object, job, flatJob, labelsData) {
+                #TODO figure out how to handle situation where submodel with state space expectation
+                # inherits its data from parent model.
+                key <- "No Sort Data"
+                value <- getModelName(.Object)
                 # Do NOT sort data for state space models
-                if(is.null(job@options$`No Sort Data`)){
+                if(is.null(job@options[[value]][[key]])){
                     # Only add the option if it wasn't there before.
                     # Do not clobber existing option
-                    key <- "No Sort Data"
-                    value <- getModelName(.Object)
-                    job <- mxOption(job, key, value)
+                    job[[value]] <- mxOption(job[[value]], key, value)
                 }
                 
                 # Run state space models single threaded
