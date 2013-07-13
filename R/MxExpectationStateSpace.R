@@ -213,13 +213,8 @@ setMethod("genericExpAddEntities", "MxExpectationStateSpace",
                 #TODO figure out how to handle situation where submodel with state space expectation
                 # inherits its data from parent model.
                 key <- "No Sort Data"
-                value <- getModelName(.Object)
-                # Do NOT sort data for state space models
-                if(is.null(job@options[[value]][[key]])){
-                    # Only add the option if it wasn't there before.
-                    # Do not clobber existing option
-                    job[[value]] <- mxOption(job[[value]], key, value)
-                }
+                value <- c(job@options[[key]], getModelName(.Object))
+                job <- mxOption(job, key, value)
                 
                 # Run state space models single threaded
                 key <- "Number of Threads"

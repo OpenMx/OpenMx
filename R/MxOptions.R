@@ -17,7 +17,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 	if (length(key) != 1 || !is.character(key)) {
 		stop("argument 'key' must be a character string")
 	}
-	if (length(value) > 1) {
+	if (length(value) > 1 && key!="No Sort Data") {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
 			"You gave me an object of length", length(value))
 		stop(msg)
