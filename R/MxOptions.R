@@ -101,7 +101,7 @@ npsolOptions <- list(
 	"Feasibility tolerance" = "1.0e-05",
 	"Optimality tolerance" = as.character(1e-14 ^ 0.8),
 	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
-	"Verify level" = "3",
+	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
 	"Derivative level" = "0",
 	"Hessian" = "Yes",
