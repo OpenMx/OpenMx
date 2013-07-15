@@ -242,7 +242,8 @@ void F77_SUB(npsolConstraintFunction)
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup)
 {
-	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	// Will fail if we re-enter after an exception
+	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 
 	NPSOL_useGradient = useGradient;
@@ -393,7 +394,8 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
 {
 	int ciMaxIterations = Global->ciMaxIterations;
-	if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	// Will fail if we re-enter after an exception
+	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 	NPSOL_fc = fc;
 	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
