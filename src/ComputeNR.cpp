@@ -92,11 +92,11 @@ void ComputeNR::compute(FitContext *fc)
 	}
 
 	iter = 0;
-	double prevLL = nan("unset");
-	bool decreasing = TRUE;
+	//double prevLL = nan("unset");
+	//bool decreasing = TRUE;
 
 	while (1) {
-		const int want = FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN;
+		const int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN;
 
 		OMXZERO(fc->grad, numParam);
 		OMXZERO(fc->hess, numParam * numParam);
@@ -104,13 +104,13 @@ void ComputeNR::compute(FitContext *fc)
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 
 		if (verbose) {
-			fc->log("Newton-Raphson", FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE);
+			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
 		}
 
 		// Only need LL for diagnostics; Can avoid computing it? TODO
-		double LL = fitMatrix->data[0];
-		if (isfinite(prevLL) && prevLL < LL - tolerance) decreasing = FALSE;
-		prevLL = LL;
+		//double LL = fitMatrix->data[0];
+		//if (isfinite(prevLL) && prevLL < LL - tolerance) decreasing = FALSE;
+		//prevLL = LL;
 
 		fc->fixHessianSymmetry();
 		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
@@ -160,7 +160,7 @@ void ComputeNR::compute(FitContext *fc)
 
 	// The check is too dependent on numerical precision to enable by default.
 	// Anyway, it's just a tool for developers.
-	if (0 && !decreasing) warning("Newton-Raphson iterations did not converge");
+	//if (0 && !decreasing) warning("Newton-Raphson iterations did not converge");
 
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
 }

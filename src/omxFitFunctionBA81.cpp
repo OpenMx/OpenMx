@@ -165,13 +165,17 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 	int numItems = itemParam->cols;
 	int maxOutcomes = estate->maxOutcomes;
 	int maxDims = estate->maxDims;
+	int do_fit = want & FF_COMPUTE_FIT;
 	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
 
 	double where[maxDims];
 	pointToWhere(estate, quad, where, maxDims);
 
-	double *outcomeProb = computeRPF(estate, itemParam, quad); // avoid malloc/free? TODO
-	if (!outcomeProb) return 0;
+	double *outcomeProb = NULL;
+	if (do_fit) {
+		outcomeProb = computeRPF(estate, itemParam, quad); // avoid malloc/free? TODO
+		if (!outcomeProb) return 0;
+	}
 
 	double thr_ll = 0;
 	for (int ix=0; ix < numItems; ix++) {
@@ -180,17 +184,19 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 		int iOutcomes = spec[RPF_ISpecOutcomes];
 
 		double area = exp(logAreaProduct(estate, quad, estate->Sgroup[ix]));   // avoid exp() here? TODO
-		for (int ox=0; ox < iOutcomes; ox++) {
+		if (do_fit) {
+			for (int ox=0; ox < iOutcomes; ox++) {
 #if 0
 #pragma omp critical(ba81Fit1OrdinateDebug1)
-			if (!std::isfinite(outcomeProb[ix * maxOutcomes + ox])) {
-				pda(itemParam->data, itemParam->rows, itemParam->cols);
-				pda(outcomeProb, outcomes, numItems);
-				error("RPF produced NAs");
-			}
+				if (!std::isfinite(outcomeProb[ix * maxOutcomes + ox])) {
+					pda(itemParam->data, itemParam->rows, itemParam->cols);
+					pda(outcomeProb, outcomes, numItems);
+					error("RPF produced NAs");
+				}
 #endif
-			double got = weight[ox] * outcomeProb[ix * maxOutcomes + ox];
-			thr_ll += got * area;
+				double got = weight[ox] * outcomeProb[ix * maxOutcomes + ox];
+				thr_ll += got * area;
+			}
 		}
 
 		if (do_deriv) {
