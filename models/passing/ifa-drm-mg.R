@@ -28,9 +28,9 @@ if(1) {
 	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
 		      mxData(observed=data, type="raw"),
 		      mxExpectationBA81(mean="mean", cov="cov",
-					ItemSpec=items,
+					ItemSpec=items, ItemParam="itemParam",
 					EItemParam="EItemParam"),
-		      mxFitFunctionBA81(ItemParam="itemParam"),
+		      mxFitFunctionBA81(),
 					# integrate FitFuncBA81 into FitFuncML
 		      mxComputeIterate(steps=list(
 					 mxComputeOnce("EItemParam"),

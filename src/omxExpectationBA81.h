@@ -62,6 +62,8 @@ typedef struct {
 	std::vector<double> speLogQarea;      // quadGridSize * numSpecific
 
 	// estimation related
+	omxMatrix *customPrior;
+	omxMatrix *itemParam;
 	omxMatrix *EitemParam;    // E step version
 	int cacheLXK;
 	bool LXKcached;

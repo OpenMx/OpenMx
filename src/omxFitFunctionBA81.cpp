@@ -24,12 +24,10 @@ static const char *NAME = "FitFunctionBA81";
 
 struct BA81FitState {
 
-	omxMatrix *itemParam;     // M step version
 	std::vector<int> latentMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
 	int *paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
 	std::vector<int> NAtriangle; // TODO remove
-	omxMatrix *customPrior;
 	int choleskyError;
 	double *tmpLatentMean;    // maxDims
 	double *tmpLatentCov;     // maxDims * maxDims ; only lower triangle is used
@@ -46,9 +44,7 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
-	itemParam = NULL;
 	paramMap = NULL;
-	customPrior = NULL;
 	fitCount = 0;
 	gradientCount = 0;
 	tmpLatentMean = NULL;
@@ -101,7 +97,7 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 {
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
 	state->paramMap = Realloc(NULL, size, int);  // matrix location to free param index
 	for (int px=0; px < size; px++) {
@@ -161,7 +157,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *itemParam = estate->itemParam;
 	int numItems = itemParam->cols;
 	int maxOutcomes = estate->maxOutcomes;
 	int maxDims = estate->maxDims;
@@ -217,8 +213,8 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *customPrior = state->customPrior;
-	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *customPrior = estate->customPrior;
+	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
 	int maxDims = estate->maxDims;
 	const int totalOutcomes = estate->totalOutcomes;
@@ -309,7 +305,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
-	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *itemParam = estate->itemParam;
 	omxMatrix *design = estate->design;
 	double *tmpLatentMean = state->tmpLatentMean;
 	double *tmpLatentCov = state->tmpLatentCov;
@@ -850,11 +846,9 @@ static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 
 BA81FitState::~BA81FitState()
 {
-	omxFreeAllMatrixData(customPrior);
 	Free(paramMap);
 	Free(tmpLatentMean);
 	Free(tmpLatentCov);
-	omxFreeAllMatrixData(itemParam);
 	omxFreeAllMatrixData(icov);
 }
 
@@ -871,7 +865,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	}
 
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	SEXP rObj = oo->rObj;
 
 	omxExpectation *expectation = oo->expectation;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
@@ -884,18 +877,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 
-	state->itemParam =
-		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
-
-	if (estate->EitemParam->rows != state->itemParam->rows ||
-	    estate->EitemParam->cols != state->itemParam->cols) {
-		error("ItemParam and EItemParam must be of the same dimension");
-	}
-
-	state->customPrior =
-		omxNewMatrixFromSlot(rObj, globalState, "CustomPrior");
-	
-	int maxParam = state->itemParam->rows;
+	int maxParam = estate->itemParam->rows;
 	state->itemDerivPadSize = maxParam + triangleLoc1(maxParam);
 
 	int maxAbilities = estate->maxAbilities;
@@ -903,7 +885,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	state->tmpLatentMean = Realloc(NULL, estate->maxDims, double);
 	state->tmpLatentCov = Realloc(NULL, estate->maxDims * estate->maxDims, double);
 
-	int numItems = state->itemParam->cols;
+	int numItems = estate->itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];

@@ -943,6 +943,8 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->latentMeanOut);
 	omxFreeAllMatrixData(state->latentCovOut);
+	omxFreeAllMatrixData(state->customPrior);
+	omxFreeAllMatrixData(state->itemParam);
 	Free(state->logNumIdentical);
 	Free(state->numIdentical);
 	Free(state->rowMap);
@@ -1005,6 +1007,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->ElatentCov = NULL;
 	state->type = EXPECTATION_UNINITIALIZED;
 	state->scores = SCORES_OMIT;
+	state->itemParam = NULL;
+	state->customPrior = NULL;
 	oo->argStruct = (void*) state;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
@@ -1041,6 +1045,14 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		omxNewMatrixFromSlot(rObj, currentState, "EItemParam");
 	if (!state->EitemParam) error("Must supply EItemParam");
 
+	state->itemParam =
+		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
+
+	if (state->EitemParam->rows != state->itemParam->rows ||
+	    state->EitemParam->cols != state->itemParam->cols) {
+		error("ItemParam and EItemParam must be of the same dimension");
+	}
+
 	oo->computeFun = ba81Estep;
 	oo->setVarGroup = ignoreSetVarGroup;
 	oo->destructFun = ba81Destroy;
@@ -1068,6 +1080,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->numIdentical = Realloc(NULL, numUnique, int);
 	state->logNumIdentical = Realloc(NULL, numUnique, double);
 
+	state->customPrior =
+		omxNewMatrixFromSlot(rObj, globalState, "CustomPrior");
+	
 	int numItems = state->EitemParam->cols;
 	if (data->cols != numItems) {
 		error("Data has %d columns for %d items", data->cols, numItems);

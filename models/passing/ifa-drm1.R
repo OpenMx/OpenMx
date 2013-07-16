@@ -32,11 +32,11 @@ cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(
-                ItemSpec=items, EItemParam="EItemParam",
+                ItemSpec=items, EItemParam="EItemParam",ItemParam="itemParam",
                 mean="mean", cov="cov",
 		qpoints=31,
 		scores="full"),
-              mxFitFunctionBA81(ItemParam="itemParam"),
+              mxFitFunctionBA81(),
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce("EItemParam"),
 				 mxComputeOnce('expectation', context='EM'),

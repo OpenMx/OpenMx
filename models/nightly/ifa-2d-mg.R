@@ -70,9 +70,9 @@ mkgroup <- function(model.name, data, latent.free) {
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,
-                                  EItemParam="EItemParam",
+                                  EItemParam="EItemParam", ItemParam="ItemParam",
                                   qpoints=21, qwidth=5),
-                mxFitFunctionBA81(ItemParam="ItemParam"))
+                mxFitFunctionBA81())
   m1
 }
 

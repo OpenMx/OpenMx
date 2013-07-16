@@ -16,28 +16,16 @@
 
 setClass(Class = "MxFitFunctionBA81",
 	representation = representation(
-          data = "MxCharOrNumber",
-	  ItemParam = "MxCharOrNumber",
-	  CustomPrior = "MxOptionalCharOrNumber"
-          ),
+          data = "MxCharOrNumber"),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionBA81",
-	function(.Object, ItemParam, CustomPrior) {
+	function(.Object) {
                 .Object@name <- 'fitfunction'
 		.Object@data <- as.integer(NA)
-		.Object@ItemParam <- ItemParam
-		.Object@CustomPrior <- CustomPrior
 		return(.Object)
 	}
 )
-
-setMethod("genericFitDependencies", signature("MxFitFunctionBA81"),
-	  function(.Object, dependencies) {
-		  sources <- c(.Object@ItemParam, .Object@CustomPrior)
-		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
-		  return(dependencies)
-	  })
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
@@ -51,7 +39,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 		}
 		.Object@expectation <- expectIndex
 
-                for (s in c("data", "ItemParam", "CustomPrior")) {
+                for (s in c("data")) {
 			if (is.null(slot(.Object, s))) next
 			slot(.Object, s) <-
 			  imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -62,11 +50,6 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionBA81"),
 setMethod("qualifyNames", signature("MxFitFunctionBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("ItemParam", "CustomPrior")) {
-			if (is.null(slot(.Object, s))) next
-			slot(.Object, s) <-
-			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
-		}
 		return(.Object)
 })
 
@@ -76,6 +59,6 @@ setMethod("genericFitRename", signature("MxFitFunctionBA81"),
 		return(.Object)
 })
 
-mxFitFunctionBA81 <- function(ItemParam, CustomPrior=NULL) {
-	return(new("MxFitFunctionBA81", ItemParam, CustomPrior))
+mxFitFunctionBA81 <- function() {
+	return(new("MxFitFunctionBA81"))
 }

@@ -68,10 +68,10 @@ mk.model <- function(model.name, data, latent.free) {
                 mxExpectationBA81(
                   ItemSpec=spec,
                   design=design,
-                  EItemParam="EItemParam",
+                  EItemParam="EItemParam", ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
-                mxFitFunctionBA81(ItemParam="ItemParam"))
+                mxFitFunctionBA81())
   m1
 }
 
