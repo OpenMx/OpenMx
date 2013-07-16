@@ -17,8 +17,8 @@
 setClass(Class = "MxExpectationBA81",
          representation = representation(
 	   ItemSpec = "list",
-	   Design = "MxOptionalCharOrNumber",
            EItemParam = "MxOptionalCharOrNumber",
+	   design = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
 	   cache = "logical",
@@ -29,12 +29,12 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, EItemParam, Design,
+          function(.Object, ItemSpec, EItemParam, design,
 		   qpoints, qwidth, cache, mean, cov, scores,
 		   name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
-            .Object@Design <- Design
+            .Object@design <- design
             .Object@EItemParam <- EItemParam
             .Object@qpoints <- qpoints
             .Object@qwidth <- qwidth
@@ -51,8 +51,7 @@ setMethod("initialize", "MxExpectationBA81",
 setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  function(.Object, dependencies) {
 		  sources <- c(.Object@EItemParam,
-			       .Object@mean, .Object@cov,
-			       .Object@Design)
+			       .Object@mean, .Object@cov)
 		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		  return(dependencies)
 	  })
@@ -68,7 +67,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  }
 		  name <- .Object@name
 		  for (s in c("data", "EItemParam",
-			      "Design", "mean", "cov")) {
+			      "mean", "cov")) {
 			  if (is.null(slot(.Object, s))) next;
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -84,8 +83,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 setMethod("qualifyNames", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("EItemParam",
-			    "Design", "mean", "cov")) {
+		for (s in c("EItemParam", "mean", "cov")) {
 			if (is.null(slot(.Object, s))) next;
 			slot(.Object, s) <-
 			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
@@ -108,7 +106,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' 
 ##' @param ItemParam one column for each item with parameters starting
 ##' at row 1 and extra rows filled with NA
-##' @param Design one column per item assignment of person abilities
+##' @param design one column per item, assignment of person abilities
 ##' to item dimensions (optional)
 ##' @param qpoints number of points to use for rectangular quadrature integrations (default 49)
 ##' See Seong (1990) for some considerations on specifying this parameter.
@@ -126,7 +124,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, EItemParam, Design=NULL,
+mxExpectationBA81 <- function(ItemSpec, EItemParam, design=NULL,
 			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
 			      scores="omit") {
 
@@ -147,6 +145,6 @@ mxExpectationBA81 <- function(ItemSpec, EItemParam, Design=NULL,
 		stop(paste("Valid score options are", deparse(score.options)))
 	}
 
-	return(new("MxExpectationBA81", ItemSpec, EItemParam, Design,
+	return(new("MxExpectationBA81", ItemSpec, EItemParam, design,
 		   qpoints, qwidth, cache, mean, cov, scores))
 }

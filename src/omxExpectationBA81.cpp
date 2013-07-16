@@ -996,6 +996,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->numIdentical = NULL;
 	state->logNumIdentical = NULL;
 	state->rowMap = NULL;
+	state->design = NULL;
 	state->lxk = NULL;
 	state->patternLik = NULL;
 	state->_logPatternLik = NULL;
@@ -1025,8 +1026,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->itemSpec.push_back(REAL(spec));
 	}
 
-	state->design =
-		omxNewMatrixFromSlot(rObj, currentState, "Design");
+	PROTECT(tmp = GET_SLOT(rObj, install("design")));
+	if (!isNull(tmp)) {
+		// better to demand integers and not coerce to real TODO
+		state->design = omxNewMatrixFromRPrimitive(tmp, globalState, FALSE, 0);
+	}
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) error("Failed to retrieve mean matrix");

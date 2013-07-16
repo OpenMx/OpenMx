@@ -26,14 +26,11 @@ correct.mat <- simplify2array(correct)
 maxParam <- max(vapply(items, rpf.numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
 
-design <- matrix(c(rep(1,numItems),
-		   rep(2,numItems/2), rep(3, numItems/2)), byrow=TRUE, nrow=2)
+design <- matrix(c(rep(1L,numItems),
+		   rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
 
 theta <- t(rmvnorm(numPersons, mean=rnorm(3, sd=.25)))
 data <- rpf.sample(theta, items, correct, design)
-
-design <- mxMatrix(name="Design", nrow=maxDim, ncol=numItems,
-		   values=design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0, 0, 1),
@@ -48,12 +45,11 @@ m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
 
 m1 <- mxModel(model="bifactor",
-          design,
           ip.mat, m.mat, cov.mat, eip.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec=items,
-	     Design="Design",
+	     design=design,
 	     EItemParam="EItemParam",
 	    qpoints=29,
 	    scores="full"),

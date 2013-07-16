@@ -104,10 +104,9 @@ if (1) {
   design <- matrix(c(rep(1,numItems),
                      kronecker(2:5,rep(1,5))), byrow=TRUE, ncol=numItems)
   m1 <- mxModel(m1, m.mat, cov.mat,
-                mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,
-                                  Design="Design",
+                                  design=design,
                                   EItemParam="EItemParam"))
 #  m1 <- mxOption(m1, "Number of Threads", 1)
   m1 <- mxRun(m1, silent=TRUE)

@@ -64,11 +64,10 @@ mk.model <- function(model.name, data, latent.free) {
                       free=cov.mat.free)
   
   m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
-                mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
                   ItemSpec=spec,
-                  Design="Design",
+                  design=design,
                   EItemParam="EItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
