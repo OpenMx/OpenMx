@@ -165,7 +165,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 	// TODO: Current implementation does not implement speedups for sorting.
 	// TODO: Current implementation may fail on all-continuous-missing or all-ordinal-missing rows.
 	
-	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
 
     if(OMX_DEBUG) { 
 	    mxLog("Beginning Joint FIML Evaluation.");
@@ -275,7 +275,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 
 static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) {
 
-	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning FIML Evaluation."); }
 	// Requires: Data, means, covariances.
@@ -362,7 +362,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) 
 }
 
 static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitContext *) {
-	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
 
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
 	if(OMX_DEBUG) { mxLog("Beginning Ordinal FIML Evaluation.");}

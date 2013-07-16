@@ -47,7 +47,7 @@ class FitContext {
 	void copyParamToModel(omxMatrix *mat);
 	void updateParentAndFree();
 	void fixHessianSymmetry();
-	void log(int what);
+	void log(const char *where, int what);
 	~FitContext();
 	
 	static void cacheFreeVarDependencies();

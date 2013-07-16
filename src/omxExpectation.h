@@ -66,10 +66,14 @@ struct omxExpectation {					// An Expectation
 	void (*computeFun)(omxExpectation* ox, const char *context);
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
-	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);		// Return component locations to expectation
-	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*); // Modify/set/mutate components of expectation
 	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);  // TODO remove
 	
+	// componentfun & mutateFun probably take encapsulation a little too seriously.
+	// The Fit function should probably just include the structure definition
+	// for the expectation and access fields directly or through object methods.
+	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);
+	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*);
+
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
         const char* expType;   // pointer to a static string, no need to allocate or free

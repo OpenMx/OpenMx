@@ -34,6 +34,7 @@ static omxMatrix *NPSOL_fitMatrix = NULL;
 static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
 static bool NPSOL_useGradient;
+static bool NPSOL_verbose;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -131,8 +132,14 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 		OMXZERO(NPSOL_fc->grad, numParams);
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
+		if (NPSOL_verbose) {
+			NPSOL_fc->log("NPSOL", FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT);
+		}
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
+		if (NPSOL_verbose) {
+			NPSOL_fc->log("NPSOL", FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE);
+		}
 	}
 
 	omxExamineFitOutput(globalState, fitMatrix, mode);
@@ -240,11 +247,13 @@ void F77_SUB(npsolConstraintFunction)
 }
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup)
+		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
+		    bool verbose)
 {
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
+	NPSOL_verbose = verbose;
 
 	NPSOL_useGradient = useGradient;
 	NPSOL_fc = fc;

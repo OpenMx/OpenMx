@@ -84,12 +84,15 @@ setClass(Class = "MxComputeOnce",
 	   what = "MxCharOrNumber",
 	   context = "character",
 	   gradient = "logical",
-	   hessian = "logical"))
+	   hessian = "logical",
+	   start = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod();
-		.Object@what <- imxConvertIdentifier(.Object@what, modelname, namespace)
+		for (sl in c('what')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		.Object
 	})
 
@@ -115,22 +118,25 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 			}
 		}
 		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
+		if (.Object@start && .Object@what < 0) stop("start is only used with algebra or a fitfunction")
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.set, context, gradient, hessian) {
+	  function(.Object, what, free.set, context, gradient, hessian, start) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@free.set <- free.set
 		  .Object@context <- context
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
+		  .Object@start <- start
 		  .Object
 	  })
 
-mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FALSE, hessian=FALSE) {
-	new("MxComputeOnce", what, free.set, context, gradient, hessian)
+mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FALSE,
+			  hessian=FALSE, start=FALSE) {
+	new("MxComputeOnce", what, free.set, context, gradient, hessian, start)
 }
 
 #----------------------------------------------------
@@ -138,14 +144,18 @@ mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FA
 setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
+	   start = "logical",
 	   useGradient = "logical",
 	   fitfunction = "MxCharOrNumber",
-	   engine = "character"))
+	   engine = "character",
+	   verbose = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod();
-		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		.Object
 	})
 
@@ -160,23 +170,25 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.set, engine, fit, useGradient) {
+	  function(.Object, free.set, engine, fit, useGradient, start, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
+		  .Object@start <- start
 		  .Object@engine <- engine
 		  .Object@useGradient <- useGradient
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.logical(NA),
-				     engine=NULL, fitfunction='fitfunction') {
+				     engine=NULL, fitfunction='fitfunction', start=FALSE, verbose=FALSE) {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
 	if (is.null(engine)) engine <- as.character(NA)
 
-	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient)
+	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, start, verbose)
 }
 
 #----------------------------------------------------
@@ -184,14 +196,18 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.lo
 setClass(Class = "MxComputeNewtonRaphson",
 	 contains = "MxComputeOperation",
 	 representation = representation(
+	   start = "logical",
 	   fitfunction = "MxCharOrNumber",
 	   maxIter = "integer",
-	   tolerance = "numeric"))
+	   tolerance = "numeric",
+	   verbose = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod();
-		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		.Object
 	})
 
@@ -206,19 +222,22 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.set, fit, maxIter, tolerance) {
+	  function(.Object, free.set, fit, maxIter, tolerance, start, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
+		  .Object@start <- start
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
-mxComputeNewtonRaphson <- function(type, free.set=NULL,
-				   fitfunction='fitfunction', maxIter = 500L, tolerance=1e-7) {
+mxComputeNewtonRaphson <- function(type, free.set=NULL, start=FALSE,
+				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
+				   verbose=FALSE) {
 
-	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance)
+	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, start, verbose)
 }
 
 #----------------------------------------------------

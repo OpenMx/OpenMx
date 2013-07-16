@@ -22,10 +22,12 @@
 class ComputeNR : public omxComputeOperation {
 	typedef omxComputeOperation super;
 	omxMatrix *fitMatrix;
+	bool start;
 
 	int maxIter;
 	double tolerance;
 	int inform, iter;
+	bool verbose;
 
 public:
 	ComputeNR();
@@ -60,12 +62,18 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	}
 
 	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
+	start = asLogical(slotValue);
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
 	tolerance = REAL(slotValue)[0];
 	if (tolerance <= 0) error("tolerance must be positive");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
+	verbose = asLogical(slotValue);
 }
 
 void ComputeNR::compute(FitContext *fc)
@@ -78,7 +86,10 @@ void ComputeNR::compute(FitContext *fc)
 		return;
 	}
 
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	if (start) {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+		fc->copyParamToModel(globalState);
+	}
 
 	iter = 0;
 	double prevLL = nan("unset");
@@ -92,6 +103,10 @@ void ComputeNR::compute(FitContext *fc)
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 
+		if (verbose) {
+			fc->log("Newton-Raphson", FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE);
+		}
+
 		// Only need LL for diagnostics; Can avoid computing it? TODO
 		double LL = fitMatrix->data[0];
 		if (isfinite(prevLL) && prevLL < LL - tolerance) decreasing = FALSE;
@@ -100,6 +115,7 @@ void ComputeNR::compute(FitContext *fc)
 		fc->fixHessianSymmetry();
 		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 
+		// replace with omxDPOTRF + omxDPOTRI TODO
 		std::vector<double> ihess(numParam * numParam);
 		for (size_t rx=0; rx < numParam; rx++) {
 			for (size_t cx=0; cx < numParam; cx++) {
@@ -145,6 +161,8 @@ void ComputeNR::compute(FitContext *fc)
 	// The check is too dependent on numerical precision to enable by default.
 	// Anyway, it's just a tool for developers.
 	if (0 && !decreasing) warning("Newton-Raphson iterations did not converge");
+
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
 }
 
 void ComputeNR::reportResults(FitContext *fc, MxRList *out)

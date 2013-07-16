@@ -97,6 +97,8 @@ void FitContext::updateParentAndFree()
 	size_t svars = varGroup->vars.size();
 	size_t dvars = parent->varGroup->vars.size();
 
+	parent->fit = fit;
+
 	size_t s1 = 0;
 	for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
 		if (dest->vars[d1] != src->vars[s1]) continue;
@@ -123,15 +125,16 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
-void FitContext::log(int what)
+void FitContext::log(const char *where, int what)
 {
 	size_t count = varGroup->vars.size();
-	std::string buf;
-	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.3f\n", fit);
+	std::string buf(where);
+	buf += " ---\n";
+	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f\n", fit);
 	if (what & FF_COMPUTE_ESTIMATE) {
 		buf += "est: c(";
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.3f", est[vx]);
+			buf += string_snprintf("%.5f", est[vx]);
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
@@ -139,7 +142,7 @@ void FitContext::log(int what)
 	if (what & FF_COMPUTE_GRADIENT) {
 		buf += "grad: c(";
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.3f", grad[vx]);
+			buf += string_snprintf("%.5f", grad[vx]);
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
@@ -148,7 +151,7 @@ void FitContext::log(int what)
 		buf += "hess: c(";
 		for (size_t v1=0; v1 < count; ++v1) {
 			for (size_t v2=0; v2 < count; ++v2) {
-				buf += string_snprintf("%.3f", hess[v1 * count + v2]);
+				buf += string_snprintf("%.5f", hess[v1 * count + v2]);
 				if (v1 < count-1 || v2 < count-1) buf += ", ";
 			}
 			buf += "\n";
@@ -191,7 +194,7 @@ void FitContext::fixHessianSymmetry()
 			if (isfinite(lower)) {
 				hess[h1 * numParam + h2] = lower;
 			} else {
-				log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
+				log("FitContext", FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 				error("Hessian is not finite at [%d,%d]", h1,h2);
 			}
 		}
@@ -350,6 +353,7 @@ class omxComputeOnce : public omxComputeOperation {
 	typedef omxComputeOperation super;
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
+	bool start;
 	const char *context;
 	bool gradient;
 	bool hessian;
@@ -503,6 +507,10 @@ void omxComputeIterate::compute(FitContext *fc)
 			if (context != fc) context->updateParentAndFree();
 			if (isErrorRaised(globalState)) break;
 		}
+		if (fc->fit == 0) {
+			warning("Fit estimated at 0; something is wrong");
+			break;
+		}
 		if (prevFit != 0) {
 			change = prevFit - fc->fit;
 			if (verbose) mxLog("fit %.9g change %.9g", fc->fit, change);
@@ -581,18 +589,43 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("hessian")));
 	hessian = asLogical(slotValue);
+
+	if (algebras.size() == 1 && algebras[0]->fitFunction) {
+		omxFitFunction *ff = algebras[0]->fitFunction;
+		if (gradient && !ff->gradientAvailable) {
+			error("Gradient requested but not available");
+		}
+		if (hessian && !ff->hessianAvailable) {
+			error("Hessian requested but not available");
+		}
+	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
+	start = asLogical(slotValue);
 }
 
 void omxComputeOnce::compute(FitContext *fc)
 {
 	if (algebras.size()) {
 		int want = FF_COMPUTE_FIT;
-		if (gradient) want |= FF_COMPUTE_GRADIENT;
-		if (hessian)  want |= FF_COMPUTE_HESSIAN;
+		size_t numParam = fc->varGroup->vars.size();
+		if (gradient) {
+			want |= FF_COMPUTE_GRADIENT;
+			OMXZERO(fc->grad, numParam);
+		}
+		if (hessian) {
+			want |= FF_COMPUTE_HESSIAN;
+			OMXZERO(fc->hess, numParam * numParam);
+		}
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
+				if (start) {
+					omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+					fc->copyParamToModel(globalState);
+				}
+
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
 				if (hessian) fc->fixHessianSymmetry();

@@ -151,7 +151,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 }
 
 static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
-	if (want & FF_COMPUTE_PREOPTIMIZE) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.

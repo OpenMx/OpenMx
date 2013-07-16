@@ -17,17 +17,15 @@
 setClass(Class = "MxFitFunctionBA81",
 	representation = representation(
           data = "MxCharOrNumber",
-	  rescale = "logical",
 	  ItemParam = "MxCharOrNumber",
 	  CustomPrior = "MxOptionalCharOrNumber"
           ),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionBA81",
-	function(.Object, ItemParam, rescale, CustomPrior) {
+	function(.Object, ItemParam, CustomPrior) {
                 .Object@name <- 'fitfunction'
 		.Object@data <- as.integer(NA)
-		.Object@rescale <- rescale
 		.Object@ItemParam <- ItemParam
 		.Object@CustomPrior <- CustomPrior
 		return(.Object)
@@ -78,6 +76,6 @@ setMethod("genericFitRename", signature("MxFitFunctionBA81"),
 		return(.Object)
 })
 
-mxFitFunctionBA81 <- function(ItemParam, rescale=TRUE, CustomPrior=NULL) {
-	return(new("MxFitFunctionBA81", ItemParam, rescale=rescale, CustomPrior))
+mxFitFunctionBA81 <- function(ItemParam, CustomPrior=NULL) {
+	return(new("MxFitFunctionBA81", ItemParam, CustomPrior))
 }

@@ -22,11 +22,12 @@
 #include <vector>
 
 enum omxFFCompute {
-	FF_COMPUTE_FIT         = 1<<0,
-	FF_COMPUTE_PREOPTIMIZE = 1<<1,
-	FF_COMPUTE_ESTIMATE    = 1<<1,
-	FF_COMPUTE_GRADIENT    = 1<<2,
-	FF_COMPUTE_HESSIAN     = 1<<3
+	FF_COMPUTE_FIT          = 1<<0,
+	FF_COMPUTE_PREOPTIMIZE  = 1<<1,
+	FF_COMPUTE_ESTIMATE     = 1<<2,
+	FF_COMPUTE_GRADIENT     = 1<<3,
+	FF_COMPUTE_HESSIAN      = 1<<4,
+	FF_COMPUTE_POSTOPTIMIZE = 1<<5
 };
 
 typedef struct omxMatrix omxMatrix;

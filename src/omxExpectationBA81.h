@@ -19,6 +19,7 @@
 #define _OMX_EXPECTATIONBA81_H_
 
 #include "omxExpectation.h"
+#include "omxOpenmpWrap.h"
 
 enum score_option {
 	SCORES_OMIT,
@@ -63,10 +64,12 @@ typedef struct {
 	// estimation related
 	omxMatrix *EitemParam;    // E step version
 	int cacheLXK;
+	bool LXKcached;
 	double *lxk;              // wo/cache, numUnique * thread
 	std::vector<double> allElxk;          // numUnique * thread
 	std::vector<double> Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
+	double *_logPatternLik;   // numUnique
 	int totalOutcomes;
 	double *expected;         // totalOutcomes * totalQuadPoints
 	double *ElatentMean;      // maxAbilities * numUnique
@@ -81,7 +84,42 @@ typedef struct {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
+void ba81buildLXKcache(omxExpectation *oo);
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad);
+void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat);
+void ba81Estep1(omxExpectation *oo);
+void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad);
+double *ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad);
+double *getLogPatternLik(omxExpectation* oo);
+
+OMXINLINE static int
+triangleLoc1(int diag)
+{
+	//if (diag < 1) error("Out of domain");
+	return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
+}
+
+OMXINLINE static int
+triangleLoc0(int diag)
+{
+	//if (diag < 0) error("Out of domain");
+	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
+}
+
+// state->allElxk[eIndex(state, px)]
+OMXINLINE static int
+eIndex(BA81Expect *state, int px)
+{
+	return omx_absolute_thread_num() * state->numUnique + px;
+}
+
+// state->Eslxk[esIndex(state, sx, px)]
+OMXINLINE static int
+esIndex(BA81Expect *state, int sx, int px)
+{
+	return (omx_absolute_thread_num() * state->numUnique * state->numSpecific +
+		state->numUnique * sx + px);
+}
 
 OMXINLINE static void
 pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)

@@ -19,7 +19,6 @@
 
 #include <Rmath.h>
 #include "omxExpectationBA81.h"
-#include "omxOpenmpWrap.h"
 #include "npsolWrap.h"
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
@@ -61,20 +60,6 @@ int sIndex(BA81Expect *state, int sx, int qx)
 	//if (sx < 0 || sx >= state->numSpecific) error("Out of domain");
 	//if (qx < 0 || qx >= state->quadGridSize) error("Out of domain");
 	return sx * state->quadGridSize + qx;
-}
-
-OMXINLINE static int
-triangleLoc0(int diag)
-{
-	//if (diag < 0) error("Out of domain");
-	return (diag+1) * (diag+2) / 2 - 1;  // 0 2 5 9 14 ..
-}
-
-OMXINLINE static int
-triangleLoc1(int diag)
-{
-	//if (diag < 1) error("Out of domain");
-	return (diag) * (diag+1) / 2;   // 1 3 6 10 15 ..
 }
 
 /**
@@ -185,8 +170,7 @@ ba81Likelihood(omxExpectation *oo, int specific, const int *quad, const double *
 	return lxk;
 }
 
-OMXINLINE static double *
-ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad)
+double *ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (!state->cacheLXK) {
@@ -240,24 +224,8 @@ mapLatentSpace(BA81Expect *state, int px, int sgroup, double piece, const double
 	}
 }
 
-// state->allElxk[eIndex(state, px)]
-OMXINLINE static int
-eIndex(BA81Expect *state, int px)
-{
-	return omx_absolute_thread_num() * state->numUnique + px;
-}
-
-// state->Eslxk[esIndex(state, sx, px)]
-OMXINLINE static int
-esIndex(BA81Expect *state, int sx, int px)
-{
-	return (omx_absolute_thread_num() * state->numUnique * state->numSpecific +
-		state->numUnique * sx + px);
-}
-
 // Eslxk, allElxk (Ei, Eis) depend on the ordinate of the primary dimensions
-OMXINLINE static void
-cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
+void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -313,12 +281,11 @@ cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 	}
 }
 
-static void
-ba81Estep1(omxExpectation *oo) {
+void ba81Estep1(omxExpectation *oo)
+{
 	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", NAME);}
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	double *patternLik = state->patternLik;
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
 	double *ElatentMean = state->ElatentMean;
@@ -327,7 +294,12 @@ ba81Estep1(omxExpectation *oo) {
 	int maxAbilities = state->maxAbilities;
 	int primaryDims = maxDims;
 
+	state->patternLik = Realloc(state->patternLik, numUnique, double);
+	double *patternLik = state->patternLik;
 	OMXZERO(patternLik, numUnique);
+	Free(state->_logPatternLik);
+
+	// Should probably do these per-thread, not per unique pattern TODO
 	OMXZERO(ElatentMean, numUnique * maxAbilities);
 	OMXZERO(ElatentCov, numUnique * maxAbilities * maxAbilities);
 
@@ -442,7 +414,6 @@ ba81Estep1(omxExpectation *oo) {
 			error("Likelihood of row %d is %f", state->rowMap[px], patternLik[px]);
 		}
 #endif
-		patternLik[px] = log(patternLik[px]);
 	}
 
 	for (int px=1; px < numUnique; px++) {
@@ -483,14 +454,14 @@ ba81Estep1(omxExpectation *oo) {
 		ElatentCov[cell] = ElatentCov[cell] / data->rows - ElatentMean[sdim] * ElatentMean[sdim];
 	}
 
+	if (state->cacheLXK) state->LXKcached = TRUE;
 	//mxLog("E-step");
 	//pda(ElatentMean, 1, state->maxAbilities);
 	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
-static void
-ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
+void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -587,6 +558,14 @@ ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 	state->expected = Realloc(state->expected, state->totalOutcomes * state->totalQuadPoints, double);
 }
 
+void ba81buildLXKcache(omxExpectation *oo)
+{
+	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	if (!state->cacheLXK || state->LXKcached) return;
+	
+	ba81Estep1(oo);
+}
+
 OMXINLINE static void
 expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
 	       const double observed, const int outcomes, double *out)
@@ -602,6 +581,27 @@ expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
 	}
 }
 
+double *getLogPatternLik(omxExpectation* oo)
+{
+	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	if (state->_logPatternLik) return state->_logPatternLik;
+
+	int numUnique = state->numUnique;
+	state->_logPatternLik = Realloc(NULL, numUnique, double);
+
+	if (!state->patternLik) {
+		ba81SetupQuadrature(oo, state->targetQpoints, 0);
+		ba81Estep1(oo);
+	}
+
+#pragma omp parallel for num_threads(Global->numThreads)
+	for (int px=0; px < numUnique; ++px) {
+		state->_logPatternLik[px] = log(state->patternLik[px]);
+	}
+
+	return state->_logPatternLik;
+}
+
 OMXINLINE static void
 ba81Expected(omxExpectation* oo)
 {
@@ -609,7 +609,7 @@ ba81Expected(omxExpectation* oo)
 	omxData *data = state->data;
 	int numSpecific = state->numSpecific;
 	const int *rowMap = state->rowMap;
-	double *patternLik = state->patternLik;
+	double *logPatternLik = getLogPatternLik(oo);
 	double *logNumIdentical = state->logNumIdentical;
 	int numUnique = state->numUnique;
 	int maxDims = state->maxDims;
@@ -626,7 +626,7 @@ ba81Expected(omxExpectation* oo)
 			double *lxk = ba81LikelihoodFast(oo, 0, quad);
 			for (int px=0; px < numUnique; px++) {
 				double *out = state->expected + qx * totalOutcomes;
-				double observed = logNumIdentical[px] + lxk[px] - patternLik[px];
+				double observed = logNumIdentical[px] + lxk[px] - logPatternLik[px];
 				for (int ix=0; ix < numItems; ix++) {
 					const double *spec = state->itemSpec[ix];
 					int outcomes = spec[RPF_ISpecOutcomes];
@@ -663,7 +663,7 @@ ba81Expected(omxExpectation* oo)
 								double Ei = state->allElxk[eIndex(state, px)];
 								double Eis = state->Eslxk[esIndex(state, sgroup, px)];
 								double observed = logNumIdentical[px] + (Ei - Eis) +
-									(lxk[px] - patternLik[px]);
+									(lxk[px] - logPatternLik[px]);
 								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
 							}
 							out += outcomes;
@@ -775,7 +775,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 
 	double *patternLik = state->patternLik;
 	for (int px=0; px < numUnique; px++) {
-		double denom = exp(patternLik[px]);
+		double denom = patternLik[px];
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
 		}
@@ -825,13 +825,11 @@ ba81Estep(omxExpectation *oo, const char *context)
 	omxRecompute(state->latentMeanOut);
 	omxRecompute(state->latentCovOut);
 
-	if (state->Qpoint.size() == 0 || state->type == EXPECTATION_AUGMENTED) {
-		ba81SetupQuadrature(oo, state->targetQpoints, 0);
-	}
-
-	ba81Estep1(oo);
-
 	if (state->type == EXPECTATION_AUGMENTED) {
+		if (state->Qpoint.size() == 0) {
+			ba81SetupQuadrature(oo, state->targetQpoints, 0);
+		}
+		ba81Estep1(oo);
 		ba81Expected(oo);
 	}
 }
@@ -949,6 +947,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->numIdentical);
 	Free(state->rowMap);
 	Free(state->patternLik);
+	Free(state->_logPatternLik);
 	Free(state->lxk);
 	Free(state->Sgroup);
 	Free(state->expected);
@@ -999,6 +998,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->rowMap = NULL;
 	state->lxk = NULL;
 	state->patternLik = NULL;
+	state->_logPatternLik = NULL;
 	state->expected = NULL;
 	state->ElatentMean = NULL;
 	state->ElatentCov = NULL;
@@ -1087,8 +1087,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->rowMap[ux] = rx;
 		rx += dups;
 	}
-
-	state->patternLik = Realloc(NULL, numUnique, double);
 
 	int numThreads = Global->numThreads;
 
@@ -1231,6 +1229,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
 	state->cacheLXK = asLogical(tmp);
+	state->LXKcached = FALSE;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("qpoints")));
 	state->targetQpoints = asReal(tmp);

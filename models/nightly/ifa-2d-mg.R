@@ -56,6 +56,14 @@ mkgroup <- function(model.name, data, latent.free) {
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=latent.free)
   cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=latent.free)
+  if (latent.free) {
+    for (c1 in 1:2) {
+      for (c2 in 1:c1) {
+        cov.mat@labels[c1,c2] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
+        cov.mat@labels[c2,c1] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
+      }
+    }  
+  }
   
   m1 <- mxModel(model=model.name,
                 ip.mat, m.mat, cov.mat, eip.mat,
@@ -98,8 +106,6 @@ if (1) {
   
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,-1:-2]),
                       cModel.eap@submodels$g1@expectation@scores.out, 1e-3)
-#  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,3:4]),
-#                      cModel.eap@submodels$g2@expectation@scores.out[,1:2], 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,-1:-2]),
                       cModel.eap@submodels$g2@expectation@scores.out, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,-1:-2]),
@@ -127,8 +133,11 @@ if (1) {
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction')
-                      )))
+#                        mxComputeOnce('fitfunction', start=TRUE,
+#                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+			mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
+						 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+                      ), verbose=TRUE))
 
   grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
 	grpModel <- mxOption(grpModel, "Verify level", '-1')

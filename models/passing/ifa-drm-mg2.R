@@ -45,7 +45,7 @@ mkgroup <- function(model.name, data, latent.free) {
                   ItemSpec=items,
                   EItemParam="EItemParam",
                   mean="mean", cov="cov"),
-                mxFitFunctionBA81(ItemParam="ItemParam", rescale=FALSE))
+                mxFitFunctionBA81(ItemParam="ItemParam"))
   m1
 }
 
@@ -63,9 +63,11 @@ if (1) {
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, "EItemParam", sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-                        mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+                        mxComputeNewtonRaphson(start=TRUE, free.set=paste(groups,'ItemParam',sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction')
+#                        mxComputeOnce('fitfunction', start=TRUE)
+                        mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
+                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)

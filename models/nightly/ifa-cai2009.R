@@ -56,8 +56,12 @@ mk.model <- function(model.name, data, latent.free) {
   eip.mat <- mxAlgebra(ItemParam, name="EItemParam", fixed=TRUE)
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
+  cov.mat.free <- FALSE
+  if (latent.free) {
+    cov.mat.free <- diag(dims)==1
+  }
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
-                      free=latent.free)
+                      free=cov.mat.free)
   
   m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
                 mxMatrix(name="Design", nrow=dim(design)[1], ncol=numItems, values=design),
@@ -68,7 +72,7 @@ mk.model <- function(model.name, data, latent.free) {
                   EItemParam="EItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
-                mxFitFunctionBA81(ItemParam="ItemParam", rescale=FALSE))
+                mxFitFunctionBA81(ItemParam="ItemParam"))
   m1
 }
 
@@ -122,7 +126,9 @@ if(1) {
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction')
+                        mxComputeOnce(start=TRUE, 'fitfunction')
+#                        mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
+#                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
@@ -135,6 +141,8 @@ if(1) {
   grpModel <- mxRun(grpModel)
     
   omxCheckCloseEnough(grpModel@fitfunction@result, correct.LL, .01)
+  omxCheckCloseEnough(grpModel@submodels$g2@matrices$ItemParam@values,
+                      rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$cov@values, fm$G1$cov, .01)
 }

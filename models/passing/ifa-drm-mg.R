@@ -38,7 +38,9 @@ if(1) {
 					#				   mxComputeGradientDescent(free.set='itemParam'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
 					 mxComputeOnce('expectation'),
-					 mxComputeOnce('fitfunction')
+           mxComputeOnce('fitfunction', start=TRUE, free.set=c("mean", "cov"))
+#					 mxComputeGradientDescent(start="expectation", useGradient=TRUE,
+#                                    free.set=c("mean", "cov"))
 					 )))
 	
 	if (0) {
@@ -61,7 +63,7 @@ if(1) {
 	if(1) {
 		m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 		m2 <- mxOption(m2, "Verify level", '-1')
-		m2 <- mxOption(m2, "Function precision", '1.0E-7')
+		m2 <- mxOption(m2, "Function precision", '1.0E-5')
 		m2 <- mxRun(m2)
 		
 		omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)

@@ -23,7 +23,9 @@
 class omxComputeGD : public omxComputeOperation {
 	typedef omxComputeOperation super;
 	omxMatrix *fitMatrix;
+	bool start;
 	bool useGradient;
+	bool verbose;
 
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
 	int inform, iter;
@@ -57,12 +59,18 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	omxCompleteFitFunction(fitMatrix);
 
 	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
+	start = asLogical(slotValue);
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
 	if (LOGICAL(slotValue)[0] == NA_LOGICAL) {
 		useGradient = Global->analyticGradients;
 	} else {
 		useGradient = LOGICAL(slotValue)[0];
 	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
+	verbose = asLogical(slotValue);
 }
 
 void omxComputeGD::compute(FitContext *fc)
@@ -73,12 +81,15 @@ void omxComputeGD::compute(FitContext *fc)
 		return;
 	}
 
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	if (start) {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+		fc->copyParamToModel(globalState);
+	}
 
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
 
-	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup);
+	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
 
 	omxFreeChildStates(globalState);
 
@@ -94,6 +105,9 @@ void omxComputeGD::compute(FitContext *fc)
 			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
 		}
 	}  
+
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
+	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
 }
 
 void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
