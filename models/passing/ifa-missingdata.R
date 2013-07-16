@@ -44,7 +44,7 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
                                 EItemParam="EItemParam", ItemParam="itemParam"),
-              mxFitFunctionBA81(),
+              mxFitFunctionML(),
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='EM'),

@@ -53,7 +53,7 @@ m1 <- mxModel(model="bifactor",
 	     EItemParam="EItemParam", ItemParam="ItemParam",
 	    qpoints=29,
 	    scores="full"),
-          mxFitFunctionBA81(),
+          mxFitFunctionML(),
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='EM'),

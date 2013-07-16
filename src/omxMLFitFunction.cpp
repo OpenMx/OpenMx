@@ -260,7 +260,13 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 }
 
 
-void omxInitMLFitFunction(omxFitFunction* oo) {
+void omxInitMLFitFunction(omxFitFunction* oo)
+{
+	omxExpectation *expectation = oo->expectation;
+	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
+		omxInitFitFunctionBA81(oo);
+		return;
+	}
 
 	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
 

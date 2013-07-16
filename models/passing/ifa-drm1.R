@@ -36,7 +36,7 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
                 mean="mean", cov="cov",
 		qpoints=31,
 		scores="full"),
-              mxFitFunctionBA81(),
+              mxFitFunctionML(),
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce("EItemParam"),
 				 mxComputeOnce('expectation', context='EM'),

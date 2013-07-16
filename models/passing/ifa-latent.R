@@ -45,7 +45,7 @@ m1 <- mxModel(model="latent",
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
                                 EItemParam="EItemParam", ItemParam="ItemParam"),
-              mxFitFunctionBA81(),
+              mxFitFunctionML(),
               mxComputeSequence(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation'),

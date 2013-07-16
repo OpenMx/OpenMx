@@ -109,7 +109,7 @@ void omxInitWLSFitFunction(omxFitFunction *off);
 void omxInitRowFitFunction(omxFitFunction *off);
 void omxInitMLFitFunction(omxFitFunction *off);
 void omxInitRFitFunction(omxFitFunction *off);
-void omxInitFitFunctionBA81(omxFitFunction* oo); // TODO fold into ML/FIMLFitFunction
+void omxInitFitFunctionBA81(omxFitFunction* oo);
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 
 #endif /* _OMXFITFUNCTION_H_ */

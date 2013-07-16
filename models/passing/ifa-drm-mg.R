@@ -30,12 +30,10 @@ if(1) {
 		      mxExpectationBA81(mean="mean", cov="cov",
 					ItemSpec=items, ItemParam="itemParam",
 					EItemParam="EItemParam"),
-		      mxFitFunctionBA81(),
-					# integrate FitFuncBA81 into FitFuncML
+		      mxFitFunctionML(),
 		      mxComputeIterate(steps=list(
 					 mxComputeOnce("EItemParam"),
 					 mxComputeOnce('expectation', context='EM'),
-					#				   mxComputeGradientDescent(free.set='itemParam'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
 					 mxComputeOnce('expectation'),
            mxComputeOnce('fitfunction', start=TRUE, free.set=c("mean", "cov"))
@@ -44,7 +42,7 @@ if(1) {
 					 )))
 	
 	if (0) {
-		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")  # fix TODO
+		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
 		cModel <- m2
 		cModel@matrices$itemParam@values[2,] <- fm$G1$param[2,]
 		cModel@matrices$cov@values <- fm$G1$cov

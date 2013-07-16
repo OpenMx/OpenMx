@@ -72,7 +72,7 @@ mkgroup <- function(model.name, data, latent.free) {
                                   ItemSpec=items,
                                   EItemParam="EItemParam", ItemParam="ItemParam",
                                   qpoints=21, qwidth=5),
-                mxFitFunctionBA81())
+                mxFitFunctionML())
   m1
 }
 

@@ -59,7 +59,7 @@ m1 <- mxModel(model="2dim",
 	     design=design,
 	    qpoints=29,
 	    scores="full"),
-          mxFitFunctionBA81(),
+          mxFitFunctionML(),
               mxComputeIterate(steps=list(
                 mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='EM'),

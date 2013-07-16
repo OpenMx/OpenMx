@@ -71,7 +71,7 @@ mk.model <- function(model.name, data, latent.free) {
                   EItemParam="EItemParam", ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
-                mxFitFunctionBA81())
+                mxFitFunctionML())
   m1
 }
 
