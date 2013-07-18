@@ -60,6 +60,8 @@ typedef struct {
 	std::vector<double> Qpoint;           // quadGridSize
 	std::vector<double> priLogQarea;      // totalPrimaryPoints
 	std::vector<double> speLogQarea;      // quadGridSize * numSpecific
+	std::vector<double> priQarea;         // totalPrimaryPoints
+	std::vector<double> speQarea;         // quadGridSize * numSpecific
 
 	// estimation related
 	omxMatrix *customPrior;
@@ -87,11 +89,11 @@ extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
 void ba81buildLXKcache(omxExpectation *oo);
-double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad);
+double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog);
 void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat);
 void ba81Estep1(omxExpectation *oo);
 void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
-double *ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad);
+double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const int *quad);
 double *getLogPatternLik(omxExpectation* oo);
 
 OMXINLINE static int
@@ -152,7 +154,7 @@ decodeLocation(long qx, const int dims, const long grid, int *quad)
 }
 
 OMXINLINE static double
-logAreaProduct(BA81Expect *state, const int *quad, const int sg)
+logAreaProduct(BA81Expect *state, const int *quad, const int sg) // remove? TODO
 {
 	int maxDims = state->maxDims;
 	if (state->numSpecific == 0) {
@@ -162,6 +164,20 @@ logAreaProduct(BA81Expect *state, const int *quad, const int sg)
 		long priloc = encodeLocation(maxDims-1, state->quadGridSize, quad);
 		return (state->priLogQarea[priloc] +
 			state->speLogQarea[sg * state->quadGridSize + quad[maxDims - 1]]);
+	}
+}
+
+OMXINLINE static double
+areaProduct(BA81Expect *state, const int *quad, const int sg)
+{
+	int maxDims = state->maxDims;
+	if (state->numSpecific == 0) {
+		long qloc = encodeLocation(maxDims, state->quadGridSize, quad);
+		return state->priQarea[qloc];
+	} else {
+		long priloc = encodeLocation(maxDims-1, state->quadGridSize, quad);
+		return (state->priQarea[priloc] *
+			state->speQarea[sg * state->quadGridSize + quad[maxDims - 1]]);
 	}
 }
 

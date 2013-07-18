@@ -169,7 +169,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 
 	double *outcomeProb = NULL;
 	if (do_fit) {
-		outcomeProb = computeRPF(estate, itemParam, quad); // avoid malloc/free? TODO
+		outcomeProb = computeRPF(estate, itemParam, quad, TRUE); // avoid malloc/free? TODO
 		if (!outcomeProb) return 0;
 	}
 
@@ -571,17 +571,18 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
+			const int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, estate->quadGridSize, quad);
 			double where[maxDims];
 			pointToWhere(estate, quad, where, maxDims);
 			std::vector<double> derivCoef(maxDerivCoef);
 			calcDerivCoef(state, estate, where, 0, &derivCoef);
-			double logArea = estate->priLogQarea[qx];
-			double *lxk = ba81LikelihoodFast(expectation, 0, quad);
+			double area = estate->priQarea[qx];
+			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, quad);
 
 			for (int px=0; px < numUnique; px++) {
-				double tmp = exp(lxk[px] + logArea);
+				double tmp = (lxk[px] * area);
 #pragma omp atomic
 				patternLik[px] += tmp;
 				mapLatentDeriv(state, estate, 0, tmp, derivCoef,
@@ -608,22 +609,22 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 					std::vector<double> derivCoef(maxDerivCoef);
 					calcDerivCoef(state, estate, where, sgroup, &derivCoef);
-					double logArea = logAreaProduct(estate, quad, sgroup);
-					double *lxk = ba81LikelihoodFast(expectation, sgroup, quad);
+					double area = areaProduct(estate, quad, sgroup);
+					double *lxk = ba81LikelihoodFast(expectation, thrId, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = estate->allElxk[eIndex(estate, thrId, px)];
 						double Eis = estate->Eslxk[esIndex(estate, thrId, sgroup, px)];
-						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
+						double tmp = ((Ei / Eis) * lxk[px] * area);
 						mapLatentDeriv(state, estate, sgroup, tmp, derivCoef,
 							       uniqueDeriv + px * numLatents);
 					}
 				}
 			}
 
-			double priLogArea = estate->priLogQarea[qx];
+			double priArea = estate->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
 				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
-				double tmp = exp(Ei + priLogArea);
+				double tmp = (Ei * priArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
 			}
@@ -699,15 +700,16 @@ static void recomputePatternLik(omxFitFunction *oo)
 	if (numSpecific == 0) {
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
+			const int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, estate->quadGridSize, quad);
 			double where[maxDims];
 			pointToWhere(estate, quad, where, maxDims);
-			double logArea = estate->priLogQarea[qx];
-			double *lxk = ba81LikelihoodFast(expectation, 0, quad);
+			double area = estate->priQarea[qx];
+			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, quad);
 
 			for (int px=0; px < numUnique; px++) {
-				double tmp = exp(lxk[px] + logArea);
+				double tmp = (lxk[px] * area);
 #pragma omp atomic
 				patternLik[px] += tmp;
 			}
@@ -723,10 +725,10 @@ static void recomputePatternLik(omxFitFunction *oo)
 
 			cai2010(expectation, thrId, FALSE, quad);
 
-			double priLogArea = estate->priLogQarea[qx];
+			double priArea = estate->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
 				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
-				double tmp = exp(Ei + priLogArea);
+				double tmp = (Ei * priArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
 			}
