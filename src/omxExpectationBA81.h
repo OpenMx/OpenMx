@@ -90,7 +90,7 @@ void ba81buildLXKcache(omxExpectation *oo);
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad);
 void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat);
 void ba81Estep1(omxExpectation *oo);
-void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad);
+void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
 double *ba81LikelihoodFast(omxExpectation *oo, int specific, const int *quad);
 double *getLogPatternLik(omxExpectation* oo);
 
@@ -110,16 +110,16 @@ triangleLoc0(int diag)
 
 // state->allElxk[eIndex(state, px)]
 OMXINLINE static int
-eIndex(BA81Expect *state, int px)
+eIndex(BA81Expect *state, int thr, int px)
 {
-	return omx_absolute_thread_num() * state->numUnique + px;
+	return thr * state->numUnique + px;
 }
 
 // state->Eslxk[esIndex(state, sx, px)]
 OMXINLINE static int
-esIndex(BA81Expect *state, int sx, int px)
+esIndex(BA81Expect *state, int thr, int sx, int px)
 {
-	return (omx_absolute_thread_num() * state->numUnique * state->numSpecific +
+	return (thr * state->numUnique * state->numSpecific +
 		state->numUnique * sx + px);
 }
 

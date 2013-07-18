@@ -225,7 +225,7 @@ mapLatentSpace(BA81Expect *state, int px, int sgroup, double piece, const double
 }
 
 // Eslxk, allElxk (Ei, Eis) depend on the ordinate of the primary dimensions
-void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
+void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -237,9 +237,9 @@ void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 	memcpy(quad, primaryQuad, sizeof(int)*sDim);
 
 	for (int px=0; px < numUnique; px++) {
-		state->allElxk[eIndex(state, px)] = 0;
+		state->allElxk[eIndex(state, thrId, px)] = 0;
 		for (int sx=0; sx < numSpecific; sx++) {
-			state->Eslxk[esIndex(state, sx, px)] = 0;
+			state->Eslxk[esIndex(state, thrId, sx, px)] = 0;
 		}
 	}
 
@@ -264,7 +264,7 @@ void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 				double piece = lxk[ix] + area;
 				//mxLog("E.is(%d) at (%d, %d) %.2f + %.2f = %.2f",
 				//  sx, primaryQuad[0], qx, lxk[ix], area, piece);
-				state->Eslxk[esIndex(state, sx, ix)] += exp(piece);
+				state->Eslxk[esIndex(state, thrId, sx, ix)] += exp(piece);
 			}
 		}
 		Free(outcomeProb);
@@ -272,11 +272,11 @@ void cai2010(omxExpectation* oo, int recompute, const int *primaryQuad)
 
 	for (int sx=0; sx < numSpecific; sx++) {
 		for (int px=0; px < numUnique; px++) {
-			state->Eslxk[esIndex(state, sx, px)] =
-				log(state->Eslxk[esIndex(state, sx, px)]);
+			int esi = esIndex(state, thrId, sx, px);
+			state->Eslxk[esi] = log(state->Eslxk[esi]);
 			//mxLog("E.is(%d) at (%d) %.2f", sx, primaryQuad[0], state->Eslxk[esIndex(state, sx, 0)]);
-			state->allElxk[eIndex(state, px)] +=
-				state->Eslxk[esIndex(state, sx, px)];  // allSlxk a.k.a. "E_i"
+			state->allElxk[eIndex(state, thrId, px)] +=
+				state->Eslxk[esIndex(state, thrId, sx, px)];  // allSlxk a.k.a. "E_i"
 		}
 	}
 }
@@ -323,7 +323,6 @@ void ba81Estep1(omxExpectation *oo)
 			Free(outcomeProb);
 
 			double logArea = state->priLogQarea[qx];
-#pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
 				double tmp = exp(lxk[px] + logArea);
 #if 0
@@ -334,6 +333,7 @@ void ba81Estep1(omxExpectation *oo)
 					      state->rowMap[px], lxk[px], logArea, tmp);
 				}
 #endif
+#pragma omp atomic
 				patternLik[px] += tmp;
 				mapLatentSpace(state, px, 0, tmp, where);
 			}
@@ -345,10 +345,11 @@ void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
-			cai2010(oo, TRUE, quad);
+			cai2010(oo, thrId, TRUE, quad);
 
 			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 				for (long sx=0; sx < specificPoints; sx++) {
@@ -358,8 +359,8 @@ void ba81Estep1(omxExpectation *oo)
 					double logArea = logAreaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = state->allElxk[eIndex(state, px)];
-						double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+						double Ei = state->allElxk[eIndex(state, thrId, px)];
+						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
 						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
 						mapLatentSpace(state, px, sgroup, tmp, where);
 					}
@@ -367,11 +368,11 @@ void ba81Estep1(omxExpectation *oo)
 			}
 
 			double priLogArea = state->priLogQarea[qx];
-#pragma omp critical(EstepUpdate)
 			for (int px=0; px < numUnique; px++) {
-				double Ei = state->allElxk[eIndex(state, px)];
+				double Ei = state->allElxk[eIndex(state, thrId, px)];
 				double tmp = exp(Ei + priLogArea);
-				patternLik[px] += tmp;  // is it faster to make this line atomic? TODO
+#pragma omp atomic
+				patternLik[px] += tmp;
 			}
 		}
 	}
@@ -641,10 +642,11 @@ ba81Expected(omxExpectation* oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 
-			cai2010(oo, FALSE, quad);
+			cai2010(oo, thrId, FALSE, quad);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -660,8 +662,8 @@ ba81Expected(omxExpectation* oo)
 							const double *spec = state->itemSpec[ix];
 							int outcomes = spec[RPF_ISpecOutcomes];
 							if (state->Sgroup[ix] == sgroup) {
-								double Ei = state->allElxk[eIndex(state, px)];
-								double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+								double Ei = state->allElxk[eIndex(state, thrId, px)];
+								double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
 								double observed = logNumIdentical[px] + (Ei - Eis) +
 									(lxk[px] - logPatternLik[px]);
 								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
@@ -749,10 +751,11 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+			const int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
-			cai2010(oo, FALSE, quad);
+			cai2010(oo, thrId, FALSE, quad);
 
 			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 				for (long sx=0; sx < specificPoints; sx++) {
@@ -762,8 +765,8 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 					double logArea = logAreaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = state->allElxk[eIndex(state, px)];
-						double Eis = state->Eslxk[esIndex(state, sgroup, px)];
+						double Ei = state->allElxk[eIndex(state, thrId, px)];
+						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
 						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
 						accumulateScores(state, px, sgroup, tmp, where, primaryDims,
 								 covEntries, mean, cov);

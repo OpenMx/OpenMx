@@ -7,3 +7,5 @@ inst/tools/rox
 .dir-locals.el
 .gdbinit
 .*.log
+oprofile_data
+annotated

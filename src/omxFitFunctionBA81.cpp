@@ -595,10 +595,11 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < estate->totalPrimaryPoints; qx++) {
+			const int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
 
-			cai2010(expectation, FALSE, quad);
+			cai2010(expectation, thrId, FALSE, quad);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -610,8 +611,8 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 					double logArea = logAreaProduct(estate, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(expectation, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = estate->allElxk[eIndex(estate, px)];
-						double Eis = estate->Eslxk[esIndex(estate, sgroup, px)];
+						double Ei = estate->allElxk[eIndex(estate, thrId, px)];
+						double Eis = estate->Eslxk[esIndex(estate, thrId, sgroup, px)];
 						double tmp = exp((Ei - Eis) + lxk[px] + logArea);
 						mapLatentDeriv(state, estate, sgroup, tmp, derivCoef,
 							       uniqueDeriv + px * numLatents);
@@ -621,7 +622,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 
 			double priLogArea = estate->priLogQarea[qx];
 			for (int px=0; px < numUnique; px++) {
-				double Ei = estate->allElxk[eIndex(estate, px)];
+				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
 				double tmp = exp(Ei + priLogArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
@@ -716,14 +717,15 @@ static void recomputePatternLik(omxFitFunction *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < estate->totalPrimaryPoints; qx++) {
+			const int thrId = omx_absolute_thread_num();
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
 
-			cai2010(expectation, FALSE, quad);
+			cai2010(expectation, thrId, FALSE, quad);
 
 			double priLogArea = estate->priLogQarea[qx];
 			for (int px=0; px < numUnique; px++) {
-				double Ei = estate->allElxk[eIndex(estate, px)];
+				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
 				double tmp = exp(Ei + priLogArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
