@@ -200,11 +200,9 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 		int cx = maxAbilities;
 		for (int d1=0; d1 < pmax; d1++) {
 			double piece_w1 = piece * where[d1];
-#pragma omp atomic
 			latentDist[d1] += piece_w1;
 			for (int d2=0; d2 <= d1; d2++) {
 				double piece_cov = piece * whereGram[gx];
-#pragma omp atomic
 				latentDist[cx] += piece_cov;
 				++cx; ++gx;
 			}
@@ -214,12 +212,10 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 	if (state->numSpecific) {
 		int sdim = pmax + sgroup;
 		double piece_w1 = piece * where[pmax];
-#pragma omp atomic
 		latentDist[sdim] += piece_w1;
 
 		double piece_var = piece * whereGram[triangleLoc0(pmax)];
 		int to = maxAbilities + triangleLoc0(sdim);
-#pragma omp atomic
 		latentDist[to] += piece_var;
 	}
 }
@@ -296,7 +292,8 @@ void ba81Estep1(omxExpectation *oo)
 	Free(state->_logPatternLik);
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
-	double *latentDist = Calloc(numUnique * numLatents, double);
+	int numLatentsPerThread = numUnique * numLatents;
+	double *latentDist = Calloc(numUnique * numLatents * Global->numThreads, double);
 
 	// E-step, marginalize person ability
 	//
@@ -309,6 +306,7 @@ void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
 			int thrId = omx_absolute_thread_num();
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
 			int quad[maxDims];
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 			double where[maxDims];
@@ -334,7 +332,7 @@ void ba81Estep1(omxExpectation *oo)
 #pragma omp atomic
 				patternLik[px] += tmp;
 				mapLatentSpace(state, 0, tmp, where, whereGram,
-					       latentDist + px * numLatents);
+					       thrLatentDist + px * numLatents);
 			}
 		}
 	} else {
@@ -345,6 +343,7 @@ void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
 			int thrId = omx_absolute_thread_num();
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
@@ -365,7 +364,7 @@ void ba81Estep1(omxExpectation *oo)
 						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
 						double tmp = ((Ei / Eis) * lxk[px] * area);
 						mapLatentSpace(state, sgroup, tmp, where, whereGram,
-							       latentDist + px * numLatents);
+							       thrLatentDist + px * numLatents);
 					}
 				}
 			}
@@ -384,6 +383,28 @@ void ba81Estep1(omxExpectation *oo)
 
 	//mxLog("raw latent");
 	//pda(latentDist, numLatents, numUnique);
+
+#pragma omp parallel for num_threads(Global->numThreads)
+	for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
+		for (int tx=1; tx < Global->numThreads; ++tx) {
+			double *thrLatentDist = latentDist + tx * numLatentsPerThread;
+			for (int px=0; px < numUnique; px++) {
+				int loc = px * numLatents + lx;
+				latentDist[loc] += thrLatentDist[loc];
+			}
+		}
+	}
+
+#pragma omp parallel for num_threads(Global->numThreads)
+	for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
+		for (int tx=1; tx < Global->numThreads; ++tx) {
+			double *thrLatentDist = latentDist + tx * numLatentsPerThread;
+			for (int px=0; px < numUnique; px++) {
+				int loc = px * numLatents + maxAbilities + triangleLoc0(sdim);
+				latentDist[loc] += thrLatentDist[loc];
+			}
+		}
+	}
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
