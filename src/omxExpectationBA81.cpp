@@ -248,6 +248,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 			outcomeProb = computeRPF(state, state->EitemParam, quad, FALSE);
 		}
 		for (int sx=0; sx < numSpecific; sx++) {
+			double *myEslxk = Eslxk + sx * numUnique;
 			double *lxk;     // a.k.a. "L_is"
 			if (recompute) {
 				lxk = ba81Likelihood(oo, thrId, sx, quad, outcomeProb);
@@ -260,7 +261,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 				double piece = lxk[ix] * area;
 				//mxLog("E.is(%d) at (%d, %d) %.2f + %.2f = %.2f",
 				//  sx, primaryQuad[0], qx, lxk[ix], area, piece);
-				Eslxk[sx * numUnique + ix] += piece;
+				myEslxk[ix] += piece;
 			}
 		}
 		Free(outcomeProb);
@@ -630,6 +631,12 @@ ba81Expected(omxExpectation* oo)
 	int numItems = state->EitemParam->cols;
 	int totalOutcomes = state->totalOutcomes;
 
+	std::vector<int> itemOutcomes(numItems);
+	for (int ix=0; ix < numItems; ix++) {
+		const double *spec = state->itemSpec[ix];
+		itemOutcomes[ix] = spec[RPF_ISpecOutcomes];
+	}
+
 	OMXZERO(state->expected, totalOutcomes * state->totalQuadPoints);
 
 	if (numSpecific == 0) {
@@ -643,8 +650,7 @@ ba81Expected(omxExpectation* oo)
 				double *out = state->expected + qx * totalOutcomes;
 				double observed = numIdentical[px] * lxk[px] / patternLik[px];
 				for (int ix=0; ix < numItems; ix++) {
-					const double *spec = state->itemSpec[ix];
-					int outcomes = spec[RPF_ISpecOutcomes];
+					const int outcomes = itemOutcomes[ix];
 					expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
 					out += outcomes;
 				}
@@ -670,16 +676,16 @@ ba81Expected(omxExpectation* oo)
 
 				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, quad);
+					double *myEslxk = Eslxk + sgroup * numUnique;
 
 					for (int px=0; px < numUnique; px++) {
 						double *out = state->expected + totalOutcomes * qloc;
 
 						for (int ix=0; ix < numItems; ix++) {
-							const double *spec = state->itemSpec[ix];
-							int outcomes = spec[RPF_ISpecOutcomes];
+							const int outcomes = itemOutcomes[ix];
 							if (state->Sgroup[ix] == sgroup) {
 								double Ei = allElxk[px];
-								double Eis = Eslxk[sgroup * numUnique + px];
+								double Eis = myEslxk[px];
 								double observed = (numIdentical[px] * (Ei / Eis) *
 										   (lxk[px] / patternLik[px]));
 								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
