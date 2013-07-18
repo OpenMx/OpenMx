@@ -24,9 +24,13 @@ static const char *NAME = "FitFunctionBA81";
 
 struct BA81FitState {
 
+	bool haveLatentMap;
 	std::vector<int> latentMap;
+
+	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
-	int *paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
+	std::vector<int> paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
+
 	std::vector<int> NAtriangle; // TODO remove
 	omxMatrix *cholCov;
 	int choleskyError;
@@ -45,17 +49,16 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
-	paramMap = NULL;
 	fitCount = 0;
 	gradientCount = 0;
 	tmpLatentMean = NULL;
 	tmpLatentCov = NULL;
+	haveItemMap = false;
+	haveLatentMap = false;
 }
 
 static void buildLatentParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 {
-	// if no latent param, need a flag to determine whether to initialize TODO
-
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
@@ -92,6 +95,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 			}
 		}
 	}
+	state->haveLatentMap = TRUE;
 }
 
 static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
@@ -100,10 +104,7 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
-	state->paramMap = Realloc(NULL, size, int);  // matrix location to free param index
-	for (int px=0; px < size; px++) {
-		state->paramMap[px] = -1;
-	}
+	state->paramMap.assign(size, -1);  // matrix location to free param index
 
 	size_t numFreeParams = state->numItemParam = fvg->vars.size();
 	int *pRow = Realloc(NULL, numFreeParams, int);
@@ -151,6 +152,8 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 
 	Free(pRow);
 	Free(pCol);
+
+	state->haveItemMap = TRUE;
 }
 
 OMXINLINE static double
@@ -214,6 +217,8 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	if (estate->verbose) mxLog("%s: fit-%d", NAME, want);
+
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;
@@ -351,7 +356,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 			}
 		}
 		double *iparam = omxMatrixColumn(itemParam, ix);
-		int *mask = state->paramMap + state->itemDerivPadSize * ix;
+		int *mask = state->paramMap.data() + state->itemDerivPadSize * ix;
 		rpf_model[id].rescale(spec, iparam, mask, tmpLatentMean, tmpLatentCov);
 	}
 
@@ -374,6 +379,7 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 	omxMatrix *cholCov = state->cholCov;
 	int maxAbilities = estate->maxAbilities;
 
+	if (estate->verbose) mxLog("%s: schilling-bock", NAME);
 	//mxLog("schilling bock\n");
 	//pda(ElatentMean, maxAbilities, 1);
 	//pda(estate->ElatentCov.data(), maxAbilities, maxAbilities);
@@ -523,6 +529,8 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	if (estate->verbose) mxLog("%s: latentDeriv", NAME);
+
 	int numUnique = estate->numUnique;
 	int numSpecific = estate->numSpecific;
 	int maxDims = estate->maxDims;
@@ -676,6 +684,8 @@ static void recomputePatternLik(omxFitFunction *oo)
 {
 	omxExpectation *expectation = oo->expectation;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	if (estate->verbose) mxLog("%s: patternLik", NAME);
+
 	int numUnique = estate->numUnique;
 	int numSpecific = estate->numSpecific;
 	int maxDims = estate->maxDims;
@@ -734,10 +744,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-
 	std::vector<int> &latentMap = state->latentMap;
-	if (!latentMap.size()) buildLatentParamMap(oo, fc->varGroup);
-
 	std::vector<double> &ElatentMean = estate->ElatentMean;
 	std::vector<double> &ElatentCov = estate->ElatentCov;
 	int maxAbilities = estate->maxAbilities;
@@ -766,10 +773,9 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	++state->fitCount;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
-		if (!state->paramMap) buildItemParamMap(oo, fc->varGroup);
+		if (!state->haveItemMap) buildItemParamMap(oo, fc->varGroup);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			if (!state->paramMap) buildItemParamMap(oo, fc->varGroup);
 			schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
 			return 0;
 		}
@@ -790,7 +796,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
-		if (state->latentMap.size() == 0) buildLatentParamMap(oo, fc->varGroup);
+		if (!state->haveLatentMap) buildLatentParamMap(oo, fc->varGroup);
 
 		omxExpectation *expectation = oo->expectation;
 
@@ -800,7 +806,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_GRADIENT) {
-			ba81SetupQuadrature(expectation, estate->targetQpoints, 0);
+			ba81SetupQuadrature(expectation, estate->targetQpoints);
 			ba81buildLXKcache(expectation);
 			if (!latentDeriv(oo, fc->grad)) {
 				return INFINITY;
@@ -813,7 +819,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_FIT) {
 			if (!(want & FF_COMPUTE_GRADIENT)) {
-				ba81SetupQuadrature(expectation, estate->targetQpoints, 0);
+				ba81SetupQuadrature(expectation, estate->targetQpoints);
 				recomputePatternLik(oo);
 			}
 			double *logPatternLik = getLogPatternLik(expectation);
@@ -844,7 +850,6 @@ static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 
 BA81FitState::~BA81FitState()
 {
-	Free(paramMap);
 	Free(tmpLatentMean);
 	Free(tmpLatentCov);
 	omxFreeAllMatrixData(icov);

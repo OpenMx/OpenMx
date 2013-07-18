@@ -80,6 +80,7 @@ typedef struct {
 
 	enum expectation_type type;
 	enum score_option scores;
+	bool verbose;
 } BA81Expect;
 
 extern const struct rpf *rpf_model;
@@ -87,7 +88,7 @@ extern int rpf_numModels;
 
 void ba81buildLXKcache(omxExpectation *oo);
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog);
-void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat);
+void ba81SetupQuadrature(omxExpectation* oo, int gridsize);
 void ba81Estep1(omxExpectation *oo);
 void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
 double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const int *quad);

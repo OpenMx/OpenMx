@@ -27,12 +27,13 @@ setClass(Class = "MxExpectationBA81",
 	   scores = "character",
 	   scores.out = "matrix",
 	   mean = "MxCharOrNumber",
-	   cov = "MxCharOrNumber"),
+	   cov = "MxCharOrNumber",
+	   verbose = "logical"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, EItemParam, ItemParam, CustomPrior, design,
-		   qpoints, qwidth, cache, mean, cov, scores,
+		   qpoints, qwidth, cache, mean, cov, scores, verbose,
 		   name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
@@ -48,6 +49,7 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@mean <- mean
 	    .Object@cov <- cov
 	    .Object@scores.out <- matrix()
+	    .Object@verbose <- verbose
             return(.Object)
           }
 )
@@ -130,7 +132,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, EItemParam, ItemParam, CustomPrior=NULL, design=NULL,
 			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
-			      scores="omit") {
+			      scores="omit", verbose=FALSE) {
 
 	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
@@ -150,5 +152,5 @@ mxExpectationBA81 <- function(ItemSpec, EItemParam, ItemParam, CustomPrior=NULL,
 	}
 
 	return(new("MxExpectationBA81", ItemSpec, EItemParam, ItemParam, CustomPrior, design,
-		   qpoints, qwidth, cache, mean, cov, scores))
+		   qpoints, qwidth, cache, mean, cov, scores, verbose))
 }

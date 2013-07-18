@@ -281,6 +281,8 @@ void ba81Estep1(omxExpectation *oo)
 	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", NAME);}
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	if (state->verbose) mxLog("%s: lxk patternLik ElatentMean ElatentCov", NAME);
+
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
@@ -500,9 +502,10 @@ void ba81Estep1(omxExpectation *oo)
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
-void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
+void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	if (state->verbose) mxLog("%s: quadrature", NAME);
 	int numUnique = state->numUnique;
 	int numThreads = Global->numThreads;
 	int maxDims = state->maxDims;
@@ -594,11 +597,13 @@ double *getLogPatternLik(omxExpectation* oo)
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (state->_logPatternLik) return state->_logPatternLik;
 
+	if (state->verbose) mxLog("%s: logPatternLik", NAME);
+
 	int numUnique = state->numUnique;
 	state->_logPatternLik = Realloc(NULL, numUnique, double);
 
 	if (!state->patternLik) {
-		ba81SetupQuadrature(oo, state->targetQpoints, 0);
+		ba81SetupQuadrature(oo, state->targetQpoints);
 		ba81Estep1(oo);
 	}
 
@@ -629,6 +634,8 @@ OMXINLINE static void
 ba81Expected(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	if (state->verbose) mxLog("%s: EM.expected", NAME);
+
 	omxData *data = state->data;
 	int numSpecific = state->numSpecific;
 	const int *rowMap = state->rowMap;
@@ -743,6 +750,8 @@ static void
 EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	if (state->verbose) mxLog("%s: EAP", NAME);
+
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
@@ -858,7 +867,7 @@ ba81Estep(omxExpectation *oo, const char *context)
 
 	if (state->type == EXPECTATION_AUGMENTED) {
 		if (state->Qpoint.size() == 0) {
-			ba81SetupQuadrature(oo, state->targetQpoints, 0);
+			ba81SetupQuadrature(oo, state->targetQpoints);
 		}
 		ba81Estep1(oo);
 		ba81Expected(oo);
@@ -1272,6 +1281,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		error("The cov matrix '%s' must be %dx%d",
 		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
 	}
+
+	PROTECT(tmp = GET_SLOT(rObj, install("verbose")));
+	state->verbose = asLogical(tmp);
 
 	PROTECT(tmp = GET_SLOT(rObj, install("cache")));
 	state->cacheLXK = asLogical(tmp);
