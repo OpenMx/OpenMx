@@ -51,7 +51,7 @@ void pia(const int *ar, int rows, int cols)
 	mxLogBig(buf);
 }
 
-// state->speLogQarea[sIndex(state, sx, qx)]
+// state->speQarea[sIndex(state, sx, qx)]
 OMXINLINE static
 int sIndex(BA81Expect *state, int sx, int qx)
 {
@@ -485,12 +485,10 @@ void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 
 	if (numSpecific) {
 		state->totalPrimaryPoints /= state->quadGridSize;
-		state->speLogQarea.resize(gridsize * numSpecific);
 		state->speQarea.resize(gridsize * numSpecific);
 	}
 
 	state->Qpoint.resize(gridsize);
-	state->priLogQarea.resize(state->totalPrimaryPoints);
 	state->priQarea.resize(state->totalPrimaryPoints);
 
 	double qgs = state->quadGridSize-1;
@@ -498,58 +496,40 @@ void ba81SetupQuadrature(omxExpectation* oo, int gridsize, int flat)
 		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / qgs;
 	}
 
-	if (flat) {
-		// not sure why this is useful, remove? TODO
-		double flatd = log(1) - log(state->totalPrimaryPoints);
-		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-			state->priLogQarea[qx] = flatd;
-		}
-		flatd = log(1) - log(state->quadGridSize);
-		for (int sx=0; sx < numSpecific; sx++) {
-			for (int qx=0; qx < state->quadGridSize; qx++) {
-				state->speLogQarea[sIndex(state, sx, qx)] = flatd;
-			}
-		}
-	} else {
-		//pda(state->latentMeanOut->data, 1, state->maxAbilities);
-		//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
+	//pda(state->latentMeanOut->data, 1, state->maxAbilities);
+	//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
 
-		double totalArea = 0;
-		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-			int quad[priDims];
-			decodeLocation(qx, priDims, state->quadGridSize, quad);
-			double where[priDims];
-			pointToWhere(state, quad, where, priDims);
-			state->priLogQarea[qx] = dmvnorm(priDims, where,
-							 state->latentMeanOut->data,
-							 state->latentCovOut->data);
-			totalArea += exp(state->priLogQarea[qx]);
-		}
-		totalArea = log(totalArea);
-		for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-			state->priLogQarea[qx] -= totalArea;
-			state->priQarea[qx] = exp(state->priLogQarea[qx]);
-			//mxLog("%.5g,", state->priLogQarea[qx]);
-		}
+	double totalArea = 0;
+	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+		int quad[priDims];
+		decodeLocation(qx, priDims, state->quadGridSize, quad);
+		double where[priDims];
+		pointToWhere(state, quad, where, priDims);
+		state->priQarea[qx] = exp(dmvnorm(priDims, where,
+						  state->latentMeanOut->data,
+						  state->latentCovOut->data));
+		totalArea += state->priQarea[qx];
+	}
+	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+		state->priQarea[qx] /= totalArea;
+		//mxLog("%.5g,", state->priQarea[qx]);
+	}
 
-		for (int sx=0; sx < numSpecific; sx++) {
-			totalArea = 0;
-			int covCell = (priDims + sx) * state->maxAbilities + priDims + sx;
-			double mean = state->latentMeanOut->data[priDims + sx];
-			double var = state->latentCovOut->data[covCell];
-			//mxLog("setup[%d] %.2f %.2f", sx, mean, var);
-			for (int qx=0; qx < state->quadGridSize; qx++) {
-				double den = dnorm(state->Qpoint[qx], mean, sqrt(var), TRUE);
-				state->speLogQarea[sIndex(state, sx, qx)] = den;
-				totalArea += exp(den);
-			}
-			totalArea = log(totalArea);
-			for (int qx=0; qx < state->quadGridSize; qx++) {
-				state->speLogQarea[sIndex(state, sx, qx)] -= totalArea;
-				state->speQarea[sIndex(state, sx, qx)] = exp(state->speLogQarea[sIndex(state, sx, qx)]);
-			}
-			//pda(state->speLogQarea.data() + sIndex(state, sx, 0), 1, state->quadGridSize);
+	for (int sx=0; sx < numSpecific; sx++) {
+		totalArea = 0;
+		int covCell = (priDims + sx) * state->maxAbilities + priDims + sx;
+		double mean = state->latentMeanOut->data[priDims + sx];
+		double var = state->latentCovOut->data[covCell];
+		//mxLog("setup[%d] %.2f %.2f", sx, mean, var);
+		for (int qx=0; qx < state->quadGridSize; qx++) {
+			double den = dnorm(state->Qpoint[qx], mean, sqrt(var), FALSE);
+			state->speQarea[sIndex(state, sx, qx)] = den;
+			totalArea += den;
 		}
+		for (int qx=0; qx < state->quadGridSize; qx++) {
+			state->speQarea[sIndex(state, sx, qx)] /= totalArea;
+		}
+		//pda(state->speQarea.data() + sIndex(state, sx, 0), 1, state->quadGridSize);
 	}
 
 	if (!state->cacheLXK) {
@@ -572,21 +552,6 @@ void ba81buildLXKcache(omxExpectation *oo)
 	ba81Estep1(oo);
 }
 
-OMXINLINE static void
-expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
-	       const double observed, const int outcomes, double *out)
-{
-	int pick = omxIntDataElementUnsafe(data, rowMap[px], item);
-	if (pick == NA_INTEGER) {
-		double slice = observed / outcomes;
-		for (int ox=0; ox < outcomes; ox++) {
-			out[ox] += slice;
-		}
-	} else {
-		out[pick-1] += observed;
-	}
-}
-
 double *getLogPatternLik(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
@@ -606,6 +571,21 @@ double *getLogPatternLik(omxExpectation* oo)
 	}
 
 	return state->_logPatternLik;
+}
+
+OMXINLINE static void
+expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
+	       const double observed, const int outcomes, double *out)
+{
+	int pick = omxIntDataElementUnsafe(data, rowMap[px], item);
+	if (pick == NA_INTEGER) {
+		double slice = observed / outcomes;
+		for (int ox=0; ox < outcomes; ox++) {
+			out[ox] += slice;
+		}
+	} else {
+		out[pick-1] += observed;
+	}
 }
 
 OMXINLINE static void

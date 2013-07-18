@@ -179,7 +179,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 		int id = spec[RPF_ISpecID];
 		int iOutcomes = spec[RPF_ISpecOutcomes];
 
-		double area = exp(logAreaProduct(estate, quad, estate->Sgroup[ix]));   // avoid exp() here? TODO
+		double area = areaProduct(estate, quad, estate->Sgroup[ix]);
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
 #if 0
@@ -235,7 +235,6 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (long qx=0; qx < estate->totalQuadPoints; qx++) {
-		//double area = exp(state->priLogQarea[qx]);  // avoid exp() here? TODO
 		int quad[maxDims];
 		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
 		double *weight = estate->expected + qx * totalOutcomes;
