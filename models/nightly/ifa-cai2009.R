@@ -9,11 +9,14 @@
 library(OpenMx)
 library(rpf)
 
-correct.LL <- 29995.30
+correct.LL <- 29995.30  # from flexMIRT
+
+# read data
 data.raw <- suppressWarnings(try(read.csv("models/nightly/data/cai2009.csv"), silent=TRUE))
 if (is(data.raw, "try-error")) data.raw <- read.csv("data/cai2009.csv")
 data.g1 <- as.data.frame(data.raw[data.raw$G==1, 2:13])
 data.g2 <- as.data.frame(data.raw[data.raw$G==2, 2:17])
+
 if (0) {
   # for flexmirt
   write.table(data.g1, "cai2009-g1.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
@@ -23,17 +26,15 @@ if (0) {
   fm$G2$spec <- NULL
 }
 
+# from flexMIRT
 fm <- structure(list(G1 = structure(list(param = structure(c(0.992675,  0.646717, 0, 0, 0.876469, 1.41764, 1.25402, 0, 0, 0.0826927,  1.76547, 1.20309, 0, 0, -0.346706, 2.1951, 0.844399, 0, 0, -0.978301,  1.37774, 0, 1.06694, 0, 0.992373, 1.80365, 0, 0.814109, 0, 0.213559,  2.15718, 0, 1.58086, 0, -0.418129, 1.18201, 0, 1.56533, 0, -1.24173,  1.80474, 0, 0, 1.0774, 0.810718, 2.60754, 0, 0, 1.23507, 0.0598008,  1.01874, 0, 0, 0.724402, -0.294029, 1.68916, 0, 0, 1.37546, -1.13333 ), .Dim = c(5L, 12L), .Dimnames = list(NULL, c("i1", "i2", "i3",  "i4", "i5", "i6", "i7", "i8", "i9", "i10", "i11", "i12"))), mean = structure(c(0.822622,  -0.290462, 0.19672, 0.733993), .Names = c("X6", "X7", "X8", "X9" )), cov = structure(c(0.826046, 0, 0, 0, 0, 1.656, 0, 0, 0, 0,  1.11263, 0, 0, 0, 0, 1.07878), .Dim = c(4L, 4L))), .Names = c("param",  "mean", "cov")),
                      G2 = structure(list(param = structure(c(0.992675,  0.646717, 0, 0, 0, 0.876469, 1.41764, 1.25402, 0, 0, 0, 0.0826927,  1.76547, 1.20309, 0, 0, 0, -0.346706, 2.1951, 0.844399, 0, 0,  0, -0.978301, 1.37774, 0, 1.06694, 0, 0, 0.992373, 1.80365, 0,  0.814109, 0, 0, 0.213559, 2.15718, 0, 1.58086, 0, 0, -0.418129,  1.18201, 0, 1.56533, 0, 0, -1.24173, 1.80474, 0, 0, 1.0774, 0,  0.810718, 2.60754, 0, 0, 1.23507, 0, 0.0598008, 1.01874, 0, 0,  0.724402, 0, -0.294029, 1.68916, 0, 0, 1.37546, 0, -1.13333,  1.75531, 0, 0, 0, 1.20652, 0.875564, 1.26308, 0, 0, 0, 1.25013,  0.196607, 1.44526, 0, 0, 0, 0.990354, -0.351181, 1.89461, 0,  0, 0, 0.85611, -1.09382), .Dim = c(6L, 16L), .Dimnames = list(     NULL, c("i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8", "i9",      "i10", "i11", "i12", "i13", "i14", "i15", "i16"))), mean = structure(c(0,  0, 0, 0, 0), .Names = c("X6", "X7", "X8", "X9", "X10")), cov = structure(c(1,  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0,  0, 0, 1), .Dim = c(5L, 5L))), .Names = c("param", "mean", "cov" ))), .Names = c("G1", "G2"))
 
 for (col in colnames(data.g1)) data.g1[[col]] <- mxFactor(data.g1[[col]], levels=0:1)
 for (col in colnames(data.g2)) data.g2[[col]] <- mxFactor(data.g2[[col]], levels=0:1)
 
+# This function creates a model for a single group.
 mk.model <- function(model.name, data, latent.free) {
-#   name <- "g1"
-#   data <- data.g1
-#   latent.free <- TRUE
-#   
   numItems <- dim(data)[2]
   numPersons <- dim(data)[1]
   spec <- list()
@@ -78,6 +79,7 @@ mk.model <- function(model.name, data, latent.free) {
 groups <- paste("g", 1:2, sep="")
 
 if (1) {
+	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
   g1@matrices$ItemParam@values <-
@@ -106,6 +108,7 @@ if (1) {
   omxCheckCloseEnough(as.matrix(fm.sco.g2[,-1:-2]),
                       cModel.eap@submodels$g2@expectation@scores.out, 1e-3)
   
+  # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(cModel,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
@@ -116,6 +119,7 @@ if (1) {
 }
 
 if(1) {
+	# Now actually fit the model.
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
   grpModel <- mxModel(model="groupModel", g1, g2,
@@ -126,8 +130,6 @@ if(1) {
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce(start=TRUE, 'fitfunction')
-#                        mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
-#                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
