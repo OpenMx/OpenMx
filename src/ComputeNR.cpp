@@ -19,8 +19,8 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-class ComputeNR : public omxComputeOperation {
-	typedef omxComputeOperation super;
+class ComputeNR : public omxCompute {
+	typedef omxCompute super;
 	omxMatrix *fitMatrix;
 	bool start;
 

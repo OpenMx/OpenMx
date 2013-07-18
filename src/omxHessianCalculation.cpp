@@ -44,8 +44,8 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-class omxComputeEstimatedHessian : public omxComputeOperation {
-	typedef omxComputeOperation super;
+class omxComputeEstimatedHessian : public omxCompute {
+	typedef omxCompute super;
 	double stepSize;
 	int numIter;
 	bool wantSE;

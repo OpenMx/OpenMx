@@ -20,8 +20,8 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-class omxComputeGD : public omxComputeOperation {
-	typedef omxComputeOperation super;
+class omxComputeGD : public omxCompute {
+	typedef omxCompute super;
 	omxMatrix *fitMatrix;
 	bool start;
 	bool useGradient;

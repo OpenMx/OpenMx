@@ -56,16 +56,11 @@ class FitContext {
 class omxCompute {
  public:
 	FreeVarGroup *varGroup;
-        virtual void initFromFrontend(SEXP rObj) = 0;
+        virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc) = 0;
         virtual void reportResults(FitContext *fc, MxRList *out) = 0;
 	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute();
-};
-
-class omxComputeOperation : public omxCompute {
- public:
-        virtual void initFromFrontend(SEXP rObj);
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);

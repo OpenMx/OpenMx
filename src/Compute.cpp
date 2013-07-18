@@ -278,7 +278,7 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 omxCompute::~omxCompute()
 {}
 
-void omxComputeOperation::initFromFrontend(SEXP rObj)
+void omxCompute::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
@@ -288,6 +288,7 @@ void omxComputeOperation::initFromFrontend(SEXP rObj)
 }
 
 class omxComputeSequence : public omxCompute {
+	typedef omxCompute super;
 	std::vector< omxCompute* > clist;
 
  public:
@@ -299,6 +300,7 @@ class omxComputeSequence : public omxCompute {
 };
 
 class omxComputeIterate : public omxCompute {
+	typedef omxCompute super;
 	std::vector< omxCompute* > clist;
 	int maxIter;
 	double tolerance;
@@ -312,8 +314,8 @@ class omxComputeIterate : public omxCompute {
 	virtual ~omxComputeIterate();
 };
 
-class omxComputeOnce : public omxComputeOperation {
-	typedef omxComputeOperation super;
+class omxComputeOnce : public omxCompute {
+	typedef omxCompute super;
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
 	bool start;
@@ -369,6 +371,8 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
 
 void omxComputeSequence::initFromFrontend(SEXP rObj)
 {
+	super::initFromFrontend(rObj);
+
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("steps")));
 
@@ -431,6 +435,8 @@ omxComputeSequence::~omxComputeSequence()
 void omxComputeIterate::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
+
+	super::initFromFrontend(rObj);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
