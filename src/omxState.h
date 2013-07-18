@@ -87,6 +87,7 @@ struct FreeVarGroup {
 	int id;
 	std::vector< omxFreeVar* > vars;
 	std::vector<bool> dependencies;
+	std::vector<bool> locations;
 
 	void cacheDependencies();
 	void markDirty(omxState *os);

@@ -72,7 +72,8 @@ struct omxMatrix {						// A matrix
 
 /* Curent State */
 	omxState* currentState;				// Optimizer State
-	unsigned short isDirty;				// Whether or not the matrix requires recomputation.
+	int cleanVersion;
+	int version;
 	unsigned short isTemporary;			// Whether or not to destroy the omxMatrix Structure when omxFreeAllMatrixData is called.
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
@@ -147,6 +148,10 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol);
 void setVectorError(int index, int numrow, int numcol);
 void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
+
+OMXINLINE static bool omxMatrixIsDirty(omxMatrix *om) { return om->cleanVersion != om->version; }
+OMXINLINE static bool omxMatrixIsClean(omxMatrix *om) { return om->cleanVersion == om->version; }
+OMXINLINE static int omxGetMatrixVersion(omxMatrix *om) { return om->version; }
 
 static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
     return (mat->algebra == NULL && mat->fitFunction == NULL);

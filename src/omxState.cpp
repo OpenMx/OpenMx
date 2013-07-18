@@ -50,13 +50,17 @@ void FreeVarGroup::cacheDependencies()
 	size_t numAlgs = os->algebraList.size();
 
 	dependencies.assign(numMats + numAlgs, false);
+	locations.assign(numMats, false);
 
 	for (size_t vx = 0; vx < vars.size(); vx++) {
-		omxFreeVar *freeVar = vars[vx];
-		int *deps   = freeVar->deps;
-		int numDeps = freeVar->numDeps;
+		omxFreeVar *fv = vars[vx];
+		int *deps   = fv->deps;
+		int numDeps = fv->numDeps;
 		for (int index = 0; index < numDeps; index++) {
 			dependencies[deps[index] + numMats] = true;
+		}
+		for (size_t lx=0; lx < fv->locations.size(); ++lx) {
+			locations[fv->locations[lx].matrix] = true;
 		}
 	}
 
@@ -67,6 +71,11 @@ void FreeVarGroup::markDirty(omxState *os)
 {
 	size_t numMats = os->matrixList.size();
 	size_t numAlgs = os->algebraList.size();
+
+	for(size_t i = 0; i < numMats; i++) {
+		if (!locations[i]) continue;
+		omxMarkClean(os->matrixList[i]);
+	}
 
 	for(size_t i = 0; i < numMats; i++) {
 		if (dependencies[i]) {

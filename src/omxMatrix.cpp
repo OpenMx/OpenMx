@@ -100,7 +100,8 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->currentState = os;
 	om->isTemporary = FALSE;
 	om->name = NULL;
-	om->isDirty = FALSE;
+	om->version = 1;
+	omxMarkClean(om);
 
 	omxMatrixLeadingLagging(om);
 
@@ -145,7 +146,6 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
 	dest->originalColMajor = dest->colMajor;
-	dest->isDirty = orig->isDirty;
 
 	dest->numPopulateLocations = numPopLocs;
 	if (numPopLocs > 0) {
@@ -399,8 +399,8 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 	return om->data[index];
 }
 
-void omxMarkDirty(omxMatrix *om) { om->isDirty = TRUE; }
-void omxMarkClean(omxMatrix *om) { om->isDirty = FALSE; }
+void omxMarkDirty(omxMatrix *om) { om->version += 1; }
+void omxMarkClean(omxMatrix *om) { om->version += 1; om->cleanVersion = om->version; }
 
 omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
 	unsigned short hasMatrixNumber, int matrixNumber) {
@@ -458,7 +458,8 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->currentState = state;
 	om->hasMatrixNumber = hasMatrixNumber;
 	om->matrixNumber = matrixNumber;
-	om->isDirty = FALSE;
+	om->version = 1;
+	omxMarkClean(om);
 
 	if(OMX_DEBUG) { mxLog("Pre-compute call.");}
 	omxMatrixLeadingLagging(om);
@@ -681,7 +682,7 @@ void omxMatrixLeadingLagging(omxMatrix *om) {
 
 unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	bool yes;
-	if (matrix->hasMatrixNumber && !matrix->isDirty) {
+	if (matrix->hasMatrixNumber && omxMatrixIsClean(matrix)) {
 		yes = FALSE;
 	} else {
 		yes = TRUE;

@@ -106,7 +106,8 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	if (!off->initialized) error("FitFunction not initialized");
 
 	if(OMX_DEBUG_ALGEBRA) { 
-	    mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (off->matrix->isDirty?"Yes":"No"));
+		mxLog("FitFunction compute: 0x%0x (needed: %s).", off,
+		      (omxMatrixIsDirty(off->matrix)?"Yes":"No"));
 	}
 
 	off->computeFun(off, want, fc);
@@ -169,7 +170,7 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	if(obj->computeFun == NULL) error("Failed to initialize fit function %s", obj->fitType); 
 	
-	obj->matrix->isDirty = TRUE;
+	omxMarkDirty(obj->matrix);
 	obj->initialized = TRUE;
 }
 
