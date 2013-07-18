@@ -86,6 +86,11 @@ struct omxFreeVar {
 struct FreeVarGroup {
 	int id;
 	std::vector< omxFreeVar* > vars;
+	std::vector<bool> dependencies;
+
+	void cacheDependencies();
+	void markDirty(omxState *os);
+	void log();
 };
 
 #define NEG_INF -2e20

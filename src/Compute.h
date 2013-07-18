@@ -26,7 +26,6 @@
 // multiple starting values in parallel.
 
 class FitContext {
-	static std::vector<int> markMatrices;   // constant, therefore thread-safe
 	static omxFitFunction *RFitFunction;
 
 	FitContext *parent;

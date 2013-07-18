@@ -43,6 +43,79 @@ FreeVarGroup *omxGlobal::findOrCreateVarGroup(int id)
 	return fvg;
 }
 
+void FreeVarGroup::cacheDependencies()
+{
+	omxState *os = globalState;
+	size_t numMats = os->matrixList.size();
+	size_t numAlgs = os->algebraList.size();
+
+	dependencies.assign(numMats + numAlgs, false);
+
+	for (size_t vx = 0; vx < vars.size(); vx++) {
+		omxFreeVar *freeVar = vars[vx];
+		int *deps   = freeVar->deps;
+		int numDeps = freeVar->numDeps;
+		for (int index = 0; index < numDeps; index++) {
+			dependencies[deps[index] + numMats] = true;
+		}
+	}
+
+	//log();
+}
+
+void FreeVarGroup::markDirty(omxState *os)
+{
+	size_t numMats = os->matrixList.size();
+	size_t numAlgs = os->algebraList.size();
+
+	for(size_t i = 0; i < numMats; i++) {
+		if (dependencies[i]) {
+			int offset = ~(i - numMats);
+			omxMarkDirty(os->matrixList[offset]);
+		}
+	}
+
+	for(size_t i = 0; i < numAlgs; i++) {
+		if (dependencies[i + numMats]) {
+			omxMarkDirty(os->algebraList[i]);
+		}
+	}
+}
+
+void FreeVarGroup::log()
+{
+	omxState *os = globalState;
+	size_t numMats = os->matrixList.size();
+	size_t numAlgs = os->algebraList.size();
+	std::string str;
+
+	str += string_snprintf("FreeVarGroup[%d] with %d variables:", id, vars.size());
+
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		str += " ";
+		str += vars[vx]->name;
+	}
+	str += "\nwill dirty:";
+
+	for(size_t i = 0; i < numMats; i++) {
+		if (dependencies[i]) {
+			int offset = ~(i - numMats);
+			str += " ";
+			str += os->matrixList[offset]->name;
+		}
+	}
+
+	for(size_t i = 0; i < numAlgs; i++) {
+		if (dependencies[i + numMats]) {
+			str += " ";
+			str += os->algebraList[i]->name;
+		}
+	}
+	str += "\n";
+
+	mxLogBig(str);
+}
+
 /* Initialize and Destroy */
 	void omxInitState(omxState* state) {
 		state->numConstraints = 0;

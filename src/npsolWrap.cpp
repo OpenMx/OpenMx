@@ -270,7 +270,9 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 
 	omxProcessCheckpointOptions(checkpointList);
 
-	FitContext::cacheFreeVarDependencies();
+	for (size_t vg=0; vg < Global->freeGroup.size(); ++vg) {
+		Global->freeGroup[vg]->cacheDependencies();
+	}
 
 	FitContext fc;
 

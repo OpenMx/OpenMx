@@ -20,8 +20,6 @@
 #include "omxExportBackendState.h"
 #include "omxRFitFunction.h"
 
-std::vector<int> FitContext::markMatrices;
-
 void FitContext::init()
 {
 	size_t numParam = varGroup->vars.size();
@@ -161,27 +159,6 @@ void FitContext::log(const char *where, int what)
 	mxLogBig(buf);
 }
 
-void FitContext::cacheFreeVarDependencies()
-{
-	omxState *os = globalState;
-	size_t numMats = os->matrixList.size();
-	size_t numAlgs = os->algebraList.size();
-
-	markMatrices.clear();
-	markMatrices.resize(numMats + numAlgs, 0);
-
-	// More efficient to use the appropriate group instead of the default group. TODO
-	FreeVarGroup *varGroup = Global->freeGroup[0];
-	for (size_t freeVarIndex = 0; freeVarIndex < varGroup->vars.size(); freeVarIndex++) {
-		omxFreeVar* freeVar = varGroup->vars[freeVarIndex];
-		int *deps   = freeVar->deps;
-		int numDeps = freeVar->numDeps;
-		for (int index = 0; index < numDeps; index++) {
-			markMatrices[deps[index] + numMats] = 1;
-		}
-	}
-}
-
 void FitContext::fixHessianSymmetry()
 {
 	// make non-symmetric entries symmetric, if possible
@@ -239,9 +216,6 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	if(numParam == 0) return;
 
-	size_t numMats = os->matrixList.size();
-	size_t numAlgs = os->algebraList.size();
-
 	os->computeCount++;
 
 	if(OMX_VERBOSE) {
@@ -272,18 +246,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, at, numParam);
 
-	for(size_t i = 0; i < numMats; i++) {
-		if (markMatrices[i]) {
-			int offset = ~(i - numMats);
-			omxMarkDirty(os->matrixList[offset]);
-		}
-	}
-
-	for(size_t i = 0; i < numAlgs; i++) {
-		if (markMatrices[i + numMats]) {
-			omxMarkDirty(os->algebraList[i]);
-		}
-	}
+	varGroup->markDirty(os);
 
 	if (!os->childList) return;
 
