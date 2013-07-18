@@ -74,8 +74,8 @@ typedef struct {
 	double *_logPatternLik;   // numUnique
 	int totalOutcomes;
 	double *expected;         // totalOutcomes * totalQuadPoints
-	double *ElatentMean;      // maxAbilities * numUnique
-	double *ElatentCov;       // maxAbilities * maxAbilities * numUnique ; only lower triangle is used
+	std::vector<double> ElatentMean;      // maxAbilities
+	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
 
@@ -162,6 +162,18 @@ areaProduct(BA81Expect *state, const int *quad, const int sg)
 		long priloc = encodeLocation(maxDims-1, state->quadGridSize, quad);
 		return (state->priQarea[priloc] *
 			state->speQarea[sg * state->quadGridSize + quad[maxDims - 1]]);
+	}
+}
+
+OMXINLINE static void
+gramProduct(double *vec, size_t len, double *out)
+{
+	int cell = 0;
+	for (size_t v1=0; v1 < len; ++v1) {
+		for (size_t v2=0; v2 <= v1; ++v2) {
+			out[cell] = vec[v1] * vec[v2];
+			++cell;
+		}
 	}
 }
 

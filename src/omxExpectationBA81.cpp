@@ -187,42 +187,40 @@ double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, co
 }
 
 OMXINLINE static void
-mapLatentSpace(BA81Expect *state, int px, int sgroup, double piece, const double *where)
+mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
+	       const std::vector<double> &whereGram, double *latentDist)
 {
-	double *ElatentMean = state->ElatentMean;
-	double *ElatentCov = state->ElatentCov;
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int pmax = maxDims;
 	if (state->numSpecific) pmax -= 1;
 
 	if (sgroup == 0) {
+		int gx = 0;
+		int cx = maxAbilities;
 		for (int d1=0; d1 < pmax; d1++) {
 			double piece_w1 = piece * where[d1];
-			int mloc = px * maxAbilities + d1;
 #pragma omp atomic
-			ElatentMean[mloc] += piece_w1;
+			latentDist[d1] += piece_w1;
 			for (int d2=0; d2 <= d1; d2++) {
-				int loc = px * maxAbilities * maxAbilities + d2 * maxAbilities + d1;
-				double piece_cov = piece_w1 * where[d2];
+				double piece_cov = piece * whereGram[gx];
 #pragma omp atomic
-				ElatentCov[loc] += piece_cov;
+				latentDist[cx] += piece_cov;
+				++cx; ++gx;
 			}
 		}
 	}
 
 	if (state->numSpecific) {
-		int sdim = maxDims + sgroup - 1;
-
-		double piece_w1 = piece * where[maxDims-1];
-		int mloc = px * maxAbilities + sdim;
+		int sdim = pmax + sgroup;
+		double piece_w1 = piece * where[pmax];
 #pragma omp atomic
-		ElatentMean[mloc] += piece_w1;
+		latentDist[sdim] += piece_w1;
 
-		int loc = px * maxAbilities * maxAbilities + sdim * maxAbilities + sdim;
-		double piece_var = piece_w1 * where[maxDims-1];
+		double piece_var = piece * whereGram[triangleLoc0(pmax)];
+		int to = maxAbilities + triangleLoc0(sdim);
 #pragma omp atomic
-		ElatentCov[loc] += piece_var;
+		latentDist[to] += piece_var;
 	}
 }
 
@@ -288,8 +286,6 @@ void ba81Estep1(omxExpectation *oo)
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
-	double *ElatentMean = state->ElatentMean;
-	double *ElatentCov = state->ElatentCov;
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int primaryDims = maxDims;
@@ -299,9 +295,8 @@ void ba81Estep1(omxExpectation *oo)
 	OMXZERO(patternLik, numUnique);
 	Free(state->_logPatternLik);
 
-	// Should probably do these per-thread, not per unique pattern TODO
-	OMXZERO(ElatentMean, numUnique * maxAbilities);
-	OMXZERO(ElatentCov, numUnique * maxAbilities * maxAbilities);
+	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	double *latentDist = Calloc(numUnique * numLatents, double);
 
 	// E-step, marginalize person ability
 	//
@@ -318,6 +313,8 @@ void ba81Estep1(omxExpectation *oo)
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 			double where[maxDims];
 			pointToWhere(state, quad, where, maxDims);
+			std::vector<double> whereGram(triangleLoc1(maxDims));
+			gramProduct(where, maxDims, whereGram.data());
 
 			const double *outcomeProb = computeRPF(state, state->EitemParam, quad, FALSE);
 			double *lxk = ba81Likelihood(oo, thrId, 0, quad, outcomeProb);
@@ -336,7 +333,8 @@ void ba81Estep1(omxExpectation *oo)
 #endif
 #pragma omp atomic
 				patternLik[px] += tmp;
-				mapLatentSpace(state, px, 0, tmp, where);
+				mapLatentSpace(state, 0, tmp, where, whereGram,
+					       latentDist + px * numLatents);
 			}
 		}
 	} else {
@@ -352,18 +350,22 @@ void ba81Estep1(omxExpectation *oo)
 
 			cai2010(oo, thrId, TRUE, quad);
 
-			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-				for (long sx=0; sx < specificPoints; sx++) {
-					quad[sDim] = sx;
-					double where[maxDims];
-					pointToWhere(state, quad, where, maxDims);
+			for (long sx=0; sx < specificPoints; sx++) {
+				quad[sDim] = sx;
+				double where[maxDims];
+				pointToWhere(state, quad, where, maxDims);
+				std::vector<double> whereGram(triangleLoc1(maxDims));
+				gramProduct(where, maxDims, whereGram.data());
+
+				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 					double area = areaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = state->allElxk[eIndex(state, thrId, px)];
 						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
 						double tmp = ((Ei / Eis) * lxk[px] * area);
-						mapLatentSpace(state, px, sgroup, tmp, where);
+						mapLatentSpace(state, sgroup, tmp, where, whereGram,
+							       latentDist + px * numLatents);
 					}
 				}
 			}
@@ -380,17 +382,10 @@ void ba81Estep1(omxExpectation *oo)
 
 	int *numIdentical = state->numIdentical;
 
-	if (0) {
-		mxLog("weight");
-		for (int px=0; px < numUnique; px++) {
-			double weight = numIdentical[px] / patternLik[px];
-			mxLog("%20.20f", weight);
-		}
+	//mxLog("raw latent");
+	//pda(latentDist, numLatents, numUnique);
 
-		mxLog("per item mean");
-		pda(ElatentMean, maxAbilities, numUnique);
-	}
-
+#pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
 		if (patternLik[px] < MIN_PATTERNLIK) {
 			patternLik[px] = MIN_PATTERNLIK;
@@ -398,18 +393,20 @@ void ba81Estep1(omxExpectation *oo)
 				px, MIN_PATTERNLIK);
 		}
 
+		double *latentDist1 = latentDist + px * numLatents;
 		double weight = numIdentical[px] / patternLik[px];
+		int cx = maxAbilities;
 		for (int d1=0; d1 < primaryDims; d1++) {
-			ElatentMean[px * maxAbilities + d1] *= weight;
+			latentDist1[d1] *= weight;
 			for (int d2=0; d2 <= d1; d2++) {
-				int loc = px * maxAbilities * maxAbilities + d2 * maxAbilities + d1;
-				ElatentCov[loc] *= weight;
+				latentDist1[cx] *= weight;
+				++cx;
 			}
 		}
 		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-			ElatentMean[px * maxAbilities + sdim] *= weight;
-			int loc = px * maxAbilities * maxAbilities + sdim * maxAbilities + sdim;
-			ElatentCov[loc] *= weight;
+			latentDist1[sdim] *= weight;
+			int loc = maxAbilities + triangleLoc0(sdim);
+			latentDist1[loc] *= weight;
 		}
 #if 0
 		if (!isfinite(patternLik[px])) {
@@ -418,25 +415,38 @@ void ba81Estep1(omxExpectation *oo)
 #endif
 	}
 
-	for (int px=1; px < numUnique; px++) {
-		for (int d1=0; d1 < primaryDims; d1++) {
-			ElatentMean[d1] += ElatentMean[px * maxAbilities + d1];
-			for (int d2=0; d2 <= d1; d2++) {
-				int cell = d2 * maxAbilities + d1;
-				int loc = px * maxAbilities * maxAbilities + cell;
-				ElatentCov[cell] += ElatentCov[loc];
+	//mxLog("raw latent after weighting");
+	//pda(latentDist, numLatents, numUnique);
+
+	std::vector<double> &ElatentMean = state->ElatentMean;
+	std::vector<double> &ElatentCov = state->ElatentCov;
+	
+	ElatentMean.assign(ElatentMean.size(), 0.0);
+	ElatentCov.assign(ElatentCov.size(), 0.0);
+
+#pragma omp parallel for num_threads(Global->numThreads)
+	for (int d1=0; d1 < maxAbilities; d1++) {
+		for (int px=0; px < numUnique; px++) {
+			double *latentDist1 = latentDist + px * numLatents;
+			int cx = maxAbilities + triangleLoc1(d1);
+			if (d1 < primaryDims) {
+				ElatentMean[d1] += latentDist1[d1];
+				for (int d2=0; d2 <= d1; d2++) {
+					int cell = d2 * maxAbilities + d1;
+					ElatentCov[cell] += latentDist1[cx];
+					++cx;
+				}
+			} else {
+				ElatentMean[d1] += latentDist1[d1];
+				int cell = d1 * maxAbilities + d1;
+				int loc = maxAbilities + triangleLoc0(d1);
+				ElatentCov[cell] += latentDist1[loc];
 			}
-		}
-		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-			ElatentMean[sdim] += ElatentMean[px * maxAbilities + sdim];
-			int cell = sdim * maxAbilities + sdim;
-			int loc = px * maxAbilities * maxAbilities + cell;
-			ElatentCov[cell] += ElatentCov[loc];
 		}
 	}
 
-	//pda(ElatentMean, 1, state->maxAbilities);
-	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
+	//pda(ElatentMean.data(), 1, state->maxAbilities);
+	//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 
 	omxData *data = state->data;
 	for (int d1=0; d1 < maxAbilities; d1++) {
@@ -457,9 +467,12 @@ void ba81Estep1(omxExpectation *oo)
 	}
 
 	if (state->cacheLXK) state->LXKcached = TRUE;
+
+	Free(latentDist);
+
 	//mxLog("E-step");
-	//pda(ElatentMean, 1, state->maxAbilities);
-	//pda(ElatentCov, state->maxAbilities, state->maxAbilities);
+	//pda(ElatentMean.data(), 1, state->maxAbilities);
+	//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
@@ -943,8 +956,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->lxk);
 	Free(state->Sgroup);
 	Free(state->expected);
-	Free(state->ElatentMean);
-	Free(state->ElatentCov);
 	delete state;
 }
 
@@ -993,8 +1004,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->patternLik = NULL;
 	state->_logPatternLik = NULL;
 	state->expected = NULL;
-	state->ElatentMean = NULL;
-	state->ElatentCov = NULL;
 	state->type = EXPECTATION_UNINITIALIZED;
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
@@ -1252,8 +1261,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (strcmp(score_option, "unique")==0) state->scores = SCORES_UNIQUE;
 	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 
-	state->ElatentMean = Realloc(NULL, state->maxAbilities * numUnique, double);
-	state->ElatentCov = Realloc(NULL, state->maxAbilities * state->maxAbilities * numUnique, double);
+	state->ElatentMean.resize(state->maxAbilities);
+	state->ElatentCov.resize(state->maxAbilities * state->maxAbilities);
 
 	// verify data bounded between 1 and numOutcomes TODO
 	// hm, looks like something could be added to omxData for column summary stats?

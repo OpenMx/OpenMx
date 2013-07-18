@@ -28,6 +28,7 @@ struct BA81FitState {
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
 	int *paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
 	std::vector<int> NAtriangle; // TODO remove
+	omxMatrix *cholCov;
 	int choleskyError;
 	double *tmpLatentMean;    // maxDims
 	double *tmpLatentCov;     // maxDims * maxDims ; only lower triangle is used
@@ -215,7 +216,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
-	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
+	std::vector<const double*> &itemSpec = estate->itemSpec;
 	int maxDims = estate->maxDims;
 	const int totalOutcomes = estate->totalOutcomes;
 
@@ -303,7 +304,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	std::vector<const double*> &itemSpec = estate->itemSpec;   // need c++11 auto here TODO
+	std::vector<const double*> &itemSpec = estate->itemSpec;
 	omxMatrix *itemParam = estate->itemParam;
 	omxMatrix *design = estate->design;
 	double *tmpLatentMean = state->tmpLatentMean;
@@ -370,24 +371,26 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	double *ElatentMean = estate->ElatentMean;
-	double *ElatentCov = estate->ElatentCov;
+	omxMatrix *cholCov = state->cholCov;
 	int maxAbilities = estate->maxAbilities;
 
 	//mxLog("schilling bock\n");
 	//pda(ElatentMean, maxAbilities, 1);
-	//pda(ElatentCov, maxAbilities, maxAbilities);
+	//pda(estate->ElatentCov.data(), maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
 
-	// use omxDPOTRF instead? TODO
+	memcpy(cholCov->data, estate->ElatentCov.data(), sizeof(double) * maxAbilities * maxAbilities);
+
 	const char triangle = 'L';
-	F77_CALL(dpotrf)(&triangle, &maxAbilities, ElatentCov, &maxAbilities, &state->choleskyError);
+	F77_CALL(dpotrf)(&triangle, &maxAbilities, cholCov->data, &maxAbilities, &state->choleskyError);
 	if (state->choleskyError != 0) {
 		warning("Cholesky failed with %d; rescaling disabled", state->choleskyError); // make error TODO?
 		return;
 	}
 
-	moveLatentDistribution(oo, fc, ElatentMean, ElatentCov);
+	//pda(cholCov->data, maxAbilities, maxAbilities);
+
+	moveLatentDistribution(oo, fc, estate->ElatentMean.data(), cholCov->data);
 }
 
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
@@ -429,17 +432,6 @@ static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, int sgroup, 
 		int to = maxAbilities + triangleLoc0(sdim);
 #pragma omp atomic
 		derivOut[to] += amt4;
-	}
-}
-
-static void gramProduct(double *vec, size_t len, double *out)
-{
-	int cell = 0;
-	for (size_t v1=0; v1 < len; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
-			out[cell] = vec[v1] * vec[v2];
-			++cell;
-		}
 	}
 }
 
@@ -743,8 +735,8 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	std::vector<int> &latentMap = state->latentMap;
 	if (!latentMap.size()) buildLatentParamMap(oo, fc->varGroup);
 
-	double *ElatentMean = estate->ElatentMean;
-	double *ElatentCov = estate->ElatentCov;
+	std::vector<double> &ElatentMean = estate->ElatentMean;
+	std::vector<double> &ElatentCov = estate->ElatentCov;
 	int maxAbilities = estate->maxAbilities;
 
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {
@@ -853,6 +845,7 @@ BA81FitState::~BA81FitState()
 	Free(tmpLatentMean);
 	Free(tmpLatentCov);
 	omxFreeAllMatrixData(icov);
+	omxFreeAllMatrixData(cholCov);
 }
 
 static void ba81Destroy(omxFitFunction *oo) {
@@ -898,4 +891,5 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	}
 
 	state->icov = omxInitMatrix(NULL, maxAbilities, maxAbilities, TRUE, globalState);
+	state->cholCov = omxInitMatrix(NULL, maxAbilities, maxAbilities, TRUE, globalState);
 }

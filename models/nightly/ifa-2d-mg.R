@@ -133,11 +133,11 @@ if (1) {
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-#                        mxComputeOnce('fitfunction', start=TRUE,
-#                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-			mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
-						 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-                      ), verbose=TRUE))
+                        mxComputeOnce('fitfunction', start=TRUE,
+                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+#			mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
+#						 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+                      )))
 
   grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
 	grpModel <- mxOption(grpModel, "Verify level", '-1')
