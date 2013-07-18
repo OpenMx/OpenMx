@@ -20,8 +20,6 @@
 #include "omxOpenmpWrap.h"
 #include "libifa-rpf.h"
 
-static const char *NAME = "FitFunctionBA81";
-
 struct BA81FitState {
 
 	bool haveLatentMap;
@@ -217,7 +215,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	if (estate->verbose) mxLog("%s: fit-%d", NAME, want);
+	if (estate->verbose) mxLog("%s: fit-%d", oo->matrix->name, want);
 
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
@@ -379,7 +377,7 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 	omxMatrix *cholCov = state->cholCov;
 	int maxAbilities = estate->maxAbilities;
 
-	if (estate->verbose) mxLog("%s: schilling-bock", NAME);
+	if (estate->verbose) mxLog("%s: schilling-bock", oo->matrix->name);
 	//mxLog("schilling bock\n");
 	//pda(ElatentMean, maxAbilities, 1);
 	//pda(estate->ElatentCov.data(), maxAbilities, maxAbilities);
@@ -529,7 +527,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose) mxLog("%s: latentDeriv", NAME);
+	if (estate->verbose) mxLog("%s: latentDeriv", oo->matrix->name);
 
 	int numUnique = estate->numUnique;
 	int numSpecific = estate->numSpecific;
@@ -541,7 +539,6 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 	double *patternLik = estate->patternLik;
 
 	OMXZERO(patternLik, numUnique);
-	Free(estate->_logPatternLik);
 
 	omxCopyMatrix(state->icov, cov);
 
@@ -680,66 +677,6 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 	return TRUE;
 }
 
-static void recomputePatternLik(omxFitFunction *oo)
-{
-	omxExpectation *expectation = oo->expectation;
-	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose) mxLog("%s: patternLik", NAME);
-
-	int numUnique = estate->numUnique;
-	int numSpecific = estate->numSpecific;
-	int maxDims = estate->maxDims;
-	int primaryDims = maxDims;
-	double *patternLik = estate->patternLik;
-
-	if (!patternLik) {
-		ba81Estep1(oo->expectation);
-		return;
-	}
-
-	OMXZERO(patternLik, numUnique);
-	Free(estate->_logPatternLik);
-
-	if (numSpecific == 0) {
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-			int quad[maxDims];
-			decodeLocation(qx, maxDims, estate->quadGridSize, quad);
-			double where[maxDims];
-			pointToWhere(estate, quad, where, maxDims);
-			double area = estate->priQarea[qx];
-			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, quad);
-
-			for (int px=0; px < numUnique; px++) {
-				double tmp = (lxk[px] * area);
-#pragma omp atomic
-				patternLik[px] += tmp;
-			}
-		}
-	} else {
-		primaryDims -= 1;
-
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < estate->totalPrimaryPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-			int quad[maxDims];
-			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
-
-			cai2010(expectation, thrId, FALSE, quad);
-			double *allElxk = eBase(estate, thrId);
-
-			double priArea = estate->priQarea[qx];
-			for (int px=0; px < numUnique; px++) {
-				double Ei = allElxk[px];
-				double tmp = (Ei * priArea);
-#pragma omp atomic
-				patternLik[px] += tmp;
-			}
-		}
-	}
-}
-
 static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
@@ -761,6 +698,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 			fc->est[to] = ElatentCov[a1 * maxAbilities + a2];
 		}
 	}
+
 	//fc->log("setLatentStartingValues", FF_COMPUTE_ESTIMATE);
 }
 
@@ -772,17 +710,13 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	++state->fitCount;
 
+	if (want & FF_COMPUTE_POSTOPTIMIZE) return 0;
+
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		if (!state->haveItemMap) buildItemParamMap(oo, fc->varGroup);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
-			return 0;
-		}
-
-		if (want & FF_COMPUTE_POSTOPTIMIZE) {
-			omxForceCompute(estate->EitemParam);
-			ba81Estep1(oo->expectation);
 			return 0;
 		}
 
@@ -798,36 +732,32 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	} else if (estate->type == EXPECTATION_OBSERVED) {
 		if (!state->haveLatentMap) buildLatentParamMap(oo, fc->varGroup);
 
-		omxExpectation *expectation = oo->expectation;
-
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			setLatentStartingValues(oo, fc);
 			return 0;
 		}
 
+		omxExpectationCompute(oo->expectation, NULL);
+
 		if (want & FF_COMPUTE_GRADIENT) {
-			ba81SetupQuadrature(expectation, estate->targetQpoints);
-			ba81buildLXKcache(expectation);
 			if (!latentDeriv(oo, fc->grad)) {
 				return INFINITY;
 			}
 		}
 
 		if (want & FF_COMPUTE_HESSIAN) {
-			warning("%s: Hessian is not available for latent distribution parameters", NAME);
+			warning("%s: Hessian is not available for latent distribution parameters", oo->matrix->name);
 		}
 
 		if (want & FF_COMPUTE_FIT) {
-			if (!(want & FF_COMPUTE_GRADIENT)) {
-				ba81SetupQuadrature(expectation, estate->targetQpoints);
-				recomputePatternLik(oo);
-			}
-			double *logPatternLik = getLogPatternLik(expectation);
+			if (estate->verbose) mxLog("%s: fit", oo->matrix->name);
+			double *patternLik = estate->patternLik;
 			int *numIdentical = estate->numIdentical;
 			int numUnique = estate->numUnique;
 			double got = 0;
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,64) reduction(+:got)
 			for (int ux=0; ux < numUnique; ux++) {
-				got += numIdentical[ux] * logPatternLik[ux];
+				got += numIdentical[ux] * log(patternLik[ux]);
 			}
 			//mxLog("fit %.2f", -2 * got);
 			return -2 * got;

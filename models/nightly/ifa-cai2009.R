@@ -54,7 +54,7 @@ mk.model <- function(model.name, data, latent.free) {
       ip.mat@labels[px,ix] <- name
     }
   }
-  eip.mat <- mxAlgebra(ItemParam, name="EItemParam", fixed=TRUE)
+  eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
   cov.mat.free <- FALSE
@@ -125,7 +125,6 @@ if(1) {
   grpModel <- mxModel(model="groupModel", g1, g2,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
-                        mxComputeOnce(paste(groups, "EItemParam", sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),

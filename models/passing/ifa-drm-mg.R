@@ -20,7 +20,7 @@ if(1) {
 			   values=c(1,0,0, 1),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
 	
-	eip.mat <- mxAlgebra(itemParam, name="EItemParam", fixed=TRUE)
+	eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 
 	m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 	cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
@@ -32,7 +32,6 @@ if(1) {
 					EItemParam="EItemParam"),
 		      mxFitFunctionML(),
 		      mxComputeIterate(steps=list(
-					 mxComputeOnce("EItemParam"),
 					 mxComputeOnce('expectation', context='EM'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
 					 mxComputeOnce('expectation'),

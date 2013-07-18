@@ -129,7 +129,6 @@ if (1) {
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
-                        mxComputeOnce(paste(groups, "EItemParam", sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),

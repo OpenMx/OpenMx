@@ -70,7 +70,6 @@ typedef struct {
 	double *allElxk;          // numUnique * thread
 	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
-	double *_logPatternLik;   // numUnique
 	int totalOutcomes;
 	double *expected;         // totalOutcomes * totalQuadPoints
 	std::vector<double> ElatentMean;      // maxAbilities
@@ -78,6 +77,8 @@ typedef struct {
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
 
+	int itemParamVersion;
+	int latentParamVersion;
 	enum expectation_type type;
 	enum score_option scores;
 	bool verbose;
@@ -86,13 +87,9 @@ typedef struct {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-void ba81buildLXKcache(omxExpectation *oo);
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog);
-void ba81SetupQuadrature(omxExpectation* oo, int gridsize);
-void ba81Estep1(omxExpectation *oo);
 void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
 double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const int *quad);
-double *getLogPatternLik(omxExpectation* oo);
 
 OMXINLINE static int
 triangleLoc1(int diag)

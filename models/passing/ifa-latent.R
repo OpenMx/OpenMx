@@ -47,7 +47,6 @@ m1 <- mxModel(model="latent",
                                 EItemParam="EItemParam", ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeSequence(steps=list(
-                mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', gradient=TRUE))))
 
@@ -58,10 +57,9 @@ if (1) {
   omxCheckCloseEnough(m1@output$gradient, correct.deriv, 1e-3)
 }
 
-if (0) {
+if (1) {
   m1 <- mxModel(m1,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce("EItemParam"),
                   mxComputeOnce('expectation'),
                   mxComputeGradientDescent(useGradient=TRUE))))
 #  m1 <- mxOption(m1, "Number of Threads", 1)
@@ -107,7 +105,10 @@ if (1) {
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,
                                   design=design,
-                                  EItemParam="EItemParam", ItemParam="ItemParam"))
+                                  EItemParam="EItemParam", ItemParam="ItemParam"),
+                mxComputeSequence(steps=list(
+                  mxComputeOnce('expectation'),
+                  mxComputeOnce('fitfunction', gradient=TRUE))))
 #  m1 <- mxOption(m1, "Number of Threads", 1)
   m1 <- mxRun(m1, silent=TRUE)
   omxCheckCloseEnough(m1@output$gradient[1:5], correct.bifactor[1:5], 1e-3)  #means

@@ -55,7 +55,6 @@ m1 <- mxModel(model="bifactor",
 	    scores="full"),
           mxFitFunctionML(),
               mxComputeIterate(steps=list(
-                mxComputeOnce("EItemParam"),
                 mxComputeOnce('expectation', context='EM'),
 			   mxComputeNewtonRaphson(free.set='ItemParam'),
 #                mxComputeGradientDescent(free.set='ItemParam'),

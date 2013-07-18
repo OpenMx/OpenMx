@@ -27,7 +27,7 @@ enum omxFFCompute {
 	FF_COMPUTE_ESTIMATE     = 1<<2,
 	FF_COMPUTE_GRADIENT     = 1<<3,
 	FF_COMPUTE_HESSIAN      = 1<<4,
-	FF_COMPUTE_POSTOPTIMIZE = 1<<5
+	FF_COMPUTE_POSTOPTIMIZE = 1<<5   // unused? remove? TODO
 };
 
 typedef struct omxMatrix omxMatrix;
