@@ -134,10 +134,13 @@ void omxCompleteMxFitFunction(SEXP algList)
 void omxProcessMxExpectationEntities(SEXP expList) {
 	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", length(expList));}
 	SEXP nextExp;
+	SEXP eNames = getAttrib(expList, R_NamesSymbol);
 
 	for(int index = 0; index < length(expList); index++) {
 		PROTECT(nextExp = VECTOR_ELT(expList, index));
-		globalState->expectationList.push_back(omxNewIncompleteExpectation(nextExp, index, globalState));
+		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
+		ex->name = CHAR(STRING_ELT(eNames, index));
+		globalState->expectationList.push_back(ex);
 		if(OMX_DEBUG) {
 			mxLog("%s incomplete expectation set up at 0x%0xd.",
 				(globalState->expectationList[index]->expType
