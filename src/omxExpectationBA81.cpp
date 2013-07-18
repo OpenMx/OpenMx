@@ -231,11 +231,13 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 	int quadGridSize = state->quadGridSize;
 	int quad[maxDims];
 	memcpy(quad, primaryQuad, sizeof(int)*sDim);
+	double *allElxk = eBase(state, thrId);
+	double *Eslxk = esBase(state, thrId);
 
 	for (int px=0; px < numUnique; px++) {
-		state->allElxk[eIndex(state, thrId, px)] = 1;
+		allElxk[px] = 1;
 		for (int sx=0; sx < numSpecific; sx++) {
-			state->Eslxk[esIndex(state, thrId, sx, px)] = 0;
+			Eslxk[sx * numUnique + px] = 0;
 		}
 	}
 
@@ -260,7 +262,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 				double piece = lxk[ix] * area;
 				//mxLog("E.is(%d) at (%d, %d) %.2f + %.2f = %.2f",
 				//  sx, primaryQuad[0], qx, lxk[ix], area, piece);
-				state->Eslxk[esIndex(state, thrId, sx, ix)] += piece;
+				Eslxk[sx * numUnique + ix] += piece;
 			}
 		}
 		Free(outcomeProb);
@@ -269,8 +271,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 	for (int sx=0; sx < numSpecific; sx++) {
 		for (int px=0; px < numUnique; px++) {
 			//mxLog("E.is(%d) at (%d) %.2f", sx, primaryQuad[0], state->Eslxk[esIndex(state, sx, 0)]);
-			state->allElxk[eIndex(state, thrId, px)] *=
-				state->Eslxk[esIndex(state, thrId, sx, px)];  // allSlxk a.k.a. "E_i"
+			allElxk[px] *= Eslxk[sx * numUnique + px];  // allSlxk a.k.a. "E_i"
 		}
 	}
 }
@@ -348,6 +349,8 @@ void ba81Estep1(omxExpectation *oo)
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
 			cai2010(oo, thrId, TRUE, quad);
+			double *allElxk = eBase(state, thrId);
+			double *Eslxk = esBase(state, thrId);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -360,8 +363,8 @@ void ba81Estep1(omxExpectation *oo)
 					double area = areaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = state->allElxk[eIndex(state, thrId, px)];
-						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
+						double Ei = allElxk[px];
+						double Eis = Eslxk[sgroup * numUnique + px];
 						double tmp = ((Ei / Eis) * lxk[px] * area);
 						mapLatentSpace(state, sgroup, tmp, where, whereGram,
 							       thrLatentDist + px * numLatents);
@@ -371,7 +374,7 @@ void ba81Estep1(omxExpectation *oo)
 
 			double priArea = state->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
-				double Ei = state->allElxk[eIndex(state, thrId, px)];
+				double Ei = allElxk[px];
 				double tmp = (Ei * priArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
@@ -667,6 +670,8 @@ ba81Expected(omxExpectation* oo)
 			decodeLocation(qx, maxDims, state->quadGridSize, quad);
 
 			cai2010(oo, thrId, FALSE, quad);
+			double *allElxk = eBase(state, thrId);
+			double *Eslxk = esBase(state, thrId);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -682,8 +687,8 @@ ba81Expected(omxExpectation* oo)
 							const double *spec = state->itemSpec[ix];
 							int outcomes = spec[RPF_ISpecOutcomes];
 							if (state->Sgroup[ix] == sgroup) {
-								double Ei = state->allElxk[eIndex(state, thrId, px)];
-								double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
+								double Ei = allElxk[px];
+								double Eis = Eslxk[sgroup * numUnique + px];
 								double observed = (numIdentical[px] * (Ei / Eis) *
 										   (lxk[px] / patternLik[px]));
 								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
@@ -777,6 +782,8 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 
 			cai2010(oo, thrId, FALSE, quad);
+			double *allElxk = eBase(state, thrId);
+			double *Eslxk = esBase(state, thrId);
 
 			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 				for (long sx=0; sx < specificPoints; sx++) {
@@ -786,8 +793,8 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 					double area = areaProduct(state, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = state->allElxk[eIndex(state, thrId, px)];
-						double Eis = state->Eslxk[esIndex(state, thrId, sgroup, px)];
+						double Ei = allElxk[px];
+						double Eis = Eslxk[sgroup * numUnique + px];
 						double tmp = ((Ei / Eis) * lxk[px] * area);
 						accumulateScores(state, px, sgroup, tmp, where, primaryDims,
 								 covEntries, mean, cov);
@@ -969,12 +976,13 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->latentCovOut);
 	omxFreeAllMatrixData(state->customPrior);
 	omxFreeAllMatrixData(state->itemParam);
-	Free(state->logNumIdentical);
 	Free(state->numIdentical);
 	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->_logPatternLik);
 	Free(state->lxk);
+	Free(state->Eslxk);
+	Free(state->allElxk);
 	Free(state->Sgroup);
 	Free(state->expected);
 	delete state;
@@ -1018,11 +1026,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	BA81Expect *state = new BA81Expect;
 	state->numSpecific = 0;
 	state->numIdentical = NULL;
-	state->logNumIdentical = NULL;
 	state->rowMap = NULL;
 	state->design = NULL;
 	state->lxk = NULL;
 	state->patternLik = NULL;
+	state->Eslxk = NULL;
+	state->allElxk = NULL;
 	state->_logPatternLik = NULL;
 	state->expected = NULL;
 	state->type = EXPECTATION_UNINITIALIZED;
@@ -1098,7 +1107,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->rowMap = Realloc(NULL, numUnique, int);
 	state->numIdentical = Realloc(NULL, numUnique, int);
-	state->logNumIdentical = Realloc(NULL, numUnique, double);
 
 	state->customPrior =
 		omxNewMatrixFromSlot(rObj, globalState, "CustomPrior");
@@ -1122,7 +1130,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 		int dups = omxDataNumIdenticalRows(state->data, rx);
 		state->numIdentical[ux] = dups;
-		state->logNumIdentical[ux] = log(dups);
 		state->rowMap[ux] = rx;
 		rx += dups;
 	}
@@ -1252,8 +1259,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
-		state->allElxk.resize(numUnique * numThreads);
-		state->Eslxk.resize(numUnique * state->numSpecific * numThreads);
+		state->allElxk = Realloc(NULL, numUnique * numThreads, double);
+		state->Eslxk = Realloc(NULL, numUnique * state->numSpecific * numThreads, double);
 	}
 
 	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {

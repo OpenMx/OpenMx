@@ -39,7 +39,6 @@ typedef struct {
 	omxData *data;
 	int numUnique;
 	int *numIdentical;        // length numUnique
-	double *logNumIdentical;  // length numUnique
 	int *rowMap;              // length numUnique, index of first instance of pattern
 
 	// item description related
@@ -68,8 +67,8 @@ typedef struct {
 	int cacheLXK;
 	bool LXKcached;
 	double *lxk;              // wo/cache, numUnique * thread
-	std::vector<double> allElxk;          // numUnique * thread
-	std::vector<double> Eslxk;            // numUnique * #specific dimensions * thread
+	double *allElxk;          // numUnique * thread
+	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
 	double *_logPatternLik;   // numUnique
 	int totalOutcomes;
@@ -108,19 +107,16 @@ triangleLoc0(int diag)
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
 }
 
-// state->allElxk[eIndex(state, px)]
-OMXINLINE static int
-eIndex(BA81Expect *state, int thr, int px)
+OMXINLINE static double *
+eBase(BA81Expect *state, int thr)
 {
-	return thr * state->numUnique + px;
+	return state->allElxk + thr * state->numUnique;
 }
 
-// state->Eslxk[esIndex(state, sx, px)]
-OMXINLINE static int
-esIndex(BA81Expect *state, int thr, int sx, int px)
+OMXINLINE static double *
+esBase(BA81Expect *state, int thr)
 {
-	return (thr * state->numUnique * state->numSpecific +
-		state->numUnique * sx + px);
+	return state->Eslxk + thr * state->numUnique * state->numSpecific;
 }
 
 OMXINLINE static void

@@ -592,6 +592,8 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
 
 			cai2010(expectation, thrId, FALSE, quad);
+			double *allElxk = eBase(estate, thrId);
+			double *Eslxk = esBase(estate, thrId);
 
 			for (long sx=0; sx < specificPoints; sx++) {
 				quad[sDim] = sx;
@@ -603,8 +605,8 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 					double area = areaProduct(estate, quad, sgroup);
 					double *lxk = ba81LikelihoodFast(expectation, thrId, sgroup, quad);
 					for (int px=0; px < numUnique; px++) {
-						double Ei = estate->allElxk[eIndex(estate, thrId, px)];
-						double Eis = estate->Eslxk[esIndex(estate, thrId, sgroup, px)];
+						double Ei = allElxk[px];
+						double Eis = Eslxk[sgroup * numUnique + px];
 						double tmp = ((Ei / Eis) * lxk[px] * area);
 						mapLatentDeriv(state, estate, sgroup, tmp, derivCoef,
 							       uniqueDeriv + px * numLatents);
@@ -614,7 +616,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 
 			double priArea = estate->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
-				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
+				double Ei = allElxk[px];
 				double tmp = (Ei * priArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
@@ -715,10 +717,11 @@ static void recomputePatternLik(omxFitFunction *oo)
 			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
 
 			cai2010(expectation, thrId, FALSE, quad);
+			double *allElxk = eBase(estate, thrId);
 
 			double priArea = estate->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
-				double Ei = estate->allElxk[eIndex(estate, thrId, px)];
+				double Ei = allElxk[px];
 				double tmp = (Ei * priArea);
 #pragma omp atomic
 				patternLik[px] += tmp;
