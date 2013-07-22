@@ -28,6 +28,7 @@ struct BA81FitState {
 	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
 	std::vector<int> paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
+	std::vector<size_t> paramLocations;   // itemParam->cols * itemDerivPadSize -> # of locations
 
 	std::vector<int> NAtriangle; // TODO remove
 	omxMatrix *cholCov;
@@ -103,6 +104,7 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
 	state->paramMap.assign(size, -1);  // matrix location to free param index
+	state->paramLocations.assign(size, 0);
 
 	size_t numFreeParams = state->numItemParam = fvg->vars.size();
 	int *pRow = Realloc(NULL, numFreeParams, int);
@@ -120,6 +122,7 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 				pCol[px] = loc->col;
 				int at = pCol[px] * state->itemDerivPadSize + pRow[px];
 				state->paramMap[at] = px;
+				state->paramLocations[at] = fv->locations.size();
 
 				const double *spec = estate->itemSpec[loc->col];
 				int id = spec[RPF_ISpecID];
@@ -301,7 +304,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 	return -ll;
 }
 
-static void
+static int
 moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 		       double *ElatentMean, double *ElatentCov)
 {
@@ -314,6 +317,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 	double *tmpLatentCov = state->tmpLatentCov;
 	int maxDims = estate->maxDims;
 	int maxAbilities = estate->maxAbilities;
+	int moveCount = 0;
 
 	int numItems = itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
@@ -361,12 +365,15 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 	int numFreeParams = int(fc->varGroup->vars.size());
 	for (int rx=0; rx < itemParam->rows; rx++) {
 		for (int cx=0; cx < itemParam->cols; cx++) {
-			int vx = state->paramMap[cx * state->itemDerivPadSize + rx];
-			if (vx >= 0 && vx < numFreeParams) {
+			int px = cx * state->itemDerivPadSize + rx;
+			int vx = state->paramMap[px];
+			if (vx >= 0 && vx < numFreeParams && state->paramLocations[px] == 1) {
 				fc->est[vx] = omxMatrixElement(itemParam, rx, cx);
+				++moveCount;
 			}
 		}
 	}
+	return moveCount;
 }
 
 static void
@@ -377,8 +384,6 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 	omxMatrix *cholCov = state->cholCov;
 	int maxAbilities = estate->maxAbilities;
 
-	if (estate->verbose) mxLog("%s: schilling-bock", oo->matrix->name);
-	//mxLog("schilling bock\n");
 	//pda(ElatentMean, maxAbilities, 1);
 	//pda(estate->ElatentCov.data(), maxAbilities, maxAbilities);
 	//omxPrint(design, "design");
@@ -394,7 +399,8 @@ schilling_bock_2005_rescale(omxFitFunction *oo, FitContext *fc)
 
 	//pda(cholCov->data, maxAbilities, maxAbilities);
 
-	moveLatentDistribution(oo, fc, estate->ElatentMean.data(), cholCov->data);
+	int moveCount = moveLatentDistribution(oo, fc, estate->ElatentMean.data(), cholCov->data);
+	if (estate->verbose) mxLog("%s: schilling-bock (%d param)", oo->matrix->name, moveCount);
 }
 
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
