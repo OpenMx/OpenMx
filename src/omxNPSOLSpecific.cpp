@@ -34,7 +34,7 @@ static omxMatrix *NPSOL_fitMatrix = NULL;
 static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
 static bool NPSOL_useGradient;
-static bool NPSOL_verbose;
+static int NPSOL_verbose;
 
 #ifdef  __cplusplus
 extern "C" {
@@ -248,7 +248,7 @@ void F77_SUB(npsolConstraintFunction)
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    bool verbose)
+		    int verbose)
 {
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");

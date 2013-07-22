@@ -25,7 +25,7 @@ class omxComputeGD : public omxCompute {
 	omxMatrix *fitMatrix;
 	bool adjustStart;
 	bool useGradient;
-	bool verbose;
+	int verbose;
 
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
 	int inform, iter;
@@ -70,7 +70,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	}
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asLogical(slotValue);
+	verbose = asInteger(slotValue);
 }
 
 void omxComputeGD::compute(FitContext *fc)

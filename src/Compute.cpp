@@ -304,7 +304,7 @@ class omxComputeIterate : public omxCompute {
 	std::vector< omxCompute* > clist;
 	int maxIter;
 	double tolerance;
-	bool verbose;
+	int verbose;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -458,7 +458,7 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 	}
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asLogical(slotValue);
+	verbose = asInteger(slotValue);
 }
 
 void omxComputeIterate::compute(FitContext *fc)

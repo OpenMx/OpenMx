@@ -27,7 +27,7 @@ class ComputeNR : public omxCompute {
 	int maxIter;
 	double tolerance;
 	int inform, iter;
-	bool verbose;
+	int verbose;
 
 public:
 	ComputeNR();
@@ -73,7 +73,7 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	if (tolerance <= 0) error("tolerance must be positive");
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asLogical(slotValue);
+	verbose = asInteger(slotValue);
 }
 
 void ComputeNR::compute(FitContext *fc)
@@ -103,7 +103,7 @@ void ComputeNR::compute(FitContext *fc)
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 
-		if (verbose) {
+		if (verbose >= 2) {
 			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
 		}
 
@@ -156,6 +156,10 @@ void ComputeNR::compute(FitContext *fc)
 		fc->copyParamToModel(globalState);
 		R_CheckUserInterrupt();
 		if (maxAdj < tolerance || ++iter > maxIter) break;
+	}
+
+	if (verbose >= 1) {
+		mxLog("Newton-Raphson converged in %d cycles", iter);
 	}
 
 	// The check is too dependent on numerical precision to enable by default.

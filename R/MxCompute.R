@@ -148,7 +148,7 @@ setClass(Class = "MxComputeGradientDescent",
 	   useGradient = "logical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
-	   verbose = "logical"))
+	   verbose = "integer"))
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
@@ -182,7 +182,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 	  })
 
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.logical(NA),
-				     engine=NULL, fitfunction='fitfunction', adjustStart=FALSE, verbose=FALSE) {
+				     engine=NULL, fitfunction='fitfunction', adjustStart=FALSE, verbose=0L) {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
@@ -200,7 +200,7 @@ setClass(Class = "MxComputeNewtonRaphson",
 	   fitfunction = "MxCharOrNumber",
 	   maxIter = "integer",
 	   tolerance = "numeric",
-	   verbose = "logical"))
+	   verbose = "integer"))
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {
@@ -235,7 +235,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 
 mxComputeNewtonRaphson <- function(type, free.set=NULL, adjustStart=FALSE,
 				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
-				   verbose=FALSE) {
+				   verbose=0L) {
 
 	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, adjustStart, verbose)
 }
@@ -289,7 +289,7 @@ setClass(Class = "MxComputeIterate",
 	 representation = representation(
 	   maxIter = "integer",
 	   tolerance = "numeric",
-	   verbose = "logical"))
+	   verbose = "integer"))
 
 setMethod("initialize", "MxComputeIterate",
 	  function(.Object, steps, maxIter, tolerance, verbose) {
@@ -301,7 +301,7 @@ setMethod("initialize", "MxComputeIterate",
 		  .Object
 	  })
 
-mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=FALSE) {
+mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=0L) {
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
 }
 
