@@ -128,7 +128,7 @@ if(1) {
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce(start=TRUE, 'fitfunction')
+                        mxComputeOnce(adjustStart=TRUE, 'fitfunction')
                       )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)

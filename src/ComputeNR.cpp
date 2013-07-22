@@ -22,7 +22,7 @@
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
-	bool start;
+	bool adjustStart;
 
 	int maxIter;
 	double tolerance;
@@ -62,8 +62,8 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	}
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
-	start = asLogical(slotValue);
+	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
+	adjustStart = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
@@ -86,7 +86,7 @@ void ComputeNR::compute(FitContext *fc)
 		return;
 	}
 
-	if (start) {
+	if (adjustStart) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		fc->copyParamToModel(globalState);
 	}

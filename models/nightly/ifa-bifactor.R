@@ -59,9 +59,7 @@ m1 <- mxModel(model="bifactor",
 			   mxComputeNewtonRaphson(free.set='ItemParam'),
 #                mxComputeGradientDescent(free.set='ItemParam'),
                 mxComputeOnce('expectation'),
-#			mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
-#						 free.set=c('mean','cov'))
-                mxComputeOnce(start=TRUE, 'fitfunction')
+                mxComputeOnce(adjustStart=TRUE, 'fitfunction')
 				 )))
 
 	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')

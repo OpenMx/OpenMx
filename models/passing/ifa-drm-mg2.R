@@ -62,10 +62,10 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-                        mxComputeNewtonRaphson(start=TRUE, free.set=paste(groups,'ItemParam',sep=".")),
+                        mxComputeNewtonRaphson(adjustStart=TRUE, free.set=paste(groups,'ItemParam',sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-#                        mxComputeOnce('fitfunction', start=TRUE)
-                        mxComputeGradientDescent(start=TRUE, useGradient=TRUE,
+#                        mxComputeOnce('fitfunction', adjustStart=TRUE)
+                        mxComputeGradientDescent(adjustStart=TRUE, useGradient=TRUE,
                                                  free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
   

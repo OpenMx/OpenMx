@@ -35,8 +35,8 @@ if(1) {
 					 mxComputeOnce('expectation', context='EM'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
 					 mxComputeOnce('expectation'),
-           mxComputeOnce('fitfunction', start=TRUE, free.set=c("mean", "cov"))
-#					 mxComputeGradientDescent(start="expectation", useGradient=TRUE,
+           mxComputeOnce('fitfunction', adjustStart=TRUE, free.set=c("mean", "cov"))
+#					 mxComputeGradientDescent(adjustStart="expectation", useGradient=TRUE,
 #                                    free.set=c("mean", "cov"))
 					 )))
 	

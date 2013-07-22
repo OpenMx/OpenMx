@@ -23,7 +23,7 @@
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
-	bool start;
+	bool adjustStart;
 	bool useGradient;
 	bool verbose;
 
@@ -59,8 +59,8 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	omxCompleteFitFunction(fitMatrix);
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
-	start = asLogical(slotValue);
+	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
+	adjustStart = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
 	if (LOGICAL(slotValue)[0] == NA_LOGICAL) {
@@ -81,7 +81,7 @@ void omxComputeGD::compute(FitContext *fc)
 		return;
 	}
 
-	if (start) {
+	if (adjustStart) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		fc->copyParamToModel(globalState);
 	}

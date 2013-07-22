@@ -318,7 +318,7 @@ class omxComputeOnce : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
-	bool start;
+	bool adjustStart;
 	const char *context;
 	bool gradient;
 	bool hessian;
@@ -569,8 +569,8 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		}
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("start")));
-	start = asLogical(slotValue);
+	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
+	adjustStart = asLogical(slotValue);
 }
 
 void omxComputeOnce::compute(FitContext *fc)
@@ -590,7 +590,7 @@ void omxComputeOnce::compute(FitContext *fc)
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
-				if (start) {
+				if (adjustStart) {
 					omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 					fc->copyParamToModel(globalState);
 				}
