@@ -151,6 +151,10 @@ mxExpectationBA81 <- function(ItemSpec, EItemParam, ItemParam, CustomPrior=NULL,
 		stop(paste("Valid score options are", deparse(score.options)))
 	}
 
+	if (!missing(design) && !is.integer(design)) {
+		stop("Design must be an integer matrix")
+	}
+
 	return(new("MxExpectationBA81", ItemSpec, EItemParam, ItemParam, CustomPrior, design,
 		   qpoints, qwidth, cache, mean, cov, scores, verbose))
 }

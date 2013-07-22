@@ -41,8 +41,8 @@ mk.model <- function(model.name, data, latent.free) {
   spec[1:numItems] <- rpf.grm(factors = 2)
   
   dims <- (1 + numItems/4)
-  design <- matrix(c(rep(1,numItems),
-                     kronecker(2:dims,rep(1,4))), byrow=TRUE, ncol=numItems)
+  design <- matrix(c(rep(1L,numItems),
+                     as.integer(kronecker(2:dims,rep(1,4)))), byrow=TRUE, ncol=numItems)
   
   ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                      values=c(1.4,1,0),

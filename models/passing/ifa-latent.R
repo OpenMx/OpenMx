@@ -99,8 +99,8 @@ if (1) {
   cov.mat <- mxMatrix(name="cov", nrow=5, ncol=5, values=diag(seq(.81,1.41,length.out=5)),
                       free=diag(5)==1)
   
-  design <- matrix(c(rep(1,numItems),
-                     kronecker(2:5,rep(1,5))), byrow=TRUE, ncol=numItems)
+  design <- matrix(c(rep(1L,numItems),
+                     as.integer(kronecker(2:5,rep(1,5)))), byrow=TRUE, ncol=numItems)
   m1 <- mxModel(m1, m.mat, cov.mat,
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,

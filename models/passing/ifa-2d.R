@@ -30,8 +30,8 @@ correct.mat[3,1] <- 0
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
 maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
 
-design <- matrix(c(1, 1,1,1,2,
-                  NA,2,2,2,1), byrow=TRUE, nrow=2)
+design <- matrix(as.integer(c(1, 1,1,1,2,
+                  NA,2,2,2,1)), byrow=TRUE, nrow=2)
 
 ability <- array(rnorm(numPeople * 2), dim=c(2, numPeople))
 #cov <- matrix(c(1, .68, .68, 1), nrow=2)
