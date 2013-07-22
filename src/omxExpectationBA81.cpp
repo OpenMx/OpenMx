@@ -630,12 +630,7 @@ ba81Expected(omxExpectation* oo)
 	int maxDims = state->maxDims;
 	int numItems = state->EitemParam->cols;
 	int totalOutcomes = state->totalOutcomes;
-
-	std::vector<int> itemOutcomes(numItems);
-	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = state->itemSpec[ix];
-		itemOutcomes[ix] = spec[RPF_ISpecOutcomes];
-	}
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
 
 	OMXZERO(state->expected, totalOutcomes * state->totalQuadPoints);
 
@@ -1251,6 +1246,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->EitemParam->rows != maxParam) {
 		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
 		return;
+	}
+
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	itemOutcomes.resize(numItems);
+	for (int ix=0; ix < numItems; ix++) {
+		const double *spec = state->itemSpec[ix];
+		itemOutcomes[ix] = spec[RPF_ISpecOutcomes];
 	}
 
 	if (state->design == NULL) {

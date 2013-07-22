@@ -43,6 +43,7 @@ typedef struct {
 
 	// item description related
 	std::vector<const double*> itemSpec;
+	std::vector<int> itemOutcomes;
 	int maxOutcomes;
 	int maxDims;
 	int maxAbilities;
