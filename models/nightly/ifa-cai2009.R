@@ -118,18 +118,22 @@ if (1) {
     omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
 }
 
+omxIFAComputePlan <- function(groups) {
+	mxComputeIterate(steps=list(
+			   mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
+			   mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+			   mxComputeOnce(paste(groups, 'expectation', sep=".")),
+			   mxComputeOnce(adjustStart=TRUE, 'fitfunction')
+			   ))
+}
+
 if(1) {
 	# Now actually fit the model.
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
   grpModel <- mxModel(model="groupModel", g1, g2,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeIterate(steps=list(
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-                        mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce(adjustStart=TRUE, 'fitfunction')
-                      )))
+                      omxIFAComputePlan(groups))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
