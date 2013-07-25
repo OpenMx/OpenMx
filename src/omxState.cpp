@@ -98,7 +98,7 @@ void FreeVarGroup::log()
 	size_t numAlgs = os->algebraList.size();
 	std::string str;
 
-	str += string_snprintf("FreeVarGroup[%d] with %d variables:", id, vars.size());
+	str += string_snprintf("FreeVarGroup[%d] with %lu variables:", id, vars.size());
 
 	for (size_t vx=0; vx < vars.size(); ++vx) {
 		str += " ";
@@ -266,37 +266,37 @@ void omxFreeChildStates(omxState *state)
 		omxFreeChildStates(state);
 
 		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
-			if(OMX_DEBUG) { mxLog("Freeing Algebra %d at 0x%x.", ax, state->algebraList[ax]); }
+			if(OMX_DEBUG) { mxLog("Freeing Algebra %lu at %p.", ax, state->algebraList[ax]); }
 			omxFreeAllMatrixData(state->algebraList[ax]);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", state->matrixList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %lu Matrices.", state->matrixList.size());}
 		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
-			if(OMX_DEBUG) { mxLog("Freeing Matrix %d at 0x%x.", mk, state->matrixList[mk]); }
+			if(OMX_DEBUG) { mxLog("Freeing Matrix %lu at %p.", mk, state->matrixList[mk]); }
 			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
-		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", state->expectationList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %lu Model Expectations.", state->expectationList.size());}
 		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
-			if(OMX_DEBUG) { mxLog("Freeing Expectation %d at 0x%x.", ex, state->expectationList[ex]); }
+			if(OMX_DEBUG) { mxLog("Freeing Expectation %lu at %p.", ex, state->expectationList[ex]); }
 			omxFreeExpectationArgs(state->expectationList[ex]);
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", state->numConstraints);}
 		for(int k = 0; k < state->numConstraints; k++) {
-			if(OMX_DEBUG) { mxLog("Freeing Constraint %d at 0x%x.", k, state->conList[k]); }
+			if(OMX_DEBUG) { mxLog("Freeing Constraint %d at %p.", k, &state->conList[k]); }
 			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %d Data Sets.", state->dataList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %lu Data Sets.", state->dataList.size());}
 		for(size_t dx = 0; dx < state->dataList.size(); dx++) {
-			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", dx, state->dataList[dx]); }
+			if(OMX_DEBUG) { mxLog("Freeing Data Set %lu at %p.", dx, state->dataList[dx]); }
 			omxFreeData(state->dataList[dx]);
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
 		for(int k = 0; k < state->numCheckpoints; k++) {
-			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at 0x%x.", k, state->checkpointList[k]); }
+			if(OMX_DEBUG) { mxLog("Freeing Data Set %d at %p.", k, &state->checkpointList[k]); }
 			omxCheckpoint oC = state->checkpointList[k];
 			switch(oC.type) {
 				case OMX_FILE_CHECKPOINT:
@@ -350,7 +350,7 @@ omxGlobal::~omxGlobal()
 		}
 	}
 
-std::string string_snprintf(const std::string fmt, ...)
+std::string string_snprintf(const char *fmt, ...)
 {
     int size = 100;
     std::string str;
@@ -358,7 +358,7 @@ std::string string_snprintf(const std::string fmt, ...)
     while (1) {
         str.resize(size);
         va_start(ap, fmt);
-        int n = vsnprintf((char *)str.c_str(), size, fmt.c_str(), ap);
+        int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
         va_end(ap);
         if (n > -1 && n < size) {
             str.resize(n);

@@ -588,7 +588,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
 			omxSetMatrixElement(rowLogLikelihoods, row, 0, logLikelihood);
 			
 			if(OMX_DEBUG_ROWS(row)) { 
-				mxLog("Change in Total log Likelihood for row %d is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, ", 
+				mxLog("Change in Total log Likelihood for row %ld is %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, ", 
 				    localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * numContinuous), 
 				    -2  * log(rowLikelihood), (2.0 *determinant) + Q + (log(2 * M_PI) * numContinuous));
 			} 
@@ -1123,7 +1123,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			omxSetMatrixElement(rowLogLikelihoods, row, 0, logLikelihood);
 
 			if(OMX_DEBUG_ROWS(row)) {
-				mxLog("Change in Total Likelihood for row %d is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
+				mxLog("Change in Total Likelihood for row %ld is %3.3f + %3.3f + %3.3f = %3.3f", localobj->matrix->currentState->currentRow, (2.0*determinant), Q, (log(2 * M_PI) * smallRow->cols), (2.0*determinant) + Q + (log(2 * M_PI) * smallRow->cols));
 			}
 		}
 		if(firstRow) firstRow = 0;

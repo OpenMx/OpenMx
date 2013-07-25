@@ -67,7 +67,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	}
 	
 	if(OMX_DEBUG) { 
-		mxLog("Initializing algebra 0x%0x with 0x%0x.", oa, om);
+		mxLog("Initializing algebra %p with %p.", oa, om);
 	}
 	
 	omxAlgebraAllocArgs(oa, 0);
@@ -91,14 +91,14 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
 	if(OMX_DEBUG) { 
-	    mxLog("Freeing algebra at 0x%0x with %d args.", 
+	    mxLog("Freeing algebra at %p with %d args.", 
 	        oa, oa->numArgs); 
 	}
 	
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
 		if(OMX_DEBUG) {
-			mxLog("Freeing argument %d at 0x%0x.",
+			mxLog("Freeing argument %d at %p.",
 				j, oa->algArgs[j]);
 		}
 		omxFreeAllMatrixData(oa->algArgs[j]);
@@ -110,12 +110,12 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 
 void omxAlgebraRecompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("Algebra compute (%s): 0x%0x.", 
+		mxLog("Algebra compute (%s): %p.", 
 			oa->matrix->name, oa->matrix);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at 0x%0x (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at %p (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxRecompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -141,12 +141,12 @@ void omxAlgebraRecompute(omxAlgebra *oa) {
 
 void omxAlgebraForceCompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("Algebra compute (%s): 0x%0x.", 
+		mxLog("Algebra compute (%s): %p.", 
 			oa->matrix->name, oa->matrix);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at 0x%0x (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at %p (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxForceCompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -216,13 +216,13 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 		omxInitAlgebraWithMatrix(oa, om);
 		if(OMX_DEBUG) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
-		if(OMX_DEBUG) {mxLog("Table Entry %d (at 0x%0x) is %s.", value, entry, entry->opName);}
+		if(OMX_DEBUG) {mxLog("Table Entry %d (at %p) is %s.", value, entry, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
 				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
 				if(OMX_DEBUG) {
-					mxLog("fillFromMxAlgebra got 0x%0x from helper, arg %d.", oa->algArgs[j], j);
+					mxLog("fillFromMxAlgebra got %p from helper, arg %d.", oa->algArgs[j], j);
 				}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.

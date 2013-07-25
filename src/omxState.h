@@ -204,8 +204,7 @@ void omxFreeState(omxState *state);
 	void omxResetStatus(omxState *state);    
 inline bool isErrorRaised(omxState *state) { return state->statusMsg[0] != 0; }
 void omxRaiseError(omxState *state, int errorCode, const char* errorMsg); // DEPRECATED
-void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
-																		// TODO: Move RaiseError to omxOptimizer.
+void omxRaiseErrorf(omxState *state, const char* errorMsg, ...) __attribute__((format (printf, 2, 3)));
 
 /* Advance a step */
 	void omxStateNextRow(omxState *state);								// Advance Row
@@ -215,9 +214,9 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 void omxSaveCheckpoint(double* x, double f, int force);
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 
-void mxLog(const char* msg, ...);   // thread-safe
+void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogBig(const std::string str);
-std::string string_snprintf(const std::string fmt, ...);
+std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
 
 #endif /* _OMXSTATE_H_ */
 

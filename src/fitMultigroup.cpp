@@ -38,7 +38,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 		}
 		fitMatrix->data[0] += f1->data[0];
 	}
-	if(OMX_DEBUG) { mxLog("Fit Function sum of %d groups is %f.", mg->fits.size(), fitMatrix->data[0]); }
+	if(OMX_DEBUG) { mxLog("Fit Function sum of %lu groups is %f.", mg->fits.size(), fitMatrix->data[0]); }
 }
 
 void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)

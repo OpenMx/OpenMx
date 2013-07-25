@@ -59,7 +59,6 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 		// We sum logs instead of logging the product.
 		det += log(omxMatrixElement(cov, i, i));
 	}
-	if(OMX_DEBUG) { mxLog("det: %f, tr: %f, n= %d, total:%f", det, ncols, state->n, (ncols + det) * (state->n - 1)); }
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 
 	*independence_out = (ncols + det) * (state->n - 1);
@@ -130,7 +129,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
 	if(info > 0) {
 		omxRaiseErrorf(oo->matrix->currentState,
-			       "Expected covariance matrix is non-positive-definite after %d evaluations",
+			       "Expected covariance matrix is non-positive-definite after %ld evaluations",
 			       oo->matrix->currentState->computeCount);
 		return;
 	}
@@ -154,11 +153,6 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrint(localCov, "Inverted Matrix:");}
 
 	/* Calculate C = Observed * expected^(-1) */
-
-	if(OMX_DEBUG_ALGEBRA) {mxLog("Call is: DSYMM(%d, %d, %f, %0x, %d, %0x, %d, %f, %0x, %d)",
-					(scov->rows), (localCov->cols), oned, scov->data, (localCov->leading),
-					localCov->data, (localCov->leading), zerod, localProd->data, (localProd->leading));}
-
 
 	// Stop gcc from issuing a warning
 	int majority = *(scov->majority) == 'n' ? scov->rows : scov->cols;

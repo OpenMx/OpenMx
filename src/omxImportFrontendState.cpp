@@ -41,7 +41,7 @@ void omxProcessMxDataEntities(SEXP data) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc, globalState);
 		if(OMX_DEBUG) {
-			mxLog("Data initialized at 0x%0xd = (%d x %d).",
+			mxLog("Data initialized at %p = (%d x %d).",
 				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
 		}
 	}
@@ -60,7 +60,7 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 		globalState->matrixList.push_back(mat);
 		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
 		if(OMX_DEBUG) {
-			mxLog("Matrix initialized at 0x%0xd = (%d x %d).",
+			mxLog("Matrix initialized at %p = (%d x %d).",
 				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
 		}
 		if (isErrorRaised(globalState)) return;
@@ -142,7 +142,7 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 		ex->name = CHAR(STRING_ELT(eNames, index));
 		globalState->expectationList.push_back(ex);
 		if(OMX_DEBUG) {
-			mxLog("%s incomplete expectation set up at 0x%0xd.",
+			mxLog("%s incomplete expectation set up at %p.",
 				(globalState->expectationList[index]->expType
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);
@@ -153,12 +153,12 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 
 
 void omxCompleteMxExpectationEntities() {
-	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", globalState->expectationList.size());}
+	if(OMX_DEBUG) { mxLog("Completing %lu Model Expectation(s).", globalState->expectationList.size());}
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
 		if(OMX_DEBUG) {
-			mxLog("%s expectation completed at 0x%0xd.",
+			mxLog("%s expectation completed at %p.",
 				(globalState->expectationList[index]->expType
 					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
 					 globalState->expectationList[index]);

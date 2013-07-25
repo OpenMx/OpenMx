@@ -81,7 +81,6 @@ void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov,
 			mxLog(" %f", corList[i]); // (i*(i-1)/2) + j]);
 			// mxLog("");
 		}
-		mxLog("");
 	}
 
 	if(OMX_DEBUG) {

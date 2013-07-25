@@ -51,9 +51,9 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
     
 	/* Completely destroy the Expectation function tree */
-	if(OMX_DEBUG) {mxLog("Freeing %s Expectation object at 0x%x.", (ox->expType == NULL?"untyped":ox->expType), ox);}
+	if(OMX_DEBUG) {mxLog("Freeing %s Expectation object at %p.", (ox->expType == NULL?"untyped":ox->expType), ox);}
 	if(ox->destructFun != NULL) {
-		if(OMX_DEBUG) {mxLog("Calling Expectation destructor for 0x%x.", ox);}
+		if(OMX_DEBUG) {mxLog("Calling Expectation destructor for %p.", ox);}
 		ox->destructFun(ox);
 	}
 	Free(ox->submodels);
@@ -62,7 +62,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 
 void omxExpectationRecompute(omxExpectation *ox) {
 	if(OMX_DEBUG_ALGEBRA) { 
-	    mxLog("Expectation recompute: 0x%0x", ox);
+	    mxLog("Expectation recompute: %p", ox);
 	}
 	
 	if(ox->thresholds != NULL) {
@@ -80,7 +80,7 @@ void omxExpectationCompute(omxExpectation *ox, const char *context)
 	if (!ox) return;
 
 	if(OMX_DEBUG_ALGEBRA) { 
-	    mxLog("Expectation compute: 0x%0x", ox);
+	    mxLog("Expectation compute: %p", ox);
 	}
 
 	ox->computeFun(ox, context);
@@ -109,7 +109,7 @@ void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const c
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
 
-	if(OMX_DEBUG) {mxLog("Duplicating Expectation 0x%x", src);}
+	if(OMX_DEBUG) {mxLog("Duplicating Expectation %p", src);}
 
 	return omxNewIncompleteExpectation(src->rObj, src->expNum, newState);
 }
@@ -271,7 +271,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
 
-	if(OMX_DEBUG) {mxLog("Completing Expectation 0x%x, type %s.", 
+	if(OMX_DEBUG) {mxLog("Completing Expectation %p, type %s.", 
 		ox, ((ox==NULL || ox->expType==NULL)?"Untyped":ox->expType));}
 		
 	omxState* os = ox->currentState;

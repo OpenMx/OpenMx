@@ -211,7 +211,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 {
 	size_t numParam = varGroup->vars.size();
 	if(OMX_DEBUG) {
-		mxLog("Copying %d free parameter estimates to model %p", numParam, os);
+		mxLog("Copying %lu free parameter estimates to model %p", numParam, os);
 	}
 
 	if(numParam == 0) return;
@@ -220,7 +220,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	if(OMX_VERBOSE) {
 		std::string buf;
-		buf += string_snprintf("Call: %d.%d (%d) ", os->majorIteration, os->minorIteration, os->computeCount);
+		buf += string_snprintf("Call: %d.%d (%ld) ", os->majorIteration, os->minorIteration, os->computeCount);
 		buf += ("Estimates: [");
 		for(size_t k = 0; k < numParam; k++) {
 			buf += string_snprintf(" %f", at[k]);
@@ -238,7 +238,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, at[k]);
 			if(OMX_DEBUG) {
-				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %d",
+				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %lu",
 					row, col, loc->matrix, at[k], k);
 			}
 		}

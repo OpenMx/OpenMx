@@ -136,9 +136,6 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
 	}
 
-	static double zero = 0.0;
-	static double one = 1.0;
-
 	/* Conformability Check! */
 	if(preMul->cols != postMul->rows) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -151,15 +148,8 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(result->rows != preMul->rows || result->cols != postMul->cols)
 		omxResizeMatrix(result, preMul->rows, postMul->cols, FALSE);
 
-	/* For debugging */
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(result, "NewMatrix");
-		mxLog("DGEMM: %c, %c, %d, %d, %d, %f, %0x %d %0x %d %f %0x %d", *(preMul->majority), *(postMul->majority), (preMul->rows), (postMul->cols), (preMul->cols), one, (preMul->data), (preMul->leading), (postMul->data), (postMul->leading), zero, (result->data), (result->leading));
-	}
-
-	/* The call itself */
 	omxDGEMM(FALSE, FALSE, 1.0, preMul, postMul, 0.0, result);
-	// F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, result->data, &(result->leading));
+
 	result->colMajor = TRUE;
 
 	omxMatrixLeadingLagging(result);
@@ -321,14 +311,14 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitTemporaryMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: os = 0x%x, step = %d.", result->currentState, intermediate->currentState->computeCount);}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: os = %p, step = %ld.", result->currentState, intermediate->currentState->computeCount);}
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%x, %x)", result->algebra, result->fitFunction);}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%p, %p)", result->algebra, result->fitFunction);}
 
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%x, %x)", intermediate->algebra, intermediate->fitFunction);}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%p, %p)", intermediate->algebra, intermediate->fitFunction);}
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: premul.");}
@@ -1086,7 +1076,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {
-		mxLog("det is %d.", det);
+		mxLog("det is %f.", det);
 	}
 
 	omxFreeAllMatrixData(calcMat);
@@ -2062,13 +2052,6 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	double* work = (double*) malloc(lwork * sizeof(double));
 	double* WI = (double*) malloc(B->cols * sizeof(double));
 
-	/* For debugging */
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(result, "NewMatrix");
-		mxLog("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d", N, N, (result->rows), result->data, (result->leading), A->data, WI, NULL, One, NULL, One, work, &lwork, &info);
-	}
-
-	/* The call itself */
 	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), A->data, WI, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2145,13 +2128,6 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	double *WI = (double*) malloc(A->cols * sizeof(double));
 	double *work = (double*) malloc(lwork * sizeof(double));
 
-	/* For debugging */
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(result, "NewMatrix");
-		mxLog("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %x, %d, %x, %d, %d, %d", N, V, (result->rows), result->data, (result->leading), WR, WI, NULL, A->data, &(A->leading), work, lwork, info);
-	}
-
-	/* The call itself */
 	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2216,7 +2192,6 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		omxResizeMatrix(result, B->rows, 1, FALSE);
 
 	char N = 'N';						// Indicators for BLAS
-	char V = 'V';						// Indicators for BLAS
 
 	int One = 1;
 	int lwork = 10*B->rows;
@@ -2227,13 +2202,6 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	double *VR = (double*) malloc(B->rows * B->cols * sizeof(double));
 	double *work = (double*) malloc(lwork * sizeof(double));
 
-	/* For debugging */
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(result, "NewMatrix");
-		mxLog("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d", N, V, B->data, (B->rows), A->data, WR, NULL, One, VR, (A->rows), work, lwork, info);
-	}
-
-	/* The call itself */
 	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), WR, A->data, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2307,13 +2275,6 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	if(result->rows != A->rows || result->cols != A->cols)
 		omxResizeMatrix(result, A->rows, A->cols, FALSE);
 
-	/* For debugging */
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(result, "NewMatrix");
-		mxLog("DGEEV: %c, %c, %d, %x, %d, %x, %x, %x, %d, %x, %d, %x, %d, %d", N, V, (A->rows), A->data, (A->leading), WR, WI, NULL, One, result->data, (result->leading), work, lwork, info);
-	}
-
-	/* The call itself */
 	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));

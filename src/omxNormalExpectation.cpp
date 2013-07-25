@@ -94,11 +94,11 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Processing cov."); }
 	one->cov = omxNewMatrixFromSlot(rObj, currentState, "covariance");
-	if(OMX_DEBUG) { mxLog("cov is 0x%x.", one->cov); }
+	if(OMX_DEBUG) { mxLog("cov is %p.", one->cov); }
 
 	if(OMX_DEBUG) { mxLog("Processing Means."); }
 	one->means = omxNewMatrixFromSlot(rObj, currentState, "means");
-	if(OMX_DEBUG) { mxLog("mean is 0x%x.", one->means); }
+	if(OMX_DEBUG) { mxLog("mean is %p.", one->means); }
 }
 
 omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
@@ -116,7 +116,7 @@ omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* 
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
+	if(OMX_DEBUG) { mxLog("Returning %p.", retval); }
 
 	return retval;
 	

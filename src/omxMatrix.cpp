@@ -37,7 +37,7 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
 	std::string buf;
-	buf += string_snprintf("[%d] %s: (%d x %d) [%s-major] SEXP 0x%0x\n%s = matrix(c(",
+	buf += string_snprintf("[%d] %s: (%d x %d) [%s-major] SEXP %p\n%s = matrix(c(",
 			       omx_absolute_thread_num(),
 			       header, source->rows, source->cols, (source->colMajor?"col":"row"),
 			       source->owner, header);
@@ -67,7 +67,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
-	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix 0x%0x to (%d, %d) with state at 0x%x.", om, nrows, ncols, os); }
+	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix %p to (%d, %d) with state at %p.", om, nrows, ncols, os); }
 
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
@@ -188,7 +188,7 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 void omxFreeMatrixData(omxMatrix * om) {
 
 	if(!om->owner && om->data != NULL) {
-		if(OMX_DEBUG_MATRIX) { mxLog("Freeing matrix data at 0x%0x", om->data); }
+		if(OMX_DEBUG_MATRIX) { mxLog("Freeing matrix data at %p", om->data); }
 		Free(om->data);
 	}
 	om->owner = NULL;
@@ -200,8 +200,8 @@ void omxFreeAllMatrixData(omxMatrix *om) {
     if(om == NULL) return;
 
 	if(OMX_DEBUG) { 
-	    mxLog("Freeing matrix at 0x%0x with data = 0x%x, algebra 0x%x, and fit function 0x%x.", 
-	        om, om->data, om->algebra); 
+	    mxLog("Freeing matrix at %p with data = %p, algebra %p, and fit function %p.", 
+		  om, om->data, om->algebra, om->fitFunction);
 	}
 
 	omxFreeMatrixData(om);
@@ -587,7 +587,7 @@ void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
     // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
-//	if(OMX_DEBUG_MATRIX) { mxLog("Removing %d rows and %d columns from 0x%0x.", numRowsRemoved, numColsRemoved, om);}
+//	if(OMX_DEBUG_MATRIX) { mxLog("Removing %d rows and %d columns from %p.", numRowsRemoved, numColsRemoved, om);}
 
 	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
 
@@ -634,13 +634,12 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Self-aliased matrix access.");}
 						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
 					} else {
-						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Matrix 0x%x re-aliasing to 0x%x.", om, om->aliasedPtr);}
+						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Matrix %p re-aliasing to %p.", om, om->aliasedPtr);}
 						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
 					}
 					nextRow++;
 				}
 			}
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("");}
 			nextCol++;
 		}
 	}

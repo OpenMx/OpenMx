@@ -234,12 +234,8 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	
 	omxShallowInverse(numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	
-	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
-	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
 	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
-	// F77_CALL(omxunsafedgemm)(Ax->majority, Z->minority, &(Ax->rows), &(Z->rows), &(Z->cols), &oned, Ax->data, &(Ax->leading), Z->data, &(Z->leading), &zerod, Ax->data, &(Ax->leading)); 
 	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
 	// Ax = ZSZ' = Covariance matrix including latent variables
 	
@@ -276,8 +272,6 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
-	double oned = 1.0, zerod=0.0;
-	
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
 		error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
@@ -302,16 +296,10 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	if (isErrorRaised(A->currentState)) return;
 	
 	/* Cov = FZSZ'F' */
-	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
-	// F77_CALL(omxunsafedgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
 	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Y->majority), *(S->majority), (Y->rows), (S->cols), (S->rows), oned, Y->data, (Y->leading), S->data, (S->leading), zerod, X->data, (X->leading));}
-	// F77_CALL(omxunsafedgemm)(Y->majority, S->majority, &(Y->rows), &(S->cols), &(S->rows), &oned, Y->data, &(Y->leading), S->data, &(S->leading), &zerod, X->data, &(X->leading)); 	// X = FZS
 	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(X->majority), *(Y->minority), (X->rows), (Y->rows), (Y->cols), oned, X->data, (X->leading), Y->data, (Y->lagging), zerod, Cov->data, (Cov->leading));}
-	// F77_CALL(omxunsafedgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &oned, X->data, &(X->leading), Y->data, &(Y->leading), &zerod, Cov->data, &(Cov->leading));
 	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, Cov);
 	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
 	
@@ -994,7 +982,7 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
                 // For now, skip.
                 // TODO: Find a way to deal with these situations
                 status[param] = -1;
-                if(OMX_DEBUG) { mxLog("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.", param, varLoc, varMat, Amat, Smat, Mmat);}
+                if(OMX_DEBUG) { mxLog("Skipping parameter %lu because %luth element has outside influence %d. Looking for %d, %d, or %d.", param, varLoc, varMat, Amat, Smat, Mmat);}
                 break;
             }
         }
@@ -1042,7 +1030,7 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFuncti
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { mxLog("Returning 0x%x.", retval); }
+	if(OMX_DEBUG) { mxLog("Returning %p.", retval); }
 
 	return retval;
 

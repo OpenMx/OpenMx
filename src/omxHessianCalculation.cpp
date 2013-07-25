@@ -150,7 +150,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		}
 	}
 
-	if(OMX_DEBUG) { mxLog("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d) with value %f...", hessian, i, i, i*numParams+i, Haprox[0]); }
+	if(OMX_DEBUG) { mxLog("Hessian estimation: Populating Hessian (%p) at ([%d, %d] = %d) with value %f...", hessian, i, i, i*numParams+i, Haprox[0]); }
 	gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
 	hessian[i*numParams + i] = Haprox[0];
 
@@ -204,12 +204,12 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 	for(int m = 1; m < numIter; m++) {						// Richardson Step
 		for(int k = 0; k < (numIter - m); k++) {
-			if(OMX_DEBUG) {mxLog("Hessian off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f, and %f).", Haprox[k], iOffset, lOffset, stepSize, optima[i], optima[l], v, m, pow(4.0, m), stepSize*optima[i], stepSize*optima[l], k);}
+			//if(OMX_DEBUG) {mxLog("Hessian off-diagonal calculation: Haprox = %f, iOffset = %f, lOffset=%f from params %f, %f and %f, %f and %d (also: %f, %f and %f, and %f).", Haprox[k], iOffset, lOffset, stepSize, optima[i], optima[l], v, m, pow(4.0, m), stepSize*optima[i], stepSize*optima[l], k);}
 			Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k]) / (pow(4.0, m)-1);
 		}
 	}
 
-	if(OMX_DEBUG) {mxLog("Hessian estimation: Populating Hessian (0x%x) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
+	if(OMX_DEBUG) {mxLog("Hessian estimation: Populating Hessian (%p) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
 	hessian[i*numParams+l] = Haprox[0];
 	hessian[l*numParams+i] = Haprox[0];
 

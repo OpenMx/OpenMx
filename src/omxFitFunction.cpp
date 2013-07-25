@@ -63,10 +63,10 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
     
 	/* Completely destroy the fit function structures */
-	if(OMX_DEBUG) {mxLog("Freeing fit function object at 0x%x.", off);}
+	if(OMX_DEBUG) {mxLog("Freeing fit function object at %p.", off);}
 	if(off->matrix != NULL) {
 		if(off->destructFun != NULL) {
-			if(OMX_DEBUG) {mxLog("Calling fit function destructor for 0x%x.", off);}
+			if(OMX_DEBUG) {mxLog("Calling fit function destructor for %p.", off);}
 			off->destructFun(off);
 		}
 		off->matrix = NULL;
@@ -106,7 +106,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	if (!off->initialized) error("FitFunction not initialized");
 
 	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("FitFunction compute: 0x%0x (needed: %s).", off, (omxMatrixIsDirty(off->matrix)?"Yes":"No"));
+		mxLog("FitFunction compute: %p (needed: %s).", off, (omxMatrixIsDirty(off->matrix)?"Yes":"No"));
 	}
 
 	off->computeFun(off, want, fc);
