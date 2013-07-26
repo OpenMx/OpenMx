@@ -35,8 +35,6 @@ struct BA81FitState {
 	double *tmpLatentMean;    // maxDims
 	double *tmpLatentCov;     // maxDims * maxDims ; only lower triangle is used
 	omxMatrix *icov;          // inverse covariance matrix
-	int fitCount;             // dubious, remove? TODO
-	int gradientCount;        // dubious, remove? TODO
 
 	std::vector< FreeVarGroup* > varGroups;
 	size_t numItemParam;
@@ -47,8 +45,6 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
-	fitCount = 0;
-	gradientCount = 0;
 	tmpLatentMean = NULL;
 	tmpLatentCov = NULL;
 	haveItemMap = false;
@@ -729,8 +725,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
-	++state->fitCount;
-
 	if (want & FF_COMPUTE_POSTOPTIMIZE) return 0;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
@@ -740,8 +734,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
 			return 0;
 		}
-
-		if (want & FF_COMPUTE_GRADIENT) ++state->gradientCount;
 
 		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
 		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
