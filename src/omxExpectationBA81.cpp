@@ -692,6 +692,28 @@ ba81Expected(omxExpectation* oo)
 			}
 		}
 	}
+
+	if (!state->checkedBadData) {
+		std::vector<double> byOutcome(totalOutcomes, 0);
+		for (int ox=0; ox < totalOutcomes; ++ox) {
+			for (long qx=0; qx < state->totalQuadPoints; qx++) {
+				byOutcome[ox] += state->expected[totalOutcomes * qx + ox];
+			}
+			if (byOutcome[ox] == 0) {
+				int uptoItem = 0;
+				for (size_t cx = 0; cx < itemOutcomes.size(); cx++) {
+					if (ox < uptoItem + itemOutcomes[cx]) {
+						int bad = ox - uptoItem;
+						omxRaiseErrorf(globalState, "Item %lu outcome %d is never endorsed.\n"
+							       "You must collapse categories or omit this item to estimate item parameters.", 1+cx, 1+bad);
+						break;
+					}
+					uptoItem += itemOutcomes[cx];
+				}
+			}
+		}
+		state->checkedBadData = TRUE;
+	}
 	//pda(state->expected, state->totalOutcomes, state->totalQuadPoints);
 }
 
@@ -1091,6 +1113,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	
 	BA81Expect *state = new BA81Expect;
+	state->checkedBadData = FALSE;
 	state->numSpecific = 0;
 	state->numIdentical = NULL;
 	state->rowMap = NULL;
@@ -1209,6 +1232,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->maxDims = 0;
 	state->maxOutcomes = 0;
 
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	itemOutcomes.resize(numItems);
 	int totalOutcomes = 0;
 	for (int cx = 0; cx < data->cols; cx++) {
 		const double *spec = state->itemSpec[cx];
@@ -1218,6 +1243,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			state->maxDims = dims;
 
 		int no = spec[RPF_ISpecOutcomes];
+		itemOutcomes[cx] = no;
 		totalOutcomes += no;
 		if (state->maxOutcomes < no)
 			state->maxOutcomes = no;
@@ -1256,13 +1282,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->EitemParam->rows != maxParam) {
 		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
 		return;
-	}
-
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	itemOutcomes.resize(numItems);
-	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = state->itemSpec[ix];
-		itemOutcomes[ix] = spec[RPF_ISpecOutcomes];
 	}
 
 	if (state->design == NULL) {
