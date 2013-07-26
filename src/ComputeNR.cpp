@@ -112,33 +112,41 @@ void ComputeNR::compute(FitContext *fc)
 		//if (isfinite(prevLL) && prevLL < LL - tolerance) decreasing = FALSE;
 		//prevLL = LL;
 
-		fc->fixHessianSymmetry();
 		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 
-		// replace with omxDPOTRF + omxDPOTRI TODO
 		std::vector<double> ihess(numParam * numParam);
-		for (size_t rx=0; rx < numParam; rx++) {
-			for (size_t cx=0; cx < numParam; cx++) {
-				ihess[rx * numParam + cx] = rx==cx? 1 : 0;
-			}
-		}
-		std::vector<int> ipiv(numParam);
-		int info;
+		memcpy(ihess.data(), fc->hess, sizeof(double) * numParam * numParam);
+
 		int dim = int(numParam);
-		F77_CALL(dgesv)(&dim, &dim, fc->hess, &dim, ipiv.data(),
-				ihess.data(), &dim, &info);
+		const char uplo = 'L';
+		int info;
+		F77_CALL(dpotrf)(&uplo, &dim, ihess.data(), &dim, &info);
 		if (info < 0) error("Arg %d is invalid", -info);
 		if (info > 0) {
-			omxRaiseErrorf(globalState, "Hessian is singular and cannot be inverted");
+			omxRaiseErrorf(globalState, "Hessian is not positive definite");
+			// Worth checking for zero rows? TODO
+			for (size_t rx=0; rx < numParam; ++rx) {
+				double row = 0;
+				for (size_t cx=0; cx < numParam; ++cx) {
+					row += fc->hess[rx * numParam + cx];
+				}
+				if (row == 0) warning("Check %s", fc->varGroup->vars[rx]->name);
+			}
+			break;
+		}
+
+		F77_CALL(dpotri)(&uplo, &dim, ihess.data(), &dim, &info);
+		if (info < 0) error("Arg %d is invalid", -info);
+		if (info > 0) {
+			omxRaiseErrorf(globalState, "Hessian is not of full rank");
 			break;
 		}
 
 		std::vector<double> adj(numParam);
-		char trans = 'N';
 		double alpha = -1;
 		int incx = 1;
 		double beta = 0;
-		F77_CALL(dgemv)(&trans, &dim, &dim, &alpha, ihess.data(), &dim,
+		F77_CALL(dsymv)(&uplo, &dim, &alpha, ihess.data(), &dim,
 				fc->grad, &incx, &beta, adj.data(), &incx);
 
 		double maxAdj = 0;

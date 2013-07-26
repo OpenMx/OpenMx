@@ -30,7 +30,6 @@ struct BA81FitState {
 	std::vector<int> paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
 	std::vector<size_t> paramLocations;   // itemParam->cols * itemDerivPadSize -> # of locations
 
-	std::vector<int> NAtriangle; // TODO remove
 	omxMatrix *cholCov;
 	int choleskyError;
 	double *tmpLatentMean;    // maxDims
@@ -164,7 +163,6 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			for (int rx=1; rx <= r2; rx++) rowOffset += rx;
 			int at = pCol[p1] * state->itemDerivPadSize + numParam + rowOffset + r1;
 			state->paramMap[at] = numFreeParams + p1 * numFreeParams + p2;
-			if (p2 != p1) state->NAtriangle.push_back(p2 * numFreeParams + p1);
 		}
 	}
 
@@ -744,10 +742,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_GRADIENT) ++state->gradientCount;
-
-		for (size_t nx=0; nx < state->NAtriangle.size(); ++nx) {
-			fc->hess[ state->NAtriangle[nx] ] = nan("symmetric");
-		}
 
 		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
 		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);

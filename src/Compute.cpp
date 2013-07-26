@@ -163,19 +163,11 @@ void FitContext::log(const char *where, int what)
 
 void FitContext::fixHessianSymmetry()
 {
-	// make non-symmetric entries symmetric, if possible
 	size_t numParam = varGroup->vars.size();
 	for (size_t h1=1; h1 < numParam; h1++) {
 		for (size_t h2=0; h2 < h1; h2++) {
-			double upper = hess[h1 * numParam + h2];
 			double lower = hess[h2 * numParam + h1];
-			if (isfinite(upper)) continue;
-			if (isfinite(lower)) {
-				hess[h1 * numParam + h2] = lower;
-			} else {
-				log("FitContext", FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
-				error("Hessian is not finite at [%d,%d]", h1,h2);
-			}
+			hess[h1 * numParam + h2] = lower;
 		}
 	}
 }
