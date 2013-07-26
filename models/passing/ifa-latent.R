@@ -54,6 +54,8 @@ if (1) {
 #  m1 <- mxOption(m1, "Number of Threads", 1)
 #  m1 <- mxOption(m1, "No Sort Data", 'latent')
   m1 <- mxRun(m1, silent=TRUE)
+  omxCheckCloseEnough(m1@expectation@empirical.mean, c(.168, .005), .01)
+  omxCheckCloseEnough(m1@expectation@empirical.cov, matrix(c(.676, -.144, -.144, .682), nrow=2), .01)
   omxCheckCloseEnough(m1@output$gradient, correct.deriv, 1e-3)
 }
 

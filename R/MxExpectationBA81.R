@@ -28,6 +28,8 @@ setClass(Class = "MxExpectationBA81",
 	   scores.out = "matrix",
 	   mean = "MxCharOrNumber",
 	   cov = "MxCharOrNumber",
+	   empirical.mean = "numeric",
+	   empirical.cov = "matrix",
 	   verbose = "logical"),
          contains = "MxBaseExpectation")
 

@@ -954,6 +954,17 @@ static void
 ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	int maxAbilities = state->maxAbilities;
+
+	SEXP Rmean, Rcov;
+	PROTECT(Rmean = allocVector(REALSXP, maxAbilities));
+	memcpy(REAL(Rmean), state->ElatentMean.data(), maxAbilities * sizeof(double));
+
+	PROTECT(Rcov = allocMatrix(REALSXP, maxAbilities, maxAbilities));
+	memcpy(REAL(Rcov), state->ElatentCov.data(), maxAbilities * maxAbilities * sizeof(double));
+
+	setAttrib(robj, install("empirical.mean"), Rmean);
+	setAttrib(robj, install("empirical.cov"), Rcov);
 
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
 
@@ -978,7 +989,6 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	int numUnique = state->numUnique;
 	omxData *data = state->data;
-	int maxAbilities = state->maxAbilities;
 	int rows = state->scores == SCORES_FULL? data->rows : numUnique;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
