@@ -210,7 +210,8 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	omxProcessMxMatrixEntities(matList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
-	omxProcessFreeVarList(varList);
+	std::vector<double> startingValues;
+	omxProcessFreeVarList(varList, &startingValues);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	omxProcessMxExpectationEntities(expectList);
@@ -274,7 +275,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		Global->freeGroup[vg]->cacheDependencies();
 	}
 
-	FitContext fc;
+	FitContext fc(startingValues);
 
 	if (topCompute && !isErrorRaised(globalState)) {
 		// switch varGroup, if necessary TODO

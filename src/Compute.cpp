@@ -29,15 +29,17 @@ void FitContext::init()
 	hess = new double[numParam * numParam];
 }
 
-FitContext::FitContext()
+FitContext::FitContext(std::vector<double> &startingValues)
 {
 	parent = NULL;
 	varGroup = Global->freeGroup[0];
 	init();
 
 	size_t numParam = varGroup->vars.size();
+	if (startingValues.size() != numParam) error("mismatch");
+	memcpy(est, startingValues.data(), sizeof(double) * numParam);
+
 	for (size_t v1=0; v1 < numParam; v1++) {
-		est[v1] = Global->freeGroup[0]->vars[v1]->start;
 		grad[v1] = nan("unset");
 		for (size_t v2=0; v2 < numParam; v2++) {
 			hess[v1 * numParam + v2] = nan("unset");

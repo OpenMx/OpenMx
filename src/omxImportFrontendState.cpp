@@ -267,7 +267,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 	}
 }
 
-void omxProcessFreeVarList(SEXP varList)
+void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
 	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
 
@@ -277,6 +277,7 @@ void omxProcessFreeVarList(SEXP varList)
 
 	SEXP nextVar, nextLoc;
 	int numVars = length(varList);
+	startingValues->resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
@@ -328,7 +329,7 @@ void omxProcessFreeVarList(SEXP varList)
 			fv->locations.push_back(loc);
 		}
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, length(nextVar)-1));
-		fv->start = REAL(nextLoc)[0];
+		(*startingValues)[fx] = REAL(nextLoc)[0];
 	}
 }
 
