@@ -56,8 +56,9 @@ BA81FitState::BA81FitState()
 	haveLatentMap = false;
 }
 
-static void buildLatentParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
+static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 {
+	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
@@ -90,6 +91,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 				}
 				if (a1 == a2 && fv->lbound == NEG_INF) {
 					fv->lbound = 1e-6;  // variance must be positive
+					if (fc->est[px] < fv->lbound) {
+						error("Starting value for variance %s is negative", fv->name);
+					}
 				}
 			}
 		}
@@ -97,8 +101,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 	state->haveLatentMap = TRUE;
 }
 
-static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
+static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 {
+	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemParam = estate->itemParam;
@@ -128,8 +133,20 @@ static void buildItemParamMap(omxFitFunction* oo, FreeVarGroup *fvg)
 				int id = spec[RPF_ISpecID];
 				double upper, lower;
 				(*rpf_model[id].paramBound)(spec, loc->row, &upper, &lower);
-				if (fv->lbound == NEG_INF && isfinite(lower)) fv->lbound = lower;
-				if (fv->ubound == INF && isfinite(upper)) fv->ubound = upper;
+				if (fv->lbound == NEG_INF && isfinite(lower)) {
+					fv->lbound = lower;
+					if (fc->est[px] < fv->lbound) {
+						error("Starting value %s %f less than lower bound %f",
+						      fv->name, fc->est[px], lower);
+					}
+				}
+				if (fv->ubound == INF && isfinite(upper)) {
+					fv->ubound = upper;
+					if (fc->est[px] > fv->ubound) {
+						error("Starting value %s %f greater than upper bound %f",
+						      fv->name, fc->est[px], upper);
+					}
+				}
 			}
 		}
 	}
@@ -719,7 +736,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (want & FF_COMPUTE_POSTOPTIMIZE) return 0;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
-		if (!state->haveItemMap) buildItemParamMap(oo, fc->varGroup);
+		if (!state->haveItemMap) buildItemParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
@@ -736,7 +753,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
-		if (!state->haveLatentMap) buildLatentParamMap(oo, fc->varGroup);
+		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			setLatentStartingValues(oo, fc);
