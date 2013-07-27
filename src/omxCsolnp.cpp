@@ -43,8 +43,8 @@ Matrix fillMatrix(int cols, int rows, double* array)
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
-            printf("array is: \n");
-            printf("%2f", array[j]); putchar('\n');
+            mxLog("array is: ");
+            mxLog("%2f", array[j]); 
 			M(t,j,i)=array[j];
 		}
 	}
@@ -54,20 +54,20 @@ Matrix fillMatrix(int cols, int rows, double* array)
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars)
 {
-    printf("myPars inside obj is: \n");
-    print(myPars); putchar('\n');
+    mxLog("myPars inside obj is: ");
+    print(myPars); 
     
 	unsigned short int checkpointNow = FALSE;
     
-	if(OMX_DEBUG) {mxLog("Starting Objective Run.\n");}
+	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
     
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
-    printf("fitMatrix is: \n");
-    printf("%2f", fitMatrix->data[0]); putchar('\n');
+    mxLog("fitMatrix is: ");
+    mxLog("%2f", fitMatrix->data[0]); 
 
 	omxResetStatus(globalState);						// Clear Error State recursively
-    printf("fitMatrix is: \n");
-    printf("%2f", fitMatrix->data[0]); putchar('\n');
+    mxLog("fitMatrix is: ");
+    mxLog("%2f", fitMatrix->data[0]); 
 
 	/* Interruptible? */
 	R_CheckUserInterrupt();
@@ -78,8 +78,8 @@ double csolnpObjectiveFunction(Matrix myPars)
 	GLOB_fc->copyParamToModel(globalState, myPars.t);
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
-		printf("fitMatrix inside important if is: \n");
-		printf("%2f", fitMatrix->data[0]); putchar('\n');
+		mxLog("fitMatrix inside important if is: ");
+		mxLog("%2f", fitMatrix->data[0]); 
     
 		int ign = 0; // remove TODO
 		omxExamineFitOutput(globalState, fitMatrix, &ign);
@@ -87,10 +87,10 @@ double csolnpObjectiveFunction(Matrix myPars)
     GLOB_fc->fit = fitMatrix->data[0];
 
 	if(OMX_VERBOSE) {
-		mxLog("Fit function value is: %.32f \n", fitMatrix->data[0]);
+		mxLog("Fit function value is: %.32f ", fitMatrix->data[0]);
 	}
     
-	if(OMX_DEBUG) { mxLog("-======================================================-\n"); }
+	if(OMX_DEBUG) { mxLog("-======================================================-"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
 		omxSaveCheckpoint(myPars.t, GLOB_fc->fit, FALSE);		// Check about saving a checkpoint
@@ -110,14 +110,14 @@ Matrix csolnpEqualityFunction(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myEqBFun;
     
-    mxLog("Starting csolnpEqualityFunction.\n");
-    printf("myPars is: \n");
-    print(myPars); putchar('\n');
+    mxLog("Starting csolnpEqualityFunction.");
+    mxLog("myPars is: ");
+    print(myPars); 
 
     GLOB_fc->copyParamToModel(globalState, myPars.t);
 
-    printf("myPars is: \n");
-    print(myPars); putchar('\n');
+    mxLog("myPars is: ");
+    print(myPars); 
 	for(j = 0; j < globalState->numConstraints; j++) {
 		if (globalState->conList[j].opCode == 1)
         {
@@ -125,8 +125,8 @@ Matrix csolnpEqualityFunction(Matrix myPars)
         }
     }
     
-    mxLog("no.of constraints is: %d.\n", globalState->numConstraints);
-    mxLog("neq is: %d.\n", eq_n);
+    mxLog("no.of constraints is: %d.", globalState->numConstraints);
+    mxLog("neq is: %d.", eq_n);
     
     if (eq_n == 0)
     {
@@ -138,19 +138,19 @@ Matrix csolnpEqualityFunction(Matrix myPars)
         
         for(j = 0; j < globalState->numConstraints; j++) {
             if (globalState->conList[j].opCode == 1)
-            {   printf("result is: \n");
-                printf("%2f", globalState->conList[j].result->data[0]); putchar('\n');
-                    omxRecompute(globalState->conList[j].result);                printf("%.16f", globalState->conList[j].result->data[0]);putchar('\n');
-                printf("size is: \n");
-                printf("%d", globalState->conList[j].size); putchar('\n');}
+            {   mxLog("result is: ");
+                mxLog("%2f", globalState->conList[j].result->data[0]); 
+                    omxRecompute(globalState->conList[j].result);                mxLog("%.16f", globalState->conList[j].result->data[0]);
+                mxLog("size is: ");
+                mxLog("%d", globalState->conList[j].size); }
                 for(k = 0; k < globalState->conList[j].size; k++){
                     M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
                     l = l + 1;
                 }
         }
     }
-    printf("myEqBFun is: \n");
-    print(myEqBFun); putchar('\n');
+    mxLog("myEqBFun is: ");
+    print(myEqBFun); 
     return myEqBFun;
 }
 
@@ -162,7 +162,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myIneqFun;
     
-    mxLog("Starting csolnpIneqFun.\n");
+    mxLog("Starting csolnpIneqFun.");
     GLOB_fc->copyParamToModel(globalState, myPars.t);
     
 	for(j = 0; j < globalState->numConstraints; j++) {
@@ -172,8 +172,8 @@ Matrix csolnpIneqFun(Matrix myPars)
         }
     }
     
-    mxLog("no.of constraints is: %d.\n", globalState->numConstraints);
-    mxLog("ineq_n is: %d.\n", ineq_n);
+    mxLog("no.of constraints is: %d.", globalState->numConstraints);
+    mxLog("ineq_n is: %d.", ineq_n);
     
     if (ineq_n == 0)
     {
@@ -248,8 +248,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
         bu      = (double*) R_alloc (n, sizeof ( double ) );
         for (i = 0; i < n; i++)
         {
-            printf("bl is: \n");
-            printf("%2f", bl[i]); putchar('\n');
+            mxLog("bl is: ");
+            mxLog("%2f", bl[i]); 
         }
         
 		struct Matrix myControl = fill(6,1,(double)0.0);
@@ -284,12 +284,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
             solIneqUB = fill(nineqn, 1, EMPTY);
             solEqB = fill(eqn, 1, EMPTY);
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        printf("solIneqLB is: \n");
-        print(solIneqLB); putchar('\n');
-        printf("solIneqUB is: \n");
-        print(solIneqUB); putchar('\n');
-        printf("solEqB is: \n");
-        print(solEqB); putchar('\n');
+        mxLog("solIneqLB is: ");
+        print(solIneqLB); 
+        mxLog("solIneqUB is: ");
+        print(solIneqUB); 
+        mxLog("solEqB is: ");
+        print(solEqB); 
         }
         omxSetupBoundsAndConstraints(fc->varGroup, bl, bu);
         Matrix blvar = fillMatrix(n, 1, bl);
@@ -300,17 +300,17 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
         
         /* Initialize Starting Values */
         if(OMX_VERBOSE) {
-            mxLog("--------------------------\n");
-            mxLog("Starting Values (%d) are:\n", n);
+            mxLog("--------------------------");
+            mxLog("Starting Values (%d) are:", n);
         }
         for(k = 0; k < n; k++) {
             if((M(myPars, k, 0) == 0.0)) {
                 M(myPars, k, 0) += 0.1;
             }
-            if(OMX_VERBOSE) { mxLog("%d: %f\n", k, M(myPars, k, 0)); }
+            if(OMX_VERBOSE) { mxLog("%d: %f", k, M(myPars, k, 0)); }
         }
         if(OMX_DEBUG) {
-            mxLog("--------------------------\n");
+            mxLog("--------------------------");
             mxLog("Setting up optimizer...");
         }
         
@@ -354,7 +354,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
          */
         
         if(OMX_DEBUG) {
-            mxLog("Set.\n");
+            mxLog("Set.");
         }
         
            /* if (globalState->numConstraints == 0)
@@ -365,32 +365,32 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
 
             // Matrix EqBFunValue = solEqBFun(myPars);
             // Matrix EqBStartFunValue = solEqBStartFun(myPars);
-            if(OMX_DEBUG) { printf("myPars is: \n");
-                print(myPars); putchar('\n');
-                printf("3rd call is: \n");
-                printf("%2f", solFun(myPars)); putchar('\n');
-                printf("solEqB is: \n");
-                print(solEqB); putchar('\n');
-                printf("solEqBFun is: \n");
-                print(solEqBFun(myPars)); putchar('\n');
-                printf("solIneqFun is: \n");
-                print(solIneqFun(myPars)); putchar('\n');
-                printf("blvar is: \n");
-                print(blvar); putchar('\n');
-                printf("buvar is: \n");
-                print(buvar); putchar('\n');
-                printf("solIneqUB is: \n");
-                print(solIneqUB); putchar('\n');
-                printf("solIneqLB is: \n");
-                print(solIneqLB); putchar('\n');
+            if(OMX_DEBUG) { mxLog("myPars is: ");
+                print(myPars); 
+                mxLog("3rd call is: ");
+                mxLog("%2f", solFun(myPars)); 
+                mxLog("solEqB is: ");
+                print(solEqB); 
+                mxLog("solEqBFun is: ");
+                print(solEqBFun(myPars)); 
+                mxLog("solIneqFun is: ");
+                print(solIneqFun(myPars)); 
+                mxLog("blvar is: ");
+                print(blvar); 
+                mxLog("buvar is: ");
+                print(buvar); 
+                mxLog("solIneqUB is: ");
+                print(solIneqUB); 
+                mxLog("solIneqLB is: ");
+                print(solIneqLB); 
             }
         
 	    myPars = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
         
         if(OMX_DEBUG) {
-		printf("myPars's final value is: \n");
+		mxLog("myPars's final value is: ");
 		print(myPars);
-		mxLog("Final Objective Value is: %f.\n", solFun(myPars)); 
+		mxLog("Final Objective Value is: %f.", solFun(myPars)); 
 	}
         
         omxSaveCheckpoint(myPars.t, 0, TRUE); // TODO replace 0 with fit
