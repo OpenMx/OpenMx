@@ -44,6 +44,7 @@
 #include "omxState.h"
 #include "omxExpectation.h"
 #include "Compute.h"
+#include "matrix.h"
 
 typedef struct {
 	char label[250];
