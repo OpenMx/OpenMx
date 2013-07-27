@@ -53,7 +53,7 @@ extern void F77_SUB(npoptn)(char* string, int length);
 
 // NOTE: All non-linear constraints are applied regardless of free TODO
 // variable group.  This is probably wrong. TODO
-static void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu)
+void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu)
 {
 	size_t n = freeVarGroup->vars.size();
 

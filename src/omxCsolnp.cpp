@@ -18,25 +18,14 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
-#include <stdbool.h>
 #include "omxState.h"
-#include "omxGlobalState.h"
 #include "omxNPSOLSpecific.h"
-#include "omxOptimizer.h"
 #include "omxMatrix.h"
 #include "npsolWrap.h"
 #include "omxImportFrontendState.h"
 #include "subnp.h"
 
 //#include "matrix.h"
-
-/* NPSOL-specific globals */
-const double NPSOL_BIGBND = 1e20;
-const double NEG_INF = -2e20;
-const double INF = 2e20;
-
-const char* anonMatrix = "anonymous matrix";
-
 
 
 /* NPSOL-related functions */
@@ -45,7 +34,8 @@ const char* anonMatrix = "anonymous matrix";
 
 //extern void F77_SUB(npoptn)(char* string, int length);
 
-
+static omxMatrix *GLOB_fitMatrix;
+static FitContext *GLOB_fc;
 
 Matrix fillMatrix(int cols, int rows, double* array)
 {
@@ -71,13 +61,13 @@ double csolnpObjectiveFunction(Matrix myPars)
     
 	if(OMX_DEBUG) {mxLog("Starting Objective Run.\n");}
     
-	omxMatrix* fitMatrix = globalState->fitMatrix;
+	omxMatrix* fitMatrix = GLOB_fitMatrix;
     printf("fitMatrix is: \n");
     printf("%2f", fitMatrix->data[0]); putchar('\n');
 
 	omxResetStatus(globalState);						// Clear Error State recursively
     printf("fitMatrix is: \n");
-    printf("%2f", globalState->fitMatrix->data[0]); putchar('\n');
+    printf("%2f", fitMatrix->data[0]); putchar('\n');
 
 	/* Interruptible? */
 	R_CheckUserInterrupt();
@@ -85,26 +75,14 @@ double csolnpObjectiveFunction(Matrix myPars)
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
     
-	if (fitMatrix->fitFunction->repopulateFun != NULL) {
-		fitMatrix->fitFunction->repopulateFun(fitMatrix->fitFunction, myPars.t, myPars.cols);
-        printf("fitMatrix->fitFunction is: \n");
-        //printf("%2f", fitMatrix->fitFunction); putchar('\n');
+	GLOB_fc->copyParamToModel(globalState, myPars.t);
 
-	} else {
-		handleFreeVarList(globalState, myPars.t, myPars.cols);
-        printf("fitMatrix is: \n");
-        printf("%2f", fitMatrix->data[0]); putchar('\n');
-    }
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
+		printf("fitMatrix inside important if is: \n");
+		printf("%2f", fitMatrix->data[0]); putchar('\n');
     
-	if (globalState->analyticGradients == 0 || globalState->currentInterval >= 0)
-    {
-        omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
-        printf("fitMatrix inside important if is: \n");
-        printf("%2f", fitMatrix->data[0]); putchar('\n');
-
-    }
-    
-	omxExamineFitOutput(globalState, fitMatrix);
+		int ign = 0; // remove TODO
+		omxExamineFitOutput(globalState, fitMatrix, &ign);
     
     double *ObjectiveValue;
     double doubleValue = 0.0;
@@ -117,7 +95,7 @@ double csolnpObjectiveFunction(Matrix myPars)
 	if(OMX_DEBUG) { mxLog("-======================================================-\n"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(globalState, myPars.t, ObjectiveValue, FALSE);		// Check about saving a checkpoint
+		omxSaveCheckpoint(myPars.t, *ObjectiveValue, FALSE);		// Check about saving a checkpoint
 	}
     return *ObjectiveValue;
     
@@ -126,8 +104,6 @@ double csolnpObjectiveFunction(Matrix myPars)
 
 /* Objective function for confidence interval limit finding.
  * Replaces the standard objective function when finding confidence intervals. */
-
-//********************* npsolLimitObjectiveFunction is deleted ***********************//
 
 /* (Non)Linear Constraint Functions */
 Matrix csolnpEqualityFunction(Matrix myPars)
@@ -140,7 +116,9 @@ Matrix csolnpEqualityFunction(Matrix myPars)
     mxLog("Starting csolnpEqualityFunction.\n");
     printf("myPars is: \n");
     print(myPars); putchar('\n');
-	handleFreeVarList(globalState, myPars.t, myPars.cols);
+
+    GLOB_fc->copyParamToModel(globalState, myPars.t);
+
     printf("myPars is: \n");
     print(myPars); putchar('\n');
 	for(j = 0; j < globalState->numConstraints; j++) {
@@ -188,7 +166,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     Matrix myIneqFun;
     
     mxLog("Starting csolnpIneqFun.\n");
-	handleFreeVarList(globalState, myPars.t, myPars.cols);
+    GLOB_fc->copyParamToModel(globalState, myPars.t);
     
 	for(j = 0; j < globalState->numConstraints; j++) {
 		if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
@@ -222,11 +200,14 @@ Matrix csolnpIneqFun(Matrix myPars)
     return myIneqFun;
 }
 
-void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptimizer) {
+void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc)
+{
+	GLOB_fitMatrix = fitMatrix;
+	GLOB_fc = fc;
     
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
     
-    int k, ldA, ldJ, ldR, inform, iter, leniw, lenw, eq_n, ineq_n;
+    int k, ldA, ldJ, ldR, leniw, lenw, eq_n, ineq_n;
     
     double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
@@ -236,9 +217,8 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
     
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
     
-    int nclin = globalState->nclin;
     int ncnln = globalState->ncnln;
-    int n = globalState->numFreeParams;
+    int n = int(fc->varGroup->vars.size());
     
     double EMPTY = -999999.0;
     int j;
@@ -251,7 +231,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
     Matrix solIneqUB;
     Matrix solEqB;
 
-    Matrix myPars = fillMatrix(n, 1, x);
+    Matrix myPars = fillMatrix(n, 1, fc->est);
     
     double (*solFun)(struct Matrix myPars);
     solFun = &csolnpObjectiveFunction;
@@ -263,32 +243,6 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
     solIneqFun = &csolnpIneqFun;
 
     
-    if(n == 0) {            // Special Case for the evaluation-only condition
-        
-        if(OMX_DEBUG) { mxLog("No free parameters.  Avoiding Optimizer Entirely.\n"); }
-        //int mode = 0, nstate = -1;
-        *f = 0;
-        x = NULL;
-        g = NULL;
-        
-        if(globalState->fitMatrix != NULL) {
-            *f = solFun(myPars);
-            printf("1st call \n");
-        };
-        globalState->numIntervals = 0;  // No intervals if there's no free params
-        inform = 0;
-        iter = 0;
-        
-        for(int index = 0; index < globalState->numMats; index++) {
-            omxMarkDirty(globalState->matrixList[index]);
-        }
-        for(int index = 0; index < globalState->numAlgs; index++) {
-            omxMarkDirty(globalState->algebraList[index]);
-        }
-        omxStateNextEvaluation(globalState);    // Advance for a final evaluation.
-        
-    } else {
-        
         /* Set boundaries and widths. */
         
                /* Allocate arrays */
@@ -340,7 +294,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         printf("solEqB is: \n");
         print(solEqB); putchar('\n');
         }
-        omxSetupBoundsAndConstraints(bl, bu, n, nclin);
+        omxSetupBoundsAndConstraints(fc->varGroup, bl, bu);
         Matrix blvar = fillMatrix(n, 1, bl);
 		Matrix buvar = fillMatrix(n, 1, bu);
         
@@ -353,9 +307,8 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
             mxLog("Starting Values (%d) are:\n", n);
         }
         for(k = 0; k < n; k++) {
-            if((M(myPars, k, 0) == 0.0) && !disableOptimizer) {
+            if((M(myPars, k, 0) == 0.0)) {
                 M(myPars, k, 0) += 0.1;
-                markFreeVarDependencies(globalState, k);
             }
             if(OMX_VERBOSE) { mxLog("%d: %f\n", k, M(myPars, k, 0)); }
         }
@@ -407,19 +360,6 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
             mxLog("Set.\n");
         }
         
-        if (disableOptimizer) {
-            int mode = 0, nstate = -1;
-            if(globalState->fitMatrix != NULL) {
-                *f = solFun(myPars);
-                printf("2nd call \n");
-            };
-            
-            inform = 0;
-            iter = 0;
-            
-            omxStateNextEvaluation(globalState);    // Advance for a final evaluation.
-        } else {
-            
            /* if (globalState->numConstraints == 0)
             {
                 solIneqLB = fill(1,1,-999999.0);
@@ -448,93 +388,15 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
                 print(solIneqLB); putchar('\n');
             }
         
-			myPars = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
-        }
+	    myPars = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
         
-        if(OMX_DEBUG) { printf("myPars's final value is: \n");
-						print(myPars);
-						mxLog("Final Objective Value is: %f.\n", solFun(myPars)); 
-					}
+        if(OMX_DEBUG) {
+		printf("myPars's final value is: \n");
+		print(myPars);
+		mxLog("Final Objective Value is: %f.\n", solFun(myPars)); 
+	}
         
-        omxSaveCheckpoint(globalState, myPars.t, f, TRUE);
+        omxSaveCheckpoint(myPars.t, 0, TRUE); // TODO replace 0 with fit
         
-        handleFreeVarList(globalState, myPars.t, myPars.cols);
-        
-    } // END OF PERFORM OPTIMIZATION CASE
-    
-    globalState->inform = inform;
-    globalState->iter = iter;
-    
+	GLOB_fc->copyParamToModel(globalState, myPars.t);
 }
-
-
-/* static void
- friendlyStringToLogical(const char *key, const char *str, int *out)
- {
- int understood = FALSE;
- int newVal;
- if (matchCaseInsensitive(str, "Yes")) {
- understood = TRUE;
- newVal = 1;
- } else if (matchCaseInsensitive(str, "No")) {
- understood = TRUE;
- newVal = 0;
- } else if (isdigit(str[0]) && (atoi(str) == 1 || atoi(str) == 0)) {
- understood = TRUE;
- newVal = atoi(str);
- }
- if (!understood) {
- warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
- return;
- }
- if(OMX_DEBUG) { mxLog("%s=%d\n", key, newVal); }
- *out = newVal;
- }
- 
- void omxSetNPSOLOpts(SEXP options, int *numHessians, int *calculateStdErrors,
- int *ciMaxIterations, int *disableOptimizer, int *numThreads,
- int *analyticGradients, int numFreeParams) {
- 
- char optionCharArray[250] = "";			// For setting options
- int numOptions = length(options);
- SEXP optionNames;
- PROTECT(optionNames = GET_NAMES(options));
- for(int i = 0; i < numOptions; i++) {
- const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
- const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
- if(matchCaseInsensitive(nextOptionName, "Calculate Hessian")) {
- if(OMX_DEBUG) { mxLog("Found hessian option... Value: %s. ", nextOptionValue);};
- if(!matchCaseInsensitive(nextOptionValue, "No")) {
- if(OMX_DEBUG) { mxLog("Enabling explicit hessian calculation.\n");}
- if (numFreeParams > 0) {
- *numHessians = 1;
- }
- }
- } else if(matchCaseInsensitive(nextOptionName, "Standard Errors")) {
- friendlyStringToLogical(nextOptionName, nextOptionValue, calculateStdErrors);
- if (*calculateStdErrors == TRUE && numFreeParams > 0) {
- *numHessians = 1;
- }
- } else if(matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
- int newvalue = atoi(nextOptionValue);
- if (newvalue > 0) *ciMaxIterations = newvalue;
- } else if(matchCaseInsensitive(nextOptionName, "useOptimizer")) {
- if(OMX_DEBUG) { mxLog("Found useOptimizer option...");};
- if(matchCaseInsensitive(nextOptionValue, "No")) {
- if(OMX_DEBUG) { mxLog("Disabling optimization.\n");}
- *disableOptimizer = 1;
- }
- } else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
- friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
- } else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
- *numThreads = atoi(nextOptionValue);
- if(OMX_DEBUG) { mxLog("Found Number of Threads option (# = %d)...\n", *numThreads);};
- } else {
- sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
- //F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
- if(OMX_DEBUG) { mxLog("Option %s \n", optionCharArray); }
- }
- }
- UNPROTECT(1); // optionNames
- }
- */

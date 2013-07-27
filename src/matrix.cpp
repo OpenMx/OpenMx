@@ -969,10 +969,7 @@ Matrix MatrixInvert(Matrix inMat)
 	result = duplicateIt(inMat);
 	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv, &l);
 	if(l != 0) {
-		char *errstr = calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to invert non-invertable matrix.");
-		//omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
+		error("Attempted to invert non-invertable matrix.");
 	} else {
 		F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv, work, &lwork, &l);
 	}

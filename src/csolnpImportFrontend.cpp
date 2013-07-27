@@ -23,7 +23,6 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
-#include "omxGlobalState.h"
 #include "omxNPSOLSpecific.h"
 #include "omxImportFrontendState.h"
 #include "matrix.h"
