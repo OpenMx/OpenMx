@@ -24,6 +24,12 @@ struct Matrix {
 
 static void _MatrixCheck(Matrix &m, int x, int y) {
 	if (m.sentinel1 != 0xdeadbeef || m.sentinel2 != 0xdeadbeef) error("Memory corruption");
+	if (m.rows == 1 || m.cols == 1) {
+		int len = m.rows * m.cols;
+		int at = x + y;
+		if (at < 0 || at >= len) error("Bad vector index");
+		return;
+	}
 	if (x < 0 || x >= m.cols) error("Bad col index");
 	if (y < 0 || y >= m.rows) error("Bad row index");
 }
