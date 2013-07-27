@@ -111,7 +111,7 @@ void omxComputeGD::compute(FitContext *fc)
 		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
 		break;
 	case OptEngine_CSOLNP:
-		omxInvokeCSOLNP(fitMatrix, fc);
+		omxInvokeCSOLNP(fitMatrix, fc, verbose);
 		break;
 	default: error("huh?");
 	}

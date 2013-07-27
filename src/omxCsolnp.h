@@ -22,7 +22,7 @@
 
 struct Matrix fillMatrix(int cols, int rows, double* array);
 
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc);
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose);
 
 //void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations);
 

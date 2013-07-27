@@ -196,7 +196,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     return myIneqFun;
 }
 
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
 {
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
@@ -242,14 +242,15 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
         /* Set boundaries and widths. */
         
                /* Allocate arrays */
-        int i;
         bl      = (double*) R_alloc ( n, sizeof ( double ) );
         bu      = (double*) R_alloc (n, sizeof ( double ) );
-        for (i = 0; i < n; i++)
-        {
-            mxLog("bl is: ");
-            mxLog("%2f", bl[i]); 
-        }
+
+	if (verbose) {
+		for (int i = 0; i < n; i++) {
+			mxLog("bl is: ");
+			mxLog("%2f", bl[i]); 
+		}
+	}
         
 		struct Matrix myControl = fill(6,1,(double)0.0);
 		M(myControl,0,0) = 1.0;
@@ -283,12 +284,14 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
             solIneqUB = fill(nineqn, 1, EMPTY);
             solEqB = fill(eqn, 1, EMPTY);
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        mxLog("solIneqLB is: ");
-        print(solIneqLB); 
-        mxLog("solIneqUB is: ");
-        print(solIneqUB); 
-        mxLog("solEqB is: ");
-        print(solEqB); 
+	if (verbose) {
+		mxLog("solIneqLB is: ");
+		print(solIneqLB); 
+		mxLog("solIneqUB is: ");
+		print(solIneqUB); 
+		mxLog("solEqB is: ");
+		print(solEqB);
+	}
         }
         omxSetupBoundsAndConstraints(fc->varGroup, bl, bu);
         Matrix blvar = fillMatrix(n, 1, bl);
@@ -311,49 +314,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
         if(OMX_DEBUG) {
             mxLog("--------------------------");
             mxLog("Setting up optimizer...");
-        }
-        
-        //Matrix myPars = fillMatrix(n, 1, x);
-        
-        /*  F77_CALL(npsol)
-         (   int *n,                 -- Number of variables
-         int *nclin,             -- Number of linear constraints
-         int *ncnln,             -- Number of nonlinear constraints
-         int *ldA,               -- Row dimension of A (Linear Constraints)
-         int *ldJ,               -- Row dimension of cJac (Jacobian)
-         int *ldR,               -- Row dimension of R (Hessian)
-         double *A,              -- Linear Constraints Array A (in Column-major order)
-         double *bl,             -- Lower Bounds Array (at least n + nclin + ncnln long)
-         double *bu,             -- Upper Bounds Array (at least n + nclin + ncnln long)
-         function funcon,        -- Nonlinear constraint function
-         function funobj,        -- Objective function
-         int *inform,            -- Used to report state.  Need not be initialized.
-         int *iter,              -- Used to report number of major iterations performed.  Need not be initialized.
-         int *istate,            -- Initial State.  Need not be initialized unless using Warm Start.
-         double *c,              -- Array of length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
-         double *cJac,           -- Array of Row-length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
-         double *clambda,        -- Array of length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
-         double *f,              -- Used to report final objective value.  Need not be initialized.
-         double *g,              -- Array of length n. Used to report final objective gradient.  Need not be initialized.
-         double *R,              -- Array of length ldR.  Need not be intialized unless using Warm Start.
-         double *x,              -- Array of length n.  Contains initial solution estimate.
-         int *iw,                -- Array of length leniw. Need not be initialized.  Provides workspace.
-         int *leniw,             -- Length of iw.  Must be at least 3n + nclin + ncnln.
-         double *w,              -- Array of length lenw. Need not be initialized.  Provides workspace.
-         int *lenw               -- Length of w.  Must be at least 2n^2 + n*nclin + 2*n*ncnln + 20*n + 11*nclin +21*ncnln
-         )
-         
-         bl, bu, istate, and clambda are all length n+nclin+ncnln.
-         First n elements refer to the vars, in order.
-         Next nclin elements refer to bounds on Ax
-         Last ncnln elements refer to bounds on c(x)
-         
-         All arrays must be in column-major order.
-         
-         */
-        
-        if(OMX_DEBUG) {
-            mxLog("Set.");
         }
         
            /* if (globalState->numConstraints == 0)
