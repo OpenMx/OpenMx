@@ -84,10 +84,8 @@ double csolnpObjectiveFunction(Matrix myPars)
 		int ign = 0; // remove TODO
 		omxExamineFitOutput(globalState, fitMatrix, &ign);
     
-    double *ObjectiveValue;
-    double doubleValue = 0.0;
-    ObjectiveValue = &doubleValue;
-	*ObjectiveValue = fitMatrix->data[0];
+    GLOB_fc->fit = fitMatrix->data[0];
+
 	if(OMX_VERBOSE) {
 		mxLog("Fit function value is: %.32f \n", fitMatrix->data[0]);
 	}
@@ -95,10 +93,9 @@ double csolnpObjectiveFunction(Matrix myPars)
 	if(OMX_DEBUG) { mxLog("-======================================================-\n"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(myPars.t, *ObjectiveValue, FALSE);		// Check about saving a checkpoint
+		omxSaveCheckpoint(myPars.t, GLOB_fc->fit, FALSE);		// Check about saving a checkpoint
 	}
-    return *ObjectiveValue;
-    
+	return GLOB_fc->fit;
 }
 
 
@@ -200,7 +197,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     return myIneqFun;
 }
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc)
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
 {
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;

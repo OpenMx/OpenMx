@@ -18,10 +18,17 @@
 #include "omxFitFunction.h"
 #include "omxNPSOLSpecific.h"
 #include "omxExportBackendState.h"
+#include "omxCsolnp.h"
 #include "Compute.h"
+
+enum OptEngine {
+	OptEngine_NPSOL,
+	OptEngine_CSOLNP
+};
 
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
+	enum OptEngine engine;
 	omxMatrix *fitMatrix;
 	bool adjustStart;
 	bool useGradient;
@@ -71,6 +78,16 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("engine")));
+	const char *engine_name = CHAR(asChar(slotValue));
+	if (strcmp(engine_name, "CSOLNP")==0) {
+		engine = OptEngine_CSOLNP;
+	} else if (strcmp(engine_name, "NPSOL")==0) {
+		engine = OptEngine_NPSOL;
+	} else {
+		error("MxComputeGradientDescent engine %s unknown", engine_name);
+	}
 }
 
 void omxComputeGD::compute(FitContext *fc)
@@ -89,11 +106,19 @@ void omxComputeGD::compute(FitContext *fc)
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
 
-	omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+	switch (engine) {
+	case OptEngine_NPSOL:
+		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+		break;
+	case OptEngine_CSOLNP:
+		omxInvokeCSOLNP(fitMatrix, fc);
+		break;
+	default: error("huh?");
+	}
 
 	omxFreeChildStates(globalState);
 
-	if (Global->numIntervals) {
+	if (Global->numIntervals && engine == OptEngine_NPSOL) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: Throw a warning, allow force()
 			warning("Not calculating confidence intervals because of NPSOL status %d", inform);

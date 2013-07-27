@@ -186,7 +186,10 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.lo
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
-	if (is.null(engine)) engine <- as.character(NA)
+	if (missing(engine)) {
+		engine <- Sys.getenv("IMX_OPT_ENGINE")
+		if (!nchar(engine)) engine <- "NPSOL"
+	}
 
 	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, adjustStart, verbose)
 }
