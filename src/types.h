@@ -40,5 +40,6 @@ typedef struct omxDefinitionVar omxDefinitionVar;
 typedef struct omxRFitFunction omxRFitFunction;
 typedef std::vector< std::pair<SEXP, SEXP> > MxRList;
 class omxCompute;
+struct Matrix;
 
 #endif

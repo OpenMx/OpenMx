@@ -51,7 +51,6 @@
 #include <string>
 
 #include "omxDefines.h"
-#include "matrix.h"
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;

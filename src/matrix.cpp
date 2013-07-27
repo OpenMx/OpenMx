@@ -10,10 +10,12 @@ double rnd_double() { return (double)1.0; }
 Matrix new_matrix(int cols,int rows)
 {
 	Matrix t;
+	t.sentinel1 = 0xdeadbeef;
 	t.rows=rows;
 	t.cols=cols;
 	t.isColMajor = 1;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
+	t.sentinel2 = 0xdeadbeef;
 	
 	int i,j;
 	for(i=0;i<rows;i++){

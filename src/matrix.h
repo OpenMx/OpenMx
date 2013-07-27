@@ -14,14 +14,19 @@ double rnd_double();
 typedef struct Matrix Matrix;
 
 struct Matrix {
-	int isColMajor;    // either a 0 or a 1
+	unsigned sentinel1;
+	int isColMajor; // remove TODO
 	int rows;
 	int cols;
 	double *t;
-	
+	unsigned sentinel2;
 };
 
-#define M(m,x,y) m.t[x+y*m.cols]
+static void _MatrixCheck(Matrix &m) {
+	if (m.sentinel1 != 0xdeadbeef || m.sentinel2 != 0xdeadbeef) error("Memory corruption");
+}
+
+#define M(m,x,y) (_MatrixCheck(m), m.t[x+y*m.cols])
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 

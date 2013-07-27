@@ -18,7 +18,6 @@
 #define _OMX_CSOLNP_SPECIFIC_H
 
 #include "omxMatrix.h"
-#include "matrix.h"
 #include "subnp.h"
 
 struct Matrix fillMatrix(int cols, int rows, double* array);

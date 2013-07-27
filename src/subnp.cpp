@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
-#include "subnp.h"
 #include <R_ext/Lapack.h>
+
+#include "matrix.h"
+#include "subnp.h"
 
 double EMPTY;
 

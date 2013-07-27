@@ -23,9 +23,8 @@
 #include "omxMatrix.h"
 #include "npsolWrap.h"
 #include "omxImportFrontendState.h"
+#include "matrix.h"
 #include "subnp.h"
-
-//#include "matrix.h"
 
 
 /* NPSOL-related functions */
@@ -272,7 +271,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
         }
         else{
             int j;
-            int eqn;
+            int eqn = 0;
             for(j = 0; j < globalState->numConstraints; j++) {
                 if (globalState->conList[j].opCode == 1)
                 {
@@ -393,7 +392,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc)
 		mxLog("Final Objective Value is: %f.", solFun(myPars)); 
 	}
         
-        omxSaveCheckpoint(myPars.t, 0, TRUE); // TODO replace 0 with fit
+        omxSaveCheckpoint(myPars.t, GLOB_fc->fit, TRUE);
         
 	GLOB_fc->copyParamToModel(globalState, myPars.t);
 }
