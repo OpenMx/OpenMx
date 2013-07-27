@@ -22,11 +22,13 @@ struct Matrix {
 	unsigned sentinel2;
 };
 
-static void _MatrixCheck(Matrix &m) {
+static void _MatrixCheck(Matrix &m, int x, int y) {
 	if (m.sentinel1 != 0xdeadbeef || m.sentinel2 != 0xdeadbeef) error("Memory corruption");
+	if (x < 0 || x >= m.cols) error("Bad col index");
+	if (y < 0 || y >= m.rows) error("Bad row index");
 }
 
-#define M(m,x,y) (_MatrixCheck(m), m.t[x+y*m.cols])
+#define M(m,x,y) (_MatrixCheck(m, x, y), m.t[x+y*m.cols])
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
