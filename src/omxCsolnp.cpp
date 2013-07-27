@@ -69,7 +69,7 @@ double csolnpObjectiveFunction(Matrix myPars)
     
 	unsigned short int checkpointNow = FALSE;
     
-	if(OMX_DEBUG) {Rprintf("Starting Objective Run.\n");}
+	if(OMX_DEBUG) {mxLog("Starting Objective Run.\n");}
     
 	omxMatrix* fitMatrix = globalState->fitMatrix;
     printf("fitMatrix is: \n");
@@ -111,10 +111,10 @@ double csolnpObjectiveFunction(Matrix myPars)
     ObjectiveValue = &doubleValue;
 	*ObjectiveValue = fitMatrix->data[0];
 	if(OMX_VERBOSE) {
-		Rprintf("Fit function value is: %.32f \n", fitMatrix->data[0]);
+		mxLog("Fit function value is: %.32f \n", fitMatrix->data[0]);
 	}
     
-	if(OMX_DEBUG) { Rprintf("-======================================================-\n"); }
+	if(OMX_DEBUG) { mxLog("-======================================================-\n"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
 		omxSaveCheckpoint(globalState, myPars.t, ObjectiveValue, FALSE);		// Check about saving a checkpoint
@@ -137,7 +137,7 @@ Matrix csolnpEqualityFunction(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myEqBFun;
     
-    Rprintf("Starting csolnpEqualityFunction.\n");
+    mxLog("Starting csolnpEqualityFunction.\n");
     printf("myPars is: \n");
     print(myPars); putchar('\n');
 	handleFreeVarList(globalState, myPars.t, myPars.cols);
@@ -150,8 +150,8 @@ Matrix csolnpEqualityFunction(Matrix myPars)
         }
     }
     
-    Rprintf("no.of constraints is: %d.\n", globalState->numConstraints);
-    Rprintf("neq is: %d.\n", eq_n);
+    mxLog("no.of constraints is: %d.\n", globalState->numConstraints);
+    mxLog("neq is: %d.\n", eq_n);
     
     if (eq_n == 0)
     {
@@ -187,7 +187,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myIneqFun;
     
-    Rprintf("Starting csolnpIneqFun.\n");
+    mxLog("Starting csolnpIneqFun.\n");
 	handleFreeVarList(globalState, myPars.t, myPars.cols);
     
 	for(j = 0; j < globalState->numConstraints; j++) {
@@ -197,8 +197,8 @@ Matrix csolnpIneqFun(Matrix myPars)
         }
     }
     
-    Rprintf("no.of constraints is: %d.\n", globalState->numConstraints);
-    Rprintf("ineq_n is: %d.\n", ineq_n);
+    mxLog("no.of constraints is: %d.\n", globalState->numConstraints);
+    mxLog("ineq_n is: %d.\n", ineq_n);
     
     if (ineq_n == 0)
     {
@@ -265,7 +265,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
     
     if(n == 0) {            // Special Case for the evaluation-only condition
         
-        if(OMX_DEBUG) { Rprintf("No free parameters.  Avoiding Optimizer Entirely.\n"); }
+        if(OMX_DEBUG) { mxLog("No free parameters.  Avoiding Optimizer Entirely.\n"); }
         //int mode = 0, nstate = -1;
         *f = 0;
         x = NULL;
@@ -349,19 +349,19 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         
         /* Initialize Starting Values */
         if(OMX_VERBOSE) {
-            Rprintf("--------------------------\n");
-            Rprintf("Starting Values (%d) are:\n", n);
+            mxLog("--------------------------\n");
+            mxLog("Starting Values (%d) are:\n", n);
         }
         for(k = 0; k < n; k++) {
             if((M(myPars, k, 0) == 0.0) && !disableOptimizer) {
                 M(myPars, k, 0) += 0.1;
                 markFreeVarDependencies(globalState, k);
             }
-            if(OMX_VERBOSE) { Rprintf("%d: %f\n", k, M(myPars, k, 0)); }
+            if(OMX_VERBOSE) { mxLog("%d: %f\n", k, M(myPars, k, 0)); }
         }
         if(OMX_DEBUG) {
-            Rprintf("--------------------------\n");
-            Rprintf("Setting up optimizer...");
+            mxLog("--------------------------\n");
+            mxLog("Setting up optimizer...");
         }
         
         //Matrix myPars = fillMatrix(n, 1, x);
@@ -404,7 +404,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
          */
         
         if(OMX_DEBUG) {
-            Rprintf("Set.\n");
+            mxLog("Set.\n");
         }
         
         if (disableOptimizer) {
@@ -453,7 +453,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
         
         if(OMX_DEBUG) { printf("myPars's final value is: \n");
 						print(myPars);
-						Rprintf("Final Objective Value is: %f.\n", solFun(myPars)); 
+						mxLog("Final Objective Value is: %f.\n", solFun(myPars)); 
 					}
         
         omxSaveCheckpoint(globalState, myPars.t, f, TRUE);
@@ -487,7 +487,7 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
  warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
  return;
  }
- if(OMX_DEBUG) { Rprintf("%s=%d\n", key, newVal); }
+ if(OMX_DEBUG) { mxLog("%s=%d\n", key, newVal); }
  *out = newVal;
  }
  
@@ -503,9 +503,9 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
  const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
  const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
  if(matchCaseInsensitive(nextOptionName, "Calculate Hessian")) {
- if(OMX_DEBUG) { Rprintf("Found hessian option... Value: %s. ", nextOptionValue);};
+ if(OMX_DEBUG) { mxLog("Found hessian option... Value: %s. ", nextOptionValue);};
  if(!matchCaseInsensitive(nextOptionValue, "No")) {
- if(OMX_DEBUG) { Rprintf("Enabling explicit hessian calculation.\n");}
+ if(OMX_DEBUG) { mxLog("Enabling explicit hessian calculation.\n");}
  if (numFreeParams > 0) {
  *numHessians = 1;
  }
@@ -519,20 +519,20 @@ void omxInvokeNPSOL(double *f, double *x, double *g, double *R, int disableOptim
  int newvalue = atoi(nextOptionValue);
  if (newvalue > 0) *ciMaxIterations = newvalue;
  } else if(matchCaseInsensitive(nextOptionName, "useOptimizer")) {
- if(OMX_DEBUG) { Rprintf("Found useOptimizer option...");};
+ if(OMX_DEBUG) { mxLog("Found useOptimizer option...");};
  if(matchCaseInsensitive(nextOptionValue, "No")) {
- if(OMX_DEBUG) { Rprintf("Disabling optimization.\n");}
+ if(OMX_DEBUG) { mxLog("Disabling optimization.\n");}
  *disableOptimizer = 1;
  }
  } else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
  friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
  } else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
  *numThreads = atoi(nextOptionValue);
- if(OMX_DEBUG) { Rprintf("Found Number of Threads option (# = %d)...\n", *numThreads);};
+ if(OMX_DEBUG) { mxLog("Found Number of Threads option (# = %d)...\n", *numThreads);};
  } else {
  sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
  //F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
- if(OMX_DEBUG) { Rprintf("Option %s \n", optionCharArray); }
+ if(OMX_DEBUG) { mxLog("Option %s \n", optionCharArray); }
  }
  }
  UNPROTECT(1); // optionNames
