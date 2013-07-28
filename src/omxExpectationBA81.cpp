@@ -517,7 +517,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 	int numUnique = state->numUnique;
 	int numThreads = Global->numThreads;
 	int maxDims = state->maxDims;
-	int Qwidth = state->Qwidth;
+	double Qwidth = state->Qwidth;
 	int numSpecific = state->numSpecific;
 	int priDims = maxDims - (numSpecific? 1 : 0);
 
