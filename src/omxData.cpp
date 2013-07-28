@@ -670,43 +670,60 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 
 
 void omxPrintData(omxData *od, const char *header) {
-	if (!header) error("omxPrintData: header is NULL");
+	if (!header) header = "Default data";
 
 	if (!od) {
 		mxLog("%s: NULL", header);
 		return;
 	}
 
-	mxLog("%s(%s): %f observations %d x %d", header, od->_type, od->numObs,
-		od->rows, od->cols);
-	mxLog("numNumeric %d numFactor %d", od->numNumeric, od->numFactor);
+	std::string buf;
+	buf += string_snprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
+			       od->rows, od->cols);
+	buf += string_snprintf("Row consists of %d numeric, %d ordered factor:", od->numNumeric, od->numFactor);
 
 	if (od->location) {
 		for(int j = 0; j < od->cols; j++) {
 			int loc = od->location[j];
 			if (loc < 0) {
-				mxLog("Integer[%d]:", j);
-				int *val = od->intData[~loc];
-				for (int vx=0; vx < od->numObs; vx++) {
-					mxLog(" %d", val[vx]);
-				}
+				buf += " I";
 			} else {
-				mxLog("Numeric[%d]:", j);
-				double *val = od->realData[loc];
-				for (int vx=0; vx < od->numObs; vx++) {
-					mxLog(" %.3g", val[vx]);
+				buf += " N";
+			}
+		}
+		buf += "\n";
+
+		for (int vx=0; vx < od->numObs; vx++) {
+			for (int j = 0; j < od->cols; j++) {
+				int loc = od->location[j];
+				if (loc < 0) {
+					int *val = od->intData[~loc];
+					if (val[vx] == NA_INTEGER) {
+						buf += " NA,";
+					} else {
+						buf += string_snprintf(" %d,", val[vx]);
+					}
+				} else {
+					double *val = od->realData[loc];
+					if (val[vx] == NA_REAL) {
+						buf += " NA,";
+					} else {
+						buf += string_snprintf(" %.3g,", val[vx]);
+					}
 				}
 			}
+			buf += "\n";
 		}
 	}
 
 	if (od->identicalRows) {
-		mxLog("\trow\tmissing\tdefvars");
+		buf += "DUPS\trow\tmissing\tdefvars\n";
 		for(int j = 0; j < od->rows; j++) {
-			mxLog("[%d]\t%d\t%d\t%d", j, od->identicalRows[j],
-				od->identicalMissingness[j], od->identicalDefs[j]);
+			buf += string_snprintf("%d\t%d\t%d\t%d\n", j, od->identicalRows[j],
+					       od->identicalMissingness[j], od->identicalDefs[j]);
 		}
 	}
+	mxLogBig(buf);
 
 	if (od->dataMat) omxPrintMatrix(od->dataMat, "dataMat");
 	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");

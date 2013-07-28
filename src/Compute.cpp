@@ -132,7 +132,7 @@ void FitContext::log(const char *where, int what)
 	buf += " ---\n";
 	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f\n", fit);
 	if (what & FF_COMPUTE_ESTIMATE) {
-		buf += "est: c(";
+		buf += string_snprintf("est %lu: c(", count);
 		for (size_t vx=0; vx < count; ++vx) {
 			buf += string_snprintf("%.5f", est[vx]);
 			if (vx < count - 1) buf += ", ";
@@ -140,7 +140,7 @@ void FitContext::log(const char *where, int what)
 		buf += ")\n";
 	}
 	if (what & FF_COMPUTE_GRADIENT) {
-		buf += "grad: c(";
+		buf += string_snprintf("grad %lu: c(", count);
 		for (size_t vx=0; vx < count; ++vx) {
 			buf += string_snprintf("%.5f", grad[vx]);
 			if (vx < count - 1) buf += ", ";
@@ -148,7 +148,7 @@ void FitContext::log(const char *where, int what)
 		buf += ")\n";
 	}
 	if (what & FF_COMPUTE_HESSIAN) {
-		buf += "hess: c(";
+		buf += string_snprintf("hess %lux%lu: c(", count, count);
 		for (size_t v1=0; v1 < count; ++v1) {
 			for (size_t v2=0; v2 < count; ++v2) {
 				buf += string_snprintf("%.5f", hess[v1 * count + v2]);
