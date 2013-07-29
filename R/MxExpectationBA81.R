@@ -30,6 +30,8 @@ setClass(Class = "MxExpectationBA81",
 	   cov = "MxCharOrNumber",
 	   empirical.mean = "numeric",
 	   empirical.cov = "matrix",
+	   patternLikelihood = "numeric",
+	   em.expected = "MxOptionalMatrix",
 	   verbose = "logical"),
          contains = "MxBaseExpectation")
 

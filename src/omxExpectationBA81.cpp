@@ -988,6 +988,22 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	setAttrib(robj, install("empirical.mean"), Rmean);
 	setAttrib(robj, install("empirical.cov"), Rcov);
 
+	if (state->type == EXPECTATION_AUGMENTED) {
+		int numUnique = state->numUnique;
+		int totalOutcomes = state->totalOutcomes;
+		SEXP Rlik;
+		SEXP Rexpected;
+
+		PROTECT(Rlik = allocVector(REALSXP, numUnique));
+		memcpy(REAL(Rlik), state->patternLik, sizeof(double) * numUnique);
+
+		PROTECT(Rexpected = allocMatrix(REALSXP, totalOutcomes, state->totalQuadPoints));
+		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
+
+		setAttrib(robj, install("patternLikelihood"), Rlik);
+		setAttrib(robj, install("em.expected"), Rexpected);
+	}
+
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
