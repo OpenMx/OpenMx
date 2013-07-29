@@ -17,7 +17,7 @@
 
 #include <Rmath.h>
 #include "omxExpectationBA81.h"
-#include "npsolWrap.h"
+#include "glue.h"
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
 

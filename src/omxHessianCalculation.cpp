@@ -34,7 +34,7 @@
 #include <R_ext/Lapack.h>
 
 #include "omxDefines.h"
-#include "npsolWrap.h"
+#include "glue.h"
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"

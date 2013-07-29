@@ -21,7 +21,7 @@
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
-#include "npsolWrap.h"
+#include "glue.h"
 #include "omxImportFrontendState.h"
 #include "matrix.h"
 #include "subnp.h"

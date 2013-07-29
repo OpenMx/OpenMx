@@ -23,7 +23,7 @@
 #include "omxAlgebraFunctions.h"
 #include "omxRFitFunction.h"
 #include "omxOpenmpWrap.h"
-#include "npsolWrap.h"
+#include "glue.h"
 #include "Compute.h"
 
 void omxDestroyRFitFunction(omxFitFunction *off) {

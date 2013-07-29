@@ -23,7 +23,7 @@
 #include "omxDefines.h"
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
-#include "npsolWrap.h"
+#include "glue.h"
 #include "omxExportBackendState.h"
 
 void omxExportResults(omxState *currentState, MxRList *out)
