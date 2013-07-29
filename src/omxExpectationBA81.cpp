@@ -917,7 +917,7 @@ ba81compute(omxExpectation *oo, const char *context)
 
 	if (state->verbose) {
 		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean)",
-		      oo->name, state->Qpoint.size() == 0, itemClean, latentClean);
+		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean);
 	}
 
 	if (state->Qpoint.size() == 0 || !latentClean) {
