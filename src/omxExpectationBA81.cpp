@@ -602,15 +602,10 @@ static void ba81buildLXKcache(omxExpectation *oo)
 
 OMXINLINE static void
 expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
-	       const double observed, const int outcomes, double *out)
+	       const double observed, double *out)
 {
 	int pick = omxIntDataElementUnsafe(data, rowMap[px], item);
-	if (pick == NA_INTEGER) {
-		double slice = observed / outcomes;
-		for (int ox=0; ox < outcomes; ox++) {
-			out[ox] += slice;
-		}
-	} else {
+	if (pick != NA_INTEGER) {
 		out[pick-1] += observed;
 	}
 }
@@ -646,7 +641,7 @@ ba81Expected(omxExpectation* oo)
 				double observed = numIdentical[px] * lxk[px] / patternLik[px];
 				for (int ix=0; ix < numItems; ix++) {
 					const int outcomes = itemOutcomes[ix];
-					expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
+					expectedUpdate(data, rowMap, px, ix, observed, out);
 					out += outcomes;
 				}
 			}
@@ -683,7 +678,7 @@ ba81Expected(omxExpectation* oo)
 								double Eis = myEslxk[px];
 								double observed = (numIdentical[px] * (Ei / Eis) *
 										   (lxk[px] / patternLik[px]));
-								expectedUpdate(data, rowMap, px, ix, observed, outcomes, out);
+								expectedUpdate(data, rowMap, px, ix, observed, out);
 							}
 							out += outcomes;
 						}

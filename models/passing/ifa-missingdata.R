@@ -26,9 +26,17 @@ correct.mat <- simplify2array(correct)
 correct.mat[2,] <- 1
 correct.mat[3,] <- 0
 
-good.data <- rpf.sample(250, items, correct.mat)
+good.data <- rpf.sample(500, items, correct.mat)
 data <- mcar(good.data, 1/3)
+for (cx in 1:length(data)) attr(data[[cx]], 'mxFactor') <- TRUE
 #head(data)
+
+if (0) {
+  # for flexMIRT, write CSV
+  data.fm <- sapply(data, unclass)-1
+  data.fm[is.na(data.fm)] <- -9
+  write.table(data.fm, file="md.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
+}
 
 ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
                    values=c(1,1,0,0,0),
@@ -38,6 +46,35 @@ eip.mat <- mxAlgebra(itemParam, name="EItemParam")
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+
+if (1) {
+#  fm <- read.flexmirt("~/irt/ifa-missingdata/ifa-md-prm.txt")
+  fm.est <- structure(c(0.906661, 1, 0, -0.66474, 0.523485, 0.916341, 1,  0, -3.285, -0.882019, 0.73849, 1, 0, -1.14314, -0.0300753, 0.617796,  1, 0, -0.58211, 1.4276, 2.50623, 1, 0, 0.541075, 2.1527), .Dim = c(5L,  5L))
+  fm.est.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems, values=fm.est)
+  cModel <- mxModel(model="test3", fm.est.mat, m.mat, cov.mat, eip.mat,
+                    mxData(observed=data, type="raw"),
+                    mxExpectationBA81(mean="mean", cov="cov",
+                                      ItemSpec=items,
+                                      EItemParam="EItemParam", ItemParam="itemParam"),
+                    mxFitFunctionML(),
+                    mxComputeSequence(steps=list(
+                      mxComputeOnce('expectation'),
+                      mxComputeOnce('fitfunction'))))
+  cModel <- mxRun(cModel)
+  omxCheckCloseEnough(cModel@fitfunction@result, 2733.844, .001)
+}
+
+if (1) {
+  m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,
+                mxData(observed=data, type="raw"),
+                mxExpectationBA81(mean="mean", cov="cov",
+                                  ItemSpec=items,
+                                  EItemParam="EItemParam", ItemParam="itemParam"),
+                mxFitFunctionML(),
+                mxComputeOnce('expectation', context='EM'))
+  m2 <- mxRun(m2)
+  omxCheckCloseEnough(sum(m2@expectation@em.expected), 106562, .1)
+}
 
 m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,
               mxData(observed=data, type="raw"),
@@ -57,6 +94,16 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,
 m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
+omxCheckCloseEnough(m2@fitfunction@result, 2733.845, .01)
 got <- cor(c(m2@matrices$itemParam@values[c(1,4,5),]),
            c(correct.mat[c(1,4,5),]))
-omxCheckCloseEnough(got, .936, .01)
+omxCheckCloseEnough(got, .9824, .01)
+
+omxCheckTrue(all(abs(m2@matrices$itemParam@values[c(1,4,5),] - fm.est[c(1,4,5),]) < .025))
+
+if (0) {
+  require(mirt)
+  rdata <- sapply(data, unclass)-1
+  pars <- mirt(rdata, 1, itemtype="gpcm", D=1, quadpts=49)
+  # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
+}
