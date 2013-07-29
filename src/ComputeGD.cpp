@@ -120,7 +120,7 @@ void omxComputeGD::compute(FitContext *fc)
 
 	if (Global->numIntervals && engine == OptEngine_NPSOL) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
-			// TODO: Throw a warning, allow force()
+			// TODO: allow forcing
 			warning("Not calculating confidence intervals because of NPSOL status %d", inform);
 		} else {
 			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));

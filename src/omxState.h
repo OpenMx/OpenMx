@@ -158,6 +158,8 @@ extern struct omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
 struct omxState {
+	bool stale;
+
 	// move to FitContext? TOOD
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;

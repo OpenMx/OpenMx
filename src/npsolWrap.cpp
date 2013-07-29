@@ -287,11 +287,11 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 
 	REAL(evaluations)[0] = globalState->computeCount;
 
-	MxRList result;
-
-	if (topCompute && !isErrorRaised(globalState)) {
-		fc.copyParamToModel(globalState); // probably unnecessary to do this again? TODO
+	if (topCompute && !isErrorRaised(globalState) && globalState->stale) {
+		fc.copyParamToModel(globalState);
 	}
+
+	MxRList result;
 
 	omxExportResults(globalState, &result); 
 

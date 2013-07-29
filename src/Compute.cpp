@@ -212,6 +212,11 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	if(numParam == 0) return;
 
+	// Confidence Intervals & Hessian Calculation probe the parameter space
+	// near the best estimate. If stale, we need to restore the best estimate
+	// before returning results to the user.
+	os->stale = at != est;
+
 	os->computeCount++;
 
 	if(OMX_VERBOSE) {
@@ -247,7 +252,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 	if (!os->childList) return;
 
 	for(int i = 0; i < Global->numChildren; i++) {
-		copyParamToModel(os->childList[i]);
+		copyParamToModel(os->childList[i], at);
 	}
 }
 
