@@ -23,7 +23,6 @@
 
 const struct rpf *rpf_model = NULL;
 int rpf_numModels;
-static const double MIN_PATTERNLIK = 1e-100;
 
 void pda(const double *ar, int rows, int cols)
 {
@@ -414,10 +413,9 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (patternLik[px] < MIN_PATTERNLIK) {
-			patternLik[px] = MIN_PATTERNLIK;
-			warning("Likelihood of pattern %d is 0, forcing to %.3g",
-				px, MIN_PATTERNLIK);
+		if (!isfinite(patternLik[px])) {
+			omxRaiseErrorf(globalState, "Likelihood of pattern %d is %.3g",
+				       px, patternLik[px]);
 		}
 
 		double *latentDist1 = latentDist + px * numLatents;
