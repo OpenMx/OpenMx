@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+#include <valarray>
+
 #include "omxState.h"
 #include "omxFitFunction.h"
 #include "omxExportBackendState.h"
@@ -95,7 +97,16 @@ void ComputeNR::compute(FitContext *fc)
 	//double prevLL = nan("unset");
 	//bool decreasing = TRUE;
 
+	std::valarray<double> prevAdj1(numParam);
+	std::valarray<double> prevAdj2(numParam);
+	double caution = 0.5;
+
 	while (1) {
+		if (verbose >= 2) {
+			mxLog("Begin %d/%d iter of Newton-Raphson with tolerance %.02g",
+			      iter+1, maxIter, tolerance);
+		}
+
 		const int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN;
 
 		OMXZERO(fc->grad, numParam);
@@ -103,7 +114,7 @@ void ComputeNR::compute(FitContext *fc)
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 
-		if (verbose >= 2) {
+		if (verbose >= 4) {
 			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
 		}
 
@@ -114,61 +125,135 @@ void ComputeNR::compute(FitContext *fc)
 
 		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 
-		std::vector<double> ihess(numParam * numParam);
-		memcpy(ihess.data(), fc->hess, sizeof(double) * numParam * numParam);
+		if (verbose >= 3) {
+			for (size_t h1=1; h1 < numParam; h1++) {
+				for (size_t h2=0; h2 < h1; h2++) {
+					if (fc->hess[h2 * numParam + h1] == 0) continue;
+					error("Hessian is not lower triangular");
+				}
+			}
+		}
 
+		std::vector<double> ihess(numParam * numParam);
 		int dim = int(numParam);
 		const char uplo = 'L';
 		int info;
-		F77_CALL(dpotrf)(&uplo, &dim, ihess.data(), &dim, &info);
-		if (info < 0) error("Arg %d is invalid", -info);
-		if (info > 0) {
-			omxRaiseErrorf(globalState, "Hessian is not positive definite");
-			// Worth checking for zero rows? TODO
-			for (size_t rx=0; rx < numParam; ++rx) {
-				double row = 0;
-				for (size_t cx=0; cx < numParam; ++cx) {
-					row += fc->hess[rx * numParam + cx];
+		int retries = 0;
+		const double diag_adj = -38;
+		do {
+			memcpy(ihess.data(), fc->hess, sizeof(double) * numParam * numParam);
+
+			if (retries >= 1) {
+				double adj = exp(diag_adj + retries);
+				for (size_t px=0; px < numParam; ++px) {
+					ihess[px * numParam + px] += adj;
 				}
-				if (row == 0) warning("Check %s", fc->varGroup->vars[rx]->name);
 			}
+
+			F77_CALL(dpotrf)(&uplo, &dim, ihess.data(), &dim, &info);
+			if (info < 0) error("Arg %d is invalid", -info);
+			if (info == 0) break;
+		} while (++retries < -diag_adj/2);
+
+		if (info > 0) {
+			omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
+			//fc->log("Hessian", FF_COMPUTE_HESSIAN);
 			break;
+		}
+		if (verbose >= 2 && retries >= 1) {
+			mxLog("Forced to add diag(%.3g) to Hessian (this is bad)", exp(diag_adj + retries));
 		}
 
 		F77_CALL(dpotri)(&uplo, &dim, ihess.data(), &dim, &info);
 		if (info < 0) error("Arg %d is invalid", -info);
 		if (info > 0) {
+			// Impossible to fail if dpotrf worked?
 			omxRaiseErrorf(globalState, "Hessian is not of full rank");
 			break;
 		}
 
-		std::vector<double> adj(numParam);
-		double alpha = -1;
+		if ((iter+1) % 3 == 0) {
+			// Ramsay, J. O. (1975). Solving Implicit
+			// Equations in Psychometric Data Analysis.
+			// Psychometrika, 40(3), 337-360.
+
+			std::valarray<double> adjDiff(numParam);
+			adjDiff = prevAdj1 - prevAdj2;
+			//double normPrevAdj1 = sqrt((prevAdj1 * prevAdj1).sum());
+			double normPrevAdj2 = (prevAdj2 * prevAdj2).sum();
+			double normAdjDiff = (adjDiff * adjDiff).sum();
+			double ratio = sqrt(normPrevAdj2 / normAdjDiff);
+			//mxLog("normPrevAdj %.2f %.2f normAdjDiff %.2f ratio %.2f",
+			//normPrevAdj1, normPrevAdj2, normAdjDiff, ratio);
+			caution = 1 - (1-caution) * ratio;
+			if (caution < 0) caution = 0;  // doesn't make sense to go faster than full speed
+			//mxLog("ratio %.2f so %.2f", ratio, caution);
+		}
+
+		std::vector<double> newEst(numParam);
+		memcpy(newEst.data(), fc->est, sizeof(double) * numParam);
 		int incx = 1;
-		double beta = 0;
+		double alpha = -(1 - caution);
+		double beta = 1;
 		F77_CALL(dsymv)(&uplo, &dim, &alpha, ihess.data(), &dim,
-				fc->grad, &incx, &beta, adj.data(), &incx);
+				fc->grad, &incx, &beta, newEst.data(), &incx);
 
 		double maxAdj = 0;
 		for (size_t px=0; px < numParam; ++px) {
-			double param = fc->est[px];
-			param += adj[px];
+			double param = newEst[px];
 			omxFreeVar *fv = fc->varGroup->vars[px];
-			if (param < fv->lbound) param = fv->lbound;
-			if (param > fv->ubound) param = fv->ubound;
-			double adj = fabs(param - fc->est[px]);
-			if (maxAdj < adj)
-				maxAdj = adj;
+
+			bool hitBound=false;
+			if (param < fv->lbound) {
+				hitBound=true;
+				param = fc->est[px] - (fc->est[px] - fv->lbound) / 2;
+			}
+			if (param > fv->ubound) {
+				hitBound=true;
+				param = fc->est[px] + (fv->ubound - fc->est[px]) / 2;
+			}
+
+			double badj = fabs(param - fc->est[px]);
+			if (maxAdj < badj)
+				maxAdj = badj;
+
+			if (verbose >= 3) {
+				std::string buf(fv->name);
+				buf += string_snprintf(": %.4f -> %.4f", fc->est[px], param);
+				if (hitBound) {
+					buf += string_snprintf(" wanted %.4f but hit bound", newEst[px]);
+				}
+				bool osc = false;
+				if (iter) osc = (param - fc->est[px]) * prevAdj1[px] < 0;
+				if (osc) {
+					buf += " *OSC*";
+				}
+				buf += "\n";
+				mxLogBig(buf);
+			}
+
+			prevAdj2[px] = prevAdj1[px];
+			prevAdj1[px] = param - fc->est[px];
 			fc->est[px] = param;
 		}
+
 		fc->copyParamToModel(globalState);
+
 		R_CheckUserInterrupt();
-		if (maxAdj < tolerance || ++iter > maxIter) break;
+
+		if (maxAdj < tolerance) {
+			if (verbose >= 1) {
+				mxLog("Newton-Raphson converged in %d cycles", iter);
+			}
+			break;
+		} else if (++iter >= maxIter) {
+			if (verbose >= 1) {
+				mxLog("Newton-Raphson failed to converge after %d cycles", iter);
+			}
+			break;
+		}
 	}
 
-	if (verbose >= 1) {
-		mxLog("Newton-Raphson converged in %d cycles", iter);
-	}
 
 	// The check is too dependent on numerical precision to enable by default.
 	// Anyway, it's just a tool for developers.
