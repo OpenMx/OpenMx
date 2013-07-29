@@ -166,8 +166,10 @@ void FitContext::fixHessianSymmetry()
 	size_t numParam = varGroup->vars.size();
 	for (size_t h1=1; h1 < numParam; h1++) {
 		for (size_t h2=0; h2 < h1; h2++) {
-			double lower = hess[h2 * numParam + h1];
-			hess[h1 * numParam + h2] = lower;
+			if (hess[h2 * numParam + h1] != 0) {
+				error("Hessian is not lower triangular");
+			}
+			hess[h2 * numParam + h1] = hess[h1 * numParam + h2];
 		}
 	}
 }

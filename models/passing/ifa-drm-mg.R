@@ -74,6 +74,41 @@ if(1) {
 	}
 }
 
+if (1) {
+  ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
+                     values=c(1,0,0, 1),
+                     free=c(TRUE, TRUE, FALSE, FALSE))
+  ip.mat@labels[1,] <- 'a1'
+  
+  eip.mat <- mxAlgebra(itemParam, name="EItemParam")
+  
+  m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+  cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+  
+  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
+                mxData(observed=data, type="raw"),
+                mxExpectationBA81(mean="mean", cov="cov",
+                                  ItemSpec=items, ItemParam="itemParam",
+                                  EItemParam="EItemParam"),
+                mxFitFunctionML(),
+                mxComputeIterate(steps=list(
+                  mxComputeOnce('expectation', context='EM'),
+                  mxComputeNewtonRaphson(free.set='itemParam'),
+                  mxComputeOnce('expectation'),
+                  mxComputeOnce('fitfunction', adjustStart=TRUE, free.set=c("mean", "cov"))
+                )))
+  m2 <- mxRun(m2)
+  omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)
+  omxCheckCloseEnough(m2@matrices$itemParam@values[1,], rep(2.133, numItems), .002)
+  # correct values are from flexMIRT
+  omxCheckCloseEnough(m2@matrices$itemParam@values[2,],
+                      c(-0.838622, -1.02653, -0.0868472, -0.251784, 0.953364,  0.735258, 0.606918,
+                        1.04239, 0.466055, -2.05196, -0.0456446,  -0.320668, -0.362073, 2.02502,
+                        0.635298, -0.0731132, -2.05196,  -0.0456446, -1.17429, 0.880002, -0.838622,
+                        -0.838622, 1.02747,  0.424094, -0.584298, 0.663755, 0.663755, 0.064287, 1.38009,
+                        1.01259 ), .002)
+}
+
 if (0) {
   library(mirt)
   rdata <- sapply(data, unclass)-1

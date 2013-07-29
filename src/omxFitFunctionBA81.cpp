@@ -107,20 +107,14 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	state->paramLocations.assign(size, 0);
 
 	size_t numFreeParams = state->numItemParam = fvg->vars.size();
-	int *pRow = Realloc(NULL, numFreeParams, int);
-	int *pCol = Realloc(NULL, numFreeParams, int);
 
 	for (size_t px=0; px < numFreeParams; px++) {
-		pRow[px] = -1;
-		pCol[px] = -1;
 		omxFreeVar *fv = fvg->vars[px];
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = ~loc->matrix;
 			if (matNum == itemParam->matrixNumber) {
-				pRow[px] = loc->row;
-				pCol[px] = loc->col;
-				int at = pCol[px] * state->itemDerivPadSize + pRow[px];
+				int at = loc->col * state->itemDerivPadSize + loc->row;
 				state->paramMap[at] = px;
 				state->paramLocations[at] = fv->locations.size();
 
@@ -146,26 +140,30 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		}
 	}
 
-	for (size_t p1=0; p1 < numFreeParams; p1++) {
-		for (size_t p2=p1; p2 < numFreeParams; p2++) {
-			if (pCol[p1] == -1 || pCol[p1] != pCol[p2]) continue;
-			const double *spec = estate->itemSpec[pCol[p1]];
-			int id = spec[RPF_ISpecID];
-			int numParam = (*rpf_model[id].numParam)(spec);
-			int r1 = pRow[p1];
-			int r2 = pRow[p2];
-			if (r1 > r2) { int tmp=r1; r1=r2; r2=tmp; }
-			int rowOffset = 0;
-			for (int rx=1; rx <= r2; rx++) rowOffset += rx;
-			int at = pCol[p1] * state->itemDerivPadSize + numParam + rowOffset + r1;
-			state->paramMap[at] = numFreeParams + p1 * numFreeParams + p2;
+	for (int cx=0; cx < itemParam->cols; ++cx) {
+		const double *spec = estate->itemSpec[cx];
+		int id = spec[RPF_ISpecID];
+		int numParam = (*rpf_model[id].numParam)(spec);
+
+		for (int p1=0; p1 < numParam; p1++) {
+			int at1 = state->paramMap[cx * state->itemDerivPadSize + p1];
+			if (at1 < 0) continue;
+
+			for (int p2=0; p2 <= p1; p2++) {
+				int at2 = state->paramMap[cx * state->itemDerivPadSize + p2];
+				if (at2 < 0) continue;
+
+				if (at1 < at2) std::swap(at1, at2);  // lower triangle
+
+				//mxLog("Item %d param(%d,%d) -> H[%d,%d]", cx, p1, p2, at1, at2);
+				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
+				state->paramMap[at] = numFreeParams + at1 * numFreeParams + at2;
+			}
 		}
 	}
 
-	Free(pRow);
-	Free(pCol);
-
 	state->haveItemMap = TRUE;
+	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
 OMXINLINE static double
@@ -305,7 +303,8 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 			if (to < numFreeParams) {
 				gradient[to] -= deriv0[ox];
 			} else {
-				hessian[to - numFreeParams] -= deriv0[ox];
+				int Hto = to - numFreeParams;
+				hessian[Hto] -= deriv0[ox];
 			}
 		}
 	}
