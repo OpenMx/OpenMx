@@ -127,6 +127,7 @@ void FreeVarGroup::log()
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state) {
+		state->stale = FALSE;
 		state->numConstraints = 0;
 		state->childList = NULL;
 		state->conList = NULL;
