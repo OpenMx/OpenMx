@@ -491,6 +491,12 @@ void omxWriteCheckpointMessage(char *msg) {
 		}
 	}
 
+/*
+ * Next time we rewrite this code, Mike Neale suggested that the
+ * checkpoint be taken before evaluating the fit function and then
+ * again after obtaining the fit statistic. This will help with
+ * debugging fit functions that fail to evaluate in some spots.
+ */
 void omxSaveCheckpoint(double* x, double f, int force) {
 	// rewrite with std::string TODO
 	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
