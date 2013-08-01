@@ -790,35 +790,13 @@ ba81Expected(omxExpectation* oo)
 
 	long expectedSize = totalQuadPoints * totalOutcomes;
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,64)
-	for (long qx=0; qx < expectedSize; ++qx) {
-		state->expected[qx] = 0;
-		double *e1 = thrExpected.data() + qx;
+	for (long ex=0; ex < expectedSize; ++ex) {
+		state->expected[ex] = 0;
+		double *e1 = thrExpected.data() + ex;
 		for (int tx=0; tx < Global->numThreads; ++tx) {
-			state->expected[qx] += *e1;
+			state->expected[ex] += *e1;
 			e1 += expectedSize;
 		}
-	}
-
-	if (!state->checkedBadData) {
-		std::vector<double> byOutcome(totalOutcomes, 0);
-		for (int ox=0; ox < totalOutcomes; ++ox) {
-			for (long qx=0; qx < state->totalQuadPoints; qx++) {
-				byOutcome[ox] += state->expected[totalOutcomes * qx + ox];
-			}
-			if (byOutcome[ox] == 0) {
-				int uptoItem = 0;
-				for (size_t cx = 0; cx < itemOutcomes.size(); cx++) {
-					if (ox < uptoItem + itemOutcomes[cx]) {
-						int bad = ox - uptoItem;
-						omxRaiseErrorf(globalState, "Item %lu outcome %d is never endorsed.\n"
-							       "You must collapse categories or omit this item to estimate item parameters.", 1+cx, 1+bad);
-						break;
-					}
-					uptoItem += itemOutcomes[cx];
-				}
-			}
-		}
-		state->checkedBadData = TRUE;
 	}
 	//pda(state->expected, state->totalOutcomes, state->totalQuadPoints);
 }
@@ -1232,7 +1210,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	
 	BA81Expect *state = new BA81Expect;
-	state->checkedBadData = FALSE;
 	state->numSpecific = 0;
 	state->numIdentical = NULL;
 	state->rowMap = NULL;
@@ -1327,24 +1304,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		error("Data has %d columns for %d items", data->cols, numItems);
 	}
 
-	for (int rx=0, ux=0; rx < data->rows; ux++) {
-		if (rx == 0) {
-			// all NA rows will sort to the top
-			int na=0;
-			for (int ix=0; ix < numItems; ix++) {
-				if (omxIntDataElement(data, 0, ix) == NA_INTEGER) { ++na; }
-			}
-			if (na == numItems) {
-				omxRaiseErrorf(currentState, "Remove rows with all NAs");
-				return;
-			}
-		}
-		int dups = omxDataNumIdenticalRows(state->data, rx);
-		state->numIdentical[ux] = dups;
-		state->rowMap[ux] = rx;
-		rx += dups;
-	}
-
 	int numThreads = Global->numThreads;
 
 	int maxSpec = 0;
@@ -1399,6 +1358,51 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->EitemParam->rows != maxParam) {
 		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
 		return;
+	}
+
+	std::vector<bool> byOutcome(totalOutcomes, false);
+	int outcomesSeen = 0;
+	for (int rx=0, ux=0; rx < data->rows; ux++) {
+		if (rx == 0) {
+			// all NA rows will sort to the top
+			int na=0;
+			for (int ix=0; ix < numItems; ix++) {
+				if (omxIntDataElement(data, 0, ix) == NA_INTEGER) { ++na; }
+			}
+			if (na == numItems) {
+				omxRaiseErrorf(currentState, "Remove rows with all NAs");
+				return;
+			}
+		}
+		int dups = omxDataNumIdenticalRows(state->data, rx);
+		state->numIdentical[ux] = dups;
+		state->rowMap[ux] = rx;
+		rx += dups;
+
+		if (outcomesSeen < totalOutcomes) {
+			for (int ix=0, outcomeBase=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+				int pick = omxIntDataElementUnsafe(data, rx, ix);
+				if (pick == NA_INTEGER) continue;
+				--pick;
+				if (!byOutcome[outcomeBase + pick]) {
+					byOutcome[outcomeBase + pick] = true;
+					if (++outcomesSeen == totalOutcomes) break;
+				}
+			}
+		}
+	}
+
+	if (outcomesSeen < totalOutcomes) {
+		std::string buf;
+		for (int ix=0, outcomeBase=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+			for (int pick=0; pick < itemOutcomes[ix]; ++pick) {
+				if (byOutcome[outcomeBase + pick]) continue;
+				buf += string_snprintf(" item %d outcome %d", 1+ix, 1+pick);
+			}
+		}
+		omxRaiseErrorf(globalState, "Never endorsed:%s\n"
+			       "You must collapse categories or omit items to estimate item parameters.",
+			       buf.c_str());
 	}
 
 	if (state->design == NULL) {

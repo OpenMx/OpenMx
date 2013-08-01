@@ -83,7 +83,6 @@ typedef struct {
 	enum expectation_type type;
 	enum score_option scores;
 	bool verbose;
-	bool checkedBadData;
 } BA81Expect;
 
 extern const struct rpf *rpf_model;
