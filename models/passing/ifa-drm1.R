@@ -37,12 +37,12 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
 m2 <- mxRun(m2)
+omxCheckCloseEnough(sum(m2@expectation@patternLikelihood), 0.3846289, .01)
 omxCheckCloseEnough(fivenum(m2@expectation@patternLikelihood),
                     c(0.0005285109, 0.0006143148, 0.0006143148, 0.0009690677, 0.0289785643), .001)
-omxCheckCloseEnough(sum(m2@expectation@patternLikelihood), 0.3846289, .01)
+omxCheckCloseEnough(sum(m2@expectation@em.expected), 5000, .01)
 omxCheckCloseEnough(fivenum(m2@expectation@em.expected),
-                    c(9e-05, 9.86002, 109.04181, 276.1887, 503.42342), .01)
-omxCheckCloseEnough(sum(m2@expectation@em.expected), 90449.05, .01)
+                    c(0, 5.86e-05, 0.0687802, 7.1582354, 74.1583248), .01)
 
 m2 <- mxModel(m2,
 	      mxComputeIterate(steps=list(

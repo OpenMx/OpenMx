@@ -73,7 +73,7 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', context='EM'))
   m2 <- mxRun(m2)
-  omxCheckCloseEnough(sum(m2@expectation@em.expected), 106562, .1)
+  omxCheckCloseEnough(sum(m2@expectation@em.expected), 1667, .1)
 }
 
 m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat, eip.mat,

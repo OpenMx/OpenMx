@@ -59,9 +59,9 @@ m1 <- mxRun(m1)
 omxCheckCloseEnough(sum(m1@expectation@patternLikelihood), 0.08697, 1e-4)
 omxCheckCloseEnough(fivenum(m1@expectation@patternLikelihood),
                     c(1.43406e-07, 3.15698e-07, 7.52953e-07, 4.343729e-06, 0.027590262396 ), 1e-10)
-omxCheckCloseEnough(sum(m1@expectation@em.expected), 6368699.1, 1)
+omxCheckCloseEnough(sum(m1@expectation@em.expected), 20000, 1)
 omxCheckCloseEnough(fivenum(m1@expectation@em.expected),
-                    c(0, 1.20732462973, 61.839214062326, 299.490710735791, 1536.92045018699 ), 1e-5)
+                    c(0, 0, 1.8e-06, 0.0034365, 43.2895967), 1e-4)
 
 m1 <- mxModel(m1,
               mxComputeIterate(steps=list(

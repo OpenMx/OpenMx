@@ -198,19 +198,17 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 		int id = spec[RPF_ISpecID];
 		int iOutcomes = estate->itemOutcomes[ix];
 
-		double area = areaProduct(estate, qx, -1, estate->Sgroup[ix]);
-
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
 				double got = weight[ox] * oProb[ox];
-				thr_ll += got * area;
+				thr_ll += got;
 			}
 		}
 
 		if (do_deriv) {
 			double *iparam = omxMatrixColumn(itemParam, ix);
 			double *pad = myDeriv + ix * state->itemDerivPadSize;
-			(*rpf_model[id].dLL1)(spec, iparam, where, area, weight, pad);
+			(*rpf_model[id].dLL1)(spec, iparam, where, weight, pad);
 		}
 		oProb += iOutcomes;
 		weight += iOutcomes;

@@ -733,6 +733,8 @@ ba81Expected(omxExpectation* oo)
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
 
 	if (numSpecific == 0) {
+		std::vector<double> &priQarea = state->priQarea;
+
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
@@ -752,7 +754,7 @@ ba81Expected(omxExpectation* oo)
 
 				double *out = myExpected + outcomeBase;
 				for (long qx=0; qx < totalQuadPoints; ++qx) {
-					out[pick] += weight * lxk[qx];
+					out[pick] += weight * lxk[qx] * priQarea[qx];
 					out += totalOutcomes;
 				}
 			}
@@ -786,9 +788,10 @@ ba81Expected(omxExpectation* oo)
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
 					double Ei1 = Ei[qx];
 					for (long sx=0; sx < specificPoints; sx++) {
+						double area = areaProduct(state, qx, sx, Sgroup);
 						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
 						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
-						out[pick] += weight * (Ei1 / Eis1) * lxk1;
+						out[pick] += weight * (Ei1 / Eis1) * lxk1 * area;
 						out += totalOutcomes;
 						++qloc;
 					}

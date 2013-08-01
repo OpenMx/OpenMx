@@ -36,7 +36,7 @@ typedef void (*rpf_prob_t)(const double *spec,
 			   double *out);
 typedef void (*rpf_dLL1_t)(const double *spec,
 			   const double *param,
-			   const double *where, const double area,
+			   const double *where,
 			   const double *weight, double *out);
 typedef void (*rpf_dLL2_t)(const double *spec, const double *param, double *out);
 typedef void (*rpf_rescale_t)(const double *spec, double *param, const int *paramMask,
