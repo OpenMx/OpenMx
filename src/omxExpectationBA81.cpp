@@ -309,7 +309,7 @@ static void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread; // reshape matrix TODO
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
 			std::valarray<double> lxk(1, totalQuadPoints);
@@ -370,7 +370,7 @@ static void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread; // reshape matrix TODO
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
 			std::valarray<double> lxk(1, totalQuadPoints * numSpecific);
@@ -393,12 +393,13 @@ static void ba81Estep1(omxExpectation *oo)
 			std::valarray<double> Ei(1.0, totalPrimaryPoints);
 			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
 				int Sbase = sgroup * totalQuadPoints;
+				long qloc = 0;
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
 					for (long sx=0; sx < specificPoints; sx++) {
-						long qloc = qx * specificPoints + sx; // change to ++
 						double area = state->speQarea[sIndex(state, sgroup, sx)];
 						double piece = lxk[Sbase + qloc] * area;
 						Eis[totalPrimaryPoints * sgroup + qx] += piece;
+						++qloc;
 					}
 					Ei[qx] *= Eis[totalPrimaryPoints * sgroup + qx];
 				}
@@ -443,7 +444,8 @@ static void ba81Estep1(omxExpectation *oo)
 
 				int Sgroup = state->Sgroup[ix];
 
-				//double *out = myExpected + outcomeBase;
+				double *out = myExpected + outcomeBase;
+				long qloc = 0;
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
 					double Ei1 = Ei[qx];
 					for (long sx=0; sx < specificPoints; sx++) {
