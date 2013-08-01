@@ -41,7 +41,7 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
 				 mxComputeOnce('expectation', context='EM'),
 				 mxComputeNewtonRaphson(free.set='itemParam'),
 				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction')
+				 mxComputeOnce('fitfunction', free.set=c("mean","cov"))
 				 )))
 
 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')

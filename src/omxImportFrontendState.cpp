@@ -271,9 +271,15 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
 	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
 
-	FreeVarGroup *fvg = new FreeVarGroup;
-	fvg->id = 0;
-	Global->freeGroup.push_back(fvg);
+	{
+		FreeVarGroup *fvg = new FreeVarGroup;
+		fvg->id = 0;   // all variables
+		Global->freeGroup.push_back(fvg);
+
+		fvg = new FreeVarGroup;
+		fvg->id = -1;  // no variables
+		Global->freeGroup.push_back(fvg);
+	}
 
 	SEXP nextVar, nextLoc;
 	int numVars = length(varList);

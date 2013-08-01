@@ -56,6 +56,7 @@ class FitContext {
 class omxCompute {
  public:
 	FreeVarGroup *varGroup;
+	omxCompute();
         virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc) = 0;
         virtual void reportResults(FitContext *fc, MxRList *out) = 0;

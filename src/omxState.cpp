@@ -98,13 +98,13 @@ void FreeVarGroup::log()
 	size_t numAlgs = os->algebraList.size();
 	std::string str;
 
-	str += string_snprintf("FreeVarGroup[%d] with %lu variables:", id, vars.size());
+	str += string_snprintf("FreeVarGroup(id=%d) with %lu variables:", id, vars.size());
 
 	for (size_t vx=0; vx < vars.size(); ++vx) {
 		str += " ";
 		str += vars[vx]->name;
 	}
-	str += "\nwill dirty:";
+	if (vars.size()) str += "\nwill dirty:";
 
 	for(size_t i = 0; i < numMats; i++) {
 		if (dependencies[i]) {

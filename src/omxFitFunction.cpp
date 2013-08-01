@@ -44,7 +44,8 @@ struct omxFitFunctionTableEntry {
 static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
 {
 	if (ff->freeVarGroup && ff->freeVarGroup != fvg) {
-		error("setFreeVarGroup called with different group on %p", ff);
+		warning("setFreeVarGroup called with different group (%d vs %d) on %s",
+			ff->matrix->name, ff->freeVarGroup->id, fvg->id);
 	}
 	ff->freeVarGroup = fvg;
 }

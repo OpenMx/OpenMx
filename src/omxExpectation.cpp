@@ -313,7 +313,8 @@ void omxCompleteExpectation(omxExpectation *ox) {
 static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
 	if (ox->freeVarGroup && ox->freeVarGroup != fvg) {
-		error("setFreeVarGroup called with different group on %p", ox);
+		warning("setFreeVarGroup called with different group (%d vs %d) on %s",
+			ox->name, ox->freeVarGroup->id, fvg->id);
 	}
 	ox->freeVarGroup = fvg;
 }

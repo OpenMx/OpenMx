@@ -59,6 +59,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	int meanNum = estate->latentMeanOut->matrixNumber;
 	int covNum = estate->latentCovOut->matrixNumber;
+	int itemNum = estate->itemParam->matrixNumber;
 	int maxAbilities = estate->maxAbilities;
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 
@@ -90,6 +91,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 						error("Starting value for variance %s is negative", fv->name);
 					}
 				}
+			} else if (matNum == itemNum) {
+				omxRaiseErrorf(globalState, "The fitfunction free.set should consist of "
+					       "latent distribution parameters, excluding item parameters");
 			}
 		}
 	}

@@ -113,7 +113,8 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction'))))
+                        mxComputeOnce('fitfunction',
+				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel <- mxRun(cModel)
     omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
 }
@@ -123,7 +124,8 @@ omxIFAComputePlan <- function(groups) {
 			   mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
 			   mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
 			   mxComputeOnce(paste(groups, 'expectation', sep=".")),
-			   mxComputeOnce(adjustStart=TRUE, 'fitfunction')
+			   mxComputeOnce(adjustStart=TRUE, 'fitfunction',
+					 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
 			   ))
 }
 

@@ -58,6 +58,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	FreeVarGroup *dest = varGroup;
 	size_t svars = parent->varGroup->vars.size();
 	size_t dvars = varGroup->vars.size();
+	if (dvars == 0) return;
 
 	size_t d1 = 0;
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
@@ -99,20 +100,22 @@ void FitContext::updateParentAndFree()
 
 	parent->fit = fit;
 
-	size_t s1 = 0;
-	for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
-		if (dest->vars[d1] != src->vars[s1]) continue;
-		parent->est[d1] = est[s1];
-		parent->grad[d1] = grad[s1];
+	if (svars > 0) {
+		size_t s1 = 0;
+		for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
+			if (dest->vars[d1] != src->vars[s1]) continue;
+			parent->est[d1] = est[s1];
+			parent->grad[d1] = grad[s1];
 
-		size_t s2 = 0;
-		for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
-			if (dest->vars[d2] != src->vars[s2]) continue;
-			parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
-			if (++s2 == svars) break;
+			size_t s2 = 0;
+			for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
+				if (dest->vars[d2] != src->vars[s2]) continue;
+				parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
+				if (++s2 == svars) break;
+			}
+
+			if (++s1 == svars) break;
 		}
-
-		if (++s1 == svars) break;
 	}
 	
 	// pda(est, 1, svars);
@@ -276,6 +279,11 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
+omxCompute::omxCompute()
+{
+	varGroup = NULL;
+}
+
 omxCompute::~omxCompute()
 {}
 
@@ -283,9 +291,24 @@ void omxCompute::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
-	int id = INTEGER(slotValue)[0];
-	varGroup = Global->findVarGroup(id);
-	if (!varGroup) varGroup = Global->freeGroup[0];
+	if (length(slotValue) == 1) {
+		int id = INTEGER(slotValue)[0];
+		varGroup = Global->findVarGroup(id);
+	}
+
+	if (!varGroup) {
+		if (!R_has_slot(rObj, install("free.set"))) {
+			varGroup = Global->freeGroup[0];
+		} else {
+			PROTECT(slotValue = GET_SLOT(rObj, install("free.set")));
+			if (length(slotValue) != 0) {
+				// it's a free.set with no free variables
+				varGroup = Global->findVarGroup(-1);
+			} else {
+				varGroup = Global->freeGroup[0];
+			}
+		}
+	}
 }
 
 class omxComputeSequence : public omxCompute {
