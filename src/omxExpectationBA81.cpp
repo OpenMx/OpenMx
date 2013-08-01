@@ -428,24 +428,30 @@ static void ba81Estep1(omxExpectation *oo)
 		primaryDims -= 1;
 		long totalPrimaryPoints = state->totalPrimaryPoints;
 		long specificPoints = state->quadGridSize;
+		double *EiCache = state->EiCache;
+
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static, totalPrimaryPoints*8)
+		for (int ex=0; ex < totalPrimaryPoints * numUnique; ++ex) {
+			EiCache[ex] = 1.0;
+		}
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
+			double *myEi = EiCache + px * totalPrimaryPoints;
 
 			std::vector<double> lxk(totalQuadPoints * numSpecific);
 			ba81LikelihoodSlow2(state, px, lxk.data());
 
 			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
-			std::vector<double> Ei(totalPrimaryPoints, 1.0);
-			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
+			cai2010EiEis(state, px, lxk.data(), Eis.data(), myEi);
 
 			double patternLik1 = 0;
 			double *wh = wherePrep.data();
 			for (long qx=0, qloc=0; qx < totalPrimaryPoints; ++qx) {
 				double priArea = state->priQarea[qx];
-				double EiArea = Ei[qx] * priArea;
+				double EiArea = myEi[qx] * priArea;
 				patternLik1 += EiArea;
 				for (long sx=0; sx < specificPoints; sx++) {
 					for (int sgroup=0; sgroup < numSpecific; sgroup++) {
@@ -681,6 +687,9 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 	}
 
 	state->expected = Realloc(state->expected, state->totalOutcomes * state->totalQuadPoints, double);
+	if (state->numSpecific) {
+		state->EiCache = Realloc(state->EiCache, state->totalPrimaryPoints * numUnique, double);
+	}
 }
 
 static void ba81buildLXKcache(omxExpectation *oo)
@@ -934,47 +943,34 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
         }
 }
 
-static void recomputePatternLik(omxExpectation *oo)  // openmp reduction TODO
+static void recomputePatternLik(omxExpectation *oo)
 {
-	BA81Expect *estate = (BA81Expect*) oo->argStruct;
-	if (estate->verbose) mxLog("%s: patternLik", oo->name);
+	BA81Expect *state = (BA81Expect*) oo->argStruct;
+	if (state->verbose) mxLog("%s: patternLik", oo->name);
 
-	int numUnique = estate->numUnique;
-	int numSpecific = estate->numSpecific;
-	int maxDims = estate->maxDims;
-	int primaryDims = maxDims;
-	double *patternLik = estate->patternLik;
+	int numUnique = state->numUnique;
+	long totalQuadPoints = state->totalQuadPoints;
+	double *patternLik = state->patternLik;
 	OMXZERO(patternLik, numUnique);
 
-	if (numSpecific == 0) {
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-			double area = estate->priQarea[qx];
-			double *lxk = ba81LikelihoodFast(oo, thrId, 0, qx);
-
-			for (int px=0; px < numUnique; px++) {
-				double tmp = (lxk[px] * area);
-#pragma omp atomic
-				patternLik[px] += tmp;
+	if (state->numSpecific == 0) {
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
+			std::vector<double> lxk(totalQuadPoints);
+			ba81LikelihoodFast2(state, px, lxk.data());
+			for (long qx=0; qx < totalQuadPoints; qx++) {
+				patternLik[px] += lxk[qx] * state->priQarea[qx];
 			}
 		}
 	} else {
-		primaryDims -= 1;
+		double *EiCache = state->EiCache;
+		long totalPrimaryPoints = state->totalPrimaryPoints;
 
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < estate->totalPrimaryPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-
-			cai2010(oo, thrId, FALSE, qx);
-			double *allElxk = eBase(estate, thrId);
-
-			double priArea = estate->priQarea[qx];
-			for (int px=0; px < numUnique; px++) {
-				double Ei = allElxk[px];
-				double tmp = (Ei * priArea);
-#pragma omp atomic
-				patternLik[px] += tmp;
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
+			double *Ei = EiCache + totalPrimaryPoints * px;
+			for (long qx=0; qx < totalPrimaryPoints; qx++) {
+				patternLik[px] += Ei[qx] * state->priQarea[qx];
 			}
 		}
 	}
@@ -1171,6 +1167,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->Sgroup);
 	Free(state->expected);
 	Free(state->outcomeProb);
+	Free(state->EiCache);
 	delete state;
 }
 
@@ -1226,6 +1223,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->customPrior = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
+	state->EiCache = NULL;
 	oo->argStruct = (void*) state;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));

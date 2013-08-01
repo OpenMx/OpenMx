@@ -77,6 +77,7 @@ typedef struct {
 	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
+	double *EiCache;          // totalPrimaryPoints * numUnique (two-tier only)
 
 	int itemParamVersion;
 	int latentParamVersion;
