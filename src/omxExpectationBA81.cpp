@@ -57,27 +57,22 @@ int sIndex(BA81Expect *state, int sx, int qx)
 	return sx * state->quadGridSize + qx;
 }
 
-/**
- * \param theta Vector of ability parameters, one per ability
- * \returns A numItems by maxOutcomes colMajor vector of doubles. Caller must Free it.
- */
+// Depends on item parameters, but not latent distribution
 double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog)
 {
 	omxMatrix *design = state->design;
 	int maxDims = state->maxDims;
-	int maxOutcomes = state->maxOutcomes;
+	int totalOutcomes = state->totalOutcomes;
 	size_t numItems = state->itemSpec.size();
 
 	double theta[maxDims];
 	pointToWhere(state, quad, theta, maxDims);
 
-	double *outcomeProb = Realloc(NULL, numItems * maxOutcomes, double);
-	//double *outcomeProb = Calloc(numItems * maxOutcomes, double);
+	double *outcomeProb = Realloc(NULL, totalOutcomes, double);
+	double *out = outcomeProb;
 
 	for (size_t ix=0; ix < numItems; ix++) {
 		const double *spec = state->itemSpec[ix];
-		double *iparam = omxMatrixColumn(itemParam, ix);
-		double *out = outcomeProb + ix * maxOutcomes;
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		double ptheta[dims];
@@ -88,13 +83,14 @@ double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, con
 			ptheta[dx] = theta[ability];
 		}
 
+		double *iparam = omxMatrixColumn(itemParam, ix);
 		if (wantlog) {
 			(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
 		} else {
 			(*rpf_model[id].prob)(spec, iparam, ptheta, out);
 		}
 #if 0
-		for (int ox=0; ox < spec[RPF_ISpecOutcomes]; ox++) {
+		for (int ox=0; ox < state->itemOutcomes[ix]; ox++) {
 			if (!isfinite(out[ox]) || out[ox] > 0) {
 				mxLog("item param");
 				pda(iparam, itemParam->rows, 1);
@@ -104,6 +100,7 @@ double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, con
 			}
 		}
 #endif
+		out += state->itemOutcomes[ix];
 	}
 
 	return outcomeProb;
@@ -127,7 +124,7 @@ ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const int *qua
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
-	int maxOutcomes = state->maxOutcomes;
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	omxData *data = state->data;
 	size_t numItems = state->itemSpec.size();
 	int *Sgroup = state->Sgroup;
@@ -142,12 +139,14 @@ ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const int *qua
 	const int *rowMap = state->rowMap;
 	for (int px=0; px < numUnique; px++) {
 		double lxk1 = 1;
+		const double *oProb = outcomeProb;
 		for (size_t ix=0; ix < numItems; ix++) {
-			if (specific != Sgroup[ix]) continue;
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) continue;
-			double piece = outcomeProb[ix * maxOutcomes + pick-1];  // move -1 elsewhere TODO
-			lxk1 *= piece;
+			if (!(specific != Sgroup[ix] || pick == NA_INTEGER)) {
+				double piece = oProb[pick-1];  // move -1 elsewhere TODO
+				lxk1 *= piece;
+			}
+			oProb += itemOutcomes[ix];
 			//mxLog("%d pick %d piece %.3f", ix, pick, piece);
 		}
 #if 0
@@ -158,7 +157,7 @@ ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const int *qua
 			pointToWhere(state, quad, where, state->maxDims);
 			pda(where, state->maxDims, 1);
 			mxLog("prob");
-			pda(outcomeProb, numItems, maxOutcomes);
+			pda(outcomeProb, 1, state->totalOutcomes);
 			error("Likelihood of row %d is %f", rowMap[px], lxk1);
 		}
 #endif

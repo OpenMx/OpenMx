@@ -192,23 +192,16 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 	}
 
 	double thr_ll = 0;
+	const double *oProb = outcomeProb;
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
-		int iOutcomes = spec[RPF_ISpecOutcomes];
+		int iOutcomes = estate->itemOutcomes[ix];
 
 		double area = areaProduct(estate, quad, estate->Sgroup[ix]);
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
-#if 0
-#pragma omp critical(ba81Fit1OrdinateDebug1)
-				if (!std::isfinite(outcomeProb[ix * maxOutcomes + ox])) {
-					pda(itemParam->data, itemParam->rows, itemParam->cols);
-					pda(outcomeProb, outcomes, numItems);
-					error("RPF produced NAs");
-				}
-#endif
-				double got = weight[ox] * outcomeProb[ix * maxOutcomes + ox];
+				double got = weight[ox] * oProb[ox];
 				thr_ll += got * area;
 			}
 		}
@@ -218,6 +211,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 			double *pad = myDeriv + ix * state->itemDerivPadSize;
 			(*rpf_model[id].dLL1)(spec, iparam, where, area, weight, pad);
 		}
+		oProb += iOutcomes;
 		weight += iOutcomes;
 	}
 
