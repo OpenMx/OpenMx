@@ -590,7 +590,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 			std::vector<double> derivCoef(maxDerivCoef);
 			calcDerivCoef(state, estate, where, 0, &derivCoef);
 			double area = estate->priQarea[qx];
-			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, qx);
+			double *lxk = ba81LikelihoodFast1(expectation, thrId, 0, qx);
 
 			for (int px=0; px < numUnique; px++) {
 				double tmp = (lxk[px] * area);
@@ -624,7 +624,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 					std::vector<double> derivCoef(maxDerivCoef);
 					calcDerivCoef(state, estate, where, sgroup, &derivCoef);
 					double area = areaProduct(estate, qx, sx, sgroup);
-					double *lxk = ba81LikelihoodFast(expectation, thrId, sgroup, qloc);
+					double *lxk = ba81LikelihoodFast1(expectation, thrId, sgroup, qloc);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = allElxk[px];
 						double Eis = Eslxk[sgroup * numUnique + px];

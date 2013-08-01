@@ -115,7 +115,7 @@ getLXKcache(BA81Expect *state, const long qx, const int specific)
 }
 
 OMXINLINE static double *
-ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const long qx)
+ba81Likelihood1(omxExpectation *oo, const int thrId, int specific, const long qx)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	int numUnique = state->numUnique;
@@ -150,11 +150,11 @@ ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const long qx)
 	return lxk;
 }
 
-double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const long qx)
+double *ba81LikelihoodFast1(omxExpectation *oo, const int thrId, int specific, const long qx)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (!state->cacheLXK) {
-		double *ret = ba81Likelihood(oo, thrId, specific, qx);
+		double *ret = ba81Likelihood1(oo, thrId, specific, qx);
 		return ret;
 	} else {
 		return getLXKcache(state, qx, specific);
@@ -319,7 +319,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const long prim
 			double *myEslxk = Eslxk + sgroup * numUnique;
 			double *lxk;     // a.k.a. "L_is"
 			if (recompute) {
-				lxk = ba81Likelihood(oo, thrId, sgroup, qloc);
+				lxk = ba81Likelihood1(oo, thrId, sgroup, qloc);
 			} else {
 				lxk = getLXKcache(state, qloc, sgroup);
 			}
@@ -871,7 +871,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			double where[maxDims];
 			pointToWhere(state, quad, where, maxDims);
 
-			double *lxk = ba81LikelihoodFast(oo, thrId, 0, qx);
+			double *lxk = ba81LikelihoodFast1(oo, thrId, 0, qx);
 
 			double area = state->priQarea[qx];
 			for (int px=0; px < numUnique; px++) {
@@ -901,7 +901,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 					double where[maxDims];
 					pointToWhere(state, quad, where, maxDims);
 					double area = areaProduct(state, qx, sx, sgroup);
-					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, qloc);
+					double *lxk = ba81LikelihoodFast1(oo, thrId, sgroup, qloc);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = allElxk[px];
 						double Eis = Eslxk[sgroup * numUnique + px];
