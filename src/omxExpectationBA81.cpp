@@ -15,7 +15,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <valarray>
 #include <Rmath.h>
+
 #include "omxExpectationBA81.h"
 #include "glue.h"
 #include "libifa-rpf.h"
@@ -143,14 +145,6 @@ ba81Likelihood(omxExpectation *oo, const int thrId, int specific, const long qx)
 			}
 			oProb += itemOutcomes[ix];
 		}
-#if 0
-#pragma omp critical(ba81LikelihoodDebug1)
-		if (!isfinite(lxk1) || lxk1 > numItems) {
-			mxLog("prob");
-			pda(outcomeProb, 1, state->totalOutcomes);
-			error("Likelihood of row %d is %f", rowMap[px], lxk1);
-		}
-#endif
 		lxk[px] = lxk1;
 	}
 
@@ -171,7 +165,7 @@ double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, co
 
 OMXINLINE static void
 mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
-	       const std::vector<double> &whereGram, double *latentDist)
+	       const double *whereGram, double *latentDist)
 {
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
@@ -222,23 +216,23 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const long prim
 
 	if (!state->cacheLXK) recompute = TRUE;
 
-	for (int qx=0; qx < quadGridSize; qx++) {
-		long qloc = primaryQ * quadGridSize + qx;
+	for (int sx=0; sx < quadGridSize; sx++) {
+		long qloc = primaryQ * quadGridSize + sx;
 
-		for (int sx=0; sx < numSpecific; sx++) {
-			double *myEslxk = Eslxk + sx * numUnique;
+		for (int sgroup=0; sgroup < numSpecific; sgroup++) {
+			double *myEslxk = Eslxk + sgroup * numUnique;
 			double *lxk;     // a.k.a. "L_is"
 			if (recompute) {
-				lxk = ba81Likelihood(oo, thrId, sx, qloc);
+				lxk = ba81Likelihood(oo, thrId, sgroup, qloc);
 			} else {
-				lxk = getLXKcache(state, qloc, sx);
+				lxk = getLXKcache(state, qloc, sgroup);
 			}
 
 			for (int ix=0; ix < numUnique; ix++) {
-				double area = state->speQarea[sIndex(state, sx, qx)];
+				double area = state->speQarea[sIndex(state, sgroup, sx)];
 				double piece = lxk[ix] * area;
 				//mxLog("E.is(%d) (%ld,%d) %.6f + %.6f = %.6f",
-				//  sx, primaryQ, qx, lxk[ix], area, piece);
+				//  sgroup, primaryQ, sx, lxk[ix], area, piece);
 				myEslxk[ix] += piece;
 			}
 		}
@@ -279,98 +273,202 @@ static void ba81Estep1(omxExpectation *oo)
 	}
 
 	int numUnique = state->numUnique;
+	size_t numItems = state->itemSpec.size();
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int primaryDims = maxDims;
+	int totalOutcomes = state->totalOutcomes;
+	omxData *data = state->data;
+	int *numIdentical = state->numIdentical;
+	long totalQuadPoints = state->totalQuadPoints;
 
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
-	OMXZERO(patternLik, numUnique);
+	OMXZERO(patternLik, numUnique); // remove TODO
+	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	int numLatentsPerThread = numUnique * numLatents;
 	double *latentDist = Calloc(numUnique * numLatents * Global->numThreads, double);
 
+	const int *rowMap = state->rowMap;
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+
+	int whereChunk = maxDims + triangleLoc1(maxDims);
+	std::vector<double> wherePrep(totalQuadPoints * whereChunk);
+	for (long qx=0; qx < totalQuadPoints; qx++) {
+		double *wh = wherePrep.data() + qx * whereChunk;
+		int quad[maxDims];
+		decodeLocation(qx, maxDims, state->quadGridSize, quad);
+		pointToWhere(state, quad, wh, maxDims);
+		gramProduct(wh, maxDims, wh + maxDims);
+	}
+
 	if (numSpecific == 0) {
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
-			int quad[maxDims];
-			decodeLocation(qx, maxDims, state->quadGridSize, quad);
-			double where[maxDims];
-			pointToWhere(state, quad, where, maxDims);
-			std::vector<double> whereGram(triangleLoc1(maxDims));
-			gramProduct(where, maxDims, whereGram.data());
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread; // reshape matrix TODO
+			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			double *lxk = ba81Likelihood(oo, thrId, 0, qx);
+			std::valarray<double> lxk(1, totalQuadPoints);
+			int outcomeBase = -itemOutcomes[0];
 
-			double area = state->priQarea[qx];
-			for (int px=0; px < numUnique; px++) {
-				double tmp = lxk[px] * area;
-#if 0
-				if (!isfinite(tmp)) {
-					mxLog("where");
-					pda(where, maxDims, 1);
-					error("Row %d lxk %f logArea %f tmp %f",
-					      state->rowMap[px], lxk[px], logArea, tmp);
+			for (size_t ix=0; ix < numItems; ix++) {
+				outcomeBase += itemOutcomes[ix];
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				if (pick == NA_INTEGER) continue;
+				pick -= 1;
+
+				double *oProb = state->outcomeProb + outcomeBase;
+				for (long qx=0; qx < totalQuadPoints; ++qx) {
+					lxk[qx] *= oProb[pick];
+					oProb += totalOutcomes;
 				}
-#endif
-#pragma omp atomic
-				patternLik[px] += tmp;
-				mapLatentSpace(state, 0, tmp, where, whereGram,
+			}
+			
+			double *lxkCache = state->cacheLXK? state->lxk + px : NULL;
+			double patternLik1 = 0;
+			double *wh = wherePrep.data();
+			for (long qx=0; qx < totalQuadPoints; qx++) {
+				double area = state->priQarea[qx];
+				double tmp = lxk[qx] * area;
+				patternLik1 += tmp;
+				mapLatentSpace(state, 0, tmp, wh, wh + maxDims,
 					       thrLatentDist + px * numLatents);
+
+				if (lxkCache) {
+					*lxkCache = lxk[qx];
+					lxkCache += numUnique;
+				}
+				wh += whereChunk;
+			}
+
+			patternLik[px] = patternLik1;
+			double weight = numIdentical[px] / patternLik1;
+
+			outcomeBase = -itemOutcomes[0];
+			for (size_t ix=0; ix < numItems; ix++) {
+				outcomeBase += itemOutcomes[ix];
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				if (pick == NA_INTEGER) continue;
+				pick -= 1;
+
+				double *out = myExpected + outcomeBase;
+				for (long qx=0; qx < totalQuadPoints; ++qx) {
+					out[pick] += weight * lxk[qx];
+					out += totalOutcomes;
+				}
 			}
 		}
 	} else {
 		primaryDims -= 1;
-		int sDim = primaryDims;
+		long totalPrimaryPoints = state->totalPrimaryPoints;
 		long specificPoints = state->quadGridSize;
 
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
-			int quad[maxDims];
-			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
+			double *thrLatentDist = latentDist + thrId * numLatentsPerThread; // reshape matrix TODO
+			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			cai2010(oo, thrId, TRUE, qx);
-			double *allElxk = eBase(state, thrId);
-			double *Eslxk = esBase(state, thrId);
+			std::valarray<double> lxk(1, totalQuadPoints * numSpecific);
+			int outcomeBase = -itemOutcomes[0];
 
-			for (long sx=0; sx < specificPoints; sx++) {
-				long qloc = qx * specificPoints + sx;
-				quad[sDim] = sx;
-				double where[maxDims];
-				pointToWhere(state, quad, where, maxDims);
-				std::vector<double> whereGram(triangleLoc1(maxDims));
-				gramProduct(where, maxDims, whereGram.data());
-
-				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-					double area = areaProduct(state, qx, sx, sgroup);
-					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, qloc);
-					for (int px=0; px < numUnique; px++) {
-						double Ei = allElxk[px];
-						double Eis = Eslxk[sgroup * numUnique + px];
-						double tmp = ((Ei / Eis) * lxk[px] * area);
-						mapLatentSpace(state, sgroup, tmp, where, whereGram,
-							       thrLatentDist + px * numLatents);
-					}
+			for (size_t ix=0; ix < numItems; ix++) {
+				outcomeBase += itemOutcomes[ix];
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				if (pick == NA_INTEGER) continue;
+				pick -= 1;
+				int Sbase = state->Sgroup[ix] * totalQuadPoints;
+				double *oProb = state->outcomeProb + outcomeBase;
+				for (long qx=0; qx < state->totalQuadPoints; qx++) {
+					lxk[Sbase + qx] *= oProb[pick];
+					oProb += totalOutcomes;
 				}
 			}
 
-			double priArea = state->priQarea[qx];
-			for (int px=0; px < numUnique; px++) {
-				double Ei = allElxk[px];
-				double tmp = (Ei * priArea);
-#pragma omp atomic
-				patternLik[px] += tmp;
+			std::valarray<double> Eis(0.0, totalPrimaryPoints * numSpecific);
+			std::valarray<double> Ei(1.0, totalPrimaryPoints);
+			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+				int Sbase = sgroup * totalQuadPoints;
+				for (long qx=0; qx < totalPrimaryPoints; qx++) {
+					for (long sx=0; sx < specificPoints; sx++) {
+						long qloc = qx * specificPoints + sx; // change to ++
+						double area = state->speQarea[sIndex(state, sgroup, sx)];
+						double piece = lxk[Sbase + qloc] * area;
+						Eis[totalPrimaryPoints * sgroup + qx] += piece;
+					}
+					Ei[qx] *= Eis[totalPrimaryPoints * sgroup + qx];
+				}
+			}
+
+			double *wh = wherePrep.data();
+			for (long qx=0; qx < totalPrimaryPoints; qx++) {
+				double Ei1 = Ei[qx];
+				for (long sx=0; sx < specificPoints; sx++) {
+					long qloc = qx * specificPoints + sx; // change to ++
+					for (int sgroup=0; sgroup < numSpecific; sgroup++) {
+						double area = areaProduct(state, qx, sx, sgroup);
+						double lxk1 = lxk[totalQuadPoints * sgroup + qloc];
+						double Eis1 = Eis[totalPrimaryPoints * sgroup + qx];
+						double tmp = ((Ei1 / Eis1) * lxk1 * area);
+						mapLatentSpace(state, sgroup, tmp, wh, wh + maxDims,
+							       thrLatentDist + px * numLatents);
+						if (state->cacheLXK) {
+							double *lxkCache = getLXKcache(state, qloc, sgroup);
+							lxkCache[px] = lxk1;
+						}
+					}
+					wh += whereChunk;
+				}
+			}
+
+			double patternLik1 = 0;
+			for (long qx=0; qx < totalPrimaryPoints; qx++) {
+				double priArea = state->priQarea[qx];
+				patternLik1 += Ei[qx] * priArea; // combine in upper loop TODO
+			}
+			patternLik[px] = patternLik1;
+
+			double weight = numIdentical[px] / patternLik1;
+
+			outcomeBase = -itemOutcomes[0];
+			for (size_t ix=0; ix < numItems; ix++) {
+				outcomeBase += itemOutcomes[ix];
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				if (pick == NA_INTEGER) continue;
+				pick -= 1;
+
+				int Sgroup = state->Sgroup[ix];
+
+				//double *out = myExpected + outcomeBase;
+				for (long qx=0; qx < totalPrimaryPoints; qx++) {
+					double Ei1 = Ei[qx];
+					for (long sx=0; sx < specificPoints; sx++) {
+						long qloc = qx * specificPoints + sx; // change to ++
+						double *out = myExpected + qloc * totalOutcomes + outcomeBase;
+						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
+						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
+						out[pick] += weight * (Ei1 / Eis1) * lxk1;
+						//out += totalOutcomes;
+					}
+				}
 			}
 		}
 	}
 
-	int *numIdentical = state->numIdentical;
+	long expectedSize = totalQuadPoints * totalOutcomes;
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,64)
+	for (long qx=0; qx < expectedSize; ++qx) {
+		state->expected[qx] = 0;
+		double *e1 = thrExpected.data() + qx;
+		for (int tx=0; tx < Global->numThreads; ++tx) {
+			state->expected[qx] += *e1;
+			e1 += expectedSize;
+		}
+	}
 
 	//mxLog("raw latent");
 	//pda(latentDist, numLatents, numUnique);
@@ -399,7 +497,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (!isfinite(patternLik[px])) {
+		if (!std::isfinite(patternLik[px])) {
 			omxRaiseErrorf(globalState, "Likelihood of pattern %d is %.3g",
 				       px, patternLik[px]);
 		}
@@ -459,7 +557,6 @@ static void ba81Estep1(omxExpectation *oo)
 	//pda(ElatentMean.data(), 1, state->maxAbilities);
 	//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 
-	omxData *data = state->data;
 	for (int d1=0; d1 < maxAbilities; d1++) {
 		ElatentMean[d1] /= data->rows;
 	}
@@ -906,7 +1003,7 @@ ba81compute(omxExpectation *oo, const char *context)
 	}
 
 	if (state->type == EXPECTATION_AUGMENTED) {
-		ba81Expected(oo);
+		//ba81Expected(oo);
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->EitemParam);
@@ -1299,7 +1396,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			const double *idesign = omxMatrixColumn(design, ix);
 			int ddim = 0;
 			for (int rx=0; rx < design->rows; rx++) {
-				if (isfinite(idesign[rx])) ddim += 1;
+				if (std::isfinite(idesign[rx])) ddim += 1;
 			}
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
