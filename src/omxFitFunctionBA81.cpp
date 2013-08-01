@@ -171,7 +171,8 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 }
 
 OMXINLINE static double
-ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int want, double *myDeriv)
+ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
+		 const double *weight, int want, double *myDeriv)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
@@ -197,7 +198,8 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 		int id = spec[RPF_ISpecID];
 		int iOutcomes = estate->itemOutcomes[ix];
 
-		double area = areaProduct(estate, quad, estate->Sgroup[ix]);
+		double area = areaProduct(estate, qx, -1, estate->Sgroup[ix]);
+
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
 				double got = weight[ox] * oProb[ox];
@@ -252,7 +254,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
 		double *weight = estate->expected + qx * totalOutcomes;
 		double *myDeriv = thrDeriv + itemParam->cols * state->itemDerivPadSize * omx_absolute_thread_num();
-		double thr_ll = ba81Fit1Ordinate(oo, quad, weight, want, myDeriv);
+		double thr_ll = ba81Fit1Ordinate(oo, qx, quad, weight, want, myDeriv);
 		
 #pragma omp atomic
 		ll += thr_ll;
@@ -588,7 +590,7 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 			std::vector<double> derivCoef(maxDerivCoef);
 			calcDerivCoef(state, estate, where, 0, &derivCoef);
 			double area = estate->priQarea[qx];
-			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, quad);
+			double *lxk = ba81LikelihoodFast(expectation, thrId, 0, qx);
 
 			for (int px=0; px < numUnique; px++) {
 				double tmp = (lxk[px] * area);
@@ -609,19 +611,20 @@ static bool latentDeriv(omxFitFunction *oo, double *gradient)
 			int quad[maxDims];
 			decodeLocation(qx, primaryDims, estate->quadGridSize, quad);
 
-			cai2010(expectation, thrId, FALSE, quad);
+			cai2010(expectation, thrId, FALSE, qx);
 			double *allElxk = eBase(estate, thrId);
 			double *Eslxk = esBase(estate, thrId);
 
 			for (long sx=0; sx < specificPoints; sx++) {
+				long qloc = qx * specificPoints + sx;
 				quad[sDim] = sx;
 				double where[maxDims];
 				pointToWhere(estate, quad, where, maxDims);
 				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 					std::vector<double> derivCoef(maxDerivCoef);
 					calcDerivCoef(state, estate, where, sgroup, &derivCoef);
-					double area = areaProduct(estate, quad, sgroup);
-					double *lxk = ba81LikelihoodFast(expectation, thrId, sgroup, quad);
+					double area = areaProduct(estate, qx, sx, sgroup);
+					double *lxk = ba81LikelihoodFast(expectation, thrId, sgroup, qloc);
 					for (int px=0; px < numUnique; px++) {
 						double Ei = allElxk[px];
 						double Eis = Eslxk[sgroup * numUnique + px];

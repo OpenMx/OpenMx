@@ -44,7 +44,6 @@ typedef struct {
 	// item description related
 	std::vector<const double*> itemSpec;
 	std::vector<int> itemOutcomes;
-	int maxOutcomes;
 	int maxDims;
 	int maxAbilities;
 	int numSpecific;
@@ -72,6 +71,7 @@ typedef struct {
 	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
 	int totalOutcomes;
+	double *outcomeProb;      // totalOutcomes * totalQuadPoints
 	double *expected;         // totalOutcomes * totalQuadPoints
 	std::vector<double> ElatentMean;      // maxAbilities
 	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
@@ -91,8 +91,8 @@ extern int rpf_numModels;
 
 void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
 		const bool wantlog, double *outcomeProb);
-void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
-double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const int *quad);
+void cai2010(omxExpectation* oo, const int thrId, int recompute, const long qx);
+double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const long qx);
 
 OMXINLINE static int
 triangleLoc1(int diag)
@@ -128,37 +128,26 @@ pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
 	}
 }
 
-OMXINLINE static long
-encodeLocation(const int dims, const long grid, const int *quad)
-{
-	long qx = 0;
-	for (int dx=dims-1; dx >= 0; dx--) {
-		qx = qx * grid;
-		qx += quad[dx];
-	}
-	return qx;
-}
-
 OMXINLINE static void
 decodeLocation(long qx, const int dims, const long grid, int *quad)
 {
-	for (int dx=0; dx < dims; dx++) {
+	for (int dx=dims-1; dx >= 0; --dx) {
 		quad[dx] = qx % grid;
 		qx = qx / grid;
 	}
 }
 
 OMXINLINE static double
-areaProduct(BA81Expect *state, const int *quad, const int sg)
+areaProduct(BA81Expect *state, long qx, int sx, const int sg)
 {
-	int maxDims = state->maxDims;
 	if (state->numSpecific == 0) {
-		long qloc = encodeLocation(maxDims, state->quadGridSize, quad);
-		return state->priQarea[qloc];
+		return state->priQarea[qx];
 	} else {
-		long priloc = encodeLocation(maxDims-1, state->quadGridSize, quad);
-		return (state->priQarea[priloc] *
-			state->speQarea[sg * state->quadGridSize + quad[maxDims - 1]]);
+		if (sx == -1) {
+			sx = qx % state->quadGridSize;
+			qx /= state->quadGridSize;
+		}
+		return (state->priQarea[qx] * state->speQarea[sg * state->quadGridSize + sx]);
 	}
 }
 
