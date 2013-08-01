@@ -164,7 +164,7 @@ double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, co
 }
 
 static OMXINLINE void
-ba81LikelihoodSlow2(BA81Expect *state, int px, int specific, double *out)
+ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 {
 	long totalQuadPoints = state->totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
@@ -172,36 +172,68 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, int specific, double *out)
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
 	int totalOutcomes = state->totalOutcomes;
-
-	for (long qx=0; qx < totalQuadPoints; ++qx) {
-		out[qx] = 1.0;
-	}
-
+	int numSpecific = state->numSpecific;
 	int outcomeBase = -itemOutcomes[0];
-	for (size_t ix=0; ix < numItems; ix++) {
-		outcomeBase += itemOutcomes[ix];
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-		if (pick == NA_INTEGER) continue;
-		pick -= 1;
 
-		double *oProb = state->outcomeProb + outcomeBase;
+	if (numSpecific == 0) {
 		for (long qx=0; qx < totalQuadPoints; ++qx) {
-			out[qx] *= oProb[pick];
-			oProb += totalOutcomes;
+			out[qx] = 1.0;
+		}
+
+		for (size_t ix=0; ix < numItems; ix++) {
+			outcomeBase += itemOutcomes[ix];
+			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+			if (pick == NA_INTEGER) continue;
+			pick -= 1;
+
+			double *oProb = state->outcomeProb + outcomeBase;
+			for (long qx=0; qx < totalQuadPoints; ++qx) {
+				out[qx] *= oProb[pick];
+				oProb += totalOutcomes;
+			}
+		}
+	} else {
+		for (long qx=0; qx < totalQuadPoints * numSpecific; ++qx) {
+			out[qx] = 1.0;
+		}
+
+		for (size_t ix=0; ix < numItems; ix++) {
+			outcomeBase += itemOutcomes[ix];
+			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+			if (pick == NA_INTEGER) continue;
+			pick -= 1;
+			int Sbase = state->Sgroup[ix] * totalQuadPoints;
+			double *oProb = state->outcomeProb + outcomeBase;
+			for (long qx=0; qx < state->totalQuadPoints; qx++) {
+				out[Sbase + qx] *= oProb[pick];
+				oProb += totalOutcomes;
+			}
 		}
 	}
 }
 
 static OMXINLINE void
-ba81LikelihoodFast2(BA81Expect *state, int px, int specific, double *out)
+ba81LikelihoodFast2(BA81Expect *state, int px, double *out)
 {
+	int numSpecific = state->numSpecific;
 	long totalQuadPoints = state->totalQuadPoints;
 	if (state->cacheLXK) {
-		for (long qx=0; qx < totalQuadPoints; qx++) {
-			out[qx] = state->lxk[state->numUnique * qx + px]; // transpose cache to avoid copy TODO
+		if (numSpecific == 0) {
+			for (long qx=0; qx < totalQuadPoints; qx++) {
+				out[qx] = state->lxk[state->numUnique * qx + px]; // transpose cache to avoid copy TODO
+			}
+		} else {
+			long qloc = 0;
+			for (int sx=0; sx < numSpecific; ++sx) {
+				for (long qx=0; qx < totalQuadPoints; ++qx) {
+					long ordinate = sx * state->totalQuadPoints + qx;
+					out[qloc] = state->lxk[state->numUnique * ordinate + px];
+					++qloc;
+				}
+			}
 		}
 	} else {
-		ba81LikelihoodSlow2(state, px, specific, out);
+		ba81LikelihoodSlow2(state, px, out);
 	}
 }
 
@@ -351,11 +383,9 @@ static void ba81Estep1(omxExpectation *oo)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
-			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
 			std::vector<double> lxk(totalQuadPoints); // make thread local TODO
-
-			ba81LikelihoodSlow2(state, px, 0, lxk.data());
+			ba81LikelihoodSlow2(state, px, lxk.data());
 
 			double *lxkCache = state->cacheLXK? state->lxk + px : NULL;
 			double patternLik1 = 0;
@@ -387,21 +417,8 @@ static void ba81Estep1(omxExpectation *oo)
 			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			std::valarray<double> lxk(1, totalQuadPoints * numSpecific);
-			int outcomeBase = -itemOutcomes[0];
-
-			for (size_t ix=0; ix < numItems; ix++) {
-				outcomeBase += itemOutcomes[ix];
-				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-				if (pick == NA_INTEGER) continue;
-				pick -= 1;
-				int Sbase = state->Sgroup[ix] * totalQuadPoints;
-				double *oProb = state->outcomeProb + outcomeBase;
-				for (long qx=0; qx < state->totalQuadPoints; qx++) {
-					lxk[Sbase + qx] *= oProb[pick];
-					oProb += totalOutcomes;
-				}
-			}
+			std::vector<double> lxk(totalQuadPoints * numSpecific);
+			ba81LikelihoodSlow2(state, px, lxk.data());
 
 			std::valarray<double> Eis(0.0, totalPrimaryPoints * numSpecific);
 			std::valarray<double> Ei(1.0, totalPrimaryPoints);
@@ -445,7 +462,7 @@ static void ba81Estep1(omxExpectation *oo)
 			patternLik[px] = patternLik1;
 			double weight = numIdentical[px] / patternLik1;
 
-			outcomeBase = -itemOutcomes[0];
+			int outcomeBase = -itemOutcomes[0];
 			for (size_t ix=0; ix < numItems; ix++) {
 				outcomeBase += itemOutcomes[ix];
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
@@ -720,17 +737,17 @@ ba81Expected(omxExpectation* oo)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	long totalQuadPoints = state->totalQuadPoints;
 
-	OMXZERO(state->expected, totalOutcomes * totalQuadPoints);
-	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
-
 	if (numSpecific == 0) {
+		OMXZERO(state->expected, totalOutcomes * totalQuadPoints);
+		std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
+
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
 			std::vector<double> lxk(totalQuadPoints);
-			ba81LikelihoodFast2(state, px, 0, lxk.data());
+			ba81LikelihoodFast2(state, px, lxk.data());
 
 			double weight = numIdentical[px] / patternLik[px];
 
@@ -760,41 +777,7 @@ ba81Expected(omxExpectation* oo)
 			}
 		}
 	} else {
-		long specificPoints = state->quadGridSize;
-
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
-			int thrId = omx_absolute_thread_num();
-
-			cai2010(oo, thrId, FALSE, qx);
-			double *allElxk = eBase(state, thrId);
-			double *Eslxk = esBase(state, thrId);
-
-			for (long sx=0; sx < specificPoints; sx++) {
-				long qloc = qx * specificPoints + sx;
-
-				for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-					double *lxk = ba81LikelihoodFast(oo, thrId, sgroup, qloc);
-					double *myEslxk = Eslxk + sgroup * numUnique;
-
-					for (int px=0; px < numUnique; px++) {
-						double *out = state->expected + totalOutcomes * qloc;
-
-						for (int ix=0; ix < numItems; ix++) {
-							const int outcomes = itemOutcomes[ix];
-							if (state->Sgroup[ix] == sgroup) {
-								double Ei = allElxk[px];
-								double Eis = myEslxk[px];
-								double observed = (numIdentical[px] * (Ei / Eis) *
-										   (lxk[px] / patternLik[px]));
-								expectedUpdate(data, rowMap, px, ix, observed, out);
-							}
-							out += outcomes;
-						}
-					}
-				}
-			}
-		}
+		// TODO
 	}
 
 	if (!state->checkedBadData) {
