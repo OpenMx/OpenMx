@@ -58,18 +58,15 @@ int sIndex(BA81Expect *state, int sx, int qx)
 }
 
 // Depends on item parameters, but not latent distribution
-double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog)
+void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
+		const bool wantlog, double *out)
 {
 	omxMatrix *design = state->design;
 	int maxDims = state->maxDims;
-	int totalOutcomes = state->totalOutcomes;
 	size_t numItems = state->itemSpec.size();
 
 	double theta[maxDims];
 	pointToWhere(state, quad, theta, maxDims);
-
-	double *outcomeProb = Realloc(NULL, totalOutcomes, double);
-	double *out = outcomeProb;
 
 	for (size_t ix=0; ix < numItems; ix++) {
 		const double *spec = state->itemSpec[ix];
@@ -102,8 +99,6 @@ double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, con
 #endif
 		out += state->itemOutcomes[ix];
 	}
-
-	return outcomeProb;
 }
 
 OMXINLINE static double *
@@ -172,7 +167,8 @@ double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, co
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (!state->cacheLXK) {
-		const double *outcomeProb = computeRPF(state, state->EitemParam, quad, FALSE);
+		double *outcomeProb = Realloc(NULL, state->totalOutcomes, double);
+		computeRPF(state, state->EitemParam, quad, FALSE, outcomeProb);
 		double *ret = ba81Likelihood(oo, thrId, specific, quad, outcomeProb);
 		Free(outcomeProb);
 		return ret;
@@ -243,7 +239,8 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *prim
 		quad[sDim] = qx;
 		double *outcomeProb = NULL;
 		if (recompute) {
-			outcomeProb = computeRPF(state, state->EitemParam, quad, FALSE);
+			outcomeProb = Realloc(NULL, state->totalOutcomes, double);
+			computeRPF(state, state->EitemParam, quad, FALSE, outcomeProb);
 		}
 		for (int sx=0; sx < numSpecific; sx++) {
 			double *myEslxk = Eslxk + sx * numUnique;
@@ -316,7 +313,8 @@ static void ba81Estep1(omxExpectation *oo)
 			std::vector<double> whereGram(triangleLoc1(maxDims));
 			gramProduct(where, maxDims, whereGram.data());
 
-			const double *outcomeProb = computeRPF(state, state->EitemParam, quad, FALSE);
+			double *outcomeProb = Realloc(NULL, state->totalOutcomes, double);
+			computeRPF(state, state->EitemParam, quad, FALSE, outcomeProb);
 			double *lxk = ba81Likelihood(oo, thrId, 0, quad, outcomeProb);
 			Free(outcomeProb);
 

@@ -177,7 +177,6 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemParam = estate->itemParam;
 	int numItems = itemParam->cols;
-	int maxOutcomes = estate->maxOutcomes;
 	int maxDims = estate->maxDims;
 	int do_fit = want & FF_COMPUTE_FIT;
 	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
@@ -187,8 +186,8 @@ ba81Fit1Ordinate(omxFitFunction* oo, const int *quad, const double *weight, int 
 
 	double *outcomeProb = NULL;
 	if (do_fit) {
-		outcomeProb = computeRPF(estate, itemParam, quad, TRUE); // avoid malloc/free? TODO
-		if (!outcomeProb) return 0;
+		outcomeProb = Realloc(NULL, estate->totalOutcomes, double); // avoid malloc/free? TODO
+		computeRPF(estate, itemParam, quad, TRUE, outcomeProb);
 	}
 
 	double thr_ll = 0;

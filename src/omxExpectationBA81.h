@@ -89,7 +89,8 @@ typedef struct {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-double *computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, const bool wantlog);
+void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
+		const bool wantlog, double *outcomeProb);
 void cai2010(omxExpectation* oo, const int thrId, int recompute, const int *primaryQuad);
 double *ba81LikelihoodFast(omxExpectation *oo, const int thrId, int specific, const int *quad);
 
