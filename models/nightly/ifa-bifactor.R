@@ -51,9 +51,36 @@ m1 <- mxModel(model="bifactor",
 	     ItemSpec=items,
 	     design=design,
 	     EItemParam="EItemParam", ItemParam="ItemParam",
-	    qpoints=29,
-	    scores="full"),
-          mxFitFunctionML(),
+	    qpoints=29),
+	      mxFitFunctionML(),
+	      mxComputeOnce('expectation', context='EM'))
+m1 <- mxRun(m1)
+
+omxCheckCloseEnough(sum(m1@expectation@patternLikelihood), 0.08697, 1e-4)
+omxCheckCloseEnough(fivenum(m1@expectation@patternLikelihood),
+                    c(1.43406e-07, 3.15698e-07, 7.52953e-07, 4.343729e-06, 0.027590262396 ), 1e-10)
+omxCheckCloseEnough(sum(m1@expectation@em.expected), 6368699.1, 1)
+omxCheckCloseEnough(fivenum(m1@expectation@em.expected),
+                    c(0, 1.20732462973, 61.839214062326, 299.490710735791, 1536.92045018699 ), 1e-5)
+
+m1 <- mxModel(m1,
+              mxComputeIterate(steps=list(
+                mxComputeOnce('expectation', context='EM'),
+                mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE)
+              )))
+m1 <- mxRun(m1)
+omxCheckCloseEnough(m1@fitfunction@result, 11850.68, .01)
+omxCheckCloseEnough(fivenum(m1@output$gradient), c(-369.32879, -14.47296, 13.1165, 50.07066, 323.04627 ), .01)
+omxCheckCloseEnough(fivenum(m1@output$hessian[m1@output$hessian != 0]),
+                    c(-53.666201, -7.6857353, -6.0121325, 89.8735155, 192.6600613 ), 1e-4)
+
+m1 <- mxModel(m1,
+              mxData(observed=data, type="raw"),
+              mxExpectationBA81(mean="mean", cov="cov",
+                                ItemSpec=items,
+                                design=design,
+                                EItemParam="EItemParam", ItemParam="ItemParam",
+                                qpoints=29, scores="full"),
               mxComputeIterate(steps=list(
                 mxComputeOnce('expectation', context='EM'),
 			   mxComputeNewtonRaphson(free.set='ItemParam'),
