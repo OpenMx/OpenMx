@@ -285,7 +285,6 @@ static void ba81Estep1(omxExpectation *oo)
 
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
-	OMXZERO(patternLik, numUnique); // remove TODO
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
@@ -391,8 +390,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 			std::valarray<double> Eis(0.0, totalPrimaryPoints * numSpecific);
 			std::valarray<double> Ei(1.0, totalPrimaryPoints);
-			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
-				int Sbase = sgroup * totalQuadPoints;
+			for (int sgroup=0, Sbase=0; sgroup < numSpecific; ++sgroup, Sbase += totalQuadPoints) {
 				long qloc = 0;
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
 					for (long sx=0; sx < specificPoints; sx++) {
@@ -405,16 +403,18 @@ static void ba81Estep1(omxExpectation *oo)
 				}
 			}
 
+			double patternLik1 = 0;
 			double *wh = wherePrep.data();
-			for (long qx=0; qx < totalPrimaryPoints; qx++) {
-				double Ei1 = Ei[qx];
+			for (long qx=0, qloc=0; qx < totalPrimaryPoints; ++qx) {
+				double priArea = state->priQarea[qx];
+				double EiArea = Ei[qx] * priArea;
+				patternLik1 += EiArea;
 				for (long sx=0; sx < specificPoints; sx++) {
-					long qloc = qx * specificPoints + sx; // change to ++
 					for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-						double area = areaProduct(state, qx, sx, sgroup);
+						double area = state->speQarea[sgroup * specificPoints + sx];
 						double lxk1 = lxk[totalQuadPoints * sgroup + qloc];
 						double Eis1 = Eis[totalPrimaryPoints * sgroup + qx];
-						double tmp = ((Ei1 / Eis1) * lxk1 * area);
+						double tmp = (EiArea / Eis1) * lxk1 * area;
 						mapLatentSpace(state, sgroup, tmp, wh, wh + maxDims,
 							       thrLatentDist + px * numLatents);
 						if (state->cacheLXK) {
@@ -423,16 +423,11 @@ static void ba81Estep1(omxExpectation *oo)
 						}
 					}
 					wh += whereChunk;
+					++qloc;
 				}
 			}
 
-			double patternLik1 = 0;
-			for (long qx=0; qx < totalPrimaryPoints; qx++) {
-				double priArea = state->priQarea[qx];
-				patternLik1 += Ei[qx] * priArea; // combine in upper loop TODO
-			}
 			patternLik[px] = patternLik1;
-
 			double weight = numIdentical[px] / patternLik1;
 
 			outcomeBase = -itemOutcomes[0];
@@ -921,7 +916,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
         }
 }
 
-static void recomputePatternLik(omxExpectation *oo)
+static void recomputePatternLik(omxExpectation *oo)  // openmp reduction TODO
 {
 	BA81Expect *estate = (BA81Expect*) oo->argStruct;
 	if (estate->verbose) mxLog("%s: patternLik", oo->name);
