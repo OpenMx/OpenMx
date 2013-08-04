@@ -232,15 +232,19 @@ irt_rpf_mdim_drm_numParam(const double *spec)
 { return 3 + spec[RPF_ISpecDims]; }
 
 static void
-irt_rpf_mdim_drm_paramBound(const double *spec, const int param,
-			    double *upper, double *lower)
+irt_rpf_mdim_drm_paramInfo(const double *spec, const int param,
+			   int *type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	*upper = nan("unset");
 	*lower = nan("unset");
 	if (param >= 0 && param < numDims) {
+		*type = RPF_Slope;
 		*lower = 1e-6;
+	} else if (param == numDims) {
+		*type = RPF_Intercept;
 	} else if (param == numDims+1 || param == numDims+2) {
+		*type = RPF_Bound;
 		*lower = 1e-6;
 		*upper = 1 - 1e-6;
 	}
@@ -488,15 +492,18 @@ irt_rpf_mdim_grm_numParam(const double *spec)
 { return spec[RPF_ISpecOutcomes] + spec[RPF_ISpecDims] - 1; }
 
 static void
-irt_rpf_mdim_grm_paramBound(const double *spec, const int param,
-			    double *upper, double *lower)
+irt_rpf_mdim_grm_paramInfo(const double *spec, const int param,
+			   int *type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	const int numOutcomes = spec[RPF_ISpecOutcomes];
 	*upper = nan("unset");
 	*lower = nan("unset");
 	if (param >= 0 && param < numDims) {
+		*type = RPF_Slope;
 		*lower = 1e-6;
+	} else {
+		*type = RPF_Intercept;
 	}
 }
 
@@ -718,15 +725,20 @@ irt_rpf_nominal_numParam(const double *spec)
 
 
 static void
-irt_rpf_nominal_paramBound(const double *spec, const int param,
-			   double *upper, double *lower)
+irt_rpf_nominal_paramInfo(const double *spec, const int param,
+			  int *type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	const int numOutcomes = spec[RPF_ISpecOutcomes];
 	*upper = nan("unset");
 	*lower = nan("unset");
 	if (param >= 0 && param < numDims) {
+		*type = RPF_Slope;
 		*lower = 1e-6;
+	} else if (param < numDims + numOutcomes - 1) {
+		*type = RPF_Slope;
+	} else {
+		*type = RPF_Intercept;
 	}
 }
 
@@ -1204,7 +1216,7 @@ const struct rpf librpf_model[] = {
   { "drm1-",
     irt_rpf_1dim_drm_numSpec,
     irt_rpf_1dim_drm_numParam,
-    irt_rpf_mdim_drm_paramBound,
+    irt_rpf_mdim_drm_paramInfo,
     irt_rpf_1dim_drm_prob,
     irt_rpf_logprob_adapter,
     irt_rpf_1dim_drm_deriv1,
@@ -1215,7 +1227,7 @@ const struct rpf librpf_model[] = {
   { "drm1",
     irt_rpf_1dim_drm_numSpec,
     irt_rpf_1dim_drm_numParam,
-    irt_rpf_mdim_drm_paramBound,
+    irt_rpf_mdim_drm_paramInfo,
     irt_rpf_1dim_drm_prob,
     irt_rpf_logprob_adapter,
     notimplemented,
@@ -1226,7 +1238,7 @@ const struct rpf librpf_model[] = {
   { "drm1+",
     irt_rpf_mdim_drm_numSpec,
     irt_rpf_mdim_drm_numParam,
-    irt_rpf_mdim_drm_paramBound,
+    irt_rpf_mdim_drm_paramInfo,
     irt_rpf_mdim_drm_prob,
     irt_rpf_logprob_adapter,
     irt_rpf_mdim_drm_deriv1,
@@ -1237,7 +1249,7 @@ const struct rpf librpf_model[] = {
   { "drm",
     irt_rpf_mdim_drm_numSpec,
     irt_rpf_mdim_drm_numParam,
-    irt_rpf_mdim_drm_paramBound,
+    irt_rpf_mdim_drm_paramInfo,
     irt_rpf_mdim_drm_prob,
     irt_rpf_logprob_adapter,
     irt_rpf_mdim_drm_deriv1,
@@ -1248,7 +1260,7 @@ const struct rpf librpf_model[] = {
   { "grm1",
     irt_rpf_mdim_grm_numSpec,
     irt_rpf_mdim_grm_numParam,
-    irt_rpf_mdim_grm_paramBound,
+    irt_rpf_mdim_grm_paramInfo,
     irt_rpf_1dim_grm_prob,
     irt_rpf_logprob_adapter,
     noop, // TODO fill in pre/post transformation
@@ -1259,7 +1271,7 @@ const struct rpf librpf_model[] = {
   { "grm",
     irt_rpf_mdim_grm_numSpec,
     irt_rpf_mdim_grm_numParam,
-    irt_rpf_mdim_grm_paramBound,
+    irt_rpf_mdim_grm_paramInfo,
     irt_rpf_mdim_grm_prob,
     irt_rpf_logprob_adapter,
     irt_rpf_mdim_grm_deriv1,
@@ -1270,7 +1282,7 @@ const struct rpf librpf_model[] = {
   { "nominal",
     irt_rpf_nominal_numSpec,
     irt_rpf_nominal_numParam,
-    irt_rpf_nominal_paramBound,
+    irt_rpf_nominal_paramInfo,
     irt_rpf_nominal_prob,
     irt_rpf_nominal_logprob,
     irt_rpf_nominal_deriv1,

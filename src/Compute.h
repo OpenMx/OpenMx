@@ -34,6 +34,7 @@ class FitContext {
 	FreeVarGroup *varGroup;
 	double fit;
 	double *est;
+	int *flavor;
 	//	double *denom;
 	double *grad;
 	double *hess;

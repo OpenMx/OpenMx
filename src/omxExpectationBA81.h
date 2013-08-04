@@ -70,6 +70,7 @@ typedef struct {
 	double *allElxk;          // numUnique * thread
 	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
+	int excludedPatterns;
 	int totalOutcomes;
 	double *outcomeProb;      // totalOutcomes * totalQuadPoints
 	double *expected;         // totalOutcomes * totalQuadPoints
@@ -161,6 +162,12 @@ gramProduct(double *vec, size_t len, double *out)
 			++cell;
 		}
 	}
+}
+
+OMXINLINE static bool
+validPatternLik(double pl)
+{
+	return isfinite(pl) && pl > 1e-300;
 }
 
 // debug tools

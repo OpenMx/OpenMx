@@ -25,6 +25,7 @@ void FitContext::init()
 	size_t numParam = varGroup->vars.size();
 	fit = parent? parent->fit : 0;
 	est = new double[numParam];
+	flavor = new int[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
 	ihess = new double[numParam * numParam];
@@ -294,6 +295,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 FitContext::~FitContext()
 {
 	delete [] est;
+	delete [] flavor;
 	delete [] grad;
 	delete [] hess;
 	delete [] ihess;

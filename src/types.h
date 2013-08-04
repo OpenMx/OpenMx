@@ -23,12 +23,13 @@
 
 enum omxFFCompute {
 	FF_COMPUTE_FIT          = 1<<0,
-	FF_COMPUTE_PREOPTIMIZE  = 1<<1,
-	FF_COMPUTE_ESTIMATE     = 1<<2,
-	FF_COMPUTE_GRADIENT     = 1<<3,
-	FF_COMPUTE_HESSIAN      = 1<<4,
-	FF_COMPUTE_IHESSIAN     = 1<<5,
-	FF_COMPUTE_POSTOPTIMIZE = 1<<6   // unused? remove? TODO
+	FF_COMPUTE_PARAMFLAVOR  = 1<<1,
+	FF_COMPUTE_PREOPTIMIZE  = 1<<2,
+	FF_COMPUTE_ESTIMATE     = 1<<3,
+	FF_COMPUTE_GRADIENT     = 1<<4,
+	FF_COMPUTE_HESSIAN      = 1<<5,
+	FF_COMPUTE_IHESSIAN     = 1<<6,
+	FF_COMPUTE_POSTOPTIMIZE = 1<<7   // unused? remove? TODO
 };
 
 typedef struct omxMatrix omxMatrix;

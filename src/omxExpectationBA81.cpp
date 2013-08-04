@@ -363,11 +363,6 @@ static void ba81Estep1(omxExpectation *oo)
 	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", oo->name);}
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	if (state->verbose) {
-		mxLog("%s: lxk(%d) patternLik ElatentMean ElatentCov",
-		      oo->name, omxGetMatrixVersion(state->EitemParam));
-	}
-
 	int numUnique = state->numUnique;
 	int numSpecific = state->numSpecific;
 	int maxDims = state->maxDims;
@@ -378,6 +373,7 @@ static void ba81Estep1(omxExpectation *oo)
 	int *numIdentical = state->numIdentical;
 	long totalQuadPoints = state->totalQuadPoints;
 
+	state->excludedPatterns = 0;
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
@@ -513,9 +509,14 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (!isfinite(patternLik[px])) {
-			omxRaiseErrorf(globalState, "Likelihood of pattern %d is %.3g",
-				       px, patternLik[px]);
+		if (!validPatternLik(patternLik[px])) {
+#pragma omp atomic
+			state->excludedPatterns += 1;
+			// Weight would be a huge number. If we skip
+			// the rest then this pattern will not
+			// contribute (much) to the latent
+			// distribution estimate.
+			continue;
 		}
 
 		double *latentDist1 = latentDist + px * numLatents;
@@ -533,11 +534,6 @@ static void ba81Estep1(omxExpectation *oo)
 			int loc = maxAbilities + triangleLoc0(sdim);
 			latentDist1[loc] *= weight;
 		}
-#if 0
-		if (!isfinite(patternLik[px])) {
-			error("Likelihood of row %d is %f", state->rowMap[px], patternLik[px]);
-		}
-#endif
 	}
 
 	//mxLog("raw latent after weighting");
@@ -593,6 +589,12 @@ static void ba81Estep1(omxExpectation *oo)
 	if (state->cacheLXK) state->LXKcached = TRUE;
 
 	Free(latentDist);
+
+	if (state->verbose) {
+		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
+		      oo->name, omxGetMatrixVersion(state->EitemParam),
+		      state->excludedPatterns, numUnique);
+	}
 
 	//mxLog("E-step");
 	//pda(ElatentMean.data(), 1, state->maxAbilities);
@@ -743,6 +745,10 @@ ba81Expected(omxExpectation* oo)
 			std::vector<double> lxk(totalQuadPoints);
 			ba81LikelihoodFast2(state, px, lxk.data());
 
+			if (!validPatternLik(patternLik[px])) {
+				continue;
+			}
+
 			double weight = numIdentical[px] / patternLik[px];
 
 			int outcomeBase = -itemOutcomes[0];
@@ -771,6 +777,10 @@ ba81Expected(omxExpectation* oo)
 			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
 			std::vector<double> Ei(totalPrimaryPoints, 1.0);
 			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
+
+			if (!validPatternLik(patternLik[px])) {
+				continue;
+			}
 
 			double weight = numIdentical[px] / patternLik[px];
 
@@ -949,10 +959,9 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 static void recomputePatternLik(omxExpectation *oo)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	if (state->verbose) mxLog("%s: patternLik", oo->name);
-
 	int numUnique = state->numUnique;
 	long totalQuadPoints = state->totalQuadPoints;
+	state->excludedPatterns = 0;
 	double *patternLik = state->patternLik;
 	OMXZERO(patternLik, numUnique);
 
@@ -963,6 +972,10 @@ static void recomputePatternLik(omxExpectation *oo)
 			ba81LikelihoodFast2(state, px, lxk.data());
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				patternLik[px] += lxk[qx] * state->priQarea[qx];
+			}
+			if (!validPatternLik(patternLik[px])) {
+#pragma omp atomic
+				state->excludedPatterns += 1;
 			}
 		}
 	} else {
@@ -975,8 +988,15 @@ static void recomputePatternLik(omxExpectation *oo)
 			for (long qx=0; qx < totalPrimaryPoints; qx++) {
 				patternLik[px] += Ei[qx] * state->priQarea[qx];
 			}
+			if (!validPatternLik(patternLik[px])) {
+#pragma omp atomic
+				state->excludedPatterns += 1;
+			}
 		}
 	}
+
+	if (state->verbose) mxLog("%s: patternLik (%d/%d excluded)",
+				  oo->name, state->excludedPatterns, numUnique);
 }
 
 static void
@@ -1084,6 +1104,13 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	}
 
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
+
+	if (state->excludedPatterns) {
+		// not enough, add more complaints TODO
+		warning("Cannot compute EAP scores because %d patterns are too unlikely",
+			state->excludedPatterns);
+		return;
+	}
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
@@ -1211,6 +1238,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	
 	BA81Expect *state = new BA81Expect;
 	state->numSpecific = 0;
+	state->excludedPatterns = 0;
 	state->numIdentical = NULL;
 	state->rowMap = NULL;
 	state->design = NULL;

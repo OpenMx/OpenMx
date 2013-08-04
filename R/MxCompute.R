@@ -205,7 +205,8 @@ setClass(Class = "MxComputeNewtonRaphson",
 	   fitfunction = "MxCharOrNumber",
 	   maxIter = "integer",
 	   tolerance = "numeric",
-	   verbose = "integer"))
+	   verbose = "integer",
+	   carefully = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {
@@ -227,7 +228,7 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.set, fit, maxIter, tolerance, adjustStart, verbose) {
+	  function(.Object, free.set, fit, maxIter, tolerance, adjustStart, verbose, carefully) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
@@ -235,14 +236,15 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
+		  .Object@carefully <- carefully
 		  .Object
 	  })
 
 mxComputeNewtonRaphson <- function(type, free.set=NULL, adjustStart=FALSE,
 				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
-				   verbose=0L) {
+				   verbose=0L, carefully=FALSE) {
 
-	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, adjustStart, verbose)
+	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, adjustStart, verbose, carefully)
 }
 
 #----------------------------------------------------

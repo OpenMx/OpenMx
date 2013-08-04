@@ -27,6 +27,7 @@ struct BA81FitState {
 
 	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
+	std::vector<int> paramFlavor;        // freeParam
 	std::vector<int> paramMap;           // itemParam->cols * itemDerivPadSize -> index of free parameter
 	std::vector<int> paramLocations;     // param# -> count of appearances in ItemParam
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
@@ -115,6 +116,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 	size_t numFreeParams = state->numItemParam = fvg->vars.size();
 	state->paramLocations.assign(numFreeParams, 0);
+	state->paramFlavor.assign(numFreeParams, -1);
 
 	for (size_t px=0; px < numFreeParams; px++) {
 		omxFreeVar *fv = fvg->vars[px];
@@ -122,6 +124,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = ~loc->matrix;
+			// prohibit mean & cov TODO
 			if (matNum == itemParam->matrixNumber) {
 				int at = loc->col * state->itemDerivPadSize + loc->row;
 				state->paramMap[at] = px;
@@ -129,8 +132,15 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 				const double *spec = estate->itemSpec[loc->col];
 				int id = spec[RPF_ISpecID];
+				int flavor;
 				double upper, lower;
-				(*rpf_model[id].paramBound)(spec, loc->row, &upper, &lower);
+				(*rpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
+				if (state->paramFlavor[px] < 0) {
+					state->paramFlavor[px] = flavor;
+				} else if (state->paramFlavor[px] != flavor) {
+					error("Cannot equate %s with %s[%d,%d]", fv->name,
+					      itemParam->name, loc->row, loc->col);
+				}
 				if (fv->lbound == NEG_INF && isfinite(lower)) {
 					fv->lbound = lower;
 					if (fc->est[px] < fv->lbound) {
@@ -146,7 +156,6 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 					}
 				}
 			}
-			// guard against latent parameters here? TODO
 		}
 	}
 
@@ -235,13 +244,13 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	if (estate->verbose) mxLog("%s: em.fit-%d", oo->matrix->name, want);
-
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;
 	int maxDims = estate->maxDims;
 	const int totalOutcomes = estate->totalOutcomes;
+
+	if (estate->verbose) mxLog("%s: em.fit(%d)", oo->matrix->name, want);
 
 	double *thrDeriv = Calloc(itemParam->cols * state->itemDerivPadSize * Global->numThreads, double);
 
@@ -269,6 +278,9 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 		ll += thr_ll;
 	}
 
+	int excluded = 0;
+	int numItems = itemParam->cols;
+
 	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 		double *deriv0 = thrDeriv;
 
@@ -278,7 +290,6 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 			for (int ox=0; ox < perThread; ox++) deriv0[ox] += thrD[ox];
 		}
 
-		int numItems = itemParam->cols;
 		for (int ix=0; ix < numItems; ix++) {
 			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
@@ -329,6 +340,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 				int *mask = state->itemParamFree.data() + ix * itemParam->rows;
 				double stress;
 				omxApproxInvertPackedPosDefTriangular(iParams, mask, pad, &stress);
+				if (stress) ++excluded;
 			}
 
 			for (int ox=0; ox < numParams; ox++) {
@@ -339,7 +351,14 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 					fc->ihess[Hto] += deriv0[ox] / state->ihessDivisor[ox];
 				}
 			}
+
 		}
+	}
+
+	if (excluded) {
+		// maybe not fatal, but investigation needed
+		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%d items",
+			       excluded, numItems);
 	}
 
 	Free(thrDeriv);
@@ -664,12 +683,20 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		if (!state->haveItemMap) buildItemParamMap(oo, fc);
 
+		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
+
+		if (want & FF_COMPUTE_PARAMFLAVOR) {
+			for (int px=0; px < state->numItemParam; ++px) {
+				if (state->paramFlavor[px] < 0) continue;
+				fc->flavor[px] = state->paramFlavor[px];
+			}
+		}
+
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			// schilling_bock_2005_rescale(oo, fc); seems counterproductive
 			return 0;
 		}
 
-		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
 		double got = ba81ComputeMFit1(oo, want, fc);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
@@ -693,15 +720,23 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_FIT) {
-			if (estate->verbose) mxLog("%s: fit", oo->matrix->name);
 			double *patternLik = estate->patternLik;
 			int *numIdentical = estate->numIdentical;
 			int numUnique = estate->numUnique;
+			estate->excludedPatterns = 0;
 			double got = 0;
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,64) reduction(+:got)
 			for (int ux=0; ux < numUnique; ux++) {
+				if (!validPatternLik(patternLik[ux])) {
+#pragma omp atomic
+					++estate->excludedPatterns;
+					// somehow indicate that this -2LL is provisional TODO
+					continue;
+				}
 				got += numIdentical[ux] * log(patternLik[ux]);
 			}
+			if (estate->verbose) mxLog("%s: fit (%d/%d excluded)",
+						   oo->matrix->name, estate->excludedPatterns, numUnique);
 			//mxLog("fit %.2f", -2 * got);
 			return -2 * got;
 		}
@@ -753,6 +788,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	oo->destructFun = ba81Destroy;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
+	oo->parametersHaveFlavor = TRUE;
 
 	int maxParam = estate->itemParam->rows;
 	state->itemDerivPadSize = maxParam + triangleLoc1(maxParam);

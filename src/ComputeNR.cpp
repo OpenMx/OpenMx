@@ -30,6 +30,7 @@ class ComputeNR : public omxCompute {
 	double tolerance;
 	int inform, iter;
 	int verbose;
+	bool carefully;
 
 public:
 	ComputeNR();
@@ -76,6 +77,9 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("carefully")));
+	carefully = asLogical(slotValue);
 }
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
@@ -144,11 +148,117 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
 			if (mask[d2]) ++m2;
 			if (mask[d1] && mask[d2]) {
-				packedHess[px] = ihess[m2 * mdim + m1];
+				packedHess[px] = *stress? 0 : ihess[m2 * mdim + m1];
 			}
 			++px;
 		}
 	}
+}
+
+class Ramsay1975 {
+	// Ramsay, J. O. (1975). Solving Implicit Equations in
+	// Psychometric Data Analysis.  Psychometrika, 40(3), 337-360.
+
+	FitContext *fc;
+	size_t numParam;
+	int flavor;
+	int verbose;
+	double highWatermark;
+	std::vector<double> prevAdj1;
+	std::vector<double> prevAdj2;
+
+public:
+	double caution;
+
+	Ramsay1975(FitContext *fc, int flavor, int verbose);
+	void recordEstimate(int px, double newEst);
+	void recalibrate(bool *restart);
+};
+
+Ramsay1975::Ramsay1975(FitContext *fc, int flavor, int verbose)
+{
+	this->fc = fc;
+	this->flavor = flavor;
+	this->verbose = verbose;
+	caution = 0.0;
+	highWatermark = 0.5;  // arbitrary guess
+
+	numParam = fc->varGroup->vars.size();
+	prevAdj1.assign(numParam, 0);
+	prevAdj2.resize(numParam);
+}
+
+void Ramsay1975::recordEstimate(int px, double newEst)
+{
+	omxFreeVar *fv = fc->varGroup->vars[px];
+	bool hitBound=false;
+	double param = newEst;
+	if (param < fv->lbound) {
+		hitBound=true;
+		param = fc->est[px] - (fc->est[px] - fv->lbound) / 2;
+	}
+	if (param > fv->ubound) {
+		hitBound=true;
+		param = fc->est[px] + (fv->ubound - fc->est[px]) / 2;
+	}
+	
+	prevAdj2[px] = prevAdj1[px];
+	prevAdj1[px] = param - fc->est[px];
+	
+	if (verbose >= 4) {
+		std::string buf;
+		buf += string_snprintf("~%d~%s: %.4f -> %.4f", px, fv->name, fc->est[px], param);
+		if (hitBound) {
+			buf += string_snprintf(" wanted %.4f but hit bound", newEst);
+		}
+		if (prevAdj1[px] * prevAdj2[px] < 0) {
+			buf += " *OSC*";
+		}
+		buf += "\n";
+		mxLogBig(buf);
+	}
+
+	fc->est[px] = param;
+}
+
+void Ramsay1975::recalibrate(bool *restart)
+{
+	double normPrevAdj2 = 0;
+	double normAdjDiff = 0;
+	std::vector<double> adjDiff(numParam);
+
+	for (size_t px=0; px < numParam; ++px) {
+		if (fc->flavor[px] != flavor) continue;
+		adjDiff[px] = prevAdj1[px] - prevAdj2[px];
+		normPrevAdj2 += prevAdj2[px] * prevAdj2[px];
+	}
+
+	for (size_t px=0; px < numParam; ++px) {
+		if (fc->flavor[px] != flavor) continue;
+		normAdjDiff += adjDiff[px] * adjDiff[px];
+	}
+	double ratio = sqrt(normPrevAdj2 / normAdjDiff);
+	//if (verbose >= 3) mxLog("Ramsay[%d]: sqrt(%.5f/%.5f) = %.5f",
+	// flavor, normPrevAdj2, normAdjDiff, ratio);
+
+	double newCaution = 1 - (1-caution) * ratio;
+	if (newCaution < 0) newCaution = 0;  // doesn't make sense to go faster than full speed
+	if (newCaution > .95) newCaution = .95;  // arbitrary guess
+	if (newCaution < caution) {
+		caution = newCaution/3 + 2*caution/3;  // don't speed up too fast, arbitrary ratio
+	} else {
+		caution = newCaution;
+	}
+	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
+		if (verbose >= 3) mxLog("Ramsay[%d]: %.2f caution", flavor, caution);
+	} else {
+		if (verbose >= 3) mxLog("Ramsay[%d]: caution %.2f > %.2f, restarting",
+					flavor, caution, highWatermark);
+		caution = highWatermark;
+		highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
+		*restart = TRUE;
+	}
+	highWatermark += .02; // arbitrary guess
 }
 
 void ComputeNR::compute(FitContext *fc)
@@ -161,6 +271,26 @@ void ComputeNR::compute(FitContext *fc)
 		return;
 	}
 
+	std::vector<Ramsay1975*> ramsay;
+	if (fitMatrix->fitFunction->parametersHaveFlavor) {
+		for (size_t px=0; px < numParam; ++px) {
+			fc->flavor[px] = -1;
+		}
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
+	} else {
+		OMXZERO(fc->flavor, numParam);
+	}
+
+	for (size_t px=0; px < numParam; ++px) {
+		// global namespace for flavors? TODO
+		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
+			error("Invalid parameter flavor %d", fc->flavor[px]);
+		}
+		while (int(ramsay.size()) < fc->flavor[px]+1) {
+			ramsay.push_back(new Ramsay1975(fc, fc->flavor[px], verbose));
+		}
+	}
+
 	if (adjustStart) {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		fc->copyParamToModel(globalState);
@@ -168,20 +298,29 @@ void ComputeNR::compute(FitContext *fc)
 
 	iter = 0;
 	bool converged = false;
-	//double prevLL = nan("unset");
-	//bool decreasing = TRUE;
+	bool approaching = false;
+	bool restarted = carefully;
+	double maxAdj = 0;
+	int maxAdjParam = 0;
+	double bestLL = 0;
 
-	std::valarray<double> prevAdj1(numParam);
-	std::valarray<double> prevAdj2(numParam);
-	double caution = 0.5;
+	std::valarray<double> startBackup(fc->est, numParam);
+	std::vector<double> bestBackup(numParam);
 
+	fitMatrix->data[0] = 0;  // may not recompute it, don't leave stale data
+
+	if (verbose >= 1) {
+		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %ld flavors)",
+		      tolerance, maxIter, ramsay.size());
+	}
 	while (1) {
 		if (verbose >= 2) {
-			mxLog("Begin %d/%d iter of Newton-Raphson with tolerance %.02g",
-			      iter+1, maxIter, tolerance);
+			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %d)",
+			      iter+1, maxIter, maxAdj, maxAdjParam);
 		}
 
-		const int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
+		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
+		if (restarted) want |= FF_COMPUTE_FIT;
 
 		OMXZERO(fc->grad, numParam);
 		OMXZERO(fc->ihess, numParam * numParam);
@@ -189,16 +328,23 @@ void ComputeNR::compute(FitContext *fc)
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 		if (isErrorRaised(globalState)) break;
 
-		if (verbose >= 4) {
+		if (verbose >= 5) {
 			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
 		}
 
-		// Only need LL for diagnostics; Can avoid computing it? TODO
-		//double LL = fitMatrix->data[0];
-		//if (isfinite(prevLL) && prevLL < LL - tolerance) decreasing = FALSE;
-		//prevLL = LL;
-
-		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
+		double LL = fitMatrix->data[0];
+		if (bestLL == 0 || bestLL > LL) {
+			bestLL = LL;
+			memcpy(bestBackup.data(), fc->est, sizeof(double) * numParam);
+		}
+		if (bestLL > 0) {
+			if (verbose >= 3) mxLog("Newton-Raphson ornery fit %.5f (best %.5f)", LL, bestLL);
+			if (approaching && LL > bestLL + 0.5) {  // arbitrary threshold
+				memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
+				fc->copyParamToModel(globalState);
+				break;
+			}
+		}
 
 		if (verbose >= 1 || OMX_DEBUG) {
 			for (size_t h1=1; h1 < numParam; h1++) {
@@ -209,92 +355,74 @@ void ComputeNR::compute(FitContext *fc)
 			}
 		}
 
+		bool restart = false;
 		if ((iter+1) % 3 == 0) {
-			// Ramsay, J. O. (1975). Solving Implicit
-			// Equations in Psychometric Data Analysis.
-			// Psychometrika, 40(3), 337-360.
-
-			std::valarray<double> adjDiff(numParam);
-			adjDiff = prevAdj1 - prevAdj2;
-			//double normPrevAdj1 = sqrt((prevAdj1 * prevAdj1).sum());
-			double normPrevAdj2 = (prevAdj2 * prevAdj2).sum();
-			double normAdjDiff = (adjDiff * adjDiff).sum();
-			double ratio = sqrt(normPrevAdj2 / normAdjDiff);
-			//mxLog("normPrevAdj %.2f %.2f normAdjDiff %.2f ratio %.2f",
-			//normPrevAdj1, normPrevAdj2, normAdjDiff, ratio);
-			caution = 1 - (1-caution) * ratio;
-			if (caution < 0) caution = 0;  // doesn't make sense to go faster than full speed
-			if (verbose >= 3) mxLog("Ramsay (1975) ratio %.2f so %.2f caution", ratio, caution);
+			for (size_t rx=0; rx < ramsay.size(); ++rx) {
+				ramsay[rx]->recalibrate(&restart);
+			}
+			if (!restart) approaching = true;
 		}
 
-		std::vector<double> newEst(numParam);
-		memcpy(newEst.data(), fc->est, sizeof(double) * numParam);
-		const char uplo = 'L';
-		int dim = int(numParam);
-		int incx = 1;
-		double alpha = -(1 - caution);
-		double beta = 1;
-		F77_CALL(dsymv)(&uplo, &dim, &alpha, fc->ihess, &dim,
-				fc->grad, &incx, &beta, newEst.data(), &incx);
+		if (restart) {
+			restarted = true;
+			bestLL = 0;
 
-		double maxAdj = 0;
-		for (size_t px=0; px < numParam; ++px) {
-			double param = newEst[px];
-			omxFreeVar *fv = fc->varGroup->vars[px];
-
-			bool hitBound=false;
-			if (param < fv->lbound) {
-				hitBound=true;
-				param = fc->est[px] - (fc->est[px] - fv->lbound) / 2;
+			if (verbose >= 2) {
+				mxLog("Newton-Raphson: Estimates oscillating wildly. Increasing damping ...");
 			}
-			if (param > fv->ubound) {
-				hitBound=true;
-				param = fc->est[px] + (fv->ubound - fc->est[px]) / 2;
+			for (size_t px=0; px < numParam; ++px) {
+				fc->est[px] = startBackup[px];
 			}
-
-			double badj = fabs(param - fc->est[px]);
-			if (maxAdj < badj)
-				maxAdj = badj;
-
-			if (verbose >= 3) {
-				std::string buf(fv->name);
-				buf += string_snprintf(": %.4f -> %.4f", fc->est[px], param);
-				if (hitBound) {
-					buf += string_snprintf(" wanted %.4f but hit bound", newEst[px]);
+		} else {
+			maxAdj = 0;
+			for (size_t px=0; px < numParam; ++px) {
+				Ramsay1975 *ramsay1 = ramsay[ fc->flavor[px] ];
+				double oldEst = fc->est[px];
+				double move = 0;
+				for (size_t h1=0; h1 < px; ++h1) {
+					move += fc->ihess[px * numParam + h1] * fc->grad[h1];
 				}
-				bool osc = false;
-				if (iter) osc = (param - fc->est[px]) * prevAdj1[px] < 0;
-				if (osc) {
-					buf += " *OSC*";
+				for (size_t h1=px; h1 < numParam; ++h1) {
+					move += fc->ihess[h1 * numParam + px] * fc->grad[h1];
 				}
-				buf += "\n";
-				mxLogBig(buf);
-			}
+				double speed = 1 - ramsay1->caution;
 
-			prevAdj2[px] = prevAdj1[px];
-			prevAdj1[px] = param - fc->est[px];
-			fc->est[px] = param;
+				ramsay1->recordEstimate(px, oldEst - speed * move);
+
+				double badj = fabs(oldEst - fc->est[px]);
+				if (maxAdj < badj) {
+					maxAdj = badj;
+					maxAdjParam = px;
+				}
+			}
+			converged = maxAdj < tolerance;
 		}
 
 		fc->copyParamToModel(globalState);
 
 		R_CheckUserInterrupt();
 
-		converged = maxAdj < tolerance;
 		if (converged || ++iter >= maxIter) break;
 	}
 
 	if (verbose >= 1) {
 		if (converged) {
-			mxLog("Newton-Raphson converged in %d cycles", iter);
-		} else {
+			mxLog("Newton-Raphson converged in %d cycles (max change %.12f)", iter, maxAdj);
+		} else if (iter < maxIter) {
+			mxLog("Newton-Raphson not improving on %.6f after %d cycles", bestLL, iter);
+		} else if (iter == maxIter) {
 			mxLog("Newton-Raphson failed to converge after %d cycles", iter);
 		}
 	}
 
-	// The check is too dependent on numerical precision to enable by default.
-	// Anyway, it's just a tool for developers.
-	//if (0 && !decreasing) warning("Newton-Raphson iterations did not converge");
+	// better status reporting TODO
+	if (!converged && iter == maxIter) {
+		omxRaiseErrorf(globalState, "Newton-Raphson failed to converge after %d cycles", iter);
+	}
+
+	for (size_t rx=0; rx < ramsay.size(); ++rx) {
+		delete ramsay[rx];
+	}
 
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
 }
