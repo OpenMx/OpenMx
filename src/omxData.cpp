@@ -182,20 +182,20 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		// Process unsorted indices:  // TODO: Generate reverse lookup table
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("indexVector")));
 		od->indexVector = INTEGER(dataLoc);
-		if(od->indexVector[0] == R_NaInt) od->indexVector = NULL;
+		if(length(dataLoc) == 0 || od->indexVector[0] == R_NaInt) od->indexVector = NULL;
 		// Process pre-computed identicality checks
 		if(OMX_DEBUG) {mxLog("Processing definition variable identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalDefVars")));
 		od->identicalDefs = INTEGER(dataLoc);
-		if(od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
+		if(length(dataLoc) == 0 || od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
 		if(OMX_DEBUG) {mxLog("Processing missingness identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalMissingness")));
 		od->identicalMissingness = INTEGER(dataLoc);
-		if(od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
+		if(length(dataLoc) == 0 || od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
 		if(OMX_DEBUG) {mxLog("Processing row identicality.");}
 		PROTECT(dataLoc = GET_SLOT(dataObject, install("identicalRows")));
 		od->identicalRows = INTEGER(dataLoc);
-		if(od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
+		if(length(dataLoc) == 0 || od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
 	return od;
 }
