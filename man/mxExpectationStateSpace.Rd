@@ -43,14 +43,27 @@ mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P
 }
 
 \details{
-Expectation functions define the way that model expectations are calculated. The mxExpectationStateSpace provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by reticular action modeling (McArdle and McDonald, 1984). The 'A', 'B', 'C', 'D', 'Q', 'R', 'x0', and 'P0' arguments must refer to \link{MxMatrix} objects with the associated properties of the A, B, C, D, Q, R, x0, and P0 matrices in the RAM modeling approach.
+Expectation functions define the way that model expectations are calculated. When used in conjunction with the \link{mxFitFunctionML}, the mxExpectationStateSpace uses maximum likelihood prediction error decomposition (PED) to obtain estimates of free parameters in a model of the raw \link{MxData} object. State space expectations treat the raw data as a multivariate time series of equally spaced times with each row corresponding to a single occasion.  This is not a model of the block Toeplitz lagged autocovariance matrix.  State space expectations implement a classical Kalman filter to produce expectations.
 
-The state space expectation is defined by the following equations.
+The following are not yet implemented: square root Kalman filter (in Cholesky or singular value decomposition form), extended Kalman filter for linear approximations to nonlinear state space models, unscented Kalman filter for highly nonlinear state space models, Kalman-Bucy filter for continuous time modeling, hybrid Kalman filter for continuous latent time with discrete observations, and Rauch-Tung-Striebel smoother for updating forecast state estimates after a complete forward pass through the data has been made.
+
+This model uses notation for the model matrices commonly found in engineering and control theory.  
+
+ The 'A', 'B', 'C', 'D', 'Q', 'R', 'x0', and 'P0' arguments must be the names of \link{MxMatrix} objects with the associated properties of the A, B, C, D, Q, R, x0, and P0 matrices in the state space modeling approach.
+
+The state space expectation is defined by the following model equations.
 
 \deqn{x_{t+1} = A x_t + B u_t + q_t}
 \deqn{y_t = C x_t + D u_t + r_t}
 
-The 'dimnames' arguments takes an optional character vector.  If this argument is not a single NA, then this vector be assigned to be the column names of the '?' matrix and optionally to the '?' matrix, if the '?' matrix exists.
+The first equation is called the state equation.  It describes how the latent states change over time.  Also, the state equation in state space modeling is directly analogous to the structural model in LISREL structural equation modeling.
+
+The second equation is called the output equation.  It describes how the latent states relate to the observed states at a single point in time.  The output equation shows how the observed output is produced by the latent states.  Also, the output equation in state space modeling is directly analogous to the measurement model in LISREL structural equation modeling.
+
+The state and output equations, together with some minimal assumptions, imply ... covariance and means
+
+The 'dimnames' arguments takes an optional character vector.  % TODO: Decide how dimnames are handled.
+%If this argument is not a single NA, then this vector be assigned to be the row names of the 'C' matrix and optionally to the '?' matrix, if the '?' matrix exists.
 
 THE NEXT PART IS INCOMPLETE.  MIKE HUNTER NEEDS TO FINISH THIS PART.
 
