@@ -130,7 +130,7 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
 			if (mask[d2]) ++m2;
 			if (mask[d1] && mask[d2]) {
-				hess[m2 * mdim + m1] = -packedHess[px]; // move negation back out TODO
+				hess[m2 * mdim + m1] = packedHess[px];
 			}
 			++px;
 		}

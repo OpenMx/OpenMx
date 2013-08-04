@@ -177,12 +177,12 @@ irt_rpf_1dim_drm_deriv1(const double *spec,
   double w0 = Eathb2 * (-(1-cc)/(Eathb+1) - cc + 1);
   double w1 = Eathb2 * ((1-cc)/(Eathb+1) + cc);
 
-  out[0] += ((weight[0] * (bb-th)*Eathb / w0 +
+  out[0] -= ((weight[0] * (bb-th)*Eathb / w0 +
 		     weight[1] * -(bb-th)*Eathb / w1));
-  out[1] += ((weight[0] * Eathb / w0 +
+  out[1] -= ((weight[0] * Eathb / w0 +
 		     weight[1] * -Eathb / w1));
   double ratio = (1-(1/(Eathb+1))) / ((1-cc)/(Eathb+1) + cc);
-  out[2] += ((weight[0] * (1/(cc-1)) +
+  out[2] -= ((weight[0] * (1/(cc-1)) +
 		     weight[1] * ratio));
 }
 
@@ -204,7 +204,7 @@ irt_rpf_1dim_drm_deriv2(const double *spec, const double *restrict param,
   out[1] *= aa * (1-cc);
   if (cc == 0) { out[2] = nan("I"); }
   else {
-    out[2] += logitnormal_gradient(cc, prior[1], prior[2]);
+	  // fix priors TODO
   }
   for (int px=3; px < 9; px++) out[px] = nan("I");
 }
@@ -304,11 +304,11 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
   double r2_Q = r2/PQ[1];
   double r2_Q2 = r2/(PQ[1] * PQ[1]);
   for (int dx=0; dx < numDims; dx++) {
-    out[dx] -= where[dx] * PQstar[0] * PQstar[1] * (upper-cc) * (r1_P - r2_Q);
+    out[dx] += where[dx] * PQstar[0] * PQstar[1] * (upper-cc) * (r1_P - r2_Q);
   }
-  out[numDims] -= (upper-cc) * PQstar[0] * PQstar[1] * (r1_P - r2_Q);
-  out[numDims+1] -= PQstar[0] * (r1_P - r2_Q);
-  out[numDims+2] -= PQstar[1] * (r1_P - r2_Q);
+  out[numDims] += (upper-cc) * PQstar[0] * PQstar[1] * (r1_P - r2_Q);
+  out[numDims+1] += PQstar[0] * (r1_P - r2_Q);
+  out[numDims+2] += PQstar[1] * (r1_P - r2_Q);
 
   int ox = numDims+2;
   double ugD2 = (upper-cc);  // can factor out TODO
@@ -321,7 +321,7 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
 
   for(int ix=0; ix < numDims; ix++) {
     for(int jx=0; jx <= ix; jx++) {
-      out[++ox] += (r1_P * (ugD2 * where[ix] * where[jx] *
+      out[++ox] -= (r1_P * (ugD2 * where[ix] * where[jx] *
 				   (Pstar - 3*Pstar2 + 2*Pstar3)) -
 			   r1_P2 * (ugD * where[ix] * (Pstar - Pstar2) *
 				    (ugD * where[jx] * (Pstar - Pstar2))) +
@@ -332,7 +332,7 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
     }
   }
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] += (r1_P * (ugD2 * where[ix] * (Pstar - 3*Pstar2 + 2*Pstar3)) -
+    out[++ox] -= (r1_P * (ugD2 * where[ix] * (Pstar - 3*Pstar2 + 2*Pstar3)) -
 			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2) *
 				  (ugD * (Pstar - Pstar2))) +
 			 r2_Q * (ugD2 * where[ix] * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
@@ -340,36 +340,36 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
 				  (ugD * (-Pstar + Pstar2))));
   }
   double chunk1 = ugD * (Pstar - Pstar2);
-  out[++ox] += (r1_P * (ugD2 * (Pstar - 3*Pstar2 + 2*Pstar3)) -
+  out[++ox] -= (r1_P * (ugD2 * (Pstar - 3*Pstar2 + 2*Pstar3)) -
 		       r1_P2 * chunk1*chunk1 +
 		       r2_Q * (ugD2 * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
 		       r2_Q2 * chunk1*chunk1);
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] += (r1_P * (where[ix] * (Pstar - Pstar2)) -
+    out[++ox] -= (r1_P * (where[ix] * (Pstar - Pstar2)) -
 			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * Pstar +
 			 r2_Q * (where[ix] * (-Pstar + Pstar2)) +
 			 r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * Pstar);
   }
-  out[++ox] += (r1_P * (Pstar - Pstar2) -
+  out[++ox] -= (r1_P * (Pstar - Pstar2) -
 		       r1_P2 * (ugD * (Pstar - Pstar2)) * Pstar +
 		       r2_Q * (-Pstar + Pstar2) +
 		       r2_Q2 * (ugD * (-Pstar + Pstar2)) * Pstar);
-  out[++ox] -= Pstar2 * (r1_P2 + r2_Q2);
+  out[++ox] += Pstar2 * (r1_P2 + r2_Q2);
 
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] += (r1_P * (where[ix] * (-Pstar + Pstar2)) -
+    out[++ox] -= (r1_P * (where[ix] * (-Pstar + Pstar2)) -
 			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * Qstar +
 			 r2_Q * (where[ix] * (Pstar - Pstar2)) -
 			 r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * (-1 + Pstar));
   }
 
-  out[++ox] += (r1_P * (-Pstar + Pstar2) -
+  out[++ox] -= (r1_P * (-Pstar + Pstar2) -
 		       r1_P2 * (ugD * (Pstar - Pstar2)) * Qstar +
 		       r2_Q * (Pstar - Pstar2) -
 		       r2_Q2 * (ugD * (-Pstar + Pstar2)) * -Qstar);
 
-  out[++ox] += (-r1_P2 * Pstar * Qstar + r2_Q2 * Pstar * (-1 + Pstar));
-  out[++ox] -= Qstar2 * (r1_P2 + r2_Q2);
+  out[++ox] -= (-r1_P2 * Pstar * Qstar + r2_Q2 * Pstar * (-1 + Pstar));
+  out[++ox] += Qstar2 * (r1_P2 + r2_Q2);
 }
 
 static void
@@ -603,24 +603,24 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
       if(Pk_Pkp1 < 1e-10) Pk_Pkp1 = 1e-10;
       double dif2 = weight[jx+1] / Pk_Pkp1;
       double dif2sq = weight[jx+1] / (Pk_Pkp1 * Pk_Pkp1);
-      out[nfact + jx] -= PQ * (dif1 - dif2);
+      out[nfact + jx] += PQ * (dif1 - dif2);
 
       int d2base = (nfact + nzeta) + (nfact+jx) * (nfact+jx+1)/2;
-      out[d2base + nfact + jx] += (-1 * PQ * PQ * (dif1sq + dif2sq) -
+      out[d2base + nfact + jx] -= (-1 * PQ * PQ * (dif1sq + dif2sq) -
 					  (dif1 - dif2) * (Pk * (1.0 - Pk) * (1.0 - 2.0*Pk)));
       if (jx < (nzeta - 1)) {
 	int d2base1 = (nfact + nzeta) + (nfact+jx+1) * (nfact+jx+2)/2;
-	out[d2base1 + nfact + jx] += dif2sq * PQ_p1 * PQ;
+	out[d2base1 + nfact + jx] -= dif2sq * PQ_p1 * PQ;
       }
       double tmp1 = (-1.0) * dif2sq * PQ * (PQ - PQ_p1);
       double tmp2 = dif1sq * PQ * (PQ_1 - PQ);
       double tmp3 = (dif1 - dif2) * (Pk * (1.0 - Pk) * (1.0 - 2.0*Pk));
       for(int kx = 0; kx < nfact; kx++){
-	out[d2base + kx] += (tmp1 + tmp2 - tmp3) * where[kx];
+	out[d2base + kx] -= (tmp1 + tmp2 - tmp3) * where[kx];
       }
     }
     for(int kx = 0; kx < nfact; kx++) {
-      out[kx] += dif1 * (PQ_1 - PQ) * where[kx];
+      out[kx] -= dif1 * (PQ_1 - PQ) * where[kx];
     }
 
     double temp[nfact];
@@ -631,7 +631,7 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
     for(int i = 0; i < nfact; i++) {
       for(int j = 0; j <= i; j++) {
 	double outer = where[i]*where[j];
-	out[d2x++] += (-1 * dif1sq * temp[i] * temp[j] +
+	out[d2x++] -= (-1 * dif1sq * temp[i] * temp[j] +
 			      (dif1 * (Pk_1 * (1.0 - Pk_1) * (1.0 - 2.0 * Pk_1) * 
 				       outer - Pk * (1.0 - Pk) * (1.0 - 2.0 * Pk) * outer)));
       }
@@ -880,15 +880,15 @@ irt_rpf_nominal_deriv1(const double *spec,
       tmpvec += dat_num[i] * (ak[i] * where[jx] * P[i] -
 			      P[i] * numakDTheta_numsum[jx]) * numsum;
     }
-    out[jx] += tmpvec;
+    out[jx] -= tmpvec;
   }
   for(int i = 1; i < ncat; i++) {
     double offterm = makeOffterm(weight, P[i], aTheta, ncat, i);
     double offterm2 = makeOffterm(weight, P[i], 1, ncat, i);
     double tmpvec = dat_num[i] * (aTheta * P[i] - P2[i] * aTheta) * numsum - offterm;
     double tmpvec2 = dat_num[i] * (P[i] - P2[i]) * numsum - offterm2;
-    out[nfact + i - 1] += tmpvec;
-    out[nfact + ncat + i - 2] += tmpvec2;
+    out[nfact + i - 1] -= tmpvec;
+    out[nfact + ncat + i - 2] -= tmpvec2;
   }
 
   int hessbase = nfact + (ncat-1)*2;
@@ -908,7 +908,7 @@ irt_rpf_nominal_deriv1(const double *spec,
 	  dat_num[i] * (ak[i] * where[j] * P[i] - P[i] * numakDTheta_numsum[j]) *
 	  numakD * where[k];
       }
-      out[hessbase + d2ind++] += tmpvec;
+      out[hessbase + d2ind++] -= tmpvec;
     }
   }
   //a's with ak and d
@@ -941,8 +941,8 @@ irt_rpf_nominal_deriv1(const double *spec,
 	    weight[i]*P[k]*numakDTheta_numsum[j];
 	}
       }
-      out[akrow + j] += tmpvec;
-      out[dkrow + j] += tmpvec2;
+      out[akrow + j] -= tmpvec;
+      out[dkrow + j] -= tmpvec2;
     }
   }
   //ak's and d's
@@ -957,13 +957,13 @@ irt_rpf_nominal_deriv1(const double *spec,
     tmpvec2 = makeOffterm(weight, P[j], 1, ncat, j);
     double offterm2 = tmpvec - tmpvec2;
 
-    out[akrow + nfact + j - 1] +=
+    out[akrow + nfact + j - 1] -=
       (dat_num[j]*(aTheta2*P[j] - 3*aTheta2*P2[j] +
 			  2*aTheta2*P3[j])*numsum - weight[j]/num[j] *
 	      (aTheta*P[j] - aTheta*P2[j])*numsum*aTheta + weight[j] *
 	      (aTheta*P[j] - aTheta*P2[j])*aTheta + offterm);
 
-    out[dkrow + nfact + ncat + j - 2] +=
+    out[dkrow + nfact + ncat + j - 2] -=
       (dat_num[j]*(P[j] - 3*P2[j] + 2*P3[j])*numsum - weight[j]/num[j] *
 	      (P[j] - P2[j])*numsum + weight[j] *
 	      (P[j] - P2[j]) + offterm2);
@@ -976,8 +976,8 @@ irt_rpf_nominal_deriv1(const double *spec,
 	  dat_num[i] * (aTheta*P[i] - P2[i] * aTheta)*aTheta*num[j]+offterm;
 	tmpvec2 = dat_num[i] * (-P[i]*P[j] + 2*P2[i] *P[j]) * numsum +
 	  dat_num[i] * (P[i] - P2[i]) * num[j] + offterm2;
-	out[akrow + nfact + i - 1] += tmpvec;
-	out[dkrow + nfact + ncat + i - 2] += tmpvec2;
+	out[akrow + nfact + i - 1] -= tmpvec;
+	out[dkrow + nfact + ncat + i - 2] -= tmpvec2;
       }
       if (abs(j-i) == 0) {
 	tmpvec = makeOffterm(weight, P2[i], aTheta, ncat, i);
@@ -987,12 +987,12 @@ irt_rpf_nominal_deriv1(const double *spec,
 			     2*aTheta*P3[i]) * numsum - dat_num[i] *
 	  (aTheta*P[i] - aTheta*P2[i])*numsum + weight[i] *
 	  (P[i] - P2[i])*aTheta + offterm;
-	out[dkrow + nfact + i - 1] += tmpvec;
+	out[dkrow + nfact + i - 1] -= tmpvec;
       } else {
 	offterm = makeOffterm2(weight, P[j], P[i], aTheta, ncat, i);
 	tmpvec = dat_num[i] * (-aTheta*P[i]*P[j] + 2*P2[i] *aTheta*P[j]) * numsum + 
 	  dat_num[i] * (P[i] - P2[i]) * aTheta * num[j] + offterm;
-	out[dkrow + nfact + i - 1] += tmpvec;
+	out[dkrow + nfact + i - 1] -= tmpvec;
       }
     }
   }

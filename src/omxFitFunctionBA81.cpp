@@ -310,12 +310,12 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 
 			if (to < numFreeParams) {
 				if (want & FF_COMPUTE_GRADIENT) {
-					fc->grad[to] -= deriv0[ox];
+					fc->grad[to] += deriv0[ox];
 				}
 			} else {
 				if (want & FF_COMPUTE_HESSIAN) {
 					int Hto = to - numFreeParams;
-					fc->hess[Hto] -= deriv0[ox];
+					fc->hess[Hto] += deriv0[ox];
 				}
 			}
 		}
