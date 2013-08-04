@@ -29,6 +29,7 @@ class FitContext {
 	static omxFitFunction *RFitFunction;
 
 	FitContext *parent;
+
  public:
 	FreeVarGroup *varGroup;
 	double fit;
@@ -36,16 +37,17 @@ class FitContext {
 	//	double *denom;
 	double *grad;
 	double *hess;
+	double *ihess;
 
 	void init();
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
+	void fixHessianSymmetry(int want);
 	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);
 	void copyParamToModel(omxMatrix *mat, double *at);
 	void copyParamToModel(omxMatrix *mat);
 	void updateParentAndFree();
-	void fixHessianSymmetry();
 	void log(const char *where, int what);
 	~FitContext();
 	
@@ -69,5 +71,8 @@ class omxCompute *omxNewCompute(omxState* os, const char *type);
 class omxCompute *newComputeGradientDescent();
 class omxCompute *newComputeEstimatedHessian();
 class omxCompute *newComputeNewtonRaphson();
+
+void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
+void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 
 #endif

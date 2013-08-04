@@ -78,6 +78,79 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	verbose = asInteger(slotValue);
 }
 
+void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
+{
+	const char uplo = 'L';
+	int info;
+	int retries = 0;
+	const int maxRetries = 31; // assume >=32 bit integers
+	double adj = 0;
+	do {
+		memcpy(ihess, hess, sizeof(double) * dim * dim);
+
+		if (retries >= 1) {
+			int th = maxRetries - retries;
+			if (th > 0) {
+				adj = 1.0/(1 << th);
+			} else {
+				adj = (1 << -th);
+			}
+			for (int px=0; px < dim; ++px) {
+				ihess[px * dim + px] += adj;
+			}
+		}
+
+		F77_CALL(dpotrf)(&uplo, &dim, ihess, &dim, &info);
+		if (info < 0) error("Arg %d is invalid", -info);
+		if (info == 0) break;
+	} while (++retries < maxRetries * 1.5);
+
+	if (info > 0) {
+		omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
+		return;
+	}
+	F77_CALL(dpotri)(&uplo, &dim, ihess, &dim, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	if (info > 0) {
+		// Impossible to fail if dpotrf worked?
+		omxRaiseErrorf(globalState, "Hessian is not of full rank");
+	}
+
+	if (stress) *stress = adj;
+}
+
+void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress)
+{
+	int mdim = 0;
+	for (int dx=0; dx < dim; ++dx) if (mask[dx]) mdim += 1;
+
+	std::vector<double> hess(mdim * mdim, 0.0);
+	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
+		if (mask[d1]) ++m1;
+		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
+			if (mask[d2]) ++m2;
+			if (mask[d1] && mask[d2]) {
+				hess[m2 * mdim + m1] = -packedHess[px]; // move negation back out TODO
+			}
+			++px;
+		}
+	}
+
+	std::vector<double> ihess(mdim * mdim);
+	omxApproxInvertPosDefTriangular(mdim, hess.data(), ihess.data(), stress);
+
+	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
+		if (mask[d1]) ++m1;
+		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
+			if (mask[d2]) ++m2;
+			if (mask[d1] && mask[d2]) {
+				packedHess[px] = ihess[m2 * mdim + m1];
+			}
+			++px;
+		}
+	}
+}
+
 void ComputeNR::compute(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
@@ -94,6 +167,7 @@ void ComputeNR::compute(FitContext *fc)
 	}
 
 	iter = 0;
+	bool converged = false;
 	//double prevLL = nan("unset");
 	//bool decreasing = TRUE;
 
@@ -107,12 +181,13 @@ void ComputeNR::compute(FitContext *fc)
 			      iter+1, maxIter, tolerance);
 		}
 
-		const int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN;
+		const int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
 
 		OMXZERO(fc->grad, numParam);
-		OMXZERO(fc->hess, numParam * numParam);
+		OMXZERO(fc->ihess, numParam * numParam);
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
+		if (isErrorRaised(globalState)) break;
 
 		if (verbose >= 4) {
 			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
@@ -125,51 +200,13 @@ void ComputeNR::compute(FitContext *fc)
 
 		//		fc->log(FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN);
 
-		if (verbose >= 3) {
+		if (verbose >= 1 || OMX_DEBUG) {
 			for (size_t h1=1; h1 < numParam; h1++) {
 				for (size_t h2=0; h2 < h1; h2++) {
-					if (fc->hess[h2 * numParam + h1] == 0) continue;
-					error("Hessian is not lower triangular");
+					if (fc->ihess[h2 * numParam + h1] == 0) continue;
+					omxRaiseErrorf(globalState, "Inverse Hessian is not upper triangular");
 				}
 			}
-		}
-
-		std::vector<double> ihess(numParam * numParam);
-		int dim = int(numParam);
-		const char uplo = 'L';
-		int info;
-		int retries = 0;
-		const double diag_adj = -38;
-		do {
-			memcpy(ihess.data(), fc->hess, sizeof(double) * numParam * numParam);
-
-			if (retries >= 1) {
-				double adj = exp(diag_adj + retries);
-				for (size_t px=0; px < numParam; ++px) {
-					ihess[px * numParam + px] += adj;
-				}
-			}
-
-			F77_CALL(dpotrf)(&uplo, &dim, ihess.data(), &dim, &info);
-			if (info < 0) error("Arg %d is invalid", -info);
-			if (info == 0) break;
-		} while (++retries < -diag_adj/2);
-
-		if (info > 0) {
-			omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
-			//fc->log("Hessian", FF_COMPUTE_HESSIAN);
-			break;
-		}
-		if (verbose >= 2 && retries >= 1) {
-			mxLog("Forced to add diag(%.3g) to Hessian (this is bad)", exp(diag_adj + retries));
-		}
-
-		F77_CALL(dpotri)(&uplo, &dim, ihess.data(), &dim, &info);
-		if (info < 0) error("Arg %d is invalid", -info);
-		if (info > 0) {
-			// Impossible to fail if dpotrf worked?
-			omxRaiseErrorf(globalState, "Hessian is not of full rank");
-			break;
 		}
 
 		if ((iter+1) % 3 == 0) {
@@ -187,15 +224,17 @@ void ComputeNR::compute(FitContext *fc)
 			//normPrevAdj1, normPrevAdj2, normAdjDiff, ratio);
 			caution = 1 - (1-caution) * ratio;
 			if (caution < 0) caution = 0;  // doesn't make sense to go faster than full speed
-			//mxLog("ratio %.2f so %.2f", ratio, caution);
+			if (verbose >= 3) mxLog("Ramsay (1975) ratio %.2f so %.2f caution", ratio, caution);
 		}
 
 		std::vector<double> newEst(numParam);
 		memcpy(newEst.data(), fc->est, sizeof(double) * numParam);
+		const char uplo = 'L';
+		int dim = int(numParam);
 		int incx = 1;
 		double alpha = -(1 - caution);
 		double beta = 1;
-		F77_CALL(dsymv)(&uplo, &dim, &alpha, ihess.data(), &dim,
+		F77_CALL(dsymv)(&uplo, &dim, &alpha, fc->ihess, &dim,
 				fc->grad, &incx, &beta, newEst.data(), &incx);
 
 		double maxAdj = 0;
@@ -241,19 +280,17 @@ void ComputeNR::compute(FitContext *fc)
 
 		R_CheckUserInterrupt();
 
-		if (maxAdj < tolerance) {
-			if (verbose >= 1) {
-				mxLog("Newton-Raphson converged in %d cycles", iter);
-			}
-			break;
-		} else if (++iter >= maxIter) {
-			if (verbose >= 1) {
-				mxLog("Newton-Raphson failed to converge after %d cycles", iter);
-			}
-			break;
-		}
+		converged = maxAdj < tolerance;
+		if (converged || ++iter >= maxIter) break;
 	}
 
+	if (verbose >= 1) {
+		if (converged) {
+			mxLog("Newton-Raphson converged in %d cycles", iter);
+		} else {
+			mxLog("Newton-Raphson failed to converge after %d cycles", iter);
+		}
+	}
 
 	// The check is too dependent on numerical precision to enable by default.
 	// Anyway, it's just a tool for developers.

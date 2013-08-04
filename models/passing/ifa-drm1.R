@@ -44,16 +44,17 @@ omxCheckCloseEnough(sum(m2@expectation@em.expected), 5000, .01)
 omxCheckCloseEnough(fivenum(m2@expectation@em.expected),
                     c(0, 5.86e-05, 0.0687802, 7.1582354, 74.1583248), .01)
 
-m2 <- mxModel(m2,
+testDeriv <- mxModel(m2,
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE)
+				 mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE, ihessian=TRUE)
 				 )))
-m2 <- mxRun(m2)
-omxCheckCloseEnough(m2@fitfunction@result, 3221.826, .01)
-omxCheckCloseEnough(fivenum(m2@output$gradient), c(-128.034, -8.294, 10.7, 25.814, 107.966), .01)
-omxCheckCloseEnough(fivenum(m2@output$hessian[m2@output$hessian != 0]),
+testDeriv <- mxRun(testDeriv)
+omxCheckCloseEnough(testDeriv@fitfunction@result, 3221.826, .01)
+omxCheckCloseEnough(fivenum(testDeriv@output$gradient), c(-128.034, -8.294, 10.7, 25.814, 107.966), .01)
+omxCheckCloseEnough(fivenum(testDeriv@output$hessian[testDeriv@output$hessian != 0]),
                     c(6.559, 6.559, 32.976, 83.554, 107.714), .01)
+omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 1e-2)
 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),  # got sorted, add it again unsorted

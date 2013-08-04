@@ -85,6 +85,7 @@ setClass(Class = "MxComputeOnce",
 	   context = "character",
 	   gradient = "logical",
 	   hessian = "logical",
+	   ihessian = "logical",
 	   adjustStart = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
@@ -123,20 +124,21 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.set, context, gradient, hessian, adjustStart) {
+	  function(.Object, what, free.set, context, gradient, hessian, ihessian, adjustStart) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@free.set <- free.set
 		  .Object@context <- context
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
+		  .Object@ihessian <- ihessian
 		  .Object@adjustStart <- adjustStart
 		  .Object
 	  })
 
 mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FALSE,
-			  hessian=FALSE, adjustStart=FALSE) {
-	new("MxComputeOnce", what, free.set, context, gradient, hessian, adjustStart)
+			  hessian=FALSE, ihessian=FALSE, adjustStart=FALSE) {
+	new("MxComputeOnce", what, free.set, context, gradient, hessian, ihessian, adjustStart)
 }
 
 #----------------------------------------------------

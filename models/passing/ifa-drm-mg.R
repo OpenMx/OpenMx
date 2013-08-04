@@ -84,6 +84,19 @@ if (1) {
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
   cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+
+  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
+                mxData(observed=data, type="raw"),
+                mxExpectationBA81(mean="mean", cov="cov",
+                                  ItemSpec=items, ItemParam="itemParam",
+                                  EItemParam="EItemParam"),
+                mxFitFunctionML(),
+                mxComputeSequence(steps=list(
+                  mxComputeOnce('expectation', context='EM'),
+                  mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE, ihessian=TRUE)
+                )))
+  m2 <- mxRun(m2)
+  omxCheckCloseEnough(m2@output$ihessian, solve(m2@output$hessian), 1e-4)
   
   m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
                 mxData(observed=data, type="raw"),

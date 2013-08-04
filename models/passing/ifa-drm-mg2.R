@@ -58,15 +58,18 @@ groups <- paste("g", 1:3, sep="")
 # load flexmirt fit and compare TODO
 
 if (1) {
+  # Cannot test derivatives here because Hessian starts very close to singular.
+  
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeIterate(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(adjustStart=TRUE, free.set=paste(groups,'ItemParam',sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-#                        mxComputeOnce('fitfunction', adjustStart=TRUE)
-                        mxComputeGradientDescent(adjustStart=TRUE, useGradient=TRUE,
-                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+                        mxComputeOnce('fitfunction', adjustStart=TRUE,
+                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+#                        mxComputeGradientDescent(adjustStart=TRUE, useGradient=TRUE,
+#                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)

@@ -27,6 +27,7 @@ void FitContext::init()
 	est = new double[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
+	ihess = new double[numParam * numParam];
 }
 
 FitContext::FitContext(std::vector<double> &startingValues)
@@ -73,6 +74,8 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 			if (++d2 == dvars) break;
 		}
 
+		// ihess TODO?
+
 		if (++d1 == dvars) break;
 	}
 	if (d1 != dvars) error("Parent free parameter group is not a superset");
@@ -113,6 +116,8 @@ void FitContext::updateParentAndFree()
 				parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
 				if (++s2 == svars) break;
 			}
+
+			// ihess TODO?
 
 			if (++s1 == svars) break;
 		}
@@ -161,18 +166,45 @@ void FitContext::log(const char *where, int what)
 		}
 		buf += ")\n";
 	}
+	if (what & FF_COMPUTE_IHESSIAN) {
+		buf += string_snprintf("ihess %lux%lu: c(", count, count);
+		for (size_t v1=0; v1 < count; ++v1) {
+			for (size_t v2=0; v2 < count; ++v2) {
+				buf += string_snprintf("%.5f", ihess[v1 * count + v2]);
+				if (v1 < count-1 || v2 < count-1) buf += ", ";
+			}
+			buf += "\n";
+		}
+		buf += ")\n";
+	}
 	mxLogBig(buf);
 }
 
-void FitContext::fixHessianSymmetry()
+void FitContext::fixHessianSymmetry(int want)
 {
 	size_t numParam = varGroup->vars.size();
-	for (size_t h1=1; h1 < numParam; h1++) {
-		for (size_t h2=0; h2 < h1; h2++) {
-			if (hess[h2 * numParam + h1] != 0) {
-				error("Hessian is not lower triangular");
+
+	if (want & FF_COMPUTE_HESSIAN) {
+		for (size_t h1=1; h1 < numParam; h1++) {
+			for (size_t h2=0; h2 < h1; h2++) {
+				if (hess[h2 * numParam + h1] != 0) {
+					omxRaiseErrorf(globalState, "Hessian is not upper triangular");
+					break;
+				}
+				hess[h2 * numParam + h1] = hess[h1 * numParam + h2];
 			}
-			hess[h2 * numParam + h1] = hess[h1 * numParam + h2];
+		}
+	}
+
+	if (want & FF_COMPUTE_IHESSIAN) {
+		for (size_t h1=1; h1 < numParam; h1++) {
+			for (size_t h2=0; h2 < h1; h2++) {
+				if (ihess[h2 * numParam + h1] != 0) {
+					omxRaiseErrorf(globalState, "Inverse Hessian is not upper triangular");
+					break;
+				}
+				ihess[h2 * numParam + h1] = ihess[h1 * numParam + h2];
+			}
 		}
 	}
 }
@@ -264,6 +296,7 @@ FitContext::~FitContext()
 	delete [] est;
 	delete [] grad;
 	delete [] hess;
+	delete [] ihess;
 }
 
 omxFitFunction *FitContext::RFitFunction = NULL;
@@ -346,6 +379,7 @@ class omxComputeOnce : public omxCompute {
 	const char *context;
 	bool gradient;
 	bool hessian;
+	bool ihessian;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -583,12 +617,15 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("hessian")));
 	hessian = asLogical(slotValue);
 
+	PROTECT(slotValue = GET_SLOT(rObj, install("ihessian")));
+	ihessian = asLogical(slotValue);
+
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {
 		omxFitFunction *ff = algebras[0]->fitFunction;
 		if (gradient && !ff->gradientAvailable) {
 			error("Gradient requested but not available");
 		}
-		if (hessian && !ff->hessianAvailable) {
+		if ((hessian || ihessian) && !ff->hessianAvailable) {
 			error("Hessian requested but not available");
 		}
 	}
@@ -610,6 +647,10 @@ void omxComputeOnce::compute(FitContext *fc)
 			want |= FF_COMPUTE_HESSIAN;
 			OMXZERO(fc->hess, numParam * numParam);
 		}
+		if (ihessian) {
+			want |= FF_COMPUTE_IHESSIAN;
+			OMXZERO(fc->ihess, numParam * numParam);
+		}
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
@@ -621,7 +662,7 @@ void omxComputeOnce::compute(FitContext *fc)
 
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
-				if (hessian) fc->fixHessianSymmetry();
+				fc->fixHessianSymmetry(want);
 			} else {
 				omxForceCompute(algebra);
 			}
@@ -664,6 +705,13 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
 			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
 			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
+		}
+
+		if (ihessian) {
+			SEXP Rihessian;
+			PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
+			memcpy(REAL(Rihessian), fc->ihess, sizeof(double) * numFree * numFree);
+			out->push_back(std::make_pair(mkChar("ihessian"), Rihessian));
 		}
 	}
 }

@@ -27,8 +27,10 @@ struct BA81FitState {
 
 	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
-	std::vector<int> paramMap;            // itemParam->cols * itemDerivPadSize -> index of free parameter
-	std::vector<size_t> paramLocations;   // itemParam->cols * itemDerivPadSize -> # of locations
+	std::vector<int> paramMap;           // itemParam->cols * itemDerivPadSize -> index of free parameter
+	std::vector<int> paramLocations;     // param# -> count of appearances in ItemParam
+	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
+	std::vector<int> ihessDivisor;       // freeParam * freeParam
 
 	omxMatrix *cholCov;
 	int choleskyError;
@@ -78,18 +80,19 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 				int a2 = loc->col;
 				if (a1 < a2) std::swap(a1, a2);
 				int cell = maxAbilities + triangleLoc1(a1) + a2;
-				if (latentMap[cell] == -1)
+				if (latentMap[cell] == -1) {
 					latentMap[cell] = px;
-				else if (latentMap[cell] != px) {
+
+					if (a1 == a2 && fv->lbound == NEG_INF) {
+						fv->lbound = 1e-6;  // variance must be positive
+						if (fc->est[px] < fv->lbound) {
+							error("Starting value for variance %s is negative", fv->name);
+						}
+					}
+				} else if (latentMap[cell] != px) {
 					// doesn't work for multigroup constraints TODO
 					error("In covariance matrix, %s and %s must be constrained equal to preserve symmetry",
 					      fvg->vars[latentMap[cell]]->name, fv->name);
-				}
-				if (a1 == a2 && fv->lbound == NEG_INF) {
-					fv->lbound = 1e-6;  // variance must be positive
-					if (fc->est[px] < fv->lbound) {
-						error("Starting value for variance %s is negative", fv->name);
-					}
 				}
 			} else if (matNum == itemNum) {
 				omxRaiseErrorf(globalState, "The fitfunction free.set should consist of "
@@ -108,19 +111,21 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
 	state->paramMap.assign(size, -1);  // matrix location to free param index
-	state->paramLocations.assign(size, 0);
+	state->itemParamFree.assign(itemParam->rows * itemParam->cols, FALSE);
 
 	size_t numFreeParams = state->numItemParam = fvg->vars.size();
+	state->paramLocations.assign(numFreeParams, 0);
 
 	for (size_t px=0; px < numFreeParams; px++) {
 		omxFreeVar *fv = fvg->vars[px];
+		state->paramLocations[px] = int(fv->locations.size());
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = ~loc->matrix;
 			if (matNum == itemParam->matrixNumber) {
 				int at = loc->col * state->itemDerivPadSize + loc->row;
 				state->paramMap[at] = px;
-				state->paramLocations[at] = fv->locations.size();
+				state->itemParamFree[loc->col * itemParam->rows + loc->row] = TRUE;
 
 				const double *spec = estate->itemSpec[loc->col];
 				int id = spec[RPF_ISpecID];
@@ -141,8 +146,11 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 					}
 				}
 			}
+			// guard against latent parameters here? TODO
 		}
 	}
+
+	state->ihessDivisor.resize(size);
 
 	for (int cx=0; cx < itemParam->cols; ++cx) {
 		const double *spec = estate->itemSpec[cx];
@@ -162,6 +170,9 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 				//mxLog("Item %d param(%d,%d) -> H[%d,%d]", cx, p1, p2, at1, at2);
 				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
 				state->paramMap[at] = numFreeParams + at1 * numFreeParams + at2;
+
+				state->ihessDivisor[at] =
+					state->paramLocations[at1] * state->paramLocations[at2];
 			}
 		}
 	}
@@ -180,7 +191,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 	int numItems = itemParam->cols;
 	int maxDims = estate->maxDims;
 	int do_fit = want & FF_COMPUTE_FIT;
-	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
+	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
 	double where[maxDims];
 	pointToWhere(estate, quad, where, maxDims);
@@ -220,11 +231,11 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 }
 
 static double
-ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian)
+ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	if (estate->verbose) mxLog("%s: fit-%d", oo->matrix->name, want);
+	if (estate->verbose) mxLog("%s: em.fit-%d", oo->matrix->name, want);
 
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
@@ -246,7 +257,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 		error("Bayesian prior returned %g; do you need to add a lbound/ubound?", ll);
 	}
 
-#pragma omp parallel for num_threads(Global->numThreads)
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,4)
 	for (long qx=0; qx < estate->totalQuadPoints; qx++) {
 		int quad[maxDims];
 		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
@@ -258,7 +269,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 		ll += thr_ll;
 	}
 
-	if (gradient) {
+	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 		double *deriv0 = thrDeriv;
 
 		int perThread = itemParam->cols * state->itemDerivPadSize;
@@ -298,10 +309,35 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, double *gradient, double *hessian
 			}
 
 			if (to < numFreeParams) {
-				gradient[to] -= deriv0[ox];
+				if (want & FF_COMPUTE_GRADIENT) {
+					fc->grad[to] -= deriv0[ox];
+				}
 			} else {
-				int Hto = to - numFreeParams;
-				hessian[Hto] -= deriv0[ox];
+				if (want & FF_COMPUTE_HESSIAN) {
+					int Hto = to - numFreeParams;
+					fc->hess[Hto] -= deriv0[ox];
+				}
+			}
+		}
+
+		if (want & FF_COMPUTE_IHESSIAN) {
+			for (int ix=0; ix < numItems; ix++) {
+				const double *spec = itemSpec[ix];
+				int id = spec[RPF_ISpecID];
+				int iParams = (*rpf_model[id].numParam)(spec);
+				double *pad = deriv0 + ix * state->itemDerivPadSize + iParams;
+				int *mask = state->itemParamFree.data() + ix * itemParam->rows;
+				double stress;
+				omxApproxInvertPackedPosDefTriangular(iParams, mask, pad, &stress);
+			}
+
+			for (int ox=0; ox < numParams; ox++) {
+				int to = state->paramMap[ox];
+				if (to == -1) continue;
+				if (to >= numFreeParams) {
+					int Hto = to - numFreeParams;
+					fc->ihess[Hto] += deriv0[ox] / state->ihessDivisor[ox];
+				}
 			}
 		}
 	}
@@ -374,7 +410,7 @@ moveLatentDistribution(omxFitFunction *oo, FitContext *fc,
 		for (int cx=0; cx < itemParam->cols; cx++) {
 			int px = cx * state->itemDerivPadSize + rx;
 			int vx = state->paramMap[px];
-			if (vx >= 0 && vx < numFreeParams && state->paramLocations[px] == 1) {
+			if (vx >= 0 && vx < numFreeParams) {
 				fc->est[vx] = omxMatrixElement(itemParam, rx, cx);
 				++moveCount;
 			}
@@ -728,12 +764,12 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (!state->haveItemMap) buildItemParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			schilling_bock_2005_rescale(oo, fc); // how does this work in multigroup? TODO
+			// schilling_bock_2005_rescale(oo, fc); seems counterproductive
 			return 0;
 		}
 
 		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
-		double got = ba81ComputeMFit1(oo, want, fc->grad, fc->hess);
+		double got = ba81ComputeMFit1(oo, want, fc);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
 		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
