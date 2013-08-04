@@ -355,7 +355,11 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 		}
 	}
 
-	if (excluded) {
+	if (excluded && estate->verbose >= 1) {
+		mxLog("%s: Hessian not positive definite for %d/%d items",
+		      oo->matrix->name, excluded, numItems);
+	}
+	if (excluded > numItems/2) {
 		// maybe not fatal, but investigation needed
 		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%d items",
 			       excluded, numItems);
