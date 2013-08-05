@@ -58,7 +58,7 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 }
 
 
-processOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
+nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
 		algebraNames, parameterNames, intervalNames, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {

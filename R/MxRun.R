@@ -163,11 +163,13 @@ runHelper <- function(model, frontendStart,
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)
-	model@output <- processOptimizerOutput(suppressWarnings, flatModel,
+	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
-	model <- populateRunStateInformation(model, parameters, matrices, 
-		fitfunctions, expectations, data, flatModel@constraints, independents, defVars)
+
+	model <- populateRunStateInformation(model, parameters, matrices, fitfunctions,
+					     collectExpectations(model, namespace, NULL),
+					     data, flatModel@constraints, independents, defVars)
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,

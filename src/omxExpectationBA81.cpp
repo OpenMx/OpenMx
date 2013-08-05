@@ -1101,6 +1101,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	setAttrib(robj, install("empirical.mean"), Rmean);
 	setAttrib(robj, install("empirical.cov"), Rcov);
+	setAttrib(robj, install("numStats"), ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
 
 	if (state->type == EXPECTATION_AUGMENTED) {
 		const double LogLargest = state->LogLargestDouble;

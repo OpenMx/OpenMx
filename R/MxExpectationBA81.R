@@ -31,6 +31,8 @@ setClass(Class = "MxExpectationBA81",
 	   empirical.cov = "matrix",
 	   patternLikelihood = "numeric",
 	   em.expected = "MxOptionalMatrix",
+	   dims = "character",
+	   numStats = "numeric",
 	   verbose = "logical"),
          contains = "MxBaseExpectation")
 
@@ -80,11 +82,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
 		  }
-
-					# How to get the data object?
-		  ## if (.Object@data@type != 'raw') {
-		  ##   stop(paste(typeof(.Object), "only supports raw data"));
-		  ## }
+		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed)
 		  return(.Object)
 	  })
 

@@ -56,5 +56,5 @@ m2 <- mxRun(m2)
 
 #print(m2@matrices$itemParam@values)
 #print(correct.mat)
-# Matches flexMIRT but maybe unstable
+# Matches flexMIRT but negative degrees of freedom
 omxCheckCloseEnough(m2@fitfunction@result, 537810.8, .01)
