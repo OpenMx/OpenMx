@@ -54,7 +54,6 @@ mk.model <- function(model.name, data, latent.free) {
       ip.mat@labels[px,ix] <- name
     }
   }
-  eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
   cov.mat.free <- FALSE
@@ -64,12 +63,12 @@ mk.model <- function(model.name, data, latent.free) {
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=cov.mat.free)
   
-  m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
+  m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
                   ItemSpec=spec,
                   design=design,
-                  EItemParam="EItemParam", ItemParam="ItemParam",
+                  ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
                 mxFitFunctionML())

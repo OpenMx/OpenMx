@@ -35,16 +35,14 @@ for (ix in 1:m2.numItems) {
 #  m2.fmfit <- read.flexmirt("~/2012/sy/fm/ms-prm.txt")
 #  ip.mat@values <- m2.fmfit$G1$param
 
-eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
-m2 <- mxModel(model="m2", eip.mat, m.mat, cov.mat, ip.mat,
+m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=m2.spec,
-                                ItemParam="ItemParam", EItemParam="EItemParam"),
+                                ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeIterate(steps=list(
                 mxComputeOnce('expectation', context='EM'),

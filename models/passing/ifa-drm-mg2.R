@@ -32,18 +32,16 @@ mkgroup <- function(model.name, data, latent.free) {
     }
   }
   
-  eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-  
   dims <- 1
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=latent.free)
   
-  m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
+  m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
                   ItemSpec=items,
-                  EItemParam="EItemParam", ItemParam="ItemParam",
+                  ItemParam="ItemParam",
                   mean="mean", cov="cov"),
                 mxFitFunctionML())
   m1

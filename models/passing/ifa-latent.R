@@ -33,18 +33,16 @@ data <- rpf.sample(t(ability), items, correct.mat)
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
 
-eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=c(.5, .5), free=TRUE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=matrix(c(1,.2,.2,1), nrow=2),
                     free=TRUE, labels=c("v1","c12","c12","v2"))
 
 m1 <- mxModel(model="latent",
-              ip.mat, m.mat, cov.mat, eip.mat,
+              ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
-                                EItemParam="EItemParam", ItemParam="ItemParam"),
+                                ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
@@ -80,7 +78,6 @@ objective1 <- function(x) {
 	cov.mat@values[2,2] <- x[5]
 	m1 <- mxModel(m1, m.mat, cov.mat,
 		      mxComputeSequence(steps=list(
-					  mxComputeOnce("EItemParam"),
 					  mxComputeOnce('expectation'),
 					  mxComputeOnce('fitfunction'))))
 	m1 <- mxRun(m1, silent=TRUE)
@@ -107,7 +104,7 @@ if (1) {
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,
                                   design=design,
-                                  EItemParam="EItemParam", ItemParam="ItemParam"),
+                                  ItemParam="ItemParam"),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation'),
                   mxComputeOnce('fitfunction', gradient=TRUE))))
@@ -122,7 +119,6 @@ objective2 <- function(x) {
   cov.mat@values <- diag(x[6:10])
   m1 <- mxModel(m1, m.mat, cov.mat,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce("EItemParam"),
                   mxComputeOnce('expectation'),
                   mxComputeOnce('fitfunction'))))
   m1 <- mxRun(m1, silent=TRUE)

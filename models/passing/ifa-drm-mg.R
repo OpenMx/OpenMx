@@ -20,16 +20,13 @@ if(1) {
 			   values=c(1,0,0, 1),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
 	
-	eip.mat <- mxAlgebra(itemParam, name="EItemParam")
-
 	m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 	cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
 
-	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
+	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
 		      mxData(observed=data, type="raw"),
 		      mxExpectationBA81(mean="mean", cov="cov",
-					ItemSpec=items, ItemParam="itemParam",
-					EItemParam="EItemParam"),
+					ItemSpec=items, ItemParam="itemParam"),
 		      mxFitFunctionML(),
 		      mxComputeIterate(steps=list(
 					 mxComputeOnce('expectation', context='EM'),
@@ -48,7 +45,7 @@ if(1) {
 		cModel <- mxModel(cModel,
 				  mxExpectationBA81(mean="mean", cov="cov",
 						    ItemSpec="ItemSpec",
-						    EItemParam="EItemParam", scores="full"),
+						    scores="full"),
 				  mxComputeSequence(steps=list(
 						      mxComputeOnce('expectation'),
 						      mxComputeOnce('fitfunction'))))
@@ -80,16 +77,13 @@ if (1) {
                      free=c(TRUE, TRUE, FALSE, FALSE))
   ip.mat@labels[1,] <- 'a1'
   
-  eip.mat <- mxAlgebra(itemParam, name="EItemParam")
-  
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
   cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
-  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
+  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items, ItemParam="itemParam",
-                                  EItemParam="EItemParam"),
+                                  ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation', context='EM'),
@@ -98,11 +92,10 @@ if (1) {
   m2 <- mxRun(m2)
   omxCheckCloseEnough(m2@output$ihessian, solve(m2@output$hessian), 1e-4)
   
-  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat, eip.mat,
+  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items, ItemParam="itemParam",
-                                  EItemParam="EItemParam"),
+                                  ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeIterate(steps=list(
                   mxComputeOnce('expectation', context='EM'),

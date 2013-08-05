@@ -52,8 +52,6 @@ mkgroup <- function(model.name, data, latent.free) {
     }
   }
   
-  eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-  
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=latent.free)
   cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=latent.free)
   if (latent.free) {
@@ -66,11 +64,11 @@ mkgroup <- function(model.name, data, latent.free) {
   }
   
   m1 <- mxModel(model=model.name,
-                ip.mat, m.mat, cov.mat, eip.mat,
+                ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items,
-                                  EItemParam="EItemParam", ItemParam="ItemParam",
+                                  ItemParam="ItemParam",
                                   qpoints=21, qwidth=5),
                 mxFitFunctionML())
   m1

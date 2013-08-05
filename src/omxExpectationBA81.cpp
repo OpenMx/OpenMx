@@ -359,7 +359,7 @@ static void ba81OutcomeProb(BA81Expect *state)
 		decodeLocation(qx, maxDims, state->quadGridSize, quad);
 		double where[maxDims];
 		pointToWhere(state, quad, where, maxDims);
-		computeRPF(state, state->EitemParam, quad, FALSE, qProb);
+		computeRPF(state, state->itemParam, quad, FALSE, qProb);
 		qProb += state->totalOutcomes;
 	}
 }
@@ -599,7 +599,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 	if (state->verbose) {
 		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
-		      oo->name, omxGetMatrixVersion(state->EitemParam),
+		      oo->name, omxGetMatrixVersion(state->itemParam),
 		      state->excludedPatterns, numUnique);
 	}
 
@@ -739,7 +739,7 @@ ba81Expected(omxExpectation* oo)
 	double *patternLik = state->patternLik;
 	int *numIdentical = state->numIdentical;
 	int numUnique = state->numUnique;
-	int numItems = state->EitemParam->cols;
+	int numItems = state->itemParam->cols;
 	int totalOutcomes = state->totalOutcomes;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	long totalQuadPoints = state->totalQuadPoints;
@@ -1032,9 +1032,7 @@ ba81compute(omxExpectation *oo, const char *context)
 		}
 	}
 
-	omxRecompute(state->EitemParam);
-
-	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->EitemParam);
+	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam);
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 
 	if (state->verbose) {
@@ -1057,7 +1055,7 @@ ba81compute(omxExpectation *oo, const char *context)
 		ba81Expected(oo);
 	}
 
-	state->itemParamVersion = omxGetMatrixVersion(state->EitemParam);
+	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);
 	state->latentParamVersion = getLatentVersion(state);
 }
 
@@ -1198,7 +1196,6 @@ static void ba81Destroy(omxExpectation *oo) {
 		mxLog("Freeing %s function.", oo->name);
 	}
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	omxFreeAllMatrixData(state->EitemParam);
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->latentMeanOut);
 	omxFreeAllMatrixData(state->latentCovOut);
@@ -1309,17 +1306,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 	if (!state->latentCovOut) error("Failed to retrieve cov matrix");
 
-	state->EitemParam =
-		omxNewMatrixFromSlot(rObj, currentState, "EItemParam");
-	if (!state->EitemParam) error("Must supply EItemParam");
-
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
-
-	if (state->EitemParam->rows != state->itemParam->rows ||
-	    state->EitemParam->cols != state->itemParam->cols) {
-		error("ItemParam and EItemParam must be of the same dimension");
-	}
 
 	oo->computeFun = ba81compute;
 	oo->setVarGroup = ignoreSetVarGroup;
@@ -1350,7 +1338,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->customPrior =
 		omxNewMatrixFromSlot(rObj, globalState, "CustomPrior");
 	
-	int numItems = state->EitemParam->cols;
+	int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
 		error("Data has %d columns for %d items", data->cols, numItems);
 	}
@@ -1406,11 +1394,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			       data->cols);
 		return;
 	}
-	if (state->EitemParam->rows != maxParam) {
-		omxRaiseErrorf(currentState, "ItemParam should have %d rows", maxParam);
-		return;
-	}
-
 	std::vector<bool> byOutcome(totalOutcomes, false);
 	int outcomesSeen = 0;
 	for (int rx=0, ux=0; rx < data->rows; ux++) {

@@ -45,17 +45,15 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
 ip.mat@values[4,1] <- 1
 
-eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
 
 m1 <- mxModel(model="2dim",
-          ip.mat, m.mat, cov.mat, eip.mat,
+          ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec=items,
-                            ItemParam="ItemParam", EItemParam="EItemParam",
+                            ItemParam="ItemParam",
 	     design=design,
 	    qpoints=29,
 	    scores="full"),

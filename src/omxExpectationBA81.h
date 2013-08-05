@@ -66,7 +66,6 @@ struct BA81Expect {
 	// estimation related
 	omxMatrix *customPrior;
 	omxMatrix *itemParam;
-	omxMatrix *EitemParam;    // E step version
 	int cacheLXK;
 	bool LXKcached;
 	double *lxk;              // wo/cache, numUnique * thread

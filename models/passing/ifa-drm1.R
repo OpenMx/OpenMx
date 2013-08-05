@@ -24,15 +24,13 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0,0, 1),
                    free=c(TRUE, TRUE, FALSE, FALSE))
 
-eip.mat <- mxAlgebra(itemParam, name="EItemParam")
-
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
-m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, eip.mat,
+m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(
-                ItemSpec=items, EItemParam="EItemParam",ItemParam="itemParam",
+                ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov", qpoints=31),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
@@ -59,7 +57,7 @@ omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),  # got sorted, add it again unsorted
               mxExpectationBA81(
-                ItemSpec=items, EItemParam="EItemParam",ItemParam="itemParam",
+                ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),

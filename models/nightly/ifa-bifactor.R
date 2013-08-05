@@ -39,18 +39,16 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
 #ip.mat@values[2,1] <- correct.mat[2,1]
 #ip.mat@free[2,1] <- FALSE
 
-eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
-
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
 
 m1 <- mxModel(model="bifactor",
-          ip.mat, m.mat, cov.mat, eip.mat,
+          ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov",
 	     ItemSpec=items,
 	     design=design,
-	     EItemParam="EItemParam", ItemParam="ItemParam",
+	     ItemParam="ItemParam",
 	    qpoints=29),
 	      mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
@@ -79,7 +77,7 @@ m1 <- mxModel(m1,
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
                                 design=design,
-                                EItemParam="EItemParam", ItemParam="ItemParam",
+                                ItemParam="ItemParam",
                                 qpoints=29, scores="full"),
               mxComputeIterate(steps=list(
                 mxComputeOnce('expectation', context='EM'),
