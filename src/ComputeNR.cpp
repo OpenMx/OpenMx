@@ -227,6 +227,7 @@ void Ramsay1975::recalibrate(bool *restart)
 	double normAdjDiff = 0;
 	std::vector<double> adjDiff(numParam);
 
+	// The choice of norm is also arbitrary. Other norms might work better.
 	for (size_t px=0; px < numParam; ++px) {
 		if (fc->flavor[px] != flavor) continue;
 		adjDiff[px] = prevAdj1[px] - prevAdj2[px];
