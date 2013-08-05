@@ -690,7 +690,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
 
 		if (want & FF_COMPUTE_PARAMFLAVOR) {
-			for (int px=0; px < state->numItemParam; ++px) {
+			for (size_t px=0; px < state->numItemParam; ++px) {
 				if (state->paramFlavor[px] < 0) continue;
 				fc->flavor[px] = state->paramFlavor[px];
 			}
@@ -728,16 +728,17 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			int *numIdentical = estate->numIdentical;
 			int numUnique = estate->numUnique;
 			estate->excludedPatterns = 0;
+			const double LogLargest = estate->LogLargestDouble;
 			double got = 0;
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,64) reduction(+:got)
 			for (int ux=0; ux < numUnique; ux++) {
-				if (!validPatternLik(patternLik[ux])) {
+				if (!validPatternLik(estate, patternLik[ux])) {
 #pragma omp atomic
 					++estate->excludedPatterns;
 					// somehow indicate that this -2LL is provisional TODO
 					continue;
 				}
-				got += numIdentical[ux] * log(patternLik[ux]);
+				got += numIdentical[ux] * (log(patternLik[ux]) - LogLargest);
 			}
 			if (estate->verbose) mxLog("%s: fit (%d/%d excluded)",
 						   oo->matrix->name, estate->excludedPatterns, numUnique);

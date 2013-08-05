@@ -15,6 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <limits>
 #include <Rmath.h>
 
 #include "omxExpectationBA81.h"
@@ -124,6 +125,7 @@ ba81Likelihood1(omxExpectation *oo, const int thrId, int specific, const long qx
 	size_t numItems = state->itemSpec.size();
 	int *Sgroup = state->Sgroup;
 	double *lxk;
+	const double Largest = state->LargestDouble;
 
 	if (!state->cacheLXK) {
 		lxk = state->lxk + numUnique * thrId;
@@ -133,7 +135,7 @@ ba81Likelihood1(omxExpectation *oo, const int thrId, int specific, const long qx
 
 	const int *rowMap = state->rowMap;
 	for (int px=0; px < numUnique; px++) {
-		double lxk1 = 1;
+		double lxk1 = Largest;
 		const double *oProb = state->outcomeProb + qx * state->totalOutcomes;
 		for (size_t ix=0; ix < numItems; ix++) {
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
@@ -173,10 +175,11 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	int totalOutcomes = state->totalOutcomes;
 	int numSpecific = state->numSpecific;
 	int outcomeBase = -itemOutcomes[0];
+	const double Largest = state->LargestDouble;
 
 	if (numSpecific == 0) {
 		for (long qx=0; qx < totalQuadPoints; ++qx) {
-			out[qx] = 1.0;
+			out[qx] = Largest;
 		}
 
 		for (size_t ix=0; ix < numItems; ix++) {
@@ -193,7 +196,7 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 		}
 	} else {
 		for (long qx=0; qx < totalQuadPoints * numSpecific; ++qx) {
-			out[qx] = 1.0;
+			out[qx] = Largest;
 		}
 
 		for (size_t ix=0; ix < numItems; ix++) {
@@ -218,6 +221,7 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 	int numSpecific = state->numSpecific;
 	long totalPrimaryPoints = state->totalPrimaryPoints;
 	long specificPoints = state->quadGridSize;
+	const double OneOverLargest = state->OneOverLargestDouble;
 
 	for (int sgroup=0, Sbase=0; sgroup < numSpecific; ++sgroup, Sbase += totalQuadPoints) {
 		long qloc = 0;
@@ -228,7 +232,7 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 				Eis[totalPrimaryPoints * sgroup + qx] += piece;
 				++qloc;
 			}
-			Ei[qx] *= Eis[totalPrimaryPoints * sgroup + qx];
+			Ei[qx] *= Eis[totalPrimaryPoints * sgroup + qx] * OneOverLargest;
 		}
 	}
 }
@@ -302,9 +306,11 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const long prim
 	int quadGridSize = state->quadGridSize;
 	double *allElxk = eBase(state, thrId);
 	double *Eslxk = esBase(state, thrId);
+	const double Largest = state->LargestDouble;
+	const double OneOverLargest = state->OneOverLargestDouble;
 
 	for (int px=0; px < numUnique; px++) {
-		allElxk[px] = 1;
+		allElxk[px] = Largest;
 		for (int sx=0; sx < numSpecific; sx++) {
 			Eslxk[sx * numUnique + px] = 0;
 		}
@@ -338,7 +344,7 @@ void cai2010(omxExpectation* oo, const int thrId, int recompute, const long prim
 		for (int px=0; px < numUnique; px++) {
 			//mxLog("E.is(%d) at (%ld) %.6f", sx, primaryQ,
 			//  Eslxk[sx * numUnique + px]);
-			allElxk[px] *= Eslxk[sx * numUnique + px];  // allSlxk a.k.a. "E_i"
+			allElxk[px] *= Eslxk[sx * numUnique + px] * OneOverLargest;  // allSlxk a.k.a. "E_i"
 		}
 	}
 }
@@ -425,10 +431,11 @@ static void ba81Estep1(omxExpectation *oo)
 		long totalPrimaryPoints = state->totalPrimaryPoints;
 		long specificPoints = state->quadGridSize;
 		double *EiCache = state->EiCache;
+		const double Largest = state->LargestDouble;
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static, totalPrimaryPoints*8)
 		for (int ex=0; ex < totalPrimaryPoints * numUnique; ++ex) {
-			EiCache[ex] = 1.0;
+			EiCache[ex] = Largest;
 		}
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
@@ -509,7 +516,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (!validPatternLik(patternLik[px])) {
+		if (!validPatternLik(state, patternLik[px])) {
 #pragma omp atomic
 			state->excludedPatterns += 1;
 			// Weight would be a huge number. If we skip
@@ -679,6 +686,14 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 		//pda(state->speQarea.data() + sIndex(state, sx, 0), 1, state->quadGridSize);
 	}
 
+	// The idea here is to avoid denormalized values if they are
+	// enabled (5e-324 vs 2e-308).  It would be bad if results
+	// changed depending on the denormalization setting.
+	// Moreover, we don't lose too much even if denormalized
+	// values are disabled.
+
+	state->SmallestPatternLik = 1e16 * std::numeric_limits<double>::min();
+
 	if (!state->cacheLXK) {
 		state->lxk = Realloc(state->lxk, numUnique * numThreads, double);
 	} else {
@@ -745,7 +760,7 @@ ba81Expected(omxExpectation* oo)
 			std::vector<double> lxk(totalQuadPoints);
 			ba81LikelihoodFast2(state, px, lxk.data());
 
-			if (!validPatternLik(patternLik[px])) {
+			if (!validPatternLik(state, patternLik[px])) {
 				continue;
 			}
 
@@ -774,11 +789,12 @@ ba81Expected(omxExpectation* oo)
 			std::vector<double> lxk(totalQuadPoints * numSpecific);
 			ba81LikelihoodFast2(state, px, lxk.data());
 
+			const double Largest = state->LargestDouble;
 			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
-			std::vector<double> Ei(totalPrimaryPoints, 1.0);
+			std::vector<double> Ei(totalPrimaryPoints, Largest);
 			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
 
-			if (!validPatternLik(patternLik[px])) {
+			if (!validPatternLik(state, patternLik[px])) {
 				continue;
 			}
 
@@ -930,6 +946,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 	double *patternLik = state->patternLik;
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
+		if (!validPatternLik(state, denom)) denom = nan("ign"); // need NA_REAL? TODO
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
 		}
@@ -973,7 +990,7 @@ static void recomputePatternLik(omxExpectation *oo)
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				patternLik[px] += lxk[qx] * state->priQarea[qx];
 			}
-			if (!validPatternLik(patternLik[px])) {
+			if (!validPatternLik(state, patternLik[px])) {
 #pragma omp atomic
 				state->excludedPatterns += 1;
 			}
@@ -988,7 +1005,7 @@ static void recomputePatternLik(omxExpectation *oo)
 			for (long qx=0; qx < totalPrimaryPoints; qx++) {
 				patternLik[px] += Ei[qx] * state->priQarea[qx];
 			}
-			if (!validPatternLik(patternLik[px])) {
+			if (!validPatternLik(state, patternLik[px])) {
 #pragma omp atomic
 				state->excludedPatterns += 1;
 			}
@@ -1088,6 +1105,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	setAttrib(robj, install("empirical.cov"), Rcov);
 
 	if (state->type == EXPECTATION_AUGMENTED) {
+		const double LogLargest = state->LogLargestDouble;
 		int numUnique = state->numUnique;
 		int totalOutcomes = state->totalOutcomes;
 		SEXP Rlik;
@@ -1095,6 +1113,11 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 		PROTECT(Rlik = allocVector(REALSXP, numUnique));
 		memcpy(REAL(Rlik), state->patternLik, sizeof(double) * numUnique);
+		double *lik_out = REAL(Rlik);
+		for (int px=0; px < numUnique; ++px) {
+			// Must return value in log units because it may not be representable otherwise
+			lik_out[px] = log(lik_out[px]) - LogLargest;
+		}
 
 		PROTECT(Rexpected = allocMatrix(REALSXP, totalOutcomes, state->totalQuadPoints));
 		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
@@ -1104,13 +1127,6 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	}
 
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
-
-	if (state->excludedPatterns) {
-		// not enough, add more complaints TODO
-		warning("Cannot compute EAP scores because %d patterns are too unlikely",
-			state->excludedPatterns);
-		return;
-	}
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
@@ -1237,6 +1253,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	
 	BA81Expect *state = new BA81Expect;
+
+	// These two constants should be as identical as possible
+	state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
+	state->LargestDouble = exp(state->LogLargestDouble);
+	state->OneOverLargestDouble = 1/state->LargestDouble;
+
 	state->numSpecific = 0;
 	state->excludedPatterns = 0;
 	state->numIdentical = NULL;
@@ -1392,23 +1414,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	std::vector<bool> byOutcome(totalOutcomes, false);
 	int outcomesSeen = 0;
 	for (int rx=0, ux=0; rx < data->rows; ux++) {
-		if (rx == 0) {
-			// all NA rows will sort to the top
-			int na=0;
-			for (int ix=0; ix < numItems; ix++) {
-				if (omxIntDataElement(data, 0, ix) == NA_INTEGER) { ++na; }
-			}
-			if (na == numItems) {
-				omxRaiseErrorf(currentState, "Remove rows with all NAs");
-				return;
-			}
-		}
 		int dups = omxDataNumIdenticalRows(state->data, rx);
 		state->numIdentical[ux] = dups;
 		state->rowMap[ux] = rx;
 		rx += dups;
 
 		if (outcomesSeen < totalOutcomes) {
+			// Since the data is sorted, this will scan at least half the data -> ugh
 			for (int ix=0, outcomeBase=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rx, ix);
 				if (pick == NA_INTEGER) continue;

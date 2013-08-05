@@ -33,7 +33,10 @@ enum expectation_type {
 	EXPECTATION_OBSERVED,  // regular
 };
 
-typedef struct {
+struct BA81Expect {
+	double LogLargestDouble;       // should be const but need constexpr
+	double LargestDouble;          // should be const but need constexpr
+	double OneOverLargestDouble;   // should be const but need constexpr
 
 	// data characteristics
 	omxData *data;
@@ -70,6 +73,7 @@ typedef struct {
 	double *allElxk;          // numUnique * thread
 	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
+	double SmallestPatternLik;
 	int excludedPatterns;
 	int totalOutcomes;
 	double *outcomeProb;      // totalOutcomes * totalQuadPoints
@@ -85,7 +89,7 @@ typedef struct {
 	enum expectation_type type;
 	enum score_option scores;
 	bool verbose;
-} BA81Expect;
+};
 
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
@@ -165,9 +169,9 @@ gramProduct(double *vec, size_t len, double *out)
 }
 
 OMXINLINE static bool
-validPatternLik(double pl)
+validPatternLik(BA81Expect *state, double pl)
 {
-	return isfinite(pl) && pl > 1e-300;
+	return isfinite(pl) && pl > state->SmallestPatternLik;
 }
 
 // debug tools
