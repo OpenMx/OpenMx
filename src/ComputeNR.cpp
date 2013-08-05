@@ -375,15 +375,18 @@ void ComputeNR::compute(FitContext *fc)
 			}
 		} else {
 			maxAdj = 0;
+			double *grad = fc->grad;
+			double *ihess = fc->ihess;
 			for (size_t px=0; px < numParam; ++px) {
 				Ramsay1975 *ramsay1 = ramsay[ fc->flavor[px] ];
 				double oldEst = fc->est[px];
 				double move = 0;
-				for (size_t h1=0; h1 < px; ++h1) {
-					move += fc->ihess[px * numParam + h1] * fc->grad[h1];
+				for (size_t h1=0; h1 <= px; ++h1) {
+					move += ihess[px * numParam + h1] * grad[h1];
 				}
-				for (size_t h1=px; h1 < numParam; ++h1) {
-					move += fc->ihess[h1 * numParam + px] * fc->grad[h1];
+				double *strip=ihess + (px+1) * numParam + px;
+				for (size_t h1=px+1; h1 < numParam; ++h1, strip += numParam) {
+					move += *strip * grad[h1];
 				}
 				double speed = 1 - ramsay1->caution;
 
