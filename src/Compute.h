@@ -36,6 +36,7 @@ class FitContext {
 	double *est;
 	int *flavor;
 	//	double *denom;
+	bool forwardDeriv;
 	double *grad;
 	double *hess;
 	double *ihess;

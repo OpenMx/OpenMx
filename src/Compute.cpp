@@ -26,6 +26,7 @@ void FitContext::init()
 	fit = parent? parent->fit : 0;
 	est = new double[numParam];
 	flavor = new int[numParam];
+	forwardDeriv = false;
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
 	ihess = new double[numParam * numParam];
@@ -49,7 +50,6 @@ FitContext::FitContext(std::vector<double> &startingValues)
 	}
 }
 
-// arg to control what to copy? usually don't want everything TODO
 FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 {
 	this->parent = parent;
@@ -66,13 +66,16 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 		if (src->vars[s1] != dest->vars[d1]) continue;
 		est[d1] = parent->est[s1];
-		grad[d1] = parent->grad[s1];
 
-		size_t d2 = 0;
-		for (size_t s2=0; s2 < src->vars.size(); ++s2) {
-			if (src->vars[s2] != dest->vars[d2]) continue;
-			hess[d1 * dvars + d2] = parent->hess[s1 * svars + s2];
-			if (++d2 == dvars) break;
+		if (forwardDeriv) {
+			grad[d1] = parent->grad[s1];
+
+			size_t d2 = 0;
+			for (size_t s2=0; s2 < src->vars.size(); ++s2) {
+				if (src->vars[s2] != dest->vars[d2]) continue;
+				hess[d1 * dvars + d2] = parent->hess[s1 * svars + s2];
+				if (++d2 == dvars) break;
+			}
 		}
 
 		// ihess TODO?
@@ -109,13 +112,16 @@ void FitContext::updateParentAndFree()
 		for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
-			parent->grad[d1] = grad[s1];
 
-			size_t s2 = 0;
-			for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
-				if (dest->vars[d2] != src->vars[s2]) continue;
-				parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
-				if (++s2 == svars) break;
+			if (forwardDeriv) {
+				parent->grad[d1] = grad[s1];
+
+				size_t s2 = 0;
+				for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
+					if (dest->vars[d2] != src->vars[s2]) continue;
+					parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
+					if (++s2 == svars) break;
+				}
 			}
 
 			// ihess TODO?
