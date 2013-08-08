@@ -41,6 +41,8 @@ omxCheckCloseEnough(fivenum(m2@expectation@patternLikelihood),
 omxCheckCloseEnough(sum(m2@expectation@em.expected), 5000, .01)
 omxCheckCloseEnough(fivenum(m2@expectation@em.expected),
                     c(0, 5.86e-05, 0.0687802, 7.1582354, 74.1583248), .01)
+omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table),
+                    matrix(apply(m2@expectation@em.expected, 1, sum), nrow=2), .01)
 
 testDeriv <- mxModel(m2,
 	      mxComputeIterate(steps=list(

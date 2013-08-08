@@ -718,16 +718,6 @@ static void ba81buildLXKcache(omxExpectation *oo)
 }
 
 OMXINLINE static void
-expectedUpdate(omxData *data, const int *rowMap, const int px, const int item,
-	       const double observed, double *out)
-{
-	int pick = omxIntDataElementUnsafe(data, rowMap[px], item);
-	if (pick != NA_INTEGER) {
-		out[pick-1] += observed;
-	}
-}
-
-OMXINLINE static void
 ba81Expected(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
@@ -754,17 +744,21 @@ ba81Expected(omxExpectation* oo)
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
+			if (!validPatternLik(state, patternLik[px])) {
+				continue;
+			}
+
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
 			std::vector<double> lxk(totalQuadPoints);
 			ba81LikelihoodFast2(state, px, lxk.data());
 
-			if (!validPatternLik(state, patternLik[px])) {
-				continue;
-			}
-
 			double weight = numIdentical[px] / patternLik[px];
+			std::vector<double> Qweight(totalQuadPoints); // uninit OK
+			for (long qx=0; qx < totalQuadPoints; ++qx) {
+				Qweight[qx] = weight * lxk[qx] * priQarea[qx];
+			}
 
 			int outcomeBase = -itemOutcomes[0];
 			for (int ix=0; ix < numItems; ix++) {
@@ -775,7 +769,7 @@ ba81Expected(omxExpectation* oo)
 
 				double *out = myExpected + outcomeBase;
 				for (long qx=0; qx < totalQuadPoints; ++qx) {
-					out[pick] += weight * lxk[qx] * priQarea[qx];
+					out[pick] += Qweight[qx];
 					out += totalOutcomes;
 				}
 			}
@@ -783,6 +777,10 @@ ba81Expected(omxExpectation* oo)
 	} else {
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
+			if (!validPatternLik(state, patternLik[px])) {
+				continue;
+			}
+
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
@@ -794,11 +792,23 @@ ba81Expected(omxExpectation* oo)
 			std::vector<double> Ei(totalPrimaryPoints, Largest);
 			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
 
-			if (!validPatternLik(state, patternLik[px])) {
-				continue;
-			}
-
 			double weight = numIdentical[px] / patternLik[px];
+			std::vector<double> Qweight(totalQuadPoints * numSpecific); // uninit OK
+			long wloc = 0;
+			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
+				long qloc = 0;
+				for (long qx=0; qx < totalPrimaryPoints; qx++) {
+					double Ei1 = Ei[qx];
+					for (long sx=0; sx < specificPoints; sx++) {
+						double area = areaProduct(state, qx, sx, Sgroup);
+						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
+						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
+						Qweight[wloc] = weight * (Ei1 / Eis1) * lxk1 * area;
+						++qloc;
+						++wloc;
+					}
+				}
+			}
 
 			int outcomeBase = -itemOutcomes[0];
 			for (int ix=0; ix < numItems; ix++) {
@@ -808,19 +818,12 @@ ba81Expected(omxExpectation* oo)
 				pick -= 1;
 
 				int Sgroup = state->Sgroup[ix];
+				double *Sweight = Qweight.data() + totalQuadPoints * Sgroup;
 
 				double *out = myExpected + outcomeBase;
-				long qloc = 0;
-				for (long qx=0; qx < totalPrimaryPoints; qx++) {
-					double Ei1 = Ei[qx];
-					for (long sx=0; sx < specificPoints; sx++) {
-						double area = areaProduct(state, qx, sx, Sgroup);
-						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
-						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
-						out[pick] += weight * (Ei1 / Eis1) * lxk1 * area;
-						out += totalOutcomes;
-						++qloc;
-					}
+				for (long qx=0; qx < totalQuadPoints; ++qx) {
+					out[pick] += Sweight[qx];
+					out += totalOutcomes;
 				}
 			}
 		}
