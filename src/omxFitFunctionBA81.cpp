@@ -694,6 +694,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				if (state->paramFlavor[px] < 0) continue;
 				fc->flavor[px] = state->paramFlavor[px];
 			}
+			return 0;
 		}
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
@@ -742,7 +743,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			}
 			if (estate->verbose) mxLog("%s: fit (%d/%d excluded)",
 						   oo->matrix->name, estate->excludedPatterns, numUnique);
-			//mxLog("fit %.2f", -2 * got);
+			//mxLog("fit %.4f", -2 * got);
 			return -2 * got;
 		}
 
