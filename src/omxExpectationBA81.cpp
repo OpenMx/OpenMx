@@ -854,11 +854,9 @@ accumulateScores(BA81Expect *state, int px, int sgroup, double piece, const doub
 		for (int d1=0; d1 < primaryDims; d1++) {
 			double piece_w1 = piece * where[d1];
 			double &dest1 = (*mean)[px * maxAbilities + d1];
-#pragma omp atomic
 			dest1 += piece_w1;
 			for (int d2=0; d2 <= d1; d2++) {
 				double &dest2 = (*cov)[px * covEntries + cx];
-#pragma omp atomic
 				dest2 += where[d2] * piece_w1;
 				++cx;
 			}
@@ -869,11 +867,9 @@ accumulateScores(BA81Expect *state, int px, int sgroup, double piece, const doub
 		int sdim = maxDims + sgroup - 1;
 		double piece_w1 = piece * where[primaryDims];
 		double &dest3 = (*mean)[px * maxAbilities + sdim];
-#pragma omp atomic
 		dest3 += piece_w1;
 
 		double &dest4 = (*cov)[px * covEntries + triangleLoc0(sdim)];
-#pragma omp atomic
 		dest4 += piece_w1 * where[primaryDims];
 	}
 }
@@ -890,24 +886,32 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 	int maxAbilities = state->maxAbilities;
 	int primaryDims = maxDims;
 	int covEntries = triangleLoc1(maxAbilities);
+	double *patternLik = state->patternLik;
+	long totalQuadPoints = state->totalQuadPoints;
+	long totalPrimaryPoints = state->totalPrimaryPoints;
 
 	mean->assign(numUnique * maxAbilities, 0);
 	cov->assign(numUnique * covEntries, 0);
 
 	if (numSpecific == 0) {
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < state->totalQuadPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-			int quad[maxDims];
-			decodeLocation(qx, maxDims, state->quadGridSize, quad);
-			double where[maxDims];
-			pointToWhere(state, quad, where, maxDims);
+		std::vector<double> &priQarea = state->priQarea;
 
-			double *lxk = ba81LikelihoodFast1(oo, thrId, 0, qx);
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
+			if (!validPatternLik(state, patternLik[px])) {
+				continue;
+			}
 
-			double area = state->priQarea[qx];
-			for (int px=0; px < numUnique; px++) {
-				double tmp = lxk[px] * area;
+			std::vector<double> lxk(totalQuadPoints);
+			ba81LikelihoodFast2(state, px, lxk.data());
+
+			for (long qx=0; qx < state->totalQuadPoints; qx++) {
+				int quad[maxDims];
+				decodeLocation(qx, maxDims, state->quadGridSize, quad);
+				double where[maxDims];
+				pointToWhere(state, quad, where, maxDims);
+
+				double tmp = lxk[qx] * priQarea[qx];
 				accumulateScores(state, px, 0, tmp, where, primaryDims, covEntries, mean, cov);
 			}
 		}
@@ -916,40 +920,54 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		int sDim = primaryDims;
 		long specificPoints = state->quadGridSize;
 
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (long qx=0; qx < state->totalPrimaryPoints; qx++) {
-			const int thrId = omx_absolute_thread_num();
-			int quad[maxDims];
-			decodeLocation(qx, primaryDims, state->quadGridSize, quad);
+#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+		for (int px=0; px < numUnique; px++) {
+			if (!validPatternLik(state, patternLik[px])) {
+				continue;
+			}
 
-			cai2010(oo, thrId, FALSE, qx);
-			double *allElxk = eBase(state, thrId);
-			double *Eslxk = esBase(state, thrId);
+			std::vector<double> lxk(totalQuadPoints * numSpecific);
+			ba81LikelihoodFast2(state, px, lxk.data());
 
-			for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-				for (long sx=0; sx < specificPoints; sx++) {
-					long qloc = qx * specificPoints + sx;
-					quad[sDim] = sx;
-					double where[maxDims];
-					pointToWhere(state, quad, where, maxDims);
-					double area = areaProduct(state, qx, sx, sgroup);
-					double *lxk = ba81LikelihoodFast1(oo, thrId, sgroup, qloc);
-					for (int px=0; px < numUnique; px++) {
-						double Ei = allElxk[px];
-						double Eis = Eslxk[sgroup * numUnique + px];
-						double tmp = ((Ei / Eis) * lxk[px] * area);
-						accumulateScores(state, px, sgroup, tmp, where, primaryDims,
+			const double Largest = state->LargestDouble;
+			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
+			std::vector<double> Ei(totalPrimaryPoints, Largest);
+			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
+
+			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
+				long qloc = 0;
+				for (long qx=0; qx < totalPrimaryPoints; qx++) {
+					int quad[maxDims];
+					decodeLocation(qx, primaryDims, state->quadGridSize, quad);
+					double Ei1 = Ei[qx];
+					for (long sx=0; sx < specificPoints; sx++) {
+						quad[sDim] = sx;
+						double where[maxDims];
+						pointToWhere(state, quad, where, maxDims);
+						double area = areaProduct(state, qx, sx, Sgroup);
+						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
+						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
+						double tmp = (Ei1 / Eis1) * lxk1 * area;
+						accumulateScores(state, px, Sgroup, tmp, where, primaryDims,
 								 covEntries, mean, cov);
+						++qloc;
 					}
 				}
 			}
 		}
 	}
 
-	double *patternLik = state->patternLik;
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
-		if (!validPatternLik(state, denom)) denom = nan("ign"); // need NA_REAL? TODO
+		if (!validPatternLik(state, denom)) {
+			for (int ax=0; ax < maxAbilities; ++ax) {
+				(*mean)[px * maxAbilities + ax] = NA_REAL;
+			}
+			for (int cx=0; cx < covEntries; ++cx) {
+				(*cov)[px * covEntries + cx] = NA_REAL;
+			}
+			continue;
+		}
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
 		}
