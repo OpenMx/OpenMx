@@ -115,55 +115,6 @@ getLXKcache(BA81Expect *state, const long qx, const int specific)
 	return state->lxk + state->numUnique * ordinate;
 }
 
-OMXINLINE static double *
-ba81Likelihood1(omxExpectation *oo, const int thrId, int specific, const long qx)
-{
-	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	int numUnique = state->numUnique;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	omxData *data = state->data;
-	size_t numItems = state->itemSpec.size();
-	int *Sgroup = state->Sgroup;
-	double *lxk;
-	const double Largest = state->LargestDouble;
-
-	if (!state->cacheLXK) {
-		lxk = state->lxk + numUnique * thrId;
-	} else {
-		lxk = getLXKcache(state, qx, specific);
-	}
-
-	const int *rowMap = state->rowMap;
-	for (int px=0; px < numUnique; px++) {
-		double lxk1 = Largest;
-		const double *oProb = state->outcomeProb + qx * state->totalOutcomes;
-		for (size_t ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (specific == Sgroup[ix] && pick != NA_INTEGER) {
-				double piece = oProb[pick-1];  // move -1 elsewhere TODO
-				lxk1 *= piece;
-				//mxLog("%d pick %d piece %.7f", ix, pick-1, piece);
-			}
-			oProb += itemOutcomes[ix];
-		}
-		lxk[px] = lxk1;
-	}
-
-	return lxk;
-}
-
-double *ba81LikelihoodFast1(omxExpectation *oo, const int thrId, int specific, const long qx)
-{
-	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	if (!state->cacheLXK) {
-		double *ret = ba81Likelihood1(oo, thrId, specific, qx);
-		return ret;
-	} else {
-		return getLXKcache(state, qx, specific);
-	}
-
-}
-
 static OMXINLINE void
 ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 {
@@ -294,58 +245,6 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 		double piece_var = piece * whereGram[triangleLoc0(pmax)];
 		int to = maxAbilities + triangleLoc0(sdim);
 		latentDist[to] += piece_var;
-	}
-}
-
-// Eslxk, allElxk (Ei, Eis) depend on the ordinate of the primary dimensions
-void cai2010(omxExpectation* oo, const int thrId, int recompute, const long primaryQ)
-{
-	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	int numUnique = state->numUnique;
-	int numSpecific = state->numSpecific;
-	int quadGridSize = state->quadGridSize;
-	double *allElxk = eBase(state, thrId);
-	double *Eslxk = esBase(state, thrId);
-	const double Largest = state->LargestDouble;
-	const double OneOverLargest = state->OneOverLargestDouble;
-
-	for (int px=0; px < numUnique; px++) {
-		allElxk[px] = Largest;
-		for (int sx=0; sx < numSpecific; sx++) {
-			Eslxk[sx * numUnique + px] = 0;
-		}
-	}
-
-	if (!state->cacheLXK) recompute = TRUE;
-
-	for (int sx=0; sx < quadGridSize; sx++) {
-		long qloc = primaryQ * quadGridSize + sx;
-
-		for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-			double *myEslxk = Eslxk + sgroup * numUnique;
-			double *lxk;     // a.k.a. "L_is"
-			if (recompute) {
-				lxk = ba81Likelihood1(oo, thrId, sgroup, qloc);
-			} else {
-				lxk = getLXKcache(state, qloc, sgroup);
-			}
-
-			for (int ix=0; ix < numUnique; ix++) {
-				double area = state->speQarea[sIndex(state, sgroup, sx)];
-				double piece = lxk[ix] * area;
-				//mxLog("E.is(%d) (%ld,%d) %.6f + %.6f = %.6f",
-				//  sgroup, primaryQ, sx, lxk[ix], area, piece);
-				myEslxk[ix] += piece;
-			}
-		}
-	}
-
-	for (int sx=0; sx < numSpecific; sx++) {
-		for (int px=0; px < numUnique; px++) {
-			//mxLog("E.is(%d) at (%ld) %.6f", sx, primaryQ,
-			//  Eslxk[sx * numUnique + px]);
-			allElxk[px] *= Eslxk[sx * numUnique + px] * OneOverLargest;  // allSlxk a.k.a. "E_i"
-		}
 	}
 }
 

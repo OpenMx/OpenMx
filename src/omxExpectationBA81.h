@@ -95,8 +95,6 @@ extern int rpf_numModels;
 
 void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
 		const bool wantlog, double *outcomeProb);
-void cai2010(omxExpectation* oo, const int thrId, int recompute, const long qx);
-double *ba81LikelihoodFast1(omxExpectation *oo, const int thrId, int specific, const long qx);
 
 OMXINLINE static int
 triangleLoc1(int diag)
