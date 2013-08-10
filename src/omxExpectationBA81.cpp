@@ -103,16 +103,19 @@ void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
 	}
 }
 
-OMXINLINE static double *
-getLXKcache(BA81Expect *state, const long qx, const int specific)
+OMXINLINE static void
+storeLXKcache(BA81Expect *state, int px, const long qx, const int specific, const double to)
 {
 	long ordinate;
+	long totalQuadSize;
 	if (state->numSpecific == 0) {
 		ordinate = qx;
+		totalQuadSize = state->totalQuadPoints;
 	} else {
 		ordinate = specific * state->totalQuadPoints + qx;
+		totalQuadSize = state->numSpecific * state->totalQuadPoints;
 	}
-	return state->lxk + state->numUnique * ordinate;
+	*(state->lxk + px * totalQuadSize + ordinate) = to;
 }
 
 static OMXINLINE void
@@ -188,29 +191,21 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 	}
 }
 
-static OMXINLINE void
-ba81LikelihoodFast2(BA81Expect *state, int px, double *out)
+static OMXINLINE double *
+ba81LikelihoodFast2(BA81Expect *state, int px, double *buf)
 {
 	long totalQuadPoints = state->totalQuadPoints;
 	int numSpecific = state->numSpecific;
 
 	if (state->cacheLXK) {
 		if (numSpecific == 0) {
-			for (long qx=0; qx < totalQuadPoints; qx++) {
-				out[qx] = state->lxk[state->numUnique * qx + px]; // transpose cache to avoid copy TODO
-			}
+			return state->lxk + px * totalQuadPoints;
 		} else {
-			long qloc = 0;
-			for (int sx=0; sx < numSpecific; ++sx) {
-				for (long qx=0; qx < totalQuadPoints; ++qx) {
-					long ordinate = sx * state->totalQuadPoints + qx;
-					out[qloc] = state->lxk[state->numUnique * ordinate + px];
-					++qloc;
-				}
-			}
+			return state->lxk + px * numSpecific * totalQuadPoints;
 		}
 	} else {
-		ba81LikelihoodSlow2(state, px, out);
+		ba81LikelihoodSlow2(state, px, buf);
+		return buf;
 	}
 }
 
@@ -306,7 +301,6 @@ static void ba81Estep1(omxExpectation *oo)
 			std::vector<double> lxk(totalQuadPoints); // make thread local TODO
 			ba81LikelihoodSlow2(state, px, lxk.data());
 
-			double *lxkCache = state->cacheLXK? state->lxk + px : NULL;
 			double patternLik1 = 0;
 			double *wh = wherePrep.data();
 			for (long qx=0; qx < totalQuadPoints; qx++) {
@@ -316,9 +310,8 @@ static void ba81Estep1(omxExpectation *oo)
 				mapLatentSpace(state, 0, tmp, wh, wh + maxDims,
 					       thrLatentDist + px * numLatents);
 
-				if (lxkCache) {
-					*lxkCache = lxk[qx];
-					lxkCache += numUnique;
+				if (state->cacheLXK) {
+					storeLXKcache(state, px, qx, 0, lxk[qx]);
 				}
 				wh += whereChunk;
 			}
@@ -364,8 +357,7 @@ static void ba81Estep1(omxExpectation *oo)
 						mapLatentSpace(state, sgroup, tmp, wh, wh + maxDims,
 							       thrLatentDist + px * numLatents);
 						if (state->cacheLXK) {
-							double *lxkCache = getLXKcache(state, qloc, sgroup);
-							lxkCache[px] = lxk1;
+							storeLXKcache(state, px, qloc, sgroup, lxk1);
 						}
 					}
 					wh += whereChunk;
@@ -650,8 +642,8 @@ ba81Expected(omxExpectation* oo)
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			std::vector<double> lxk(totalQuadPoints);
-			ba81LikelihoodFast2(state, px, lxk.data());
+			std::vector<double> lxkBuf(totalQuadPoints);
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
 
 			double weight = numIdentical[px] / patternLik[px];
 			std::vector<double> Qweight(totalQuadPoints); // uninit OK
@@ -683,13 +675,13 @@ ba81Expected(omxExpectation* oo)
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			std::vector<double> lxk(totalQuadPoints * numSpecific);
-			ba81LikelihoodFast2(state, px, lxk.data());
+			std::vector<double> lxkBuf(totalQuadPoints * numSpecific);
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
 
 			const double Largest = state->LargestDouble;
 			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
 			std::vector<double> Ei(totalPrimaryPoints, Largest);
-			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
+			cai2010EiEis(state, px, lxk, Eis.data(), Ei.data());
 
 			double weight = numIdentical[px] / patternLik[px];
 			std::vector<double> Qweight(totalQuadPoints * numSpecific); // uninit OK
@@ -801,8 +793,8 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				continue;
 			}
 
-			std::vector<double> lxk(totalQuadPoints);
-			ba81LikelihoodFast2(state, px, lxk.data());
+			std::vector<double> lxkBuf(totalQuadPoints);
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
 
 			for (long qx=0; qx < state->totalQuadPoints; qx++) {
 				int quad[maxDims];
@@ -825,13 +817,13 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				continue;
 			}
 
-			std::vector<double> lxk(totalQuadPoints * numSpecific);
-			ba81LikelihoodFast2(state, px, lxk.data());
+			std::vector<double> lxkBuf(totalQuadPoints * numSpecific);
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
 
 			const double Largest = state->LargestDouble;
 			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
 			std::vector<double> Ei(totalPrimaryPoints, Largest);
-			cai2010EiEis(state, px, lxk.data(), Eis.data(), Ei.data());
+			cai2010EiEis(state, px, lxk, Eis.data(), Ei.data());
 
 			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
 				long qloc = 0;
@@ -905,8 +897,8 @@ static void recomputePatternLik(omxExpectation *oo)
 	if (state->numSpecific == 0) {
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
-			std::vector<double> lxk(totalQuadPoints);
-			ba81LikelihoodFast2(state, px, lxk.data());
+			std::vector<double> lxkBuf(totalQuadPoints);
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				patternLik[px] += lxk[qx] * state->priQarea[qx];
 			}
