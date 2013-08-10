@@ -146,7 +146,7 @@ Matrix solve(Matrix X,  Matrix y){
 		// find pivot row and swap
         int max = p;
 		for (i = p + 1; i<N; i++) {
-            if ( abs(M(A,p,i)) > abs(M(A,p,max)) ) {
+            if ( fabs(M(A,p,i)) > fabs(M(A,p,max)) ) {
                 max = i;
             }
         }
@@ -712,7 +712,7 @@ Matrix luSolve(Matrix a,  Matrix b){
          // Find pivot and exchange if necessary.
          int p = j;
          for (i = j+1; i < m; i++) {
-            if ( abs(M(LU,j, i)) > abs(M(LU,j, p)) ){
+            if ( fabs(M(LU,j, i)) > fabs(M(LU,j, p)) ){
 				p = i;
             }
          }

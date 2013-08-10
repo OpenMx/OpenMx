@@ -24,7 +24,7 @@
 #include "glue.h"
 #include "omxImportFrontendState.h"
 #include "matrix.h"
-#include "subnp.h"
+#include "omxCsolnp.h"
 
 
 /* NPSOL-related functions */
@@ -77,13 +77,13 @@ double csolnpObjectiveFunction(Matrix myPars)
 	GLOB_fc->copyParamToModel(globalState, myPars.t);
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
-		mxLog("fitMatrix inside important if is: ");
-		mxLog("%2f", fitMatrix->data[0]); 
+		mxLog("fitMatrix inside important if is: %.32f", fitMatrix->data[0]); 
     
-		int ign = 0; // remove TODO
-		omxExamineFitOutput(globalState, fitMatrix, &ign);
-    
-    GLOB_fc->fit = fitMatrix->data[0];
+		if (!R_FINITE(fitMatrix->data[0])) {
+			GLOB_fc->fit = 1e24;
+		} else {
+			GLOB_fc->fit = fitMatrix->data[0];
+		}
 
 	if(OMX_VERBOSE) {
 		mxLog("Fit function value is: %.32f ", fitMatrix->data[0]);
@@ -207,12 +207,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
     
     double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
-    int *iw = NULL;
-    
-    int *istate = NULL;                 // Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
-    
-    int nctotl, nlinwid, nlnwid;    // Helpful side variables.
-    
     int ncnln = globalState->ncnln;
     int n = int(fc->varGroup->vars.size());
     
@@ -282,8 +276,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
             int nineqn = ncnln - eqn;
             solIneqLB = fill(nineqn, 1, EMPTY);
             solIneqUB = fill(nineqn, 1, EMPTY);
-            solEqB = fill(eqn, 1, EMPTY);
-        omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+	    if (eqn == 0) {
+		    solEqB = fill(1, 1, EMPTY);
+	    } else {
+		    solEqB = fill(eqn, 1, EMPTY);
+	    }
+	    omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
 	if (verbose) {
 		mxLog("solIneqLB is: ");
 		print(solIneqLB); 
@@ -344,7 +342,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
                 print(solIneqLB); 
             }
         
-	    myPars = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
+	    Param_Obj p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
+            GLOB_fc->fit = p_obj.objValue;
+            myPars = p_obj.parameter;
         
         if(OMX_DEBUG) {
 		mxLog("myPars's final value is: ");

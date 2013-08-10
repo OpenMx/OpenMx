@@ -4,10 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
-#include <R_ext/Lapack.h>
 
 #include "matrix.h"
-#include "subnp.h"
+#include "omxCsolnp.h"
 
 double EMPTY;
 
@@ -43,7 +42,10 @@ double eqBLength;
 double eps;
 double outerIter;
 
-Matrix solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle){
+static int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), Matrix (*myineqFun)( Matrix),  Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl);
+
+Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle)
+{
 
     printf("solPars is: \n");
     print(solPars); putchar('\n');
@@ -496,7 +498,7 @@ Matrix solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix 
          }
          else ob = fill(1, 1, funv);
         
-         double resultForTT = (j - M(ob, 0, 0)) / max(abs(M(ob, 0, 0)), 1.0);
+         double resultForTT = (j - M(ob, 0, 0)) / max(fabs(M(ob, 0, 0)), 1.0);
          M(tt, 0, 0) = resultForTT;
          j = M(ob, 0, 0);
          
@@ -597,9 +599,20 @@ Matrix solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix 
         }
         
     }
-    return p;
+
+    Param_Obj pfunv;
+    int i;
+    pfunv.parameter = p;
+    printf("parameter in struct is: \n");
+    print(pfunv.parameter); putchar('\n');
+    pfunv.objValue = funv;
+    printf("objValue in struct is: \n");
+    printf("%2f", pfunv.objValue); putchar('\n');
+    
+    return pfunv;
 }
-int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), Matrix (*myineqFun)( Matrix),  Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl){
+static int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), Matrix (*myineqFun)( Matrix),  Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl)
+{
 	
 	double yyRows = yy.rows;
 	double yyCols = yy.cols;
@@ -947,8 +960,8 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
                 printf("a before qrsolve is: \n");
                 print(a); putchar('\n');
 
-                //Matrix y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
-                Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
+                Matrix y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
+                //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
                 y = subset(y, 0, 0, nc - 1);
                 printf("y qrsolve is: \n");
                 print(y); putchar('\n');
@@ -1104,7 +1117,7 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
     Matrix u;
     
     int i;
-    while (minit < maxit){
+    while (minit < 2){  // probably should use maxit?
         minit = minit + 1;
     
         if (ch > 0){
@@ -1140,7 +1153,9 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
                 else if (M(eqv,0,0) != EMPTY){
                     firstPart = copy(fill(1, 1, funv), eqv);
                 }
-                else firstPart = fill(1, 1, funv);
+                else {
+			firstPart = fill(1, 1, funv);
+		}
                     
                 secondPart = subset(vscale, 0, 0, nc);
                 obm = divide(firstPart, secondPart);
@@ -1305,7 +1320,7 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
 
             
             if (nc <= 0){
-                u = matrixDotProduct(divideByScalar2D(cz, -1.0), yg);
+                u = matrixDotProduct(divideByScalar2D(transpose(cz), -1.0), yg);
                 printf("u inside nc <=0 is: \n");
                 print(u); putchar('\n');
             }
@@ -1431,7 +1446,9 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
         else if (M(eqv,0,0) != EMPTY){
             firstPart = copy(fill(1, 1, funv), eqv);
         }
-        else firstPart = fill(1, 1, funv);
+        else {
+		firstPart = fill(1, 1, funv);
+	}
 
         secondPart = subset(vscale, 0, 0, nc);
         
@@ -1581,7 +1598,7 @@ int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), 
             maxit = minit;
         }
         
-        double reduce = (j - obn) / (1 + abs(j));
+	reduce = (j - obn) / ((double)1.0 + (double)fabs(j));
 
         if (reduce < tol){
             maxit = minit;

@@ -18,13 +18,15 @@
 #define _OMX_CSOLNP_SPECIFIC_H
 
 #include "omxMatrix.h"
-#include "subnp.h"
+#include "matrix.h"
 
 struct Matrix fillMatrix(int cols, int rows, double* array);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose);
 
 //void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations);
+
+Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle);
 
 double csolnpObjectiveFunction(Matrix myPars);
 struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg);

@@ -22,6 +22,11 @@ struct Matrix {
 	unsigned sentinel2;
 };
 
+struct Param_Obj {
+    Matrix parameter;
+    double objValue;
+};
+
 static void _MatrixCheck(Matrix &m, int x, int y) {
 	if (m.sentinel1 != 0xdeadbeef || m.sentinel2 != 0xdeadbeef) error("Memory corruption");
 	if (m.rows == 1 || m.cols == 1) {
