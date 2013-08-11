@@ -59,50 +59,6 @@ int sIndex(BA81Expect *state, int sx, int qx)
 	return sx * state->quadGridSize + qx;
 }
 
-// Depends on item parameters, but not latent distribution
-void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
-		const bool wantlog, double *out)
-{
-	omxMatrix *design = state->design;
-	int maxDims = state->maxDims;
-	size_t numItems = state->itemSpec.size();
-
-	double theta[maxDims];
-	pointToWhere(state, quad, theta, maxDims);
-
-	for (size_t ix=0; ix < numItems; ix++) {
-		const double *spec = state->itemSpec[ix];
-		int id = spec[RPF_ISpecID];
-		int dims = spec[RPF_ISpecDims];
-		double ptheta[dims];
-
-		for (int dx=0; dx < dims; dx++) {
-			int ability = (int)omxMatrixElement(design, dx, ix) - 1;
-			if (ability >= maxDims) ability = maxDims-1;
-			ptheta[dx] = theta[ability];
-		}
-
-		double *iparam = omxMatrixColumn(itemParam, ix);
-		if (wantlog) {
-			(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
-		} else {
-			(*rpf_model[id].prob)(spec, iparam, ptheta, out);
-		}
-#if 0
-		for (int ox=0; ox < state->itemOutcomes[ix]; ox++) {
-			if (!isfinite(out[ox]) || out[ox] > 0) {
-				mxLog("item param");
-				pda(iparam, itemParam->rows, 1);
-				mxLog("where");
-				pda(ptheta, dims, 1);
-				error("RPF returned %20.20f", out[ox]);
-			}
-		}
-#endif
-		out += state->itemOutcomes[ix];
-	}
-}
-
 OMXINLINE static double *
 getLXKcache(BA81Expect *state, int px)
 {
@@ -123,25 +79,26 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	size_t numItems = state->itemSpec.size();
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
-	int totalOutcomes = state->totalOutcomes;
 	int numSpecific = state->numSpecific;
-	int outcomeBase = 0;
 	const double Largest = state->LargestDouble;
+	double *oProb = state->outcomeProb;
 
 	if (numSpecific == 0) {
 		for (long qx=0; qx < totalQuadPoints; ++qx) {
 			out[qx] = Largest;
 		}
 
-		for (size_t ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+		for (size_t ix=0; ix < numItems; ix++) {
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) continue;
+			if (pick == NA_INTEGER) {
+				oProb += itemOutcomes[ix] * totalQuadPoints;
+				continue;
+			}
 			pick -= 1;
 
-			double *oProb = state->outcomeProb + outcomeBase;
 			for (long qx=0; qx < totalQuadPoints; ++qx) {
 				out[qx] *= oProb[pick];
-				oProb += totalOutcomes;
+				oProb += itemOutcomes[ix];
 			}
 		}
 	} else {
@@ -149,15 +106,17 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 			out[qx] = Largest;
 		}
 
-		for (size_t ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+		for (size_t ix=0; ix < numItems; ix++) {
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) continue;
+			if (pick == NA_INTEGER) {
+				oProb += itemOutcomes[ix] * totalQuadPoints;
+				continue;
+			}
 			pick -= 1;
 			int Sbase = state->Sgroup[ix] * totalQuadPoints;
-			double *oProb = state->outcomeProb + outcomeBase;
 			for (long qx=0; qx < state->totalQuadPoints; qx++) {
 				out[Sbase + qx] *= oProb[pick];
-				oProb += totalOutcomes;
+				oProb += itemOutcomes[ix];
 			}
 		}
 	}
@@ -244,16 +203,38 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 
 static void ba81OutcomeProb(BA81Expect *state)
 {
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	omxMatrix *itemParam = state->itemParam;
+	omxMatrix *design = state->design;
 	int maxDims = state->maxDims;
+	size_t numItems = state->itemSpec.size();
 	double *qProb = state->outcomeProb =
 		Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
-	for (long qx=0; qx < state->totalQuadPoints; qx++) {
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, state->quadGridSize, quad);
-		double where[maxDims];
-		pointToWhere(state, quad, where, maxDims);
-		computeRPF(state, state->itemParam, quad, FALSE, qProb);
-		qProb += state->totalOutcomes;
+
+	for (size_t ix=0; ix < numItems; ix++) {
+		const double *spec = state->itemSpec[ix];
+		int id = spec[RPF_ISpecID];
+		int dims = spec[RPF_ISpecDims];
+		double *iparam = omxMatrixColumn(itemParam, ix);
+		rpf_prob_t prob_fn = rpf_model[id].prob;
+
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, state->quadGridSize, quad);
+			double where[maxDims];
+			pointToWhere(state, quad, where, maxDims);
+
+			double ptheta[dims];
+			for (int dx=0; dx < dims; dx++) {
+				int ability = (int)omxMatrixElement(design, dx, ix) - 1;
+				if (ability >= maxDims) ability = maxDims-1;
+				ptheta[dx] = where[ability];
+			}
+
+			(*prob_fn)(spec, iparam, ptheta, qProb);
+
+			qProb += itemOutcomes[ix];
+		}
 	}
 }
 

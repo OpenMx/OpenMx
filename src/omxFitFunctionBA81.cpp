@@ -190,6 +190,46 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
+// Depends on item parameters, but not latent distribution
+OMXINLINE static void
+computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, double *out)
+{
+	omxMatrix *design = state->design;
+	int maxDims = state->maxDims;
+	size_t numItems = state->itemSpec.size();
+
+	double theta[maxDims];
+	pointToWhere(state, quad, theta, maxDims);
+
+	for (size_t ix=0; ix < numItems; ix++) {
+		const double *spec = state->itemSpec[ix];
+		int id = spec[RPF_ISpecID];
+		int dims = spec[RPF_ISpecDims];
+		double ptheta[dims];
+
+		for (int dx=0; dx < dims; dx++) {
+			int ability = (int)omxMatrixElement(design, dx, ix) - 1;
+			if (ability >= maxDims) ability = maxDims-1;
+			ptheta[dx] = theta[ability];
+		}
+
+		double *iparam = omxMatrixColumn(itemParam, ix);
+		(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
+#if 0
+		for (int ox=0; ox < state->itemOutcomes[ix]; ox++) {
+			if (!isfinite(out[ox]) || out[ox] > 0) {
+				mxLog("item param");
+				pda(iparam, itemParam->rows, 1);
+				mxLog("where");
+				pda(ptheta, dims, 1);
+				error("RPF returned %20.20f", out[ox]);
+			}
+		}
+#endif
+		out += state->itemOutcomes[ix];
+	}
+}
+
 OMXINLINE static double
 ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 		 const double *weight, int want, double *myDeriv)
@@ -208,7 +248,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 	double *outcomeProb = NULL;
 	if (do_fit) {
 		outcomeProb = Realloc(NULL, estate->totalOutcomes, double); // avoid malloc/free? TODO
-		computeRPF(estate, itemParam, quad, TRUE, outcomeProb);
+		computeRPF(estate, itemParam, quad, outcomeProb);
 	}
 
 	double thr_ll = 0;

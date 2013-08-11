@@ -118,9 +118,6 @@ template<typename _Tp> class omxBuffer {
 	{ return _M_start; }
 };
 
-void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
-		const bool wantlog, double *outcomeProb);
-
 OMXINLINE static int
 triangleLoc1(int diag)
 {
