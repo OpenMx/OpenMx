@@ -9,3 +9,4 @@ inst/tools/rox
 .*.log
 oprofile_data
 annotated
+cachegrind.out.*
