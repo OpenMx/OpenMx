@@ -103,19 +103,16 @@ void computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad,
 	}
 }
 
-OMXINLINE static void
-storeLXKcache(BA81Expect *state, int px, const long qx, const int specific, const double to)
+OMXINLINE static double *
+getLXKcache(BA81Expect *state, int px)
 {
-	long ordinate;
 	long totalQuadSize;
 	if (state->numSpecific == 0) {
-		ordinate = qx;
 		totalQuadSize = state->totalQuadPoints;
 	} else {
-		ordinate = specific * state->totalQuadPoints + qx;
 		totalQuadSize = state->numSpecific * state->totalQuadPoints;
 	}
-	*(state->lxk + px * totalQuadSize + ordinate) = to;
+	return state->lxk + px * totalQuadSize;
 }
 
 static OMXINLINE void
@@ -173,7 +170,11 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 	int numSpecific = state->numSpecific;
 	long totalPrimaryPoints = state->totalPrimaryPoints;
 	long specificPoints = state->quadGridSize;
+	const double Largest = state->LargestDouble;
 	const double OneOverLargest = state->OneOverLargestDouble;
+
+	for (long qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
+	for (long qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = Largest;
 
 	for (int sgroup=0, Sbase=0; sgroup < numSpecific; ++sgroup, Sbase += totalQuadPoints) {
 		long qloc = 0;
@@ -266,7 +267,6 @@ static void ba81Estep1(omxExpectation *oo)
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int primaryDims = maxDims;
-	int totalOutcomes = state->totalOutcomes;
 	omxData *data = state->data;
 	int *numIdentical = state->numIdentical;
 	long totalQuadPoints = state->totalQuadPoints;
@@ -274,14 +274,13 @@ static void ba81Estep1(omxExpectation *oo)
 	state->excludedPatterns = 0;
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
-	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	int numLatentsPerThread = numUnique * numLatents;
 	double *latentDist = Calloc(numUnique * numLatents * Global->numThreads, double);
 
 	int whereChunk = maxDims + triangleLoc1(maxDims);
-	std::vector<double> wherePrep(totalQuadPoints * whereChunk);
+	omxBuffer<double> wherePrep(totalQuadPoints * whereChunk);
 	for (long qx=0; qx < totalQuadPoints; qx++) {
 		double *wh = wherePrep.data() + qx * whereChunk;
 		int quad[maxDims];
@@ -291,13 +290,15 @@ static void ba81Estep1(omxExpectation *oo)
 	}
 
 	if (numSpecific == 0) {
+		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
+
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
-
-			std::vector<double> lxk(totalQuadPoints); // make thread local TODO
-			ba81LikelihoodSlow2(state, px, lxk.data());
+			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
+			if (state->cacheLXK) lxk = getLXKcache(state, px);
+			ba81LikelihoodSlow2(state, px, lxk);
 
 			double patternLik1 = 0;
 			double *wh = wherePrep.data();
@@ -307,10 +308,6 @@ static void ba81Estep1(omxExpectation *oo)
 				patternLik1 += tmp;
 				mapLatentSpace(state, 0, tmp, wh, wh + maxDims,
 					       thrLatentDist + px * numLatents);
-
-				if (state->cacheLXK) {
-					storeLXKcache(state, px, qx, 0, lxk[qx]);
-				}
 				wh += whereChunk;
 			}
 
@@ -318,27 +315,24 @@ static void ba81Estep1(omxExpectation *oo)
 		}
 	} else {
 		primaryDims -= 1;
+		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
 		long totalPrimaryPoints = state->totalPrimaryPoints;
 		long specificPoints = state->quadGridSize;
 		double *EiCache = state->EiCache;
-		const double Largest = state->LargestDouble;
-
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static, totalPrimaryPoints*8)
-		for (int ex=0; ex < totalPrimaryPoints * numUnique; ++ex) {
-			EiCache[ex] = Largest;
-		}
+		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
+
+			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
+			if (state->cacheLXK) lxk = getLXKcache(state, px);
+			ba81LikelihoodSlow2(state, px, lxk);
+
 			double *myEi = EiCache + px * totalPrimaryPoints;
-
-			std::vector<double> lxk(totalQuadPoints * numSpecific);
-			ba81LikelihoodSlow2(state, px, lxk.data());
-
-			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
-			cai2010EiEis(state, px, lxk.data(), Eis.data(), myEi);
+			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
+			cai2010EiEis(state, px, lxk, Eis, myEi);
 
 			double patternLik1 = 0;
 			double *wh = wherePrep.data();
@@ -354,9 +348,6 @@ static void ba81Estep1(omxExpectation *oo)
 						double tmp = (EiArea / Eis1) * lxk1 * area;
 						mapLatentSpace(state, sgroup, tmp, wh, wh + maxDims,
 							       thrLatentDist + px * numLatents);
-						if (state->cacheLXK) {
-							storeLXKcache(state, px, qloc, sgroup, lxk1);
-						}
 					}
 					wh += whereChunk;
 					++qloc;
@@ -364,17 +355,6 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 
 			patternLik[px] = patternLik1;
-		}
-	}
-
-	long expectedSize = totalQuadPoints * totalOutcomes;
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,64)
-	for (long qx=0; qx < expectedSize; ++qx) {
-		state->expected[qx] = 0;
-		double *e1 = thrExpected.data() + qx;
-		for (int tx=0; tx < Global->numThreads; ++tx) {
-			state->expected[qx] += *e1;
-			e1 += expectedSize;
 		}
 	}
 
@@ -626,10 +606,12 @@ ba81Expected(omxExpectation* oo)
 	long specificPoints = state->quadGridSize;
 
 	OMXZERO(state->expected, totalOutcomes * totalQuadPoints);
-	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads);
+	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads, 0.0);
 
 	if (numSpecific == 0) {
 		std::vector<double> &priQarea = state->priQarea;
+		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
+		omxBuffer<double> thrQweight(totalQuadPoints * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
@@ -640,11 +622,11 @@ ba81Expected(omxExpectation* oo)
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			std::vector<double> lxkBuf(totalQuadPoints);
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
+			double *lxkBuf = thrLxk.data() + thrId * totalQuadPoints;
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
 
 			double weight = numIdentical[px] / patternLik[px];
-			std::vector<double> Qweight(totalQuadPoints); // uninit OK
+			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
 			for (long qx=0; qx < totalQuadPoints; ++qx) {
 				Qweight[qx] = weight * lxk[qx] * priQarea[qx];
 			}
@@ -663,6 +645,11 @@ ba81Expected(omxExpectation* oo)
 			}
 		}
 	} else {
+		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
+		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
+		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
+		omxBuffer<double> thrQweight(totalQuadPoints * numSpecific * Global->numThreads);
+
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
 			if (!validPatternLik(state, patternLik[px])) {
@@ -672,16 +659,14 @@ ba81Expected(omxExpectation* oo)
 			int thrId = omx_absolute_thread_num();
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 
-			std::vector<double> lxkBuf(totalQuadPoints * numSpecific);
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
-
-			const double Largest = state->LargestDouble;
-			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
-			std::vector<double> Ei(totalPrimaryPoints, Largest);
-			cai2010EiEis(state, px, lxk, Eis.data(), Ei.data());
+			double *lxkBuf = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
+			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
+			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
+			cai2010EiEis(state, px, lxk, Eis, Ei);
 
 			double weight = numIdentical[px] / patternLik[px];
-			std::vector<double> Qweight(totalQuadPoints * numSpecific); // uninit OK
+			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 			long wloc = 0;
 			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
 				long qloc = 0;
@@ -705,7 +690,7 @@ ba81Expected(omxExpectation* oo)
 				pick -= 1;
 
 				int Sgroup = state->Sgroup[ix];
-				double *Sweight = Qweight.data() + totalQuadPoints * Sgroup;
+				double *Sweight = Qweight + totalQuadPoints * Sgroup;
 
 				double *out = myExpected + outcomeBase;
 				for (long qx=0; qx < totalQuadPoints; ++qx) {
@@ -782,6 +767,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 
 	if (numSpecific == 0) {
 		std::vector<double> &priQarea = state->priQarea;
+		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
@@ -789,8 +775,9 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				continue;
 			}
 
-			std::vector<double> lxkBuf(totalQuadPoints);
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
+			int thrId = omx_absolute_thread_num();
+			double *lxkBuf = thrLxk.data() + thrId * totalQuadPoints;
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
 
 			for (long qx=0; qx < state->totalQuadPoints; qx++) {
 				int quad[maxDims];
@@ -806,6 +793,9 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		primaryDims -= 1;
 		int sDim = primaryDims;
 		long specificPoints = state->quadGridSize;
+		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
+		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
+		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
@@ -813,13 +803,12 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				continue;
 			}
 
-			std::vector<double> lxkBuf(totalQuadPoints * numSpecific);
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
-
-			const double Largest = state->LargestDouble;
-			std::vector<double> Eis(totalPrimaryPoints * numSpecific, 0.0);
-			std::vector<double> Ei(totalPrimaryPoints, Largest);
-			cai2010EiEis(state, px, lxk, Eis.data(), Ei.data());
+			int thrId = omx_absolute_thread_num();
+			double *lxkBuf = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
+			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
+			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
+			cai2010EiEis(state, px, lxk, Eis, Ei);
 
 			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
 				long qloc = 0;
@@ -891,10 +880,13 @@ static void recomputePatternLik(omxExpectation *oo)
 	OMXZERO(patternLik, numUnique);
 
 	if (state->numSpecific == 0) {
+		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
+
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
-			std::vector<double> lxkBuf(totalQuadPoints);
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf.data());
+			int thrId = omx_absolute_thread_num();
+			double *lxkBuf = thrLxk.data() + thrId * totalQuadPoints;
+			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				patternLik[px] += lxk[qx] * state->priQarea[qx];
 			}
