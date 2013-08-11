@@ -128,7 +128,7 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	const int *rowMap = state->rowMap;
 	int totalOutcomes = state->totalOutcomes;
 	int numSpecific = state->numSpecific;
-	int outcomeBase = -itemOutcomes[0];
+	int outcomeBase = 0;
 	const double Largest = state->LargestDouble;
 
 	if (numSpecific == 0) {
@@ -136,8 +136,7 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 			out[qx] = Largest;
 		}
 
-		for (size_t ix=0; ix < numItems; ix++) {
-			outcomeBase += itemOutcomes[ix];
+		for (size_t ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
 			pick -= 1;
@@ -153,8 +152,7 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 			out[qx] = Largest;
 		}
 
-		for (size_t ix=0; ix < numItems; ix++) {
-			outcomeBase += itemOutcomes[ix];
+		for (size_t ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
 			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 			if (pick == NA_INTEGER) continue;
 			pick -= 1;
@@ -651,9 +649,8 @@ ba81Expected(omxExpectation* oo)
 				Qweight[qx] = weight * lxk[qx] * priQarea[qx];
 			}
 
-			int outcomeBase = -itemOutcomes[0];
-			for (int ix=0; ix < numItems; ix++) {
-				outcomeBase += itemOutcomes[ix];
+			int outcomeBase = 0;
+			for (int ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 				if (pick == NA_INTEGER) continue;
 				pick -= 1;
@@ -701,9 +698,8 @@ ba81Expected(omxExpectation* oo)
 				}
 			}
 
-			int outcomeBase = -itemOutcomes[0];
-			for (int ix=0; ix < numItems; ix++) {
-				outcomeBase += itemOutcomes[ix];
+			int outcomeBase = 0;
+			for (int ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 				if (pick == NA_INTEGER) continue;
 				pick -= 1;
