@@ -546,7 +546,10 @@ irt_rpf_mdim_grm_prob(const double *spec,
 	}
       }
       for (int fx=0; fx < numOutcomes; fx++) {
-	if (out[fx] < 0) error("GRM categories are out of order");
+	      if (out[fx] < 0) {
+		      set_deriv_nan(spec, out);
+		      return;
+	      }
 	if (out[fx] == 0) {
 	  double small = 1 / (1 + exp(EXP_STABLE_DOMAIN));
 	  out[bigk] -= small;

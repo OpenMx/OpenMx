@@ -173,6 +173,7 @@ public:
 	Ramsay1975(FitContext *fc, int flavor, int verbose);
 	void recordEstimate(int px, double newEst);
 	void recalibrate(bool *restart);
+	void restart();
 };
 
 Ramsay1975::Ramsay1975(FitContext *fc, int flavor, int verbose)
@@ -253,13 +254,24 @@ void Ramsay1975::recalibrate(bool *restart)
 	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
 		if (verbose >= 3) mxLog("Ramsay[%d]: %.2f caution", flavor, caution);
 	} else {
-		if (verbose >= 3) mxLog("Ramsay[%d]: caution %.2f > %.2f, restarting",
+		if (verbose >= 3) mxLog("Ramsay[%d]: caution %.2f > %.2f, extreme oscillation, restart recommended",
 					flavor, caution, highWatermark);
-		caution = highWatermark;
-		highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
 		*restart = TRUE;
 	}
 	highWatermark += .02; // arbitrary guess
+}
+
+void Ramsay1975::restart()
+{
+	prevAdj1.assign(numParam, 0);
+	prevAdj2.assign(numParam, 0);
+	highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
+	caution = std::max(caution, highWatermark);   // arbitrary guess
+	highWatermark = caution;
+	if (verbose >= 3) {
+		mxLog("Ramsay[%d]: restart with %.2f caution %.2f highWatermark",
+		      flavor, caution, highWatermark);
+	}
 }
 
 void ComputeNR::compute(FitContext *fc)
@@ -298,11 +310,14 @@ void ComputeNR::compute(FitContext *fc)
 	}
 
 	iter = 0;
+	int sinceRestart = 0;
 	bool converged = false;
 	bool approaching = false;
 	bool restarted = carefully;
 	double maxAdj = 0;
-	int maxAdjParam = 0;
+	double maxAdjSigned = 0;
+	int maxAdjFlavor = 0;
+	int maxAdjParam = -1;
 	double bestLL = 0;
 
 	std::valarray<double> startBackup(fc->est, numParam);
@@ -310,14 +325,14 @@ void ComputeNR::compute(FitContext *fc)
 
 	fitMatrix->data[0] = 0;  // may not recompute it, don't leave stale data
 
-	if (verbose >= 1) {
+	if (verbose >= 2) {
 		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %ld flavors)",
 		      tolerance, maxIter, ramsay.size());
 	}
 	while (1) {
 		if (verbose >= 2) {
-			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %d)",
-			      iter+1, maxIter, maxAdj, maxAdjParam);
+			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %d, flavor %d)",
+			      iter+1, maxIter, maxAdjSigned, maxAdjParam, maxAdjFlavor);
 		}
 
 		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
@@ -330,7 +345,9 @@ void ComputeNR::compute(FitContext *fc)
 		if (isErrorRaised(globalState)) break;
 
 		if (verbose >= 5) {
-			fc->log("Newton-Raphson", FF_COMPUTE_ESTIMATE);
+			int show = FF_COMPUTE_ESTIMATE;
+			if (verbose >= 6) show |= FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
+			fc->log("Newton-Raphson", show);
 		}
 
 		double LL = fitMatrix->data[0];
@@ -339,8 +356,8 @@ void ComputeNR::compute(FitContext *fc)
 			memcpy(bestBackup.data(), fc->est, sizeof(double) * numParam);
 		}
 		if (bestLL > 0) {
-			if (verbose >= 3) mxLog("Newton-Raphson ornery fit %.5f (best %.5f)", LL, bestLL);
-			if (approaching && LL > bestLL + 0.5) {  // arbitrary threshold
+			if (verbose >= 3) mxLog("Newton-Raphson cantankerous fit %.5f (best %.5f)", LL, bestLL);
+			if (approaching && (LL > bestLL + 0.5 || !std::isfinite(LL))) {  // arbitrary threshold
 				memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
 				fc->copyParamToModel(globalState);
 				break;
@@ -356,26 +373,63 @@ void ComputeNR::compute(FitContext *fc)
 			}
 		}
 
+		if (0) {
+			const double maxDiag = 4;
+			for (size_t dx=0; dx < numParam; dx++) {
+				double mag = fabs(fc->ihess[dx * numParam + dx]);
+				if (maxDiag < mag) {
+					double old = fc->grad[dx];
+					double logBad = log(1 + mag - maxDiag);
+					fc->grad[dx] /= (1 + logBad);  // arbitrary guess
+					mxLog("ihess bad at diag %d grad %.8g -> %.8g", dx, old, fc->grad[dx]);
+				}
+			}
+			//fc->log("bad", FF_COMPUTE_IHESSIAN);
+		}
+
 		bool restart = false;
-		if ((iter+1) % 3 == 0) {
+		if ((++sinceRestart) % 3 == 0) {
 			for (size_t rx=0; rx < ramsay.size(); ++rx) {
 				ramsay[rx]->recalibrate(&restart);
 			}
-			if (!restart) approaching = true;
+		}
+		for (size_t px=0; px < numParam; ++px) {
+			if (!std::isfinite(fc->grad[px])) {
+				if (!restart) {
+					if (verbose >= 3) {
+						mxLog("Newton-Raphson: grad[%d] not finite, restart recommended", px);
+					}
+					restart = true;
+					break;
+				}
+			}
+		}
+		if ((sinceRestart % 3) == 0 && !restart) {
+			// 3 iterations without extreme oscillation or NaN gradients
+			if (!approaching && verbose >= 2) {
+				mxLog("Newton-Raphson: Probably approaching solution");
+			}
+			approaching = true;
 		}
 
-		if (restart) {
+		maxAdjParam = -1;
+		maxAdj = 0;
+		if (restart && (!approaching || !restarted)) {
+			approaching = false;
 			restarted = true;
 			bestLL = 0;
+			sinceRestart = 0;
 
 			if (verbose >= 2) {
-				mxLog("Newton-Raphson: Estimates oscillating wildly. Increasing damping ...");
+				mxLog("Newton-Raphson: Increasing damping ...");
 			}
 			for (size_t px=0; px < numParam; ++px) {
 				fc->est[px] = startBackup[px];
 			}
+			for (size_t rx=0; rx < ramsay.size(); ++rx) {
+				ramsay[rx]->restart();
+			}
 		} else {
-			maxAdj = 0;
 			double *grad = fc->grad;
 			double *ihess = fc->ihess;
 			for (size_t px=0; px < numParam; ++px) {
@@ -396,7 +450,9 @@ void ComputeNR::compute(FitContext *fc)
 				double badj = fabs(oldEst - fc->est[px]);
 				if (maxAdj < badj) {
 					maxAdj = badj;
+					maxAdjSigned = oldEst - fc->est[px];
 					maxAdjParam = px;
+					maxAdjFlavor = fc->flavor[px];
 				}
 			}
 			converged = maxAdj < tolerance;
@@ -421,7 +477,12 @@ void ComputeNR::compute(FitContext *fc)
 
 	// better status reporting TODO
 	if (!converged && iter == maxIter) {
-		omxRaiseErrorf(globalState, "Newton-Raphson failed to converge after %d cycles", iter);
+		if (bestLL > 0) {
+			memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
+			fc->copyParamToModel(globalState);
+		} else {
+			omxRaiseErrorf(globalState, "Newton-Raphson failed to converge after %d cycles", iter);
+		}
 	}
 
 	for (size_t rx=0; rx < ramsay.size(); ++rx) {
