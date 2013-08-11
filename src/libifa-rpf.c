@@ -211,11 +211,11 @@ irt_rpf_1dim_drm_deriv2(const double *spec, const double *restrict param,
 
 static void
 irt_rpf_1dim_drm_rescale(const double *spec, double *restrict param, const int *paramMask,
-			 const double *restrict mean, const double *restrict choleskyCov)
+			 const double *restrict mean, const double *restrict cov)
 {
   double thresh = param[1] * -param[0];
   if (paramMask[0] >= 0) {
-    param[0] *= choleskyCov[0];
+    param[0] *= cov[0];
   }
   if (paramMask[1] >= 0) {
     thresh += param[0] * mean[0];
@@ -406,16 +406,16 @@ irt_rpf_mdim_drm_deriv2(const double *spec,
 
 static void
 irt_rpf_mdim_drm_rescale(const double *spec, double *restrict param, const int *paramMask,
-			 const double *restrict mean, const double *restrict choleskyCov)
+			 const double *restrict mean, const double *restrict cov)
 {
   int numDims = spec[RPF_ISpecDims];
 
+  double madj = dotprod(param, mean, numDims);
+
   for (int d1=0; d1 < numDims; d1++) {
     if (paramMask[d1] < 0) continue;
-    param[d1] = dotprod(param+d1, choleskyCov + d1 * numDims + d1, numDims-d1);
+    param[d1] = dotprod(param+d1, cov + d1 * numDims + d1, numDims-d1);
   }
-
-  double madj = dotprod(param, mean, numDims);
 
   param[numDims] += madj;
 }
@@ -696,17 +696,17 @@ irt_rpf_mdim_grm_dTheta(const double *spec, const double *restrict param,
 
 static void
 irt_rpf_mdim_grm_rescale(const double *spec, double *restrict param, const int *paramMask,
-			 const double *restrict mean, const double *restrict choleskyCov)
+			 const double *restrict mean, const double *restrict cov)
 {
   int numDims = spec[RPF_ISpecDims];
   int nzeta = spec[RPF_ISpecOutcomes] - 1;
 
+  double madj = dotprod(param, mean, numDims);
+
   for (int d1=0; d1 < numDims; d1++) {
     if (paramMask[d1] < 0) continue;
-    param[d1] = dotprod(param+d1, choleskyCov + d1 * numDims + d1, numDims-d1);
+    param[d1] = dotprod(param+d1, cov + d1 * numDims + d1, numDims-d1);
   }
-
-  double madj = dotprod(param, mean, numDims);
 
   for (int tx=0; tx < nzeta; tx++) {
     int px = numDims + tx;
@@ -1165,7 +1165,7 @@ irt_rpf_mdim_nrm_dTheta(const double *spec, const double *param,
 
 static void
 irt_rpf_mdim_nrm_rescale(const double *spec, double *restrict param, const int *paramMask,
-			 const double *restrict mean, const double *restrict choleskyCov)
+			 const double *restrict mean, const double *restrict cov)
 {
   int numDims = spec[RPF_ISpecDims];
   int nzeta = spec[RPF_ISpecOutcomes] - 1;
@@ -1175,12 +1175,12 @@ irt_rpf_mdim_nrm_rescale(const double *spec, double *restrict param, const int *
   const double *Tc  = spec + RPF_ISpecCount + nzeta * nzeta;
   const double *iTc = spec + RPF_ISpecCount + 3 * nzeta * nzeta;
 
+  double madj = dotprod(param, mean, numDims);
+
   for (int d1=0; d1 < numDims; d1++) {
     if (paramMask[d1] < 0) continue;
-    param[d1] = dotprod(param+d1, choleskyCov + d1 * numDims + d1, numDims-d1);
+    param[d1] = dotprod(param+d1, cov + d1 * numDims + d1, numDims-d1);
   }
-
-  double madj = dotprod(param, mean, numDims);
 
   double ak[nzeta];
   double ck[nzeta];
