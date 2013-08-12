@@ -612,16 +612,18 @@ ba81Expected(omxExpectation* oo)
 				Qweight[qx] = weight * lxk[qx] * priQarea[qx];
 			}
 
-			int outcomeBase = 0;
-			for (int ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+			double *out = myExpected;
+			for (int ix=0; ix < numItems; ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-				if (pick == NA_INTEGER) continue;
+				if (pick == NA_INTEGER) {
+					out += itemOutcomes[ix] * totalQuadPoints;
+					continue;
+				}
 				pick -= 1;
 
-				double *out = myExpected + outcomeBase;
 				for (long qx=0; qx < totalQuadPoints; ++qx) {
 					out[pick] += Qweight[qx];
-					out += totalOutcomes;
+					out += itemOutcomes[ix];
 				}
 			}
 		}
@@ -664,19 +666,21 @@ ba81Expected(omxExpectation* oo)
 				}
 			}
 
-			int outcomeBase = 0;
-			for (int ix=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
+			double *out = myExpected;
+			for (int ix=0; ix < numItems; ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-				if (pick == NA_INTEGER) continue;
+				if (pick == NA_INTEGER) {
+					out += itemOutcomes[ix] * totalQuadPoints;
+					continue;
+				}
 				pick -= 1;
 
 				int Sgroup = state->Sgroup[ix];
 				double *Sweight = Qweight + totalQuadPoints * Sgroup;
 
-				double *out = myExpected + outcomeBase;
 				for (long qx=0; qx < totalQuadPoints; ++qx) {
 					out[pick] += Sweight[qx];
-					out += totalOutcomes;
+					out += itemOutcomes[ix];
 				}
 			}
 		}
@@ -999,7 +1003,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 			lik_out[px] = log(lik_out[px]) - LogLargest;
 		}
 
-		PROTECT(Rexpected = allocMatrix(REALSXP, totalOutcomes, state->totalQuadPoints));
+		PROTECT(Rexpected = allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
 		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
 
 		setAttrib(robj, install("patternLikelihood"), Rlik);

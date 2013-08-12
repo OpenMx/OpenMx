@@ -232,7 +232,7 @@ computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, double *out
 
 OMXINLINE static double
 ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
-		 const double *weight, int want, double *myDeriv)
+		 int want, double *myDeriv)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
@@ -253,10 +253,12 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 
 	double thr_ll = 0;
 	const double *oProb = outcomeProb;
+	int outcomeBase = 0;
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		int iOutcomes = estate->itemOutcomes[ix];
+		const double *weight = estate->expected + outcomeBase * estate->totalQuadPoints + iOutcomes * qx;
 
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
@@ -271,7 +273,7 @@ ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
 			(*rpf_model[id].dLL1)(spec, iparam, where, weight, pad);
 		}
 		oProb += iOutcomes;
-		weight += iOutcomes;
+		outcomeBase += iOutcomes;
 	}
 
 	Free(outcomeProb);
@@ -310,9 +312,8 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 	for (long qx=0; qx < estate->totalQuadPoints; qx++) {
 		int quad[maxDims];
 		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
-		double *weight = estate->expected + qx * totalOutcomes;
 		double *myDeriv = thrDeriv + itemParam->cols * state->itemDerivPadSize * omx_absolute_thread_num();
-		double thr_ll = ba81Fit1Ordinate(oo, qx, quad, weight, want, myDeriv);
+		double thr_ll = ba81Fit1Ordinate(oo, qx, quad, want, myDeriv);
 		
 #pragma omp atomic
 		ll += thr_ll;
