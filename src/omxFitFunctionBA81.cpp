@@ -290,7 +290,6 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;
 	int maxDims = estate->maxDims;
-	const int totalOutcomes = estate->totalOutcomes;
 
 	if (estate->verbose) mxLog("%s: em.fit(%d)", oo->matrix->name, want);
 

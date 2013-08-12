@@ -147,6 +147,14 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 			Ei[qx] *= Eis[totalPrimaryPoints * sgroup + qx] * OneOverLargest;
 		}
 	}
+
+	long qloc = 0;
+	for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+		for (long qx=0; qx < totalPrimaryPoints; qx++) {
+			Eis[qloc] = Ei[qx] / Eis[qloc];
+			++qloc;
+		}
+	}
 }
 
 static OMXINLINE double *
@@ -323,10 +331,10 @@ static void ba81Estep1(omxExpectation *oo)
 				patternLik1 += EiArea;
 				for (long sx=0; sx < specificPoints; sx++) {
 					for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-						double area = state->speQarea[sgroup * specificPoints + sx];
+						double area = priArea * state->speQarea[sgroup * specificPoints + sx];
 						double lxk1 = lxk[totalQuadPoints * sgroup + qloc];
 						double Eis1 = Eis[totalPrimaryPoints * sgroup + qx];
-						double tmp = (EiArea / Eis1) * lxk1 * area;
+						double tmp = Eis1 * lxk1 * area;
 						mapLatentSpace(state, sgroup, tmp, wh, wh + maxDims,
 							       thrLatentDist + px * numLatents);
 					}
@@ -632,6 +640,8 @@ ba81Expected(omxExpectation* oo)
 		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 		omxBuffer<double> thrQweight(totalQuadPoints * numSpecific * Global->numThreads);
+		std::vector<double> &priQarea = state->priQarea;
+		std::vector<double> &speQarea = state->speQarea;
 
 #pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
 		for (int px=0; px < numUnique; px++) {
@@ -650,20 +660,22 @@ ba81Expected(omxExpectation* oo)
 
 			double weight = numIdentical[px] / patternLik[px];
 			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
-			long wloc = 0;
+			long qloc = 0;
+			long eisloc = 0;
+			int sloc = 0;
 			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
-				long qloc = 0;
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
-					double Ei1 = Ei[qx];
 					for (long sx=0; sx < specificPoints; sx++) {
-						double area = areaProduct(state, qx, sx, Sgroup);
-						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
-						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
-						Qweight[wloc] = weight * (Ei1 / Eis1) * lxk1 * area;
+						//double area = areaProduct(state, qx, sx, Sgroup);
+						double area = priQarea[qx] * speQarea[sloc + sx];
+						double lxk1 = lxk[qloc];
+						double Eis1 = Eis[eisloc];
+						Qweight[qloc] = weight * Eis1 * lxk1 * area;
 						++qloc;
-						++wloc;
 					}
+					++eisloc;
 				}
+				sloc += specificPoints;
 			}
 
 			double *out = myExpected;
@@ -800,7 +812,6 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				for (long qx=0; qx < totalPrimaryPoints; qx++) {
 					int quad[maxDims];
 					decodeLocation(qx, primaryDims, state->quadGridSize, quad);
-					double Ei1 = Ei[qx];
 					for (long sx=0; sx < specificPoints; sx++) {
 						quad[sDim] = sx;
 						double where[maxDims];
@@ -808,7 +819,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 						double area = areaProduct(state, qx, sx, Sgroup);
 						double lxk1 = lxk[totalQuadPoints * Sgroup + qloc];
 						double Eis1 = Eis[totalPrimaryPoints * Sgroup + qx];
-						double tmp = (Ei1 / Eis1) * lxk1 * area;
+						double tmp = Eis1 * lxk1 * area;
 						accumulateScores(state, px, Sgroup, tmp, where, primaryDims,
 								 covEntries, mean, cov);
 						++qloc;
