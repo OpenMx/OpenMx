@@ -307,15 +307,12 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 		error("Bayesian prior returned %g; do you need to add a lbound/ubound?", ll);
 	}
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,4)
+#pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
 	for (long qx=0; qx < estate->totalQuadPoints; qx++) {
 		int quad[maxDims];
 		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
 		double *myDeriv = thrDeriv + itemParam->cols * state->itemDerivPadSize * omx_absolute_thread_num();
-		double thr_ll = ba81Fit1Ordinate(oo, qx, quad, want, myDeriv);
-		
-#pragma omp atomic
-		ll += thr_ll;
+		ll += ba81Fit1Ordinate(oo, qx, quad, want, myDeriv);
 	}
 
 	int excluded = 0;
@@ -487,7 +484,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			estate->excludedPatterns = 0;
 			const double LogLargest = estate->LogLargestDouble;
 			double got = 0;
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,64) reduction(+:got)
+#pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)
 			for (int ux=0; ux < numUnique; ux++) {
 				if (!validPatternLik(estate, patternLik[ux])) {
 #pragma omp atomic

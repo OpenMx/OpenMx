@@ -47,6 +47,7 @@ struct BA81Expect {
 	// item description related
 	std::vector<const double*> itemSpec;
 	std::vector<int> itemOutcomes;
+	std::vector<int> cumItemOutcomes;
 	int maxDims;
 	int maxAbilities;
 	int numSpecific;

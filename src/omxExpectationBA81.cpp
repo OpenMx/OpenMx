@@ -212,14 +212,16 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 static void ba81OutcomeProb(BA81Expect *state)
 {
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	omxMatrix *itemParam = state->itemParam;
 	omxMatrix *design = state->design;
 	int maxDims = state->maxDims;
-	size_t numItems = state->itemSpec.size();
-	double *qProb = state->outcomeProb =
-		Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
+	const size_t numItems = state->itemSpec.size();
+	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
 
+#pragma omp parallel for num_threads(Global->numThreads)
 	for (size_t ix=0; ix < numItems; ix++) {
+		double *qProb = state->outcomeProb + cumItemOutcomes[ix] * state->totalQuadPoints;
 		const double *spec = state->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
@@ -251,14 +253,14 @@ static void ba81Estep1(omxExpectation *oo)
 	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", oo->name);}
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	int numUnique = state->numUnique;
-	int numSpecific = state->numSpecific;
-	int maxDims = state->maxDims;
-	int maxAbilities = state->maxAbilities;
-	int primaryDims = maxDims;
+	const int numUnique = state->numUnique;
+	const int numSpecific = state->numSpecific;
+	const int maxDims = state->maxDims;
+	const int maxAbilities = state->maxAbilities;
+	const int primaryDims = numSpecific? maxDims-1 : maxDims;
 	omxData *data = state->data;
 	int *numIdentical = state->numIdentical;
-	long totalQuadPoints = state->totalQuadPoints;
+	const long totalQuadPoints = state->totalQuadPoints;
 
 	state->excludedPatterns = 0;
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
@@ -266,9 +268,9 @@ static void ba81Estep1(omxExpectation *oo)
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	int numLatentsPerThread = numUnique * numLatents;
-	double *latentDist = Calloc(numUnique * numLatents * Global->numThreads, double);
+	std::vector<double> latentDist(numUnique * numLatents * Global->numThreads);
 
-	int whereChunk = maxDims + triangleLoc1(maxDims);
+	const int whereChunk = maxDims + triangleLoc1(maxDims);
 	omxBuffer<double> wherePrep(totalQuadPoints * whereChunk);
 	for (long qx=0; qx < totalQuadPoints; qx++) {
 		double *wh = wherePrep.data() + qx * whereChunk;
@@ -281,10 +283,10 @@ static void ba81Estep1(omxExpectation *oo)
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
+			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			if (state->cacheLXK) lxk = getLXKcache(state, px);
 			ba81LikelihoodSlow2(state, px, lxk);
@@ -303,17 +305,16 @@ static void ba81Estep1(omxExpectation *oo)
 			patternLik[px] = patternLik1;
 		}
 	} else {
-		primaryDims -= 1;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
 		long totalPrimaryPoints = state->totalPrimaryPoints;
 		long specificPoints = state->quadGridSize;
 		double *EiCache = state->EiCache;
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist + thrId * numLatentsPerThread;
+			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
 
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			if (state->cacheLXK) lxk = getLXKcache(state, px);
@@ -350,25 +351,19 @@ static void ba81Estep1(omxExpectation *oo)
 	//mxLog("raw latent");
 	//pda(latentDist, numLatents, numUnique);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(dynamic)
-	for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
-		for (int tx=1; tx < Global->numThreads; ++tx) {
-			double *thrLatentDist = latentDist + tx * numLatentsPerThread;
-			for (int px=0; px < numUnique; px++) {
-				int loc = px * numLatents + lx;
-				latentDist[loc] += thrLatentDist[loc];
+	for (int tx=1; tx < Global->numThreads; ++tx) {
+		double *dest = latentDist.data();
+		double *thrLatentDist = latentDist.data() + tx * numLatentsPerThread;
+		for (int px=0; px < numUnique; px++) {
+			for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
+				dest[lx] += thrLatentDist[lx];
 			}
-		}
-	}
-
-#pragma omp parallel for num_threads(Global->numThreads)
-	for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-		for (int tx=1; tx < Global->numThreads; ++tx) {
-			double *thrLatentDist = latentDist + tx * numLatentsPerThread;
-			for (int px=0; px < numUnique; px++) {
-				int loc = px * numLatents + maxAbilities + triangleLoc0(sdim);
-				latentDist[loc] += thrLatentDist[loc];
+			for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
+				int loc2 = maxAbilities + triangleLoc0(sdim);
+				dest[loc2] += thrLatentDist[loc2];
 			}
+			dest += numLatents;
+			thrLatentDist += numLatents;
 		}
 	}
 
@@ -384,18 +379,12 @@ static void ba81Estep1(omxExpectation *oo)
 			continue;
 		}
 
-		double *latentDist1 = latentDist + px * numLatents;
+		double *latentDist1 = latentDist.data() + px * numLatents;
 		double weight = numIdentical[px] / patternLik[px];
-		int cx = maxAbilities;
-		for (int d1=0; d1 < primaryDims; d1++) {
-			latentDist1[d1] *= weight;
-			for (int d2=0; d2 <= d1; d2++) {
-				latentDist1[cx] *= weight;
-				++cx;
-			}
+		for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
+			latentDist1[lx] *= weight;
 		}
 		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-			latentDist1[sdim] *= weight;
 			int loc = maxAbilities + triangleLoc0(sdim);
 			latentDist1[loc] *= weight;
 		}
@@ -410,24 +399,26 @@ static void ba81Estep1(omxExpectation *oo)
 	ElatentMean.assign(ElatentMean.size(), 0.0);
 	ElatentCov.assign(ElatentCov.size(), 0.0);
 
-#pragma omp parallel for num_threads(Global->numThreads)
-	for (int d1=0; d1 < maxAbilities; d1++) {
+	{
+		double *latentDist1 = latentDist.data();
 		for (int px=0; px < numUnique; px++) {
-			double *latentDist1 = latentDist + px * numLatents;
-			int cx = maxAbilities + triangleLoc1(d1);
-			if (d1 < primaryDims) {
-				ElatentMean[d1] += latentDist1[d1];
-				for (int d2=0; d2 <= d1; d2++) {
-					int cell = d2 * maxAbilities + d1;
-					ElatentCov[cell] += latentDist1[cx];
-					++cx;
+			for (int d1=0; d1 < maxAbilities; d1++) {
+				int cx = maxAbilities + triangleLoc1(d1);
+				if (d1 < primaryDims) {
+					ElatentMean[d1] += latentDist1[d1];
+					for (int d2=0; d2 <= d1; d2++) {
+						int cell = d2 * maxAbilities + d1;
+						ElatentCov[cell] += latentDist1[cx];
+						++cx;
+					}
+				} else {
+					ElatentMean[d1] += latentDist1[d1];
+					int cell = d1 * maxAbilities + d1;
+					int loc = maxAbilities + triangleLoc0(d1);
+					ElatentCov[cell] += latentDist1[loc];
 				}
-			} else {
-				ElatentMean[d1] += latentDist1[d1];
-				int cell = d1 * maxAbilities + d1;
-				int loc = maxAbilities + triangleLoc0(d1);
-				ElatentCov[cell] += latentDist1[loc];
 			}
+			latentDist1 += numLatents;
 		}
 	}
 
@@ -452,8 +443,6 @@ static void ba81Estep1(omxExpectation *oo)
 	}
 
 	if (state->cacheLXK) state->LXKcached = TRUE;
-
-	Free(latentDist);
 
 	if (state->verbose) {
 		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
@@ -582,19 +571,18 @@ ba81Expected(omxExpectation* oo)
 	if (state->verbose) mxLog("%s: EM.expected", oo->name);
 
 	omxData *data = state->data;
-	int numSpecific = state->numSpecific;
+	const int numSpecific = state->numSpecific;
 	const int *rowMap = state->rowMap;
 	double *patternLik = state->patternLik;
 	int *numIdentical = state->numIdentical;
-	int numUnique = state->numUnique;
-	int numItems = state->itemParam->cols;
-	int totalOutcomes = state->totalOutcomes;
+	const int numUnique = state->numUnique;
+	const int numItems = state->itemParam->cols;
+	const int totalOutcomes = state->totalOutcomes;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	long totalQuadPoints = state->totalQuadPoints;
-	long totalPrimaryPoints = state->totalPrimaryPoints;
-	long specificPoints = state->quadGridSize;
+	const long totalQuadPoints = state->totalQuadPoints;
+	const long totalPrimaryPoints = state->totalPrimaryPoints;
+	const long specificPoints = state->quadGridSize;
 
-	OMXZERO(state->expected, totalOutcomes * totalQuadPoints);
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads, 0.0);
 
 	if (numSpecific == 0) {
@@ -602,7 +590,7 @@ ba81Expected(omxExpectation* oo)
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 		omxBuffer<double> thrQweight(totalQuadPoints * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			if (!validPatternLik(state, patternLik[px])) {
 				continue;
@@ -643,7 +631,7 @@ ba81Expected(omxExpectation* oo)
 		std::vector<double> &priQarea = state->priQarea;
 		std::vector<double> &speQarea = state->speQarea;
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			if (!validPatternLik(state, patternLik[px])) {
 				continue;
@@ -698,14 +686,14 @@ ba81Expected(omxExpectation* oo)
 		}
 	}
 
-	long expectedSize = totalQuadPoints * totalOutcomes;
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,64)
-	for (long ex=0; ex < expectedSize; ++ex) {
-		state->expected[ex] = 0;
-		double *e1 = thrExpected.data() + ex;
-		for (int tx=0; tx < Global->numThreads; ++tx) {
+	const long expectedSize = totalQuadPoints * totalOutcomes;
+	OMXZERO(state->expected, expectedSize);
+
+	double *e1 = thrExpected.data();
+	for (int tx=0; tx < Global->numThreads; ++tx) {
+		for (long ex=0; ex < expectedSize; ++ex) {
 			state->expected[ex] += *e1;
-			e1 += expectedSize;
+			++e1;
 		}
 	}
 	//pda(state->expected, state->totalOutcomes, state->totalQuadPoints);
@@ -766,7 +754,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		std::vector<double> &priQarea = state->priQarea;
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			if (!validPatternLik(state, patternLik[px])) {
 				continue;
@@ -794,7 +782,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			if (!validPatternLik(state, patternLik[px])) {
 				continue;
@@ -878,7 +866,7 @@ static void recomputePatternLik(omxExpectation *oo)
 	if (state->numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *lxkBuf = thrLxk.data() + thrId * totalQuadPoints;
@@ -895,7 +883,7 @@ static void recomputePatternLik(omxExpectation *oo)
 		double *EiCache = state->EiCache;
 		long totalPrimaryPoints = state->totalPrimaryPoints;
 
-#pragma omp parallel for num_threads(Global->numThreads) schedule(static,32)
+#pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			double *Ei = EiCache + totalPrimaryPoints * px;
 			for (long qx=0; qx < totalPrimaryPoints; qx++) {
@@ -1247,7 +1235,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->maxDims = 0;
 
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	itemOutcomes.resize(numItems);
+	cumItemOutcomes.resize(numItems);
 	int totalOutcomes = 0;
 	for (int cx = 0; cx < data->cols; cx++) {
 		const double *spec = state->itemSpec[cx];
@@ -1258,6 +1248,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 		int no = spec[RPF_ISpecOutcomes];
 		itemOutcomes[cx] = no;
+		cumItemOutcomes[cx] = totalOutcomes;
 		totalOutcomes += no;
 
 		// TODO this summary stat should be available from omxData
