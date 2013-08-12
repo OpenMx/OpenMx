@@ -94,6 +94,8 @@ struct BA81Expect {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
+void ba81OutcomeProb(BA81Expect *state, bool wantLog);
+
 template<typename _Tp> class omxBuffer {
 	typedef _Tp value_type;
 	typedef _Tp *pointer;

@@ -209,13 +209,14 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 	}
 }
 
-static void ba81OutcomeProb(BA81Expect *state)
+// Depends on item parameters, but not latent distribution
+void ba81OutcomeProb(BA81Expect *state, bool wantLog)
 {
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	omxMatrix *itemParam = state->itemParam;
 	omxMatrix *design = state->design;
-	int maxDims = state->maxDims;
+	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
 
@@ -226,7 +227,7 @@ static void ba81OutcomeProb(BA81Expect *state)
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		double *iparam = omxMatrixColumn(itemParam, ix);
-		rpf_prob_t prob_fn = rpf_model[id].prob;
+		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
 			int quad[maxDims];
@@ -931,7 +932,7 @@ ba81compute(omxExpectation *oo, const char *context)
 		ba81buildLXKcache(oo);
 		if (!latentClean) recomputePatternLik(oo);
 	} else {
-		ba81OutcomeProb(state);
+		ba81OutcomeProb(state, FALSE);
 		ba81Estep1(oo);
 	}
 

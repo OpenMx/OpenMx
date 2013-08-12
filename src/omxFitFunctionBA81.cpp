@@ -190,110 +190,21 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
-// Depends on item parameters, but not latent distribution
-OMXINLINE static void
-computeRPF(BA81Expect *state, omxMatrix *itemParam, const int *quad, double *out)
-{
-	omxMatrix *design = state->design;
-	int maxDims = state->maxDims;
-	size_t numItems = state->itemSpec.size();
-
-	double theta[maxDims];
-	pointToWhere(state, quad, theta, maxDims);
-
-	for (size_t ix=0; ix < numItems; ix++) {
-		const double *spec = state->itemSpec[ix];
-		int id = spec[RPF_ISpecID];
-		int dims = spec[RPF_ISpecDims];
-		double ptheta[dims];
-
-		for (int dx=0; dx < dims; dx++) {
-			int ability = (int)omxMatrixElement(design, dx, ix) - 1;
-			if (ability >= maxDims) ability = maxDims-1;
-			ptheta[dx] = theta[ability];
-		}
-
-		double *iparam = omxMatrixColumn(itemParam, ix);
-		(*rpf_model[id].logprob)(spec, iparam, ptheta, out);
-#if 0
-		for (int ox=0; ox < state->itemOutcomes[ix]; ox++) {
-			if (!isfinite(out[ox]) || out[ox] > 0) {
-				mxLog("item param");
-				pda(iparam, itemParam->rows, 1);
-				mxLog("where");
-				pda(ptheta, dims, 1);
-				error("RPF returned %20.20f", out[ox]);
-			}
-		}
-#endif
-		out += state->itemOutcomes[ix];
-	}
-}
-
-OMXINLINE static double
-ba81Fit1Ordinate(omxFitFunction* oo, const long qx, const int *quad,
-		 int want, double *myDeriv)
-{
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *itemParam = estate->itemParam;
-	int numItems = itemParam->cols;
-	int maxDims = estate->maxDims;
-	int do_fit = want & FF_COMPUTE_FIT;
-	int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
-
-	double where[maxDims];
-	pointToWhere(estate, quad, where, maxDims);
-
-	double *outcomeProb = NULL;
-	if (do_fit) {
-		outcomeProb = Realloc(NULL, estate->totalOutcomes, double); // avoid malloc/free? TODO
-		computeRPF(estate, itemParam, quad, outcomeProb);
-	}
-
-	double thr_ll = 0;
-	const double *oProb = outcomeProb;
-	int outcomeBase = 0;
-	for (int ix=0; ix < numItems; ix++) {
-		const double *spec = estate->itemSpec[ix];
-		int id = spec[RPF_ISpecID];
-		int iOutcomes = estate->itemOutcomes[ix];
-		const double *weight = estate->expected + outcomeBase * estate->totalQuadPoints + iOutcomes * qx;
-
-		if (do_fit) {
-			for (int ox=0; ox < iOutcomes; ox++) {
-				double got = weight[ox] * oProb[ox];
-				thr_ll += got;
-			}
-		}
-
-		if (do_deriv) {
-			double *iparam = omxMatrixColumn(itemParam, ix);
-			double *pad = myDeriv + ix * state->itemDerivPadSize;
-			(*rpf_model[id].dLL1)(spec, iparam, where, weight, pad);
-		}
-		oProb += iOutcomes;
-		outcomeBase += iOutcomes;
-	}
-
-	Free(outcomeProb);
-
-	return thr_ll;
-}
-
 static double
-ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
+ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;
-	int maxDims = estate->maxDims;
+        std::vector<int> &cumItemOutcomes = estate->cumItemOutcomes;
+	const int maxDims = estate->maxDims;
+	const size_t numItems = estate->itemSpec.size();
+	const int do_fit = want & FF_COMPUTE_FIT;
+	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
-	if (estate->verbose) mxLog("%s: em.fit(%d)", oo->matrix->name, want);
-
-	double *thrDeriv = Calloc(itemParam->cols * state->itemDerivPadSize * Global->numThreads, double);
+	if (estate->verbose) mxLog("%s: em.fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
 	double ll = 0;
 	if (customPrior) {
@@ -307,27 +218,54 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 		error("Bayesian prior returned %g; do you need to add a lbound/ubound?", ll);
 	}
 
+	if (do_fit) ba81OutcomeProb(estate, TRUE);
+
+	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
+	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
+
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
-	for (long qx=0; qx < estate->totalQuadPoints; qx++) {
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, estate->quadGridSize, quad);
-		double *myDeriv = thrDeriv + itemParam->cols * state->itemDerivPadSize * omx_absolute_thread_num();
-		ll += ba81Fit1Ordinate(oo, qx, quad, want, myDeriv);
+	for (size_t ix=0; ix < numItems; ix++) {
+		const int thrId = omx_absolute_thread_num();
+		const double *spec = estate->itemSpec[ix];
+		const int id = spec[RPF_ISpecID];
+		const rpf_dLL1_t dLL1 = rpf_model[id].dLL1;
+		const int iOutcomes = estate->itemOutcomes[ix];
+		const int outcomeBase = cumItemOutcomes[ix] * estate->totalQuadPoints;
+		const double *weight = estate->expected + outcomeBase;
+                const double *oProb = estate->outcomeProb + outcomeBase;
+		const double *iparam = omxMatrixColumn(itemParam, ix);
+		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
+
+		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
+			if (do_fit) {
+				for (int ox=0; ox < iOutcomes; ox++) {
+					ll += weight[ox] * oProb[ox];
+				}
+			}
+			if (do_deriv) {
+				int quad[maxDims];
+				decodeLocation(qx, maxDims, estate->quadGridSize, quad);
+				double where[maxDims];
+				pointToWhere(estate, quad, where, maxDims);
+				(*dLL1)(spec, iparam, where, weight, myDeriv);
+			}
+			weight += iOutcomes;
+			oProb += iOutcomes;
+		}
 	}
 
 	int excluded = 0;
-	int numItems = itemParam->cols;
 
-	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-		double *deriv0 = thrDeriv;
+	if (do_deriv) {
+		double *deriv0 = thrDeriv.data();
 
 		int perThread = itemParam->cols * state->itemDerivPadSize;
 		for (int th=1; th < Global->numThreads; th++) {
-			double *thrD = thrDeriv + th * perThread;
+			double *thrD = thrDeriv.data() + th * perThread;
 			for (int ox=0; ox < perThread; ox++) deriv0[ox] += thrD[ox];
 		}
 
-		for (int ix=0; ix < numItems; ix++) {
+		for (size_t ix=0; ix < numItems; ix++) {
 			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
@@ -369,7 +307,7 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_IHESSIAN) {
-			for (int ix=0; ix < numItems; ix++) {
+			for (size_t ix=0; ix < numItems; ix++) {
 				const double *spec = itemSpec[ix];
 				int id = spec[RPF_ISpecID];
 				int iParams = (*rpf_model[id].numParam)(spec);
@@ -393,16 +331,14 @@ ba81ComputeMFit1(omxFitFunction* oo, int want, FitContext *fc)
 	}
 
 	if (excluded && estate->verbose >= 1) {
-		mxLog("%s: Hessian not positive definite for %d/%d items",
+		mxLog("%s: Hessian not positive definite for %d/%lu items",
 		      oo->matrix->name, excluded, numItems);
 	}
 	if (excluded > numItems/2) {
 		// maybe not fatal, but investigation needed
-		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%d items",
+		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%lu items",
 			       excluded, numItems);
 	}
-
-	Free(thrDeriv);
 
 	return -ll;
 }
@@ -461,7 +397,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			return 0;
 		}
 
-		double got = ba81ComputeMFit1(oo, want, fc);
+		double got = ba81ComputeEMFit(oo, want, fc);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
 		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
