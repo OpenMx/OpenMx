@@ -135,18 +135,6 @@ triangleLoc0(int diag)
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
 }
 
-OMXINLINE static double *
-eBase(BA81Expect *state, int thr)
-{
-	return state->allElxk + thr * state->numUnique;
-}
-
-OMXINLINE static double *
-esBase(BA81Expect *state, int thr)
-{
-	return state->Eslxk + thr * state->numUnique * state->numSpecific;
-}
-
 OMXINLINE static void
 pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
 {
@@ -164,6 +152,15 @@ decodeLocation(long qx, const int dims, const long grid, int *quad)
 	}
 }
 
+// state->speQarea[sIndex(state, sgroup, sx)]
+OMXINLINE static
+int sIndex(BA81Expect *state, int sx, int qx)
+{
+	//if (sx < 0 || sx >= state->numSpecific) error("Out of domain");
+	//if (qx < 0 || qx >= state->quadGridSize) error("Out of domain");
+	return qx * state->numSpecific + sx;
+}
+
 OMXINLINE static double
 areaProduct(BA81Expect *state, long qx, int sx, const int sg)
 {
@@ -174,7 +171,7 @@ areaProduct(BA81Expect *state, long qx, int sx, const int sg)
 			sx = qx % state->quadGridSize;
 			qx /= state->quadGridSize;
 		}
-		return (state->priQarea[qx] * state->speQarea[sg * state->quadGridSize + sx]);
+		return state->priQarea[qx] * state->speQarea[sIndex(state, sg, sx)];
 	}
 }
 
