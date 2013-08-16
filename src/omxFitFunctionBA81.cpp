@@ -218,7 +218,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		error("Bayesian prior returned %g; do you need to add a lbound/ubound?", ll);
 	}
 
-	if (do_fit) ba81OutcomeProb(estate, TRUE);
+	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);

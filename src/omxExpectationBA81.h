@@ -67,6 +67,7 @@ struct BA81Expect {
 	// estimation related
 	omxMatrix *customPrior;
 	omxMatrix *itemParam;
+	double *EitemParam;
 	int cacheLXK;
 	bool LXKcached;
 	double *lxk;              // wo/cache, numUnique * thread
@@ -94,7 +95,7 @@ struct BA81Expect {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-void ba81OutcomeProb(BA81Expect *state, bool wantLog);
+void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
 
 template<typename _Tp> class omxBuffer {
 	typedef _Tp value_type;

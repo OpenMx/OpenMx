@@ -18,6 +18,7 @@ setClass(Class = "MxExpectationBA81",
          representation = representation(
 	   ItemSpec = "list",
 	   ItemParam = "MxCharOrNumber",
+	   EItemParam = "MxOptionalMatrix",
 	   CustomPrior = "MxOptionalCharOrNumber",
 	   design = "MxOptionalMatrix",
 	   qpoints = "numeric",
@@ -37,12 +38,13 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, CustomPrior, design,
+          function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, design,
 		   qpoints, qwidth, cache, mean, cov, scores, verbose,
 		   name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
 	    .Object@ItemParam <- ItemParam
+	    .Object@EItemParam <- EItemParam
 	    .Object@CustomPrior <- CustomPrior
             .Object@design <- design
             .Object@qpoints <- qpoints
@@ -132,7 +134,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL,
 			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
-			      scores="omit", verbose=FALSE) {
+			      scores="omit", verbose=FALSE, EItemParam=NULL) {
 
 	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
@@ -156,6 +158,6 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL
 		stop("Design must be an integer matrix")
 	}
 
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, CustomPrior, design,
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, design,
 		   qpoints, qwidth, cache, mean, cov, scores, verbose))
 }

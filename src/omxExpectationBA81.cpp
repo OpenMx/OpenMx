@@ -204,7 +204,7 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 }
 
 // Depends on item parameters, but not latent distribution
-void ba81OutcomeProb(BA81Expect *state, bool wantLog)
+void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 {
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
@@ -213,6 +213,7 @@ void ba81OutcomeProb(BA81Expect *state, bool wantLog)
 	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
+	double *param = (estep && state->EitemParam)? state->EitemParam : itemParam->data;
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (size_t ix=0; ix < numItems; ix++) {
@@ -220,7 +221,7 @@ void ba81OutcomeProb(BA81Expect *state, bool wantLog)
 		const double *spec = state->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
-		double *iparam = omxMatrixColumn(itemParam, ix);
+		double *iparam = param + ix * itemParam->rows;
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
@@ -932,7 +933,7 @@ ba81compute(omxExpectation *oo, const char *context)
 		ba81buildLXKcache(oo);
 		if (!latentClean) recomputePatternLik(oo);
 	} else {
-		ba81OutcomeProb(state, FALSE);
+		ba81OutcomeProb(state, TRUE, FALSE);
 		ba81Estep1(oo);
 	}
 
@@ -1156,6 +1157,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->type = EXPECTATION_UNINITIALIZED;
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
+	state->EitemParam = NULL;
 	state->customPrior = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
@@ -1194,6 +1196,16 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
+
+	PROTECT(tmp = GET_SLOT(rObj, install("EItemParam")));
+	if (!isNull(tmp)) {
+		int rows, cols;
+		getMatrixDims(tmp, &rows, &cols);
+		if (rows != state->itemParam->rows || cols != state->itemParam->cols) {
+			error("EItemParam must have same dimensions as ItemParam");
+		}
+		state->EitemParam = REAL(tmp);
+	}
 
 	oo->computeFun = ba81compute;
 	oo->setVarGroup = ignoreSetVarGroup;
