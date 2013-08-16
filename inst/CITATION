@@ -1,4 +1,8 @@
 citHeader("To cite package 'OpenMx' in publications use:")
+citFooter(paste("BibTeX entries for LaTeX users are obtained by:\n\n",
+	"\r\r toBibtex(citation('OpenMx'))\n\n",
+	"OpenMx was developed with support from NIH/NIDA grants:\n\n",
+	"\r\r R37-DA018673, R25-DA026119, R21-DA024304\n\n"))
      
 desc <- packageDescription("OpenMx")
 year <- substring(desc$Date, 1, 4)
@@ -44,3 +48,4 @@ citEntry(entry="manual",
                         paste(authors[[length(authors)]], ".", sep=''), sep = " and "),
                         paste("(", year, ")", sep =""),
                         "OpenMx", revision, "User Guide."))
+
