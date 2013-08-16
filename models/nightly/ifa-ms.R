@@ -80,3 +80,4 @@ m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2@fitfunction@result, 50661.377, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
+print(m2@output$backendTime)
