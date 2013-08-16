@@ -148,67 +148,6 @@ set_deriv_nan(const double *spec, double *out)
   }
 }
 
-/**
- * irf(a,b,c,th) := c+(1-c)/(1+exp(-a*(th - b)))
- * diff(log(1-irf(a,b,c,th)),a);  // 0
- * diff(log(irf(a,b,c,th)),a);    // 1
- * diff(log(1-irf(a,b,c,th)),b);  // 0
- * diff(log(irf(a,b,c,th)),b);    // 1
- * ratsimp(diff(log(1-irf(a,b,c,th)),c));
- * diff(log(irf(a,b,c,th)),c);
- */
-static void
-irt_rpf_1dim_drm_deriv1(const double *spec,
-			const double *restrict param,
-			const double *where,
-			const double *weight, double *out)
-{
-  double aa = param[0];
-  double bb = param[1];
-  double cc = param[2];
-  double th = where[0];
-  double athb = -aa * (th - bb);
-
-  if (athb < -GRADIENT_STABLE_DOMAIN) athb = -GRADIENT_STABLE_DOMAIN;
-  else if (athb > GRADIENT_STABLE_DOMAIN) athb = GRADIENT_STABLE_DOMAIN;
-
-  double Eathb = exp(athb);
-  double Eathb2 = (Eathb+1)*(Eathb+1);
-  double w0 = Eathb2 * (-(1-cc)/(Eathb+1) - cc + 1);
-  double w1 = Eathb2 * ((1-cc)/(Eathb+1) + cc);
-
-  out[0] -= ((weight[0] * (bb-th)*Eathb / w0 +
-		     weight[1] * -(bb-th)*Eathb / w1));
-  out[1] -= ((weight[0] * Eathb / w0 +
-		     weight[1] * -Eathb / w1));
-  double ratio = (1-(1/(Eathb+1))) / ((1-cc)/(Eathb+1) + cc);
-  out[2] -= ((weight[0] * (1/(cc-1)) +
-		     weight[1] * ratio));
-}
-
-static void
-irt_rpf_1dim_drm_deriv2(const double *spec, const double *restrict param,
-			double *out)
-{
-  double aa = param[0];
-  double cc = param[2];
-  const double *prior = spec + RPF_ISpecCount;
-  if (aa <= 0 || cc < 0 || cc >= 1) {
-    set_deriv_nan(spec, out);
-    return;
-  }
-
-  out[0] *= (1-cc);
-  //out[0] += lognormal_gradient(aa, prior[0]);
-
-  out[1] *= aa * (1-cc);
-  if (cc == 0) { out[2] = nan("I"); }
-  else {
-	  // fix priors TODO
-  }
-  for (int px=3; px < 9; px++) out[px] = nan("I");
-}
-
 static void
 irt_rpf_1dim_drm_rescale(const double *spec, double *restrict param, const int *paramMask,
 			 const double *restrict mean, const double *restrict cov)
@@ -454,33 +393,6 @@ irt_rpf_1dim_drm_dTheta(const double *spec, const double *restrict param,
   memcpy(nparam, param, sizeof(double) * 4);
   nparam[1] = param[1] * -param[0];
   irt_rpf_mdim_drm_dTheta(spec, nparam, where, dir, grad, hess);
-}
-
-static void
-irt_rpf_1dim_grm_prob(const double *spec,
-		      const double *restrict param, const double *restrict th,
-		      double *restrict out)
-{
-  const int numOutcomes = spec[RPF_ISpecOutcomes];
-  const double slope = param[0];
-  const double theta = th[0];
-  const double *kat = param + (int) spec[RPF_ISpecDims];
-
-  double athb = -slope * (theta - kat[0]);
-  if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
-  else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
-  double tmp = 1 / (1 + exp(athb));
-  out[0] = 1-tmp;
-  out[1] = tmp;
-
-  for (int kx=2; kx < numOutcomes; kx++) {
-    double athb = -slope * (theta - kat[kx-1]);
-    if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
-    else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
-    double tmp = 1 / (1 + exp(athb));
-    out[kx-1] -= tmp;
-    out[kx] = tmp;
-  }
 }
 
 static int
@@ -1222,32 +1134,10 @@ const struct rpf librpf_model[] = {
     irt_rpf_mdim_drm_paramInfo,
     irt_rpf_1dim_drm_prob,
     irt_rpf_logprob_adapter,
-    irt_rpf_1dim_drm_deriv1,
-    irt_rpf_1dim_drm_deriv2,
+    notimplemented,
+    notimplemented,
     notimplemented,
     irt_rpf_1dim_drm_rescale,
-  },
-  { "drm1",
-    irt_rpf_1dim_drm_numSpec,
-    irt_rpf_1dim_drm_numParam,
-    irt_rpf_mdim_drm_paramInfo,
-    irt_rpf_1dim_drm_prob,
-    irt_rpf_logprob_adapter,
-    notimplemented,
-    notimplemented,
-    irt_rpf_1dim_drm_dTheta,
-    notimplemented,
-  },
-  { "drm1+",
-    irt_rpf_mdim_drm_numSpec,
-    irt_rpf_mdim_drm_numParam,
-    irt_rpf_mdim_drm_paramInfo,
-    irt_rpf_mdim_drm_prob,
-    irt_rpf_logprob_adapter,
-    irt_rpf_mdim_drm_deriv1,
-    irt_rpf_mdim_drm_deriv2,
-    notimplemented,
-    irt_rpf_mdim_drm_rescale,
   },
   { "drm",
     irt_rpf_mdim_drm_numSpec,
@@ -1259,17 +1149,6 @@ const struct rpf librpf_model[] = {
     irt_rpf_mdim_drm_deriv2,
     irt_rpf_mdim_drm_dTheta,
     irt_rpf_mdim_drm_rescale,
-  },
-  { "grm1",
-    irt_rpf_mdim_grm_numSpec,
-    irt_rpf_mdim_grm_numParam,
-    irt_rpf_mdim_grm_paramInfo,
-    irt_rpf_1dim_grm_prob,
-    irt_rpf_logprob_adapter,
-    noop, // TODO fill in pre/post transformation
-    noop,
-    notimplemented,
-    noop,
   },
   { "grm",
     irt_rpf_mdim_grm_numSpec,
