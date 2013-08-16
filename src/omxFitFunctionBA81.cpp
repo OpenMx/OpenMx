@@ -33,12 +33,6 @@ struct BA81FitState {
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
 	std::vector<int> ihessDivisor;       // freeParam * freeParam
 
-	omxMatrix *cholCov;
-	int choleskyError;
-	double *tmpLatentMean;    // maxDims
-	double *tmpLatentCov;     // maxDims * maxDims ; only lower triangle is used
-	omxMatrix *icov;          // inverse covariance matrix
-
 	std::vector< FreeVarGroup* > varGroups;
 	size_t numItemParam;
 
@@ -48,8 +42,6 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
-	tmpLatentMean = NULL;
-	tmpLatentCov = NULL;
 	haveItemMap = false;
 	haveLatentMap = false;
 }
@@ -453,10 +445,6 @@ static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 
 BA81FitState::~BA81FitState()
 {
-	Free(tmpLatentMean);
-	Free(tmpLatentCov);
-	omxFreeAllMatrixData(icov);
-	omxFreeAllMatrixData(cholCov);
 }
 
 static void ba81Destroy(omxFitFunction *oo) {
@@ -490,9 +478,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 
 	int maxAbilities = estate->maxAbilities;
 
-	state->tmpLatentMean = Realloc(NULL, estate->maxDims, double);
-	state->tmpLatentCov = Realloc(NULL, estate->maxDims * estate->maxDims, double);
-
 	int numItems = estate->itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = estate->itemSpec[ix];
@@ -501,7 +486,4 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 			error("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
-
-	state->icov = omxInitMatrix(NULL, maxAbilities, maxAbilities, TRUE, globalState);
-	state->cholCov = omxInitMatrix(NULL, maxAbilities, maxAbilities, TRUE, globalState);
 }
