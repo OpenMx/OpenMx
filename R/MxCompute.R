@@ -147,7 +147,7 @@ setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
 	   adjustStart = "logical",
-	   useGradient = "logical",
+	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
 	   verbose = "integer"))
@@ -183,7 +183,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object
 	  })
 
-mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=as.logical(NA),
+mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', adjustStart=FALSE, verbose=0L) {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")

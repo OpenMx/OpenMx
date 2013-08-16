@@ -70,10 +70,10 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	adjustStart = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
-	if (LOGICAL(slotValue)[0] == NA_LOGICAL) {
-		useGradient = Global->analyticGradients;
+	if (length(slotValue)) {
+		useGradient = asLogical(slotValue);
 	} else {
-		useGradient = LOGICAL(slotValue)[0];
+		useGradient = Global->analyticGradients;
 	}
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
