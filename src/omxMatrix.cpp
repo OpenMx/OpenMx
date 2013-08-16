@@ -424,7 +424,6 @@ omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* st
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 
-	SEXP matrixDims;
 	int* dimList;
 
 	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
@@ -437,10 +436,12 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->data = REAL(om->owner);
 
 	if(isMatrix(matrix)) {
+		SEXP matrixDims;
 		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
 		dimList = INTEGER(matrixDims);
 		om->rows = dimList[0];
 		om->cols = dimList[1];
+		UNPROTECT(1); // matrixDims
 	} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 		if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
 		om->rows = 1;
@@ -475,7 +476,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", length(matStruct) - 1); }
-	SEXP subList;
 
 	if(length(matStruct) > 1) {
 		int numPopLocs = length(matStruct) - 1;
@@ -488,6 +488,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 	}
 
 	for(int i = 0; i < length(matStruct)-1; i++) {
+		SEXP subList;
 		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
 
 		int* locations = INTEGER(subList);
@@ -497,6 +498,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		matrix->populateFromCol[i] = locations[2];
 		matrix->populateToRow[i] = locations[3];
 		matrix->populateToCol[i] = locations[4];
+		UNPROTECT(1); //subList
 	}
 }
 

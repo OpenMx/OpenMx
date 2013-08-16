@@ -22,6 +22,7 @@
 #include <errno.h>
 
 #include "omxDefines.h"
+#include "glue.h"
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "Compute.h"
@@ -285,6 +286,8 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 	int numVars = length(varList);
 	startingValues->resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
+		omxManageProtectInsanity mpi;
+
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
 		Global->freeGroup[0]->vars.push_back(fv);
