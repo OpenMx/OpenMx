@@ -22,6 +22,24 @@
 
 #include "types.h"
 
+struct matrixVectorProdTerm {
+	int hentry;
+	int gentry;
+	int dest;
+	matrixVectorProdTerm() {}
+	matrixVectorProdTerm(int he, int ge, int de) {
+		hentry=he;
+		gentry=ge;
+		dest=de;
+	}
+	bool operator< (const matrixVectorProdTerm &j) const {
+		return (hentry < j.hentry) || (gentry < j.gentry) || (dest < j.dest);
+	};
+	bool operator==(const matrixVectorProdTerm &i) const {
+		return i.hentry == hentry && i.gentry == gentry && i.dest == dest;
+	}
+};
+
 // The idea of FitContext is to eventually enable fitting from
 // multiple starting values in parallel.
 
@@ -41,6 +59,8 @@ class FitContext {
 	double *grad;
 	double *hess;
 	double *ihess;
+	std::vector< matrixVectorProdTerm > hgProd;
+
 	int wanted;
 	bool changedEstimates; // only used for FF_COMPUTE_PREOPTIMIZE
 

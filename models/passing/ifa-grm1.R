@@ -59,12 +59,15 @@ m2 <- mxModel(m2,
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),
-	      mxComputeIterate(steps=list(
+	      mxComputeSequence(steps=list(
+				  mxComputeIterate(steps=list(
 				 mxComputeOnce('expectation', context='EM'),
 				 mxComputeNewtonRaphson(free.set='itemParam'),
 				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean","cov"))
-				 )))
+				 mxComputeOnce('fitfunction', maxAbsChange=TRUE, free.set=c("mean","cov"))
+				 )),
+				  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE))))
+				  
 m2 <- mxRun(m2)
 
 #print(m2@matrices$itemParam@values)

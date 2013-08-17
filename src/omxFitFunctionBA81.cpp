@@ -15,6 +15,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+
 #include "omxFitFunction.h"
 #include "omxExpectationBA81.h"
 #include "omxOpenmpWrap.h"
@@ -33,6 +35,7 @@ struct BA81FitState {
 	std::vector<int> paramLocations;     // param# -> count of appearances in ItemParam
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
 	std::vector<int> ihessDivisor;       // freeParam * freeParam
+	std::vector< matrixVectorProdTerm > hgProd;
 
 	std::vector< FreeVarGroup* > varGroups;
 	size_t numItemParam;
@@ -186,13 +189,28 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 				//mxLog("Item %d param(%d,%d) -> H[%d,%d]", cx, p1, p2, at1, at2);
 				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
-				state->paramMap[at] = numFreeParams + at1 * numFreeParams + at2;
+				int hoffset = at1 * numFreeParams + at2;
+
+				//mxLog("? H %d * g %d = p %d", hoffset, at2, at1);
+				matrixVectorProdTerm mvpt(hoffset, at2, at1);
+				state->hgProd.push_back(mvpt);
+
+				if (at1 != at2) {
+					matrixVectorProdTerm mvpt(hoffset, at1, at2);
+					state->hgProd.push_back(mvpt);
+				}
+
+				state->paramMap[at] = numFreeParams + hoffset;
 
 				state->ihessDivisor[at] =
 					state->paramLocations[at1] * state->paramLocations[at2];
 			}
 		}
 	}
+
+	std::sort(state->hgProd.begin(), state->hgProd.end());
+	std::vector<matrixVectorProdTerm>::iterator it = std::unique(state->hgProd.begin(), state->hgProd.end());
+	state->hgProd.resize( std::distance(state->hgProd.begin(), it) );
 
 	state->haveItemMap = TRUE;
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
@@ -322,7 +340,9 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 				omxApproxInvertPackedPosDefTriangular(iParams, mask, pad, &stress);
 				if (stress) ++excluded;
 			}
+		}
 
+		if (want & FF_COMPUTE_IHESSIAN) {
 			for (int ox=0; ox < numParams; ox++) {
 				int to = state->paramMap[ox];
 				if (to == -1) continue;
@@ -331,7 +351,6 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 					fc->ihess[Hto] += deriv0[ox] / state->ihessDivisor[ox];
 				}
 			}
-
 		}
 	}
 
@@ -396,6 +415,13 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			for (size_t px=0; px < state->numItemParam; ++px) {
 				if (state->paramFlavor[px] < 0) continue;
 				fc->flavor[px] = state->paramFlavor[px];
+			}
+			return 0;
+		}
+
+		if (want & FF_COMPUTE_HGPROD) {
+			for (size_t px=0; px < state->hgProd.size(); ++px) {
+				fc->hgProd.push_back(state->hgProd[px]);
 			}
 			return 0;
 		}

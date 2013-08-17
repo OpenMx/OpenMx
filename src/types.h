@@ -29,7 +29,8 @@ enum omxFFCompute {
 	FF_COMPUTE_ESTIMATE     = 1<<4,
 	FF_COMPUTE_GRADIENT     = 1<<5,
 	FF_COMPUTE_HESSIAN      = 1<<6,
-	FF_COMPUTE_IHESSIAN     = 1<<7
+	FF_COMPUTE_IHESSIAN     = 1<<7,
+	FF_COMPUTE_HGPROD       = 1<<8
 };
 
 typedef struct omxMatrix omxMatrix;

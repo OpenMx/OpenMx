@@ -270,6 +270,8 @@ void Ramsay1975::restart()
 	}
 }
 
+void pda(const double *ar, int rows, int cols);
+
 void ComputeNR::compute(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
@@ -288,6 +290,15 @@ void ComputeNR::compute(FitContext *fc)
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
 	} else {
 		OMXZERO(fc->flavor, numParam);
+	}
+
+	if (1) { // add conditions to disable TODO
+		fc->hgProd.resize(0);
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_HGPROD, fc);
+		std::sort(fc->hgProd.begin(), fc->hgProd.end());
+		std::vector<matrixVectorProdTerm>::iterator iter = std::unique(fc->hgProd.begin(), fc->hgProd.end());
+		fc->hgProd.resize( std::distance(fc->hgProd.begin(), iter) );
+		//fc->log("NR", FF_COMPUTE_HGPROD);
 	}
 
 	for (size_t px=0; px < numParam; ++px) {
@@ -426,20 +437,42 @@ void ComputeNR::compute(FitContext *fc)
 		} else {
 			double *grad = fc->grad;
 			double *ihess = fc->ihess;
+
+			std::vector<double> move(numParam, 0.0);
+			for (size_t px=0; px < fc->hgProd.size(); ++px) {
+				matrixVectorProdTerm &mvp = fc->hgProd[px];
+				move[mvp.dest] += fc->ihess[mvp.hentry] * fc->grad[mvp.gentry];
+			}
+
+			if (0) {
+				std::vector<double> blasMove(numParam); // uninit
+				const char uplo = 'U';
+				int dim = int(numParam);
+				int incx = 1;
+				double alpha = 1;
+				double beta = 0;
+				F77_CALL(dsymv)(&uplo, &dim, &alpha, fc->ihess, &dim,
+						fc->grad, &incx, &beta, blasMove.data(), &incx);
+
+				double blasDiff = 0;
+				for (size_t px=0; px < numParam; ++px) {
+					blasDiff += fabs(move[px] - blasMove[px]);
+				}
+				mxLog("blasdiff %.10g", blasDiff);
+				if (blasDiff > 1) {
+					fc->log("N-R", FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN|FF_COMPUTE_HGPROD);
+					pda(move.data(), 1, numParam);
+					pda(blasMove.data(), 1, numParam);
+					abort();
+				}
+			}
+
 			for (size_t px=0; px < numParam; ++px) {
 				Ramsay1975 *ramsay1 = ramsay[ fc->flavor[px] ];
 				double oldEst = fc->est[px];
-				double move = 0;
-				for (size_t h1=0; h1 <= px; ++h1) {
-					move += ihess[px * numParam + h1] * grad[h1];
-				}
-				double *strip=ihess + (px+1) * numParam + px;
-				for (size_t h1=px+1; h1 < numParam; ++h1, strip += numParam) {
-					move += *strip * grad[h1];
-				}
 				double speed = 1 - ramsay1->caution;
 
-				ramsay1->recordEstimate(px, oldEst - speed * move);
+				ramsay1->recordEstimate(px, oldEst - speed * move[px]);
 
 				double badj = fabs(oldEst - fc->est[px]);
 				if (maxAdj < badj) {

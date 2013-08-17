@@ -195,6 +195,15 @@ void FitContext::log(const char *where, int what)
 		}
 		buf += ")\n";
 	}
+	if (what & FF_COMPUTE_HGPROD) {
+		buf += string_snprintf("ihess %%*%% grad %lu: list(", hgProd.size());
+		for (size_t px=0; px < hgProd.size(); ++px) {
+			buf += string_snprintf("c(%d, %d, %d)", hgProd[px].hentry,
+					       hgProd[px].gentry, hgProd[px].dest);
+			if (px < hgProd.size() - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
 	mxLogBig(buf);
 }
 
@@ -409,6 +418,7 @@ class omxComputeOnce : public omxCompute {
 	bool gradient;
 	bool hessian;
 	bool ihessian;
+	bool hgprod;
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -673,12 +683,16 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("ihessian")));
 	ihessian = asLogical(slotValue);
 
+	PROTECT(slotValue = GET_SLOT(rObj, install("hgprod")));
+	hgprod = asLogical(slotValue);
+
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {
 		omxFitFunction *ff = algebras[0]->fitFunction;
 		if (gradient && !ff->gradientAvailable) {
 			error("Gradient requested but not available");
 		}
-		if ((hessian || ihessian) && !ff->hessianAvailable) {
+		if ((hessian || ihessian || hgprod) && !ff->hessianAvailable) {
+			// add a separate flag for hgprod TODO
 			error("Hessian requested but not available");
 		}
 	}
@@ -708,6 +722,10 @@ void omxComputeOnce::compute(FitContext *fc)
 		if (ihessian) {
 			want |= FF_COMPUTE_IHESSIAN;
 			OMXZERO(fc->ihess, numParam * numParam);
+		}
+		if (hgprod) {
+			want |= FF_COMPUTE_HGPROD;
+			fc->hgProd.resize(0);
 		}
 		if (!want) return;
 
@@ -774,6 +792,10 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 			PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
 			memcpy(REAL(Rihessian), fc->ihess, sizeof(double) * numFree * numFree);
 			out->push_back(std::make_pair(mkChar("ihessian"), Rihessian));
+		}
+
+		if (hgprod) {
+			// TODO
 		}
 	}
 }

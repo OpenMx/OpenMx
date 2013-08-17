@@ -88,7 +88,8 @@ setClass(Class = "MxComputeOnce",
 	   fit = "logical",
 	   gradient = "logical",
 	   hessian = "logical",
-	   ihessian = "logical"))
+	   ihessian = "logical",
+	   hgprod = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
@@ -123,14 +124,15 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 		}
 		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
 		if (all(.Object@what >= 0) && !.Object@maxAbsChange && !.Object@fit && !.Object@gradient &&
-			    !.Object@hessian && !.Object@ihessian) {
+			    !.Object@hessian && !.Object@ihessian && !.Object@hgprod) {
 			warning("MxComputeOnce with no action")
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient, hessian, ihessian, verbose) {
+	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient,
+		   hessian, ihessian, hgprod, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@verbose = verbose
@@ -141,13 +143,15 @@ setMethod("initialize", "MxComputeOnce",
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
 		  .Object@ihessian <- ihessian
+		  .Object@hgprod <- hgprod
 		  .Object
 	  })
 
 mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
-			  hessian=FALSE, ihessian=FALSE, verbose=0L) {
-	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient, hessian, ihessian, verbose)
+			  hessian=FALSE, ihessian=FALSE, hgprod=FALSE, verbose=0L) {
+	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient,
+	    hessian, ihessian, hgprod, verbose)
 }
 
 #----------------------------------------------------
