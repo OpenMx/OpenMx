@@ -39,7 +39,7 @@ mkgroup <- function(model.name, data, latent.free) {
   
   m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(
+                mxExpectationBA81(cache=FALSE,
                   ItemSpec=items,
                   ItemParam="ItemParam",
                   mean="mean", cov="cov"),
@@ -60,15 +60,18 @@ if (1) {
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeIterate(steps=list(
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-                        mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', fit=TRUE,
-                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+		      mxComputeSequence(steps=list(
+					  mxComputeIterate(steps=list(
+							     mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
+							     mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+							     mxComputeOnce(paste(groups, 'expectation', sep=".")),
+							     mxComputeOnce('fitfunction', maxAbsChange=TRUE,
+									   free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))),
+					  mxComputeOnce(paste(groups, 'expectation', sep='.')),
+					  mxComputeOnce('fitfunction', free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'), fit=TRUE))))
+
 #                        mxComputeGradientDescent(useGradient=TRUE,
 #                                                 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-                      )))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   

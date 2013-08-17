@@ -731,7 +731,7 @@ void omxComputeOnce::compute(FitContext *fc)
 	} else if (expectations.size()) {
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
-			if (verbose) mxLog("ComputeOnce: expectation[%d] %p context %s", wx, expectation, context);
+			if (verbose) mxLog("ComputeOnce: expectation[%lu] %p context %s", wx, expectation, context);
 			omxExpectationCompute(expectation, context);
 		}
 	}

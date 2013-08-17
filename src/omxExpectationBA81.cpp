@@ -261,6 +261,7 @@ static void ba81Estep1(omxExpectation *oo)
 	state->excludedPatterns = 0;
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
+	state->excludedPatterns = 0;
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	int numLatentsPerThread = numUnique * numLatents;
@@ -276,13 +277,22 @@ static void ba81Estep1(omxExpectation *oo)
 		gramProduct(wh, maxDims, wh + maxDims);
 	}
 
+	const size_t numItems = state->itemSpec.size();
+	const int totalOutcomes = state->totalOutcomes;
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	const int *rowMap = state->rowMap;
+	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * Global->numThreads, 0.0);
+	std::vector<double> &priQarea = state->priQarea;
+
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
+		omxBuffer<double> thrQweight(totalQuadPoints * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
+			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			if (state->cacheLXK) lxk = getLXKcache(state, px);
 			ba81LikelihoodSlow2(state, px, lxk);
@@ -290,8 +300,9 @@ static void ba81Estep1(omxExpectation *oo)
 			double patternLik1 = 0;
 			double *wh = wherePrep.data();
 			for (long qx=0; qx < totalQuadPoints; qx++) {
-				double area = state->priQarea[qx];
+				double area = priQarea[qx];
 				double tmp = lxk[qx] * area;
+				Qweight[qx] = tmp;
 				patternLik1 += tmp;
 				mapLatentSpace(state, 0, tmp, wh, wh + maxDims,
 					       thrLatentDist + px * numLatents);
@@ -299,6 +310,42 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 
 			patternLik[px] = patternLik1;
+
+			if (!state->cacheLXK) {
+				// This uses the previous iteration's latent distribution.
+				// If we recompute patternLikelihood to get the current
+				// iteration's expected scores then it speeds up convergence.
+				// However, recomputing patternLikelihood and dependent
+				// math takes much longer than simply using the data
+				// we have available here. This is even more true for the
+				// two-tier model.
+				if (!validPatternLik(state, patternLik[px])) {
+#pragma omp atomic
+					state->excludedPatterns += 1;
+					continue;
+				}
+
+				double weight = numIdentical[px] / patternLik[px];
+				for (long qx=0; qx < totalQuadPoints; ++qx) {
+					Qweight[qx] *= weight;
+				}
+
+				double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
+				double *out = myExpected;
+				for (size_t ix=0; ix < numItems; ++ix) {
+					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+					if (pick == NA_INTEGER) {
+						out += itemOutcomes[ix] * totalQuadPoints;
+						continue;
+					}
+					pick -= 1;
+
+					for (long qx=0; qx < totalQuadPoints; ++qx) {
+						out[pick] += Qweight[qx];
+						out += itemOutcomes[ix];
+					}
+				}
+			}
 		}
 	} else {
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
@@ -307,11 +354,13 @@ static void ba81Estep1(omxExpectation *oo)
 		double *EiCache = state->EiCache;
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
 		std::vector<double> &speQarea = state->speQarea;
+		omxBuffer<double> thrQweight(totalQuadPoints * numSpecific * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
 			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
+			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			if (state->cacheLXK) lxk = getLXKcache(state, px);
@@ -335,6 +384,7 @@ static void ba81Estep1(omxExpectation *oo)
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 * area;
+						Qweight[qloc] = tmp;
 						mapLatentSpace(state, Sgroup, tmp, wh, wh + maxDims,
 							       thrLatentDist + px * numLatents);
 						++qloc;
@@ -345,6 +395,51 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 
 			patternLik[px] = patternLik1;
+
+			if (!state->cacheLXK) {
+				if (!validPatternLik(state, patternLik[px])) {
+#pragma omp atomic
+					state->excludedPatterns += 1;
+					continue;
+				}
+
+				double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
+				double weight = numIdentical[px] / patternLik[px];
+				for (long qx=0; qx < totalQuadPoints * numSpecific; qx++) {
+					Qweight[qx] *= weight;
+				}
+
+				double *out = myExpected;
+				for (size_t ix=0; ix < numItems; ++ix) {
+					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+					if (pick == NA_INTEGER) {
+						out += itemOutcomes[ix] * totalQuadPoints;
+						continue;
+					}
+					pick -= 1;
+
+					int Sgroup = state->Sgroup[ix];
+					double *Qw = Qweight;
+					for (long qx=0; qx < totalQuadPoints; ++qx) {
+						out[pick] += Qw[Sgroup];
+						out += itemOutcomes[ix];
+						Qw += numSpecific;
+					}
+				}
+			}
+		}
+	}
+
+	if (!state->cacheLXK) {
+		const long expectedSize = totalQuadPoints * totalOutcomes;
+		OMXZERO(state->expected, expectedSize);
+
+		double *e1 = thrExpected.data();
+		for (int tx=0; tx < Global->numThreads; ++tx) {
+			for (long ex=0; ex < expectedSize; ++ex) {
+				state->expected[ex] += *e1;
+				++e1;
+			}
 		}
 	}
 
@@ -931,14 +1026,14 @@ ba81compute(omxExpectation *oo, const char *context)
 	}
 	if (itemClean) {
 		ba81buildLXKcache(oo);
-		if (!latentClean) recomputePatternLik(oo);
+		if (state->cacheLXK && !latentClean) recomputePatternLik(oo);
 	} else {
 		ba81OutcomeProb(state, TRUE, FALSE);
 		ba81Estep1(oo);
 	}
 
 	if (state->type == EXPECTATION_AUGMENTED) {
-		ba81Expected(oo);
+		if (state->cacheLXK) ba81Expected(oo);
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);

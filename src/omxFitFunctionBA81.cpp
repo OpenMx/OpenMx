@@ -414,7 +414,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			if (state->freeLatents) setLatentStartingValues(oo, fc);
+			if (state->freeLatents) {
+				setLatentStartingValues(oo, fc);
+				omxExpectationCompute(oo->expectation, NULL);
+			}
 			return 0;
 		}
 
@@ -502,8 +505,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 
 	int maxParam = estate->itemParam->rows;
 	state->itemDerivPadSize = maxParam + triangleLoc1(maxParam);
-
-	int maxAbilities = estate->maxAbilities;
 
 	int numItems = estate->itemParam->cols;
 	for (int ix=0; ix < numItems; ix++) {

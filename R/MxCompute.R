@@ -108,7 +108,8 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 			algNum <- match(.Object@what, append(names(flatModel@algebras),
 							     names(flatModel@fitfunctions)))
 			if (any(is.na(expNum)) && any(is.na(algNum))) {
-				stop("Can only apply MxComputeOnce to MxAlgebra or MxExpectation")
+				stop(paste("Can only apply MxComputeOnce to MxAlgebra or MxExpectation not",
+					   deparse(.Object@what)))
 			}
 			if (!any(is.na(expNum))) {
 					# Usually negative numbers indicate matrices; not here

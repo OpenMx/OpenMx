@@ -63,7 +63,7 @@ omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),  # got sorted, add it again unsorted
               mxExpectationBA81(
-                ItemSpec=items, ItemParam="itemParam",
+                ItemSpec=items, ItemParam="itemParam", cache=FALSE,
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),

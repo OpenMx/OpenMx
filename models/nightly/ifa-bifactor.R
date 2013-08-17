@@ -74,7 +74,7 @@ omxCheckCloseEnough(fivenum(m1@output$hessian[m1@output$hessian != 0]),
 
 m1 <- mxModel(m1,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
+              mxExpectationBA81(mean="mean", cov="cov", cache=FALSE,
                                 ItemSpec=items,
                                 design=design,
                                 ItemParam="ItemParam",

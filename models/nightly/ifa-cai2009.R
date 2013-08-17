@@ -121,7 +121,7 @@ if (1) {
 
 omxIFAComputePlan <- function(groups) {
 	mxComputeSequence(steps=list(
-			    mxComputeIterate(tolerance=.000145, steps=list(
+			    mxComputeIterate(steps=list(
 					       mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
 					       mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
 					       mxComputeOnce(paste(groups, 'expectation', sep=".")),
