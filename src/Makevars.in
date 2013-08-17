@@ -1,3 +1,11 @@
+# R's default compiler flags are hidden in Makeconf. To find your Makeconf,
+#
+# eval $(grep R_HOME_DIR $(which R) | head -1)
+# cd $R_HOME_DIR/etc
+# find . |grep Makeconf
+#
+# Now edit to Makeconf to adjust the default compiler flags.
+
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # DEBUG_CXXFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # DEBUG_CXXFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
