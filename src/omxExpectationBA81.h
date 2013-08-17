@@ -58,8 +58,10 @@ struct BA81Expect {
 	double Qwidth;
 	double targetQpoints;
 	long quadGridSize;
-	long totalQuadPoints;     // quadGridSize ^ maxDims
-	long totalPrimaryPoints;  // totalQuadPoints except for specific dim TODO
+	long totalQuadPoints;                 // quadGridSize ^ maxDims
+	long totalPrimaryPoints;              // totalQuadPoints except for specific dim TODO
+	std::vector<double> wherePrep;        // totalQuadPoints * maxDims
+	std::vector<double> whereGram;        // totalQuadPoints * triangleLoc1(maxDims)
 	std::vector<double> Qpoint;           // quadGridSize
 	std::vector<double> priQarea;         // totalPrimaryPoints
 	std::vector<double> speQarea;         // quadGridSize * numSpecific
@@ -68,12 +70,12 @@ struct BA81Expect {
 	omxMatrix *customPrior;
 	omxMatrix *itemParam;
 	double *EitemParam;
-	double *patternLik;       // numUnique
+	double *patternLik;                   // numUnique
 	double SmallestPatternLik;
 	int excludedPatterns;
 	int totalOutcomes;
-	double *outcomeProb;      // totalOutcomes * totalQuadPoints
-	double *expected;         // totalOutcomes * totalQuadPoints
+	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
+	double *expected;                     // totalOutcomes * totalQuadPoints
 	std::vector<double> ElatentMean;      // maxAbilities
 	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;

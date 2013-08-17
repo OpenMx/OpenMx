@@ -230,6 +230,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
+	double *wherePrep = estate->wherePrep.data();
 
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
 	for (size_t ix=0; ix < numItems; ix++) {
@@ -251,11 +252,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 			}
 			if (do_deriv) {
-				int quad[maxDims];
-				decodeLocation(qx, maxDims, estate->quadGridSize, quad);
-				double where[maxDims];
-				pointToWhere(estate, quad, where, maxDims);
-				(*dLL1)(spec, iparam, where, weight, myDeriv);
+				(*dLL1)(spec, iparam, wherePrep + qx * maxDims, weight, myDeriv);
 			}
 			weight += iOutcomes;
 			oProb += iOutcomes;

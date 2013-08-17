@@ -202,10 +202,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
 		for (long qx=0; qx < state->totalQuadPoints; qx++) {
-			int quad[maxDims];
-			decodeLocation(qx, maxDims, state->quadGridSize, quad);
-			double where[maxDims];
-			pointToWhere(state, quad, where, maxDims);
+			double *where = state->wherePrep.data() + qx * maxDims;
 
 			double ptheta[dims];
 			for (int dx=0; dx < dims; dx++) {
@@ -230,6 +227,7 @@ static void ba81Estep1(omxExpectation *oo)
 	const int numUnique = state->numUnique;
 	const int numSpecific = state->numSpecific;
 	const int maxDims = state->maxDims;
+	const int whereGramSize = triangleLoc1(maxDims);
 	const int maxAbilities = state->maxAbilities;
 	const int primaryDims = numSpecific? maxDims-1 : maxDims;
 	omxData *data = state->data;
@@ -243,17 +241,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	int numLatentsPerThread = numUnique * numLatents;
-	std::vector<double> latentDist(numUnique * numLatents * numThreads);
-
-	const int whereChunk = maxDims + triangleLoc1(maxDims);
-	omxBuffer<double> wherePrep(totalQuadPoints * whereChunk);
-	for (long qx=0; qx < totalQuadPoints; qx++) {
-		double *wh = wherePrep.data() + qx * whereChunk;
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, state->quadGridSize, quad);
-		pointToWhere(state, quad, wh, maxDims);
-		gramProduct(wh, maxDims, wh + maxDims);
-	}
+	std::vector<double> latentDist(numUnique * numLatents * numThreads, 0.0);
 
 	const size_t numItems = state->itemSpec.size();
 	const int totalOutcomes = state->totalOutcomes;
@@ -261,6 +249,8 @@ static void ba81Estep1(omxExpectation *oo)
 	const int *rowMap = state->rowMap;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
 	std::vector<double> &priQarea = state->priQarea;
+	double *wherePrep = state->wherePrep.data();
+	double *whereGram = state->whereGram.data();
 
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
@@ -275,15 +265,14 @@ static void ba81Estep1(omxExpectation *oo)
 			ba81LikelihoodSlow2(state, px, lxk);
 
 			double patternLik1 = 0;
-			double *wh = wherePrep.data();
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				double area = priQarea[qx];
 				double tmp = lxk[qx] * area;
 				Qweight[qx] = tmp;
 				patternLik1 += tmp;
-				mapLatentSpace(state, 0, tmp, wh, wh + maxDims,
+				mapLatentSpace(state, 0, tmp, wherePrep + qx * maxDims,
+					       whereGram + qx * whereGramSize,
 					       thrLatentDist + px * numLatents);
-				wh += whereChunk;
 			}
 
 			patternLik[px] = patternLik1;
@@ -354,7 +343,7 @@ static void ba81Estep1(omxExpectation *oo)
 			cai2010EiEis(state, px, lxk, Eis, Ei);
 
 			double patternLik1 = 0;
-			double *wh = wherePrep.data();
+			long whloc = 0;
 			for (long qx=0, qloc=0, eisloc=0; qx < totalPrimaryPoints; ++qx, eisloc += numSpecific) {
 				double priArea = state->priQarea[qx];
 				double EiArea = Ei[qx] * priArea;
@@ -366,11 +355,12 @@ static void ba81Estep1(omxExpectation *oo)
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 * area[qloc];
 						Qweight[qloc] = tmp;
-						mapLatentSpace(state, Sgroup, tmp, wh, wh + maxDims,
+						mapLatentSpace(state, Sgroup, tmp, wherePrep + whloc * maxDims,
+							       whereGram + whloc * whereGramSize,
 							       thrLatentDist + px * numLatents);
 						++qloc;
 					}
-					wh += whereChunk;
+					++whloc;
 				}
 			}
 
@@ -537,17 +527,39 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
 	}
 
-	int maxDims = state->maxDims;
+	const int maxDims = state->maxDims;
 	double Qwidth = state->Qwidth;
 	int numSpecific = state->numSpecific;
 	int priDims = maxDims - (numSpecific? 1 : 0);
 
-	// try starting small and increasing to the cap TODO
-	state->quadGridSize = gridsize;
-
 	state->totalQuadPoints = 1;
 	for (int dx=0; dx < maxDims; dx++) {
-		state->totalQuadPoints *= state->quadGridSize;
+		state->totalQuadPoints *= gridsize;
+	}
+
+	state->Qpoint.resize(gridsize);
+	double qgs = gridsize-1;
+	for (int px=0; px < gridsize; ++px) {
+		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / qgs;
+	}
+
+	if (state->quadGridSize != gridsize) {
+		const long totalQuadPoints = state->totalQuadPoints;
+		std::vector<double> &wherePrep = state->wherePrep;
+		wherePrep.resize(totalQuadPoints * maxDims);
+		std::vector<double> &whereGram = state->whereGram;
+		whereGram.resize(totalQuadPoints * triangleLoc1(maxDims));
+		
+		for (long qx=0; qx < totalQuadPoints; qx++) {
+			double *wh = wherePrep.data() + qx * maxDims;
+			int quad[maxDims];
+			decodeLocation(qx, maxDims, gridsize, quad);
+			pointToWhere(state, quad, wh, maxDims);
+			gramProduct(wh, maxDims, whereGram.data() + qx * triangleLoc1(maxDims));
+		}
+
+		// try starting small and increasing to the cap? TODO
+		state->quadGridSize = gridsize;
 	}
 
 	state->totalPrimaryPoints = state->totalQuadPoints;
@@ -557,13 +569,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 		state->speQarea.resize(gridsize * numSpecific);
 	}
 
-	state->Qpoint.resize(gridsize);
 	state->priQarea.resize(state->totalPrimaryPoints);
-
-	double qgs = state->quadGridSize-1;
-	for (int px=0; px < state->quadGridSize; px ++) {
-		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / qgs;
-	}
 
 	//pda(state->latentMeanOut->data, 1, state->maxAbilities);
 	//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
@@ -1014,6 +1020,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->customPrior = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
+	state->quadGridSize = 0;
 	oo->argStruct = (void*) state;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("data")));
