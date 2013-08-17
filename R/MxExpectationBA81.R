@@ -23,7 +23,6 @@ setClass(Class = "MxExpectationBA81",
 	   design = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
-	   cache = "logical",
 	   scores = "character",
 	   scores.out = "matrix",
 	   mean = "MxCharOrNumber",
@@ -39,7 +38,7 @@ setClass(Class = "MxExpectationBA81",
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, CustomPrior, design,
-		   qpoints, qwidth, cache, mean, cov, scores, verbose,
+		   qpoints, qwidth, mean, cov, scores, verbose,
 		   name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
@@ -49,7 +48,6 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@design <- design
             .Object@qpoints <- qpoints
             .Object@qwidth <- qwidth
-            .Object@cache <- cache
             .Object@scores <- scores
             .Object@data <- as.integer(NA)
 	    .Object@mean <- mean
@@ -118,8 +116,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' to item dimensions (optional)
 ##' @param qpoints number of points to use for rectangular quadrature integrations (default 49)
 ##' See Seong (1990) for some considerations on specifying this parameter.
-##' @param cache whether to cache part of the expectation calculation
-##' (enabled by default).
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 ##' parameters: Application of an EM algorithm. Psychometrika, 46, 443-459.
@@ -132,9 +128,8 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-# change default to cache=FALSE or just remove cache? TODO
 mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL,
-			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
+			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=FALSE, EItemParam=NULL) {
 
 	if (missing(qpoints)) qpoints <- 49
@@ -160,5 +155,5 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL
 	}
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, CustomPrior, design,
-		   qpoints, qwidth, cache, mean, cov, scores, verbose))
+		   qpoints, qwidth, mean, cov, scores, verbose))
 }

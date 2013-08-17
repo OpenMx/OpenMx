@@ -365,6 +365,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 
 	if (!estate->Qpoint.size()) return; // if evaluating fit without estimating model
 
+	// can use Ramsay for these parameters without messing up SEM SEs? TODO
 	fc->changedEstimates = true;
 
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {

@@ -68,11 +68,6 @@ struct BA81Expect {
 	omxMatrix *customPrior;
 	omxMatrix *itemParam;
 	double *EitemParam;
-	int cacheLXK;
-	bool LXKcached;
-	double *lxk;              // wo/cache, numUnique * thread
-	double *allElxk;          // numUnique * thread
-	double *Eslxk;            // numUnique * #specific dimensions * thread
 	double *patternLik;       // numUnique
 	double SmallestPatternLik;
 	int excludedPatterns;
@@ -83,7 +78,6 @@ struct BA81Expect {
 	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
-	double *EiCache;          // totalPrimaryPoints * numUnique (two-tier only)
 
 	int itemParamVersion;
 	int latentParamVersion;

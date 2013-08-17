@@ -68,7 +68,6 @@ mk.model <- function(model.name, data, latent.free) {
                 mxExpectationBA81(
                   ItemSpec=spec,
                   design=design,
-		  cache=FALSE,
                   ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),

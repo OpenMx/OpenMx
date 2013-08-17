@@ -39,7 +39,7 @@ mkgroup <- function(model.name, data, latent.free) {
   
   m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(cache=FALSE,
+                mxExpectationBA81(
                   ItemSpec=items,
                   ItemParam="ItemParam",
                   mean="mean", cov="cov"),
