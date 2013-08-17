@@ -358,8 +358,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		mxLog("%s: Hessian not positive definite for %lu/%lu items",
 		      oo->matrix->name, excluded, numItems);
 	}
-	if (excluded > numItems/2) {
-		// maybe not fatal, but investigation needed
+	if (excluded == numItems) {
 		omxRaiseErrorf(globalState, "Hessian not positive definite for %lu/%lu items",
 			       excluded, numItems);
 	}
