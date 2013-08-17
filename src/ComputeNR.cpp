@@ -336,8 +336,10 @@ void ComputeNR::compute(FitContext *fc)
 	}
 	while (1) {
 		if (verbose >= 2) {
-			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %d, flavor %d)",
-			      iter+1, maxIter, maxAdjSigned, maxAdjParam, maxAdjFlavor);
+			const char *pname = "none";
+			if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
+			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %s, flavor %d)",
+			      iter+1, maxIter, maxAdjSigned, pname, maxAdjFlavor);
 		}
 
 		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
@@ -441,7 +443,7 @@ void ComputeNR::compute(FitContext *fc)
 			std::vector<double> move(numParam, 0.0);
 			for (size_t px=0; px < fc->hgProd.size(); ++px) {
 				matrixVectorProdTerm &mvp = fc->hgProd[px];
-				move[mvp.dest] += fc->ihess[mvp.hentry] * fc->grad[mvp.gentry];
+				move[mvp.dest] += ihess[mvp.hentry] * grad[mvp.gentry];
 			}
 
 			if (0) {
