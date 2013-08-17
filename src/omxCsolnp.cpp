@@ -79,7 +79,7 @@ double csolnpObjectiveFunction(Matrix myPars)
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
 		mxLog("fitMatrix inside important if is: %.32f", fitMatrix->data[0]); 
     
-		if (!R_FINITE(fitMatrix->data[0])) {
+		if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0])) {
 			GLOB_fc->fit = 1e24;
 		} else {
 			GLOB_fc->fit = fitMatrix->data[0];

@@ -1117,7 +1117,7 @@ static int subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Ma
     Matrix u;
     
     int i;
-    while (minit < 2){  // probably should use maxit?
+    while (minit < maxit){
         minit = minit + 1;
     
         if (ch > 0){
