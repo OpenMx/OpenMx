@@ -57,7 +57,7 @@ if (1) {
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
                       mxComputeOnce('expectation'),
-                      mxComputeOnce('fitfunction'))))
+                      mxComputeOnce('fitfunction', fit=TRUE))))
   cModel <- mxRun(cModel)
   omxCheckCloseEnough(cModel@fitfunction@result, 2733.844, .001)
 }
@@ -89,7 +89,7 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
 				   mxComputeNewtonRaphson(free.set='itemParam'),
 #                mxComputeGradientDescent(free.set='itemParam'),
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', free.set=c('mean','cov')))))
+                mxComputeOnce('fitfunction', free.set=c('mean','cov'), fit=TRUE))))
 
 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 	m2 <- mxOption(m2, "Verify level", '-1')

@@ -68,6 +68,7 @@ mk.model <- function(model.name, data, latent.free) {
                 mxExpectationBA81(
                   ItemSpec=spec,
                   design=design,
+		  cache=FALSE,
                   ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
@@ -112,19 +113,23 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction',
+                        mxComputeOnce('fitfunction', fit=TRUE,
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel <- mxRun(cModel)
     omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
 }
 
 omxIFAComputePlan <- function(groups) {
-	mxComputeIterate(steps=list(
-			   mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-			   mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-			   mxComputeOnce(paste(groups, 'expectation', sep=".")),
-			   mxComputeOnce(adjustStart=TRUE, 'fitfunction',
-					 free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+	mxComputeSequence(steps=list(
+			    mxComputeIterate(tolerance=.000145, steps=list(
+					       mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
+					       mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+					       mxComputeOnce(paste(groups, 'expectation', sep=".")),
+					       mxComputeOnce('fitfunction', maxAbsChange=TRUE,
+							     free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+					       )),
+			    mxComputeOnce('fitfunction', fit=TRUE,
+					  free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
 			   ))
 }
 

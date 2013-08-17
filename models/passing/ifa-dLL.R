@@ -85,7 +85,7 @@ for (ii in 1:numItems) {
       lModel <- mxModel(m2,
                         mxComputeSequence(steps=list(
                                             mxComputeOnce('expectation', context='EM'),
-                                            mxComputeOnce('fitfunction')
+                                            mxComputeOnce('fitfunction', fit=TRUE)
                                             )))
       fit <- mxRun(lModel, silent=TRUE)
       fit@output$minimum

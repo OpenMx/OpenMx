@@ -56,7 +56,7 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', free.set=c("mean", "cov"))
+                  mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
                 )))
   cM <- mxRun(cM, silent=TRUE)
   omxCheckCloseEnough(cM@fitfunction@result, 50661.38, .01)
@@ -73,7 +73,7 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 #                mxComputeGradientDescent(free.set='ItemParam', useGradient=TRUE),
                 mxComputeNewtonRaphson(free.set='ItemParam'),
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', adjustStart=TRUE, free.set=c("mean", "cov"))
+                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
               )))
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)

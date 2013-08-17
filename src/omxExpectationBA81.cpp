@@ -914,8 +914,8 @@ ba81compute(omxExpectation *oo, const char *context)
 			state->type = EXPECTATION_OBSERVED;
 		} else {
 			omxRaiseErrorf(globalState, "Unknown context '%s'", context);
-			return;
 		}
+		return;
 	}
 
 	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam);

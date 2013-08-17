@@ -30,7 +30,6 @@ class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	enum OptEngine engine;
 	omxMatrix *fitMatrix;
-	bool adjustStart;
 	bool useGradient;
 	int verbose;
 
@@ -66,9 +65,6 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	omxCompleteFitFunction(fitMatrix);
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
-	adjustStart = asLogical(slotValue);
-
 	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
 	if (length(slotValue)) {
 		useGradient = asLogical(slotValue);
@@ -98,10 +94,8 @@ void omxComputeGD::compute(FitContext *fc)
 		return;
 	}
 
-	if (adjustStart) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-		fc->copyParamToModel(globalState);
-	}
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	fc->maybeCopyParamToModel(globalState);
 
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
@@ -131,7 +125,6 @@ void omxComputeGD::compute(FitContext *fc)
 		}
 	}  
 
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
 	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
 }
 

@@ -50,7 +50,8 @@ omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table), em.tbl, .01)
 testDeriv <- mxModel(m2,
 	      mxComputeIterate(steps=list(
 				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE, ihessian=TRUE)
+				 mxComputeOnce('fitfunction', fit=TRUE,
+					       gradient=TRUE, hessian=TRUE, ihessian=TRUE)
 				 )))
 testDeriv <- mxRun(testDeriv)
 omxCheckCloseEnough(testDeriv@fitfunction@result, 3221.826, .01)
@@ -66,12 +67,15 @@ m2 <- mxModel(m2,
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),
-	      mxComputeIterate(steps=list(
-				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeNewtonRaphson(free.set='itemParam'),
-				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction', free.set=c("mean","cov"))
-				 )))
+	      mxComputeSequence(steps=list(
+				  mxComputeIterate(steps=list(
+						     mxComputeOnce('expectation', context='EM'),
+						     mxComputeNewtonRaphson(free.set='itemParam'),
+						     mxComputeOnce('expectation'),
+						     mxComputeOnce('fitfunction', free.set=c("mean","cov"),
+								   maxAbsChange=TRUE))),
+				  mxComputeOnce('expectation'),
+				  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE))))
 
 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 	m2 <- mxOption(m2, "Verify level", '-1')
@@ -86,6 +90,6 @@ got <- cor(c(m2@matrices$itemParam@values[1:2,]),
 omxCheckCloseEnough(got, .988, .01)
 scores <- m2@expectation@scores.out
 omxCheckCloseEnough(scores[1:5,1], c(0.6783773, 0.2848123, -0.3438632, -0.1026575, -1.0820213), .001)
-omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804, 0.6796952), 1e-5)
+omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804, 0.6796952), 1e-4)
 omxCheckCloseEnough(scores[,1], as.vector(ability), 3.5*max(scores[,2]))
 omxCheckCloseEnough(cor(c(scores[,1]), ability), .737, .01)

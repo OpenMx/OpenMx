@@ -23,6 +23,8 @@
 void FitContext::init()
 {
 	size_t numParam = varGroup->vars.size();
+	wanted = 0;
+	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : 0;
 	est = new double[numParam];
 	flavor = new int[numParam];
@@ -30,6 +32,7 @@ void FitContext::init()
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
 	ihess = new double[numParam * numParam];
+	changedEstimates = false;
 }
 
 FitContext::FitContext(std::vector<double> &startingValues)
@@ -105,7 +108,9 @@ void FitContext::updateParentAndFree()
 	size_t svars = varGroup->vars.size();
 	size_t dvars = parent->varGroup->vars.size();
 
+	parent->wanted = wanted;
 	parent->fit = fit;
+	parent->mac = mac;
 
 	if (svars > 0) {
 		size_t s1 = 0;
@@ -140,11 +145,17 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
+void FitContext::log(const char *where)
+{
+	log(where, wanted);
+}
+
 void FitContext::log(const char *where, int what)
 {
 	size_t count = varGroup->vars.size();
 	std::string buf(where);
 	buf += " ---\n";
+	if (what & FF_COMPUTE_MAXABSCHANGE) buf += string_snprintf("MAC: %.5f\n", mac);
 	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f\n", fit);
 	if (what & FF_COMPUTE_ESTIMATE) {
 		buf += string_snprintf("est %lu: c(", count);
@@ -243,6 +254,14 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 void FitContext::copyParamToModel(omxState* os)
 {
 	copyParamToModel(os, est);
+}
+
+void FitContext::maybeCopyParamToModel(omxState* os)
+{
+	if (changedEstimates) {
+		copyParamToModel(os, est);
+		changedEstimates = false;
+	}
 }
 
 void FitContext::copyParamToModel(omxState* os, double *at)
@@ -383,8 +402,10 @@ class omxComputeOnce : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
-	bool adjustStart;
+	int verbose;
 	const char *context;
+	bool mac;
+	bool fit;
 	bool gradient;
 	bool hessian;
 	bool ihessian;
@@ -531,7 +552,7 @@ void omxComputeIterate::compute(FitContext *fc)
 {
 	int iter = 0;
 	double prevFit = 0;
-	double change = tolerance * 10;
+	double mac = tolerance * 10;
 	while (1) {
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			FitContext *context = fc;
@@ -542,16 +563,31 @@ void omxComputeIterate::compute(FitContext *fc)
 			if (context != fc) context->updateParentAndFree();
 			if (isErrorRaised(globalState)) break;
 		}
-		if (fc->fit == 0) {
-			warning("Fit estimated at 0; something is wrong");
-			break;
+		if (fc->wanted & FF_COMPUTE_MAXABSCHANGE) {
+			if (fc->mac < 0) {
+				warning("MAC estimated at %.4f; something is wrong", fc->mac);
+				break;
+			} else {
+				mac = fc->mac;
+				if (verbose) mxLog("ComputeIterate: mac %.9g", mac);
+			}
 		}
-		if (prevFit != 0) {
-			change = prevFit - fc->fit;
-			if (verbose) mxLog("fit %.9g change %.9g", fc->fit, change);
+		if (fc->wanted & FF_COMPUTE_FIT) {
+			if (fc->fit == 0) {
+				warning("Fit estimated at 0; something is wrong");
+				break;
+			}
+			if (prevFit != 0) {
+				double change = prevFit - fc->fit;
+				if (verbose) mxLog("ComputeIterate: fit %.9g change %.9g", fc->fit, change);
+				mac = fabs(change);
+			}
+			prevFit = fc->fit;
 		}
-		prevFit = fc->fit;
-		if (isErrorRaised(globalState) || ++iter > maxIter || fabs(change) < tolerance) break;
+		if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
+			omxRaiseErrorf(globalState, "ComputeIterate: neither MAC nor fit available");
+		}
+		if (isErrorRaised(globalState) || ++iter > maxIter || mac < tolerance) break;
 	}
 }
 
@@ -608,6 +644,9 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		}
 	}
 
+	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
+	verbose = asInteger(slotValue);
+
 	context = "";
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
@@ -618,6 +657,12 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		PROTECT(elem = STRING_ELT(slotValue, 0));
 		context = CHAR(elem);
 	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("maxAbsChange")));
+	mac = asLogical(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("fit")));
+	fit = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("gradient")));
 	gradient = asLogical(slotValue);
@@ -637,16 +682,21 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			error("Hessian requested but not available");
 		}
 	}
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
-	adjustStart = asLogical(slotValue);
 }
 
 void omxComputeOnce::compute(FitContext *fc)
 {
 	if (algebras.size()) {
-		int want = FF_COMPUTE_FIT;
+		int want = 0;
 		size_t numParam = fc->varGroup->vars.size();
+		if (mac) {
+			want |= FF_COMPUTE_MAXABSCHANGE;
+			fc->mac = 0;
+		}
+		if (fit) {
+			want |= FF_COMPUTE_FIT;
+			fc->fit = 0;
+		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
 			OMXZERO(fc->grad, numParam);
@@ -659,25 +709,29 @@ void omxComputeOnce::compute(FitContext *fc)
 			want |= FF_COMPUTE_IHESSIAN;
 			OMXZERO(fc->ihess, numParam * numParam);
 		}
+		if (!want) return;
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
-				if (adjustStart) {
-					omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-					fc->copyParamToModel(globalState);
-				}
+				if (verbose) mxLog("ComputeOnce: fit %p want %d",
+						   algebra->fitFunction, want);
+
+				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+				fc->maybeCopyParamToModel(globalState);
 
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
 				fc->fixHessianSymmetry(want);
 			} else {
+				if (verbose) mxLog("ComputeOnce: algebra %p", algebra);
 				omxForceCompute(algebra);
 			}
 		}
 	} else if (expectations.size()) {
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
+			if (verbose) mxLog("ComputeOnce: expectation[%d] %p context %s", wx, expectation, context);
 			omxExpectationCompute(expectation, context);
 		}
 	}

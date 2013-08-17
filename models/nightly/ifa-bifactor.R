@@ -64,7 +64,7 @@ omxCheckCloseEnough(fivenum(m1@expectation@em.expected),
 m1 <- mxModel(m1,
               mxComputeIterate(steps=list(
                 mxComputeOnce('expectation', context='EM'),
-                mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE)
+                mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE, hessian=TRUE)
               )))
 m1 <- mxRun(m1)
 omxCheckCloseEnough(m1@fitfunction@result, 11850.68, .01)
@@ -84,7 +84,7 @@ m1 <- mxModel(m1,
 			   mxComputeNewtonRaphson(free.set='ItemParam'),
 #                mxComputeGradientDescent(free.set='ItemParam'),
                 mxComputeOnce('expectation'),
-                mxComputeOnce(adjustStart=TRUE, 'fitfunction', free.set=c("mean","cov"))
+                mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)
 				 )))
 
 	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')

@@ -78,7 +78,7 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
-	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning ML Evaluation.");}
 	// Requires: Data, means, covariances.

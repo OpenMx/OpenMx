@@ -126,7 +126,7 @@ runHelper <- function(model, frontendStart,
 		# horrible hack, sorry
 		fitNum <- match(flatModel@fitfunction@name, names(flatModel@fitfunctions)) - 1L + numAlgebras
 		if (!useOptimizer || numParam == 0) {
-			computes <- list(mxComputeOnce(what=fitNum))
+			computes <- list(mxComputeOnce(what=fitNum, fit=TRUE))
 		} else {
 			if (options[["Calculate Hessian"]] == "No") {
 				computes <- list(mxComputeGradientDescent(type="Quasi-Newton",

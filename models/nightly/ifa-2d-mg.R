@@ -113,7 +113,7 @@ if (1) {
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                     mxComputeSequence(steps=list(
                       mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                      mxComputeOnce('fitfunction',
+                      mxComputeOnce('fitfunction', fit=TRUE,
 				    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'omit'
   cModel.fit <- mxRun(cModel)
@@ -131,7 +131,7 @@ if (1) {
                         mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
                         mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', adjustStart=TRUE,
+                        mxComputeOnce('fitfunction', fit=TRUE,
                                       free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
                       )))
 

@@ -24,6 +24,7 @@ struct BA81FitState {
 
 	bool haveLatentMap;
 	std::vector<int> latentMap;
+	bool freeLatents;
 
 	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
@@ -36,14 +37,27 @@ struct BA81FitState {
 	std::vector< FreeVarGroup* > varGroups;
 	size_t numItemParam;
 
+	omxMatrix *itemParam;
+	omxMatrix *latentMean;
+	omxMatrix *latentCov;
+
 	BA81FitState();
 	~BA81FitState();
+	void copyEstimates(BA81Expect *estate);
 };
 
 BA81FitState::BA81FitState()
 {
 	haveItemMap = false;
 	haveLatentMap = false;
+	freeLatents = false;
+}
+
+void BA81FitState::copyEstimates(BA81Expect *estate)
+{
+	omxCopyMatrix(itemParam, estate->itemParam);
+	omxCopyMatrix(latentMean, estate->latentMeanOut);
+	omxCopyMatrix(latentCov, estate->latentCovOut);
 }
 
 static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
@@ -68,6 +82,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 			int matNum = ~loc->matrix;
 			if (matNum == meanNum) {
 				latentMap[loc->row + loc->col] = px;
+				state->freeLatents = true;
 			} else if (matNum == covNum) {
 				int a1 = loc->row;
 				int a2 = loc->col;
@@ -87,6 +102,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					error("In covariance matrix, %s and %s must be constrained equal to preserve symmetry",
 					      fvg->vars[latentMap[cell]]->name, fv->name);
 				}
+				state->freeLatents = true;
 			} else if (matNum == itemNum) {
 				omxRaiseErrorf(globalState, "The fitfunction free.set should consist of "
 					       "latent distribution parameters, excluding item parameters");
@@ -246,7 +262,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 	}
 
-	int excluded = 0;
+	size_t excluded = 0;
 
 	if (do_deriv) {
 		double *deriv0 = thrDeriv.data();
@@ -323,12 +339,12 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	}
 
 	if (excluded && estate->verbose >= 1) {
-		mxLog("%s: Hessian not positive definite for %d/%lu items",
+		mxLog("%s: Hessian not positive definite for %lu/%lu items",
 		      oo->matrix->name, excluded, numItems);
 	}
 	if (excluded > numItems/2) {
 		// maybe not fatal, but investigation needed
-		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%lu items",
+		omxRaiseErrorf(globalState, "Hessian not positive definite for %lu/%lu items",
 			       excluded, numItems);
 	}
 
@@ -346,6 +362,10 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	std::vector<double> &ElatentMean = estate->ElatentMean;
 	std::vector<double> &ElatentCov = estate->ElatentCov;
 	int maxAbilities = estate->maxAbilities;
+
+	if (!estate->Qpoint.size()) return; // if evaluating fit without estimating model
+
+	fc->changedEstimates = true;
 
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {
 		if (latentMap[a1] >= 0) {
@@ -369,8 +389,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
-	if (want & FF_COMPUTE_POSTOPTIMIZE) return 0;
-
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		if (!state->haveItemMap) buildItemParamMap(oo, fc);
 
@@ -385,6 +403,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
+			omxExpectationCompute(oo->expectation, NULL);
 			// schilling_bock_2005_rescale(oo, fc); seems counterproductive
 			return 0;
 		}
@@ -395,17 +414,24 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			setLatentStartingValues(oo, fc);
+			if (state->freeLatents) setLatentStartingValues(oo, fc);
 			return 0;
 		}
-
-		omxExpectationCompute(oo->expectation, NULL);
 
 		if (want & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN)) {
 			warning("%s: Derivs are not available for latent distribution parameters", oo->matrix->name);
 		}
 
+		if (want & FF_COMPUTE_MAXABSCHANGE) {
+			double mac = std::max(omxMaxAbsDiff(state->itemParam, estate->itemParam),
+					      omxMaxAbsDiff(state->latentMean, estate->latentMeanOut));
+			fc->mac = std::max(mac, omxMaxAbsDiff(state->latentCov, estate->latentCovOut));
+			state->copyEstimates(estate);
+		}
+
 		if (want & FF_COMPUTE_FIT) {
+			omxExpectationCompute(oo->expectation, NULL);
+
 			double *patternLik = estate->patternLik;
 			int *numIdentical = estate->numIdentical;
 			int numUnique = estate->numUnique;
@@ -428,8 +454,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			return -2 * got;
 		}
 
-		// if (want & FF_COMPUTE_POSTOPTIMIZE)  discard lxk cache? TODO
-
 		return 0;
 	} else {
 		error("Confused");
@@ -445,6 +469,9 @@ static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 
 BA81FitState::~BA81FitState()
 {
+	omxFreeAllMatrixData(itemParam);
+	omxFreeAllMatrixData(latentMean);
+	omxFreeAllMatrixData(latentCov);
 }
 
 static void ba81Destroy(omxFitFunction *oo) {
@@ -486,4 +513,11 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 			error("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
+
+	
+
+	state->itemParam = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
+	state->latentMean = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
+	state->latentCov = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
+	state->copyEstimates(estate);
 }

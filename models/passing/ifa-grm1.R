@@ -41,9 +41,9 @@ omxCheckCloseEnough(fivenum(middle@expectation@em.expected),
                     c(0, 0, 0.00451, 1.61901, 80.99209), .01)
 
 testDeriv <- mxModel(m2,
-	      mxComputeIterate(steps=list(
+	      mxComputeSequence(steps=list(
 				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE, ihessian=TRUE)
+				 mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE, hessian=TRUE, ihessian=TRUE)
 				 )))
 testDeriv <- mxRun(testDeriv)
 omxCheckCloseEnough(testDeriv@fitfunction@result, 9399.954, .01)
@@ -63,7 +63,7 @@ m2 <- mxModel(m2,
 				 mxComputeOnce('expectation', context='EM'),
 				 mxComputeNewtonRaphson(free.set='itemParam'),
 				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction', free.set=c("mean","cov"))
+				 mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean","cov"))
 				 )))
 m2 <- mxRun(m2)
 

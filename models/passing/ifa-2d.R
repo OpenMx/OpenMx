@@ -63,7 +63,7 @@ m1 <- mxModel(model="2dim",
 				 mxComputeNewtonRaphson(free.set='ItemParam'),
 #				 mxComputeGradientDescent(free.set='ItemParam'),
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', free.set=c('mean','cov')))))
+                mxComputeOnce('fitfunction', free.set=c('mean','cov'), fit=TRUE))))
 
 	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')
 	m1 <- mxOption(m1, "Verify level", '-1')

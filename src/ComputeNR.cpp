@@ -24,7 +24,6 @@
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
-	bool adjustStart;
 
 	int maxIter;
 	double tolerance;
@@ -65,9 +64,6 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	}
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("adjustStart")));
-	adjustStart = asLogical(slotValue);
-
 	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 
@@ -304,10 +300,8 @@ void ComputeNR::compute(FitContext *fc)
 		}
 	}
 
-	if (adjustStart) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-		fc->copyParamToModel(globalState);
-	}
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	fc->maybeCopyParamToModel(globalState);
 
 	iter = 0;
 	int sinceRestart = 0;
@@ -381,7 +375,7 @@ void ComputeNR::compute(FitContext *fc)
 					double old = fc->grad[dx];
 					double logBad = log(1 + mag - maxDiag);
 					fc->grad[dx] /= (1 + logBad);  // arbitrary guess
-					mxLog("ihess bad at diag %d grad %.8g -> %.8g", dx, old, fc->grad[dx]);
+					mxLog("ihess bad at diag %lu grad %.8g -> %.8g", dx, old, fc->grad[dx]);
 				}
 			}
 			//fc->log("bad", FF_COMPUTE_IHESSIAN);
@@ -397,7 +391,7 @@ void ComputeNR::compute(FitContext *fc)
 			if (!std::isfinite(fc->grad[px])) {
 				if (!restart) {
 					if (verbose >= 3) {
-						mxLog("Newton-Raphson: grad[%d] not finite, restart recommended", px);
+						mxLog("Newton-Raphson: grad[%lu] not finite, restart recommended", px);
 					}
 					restart = true;
 					break;
@@ -488,8 +482,6 @@ void ComputeNR::compute(FitContext *fc)
 	for (size_t rx=0; rx < ramsay.size(); ++rx) {
 		delete ramsay[rx];
 	}
-
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_POSTOPTIMIZE, fc);
 }
 
 void ComputeNR::reportResults(FitContext *fc, MxRList *out)

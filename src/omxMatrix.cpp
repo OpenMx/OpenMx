@@ -797,3 +797,16 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 		}
 	}
 }
+
+double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
+{
+	if (m1->rows != m2->rows || m1->cols != m2->cols) error("Matrices are not the same size");
+
+	double mad = 0;
+	int size = m1->rows * m1->cols;
+	for (int dx=0; dx < size; ++dx) {
+		double mad1 = fabs(m1->data[dx] - m2->data[dx]);
+		if (mad < mad1) mad = mad1;
+	}
+	return mad;
+}

@@ -50,7 +50,7 @@ m2 <- mxModel(m2,
 				 mxComputeOnce('expectation', context='EM'),
 				 mxComputeNewtonRaphson(free.set='itemParam'),
 				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction', free.set=c("mean","cov"))
+				 mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)
 				 )))
 m2 <- mxRun(m2)
 

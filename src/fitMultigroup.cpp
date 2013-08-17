@@ -20,6 +20,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 {
 	omxMatrix *fitMatrix  = oo->matrix;
 	fitMatrix->data[0] = 0;
+	double mac = 0;
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
 
@@ -27,6 +28,9 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 		omxMatrix* f1 = mg->fits[ex];
 		if (f1->fitFunction) {
 			omxFitFunctionCompute(f1->fitFunction, ffcompute, fc);
+			if (ffcompute & FF_COMPUTE_MAXABSCHANGE) {
+				mac = std::max(fc->mac, mac);
+			}
 			if (OMX_DEBUG) { mxLog("mg fit %s %d", f1->name, ffcompute); }
 		} else {
 			omxRecompute(f1);
@@ -38,6 +42,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 		}
 		fitMatrix->data[0] += f1->data[0];
 	}
+	if (fc) fc->mac = mac;
 	if(OMX_DEBUG) { mxLog("Fit Function sum of %lu groups is %f.", mg->fits.size(), fitMatrix->data[0]); }
 }
 

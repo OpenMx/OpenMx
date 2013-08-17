@@ -132,6 +132,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
+# change default to cache=FALSE or just remove cache? TODO
 mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL,
 			      qpoints=NULL, qwidth=6.0, cache=TRUE, mean=NULL, cov=NULL,
 			      scores="omit", verbose=FALSE, EItemParam=NULL) {

@@ -32,6 +32,7 @@ class FitContext {
 
  public:
 	FreeVarGroup *varGroup;
+	double mac;
 	double fit;
 	double *est;
 	int *flavor;
@@ -40,6 +41,8 @@ class FitContext {
 	double *grad;
 	double *hess;
 	double *ihess;
+	int wanted;
+	bool changedEstimates; // only used for FF_COMPUTE_PREOPTIMIZE
 
 	void init();
 	FitContext(std::vector<double> &startingValues);
@@ -49,7 +52,9 @@ class FitContext {
 	void copyParamToModel(omxState *os);
 	void copyParamToModel(omxMatrix *mat, double *at);
 	void copyParamToModel(omxMatrix *mat);
+	void maybeCopyParamToModel(omxState* os);
 	void updateParentAndFree();
+	void log(const char *where);
 	void log(const char *where, int what);
 	~FitContext();
 	

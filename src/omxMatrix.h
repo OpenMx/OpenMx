@@ -353,4 +353,6 @@ static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert 
 
 void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
+double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
+
 #endif /* _OMXMATRIX_H_ */

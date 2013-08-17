@@ -82,11 +82,13 @@ setClass(Class = "MxComputeOnce",
 	 contains = "MxComputeOperation",
 	 representation = representation(
 	   what = "MxCharOrNumber",
+	   verbose = "integer",
 	   context = "character",
+	   maxAbsChange = "logical",
+	   fit = "logical",
 	   gradient = "logical",
 	   hessian = "logical",
-	   ihessian = "logical",
-	   adjustStart = "logical"))
+	   ihessian = "logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
@@ -119,26 +121,32 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 			}
 		}
 		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
-		if (.Object@adjustStart && .Object@what < 0) stop("adjustStart is only used with algebra or a fitfunction")
+		if (all(.Object@what >= 0) && !.Object@maxAbsChange && !.Object@fit && !.Object@gradient &&
+			    !.Object@hessian && !.Object@ihessian) {
+			warning("MxComputeOnce with no action")
+		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.set, context, gradient, hessian, ihessian, adjustStart) {
+	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient, hessian, ihessian, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
+		  .Object@verbose = verbose
 		  .Object@free.set <- free.set
 		  .Object@context <- context
+		  .Object@maxAbsChange <- maxAbsChange
+		  .Object@fit <- fit
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
 		  .Object@ihessian <- ihessian
-		  .Object@adjustStart <- adjustStart
 		  .Object
 	  })
 
-mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FALSE,
-			  hessian=FALSE, ihessian=FALSE, adjustStart=FALSE) {
-	new("MxComputeOnce", what, free.set, context, gradient, hessian, ihessian, adjustStart)
+mxComputeOnce <- function(what, free.set=NULL, context=character(0),
+			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
+			  hessian=FALSE, ihessian=FALSE, verbose=0L) {
+	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient, hessian, ihessian, verbose)
 }
 
 #----------------------------------------------------
@@ -146,7 +154,6 @@ mxComputeOnce <- function(what, free.set=NULL, context=character(0), gradient=FA
 setClass(Class = "MxComputeGradientDescent",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   adjustStart = "logical",
 	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
@@ -172,11 +179,10 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.set, engine, fit, useGradient, adjustStart, verbose) {
+	  function(.Object, free.set, engine, fit, useGradient, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
-		  .Object@adjustStart <- adjustStart
 		  .Object@engine <- engine
 		  .Object@useGradient <- useGradient
 		  .Object@verbose <- verbose
@@ -184,7 +190,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 	  })
 
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
-				     engine=NULL, fitfunction='fitfunction', adjustStart=FALSE, verbose=0L) {
+				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
 # What to do with 'type'?
 #	if (length(type) != 1) stop("Specific 1 compute type")
 
@@ -193,7 +199,7 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 		if (!nchar(engine)) engine <- "NPSOL"
 	}
 
-	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, adjustStart, verbose)
+	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose)
 }
 
 #----------------------------------------------------
@@ -201,7 +207,6 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 setClass(Class = "MxComputeNewtonRaphson",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   adjustStart = "logical",
 	   fitfunction = "MxCharOrNumber",
 	   maxIter = "integer",
 	   tolerance = "numeric",
@@ -228,11 +233,10 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.set, fit, maxIter, tolerance, adjustStart, verbose, carefully) {
+	  function(.Object, free.set, fit, maxIter, tolerance, verbose, carefully) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
-		  .Object@adjustStart <- adjustStart
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
@@ -240,11 +244,11 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 		  .Object
 	  })
 
-mxComputeNewtonRaphson <- function(type, free.set=NULL, adjustStart=FALSE,
+mxComputeNewtonRaphson <- function(type, free.set=NULL,
 				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
 				   verbose=0L, carefully=FALSE) {
 
-	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, adjustStart, verbose, carefully)
+	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose, carefully)
 }
 
 #----------------------------------------------------

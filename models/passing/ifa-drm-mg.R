@@ -32,8 +32,8 @@ if(1) {
 					 mxComputeOnce('expectation', context='EM'),
 					 mxComputeNewtonRaphson(free.set='itemParam'),
 					 mxComputeOnce('expectation'),
-           mxComputeOnce('fitfunction', adjustStart=TRUE, free.set=c("mean", "cov"))
-#					 mxComputeGradientDescent(adjustStart="expectation", useGradient=TRUE,
+           mxComputeOnce('fitfunction', free.set=c("mean", "cov"), fit=TRUE)
+#					 mxComputeGradientDescent(useGradient=TRUE,
 #                                    free.set=c("mean", "cov"))
 					 )))
 	
@@ -48,7 +48,7 @@ if(1) {
 						    scores="full"),
 				  mxComputeSequence(steps=list(
 						      mxComputeOnce('expectation'),
-						      mxComputeOnce('fitfunction'))))
+						      mxComputeOnce('fitfunction', fit=TRUE))))
 		cModel <- mxRun(cModel)
 		cModel@matrices$cov@values - fm$G1$cov
 		cModel@output$minimum
@@ -101,7 +101,7 @@ if (1) {
                   mxComputeOnce('expectation', context='EM'),
                   mxComputeNewtonRaphson(free.set='itemParam'),
                   mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', adjustStart=TRUE, free.set=c("mean", "cov"))
+                  mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
                 )))
   m2 <- mxRun(m2)
   omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)

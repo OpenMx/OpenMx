@@ -31,7 +31,7 @@ void omxDestroyRFitFunction(omxFitFunction *off) {
 }
 
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
-	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_POSTOPTIMIZE)) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	omxState* currentState = oo->matrix->currentState;
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
