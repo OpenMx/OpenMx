@@ -53,52 +53,29 @@ void pia(const int *ar, int rows, int cols)
 static OMXINLINE void
 ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 {
-	long totalQuadPoints = state->totalQuadPoints;
+	const long totalQuadPoints = state->totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	size_t numItems = state->itemSpec.size();
+	const size_t numItems = state->itemSpec.size();
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
-	int numSpecific = state->numSpecific;
-	const double Largest = state->LargestDouble;
 	double *oProb = state->outcomeProb;
+	std::vector<double> &priQarea = state->priQarea;
 
-	if (numSpecific == 0) {
+	for (long qx=0; qx < totalQuadPoints; ++qx) {
+		out[qx] = priQarea[qx];
+	}
+
+	for (size_t ix=0; ix < numItems; ix++) {
+		int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+
 		for (long qx=0; qx < totalQuadPoints; ++qx) {
-			out[qx] = Largest;
-		}
-
-		for (size_t ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) {
-				oProb += itemOutcomes[ix] * totalQuadPoints;
-				continue;
-			}
-			pick -= 1;
-
-			for (long qx=0; qx < totalQuadPoints; ++qx) {
-				out[qx] *= oProb[pick];
-				oProb += itemOutcomes[ix];
-			}
-		}
-	} else {
-		for (long qx=0; qx < totalQuadPoints * numSpecific; ++qx) {
-			out[qx] = Largest;
-		}
-
-		for (size_t ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) {
-				oProb += itemOutcomes[ix] * totalQuadPoints;
-				continue;
-			}
-			pick -= 1;
-			int Sgroup = state->Sgroup[ix];
-			double *out1 = out;
-			for (long qx=0; qx < state->totalQuadPoints; qx++) {
-				out1[Sgroup] *= oProb[pick];
-				oProb += itemOutcomes[ix];
-				out1 += numSpecific;
-			}
+			out[qx] *= oProb[pick];
+			oProb += itemOutcomes[ix];
 		}
 	}
 }
@@ -107,20 +84,49 @@ static OMXINLINE void
 cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 {
 	const int numSpecific = state->numSpecific;
+	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	double *oProb = state->outcomeProb;
+	const long totalQuadPoints = state->totalQuadPoints;
 	const long totalPrimaryPoints = state->totalPrimaryPoints;
 	const long specificPoints = state->quadGridSize;
-	const double Largest = state->LargestDouble;
+	const size_t numItems = state->itemSpec.size();
 	const double OneOverLargest = state->OneOverLargestDouble;
+	omxData *data = state->data;
+	const int *rowMap = state->rowMap;
+	std::vector<double> &speQarea = state->speQarea;
+	std::vector<double> &priQarea = state->priQarea;
+
+	for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (long sx=0; sx < specificPoints * numSpecific; sx++) {
+			lxk[qloc] = speQarea[sx];
+			++qloc;
+		}
+	}
+
+	for (size_t ix=0; ix < numItems; ix++) {
+		int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+		int Sgroup = state->Sgroup[ix];
+		double *out1 = lxk;
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			out1[Sgroup] *= oProb[pick];
+			oProb += itemOutcomes[ix];
+			out1 += numSpecific;
+		}
+	}
 
 	for (long qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
-	for (long qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = Largest;
+	for (long qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = priQarea[qx];
 
 	long eisloc = 0;
 	for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 		for (long sx=0; sx < specificPoints; sx++) {
 			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
-				double area = state->speQarea[sIndex(state, sgroup, sx)];
-				double piece = lxk[qloc] * area;
+				double piece = lxk[qloc];
 				Eis[eisloc + sgroup] += piece;
 				++qloc;
 			}
@@ -139,17 +145,11 @@ cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 	}
 }
 
-static OMXINLINE double *
-ba81LikelihoodFast2(BA81Expect *state, int px, double *buf)
-{
-	ba81LikelihoodSlow2(state, px, buf);
-	return buf;
-}
-
 OMXINLINE static void
 mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 	       const double *whereGram, double *latentDist)
 {
+	// could specialize this for regular and cai2010 for a small gain TODO
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int pmax = maxDims;
@@ -247,7 +247,6 @@ static void ba81Estep1(omxExpectation *oo)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const int *rowMap = state->rowMap;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
-	std::vector<double> &priQarea = state->priQarea;
 	double *wherePrep = state->wherePrep.data();
 	double *whereGram = state->whereGram.data();
 
@@ -265,8 +264,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 			double patternLik1 = 0;
 			for (long qx=0; qx < totalQuadPoints; qx++) {
-				double area = priQarea[qx];
-				double tmp = lxk[qx] * area;
+				double tmp = lxk[qx];
 				Qweight[qx] = tmp;
 				patternLik1 += tmp;
 			}
@@ -316,17 +314,7 @@ static void ba81Estep1(omxExpectation *oo)
 		const long specificPoints = state->quadGridSize;
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
-		std::vector<double> &speQarea = state->speQarea;
 		omxBuffer<double> thrQweight(totalQuadPoints * numSpecific * numThreads);
-		omxBuffer<double> area(totalQuadPoints * numSpecific);
-
-		for (long qx=0, qloc=0; qx < totalPrimaryPoints; ++qx) {
-			double priArea = priQarea[qx];
-			for (long sx=0; sx < specificPoints * numSpecific; sx++) {
-				area[qloc] = priArea * speQarea[sx];
-				++qloc;
-			}
-		}
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
@@ -335,8 +323,6 @@ static void ba81Estep1(omxExpectation *oo)
 			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
-			ba81LikelihoodSlow2(state, px, lxk);
-
 			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
 			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
 			cai2010EiEis(state, px, lxk, Eis, Ei);
@@ -346,7 +332,7 @@ static void ba81Estep1(omxExpectation *oo)
 					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
-						double tmp = Eis1 * lxk1 * area[qloc];
+						double tmp = Eis1 * lxk1;
 						Qweight[qloc] = tmp;
 						++qloc;
 					}
@@ -355,9 +341,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 			double patternLik1 = 0;
 			for (long qx=0; qx < totalPrimaryPoints; ++qx) {
-				double priArea = priQarea[qx];
-				double EiArea = Ei[qx] * priArea;
-				patternLik1 += EiArea;
+				patternLik1 += Ei[qx];
 			}
 			patternLik[px] = patternLik1;
 
@@ -546,6 +530,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 	//pda(state->latentMeanOut->data, 1, state->maxAbilities);
 	//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
 
+	const double Largest = state->LargestDouble;
 	double totalArea = 0;
 	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
 		int quad[priDims];
@@ -558,7 +543,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 		totalArea += state->priQarea[qx];
 	}
 	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-		state->priQarea[qx] /= totalArea;
+		state->priQarea[qx] *= Largest / totalArea;
 		//mxLog("%.5g,", state->priQarea[qx]);
 	}
 
@@ -574,7 +559,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 			totalArea += den;
 		}
 		for (int qx=0; qx < state->quadGridSize; qx++) {
-			state->speQarea[sIndex(state, sgroup, qx)] /= totalArea;
+			state->speQarea[sIndex(state, sgroup, qx)] *= Largest / totalArea;
 		}
 		//pda(state->speQarea.data() + sIndex(state, sgroup, 0), 1, state->quadGridSize);
 	}
@@ -643,7 +628,6 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 	cov->assign(numUnique * covEntries, 0);
 
 	if (numSpecific == 0) {
-		std::vector<double> &priQarea = state->priQarea;
 		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
 
 #pragma omp parallel for num_threads(Global->numThreads)
@@ -653,8 +637,8 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			}
 
 			int thrId = omx_absolute_thread_num();
-			double *lxkBuf = thrLxk.data() + thrId * totalQuadPoints;
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
+			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
+			ba81LikelihoodSlow2(state, px, lxk);
 
 			for (long qx=0; qx < state->totalQuadPoints; qx++) {
 				int quad[maxDims];
@@ -662,7 +646,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				double where[maxDims];
 				pointToWhere(state, quad, where, maxDims);
 
-				double tmp = lxk[qx] * priQarea[qx];
+				double tmp = lxk[qx];
 				accumulateScores(state, px, 0, tmp, where, primaryDims, covEntries, mean, cov);
 			}
 		}
@@ -680,8 +664,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			}
 
 			int thrId = omx_absolute_thread_num();
-			double *lxkBuf = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
-			double *lxk = ba81LikelihoodFast2(state, px, lxkBuf);
+			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
 			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
 			cai2010EiEis(state, px, lxk, Eis, Ei);
@@ -696,10 +679,9 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 						quad[sDim] = sx;
 						double where[maxDims];
 						pointToWhere(state, quad, where, maxDims);
-						double area = areaProduct(state, qx, sx, Sgroup);
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
-						double tmp = Eis1 * lxk1 * area;
+						double tmp = Eis1 * lxk1;
 						accumulateScores(state, px, Sgroup, tmp, where, primaryDims,
 								 covEntries, mean, cov);
 						++qloc;
