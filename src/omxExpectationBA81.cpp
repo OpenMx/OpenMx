@@ -239,9 +239,8 @@ static void ba81Estep1(omxExpectation *oo)
 	double *patternLik = state->patternLik;
 	state->excludedPatterns = 0;
 
-	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
-	int numLatentsPerThread = numUnique * numLatents;
-	std::vector<double> latentDist(numUnique * numLatents * numThreads, 0.0);
+	const int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	std::vector<double> latentDist(numLatents * numThreads, 0.0);
 
 	const size_t numItems = state->itemSpec.size();
 	const int totalOutcomes = state->totalOutcomes;
@@ -259,7 +258,7 @@ static void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
+			double *thrLatentDist = latentDist.data() + thrId * numLatents;
 			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			ba81LikelihoodSlow2(state, px, lxk);
@@ -270,9 +269,6 @@ static void ba81Estep1(omxExpectation *oo)
 				double tmp = lxk[qx] * area;
 				Qweight[qx] = tmp;
 				patternLik1 += tmp;
-				mapLatentSpace(state, 0, tmp, wherePrep + qx * maxDims,
-					       whereGram + qx * whereGramSize,
-					       thrLatentDist + px * numLatents);
 			}
 
 			patternLik[px] = patternLik1;
@@ -292,7 +288,10 @@ static void ba81Estep1(omxExpectation *oo)
 
 			double weight = numIdentical[px] / patternLik[px];
 			for (long qx=0; qx < totalQuadPoints; ++qx) {
-				Qweight[qx] *= weight;
+				double tmp = Qweight[qx] * weight;
+				mapLatentSpace(state, 0, tmp, wherePrep + qx * maxDims,
+					       whereGram + qx * whereGramSize, thrLatentDist);
+				Qweight[qx] = tmp;
 			}
 
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
@@ -332,7 +331,7 @@ static void ba81Estep1(omxExpectation *oo)
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
 			int thrId = omx_absolute_thread_num();
-			double *thrLatentDist = latentDist.data() + thrId * numLatentsPerThread;
+			double *thrLatentDist = latentDist.data() + thrId * numLatents;
 			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
@@ -343,7 +342,6 @@ static void ba81Estep1(omxExpectation *oo)
 			cai2010EiEis(state, px, lxk, Eis, Ei);
 
 			double patternLik1 = 0;
-			long whloc = 0;
 			for (long qx=0, qloc=0, eisloc=0; qx < totalPrimaryPoints; ++qx, eisloc += numSpecific) {
 				double priArea = state->priQarea[qx];
 				double EiArea = Ei[qx] * priArea;
@@ -355,12 +353,8 @@ static void ba81Estep1(omxExpectation *oo)
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 * area[qloc];
 						Qweight[qloc] = tmp;
-						mapLatentSpace(state, Sgroup, tmp, wherePrep + whloc * maxDims,
-							       whereGram + whloc * whereGramSize,
-							       thrLatentDist + px * numLatents);
 						++qloc;
 					}
-					++whloc;
 				}
 			}
 
@@ -374,8 +368,16 @@ static void ba81Estep1(omxExpectation *oo)
 
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 			double weight = numIdentical[px] / patternLik[px];
-			for (long qx=0; qx < totalQuadPoints * numSpecific; qx++) {
-				Qweight[qx] *= weight;
+			long qloc=0;
+			for (long qx=0; qx < totalQuadPoints; qx++) {
+				double *whPrep = wherePrep + qx * maxDims;
+				double *whGram = whereGram + qx * whereGramSize;
+				for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+					double tmp = Qweight[qloc] * weight;
+					mapLatentSpace(state, Sgroup, tmp, whPrep, whGram, thrLatentDist);
+					Qweight[qloc] = tmp;
+					++qloc;
+				}
 			}
 
 			double *out = myExpected;
@@ -414,41 +416,16 @@ static void ba81Estep1(omxExpectation *oo)
 
 	for (int tx=1; tx < numThreads; ++tx) {
 		double *dest = latentDist.data();
-		double *thrLatentDist = latentDist.data() + tx * numLatentsPerThread;
-		for (int px=0; px < numUnique; px++) {
-			for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
-				dest[lx] += thrLatentDist[lx];
-			}
-			for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-				int loc2 = maxAbilities + triangleLoc0(sdim);
-				dest[loc2] += thrLatentDist[loc2];
-			}
-			dest += numLatents;
-			thrLatentDist += numLatents;
-		}
-	}
-
-#pragma omp parallel for num_threads(numThreads)
-	for (int px=0; px < numUnique; px++) {
-		if (!validPatternLik(state, patternLik[px])) {
-#pragma omp atomic
-			state->excludedPatterns += 1;
-			// Weight would be a huge number. If we skip
-			// the rest then this pattern will not
-			// contribute (much) to the latent
-			// distribution estimate.
-			continue;
-		}
-
-		double *latentDist1 = latentDist.data() + px * numLatents;
-		double weight = numIdentical[px] / patternLik[px];
+		double *thrLatentDist = latentDist.data() + tx * numLatents;
 		for (int lx=0; lx < maxAbilities + triangleLoc1(primaryDims); ++lx) {
-			latentDist1[lx] *= weight;
+			dest[lx] += thrLatentDist[lx];
 		}
 		for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-			int loc = maxAbilities + triangleLoc0(sdim);
-			latentDist1[loc] *= weight;
+			int loc2 = maxAbilities + triangleLoc0(sdim);
+			dest[loc2] += thrLatentDist[loc2];
 		}
+		dest += numLatents;
+		thrLatentDist += numLatents;
 	}
 
 	//mxLog("raw latent after weighting");
@@ -457,29 +434,23 @@ static void ba81Estep1(omxExpectation *oo)
 	std::vector<double> &ElatentMean = state->ElatentMean;
 	std::vector<double> &ElatentCov = state->ElatentCov;
 	
-	ElatentMean.assign(ElatentMean.size(), 0.0);
-	ElatentCov.assign(ElatentCov.size(), 0.0);
-
 	{
 		double *latentDist1 = latentDist.data();
-		for (int px=0; px < numUnique; px++) {
-			for (int d1=0; d1 < maxAbilities; d1++) {
-				int cx = maxAbilities + triangleLoc1(d1);
-				if (d1 < primaryDims) {
-					ElatentMean[d1] += latentDist1[d1];
-					for (int d2=0; d2 <= d1; d2++) {
-						int cell = d2 * maxAbilities + d1;
-						ElatentCov[cell] += latentDist1[cx];
-						++cx;
-					}
-				} else {
-					ElatentMean[d1] += latentDist1[d1];
-					int cell = d1 * maxAbilities + d1;
-					int loc = maxAbilities + triangleLoc0(d1);
-					ElatentCov[cell] += latentDist1[loc];
+		for (int d1=0; d1 < maxAbilities; d1++) {
+			int cx = maxAbilities + triangleLoc1(d1);
+			if (d1 < primaryDims) {
+				ElatentMean[d1] = latentDist1[d1];
+				for (int d2=0; d2 <= d1; d2++) {
+					int cell = d2 * maxAbilities + d1;
+					ElatentCov[cell] = latentDist1[cx];
+					++cx;
 				}
+			} else {
+				ElatentMean[d1] = latentDist1[d1];
+				int cell = d1 * maxAbilities + d1;
+				int loc = maxAbilities + triangleLoc0(d1);
+				ElatentCov[cell] = latentDist1[loc];
 			}
-			latentDist1 += numLatents;
 		}
 	}
 
