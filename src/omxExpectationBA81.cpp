@@ -312,8 +312,8 @@ static void ba81Estep1(omxExpectation *oo)
 		}
 	} else {
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
-		long totalPrimaryPoints = state->totalPrimaryPoints;
-		long specificPoints = state->quadGridSize;
+		const long totalPrimaryPoints = state->totalPrimaryPoints;
+		const long specificPoints = state->quadGridSize;
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
 		std::vector<double> &speQarea = state->speQarea;
@@ -321,7 +321,7 @@ static void ba81Estep1(omxExpectation *oo)
 		omxBuffer<double> area(totalQuadPoints * numSpecific);
 
 		for (long qx=0, qloc=0; qx < totalPrimaryPoints; ++qx) {
-			double priArea = state->priQarea[qx];
+			double priArea = priQarea[qx];
 			for (long sx=0; sx < specificPoints * numSpecific; sx++) {
 				area[qloc] = priArea * speQarea[sx];
 				++qloc;
@@ -341,14 +341,9 @@ static void ba81Estep1(omxExpectation *oo)
 			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
 			cai2010EiEis(state, px, lxk, Eis, Ei);
 
-			double patternLik1 = 0;
-			for (long qx=0, qloc=0, eisloc=0; qx < totalPrimaryPoints; ++qx, eisloc += numSpecific) {
-				double priArea = state->priQarea[qx];
-				double EiArea = Ei[qx] * priArea;
-				patternLik1 += EiArea;
+			for (long qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 				for (long sx=0; sx < specificPoints; sx++) {
 					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-						//if (areaProduct(state, qx, sx, Sgroup) != area[qloc]) error("oops");
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 * area[qloc];
@@ -358,6 +353,12 @@ static void ba81Estep1(omxExpectation *oo)
 				}
 			}
 
+			double patternLik1 = 0;
+			for (long qx=0; qx < totalPrimaryPoints; ++qx) {
+				double priArea = priQarea[qx];
+				double EiArea = Ei[qx] * priArea;
+				patternLik1 += EiArea;
+			}
 			patternLik[px] = patternLik1;
 
 			if (!validPatternLik(state, patternLik[px])) {
