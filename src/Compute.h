@@ -60,6 +60,7 @@ class FitContext {
 	double *hess;
 	double *ihess;
 	std::vector< matrixVectorProdTerm > hgProd;
+	double caution;
 
 	int wanted;
 	bool changedEstimates; // only used for FF_COMPUTE_PREOPTIMIZE

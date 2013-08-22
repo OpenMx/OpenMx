@@ -164,21 +164,23 @@ class Ramsay1975 {
 	std::vector<double> prevAdj2;
 
 public:
+	double maxCaution;
 	double caution;
 
-	Ramsay1975(FitContext *fc, int flavor, int verbose);
+	Ramsay1975(FitContext *fc, int flavor, double caution, int verbose);
 	void recordEstimate(int px, double newEst);
 	void recalibrate(bool *restart);
 	void restart();
 };
 
-Ramsay1975::Ramsay1975(FitContext *fc, int flavor, int verbose)
+Ramsay1975::Ramsay1975(FitContext *fc, int flavor, double caution, int verbose)
 {
 	this->fc = fc;
 	this->flavor = flavor;
 	this->verbose = verbose;
-	caution = 0.0;
-	highWatermark = 0.5;  // arbitrary guess
+	this->caution = caution;
+	maxCaution = 0.0;
+	highWatermark = std::max(0.5, caution);  // arbitrary guess
 
 	numParam = fc->varGroup->vars.size();
 	prevAdj1.assign(numParam, 0);
@@ -247,6 +249,7 @@ void Ramsay1975::recalibrate(bool *restart)
 	} else {
 		caution = newCaution;
 	}
+	maxCaution = std::max(maxCaution, caution);
 	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
 		if (verbose >= 3) mxLog("Ramsay[%d]: %.2f caution", flavor, caution);
 	} else {
@@ -263,6 +266,7 @@ void Ramsay1975::restart()
 	prevAdj2.assign(numParam, 0);
 	highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
 	caution = std::max(caution, highWatermark);   // arbitrary guess
+	maxCaution = std::max(maxCaution, caution);
 	highWatermark = caution;
 	if (verbose >= 3) {
 		mxLog("Ramsay[%d]: restart with %.2f caution %.2f highWatermark",
@@ -282,7 +286,6 @@ void ComputeNR::compute(FitContext *fc)
 		return;
 	}
 
-	std::vector<Ramsay1975*> ramsay;
 	if (fitMatrix->fitFunction->parametersHaveFlavor) {
 		for (size_t px=0; px < numParam; ++px) {
 			fc->flavor[px] = -1;
@@ -301,13 +304,15 @@ void ComputeNR::compute(FitContext *fc)
 		//fc->log("NR", FF_COMPUTE_HGPROD);
 	}
 
+	std::vector<Ramsay1975*> ramsay;
 	for (size_t px=0; px < numParam; ++px) {
 		// global namespace for flavors? TODO
 		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
 			error("Invalid parameter flavor %d", fc->flavor[px]);
 		}
 		while (int(ramsay.size()) < fc->flavor[px]+1) {
-			ramsay.push_back(new Ramsay1975(fc, fc->flavor[px], verbose));
+			Ramsay1975 *ram = new Ramsay1975(fc, fc->flavor[px], fc->caution, verbose);
+			ramsay.push_back(ram);
 		}
 	}
 
@@ -318,7 +323,7 @@ void ComputeNR::compute(FitContext *fc)
 	int sinceRestart = 0;
 	bool converged = false;
 	bool approaching = false;
-	bool restarted = carefully;
+	bool restarted = carefully || fc->caution >= .5;
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
 	int maxAdjFlavor = 0;
@@ -494,13 +499,22 @@ void ComputeNR::compute(FitContext *fc)
 		if (converged || ++iter >= maxIter) break;
 	}
 
+	fc->caution = 0;
+	for (size_t rx=0; rx < ramsay.size(); ++rx) {
+		fc->caution = std::max(fc->caution, ramsay[rx]->maxCaution);
+		delete ramsay[rx];
+	}
+
 	if (verbose >= 1) {
 		if (converged) {
-			mxLog("Newton-Raphson converged in %d cycles (max change %.12f)", iter, maxAdj);
+			mxLog("Newton-Raphson converged in %d cycles (max change %.12f, max caution %.4f)",
+			      iter, maxAdj, fc->caution);
 		} else if (iter < maxIter) {
-			mxLog("Newton-Raphson not improving on %.6f after %d cycles", bestLL, iter);
+			mxLog("Newton-Raphson not improving on %.6f after %d cycles (max caution %.4f)",
+			      bestLL, iter, fc->caution);
 		} else if (iter == maxIter) {
-			mxLog("Newton-Raphson failed to converge after %d cycles", iter);
+			mxLog("Newton-Raphson failed to converge after %d cycles (max caution %.4f)",
+			      iter, fc->caution);
 		}
 	}
 
@@ -512,10 +526,6 @@ void ComputeNR::compute(FitContext *fc)
 		} else {
 			omxRaiseErrorf(globalState, "Newton-Raphson failed to converge after %d cycles", iter);
 		}
-	}
-
-	for (size_t rx=0; rx < ramsay.size(); ++rx) {
-		delete ramsay[rx];
 	}
 }
 

@@ -26,6 +26,7 @@ void FitContext::init()
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : 0;
+	caution = parent? parent->caution : 0;
 	est = new double[numParam];
 	flavor = new int[numParam];
 	forwardDeriv = false;
@@ -111,6 +112,7 @@ void FitContext::updateParentAndFree()
 	parent->wanted = wanted;
 	parent->fit = fit;
 	parent->mac = mac;
+	parent->caution = caution;
 
 	if (svars > 0) {
 		size_t s1 = 0;

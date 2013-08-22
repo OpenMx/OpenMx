@@ -150,6 +150,7 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 	       const double *whereGram, double *latentDist)
 {
 	// could specialize this for regular and cai2010 for a small gain TODO
+	// also, don't need to estimate latent distribution if no free parameters TODO
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int pmax = maxDims;
