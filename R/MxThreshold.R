@@ -13,6 +13,155 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setClass(Class = "MxThreshold",
+	representation = representation(
+		variable = "character",
+		nThresh  = "numeric",
+		free     = "logical",
+    values   = "numeric",
+		labels   = "character",
+		lbound   = "numeric",
+		ubound   = "numeric"
+))
+
+setMethod("initialize", "MxThreshold",
+	function(.Object, variable, nThresh, free, values, labels, lbound, ubound) {
+		.Object@variable <- variable
+		.Object@nThresh  <- nThresh 
+		.Object@free     <- free    
+		.Object@values   <- values  
+		.Object@labels   <- labels  
+		.Object@lbound   <- lbound  
+		.Object@ubound   <- ubound  
+		return(.Object)
+	}
+)
+
+
+omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
+	if(length(nBreaks) > 1) {
+		return(unlist(mapply(mxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))
+	}
+	if(is.na(nBreaks)) {
+		return(as.numeric(NA))
+	}
+	if(nBreaks < 0) {
+		stop("Error in omxNormalQuantiles: You must request at least one quantile.")
+	}
+	return(qnorm(seq(0,1,length.out=nBreaks+2)[1:nBreaks+1], mean=mean, sd=sd))
+}
+
+thresholdCheckLengths <- function(nThresh, starts, free, values, labels, lbounds, ubounds, varName) {
+  
+  if(single.na(starts)) {
+    starts = rep(0, 5)
+  }
+  ends <- matrix(NA, 5, 2)
+  
+  ends[1,] <- thresholdCheckSingleLength(nThresh, starts[1], length(free), "free/fixed designations", varName)
+  ends[2,] <- thresholdCheckSingleLength(nThresh, starts[2], length(values), "values", varName)
+  ends[3,] <- thresholdCheckSingleLength(nThresh, starts[3], length(labels), "labels", varName)
+  ends[4,] <- thresholdCheckSingleLength(nThresh, starts[4], length(lbounds), "lower bounds", varName)
+  ends[5,] <- thresholdCheckSingleLength(nThresh, starts[5], length(ubounds), "upper bounds", varName)
+  
+  ends
+}
+
+thresholdCheckSingleLength <- function(nElements, startingPoint, len, lenName, varName) {
+	
+  if(nElements > len - startingPoint) {
+		if(startingPoint != 0 && startingPoint %% len != 0) {
+			stop(paste("This is tricky.  You've specified a set of",
+				lenName, "for the mxThreshold function that does not",
+				"quite line up. mxThreshold has consumed", startingPoint,
+				"values from the list of", len, "but needs", nElements, "to complete",
+				"the list of", lenName, "for", omxQuotes(varName)), call.=FALSE)
+		}
+    if(nElements %% len != 0) {
+			stop(paste("mxThreshold() call will generate",
+				nElements, "thresholds but you have specified",
+				len, lenName, "for", omxQuotes(varName)), call. = FALSE)	
+		} else {
+      startingPoint = 0
+		}
+	}
+	return(c(startingPoint+1, startingPoint + nElements))
+}
+
+as.MxMatrix.MxThreshold <- function(threshold) {
+  mxMatrix("Full", nrow=threshold@nThresh, ncol=1, free=threshold@free, values=threshold@values,
+           labels=threshold@labels, lbound=threshold@lbound, ubound=threshold@ubound, 
+           dimnames=list(NULL, threshold@variable))
+}
+
+thresholdSubset <- function(var, a) {
+  return(rep(var, length.out=a[2])[a[1]:a[2]])
+}
+
+splitThresholds <- function(variables, nThresh, free, values, labels, lbound, ubound) {
+	
+	nVars <- length(variables)
+	nThresh <- rep(nThresh, length.out=nVars)
+	nElements <- sum(nThresh)
+	thresholds <- as.list(rep(NA, nVars))
+                    
+  starts <- NA
+  # This block is primarily to catch cases like nThresh=c(2, 4, 2), free=c(TRUE, TRUE, TRUE, FALSE)
+  # That is, where the wrapping of an input vector doesn't mesh with the threshold count
+  for(i in 1:nVars) {
+    idx <- thresholdCheckLengths(nThresh[i], starts, free, values, labels, lbound, ubound, variables[i])
+    thresholds[i] <- new("MxThreshold", variables[i], nThresh[i], thresholdSubset(free, idx[1,]), 
+                         as.numeric(thresholdSubset(values, idx[2,])), 
+                         as.character(thresholdSubset(labels, idx[3,])), 
+                         as.numeric(thresholdSubset(lbound, idx[4,])), 
+                         as.numeric(thresholdSubset(ubound, idx[5,])))
+    starts <- idx[,2]
+  }
+	
+  if(length(thresholds) == 1) {
+    thresholds <- thresholds[[1]]
+  }
+  
+	return(thresholds)
+}
+
+mxThreshold <- function(vars, nThresh=NA, free=FALSE, values=NA, # normalQuantiles(nThresh)
+                        labels=NA, lbound=NA, ubound=NA) {
+  if(all.na(vars)) {
+    stop("You must specify a variable name for which these thresholds should be applied.")
+  }
+	nVars = length(vars)
+	if(single.na(nThresh)) {
+		if(nVars > 0) {
+			stop(paste("mxThreshold error: You must specify a list of numbers",
+			" of levels if you specify more than one variable name."))
+		} else if( all(is.na(values))) {
+			stop(paste("mxThreshold error: You must specify either values or a",
+			"number of levels for each variable in order to generate thresholds."))
+		}
+		nThresh = length(values)
+	}
+	repeats <- setdiff(vars, unique(vars))
+	if(length(repeats) != 0) {
+		stop(paste("mxThreshold error: You listed", omxQuotes(repeats),
+		"more than once in your list of thresholded variables."))
+	}
+
+	nLevelsListed = length(nThresh)
+	if(nVars < nLevelsListed) {
+		stop(paste("mxThreshold error: You specified a number of levels for",
+			 nLevelsListed, "variables, but only listed", nVars, "variables."))
+	}
+	if(!( nVars == nLevelsListed || nVars %% nLevelsListed==0)) {
+			stop(paste("mxThreshold error: number of variables listed (",
+			nVars, ") is not a multiple of the number of level counts (",
+			nLevelsListed, ")."))
+	}
+	
+	splitThresholds(vars, nThresh, free, values, labels, lbound, ubound)
+	
+}
+
 generateThresholdColumns <- function(flatModel, model, labelsData, covarianceColumnNames, dataName, threshName) {
 	covarianceLength <- length(covarianceColumnNames)
 	thresholdColumns <- replicate(covarianceLength, as.integer(NA))
@@ -40,6 +189,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 	if (single.na(threshName)) {
 		return()
 	}
+	
 	modelName <- flatModel@name
 	object <- flatModel[[threshName]]
 	if (is.null(object)) {
@@ -52,6 +202,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 			"for model", omxQuotes(modelName), 
 			"is not a MxMatrix or MxAlgebra."), call. = FALSE)
 	}
+	
 	tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 	thresholds <- tuple[[1]]
 	observed <- flatModel@datasets[[dataName]]@observed
@@ -110,7 +261,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 						"but I hit NA values after only", 
 						length(values[!is.na(values)]), "thresholds.",
 						"You need to increase the number of",
-						"free thresholds for", omxQuotes(tName), 
+						"thresholds for", omxQuotes(tName), 
 						"and give them values other than NA"), call. = FALSE)	
 				}
 			}
@@ -142,7 +293,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 						"but I hit NA values after only", 
 						length(values[!is.na(values)]), "thresholds.",
 						"You need to increase the number of",
-						"free thresholds for", omxQuotes(tName), 
+						"thresholds for", omxQuotes(tName), 
 						"and give them values other than NA"), call. = FALSE)	
 				}
 			}
@@ -162,7 +313,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 					omxQuotes(sortValues),".",
 					"Only the first", expectedThreshCount,
 					"element(s) of this column are inspected."), 
-					call. = FALSE)	
+					call. = FALSE)
 			}
 		}
 	}
@@ -243,3 +394,19 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 		return(imxFactorize(x, levels, labels, exclude, ordered))
 	}
 }
+
+
+displayThreshold <- function(object) {
+	cat("mxThreshold", '\n')
+	cat("@variable: ", omxQuotes(object@variable), '\n')
+	cat("@nThresh", object@nThresh, '\n')
+	cat("@values: ", object@values, '\n')
+	cat("@free: ", object@free, '\n')
+	cat("@labels: ", object@labels, '\n')
+	cat("@lbound: ", object@lbound, '\n')
+	cat("@ubound: ", object@ubound, '\n')
+}
+
+setMethod("print", "MxThreshold", function(x,...) { displayThreshold(x) })
+setMethod("show", "MxThreshold", function(object) { displayThreshold(object) })
+setAs("MxThreshold", "MxMatrix", function(from) { as.MxMatrix.MxThreshold(from)})

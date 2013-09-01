@@ -86,6 +86,26 @@ setMethod("imxVerifyModel", "MxRAMModel",
 					       "but has not specified any means paths.")
 				  stop(msg, call. = FALSE)
 			  }
+			  if (!is.null(model@data)) {
+				  threshNames <- intersect(getDataThresholdNames(model@data), model@manifestVars)
+				  # Only pay attention to (1) manifest variables (2) that need thresholds.
+				  # This saves the case where an mxFactor is used as a definition variable.
+				  if(!is.null(model$Thresholds)) {
+					  missingThresholds <- setdiff(threshNames, colnames(model$Thresholds))
+					  print(paste("Found Thresholds ", colnames(model$Thresholds), "but needed", threshNames))
+				  } else {
+					  missingThresholds <- threshNames
+				  }
+				  if(length(missingThresholds)) {
+					  msg <- paste("The RAM model", omxQuotes(model@name),
+						       "contains data that requires thresholds for columns",
+						       omxQuotes(missingThresholds), "but has not specified any",
+							   "thresholds for those columns.",
+							   "You can specify thresholds for your model like this:",
+							   "mxThreshold(vars='x1', nThresh=1, values=0)")
+					  stop(msg, call. = FALSE)
+				  }
+			  }
 		  }
 		  if (length(model@submodels) > 0) {
 			  return(all(sapply(model@submodels, imxVerifyModel)))
@@ -165,6 +185,12 @@ removeVariablesRAM <- function(model, latent, manifest) {
 	model[['F']] <- createMatrixF(model)
 	model[['A']] <- A
 	model[['S']] <- S
+	Thresh <- model[['Thresholds']]
+	if(!all.na(Thresholds)) {
+		newCols <- setdiff(colnames(Thresh), manifest)
+		newRows <- nrow(Thresh) - min(colSums(is.na(Thresh@values[,newCols])))
+		model[['Thresholds']] <- Thresh[1:newRows,newCols]
+	}
 	return(model)
 }
 
@@ -219,10 +245,16 @@ addEntriesRAM <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
 	}
+
 	filter <- sapply(entries, is, "MxPath")
 	paths <- entries[filter]
 	if (length(paths) > 0) {
 		model <- insertAllPathsRAM(model, paths)
+	}
+	filter <- sapply(entries, is, "MxThreshold")
+	thresholds <- entries[filter]
+	if(length(thresholds) > 0) {
+		model <- insertAllThresholdsRAM(model, thresholds)
 	}
 	filter <- sapply(entries, is, "MxData")
 	data <- entries[filter]
@@ -235,6 +267,11 @@ addEntriesRAM <- function(model, entries) {
 		model[['F']] <- createMatrixF(model)
 	}
 	return(model)
+}
+
+requireThresholds <- function(data) {
+	return(!is.null(data) && ((data@type == 'raw') ||
+		((data@type == 'cov' || data@type == 'cor'))))
 }
 
 requireMeansVector <- function(data) {
@@ -261,7 +298,8 @@ getNotPathsOrData <- function(lst) {
 	}
 	pathfilter <- sapply(lst, is, "MxPath")
 	datafilter <- sapply(lst, is, "MxData")
-	retval <- lst[!(pathfilter | datafilter)]
+	thresholdfilter <- sapply(lst, is, "MxThreshold")
+	retval <- lst[!(pathfilter | datafilter | thresholdfilter)]
 	return(retval)
 }
 
@@ -287,11 +325,94 @@ checkPaths <- function(model, paths) {
 	}
 }
 
+expectationIsMissingThresholds <- function(model) {
+	expectation <- model@expectation
+	return(!is.null(expectation) &&
+	is(expectation, "MxExpectationRAM") &&
+		is.na(expectation@thresholds))
+}
+
+
 expectationIsMissingMeans <- function(model) {
 	expectation <- model@expectation
 	return(!is.null(expectation) &&
 		is(expectation, "MxExpectationRAM") &&
 		is.na(expectation@M))
+}
+
+insertAllThresholdsRAM <- function(model, thresholds) {
+	Thresh <- model[['Thresholds']]
+	if (is.null(Thresh)) { 
+		Thresh <- mxMatrix("Full", 0, 0, name="Thresholds")
+		if(expectationIsMissingThresholds(model)) {
+			model@expectation@thresholds <- "Thresholds"
+		} else {
+			Thresh <- model[[model@expectation@thresholds]]
+		}
+	}
+	
+	legalVars <- model@manifestVars
+	isUsed <- matrix(FALSE, 1, length(legalVars))
+	colnames(isUsed) <- legalVars
+	isUsed[colnames(Thresh)] <- TRUE
+	maxNThresh <- nrow(Thresh)
+
+	allVars <- unique(as.character(lapply(thresholds, getElement, "variable")))
+	varExist <- allVars %in% legalVars
+	if(!all(varExist)) {
+		missingVars <- allVars[!varExist]
+		stop(paste("Nice try, you need to add", 
+		omxQuotes(missingVars), 
+			"to the manifestVars before you",
+			"can assign them thresholds."), call. = FALSE)
+	}
+
+	maxNThresh <- max(sapply(thresholds, getElement, "nThresh"))
+	isUsed[allVars] <- TRUE
+	
+	newVars <- union(colnames(Thresh), allVars)
+	if(length(newVars) > ncol(Thresh)) {  # Rebuild Threshold matrix if needed
+		oldCols <- ncol(Thresh)
+		oldRows <- nrow(Thresh)
+		newCols <- length(newVars)
+		newRows <- max(nrow(Thresh), maxNThresh)
+		newThresh <- mxMatrix("Full", newRows, newCols, dimnames=list(NULL,
+			newVars), name=Thresh@name)  # Maintains the old ordering
+		if(oldRows > 0 && oldCols > 0) {
+			newThresh[1:oldRows, 1:oldCols] <- Thresh
+		}
+		Thresh <- newThresh 
+	}
+	if(!is.list(thresholds)) { thresholds <- list(thresholds)}
+	for(i in 1:length(thresholds)) {
+		thisThresh <- thresholds[[i]]
+		values <- thisThresh@values
+		msg = NULL
+		if(all.na(values)) {
+			msg = paste("The thresholds you are attempting to specify",
+				"does not have any starting values, but type='RAM' models require them.")
+		}
+		if(!identical(values, sort(values, na.last=NA))) { 
+			msg = paste("The thresholds you are attempting to specify",
+				"has starting values that are not strictly increasing,",
+				"but type='RAM' models require them to be.")
+		}
+		if(!is.null(msg)) {
+			msg <- paste(msg, paste("An easy way to specify threshold starting values",
+				"that are evenly spaced across a normal distribution is using:"),
+				"mxThreshold(vars='x1', nThresh=3, values=mxNormalQuantiles(3))",
+				"See '?mxNormalQuantiles' and '?mxThreshold' for more details.", sep='\n')
+				stop(msg, .call=FALSE)
+		}
+		thisVar <- thisThresh@variable
+		theseRows <- 1:thisThresh@nThresh
+		threshMat <- as(thisThresh, "MxMatrix")
+		Thresh[theseRows, thisVar] <- threshMat
+	}
+
+	model[['Thresholds']] <- Thresh
+	
+	return(model)
 }
 
 insertAllPathsRAM <- function(model, paths) {
@@ -315,7 +436,7 @@ insertAllPathsRAM <- function(model, paths) {
 		}
 		
 		allFromTo <- unique(c(path@from, path@to))
-                varExist <- allFromTo %in% legalVars 
+		varExist <- allFromTo %in% legalVars 
 		if(!all(varExist)) {
 			missingVars <- allFromTo[!varExist]
 			stop(paste("Nice try, you need to add", 

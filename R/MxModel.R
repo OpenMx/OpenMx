@@ -493,11 +493,17 @@ modelModifyFilter <- function(model, entries, action) {
 	namedEntityFilter <- sapply(entries, function(x) {"name" %in% slotNames(x)})
 	characterFilter <- sapply(entries, is.character)
 	pathFilter <- sapply(entries, is, "MxPath")
-	unknownFilter <- !(boundsFilter | namedEntityFilter | intervalFilter | characterFilter)
+  thresholdFilter <- sapply(entries, is, "MxThreshold")
+	unknownFilter <- !(boundsFilter | namedEntityFilter | intervalFilter | characterFilter | thresholdFilter)
 	if (any(pathFilter)) {
 		stop(paste("The model type of model",
 			omxQuotes(model@name), "does not recognize paths."),
 			call. = FALSE)
+	}
+	if (any(thresholdFilter)) {
+	  stop(paste("The model type of model",
+	             omxQuotes(model@name), "does not recognize thresholds."),
+	       call. = FALSE)
 	}
 	if (any(unknownFilter)) {
 		stop(paste("Cannot", action, "the following item(s)", 

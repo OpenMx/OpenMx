@@ -246,6 +246,29 @@ checkNumericData <- function(data) {
 	}
 }
 
+getDataThresholdNames <- function(data) {
+	if(data@type == "raw") {
+		nCols <- ncol(data@observed)
+		thresholdCols <- rep(FALSE, nCols)
+		for(i in 1:nCols) {
+			if(!is.null(attr(data@observed[,i], "mxFactor"))) {
+				thresholdCols[i] <- TRUE
+			}
+		}
+		if(sum(thresholdCols) > 0) {
+			if(is.null(colnames(data@observed))) {
+				stop("The data object", omxQuotes(data@name),
+				"has mxFactor columns, but does not have column names,",
+				"which are required for threshold estimation.")
+			}
+			return(colnames(data@observed)[thresholdCols])
+		}
+	} else if(data@type == "acov") {
+		return(dimnames(data@thresholds)[[2]])
+	}
+	return(c())
+}
+
 # MCN - Skip check and leave it to SADMVN
   checkNumberOrdinalColumns <- function(data) {
   	if(is.data.frame(data@observed)) {
