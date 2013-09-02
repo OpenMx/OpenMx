@@ -92,7 +92,6 @@ setMethod("imxVerifyModel", "MxRAMModel",
 				  # This saves the case where an mxFactor is used as a definition variable.
 				  if(!is.null(model$Thresholds)) {
 					  missingThresholds <- setdiff(threshNames, colnames(model$Thresholds))
-					  print(paste("Found Thresholds ", colnames(model$Thresholds), "but needed", threshNames))
 				  } else {
 					  missingThresholds <- threshNames
 				  }
