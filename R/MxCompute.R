@@ -201,7 +201,7 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 
 	if (missing(engine)) {
 		engine <- Sys.getenv("IMX_OPT_ENGINE")
-		if (!nchar(engine)) engine <- "CSOLNP"
+		if (!nchar(engine)) engine <- "NPSOL"
 	}
 
 	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose)
