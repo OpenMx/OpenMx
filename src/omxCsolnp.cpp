@@ -33,8 +33,8 @@
 
 //extern void F77_SUB(npoptn)(char* string, int length);
 
-static omxMatrix *GLOB_fitMatrix;
-static FitContext *GLOB_fc;
+static omxMatrix *GLOB_fitMatrix = NULL;
+static FitContext *GLOB_fc = NULL;
 
 Matrix fillMatrix(int cols, int rows, double* array)
 {
@@ -42,54 +42,52 @@ Matrix fillMatrix(int cols, int rows, double* array)
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
-            mxLog("array is: ");
-            mxLog("%2f", array[j]); 
 			M(t,j,i)=array[j];
 		}
 	}
 	return t;
 }
 
+
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars)
 {
-    mxLog("myPars inside obj is: ");
-    print(myPars); 
+    printf("myPars inside obj is: ");
+    print(myPars); putchar('\n');
     
 	unsigned short int checkpointNow = FALSE;
     
-	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
+	if(OMX_DEBUG) {printf("Starting Objective Run.");}
     
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
-    mxLog("fitMatrix is: ");
-    mxLog("%2f", fitMatrix->data[0]); 
-
+    
 	omxResetStatus(globalState);						// Clear Error State recursively
-    mxLog("fitMatrix is: ");
-    mxLog("%2f", fitMatrix->data[0]); 
-
-	/* Interruptible? */
+    
+    /* Interruptible? */
 	R_CheckUserInterrupt();
     /* This allows for abitrary repopulation of the free parameters.
      * Typically, the default is for repopulateFun to be NULL,
      * and then handleFreeVarList is invoked */
     
 	GLOB_fc->copyParamToModel(globalState, myPars.t);
-
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NULL);
-		mxLog("fitMatrix inside important if is: %.32f", fitMatrix->data[0]); 
     
-		if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0])) {
-			GLOB_fc->fit = 1e24;
-		} else {
-			GLOB_fc->fit = fitMatrix->data[0];
-		}
-
+    
+    
+    omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, GLOB_fc);
+    
+    
+    if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0])) {
+        GLOB_fc->fit = 1e24;
+    } else {
+        GLOB_fc->fit = fitMatrix->data[0];
+    }
+    
 	if(OMX_VERBOSE) {
-		mxLog("Fit function value is: %.32f ", fitMatrix->data[0]);
+		printf("Fit function value is: %.32f ", fitMatrix->data[0]);
+        putchar('\n');
 	}
     
-	if(OMX_DEBUG) { mxLog("-======================================================-"); }
+	if(OMX_DEBUG) { printf("-======================================================-"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
 		omxSaveCheckpoint(myPars.t, GLOB_fc->fit, FALSE);		// Check about saving a checkpoint
@@ -109,23 +107,19 @@ Matrix csolnpEqualityFunction(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myEqBFun;
     
-    mxLog("Starting csolnpEqualityFunction.");
-    mxLog("myPars is: ");
-    print(myPars); 
-
+    printf("Starting csolnpEqualityFunction.");
+        
     GLOB_fc->copyParamToModel(globalState, myPars.t);
-
-    mxLog("myPars is: ");
-    print(myPars); 
-	for(j = 0; j < globalState->numConstraints; j++) {
+    
+    for(j = 0; j < globalState->numConstraints; j++) {
 		if (globalState->conList[j].opCode == 1)
         {
             eq_n += globalState->conList[j].size;
         }
     }
     
-    mxLog("no.of constraints is: %d.", globalState->numConstraints);
-    mxLog("neq is: %d.", eq_n);
+    printf("no.of constraints is: %d.", globalState->numConstraints);putchar('\n');
+    printf("neq is: %d.", eq_n); putchar('\n');
     
     if (eq_n == 0)
     {
@@ -137,19 +131,20 @@ Matrix csolnpEqualityFunction(Matrix myPars)
         
         for(j = 0; j < globalState->numConstraints; j++) {
             if (globalState->conList[j].opCode == 1)
-            {   mxLog("result is: ");
-                mxLog("%2f", globalState->conList[j].result->data[0]); 
-                    omxRecompute(globalState->conList[j].result);                mxLog("%.16f", globalState->conList[j].result->data[0]);
-                mxLog("size is: ");
-                mxLog("%d", globalState->conList[j].size); }
-                for(k = 0; k < globalState->conList[j].size; k++){
-                    M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
-                    l = l + 1;
-                }
+            {   printf("result is: ");
+                printf("%2f", globalState->conList[j].result->data[0]); putchar('\n');
+                omxRecompute(globalState->conList[j].result);                printf("%.16f", globalState->conList[j].result->data[0]); putchar('\n');
+                printf("size is: \n");
+                printf("%d", globalState->conList[j].size); putchar('\n');}
+            for(k = 0; k < globalState->conList[j].size; k++){
+                M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
+                l = l + 1;
+            }
         }
     }
-    mxLog("myEqBFun is: ");
-    print(myEqBFun); 
+    printf("myEqBFun is: ");
+    print(myEqBFun);
+    putchar('\n');
     return myEqBFun;
 }
 
@@ -161,7 +156,7 @@ Matrix csolnpIneqFun(Matrix myPars)
     double EMPTY = -999999.0;
     Matrix myIneqFun;
     
-    mxLog("Starting csolnpIneqFun.");
+    printf("Starting csolnpIneqFun."); putchar('\n');
     GLOB_fc->copyParamToModel(globalState, myPars.t);
     
 	for(j = 0; j < globalState->numConstraints; j++) {
@@ -171,8 +166,8 @@ Matrix csolnpIneqFun(Matrix myPars)
         }
     }
     
-    mxLog("no.of constraints is: %d.", globalState->numConstraints);
-    mxLog("ineq_n is: %d.", ineq_n);
+    printf("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
+    printf("ineq_n is: %d.", ineq_n); putchar('\n');
     
     if (ineq_n == 0)
     {
@@ -188,7 +183,7 @@ Matrix csolnpIneqFun(Matrix myPars)
             for(k = 0; k < globalState->conList[j].size; k++){
                 M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
                 l = l + 1;
-
+                
             }
         }
     }
@@ -196,10 +191,16 @@ Matrix csolnpIneqFun(Matrix myPars)
     return myIneqFun;
 }
 
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
+                     int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
+                     int verbose)
+
 {
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
+    
+    double *x = fc->est;
+	double *g = fc->grad;
     
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
     
@@ -208,151 +209,192 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int verbose)
     double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
     int ncnln = globalState->ncnln;
-    int n = int(fc->varGroup->vars.size());
+    int n = freeVarGroup->vars.size();
+    
+    printf("n n n: \n");
+    printf("%d", n); putchar('\n');
     
     double EMPTY = -999999.0;
     int j;
     
-   // for(j = 0; j < globalState->numConstraints; j++) {
-   //		if (globalState->conList[j].opCode == 1){ eq_n++;}
-  //  }
-    
+    // for(j = 0; j < globalState->numConstraints; j++) {
+    //		if (globalState->conList[j].opCode == 1){ eq_n++;}
+    //  }
+    Param_Obj p_obj;
+    Matrix param_hess;
+    Matrix myhess = fill(n*n, 1, (double)0.0);
+    printf("myhess: \n");
+    print(myhess); putchar('\n');
+
+    Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
     Matrix solEqB;
-
+    
     Matrix myPars = fillMatrix(n, 1, fc->est);
     
     double (*solFun)(struct Matrix myPars);
     solFun = &csolnpObjectiveFunction;
-
+    
     Matrix (*solEqBFun)(struct Matrix myPars);
     solEqBFun = &csolnpEqualityFunction;
     
     Matrix (*solIneqFun)(struct Matrix myPars);
     solIneqFun = &csolnpIneqFun;
-
     
-        /* Set boundaries and widths. */
-        
-               /* Allocate arrays */
-        bl      = (double*) R_alloc ( n, sizeof ( double ) );
-        bu      = (double*) R_alloc (n, sizeof ( double ) );
-
+    
+    /* Set boundaries and widths. */
+    
+    /* Allocate arrays */
+    bl      = (double*) R_alloc ( n, sizeof ( double ) );
+    bu      = (double*) R_alloc (n, sizeof ( double ) );
+    
 	if (verbose) {
 		for (int i = 0; i < n; i++) {
-			mxLog("bl is: ");
-			mxLog("%2f", bl[i]); 
+			printf("bl is: ");
+			printf("%2f", bl[i]); putchar('\n');
 		}
 	}
-        
-		struct Matrix myControl = fill(6,1,(double)0.0);
-		M(myControl,0,0) = 1.0;
-		M(myControl,1,0) = 400.0;
-		M(myControl,2,0) = 800.0;
-		M(myControl,3,0) = 1.0e-7;
-		M(myControl,4,0) = 1.0e-8;
-		M(myControl,5,0) = 0.0;
-		
-		bool myDEBUG = false;
-        /* Set up actual run */
     
-        /* needs treatment*/
-        if (ncnln == 0)
-        {
-            solIneqLB = fill(1, 1, EMPTY);
-            solIneqUB = fill(1, 1, EMPTY);
-            solEqB = fill(1, 1, EMPTY);
-        }
-        else{
-            int j;
-            int eqn = 0;
-            for(j = 0; j < globalState->numConstraints; j++) {
-                if (globalState->conList[j].opCode == 1)
-                {
-                    eqn += globalState->conList[j].size;
-                }
+    struct Matrix myControl = fill(6,1,(double)0.0);
+    M(myControl,0,0) = 1.0;
+    M(myControl,1,0) = 400.0;
+    M(myControl,2,0) = 800.0;
+    M(myControl,3,0) = 1.0e-7;
+    M(myControl,4,0) = 1.0e-8;
+    M(myControl,5,0) = 0.0;
+    
+    bool myDEBUG = false;
+    /* Set up actual run */
+    
+    /* needs treatment*/
+    if (ncnln == 0)
+    {
+        solIneqLB = fill(1, 1, EMPTY);
+        solIneqUB = fill(1, 1, EMPTY);
+        solEqB = fill(1, 1, EMPTY);
+    }
+    else{
+        int j;
+        int eqn = 0;
+        for(j = 0; j < globalState->numConstraints; j++) {
+            if (globalState->conList[j].opCode == 1)
+            {
+                eqn += globalState->conList[j].size;
             }
-            int nineqn = ncnln - eqn;
-            solIneqLB = fill(nineqn, 1, EMPTY);
-            solIneqUB = fill(nineqn, 1, EMPTY);
+        }
+        int nineqn = ncnln - eqn;
+        solIneqLB = fill(nineqn, 1, EMPTY);
+        solIneqUB = fill(nineqn, 1, EMPTY);
 	    if (eqn == 0) {
 		    solEqB = fill(1, 1, EMPTY);
 	    } else {
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
 	    omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-	if (verbose) {
-		mxLog("solIneqLB is: ");
-		print(solIneqLB); 
-		mxLog("solIneqUB is: ");
-		print(solIneqUB); 
-		mxLog("solEqB is: ");
-		print(solEqB);
-	}
+        if (verbose) {
+            printf("solIneqLB is: ");
+            print(solIneqLB); putchar('\n');
+            printf("solIneqUB is: ");
+            print(solIneqUB); putchar('\n');
+            printf("solEqB is: ");
+            print(solEqB); putchar('\n');
         }
-        omxSetupBoundsAndConstraints(fc->varGroup, bl, bu);
-        Matrix blvar = fillMatrix(n, 1, bl);
-		Matrix buvar = fillMatrix(n, 1, bu);
-        
-        //Matrix blvar = fill(1, 1, EMPTY);
-        //Matrix buvar = fill(1, 1, EMPTY);
-        
-        /* Initialize Starting Values */
-        if(OMX_VERBOSE) {
-            mxLog("--------------------------");
-            mxLog("Starting Values (%d) are:", n);
+    }
+    omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+    Matrix blvar = fillMatrix(n, 1, bl);
+    Matrix buvar = fillMatrix(n, 1, bu);
+    
+    //Matrix blvar = fill(1, 1, EMPTY);
+    //Matrix buvar = fill(1, 1, EMPTY);
+    
+    /* Initialize Starting Values */
+    if(OMX_VERBOSE) {
+        printf("--------------------------");
+        printf("Starting Values (%d) are:", n);
+    }
+    for(k = 0; k < n; k++) {
+        if((M(myPars, k, 0) == 0.0)) {
+            M(myPars, k, 0) += 0.1;
         }
-        for(k = 0; k < n; k++) {
-            if((M(myPars, k, 0) == 0.0)) {
-                M(myPars, k, 0) += 0.1;
-            }
-            if(OMX_VERBOSE) { mxLog("%d: %f", k, M(myPars, k, 0)); }
-        }
-        if(OMX_DEBUG) {
-            mxLog("--------------------------");
-            mxLog("Setting up optimizer...");
-        }
-        
-           /* if (globalState->numConstraints == 0)
-            {
-                solIneqLB = fill(1,1,-999999.0);
-                solIneqUB = fill(1,1,-999999.0);
-            }*/
+        if(OMX_VERBOSE) { printf("%d: %f", k, M(myPars, k, 0)); }
+    }
+    if(OMX_DEBUG) {
+        printf("--------------------------");
+        printf("Setting up optimizer...");
+    }
+    
+    /* if (globalState->numConstraints == 0)
+     {
+     solIneqLB = fill(1,1,-999999.0);
+     solIneqUB = fill(1,1,-999999.0);
+     }*/
+    
+    // Matrix EqBFunValue = solEqBFun(myPars);
+    // Matrix EqBStartFunValue = solEqBStartFun(myPars);
+    if(OMX_DEBUG) { printf("myPars is: ");
+        print(myPars); putchar('\n');
+        printf("3rd call is: ");
+        printf("%2f", solFun(myPars)); putchar('\n');
+        printf("solEqB is: ");
+        print(solEqB); putchar('\n');
+        printf("solEqBFun is: ");
+        print(solEqBFun(myPars)); putchar('\n');
+        printf("solIneqFun is: ");
+        print(solIneqFun(myPars)); putchar('\n');
+        printf("blvar is: ");
+        print(blvar); putchar('\n');
+        printf("buvar is: ");
+        print(buvar); putchar('\n');
+        printf("solIneqUB is: ");
+        print(solIneqUB); putchar('\n');
+        printf("solIneqLB is: ");
+        print(solIneqLB); putchar('\n');
+    }
+    
+    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
+    
+    
+    fc->fit = *p_obj.objValue;
+    printf("final objective value is: \n");
+    printf("%2f", fc->fit); putchar('\n');
+    param_hess = *p_obj.parameter;
+    
+    int i;
+    /*for (i = 0; i < myPars.cols; i++)
+    {
+        M(myPars, i, 0) = M(param_hess, i, 0);
+    }*/
+    myPars = subset(param_hess, 0, 0, n-1);
+    printf("final myPars value is: \n");
+    print(myPars); putchar('\n');
+    
+    myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 1);
+    printf("myhess is: \n");
+    print(myhess); putchar('\n');
+    
+    double Hess[myhess.cols];
+    
+    for (i = 0; i < myhess.cols; i++)
+    {
+        Hess[i] = myhess.t[i];
+    }
 
-            // Matrix EqBFunValue = solEqBFun(myPars);
-            // Matrix EqBStartFunValue = solEqBStartFun(myPars);
-            if(OMX_DEBUG) { mxLog("myPars is: ");
-                print(myPars); 
-                mxLog("3rd call is: ");
-                mxLog("%2f", solFun(myPars)); 
-                mxLog("solEqB is: ");
-                print(solEqB); 
-                mxLog("solEqBFun is: ");
-                print(solEqBFun(myPars)); 
-                mxLog("solIneqFun is: ");
-                print(solIneqFun(myPars)); 
-                mxLog("blvar is: ");
-                print(blvar); 
-                mxLog("buvar is: ");
-                print(buvar); 
-                mxLog("solIneqUB is: ");
-                print(solIneqUB); 
-                mxLog("solIneqLB is: ");
-                print(solIneqLB); 
-            }
-        
-	    Param_Obj p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
-            GLOB_fc->fit = p_obj.objValue;
-            myPars = p_obj.parameter;
-        
-        if(OMX_DEBUG) {
-		mxLog("myPars's final value is: ");
-		print(myPars);
-		mxLog("Final Objective Value is: %f.", solFun(myPars)); 
-	}
-        
-        omxSaveCheckpoint(myPars.t, GLOB_fc->fit, TRUE);
-        
-	GLOB_fc->copyParamToModel(globalState, myPars.t);
+    mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-1);
+    
+    memcpy(fc->hess, Hess, sizeof(double) * n * n);
+    
+    //printf("Final Objective Value is: ");
+    //printf("%2f", solFun(myPars)); putchar('\n');
+    
+    for (i = 0; i < myPars.cols; i++){
+        x[i] = myPars.t[i];
+    }
+    
+    omxSaveCheckpoint(x, fc->fit, TRUE);
+    
+	fc->copyParamToModel(globalState);
+    //fc = GLOB_fc;
+    GLOB_fitMatrix = NULL;
+    GLOB_fc = NULL;
 }

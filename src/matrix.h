@@ -2,7 +2,7 @@
 #define _MATRIX_H_
 
 #include <math.h>
-#include <float.h>               
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -14,32 +14,21 @@ double rnd_double();
 typedef struct Matrix Matrix;
 
 struct Matrix {
-	unsigned sentinel1;
-	int isColMajor; // remove TODO
+	int isColMajor;    // either a 0 or a 1
 	int rows;
 	int cols;
 	double *t;
-	unsigned sentinel2;
+	
 };
+
+typedef struct Param_Obj Param_Obj;
 
 struct Param_Obj {
-    Matrix parameter;
-    double objValue;
+    Matrix* parameter;
+    double* objValue;
 };
 
-static void _MatrixCheck(Matrix &m, int x, int y) {
-	if (m.sentinel1 != 0xdeadbeef || m.sentinel2 != 0xdeadbeef) error("Memory corruption");
-	if (m.rows == 1 || m.cols == 1) {
-		int len = m.rows * m.cols;
-		int at = x + y;
-		if (at < 0 || at >= len) error("Bad vector index");
-		return;
-	}
-	if (x < 0 || x >= m.cols) error("Bad col index");
-	if (y < 0 || y >= m.rows) error("Bad row index");
-}
-
-#define M(m,x,y) (_MatrixCheck(m, x, y), m.t[x+y*m.cols])
+#define M(m,x,y) m.t[x+y*m.cols]
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 

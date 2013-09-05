@@ -32,10 +32,10 @@ class omxComputeGD : public omxCompute {
 	omxMatrix *fitMatrix;
 	bool useGradient;
 	int verbose;
-
+    
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
 	int inform, iter;
-
+    
 public:
 	omxComputeGD();
 	virtual void initFromFrontend(SEXP rObj);
@@ -63,7 +63,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
-
+    
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
 	if (length(slotValue)) {
@@ -71,10 +71,10 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	} else {
 		useGradient = Global->analyticGradients;
 	}
-
+    
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
-
+    
 	PROTECT(slotValue = GET_SLOT(rObj, install("engine")));
 	const char *engine_name = CHAR(asChar(slotValue));
 	if (strcmp(engine_name, "CSOLNP")==0) {
@@ -93,25 +93,25 @@ void omxComputeGD::compute(FitContext *fc)
 		error("Model has no free parameters");
 		return;
 	}
-
+    
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 	fc->maybeCopyParamToModel(globalState);
-
+    
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
-
+    
 	switch (engine) {
-	case OptEngine_NPSOL:
-		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
-		break;
-	case OptEngine_CSOLNP:
-		omxInvokeCSOLNP(fitMatrix, fc, verbose);
-		break;
-	default: error("huh?");
+        case OptEngine_NPSOL:
+            omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+            break;
+        case OptEngine_CSOLNP:
+            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+            break;
+        default: error("huh?");
 	}
-
+    
 	omxFreeChildStates(globalState);
-
+    
 	if (Global->numIntervals && engine == OptEngine_NPSOL) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: allow forcing
@@ -119,47 +119,47 @@ void omxComputeGD::compute(FitContext *fc)
 		} else {
 			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
 			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
-
+            
 			omxNPSOLConfidenceIntervals(fitMatrix, fc);
 			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
 		}
-	}  
-
+	}
+    
 	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
 }
 
 void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
-
+    
 	size_t numFree = varGroup->vars.size();
-
+    
 	SEXP estimate, gradient, hessian;
 	PROTECT(estimate = allocVector(REALSXP, numFree));
 	PROTECT(gradient = allocVector(REALSXP, numFree));
 	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
-
+    
 	memcpy(REAL(estimate), fc->est, sizeof(double) * numFree);
 	memcpy(REAL(gradient), fc->grad, sizeof(double) * numFree);
 	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
-
+    
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
 	out->push_back(std::make_pair(mkChar("estimate"), estimate));
 	out->push_back(std::make_pair(mkChar("gradient"), gradient));
 	out->push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
-
+    
 	if (intervals && intervalCodes) {
 		out->push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
 		out->push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
 	}
-
+    
 	SEXP code, iterations;
-
+    
 	PROTECT(code = NEW_NUMERIC(1));
 	REAL(code)[0] = inform;
 	out->push_back(std::make_pair(mkChar("npsol.code"), code));
-
+    
 	PROTECT(iterations = NEW_NUMERIC(1));
 	REAL(iterations)[0] = iter;
 	out->push_back(std::make_pair(mkChar("npsol.iterations"), iterations));
