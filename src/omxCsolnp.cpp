@@ -50,10 +50,12 @@ Matrix fillMatrix(int cols, int rows, double* array)
 
 
 //****** Objective Function *********//
-double csolnpObjectiveFunction(Matrix myPars)
+double csolnpObjectiveFunction(Matrix myPars, int verbose)
 {
-    printf("myPars inside obj is: ");
-    print(myPars); putchar('\n');
+	if (verbose) {
+		printf("myPars inside obj is: ");
+		print(myPars); putchar('\n');
+	}
     
 	unsigned short int checkpointNow = FALSE;
     
@@ -82,12 +84,9 @@ double csolnpObjectiveFunction(Matrix myPars)
         GLOB_fc->fit = fitMatrix->data[0];
     }
     
-	if(OMX_VERBOSE) {
-		printf("Fit function value is: %.32f ", fitMatrix->data[0]);
-        putchar('\n');
+	if(verbose) {
+		mxLog("Fit function value is: %.32f\n", fitMatrix->data[0]);
 	}
-    
-	if(OMX_DEBUG) { printf("-======================================================-"); }
     
 	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
 		omxSaveCheckpoint(myPars.t, GLOB_fc->fit, FALSE);		// Check about saving a checkpoint
@@ -100,63 +99,70 @@ double csolnpObjectiveFunction(Matrix myPars)
  * Replaces the standard objective function when finding confidence intervals. */
 
 /* (Non)Linear Constraint Functions */
-Matrix csolnpEqualityFunction(Matrix myPars)
+Matrix csolnpEqualityFunction(Matrix myPars, int verbose)
 {
 	int j, k, eq_n = 0;
     int l = 0;
     double EMPTY = -999999.0;
     Matrix myEqBFun;
     
-    printf("Starting csolnpEqualityFunction.");
+    if (verbose) mxLog("Starting csolnpEqualityFunction.");
         
     GLOB_fc->copyParamToModel(globalState, myPars.t);
     
     for(j = 0; j < globalState->numConstraints; j++) {
-		if (globalState->conList[j].opCode == 1)
-        {
-            eq_n += globalState->conList[j].size;
-        }
+	    if (globalState->conList[j].opCode == 1) {
+		    eq_n += globalState->conList[j].size;
+	    }
     }
     
-    printf("no.of constraints is: %d.", globalState->numConstraints);putchar('\n');
-    printf("neq is: %d.", eq_n); putchar('\n');
+    if (verbose >= 1) {
+	    mxLog("no.of constraints is: %d.", globalState->numConstraints);
+	    mxLog("neq is: %d.", eq_n);
+    }
     
     if (eq_n == 0)
     {
         myEqBFun = fill(1, 1, EMPTY);
     }
-    else
-    {
-        myEqBFun = fill(eq_n, 1, EMPTY);
-        
-        for(j = 0; j < globalState->numConstraints; j++) {
-            if (globalState->conList[j].opCode == 1)
-            {   printf("result is: ");
-                printf("%2f", globalState->conList[j].result->data[0]); putchar('\n');
-                omxRecompute(globalState->conList[j].result);                printf("%.16f", globalState->conList[j].result->data[0]); putchar('\n');
-                printf("size is: \n");
-                printf("%d", globalState->conList[j].size); putchar('\n');}
-            for(k = 0; k < globalState->conList[j].size; k++){
-                M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
-                l = l + 1;
-            }
-        }
+    else {
+	    myEqBFun = fill(eq_n, 1, EMPTY);
+	    
+	    for(j = 0; j < globalState->numConstraints; j++) {
+		    if (globalState->conList[j].opCode == 1) {
+			    if (verbose >= 1) {
+				    mxLog("result is: %2f", globalState->conList[j].result->data[0]);
+			    }
+			    omxRecompute(globalState->conList[j].result);
+			    if (verbose >= 1) {
+				    mxLog("%.16f", globalState->conList[j].result->data[0]);
+				    mxLog("size is: %d", globalState->conList[j].size);
+			    }
+		    }
+		    for(k = 0; k < globalState->conList[j].size; k++){
+			    M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
+			    l = l + 1;
+		    }
+	    }
     }
-    printf("myEqBFun is: ");
-    print(myEqBFun);
-    putchar('\n');
+    if (verbose >= 1) {
+	    printf("myEqBFun is: ");
+	    print(myEqBFun);
+	    putchar('\n');
+    }
     return myEqBFun;
 }
 
 
-Matrix csolnpIneqFun(Matrix myPars)
+Matrix csolnpIneqFun(Matrix myPars, int verbose)
 {
    	int j, k, ineq_n = 0;
     int l = 0;
     double EMPTY = -999999.0;
     Matrix myIneqFun;
     
-    printf("Starting csolnpIneqFun."); putchar('\n');
+    if (verbose) mxLog("Starting csolnpIneqFun.");
+
     GLOB_fc->copyParamToModel(globalState, myPars.t);
     
 	for(j = 0; j < globalState->numConstraints; j++) {
@@ -166,8 +172,10 @@ Matrix csolnpIneqFun(Matrix myPars)
         }
     }
     
-    printf("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
-    printf("ineq_n is: %d.", ineq_n); putchar('\n');
+	if (verbose >= 1) {
+		printf("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
+		printf("ineq_n is: %d.", ineq_n); putchar('\n');
+	}
     
     if (ineq_n == 0)
     {
@@ -224,15 +232,11 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Matrix myPars = fillMatrix(n, 1, fc->est);
     
-    double (*solFun)(struct Matrix myPars);
-    solFun = &csolnpObjectiveFunction;
+    solFun_t solFun = &csolnpObjectiveFunction;
     
-    Matrix (*solEqBFun)(struct Matrix myPars);
-    solEqBFun = &csolnpEqualityFunction;
+    solEqBFun_t solEqBFun = &csolnpEqualityFunction;
     
-    Matrix (*solIneqFun)(struct Matrix myPars);
-    solIneqFun = &csolnpIneqFun;
-    
+    solIneqFun_t solIneqFun = &csolnpIneqFun;
     
     /* Set boundaries and widths. */
     
@@ -326,13 +330,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     if(verbose == 2) { printf("myPars is: ");
         print(myPars); putchar('\n');
         printf("3rd call is: ");
-        printf("%2f", solFun(myPars)); putchar('\n');
+        printf("%2f", solFun(myPars, 0)); putchar('\n');
         printf("solEqB is: ");
         print(solEqB); putchar('\n');
         printf("solEqBFun is: ");
-        print(solEqBFun(myPars)); putchar('\n');
+        print(solEqBFun(myPars, 0)); putchar('\n');
         printf("solIneqFun is: ");
-        print(solIneqFun(myPars)); putchar('\n');
+        print(solIneqFun(myPars, 0)); putchar('\n');
         printf("blvar is: ");
         print(blvar); putchar('\n');
         printf("buvar is: ");
@@ -347,8 +351,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     
     fc->fit = *p_obj.objValue;
-    printf("final objective value is: \n");
-    printf("%2f", fc->fit); putchar('\n');
+    if (verbose >= 1) {
+	    printf("final objective value is: \n");
+	    printf("%2f", fc->fit); putchar('\n');
+    }
     param_hess = *p_obj.parameter;
     
     int i;
@@ -360,8 +366,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 1);
     
     if (verbose >= 2){
-    printf("myhess is: \n");
-    print(myhess); putchar('\n');
+	    printf("myhess is: \n");
+	    print(myhess); putchar('\n');
     }
 
     double Hess[myhess.cols];

@@ -20,13 +20,20 @@
 #include "omxMatrix.h"
 #include "matrix.h"
 
+typedef double (*solFun_t)(struct Matrix myPars, int verbose);
+typedef Matrix (*solEqBFun_t)(struct Matrix myPars, int verbose);
+typedef Matrix (*solIneqFun_t)(struct Matrix myPars, int verbose);
+
 struct Matrix fillMatrix(int cols, int rows, double* array);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup, int verbose);
 
 //void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations);
 
-Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle, int verbose);
+Param_Obj solnp(Matrix solPars, solFun_t solFun,
+		Matrix solEqB, solEqBFun_t solEqBFun, solIneqFun_t myineqFun,
+		Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,
+		Matrix solctrl, bool debugToggle, int verbose);
 
 double csolnpObjectiveFunction(Matrix myPars);
 struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg);

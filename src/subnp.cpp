@@ -43,22 +43,25 @@ int eqBLength;
 double eps;
 int outerIter;
 
-Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), Matrix (*myineqFun)( Matrix),  Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
+Matrix subnp(Matrix pars, solFun_t solFun, solEqBFun_t solEqBFun, solIneqFun_t myineqFun,
+	     Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
 
-
-Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle, int verbose){
-    
+Param_Obj solnp(Matrix solPars, solFun_t solFun,
+		Matrix solEqB, solEqBFun_t solEqBFun, solIneqFun_t myineqFun,
+		Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,
+		Matrix solctrl, bool debugToggle, int verbose)
+{
 	if(verbose >= 3){
 		printf("solPars is: \n");
 		print(solPars); putchar('\n');
 		printf("4th call is: \n");
-		printf("%2f", solFun(solPars)); putchar('\n');
+		printf("%2f", solFun(solPars, 0)); putchar('\n');
 		printf("solEqB is: \n");
 		print(solEqB); putchar('\n');
 		printf("solEqBFun is: \n");
-		print(solEqBFun(solPars)); putchar('\n');
+		print(solEqBFun(solPars, 0)); putchar('\n');
 		printf("myineqFun is: \n");
-		print(myineqFun(solPars)); putchar('\n');
+		print(myineqFun(solPars, 0)); putchar('\n');
 		printf("solLB is: \n");
 		print(solLB); putchar('\n');
 		printf("solUB is: \n");
@@ -181,8 +184,7 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
 	M(ind, 1, 0) = 0;
     
 	//# do function checks and return starting value
-	printf("5th call is: \n");
-	double funv = solFun(pars);
+	double funv = solFun(pars, verbose);
     
     
 	// does not have a hessian (currently not supported in Rsolnp)
@@ -192,7 +194,7 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
 	int nineq;
 	Matrix ineqx0 = fill(ineqLB.cols, 1, (double)0.0);
     
-	Matrix ineqv = myineqFun(pars);
+	Matrix ineqv = myineqFun(pars, verbose);
     
 	if ( M(ineqv, 0, 0) != EMPTY){
 		
@@ -237,7 +239,7 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
 	}
     
 	int neq;
-	Matrix eqv = solEqBFun(pars);
+	Matrix eqv = solEqBFun(pars, verbose);
     
 	if( M(eqv, 0, 0) != EMPTY){
 		M(ind, 6, 0) = 1;
@@ -458,19 +460,16 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
         
 		Matrix temp = subset(p, 0, nineq, (nineq+np-1));
         
-		if(verbose >=3){
-			printf("6th call is \n");
-			funv = solFun(temp);
-		}
+		funv = solFun(temp, verbose);
         
 		solnp_nfn = solnp_nfn + 1;
         
 		Matrix funv_mat = fill(1, 1, funv);
 		Matrix tempdf = copy(temp, funv_mat);
         
-		eqv = solEqBFun(temp);
+		eqv = solEqBFun(temp, verbose);
         
-		ineqv = myineqFun(temp);
+		ineqv = myineqFun(temp, verbose);
         
         
 		Matrix firstPart, copied;
@@ -579,13 +578,15 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
 		M(tempTTVals, 1, 0) = M(tt, 0, 1);
 		vnormValue = vnorm(tempTTVals);
         
-		if (vnormValue <= tol){
-			printf("The solution converged in %d iterations. It is:", solnp_iter); putchar('\n');
-			print(p);
-		}
-		else{
-			printf("Solution failed to converge. Final parameters are:");putchar('\n');
-			print(p);
+		if (verbose >= 1) {
+			if (vnormValue <= tol){
+				mxLog("The solution converged in %d iterations. It is:", solnp_iter);
+				print(p);
+			}
+			else{
+				mxLog("Solution failed to converge. Final parameters are:");
+				print(p);
+			}
 		}
 	}
     
@@ -611,7 +612,10 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
 	return pfunv;
     
 }
-Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix), Matrix (*myineqFun)( Matrix),  Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose){
+
+Matrix subnp(Matrix pars, solFun_t solFun, solEqBFun_t solEqBFun, solIneqFun_t myineqFun,
+	     Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose)
+{
 	
 	int yyRows = yy.rows;
 	int yyCols = yy.cols;
@@ -794,11 +798,11 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 			if (verbose >= 2){
 				printf("7th call is \n");
 			}
-			funv = solFun(tmpv);
+			funv = solFun(tmpv, verbose);
             
-			eqv = solEqBFun(tmpv);
+			eqv = solEqBFun(tmpv, verbose);
             
-			ineqv = myineqFun(tmpv);
+			ineqv = myineqFun(tmpv, verbose);
             
 			//exit(0);
 			solnp_nfn = solnp_nfn + 1;
@@ -984,17 +988,17 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 			print(tmpv); putchar('\n');
 			printf("8th call is \n");
 		}
-		funv = solFun(tmpv);
+		funv = solFun(tmpv, verbose);
 		if (verbose >= 3){
 			printf("funv is: \n");
 			printf("%2f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(tmpv);
+		eqv = solEqBFun(tmpv, verbose);
 		if (verbose >= 3){
 			printf("eqv is: \n");
 			print(eqv); putchar('\n');
 		}
-		ineqv = myineqFun(tmpv);
+		ineqv = myineqFun(tmpv, verbose);
 		if (verbose >= 3){
 			printf("ineqv is: \n");
 			print(ineqv); putchar('\n');
@@ -1060,13 +1064,14 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 				if (verbose >= 3){
 					printf("9th call is \n");
 
-				}                funv = solFun(tmpv);
+				}
+				funv = solFun(tmpv, verbose);
 				if (verbose >= 3){
 					printf("funv is: \n");
 					printf("%2f", funv); putchar('\n');
 				}
-				eqv = solEqBFun(tmpv);
-				ineqv = myineqFun(tmpv);
+				eqv = solEqBFun(tmpv, verbose);
+				ineqv = myineqFun(tmpv, verbose);
 				solnp_nfn = solnp_nfn + 1;
 				Matrix firstPart, secondPart, firstPartt;
                 
@@ -1379,14 +1384,14 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 		if (verbose >= 2){
 			printf("10th call is \n");
 		}
-		funv = solFun(tmpv);
+		funv = solFun(tmpv, verbose);
 		if (verbose >= 3){
 			printf("funv is: \n");
 			printf("%.20f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(tmpv);
+		eqv = solEqBFun(tmpv, verbose);
         
-		ineqv = myineqFun(tmpv);
+		ineqv = myineqFun(tmpv, verbose);
         
 		solnp_nfn = solnp_nfn + 1;
 		Matrix firstPart, secondPart, firstPartt;
@@ -1459,14 +1464,14 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 				printf("11th call is \n");
 			}
          
-			funv = solFun(tmpv);
+			funv = solFun(tmpv, verbose);
 			if (verbose >= 3){
 				printf("funv is: \n");
 				printf("%2f", funv); putchar('\n');
 			}
-			eqv = solEqBFun(tmpv);
+			eqv = solEqBFun(tmpv, verbose);
             
-			ineqv = myineqFun(tmpv);
+			ineqv = myineqFun(tmpv, verbose);
 			solnp_nfn = solnp_nfn + 1;
 			Matrix firstPart, secondPart, firstPartt;
 			if (M(ineqv, 0, 0) != EMPTY){
