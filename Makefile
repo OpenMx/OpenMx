@@ -2,6 +2,7 @@ REXEC = R
 RCOMMAND = CMD
 RBUILD = build
 RINSTALL = INSTALL
+BUILDARGS = --dsym  # need for MacOS debug symbols
 RCHECK = check
 RPDF = Rd2pdf
 BUILDPRE = 999.0.0
