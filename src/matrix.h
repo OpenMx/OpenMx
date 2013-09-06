@@ -24,8 +24,8 @@ struct Matrix {
 typedef struct Param_Obj Param_Obj;
 
 struct Param_Obj {
-    Matrix* parameter;
-    double* objValue;
+    Matrix parameter;
+    double objValue;
 };
 
 #define M(m,x,y) m.t[x+y*m.cols]

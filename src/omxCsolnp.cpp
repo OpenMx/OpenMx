@@ -350,12 +350,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
     
-    fc->fit = *p_obj.objValue;
+    fc->fit = p_obj.objValue;
     if (verbose >= 1) {
 	    printf("final objective value is: \n");
 	    printf("%2f", fc->fit); putchar('\n');
     }
-    param_hess = *p_obj.parameter;
+    param_hess = p_obj.parameter;
     
     int i;
     myPars = subset(param_hess, 0, 0, n-1);

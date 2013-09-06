@@ -606,9 +606,8 @@ Param_Obj solnp(Matrix solPars, solFun_t solFun,
     
 
 	Matrix p_hess = copy(p, hessi);
-	Matrix p_hess_grad = copy(p_hess, grad);
-	pfunv.parameter = &p_hess_grad;
-	pfunv.objValue = &funv;
+	pfunv.parameter = copy(p_hess, grad);
+	pfunv.objValue = funv;
 	return pfunv;
     
 }
