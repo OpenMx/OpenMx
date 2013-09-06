@@ -1568,9 +1568,10 @@ Matrix subnp(Matrix pars, solFun_t solFun, solEqBFun_t solEqBFun, solIneqFun_t m
 				ob3 = duplicateIt(ob2);
 				M(alp, 2, 0) = M(alp, 1, 0);
 				Matrix tempCol = getColumn(ptt, 1);
+                ptt = setColumn(ptt, tempCol, 2);
+
 				if (verbose >= 3){
-					ptt = setColumn(ptt, tempCol, 2);
-					printf("sob is: \n");
+                    printf("sob is: \n");
 					print(sob); putchar('\n');
 					printf("ob3 is: \n");
 					print(ob3); putchar('\n');

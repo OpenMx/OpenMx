@@ -241,10 +241,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     /* Set boundaries and widths. */
     
     /* Allocate arrays */
-    bl      = (double*) R_alloc ( n, sizeof ( double ) );
-    bu      = (double*) R_alloc (n, sizeof ( double ) );
+    bl      = Calloc ( n, double );
+    bu      = Calloc (n, double );
     
-	if (verbose == 2) {
+	if (verbose >= 2) {
 		for (int i = 0; i < n; i++) {
 			printf("bl is: ");
 			printf("%2f", bl[i]); putchar('\n');
