@@ -211,21 +211,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     int ncnln = globalState->ncnln;
     int n = freeVarGroup->vars.size();
     
-    printf("n n n: \n");
-    printf("%d", n); putchar('\n');
-    
     double EMPTY = -999999.0;
     int j;
     
-    // for(j = 0; j < globalState->numConstraints; j++) {
-    //		if (globalState->conList[j].opCode == 1){ eq_n++;}
-    //  }
     Param_Obj p_obj;
     Matrix param_hess;
     Matrix myhess = fill(n*n, 1, (double)0.0);
-    printf("myhess: \n");
-    print(myhess); putchar('\n');
-
     Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
@@ -249,7 +240,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     bl      = (double*) R_alloc ( n, sizeof ( double ) );
     bu      = (double*) R_alloc (n, sizeof ( double ) );
     
-	if (verbose) {
+	if (verbose == 2) {
 		for (int i = 0; i < n; i++) {
 			printf("bl is: ");
 			printf("%2f", bl[i]); putchar('\n');
@@ -292,7 +283,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
 	    omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        if (verbose) {
+        if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
             printf("solIneqUB is: ");
@@ -332,7 +323,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     // Matrix EqBFunValue = solEqBFun(myPars);
     // Matrix EqBStartFunValue = solEqBStartFun(myPars);
-    if(OMX_DEBUG) { printf("myPars is: ");
+    if(verbose == 2) { printf("myPars is: ");
         print(myPars); putchar('\n');
         printf("3rd call is: ");
         printf("%2f", solFun(myPars)); putchar('\n');
@@ -352,7 +343,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         print(solIneqLB); putchar('\n');
     }
     
-    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG);
+    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
     
     fc->fit = *p_obj.objValue;
@@ -361,18 +352,18 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     param_hess = *p_obj.parameter;
     
     int i;
-    /*for (i = 0; i < myPars.cols; i++)
-    {
-        M(myPars, i, 0) = M(param_hess, i, 0);
-    }*/
     myPars = subset(param_hess, 0, 0, n-1);
-    printf("final myPars value is: \n");
-    print(myPars); putchar('\n');
-    
+    if (verbose>= 1){    
+	    printf("final myPars value is: \n");
+	    print(myPars); putchar('\n');
+    }
     myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 1);
+    
+    if (verbose >= 2){
     printf("myhess is: \n");
     print(myhess); putchar('\n');
-    
+    }
+
     double Hess[myhess.cols];
     
     for (i = 0; i < myhess.cols; i++)
@@ -383,18 +374,14 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-1);
     
     memcpy(fc->hess, Hess, sizeof(double) * n * n);
-    
-    //printf("Final Objective Value is: ");
-    //printf("%2f", solFun(myPars)); putchar('\n');
-    
+        
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
     }
     
     omxSaveCheckpoint(x, fc->fit, TRUE);
     
-	fc->copyParamToModel(globalState);
-    //fc = GLOB_fc;
+    fc->copyParamToModel(globalState);
     GLOB_fitMatrix = NULL;
     GLOB_fc = NULL;
 }

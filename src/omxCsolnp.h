@@ -26,7 +26,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int 
 
 //void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations);
 
-Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle);
+Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matrix (*solEqBFun)(Matrix), Matrix (*myineqFun)( Matrix) , Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle, int verbose);
 
 double csolnpObjectiveFunction(Matrix myPars);
 struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg);
