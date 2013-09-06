@@ -40,6 +40,8 @@ if (any(args == 'gctorture')) {
 		   'models/passing/AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R',
 		   'models/passing/JointFIMLTest.R')
+} else if (any(args == 'csolnp')) {
+	files <- c('demo/RowObjectiveSimpleExamples.R')
 } else {
 	files <- list.files(directories, pattern = '^.+[.]R$',
 			    full.names = TRUE, recursive = TRUE)
