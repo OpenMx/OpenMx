@@ -1708,7 +1708,7 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 	hessv = divide(hessv, transposePart);
 	hessv = multiplyByScalar2D(hessv, M(vscale,0,0));
     
-	if (reduce > tol){
+	if (verbose >= 1 && reduce > tol) {
 		printf("m3 solnp error message being reported.");
 		putchar('\n');
 	}
