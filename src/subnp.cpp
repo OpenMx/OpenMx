@@ -970,6 +970,7 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 	} // end if (nc > 0){
     
 	p = subset(p0, 0, 0, npic-1);
+    y = fill(1, 1, (double)0.0);
     
 	if (verbose >= 3){
 		printf("p is: \n");
