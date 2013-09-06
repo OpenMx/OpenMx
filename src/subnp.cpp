@@ -296,8 +296,8 @@ Param_Obj solnp( Matrix solPars, double (*solFun)( Matrix),  Matrix solEqB, Matr
         int pbRows = pb.rows;
 	int pbCols = pb.cols;
 	double rho   = M(control, 0, 0);
-	double maxit = M(control, 1, 0);
-	double minit = M(control, 2, 0);
+	int maxit = M(control, 1, 0);
+	int minit = M(control, 2, 0);
 	double delta = M(control, 3, 0);
 	double tol   = M(control, 4, 0);
 	double trace = M(control, 5, 0);
@@ -617,18 +617,19 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 	int yyCols = yy.cols;
     
 	double rho   = M(ctrl, 0, 0);
-	double maxit = M(ctrl, 1, 0);
+	int maxit = M(ctrl, 1, 0);
 	double delta = M(ctrl, 2, 0);
 	double tol =   M(ctrl, 3, 0);
 	double trace =  M(ctrl, 4, 0);
     
-	int neq =  (int)M(ind, 7, 0);
+    int neq =  (int)M(ind, 7, 0);
     int nineq = (int)M(ind, 4, 0);
     int np = (int)M(ind, 0, 0);
 
-	double ch = 1;
+    double ch = 1;
     Matrix argum;
-    
+    Matrix y;
+
     if (verbose >= 2){
 	    printf("ind inside subnp is: \n");
 	    print(ind); putchar('\n');
@@ -774,12 +775,13 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
     Matrix gap;
     
     double solnp_nfn = 0;
-    double go, minit, reduce;
+    double go, reduce;
+    int minit;
     
     double lambdaValue = lambda;
     
     
-    if (nc > 0){
+    if (nc > 0) {
         constraint = subset(ob, 0, 1, nc);
         
         int i;
@@ -897,8 +899,9 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
                     
                 }
                 
-                Matrix y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
-                //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
+                y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
+                
+	        //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
                 y = subset(y, 0, 0, nc - 1);
                 
                 Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),y))));
@@ -972,8 +975,6 @@ Matrix subnp(Matrix pars, double (*solFun)( Matrix), Matrix (*solEqBFun)( Matrix
 	    printf("p is: \n");
 	    print(p); putchar('\n');
     }
-
-    Matrix y;
     
     if (ch > 0){
         tmpv = multiply(subset(p, 0, nineq, (npic-1)), subset(vscale, 0, (nc+1), (nc+np)));
