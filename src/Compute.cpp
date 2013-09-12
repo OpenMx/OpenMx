@@ -43,7 +43,10 @@ FitContext::FitContext(std::vector<double> &startingValues)
 	init();
 
 	size_t numParam = varGroup->vars.size();
-	if (startingValues.size() != numParam) error("mismatch");
+	if (startingValues.size() != numParam) {
+		error("Got %d starting values for %d parameters",
+		      startingValues.size(), numParam);
+	}
 	memcpy(est, startingValues.data(), sizeof(double) * numParam);
 
 	for (size_t v1=0; v1 < numParam; v1++) {
