@@ -245,7 +245,7 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					dimnames(value) <- dimnames(candidate)
 					candidate@result <- value
 				} else if (is(candidate,"MxFitFunction")) {
-					candidate@result <- as.matrix(value[1,1])
+					candidate@result <- as.matrix(value)
 					attr <- attributes(value)
 					attr$dim <- NULL
 					candidate@info <- attr
