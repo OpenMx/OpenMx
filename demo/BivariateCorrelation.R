@@ -29,6 +29,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Mike Hunter -- 2013.09.16 nudged starting values of second model varainces away from zero
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -98,7 +99,8 @@ bivCorModelSub <-mxModel(bivCorModel,
         type="Diag", 
         nrow=2, 
         ncol=2, 
-        free=TRUE, 
+        free=TRUE,
+        values=.2, # Note: to test optimizer for robustness to bad starting values, change to 0.
         name="Chol"
     )
 )
