@@ -27,8 +27,9 @@
 #      OpenMx one factor matrix model demo from front page of website
 # 
 # RevisionHistory:
-#      Hermine Maes -- 2009.10.08 updated & reformatted
+#      Hermine Maes -- 2009.10.08	updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Mike Hunter -- 2013.09.16	Identified model by fixing variance to 1.0
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -40,9 +41,9 @@ data(demoOneFactor)
 # -----------------------------------------------------------------------------
 
 factorModel <- mxModel(name ="One Factor",
-    mxMatrix(type="Full", nrow=5, ncol=1, free=T, values=0.2, name="A"),
-    mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="L"),
-    mxMatrix(type="Diag", nrow=5, ncol=5, free=T, values=1, name="U"),
+    mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="A"),
+    mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+    mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
     mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500))
