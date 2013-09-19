@@ -103,9 +103,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
    
-# Create and fit a model using mxMatrix, mxAlgebra, mxExpectationNormal, and mxFitFunctionML
+# Create and fit a model using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
 
-# DO NOT RUN THIS EXAMPLE IT CURRENTLY CAUSES R TO CRASH!!!
 require(OpenMx)
 data(demoOneFactor)
 nvar <- ncol(demoOneFactor)
@@ -120,8 +119,12 @@ ssModel <- mxModel(name="State Space Manual Example",
 	mxMatrix("Zero", 1, 1, name="x0"),
 	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
 	mxData(observed=demoOneFactor, type="raw"),
-	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
+	imxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
 	mxFitFunctionML()
 )
+ssRun <- mxRun(ssModel)
+summary(ssRun)
+# Note the Autoregressive parameter (A matrix) is near zero
+#  as it should be for the independent rows of data here.
 
 }
