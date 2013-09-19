@@ -129,7 +129,7 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 }
 
 
-void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
+void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of update step when there is missing data
     if(OMX_DEBUG) { mxLog("Kalman Update Called."); }
 	/* Creat local copies of State Space Matrices */
 	//omxMatrix* A = ose->A;
@@ -261,10 +261,10 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->R = omxNewMatrixFromSlot(rObj, currentState, "R");
 	
 	if(OMX_DEBUG) { mxLog("Processing initial x."); }
-	SSMexp->x = omxNewMatrixFromSlot(rObj, currentState, "x");
+	SSMexp->x0 = omxNewMatrixFromSlot(rObj, currentState, "x0");
 	
 	if(OMX_DEBUG) { mxLog("Processing initial P."); }
-	SSMexp->P = omxNewMatrixFromSlot(rObj, currentState, "P");
+	SSMexp->P0 = omxNewMatrixFromSlot(rObj, currentState, "P0");
 	
 	
 	/* Initialize the place holder matrices used in calculations */
@@ -282,10 +282,10 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	// TODO Make x0 and P0 static (if possible) to save memory
 	// TODO Look into omxMatrix.c/h for a possible new matrix from omxMatrix function
 	if(OMX_DEBUG) { mxLog("Generating static internals for resetting initial values."); }
-	SSMexp->x0 = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	SSMexp->P0 = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
-	omxCopyMatrix(SSMexp->x0, SSMexp->x);
-	omxCopyMatrix(SSMexp->P0, SSMexp->P);
+	SSMexp->x = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
+	SSMexp->P = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
+	omxCopyMatrix(SSMexp->x, SSMexp->x0);
+	omxCopyMatrix(SSMexp->P, SSMexp->P0);
 	
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	

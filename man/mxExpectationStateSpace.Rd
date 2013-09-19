@@ -105,10 +105,23 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
    
 # Create and fit a model using mxMatrix, mxAlgebra, mxExpectationNormal, and mxFitFunctionML
 
-library(OpenMx)
-
-# Simulate some data
-
-# The example is that there is no example.
+# DO NOT RUN THIS EXAMPLE IT CURRENTLY CAUSES R TO CRASH!!!
+require(OpenMx)
+data(demoOneFactor)
+nvar <- ncol(demoOneFactor)
+ssModel <- mxModel(name="State Space Manual Example",
+	mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
+	mxMatrix("Zero", 1, 1, name="B"),
+	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(colnames(demoOneFactor)
+, "F1")),
+	mxMatrix("Zero", nvar, 1, name="D"),
+	mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
+	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
+	mxMatrix("Zero", 1, 1, name="x0"),
+	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+	mxData(observed=demoOneFactor, type="raw"),
+	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
+	mxFitFunctionML()
+)
 
 }
