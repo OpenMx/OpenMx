@@ -157,6 +157,8 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	omxMatrix* Means = ose->means;
 	omxMatrix* Det = ose->det;
 	*Det->data = 0.0; // the value pointed to by Det->data is assigned to be zero
+	int toRemoveSS[y->rows];
+	int numRemovesSS = 0;
 	
 	int info = 0; // Used for computing inverse for Kalman gain
 	
@@ -170,9 +172,29 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	omxTransposeMatrix(Means);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
+	
+	//If entire data vector, y, is missing, then set residual, r, to zero.
+	//otherwise, compute residual.
+	memset(toRemoveSS, 0, sizeof(int) * y->rows);
+	for(int j = 0; j < y->rows; j++) {
+		double dataValue = omxMatrixElement(y, j, 0);
+		int dataValuefpclass = fpclassify(dataValue);
+		if(dataValuefpclass == FP_NAN || dataValuefpclass == FP_INFINITE) {
+			numRemovesSS++;
+			toRemoveSS[j] = 1;
+		} else {
+			omxSetMatrixElement(r, j, 0, (dataValue -  omxMatrixElement(s, j, 0)));
+		}
+	}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: Residual (Loop)"); }
 	/* Now compute the residual */
-	omxCopyMatrix(r, y); // r = y
-	omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
+	if(numRemovesSS == 0){
+		omxCopyMatrix(r, y); // r = y
+		omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: Residual (DAXPY)"); }
+	} //else if(numRemovesSS == y->rows){
+	//	
+	//}
 	
 	/* S = C P C^T + R */
 	omxDSYMM(FALSE, 1.0, P, C, 0.0, Y); // Y = C P
@@ -318,6 +340,8 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->S;
 	} else if(!strncmp("determinant", component, 11)) {
 		retval = ose->det;
+	} else if(!strncmp("r", component, 1)) {
+		retval = ose->r;
 	}
 	
 	if(OMX_DEBUG) { mxLog("Returning %p.", retval); }

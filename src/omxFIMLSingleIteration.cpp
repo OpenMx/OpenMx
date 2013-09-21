@@ -1100,6 +1100,8 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			
 			determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
 			if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
+			
+			//smallRow = *omxGetExpectationComponent(expectation, localobj, "y");
 		}
 
 		/* Calculate Row Likelihood */
