@@ -157,10 +157,23 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	omxMatrix* Means = ose->means;
 	omxMatrix* Det = ose->det;
 	*Det->data = 0.0; // the value pointed to by Det->data is assigned to be zero
-	int toRemoveSS[y->rows];
+	int ny = y->rows;
+	int nx = x->rows;
+	int toRemoveSS[ny];
 	int numRemovesSS = 0;
+	int toRemoveNoneObs[ny];
+	int toRemoveNoneLat[nx];
+	memset(toRemoveNoneObs, 0, sizeof(int) * ny);
+	memset(toRemoveNoneLat, 0, sizeof(int) * nx);
 	
 	int info = 0; // Used for computing inverse for Kalman gain
+
+	/* Reset/Resample aliased matrices */
+	omxResetAliasedMatrix(C);
+	omxResetAliasedMatrix(R);
+	omxResetAliasedMatrix(r);
+	omxResetAliasedMatrix(K);
+	omxResetAliasedMatrix(S);
 	
 	/* r = r - C x - D u */
 	/* Alternatively, create just the expected value for the data row, x. */
@@ -175,26 +188,23 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	
 	//If entire data vector, y, is missing, then set residual, r, to zero.
 	//otherwise, compute residual.
-	memset(toRemoveSS, 0, sizeof(int) * y->rows);
+	memset(toRemoveSS, 0, sizeof(int) * ny);
 	for(int j = 0; j < y->rows; j++) {
 		double dataValue = omxMatrixElement(y, j, 0);
 		int dataValuefpclass = fpclassify(dataValue);
 		if(dataValuefpclass == FP_NAN || dataValuefpclass == FP_INFINITE) {
 			numRemovesSS++;
 			toRemoveSS[j] = 1;
+			omxSetMatrixElement(r, j, 0, 0.0);
 		} else {
 			omxSetMatrixElement(r, j, 0, (dataValue -  omxMatrixElement(s, j, 0)));
 		}
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: Residual (Loop)"); }
 	/* Now compute the residual */
-	if(numRemovesSS == 0){
-		omxCopyMatrix(r, y); // r = y
-		omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: Residual (DAXPY)"); }
-	} //else if(numRemovesSS == y->rows){
-	//	
-	//}
+	//omxCopyMatrix(r, y); // r = y
+	//omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
+	
 	
 	/* S = C P C^T + R */
 	omxDSYMM(FALSE, 1.0, P, C, 0.0, Y); // Y = C P
@@ -206,6 +216,31 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....State Space: Cov"); }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	
+	/* Filter S Here */
+	// N.B. if y is completely missing or completely present, leave S alone.
+	// Otherwise, filter S.
+	if(numRemovesSS < ny && numRemovesSS > 0) {
+		omxRemoveRowsAndColumns(S, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		omxRemoveRowsAndColumns(C, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		omxRemoveElements(r, numRemovesSS, toRemoveSS);
+		omxRemoveRowsAndColumns(K, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+	}
+	
+	/* Filter only rows(!) of C Here */
+	// N.B. if y is completely missing or completely present, leave C alone.
+	// Otherwise, filter C.
+	
+	/* Filter r Here */
+	// N.B. if y is completely missing or completely present, leave r alone.
+	// Otherwise, filter r.
+	// N.B. when y is completely missing, r is a zero vector.
+	// Can we exclude the likelihood of this row?
+	
+	/* Filter only rows(!) of K^T (The matrix called K here is the transpose of the Kalman Gain.  Filter the columns of the Kalman gain, which are the rows of the K matrix here.) */
+	// N.B. if y is completely missing or completely present, leave K alone.
+	// Otherwise, filter K.
+
+	
 	/* Now compute the Kalman Gain and update the error covariance matrix */
 	/* S = S^-1 */
 	omxDPOTRF(S, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
@@ -216,6 +251,11 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
 	omxDPOTRI(S, &info); // S = S^-1 via Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Inverse of S"); }
+	
+	// Also, when y is completely missing, omit
+	// omxDSYMM(TRUE, 1.0, S, Y, 0.0, K); // K = P C^T S^-1
+	// omxDGEMV(TRUE, 1.0, K, r, 1.0, x); // x = K r + x
+	// omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = P - K C P
 	
 	/* K = P C^T S^-1 */
 	/* Computed as K^T = S^-1 C P */
@@ -230,6 +270,11 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	/* P = P - K C P */
 	omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
+	
+	//TODO Filter inverse covariance matrix with something like
+	//omxResetAliasedMatrix(S);				// Re-sample covariance matrix
+	//omxRemoveRowsAndColumns(S, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+	
 	
 	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
 	//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
@@ -353,7 +398,10 @@ void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* of
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
 	if(!strcmp("y", component)) {
-		ose->y = om;
+		for(int i = 0; i < ose->y->rows; i++) {
+			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
+		}
+		//ose->y = om;
 	}
 	if(!strcmp("Reset", component)) {
 		omxCopyMatrix(ose->x, ose->x0);
