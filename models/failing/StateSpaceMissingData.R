@@ -50,8 +50,11 @@ liRun <- mxRun(liFactor)
 summary(liRun)
 
 
-summary(ssFactorRun)$parameters[, c(5, 6)]
-summary(liRun)$parameters[, c(5, 6)]
+ssNoMissParam <- summary(ssFactorRun)$parameters[1:10, c(5, 6)]
+liNoMissParam <- summary(liRun)$parameters[1:10, c(5, 6)]
+
+omxCheckCloseEnough(ssNoMissParam, liNoMissParam, epsilon=0.01)
+
 
 
 ssFactorMiss <- mxModel(ssFactor, name="As Factor with Missing",
@@ -66,8 +69,8 @@ ssFactorMissRun <- mxRun(ssFactorMiss)
 liMissRun <- mxRun(liFactorMiss)
 
 
-summary(ssFactorMissRun)$parameters[, c(5, 6)]
-summary(liMissRun)$parameters[, c(5, 6)]
+ssMissParam <- summary(ssFactorMissRun)$parameters[1:10, c(5, 6)]
+liMissParam <- summary(liMissRun)$parameters[1:10, c(5, 6)]
 
-
+omxCheckCloseEnough(ssMissParam, liMissParam, epsilon=0.01)
 

@@ -10,3 +10,4 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol$(WIN) -L$(NPSOL_DIR)
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX -DDEBUGMX_ROWS # Debug setup, etc., Algebras, etc., Matrix, and Rows
 # PKG_CFLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 
+# PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS)

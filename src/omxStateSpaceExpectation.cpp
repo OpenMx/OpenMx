@@ -170,8 +170,10 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 
 	/* Reset/Resample aliased matrices */
 	omxResetAliasedMatrix(C);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C (Reset)"); }
 	omxResetAliasedMatrix(R);
 	omxResetAliasedMatrix(r);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r (Reset)"); }
 	omxResetAliasedMatrix(K);
 	omxResetAliasedMatrix(S);
 	
@@ -220,10 +222,21 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	// N.B. if y is completely missing or completely present, leave S alone.
 	// Otherwise, filter S.
 	if(numRemovesSS < ny && numRemovesSS > 0) {
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S"); }
 		omxRemoveRowsAndColumns(S, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S (Filtered)"); }
+		
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C"); }
 		omxRemoveRowsAndColumns(C, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C (Filtered)"); }
+		
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r"); }
 		omxRemoveElements(r, numRemovesSS, toRemoveSS);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r (Filtered)"); }
+		
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K"); }
 		omxRemoveRowsAndColumns(K, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K (Filtered)"); }
 	}
 	
 	/* Filter only rows(!) of C Here */
