@@ -84,7 +84,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 
 
 void omxKalmanPredict(omxStateSpaceExpectation* ose) {
-    if(OMX_DEBUG) { mxLog("Kalman Predict Called."); }
+	if(OMX_DEBUG) { mxLog("Kalman Predict Called."); }
 	/* Creat local copies of State Space Matrices */
 	omxMatrix* A = ose->A;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
@@ -129,17 +129,15 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 }
 
 
-void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of update step when there is missing data
-    if(OMX_DEBUG) { mxLog("Kalman Update Called."); }
+void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
+	//TODO: Clean up this hack of function.
+	if(OMX_DEBUG) { mxLog("Kalman Update Called."); }
 	/* Creat local copies of State Space Matrices */
-	//omxMatrix* A = ose->A;
-	//omxMatrix* B = ose->B;
 	omxMatrix* C = ose->C;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C"); }
 	omxMatrix* D = ose->D;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....State Space: D"); }
-	//omxMatrix* Q = ose->Q;
-	omxMatrix* R = ose->R;
+	omxMatrix* R = ose->R; //unused
 	omxMatrix* r = ose->r;
 	omxMatrix* s = ose->s;
 	omxMatrix* u = ose->u;
@@ -150,41 +148,51 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(y, "....State Space: y"); }
 	omxMatrix* K = ose->K;
 	omxMatrix* P = ose->P;
-	omxMatrix* S = ose->S;
-	omxMatrix* Y = ose->Y;
-	//omxMatrix* Z = ose->Z;
+	omxMatrix* S = ose->S; //unused
+	omxMatrix* Y = ose->Y; //unused
 	omxMatrix* Cov = ose->cov;
 	omxMatrix* Means = ose->means;
 	omxMatrix* Det = ose->det;
 	*Det->data = 0.0; // the value pointed to by Det->data is assigned to be zero
+	omxMatrix* smallC = ose->smallC;
+	omxMatrix* smallD = ose->smallD;
+	omxMatrix* smallr = ose->smallr;
+	omxMatrix* smallR = ose->smallR;
+	omxMatrix* smallK = ose->smallK;
+	omxMatrix* smallS = ose->smallS;
+	omxMatrix* smallY = ose->smallY;
 	int ny = y->rows;
 	int nx = x->rows;
 	int toRemoveSS[ny];
 	int numRemovesSS = 0;
-	int toRemoveNoneObs[ny];
 	int toRemoveNoneLat[nx];
-	memset(toRemoveNoneObs, 0, sizeof(int) * ny);
+	int toRemoveNoneOne[1];
 	memset(toRemoveNoneLat, 0, sizeof(int) * nx);
+	memset(toRemoveNoneOne, 0, sizeof(int) * 1);
 	
 	int info = 0; // Used for computing inverse for Kalman gain
-
+	
+	omxAliasMatrix(smallS, S); //re-alias every time expectation is called, at end delete the alias.
+	
 	/* Reset/Resample aliased matrices */
-	omxResetAliasedMatrix(C);
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C (Reset)"); }
-	omxResetAliasedMatrix(R);
-	omxResetAliasedMatrix(r);
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r (Reset)"); }
-	omxResetAliasedMatrix(K);
-	omxResetAliasedMatrix(S);
+	omxResetAliasedMatrix(smallC);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Reset)"); }
+	omxResetAliasedMatrix(smallD);
+	omxResetAliasedMatrix(smallR);
+	omxResetAliasedMatrix(smallr);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Reset)"); }
+	omxResetAliasedMatrix(smallK);
+	omxResetAliasedMatrix(smallS);
+	omxResetAliasedMatrix(smallY);
 	
 	/* r = r - C x - D u */
 	/* Alternatively, create just the expected value for the data row, x. */
-	omxDGEMV(FALSE, 1.0, C, x, 0.0, s); // s = C x
+	omxDGEMV(FALSE, 1.0, smallC, x, 0.0, s); // s = C x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x"); }
 	omxDGEMV(FALSE, 1.0, D, u, 1.0, s); // s = D u + s THAT IS s = C x + D u
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(s, "....State Space: s = C x + D u"); }
 	omxCopyMatrix(Means, s); // Means = s THAT IS Means = C x + D u
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
+	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	omxTransposeMatrix(Means);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	
@@ -206,87 +214,78 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) { //TODO: Add skipping of up
 	/* Now compute the residual */
 	//omxCopyMatrix(r, y); // r = y
 	//omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
-	
-	
-	/* S = C P C^T + R */
-	omxDSYMM(FALSE, 1.0, P, C, 0.0, Y); // Y = C P
-	omxCopyMatrix(S, R); // S = R
-	omxDGEMM(FALSE, TRUE, 1.0, Y, C, 1.0, S); // S = Y C^T + S THAT IS C P C^T + R
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S = C P C^T + R"); }
-	
-	omxCopyMatrix(Cov, S); //Note: I know this is inefficient memory use, but for now it is more clear.-MDH
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....State Space: Cov"); }
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
+	omxResetAliasedMatrix(smallr);
 	
 	/* Filter S Here */
 	// N.B. if y is completely missing or completely present, leave S alone.
 	// Otherwise, filter S.
 	if(numRemovesSS < ny && numRemovesSS > 0) {
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S"); }
-		omxRemoveRowsAndColumns(S, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: S (Filtered)"); }
+		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S"); }
+		if(OMX_DEBUG) { mxLog("Filtering S, R, C, r, K, and Y."); }
+		omxRemoveRowsAndColumns(smallS, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S (Filtered)"); }
 		
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C"); }
-		omxRemoveRowsAndColumns(C, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C (Filtered)"); }
+		omxRemoveRowsAndColumns(smallR, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C"); }
+		omxRemoveRowsAndColumns(smallC, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Filtered)"); }
 		
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r"); }
-		omxRemoveElements(r, numRemovesSS, toRemoveSS);
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r (Filtered)"); }
+		omxRemoveRowsAndColumns(smallr, numRemovesSS, 0, toRemoveSS, toRemoveNoneOne);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Filtered)"); }
 		
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K"); }
-		omxRemoveRowsAndColumns(K, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K (Filtered)"); }
+		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K"); }
+		omxRemoveRowsAndColumns(smallK, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K (Filtered)"); }
+		
+		omxRemoveRowsAndColumns(smallY, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+	}
+	if(numRemovesSS == ny) {
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Completely missing row of data found."); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Skipping much of Kalman Update."); }
+		smallS->aliasedPtr = NULL;//delete alias from smallS
+		return ;
 	}
 	
-	/* Filter only rows(!) of C Here */
-	// N.B. if y is completely missing or completely present, leave C alone.
-	// Otherwise, filter C.
 	
-	/* Filter r Here */
-	// N.B. if y is completely missing or completely present, leave r alone.
-	// Otherwise, filter r.
-	// N.B. when y is completely missing, r is a zero vector.
-	// Can we exclude the likelihood of this row?
+	/* S = C P C^T + R */
+	omxDSYMM(FALSE, 1.0, P, smallC, 0.0, smallY); // Y = C P
+	//omxCopyMatrix(S, smallR); // S = R
+	memcpy(smallS->data, smallR->data, smallR->rows * smallR->cols * sizeof(double)); // Less safe omxCopyMatrix that keeps smallS aliased to S.
+	omxDGEMM(FALSE, TRUE, 1.0, smallY, smallC, 1.0, smallS); // S = Y C^T + S THAT IS C P C^T + R
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S = C P C^T + R"); }
 	
-	/* Filter only rows(!) of K^T (The matrix called K here is the transpose of the Kalman Gain.  Filter the columns of the Kalman gain, which are the rows of the K matrix here.) */
-	// N.B. if y is completely missing or completely present, leave K alone.
-	// Otherwise, filter K.
-
 	
 	/* Now compute the Kalman Gain and update the error covariance matrix */
 	/* S = S^-1 */
-	omxDPOTRF(S, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Cholesky of S"); }
-	for(int i = 0; i < S->cols; i++) {
-		*Det->data += log(fabs(omxMatrixElement(S, i, i)));
+	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
+	for(int i = 0; i < smallS->cols; i++) {
+		*Det->data += log(fabs(omxMatrixElement(smallS, i, i)));
 	}
 	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
-	omxDPOTRI(S, &info); // S = S^-1 via Cholesky factorization
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(S, "....State Space: Inverse of S"); }
+	omxDPOTRI(smallS, &info); // S = S^-1 via Cholesky factorization
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
 	
-	// Also, when y is completely missing, omit
-	// omxDSYMM(TRUE, 1.0, S, Y, 0.0, K); // K = P C^T S^-1
-	// omxDGEMV(TRUE, 1.0, K, r, 1.0, x); // x = K r + x
-	// omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = P - K C P
 	
 	/* K = P C^T S^-1 */
 	/* Computed as K^T = S^-1 C P */
-	omxDSYMM(TRUE, 1.0, S, Y, 0.0, K); // K = Y^T S THAT IS K = P C^T S^-1
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(K, "....State Space: K^T = S^-1 C P"); }
+	omxDSYMM(TRUE, 1.0, smallS, smallY, 0.0, smallK); // K = Y^T S THAT IS K = P C^T S^-1
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K^T = S^-1 C P"); }
 	
 	/* x = x + K r */
-	omxDGEMV(TRUE, 1.0, K, r, 1.0, x); // x = K r + x
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space Check Residual: r"); }
+	omxDGEMV(TRUE, 1.0, smallK, smallr, 1.0, x); // x = K r + x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = K r + x"); }
 	
 	/* P = (I - K C) P */
 	/* P = P - K C P */
-	omxDGEMM(TRUE, FALSE, -1.0, K, Y, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
+	omxDGEMM(TRUE, FALSE, -1.0, smallK, smallY, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
 	
-	//TODO Filter inverse covariance matrix with something like
-	//omxResetAliasedMatrix(S);				// Re-sample covariance matrix
-	//omxRemoveRowsAndColumns(S, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+	smallS->aliasedPtr = NULL;//delete alias from smallS
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
 	
 	
 	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
@@ -380,7 +379,26 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->Z = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
 	
 	SSMexp->cov = 		omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	SSMexp->means = 	omxInitMatrix(NULL, 1, nx, TRUE, currentState);
+	SSMexp->means = 	omxInitMatrix(NULL, 1, ny, TRUE, currentState);
+	
+	/* Create alias matrices for missing data filtering */
+	SSMexp->smallC = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
+	SSMexp->smallD = 	omxInitMatrix(NULL, ny, nu, TRUE, currentState);
+	SSMexp->smallR = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
+	SSMexp->smallr = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	SSMexp->smallK = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
+	SSMexp->smallS = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
+	SSMexp->smallY = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
+	
+	/* Alias the small matrices so their alias pointers refer to the memory location of their respective matrices */
+	omxAliasMatrix(SSMexp->smallC, SSMexp->C);
+	omxAliasMatrix(SSMexp->smallD, SSMexp->D);
+	omxAliasMatrix(SSMexp->smallR, SSMexp->R);
+	omxAliasMatrix(SSMexp->smallr, SSMexp->r);
+	omxAliasMatrix(SSMexp->smallK, SSMexp->K);
+	omxAliasMatrix(SSMexp->smallS, SSMexp->S);
+	omxAliasMatrix(SSMexp->smallY, SSMexp->Y);
+
 }
 
 
@@ -395,7 +413,7 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 	} else if(!strncmp("pvec", component, 4)) {
 		// Once implemented, change compute function and return pvec
 	} else if(!strncmp("inverse", component, 7)) {
-		retval = ose->S;
+		retval = ose->smallS;
 	} else if(!strncmp("determinant", component, 11)) {
 		retval = ose->det;
 	} else if(!strncmp("r", component, 1)) {

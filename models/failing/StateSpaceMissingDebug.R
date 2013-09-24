@@ -1,13 +1,13 @@
 
 require(OpenMx)
 data(demoOneFactor)
-demoOneFactorMiss <- as.matrix(demoOneFactor)[1:10,]
+demoOneFactorMiss <- as.matrix(demoOneFactor)[1:5,]
 nvar <- ncol(demoOneFactor)
 varnames <- colnames(demoOneFactor)
 
 
 
-missmat <- matrix(c(2, 4, 5, 1, 2, 3), nrow=3, ncol=2)
+missmat <- matrix(c(2, 4, 4, 4, 4, 4, 5, 1, 1:5, 5), nrow=7, ncol=2)
 demoOneFactorMiss[missmat] <- NA
 
 ssModel <- mxModel(name="State Space Missing Debug",
@@ -25,4 +25,66 @@ ssModel <- mxModel(name="State Space Missing Debug",
 )
 
 ssRun <- mxRun(ssModel)
+
+
+#------------------------------------------------------------------------------
+A <- ssModel$A@values
+B <- ssModel$B@values
+C <- ssModel$C@values
+D <- ssModel$D@values
+Q <- ssModel$Q@values
+R <- ssModel$R@values
+x <- ssModel$x0@values
+P <- ssModel$P0@values
+u <- matrix(0, 1, 1)
+
+for(i in 1:nrow(demoOneFactorMiss)){
+	x <- A %*% x + B %*% u
+	print(paste("***************Row***************", i))
+	print("Predicted x")
+	print(x)
+	P <- A %*% P %*% t(A) + Q
+	print("Predicted P")
+	print(P)
+	
+	toRemove <- !is.na(demoOneFactorMiss[i,])
+	if(sum(!toRemove) < nvar){
+		S <- C[toRemove,] %*% P %*% t(C[toRemove,]) + R[toRemove, toRemove]
+		print("S")
+		print(S)
+		S <- solve(S)
+		print("S^-1")
+		print(S)
+		K <- t(P %*% t(C[toRemove,]) %*% S)
+		print("K^T")
+		print(K)
+		print("r")
+		y <- demoOneFactorMiss[i,toRemove]
+		r <- y - C[toRemove,] %*% x - D[toRemove,] %*% u
+		print(r)
+		x <- x + t(K)%*%r
+		print("Updated x")
+		print(x)
+		P <- P - t(K) %*% C[toRemove,] %*% P
+		print("Updated P")
+		print(P)
+	}
+	else{
+		print("S is zero")
+		print("S^-1 is zero")
+		print("K is zero")
+		print("r is zero")
+		print("Updated x")
+		print(x)
+		print("Updated P")
+		print(P)
+	}
+}
+
+
+
+
+
+
+
 
