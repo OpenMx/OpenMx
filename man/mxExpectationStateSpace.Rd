@@ -47,7 +47,7 @@ Expectation functions define the way that model expectations are calculated. Whe
 
 The following alternative filters are not yet implemented: square root Kalman filter (in Cholesky or singular value decomposition form), extended Kalman filter for linear approximations to nonlinear state space models, unscented Kalman filter for highly nonlinear state space models, Kalman-Bucy filter for continuous time modeling, hybrid Kalman filter for continuous latent time with discrete observations, and Rauch-Tung-Striebel smoother for updating forecast state estimates after a complete forward pass through the data has been made.
 
-Also not fully implemented is missing data handling.
+Missing data handling is implemented in the same fashion as full information maximum likelihood for partially missing rows of data.  Additionally, completely missing rows of data are handled by only using the prediction step from the Kalman filter and omitting the update step.
 
 This model uses notation for the model matrices commonly found in engineering and control theory.  
 
