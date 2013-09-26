@@ -45,21 +45,21 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 	int first=TRUE;
 	if(source->colMajor) {
 		for(int j = 0; j < source->rows; j++) {
+			buf += "\n";
 			for(int k = 0; k < source->cols; k++) {
 				if (first) first=FALSE;
 				else buf += ",";
 				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
 			}
-			buf += "\n";
 		}
 	} else {
 		for(int j = 0; j < source->cols; j++) {
+			buf += "\n";
 			for(int k = 0; k < source->rows; k++) {
 				if (first) first=FALSE;
 				else buf += ",";
 				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
 			}
-			buf += "\n";
 		}
 	}
 	buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
