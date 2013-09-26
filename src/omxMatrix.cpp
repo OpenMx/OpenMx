@@ -50,6 +50,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 				else buf += ",";
 				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
 			}
+			buf += "\n";
 		}
 	} else {
 		for(int j = 0; j < source->cols; j++) {
@@ -58,6 +59,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 				else buf += ",";
 				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
 			}
+			buf += "\n";
 		}
 	}
 	buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
