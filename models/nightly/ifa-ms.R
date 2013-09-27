@@ -7,8 +7,6 @@ if (is(m2.data, "try-error")) m2.data <- read.table("data/ms-data.csv")
 m2.data[m2.data==-9] <- NA
 m2.data <- m2.data + 1
 
-m2.data <- data.frame(lapply(m2.data, mxFactor, levels=1:5))
-
 gpcm <- function(outcomes) {
   rpf.nrm(outcomes, T.c=lower.tri(diag(outcomes-1),TRUE) * -1)
   #   rpf.nrm(outcomes, T.c=diag(outcomes-1))
@@ -22,6 +20,11 @@ m2.spec[6] <- gpcm(4)
 m2.spec[13:14] <- gpcm(4)
 
 m2.numItems <- length(m2.spec)
+
+for (c in 1:m2.numItems) {
+  m2.data[[c]] <- mxFactor(m2.data[[c]], levels=1:m2.spec[[c]]@outcomes)
+}
+
 m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
