@@ -596,6 +596,8 @@ void omxComputeIterate::compute(FitContext *fc)
 				double change = prevFit - fc->fit;
 				if (verbose) mxLog("ComputeIterate: fit %.9g change %.9g", fc->fit, change);
 				mac = fabs(change);
+			} else {
+				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->fit);
 			}
 			prevFit = fc->fit;
 		}
