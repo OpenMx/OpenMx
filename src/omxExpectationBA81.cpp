@@ -1115,39 +1115,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			       data->cols);
 		return;
 	}
-	std::vector<bool> byOutcome(totalOutcomes, false);
-	int outcomesSeen = 0;
+
 	for (int rx=0, ux=0; rx < data->rows; ux++) {
 		int dups = omxDataNumIdenticalRows(state->data, rx);
 		state->numIdentical[ux] = dups;
 		state->rowMap[ux] = rx;
 		rx += dups;
-
-		if (outcomesSeen < totalOutcomes) {
-			// Since the data is sorted, this will scan at least half the data -> ugh
-			for (int ix=0, outcomeBase=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
-				int pick = omxIntDataElementUnsafe(data, rx, ix);
-				if (pick == NA_INTEGER) continue;
-				--pick;
-				if (!byOutcome[outcomeBase + pick]) {
-					byOutcome[outcomeBase + pick] = true;
-					if (++outcomesSeen == totalOutcomes) break;
-				}
-			}
-		}
-	}
-
-	if (outcomesSeen < totalOutcomes) {
-		std::string buf;
-		for (int ix=0, outcomeBase=0; ix < numItems; outcomeBase += itemOutcomes[ix], ++ix) {
-			for (int pick=0; pick < itemOutcomes[ix]; ++pick) {
-				if (byOutcome[outcomeBase + pick]) continue;
-				buf += string_snprintf(" item %d outcome %d", 1+ix, 1+pick);
-			}
-		}
-		omxRaiseErrorf(globalState, "Never endorsed:%s\n"
-			       "You must collapse categories or omit items to estimate item parameters.",
-			       buf.c_str());
 	}
 
 	if (state->design == NULL) {
