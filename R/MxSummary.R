@@ -236,7 +236,11 @@ parameterListHelper <- function(model, withModelName, invSDs) {
 			if (withModelName) {
 				ptable[i, 'model'] <- model@name
 			}
-			ptable[i, 'name'] <- names(estimates)[[i]]
+			if (!is.null(names(estimates))) {
+				ptable[i, 'name'] <- names(estimates)[[i]]
+			} else {
+				ptable[i, 'name'] <- paste("p", i, sep="")
+			}
 			ptable[i, 'matrix'] <- simplifyName(matrixNames[[mLocation]], model@name)
 			ptable[i, 'row'] <- mRow
 			ptable[i, 'col'] <- mCol
