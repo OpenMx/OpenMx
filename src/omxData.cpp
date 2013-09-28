@@ -81,6 +81,8 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->intData = (int**) R_alloc(numCols, sizeof(int*));
 		OMXZERO(od->intData, numCols);
 		od->location = (int*) R_alloc(numCols, sizeof(int));
+		SEXP colnames;
+		PROTECT(colnames = getAttrib(dataLoc, R_NamesSymbol));
 		for(int j = 0; j < numCols; j++) {
 			SEXP rcol;
 			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
@@ -88,10 +90,15 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 				SEXP attr;
 				PROTECT(attr = getAttrib(rcol, install("mxFactor")));
 				if (!isLogical(attr) || length(attr) != 1 || LOGICAL(attr)[0] != TRUE) {
-					warning("Data column %d is a factor but was not created using mxFactor", j+1);
+					warning("Data[%d] '%s' is a factor but does not have the 'mxFactor' attribute. "
+						"This can happen even if you created the factor with mxFactor() because "
+						"the attribute can be lost by subsequent transformations. "
+						"See the mxFactor manual page for details.",
+						j+1, CHAR(STRING_ELT(colnames, j)));
 				}
 				if (isUnordered(rcol)) {
-					warning("Data column %d must be an ordered factor", j+1);
+					warning("Data[%d] '%s' must be an ordered factor",
+						j+1, CHAR(STRING_ELT(colnames, j)));
 				}
 				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
 				od->intData[j] = INTEGER(rcol);
