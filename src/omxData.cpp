@@ -87,17 +87,8 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 			SEXP rcol;
 			PROTECT(rcol = VECTOR_ELT(dataLoc, j));
 			if(isFactor(rcol)) {
-				SEXP attr;
-				PROTECT(attr = getAttrib(rcol, install("mxFactor")));
-				if (!isLogical(attr) || length(attr) != 1 || LOGICAL(attr)[0] != TRUE) {
-					warning("Data[%d] '%s' is a factor but does not have the 'mxFactor' attribute. "
-						"This can happen even if you created the factor with mxFactor() because "
-						"the attribute can be lost by subsequent transformations. "
-						"See the mxFactor manual page for details.",
-						j+1, CHAR(STRING_ELT(colnames, j)));
-				}
 				if (isUnordered(rcol)) {
-					warning("Data[%d] '%s' must be an ordered factor",
+					warning("Data[%d] '%s' must be an ordered factor. Please use mxFactor()",
 						j+1, CHAR(STRING_ELT(colnames, j)));
 				}
 				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
