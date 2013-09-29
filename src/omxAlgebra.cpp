@@ -168,11 +168,6 @@ void omxAlgebraForceCompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { omxAlgebraPrint(oa, "Result is"); }
 }
 
-int omxAlgebraNeedsUpdate(omxAlgebra *oa)
-{
-	return TRUE;
-}
-
 omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
 
 	omxMatrix *om = omxInitMatrix(NULL, 0, 0, TRUE, os);

@@ -63,7 +63,7 @@ void R_init_OpenMx(DllInfo *info) {
 #endif
 }
 
-void R_unload_OpenMx(DllInfo *info) {
+void R_unload_OpenMx(DllInfo *) {
 	// keep this stub in case we need it
 }
 
@@ -97,7 +97,7 @@ SEXP asR(MxRList *out)
 }
 
 /* Main functions */
-SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
+SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 
 	omxManageProtectInsanity protectManager;
 
