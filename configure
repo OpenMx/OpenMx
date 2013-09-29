@@ -49,7 +49,7 @@ else
 fi
 
 if [ "$cxx_type" = gcc ]; then
-    COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas"
+    COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter"
     OPENMP_CXXFLAGS="-fopenmp"
     OPENMP_LDFLAGS="-fopenmp"
 fi
