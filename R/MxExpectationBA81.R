@@ -132,6 +132,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, CustomPrior=NULL, design=NULL
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=FALSE, EItemParam=NULL) {
 
+	if (packageVersion("rpf") < "0.15") stop("Please install 'rpf' version 0.15 or newer")
 	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
 		stop("qpoints should be 3 or greater")
