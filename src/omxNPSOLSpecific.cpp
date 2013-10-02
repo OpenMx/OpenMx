@@ -25,6 +25,7 @@
 #include "glue.h"
 #include "omxImportFrontendState.h"
 #include "Compute.h"
+#include "npsolswitch.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -103,6 +104,8 @@ void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, doubl
 		}
 	}
 }
+
+#if HAS_NPSOL
 
 /****** Objective Function *********/
 static void
@@ -612,31 +615,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
 	NPSOL_currentInterval = -1;
 }
  
-static void
-friendlyStringToLogical(const char *key, const char *str, int *out)
-{
-	int understood = FALSE;
-	int newVal;
-	if (matchCaseInsensitive(str, "Yes")) {
-		understood = TRUE;
-		newVal = 1;
-	} else if (matchCaseInsensitive(str, "No")) {
-		understood = TRUE;
-		newVal = 0;
-	} else if (isdigit(str[0]) && (atoi(str) == 1 || atoi(str) == 0)) {
-		understood = TRUE;
-		newVal = atoi(str);
-	}
-	if (!understood) {
-		warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
-		return;
-	}
-	if(OMX_DEBUG) { mxLog("%s=%d", key, newVal); }
-	*out = newVal;
-}
-
-void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
-		     int *analyticGradients)
+void omxSetNPSOLOpts(SEXP options)
 {
 		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
@@ -646,16 +625,8 @@ void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
 			if (matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
-				int newvalue = atoi(nextOptionValue);
-				if (newvalue > 0) *ciMaxIterations = newvalue;
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
-				*numThreads = atoi(nextOptionValue);
-				if (*numThreads < 1) {
-					warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
-					*numThreads = 1;
-				}
 			} else {
 				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
 				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
@@ -665,3 +636,4 @@ void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		UNPROTECT(1); // optionNames
 }
 
+#endif

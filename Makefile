@@ -89,6 +89,7 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
+	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
 	cp .Rbuildignore-npsol .Rbuildignore
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
@@ -98,12 +99,13 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 
 # Developers only. This rule is for testing builds without NPSOL. 
 cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
-	mkdir -p build
 	touch inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
+	echo '#define HAS_NPSOL 0' > src/npsolswitch.h
 	cp .Rbuildignore-cran .Rbuildignore
+	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
 	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET)

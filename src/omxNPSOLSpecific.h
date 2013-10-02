@@ -28,8 +28,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc);
  
-void omxSetNPSOLOpts(SEXP options, int *ciMaxIterations, int *numThreads,
-		     int *analyticGradients);
+void omxSetNPSOLOpts(SEXP options);
 
 void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu);
 

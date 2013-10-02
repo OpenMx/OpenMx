@@ -20,6 +20,7 @@
 #include "omxExportBackendState.h"
 #include "omxCsolnp.h"
 #include "Compute.h"
+#include "npsolswitch.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
@@ -80,7 +81,11 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	if (strcmp(engine_name, "CSOLNP")==0) {
 		engine = OptEngine_CSOLNP;
 	} else if (strcmp(engine_name, "NPSOL")==0) {
+#if HAS_NPSOL
 		engine = OptEngine_NPSOL;
+#else
+		error("NPSOL is not available in this build");
+#endif
 	} else {
 		error("MxComputeGradientDescent engine %s unknown", engine_name);
 	}
@@ -102,7 +107,9 @@ void omxComputeGD::compute(FitContext *fc)
     
 	switch (engine) {
         case OptEngine_NPSOL:
+#if HAS_NPSOL
             omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+#endif
             break;
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
@@ -120,7 +127,9 @@ void omxComputeGD::compute(FitContext *fc)
 			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
 			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
             
+#if HAS_NPSOL
 			omxNPSOLConfidenceIntervals(fitMatrix, fc);
+#endif
 			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
 		}
 	}
