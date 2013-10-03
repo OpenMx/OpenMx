@@ -92,7 +92,9 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
-	echo 'NPSOL_LIBS=$(NPSOL)' > src/Makevars.win
+	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
+	echo 'NPSOL=-lnpsol$(WIN) -L$(NPSOL_DIR)' >> src/Makevars.win
+	echo 'NPSOL_LIBS=$(NPSOL)' >> src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-npsol .Rbuildignore
 	mkdir -p build
