@@ -87,19 +87,17 @@ internal-build: build/$(TARGET)
 dev-doc:
 	./util/rox
 
-src/Makevars.win:
-	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
-	echo 'NPSOL=-lnpsol$$(WIN) -L$$(NPSOL_DIR)' >> src/Makevars.win
-	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
-	cat src/Makevars.win.in >> src/Makevars.win
-
-build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp src/Makevars.win
+build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
+	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
+	echo 'NPSOL=-lnpsol$$(WIN) -L$$(NPSOL_DIR)' >> src/Makevars.win
+	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
+	cat src/Makevars.win.in >> src/Makevars.win
 	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
 	cp .Rbuildignore-npsol .Rbuildignore
 	mkdir -p build
@@ -107,7 +105,6 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp src/Makev
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f $(ROXDOC)
 
-# Developers only. This rule is for testing builds without NPSOL. 
 cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
 	touch inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
