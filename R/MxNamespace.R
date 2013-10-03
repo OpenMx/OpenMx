@@ -13,6 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' imxSeparatorChar
+##'
+##' The character between the model name and the named entity inside
+##' the model.
 imxSeparatorChar <- '.'
 
 isNumber <- function(input) {
@@ -33,6 +37,13 @@ availableName <- function(model, namespace, name) {
 			!(name %in% namespace$values))
 }
 
+##' imxVerifyReference
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param reference reference
+##' @param stackNumber stackNumber
 imxVerifyReference <- function(reference, stackNumber) {
 	if (length(reference) != 1) {
 		stop(paste("Internal error of call to imxVerifyReference in",
@@ -134,6 +145,13 @@ imxVerifyReference <- function(reference, stackNumber) {
 	}
 }
 
+##' imxVerifyName
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param name name
+##' @param stackNumber stackNumber
 imxVerifyName <- function(name, stackNumber) {
     if (length(name) == 0) {
         stop(paste("The empty character vector is an invalid name in", 
@@ -212,6 +230,12 @@ imxVerifyName <- function(name, stackNumber) {
 	
 }
 
+##' imxIsDefinitionVariable
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param name name
 imxIsDefinitionVariable <- function(name) {
 	if (is.na(name)) {
 		return(FALSE)
@@ -236,6 +260,13 @@ isLocalDefinitionVariable <- function(name) {
 }
 
 
+##' imxIdentifier
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param namespace namespace
+##' @param name name
 imxIdentifier <- function(namespace, name) {
 	if (is.null(name)) return(NULL)
 	return(paste(namespace, name, sep = imxSeparatorChar))
@@ -252,6 +283,13 @@ simplifyName <- function(flatName, modelName) {
 	}
 }
 
+##' imxReverseIdentifier
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param name name
 imxReverseIdentifier <- function(model, name) {
 	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if(length(components) < 2) {
@@ -280,6 +318,12 @@ imxReverseIdentifier <- function(model, name) {
 	return(c(namespace, name))
 }
 
+##' imxGenerateNamespace
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
 imxGenerateNamespace <- function(model) {
 	entities <- list()
 	result <- generateLocalNamespace(model)
@@ -398,6 +442,12 @@ namespaceErrorMessage <- function(rlist) {
 	}
 }
 
+##' imxExtractNames
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param lst lst
 imxExtractNames <- function(lst) {
 	if (length(lst) == 0) {
 		return(character())
@@ -406,6 +456,12 @@ imxExtractNames <- function(lst) {
 	}
 }
 
+##' imxExtractReferences
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param lst lst
 imxExtractReferences <- function(lst) {
 	if (length(lst) == 0) {
 		return(character())
@@ -462,6 +518,14 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	}
 }
 
+##' imxLocateLabel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param label label
+##' @param model model
+##' @param parameter parameter
 imxLocateLabel <- function(label, model, parameter) {
 	if ((length(label) != 1) || !is.character(label) || is.na(label)) {
 		stop("'label' must be a character value")
@@ -569,6 +633,14 @@ checkNamespaceMatrix <- function(matrix, model, namespace) {
 	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, matrix@name, namespace) })
 }
 
+##' imxConvertSubstitution
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param substitution substitution
+##' @param modelname modelname
+##' @param namespace namespace
 imxConvertSubstitution <- function(substitution, modelname, namespace) {
 	pieces <- splitSubstitution(substitution)
 	identifier <- imxConvertIdentifier(pieces[[1]], modelname, namespace)
@@ -576,6 +648,14 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 	return(result)
 }
 
+##' imxConvertIdentifier
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param identifiers identifiers
+##' @param modelname modelname
+##' @param namespace namespace
 imxConvertIdentifier <- function(identifiers, modelname, namespace) {
 	if (length(identifiers) == 0) return(identifiers)
 	identifiers <- as.character(identifiers)
@@ -600,6 +680,15 @@ getModelNameString <- function(name) {
 	return(unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))[[1]])
 }
 
+##' imxConvertLabel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param label label
+##' @param modelname modelname
+##' @param dataname dataname
+##' @param namespace namespace
 imxConvertLabel <- function(label, modelname, dataname, namespace) {
 	if (hasSquareBrackets(label)) {
 		components <- splitSubstitution(label)

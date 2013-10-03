@@ -90,6 +90,9 @@ convertSingleConstraint <- function(constraint, flatModel) {
 	return(list(index1,index2,index3 - 1))
 }
 
+##' imxConstraintRelations
+##'
+##' A string vector of valid constraint binary relations.
 imxConstraintRelations <- c("<", "==", ">")
 
 

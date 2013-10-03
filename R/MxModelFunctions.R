@@ -275,6 +275,14 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
     return(model)
 }
 
+##' imxLocateIndex
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param name name
+##' @param referant referant
 imxLocateIndex <- function(model, name, referant) {
 	if (length(name) == 0) return(name)
 	if (is.na(name)) { return(as.integer(name)) }
@@ -309,6 +317,12 @@ imxLocateIndex <- function(model, name, referant) {
 	}
 }
 
+##' imxPreprocessModel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
 imxPreprocessModel <- function(model) {
 	model@matrices <- lapply(model@matrices, findSquareBrackets)
 	model@submodels <- lapply(model@submodels, imxPreprocessModel)
@@ -316,6 +330,12 @@ imxPreprocessModel <- function(model) {
 }
 
 
+##' imxCheckMatrices
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
 imxCheckMatrices <- function(model) {
 	matrices <- model@matrices
 	lapply(matrices, imxVerifyMatrix)

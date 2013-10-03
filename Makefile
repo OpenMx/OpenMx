@@ -30,8 +30,27 @@ RSOURCE = R
 RDOCUMENTS = man
 RDATA = data
 ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
-		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd man/imxPPML.Rd man/imxPPML.Test.Battery.Rd
+	man/omxCheckCloseEnough.Rd \
+	man/mxExpectationBA81.Rd man/imxPPML.Rd man/imxPPML.Test.Battery.Rd \
+	man/imxCheckVariables.Rd \
+	man/imxCheckMatrices.Rd \
+	man/imxCheckVariables.Rd \
+	man/imxConstraintRelations.Rd \
+	man/imxConvertIdentifier.Rd \
+	man/imxConvertLabel.Rd \
+	man/imxConvertSubstitution.Rd \
+	man/imxExtractNames.Rd \
+	man/imxExtractReferences.Rd \
+	man/imxGenerateNamespace.Rd \
+	man/imxIdentifier.Rd \
+	man/imxIsDefinitionVariable.Rd \
+	man/imxLocateIndex.Rd \
+	man/imxLocateLabel.Rd \
+	man/imxPreprocessModel.Rd \
+	man/imxReverseIdentifier.Rd \
+	man/imxSeparatorChar.Rd \
+	man/imxVerifyName.Rd \
+	man/imxVerifyReference.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)
