@@ -29,6 +29,9 @@ INSTALLMAKEFLAGS=""
 RSOURCE = R
 RDOCUMENTS = man
 RDATA = data
+ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
+		man/omxCheckCloseEnough.Rd \
+		man/mxExpectationBA81.Rd man/imxPPML.Rd man/imxPPML.Test.Battery.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)
@@ -100,9 +103,7 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
-		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd
+	rm -f $(ROXDOC)
 
 # Developers only. This rule is for testing builds without NPSOL. 
 cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
@@ -120,22 +121,16 @@ cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
 	mv DESCRIPTION.bak DESCRIPTION
 
 cran-build: cran
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
-		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd
+	rm -f $(ROXDOC)
 	ls -lh $(RBUILD)/OpenMx_*.tar.gz
 
 cran-winbuild: cran
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
-		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd
+	rm -f $(ROXDOC)
 	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
 
 cran-check: cran
 	cd $(RBUILD) && R CMD check --as-cran OpenMx_*.tar.gz
-	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
-		man/omxCheckCloseEnough.Rd \
-		man/mxExpectationBA81.Rd
+	rm -f $(ROXDOC)
 
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
