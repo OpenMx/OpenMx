@@ -117,19 +117,12 @@ single.na <- function(a) {
         (is.na(a) == TRUE))
 }
 
-mxSolveWithPPML <- function(model) {
-	solved <- imxPPMLTransformModel(model)
-	if (PPML.Check.UseOptimizer(model@options$UsePPML))
-		stop("PPML not applicable to model, aborting solve.")
-	return(mxRun(solved, useOptimizer=FALSE))
-}
-
-imxPPMLTransformModel <- function(model.original) {
+PPMLTransformModel <- function(model.original) {
 	# Name anonymous parameters in model
 	pair <- (omxNameAnonymousParameters(model.original))
 	model.named <- pair[[1]]
 
-	solveType <- imxPPML.CheckApplicable(model.named)
+	solveType <- PPML.CheckApplicable(model.named)
 
 
 	# PPML not applicable to model
@@ -276,7 +269,7 @@ imxPPMLTransformModel <- function(model.original) {
 
 
 
-imxPPML.CheckApplicable <- function(model) {
+PPML.CheckApplicable <- function(model) {
 	solveType = new("PPMLSolveType")	
 
 
