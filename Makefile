@@ -87,9 +87,12 @@ internal-build: build/$(TARGET)
 dev-doc:
 	./util/rox
 
-build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
+code-style:
+	@echo "Checking code style"
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
+
+build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-style
 	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
@@ -105,7 +108,7 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f $(ROXDOC)
 
-cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
+cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean code-style
 	touch inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
