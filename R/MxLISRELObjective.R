@@ -26,7 +26,7 @@
 
 #--------------------------------------------------------------------
 # **DONE**
-imxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
+mxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames) {
 	LX <- checkLISRELargument(LX, "LX")
 	LY <- checkLISRELargument(LY, "LY")
 	BE <- checkLISRELargument(BE, "BE")
@@ -68,10 +68,10 @@ imxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, 
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
-	expectation <- imxExpectationLISREL(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames)
+	expectation <- mxExpectationLISREL(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames)
 	fitfunction <- mxFitFunctionML(vector)
 	msg <- paste("Objective functions have been deprecated.",
-		"Please use imxExpectationLISREL() and mxFitFunctionML() instead.")
+		"Please use mxExpectationLISREL() and mxFitFunctionML() instead.")
 	warning(msg)
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }
