@@ -84,13 +84,15 @@ dev-doc:
 build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
-	mkdir -p build
 	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
+	echo 'NPSOL_LIBS=$(NPSOL)' > src/Makevars.win
+	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-npsol .Rbuildignore
+	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
@@ -104,11 +106,25 @@ cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo '#define HAS_NPSOL 0' > src/npsolswitch.h
+	echo 'NPSOL_LIBS=' > src/Makevars.win
+	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-cran .Rbuildignore
+	./util/rox
 	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
 	mv DESCRIPTION.bak DESCRIPTION
-	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET)
+
+cran-build: cran
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
+		man/omxCheckCloseEnough.Rd \
+		man/mxExpectationBA81.Rd
+	ls -lh $(RBUILD)/OpenMx_*.tar.gz
+
+cran-check: cran
+	cd $(RBUILD) && R CMD check --as-cran OpenMx_*.tar.gz
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
+		man/omxCheckCloseEnough.Rd \
+		man/mxExpectationBA81.Rd
 
 pdf:
 	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .

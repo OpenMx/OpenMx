@@ -10,3 +10,11 @@ inst/tools/rox
 oprofile_data
 annotated
 cachegrind.out.*
+DESCRIPTION.old
+NOTICE
+dotest
+dotest.patch
+runtimes.csv
+util
+src/Makevars.win.in
+src/Makevars$

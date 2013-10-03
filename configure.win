@@ -1,11 +1,11 @@
 : ${R_HOME=`R RHOME`}
 if test -z "${R_HOME}"; then
-echo "could not determine R_HOME"
-exit 1
+  echo "could not determine R_HOME"
+  exit 1
 fi
 echo $PWD
-${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
-${R_HOME}/bin/R --slave --vanilla < inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
-cp inst/npsol/windows/x86_64/rtools2.12/libnpsol.dll inst/libnpsol64.dll;
-cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst/libnpsol32.dll;
+if [ -d inst/npsol/windows/x86_64/rtools2.12 ]; then
+  cp inst/npsol/windows/x86_64/rtools2.12/libnpsol.dll inst/libnpsol64.dll;
+  cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst/libnpsol32.dll;
+fi
 rm -rf inst/npsol

@@ -1,6 +1,7 @@
 NPSOL_DIR= "..\inst"
+NPSOL=-lnpsol$(WIN) -L$(NPSOL_DIR)
 
-PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) -lnpsol$(WIN) -L$(NPSOL_DIR)
+PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # PKG_CFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
