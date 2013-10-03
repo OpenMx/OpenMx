@@ -87,7 +87,13 @@ internal-build: build/$(TARGET)
 dev-doc:
 	./util/rox
 
-build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
+src/Makevars.win:
+	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
+	echo 'NPSOL=-lnpsol$$(WIN) -L$$(NPSOL_DIR)' >> src/Makevars.win
+	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
+	cat src/Makevars.win.in >> src/Makevars.win
+
+build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp src/Makevars.win
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	rm -f inst/no-npsol
@@ -95,10 +101,6 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
-	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
-	echo 'NPSOL=-lnpsol$(WIN) -L$(NPSOL_DIR)' >> src/Makevars.win
-	echo 'NPSOL_LIBS=$(NPSOL)' >> src/Makevars.win
-	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-npsol .Rbuildignore
 	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
