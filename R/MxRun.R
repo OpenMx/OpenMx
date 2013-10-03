@@ -117,7 +117,7 @@ runHelper <- function(model, frontendStart,
 	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 
-	useOptimizer <- useOptimizer && imxPPML.Check.UseOptimizer(model@options$UsePPML)
+	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
 	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
 	
 	compute <- NULL

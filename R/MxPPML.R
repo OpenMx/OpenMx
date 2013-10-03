@@ -84,6 +84,12 @@ setClass("PPMLSolveType",
 	)
 )
 
+##' imxPPML
+##'
+##' Potentially enable the PPML optimization for the given model.
+##' 
+##' @param model the MxModel to evaluate
+##' @param flag whether to potentially enable PPML
 imxPPML <- function(model, flag=TRUE) {
 	if (!(isS4(model) && is(model, "MxModel"))) {
 		stop("Argument 'model' must be MxModel object")
@@ -113,7 +119,7 @@ single.na <- function(a) {
 
 mxSolveWithPPML <- function(model) {
 	solved <- imxPPMLTransformModel(model)
-	if (imxPPML.Check.UseOptimizer(model@options$UsePPML))
+	if (PPML.Check.UseOptimizer(model@options$UsePPML))
 		stop("PPML not applicable to model, aborting solve.")
 	return(mxRun(solved, useOptimizer=FALSE))
 }
@@ -146,7 +152,7 @@ imxPPMLTransformModel <- function(model.original) {
 	# Fold in fakelatents
 	if (length(solveType@fakeLatents))
 	{
-		model.pretransformed <- imxPPML.Pre.FakeLatents(model.pretransformed, solveType)
+		model.pretransformed <- PPML.Pre.FakeLatents(model.pretransformed, solveType)
 		solveType@latentVars <- setdiff(solveType@latentVars, solveType@fakeLatents)
 		# If matrix specified, specified by indices -- need to refigure manifestVars and latentVars in solveType
 		if ( is.numeric(solveType@latentVars) && is.numeric(solveType@manifestVars) )
@@ -173,7 +179,7 @@ imxPPMLTransformModel <- function(model.original) {
 	# Also detects if the model is not a valid PPML NHEV model
 	# Aborts PPML transform if so
 
-	solveType <- imxPPML.Pre.UpdateSolveType(model.noFakeLatents, solveType)
+	solveType <- PPML.Pre.UpdateSolveType(model.noFakeLatents, solveType)
 
 	if (single.na(solveType))
 	{
@@ -187,7 +193,7 @@ imxPPMLTransformModel <- function(model.original) {
 	{
 
 		# Fix up the model
-		model.pretransformed <- imxPPML.Pre.FixNHEV(model.pretransformed, solveType)
+		model.pretransformed <- PPML.Pre.FixNHEV(model.pretransformed, solveType)
 	}
 
 
@@ -195,7 +201,7 @@ imxPPMLTransformModel <- function(model.original) {
 	if (solveType@hasMissingness)
 	{
 		# Missing Data Case
-		model.transformed <- imxPPMLMissingData(model.pretransformed, solveType)
+		model.transformed <- PPMLMissingData(model.pretransformed, solveType)
 
 		# Check to make sure PPML is applicable to model (shouldn't ever happen here)
 		if (single.na(model.transformed))
@@ -209,13 +215,13 @@ imxPPMLTransformModel <- function(model.original) {
 	}
 	else
 	{
-		pair <- imxPPML.Transform(model.pretransformed, solveType)
+		pair <- PPML.Transform(model.pretransformed, solveType)
 
 		model.transformed <- pair[[1]]
 		lambda <- pair[[2]]
 
 		if (solveType@result == "PartialSolve" || solveType@result == "Solve")
-			model.transformed <- imxPPML.SolveOrPartialSolve(model.transformed, lambda, solveType)
+			model.transformed <- PPML.SolveOrPartialSolve(model.transformed, lambda, solveType)
 
 		if (solveType@result == "PartialSolve" )
 		{
@@ -230,7 +236,7 @@ imxPPMLTransformModel <- function(model.original) {
 		else if (solveType@result == "Split")
 		{
 			# Split the model if necessary
-			model.transformed <- imxPPML.Split(model.transformed, solveType)
+			model.transformed <- PPML.Split(model.transformed, solveType)
 			model.transformed@options$UsePPML <- "No"
 
 			# Optimize the split model
@@ -242,7 +248,7 @@ imxPPMLTransformModel <- function(model.original) {
 
 	if (solveType@hasNHEV)
 	{
-		results <- imxPPML.Post.UnfoldNHEV(results, model.noFakeLatents, solveType)
+		results <- PPML.Post.UnfoldNHEV(results, model.noFakeLatents, solveType)
 	}
 
 	
@@ -363,7 +369,7 @@ imxPPML.CheckApplicable <- function(model) {
 	solveType@latentVars <- latentVars
 
 	### Call latent classifier function to classify latents
-	classifiedLatents <- imxPPMLClassifyLatents(Amatrix, Smatrix, latentVars)
+	classifiedLatents <- PPMLClassifyLatents(Amatrix, Smatrix, latentVars)
 	if (single.na(classifiedLatents))
 	{
 		#print("PPML abort: Latents of improper form")
@@ -489,7 +495,7 @@ imxPPML.CheckApplicable <- function(model) {
 	
 }
 
-imxPPML.Check.UseOptimizer <- function(opt)
+PPML.Check.UseOptimizer <- function(opt)
 {
 		if (is.null(opt))
 			return(TRUE)
@@ -499,7 +505,7 @@ imxPPML.Check.UseOptimizer <- function(opt)
 }
 
 
-imxPPML.Pre.UpdateSolveType <- function(model, solveType)
+PPML.Pre.UpdateSolveType <- function(model, solveType)
 {
 	manifestVars <- solveType@manifestVars
 	latentVars <- solveType@latentVars
@@ -657,7 +663,7 @@ imxPPML.Pre.UpdateSolveType <- function(model, solveType)
 
 
 
-imxPPMLClassifyLatents <- function(Amatrix, Smatrix, latentVars) {
+PPMLClassifyLatents <- function(Amatrix, Smatrix, latentVars) {
 	# Classify latents
 	fakeLatents <- array(0,0)
 	rootLatents <- array(0,0)
@@ -702,7 +708,7 @@ imxPPMLClassifyLatents <- function(Amatrix, Smatrix, latentVars) {
 
 
 
-imxPPML.Pre.FakeLatents <- function(model, solveType)
+PPML.Pre.FakeLatents <- function(model, solveType)
 {
 	Aname <- model$expectation@A
 	Sname <- model$expectation@S
@@ -780,7 +786,7 @@ imxPPML.Pre.FakeLatents <- function(model, solveType)
 
 
 
-imxPPML.Pre.FixNHEV <- function(model, solveType) {
+PPML.Pre.FixNHEV <- function(model, solveType) {
 	Aname <- model$expectation@A
 	Sname <- model$expectation@S
 	Mname <- model$expectation@M
@@ -1108,7 +1114,7 @@ buildCErr <- function(Smatrix, manifestVars, constraints) {
 	return(list(Cerr, relevantConstraints))
 }
 
-imxPPML.Post.UnfoldNHEV <- function(result, model.noFakeLatents, solveType)
+PPML.Post.UnfoldNHEV <- function(result, model.noFakeLatents, solveType)
 {
 	Sname <- model.noFakeLatents$expectation@S
 	manifestVars <- solveType@manifestVars
@@ -1133,7 +1139,7 @@ imxPPML.Post.UnfoldNHEV <- function(result, model.noFakeLatents, solveType)
 }
 
 
-imxPPMLMissingData <- function(model, solveType) {
+PPMLMissingData <- function(model, solveType) {
 	# Need to name anonymous params to constrain across the submodels
 	Aname <- model$expectation@A
 	Sname <- model$expectation@S
@@ -1268,9 +1274,9 @@ imxPPMLMissingData <- function(model, solveType) {
 		# if applicable
 		if (length(newSolveType@manifestVars) > length(newSolveType@latentVars))
 		{
-			pair <- imxPPML.Transform(newSubmodel, newSolveType)
-			newSubmodel <- imxPPML.SolveOrPartialSolve(pair[[1]], pair[[2]], newSolveType)
-			newSubmodel <- imxPPML.Split(newSubmodel, newSolveType)
+			pair <- PPML.Transform(newSubmodel, newSolveType)
+			newSubmodel <- PPML.SolveOrPartialSolve(pair[[1]], pair[[2]], newSolveType)
+			newSubmodel <- PPML.Split(newSubmodel, newSolveType)
 		}		
 		submodelNames <- c(submodelNames, newSubmodel@name)
 		
@@ -1336,7 +1342,7 @@ imxPPMLMissingData <- function(model, solveType) {
 
 
 
-imxPPML.Transform <- function(model, solveType)
+PPML.Transform <- function(model, solveType)
 {
 	Aname <- model$expectation@A
 	Sname <- model$expectation@S
@@ -1433,7 +1439,7 @@ imxPPML.Transform <- function(model, solveType)
 }
 
 
-imxPPML.SolveOrPartialSolve <- function(model, lambda, solveType)
+PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 {
 	# Extract matrices from model
 	expectation <- model$expectation
@@ -1618,7 +1624,7 @@ imxPPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 }
 
 
-imxPPML.Split <- function(model, solveType) {
+PPML.Split <- function(model, solveType) {
 	# Extract matrices from model
 	expectation <- model$expectation
 	
@@ -1879,7 +1885,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 ### TESTING PPML
 ###############################################################################
 
-imxPPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
+PPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 {
 	#diff <- omxRes@output$Minus2LogLikelihood - ppmlRes@output$Minus2LogLikelihood
 	diff <- omxRes@output$minimum - ppmlRes@output$minimum
@@ -1904,7 +1910,7 @@ imxPPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 
 # Functions to test PPML solutions against numerically optimized solutions
 # TODO: Move to imxPPMLTester.R (?)
-imxPPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolerance=0.5, testEstimates=TRUE) {
+PPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolerance=0.5, testEstimates=TRUE) {
 	# TODO: Wrap in timing functions for profiling
 	model@options$UsePPML = "No"
 	res1 <- mxRun(model, suppressWarnings = TRUE) # Standard fit
@@ -1930,18 +1936,18 @@ imxPPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolera
 	# useful for non-homogeneous error variance cases where the transformed log 
 	# likelihood is different.
 	if (testEstimates)
-		imxPPML.Test.CheckFits(res1, res2, tolerance=tolerance, checkLL = checkLL, checkByName = checkByName, checkHessians = FALSE) # Check standard fit vs PPML model
+		PPML.Test.CheckFits(res1, res2, tolerance=tolerance, checkLL = checkLL, checkByName = checkByName, checkHessians = FALSE) # Check standard fit vs PPML model
 	else
-		imxPPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)
+		PPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)
 	
 }
 
-imxPPML.Test.CheckFits <- function(res1, res2, tolerance, checkHessians = TRUE, checkLL, checkByName) {
+PPML.Test.CheckFits <- function(res1, res2, tolerance, checkHessians = TRUE, checkLL, checkByName) {
 	# Check -2logLLs versus each other
 	# PPML must be <= OpenMx version, w/in tolerance
 	if (checkLL)
 	{
-		PPMLDidBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)	
+		PPMLDidBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)	
 		if (PPMLDidBetter)
 			return() # Estimates, etc are not going to be the same if PPML found a different minimum
 	}	
@@ -1988,26 +1994,32 @@ imxPPML.Test.CheckFits <- function(res1, res2, tolerance, checkHessians = TRUE, 
 	}
 }
 
-
-
-
-###############################################################################
-### GENERALIZED TESTER FOR PPML ###############################################
-###############################################################################
-### PPML test battery
-# PPML can be applied to a number of special cases.  This function will test the given model for 
-# all of these special cases.
-# Requirements for model passed to this function:
-#  - Path-specified
-#  - Means vector must be present
-#  - Covariance data (with data means vector)
-#  - (Recommended) All error variances should be specified on the diagonal of the S matrix, and not
-#    as a latent with a loading only on to that manifest
-# Function will test across all permutations of:
-#   - Covariance vs Raw data
-#   - Means vector present vs Means vector absent
-#   - Path versus Matrix specification
-#     - All orders of permutations of latents with manifests 
+##' imxPPML.Test.Battery
+##'
+##' PPML can be applied to a number of special cases.  This function will test the given model for
+##' all of these special cases.
+##'
+##' Requirements for model passed to this function:
+##' - Path-specified
+##' - Means vector must be present
+##' - Covariance data (with data means vector)
+##' - (Recommended) All error variances should be specified on the
+##' diagonal of the S matrix, and not as a latent with a loading only
+##' on to that manifest
+##'
+##' Function will test across all permutations of:
+##' - Covariance vs Raw data
+##' - Means vector present vs Means vector absent
+##' - Path versus Matrix specification
+##' - All orders of permutations of latents with manifests
+##'
+##' @param model the model to test
+##' @param verbose whether to print diagnostics
+##' @param testMissingness try with missingness
+##' @param testPermutations try with permutations
+##' @param testEstimates examine estimates
+##' @param testFakeLatents try with fake latents
+##' @param tolerances a vector of tolerances
 imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, testPermutations=TRUE, testEstimates=TRUE, testFakeLatents=TRUE, tolerances=c(.001, .001, .001))
 {
 	# Cov data check
@@ -2039,7 +2051,7 @@ imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, t
 		# Test with no fake latents
 		if (verbose) print("Testing with no fake latents: ")
 		testModel <- model
-		imxPPML.Test.Battery.LowLevel(testModel, verbose, missingness=as.logical(missingness), tolerances=tolerances, testPermutations=testPermutations, testEstimates=testEstimates)
+		PPML.Test.Battery.LowLevel(testModel, verbose, missingness=as.logical(missingness), tolerances=tolerances, testPermutations=testPermutations, testEstimates=testEstimates)
 		gc()
 
 		# Test with varying numbers of fakeLatents
@@ -2048,8 +2060,8 @@ imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, t
 			{ 
 				if (verbose) print(sprintf("Testing with %d fake latents: ", i))
 				testModel@options$UsePPML <- "Yes" # Needs to be enabled for fakeLatentFoldout to get solveType
-				testModel <- imxPPML.Tool.fakeLatentFoldout(testModel, i)
-				imxPPML.Test.Battery.LowLevel(testModel, verbose=verbose, missingness=as.logical(missingness), tolerances=tolerances, testPermutations=testPermutations, testEstimates=testEstimates	)
+				testModel <- PPML.Tool.fakeLatentFoldout(testModel, i)
+				PPML.Test.Battery.LowLevel(testModel, verbose=verbose, missingness=as.logical(missingness), tolerances=tolerances, testPermutations=testPermutations, testEstimates=testEstimates	)
 				gc()
 			}
 		}		
@@ -2058,7 +2070,7 @@ imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, t
 
 # This function does bitwise counting up to nMans bits
 # Skips 0 == 0,0,...,0 pattern
-imxPPML.Tool.EnumerateMissingnessPatterns <- function(nMans)
+PPML.Tool.EnumerateMissingnessPatterns <- function(nMans)
 {
 	patt <- logical(nMans)
 	patt[1] <- TRUE
@@ -2086,7 +2098,7 @@ imxPPML.Tool.EnumerateMissingnessPatterns <- function(nMans)
 }
 
 
-imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FALSE, tolerances, testPermutations, testEstimates) {
+PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FALSE, tolerances, testPermutations, testEstimates) {
 
 	# Function only called by imxPPML.Test.Battery
 	# --> Guaranteed to be path-specified
@@ -2117,7 +2129,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 		if (pattLen == 0)
 			return(NULL) # Not enough observations to do all missingness patterns, abort
 
-		patts <- imxPPML.Tool.EnumerateMissingnessPatterns(length(model@manifestVars))
+		patts <- PPML.Tool.EnumerateMissingnessPatterns(length(model@manifestVars))
 		
 		for ( i in 0:(dim(patts)[[1]]-1) )
 		{
@@ -2145,14 +2157,14 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 	if (checkCovM && !missingness)
 	{
 		if (verbose) print("Testing Covariance Data w/ Expected Means...")
-		imxPPML.Test.Test(testModel, tolerance=covMTolerance, testEstimates=testEstimates)
+		PPML.Test.Test(testModel, tolerance=covMTolerance, testEstimates=testEstimates)
 	}
 	
 	## Raw
 	if (checkRaw)
 	{
 		if (verbose) print("Testing Raw Data w/ Expected Means...")
-		imxPPML.Test.Test(mxModel(testModel, rawData), tolerance=rawTolerance, testEstimates=testEstimates)
+		PPML.Test.Test(mxModel(testModel, rawData), tolerance=rawTolerance, testEstimates=testEstimates)
 	}
 		
 	### -Expected Means
@@ -2162,7 +2174,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 		testModel$expectation@M <- as.character(NA)
 		## Cov
 		if (verbose) print("Testing Covariance Data w/o Expected Means...")
-		imxPPML.Test.Test(mxModel(testModel, mxData(type=testModel$data@type, numObs=testModel$data@numObs, observed=testModel$data@observed)), tolerance=covTolerance, testEstimates=testEstimates)
+		PPML.Test.Test(mxModel(testModel, mxData(type=testModel$data@type, numObs=testModel$data@numObs, observed=testModel$data@observed)), tolerance=covTolerance, testEstimates=testEstimates)
 		## Raw: Can't test for Raw -Expected Means, as raw data requires an expected means vector
 	}
 	
@@ -2170,7 +2182,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 	#### Matrix
 	if (verbose) print("Testing Matrix-specified Models:")
 	
-	matrixModel <- imxPPML.Tool.PathToMatrix(model)
+	matrixModel <- PPML.Tool.PathToMatrix(model)
 	# Try each unique permutation
 
 	# -First permutation in the array is just the unpermuted case
@@ -2193,7 +2205,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 		usedPPML <- (!is.null(PPMLCovMRes@options$UsePPML) &&
 		 !(PPMLCovMRes@options$UsePPML == "Inapplicable" || PPMLCovMRes@options$UsePPML == "Yes" || PPMLCovMRes@options$UsePPML == "No" ))
 		omxCheckTrue( usedPPML )
-		didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovMRes, PPMLCovMRes, tolerance=covMTolerance)
+		didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovMRes, PPMLCovMRes, tolerance=covMTolerance)
 		if (!didBetter && testEstimates)
 			omxCheckCloseEnough(vanillaCovMRes@output$estimate, PPMLCovMRes@output$estimate, covMTolerance)
 	}
@@ -2212,7 +2224,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 		usedPPML <- (!is.null(PPMLRawRes@options$UsePPML) &&
 		 !(PPMLRawRes@options$UsePPML == "Inapplicable" || PPMLRawRes@options$UsePPML == "Yes" || PPMLRawRes@options$UsePPML == "No" ))
 		omxCheckTrue( usedPPML )
-		didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, tolerance=rawTolerance)
+		didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, tolerance=rawTolerance)
 		if (!didBetter && testEstimates)
 			omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, rawTolerance)	
 	}
@@ -2233,7 +2245,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 		usedPPML <- (!is.null(PPMLCovRes@options$UsePPML) &&
 		 !(PPMLCovRes@options$UsePPML == "Inapplicable" || PPMLCovRes@options$UsePPML == "Yes" || PPMLCovRes@options$UsePPML == "No" ))
 		omxCheckTrue( usedPPML )
-		didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovRes, PPMLCovRes, tolerance=covTolerance)
+		didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovRes, PPMLCovRes, tolerance=covTolerance)
 		if (!didBetter && testEstimates)
 			omxCheckCloseEnough(vanillaCovRes@output$estimate, PPMLCovRes@output$estimate, covTolerance)
 	}
@@ -2251,7 +2263,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 	manIndices <- which(manOrLat == 1)
 	latIndices <- which(manOrLat == 0)
 	# Get unique permutations
-	perms <- unique(imxPPML.Tool.EnumeratePermutations(manOrLat))
+	perms <- unique(PPML.Tool.EnumeratePermutations(manOrLat))
 	# Insert actual indices for mans or lats in to permutations
 	perms <- t(apply(perms, 1, function(row) { row[which(row==1)] <- manIndices; row[which(row==0)] <- latIndices; return(row) } ))
 
@@ -2346,7 +2358,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 			usedPPML <- (!is.null(PPMLCovMRes@options$UsePPML) &&
 			 !(PPMLCovMRes@options$UsePPML == "Inapplicable" || PPMLCovMRes@options$UsePPML == "Yes" || PPMLCovMRes@options$UsePPML == "No" ))
 			omxCheckTrue( usedPPML )
-			didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovMRes, PPMLCovMRes, covMTolerance)
+			didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovMRes, PPMLCovMRes, covMTolerance)
 			#omxCheckCloseEnough(vanillaCovMRes@output$estimate, PPMLCovMRes@output$estimate, .05)
 #			covMEsts <- append(covMEsts, list(PPMLCovMRes@output$estimate[estNamesM]))
 		}
@@ -2359,7 +2371,7 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 			usedPPML <- (!is.null(PPMLRawRes@options$UsePPML) &&
 			 !(PPMLRawRes@options$UsePPML == "Inapplicable" || PPMLRawRes@options$UsePPML == "Yes" || PPMLRawRes@options$UsePPML == "No" ))
 			omxCheckTrue( usedPPML )
-			didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, rawTolerance)
+			didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, rawTolerance)
 			#omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, .05)	
 			#rawEsts <- append(rawEsts, list(PPMLRawRes@output$estimate[estNamesM]))
 		}
@@ -2374,27 +2386,27 @@ imxPPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = 
 			PPMLCovRes <- mxRun(mxModel(testModel, data=dataNoMeans))
 			usedPPML <- (!is.null(PPMLCovRes@options$UsePPML) &&
 			 !(PPMLCovRes@options$UsePPML == "Inapplicable" || PPMLCovRes@options$UsePPML == "Yes" || PPMLCovRes@options$UsePPML == "No" ))
-			didBetter <- imxPPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovRes, PPMLCovRes, covTolerance)
+			didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaCovRes, PPMLCovRes, covTolerance)
 #			covEsts <- append(covEsts, list(PPMLCovRes@output$estimate[estNames]))
 			#omxCheckCloseEnough(vanillaCovRes@output$estimate, PPMLCovRes@output$estimate, .05)
 		}
 	}
 }
 
-imxPPML.Tool.EnumeratePermutations <- function(elements) {
+PPML.Tool.EnumeratePermutations <- function(elements) {
 	if (length(elements) == 1) 
 		return(elements)
 	pMat <- matrix(nrow=factorial(length(elements)), ncol=length(elements))
 	blockSize <- factorial(length(elements) - 1)
 	for (i in 0:(length(elements)-1) ) {
 		pMat[ (i*blockSize+1) : ((i+1)*blockSize), 1] <- elements[i+1]
-		pMat[ (i*blockSize+1) : ((i+1)*blockSize), 2:length(elements)] <- as.matrix(imxPPML.Tool.EnumeratePermutations(elements[-(i+1)]))
+		pMat[ (i*blockSize+1) : ((i+1)*blockSize), 2:length(elements)] <- as.matrix(PPML.Tool.EnumeratePermutations(elements[-(i+1)]))
 	}
 	return(pMat)
 }
 
 # Function to respecify a path-specified model as a matrix-specified model
-imxPPML.Tool.PathToMatrix <- function(model) {
+PPML.Tool.PathToMatrix <- function(model) {
 	### Extract expectation
 	expectation <- model$expectation
 	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
@@ -2441,7 +2453,7 @@ imxPPML.Tool.PathToMatrix <- function(model) {
 # Fake latent := Manifest variance specified by a latent variable with only one loading
 #  of value 1, to the manifest in question ==> Variance of the manifest is specified
 #  in the fakelatent, not in the manifest variable itself 
-imxPPML.Tool.fakeLatentFoldout <- function(model, manIndex)
+PPML.Tool.fakeLatentFoldout <- function(model, manIndex)
 {
 	# Path-specified check
 	if ( is.null(dimnames(model$S)) || !single.na(model$expectation@dims) )
