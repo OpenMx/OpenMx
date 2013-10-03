@@ -45,6 +45,9 @@ help:
 	@echo "  srcbuild      create an OpenMx source release (alias for 'internal-build')"
 	@echo "  winbuild      create an OpenMx binary on windows systems (no cross-compilation)"
 	@echo "  winbuild-biarch  create an OpenMx binary for [32|64] bit windows systems"
+	@echo "  cran-check    build OpenMx without NPSOL and run CRAN check"
+	@echo "  cran-build    build OpenMx without NPSOL"
+	@echo "  cran-winbuild build OpenMx without NPSOL and build a binary package"
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
@@ -119,6 +122,12 @@ cran-build: cran
 		man/omxCheckCloseEnough.Rd \
 		man/mxExpectationBA81.Rd
 	ls -lh $(RBUILD)/OpenMx_*.tar.gz
+
+cran-winbuild: cran
+	rm -f man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunction.Rd \
+		man/omxCheckCloseEnough.Rd \
+		man/mxExpectationBA81.Rd
+	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
 
 cran-check: cran
 	cd $(RBUILD) && R CMD check --as-cran OpenMx_*.tar.gz
