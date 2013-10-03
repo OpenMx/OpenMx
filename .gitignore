@@ -16,3 +16,5 @@
 /.Rbuildignore
 /man/mxExpectationBA81.Rd
 /oprofile_data
+/src/npsolswitch.h
+/src/Makevars.win
