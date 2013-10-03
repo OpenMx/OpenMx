@@ -194,6 +194,8 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object
 	  })
 
+imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
+
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
 # What to do with 'type'?
@@ -202,7 +204,7 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 	if (missing(engine)) {
 		engine <- Sys.getenv("IMX_OPT_ENGINE")
 		if (!nchar(engine)) {
-			if (.Call(imxHasNPSOL)) {
+			if (imxHasNPSOL()) {
 				engine <- "NPSOL"
 			} else {
 				engine <- "CSOLNP"

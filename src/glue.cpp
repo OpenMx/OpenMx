@@ -45,11 +45,11 @@ static SEXP has_NPSOL()
 { return ScalarLogical(HAS_NPSOL); }
 
 static R_CallMethodDef callMethods[] = {
-	{"omxBackend", (DL_FUNC) omxBackend, 11},
-	{"omxCallAlgebra", (DL_FUNC) omxCallAlgebra, 3},
+	{"backend", (DL_FUNC) omxBackend, 11},
+	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"imxDmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
-	{"imxHasNPSOL", (DL_FUNC) has_NPSOL, 0},
+	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{NULL, NULL, 0}
 };
 

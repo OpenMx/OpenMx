@@ -177,7 +177,7 @@ omxMnor <- function(covariance, means, lbound, ubound) {
         stop("'ubound' must have length equal to diag(covariance)")
     }
     
-    retVal <- .Call(omxCallAlgebra,
+    retVal <- .Call(callAlgebra,
     	list(covariance, means, lbound, ubound), 
     	imxLookupSymbolTable("omxMnor"), 
     	NA)
@@ -208,7 +208,7 @@ omxAllInt <- function(covariance, means, ...) {
         stop("every column of 'thresholds' must have at least two rows: one lower bound and one upper")
     }
     
-    retVal <- .Call(omxCallAlgebra,
+    retVal <- .Call(callAlgebra,
         c(list(covariance, means), thresholdMats),         # Flatten args into a single list
         imxLookupSymbolTable("omxAllInt"), 
         NA)
@@ -223,7 +223,7 @@ eigenvec <- function(x) {
         stop("matrix must be square")
     }
     
-    retval <- .Call(omxCallAlgebra,
+    retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenvec"), 
         NA)
@@ -237,7 +237,7 @@ ieigenvec <- function(x) {
         stop("matrix must be square")
     }
     
-    retval <- .Call(omxCallAlgebra,
+    retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenvec"), 
         NA)
@@ -251,7 +251,7 @@ eigenval <- function(x) {
         stop("matrix must be square")
     }
     
-    retval <- .Call(omxCallAlgebra,
+    retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenval"), 
         NA)
@@ -265,7 +265,7 @@ ieigenval <- function(x) {
         stop("matrix must be square")
     }
     
-    retval <- .Call(omxCallAlgebra,
+    retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenval"), 
         NA)
