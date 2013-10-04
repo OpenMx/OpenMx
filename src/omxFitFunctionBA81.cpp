@@ -439,7 +439,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			if (state->freeLatents) {
 				setLatentStartingValues(oo, fc);
-				omxExpectationCompute(oo->expectation, NULL);
 			}
 			return 0;
 		}

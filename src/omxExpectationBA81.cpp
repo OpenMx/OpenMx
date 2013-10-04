@@ -472,11 +472,9 @@ static void ba81Estep1(omxExpectation *oo)
 		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
 		      oo->name, omxGetMatrixVersion(state->itemParam),
 		      state->excludedPatterns, numUnique);
+		//pda(ElatentMean.data(), 1, state->maxAbilities);
+		//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 	}
-
-	//mxLog("E-step");
-	//pda(ElatentMean.data(), 1, state->maxAbilities);
-	//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -756,8 +754,8 @@ ba81compute(omxExpectation *oo, const char *context)
 		return;
 	}
 
-	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam);
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
+	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam) && latentClean;
 
 	if (state->verbose) {
 		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean)",
