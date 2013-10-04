@@ -1903,7 +1903,7 @@ PPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 
 # Functions to test PPML solutions against numerically optimized solutions
 # TODO: Move to imxPPMLTester.R (?)
-PPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolerance=0.5, testEstimates=TRUE) {
+imxPPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolerance=0.5, testEstimates=TRUE) {
 	# TODO: Wrap in timing functions for profiling
 	model@options$UsePPML = "No"
 	res1 <- mxRun(model, suppressWarnings = TRUE) # Standard fit
@@ -2150,14 +2150,14 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 	if (checkCovM && !missingness)
 	{
 		if (verbose) print("Testing Covariance Data w/ Expected Means...")
-		PPML.Test.Test(testModel, tolerance=covMTolerance, testEstimates=testEstimates)
+		imxPPML.Test.Test(testModel, tolerance=covMTolerance, testEstimates=testEstimates)
 	}
 	
 	## Raw
 	if (checkRaw)
 	{
 		if (verbose) print("Testing Raw Data w/ Expected Means...")
-		PPML.Test.Test(mxModel(testModel, rawData), tolerance=rawTolerance, testEstimates=testEstimates)
+		imxPPML.Test.Test(mxModel(testModel, rawData), tolerance=rawTolerance, testEstimates=testEstimates)
 	}
 		
 	### -Expected Means
@@ -2167,7 +2167,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		testModel$expectation@M <- as.character(NA)
 		## Cov
 		if (verbose) print("Testing Covariance Data w/o Expected Means...")
-		PPML.Test.Test(mxModel(testModel, mxData(type=testModel$data@type, numObs=testModel$data@numObs, observed=testModel$data@observed)), tolerance=covTolerance, testEstimates=testEstimates)
+		imxPPML.Test.Test(mxModel(testModel, mxData(type=testModel$data@type, numObs=testModel$data@numObs, observed=testModel$data@observed)), tolerance=covTolerance, testEstimates=testEstimates)
 		## Raw: Can't test for Raw -Expected Means, as raw data requires an expected means vector
 	}
 	
