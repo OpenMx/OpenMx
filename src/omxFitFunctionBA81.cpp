@@ -208,10 +208,6 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		}
 	}
 
-	std::sort(state->hgProd.begin(), state->hgProd.end());
-	std::vector<matrixVectorProdTerm>::iterator it = std::unique(state->hgProd.begin(), state->hgProd.end());
-	state->hgProd.resize( std::distance(state->hgProd.begin(), it) );
-
 	state->haveItemMap = TRUE;
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }

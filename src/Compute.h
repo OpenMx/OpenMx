@@ -33,7 +33,12 @@ struct matrixVectorProdTerm {
 		dest=de;
 	}
 	bool operator< (const matrixVectorProdTerm &j) const {
-		return (hentry < j.hentry) || (gentry < j.gentry) || (dest < j.dest);
+	  if (hentry < j.hentry) return true;
+	  if (hentry == j.hentry) {
+	    if (gentry < j.gentry) return true;
+	    if (gentry == j.gentry && dest < j.dest) return true;
+	  }
+	  return false;
 	};
 	bool operator==(const matrixVectorProdTerm &i) const {
 		return i.hentry == hentry && i.gentry == gentry && i.dest == dest;
