@@ -552,7 +552,8 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 		totalArea += state->priQarea[qx];
 	}
 	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
-		state->priQarea[qx] *= Largest / totalArea;
+		state->priQarea[qx] *= Largest;
+		state->priQarea[qx] /= totalArea;
 		//mxLog("%.5g,", state->priQarea[qx]);
 	}
 
@@ -568,7 +569,8 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 			totalArea += den;
 		}
 		for (int qx=0; qx < state->quadGridSize; qx++) {
-			state->speQarea[sIndex(state, sgroup, qx)] *= Largest / totalArea;
+			state->speQarea[sIndex(state, sgroup, qx)] *= Largest;
+			state->speQarea[sIndex(state, sgroup, qx)] /= totalArea;
 		}
 		//pda(state->speQarea.data() + sIndex(state, sgroup, 0), 1, state->quadGridSize);
 	}
