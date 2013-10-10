@@ -14,6 +14,13 @@
 #   limitations under the License.
 
 
+##' imxGenSwift
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##' @param tc tc
+##' @param sites sites
+##' @param sfile sfile
 imxGenSwift <- function(tc, sites, sfile) {
 	cmdline <- paste("swift -tc.file ",tc," -sites.file ",sites," ",sfile)
 	system(cmdline)

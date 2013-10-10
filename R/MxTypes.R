@@ -13,6 +13,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' imxModelTypes
+##'
+##' A list of supported model types
 imxModelTypes <- list()
 
 imxVariableTypes <- character()

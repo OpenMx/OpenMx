@@ -50,6 +50,61 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/imxReverseIdentifier.Rd \
 	man/imxSeparatorChar.Rd \
 	man/imxVerifyName.Rd \
+	man/imxVerifyReference.Rd \
+	man/imxCheckMatrices.Rd \
+	man/imxCheckVariables.Rd \
+	man/imxConstraintRelations.Rd \
+	man/imxConvertIdentifier.Rd \
+	man/imxConvertLabel.Rd \
+	man/imxConvertSubstitution.Rd \
+	man/imxCreateMatrix.Rd \
+	man/imxDataTypes.Rd \
+	man/imxDeparse.Rd \
+	man/imxDependentModels.Rd \
+	man/imxDiff.Rd \
+	man/imxDmvnorm.Rd \
+	man/imxEvalByName.Rd \
+	man/imxExtractMethod.Rd \
+	man/imxExtractNames.Rd \
+	man/imxExtractReferences.Rd \
+	man/imxFilterDefinitionVariables.Rd \
+	man/imxFlattenModel.Rd \
+	man/imxFreezeModel.Rd \
+	man/imxGenSwift.Rd \
+	man/imxGenerateLabels.Rd \
+	man/imxGenerateNamespace.Rd \
+	man/imxGenericModelBuilder.Rd \
+	man/imxHasNPSOL.Rd \
+	man/imxIdentifier.Rd \
+	man/imxIndependentModels.Rd \
+	man/imxInitModel.Rd \
+	man/imxIsDefinitionVariable.Rd \
+	man/imxIsPath.Rd \
+	man/imxLocateFunction.Rd \
+	man/imxLocateIndex.Rd \
+	man/imxLocateLabel.Rd \
+	man/imxLookupSymbolTable.Rd \
+	man/imxModelBuilder.Rd \
+	man/imxModelTypes.Rd \
+	man/imxMpiWrap.Rd \
+	man/imxOriginalMx.Rd \
+	man/imxPPML.Rd \
+	man/imxPPML.Test.Battery.Rd \
+	man/imxPreprocessModel.Rd \
+	man/imxReplaceMethod.Rd \
+	man/imxReplaceModels.Rd \
+	man/imxReservedNames.Rd \
+	man/imxReverseIdentifier.Rd \
+	man/imxSameType.Rd \
+	man/imxSeparatorChar.Rd \
+	man/imxSfClient.Rd \
+	man/imxSimpleRAMPredicate.Rd \
+	man/imxSquareMatrix.Rd \
+	man/imxSymmetricMatrix.Rd \
+	man/imxTypeName.Rd \
+	man/imxVerifyMatrix.Rd \
+	man/imxVerifyModel.Rd \
+	man/imxVerifyName.Rd \
 	man/imxVerifyReference.Rd
 
 # file types

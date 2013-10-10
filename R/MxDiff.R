@@ -13,6 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' Set difference on regular types or S4 objects
+##'
+##' @param a a
+##' @param b b
+##' @param slots slots
 imxDiff <- function(a, b, slots = c("setequal", "intersect")) {
 	if (identical(slots, c("setequal", "intersect"))) {
 		slots <- "setequal"

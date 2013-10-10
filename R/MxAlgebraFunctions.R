@@ -78,6 +78,12 @@ vec2diag <- function(x) {
 	}
 }
 
+##' imxLookupSymbolTable
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##' 
+##' @param name name
 imxLookupSymbolTable <- function(name) {
 	index <- which(omxSymbolTable["R.name"] == name)
 	if(length(index) == 0) {
@@ -359,3 +365,7 @@ vechs2full <- function(x) {
 	return(ret)
 }
 
+##' A C implementation of dmvnorm
+##'
+##' This API is visible to permit testing. Please do not use.
+imxDmvnorm <- function(loc, mean, sigma) .Call(Dmvnorm_wrapper, loc, mean, sigma)

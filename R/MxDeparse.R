@@ -38,6 +38,19 @@ deparseDimnames <- function(dimnames) {
 		", ", colnames, ")", sep = ""))
 }
 
+##' Deparse for MxObjects
+##'
+##' @param object object
+##' @param indent indent
+##' @aliases
+##' imxDeparse,IdenMatrix-method
+##' imxDeparse,MxAlgebra-method
+##' imxDeparse,MxConstraint-method
+##' imxDeparse,MxData-method
+##' imxDeparse,MxMatrix-method
+##' imxDeparse,UnitMatrix-method
+##' imxDeparse,ZeroMatrix-method
+##' imxDeparse,matrix-method
 setGeneric("imxDeparse", function(object, indent = '   ') { 
 	return(standardGeneric("imxDeparse")) 
 })

@@ -387,6 +387,12 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 	}
 )
 
+##' imxSimpleRAMPredicate
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
 imxSimpleRAMPredicate <- function(model) {
 	if (is.null(model$expectation) || !is(model$expectation, "MxExpectationRAM")) {
 		return(FALSE)

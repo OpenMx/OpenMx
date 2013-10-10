@@ -75,6 +75,13 @@ defVariableIsMatch <- function(defName, dataName) {
 	return(identical(target, dataName))
 }
 
+##' imxFilterDefinitionVariables
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param defVars defVars
+##' @param dataName dataName
 imxFilterDefinitionVariables <- function(defVars, dataName) {
 	if (length(defVars) == 0) return(defVars)
 	dvNames <- names(defVars)	

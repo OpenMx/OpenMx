@@ -17,6 +17,12 @@ matchStack <- function(syscall, function_name) {
     return(identical(syscall[[1]], function_name))
 }
 
+##' imxLocateFunction
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param function_name function_name
 imxLocateFunction <- function(function_name) {
     callstack <- sys.calls()
     if (is.null(callstack)) {

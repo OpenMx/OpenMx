@@ -483,6 +483,15 @@ generateDataSummary <- function(model, useSubmodels) {
 	return(retval)
 }
 
+##' imxEvalByName
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param name name
+##' @param model model
+##' @param compute compute
+##' @param show show
 imxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
    if ((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")

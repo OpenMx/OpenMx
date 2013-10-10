@@ -49,6 +49,7 @@ setMethod("initialize", "MxNonNullData",
 	}
 )
 
+##' Valid types of data that can be contained by MxData
 imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA) {

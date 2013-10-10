@@ -85,7 +85,7 @@ dmvnorm <- function (x, mean, sigma, log=FALSE)
     if (length(mean) != NROW(sigma)) {
         stop("mean and sigma have non-conforming size")
     }
-    logretval <- apply(x, 1, function(loc) .Call(imxDmvnorm_wrapper, loc, mean, sigma))
+    logretval <- apply(x, 1, function(loc) imxDmvnorm(loc, mean, sigma))
     if(log) return(logretval)
     exp(logretval)
 }

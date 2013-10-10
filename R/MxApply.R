@@ -13,6 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' imxMpiWrap
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param fun fun
 imxMpiWrap <- function(fun) {
 	function(...) {
 		require(OpenMx, quietly = TRUE)
@@ -20,16 +26,17 @@ imxMpiWrap <- function(fun) {
 	}
 }
 
-# As of snowfall 1.84, the snowfall supervisor process
-# stores an internal state information in a variable 
-# named ".sfOption" that is located in the "snowfall" namespace.
-# The snowfall client processes store internal state
-# information in a variable named ".sfOption" that is located
-# in the global namespace.
-# 
-# As long as the previous statement is true, then the current
-# process is a snowfall client if-and-only-if exists(".sfOption").
-#
+##' imxSfClient
+##'
+##' As of snowfall 1.84, the snowfall supervisor process
+##' stores an internal state information in a variable 
+##' named ".sfOption" that is located in the "snowfall" namespace.
+##' The snowfall client processes store internal state
+##' information in a variable named ".sfOption" that is located
+##' in the global namespace.
+##' 
+##' As long as the previous statement is true, then the current
+##' process is a snowfall client if-and-only-if exists(".sfOption").
 imxSfClient <- function() {
 	return(exists(".sfOption"))
 }

@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-imxReservedNames <- c('data', 'objective', 'likelihood', 'fitfunction', 'expectation')
+##' imxReservedNames
+##'
+##' Vector of reserved names
+imxReservedNames <- c('data', 'objective', 'likelihood', 'fitfunction', 'expectation', 'compute')
 

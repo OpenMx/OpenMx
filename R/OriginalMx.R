@@ -20,6 +20,13 @@
 # 5/30/2007
 
 
+##' imxOriginalMx
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param mx.filename mx.filename
+##' @param output.directory output.directory
 imxOriginalMx <- function(mx.filename, output.directory) {
 	original.directory <- getwd()
 	result <- tryCatch(originalMxHelper(mx.filename, output.directory),

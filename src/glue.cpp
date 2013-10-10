@@ -48,7 +48,7 @@ static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 11},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
-	{"imxDmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
+	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{NULL, NULL, 0}
 };

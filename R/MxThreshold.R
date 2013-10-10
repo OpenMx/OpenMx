@@ -364,7 +364,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 	return(threshNames)
 }
 
-imxFactorize <- function(x, levels, labels, exclude, ordered) {
+factorize <- function(x, levels, labels, exclude, ordered) {
 	f <- factor(x, levels, labels, exclude, ordered)
 	attr(f, 'mxFactor') <- TRUE
 	f
@@ -379,11 +379,11 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	}
 	if (is.data.frame(x)) {
 		if (is.list(levels)) {
-			return(data.frame(mapply(imxFactorize, x, levels, labels,
+			return(data.frame(mapply(factorize, x, levels, labels,
 				MoreArgs=list(exclude = exclude, ordered = ordered), SIMPLIFY=FALSE),
 				check.names = FALSE))
 		} else {
-			return(data.frame(lapply(x, imxFactorize, levels, labels, exclude, ordered),
+			return(data.frame(lapply(x, factorize, levels, labels, exclude, ordered),
 				check.names = FALSE)) 
 		}
 	} else if (is.matrix(x)) {
@@ -391,7 +391,7 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 		"is of illegal type matrix,",
 		"legal types are vectors or data.frames"))
 	} else {
-		return(imxFactorize(x, levels, labels, exclude, ordered))
+		return(factorize(x, levels, labels, exclude, ordered))
 	}
 }
 

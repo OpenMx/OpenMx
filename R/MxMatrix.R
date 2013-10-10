@@ -45,18 +45,87 @@ verifySquare <- function(.Object) {
 	}
 }
 
+##' imxVerifyMatrix
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param .Object .Object
+##' @aliases
+##' imxVerifyMatrix,DiagMatrix-method
+##' imxVerifyMatrix,FullMatrix-method
+##' imxVerifyMatrix,IdenMatrix-method
+##' imxVerifyMatrix,LowerMatrix-method
+##' imxVerifyMatrix,MxMatrix-method
+##' imxVerifyMatrix,SdiagMatrix-method
+##' imxVerifyMatrix,StandMatrix-method
+##' imxVerifyMatrix,SymmMatrix-method
+##' imxVerifyMatrix,UnitMatrix-method
+##' imxVerifyMatrix,ZeroMatrix-method
 setGeneric("imxVerifyMatrix", function(.Object) { 
 	return(standardGeneric("imxVerifyMatrix")) 
 } )
 
+##' imxSymmetricMatrix
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##' 
+##' @param .Object .Object
+##' @aliases
+##' imxSymmetricMatrix,LowerMatrix-method
+##' imxSymmetricMatrix,MxMatrix-method
+##' imxSymmetricMatrix,SdiagMatrix-method
+##' imxSymmetricMatrix,StandMatrix-method
+##' imxSymmetricMatrix,SymmMatrix-method
 setGeneric("imxSymmetricMatrix", function(.Object) {
 	return(standardGeneric("imxSymmetricMatrix"))
 })
 
+##' imxSquareMatrix
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param .Object .Object
+##' @aliases
+##' imxSquareMatrix,DiagMatrix-method
+##' imxSquareMatrix,IdenMatrix-method
+##' imxSquareMatrix,LowerMatrix-method
+##' imxSquareMatrix,MxMatrix-method
+##' imxSquareMatrix,SdiagMatrix-method
+##' imxSquareMatrix,StandMatrix-method
+##' imxSquareMatrix,SymmMatrix-method
 setGeneric("imxSquareMatrix", function(.Object) {
 	return(standardGeneric("imxSquareMatrix"))
 })
 
+##' Create a matrix
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param .Object the matrix
+##' @param labels labels
+##' @param values values
+##' @param free free
+##' @param lbound lbound
+##' @param ubound ubound
+##' @param nrow nrow
+##' @param ncol ncol
+##' @param byrow byrow
+##' @param name name
+##' @aliases
+##' imxCreateMatrix,MxMatrix-method
+##' imxCreateMatrix,DiagMatrix-method
+##' imxCreateMatrix,FullMatrix-method
+##' imxCreateMatrix,IdenMatrix-method
+##' imxCreateMatrix,LowerMatrix-method
+##' imxCreateMatrix,SdiagMatrix-method
+##' imxCreateMatrix,StandMatrix-method
+##' imxCreateMatrix,SymmMatrix-method
+##' imxCreateMatrix,UnitMatrix-method
+##' imxCreateMatrix,ZeroMatrix-method
 setGeneric("imxCreateMatrix", 
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
 		return(standardGeneric("imxCreateMatrix"))

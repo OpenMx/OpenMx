@@ -194,6 +194,11 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object
 	  })
 
+##' imxHasNPSOL
+##'
+##' @return
+##' Returns TRUE if the NPSOL proprietary optimizer is compiled and
+##' linked with OpenMx. Otherwise FALSE.
 imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,

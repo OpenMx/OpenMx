@@ -62,23 +62,67 @@ setMethod("initialize", "MxModel",
 	}
 )
 
-# Begin declaration of generics
-
+##' imxInitModel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @aliases
+##' imxInitModel,MxModel-method
+##' imxInitModel,MxRAMModel-method
+##' imxInitModel,MxLISRELModel-method
 setGeneric("imxInitModel", function(model) {
 	return(standardGeneric("imxInitModel")) } )
 
-# TODO: It probably makes sense to split this into separate
-# methods. For example, modelAddVariables and modelRemoveVariables
-# could be their own methods. This would reduce some cut&paste
-# duplication.
+##' imxModelBuilder
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##' 
+##' TODO: It probably makes sense to split this into separate
+##' methods. For example, modelAddVariables and modelRemoveVariables
+##' could be their own methods. This would reduce some cut&paste
+##' duplication.
+##'
+##' @param model model
+##' @param lst lst
+##' @param name name
+##' @param manifestVars manifestVars
+##' @param latentVars latentVars
+##' @param submodels submodels
+##' @param remove remove
+##' @param independent independent
+##' @aliases
+##' imxModelBuilder,MxLISRELModel-method
+##' imxModelBuilder,MxModel-method
+##' imxModelBuilder,MxRAMModel-method
 setGeneric("imxModelBuilder", function(model, lst, name, 
 	manifestVars, latentVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
+##' imxTypeName
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' imxTypeName,MxLISRELModel-method
+##' imxTypeName,MxModel-method
+##' imxTypeName,MxRAMModel-method
 setGeneric("imxTypeName", function(model) { 
 	return(standardGeneric("imxTypeName")) 
 })
 
+##' imxVerifyModel
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' imxVerifyModel,MxLISRELModel-method
+##' imxVerifyModel,MxModel-method
+##' imxVerifyModel,MxRAMModel-method
 setGeneric("imxVerifyModel", function(model) {
     return(standardGeneric("imxVerifyModel"))
 })
@@ -156,6 +200,13 @@ setReplaceMethod("$", "MxModel",
 	}
 )
 
+##' imxExtractMethod
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param index index
 imxExtractMethod <- function(model, index) {
 	if (is.null(index)) {
 		return(NULL)
@@ -169,10 +220,25 @@ imxExtractMethod <- function(model, index) {
 	return(namespaceSearch(model, index))
 }
 
+##' imxReplaceMethod
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param index index
+##' @param value value
 imxReplaceMethod <- function(model, index, value) {
 	return(namespaceSearchReplace(model, index, value))
 }
 
+##' imxSameType
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param a a
+##' @param b b
 imxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
 			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||
@@ -237,6 +303,19 @@ typeArgument <- function(model, type) {
 	return(model)
 }
 
+##' imxGenericModelBuilder
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param lst lst
+##' @param name name
+##' @param manifestVars manifestVars
+##' @param latentVars latentVars
+##' @param submodels submodels
+##' @param remove remove
+##' @param independent independent
 imxGenericModelBuilder <- function(model, lst, name, 
 	manifestVars, latentVars, submodels, remove, independent) {
 	model <- nameArgument(model, name)

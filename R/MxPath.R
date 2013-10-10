@@ -158,6 +158,12 @@ generateSinglePath <- function(from, to,
 	return(result)
 }
 
+##' imxIsPath
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param value value
 imxIsPath <- function(value) {
 	return(is.list(value) && 
 		!is.null(value[['from']]) &&

@@ -348,6 +348,12 @@ assignDimnames <- function(object, values) {
 	return(values)
 }
 
+##' imxGenerateLabels
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
 imxGenerateLabels <- function(model) {
 	return(generateLabelsHelper(model, data.frame()))
 }

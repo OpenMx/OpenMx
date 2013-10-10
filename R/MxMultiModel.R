@@ -71,6 +71,11 @@ freezeFitfunction <- function(model) {
 	return(model)
 }
 
+##' Freeze model
+##'
+##' Remove free parameters and fit function from model.
+##'
+##' @param model model
 imxFreezeModel <- function(model) {
 	model <- freezeFitfunction(model)
 	model@matrices <- lapply(model@matrices, freezeMatrix)
@@ -83,6 +88,10 @@ imxFreezeModel <- function(model) {
 	return(model)
 }
 
+##' Remove heirarchical structure from model
+##'
+##' @param model model
+##' @param namespace namespace
 imxFlattenModel <- function(model, namespace) {
 	flatModel <- new("MxFlatModel", model, list(), list(), list(), list())
 	name <- model@name
@@ -276,6 +285,9 @@ collectComputesHelper <- function(model, namespace) {
 	retval
 }
 
+##' Are submodels dependence?
+##'
+##' @param model model
 imxDependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
@@ -283,6 +295,9 @@ imxDependentModels <- function(model) {
         return(retval)
 }
 
+##' Are submodels independent?
+##'
+##' @param model model
 imxIndependentModels <- function(model) {
         retval <- model@submodels
         if(length(retval) == 0) return(retval)
@@ -291,6 +306,10 @@ imxIndependentModels <- function(model) {
 }
 
 
+##' Replace parts of a model
+##'
+##' @param model model
+##' @param replacements replacements
 imxReplaceModels <- function(model, replacements) {
 	if (length(replacements) == 0) return(model)
 	names(replacements) <- imxExtractNames(replacements)
