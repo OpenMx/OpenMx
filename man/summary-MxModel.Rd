@@ -20,7 +20,7 @@
 \title{Model Summary}
 
 \description{
-   This function returns summary statistics of a model. It is usually invoked after a model has been run through the optimizer.
+   This function returns summary statistics of a model after it has been run
 }
 
 
@@ -35,13 +35,26 @@ summary(object, ...)
 
 \details{
 
-The following named arguments are supported by the summary method:
+mxSummary allows the user to set or override the following parameters of the model:
+
 \describe{
 \item{numObs}{Numeric. Specify the total number of observations for the model.}
 \item{numStats}{Numeric. Specify the total number of observed statistics for the model.}
 \item{SaturatedLikelihood}{Numeric or MxModel object. Specify a saturated likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 }
+   
+This function can report Error codes as follows:
+   
+   \itemize{
+   \item 1: The final iterate satisfies the optimality conditions to the accuracy requested, but the sequence of iterates has not yet converged. NPSOL was terminated because no further improvement could be made in the merit function (Mx status GREEN)
+   \item 2: The linear constraints and bounds could not be satisfied. The problem has no feasible solution.
+   \item 3: The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution.
+   \item 4: The major iteration limit was reached (Mx status BLUE).
+   \item 6: The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)
+   \item 7: The function derivates returned by funcon or funobj appear to be incorrect.
+   \item 9: An input parameter was invalid
+   }
 
 }
 
@@ -51,12 +64,35 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 
-  model <- mxModel()
-  modelOut <- mxRun(model)
-  # compute a summary and store in variable "statistics"
-  statistics <- summary(modelOut)
+library(OpenMx)
+data(demoOneFactor)  # load the demoOneFactor dataframe
+manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
+latents <- c("G")  # define 1 latent variable
+model <- mxModel("One Factor", type="RAM",
+    manifestVars = manifests,
+    latentVars = latents,
+    mxPath(from = latents, to=manifests, labels = paste("b", 1:5, sep = "")),
+    mxPath(from = manifests, arrows = 2, labels = paste("u", 1:5, sep = "")),
+    mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+    mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+)
+model <- mxRun(model) # Run the model, returning the result into model
 
-  # specify a saturated likelihood for testing
-  summary(modelOut, SaturatedLikelihood=300)
+# Show summary of the fitted model
+summary(model)
+
+# Compute the summary and store in the variable "statistics"
+statistics <- summary(model)
+
+# Access components of the summary
+statistics$parameters
+statistics$SaturatedLikelihood
+
+# Specify a saturated likelihood for testing
+summary(model, SaturatedLikelihood = -3000)
+
+# Add a CI and view it in the summary
+model = mxRun(mxModel(model, mxCI("b5")), intervals = TRUE)
+summary(model)
 
 }

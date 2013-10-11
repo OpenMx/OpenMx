@@ -80,10 +80,10 @@ model <- mxModel("One Factor", type="RAM",
     mxPath(from=latents  , arrows=2, free=FALSE, values=1.0),
     mxData(cov(demoOneFactor), type="cov", numObs=500)
 )
-model <- mxRun(model) #run model, returning the result
-summary(model) #show summary of the fitted model
+model <- mxRun(model) # Run the model, returning the result into model
+summary(model) # Show summary of the fitted model
 
-#Create a model that includes data, matrices A, S and F, and an expectation and fit function
+# Create a model that includes data, matrices A, S and F, and an expectation and fit function
 data <- mxData(mydata, type="cov", numObs = 100)
 expectation <- mxExpectationRAM('A', 'S', 'F')
 fitfunction <- mxFitFunctionML()

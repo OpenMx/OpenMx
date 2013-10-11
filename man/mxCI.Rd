@@ -41,7 +41,12 @@ Estimation of likelihood-based confidence intervals begins after optimization ha
 
 Multiple parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} may be listed in the \sQuote{reference} argument. Individual elements of \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} may be listed as well, using the syntax \dQuote{matrix[row,col]} (see \link{Extract} for more information). Only scalar numeric values for the \sQuote{interval} argument are supported. Users requesting different confidence ranges for different parameters must use separate \link{mxCI} statements. \link{MxModel} objects can hold multiple \link{MxCI} objects, but only one confidence interval may be requested per named-entity.
 
-Confidence interval estimation may result in model non-convergence at the confidence limit. Separate optimizer messages may be passed for each confidence limit. This has no impact on the parameter estimates themselves, but may indicate a problem with the referenced confidence limit. Model non-convergence for a particular confidence limit may indicate parameter interdependence or the influence of a parameter boundary. Checking the validity of a confidence limit can be done my estimating a model with the appropriate parameter fixed at the confidence limit in question. If the confidence limit is valid, the -2 log likelihoods of these two models should differ by the chi-squared criterion specified in the \link[=MxCI]{MxCI's} \sQuote{lowerdelta} or \sQuote{upperdelta} slot. 
+Confidence interval estimation may result in model non-convergence at the confidence limit. Separate optimizer messages may be passed for each confidence limit. This has no impact on the parameter estimates themselves, but may indicate a problem with the referenced confidence limit. Model non-convergence for a particular confidence limit may indicate parameter interdependence or the influence of a parameter boundary. 
+
+These error messages and their meanings are listed in the help for \link{mxSummary}
+
+The validity of a confidence limit can be checked by running a model with the appropriate parameter fixed at the confidence limit in question. If the confidence limit is valid, the -2 log likelihoods of these two models should differ by the specified chi-squared criterion (as set using the \sQuote{lowerdelta} or \sQuote{upperdelta} slots in the \link{MxCI} object (you can choose which of these to set via the type parameter of mxCI). 
+
 }
     
 \value{
