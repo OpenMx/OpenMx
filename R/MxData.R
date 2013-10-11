@@ -87,8 +87,9 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	if (type == "acov") {
 		verifyCovarianceMatrix(observed)
 		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
-
-		verifyThresholdNames(thresholds, observed)
+		if ( !single.na(thresholds) ) {
+			verifyThresholdNames(thresholds, observed)
+		}
 	}
 	if (type != "acov") {
 		if (any(!is.na(acov))) {
