@@ -251,6 +251,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int verbose)
 
 {
+	freeMatrices(); // maybe left overs from an aborted optimization attempt
+
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
     
