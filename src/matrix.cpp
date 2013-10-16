@@ -13,7 +13,7 @@ using std::endl;
 
 template <typename T> void printList( const std::list< T > &listRef);
 
-std::list< Matrix >matrices;
+static std::list< double* > matrices;
 
 
 double rnd_double() { return (double)1.0; }
@@ -27,38 +27,11 @@ void freeMatrices(){
         printf("%f", matrices.front().t[i]); putchar('\n');
         }*/
         //print(matrices.front());
-        free(matrices.front().t);
+        free(matrices.front());
         //printf("matrices.front is: \n");
         //print(matrices.front());
         matrices.pop_front();
     }
-}
-
-
-void printMatrices(){
-    printf("list's size is : \n");
-    std::cout<< matrices.size()<< '\n';
-    printf("matrices.front is: \n");
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-    matrices.pop_front();
-    print(matrices.front());  putchar('\n');
-
-
-    //if (matrices.empty()) printf("list is not empty");
-    //else printf("list is empty");*/
-    
 }
 
 Matrix new_matrix(int cols,int rows)
@@ -68,7 +41,7 @@ Matrix new_matrix(int cols,int rows)
 	t.cols=cols;
 	t.isColMajor = 1;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
-	matrices.push_front(t);
+	matrices.push_front(t.t);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
