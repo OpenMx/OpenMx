@@ -263,7 +263,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     printf("%.20f", fc->est[2]); putchar('\n');
     printf("%.20f", fc->est[3]); putchar('\n');*/
 
-    int k, eq_n, ineq_n, inform, iter;
+    int k, eq_n, ineq_n, iter;
+    int inform = 0;
     
     double *bl=NULL, *bu=NULL;
     
