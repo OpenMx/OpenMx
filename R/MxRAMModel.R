@@ -13,6 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' MxRAMModel
+##'
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' $<-,MxRAMModel-method
+##' [[<-,MxRAMModel-method
 setClass(Class = "MxRAMModel",
 	representation = representation(),
 	contains = "MxModel")

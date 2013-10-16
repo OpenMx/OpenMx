@@ -13,6 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' MxLISRELModel
+##'
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' $<-,MxLISRELModel-method
+##' [[<-,MxLISRELModel-method
 setClass(Class = "MxLISRELModel",
 	representation = representation(),
 	contains = "MxModel")

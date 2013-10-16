@@ -15,6 +15,9 @@
 
 \name{mxFitFunctionR}
 \alias{mxFitFunctionR}
+\alias{MxFitFunctionR}
+\alias{print,MxFitFunctionR-method}
+\alias{show,MxFitFunctionR-method}
 
 \title{Create MxFitFunctionR Object}
 

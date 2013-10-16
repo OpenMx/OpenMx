@@ -15,6 +15,9 @@
 
 \name{mxFitFunctionAlgebra}
 \alias{mxFitFunctionAlgebra}
+\alias{MxFitFunctionAlgebra}
+\alias{print,MxFitFunctionAlgebra-method}
+\alias{show,MxFitFunctionAlgebra-method}
 
 \title{Create MxFitFunctionAlgebra Object}
 

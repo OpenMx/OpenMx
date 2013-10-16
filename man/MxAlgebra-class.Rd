@@ -15,6 +15,10 @@
 
 \name{MxAlgebra-class}
 \alias{MxAlgebra}
+\alias{print,MxAlgebra-method}
+\alias{show,MxAlgebra-method}
+\alias{dimnames,MxAlgebra-method}
+\alias{dimnames<-,MxAlgebra-method}
 
 \title{MxAlgebra Class}
 

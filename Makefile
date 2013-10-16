@@ -105,7 +105,10 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/imxVerifyMatrix.Rd \
 	man/imxVerifyModel.Rd \
 	man/imxVerifyName.Rd \
-	man/imxVerifyReference.Rd
+	man/imxVerifyReference.Rd \
+	man/MxFlatModel.Rd \
+	man/MxLISRELModel.Rd \
+	man/MxRAMModel.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)

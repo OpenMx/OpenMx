@@ -15,6 +15,13 @@
 
 \name{MxModel-class}
 \alias{MxModel}
+\alias{$,MxModel-method}
+\alias{$<-,MxModel-method}
+\alias{[[,MxModel-method}
+\alias{[[<-,MxModel-method}
+\alias{names,MxModel-method}
+\alias{print,MxModel-method}
+\alias{show,MxModel-method}
 
 \title{MxModel Class}
 

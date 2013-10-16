@@ -21,6 +21,9 @@
 
 \name{mxFitFunctionRow}
 \alias{mxFitFunctionRow}
+\alias{MxFitFunctionRow}
+\alias{print,MxFitFunctionRow-method}
+\alias{show,MxFitFunctionRow-method}
 
 \title{Create an MxFitFunctionRow Object}
 

@@ -16,6 +16,8 @@
 \name{mxPath}
 \alias{mxPath}
 \alias{MxPath}
+\alias{print,MxPath-method}
+\alias{show,MxPath-method}
 
 \title{Create List of Paths}
 

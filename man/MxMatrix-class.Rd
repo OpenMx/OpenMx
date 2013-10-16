@@ -15,6 +15,16 @@
 
 \name{MxMatrix-class}
 \alias{MxMatrix}
+\alias{[,MxMatrix-method}
+\alias{[<-,MxMatrix-method}
+\alias{print,MxMatrix-method}
+\alias{show,MxMatrix-method}
+\alias{dim,MxMatrix-method}
+\alias{ncol,MxMatrix-method}
+\alias{nrow,MxMatrix-method}
+\alias{length,MxMatrix-method}
+\alias{dimnames,MxMatrix-method}
+\alias{dimnames<-,MxMatrix-method}
     
 \title{MxMatrix Class}
 
