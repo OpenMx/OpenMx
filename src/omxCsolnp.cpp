@@ -26,6 +26,7 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 
+static const char* anonMatrix = "anonymous matrix";
 
 /* NPSOL-related functions */
 //************************* npsol ****************************//

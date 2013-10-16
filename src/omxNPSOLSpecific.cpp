@@ -30,7 +30,7 @@
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
 
-const char* anonMatrix = "anonymous matrix";
+static const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
 static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
