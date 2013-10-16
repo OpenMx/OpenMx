@@ -128,8 +128,8 @@ help:
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
-	@echo "  install       build and install OpenMx on this machine"
-	@echo "                (On unix, CFLAGS can be overridden in /etc/R/Makeconf)"
+	@echo "  install       build and install OpenMx with NPSOL"
+	@echo "  cran-install  build and install OpenMx without NPSOL"
 	@echo ""
 	@echo "DOCUMENTATION"
 	@echo ""	
@@ -263,6 +263,9 @@ winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
 
 install: clean internal-build
+	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
+
+cran-install: clean cran-build
 	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
 check: internal-build
