@@ -28,7 +28,12 @@ struct Param_Obj {
     double objValue;
 };
 
+
 #define M(m,x,y) m.t[x+y*m.cols]
+
+void printMatrices();
+
+void freeMatrices();
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 

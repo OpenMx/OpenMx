@@ -4,8 +4,62 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "matrix.h"
+#include <iostream>
+using std::cout;
+using std::endl;
+#include <list>
+#include <algorithm>
+#include <iterator>
+
+template <typename T> void printList( const std::list< T > &listRef);
+
+std::list< Matrix >matrices;
+
 
 double rnd_double() { return (double)1.0; }
+
+void freeMatrices(){
+    while (!matrices.empty()){
+       /* printf("matrices.front is: \n");
+        print(matrices.front());
+        printf("matrices.front.t is : \n");
+        for(int i = 0; i <matrices.front().cols; i++){
+        printf("%f", matrices.front().t[i]); putchar('\n');
+        }*/
+        //print(matrices.front());
+        free(matrices.front().t);
+        //printf("matrices.front is: \n");
+        //print(matrices.front());
+        matrices.pop_front();
+    }
+}
+
+
+void printMatrices(){
+    printf("list's size is : \n");
+    std::cout<< matrices.size()<< '\n';
+    printf("matrices.front is: \n");
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+    matrices.pop_front();
+    print(matrices.front());  putchar('\n');
+
+
+    //if (matrices.empty()) printf("list is not empty");
+    //else printf("list is empty");*/
+    
+}
 
 Matrix new_matrix(int cols,int rows)
 {
@@ -14,7 +68,7 @@ Matrix new_matrix(int cols,int rows)
 	t.cols=cols;
 	t.isColMajor = 1;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
-	
+	matrices.push_front(t);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
@@ -65,9 +119,9 @@ Matrix getColumn( Matrix t, int colNum)
     int r, c;
     int index = 0;
     Matrix result = fill(t.rows, 1, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 	        if (c==colNum){
 				M(result, index, 0) = M(t, c, r);
@@ -83,9 +137,9 @@ Matrix setColumn( Matrix x,  Matrix y, int colNum)
     int r, c;
     int index = 0;
     Matrix result = fill(x.cols, x.rows, (double)0.0);
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
             if (c==colNum){
                 M(result, c, r) = M(y, index, 0);
@@ -104,7 +158,7 @@ void print(Matrix t) {
 	for(i=0;i<t.rows;i++) {
 		printf("| ");
 		for(j=0;j<t.cols;j++)
-			printf("%.20f ",M(t,j,i));
+			printf("%2f ",M(t,j,i));
 		printf("|\n");
 	}
 	printf("\n");
@@ -218,12 +272,11 @@ bool allGreaterThan(Matrix t, double value){
 double vnorm(Matrix t){
     double result = 0;
     int i,j;
-    
-    for ( i = 0; i < t.rows; ++i )
+    for ( i = 0; i < t.rows; i++ )
     {
-        for ( j = 0; j < t.cols; ++j )
+        for ( j = 0; j < t.cols; j++ )
         {
-            result += (M(t,j,i) * M(t,j,i));
+            result = result + (M(t,j,i) * M(t,j,i));
         }
 	}
 	
@@ -233,9 +286,9 @@ double vnorm(Matrix t){
 double findMin(Matrix t){
     int i,j;
     double min = DBL_MAX;
-    for ( i = 0; i < t.rows; ++i )
+    for ( i = 0; i < t.rows; i++ )
     {
-        for ( j = 0; j < t.cols; ++j )
+        for ( j = 0; j < t.cols; j++ )
         {
             if ( min > M(t, j, i) ){
                 min = M(t, j, i);
@@ -249,9 +302,9 @@ double findMax(Matrix t){
     int i,j;
     double max = -999999.0;
     
-    for ( i = 0; i < t.rows; ++i )
+    for ( i = 0; i < t.rows; i++ )
     {
-        for ( j = 0; j < t.cols; ++j )
+        for ( j = 0; j < t.cols; j++ )
         {
             if (max < M(t,j,i) ){
                 max = M(t,j,i);
@@ -304,7 +357,7 @@ double dotProduct(Matrix a, Matrix b) { //Mahsa: a.cols element of matrix a is m
 Matrix matrixDotProduct(Matrix a,  Matrix b){
     int r;
     Matrix result = fill(a.cols, 1, (double)0.0);
-    for ( r = 0; r < a.rows; ++r )
+    for ( r = 0; r < a.rows; r++ )
     {
         
 	    M(result, r, 0) = dotProduct(getRow(a, r), getRow(b, 0));
@@ -317,9 +370,9 @@ Matrix minMaxAbs(Matrix t, double tol)
     // for each x[i]: min( max( abs(x[i]), tol ), 1/tol )
     int r,c;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
             double buf = ourAbs(M(t,c,r));
             buf = max(buf, tol);
@@ -334,9 +387,9 @@ Matrix add(Matrix x,  Matrix y)
 {
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
             M(result, c, r) = M(x, c, r) + M(y, c, r);
         }
@@ -346,11 +399,12 @@ Matrix add(Matrix x,  Matrix y)
 
 Matrix subtract(Matrix x,  Matrix y)
 {
-    Matrix result = fill(x.cols, x.rows, (double)0.0);
+    Matrix result = fill(x.cols, x.rows, (double)0.0);    
+
     int r,c;
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
             M(result, c, r) = M(x, c, r) - M(y, c, r);
         }
@@ -362,9 +416,9 @@ Matrix multiply(Matrix x,  Matrix y)
 {
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
             M(result, c, r) = M(x, c, r) * M(y, c, r);
         }
@@ -376,9 +430,9 @@ Matrix divide(Matrix x,  Matrix y)
 {
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
             M(result, c, r) = M(x, c, r) / M(y, c, r);
         }
@@ -391,9 +445,9 @@ Matrix copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
     int r, c, index;
     index = 0;
     Matrix result = fill(x.cols, x.rows, (double)0.0);
-    for ( r = 0; r < x.rows; ++r )
+    for ( r = 0; r < x.rows; r++ )
     {
-        for ( c = 0; c < x.cols; ++c )
+        for ( c = 0; c < x.cols; c++ )
         {
 			if (r == rowNum){
 				if (c >= colStart && c <= colStop){
@@ -416,10 +470,10 @@ Matrix rowWiseMin(Matrix t)
 {
     Matrix mins = fill(t.rows, 1, (double)0.0);
     int r,c;
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
         double min = DBL_MAX;
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
             if ( M(t,c,r) < min){
                 min = M(t,c,r);
@@ -433,18 +487,18 @@ Matrix rowWiseMin(Matrix t)
 Matrix transpose2D(Matrix t){ //Mahsa: 1) first row is copied into a matrix with the size equal to the argument matrix. then each element of this row is multiplied by the corresponding row in the copied matrix. i.e first element is multiplied by the first row. second element is multiplied by the second row, and so on.
     int r, c;
     Matrix result = fill(t.cols,t.cols,(double)0.0);
-    for ( r = 0; r < t.cols; ++r )
+    for ( r = 0; r < t.cols; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result,c,r) = M(t,c,0);
         }
     }
     //printf("result: transpose2D: \n");
     //print(result); putchar('\n');
-    for ( r = 0; r < t.cols; ++r )
+    for ( r = 0; r < t.cols; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result,c,r) = M(result,c,r) * M(t,r,0);
         }
@@ -459,9 +513,9 @@ Matrix transposeDotProduct(Matrix t){ //Mahsa: 1) takes the minimum dimension. 2
 	double minDim = min(t.cols, t.rows);
 	Matrix result = fill(minDim,minDim,(double)0.0);
 	
-    for ( r = 0; r < minDim; ++r )
+    for ( r = 0; r < minDim; r++ )
     {
-        for ( c = 0; c < minDim; ++c )
+        for ( c = 0; c < minDim; c++ )
         {
 			M(result,c,r) = dotProduct(getRow(t,r), getRow(t,c));
 		}
@@ -472,9 +526,9 @@ Matrix transposeDotProduct(Matrix t){ //Mahsa: 1) takes the minimum dimension. 2
 Matrix transposeDP(Matrix t){ //Mahsa: same as transpose2D function
     Matrix toReturn = fill(t.cols, t.cols, (double)0.0);
     int r, c;
-    for ( r = 0; r < t.cols; ++r )
+    for ( r = 0; r < t.cols; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
             M(toReturn, c, r) = M(t, r, 0) * M(t, c, 0);
         }
@@ -485,9 +539,9 @@ Matrix transposeDP(Matrix t){ //Mahsa: same as transpose2D function
 Matrix transpose(Matrix t){ // Mahsa: simply transposes the matrix
     Matrix result = fill(t.rows, t.cols, (double)0.0);
 	int r,c;
-	for ( r = 0; r < t.cols; ++r )
+	for ( r = 0; r < t.cols; r++ )
     {
-		for ( c = 0; c < t.rows; ++c )
+		for ( c = 0; c < t.rows; c++ )
         {
 			M(result, c, r) = M(t, r, c);
         }
@@ -499,9 +553,9 @@ Matrix negate(Matrix t)
 {
     int r, c;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result, c, r) = (M(t, c, r) * -1.0);
         }
@@ -513,9 +567,9 @@ Matrix duplicateIt(Matrix t)
 {
     int r, c;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result, c, r) = M(t, c, r);
         }
@@ -527,9 +581,9 @@ Matrix matrixAbs(Matrix t)
 {
     int r, c;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result, c, r) = ourAbs(M(t, c, r));
         }
@@ -541,9 +595,9 @@ Matrix multiplyByScalar2D(Matrix t, double multiplier)
 {
     int r, c;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
 			M(result, c, r) = M(t, c, r)*multiplier;
         }
@@ -577,7 +631,7 @@ Matrix checkControlList(Matrix t){
     M(result, 4, 0)=1.0e-8;
     M(result, 5, 0)=1;
     
-	for ( c = 0; c < length; ++c )
+	for ( c = 0; c < length; c++ )
     {
 		M(result, c, 0) = M(t, c, 0);
     }
@@ -615,9 +669,9 @@ Matrix copy(Matrix x,  Matrix y){
     Matrix result = fill(totalCols, totalRows, (double)0.0);
 	
 	int r, c;
-	for ( r = 0; r < totalRows; ++r )
+	for ( r = 0; r < totalRows; r++ )
     {
-        for ( c = 0; c < totalCols; ++c )
+        for ( c = 0; c < totalCols; c++ )
         {
 			if (c < x.cols){
 				M(result, c, r) = M(x, c, r);
@@ -905,17 +959,17 @@ Matrix rowSort(Matrix t)
 {
     int r, c, i, j;
     Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; ++r )
+    for ( r = 0; r < t.rows; r++ )
     {
-        for ( c = 0; c < t.cols; ++c )
+        for ( c = 0; c < t.cols; c++ )
         {
             M(result, c, r) = M(t, c, r);
         }
       	//for ( r = 0; r < t.rows; ++r )
       	//{
-        for ( i = 0; i < t.cols; ++i )
+        for ( i = 0; i < t.cols; i++ )
         {
-            for ( j = 0; j < t.cols; ++j )
+            for ( j = 0; j < t.cols; j++ )
             {
                 if (M(result, i, r) < M(result, j, r)){
                     double a = M(result, i, r);
@@ -957,7 +1011,8 @@ Matrix MatrixInvert(Matrix inMat)
 	result = duplicateIt(inMat);
 	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv, &l);
 	if(l != 0) {
-		error("Attempted to invert non-invertable matrix.");
+        printf("Attempted to invert non-invertable matrix.");
+		//omxRaiseError(result->currentState, -1, errstr);
 	} else {
 		F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv, work, &lwork, &l);
 	}
