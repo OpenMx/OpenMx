@@ -21,136 +21,6 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-class ComputeNR : public omxCompute {
-	typedef omxCompute super;
-	omxMatrix *fitMatrix;
-
-	int maxIter;
-	double tolerance;
-	int inform, iter;
-	int verbose;
-	bool carefully;
-
-public:
-	ComputeNR();
-	virtual void initFromFrontend(SEXP rObj);
-	virtual void compute(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *out);
-	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
-};
-
-class omxCompute *newComputeNewtonRaphson()
-{
-	return new ComputeNR();
-}
-
-ComputeNR::ComputeNR()
-{
-	inform = 0;
-	iter = 0;
-}
-
-void ComputeNR::initFromFrontend(SEXP rObj)
-{
-	super::initFromFrontend(rObj);
-
-	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
-	omxCompleteFitFunction(fitMatrix);
-
-	if (!fitMatrix->fitFunction->hessianAvailable ||
-	    !fitMatrix->fitFunction->gradientAvailable) {
-		error("Newton-Raphson requires derivatives");
-	}
-
-	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
-	maxIter = INTEGER(slotValue)[0];
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
-	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) error("tolerance must be positive");
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("carefully")));
-	carefully = asLogical(slotValue);
-}
-
-void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
-{
-	const char uplo = 'L';
-	int info;
-	int retries = 0;
-	const int maxRetries = 31; // assume >=32 bit integers
-	double adj = 0;
-	do {
-		memcpy(ihess, hess, sizeof(double) * dim * dim);
-
-		if (retries >= 1) {
-			int th = maxRetries - retries;
-			if (th > 0) {
-				adj = 1.0/(1 << th);
-			} else {
-				adj = (1 << -th);
-			}
-			for (int px=0; px < dim; ++px) {
-				ihess[px * dim + px] += adj;
-			}
-		}
-
-		F77_CALL(dpotrf)(&uplo, &dim, ihess, &dim, &info);
-		if (info < 0) error("Arg %d is invalid", -info);
-		if (info == 0) break;
-	} while (++retries < maxRetries * 1.5);
-
-	if (info > 0) {
-		omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
-		return;
-	}
-	F77_CALL(dpotri)(&uplo, &dim, ihess, &dim, &info);
-	if (info < 0) error("Arg %d is invalid", -info);
-	if (info > 0) {
-		// Impossible to fail if dpotrf worked?
-		omxRaiseErrorf(globalState, "Hessian is not of full rank");
-	}
-
-	if (stress) *stress = adj;
-}
-
-void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress)
-{
-	int mdim = 0;
-	for (int dx=0; dx < dim; ++dx) if (mask[dx]) mdim += 1;
-
-	std::vector<double> hess(mdim * mdim, 0.0);
-	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
-		if (mask[d1]) ++m1;
-		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
-			if (mask[d2]) ++m2;
-			if (mask[d1] && mask[d2]) {
-				hess[m2 * mdim + m1] = packedHess[px];
-			}
-			++px;
-		}
-	}
-
-	std::vector<double> ihess(mdim * mdim);
-	omxApproxInvertPosDefTriangular(mdim, hess.data(), ihess.data(), stress);
-
-	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
-		if (mask[d1]) ++m1;
-		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
-			if (mask[d2]) ++m2;
-			if (mask[d1] && mask[d2]) {
-				packedHess[px] = *stress? 0 : ihess[m2 * mdim + m1];
-			}
-			++px;
-		}
-	}
-}
-
 class Ramsay1975 {
 	// Ramsay, J. O. (1975). Solving Implicit Equations in
 	// Psychometric Data Analysis.  Psychometrika, 40(3), 337-360.
@@ -274,7 +144,163 @@ void Ramsay1975::restart()
 	}
 }
 
+class ComputeNR : public omxCompute {
+	typedef omxCompute super;
+	omxMatrix *fitMatrix;
+
+	int maxIter;
+	double tolerance;
+	int inform, iter;
+	int verbose;
+	bool carefully;
+	std::vector<Ramsay1975*> ramsay;
+	double getMaxCaution() const;
+	void clearRamsay();
+
+public:
+	ComputeNR();
+	virtual ~ComputeNR();
+	virtual void initFromFrontend(SEXP rObj);
+	virtual void compute(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
+};
+
+class omxCompute *newComputeNewtonRaphson()
+{
+	return new ComputeNR();
+}
+
+ComputeNR::ComputeNR()
+{
+	inform = 0;
+	iter = 0;
+}
+
+void ComputeNR::clearRamsay()
+{
+	for (size_t rx=0; rx < ramsay.size(); ++rx) {
+		delete ramsay[rx];
+	}
+	ramsay.clear();
+}
+
+ComputeNR::~ComputeNR()
+{
+	clearRamsay();
+}
+
+void ComputeNR::initFromFrontend(SEXP rObj)
+{
+	super::initFromFrontend(rObj);
+
+	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
+	omxCompleteFitFunction(fitMatrix);
+
+	if (!fitMatrix->fitFunction->hessianAvailable ||
+	    !fitMatrix->fitFunction->gradientAvailable) {
+		error("Newton-Raphson requires derivatives");
+	}
+
+	SEXP slotValue;
+	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
+	maxIter = INTEGER(slotValue)[0];
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
+	tolerance = REAL(slotValue)[0];
+	if (tolerance <= 0) error("tolerance must be positive");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
+	verbose = asInteger(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("carefully")));
+	carefully = asLogical(slotValue);
+}
+
+void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
+{
+	const char uplo = 'L';
+	int info;
+	int retries = 0;
+	const int maxRetries = 31; // assume >=32 bit integers
+	double adj = 0;
+	do {
+		memcpy(ihess, hess, sizeof(double) * dim * dim);
+
+		if (retries >= 1) {
+			int th = maxRetries - retries;
+			if (th > 0) {
+				adj = 1.0/(1 << th);
+			} else {
+				adj = (1 << -th);
+			}
+			for (int px=0; px < dim; ++px) {
+				ihess[px * dim + px] += adj;
+			}
+		}
+
+		F77_CALL(dpotrf)(&uplo, &dim, ihess, &dim, &info);
+		if (info < 0) error("Arg %d is invalid", -info);
+		if (info == 0) break;
+	} while (++retries < maxRetries * 1.5);
+
+	if (info > 0) {
+		omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
+		return;
+	}
+	F77_CALL(dpotri)(&uplo, &dim, ihess, &dim, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	if (info > 0) {
+		// Impossible to fail if dpotrf worked?
+		omxRaiseErrorf(globalState, "Hessian is not of full rank");
+	}
+
+	if (stress) *stress = adj;
+}
+
+void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress)
+{
+	int mdim = 0;
+	for (int dx=0; dx < dim; ++dx) if (mask[dx]) mdim += 1;
+
+	std::vector<double> hess(mdim * mdim, 0.0);
+	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
+		if (mask[d1]) ++m1;
+		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
+			if (mask[d2]) ++m2;
+			if (mask[d1] && mask[d2]) {
+				hess[m2 * mdim + m1] = packedHess[px];
+			}
+			++px;
+		}
+	}
+
+	std::vector<double> ihess(mdim * mdim);
+	omxApproxInvertPosDefTriangular(mdim, hess.data(), ihess.data(), stress);
+
+	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
+		if (mask[d1]) ++m1;
+		for (int d2=0, m2=-1; d2 <= d1; ++d2) {
+			if (mask[d2]) ++m2;
+			if (mask[d1] && mask[d2]) {
+				packedHess[px] = *stress? 0 : ihess[m2 * mdim + m1];
+			}
+			++px;
+		}
+	}
+}
+
 void pda(const double *ar, int rows, int cols);
+
+double ComputeNR::getMaxCaution() const
+{
+	double caution = 0;
+	for (size_t rx=0; rx < ramsay.size(); ++rx) {
+		caution = std::max(caution, ramsay[rx]->maxCaution);
+	}
+	return caution;
+}
 
 void ComputeNR::compute(FitContext *fc)
 {
@@ -304,7 +330,6 @@ void ComputeNR::compute(FitContext *fc)
 		//fc->log("NR", FF_COMPUTE_HGPROD);
 	}
 
-	std::vector<Ramsay1975*> ramsay;
 	for (size_t px=0; px < numParam; ++px) {
 		// global namespace for flavors? TODO
 		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
@@ -489,7 +514,8 @@ void ComputeNR::compute(FitContext *fc)
 					maxAdjFlavor = fc->flavor[px];
 				}
 			}
-			converged = maxAdj < tolerance;
+			converged = maxAdj < tolerance * (1-getMaxCaution());
+			//converged = maxAdj < tolerance;  // makes practically no difference
 		}
 
 		fc->copyParamToModel(globalState);
@@ -499,11 +525,8 @@ void ComputeNR::compute(FitContext *fc)
 		if (converged || ++iter >= maxIter) break;
 	}
 
-	fc->caution = 0;
-	for (size_t rx=0; rx < ramsay.size(); ++rx) {
-		fc->caution = std::max(fc->caution, ramsay[rx]->maxCaution);
-		delete ramsay[rx];
-	}
+	fc->caution = getMaxCaution();
+	clearRamsay();
 
 	if (verbose >= 1) {
 		if (converged) {
