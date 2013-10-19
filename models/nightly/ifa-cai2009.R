@@ -9,7 +9,7 @@
 library(OpenMx)
 library(rpf)
 
-correct.LL <- 29995.30  # from flexMIRT
+correct.LL <- 29995.30418  # from flexMIRT
 
 # read data
 data.raw <- suppressWarnings(try(read.csv("models/nightly/data/cai2009.csv"), silent=TRUE))
@@ -115,7 +115,7 @@ if (1) {
                         mxComputeOnce('fitfunction', fit=TRUE,
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel <- mxRun(cModel)
-    omxCheckCloseEnough(cModel@output$minimum, correct.LL, .01)
+    omxCheckCloseEnough(cModel@fitfunction@result, correct.LL, 1e-4)
 }
 
 omxIFAComputePlan <- function(groups) {
