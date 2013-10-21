@@ -403,6 +403,10 @@ Matrix divide(Matrix x,  Matrix y)
 {
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
+    if (x.cols != y.cols) {
+        if (x.cols > y.cols) y = copy(y, fill(x.cols - y.cols, 1, (double)1.0));
+        //else x = copy(x, fill(y.cols - x.cols), 1, ()
+    }
     for ( r = 0; r < x.rows; r++ )
     {
         for ( c = 0; c < x.cols; c++ )

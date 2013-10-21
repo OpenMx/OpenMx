@@ -298,8 +298,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     /* Set boundaries and widths. */
     
     /* Allocate arrays */
-    bl      = Calloc ( n, double );
-    bu      = Calloc (n, double );
+    bl      = Calloc ( n + ncnln, double );
+    bu      = Calloc (n + ncnln, double );
     
 	if (verbose >= 2) {
 		for (int i = 0; i < n; i++) {
@@ -328,6 +328,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     else{
         int j;
+        int nineqn;
         int eqn = 0;
         for(j = 0; j < globalState->numConstraints; j++) {
             if (globalState->conList[j].opCode == 1)
@@ -335,7 +336,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                 eqn += globalState->conList[j].size;
             }
         }
-        int nineqn = ncnln - eqn;
+        if (eqn == ncnln) nineqn = 1;
+        else nineqn = ncnln - eqn;
+
         solIneqLB = fill(nineqn, 1, EMPTY);
         solIneqUB = fill(nineqn, 1, EMPTY);
 	    if (eqn == 0) {
@@ -343,7 +346,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    } else {
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
-	    omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+
+        omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
