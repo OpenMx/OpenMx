@@ -1,8 +1,4 @@
 # This is a replication of Cai, Yang, & Hansen (2011) simulation study #1.
-#
-# echo 0 > /proc/self/coredump_filter  # normally 023
-# R --vanilla --no-save -f models/failing/bock-aitkin-1981.R
-# R -d gdb --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 
 #options(error = utils::recover)
 library(OpenMx)
@@ -140,11 +136,4 @@ if (0) {
   df$type <- factor(df$type)
   ggplot(df, aes(true, bias, color=type)) + geom_point(size=3) + xlab("true parameter value") +
      ylab(paste("bias (", length(sbank), "replications)"))
-}
-
-if(0) {
-  require(ggplot2)
-  bygh <- bank #bank[sapply(bank, function (b) b$seed == 1)]
-  df <- data.frame(time=sapply(bygh, function(b) c(as.numeric(b$cpuTime))))
-  ggplot(df, aes(time)) + geom_histogram(binwidth=.5)
 }
