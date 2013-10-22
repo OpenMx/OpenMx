@@ -32,6 +32,7 @@
 #endif
 
 static const double EXP_STABLE_DOMAIN = 35;
+static const double SMALLEST_PROB = 6.305116760146989222002e-16;  // exp(-35), need constexpr
 
 // This is far away from the item's difficulty so it is less
 // interesting for estimation and the gradient becomes numerically
@@ -408,7 +409,6 @@ irt_rpf_mdim_grm_paramInfo(const double *spec, const int param,
 			   int *type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
-	const int numOutcomes = spec[RPF_ISpecOutcomes];
 	*upper = nan("unset");
 	*lower = nan("unset");
 	if (param >= 0 && param < numDims) {
@@ -417,6 +417,31 @@ irt_rpf_mdim_grm_paramInfo(const double *spec, const int param,
 	} else {
 		*type = RPF_Intercept;
 	}
+}
+
+static void _grm_fix_crazy_stuff(const double *spec, const int numOutcomes, double *out)
+{
+  int bigk = -1;
+  double big = 0;
+
+  for (int bx=0; bx < numOutcomes; bx++) {
+    if (out[bx] > big) {
+      bigk = bx;
+      big = out[bx];
+    }
+  }
+
+  for (int fx=0; fx < numOutcomes; fx++) {
+    if (out[fx] < -6.3e-16) {
+      set_deriv_nan(spec, out);
+      return;
+    }
+    if (out[fx] < 1e-20) {
+      double small = SMALLEST_PROB;
+      out[bigk] -= small;
+      out[fx] += small;
+    }
+  }
 }
 
 static void
@@ -446,28 +471,9 @@ irt_rpf_mdim_grm_prob(const double *spec,
     out[kx] = tmp;
   }
 
-  // look for crazy stuff
   for (int kx=0; kx < numOutcomes; kx++) {
     if (out[kx] <= 0) {
-      int bigk = -1;
-      double big = 0;
-      for (int bx=0; bx < numOutcomes; bx++) {
-	if (out[bx] > big) {
-	  bigk = bx;
-	  big = out[bx];
-	}
-      }
-      for (int fx=0; fx < numOutcomes; fx++) {
-	      if (out[fx] < 0) {
-		      set_deriv_nan(spec, out);
-		      return;
-	      }
-	if (out[fx] == 0) {
-	  double small = 1 / (1 + exp(EXP_STABLE_DOMAIN));
-	  out[bigk] -= small;
-	  out[fx] += small;
-	}
-      }
+      _grm_fix_crazy_stuff(spec, numOutcomes, out);
       return;
     }
   }
@@ -517,31 +523,35 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
     double Pk_1Pk = Pk_1 - Pk;
     if (Pk_1Pk < 1e-10) Pk_1Pk = 1e-10;
     double dif1 = weight[jx] / Pk_1Pk;
-    double dif1sq = weight[jx] / (Pk_1Pk * Pk_1Pk);
+    double dif1sq = dif1 / Pk_1Pk;
     if(jx < nzeta) {
       double Pk_p1 = P[jx + 2];
       double PQ_p1 = PQfull[jx + 2];
       double Pk_Pkp1 = Pk - Pk_p1;
       if(Pk_Pkp1 < 1e-10) Pk_Pkp1 = 1e-10;
       double dif2 = weight[jx+1] / Pk_Pkp1;
-      double dif2sq = weight[jx+1] / (Pk_Pkp1 * Pk_Pkp1);
-      out[nfact + jx] += PQ * (dif1 - dif2);
+      double dif2sq = dif2 / Pk_Pkp1;
+      out[nfact + jx] += PQ * (dif1 - dif2);  //gradient for intercepts
 
-      int d2base = (nfact + nzeta) + (nfact+jx) * (nfact+jx+1)/2;
-      out[d2base + nfact + jx] -= (-1 * PQ * PQ * (dif1sq + dif2sq) -
-					  (dif1 - dif2) * (Pk * (1.0 - Pk) * (1.0 - 2.0*Pk)));
-      if (jx < (nzeta - 1)) {
-	int d2base1 = (nfact + nzeta) + (nfact+jx+1) * (nfact+jx+2)/2;
-	out[d2base1 + nfact + jx] -= dif2sq * PQ_p1 * PQ;
-      }
-      double tmp1 = (-1.0) * dif2sq * PQ * (PQ - PQ_p1);
-      double tmp2 = dif1sq * PQ * (PQ_1 - PQ);
+      int d2base = hessianIndex(nfact + nzeta, nfact+jx, 0);
+      // hessian for intercept^2
       double tmp3 = (dif1 - dif2) * (Pk * (1.0 - Pk) * (1.0 - 2.0*Pk));
+      double piece1 = (PQ * PQ * (dif1sq + dif2sq) + tmp3);
+      out[d2base + nfact + jx] += piece1;
+      if (jx < (nzeta - 1)) {
+	      // hessian for adjacent intercepts
+	      int d2base1 = hessianIndex(nfact + nzeta, nfact+jx+1, nfact + jx);
+	      out[d2base1] -= dif2sq * PQ_p1 * PQ;
+      }
+      double tmp1 = -dif2sq * PQ * (PQ - PQ_p1);
+      double tmp2 = dif1sq * PQ * (PQ_1 - PQ);
       for(int kx = 0; kx < nfact; kx++){
+	// hessian for slope intercept
 	out[d2base + kx] -= (tmp1 + tmp2 - tmp3) * where[kx];
       }
     }
     for(int kx = 0; kx < nfact; kx++) {
+      // gradient for slope
       out[kx] -= dif1 * (PQ_1 - PQ) * where[kx];
     }
 
@@ -550,12 +560,13 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
       temp[ix] = PQ_1 * where[ix] - PQ * where[ix];
 
     int d2x = nfact + nzeta;
+    double Pk_adj = (Pk_1 * (1.0 - Pk_1) * (1.0 - 2.0 * Pk_1) -
+		     Pk * (1.0 - Pk) * (1.0 - 2.0 * Pk));
     for(int i = 0; i < nfact; i++) {
       for(int j = 0; j <= i; j++) {
 	double outer = where[i]*where[j];
-	out[d2x++] -= (-1 * dif1sq * temp[i] * temp[j] +
-			      (dif1 * (Pk_1 * (1.0 - Pk_1) * (1.0 - 2.0 * Pk_1) * 
-				       outer - Pk * (1.0 - Pk) * (1.0 - 2.0 * Pk) * outer)));
+	// hessian for slope slope
+	out[d2x++] -= (- dif1sq * temp[i] * temp[j] + (dif1 * outer * Pk_adj));
       }
     }
   }
@@ -658,9 +669,9 @@ irt_rpf_nominal_paramInfo(const double *spec, const int param,
 }
 
 static void
-_nominal_rawprob(const double *spec,
+_nominal_rawprob1(const double *spec,
 		 const double *restrict param, const double *restrict th,
-		 double discr, double *ak, double *num)
+		 double discr, double *ak, double *num, double *maxout)
 {
   int numDims = spec[RPF_ISpecDims];
   int numOutcomes = spec[RPF_ISpecOutcomes];
@@ -669,6 +680,7 @@ _nominal_rawprob(const double *spec,
   const double *Ta = spec + RPF_ISpecCount;
   const double *Tc = spec + RPF_ISpecCount + (numOutcomes-1) * (numOutcomes-1);
 
+  double curmax = 1;
   for (int kx=0; kx < numOutcomes; kx++) {
     ak[kx] = 0;
     double ck = 0;
@@ -681,12 +693,49 @@ _nominal_rawprob(const double *spec,
     }
 
     double z = discr * ak[kx] + ck;
-    if (z < -EXP_STABLE_DOMAIN) z = -EXP_STABLE_DOMAIN;
-    else if (z > EXP_STABLE_DOMAIN) z = EXP_STABLE_DOMAIN;
     num[kx] = z;
+    if (curmax < z) curmax = z;
   }
+  *maxout = curmax;
 }
 
+static void
+_nominal_rawprob2(const double *spec,
+		  const double *restrict param, const double *restrict th,
+		  double discr, double *ak, double *num)
+{
+  int numOutcomes = spec[RPF_ISpecOutcomes];
+  double maxZ;
+  _nominal_rawprob1(spec, param, th, discr, ak, num, &maxZ);
+  
+  double recenter = 0;
+  if (maxZ > EXP_STABLE_DOMAIN) {
+    recenter = maxZ - EXP_STABLE_DOMAIN;
+  }
+
+  int Kadj = -1;
+  double adj = 0;
+  double den = 0;   // not exact because adj not taken into account
+  for (int kx=0; kx < numOutcomes; kx++) {
+    if (num[kx] == maxZ) Kadj = kx;
+    if (num[kx] - recenter < -EXP_STABLE_DOMAIN) {
+      num[kx] = 0;
+      adj += SMALLEST_PROB;
+      continue;
+    }
+    num[kx] = exp(num[kx] - recenter);
+    den += num[kx];
+  }
+  for (int kx=0; kx < numOutcomes; kx++) {
+    if (kx == Kadj) {
+      num[kx] = num[kx]/den - adj;
+    } else if (num[kx] == 0) {
+      num[kx] = SMALLEST_PROB;
+    } else {
+      num[kx] = num[kx]/den;
+    }
+  }
+}
 
 static void
 irt_rpf_nominal_prob(const double *spec,
@@ -695,19 +744,9 @@ irt_rpf_nominal_prob(const double *spec,
 {
   int numOutcomes = spec[RPF_ISpecOutcomes];
   int numDims = spec[RPF_ISpecDims];
-  double num[numOutcomes];
   double ak[numOutcomes];
   double discr = dotprod(param, th, numDims);
-  _nominal_rawprob(spec, param, th, discr, ak, num);
-  double den = 0;
-
-  for (int kx=0; kx < numOutcomes; kx++) {
-    num[kx] = exp(num[kx]);
-    den += num[kx];
-  }
-  for (int kx=0; kx < numOutcomes; kx++) {
-    out[kx] = num[kx]/den;
-  }
+  _nominal_rawprob2(spec, param, th, discr, ak, out);
 }
 
 static void
@@ -720,13 +759,19 @@ irt_rpf_nominal_logprob(const double *spec,
   double num[numOutcomes];
   double ak[numOutcomes];
   double discr = dotprod(param, th, numDims);
-  _nominal_rawprob(spec, param, th, discr, ak, num);
+  double maxZ;
+  _nominal_rawprob1(spec, param, th, discr, ak, num, &maxZ);
   double den = 0;
 
-  for (int kx=0; kx < numOutcomes; kx++) {
-    den += exp(num[kx]);
+  if (maxZ > EXP_STABLE_DOMAIN) {
+    den = maxZ;  // not best approx
+  } else {
+    for (int kx=0; kx < numOutcomes; kx++) {
+      if (num[kx] < -EXP_STABLE_DOMAIN) continue;
+      den += exp(num[kx]);
+    }
+    den = log(den);
   }
-  den = log(den);
 
   for (int kx=0; kx < numOutcomes; kx++) {
     out[kx] = num[kx] - den;
@@ -768,7 +813,7 @@ irt_rpf_nominal_deriv1(const double *spec,
 
   double num[ncat];
   double ak[ncat];
-  _nominal_rawprob(spec, param, where, aTheta, ak, num);
+  _nominal_rawprob2(spec, param, where, aTheta, ak, num);
 
   double P[ncat];
   double P2[ncat];
@@ -781,7 +826,6 @@ irt_rpf_nominal_deriv1(const double *spec,
   double numakDTheta_numsum[nfact];
 
   for (int kx=0; kx < ncat; kx++) {
-    num[kx] = exp(num[kx]);
     ak2[kx] = ak[kx] * ak[kx];
     dat_num[kx] = weight[kx]/num[kx];
     numsum += num[kx];
@@ -1041,11 +1085,10 @@ irt_rpf_mdim_nrm_dTheta(const double *spec, const double *param,
   double num[outcomes];
   double ak[outcomes];
   double discr = dotprod(param, where, numDims);
-  _nominal_rawprob(spec, param, where, discr, ak, num);
+  _nominal_rawprob2(spec, param, where, discr, ak, num);
 
   double den = 0;
   for (int kx=0; kx < outcomes; kx++) {
-    num[kx] = exp(num[kx]);
     den += num[kx];
   }
 
