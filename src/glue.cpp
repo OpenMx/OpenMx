@@ -207,7 +207,6 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		     int *analyticGradients)
 {
-		char optionCharArray[250] = "";			// For setting options
 		int numOptions = length(options);
 		SEXP optionNames;
 		PROTECT(optionNames = GET_NAMES(options));
