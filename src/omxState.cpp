@@ -321,14 +321,21 @@ void omxFreeChildStates(omxState *state)
 		if(OMX_DEBUG) { mxLog("State Freed.");}
 	}
 
+/*
+ * I don't understand why this results in double frees. TODO
+ *
+FreeVarGroup::~FreeVarGroup()
+{
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		delete vars[vx];
+	}
+}
+*/
+
 omxGlobal::~omxGlobal()
 {
 	for (size_t cx=0; cx < computeList.size(); ++cx) {
 		delete computeList[cx];
-	}
-	std::vector< omxFreeVar* > &vars = freeGroup[0]->vars;  // has all vars
-	for (size_t vx=0; vx < vars.size(); ++vx) {
-		delete vars[vx];
 	}
 	for (size_t gx=0; gx < freeGroup.size(); ++gx) {
 		delete freeGroup[gx];
