@@ -723,7 +723,7 @@ Matrix luSolve(Matrix a,  Matrix b){
             for (k = 0; k < kmax; k++) {
 				s += M(LU, k, i) * M(LU,j, k);
             }
-			M(LU,j,i) = M(LU,j,i) -= s;
+	    M(LU,j,i) -= s;
         }
         
         // Find pivot and exchange if necessary.
@@ -745,7 +745,7 @@ Matrix luSolve(Matrix a,  Matrix b){
         
         // Compute multipliers.
         
-        if (j < m & M(LU, j, j) != 0.0) {
+        if (j < m && M(LU, j, j) != 0.0) {
             for (i = j+1; i < m; i++) {
 				M(LU, j, i) /= M(LU, j, j);
             }

@@ -799,7 +799,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
         print(p0); putchar('\n');
     }
     
-	int mm;
+	int mm = -1;
 	if (M(ind, 10, 0) > 0){
 		if (M(ind, 9, 0) <= 0){
 			mm = nineq;
@@ -888,7 +888,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 	Matrix gap;
     
 	int solnp_nfn = 0;
-	double go, reduce;
+	double go, reduce = 1e-300;
 	int minit;
 	double lambdaValue = lambda;
     
