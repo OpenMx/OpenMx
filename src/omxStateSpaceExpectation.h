@@ -26,6 +26,7 @@ typedef struct {
 	omxMatrix *x0, *P0; // Placeholders for initial state and initial error cov
 	omxMatrix *det; // Determinant of expected ccovariance matrix S
 	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, r, R, K, and S for missing data handling
+	omxState* currentState;
 	
 } omxStateSpaceExpectation;
 
