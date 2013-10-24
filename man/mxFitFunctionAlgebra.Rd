@@ -15,7 +15,7 @@
 
 \name{mxFitFunctionAlgebra}
 \alias{mxFitFunctionAlgebra}
-\alias{MxFitFunctionAlgebra}
+\alias{MxFitFunctionAlgebra-class}
 \alias{print,MxFitFunctionAlgebra-method}
 \alias{show,MxFitFunctionAlgebra-method}
 

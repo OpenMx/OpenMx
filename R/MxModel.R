@@ -107,6 +107,7 @@ setGeneric("imxModelBuilder", function(model, lst, name,
 ##' what they are doing.
 ##'
 ##' @param model model
+##' @aliases
 ##' imxTypeName,MxLISRELModel-method
 ##' imxTypeName,MxModel-method
 ##' imxTypeName,MxRAMModel-method
@@ -120,6 +121,7 @@ setGeneric("imxTypeName", function(model) {
 ##' what they are doing.
 ##'
 ##' @param model model
+##' @aliases
 ##' imxVerifyModel,MxLISRELModel-method
 ##' imxVerifyModel,MxModel-method
 ##' imxVerifyModel,MxRAMModel-method

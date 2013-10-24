@@ -25,6 +25,15 @@
 \alias{length,MxMatrix-method}
 \alias{dimnames,MxMatrix-method}
 \alias{dimnames<-,MxMatrix-method}
+\alias{DiagMatrix-class}
+\alias{FullMatrix-class}
+\alias{IdenMatrix-class}
+\alias{LowerMatrix-class}
+\alias{SdiagMatrix-class}
+\alias{StandMatrix-class}
+\alias{SymmMatrix-class}
+\alias{UnitMatrix-class}
+\alias{ZeroMatrix-class}
     
 \title{MxMatrix Class}
 

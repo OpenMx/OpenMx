@@ -108,7 +108,14 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/imxVerifyReference.Rd \
 	man/MxFlatModel.Rd \
 	man/MxLISRELModel.Rd \
-	man/MxRAMModel.Rd
+	man/MxRAMModel.Rd \
+	man/MxCharOrList-class.Rd \
+	man/MxCharOrNumber-class.Rd \
+	man/MxListOrNull-class.Rd \
+	man/MxOptionalChar-class.Rd \
+	man/MxOptionalCharOrNumber-class.Rd \
+	man/MxOptionalLogical-class.Rd \
+	man/MxOptionalMatrix-class.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)
@@ -208,7 +215,7 @@ cran-winbuild: cran
 	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
 
 cran-check: cran
-	cd $(RBUILD) && R CMD check --as-cran OpenMx_*.tar.gz
+	cd $(RBUILD) && R CMD check OpenMx_*.tar.gz
 	rm -f $(ROXDOC)
 
 pdf:
@@ -310,3 +317,4 @@ clean:
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
+	rm -f $(ROXDOC)

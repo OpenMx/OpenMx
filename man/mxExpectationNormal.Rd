@@ -15,6 +15,9 @@
 
 \name{mxExpectationNormal}
 \alias{mxExpectationNormal}
+\alias{MxExpectationNormal-class}
+\alias{show,MxExpectationNormal-method}
+\alias{print,MxExpectationNormal-method}
 
 \title{Create MxExpectationNormal Object}
 

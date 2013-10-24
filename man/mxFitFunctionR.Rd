@@ -15,7 +15,7 @@
 
 \name{mxFitFunctionR}
 \alias{mxFitFunctionR}
-\alias{MxFitFunctionR}
+\alias{MxFitFunctionR-class}
 \alias{print,MxFitFunctionR-method}
 \alias{show,MxFitFunctionR-method}
 

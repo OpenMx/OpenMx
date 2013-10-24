@@ -14,11 +14,12 @@
 #   limitations under the License.
 
 
-##' MxFlatModel
+##' @name MxFlatModel
 ##'
 ##' This is an internal class and should not be used.
 ##'
 ##' @aliases
+##' MxFlatModel-class
 ##' $,MxFlatModel-method
 ##' $<-,MxFlatModel-method
 ##' [[,MxFlatModel-method

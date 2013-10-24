@@ -14,16 +14,30 @@
 #   limitations under the License.
 
 
+##' A character or integer
+##' @name MxCharOrNumber-class
 setClassUnion("MxCharOrNumber", c("character", "integer"))
 
+##' An optional character
+##' @name MxOptionalChar-class
 setClassUnion("MxOptionalChar", c("NULL", "character"))
 
+##' An optional logical
+##' @name MxOptionalLogical-class
 setClassUnion("MxOptionalLogical", c("NULL", "logical"))
 
+##' A character, integer, or NULL
+##' @name MxOptionalCharOrNumber-class
 setClassUnion("MxOptionalCharOrNumber", c("NULL", "character", "integer"))
 
+##' An optional list
+##' @name MxListOrNull-class
 setClassUnion("MxListOrNull", c("list", "NULL"))
 
+##' A character, list or NULL
+##' @name MxCharOrList-class
 setClassUnion("MxCharOrList", c("character", "list"))
 
+##' An optional matrix
+##' @name MxOptionalMatrix-class
 setClassUnion("MxOptionalMatrix", c("NULL", "matrix"))

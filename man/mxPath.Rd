@@ -15,7 +15,7 @@
 
 \name{mxPath}
 \alias{mxPath}
-\alias{MxPath}
+\alias{MxPath-class}
 \alias{print,MxPath-method}
 \alias{show,MxPath-method}
 

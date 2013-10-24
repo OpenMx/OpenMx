@@ -15,6 +15,9 @@
 
 \name{MxData-class}
 \alias{MxData}
+\alias{MxNonNullData-class}
+\alias{print,MxNonNullData-method}
+\alias{show,MxNonNullData-method}
 
 \title{MxData Class}
 

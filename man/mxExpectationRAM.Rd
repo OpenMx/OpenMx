@@ -15,6 +15,9 @@
 
 \name{mxExpectationRAM}
 \alias{mxExpectationRAM}
+\alias{MxExpectationRAM-class}
+\alias{show,MxExpectationRAM-method}
+\alias{print,MxExpectationRAM-method}
 
 \title{Create an MxExpectationRAM Object}
 

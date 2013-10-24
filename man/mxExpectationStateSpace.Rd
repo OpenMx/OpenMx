@@ -15,6 +15,9 @@
 
 \name{mxExpectationStateSpace}
 \alias{mxExpectationStateSpace}
+\alias{MxExpectationStateSpace-class}
+\alias{show,MxExpectationStateSpace-method}
+\alias{print,MxExpectationStateSpace-method}
 
 \title{Create an MxExpectationStateSpace Object}
 

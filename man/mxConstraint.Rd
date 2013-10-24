@@ -15,6 +15,8 @@
 
 \name{mxConstraint}
 \alias{mxConstraint}
+\alias{print,MxConstraint-method}
+\alias{show,MxConstraint-method}
 
 \title{Create MxConstraint Object}
 

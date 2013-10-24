@@ -15,6 +15,9 @@
 
 \name{mxExpectationLISREL}
 \alias{mxExpectationLISREL}
+\alias{MxExpectationLISREL-class}
+\alias{show,MxExpectationLISREL-method}
+\alias{print,MxExpectationLISREL-method}
 
 \title{Create MxExpectationLISREL Object}
 
