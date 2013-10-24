@@ -262,11 +262,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
 	if(info > 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Expected covariance matrix is non-positive-definite");
-		strncat(errstr, ".\n", 3);
-		omxRaiseErrorf(ose->currentState, errstr); // Raise error
-		free(errstr);
+		omxRaiseErrorf(ose->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
 		return;  // Leave output untouched
 	}
 	for(int i = 0; i < smallS->cols; i++) {
