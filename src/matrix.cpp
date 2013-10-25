@@ -3,13 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "matrix.h"
 #include <iostream>
 using std::cout;
 using std::endl;
 #include <list>
 #include <algorithm>
 #include <iterator>
+
+#include "omxBuffer.h"
+#include "matrix.h"
 
 template <typename T> void printList( const std::list< T > &listRef);
 
@@ -974,27 +976,36 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat)
 }
 
 
+int MatrixInvert(Matrix inMat, Matrix result)
+{
+	if (inMat.rows != result.rows || inMat.cols != result.cols) error("Not conformable");
+	if (inMat.t == result.t) error("MatrixInvert: input and output must use separate memory");
+
+	omxBuffer<int> ipiv(inMat.rows);
+	int info;
+	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv.data(), &info);
+	if (info < 0) error("dgetrf info %d", info);
+	if (info > 0) return info;
+
+	int opt_lwork = -1;
+	double opt_work;
+	F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), &opt_work, &opt_lwork, &info);
+	if (info != 0) error("dgetri workspace query failed %d", info);
+
+	opt_lwork = opt_work;
+	omxBuffer<double> work(opt_lwork);
+	F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), work.data(), &opt_lwork, &info);
+	if (info < 0) error("dgetri info %d", info);
+	if (info > 0) return info;   // probably would fail at dgetrf already
+
+	return 0;
+}
+
 Matrix MatrixInvert(Matrix inMat)
 {
-	Matrix result;
-	
-	int lwork = 4 * inMat.rows * inMat.cols;
-	int l = 0;
-    
-	int*    ipiv = (int*) malloc(inMat.rows * sizeof(int));
-	double* work = (double*) malloc(lwork * sizeof(double));
-    
-	result = duplicateIt(inMat);
-	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv, &l);
-	if(l != 0) {
-        printf("Attempted to invert non-invertable matrix.");
-		//omxRaiseError(result->currentState, -1, errstr);
-	} else {
-		F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv, work, &lwork, &l);
-	}
-    
-	free(ipiv);
-	free(work);
+	Matrix result = duplicateIt(inMat);
+	int info = MatrixInvert(inMat, result);
+	if (info) error("MatrixInvert: attempt to invert singular matrix (info=%d)", info);
 	return result;
 }
 

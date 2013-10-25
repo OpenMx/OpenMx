@@ -22,6 +22,7 @@
 #include "glue.h"
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
+#include "omxBuffer.h"
 
 const struct rpf *rpf_model = NULL;
 int rpf_numModels;

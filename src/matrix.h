@@ -17,7 +17,9 @@ struct Matrix {
 	int rows;
 	int cols;
 	double *t;
-	
+
+	Matrix() {}
+	Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
 };
 
 typedef struct Param_Obj Param_Obj;
@@ -37,6 +39,7 @@ void freeMatrices();
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
 Matrix MatrixInvert(Matrix inMat);
+int MatrixInvert(Matrix inMat, Matrix result);
 
 struct Matrix new_matrix(int cols,int rows);
 
@@ -131,18 +134,5 @@ struct Matrix qrSolve(struct Matrix a, struct Matrix b);
 struct Matrix qrDecomposition(struct Matrix t, bool rDecomp);
 
 struct Matrix rowSort(struct Matrix t);
-
-static inline int mxDGETRF(Matrix* mat, int* ipiv) {										// LUP decomposition of mat
-	int info = 0;
-	F77_CALL(dgetrf)(&(mat->rows), &(mat->cols), mat->t, &(mat->rows), ipiv, &info);
-	return info;
-}
-
-static inline int mxDGETRI(Matrix* mat, int* ipiv, double* work, int lwork) {				// Invert mat from LUP decomposition
-	int info = 0;
-	F77_CALL(dgetri)(&(mat->rows), mat->t, &(mat->rows), ipiv, work, &lwork, &info);
-	return info;
-}
-
 
 #endif
