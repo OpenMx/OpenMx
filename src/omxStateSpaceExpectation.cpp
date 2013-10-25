@@ -262,7 +262,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
 	if(info > 0) {
-		omxRaiseErrorf(ose->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
+		omxRaiseErrorf(smallS->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
 		return;  // Leave output untouched
 	}
 	for(int i = 0; i < smallS->cols; i++) {
@@ -313,7 +313,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	/* Create and fill expectation */
 	omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
 	omxState* currentState = ox->currentState;
-	SSMexp->currentState = currentState; //??? not sure if this is the right way to do this.  The SSMexp->currentState should point to the same memory location as the ox->currentState.
 	
 	/* Set Expectation Calls and Structures */
 	ox->computeFun = omxCallStateSpaceExpectation;
