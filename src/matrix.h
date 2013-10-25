@@ -14,7 +14,6 @@ double rnd_double();
 typedef struct Matrix Matrix;
 
 struct Matrix {
-	int isColMajor;    // either a 0 or a 1
 	int rows;
 	int cols;
 	double *t;

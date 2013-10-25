@@ -50,7 +50,6 @@ void setupIneqGreater(struct Matrix *lb, struct Matrix *ub, int size)
         for(int offset = 0; offset < size; offset++) {
             lb->t[index] = 0.0;
             ub->t[index] = INF;
-            lb->isColMajor = 0;
             printf("%2f", lb->t[index]); putchar('\n');
             printf("%2f", ub->t[index]); putchar('\n');
             index++;

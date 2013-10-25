@@ -39,7 +39,6 @@ Matrix new_matrix(int cols,int rows)
 	Matrix t;
 	t.rows=rows;
 	t.cols=cols;
-	t.isColMajor = 1;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
 	matrices.push_front(t.t);
 	int i,j;
