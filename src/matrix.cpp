@@ -12,6 +12,7 @@ using std::endl;
 
 #include "omxBuffer.h"
 #include "matrix.h"
+#include "omxMatrix.h"
 
 template <typename T> void printList( const std::list< T > &listRef);
 
@@ -35,6 +36,9 @@ void freeMatrices(){
         matrices.pop_front();
     }
 }
+
+Matrix::Matrix(omxMatrix *mat)
+ : rows(mat->rows), cols(mat->cols), t(mat->data) {}
 
 Matrix new_matrix(int cols,int rows)
 {
@@ -976,12 +980,9 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat)
 }
 
 
-int MatrixInvert(Matrix inMat, Matrix result)
+int MatrixInvert1(Matrix result)
 {
-	if (inMat.rows != result.rows || inMat.cols != result.cols) error("Not conformable");
-	if (inMat.t == result.t) error("MatrixInvert: input and output must use separate memory");
-
-	omxBuffer<int> ipiv(inMat.rows);
+	omxBuffer<int> ipiv(result.rows);
 	int info;
 	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv.data(), &info);
 	if (info < 0) error("dgetrf info %d", info);
@@ -1004,7 +1005,7 @@ int MatrixInvert(Matrix inMat, Matrix result)
 Matrix MatrixInvert(Matrix inMat)
 {
 	Matrix result = duplicateIt(inMat);
-	int info = MatrixInvert(inMat, result);
+	int info = MatrixInvert1(result);
 	if (info) error("MatrixInvert: attempt to invert singular matrix (info=%d)", info);
 	return result;
 }

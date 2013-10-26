@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
+#include "types.h"
 
 double rnd_double();
 
@@ -20,6 +21,7 @@ struct Matrix {
 
 	Matrix() {}
 	Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
+	Matrix(omxMatrix *mat);
 };
 
 typedef struct Param_Obj Param_Obj;
@@ -39,7 +41,7 @@ void freeMatrices();
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
 Matrix MatrixInvert(Matrix inMat);
-int MatrixInvert(Matrix inMat, Matrix result);
+int MatrixInvert1(Matrix result);
 
 struct Matrix new_matrix(int cols,int rows);
 

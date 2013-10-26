@@ -27,6 +27,7 @@
 **********************************************************/
 #include "omxMatrix.h"
 #include "omxOpenmpWrap.h"
+#include "matrix.h"
 
 // forward declarations
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
@@ -733,33 +734,22 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
     double oned = 1, minusOned = -1.0;
 
 	if(numIters == NA_INTEGER) {
-		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.
-		double work[lwork];
 		if(OMX_DEBUG_ALGEBRA) { mxLog("RAM Algebra (I-A) inversion using standard (general) inversion."); }
 
 		/* Z = (I-A)^-1 */
 		if(I->colMajor != A->colMajor) {
-			omxTransposeMatrix(I);
+			omxTransposeMatrix(I);  // transpose I? Hm? TODO
 		}
 		omxCopyMatrix(Z, A);
 
-		/* Z = (I-A)^-1 */
-		// F77_CALL(omxunsafedgemm)(I->majority, Z->majority, &(I->cols), &(I->rows), &(Z->rows), &oned, I->data, &(I->cols), I->data, &(I->cols), &minusOned, Z->data, &(Z->cols));
-		//omxDGEMM(FALSE, FALSE, oned, I, Z, minusOned, Z); //Tim, I think this is incorrect: 1.0*I*Z-Z = Z-Z = 0 but you want I-Z.  So this should be omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z). -MDH
 		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z);
 
-		// F77_CALL(dgetrf)(&(Z->rows), &(Z->cols), Z->data, &(Z->leading), ipiv, &k);
-		k = omxDGETRF(Z, ipiv);
-		if(OMX_DEBUG) { mxLog("Info on LU Decomp: %d", k); }
-		if(k > 0) {
-		        char errStr[250];
-		        strncpy(errStr, "(I-A) is exactly singular.", 100);
-		        omxRaiseError(A->currentState, -1, errStr);                    // Raise Error
+		Matrix Zmat(Z);
+		int info = MatrixInvert1(Zmat);
+		if (info) {
+			omxRaiseErrorf(A->currentState, "(I-A) is exactly singular (info=%d)", info);
 		        return;
 		}
-		// F77_CALL(dgetri)(&(Z->rows), Z->data, &(Z->leading), ipiv, work, &lwork, &k);
-		k = omxDGETRI(Z, ipiv, work, lwork);
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Info on Invert: %d", k); }
 
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
 

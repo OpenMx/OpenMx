@@ -33,6 +33,7 @@
 #include "omxBLAS.h"
 #include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
+#include "matrix.h"
 
 void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
 	// Maybe coerce this into an algebra or sequence of algebras?
@@ -95,30 +96,16 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-
 	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Invert.");}
 
 	omxMatrix* inMat = matList[0];
-
-	int lwork = 4 * inMat->rows * inMat->cols;
-	int l = 0;
-
-	int*    ipiv = (int*) malloc(inMat->rows * sizeof(int));
-	double* work = (double*) malloc(lwork * sizeof(double));
-
 	omxCopyMatrix(result, inMat);
-	F77_CALL(dgetrf)(&(result->cols), &(result->rows), result->data, &(result->leading), ipiv, &l);
-	if(l != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to invert non-invertable matrix.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-	} else {
-		F77_CALL(dgetri)(&(result->cols), result->data, &(result->leading), ipiv, work, &lwork, &l);
-	}
 
-	free(ipiv);
-	free(work);
+	Matrix resultMat(result);
+	int info = MatrixInvert1(result);
+	if (info) {
+		omxRaiseErrorf(result->currentState, "(I-A) is exactly singular (info=%d)", info);
+	}
 }
 
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)

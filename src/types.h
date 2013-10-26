@@ -41,6 +41,7 @@ typedef struct omxFitFunction omxFitFunction;
 typedef struct omxExpectation omxExpectation;
 typedef struct omxDefinitionVar omxDefinitionVar;
 typedef struct omxRFitFunction omxRFitFunction;
+typedef struct SEXPREC *SEXP;
 typedef std::vector< std::pair<SEXP, SEXP> > MxRList;
 class omxCompute;
 struct Matrix;

@@ -309,18 +309,6 @@ static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxM
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static OMXINLINE int omxDGETRF(omxMatrix* mat, int* ipiv) {										// LUP decomposition of mat
-	int info = 0;
-	F77_CALL(dgetrf)(&(mat->rows), &(mat->cols), mat->data, &(mat->leading), ipiv, &info);
-	return info;
-}
-
-static OMXINLINE int omxDGETRI(omxMatrix* mat, int* ipiv, double* work, int lwork) {				// Invert mat from LUP decomposition
-	int info = 0;
-	F77_CALL(dgetri)(&(mat->rows), mat->data, &(mat->leading), ipiv, work, &lwork, &info);
-	return info;
-}
-
 static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  
     // N.B.  Not fully tested.                                                              // Assumes common majority or vectordom.
     if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
