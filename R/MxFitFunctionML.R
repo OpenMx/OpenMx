@@ -37,7 +37,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionML",
 	function(.Object, flatModel, namespace, labelsData) {
 
 		name <- .Object@name
-		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
+		modelname <- imxReverseIdentifier(flatModel, .Object@name)[[1]]
 		expectName <- paste(modelname, "expectation", sep=".")
 
 		expectation <- flatModel@expectations[[expectName]]

@@ -192,7 +192,7 @@ removeVariablesRAM <- function(model, latent, manifest) {
 	model[['A']] <- A
 	model[['S']] <- S
 	Thresh <- model[['Thresholds']]
-	if(!all.na(Thresholds)) {
+	if(!all.na(Thresh)) {
 		newCols <- setdiff(colnames(Thresh), manifest)
 		newRows <- nrow(Thresh) - min(colSums(is.na(Thresh@values[,newCols])))
 		model[['Thresholds']] <- Thresh[1:newRows,newCols]

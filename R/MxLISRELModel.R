@@ -124,7 +124,7 @@ setMethod("imxModelBuilder", "MxLISRELModel",
 	function(model, lst, name, manifestVars, latentVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
 		model <- variablesArgumentLISREL(model, manifestVars, latentVars, submodels, remove)
-		model <- listArgumentLISREL(model, lst, remove)
+#		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
 		stop("Not implemented")

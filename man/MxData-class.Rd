@@ -60,7 +60,7 @@ The 'numObs' slot describes the number of observations in the data. If 'type' eq
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
 
-While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not recognized as variable names in \link{MxPath} objects. Variable names must be specified using the 'manifestVars' argument of the \link{mxModel} function prior to use in MxPath objects.
+While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not recognized as variable names in \link[=MxPath-class]{MxPath} objects. Variable names must be specified using the 'manifestVars' argument of the \link{mxModel} function prior to use in \link[=MxPath-class]{MxPath} objects.
 
 The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
 }

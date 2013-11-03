@@ -25,7 +25,7 @@ This function creates a new \link{MxConstraint} object.
 }
 
 \usage{
-mxConstraint(expression, name = NA)
+mxConstraint(expression, name = NA, ...)
 }
 
 \arguments{

@@ -22,9 +22,7 @@
 WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
 
 Please use MxFitFunctionAlgebra() instead.  As a temporary workaround, MxAlgebraObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionAlgebra object.
-}
 
-\usage{
 All occurrences of
 
 mxAlgebraObjective(algebra, numObs = NA, numStats = NA)

@@ -26,18 +26,18 @@ mxFitFunctionR returns an MxFitFunctionR object.
 }
 
 \usage{
-mxFitFunctionR(objfun, ...)
+mxFitFunctionR(fitfun, ...)
 }
 
 \arguments{
-   \item{objfun}{A function that accepts two arguments.}
+   \item{fitfun}{A function that accepts two arguments.}
    \item{...}{The initial state information to the objective function.}
 }
 
 \details{
-The mxFitFunctionR function evaluates a user-defined R function called the 'objfun'.  mxFitFunctionR is useful in defining new mxFitFunctions, since any calculation that can be performed in R can be treated as an mxFitFunction.
+The mxFitFunctionR function evaluates a user-defined R function called the 'fitfun'.  mxFitFunctionR is useful in defining new mxFitFunctions, since any calculation that can be performed in R can be treated as an mxFitFunction.
 
-The 'objfun' argument must be a function that accepts two arguments. The first argument
+The 'fitfun' argument must be a function that accepts two arguments. The first argument
 is the mxModel that should be evaluated, and the second argument is some persistent 
 state information that can be stored between one iteration of optimization to the next
 iteration. It is valid for the function to simply ignore the second argument.
@@ -50,7 +50,7 @@ optimization.
 
 The initial default value for the persistant state information is NA.
 
-Throwing an exception (via stop) from inside objfun may result
+Throwing an exception (via stop) from inside fitfun may result
 in unpredictable behavior. You may want to wrap your code in
 tryCatch while experimenting.
 }

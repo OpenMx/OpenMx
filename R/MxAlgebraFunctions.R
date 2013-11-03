@@ -368,4 +368,8 @@ vechs2full <- function(x) {
 ##' A C implementation of dmvnorm
 ##'
 ##' This API is visible to permit testing. Please do not use.
+##'
+##' @param loc loc
+##' @param mean mean
+##' @param sigma sigma
 imxDmvnorm <- function(loc, mean, sigma) .Call(Dmvnorm_wrapper, loc, mean, sigma)

@@ -23,13 +23,20 @@
 }
 
 \usage{
-mxAlgebra(expression, name = NA, dimnames = NA)
+mxAlgebra(expression, name = NA, dimnames = NA, fixed = FALSE)
 }
 
 \arguments{
    \item{expression}{An R expression of OpenMx-supported matrix operators and matrix functions.}
    \item{name}{An optional character string indicating the name of the object.}
-   \item{dimnames}{list. The dimnames attribute for the algebra: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.}
+   \item{dimnames}{list. The dimnames attribute for the algebra: a list
+   of length 2 giving the row and column names respectively. An empty
+   list is treated as NULL, and a list of length one as row names. The
+   list can be named, and the list names will be used as names for the
+   dimensions.}
+   \item{fixed}{If TRUE, this algebra will not be recomputed
+     automatically when things it depends on change. \link{MxComputeOnce}
+     can be used to force it to recompute.}
 }
 
 \details{

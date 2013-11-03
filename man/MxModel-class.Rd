@@ -65,9 +65,9 @@ The \sQuote{intervals} slot contains a list of the confidence intervals requeste
 
 The \sQuote{bounds} slot contains a list of the \link{MxBounds} objects included in the model. These objects are listed by name. Two objects may not share the same name. If a new \link{MxBounds} is added to an MxModel object with the same name as an \link{MxBounds} object in that model, the added version replaces the previous version. All \link{MxMatrix} objects referenced in the included \link{MxBounds} objects must be included in the \sQuote{matrices} slot prior to estimation. There is no imposed limit on the number of \link{MxAlgebra} objects that may be added here.
 
-The \sQuote{latentVars} slot contains a list of latent variable names, which may be referenced by \link{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
+The \sQuote{latentVars} slot contains a list of latent variable names, which may be referenced by \link[=MxPath-class]{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
 
-The \sQuote{manifestVars} slot contains a list of latent variable names, which may be referenced by \link{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
+The \sQuote{manifestVars} slot contains a list of latent variable names, which may be referenced by \link[=MxPath-class]{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
 
 The \sQuote{data} slot contains an \link{MxData} object. This slot must be filled prior to execution when an objective function referencing data is used. Only one \link{MxData} object may be included per model, but submodels may have their own data in their own \sQuote{data} slots. If an \link{MxData} object is added to an MxModel which already contains an \link{MxData} object, the new object replaces the existing one.
 

@@ -26,7 +26,7 @@ OpenMx solves algebra optimization and statistical estimation problems using mat
 
 The main OpenMx functions are: \link{mxAlgebra}, \link{mxBounds}, \link{mxCI}, \link{mxConstraint}, \link{mxData}, \link{mxMatrix}, \link{mxModel}, and \link{mxPath}; the expectation functions such as \link{mxExpectationNormal}, \link{mxExpectationRAM}, \link{mxExpectationLISREL}, and \link{mxExpectationStateSpace}; and the fit functions such as \link{mxFitFunctionML}, \link{mxFitFunctionWLS}, \link{mxFitFunctionAlgebra}, \link{mxFitFunctionRow} and \link{mxFitFunctionR}. These latter functions create the objectives for model estimation. Models are run (estimated) using \link{mxRun}.
 
-These functions create the following Objects: \link{MxModel}s, which can contain \link{MxPath}s, \link{MxMatrix} objects, and \link{MxData} as well as \link{MxAlgebra}, \link{MxBounds}, \link{MxCI}s (confidence intervals) and \link{MxConstraint}s.
+These functions create the following Objects: \link{MxModel}s, which can contain \link[=MxPath-class]{MxPath}s, \link{MxMatrix} objects, and \link{MxData} as well as \link{MxAlgebra}, \link{MxBounds}, \link{MxCI}s (confidence intervals) and \link{MxConstraint}s.
 
 OpenMx comes with several useful datasets built-in. Access them using data(package="OpenMx")
 

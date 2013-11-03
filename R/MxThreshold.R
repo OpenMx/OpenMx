@@ -40,7 +40,7 @@ setMethod("initialize", "MxThreshold",
 
 omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
 	if(length(nBreaks) > 1) {
-		return(unlist(mapply(mxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))
+		return(unlist(mapply(omxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))
 	}
 	if(is.na(nBreaks)) {
 		return(as.numeric(NA))
@@ -232,23 +232,14 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 				}
 				expectedThreshCount <- length(levels(observedColumn)) - 1
 				if (nrow(thresholds) < expectedThreshCount) {
-					if(!observedThresholds) {
-						stop(paste("In model",
-							omxQuotes(modelName),
-							"the number of thresholds in column",
-							omxQuotes(tName),
-							"is less than the (l - 1), where l is equal",
-							"to the number of levels in the ordinal",
-							"data. Use mxFactor() on this column."), 
-							call. = FALSE)
-					} else {
-						stop(paste("The number of thresholds in column",
-							omxQuotes(tName),
-							"is less than the (l - 1), where l is equal",
-							"to the number of levels in the ordinal",
-							"data. Use mxFactor() on this column."), 
-							call. = FALSE)
-					}
+					stop(paste("In model",
+						   omxQuotes(modelName),
+						   "the number of thresholds in column",
+						   omxQuotes(tName),
+						   "is less than the (l - 1), where l is equal",
+						   "to the number of levels in the ordinal",
+						   "data. Use mxFactor() on this column."), 
+					     call. = FALSE)
 				}
 				values <- tColumn[1:expectedThreshCount]
 				if (any(is.na(values))) {
@@ -326,7 +317,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 
 	if (is.null(dimnames(thresholds)) || is.null(dimnames(thresholds)[[2]])) {
 		if(!observedThresholds) {
-			stop(paste("The thresholds matrix/algebra", omxQuotes(threshName), 
+			stop(paste("The thresholds matrix/algebra",
 			"for model", omxQuotes(modelName), "does not contain column names"),
 			call. = FALSE)	
 		} else {
@@ -351,8 +342,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 	if (length(missingNames) > 0) {
 		if(!observedThresholds) {
 			stop(paste("The column name(s)", omxQuotes(missingNames),
-				"appear in the thresholds matrix",
-				omxQuotes(simplifyName(threshName, modelName)), "but not",
+				"appear in the thresholds matrix but not",
 				"in the observed data.frame or matrix",
 				"in model", omxQuotes(modelName)), call. = FALSE)
 		} else {

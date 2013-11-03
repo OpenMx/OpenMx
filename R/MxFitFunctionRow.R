@@ -156,7 +156,7 @@ generateRowDataColumns <- function(flatModel, expectedNames, dataName) {
 setMethod("genericFitAddEntities", "MxFitFunctionRow",
 	function(.Object, job, flatJob, labelsData) {
 		name <- .Object@name
-		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
+		modelname <- job@name
 		rowAlgebraName <- .Object@rowAlgebra
 		rowResultsName <- .Object@rowResults
 		filteredDataRowName <- .Object@filteredDataRow

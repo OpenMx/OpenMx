@@ -83,7 +83,7 @@ setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 		if(is.na(.Object@data)) {
 			msg <- paste("The SSM expectation function",
 				"does not have a dataset associated with it in model",
-				omxQuotes(model@name))
+				omxQuotes(flatModel@name))
 			stop(msg, call.=FALSE)
 		}
 		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)

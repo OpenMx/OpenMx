@@ -26,7 +26,7 @@
 }
 
 \usage{
-MxFitFunctionML(vector = FALSE)
+mxFitFunctionML(vector = FALSE)
 }
 
 \arguments{

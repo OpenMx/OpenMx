@@ -225,20 +225,6 @@ convertIntegerSingleColumn <- function(column) {
 	}
 }
 
-convertObservedThresholds <- function(data) {
-	thresholdColumnNames <- dimnames(data@thresholds)[[2]]
-	datasource <- data@observed
-	for(i in 1:length(thresholdColumnNames)) {
-		oneThresholdName <- thresholdColumnNames[[i]]
-		numThresholds <- length(levels(datasource[, oneThresholdName])) - 1
-		columnIndex <- match(oneThresholdName, covarianceColumnNames)
-		thresholdColumns[[columnIndex]] <- as.integer(i - 1)
-		thresholdLevels[[columnIndex]] <- as.integer(numThresholds)
-	}
-	data@thresholdColumns <- thresholdColumns
-	data@thresholdLevels <- thresholdLevels
-}
-
 checkNumericData <- function(data) {
 	if(is.matrix(data@observed) && !is.double(data@observed)) {
 		msg <- paste("The data object",

@@ -77,7 +77,7 @@ setMethod("genericFitInitialMatrix", "NULL",
 setMethod("genericFitDependencies", "MxBaseFitFunction",
 	function(.Object, flatModel, dependencies) {
         name <- .Object@name
-        modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
+        modelname <- imxReverseIdentifier(flatModel, .Object@name)[[1]]
         expectName <- paste(modelname, "expectation", sep=".")
         if (!is.null(flatModel[[expectName]])) {
             dependencies <- imxAddDependency(expectName, .Object@name, dependencies)

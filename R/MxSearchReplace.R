@@ -190,6 +190,7 @@ localNamespaceSearchReplace <- function(model, name, value) {
 		return(value)
 	}
 	if (identical(name, "objective")) {
+		modelname <- model@name
 		if (is.null(value)) {
 			model <- localNamespaceSearchReplace(model, paste(modelname, "expectation", sep = "."), NULL)
 			model <- localNamespaceSearchReplace(model, paste(modelname, "fitfunction", sep = "."), NULL)

@@ -22,17 +22,14 @@
 WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
 
 Please use mxFitFunctionR() instead.  As a temporary workaround, mxRObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionR object.
-}
 
-\usage{
-   mxRObjective(objfun, ...)
 All occurrences of
 
-mxRObjective(objfun, ...)
+mxRObjective(fitfun, ...)
 
 Should be changed to
 
-mxFitFunctionR(objfun, ...)
+mxFitFunctionR(fitfun, ...)
 }
 
 \arguments{
@@ -43,7 +40,7 @@ mxFitFunctionR(objfun, ...)
 \details{
 NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectationNormal} and \link{mxFitFunctionML} as shown in the example below.
 
-    The objfun argument must be a function that accepts two arguments. The first argument
+    The fitfun argument must be a function that accepts two arguments. The first argument
     is the mxModel that should be evaluated, and the second argument is some persistent 
     state information that can be stored between one iteration of optimization to the next
     iteration. It is valid for the function to simply ignore the second argument.
@@ -56,7 +53,7 @@ NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectatio
 
     The initial default value for the persistant state information is NA.
 
-    Throwing an exception (via stop) from inside objfun may result
+    Throwing an exception (via stop) from inside fitfun may result
     in unpredictable behavior. You may want to wrap your code in
     tryCatch while experimenting.
 }

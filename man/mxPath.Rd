@@ -50,7 +50,7 @@ The previous implementation of \sQuote{all} had unsafe features. Its use is now 
 }
 
 \details{
-The mxPath function creates \link{MxPath} objects. These consist of a list of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
+The mxPath function creates \link[=MxPath-class]{MxPath} objects. These consist of a list of paths describing the relationships between variables in a model using the RAM modeling approach (McArdle and MacDonald, 1984). Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} and \sQuote{latentVar} arguments of the \link{mxModel} function.
 
 Paths are specified as going "from" one variable (or set of variables) "to" another variable or set of variables using the \sQuote{from} and \sQuote{to} arguments, respectively. If \sQuote{to} is left empty, it will be set to the value of \sQuote{from}.
 
@@ -71,7 +71,7 @@ The \sQuote{free} argument specifies whether the paths created by the mxPath fun
 
 The \sQuote{arrows} argument specifies the type of paths created. A value of 1 indicates a one-headed arrow representing regression. This path represents a regression of the \sQuote{to} variable on the \sQuote{from} variable, such that the arrow points to the \sQuote{to} variable in a path diagram. A value of 2 indicates a two-headed arrow, representing a covariance or variance. If multiple paths are created in the same mxPath function, then the \sQuote{arrows} argument may take a vector of 1s and 2s to be applied to the set of created paths.
 
-The \sQuote{values} is a numeric vectors containing the starting values of the created paths. \sQuote{values} gives a starting value for estimation. The \sQuote{labels} argument specifies the names of the resulting \link{MxPath} object.  The \sQuote{lbound} and \sQuote{ubound} arguments specify lower and upper bounds for the created paths.
+The \sQuote{values} is a numeric vectors containing the starting values of the created paths. \sQuote{values} gives a starting value for estimation. The \sQuote{labels} argument specifies the names of the resulting \link[=MxPath-class]{MxPath} object.  The \sQuote{lbound} and \sQuote{ubound} arguments specify lower and upper bounds for the created paths.
 
 }
 

@@ -28,9 +28,7 @@
 WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
    
 Please use mxFitFunctionRow() instead.  As a temporary workaround, mxRowObjective returns a list containing a NULL MxExpectation object and an MxFitFunctionRow object.
-}
 
-\usage{
 All occurrences of
 
 mxRowObjective(rowAlgebra, reduceAlgebra, dimnames,

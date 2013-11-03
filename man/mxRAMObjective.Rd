@@ -21,9 +21,8 @@
 \description{
 WARNING: Objective functions have been deprecated as of OpenMx 2.0.  
    
-Please use mxExpectationRAM() and mxFitFunctionML() instead.  As a temporary workaround, mxRAMObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.}
+Please use mxExpectationRAM() and mxFitFunctionML() instead.  As a temporary workaround, mxRAMObjective returns a list containing an MxExpectationNormal object and an MxFitFunctionML object.
 
-\usage{
 All occurrences of
 
 mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
