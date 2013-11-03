@@ -93,15 +93,16 @@ omxSaturatedModel <- function(x, run=FALSE) {
 		startcov <- 0.3
 		startmea <- 3.0
 	}
-	saturatedModel <- mxModel(
-		name=paste("Saturated", modelName),
-		datasource,
-		mxMatrix(type="Lower",
+	ltCov <- mxMatrix(type="Lower",
 			nrow=numVar,
 			ncol=numVar,
 			values=startcov,
 			free=TRUE,
-			name="ltCov"),
+			name="ltCov")
+	saturatedModel <- mxModel(
+		name=paste("Saturated", modelName),
+		datasource,
+		ltCov,
 		mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	)
 	if(datatype == "raw" || !any(is.na(datasource@means)) ) {
@@ -111,15 +112,17 @@ omxSaturatedModel <- function(x, run=FALSE) {
 			mxFitFunctionML()
 		)
 	} else if(any(ordinalCols)) {
-		saturatedModel <- mxModel(saturatedModel,
-			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
-			mxMatrix("Full", 
+		unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
+		thresholdDeviations <- mxMatrix("Full", 
 				name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 				values=.2,
 				free = TRUE, 
 				lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
-				dimnames = list(c(), varnam[ordinalCols])), # TODO Add threshold names
-			mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower"),
+				dimnames = list(c(), varnam[ordinalCols]), # TODO Add threshold names
+						)
+		saturatedModel <- mxModel(saturatedModel,
+			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
+					  thresholdDeviations, unitLower,
 			mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
 			mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix"),
 			mxFitFunctionML()
