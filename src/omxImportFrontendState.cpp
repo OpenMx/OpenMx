@@ -338,7 +338,17 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 			fv->locations.push_back(loc);
 		}
 		PROTECT(nextLoc = VECTOR_ELT(nextVar, length(nextVar)-1));
-		(*startingValues)[fx] = REAL(nextLoc)[0];
+		double sv = REAL(nextLoc)[0];
+		if (sv < fv->lbound) {
+			warning("Moving starting value of parameter '%s' within bounds %f -> %f",
+				fv->name, sv, fv->lbound);
+			sv = fv->lbound;
+		} else if (sv > fv->ubound) {
+			warning("Moving starting value of parameter '%s' within bounds %f -> %f",
+				fv->name, sv, fv->ubound);
+			sv = fv->ubound;
+		}
+		(*startingValues)[fx] = sv;
 	}
 }
 
