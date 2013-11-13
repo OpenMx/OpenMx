@@ -334,11 +334,9 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 				int *mask = state->itemParamFree.data() + ix * itemParam->rows;
 				double stress;
 				omxApproxInvertPackedPosDefTriangular(iParams, mask, pad, &stress);
+				// If items excluded then ihessDivisor is wrong TODO
 				if (stress) ++excluded;
 			}
-		}
-
-		if (want & FF_COMPUTE_IHESSIAN) {
 			for (int ox=0; ox < numParams; ox++) {
 				int to = state->paramMap[ox];
 				if (to == -1) continue;
