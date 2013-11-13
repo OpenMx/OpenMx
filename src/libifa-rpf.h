@@ -28,7 +28,8 @@ enum RPF_ISpec {
 #define RPF_ISpecFacts RPF_ISpecDims
 
 enum RPF_ParamType {
-	RPF_Slope,
+	// 0 = uninitialized
+	RPF_Slope=1,
 	RPF_Intercept,
 	RPF_Bound      // split into upper & lower?
 };
