@@ -42,6 +42,7 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
 Matrix MatrixInvert(Matrix inMat);
 int MatrixInvert1(Matrix result);
+int InvertSymmetricPosDef(Matrix matd, const char uplo);
 
 struct Matrix new_matrix(int cols,int rows);
 

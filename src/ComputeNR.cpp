@@ -20,6 +20,7 @@
 #include "omxFitFunction.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
+#include "matrix.h"
 
 class Ramsay1975 {
 	// Ramsay, J. O. (1975). Solving Implicit Equations in
@@ -220,7 +221,6 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
 {
-	const char uplo = 'L';
 	int info;
 	int retries = 0;
 	const int maxRetries = 31; // assume >=32 bit integers
@@ -240,20 +240,14 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 			}
 		}
 
-		F77_CALL(dpotrf)(&uplo, &dim, ihess, &dim, &info);
-		if (info < 0) error("Arg %d is invalid", -info);
+		Matrix ihessMat(ihess, dim, dim);
+		info = InvertSymmetricPosDef(ihessMat, 'L');
 		if (info == 0) break;
 	} while (++retries < maxRetries * 1.5);
 
 	if (info > 0) {
 		omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
 		return;
-	}
-	F77_CALL(dpotri)(&uplo, &dim, ihess, &dim, &info);
-	if (info < 0) error("Arg %d is invalid", -info);
-	if (info > 0) {
-		// Impossible to fail if dpotrf worked?
-		omxRaiseErrorf(globalState, "Hessian is not of full rank");
 	}
 
 	if (stress) *stress = adj;

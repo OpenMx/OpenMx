@@ -979,6 +979,18 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat)
     return result;
 }
 
+int InvertSymmetricPosDef(Matrix mat, const char uplo)
+{
+	if (mat.rows != mat.cols) error("Not square");
+	int info;
+	F77_CALL(dpotrf)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	if (info > 0) return info;
+
+	F77_CALL(dpotri)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	return info;
+}
 
 int MatrixInvert1(Matrix result)
 {
