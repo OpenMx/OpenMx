@@ -65,22 +65,20 @@ if (1) {
   omxCheckCloseEnough(cM@fitfunction@result, 50661.38, .01)
 }
 
+plan <- mxComputeEM('expectation',
+		    mxComputeNewtonRaphson(free.set='ItemParam'),
+		    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")), verbose=1L)
+
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=m2.spec,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
-              mxComputeIterate(steps=list(
-                mxComputeOnce('expectation', context='EM'),
-#                mxComputeGradientDescent(free.set='ItemParam', useGradient=TRUE),
-                mxComputeNewtonRaphson(free.set='ItemParam'),
-                mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
-              )))
+              plan)
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
-omxCheckCloseEnough(m2@fitfunction@result, 50661.377, .01)
+omxCheckCloseEnough(m2@output$minimum, 50661.377, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
 print(m2@output$backendTime)

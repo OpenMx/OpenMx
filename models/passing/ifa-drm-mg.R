@@ -28,14 +28,9 @@ if(1) {
 		      mxExpectationBA81(mean="mean", cov="cov",
 					ItemSpec=items, ItemParam="itemParam"),
 		      mxFitFunctionML(),
-		      mxComputeIterate(steps=list(
-					 mxComputeOnce('expectation', context='EM'),
-					 mxComputeNewtonRaphson(free.set='itemParam'),
-					 mxComputeOnce('expectation'),
-           mxComputeOnce('fitfunction', free.set=c("mean", "cov"), fit=TRUE)
-#					 mxComputeGradientDescent(useGradient=TRUE,
-#                                    free.set=c("mean", "cov"))
-					 )))
+		      mxComputeEM('expectation',
+				  mxComputeNewtonRaphson(free.set='itemParam'),
+				  mxComputeOnce('fitfunction', free.set=c("mean", "cov"), fit=TRUE)))
 	
 	if (0) {
 		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
@@ -97,12 +92,10 @@ if (1) {
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
-                mxComputeIterate(steps=list(
-                  mxComputeOnce('expectation', context='EM'),
-                  mxComputeNewtonRaphson(free.set='itemParam'),
-                  mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
-                )))
+                mxComputeEM('expectation',
+			    mxComputeNewtonRaphson(free.set='itemParam'),
+			    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))))
+
   m2 <- mxRun(m2)
   omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)
   omxCheckCloseEnough(m2@matrices$itemParam@values[1,], rep(2.133, numItems), .002)

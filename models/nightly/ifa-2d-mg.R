@@ -127,17 +127,10 @@ if (1) {
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeIterate(steps=list(
-                        mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-                        mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', fit=TRUE,
-                                      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-                      )))
-
-  grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
-	grpModel <- mxOption(grpModel, "Verify level", '-1')
-  grpModel <- mxOption(grpModel, "Function precision", '1.0E-5')
+                      mxComputeEM(paste(groups, 'expectation', sep='.'),
+				  mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+				  mxComputeOnce('fitfunction', fit=TRUE,
+						free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))
 
   grpModel <- mxRun(grpModel, silent=TRUE)
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)

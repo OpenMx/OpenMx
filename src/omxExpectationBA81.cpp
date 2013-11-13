@@ -51,8 +51,7 @@ void pia(const int *ar, int rows, int cols)
 	mxLogBig(buf);
 }
 
-static OMXINLINE void
-ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
+void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 {
 	const long totalQuadPoints = state->totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
@@ -81,8 +80,7 @@ ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	}
 }
 
-static OMXINLINE void
-cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
+void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
 {
 	const int numSpecific = state->numSpecific;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
@@ -469,6 +467,8 @@ static void ba81Estep1(omxExpectation *oo)
 		ElatentCov[cell] = ElatentCov[cell] / data->rows - ElatentMean[sdim] * ElatentMean[sdim];
 	}
 
+	// (mirt) need to check for negative eigenvalues in the cov matrix when more than 1 factor? TODO
+
 	if (state->verbose) {
 		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
 		      oo->name, omxGetMatrixVersion(state->itemParam),
@@ -476,6 +476,8 @@ static void ba81Estep1(omxExpectation *oo)
 		//pda(ElatentMean.data(), 1, state->maxAbilities);
 		//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
 	}
+
+	++state->ElatentVersion;
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -484,13 +486,17 @@ static int getLatentVersion(BA81Expect *state)
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
-static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
+void ba81SetupQuadrature(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	bool latentClean = state->latentParamVersion == getLatentVersion(state);
+	if (state->Qpoint.size() == 0 && latentClean) return;
+
 	if (state->verbose) {
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
 	}
 
+	int gridsize = state->targetQpoints;
 	const int maxDims = state->maxDims;
 	double Qwidth = state->Qwidth;
 	int numSpecific = state->numSpecific;
@@ -583,6 +589,7 @@ static void ba81SetupQuadrature(omxExpectation* oo, int gridsize)
 	state->SmallestPatternLik = 1e16 * std::numeric_limits<double>::min();
 
 	state->expected = Realloc(state->expected, state->totalOutcomes * state->totalQuadPoints, double);
+	state->latentParamVersion = getLatentVersion(state);
 }
 
 OMXINLINE static void
@@ -763,16 +770,14 @@ ba81compute(omxExpectation *oo, const char *context)
 		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean);
 	}
 
-	if (state->Qpoint.size() == 0 || !latentClean) {
-		ba81SetupQuadrature(oo, state->targetQpoints);
-	}
+	ba81SetupQuadrature(oo);
+
 	if (!itemClean) {
 		ba81OutcomeProb(state, TRUE, FALSE);
 		ba81Estep1(oo);
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);
-	state->latentParamVersion = getLatentVersion(state);
 }
 
 static void
@@ -1220,6 +1225,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (strcmp(score_option, "unique")==0) state->scores = SCORES_UNIQUE;
 	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 
+	state->ElatentVersion = 0;
 	state->ElatentMean.resize(state->maxAbilities);
 	state->ElatentCov.resize(state->maxAbilities * state->maxAbilities);
 

@@ -78,25 +78,25 @@ if (1) {
   omxCheckCloseEnough(sum(m2@expectation@em.expected), 1667, .1)
 }
 
+plan <- mxComputeEM('expectation',
+                      mxComputeNewtonRaphson(free.set='itemParam'),
+                      mxComputeOnce('fitfunction', fit=TRUE,
+                                    free.set=c("mean", "cov")))
+
 m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
                                 ItemParam="itemParam"),
               mxFitFunctionML(),
-              mxComputeIterate(steps=list(
-                mxComputeOnce('expectation', context='EM'),
-				   mxComputeNewtonRaphson(free.set='itemParam'),
-#                mxComputeGradientDescent(free.set='itemParam'),
-                mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', free.set=c('mean','cov'), fit=TRUE))))
+              plan)
 
 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 	m2 <- mxOption(m2, "Verify level", '-1')
 m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
-omxCheckCloseEnough(m2@fitfunction@result, 2733.845, .01)
+omxCheckCloseEnough(m2@output$minimum, 2733.845, .01)
 got <- cor(c(m2@matrices$itemParam@values[c(1,4,5),]),
            c(correct.mat[c(1,4,5),]))
 omxCheckCloseEnough(got, .9824, .01)
@@ -106,6 +106,6 @@ omxCheckTrue(all(abs(m2@matrices$itemParam@values[c(1,4,5),] - fm.est[c(1,4,5),]
 if (0) {
   require(mirt)
   rdata <- sapply(data, unclass)-1
-  pars <- mirt(rdata, 1, itemtype="gpcm", D=1, quadpts=49)
+  pars <- mirt(rdata, 1, itemtype="gpcm", D=1, quadpts=49, SE=TRUE)
   # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
 }

@@ -106,7 +106,7 @@ if (1) {
                       scores.g1, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco.g2[,-1:-2]),
                       cModel.eap@submodels$g2@expectation@scores.out, 1e-3)
-  
+
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(cModel,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
@@ -114,22 +114,15 @@ if (1) {
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
                         mxComputeOnce('fitfunction', fit=TRUE,
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
-    cModel <- mxRun(cModel)
-    omxCheckCloseEnough(cModel@fitfunction@result, correct.LL, 1e-4)
+    cModel.fit <- mxRun(cModel)
+    omxCheckCloseEnough(cModel.fit@fitfunction@result, correct.LL, 1e-4)
 }
 
 omxIFAComputePlan <- function(groups) {
-	mxComputeSequence(steps=list(
-			    mxComputeIterate(steps=list(
-					       mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-					       mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-					       mxComputeOnce(paste(groups, 'expectation', sep=".")),
-					       mxComputeOnce('fitfunction', maxAbsChange=TRUE,
-							     free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-					       )),
-			    mxComputeOnce('fitfunction', fit=TRUE,
-					  free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
-			   ))
+  mxComputeEM(paste(groups, 'expectation', sep='.'),
+	      mstep.fit = mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+	      fit = mxComputeOnce('fitfunction', fit=TRUE,
+		  free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')), verbose=1L)
 }
 
 if(1) {
@@ -149,7 +142,7 @@ if(1) {
   
   grpModel <- mxRun(grpModel)
     
-  omxCheckCloseEnough(grpModel@fitfunction@result, correct.LL, .01)
+  omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$ItemParam@values,
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)

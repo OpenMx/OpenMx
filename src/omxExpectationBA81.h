@@ -76,6 +76,7 @@ struct BA81Expect {
 	int totalOutcomes;
 	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
 	double *expected;                     // totalOutcomes * totalQuadPoints
+	int ElatentVersion;
 	std::vector<double> ElatentMean;      // maxAbilities
 	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;
@@ -164,6 +165,10 @@ validPatternLik(BA81Expect *state, double pl)
 {
 	return isfinite(pl) && pl > state->SmallestPatternLik;
 }
+
+void ba81SetupQuadrature(omxExpectation* oo);
+void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out);
+void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei);
 
 // debug tools
 void pda(const double *ar, int rows, int cols);

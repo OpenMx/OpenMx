@@ -83,7 +83,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	out->push_back(std::make_pair(mkChar("expectations"), expectations));
 }
 
-void omxPopulateFitFunction(omxMatrix *om, MxRList *result)
+void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
 {
 	omxFitFunction* off = om->fitFunction;
 	if (!off) return;

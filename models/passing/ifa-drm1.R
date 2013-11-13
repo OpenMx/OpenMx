@@ -67,19 +67,13 @@ m2 <- mxModel(m2,
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),
-	      mxComputeSequence(steps=list(
-				  mxComputeIterate(steps=list(
-						     mxComputeOnce('expectation', context='EM'),
-						     mxComputeNewtonRaphson(free.set='itemParam'),
-						     mxComputeOnce('expectation'),
-						     mxComputeOnce('fitfunction', free.set=c("mean","cov"),
-								   maxAbsChange=TRUE))),
-				  mxComputeOnce('expectation'),
-				  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE))))
+	      mxComputeEM('expectation',
+			  mxComputeNewtonRaphson(free.set='itemParam'),
+			  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)))
 
-	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
-	m2 <- mxOption(m2, "Verify level", '-1')
-m2 <- mxOption(m2, "Function precision", '1.0E-5')
+# 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
+# 	m2 <- mxOption(m2, "Verify level", '-1')
+# m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
 #print(m2@matrices$itemParam@values)

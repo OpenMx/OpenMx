@@ -21,12 +21,15 @@
 #include "omxExpectationBA81.h"
 #include "omxOpenmpWrap.h"
 #include "libifa-rpf.h"
+#include "matrix.h"
+#include "omxBuffer.h"
 
 struct BA81FitState {
 
 	bool haveLatentMap;
 	std::vector<int> latentMap;
 	bool freeLatents;
+	int ElatentVersion;
 
 	bool haveItemMap;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
@@ -43,6 +46,7 @@ struct BA81FitState {
 	omxMatrix *itemParam;
 	omxMatrix *latentMean;
 	omxMatrix *latentCov;
+	omxMatrix *icov;       // inverse of latentCov
 
 	BA81FitState();
 	~BA81FitState();
@@ -373,8 +377,8 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	int maxAbilities = estate->maxAbilities;
 
 	if (!estate->Qpoint.size()) return; // if evaluating fit without estimating model
+	if (state->ElatentVersion == estate->ElatentVersion) return;
 
-	// can use Ramsay for these parameters without messing up SEM SEs? TODO
 	fc->changedEstimates = true;
 
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {
@@ -390,6 +394,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 		}
 	}
 
+	state->ElatentVersion = estate->ElatentVersion;
 	//fc->log("setLatentStartingValues", FF_COMPUTE_ESTIMATE);
 }
 
@@ -437,8 +442,14 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			return 0;
 		}
 
-		if (want & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN)) {
-			warning("%s: Derivs are not available for latent distribution parameters", oo->matrix->name);
+		if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_INFO)) {
+			ba81SetupQuadrature(oo->expectation);
+			//if (!latentDeriv(oo, fc)) {
+				return INFINITY;
+			//}
+		}
+		if (want & FF_COMPUTE_HESSIAN) {
+			warning("%s: Hessian not available for latent distribution parameters", oo->matrix->name);
 		}
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
@@ -491,6 +502,7 @@ BA81FitState::~BA81FitState()
 	omxFreeAllMatrixData(itemParam);
 	omxFreeAllMatrixData(latentMean);
 	omxFreeAllMatrixData(latentCov);
+	omxFreeAllMatrixData(icov);
 }
 
 static void ba81Destroy(omxFitFunction *oo) {
@@ -531,10 +543,11 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		}
 	}
 
-	
-
 	state->itemParam = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	state->latentMean = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	state->latentCov = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
+	int maxAbilities = estate->maxAbilities;
+	state->icov = omxInitMatrix(NULL, maxAbilities, maxAbilities, TRUE, globalState);
 	state->copyEstimates(estate);
+	state->ElatentVersion = -1;
 }

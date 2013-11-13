@@ -88,6 +88,7 @@ setClass(Class = "MxComputeOnce",
 	   fit = "logical",
 	   gradient = "logical",
 	   hessian = "logical",
+	     information = "logical",
 	   ihessian = "logical",
 	   hgprod = "logical"))
 
@@ -124,7 +125,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 		}
 		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
 		if (all(.Object@what >= 0) && !.Object@maxAbsChange && !.Object@fit && !.Object@gradient &&
-			    !.Object@hessian && !.Object@ihessian && !.Object@hgprod) {
+			    !.Object@hessian && !.Object@information && !.Object@ihessian && !.Object@hgprod) {
 			warning("MxComputeOnce with no action")
 		}
 		.Object
@@ -132,7 +133,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient,
-		   hessian, ihessian, hgprod, verbose) {
+		   hessian, information, ihessian, hgprod, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@verbose = verbose
@@ -142,6 +143,7 @@ setMethod("initialize", "MxComputeOnce",
 		  .Object@fit <- fit
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
+		  .Object@information <- information
 		  .Object@ihessian <- ihessian
 		  .Object@hgprod <- hgprod
 		  .Object
@@ -149,9 +151,9 @@ setMethod("initialize", "MxComputeOnce",
 
 mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
-			  hessian=FALSE, ihessian=FALSE, hgprod=FALSE, verbose=0L) {
+			  hessian=FALSE, information=FALSE, ihessian=FALSE, hgprod=FALSE, verbose=0L) {
 	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient,
-	    hessian, ihessian, hgprod, verbose)
+	    hessian, information, ihessian, hgprod, verbose)
 }
 
 #----------------------------------------------------
@@ -346,6 +348,99 @@ displayMxComputeIterate <- function(opt) {
 
 setMethod("print", "MxComputeIterate", function(x, ...) displayMxComputeIterate(x))
 setMethod("show",  "MxComputeIterate", function(object) displayMxComputeIterate(object))
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeEM",
+	 contains = "MxComputeOperation",
+	 representation = representation(
+	     what = "MxCharOrNumber",
+	     mstep.fit = "MxCompute",
+	     fit = "MxCompute",
+	     maxIter = "integer",
+	     tolerance = "numeric",
+	     verbose = "integer",
+	     ramsay="logical",
+	     information="logical"))
+
+setMethod("assignId", signature("MxComputeEM"),
+	function(.Object, id) {
+		.Object@mstep.fit <- assignId(.Object@mstep.fit, id)
+		.Object@fit <- assignId(.Object@fit, id + 1L)
+		.Object@id <- id + 2L
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeEM"),
+	function(.Object) {
+		result <- callNextMethod();
+		for (step in c(.Object@mstep.fit, .Object@fit)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("qualifyNames", signature("MxComputeEM"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod();
+		for (sl in c('what')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		for (sl in c('mstep.fit', 'fit')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeEM"),
+	function(.Object, flatModel, model) {
+		.Object <- callNextMethod();
+		name <- .Object@name
+		if (any(!is.integer(.Object@what))) {
+			expNum <- match(.Object@what, names(flatModel@expectations))
+			if (any(is.na(expNum))) {
+				stop(paste("Can only apply MxComputeEM to MxExpectation",
+					   deparse(.Object@what)))
+			}
+			.Object@what <- expNum - 1L
+		}
+		if (length(.Object@what) == 0) warning("MxComputeEM with nothing will have no effect")
+		for (sl in c('mstep.fit', 'fit')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeEM",
+	  function(.Object, what, mstep.fit, fit, maxIter, tolerance, verbose, ramsay, information) {
+		  .Object@name <- 'compute'
+		  .Object@what <- what
+		  .Object@mstep.fit <- mstep.fit
+		  .Object@fit <- fit
+		  .Object@maxIter <- maxIter
+		  .Object@tolerance <- tolerance
+		  .Object@verbose <- verbose
+		  .Object@ramsay <- ramsay
+		  .Object@information <- information
+		  .Object
+	  })
+
+mxComputeEM <- function(expectation, mstep.fit, fit, maxIter=500L, tolerance=1e-4,
+			verbose=0L, ramsay=TRUE, information=FALSE) {
+	new("MxComputeEM", what=expectation, mstep.fit, fit, maxIter=maxIter,
+		tolerance=tolerance, verbose, ramsay, information)
+}
+
+displayMxComputeEM <- function(opt) {
+	cat(class(opt), omxQuotes(opt@name), '\n')
+	cat("@tolerance :", omxQuotes(opt@tolerance), '\n')
+	cat("@maxIter :", omxQuotes(opt@maxIter), '\n')
+	invisible(opt)
+}
+
+setMethod("print", "MxComputeEM", function(x, ...) displayMxComputeEM(x))
+setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
 
 #----------------------------------------------------
 

@@ -79,17 +79,10 @@ m1 <- mxModel(m1,
                                 design=design,
                                 ItemParam="ItemParam",
                                 qpoints=29, scores="full"),
-              mxComputeIterate(steps=list(
-                mxComputeOnce('expectation', context='EM'),
-			   mxComputeNewtonRaphson(free.set='ItemParam'),
-#                mxComputeGradientDescent(free.set='ItemParam'),
-                mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)
-				 )))
-
-	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')
-	m1 <- mxOption(m1, "Verify level", '-1')
-m1 <- mxOption(m1, "Function precision", '1.0E-5')
+              mxComputeEM('expectation',
+			  mxComputeNewtonRaphson(free.set='ItemParam'),
+			  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)
+				 ))
 
 m1 <- mxRun(m1, silent=TRUE)
 #print(correct.mat)

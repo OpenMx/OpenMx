@@ -53,20 +53,17 @@ omxCheckCloseEnough(fivenum(testDeriv@output$hessian[testDeriv@output$hessian !=
                     c(-1038404.94356, -20.82415, 0.06734, 53.01333, 1038503.00369 ), .01)
 omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 1e-2)
 
+plan <- mxComputeEM('expectation',
+		    mxComputeNewtonRaphson(free.set='itemParam'),
+		    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean","cov")))
+
 m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=spec, ItemParam="itemParam",
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),
-	      mxComputeSequence(steps=list(
-				  mxComputeIterate(steps=list(
-				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeNewtonRaphson(free.set='itemParam'),
-				 mxComputeOnce('expectation'),
-				 mxComputeOnce('fitfunction', maxAbsChange=TRUE, free.set=c("mean","cov"))
-				 )),
-				  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE))))
+	      plan)
 				  
 m2 <- mxRun(m2)
 
