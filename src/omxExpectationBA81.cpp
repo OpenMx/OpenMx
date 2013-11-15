@@ -544,6 +544,13 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	//pda(state->latentMeanOut->data, 1, state->maxAbilities);
 	//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
 
+	omxBuffer<double> priCovData(priDims * priDims);
+	for (int d1=0; d1 < priDims; ++d1) {
+		for (int d2=0; d2 < priDims; ++d2) {
+			priCovData[d1 * priDims + d2] = omxMatrixElement(state->latentCovOut, d1, d2);
+		}
+	}
+
 	const double Largest = state->LargestDouble;
 	double totalArea = 0;
 	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
@@ -553,7 +560,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		pointToWhere(state, quad, where, priDims);
 		state->priQarea[qx] = exp(dmvnorm(priDims, where,
 						  state->latentMeanOut->data,
-						  state->latentCovOut->data));
+						  priCovData.data()));
 		totalArea += state->priQarea[qx];
 	}
 	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
