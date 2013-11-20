@@ -1106,10 +1106,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 		if (dataMax > no) {
 			error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
-		} else if (dataMax < no) {
-			warning("Data for item %d has only %d outcomes, not %d", cx+1, dataMax, no);
-			// promote to error?
-			// should complain if an outcome is not represented in the data TODO
 		}
 
 		int numSpec = (*rpf_model[id].numSpec)(spec);
