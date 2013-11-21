@@ -52,11 +52,7 @@ Matrix fillMatrix(int cols, int rows, double* array)
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars, int verbose)
 {
-	if (verbose >= 3) {
-		printf("myPars inside obj is: ");
-		print(myPars); putchar('\n');
-	}
-
+	    
 	unsigned short int checkpointNow = FALSE;
     
 	if(OMX_DEBUG) {printf("Starting Objective Run.");}
@@ -74,17 +70,24 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 	GLOB_fc->copyParamToModel(globalState, myPars.t);
     
     
-    
     omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, GLOB_fc);
+
     
-    
-    if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0])) {
-        GLOB_fc->fit = 1e24;
-    } else {
-        GLOB_fc->fit = fitMatrix->data[0];
+    if (!R_FINITE(fitMatrix->data[0])) {
+        omxRaiseErrorf(globalState, "Fit function returned %g at iteration %d.%d",
+                       fitMatrix->data[0], globalState->majorIteration, globalState->minorIteration);
     }
+    if(isErrorRaised(globalState))
+    {
+        if(OMX_DEBUG)
+        {    mxLog("Error status reported.");}
+    }
+    if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0]))
+    {    GLOB_fc->fit = 1e24;}
+    else {  GLOB_fc->fit = fitMatrix->data[0];}
     
-	if(verbose) {
+    
+	if(verbose >= 1) {
 		mxLog("Fit function value is: %.32f\n", fitMatrix->data[0]);
 	}
     
@@ -110,7 +113,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     GLOB_fc->fit = csolnpObjectiveFunction(myPars, verbose);
     
     omxConfidenceInterval *oCI = &(Global->intervalList[CSOLNP_currentInterval]);
-
+    
     omxRecompute(oCI->matrix);
     
     double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
@@ -143,8 +146,8 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     
     return GLOB_fc->fit;
 }
-    
-    
+
+
 /* (Non)Linear Constraint Functions */
 Matrix csolnpEqualityFunction(Matrix myPars, int verbose)
 {
@@ -154,8 +157,6 @@ Matrix csolnpEqualityFunction(Matrix myPars, int verbose)
     Matrix myEqBFun;
     
     if (verbose) mxLog("Starting csolnpEqualityFunction.");
-        
-    GLOB_fc->copyParamToModel(globalState, myPars.t);
     
     for(j = 0; j < globalState->numConstraints; j++) {
 	    if (globalState->conList[j].opCode == 1) {
@@ -209,9 +210,7 @@ Matrix csolnpIneqFun(Matrix myPars, int verbose)
     Matrix myIneqFun;
     
     if (verbose) mxLog("Starting csolnpIneqFun.");
-
-    GLOB_fc->copyParamToModel(globalState, myPars.t);
-    
+        
 	for(j = 0; j < globalState->numConstraints; j++) {
 		if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
         {
@@ -252,19 +251,14 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 
 {
 	freeMatrices(); // maybe left overs from an aborted optimization attempt
-
+    
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
     
     double *x = fc->est;
     double *g = fc->grad;
     
-    /*printf("fc->est\n");
-    printf("%.20f", fc->est[0]); putchar('\n');
-    printf("%.20f", fc->est[1]); putchar('\n');
-    printf("%.20f", fc->est[2]); putchar('\n');
-    printf("%.20f", fc->est[3]); putchar('\n');*/
-
+    
     int k, eq_n, ineq_n, iter = -1;
     int inform = 0;
     
@@ -299,14 +293,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     /* Allocate arrays */
     bl      = Calloc ( n + ncnln, double );
-    bu      = Calloc (n + ncnln, double );
-    
-	if (verbose >= 2) {
-		for (int i = 0; i < n; i++) {
-			printf("bl is: ");
-			printf("%2f", bl[i]); putchar('\n');
-		}
-	}
+    bu      = Calloc ( n + ncnln, double );
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
@@ -338,7 +325,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         }
         if (eqn == ncnln) nineqn = 1;
         else nineqn = ncnln - eqn;
-
+        
         solIneqLB = fill(nineqn, 1, EMPTY);
         solIneqUB = fill(nineqn, 1, EMPTY);
 	    if (eqn == 0) {
@@ -346,8 +333,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    } else {
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
-
+        
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
@@ -358,12 +346,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         }
     }
     omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+    
     Matrix blvar = fillMatrix(n, 1, bl);
     Matrix buvar = fillMatrix(n, 1, bu);
-    
-    //Matrix blvar = fill(1, 1, EMPTY);
-    //Matrix buvar = fill(1, 1, EMPTY);
-    
+        
     /* Initialize Starting Values */
     if(OMX_VERBOSE) {
         printf("--------------------------");
@@ -379,34 +365,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         printf("--------------------------");
         printf("Setting up optimizer...");
     }
-    
-    /* if (globalState->numConstraints == 0)
-     {
-     solIneqLB = fill(1,1,-999999.0);
-     solIneqUB = fill(1,1,-999999.0);
-     }*/
-    
-    // Matrix EqBFunValue = solEqBFun(myPars);
-    // Matrix EqBStartFunValue = solEqBStartFun(myPars);
-    if(verbose == 2) { printf("myPars is: ");
-        print(myPars); putchar('\n');
-        printf("3rd call is: ");
-        printf("%2f", solFun(myPars, 0)); putchar('\n');
-        printf("solEqB is: ");
-        print(solEqB); putchar('\n');
-        printf("solEqBFun is: ");
-        print(solEqBFun(myPars, 0)); putchar('\n');
-        printf("solIneqFun is: ");
-        print(solIneqFun(myPars, 0)); putchar('\n');
-        printf("blvar is: ");
-        print(blvar); putchar('\n');
-        printf("buvar is: ");
-        print(buvar); putchar('\n');
-        printf("solIneqUB is: ");
-        print(solIneqUB); putchar('\n');
-        printf("solIneqLB is: ");
-        print(solIneqLB); putchar('\n');
-    }
+        
     
     p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
@@ -418,40 +377,38 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     param_hess = p_obj.parameter;
     
-    //printf("param_hess length is: \n");
-    //printf("%d", param_hess.cols); putchar('\n');
     int i;
     myPars = subset(param_hess, 0, 0, n-1);
-
+    
     if (verbose>= 1){
 	    printf("final myPars value is: \n");
 	    print(myPars); putchar('\n');
     }
     myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2);
-
-
-    //Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
     
-    //inform = M(inform_m, 1, 0);
+    
+    Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
+    
+    inform = M(inform_m, 0, 0);
     
     if (verbose >= 2){
 	    printf("myhess is: \n");
 	    print(myhess); putchar('\n');
     }
-
+    
     double Hess[myhess.cols];
     
     for (i = 0; i < myhess.cols; i++)
     {
         Hess[i] = myhess.t[i];
+      
     }
-
+    
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
-   // printf("mygrad is: \n");
-   //print(mygrad); putchar('\n');
-
+    
+    
     memcpy(fc->hess, Hess, sizeof(double) * n * n);
-        
+
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
     }
@@ -478,9 +435,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
     GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
-        
+    
 	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
-        
+    
     int eq_n, ineq_n;
     double inform;
     double *bl=NULL, *bu=NULL;
@@ -489,7 +446,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     int ncnln = globalState->ncnln;
     
     double optimum = fc->fit;
-    //fc->est[1] = 0.00000031214280459955;
+    
     double *optimalValues = fc->est;
     
     double f = optimum;
@@ -521,22 +478,16 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
     /* Set boundaries and widths. */
     /* Allocate arrays */
-    bl      = Calloc ( n, double );
-    bu      = Calloc (n, double );
+    bl      = Calloc ( n + ncnln, double );
+    bu      = Calloc (n + ncnln, double );
     
-	if (verbose >= 2) {
-		for (int i = 0; i < n; i++) {
-			printf("bl is: ");
-			printf("%2f", bl[i]); putchar('\n');
-		}
-	}
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
     M(myControl,1,0) = 400.0;
     M(myControl,2,0) = 800.0;
     M(myControl,3,0) = 1.0e-7;
-    M(myControl,4,0) = 1.0e-8;
+    M(myControl,4,0) = 1.0e-16;
     M(myControl,5,0) = 0.0;
     
     bool myDEBUG = false;
@@ -551,6 +502,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     }
     else{
         int j;
+        int nineqn;
         int eqn = 0;
         for(j = 0; j < globalState->numConstraints; j++) {
             if (globalState->conList[j].opCode == 1)
@@ -558,7 +510,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
                 eqn += globalState->conList[j].size;
             }
         }
-        int nineqn = ncnln - eqn;
+        if (eqn == ncnln) nineqn = 1;
+        else nineqn = ncnln - eqn;
+        
         solIneqLB = fill(nineqn, 1, EMPTY);
         solIneqUB = fill(nineqn, 1, EMPTY);
 	    if (eqn == 0) {
@@ -566,8 +520,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 	    } else {
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
-	    omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        if (verbose >= 2) {
+        
+        omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+        if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
             printf("solIneqUB is: ");
@@ -576,22 +531,20 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             print(solEqB); putchar('\n');
         }
     }
-
+    
     omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
     Matrix blvar = fillMatrix(n, 1, bl);
     Matrix buvar = fillMatrix(n, 1, bu);
     
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
-    //printf(" Global->numIntervals is: \n");
-    //printf("%2d",  Global->numIntervals); putchar('\n');
+    
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals.");
         mxLog("numIntervals is: %d", Global->numIntervals);
     }
-
+    
     int count = 0;
     for(int i = 0; i < Global->numIntervals; i++) {
-        //printf("here here 3 times \n");
         if (i == 0)
         {count++;}
         omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
@@ -620,54 +573,54 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         myPars = fillMatrix(n, 1, x.data());
         CSOLNP_currentInterval = i;
         
-        //myPars = fillMatrix(n, 1, x.data());
-
+        
         currentCI->lbound += optimum;          // Convert from offsets to targets
         currentCI->ubound += optimum;          // Convert from offsets to targets
         
         /* Set up for the lower bound */
         inform = -1;
         // Number of times to keep trying.
-
-
+        
+        
         int cycles = ciMaxIterations;
-
+        
         double value = INF;
         double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
         
-        while(cycles > 0) {
+        while(inform!= 0 && cycles > 0) {
             /* Find lower limit */
             currentCI->calcLower = TRUE;
             
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
             f = p_obj_conf.objValue;
-
+            
             myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
             myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.cols - 2);
             
             mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
-
-
+            
+            
             Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
-  
+            
             inform = M(inform_m, 1, 0);
-            if(verbose>=1) { mxLog("inform_lower is: %d", inform);}
+            
+            if(verbose>=1) { mxLog("inform_lower is: %f", inform);}
             currentCI->lCode = inform;
-
-
+            
+            
             if(f < value) {
                 currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-
+                
                 value = f;
 				for (int ii = 0; ii < myPars.cols; ii++){
         			x.data()[ii] = myPars.t[ii];
     			}
-                	omxSaveCheckpoint(x.data(), f, TRUE);
-            	}
+                omxSaveCheckpoint(x.data(), f, TRUE);
+            }
             
             if(inform != 0 && OMX_DEBUG) {
-                mxLog("Calculation of lower interval %d failed: Bad inform value of %d",
+                mxLog("Calculation of lower interval %d failed: Bad inform value of %f",
                       i, inform);
             }
             cycles--;
@@ -712,11 +665,11 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         inform = -1;
         cycles = ciMaxIterations;
         if(verbose >= 1) { mxLog("cycles_upper is: %d", cycles); }
-        while(cycles >= 0) {
+        while(inform != 0 && cycles >= 0) {
             /* Find upper limit */
             currentCI->calcLower = FALSE;
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
-
+            
             f = p_obj_conf.objValue;
             
             myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
@@ -725,25 +678,25 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
             
             Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
- 
+            
             
             inform = M(inform_m, 1, 0);
-            if(verbose >= 1) { mxLog("inform_upper is: %d", inform);}
+            if(verbose >= 1) { mxLog("inform_upper is: %f", inform);}
             currentCI->uCode = inform;
-
+            
             if(f < value) {
                 currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-
+                
                 value = f;
 				for (int ii = 0; ii < myPars.cols; ii++){
         			x.data()[ii] = myPars.t[ii];
                 }
-		
+                
                 omxSaveCheckpoint(x.data(), f, TRUE);
             }
             
             if(inform != 0 && OMX_DEBUG) {
-                mxLog("Calculation of upper interval %d failed: Bad inform value of %d",
+                mxLog("Calculation of upper interval %d failed: Bad inform value of %f",
                       i, inform);
             }
             cycles--;
