@@ -149,7 +149,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
 
 
 /* (Non)Linear Constraint Functions */
-Matrix csolnpEqualityFunction(Matrix myPars, int verbose)
+Matrix csolnpEqualityFunction(int verbose)
 {
 	int j, k, eq_n = 0;
     int l = 0;
@@ -202,7 +202,7 @@ Matrix csolnpEqualityFunction(Matrix myPars, int verbose)
 }
 
 
-Matrix csolnpIneqFun(Matrix myPars, int verbose)
+Matrix csolnpIneqFun(int verbose)
 {
    	int j, k, ineq_n = 0;
     int l = 0;
@@ -246,7 +246,7 @@ Matrix csolnpIneqFun(Matrix myPars, int verbose)
 }
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
-                     int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
+                     int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup,
                      int verbose)
 
 {
@@ -256,21 +256,20 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	GLOB_fc = fc;
     
     double *x = fc->est;
-    double *g = fc->grad;
+    //double *g = fc->grad;
     
     
-    int k, eq_n, ineq_n, iter = -1;
+    int k, iter = -1;
     int inform = 0;
     
     double *bl=NULL, *bu=NULL;
     
-    double *cJac = NULL;    // Hessian (Approx) and Jacobian
+    //double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
     int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
     
     double EMPTY = -999999.0;
-    int j;
     
     Param_Obj p_obj;
     Matrix param_hess;
@@ -284,9 +283,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     double (*solFun)(struct Matrix myPars, int verbose);
     solFun = &csolnpObjectiveFunction;
-    Matrix (*solEqBFun)(struct Matrix myPars, int verbose);
+    Matrix (*solEqBFun)(int verbose);
     solEqBFun = &csolnpEqualityFunction;
-    Matrix (*solIneqFun)(struct Matrix myPars, int verbose);
+    Matrix (*solIneqFun)(int verbose);
     solIneqFun = &csolnpIneqFun;
     
     /* Set boundaries and widths. */
@@ -438,7 +437,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
 	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
     
-    int eq_n, ineq_n;
     double inform;
     double *bl=NULL, *bu=NULL;
     
@@ -456,7 +454,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
     /* CSOLNP Arguments */
     double EMPTY = -999999.0;
-    int j;
     
     Param_Obj p_obj_conf;
     Matrix param_hess;
@@ -469,11 +466,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     Matrix myPars = fillMatrix(n, 1, fc->est);
     double (*solFun)(struct Matrix myPars, int verbose);
     solFun = &csolnpLimitObjectiveFunction;
-    Matrix (*solEqBFun)(struct Matrix myPars, int verbose);
+    Matrix (*solEqBFun)(int verbose);
     solEqBFun = &csolnpEqualityFunction;
-    Matrix (*solIneqFun)(struct Matrix myPars, int verbose);
+    Matrix (*solIneqFun)(int verbose);
     solIneqFun = &csolnpIneqFun;
-    int nclin = 0;
     
     
     /* Set boundaries and widths. */

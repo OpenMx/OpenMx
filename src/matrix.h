@@ -44,6 +44,8 @@ Matrix MatrixInvert(Matrix inMat);
 int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);
 
+Matrix condNumPurpose(Matrix inMat);
+
 struct Matrix new_matrix(int cols,int rows);
 
 struct Matrix transposeDotProduct(Matrix t);
@@ -124,9 +126,9 @@ struct Matrix copy(struct Matrix x, struct Matrix y);
 
 struct Matrix rbind(struct Matrix x, struct Matrix y);
 
-struct Matrix copyThree(struct Matrix a, struct Matrix b, struct Matrix c);
+//struct Matrix copyThree(struct Matrix a, struct Matrix b, struct Matrix c);
 
-struct Matrix copyFive(struct Matrix a, struct Matrix b, struct Matrix c, struct Matrix d, struct Matrix e);
+//struct Matrix copyFive(struct Matrix a, struct Matrix b, struct Matrix c, struct Matrix d, struct Matrix e);
 
 struct Matrix timess(struct Matrix a, struct Matrix b);
 

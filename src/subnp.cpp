@@ -41,10 +41,10 @@ double eps;
 int outerIter;
 
 
-Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Matrix, int), Matrix (*myineqFun)(Matrix, int) ,
+Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int) ,
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
 
-Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Matrix (*solEqBFun)(Matrix, int), Matrix (*myineqFun)(Matrix, int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
+Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
 {
 	if(verbose >= 3){
 		printf("solPars is: \n");
@@ -54,9 +54,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 		printf("solEqB is: \n");
 		print(solEqB); putchar('\n');
 		printf("solEqBFun is: \n");
-		print(solEqBFun(solPars, 0)); putchar('\n');
+		print(solEqBFun(0)); putchar('\n');
 		printf("myineqFun is: \n");
-		print(myineqFun(solPars, 0)); putchar('\n');
+		print(myineqFun(0)); putchar('\n');
 		printf("solLB is: \n");
 		print(solLB); putchar('\n');
 		printf("solUB is: \n");
@@ -225,7 +225,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	int nineq;
 	Matrix ineqx0 = fill(ineqLB.cols, 1, (double)0.0);
     
-	Matrix ineqv = myineqFun(pars, verbose);
+	Matrix ineqv = myineqFun(verbose);
     
 	if ( M(ineqv, 0, 0) != EMPTY){
 		
@@ -271,7 +271,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	}
     
 	int neq;
-	Matrix eqv = solEqBFun(pars, verbose);
+	Matrix eqv = solEqBFun(verbose);
     
 	if( M(eqv, 0, 0) != EMPTY){
 		M(ind, 6, 0) = 1;
@@ -324,8 +324,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	else    {pb = fill(1, 1, EMPTY);}
     
-    int pbRows = pb.rows;
-	int pbCols = pb.cols;
 	double rho   = M(control, 0, 0);
 	int maxit = M(control, 1, 0);
 	int minit = M(control, 2, 0);
@@ -341,7 +339,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	Matrix lambda;
 	Matrix constraint;
-	int count = 0;
+
 	if (tc > 0){
 		lambda = fill(1, tc, (double)0.0);
         
@@ -483,8 +481,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             p = duplicateIt(resP);
             funv = solFun(p, verbose);
             funvMatrix = fill(1, 1, funv);
-            eqv = solEqBFun(p, verbose);
-            ineqv = myineqFun(p, verbose);
+            eqv = solEqBFun(verbose);
+            ineqv = myineqFun(verbose);
             if ( M(ineqv, 0, 0) != EMPTY)
             {
                 if(M(eqv,0,0) != EMPTY)
@@ -544,9 +542,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         
 		Matrix funv_mat = fill(1, 1, funv);
 		Matrix tempdf = copy(temp, funv_mat);
-		eqv = solEqBFun(temp, verbose);
+		eqv = solEqBFun(verbose);
         
-		ineqv = myineqFun(temp, verbose);
+		ineqv = myineqFun(verbose);
         
 		Matrix firstPart, copied;
 		if (M(ineqv, 0, 0) != EMPTY){
@@ -762,7 +760,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 }
 
-Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Matrix, int) ,  Matrix(*myineqFun)(Matrix, int),
+Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose)
 {
 
@@ -772,14 +770,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
         print(pars); putchar('\n');
     }
 	int yyRows = yy.rows;
-	int yyCols = yy.cols;
+	//int yyCols = yy.cols;
     double j;
     
 	double rho   = M(ctrl, 0, 0);
 	int maxit = M(ctrl, 1, 0);
 	double delta = M(ctrl, 2, 0);
 	double tol =   M(ctrl, 3, 0);
-	double trace =  M(ctrl, 4, 0);
     
 	int neq =  (int)M(ind, 7, 0);
 	int nineq = (int)M(ind, 4, 0);
@@ -873,7 +870,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 			mm=npic;
 		}
 		Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
-		double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
+		//double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
 		Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
 		vscaleTwice = setColumn(vscaleTwice, vscaleSubset, 0);
 		vscaleTwice = setColumn(vscaleTwice, vscaleSubset, 1);
@@ -973,9 +970,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 			}
 			funv = solFun(tmpv, verbose);
             
-			eqv = solEqBFun(tmpv, verbose);
+			eqv = solEqBFun(verbose);
 
-			ineqv = myineqFun(tmpv, verbose);
+			ineqv = myineqFun(verbose);
             
 			solnp_nfn = solnp_nfn + 1;
 			Matrix firstPart;
@@ -1172,12 +1169,12 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 			printf("funv is: \n");
 			printf("%2f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(tmpv, verbose);
+		eqv = solEqBFun(verbose);
 		if (verbose >= 3){
 			printf("eqv is: \n");
 			print(eqv); putchar('\n');
 		}
-		ineqv = myineqFun(tmpv, verbose);
+		ineqv = myineqFun(verbose);
 		if (verbose >= 3){
 			printf("ineqv is: \n");
 			print(ineqv); putchar('\n');
@@ -1257,8 +1254,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 					printf("funv is: \n");
 					printf("%2f", funv); putchar('\n');
 				}
-				eqv = solEqBFun(tmpv, verbose);
-				ineqv = myineqFun(tmpv, verbose);
+				eqv = solEqBFun(verbose);
+				ineqv = myineqFun(verbose);
 				solnp_nfn = solnp_nfn + 1;
 				Matrix firstPart, secondPart, firstPartt;
                 
@@ -1606,9 +1603,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 			printf("funv is: \n");
 			printf("%.20f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(tmpv, verbose);
+		eqv = solEqBFun(verbose);
 
-		ineqv = myineqFun(tmpv, verbose);
+		ineqv = myineqFun(verbose);
         
 		solnp_nfn = solnp_nfn + 1;
 		Matrix firstPart, secondPart, firstPartt;
@@ -1692,9 +1689,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(Mat
 				printf("%2f", funv); putchar('\n');
 			}
             
-			eqv = solEqBFun(tmpv, verbose);
+			eqv = solEqBFun(verbose);
             
-			ineqv = myineqFun(tmpv, verbose);
+			ineqv = myineqFun(verbose);
 			solnp_nfn = solnp_nfn + 1;
 			Matrix firstPart, secondPart, firstPartt;
 			if (M(ineqv, 0, 0) != EMPTY){

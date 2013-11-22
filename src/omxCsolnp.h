@@ -20,29 +20,28 @@
 #include "omxMatrix.h"
 #include "matrix.h"
 
-typedef double (*solFun_t)(struct Matrix myPars, int verbose);
-typedef Matrix (*solEqBFun_t)(struct Matrix myPars, int verbose);
-typedef Matrix (*solIneqFun_t)(struct Matrix myPars, int verbose);
+//typedef double (*solFun_t)(struct Matrix myPars, int verbose);
+//typedef Matrix (*solEqBFun_t)(struct Matrix myPars, int verbose);
+//typedef Matrix (*solIneqFun_t)(struct Matrix myPars, int verbose);
 
 struct Matrix fillMatrix(int cols, int rows, double* array);
 
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup, int verbose);
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup, int verbose);
 
-//void omxNPSOLConfidenceIntervals(double *f, double *x, double *g, double *R, int ciMaxIterations);
+void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose);
 
-Param_Obj solnp(Matrix solPars, solFun_t solFun,
-		Matrix solEqB, solEqBFun_t solEqBFun, solIneqFun_t myineqFun,
-		Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,
-		Matrix solctrl, bool debugToggle, int verbose);
+Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int),
+                Matrix solEqB, Matrix (*solEqBFun)(int),  Matrix (*myineqFun)(int),
+                Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,
+                Matrix solctrl, bool debugToggle, int verbose);
 
-double csolnpObjectiveFunction(Matrix myPars);
-struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg);
-//struct Matrix csolnpEqB(Matrix* EqB_arg[]);
-//struct Matrix csolnpEqB();
-//struct Matrix csolnpIneqUB(Matrix* IneqUB_arg[]);
-//struct Matrix csolnpIneqUB();
-//struct Matrix csolnpIneqLB(Matrix* IneqLB_arg[]);
-//struct Matrix csolnpIneqLB();
-struct Matrix csolnpIneqFun(Matrix myPars);
+double csolnpObjectiveFunction(Matrix myPars, int verbose);
+double csolnpLimitObjectiveFunction(Matrix myPars, int verbose);
+struct Matrix csolnpEqualityFunction(int verbose);
+//struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg, int verbose);
+
+struct Matrix csolnpIneqFun(int verbose);
+//struct Matrix csolnpIneqFun(Matrix myPars, int verbose);
+
 
 #endif // #define _OMX_CSOLNP_SPECIFIC_H

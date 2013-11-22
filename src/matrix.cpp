@@ -9,6 +9,7 @@ using std::endl;
 #include <list>
 #include <algorithm>
 #include <iterator>
+#include <vector>
 
 #include "omxBuffer.h"
 #include "matrix.h"
@@ -23,12 +24,12 @@ double rnd_double() { return (double)1.0; }
 
 void freeMatrices(){
     while (!matrices.empty()){
-       /* printf("matrices.front is: \n");
-        print(matrices.front());
-        printf("matrices.front.t is : \n");
-        for(int i = 0; i <matrices.front().cols; i++){
-        printf("%f", matrices.front().t[i]); putchar('\n');
-        }*/
+        /* printf("matrices.front is: \n");
+         print(matrices.front());
+         printf("matrices.front.t is : \n");
+         for(int i = 0; i <matrices.front().cols; i++){
+         printf("%f", matrices.front().t[i]); putchar('\n');
+         }*/
         //print(matrices.front());
         free(matrices.front());
         //printf("matrices.front is: \n");
@@ -83,7 +84,7 @@ Matrix setRow( Matrix x, int row,  Matrix y){
 	
 	Matrix toReturn = duplicateIt(x);
 	
-	int i,j;
+	int i;
 	
 	for (i=0;i < x.cols; i++){
 		M(toReturn,i,row) = M(y,i,0);
@@ -136,7 +137,7 @@ void print(Matrix t) {
 	for(i=0;i<t.rows;i++) {
 		printf("| ");
 		for(j=0;j<t.cols;j++)
-			printf("%2f ",M(t,j,i));
+			printf("%.20f ",M(t,j,i));
 		printf("|\n");
 	}
 	printf("\n");
@@ -377,8 +378,8 @@ Matrix add(Matrix x,  Matrix y)
 
 Matrix subtract(Matrix x,  Matrix y)
 {
-    Matrix result = fill(x.cols, x.rows, (double)0.0);    
-
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
+    
     int r,c;
     for ( r = 0; r < x.rows; r++ )
     {
@@ -671,14 +672,14 @@ Matrix rbind(Matrix x,  Matrix y){
 	return result;
 }
 
-Matrix copyThree(Matrix a,  Matrix b,  Matrix c){
+/*Matrix copyThree(Matrix a,  Matrix b,  Matrix c){
     Matrix result = copy(a, b);
     Matrix result_three = copy(result, c);
-}
+}*/
 
-Matrix copyFive(Matrix a,  Matrix b,  Matrix c,  Matrix d,  Matrix e){
+/*Matrix copyFive(Matrix a,  Matrix b,  Matrix c,  Matrix d,  Matrix e){
 	copy(copy(copy(a,b), copy(c,d)), e);
-}
+}*/
 
 Matrix timess(Matrix a,  Matrix b){
     int i, j, k;
@@ -1022,7 +1023,53 @@ Matrix MatrixInvert(Matrix inMat)
 	return result;
 }
 
-int this_main(int argc,char *argv[]) {
+
+
+Matrix condNumPurpose(Matrix inMat)
+{
+    //printf("inMat is: \n");
+    //print(inMat); putchar('\n');
+    Matrix result = duplicateIt(inMat);
+    char jobz = 'N';
+	char range = 'A';
+	char uplo = 'U';
+	double vunused;
+	int iunused;
+	double abstol = 0;
+	int m = inMat.cols;
+	double w[inMat.cols];
+	double Z[inMat.cols];
+	int ldz=1;
+	int isuppz[2*inMat.cols];
+	int lwork = -1;
+	double optlWork;
+	int optliWork;
+	int liwork = -1;
+	int info;
+    
+    F77_CALL(dsyevr)(&jobz, &range, &uplo, &(result.cols), result.t, &(result.cols),
+                 &vunused, &vunused, &iunused, &iunused, &abstol, &m, w, Z, &ldz, isuppz,
+                     &optlWork, &lwork, &optliWork, &liwork, &info);
+    lwork = optlWork;
+	std::vector<double> work(lwork);
+	liwork = optliWork;
+	std::vector<int> iwork(liwork);
+    
+    F77_CALL(dsyevr)(&jobz, &range, &uplo, &(result.cols), result.t, &(result.cols),
+                     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w, Z, &ldz, isuppz,
+                     work.data(), &lwork, iwork.data(), &liwork, &info);
+    
+    Matrix eigenVals = fill(result.cols, 1, (double)0.0);
+    for (int i = 0; i <result.cols; i++)
+    {
+        M(eigenVals, i, 0) = w[i];
+        //printf("w[i] is: \n");
+        //printf("%2f", w[i]);
+    }
+    return eigenVals;
+}
+
+/*int this_main(int argc,char *argv[]) {
 	int i,j;
 	int size=atoi(argv[1]);
     Matrix a,b,c;
@@ -1037,6 +1084,6 @@ int this_main(int argc,char *argv[]) {
 	}
 	c=matrix_mult(a,b);
 	print(c);
-}
+}*/
 
 
