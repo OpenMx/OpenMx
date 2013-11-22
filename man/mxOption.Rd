@@ -55,6 +55,7 @@ OpenMx options
 Calculate Hessian \tab [Yes|No] \tab calculate the hessian explicitly after optimization. \cr
 Standard Errors \tab [Yes|No] \tab return standard error estimates from the explicitly calculate hessian. \cr
 CI Max Iterations \tab \var{i} \tab the maximum number of retries when calculating confidence intervals. \cr
+Default optimizer \tab [NPSOL|CSOLNP] \tab the gradient descent optimizer to use. \cr
 }
 
 NPSOL-specific options

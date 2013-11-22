@@ -206,17 +206,9 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
 # What to do with 'type'?
-#	if (length(type) != 1) stop("Specific 1 compute type")
 
 	if (missing(engine)) {
-		engine <- Sys.getenv("IMX_OPT_ENGINE")
-		if (!nchar(engine)) {
-			if (imxHasNPSOL()) {
-				engine <- "NPSOL"
-			} else {
-				engine <- "CSOLNP"
-			}
-		}
+		engine <- options()$mxOptions[["Default optimizer"]]
 	}
 
 	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose)
@@ -264,7 +256,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 		  .Object
 	  })
 
-mxComputeNewtonRaphson <- function(type, free.set=NULL,
+mxComputeNewtonRaphson <- function(type, free.set=NULL,   # remove type arg TODO
 				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
 				   verbose=0L, carefully=FALSE) {
 

@@ -88,6 +88,18 @@ processDefaultOptionList <- function(key, value, reset) {
 	return(invisible(defaultOptions))
 }
 
+determineDefaultOptimizer <- function() {
+	engine <- Sys.getenv("IMX_OPT_ENGINE")
+	if (!nchar(engine)) {
+		if (imxHasNPSOL()) {
+			engine <- "NPSOL"
+		} else {
+			engine <- "CSOLNP"
+		}
+	}
+	engine
+}
+
 # Names and values must all be strings
 npsolOptions <- list(
 	"Nolist" = "",
