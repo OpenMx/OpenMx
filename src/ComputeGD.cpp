@@ -93,7 +93,7 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 
 void omxComputeGD::compute(FitContext *fc)
 {
-	size_t numParam = varGroup->vars.size();
+    size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
 		error("Model has no free parameters");
 		return;
@@ -112,7 +112,7 @@ void omxComputeGD::compute(FitContext *fc)
 #endif
             break;
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose);
             break;
         default: error("huh?");
 	}
@@ -126,21 +126,37 @@ void omxComputeGD::compute(FitContext *fc)
 		} else {
 			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
 			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
-            
 #if HAS_NPSOL
 			omxNPSOLConfidenceIntervals(fitMatrix, fc);
 #endif
 			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
 		}
 	}
+	
+    else if(Global->numIntervals && engine == OptEngine_CSOLNP) {
+        PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
+        PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
+        omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose);
+        omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
+    }
     
 	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
+    /*printf("fc->hess in computeGD\n");
+    printf("%2f", fc->hess[0]); putchar('\n');
+    printf("%2f", fc->hess[1]); putchar('\n');
+    printf("%2f", fc->hess[2]); putchar('\n');
+    */
 }
 
 void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
     
+    /*printf("fc->hess in computeGD:report results\n");
+    printf("%2f", fc->hess[0]); putchar('\n');
+    printf("%2f", fc->hess[1]); putchar('\n');
+    printf("%2f", fc->hess[2]); putchar('\n');
+*/
 	size_t numFree = varGroup->vars.size();
     
 	SEXP estimate, gradient, hessian;
