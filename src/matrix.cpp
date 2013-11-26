@@ -993,6 +993,28 @@ int InvertSymmetricPosDef(Matrix mat, const char uplo)
 	return info;
 }
 
+int InvertSymmetricIndef(Matrix mat, const char uplo)
+{
+	if (mat.rows != mat.cols) error("Not square");
+	int info;
+	omxBuffer<int> ipiv(mat.rows);
+	double temp;
+	int lwork = -1;
+	F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), &temp, &lwork, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	if (info > 0) return info;
+
+	if (lwork < mat.rows) lwork = mat.rows; // for dsytri
+	omxBuffer<double> work(lwork);
+	F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &lwork, &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	if (info > 0) return info;
+
+	F77_CALL(dsytri)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &info);
+	if (info < 0) error("Arg %d is invalid", -info);
+	return info;
+}
+
 int MatrixInvert1(Matrix result)
 {
 	omxBuffer<int> ipiv(result.rows);

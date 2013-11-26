@@ -43,6 +43,7 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat);
 Matrix MatrixInvert(Matrix inMat);
 int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);
+int InvertSymmetricIndef(Matrix mat, const char uplo);
 
 Matrix condNumPurpose(Matrix inMat);
 

@@ -43,6 +43,8 @@
 #include "omxOpenmpWrap.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
+#include "matrix.h"
+#include "omxBuffer.h"
 
 class omxComputeEstimatedHessian : public omxCompute {
 	typedef omxCompute super;
@@ -342,44 +344,21 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 		// sqrt(diag(solve(hessian)))
 
 		const double scale = 2;
-		double* workspace = (double *) Calloc(numParams * numParams, double);
+		omxBuffer<double> workspace(numParams * numParams);
 	
 		for(int i = 0; i < numParams; i++)
 			for(int j = 0; j <= i; j++)
 				workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
 	
-		char u = 'U';
-		std::vector<int> ipiv(numParams);
-		int lwork = -1;
-		double temp;
-		int info = 0;
-	
-		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv.data(), &temp, &lwork, &info);
-	
-		lwork = (temp > numParams?temp:numParams);
-	
-		double* work = (double*) Calloc(lwork, double);
-	
-		F77_CALL(dsytrf)(&u, &numParams, workspace, &numParams, ipiv.data(), work, &lwork, &info);
-	
-		if(info != 0) {
-			// report error TODO
-		} else {
-			F77_CALL(dsytri)(&u, &numParams, workspace, &numParams, ipiv.data(), work, &info);
-	
-			if(info != 0) {
-				// report error TODO
-			} else {
-				PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
-				double* stdErr = REAL(stdErrors);
-				for(int i = 0; i < numParams; i++) {
-					stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
-				}
-			}
+		Matrix wmat(workspace.data(), numParams, numParams);
+		int info = InvertSymmetricIndef(wmat, 'U');
+		// ignore info
+
+		PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
+		double* stdErr = REAL(stdErrors);
+		for(int i = 0; i < numParams; i++) {
+			stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
 		}
-	
-		Free(workspace);
-		Free(work);
 	}
 
 	omxFreeChildStates(globalState);
