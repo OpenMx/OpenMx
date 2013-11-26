@@ -82,6 +82,10 @@ struct omxFreeVar {
 	omxFreeVarLocation *getLocation(int matrix);
 };
 
+#define FREEVARGROUP_ALL      0
+#define FREEVARGROUP_NONE    -1
+#define FREEVARGROUP_INVALID -2
+
 struct FreeVarGroup {
 	int id;
 	std::vector< omxFreeVar* > vars;

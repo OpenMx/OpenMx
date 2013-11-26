@@ -274,11 +274,11 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 	{
 		FreeVarGroup *fvg = new FreeVarGroup;
-		fvg->id = 0;   // all variables
+		fvg->id = FREEVARGROUP_ALL;   // all variables
 		Global->freeGroup.push_back(fvg);
 
 		fvg = new FreeVarGroup;
-		fvg->id = -1;  // no variables
+		fvg->id = FREEVARGROUP_NONE;  // no variables
 		Global->freeGroup.push_back(fvg);
 	}
 
