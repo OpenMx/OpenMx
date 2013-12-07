@@ -102,7 +102,8 @@ class FitContext {
 	void init();
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
-	void fixHessianSymmetry(int want);
+	void fixHessianSymmetry(int want, bool force);
+	void fixHessianSymmetry(int want) { fixHessianSymmetry(want, false); }
 	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);
 	void copyParamToModel(omxMatrix *mat, double *at);
@@ -125,7 +126,7 @@ class omxCompute {
 	omxCompute();
         virtual void initFromFrontend(SEXP rObj);
         virtual omxFitFunction *getFitFunction() { return NULL; }
-        virtual void compute(FitContext *fc) = 0;
+        virtual void compute(FitContext *fc) {};
         virtual void reportResults(FitContext *fc, MxRList *out) = 0;
 	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute();

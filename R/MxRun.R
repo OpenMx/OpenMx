@@ -132,9 +132,11 @@ runHelper <- function(model, frontendStart,
 				computes <- list(mxComputeGradientDescent(type="Quasi-Newton",
 									  fitfunction=fitNum))
 			} else {
-				want.se <- options[["Standard Errors"]] == "Yes"
 				steps <- list(mxComputeGradientDescent(fitfunction=fitNum, type="Quasi-Newton"),
-					      mxComputeEstimatedHessian(fitfunction=fitNum, want.se=want.se))
+					      mxComputeEstimatedHessian(fitfunction=fitNum))
+				if (options[["Standard Errors"]] == "Yes") {
+					steps <- c(steps, mxComputeStandardError())
+				}
 				computes <- list(mxComputeSequence(steps))
 			}
 		}

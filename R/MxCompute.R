@@ -439,8 +439,7 @@ setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
 setClass(Class = "MxComputeEstimatedHessian",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   fitfunction = "MxCharOrNumber",
-	   se = "logical"))
+	   fitfunction = "MxCharOrNumber"))
 
 setMethod("qualifyNames", signature("MxComputeEstimatedHessian"),
 	function(.Object, modelname, namespace) {
@@ -460,16 +459,31 @@ setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
 	})
 
 setMethod("initialize", "MxComputeEstimatedHessian",
-	  function(.Object, free.set, fit, want.se) {
+	  function(.Object, free.set, fit) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
-		  .Object@se <- want.se
 		  .Object
 	  })
 
-mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction', want.se=TRUE) {
-	new("MxComputeEstimatedHessian", free.set, fitfunction, want.se)
+mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction') {
+	new("MxComputeEstimatedHessian", free.set, fitfunction)
+}
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeStandardError",
+	 contains = "MxComputeOperation")
+
+setMethod("initialize", "MxComputeStandardError",
+	  function(.Object, free.set) {
+		  .Object@name <- 'compute'
+		  .Object@free.set <- free.set
+		  .Object
+	  })
+
+mxComputeStandardError <- function(free.set=NULL) {
+	new("MxComputeStandardError", free.set)
 }
 
 #----------------------------------------------------

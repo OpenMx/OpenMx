@@ -228,32 +228,29 @@ void FitContext::log(const char *where, int what)
 	mxLogBig(buf);
 }
 
-void FitContext::fixHessianSymmetry(int want)
+static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool force)
+{
+	for (size_t h1=1; h1 < numParam; h1++) {
+		for (size_t h2=0; h2 < h1; h2++) {
+			if (!force && mat[h2 * numParam + h1] != 0) {
+				omxRaiseErrorf(globalState, "%s is not upper triangular", name);
+				break;
+			}
+			mat[h2 * numParam + h1] = mat[h1 * numParam + h2];
+		}
+	}
+}
+
+void FitContext::fixHessianSymmetry(int want, bool force)
 {
 	size_t numParam = varGroup->vars.size();
 
 	if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO)) {
-		for (size_t h1=1; h1 < numParam; h1++) {
-			for (size_t h2=0; h2 < h1; h2++) {
-				if (hess[h2 * numParam + h1] != 0) {
-					omxRaiseErrorf(globalState, "Hessian/information is not upper triangular");
-					break;
-				}
-				hess[h2 * numParam + h1] = hess[h1 * numParam + h2];
-			}
-		}
+		_fixSymmetry("Hessian/information", hess, numParam, force);
 	}
 
 	if (want & FF_COMPUTE_IHESSIAN) {
-		for (size_t h1=1; h1 < numParam; h1++) {
-			for (size_t h2=0; h2 < h1; h2++) {
-				if (ihess[h2 * numParam + h1] != 0) {
-					omxRaiseErrorf(globalState, "Inverse Hessian is not upper triangular");
-					break;
-				}
-				ihess[h2 * numParam + h1] = ihess[h1 * numParam + h2];
-			}
-		}
+		_fixSymmetry("Inverse Hessian", ihess, numParam, force);
 	}
 }
 
@@ -628,6 +625,12 @@ class ComputeEM : public omxCompute {
 	virtual ~ComputeEM();
 };
 
+class ComputeStandardError : public omxCompute {
+	typedef omxCompute super;
+ public:
+        virtual void reportResults(FitContext *fc, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -639,6 +642,9 @@ static class omxCompute *newComputeOnce()
 
 static class omxCompute *newComputeEM()
 { return new ComputeEM(); }
+
+static class omxCompute *newComputeStandardError()
+{ return new ComputeStandardError(); }
 
 struct omxComputeTableEntry {
         char name[32];
@@ -653,6 +659,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
+	{"MxComputeStandardError", &newComputeStandardError}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1088,6 +1095,7 @@ void ComputeEM::compute(FitContext *fc)
 
 	//pda(ihess, freeVarsEM, freeVarsEM);
 
+	// rewrite in terms of ComputeStandardError TODO
 	stdError.resize(freeVars);
 	for (int v1=0; v1 < freeVarsEM; ++v1) {
 		int cell = v1 * freeVarsEM + v1;
@@ -1337,4 +1345,41 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 			// TODO
 		}
 	}
+}
+
+void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
+{
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO | FF_COMPUTE_IHESSIAN))) {
+		error("Hessian not available?");
+	}
+
+	int numParams = int(fc->varGroup->vars.size());
+
+	if (!(fc->wanted & FF_COMPUTE_IHESSIAN)) {
+		// Populate upper triangle
+		for(int i = 0; i < numParams; i++) {
+			for(int j = 0; j <= i; j++) {
+				fc->ihess[i*numParams+j] = fc->hess[i*numParams+j];
+			}
+		}
+
+		Matrix wmat(fc->ihess, numParams, numParams);
+		InvertSymmetricIndef(wmat, 'U');
+		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
+	}
+
+	// This function calculates the standard errors from the Hessian matrix
+	// sqrt(diag(solve(hessian)))
+
+	// We report the fit in -2LL units instead of -LL so we need to adjust here.
+	const double scale = sqrt(2); // constexpr
+
+	SEXP stdErrors;
+	PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
+	double* stdErr = REAL(stdErrors);
+	for(int i = 0; i < numParams; i++) {
+		stdErr[i] = scale * sqrt(fc->ihess[i * numParams + i]);
+	}
+
+	out->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 }

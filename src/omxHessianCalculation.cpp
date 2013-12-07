@@ -50,7 +50,6 @@ class omxComputeEstimatedHessian : public omxCompute {
 	typedef omxCompute super;
 	double stepSize;
 	int numIter;
-	bool wantSE;
 
 	FitContext *fitContext;
 	omxMatrix *fitMat;
@@ -59,10 +58,6 @@ class omxComputeEstimatedHessian : public omxCompute {
 	double *optima;
 	double *gradient;
 	double *hessian;
-
-	// move to FitContext? TODO
-	SEXP calculatedHessian;
-	SEXP stdErrors;
 
 	void init();
 	void omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state);
@@ -263,7 +258,6 @@ void omxComputeEstimatedHessian::init()
 {
 	stepSize = .0001;
 	numIter = 4;
-	stdErrors = NULL;
 	optima = NULL;
 }
 
@@ -278,11 +272,6 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 
 	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMat->fitFunction, varGroup);
-
-	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("se")));
-	wantSE = asLogical(slotValue);
-	UNPROTECT(1);
 }
 
 void omxComputeEstimatedHessian::compute(FitContext *fc)
@@ -294,8 +283,6 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 	omxFitFunctionCreateChildren(globalState);
 
 	optima = fc->est;
-
-	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
@@ -317,7 +304,8 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 	}
 	if(OMX_DEBUG) mxLog("Hessian Calculation using %d children", numChildren);
 
-	hessian = REAL(calculatedHessian);
+	fc->wanted |= FF_COMPUTE_HESSIAN;
+	hessian = fc->hess;
 
 	gradient = (double*) R_alloc(numParams, sizeof(double));
   
@@ -339,38 +327,16 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 		Free(hess_work);
 	}
 
-	if (wantSE) {
-		// This function calculates the standard errors from the hessian matrix
-		// sqrt(diag(solve(hessian)))
-
-		const double scale = 2;
-		omxBuffer<double> workspace(numParams * numParams);
-	
-		for(int i = 0; i < numParams; i++)
-			for(int j = 0; j <= i; j++)
-				workspace[i*numParams+j] = hessian[i*numParams+j];		// Populate upper triangle
-	
-		Matrix wmat(workspace.data(), numParams, numParams);
-		int info = InvertSymmetricIndef(wmat, 'U');
-		// ignore info
-
-		PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
-		double* stdErr = REAL(stdErrors);
-		for(int i = 0; i < numParams; i++) {
-			stdErr[i] = sqrt(scale) * sqrt(workspace[i * numParams + i]);
-		}
-	}
-
 	omxFreeChildStates(globalState);
 }
 
 void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *result)
 {
-	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
+	SEXP calculatedHessian;
+	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
+	memcpy(REAL(calculatedHessian), fc->hess, sizeof(double) * numParams * numParams);
 
-	if (stdErrors) {
-		result->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
-	}
+	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
 }
 
 omxCompute *newComputeEstimatedHessian()
