@@ -215,7 +215,7 @@ setMethod("genericExpAddEntities", "MxExpectationStateSpace",
                 # inherits its data from parent model.
                 key <- "No Sort Data"
                 #value <- c(job@options[[key]], getModelName(.Object)) #just add the model with the SSM exp to no sort
-                value <- c(job@options[[key]], getAllModelNames(job)) # add every model in the whole tree to to no sort
+                value <- unique(c(job@options[[key]], getAllModelNames(job))) # add every model in the whole tree to to no sort
                 # This is the nuclear option: whenever any model anywhere in the model tree has a SSMexp, don't sort any data.
                 job <- mxOption(job, key, value)
                 
