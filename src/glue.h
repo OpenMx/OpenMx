@@ -39,11 +39,15 @@ class omxManageProtectInsanity {
 		PROTECT_WITH_INDEX(R_NilValue, &initialpix);
 		UNPROTECT(1);
 	}
-	~omxManageProtectInsanity() {
+	PROTECT_INDEX getDepth() {
 		PROTECT_INDEX pix;
 		PROTECT_WITH_INDEX(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		UNPROTECT(1 + diff);
+		UNPROTECT(1);
+		return diff;
+	}
+	~omxManageProtectInsanity() {
+		UNPROTECT(getDepth());
 	}
 };
 

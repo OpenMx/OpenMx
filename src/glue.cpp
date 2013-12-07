@@ -262,31 +262,40 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	omxSetNPSOLOpts(options);
 #endif
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxDataEntities(data);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
     
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxMatrixEntities(matList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxExpectationEntities(expectList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxAlgebraEntities(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxFitFunction(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxComputeEntities(computeList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxExpectationEntities();
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxFitFunction(algList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
@@ -295,6 +304,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	// be reported using R's error() function, not
 	// omxRaiseErrorf.
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
@@ -318,13 +328,16 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	  populated into it at each iteration.  The first element is already processed, above.
 	  The rest of the list will be processed here.
 	*/
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	for(int j = 0; j < length(matList); j++) {
 		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 	}
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessConstraints(constraints);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessConfidenceIntervals(intervalList);
 
 	omxProcessCheckpointOptions(checkpointList);
@@ -333,6 +346,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		Global->freeGroup[vg]->cacheDependencies();
 	}
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	FitContext fc(startingValues);
 
 	if (topCompute && !isErrorRaised(globalState)) {
@@ -351,6 +365,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 
 	MxRList result;
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxExportResults(globalState, &result); 
 
 	REAL(evaluations)[1] = globalState->computeCount;
@@ -361,6 +376,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		optStatus = topCompute->getOptimizerStatus();
 	}
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
 	backwardCompatStatus.push_back(std::make_pair(mkChar("code"), ScalarReal(optStatus)));
 	backwardCompatStatus.push_back(std::make_pair(mkChar("status"),
@@ -380,6 +396,7 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	omxFreeState(globalState);
 	delete Global;
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	return asR(&result);
 }
 
