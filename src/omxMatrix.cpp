@@ -435,9 +435,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	}
 
-	PROTECT(om->owner = coerceVector(matrix, REALSXP));
-	om->data = REAL(om->owner);
-
 	if(isMatrix(matrix)) {
 		SEXP matrixDims;
 		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
@@ -451,6 +448,17 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		om->cols = length(matrix);
 	}
 	if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
+
+	if (TYPEOF(matrix) != REALSXP) {
+		// we could avoid a double copy here TODO
+		SEXP copy;
+		PROTECT(copy = coerceVector(matrix, REALSXP));
+		om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
+		memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
+	} else {
+		om->owner = matrix;
+		om->data = REAL(om->owner);
+	}
 
 	om->colMajor = TRUE;
 	om->originalRows = om->rows;

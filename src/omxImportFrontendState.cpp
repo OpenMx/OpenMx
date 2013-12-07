@@ -55,6 +55,7 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < length(matList); index++) {
+		omxManageProtectInsanity protectManager;
 		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
@@ -79,6 +80,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	}
 
 	for(int index = 0; index < length(algList); index++) {
+		omxManageProtectInsanity protectManager;
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			// delay until expectations are ready
