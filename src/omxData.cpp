@@ -276,8 +276,6 @@ omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
 }
 
 omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
-	double dataElement;
-	
 	if(od->acovMat != NULL) {		// acov was entered as a matrix.
 		if(om != NULL) {			// It stays as such
 			omxAliasMatrix(om, od->acovMat);
