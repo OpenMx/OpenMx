@@ -544,7 +544,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         funv = solFun(temp, verbose);
 		solnp_nfn = solnp_nfn + 1;
         
-		Matrix funv_mat = fill(1, 1, funv);
+		//Matrix funv_mat = fill(1, 1, funv);
 		//Matrix tempdf = copy(temp, funv_mat);
 		eqv = solEqBFun(verbose);
         

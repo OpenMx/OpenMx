@@ -280,7 +280,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Matrix solEqB;
     
     Matrix myPars = fillMatrix(n, 1, fc->est);
-    Matrix deriv = fillMatrix(n, 1, fc->grad);
     
     double (*solFun)(struct Matrix myPars, int verbose);
     solFun = &csolnpObjectiveFunction;
