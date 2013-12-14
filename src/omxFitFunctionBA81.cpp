@@ -26,12 +26,13 @@
 
 struct BA81FitState {
 
-	bool haveLatentMap;
+	int haveLatentMap;
 	std::vector<int> latentMap;
 	bool freeLatents;
 	int ElatentVersion;
 
-	bool haveItemMap;
+	int haveItemMap;
+	size_t numItemParam;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
 	std::vector<int> paramFlavor;        // freeParam
 	std::vector<int> paramMap;           // itemParam->cols * itemDerivPadSize -> index of free parameter
@@ -39,9 +40,6 @@ struct BA81FitState {
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
 	std::vector<int> ihessDivisor;       // freeParam * freeParam
 	std::vector< matrixVectorProdTerm > hgProd;
-
-	std::vector< FreeVarGroup* > varGroups;
-	size_t numItemParam;
 
 	omxMatrix *itemParam;
 	omxMatrix *latentMean;
@@ -55,8 +53,8 @@ struct BA81FitState {
 
 BA81FitState::BA81FitState()
 {
-	haveItemMap = false;
-	haveLatentMap = false;
+	haveItemMap = FREEVARGROUP_INVALID;
+	haveLatentMap = FREEVARGROUP_INVALID;
 	freeLatents = false;
 }
 
@@ -78,6 +76,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	int itemNum = estate->itemParam->matrixNumber;
 	int maxAbilities = estate->maxAbilities;
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+
+	if (state->haveLatentMap == fc->varGroup->id) return;
+	if (estate->verbose) mxLog("%s: rebuild latent parameter map for %d", oo->matrix->name, fc->varGroup->id);
 
 	latentMap.assign(numLatents, -1);
 
@@ -110,13 +111,10 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					      fvg->vars[latentMap[cell]]->name, fv->name);
 				}
 				state->freeLatents = true;
-			} else if (matNum == itemNum) {
-				omxRaiseErrorf(globalState, "The fitfunction free.set should consist of "
-					       "latent distribution parameters, excluding item parameters");
 			}
 		}
 	}
-	state->haveLatentMap = TRUE;
+	state->haveLatentMap = fc->varGroup->id;
 }
 
 static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
@@ -124,6 +122,10 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+
+	if (state->haveItemMap == fc->varGroup->id) return;
+	if (estate->verbose) mxLog("%s: rebuild item parameter map for %d", oo->matrix->name, fc->varGroup->id);
+
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
 	state->paramMap.assign(size, -1);  // matrix location to free param index
@@ -212,7 +214,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		}
 	}
 
-	state->haveItemMap = TRUE;
+	state->haveItemMap = fc->varGroup->id;
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
@@ -405,9 +407,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
-		if (!state->haveItemMap) buildItemParamMap(oo, fc);
-
-		if (state->numItemParam != fc->varGroup->vars.size()) error("mismatch"); // remove TODO
+		buildItemParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PARAMFLAVOR) {
 			for (size_t px=0; px < state->numItemParam; ++px) {
@@ -433,9 +433,9 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		double got = ba81ComputeEMFit(oo, want, fc);
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
-		if (!state->haveLatentMap) buildLatentParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
+			buildLatentParamMap(oo, fc);
 			if (state->freeLatents) {
 				setLatentStartingValues(oo, fc);
 			}
@@ -443,13 +443,15 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_INFO)) {
+			buildLatentParamMap(oo, fc);
+			buildItemParamMap(oo, fc);
 			ba81SetupQuadrature(oo->expectation);
 			//if (!latentDeriv(oo, fc)) {
 				return INFINITY;
 			//}
 		}
 		if (want & FF_COMPUTE_HESSIAN) {
-			warning("%s: Hessian not available for latent distribution parameters", oo->matrix->name);
+			warning("%s: Hessian not available", oo->matrix->name);
 		}
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
