@@ -1078,7 +1078,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int maxSpec = 0;
 	int maxParam = 0;
-	state->maxDims = 0;
+	int maxItemDims = 0;
 
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
@@ -1089,8 +1089,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		const double *spec = state->itemSpec[cx];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
-		if (state->maxDims < dims)
-			state->maxDims = dims;
+		if (maxItemDims < dims)
+			maxItemDims = dims;
 
 		int no = spec[RPF_ISpecOutcomes];
 		itemOutcomes[cx] = no;
@@ -1133,7 +1133,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	if (state->design == NULL) {
-		state->maxAbilities = state->maxDims;
+		state->maxDims = maxItemDims;
+		state->maxAbilities = maxItemDims;
 		state->design = omxInitTemporaryMatrix(NULL, state->maxDims, numItems,
 				       TRUE, currentState);
 		for (int ix=0; ix < numItems; ix++) {
@@ -1145,10 +1146,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 	} else {
 		omxMatrix *design = state->design;
-		if (design->cols != numItems ||
-		    design->rows != state->maxDims) {
-			omxRaiseErrorf(currentState, "Design matrix should have %d rows and %d columns",
-				       state->maxDims, numItems);
+		if (design->cols != numItems) {
+			omxRaiseErrorf(currentState, "Design matrix should have %d columns", numItems);
 			return;
 		}
 
@@ -1160,6 +1159,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			if (state->maxAbilities < got)
 				state->maxAbilities = got;
 		}
+		maxItemDims = 0;
 		for (int ix=0; ix < design->cols; ix++) {
 			const double *idesign = omxMatrixColumn(design, ix);
 			int ddim = 0;
@@ -1168,8 +1168,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
-			if (ddim > dims) error("Item %d has %d dims but design assigns %d", ix, dims, ddim);
+			if (ddim > dims) error("Item %d has %d dims but design assigns %d dims", ix, dims, ddim);
+			if (maxItemDims < ddim) {
+				maxItemDims = ddim;
+			}
 		}
+		state->maxDims = maxItemDims;
 	}
 	if (state->maxAbilities <= state->maxDims) {
 		state->Sgroup = Calloc(numItems, int);

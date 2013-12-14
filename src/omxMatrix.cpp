@@ -363,11 +363,7 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 }
 
 void matrixElementError(int row, int col, int numrow, int numcol) {
-	char *errstr = (char*) calloc(250, sizeof(char));
-	sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.",
-		row, col, numrow, numcol);
-	error(errstr);
-	free(errstr);  // TODO not reached
+	error("Requested improper value (%d, %d) from (%d, %d) matrix", row, col, numrow, numcol);
 }
 
 void setVectorError(int index, int numrow, int numcol) {
