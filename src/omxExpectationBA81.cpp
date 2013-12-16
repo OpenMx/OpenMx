@@ -716,6 +716,11 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		}
 	}
 
+	const size_t numItems = state->itemSpec.size();
+	omxData *data = state->data;
+	const int *rowMap = state->rowMap;
+	omxMatrix *design = state->design;
+
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
 		if (!validPatternLik(state, denom)) {
@@ -726,6 +731,17 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				(*cov)[px * covEntries + cx] = NA_REAL;
 			}
 			continue;
+		}
+		std::vector<bool> hasScore(maxAbilities);
+		for (size_t ix=0; ix < numItems; ix++) {
+			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+			if (pick == NA_INTEGER) continue;
+			const double *spec = state->itemSpec[ix];
+			int dims = spec[RPF_ISpecDims];
+			for (int dx=0; dx < dims; dx++) {
+				int ability = (int)omxMatrixElement(design, dx, ix) - 1;
+				hasScore[ability] = true;
+			}
 		}
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
@@ -749,6 +765,12 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			int sdim = primaryDims + sx;
 			double ma1 = (*mean)[px * maxAbilities + sdim];
 			(*cov)[px * covEntries + triangleLoc0(sdim)] -= ma1 * ma1;
+		}
+		for (int ax=0; ax < maxAbilities; ++ax) {
+			if (hasScore[ax]) continue;
+			(*mean)[px * maxAbilities + ax] = NA_REAL;
+			(*cov)[px * covEntries + triangleLoc0(ax)] = NA_REAL;
+			// maybe clear covariances also TODO
 		}
         }
 }
