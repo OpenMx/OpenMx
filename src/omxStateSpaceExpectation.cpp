@@ -137,7 +137,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(C, "....State Space: C"); }
 	omxMatrix* D = ose->D;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....State Space: D"); }
-	omxMatrix* R = ose->R; //unused
+	// omxMatrix* R = ose->R; //unused
 	omxMatrix* r = ose->r;
 	omxMatrix* s = ose->s;
 	omxMatrix* u = ose->u;
@@ -146,11 +146,11 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
 	omxMatrix* y = ose->y;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(y, "....State Space: y"); }
-	omxMatrix* K = ose->K;
+	// omxMatrix* K = ose->K; //unused
 	omxMatrix* P = ose->P;
-	omxMatrix* S = ose->S; //unused
-	omxMatrix* Y = ose->Y; //unused
-	omxMatrix* Cov = ose->cov;
+	omxMatrix* S = ose->S;
+	// omxMatrix* Y = ose->Y; //unused
+	// omxMatrix* Cov = ose->cov; //unused
 	omxMatrix* Means = ose->means;
 	omxMatrix* Det = ose->det;
 	*Det->data = 0.0; // the value pointed to by Det->data is assigned to be zero
