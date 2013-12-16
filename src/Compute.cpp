@@ -983,11 +983,11 @@ void ComputeEM::compute(FitContext *fc)
 		if (prevFit != 0) {
 			change = prevFit - fc->fit;
 			if (0 < change && change < MIDDLE_START) in_middle = true;
-			if (verbose >= 2) mxLog("ComputeEM[%d]: iter %d fit %.9g change %.9g",
+			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g change %.9g",
 						iter, mstepIter, fc->fit, change);
 			mac = fabs(change);
 		} else {
-			if (verbose >= 2) mxLog("ComputeEM: iter %d initial fit %.9g",
+			if (verbose >= 2) mxLog("ComputeEM: msteps %d initial fit %.9g",
 						mstepIter, fc->fit);
 		}
 
