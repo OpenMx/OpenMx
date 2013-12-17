@@ -369,6 +369,285 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
 {}
 
+static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, int sgroup, double piece,
+			   const std::vector<double> &derivCoef,
+			   double *derivOut)
+{
+	int maxAbilities = estate->maxAbilities;
+	int maxDims = estate->maxDims;
+	int pmax = maxDims;
+	if (estate->numSpecific) pmax -= 1;
+
+	if (sgroup == 0) {
+		int cx = 0;
+		for (int d1=0; d1 < pmax; ++d1) {
+			double amt1 = piece * derivCoef[d1];
+			derivOut[d1] += amt1;
+			for (int d2=0; d2 <= d1; ++d2) {
+				int to = maxAbilities + cx;
+				double amt2 = piece * derivCoef[maxDims + cx];
+				derivOut[to] += amt2;
+				++cx;
+			}
+		}
+	}
+
+	if (estate->numSpecific) {
+		int sdim = pmax + sgroup;
+		double amt3 = piece * derivCoef[pmax];
+		derivOut[sdim] += amt3;
+
+		double amt4 = piece * derivCoef[maxDims + triangleLoc0(pmax)];
+		int to = maxAbilities + triangleLoc0(sdim);
+		derivOut[to] += amt4;
+	}
+}
+
+static double *reduceForSpecific(omxMatrix *mat, int maxDims, int sgroup)
+{
+	double *out = Calloc(maxDims * maxDims, double);
+	for (int d1=0; d1 < maxDims-1; ++d1) {
+		int cell = d1 * maxDims;
+		for (int d2=0; d2 < maxDims-1; ++d2) {
+			out[cell + d2] = omxMatrixElement(mat, d1, d2);
+		}
+	}
+	int sloc = maxDims-1 + sgroup;
+	out[maxDims*maxDims - 1] = omxMatrixElement(mat, sloc, sloc);
+	return out;
+}
+
+static void calcDerivCoef(BA81FitState *state, BA81Expect *estate,
+			  double *where, int sgroup, std::vector<double> *derivCoef)
+{
+	omxMatrix *mean = estate->latentMeanOut;
+	omxMatrix *cov = estate->latentCovOut;
+	omxMatrix *icov = state->icov;
+	double *covData = cov->data;
+	double *icovData = icov->data;
+	int maxDims = estate->maxDims;
+	const char R='R';
+	const char L='L';
+	const char U='U';
+	const double alpha = 1;
+	const double beta = 0;
+	const int one = 1;
+
+	double *scov = NULL;
+	double *sicov = NULL;
+	if (estate->numSpecific) {
+		scov = reduceForSpecific(cov, maxDims, sgroup);
+		covData = scov;
+
+		sicov = reduceForSpecific(icov, maxDims, sgroup);
+		icovData = sicov;
+	}
+
+	std::vector<double> whereDiff(maxDims);
+	std::vector<double> whereGram(triangleLoc1(maxDims));
+	for (int d1=0; d1 < maxDims; ++d1) {
+		if (d1 < maxDims - 1) {
+			whereDiff[d1] = where[d1] - omxVectorElement(mean, d1);
+		} else {
+			whereDiff[d1] = where[d1] - omxVectorElement(mean, d1 + sgroup);
+		}
+	}
+	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
+
+	F77_CALL(dsymv)(&U, &maxDims, &alpha, icovData, &maxDims, whereDiff.data(), &one,
+			&beta, derivCoef->data(), &one);
+
+	std::vector<double> covGrad1(maxDims * maxDims);
+	std::vector<double> covGrad2(maxDims * maxDims);
+
+	int cx=0;
+	for (int d1=0; d1 < maxDims; ++d1) {
+		for (int d2=0; d2 <= d1; ++d2) {
+			covGrad1[d2 * maxDims + d1] = covData[d2 * maxDims + d1] - whereGram[cx];
+			++cx;
+		}
+	}
+
+	F77_CALL(dsymm)(&R, &L, &maxDims, &maxDims, &alpha, covGrad1.data(), &maxDims, icovData,
+			&maxDims, &beta, covGrad2.data(), &maxDims);
+	F77_CALL(dsymm)(&R, &L, &maxDims, &maxDims, &alpha, icovData, &maxDims, covGrad2.data(),
+			&maxDims, &beta, covGrad1.data(), &maxDims);
+
+	for (int d1=0; d1 < maxDims; ++d1) {
+		covGrad1[d1 * maxDims + d1] /= 2.0;
+	}
+
+	cx = maxDims;
+	for (int d1=0; d1 < maxDims; ++d1) {
+		int cell = d1 * maxDims;
+		for (int d2=0; d2 <= d1; ++d2) {
+			(*derivCoef)[cx] = -covGrad1[cell + d2];
+			++cx;
+		}
+	}
+
+	Free(scov);
+	Free(sicov);
+}
+
+static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
+			   double *where, int sgroup, std::vector<double> *derivCoef)
+{
+	omxMatrix *mean = estate->latentMeanOut;
+	omxMatrix *cov = estate->latentCovOut;
+	const int maxDims = estate->maxDims;
+	const int specific = maxDims - 1 + sgroup;
+	double svar = omxMatrixElement(cov, specific, specific);
+	double whereDiff = where[maxDims-1] - omxVectorElement(mean, specific);
+	(*derivCoef)[0] = whereDiff / svar;
+	(*derivCoef)[1] = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
+}
+
+static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
+{
+	omxExpectation *expectation = oo->expectation;
+	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	if (estate->verbose) mxLog("%s: latentDeriv", oo->matrix->name);
+
+	ba81OutcomeProb(estate, FALSE, FALSE);
+
+	const int numThreads = Global->numThreads;
+	int numUnique = estate->numUnique;
+	int numSpecific = estate->numSpecific;
+	int maxDims = estate->maxDims;
+	int maxAbilities = estate->maxAbilities;
+	omxMatrix *cov = estate->latentCovOut;
+	int *numIdentical = estate->numIdentical;
+	const long totalQuadPoints = estate->totalQuadPoints;
+	omxBuffer<double> patternLik(numUnique);
+
+	omxCopyMatrix(state->icov, cov);
+
+	Matrix icovMat(state->icov);
+	int info = InvertSymmetricPosDef(icovMat, 'U');
+	if (info) return FALSE;
+
+	// fill in rest from upper triangle
+	for (int rx=1; rx < maxAbilities; ++rx) {
+		for (int cx=0; cx < rx; ++cx) {
+			omxSetMatrixElement(state->icov, rx, cx, omxMatrixElement(state->icov, cx, rx));
+		}
+	}
+
+	const int maxDerivCoef = maxDims + triangleLoc1(maxDims);
+	const int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	std::vector<double> uniqueDeriv(numUnique * numLatents);
+
+	if (numSpecific == 0) {
+		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
+
+#pragma omp parallel for num_threads(numThreads)
+		for (int px=0; px < numUnique; px++) {
+			int thrId = omx_absolute_thread_num();
+			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
+			ba81LikelihoodSlow2(estate, px, lxk);
+
+			double patternLik1 = 0;
+			for (long qx=0; qx < totalQuadPoints; qx++) {
+				double *where = estate->wherePrep.data() + qx * maxDims;
+				std::vector<double> derivCoef(maxDerivCoef);
+				calcDerivCoef(state, estate, where, 0, &derivCoef);
+
+				double tmp = lxk[qx];
+				mapLatentDeriv(state, estate, 0, tmp, derivCoef,
+					       uniqueDeriv.data() + px * numLatents);
+				patternLik1 += tmp;
+			}
+
+			patternLik[px] = patternLik1;
+		}
+	} else {
+		const long totalPrimaryPoints = estate->totalPrimaryPoints;
+		const long specificPoints = estate->quadGridSize;
+		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
+		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
+		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
+
+#pragma omp parallel for num_threads(numThreads)
+		for (int px=0; px < numUnique; px++) {
+			int thrId = omx_absolute_thread_num();
+			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
+			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
+			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
+			cai2010EiEis(estate, px, lxk, Eis, Ei);
+
+			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+				for (long sx=0; sx < specificPoints; sx++) {
+					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+						double *where = estate->wherePrep.data() + qx * maxDims;
+						std::vector<double> derivCoef(maxDerivCoef);
+						calcDerivCoef(state, estate, where, Sgroup, &derivCoef);
+						double lxk1 = lxk[qloc];
+						double Eis1 = Eis[eisloc + Sgroup];
+						double tmp = Eis1 * lxk1;
+						mapLatentDeriv(state, estate, Sgroup, tmp, derivCoef,
+							       uniqueDeriv.data() + px * numLatents);
+						++qloc;
+					}
+					++qx;
+				}
+			}
+
+			double patternLik1 = 0;
+			for (long qx=0; qx < totalPrimaryPoints; ++qx) {
+				patternLik1 += Ei[qx];
+			}
+			patternLik[px] = patternLik1;
+		}
+	}
+
+#pragma omp parallel for num_threads(numThreads)
+	for (int px=0; px < numUnique; ++px) {
+		double weight = numIdentical[px] / patternLik[px];
+		for (int rx=0; rx < numLatents; ++rx) {
+			uniqueDeriv[px * numLatents + rx] *= weight;
+		}
+	}
+
+	std::vector<double> hess1(triangleLoc1(numLatents));
+	std::vector<double> hessSum(triangleLoc1(numLatents));
+
+	for (int px=0; px < numUnique; ++px) {
+		gramProduct(uniqueDeriv.data() + px * numLatents, numLatents, hess1.data());
+		for (int rx=0; rx < triangleLoc1(numLatents); ++rx) {
+			hessSum[rx] += hess1[rx];
+		}
+	}
+
+	const long numParam = fc->varGroup->vars.size();
+	for (int d1=0, px=0; d1 < numLatents; ++d1) {
+		for (int d2=0; d2 <= d1; ++d2) {
+			int l1 = state->latentMap[d1];
+			int l2 = state->latentMap[d2];
+			if (l1 >= 0 && l2 >= 0) {
+				if (l2 < l1) std::swap(l1, l2);
+				fc->hess[l2 * numParam + l1] = -2 * hessSum[px] / estate->data->rows;
+			}
+			++px;
+		}
+	}
+
+	for (int rx=0; rx < numLatents; ++rx) {
+		for (int px=1; px < numUnique; ++px) {
+			uniqueDeriv[rx] += uniqueDeriv[px * numLatents + rx];
+                }
+        }
+
+	for (int l1=0; l1 < numLatents; ++l1) {
+		int t1 = state->latentMap[l1];
+		if (t1 < 0) continue;
+		fc->grad[t1] -= 2 * uniqueDeriv[l1];
+	}
+
+	return TRUE;
+}
+
 static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
@@ -446,9 +725,9 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildLatentParamMap(oo, fc);
 			buildItemParamMap(oo, fc);
 			ba81SetupQuadrature(oo->expectation);
-			//if (!latentDeriv(oo, fc)) {
+			if (!latentDeriv(oo, fc)) {
 				return INFINITY;
-			//}
+			}
 		}
 		if (want & FF_COMPUTE_HESSIAN) {
 			warning("%s: Hessian not available", oo->matrix->name);

@@ -78,6 +78,16 @@ if (1) {
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
+  
+  if (1) {
+    grpModel <- mxModel(grpModel,
+                        mxComputeSequence(steps=list(
+                          mxComputeOnce(paste(groups, 'expectation', sep='.')),
+                          mxComputeOnce('fitfunction', gradient=TRUE,
+                                        free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
+    grpModel <- mxRun(grpModel, silent=TRUE)
+    omxCheckCloseEnough(grpModel@output$gradient, rep(0, 4), .02)
+  }
 }
 
 if (0) {
