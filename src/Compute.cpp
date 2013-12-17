@@ -933,6 +933,11 @@ void ComputeEM::compute(FitContext *fc)
 		if (recentFC) delete recentFC;
 		recentFC = new FitContext(fc, fit1->varGroup);
 		fit1->compute(recentFC);
+		if (recentFC->inform == INFORM_ITERATION_LIMIT) {
+			fc->inform = INFORM_ITERATION_LIMIT;
+			omxRaiseErrorf(globalState, "ComputeEM: iteration limited reached");
+			break;
+		}
 		mstepIter = recentFC->iterations;
 		recentFC->updateParent();
 
