@@ -369,8 +369,7 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
 {}
 
 static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece,
-			   const std::vector<double> &derivCoef,
-			   double *derivOut)
+			   double *derivCoef, double *derivOut)
 {
 	const int maxAbilities = estate->maxAbilities;
 	const int pmax = estate->numSpecific? estate->maxDims - 1 : estate->maxDims;
@@ -389,8 +388,7 @@ static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece
 }
 
 static void mapLatentDerivS(BA81FitState *state, BA81Expect *estate, int sgroup, double piece,
-			   const std::vector<double> &derivCoef,
-			   double *derivOut)
+			    double *derivCoef, double *derivOut)
 {
 	int maxAbilities = estate->maxAbilities;
 	int maxDims = estate->maxDims;
@@ -407,7 +405,7 @@ static void mapLatentDerivS(BA81FitState *state, BA81Expect *estate, int sgroup,
 }
 
 static void calcDerivCoef(BA81FitState *state, BA81Expect *estate, omxBuffer<double> &icov,
-			  double *where, std::vector<double> *derivCoef)
+			  double *where, double *derivCoef)
 {
 	omxMatrix *mean = estate->latentMeanOut;
 	omxMatrix *cov = estate->latentCovOut;
@@ -427,7 +425,7 @@ static void calcDerivCoef(BA81FitState *state, BA81Expect *estate, omxBuffer<dou
 	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
 
 	F77_CALL(dsymv)(&U, &pDims, &alpha, icov.data(), &pDims, whereDiff.data(), &one,
-			&beta, derivCoef->data(), &one);
+			&beta, derivCoef, &one);
 
 	std::vector<double> covGrad1(pDims * pDims);
 	std::vector<double> covGrad2(pDims * pDims);
@@ -453,14 +451,14 @@ static void calcDerivCoef(BA81FitState *state, BA81Expect *estate, omxBuffer<dou
 	for (int d1=0; d1 < pDims; ++d1) {
 		int cell = d1 * pDims;
 		for (int d2=0; d2 <= d1; ++d2) {
-			(*derivCoef)[cx] = -covGrad1[cell + d2];
+			derivCoef[cx] = -covGrad1[cell + d2];
 			++cx;
 		}
 	}
 }
 
 static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
-			   double *where, int sgroup, std::vector<double> *derivCoef)
+			   double *where, int sgroup, double *derivCoef)
 {
 	omxMatrix *mean = estate->latentMeanOut;
 	omxMatrix *cov = estate->latentCovOut;
@@ -468,8 +466,8 @@ static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
 	const int specific = maxDims - 1 + sgroup;
 	double svar = omxMatrixElement(cov, specific, specific);
 	double whereDiff = where[maxDims-1] - omxVectorElement(mean, specific);
-	(*derivCoef)[0] = whereDiff / svar;
-	(*derivCoef)[1] = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
+	derivCoef[0] = whereDiff / svar;
+	derivCoef[1] = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
 }
 
 static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
@@ -525,11 +523,11 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 			double patternLik1 = 0;
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				double *where = estate->wherePrep.data() + qx * maxDims;
-				std::vector<double> derivCoef(maxDerivCoef);
-				calcDerivCoef(state, estate, icovBuffer, where, &derivCoef);
+				omxBuffer<double> derivCoef(maxDerivCoef);
+				calcDerivCoef(state, estate, icovBuffer, where, derivCoef.data());
 
 				double tmp = lxk[qx];
-				mapLatentDeriv(state, estate, tmp, derivCoef,
+				mapLatentDeriv(state, estate, tmp, derivCoef.data(),
 					       uniqueDeriv.data() + px * numLatents);
 				patternLik1 += tmp;
 			}
@@ -559,15 +557,15 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 						double tmp = Eis1 * lxk1;
 						double *where = estate->wherePrep.data() + qx * maxDims;
 						if (Sgroup==0) {
-							std::vector<double> derivCoef(maxDerivCoef);
-							calcDerivCoef(state, estate, icovBuffer, where, &derivCoef);
-							mapLatentDeriv(state, estate, tmp, derivCoef,
+							omxBuffer<double> derivCoef(maxDerivCoef);
+							calcDerivCoef(state, estate, icovBuffer, where, derivCoef.data());
+							mapLatentDeriv(state, estate, tmp, derivCoef.data(),
 								       uniqueDeriv.data() + px * numLatents);
 						}
 						{
-							std::vector<double> SderivCoef(2);
-							calcDerivCoef1(state, estate, where, Sgroup, &SderivCoef);
-							mapLatentDerivS(state, estate, Sgroup, tmp, SderivCoef,
+							omxBuffer<double> SderivCoef(2);
+							calcDerivCoef1(state, estate, where, Sgroup, SderivCoef.data());
+							mapLatentDerivS(state, estate, Sgroup, tmp, SderivCoef.data(),
 									uniqueDeriv.data() + px * numLatents);
 						}
 						++qloc;
