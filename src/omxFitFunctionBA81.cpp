@@ -507,12 +507,20 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 		}
 	}
 
-	const int maxDerivCoef = pDims + triangleLoc1(pDims);
+	const int priDerivCoef = pDims + triangleLoc1(pDims);
 	const int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	std::vector<double> uniqueDeriv(numUnique * numLatents);
 
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
+		omxBuffer<double> derivCoef(totalQuadPoints * priDerivCoef);
+
+#pragma omp parallel for num_threads(numThreads)
+		for (long qx=0; qx < totalQuadPoints; qx++) {
+			double *where = estate->wherePrep.data() + qx * maxDims;
+			calcDerivCoef(state, estate, icovBuffer, where,
+				      derivCoef.data() + qx * priDerivCoef);
+		}
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
@@ -522,12 +530,8 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 
 			double patternLik1 = 0;
 			for (long qx=0; qx < totalQuadPoints; qx++) {
-				double *where = estate->wherePrep.data() + qx * maxDims;
-				omxBuffer<double> derivCoef(maxDerivCoef);
-				calcDerivCoef(state, estate, icovBuffer, where, derivCoef.data());
-
 				double tmp = lxk[qx];
-				mapLatentDeriv(state, estate, tmp, derivCoef.data(),
+				mapLatentDeriv(state, estate, tmp, derivCoef.data() + qx * priDerivCoef,
 					       uniqueDeriv.data() + px * numLatents);
 				patternLik1 += tmp;
 			}
@@ -540,6 +544,19 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
+		const int derivPerPoint = priDerivCoef + 2 * numSpecific;
+		omxBuffer<double> derivCoef(totalQuadPoints * derivPerPoint);
+
+#pragma omp parallel for num_threads(numThreads)
+		for (long qx=0; qx < totalQuadPoints; qx++) {
+			double *where = estate->wherePrep.data() + qx * maxDims;
+			calcDerivCoef(state, estate, icovBuffer, where,
+				      derivCoef.data() + qx * derivPerPoint);
+			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
+				calcDerivCoef1(state, estate, where, Sgroup,
+					       derivCoef.data() + qx * derivPerPoint + priDerivCoef + 2 * Sgroup);
+			}
+		}
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
@@ -551,23 +568,17 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 
 			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 				for (long sx=0; sx < specificPoints; sx++) {
+					mapLatentDeriv(state, estate, Eis[eisloc] * lxk[qloc],
+						       derivCoef.data() + qx * derivPerPoint,
+						       uniqueDeriv.data() + px * numLatents);
+
 					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1;
-						double *where = estate->wherePrep.data() + qx * maxDims;
-						if (Sgroup==0) {
-							omxBuffer<double> derivCoef(maxDerivCoef);
-							calcDerivCoef(state, estate, icovBuffer, where, derivCoef.data());
-							mapLatentDeriv(state, estate, tmp, derivCoef.data(),
-								       uniqueDeriv.data() + px * numLatents);
-						}
-						{
-							omxBuffer<double> SderivCoef(2);
-							calcDerivCoef1(state, estate, where, Sgroup, SderivCoef.data());
-							mapLatentDerivS(state, estate, Sgroup, tmp, SderivCoef.data(),
-									uniqueDeriv.data() + px * numLatents);
-						}
+						mapLatentDerivS(state, estate, Sgroup, tmp,
+								derivCoef.data() + qx * derivPerPoint + priDerivCoef + 2 * Sgroup,
+								uniqueDeriv.data() + px * numLatents);
 						++qloc;
 					}
 					++qx;
@@ -607,7 +618,7 @@ static bool latentDeriv(omxFitFunction *oo, FitContext *fc)
 			int l2 = state->latentMap[d2];
 			if (l1 >= 0 && l2 >= 0) {
 				if (l2 < l1) std::swap(l1, l2);
-				fc->hess[l2 * numParam + l1] = -2 * hessSum[px] / estate->data->rows;
+				fc->hess[l2 * numParam + l1] -= 2 * hessSum[px];
 			}
 			++px;
 		}
