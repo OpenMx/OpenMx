@@ -101,6 +101,8 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	}
 	if (d1 != dvars) error("Parent free parameter group is not a superset");
 
+	wanted = parent->wanted;
+
 	// pda(parent->est, 1, svars);
 	// pda(est, 1, dvars);
 	// pda(parent->grad, 1, svars);
@@ -1061,6 +1063,7 @@ void ComputeEM::compute(FitContext *fc)
 		if (isErrorRaised(globalState) || ++iter > maxIter || converged) break;
 	}
 
+	fc->wanted = FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE;
 	bestFit = fc->fit;
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
 				iter, maxIter,totalMstepIter, bestFit);
@@ -1157,6 +1160,7 @@ void ComputeEM::compute(FitContext *fc)
 		return;
 	}
 
+	fc->wanted |= FF_COMPUTE_IHESSIAN;
 	//pda(ihess, freeVarsEM, freeVarsEM);
 
 	// rewrite in terms of ComputeStandardError TODO

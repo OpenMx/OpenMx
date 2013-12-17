@@ -56,7 +56,7 @@ groups <- paste("g", 1:3, sep="")
 # load flexmirt fit and compare TODO
 
 if (1) {
-  # Cannot test derivatives here because Hessian starts very close to singular.
+  # Cannot test derivatives at starting values because Hessian starts very close to singular.
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
@@ -65,8 +65,9 @@ if (1) {
 		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
 		                  mxComputeOnce('fitfunction', fit=TRUE,
 		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))),
-		      mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
-          mxComputeStandardError())))
+		      mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich",
+                        free.set=paste(groups,'ItemParam',sep=".")),
+          mxComputeStandardError(free.set=paste(groups,'ItemParam',sep=".")))))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
@@ -77,22 +78,11 @@ if (1) {
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
 
-  omxCheckCloseEnough(c(grpModel@output$standardErrors),
-                      c(0.077, 0.095, 0.077, 0.093, 0.118, 0.125, 0.169,
-                            0.142, 0.084,  0.094, 0.172, 0.148, 0.082, 0.098, 0.282, 0.207, 0.119,
-                            0.177,  0.155, 0.141, 0.28, 0.189, 0.068, 0.103, 0.065, 0.192, 0.102,
-                            0.11, 0.106, 0.111, 0.069, 0.085, 0.166, 0.14, 0.11, 0.121, 0.117,
-                            0.123, 0.109, 0.112, 0.063, 0.418, 0.092, 0.063), .01)
-  
-  if (1) {
-    grpModel <- mxModel(grpModel,
-                        mxComputeSequence(steps=list(
-                          mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                          mxComputeOnce('fitfunction', gradient=TRUE,
-                                        free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
-    grpModel <- mxRun(grpModel, silent=TRUE)
-    omxCheckCloseEnough(grpModel@output$gradient, rep(0, 4), .02)
-  }
+  se <- c(0.035, 0.029, 0.032, 0.029, 0.028, 0.027, 0.019,  0.024, 0.033, 0.029, 0.019,
+          0.024, 0.029, 0.028, 0.014, 0.022,  0.03, 0.021, 0.023, 0.026, 0.012, 0.021,
+          0.042, 0.029, 0.099,  0.033, 0.03, 0.028, 0.026, 0.026, 0.038, 0.03, 0.019, 0.024,
+          0.03, 0.027, 0.027, 0.027, 0.025, 0.027)
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), se, .001)
 }
 
 if (0) {

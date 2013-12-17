@@ -64,14 +64,6 @@ if(1) {
 			   c(correct))
 		omxCheckCloseEnough(got, .994, .01)
 	}
-  if (1) {
-    m2 <- mxModel(m2,
-                  mxComputeSequence(steps=list(
-                    mxComputeOnce('expectation'),
-                    mxComputeOnce('fitfunction', free.set=c("mean", "cov"), gradient=TRUE))))
-    m2 <- mxRun(m2)
-    omxCheckCloseEnough(m2@output$gradient, 0, 1e-4)
-  }
 }
 
 if (1) {

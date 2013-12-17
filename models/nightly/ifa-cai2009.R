@@ -112,11 +112,10 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE,
+                        mxComputeOnce('fitfunction', fit=TRUE,
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel.fit <- mxRun(cModel)
     omxCheckCloseEnough(cModel.fit@fitfunction@result, correct.LL, 1e-4)
-    omxCheckCloseEnough(cModel.fit@output$gradient, rep(0, 8), .11)
 }
 
 omxIFAComputePlan <- function(groups) {
