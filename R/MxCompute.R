@@ -89,6 +89,7 @@ setClass(Class = "MxComputeOnce",
 	   gradient = "logical",
 	   hessian = "logical",
 	     information = "logical",
+	     info.method = "MxOptionalChar",
 	   ihessian = "logical",
 	   hgprod = "logical"))
 
@@ -133,7 +134,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient,
-		   hessian, information, ihessian, hgprod, verbose) {
+		   hessian, information, info.method, ihessian, hgprod, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@verbose = verbose
@@ -144,16 +145,19 @@ setMethod("initialize", "MxComputeOnce",
 		  .Object@gradient <- gradient
 		  .Object@hessian <- hessian
 		  .Object@information <- information
+		  .Object@info.method <- info.method
 		  .Object@ihessian <- ihessian
 		  .Object@hgprod <- hgprod
 		  .Object
 	  })
 
+# default info.method="sandwich" ? TODO
 mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
-			  hessian=FALSE, information=FALSE, ihessian=FALSE, hgprod=FALSE, verbose=0L) {
+			  hessian=FALSE, information=FALSE, info.method=NULL,
+			  ihessian=FALSE, hgprod=FALSE, verbose=0L) {
 	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient,
-	    hessian, information, ihessian, hgprod, verbose)
+	    hessian, information, info.method, ihessian, hgprod, verbose)
 }
 
 #----------------------------------------------------

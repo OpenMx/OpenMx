@@ -50,6 +50,12 @@ enum ComputeInform {
 	// An input parameter was invalid'
 };
 
+enum ComputeInfoMethod {
+	INFO_METHOD_SANDWICH,
+	INFO_METHOD_BREAD,
+	INFO_METHOD_MEAT
+};
+
 struct matrixVectorProdTerm {
 	int hentry;
 	int gentry;
@@ -84,6 +90,7 @@ class FitContext {
  public:
 	FreeVarGroup *varGroup;
 	std::vector<int> mapToParent;
+	double sampleSize;
 	double mac;
 	double fit;
 	double *est;
@@ -93,6 +100,9 @@ class FitContext {
 	double *hess;
 	double *ihess;
 	std::vector< matrixVectorProdTerm > hgProd;
+	enum ComputeInfoMethod infoMethod;
+	double *infoA; // sandwich, the bread
+	double *infoB; // sandwich, the meat
 	double caution;
 	int iterations;
 	enum ComputeInform inform;
@@ -114,6 +124,8 @@ class FitContext {
 	void updateParentAndFree();
 	void log(const char *where);
 	void log(const char *where, int what);
+	void preInfo();
+	void postInfo();
 	~FitContext();
 	
 	static void cacheFreeVarDependencies();

@@ -53,9 +53,12 @@ omxCheckCloseEnough(fivenum(testDeriv@output$hessian[testDeriv@output$hessian !=
                     c(-1038404.94356, -20.82415, 0.06734, 53.01333, 1038503.00369 ), .01)
 omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 1e-2)
 
-plan <- mxComputeEM('expectation',
-		    mxComputeNewtonRaphson(free.set='itemParam'),
-		    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean","cov")))
+plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
+                                                 mxComputeNewtonRaphson(free.set='itemParam'),
+                                                 mxComputeOnce('fitfunction', fit=TRUE,
+                                                               free.set=c("mean","cov"))),
+                                     mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                                     mxComputeStandardError()))
 
 m2 <- mxModel(m2,
               mxExpectationBA81(
@@ -78,3 +81,11 @@ omxCheckCloseEnough(scores[1:5,1], c(0.81609, 0.74994, -0.83515, 0.79766, 0.1687
 omxCheckCloseEnough(scores[1:5,2], c(0.43522, 0.44211, 0.4686, 0.43515, 0.3842), .001)
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 1*scores[,2])/500, .714, .01)
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 2*scores[,2])/500, .95, .01)
+
+se <- c(0.213, 0.16, 0.162, 0.367, 0.228, 0.168, 0.199, 0.153, 0.158,  0.138, 0.26,
+        0.236, 0.225, 0.184, 0.194, 0.217, 0.177, 0.157,  0.304, 0.149, 0.157, 0.208,
+        0.174, 0.168, 0.178, 0.26, 0.188,  0.187, 0.187, 0.203, 0.206, 0.172, 0.21,
+        0.167, 0.168, 0.17,  0.172, 0.213, 0.229, 0.182, 0.162, 0.147, 0.152, 0.196, 0.144,
+        0.145, 0.149, 0.154, 0.162, 0.191, 0.229, 0.162)
+  
+omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)

@@ -65,9 +65,11 @@ if (1) {
   omxCheckCloseEnough(cM@fitfunction@result, 50661.38, .01)
 }
 
-plan <- mxComputeEM('expectation',
-		    mxComputeNewtonRaphson(free.set='ItemParam'),
-		    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")), verbose=1L)
+plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
+                                      mxComputeNewtonRaphson(free.set='ItemParam'),
+                                      mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))),
+                          mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich"),
+                                     mxComputeStandardError()))
 
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
@@ -82,3 +84,19 @@ omxCheckCloseEnough(m2@output$minimum, 50661.377, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
 print(m2@output$backendTime)
+
+n <- apply(!is.na(m2.data), 2, sum)
+
+if (0) {
+  library(mirt)
+  rdata <- sapply(m2.data, unclass)-1
+  # for flexMIRT, write CSV
+  #write.table(rdata, file="ifa-drm-mg.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
+  pars <- mirt(rdata, 1, itemtype="Rasch", D=1, quadpts=49, pars='values')
+#  pars[pars$name=="a1",'value'] <- 1
+#  pars[pars$name=="a1",'est'] <- FALSE
+#  pars[pars$name=="COV_11",'est'] <- TRUE
+  fit <- mirt(rdata, 1, itemtype="Rasch", D=1, quadpts=49, pars=pars, SE=TRUE, SE.type="crossprod")
+  # LL -25330.691 * -2 = 50661.38
+  got <- coef(fit)
+}

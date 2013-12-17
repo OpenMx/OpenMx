@@ -44,6 +44,8 @@ Matrix MatrixInvert(Matrix inMat);
 int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
+void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
+		       Matrix amat, Matrix bmat, Matrix cmat);
 
 Matrix condNumPurpose(Matrix inMat);
 

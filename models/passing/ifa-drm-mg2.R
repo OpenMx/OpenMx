@@ -60,17 +60,15 @@ if (1) {
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                      mxComputeSequence(steps=list(
 		      mxComputeEM(paste(groups, 'expectation', sep='.'),
-				  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-				  mxComputeOnce('fitfunction', fit=TRUE,
-						free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))
+		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+		                  mxComputeOnce('fitfunction', fit=TRUE,
+		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))),
+		      mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+          mxComputeStandardError())))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
-  
-  # NPSOL options:
-  grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
-  grpModel <- mxOption(grpModel, "Verify level", '-1')
-  grpModel <- mxOption(grpModel, "Function precision", '1.0E-7')
   
   grpModel <- mxRun(grpModel)
   #grpModel@output$minimum TODO
@@ -78,6 +76,13 @@ if (1) {
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
+
+  omxCheckCloseEnough(c(grpModel@output$standardErrors),
+                      c(0.077, 0.095, 0.077, 0.093, 0.118, 0.125, 0.169,
+                            0.142, 0.084,  0.094, 0.172, 0.148, 0.082, 0.098, 0.282, 0.207, 0.119,
+                            0.177,  0.155, 0.141, 0.28, 0.189, 0.068, 0.103, 0.065, 0.192, 0.102,
+                            0.11, 0.106, 0.111, 0.069, 0.085, 0.166, 0.14, 0.11, 0.121, 0.117,
+                            0.123, 0.109, 0.112, 0.063, 0.418, 0.092, 0.063), .01)
   
   if (1) {
     grpModel <- mxModel(grpModel,

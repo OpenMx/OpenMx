@@ -22,10 +22,13 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
+void pda(const double *ar, int rows, int cols);
+
 void FitContext::init()
 {
 	size_t numParam = varGroup->vars.size();
 	wanted = 0;
+	sampleSize = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : 0;
 	caution = parent? parent->caution : 0;
@@ -33,6 +36,8 @@ void FitContext::init()
 	flavor = new int[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
+	infoA = NULL;
+	infoB = NULL;
 	ihess = new double[numParam * numParam];
 	changedEstimates = false;
 	inform = INFORM_UNINITIALIZED;
@@ -372,6 +377,59 @@ double *FitContext::take(int want)
 	return ret;
 }
 
+void FitContext::preInfo()
+{
+	size_t numParam = varGroup->vars.size();
+	size_t npsq = numParam * numParam;
+	if (!infoA) infoA = new double[npsq];
+	if (!infoB) infoB = new double[npsq];
+	OMXZERO(infoA, npsq);
+	OMXZERO(infoB, npsq);
+}
+
+void FitContext::postInfo()
+{
+	size_t numParam = varGroup->vars.size();
+	switch (infoMethod) {
+	case INFO_METHOD_SANDWICH:{
+		omxBuffer<double> work(numParam * numParam);
+		Matrix amat(infoA, numParam, numParam);
+		InvertSymmetricIndef(amat, 'U');
+		_fixSymmetry("InfoB", infoB, numParam, false);
+		Matrix bmat(infoB, numParam, numParam);
+		Matrix wmat(work.data(), numParam, numParam);
+		Matrix hmat(hess, numParam, numParam);
+		// DTRMM can do it without extra workspace TODO
+		SymMatrixMultiply('L', 'U', sampleSize, 0, amat, bmat, wmat);
+		SymMatrixMultiply('R', 'U', sampleSize, 0, amat, wmat, hmat);
+		// make FitContext::fixHessianSymmetry happy, remove TODO
+		for (size_t d1=0; d1 < numParam; ++d1) {
+			for (size_t d2=d1+1; d2 < numParam; ++d2) {
+				hess[d1 * numParam + d2] = 0;
+			}
+		}
+		break;}
+	case INFO_METHOD_MEAT:
+		for (size_t d1=0; d1 < numParam; ++d1) {
+			for (size_t d2=0; d2 < numParam; ++d2) {
+				int cell = d1 * numParam + d2;
+				hess[cell] = infoB[cell];
+			}
+		}
+		break;
+	case INFO_METHOD_BREAD:
+		for (size_t d1=0; d1 < numParam; ++d1) {
+			for (size_t d2=0; d2 < numParam; ++d2) {
+				int cell = d1 * numParam + d2;
+				hess[cell] = infoA[cell];
+			}
+		}
+		break;
+	default:
+		error("Unknown information matrix estimation method %d", infoMethod);
+	}
+}
+
 FitContext::~FitContext()
 {
 	if (est) delete [] est;
@@ -379,6 +437,8 @@ FitContext::~FitContext()
 	if (grad) delete [] grad;
 	if (hess) delete [] hess;
 	if (ihess) delete [] ihess;
+	if (infoA) delete [] infoA;
+	if (infoB) delete [] infoB;
 }
 
 omxFitFunction *FitContext::RFitFunction = NULL;
@@ -585,6 +645,7 @@ class omxComputeOnce : public omxCompute {
 	bool hessian;
 	bool ihessian;
 	bool infoMat;
+	enum ComputeInfoMethod infoMethod;
 	bool hgprod;
 
  public:
@@ -900,8 +961,6 @@ void ComputeEM::setExpectationContext(const char *context)
 	}
 }
 
-void pda(const double *ar, int rows, int cols);
-
 void ComputeEM::compute(FitContext *fc)
 {
 	int totalMstepIter = 0;
@@ -1211,6 +1270,28 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 
 	if (hessian && infoMat) error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
 
+	if (infoMat) {
+		const char *iMethod = "";
+		PROTECT(slotValue = GET_SLOT(rObj, install("info.method")));
+		if (length(slotValue) == 0) {
+			// OK
+		} else if (length(slotValue) == 1) {
+			SEXP elem;
+			PROTECT(elem = STRING_ELT(slotValue, 0));
+			iMethod = CHAR(elem);
+		}
+
+		if (strcmp(iMethod, "sandwich")==0) {
+			infoMethod = INFO_METHOD_SANDWICH;
+		} else if (strcmp(iMethod, "meat")==0) {
+			infoMethod = INFO_METHOD_MEAT;
+		} else if (strcmp(iMethod, "bread")==0) {
+			infoMethod = INFO_METHOD_BREAD;
+		} else {
+			error("Unknown information matrix estimation method '%s'", iMethod);
+		}
+	}
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("ihessian")));
 	ihessian = asLogical(slotValue);
 
@@ -1262,7 +1343,8 @@ void omxComputeOnce::compute(FitContext *fc)
 		}
 		if (infoMat) {
 			want |= FF_COMPUTE_INFO;
-			OMXZERO(fc->hess, numParam * numParam);
+			fc->infoMethod = infoMethod;
+			fc->preInfo();
 		}
 		if (ihessian) {
 			want |= FF_COMPUTE_IHESSIAN;
@@ -1285,6 +1367,9 @@ void omxComputeOnce::compute(FitContext *fc)
 
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
+				if (infoMat) {
+					fc->postInfo();
+				}
 				fc->fixHessianSymmetry(want);
 			} else {
 				if (verbose) mxLog("ComputeOnce: algebra %p", algebra);
@@ -1325,18 +1410,11 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 			out->push_back(std::make_pair(mkChar("gradient"), Rgradient));
 		}
 
-		if (hessian) {
+		if (hessian || infoMat) {
 			SEXP Rhessian;
 			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
 			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
 			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
-		}
-
-		if (infoMat) {
-			SEXP Rhessian;
-			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
-			out->push_back(std::make_pair(mkChar("information"), Rhessian));
 		}
 
 		if (ihessian) {

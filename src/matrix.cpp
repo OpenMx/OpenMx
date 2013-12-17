@@ -1015,6 +1015,26 @@ int InvertSymmetricIndef(Matrix mat, const char uplo)
 	return info;
 }
 
+void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
+		       Matrix amat, Matrix bmat, Matrix cmat)
+{
+	if (amat.rows != amat.cols) error("Not conformable");
+	if (bmat.rows != cmat.rows || bmat.cols != cmat.cols) error("Not conformable");
+	int lda;
+	if (side == 'R') {
+		if (amat.cols != cmat.rows) error("Not conformable");
+		lda = cmat.cols;
+	} else if (side == 'L') {
+		if (amat.cols != cmat.cols) error("Not conformable");
+		lda = cmat.rows;
+	} else {
+		error("Side of %c is invalid", side);
+	}
+	F77_CALL(dsymm)(&side, &uplo, &cmat.rows, &cmat.cols,
+			&alpha, amat.t, &lda, bmat.t, &bmat.rows,
+			&beta, cmat.t, &cmat.rows);
+}
+
 int MatrixInvert1(Matrix result)
 {
 	omxBuffer<int> ipiv(result.rows);
