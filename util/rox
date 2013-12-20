@@ -20,5 +20,5 @@ fi
 #rm -f man/*
 R --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
-roxygenize('.', roclets=c('rd', 'collate'))
+roxygenize('.', roclets=c('rd'))
 EOF
