@@ -443,7 +443,10 @@ setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
 setClass(Class = "MxComputeEstimatedHessian",
 	 contains = "MxComputeOperation",
 	 representation = representation(
-	   fitfunction = "MxCharOrNumber"))
+	   fitfunction = "MxCharOrNumber",
+	     parallel = "logical",
+	     stepSize = "numeric",
+	     iterations = "integer"))
 
 setMethod("qualifyNames", signature("MxComputeEstimatedHessian"),
 	function(.Object, modelname, namespace) {
@@ -463,15 +466,19 @@ setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
 	})
 
 setMethod("initialize", "MxComputeEstimatedHessian",
-	  function(.Object, free.set, fit) {
+	  function(.Object, free.set, fit, parallel, stepSize, iterations) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
+		  .Object@parallel <- parallel
+		  .Object@stepSize <- stepSize
+		  .Object@iterations <- iterations
 		  .Object
 	  })
 
-mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction') {
-	new("MxComputeEstimatedHessian", free.set, fitfunction)
+mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction',
+				      parallel=TRUE, stepSize=0.0001, iterations=4L) {
+	new("MxComputeEstimatedHessian", free.set, fitfunction, parallel, stepSize, iterations)
 }
 
 #----------------------------------------------------

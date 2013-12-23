@@ -50,6 +50,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 	typedef omxCompute super;
 	double stepSize;
 	int numIter;
+	bool parallel;
 
 	FitContext *fitContext;
 	omxMatrix *fitMat;
@@ -256,8 +257,6 @@ void omxComputeEstimatedHessian::doHessianCalculation(int numChildren, struct he
 
 void omxComputeEstimatedHessian::init()
 {
-	stepSize = .0001;
-	numIter = 4;
 	optima = NULL;
 }
 
@@ -272,6 +271,19 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 
 	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMat->fitFunction, varGroup);
+
+	SEXP slotValue;
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("iterations")));
+	numIter = INTEGER(slotValue)[0];
+	if (numIter < 2) error("stepSize must be 2 or greater");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("parallel")));
+	parallel = asLogical(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("stepSize")));
+	stepSize = REAL(slotValue)[0];
+	if (stepSize <= 0) error("stepSize must be positive");
 }
 
 void omxComputeEstimatedHessian::compute(FitContext *fc)
@@ -280,14 +292,15 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 	numParams = int(fc->varGroup->vars.size());
 	if (numParams <= 0) error("Model has no free parameters");
 
-	omxFitFunctionCreateChildren(globalState);
+	if (parallel) omxFitFunctionCreateChildren(globalState);
 
 	optima = fc->est;
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
 
-	int numChildren = Global->numChildren;
+	int numChildren = 0;
+	if (parallel) numChildren = Global->numChildren;
 
 	omxRecompute(fitMat);
 	minimum = omxMatrixElement(fitMat, 0, 0);
