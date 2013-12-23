@@ -129,6 +129,7 @@ struct omxMatrix {						// A matrix
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, const char* d);
 	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
+void omxInitialCompute(omxMatrix *matrix);
 	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
 	void omxForceCompute(omxMatrix *matrix);
 

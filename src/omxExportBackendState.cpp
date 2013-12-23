@@ -48,7 +48,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	for(size_t index = 0; index < currentState->algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %lu.", index); }
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
-		omxRecompute(nextAlgebra);
+		omxInitialCompute(nextAlgebra);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;

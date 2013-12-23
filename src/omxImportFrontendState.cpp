@@ -195,7 +195,8 @@ void omxInitialMatrixAlgebraCompute() {
 	}
 
 	for(int index = 0; index < numAlgs; index++) {
-		omxRecompute(globalState->algebraList[index]);
+		omxMatrix *matrix = globalState->algebraList[index];
+		omxInitialCompute(matrix);
 	}
 }
 

@@ -703,20 +703,31 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	return yes;
 }
 
-void omxRecompute(omxMatrix *matrix) {
+static void maybeCompute(omxMatrix *matrix, int want)
+{
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, want, NULL);
 	}
+}
+
+void omxRecompute(omxMatrix *matrix)
+{
+	maybeCompute(matrix, FF_COMPUTE_FIT);
+}
+
+void omxInitialCompute(omxMatrix *matrix)
+{
+	maybeCompute(matrix, 0);
 }
 
 void omxForceCompute(omxMatrix *matrix) {
 	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
 	else if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
 	}
 }
 
