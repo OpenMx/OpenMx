@@ -47,7 +47,7 @@ void FitContext::init()
 FitContext::FitContext(std::vector<double> &startingValues)
 {
 	parent = NULL;
-	varGroup = Global->freeGroup[FREEVARGROUP_ALL];
+	varGroup = Global->freeGroup[0];
 	init();
 
 	size_t numParam = varGroup->vars.size();
@@ -1181,6 +1181,12 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *out)
 	size_t numFree = fc->varGroup->vars.size();
 	if (!numFree) return;
 
+	if (optimum.size() == numFree) {
+		SEXP Rvec;
+		PROTECT(Rvec = allocVector(REALSXP, numFree));
+		memcpy(REAL(Rvec), optimum.data(), sizeof(double)*numFree);
+		out->push_back(std::make_pair(mkChar("estimate"), Rvec));
+	}
 
 	if (stdError.size() == numFree) {
 		// make conditional TODO
@@ -1396,6 +1402,32 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 
 	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {
+		SEXP estimate;
+		PROTECT(estimate = allocVector(REALSXP, numFree));
+		memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
+		out->push_back(std::make_pair(mkChar("estimate"), estimate));
+
+		if (gradient) {
+			SEXP Rgradient;
+			PROTECT(Rgradient = allocVector(REALSXP, numFree));
+			memcpy(REAL(Rgradient), fc->grad, sizeof(double) * numFree);
+			out->push_back(std::make_pair(mkChar("gradient"), Rgradient));
+		}
+
+		if (hessian || infoMat) {
+			SEXP Rhessian;
+			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
+			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
+			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
+		}
+
+		if (ihessian) {
+			SEXP Rihessian;
+			PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
+			memcpy(REAL(Rihessian), fc->ihess, sizeof(double) * numFree * numFree);
+			out->push_back(std::make_pair(mkChar("ihessian"), Rihessian));
+		}
+
 		if (hgprod) {
 			// TODO
 		}

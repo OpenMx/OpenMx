@@ -374,33 +374,6 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	if (topCompute && !isErrorRaised(globalState)) {
 		topCompute->reportResults(&fc, &result);
 		optStatus = topCompute->getOptimizerStatus();
-
-		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
-
-		if (fc.wanted & FF_COMPUTE_ESTIMATE) {
-			SEXP estimate;
-			PROTECT(estimate = allocVector(REALSXP, numFree));
-			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
-			result.push_back(std::make_pair(mkChar("estimate"), estimate));
-		}
-		if (fc.wanted & FF_COMPUTE_GRADIENT) {
-			SEXP Rgradient;
-			PROTECT(Rgradient = allocVector(REALSXP, numFree));
-			memcpy(REAL(Rgradient), fc.grad, sizeof(double) * numFree);
-			result.push_back(std::make_pair(mkChar("gradient"), Rgradient));
-		}
-		if (fc.wanted & FF_COMPUTE_HESSIAN) {
-			SEXP Rhessian;
-			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Rhessian), fc.hess, sizeof(double) * numFree * numFree);
-			result.push_back(std::make_pair(mkChar("hessian"), Rhessian));
-		}
-		if (fc.wanted & FF_COMPUTE_IHESSIAN) {
-			SEXP Rihessian;
-			PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Rihessian), fc.ihess, sizeof(double) * numFree * numFree);
-			result.push_back(std::make_pair(mkChar("ihessian"), Rihessian));
-		}
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
