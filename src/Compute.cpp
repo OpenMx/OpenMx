@@ -99,7 +99,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 		mapToParent[d1] = s1;
 		est[d1] = parent->est[s1];
 
-		if (parent->wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO)) {
+		if (parent->wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)) {
 			grad[d1] = parent->grad[s1];
 
 			size_t d2 = 0;
@@ -152,7 +152,7 @@ void FitContext::updateParent()
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
 
-			if (wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO)) {
+			if (wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)) {
 				parent->grad[d1] = grad[s1];
 
 				size_t s2 = 0;
@@ -222,7 +222,7 @@ void FitContext::log(const char *where, int what)
 		}
 		buf += ")\n";
 	}
-	if (what & (FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO)) {
+	if (what & (FF_COMPUTE_HESSIAN)) {
 		buf += string_snprintf("hess %lux%lu: c(", count, count);
 		for (size_t v1=0; v1 < count; ++v1) {
 			for (size_t v2=0; v2 < count; ++v2) {
@@ -385,7 +385,6 @@ double *FitContext::take(int want)
 		est = NULL;
 		break;
 	case FF_COMPUTE_HESSIAN:
-	case FF_COMPUTE_INFO:
 		ret = hess;
 		hess = NULL;
 		break;

@@ -31,6 +31,12 @@ enum omxFFCompute {
 	FF_COMPUTE_HESSIAN      = 1<<6,
 	FF_COMPUTE_IHESSIAN     = 1<<7,
 	FF_COMPUTE_HGPROD       = 1<<8,
+
+	// Use this to obtain a Hessian or Inverse Hessian evaluated at the MLE.
+	// Check FitContext::wanted to see which one you got. It may be
+	// more efficient to compute one or the other depending on the
+	// estimation method. The information matrix is -1 * Hessian.
+
 	FF_COMPUTE_INFO         = 1<<9   // Fisher information
 };
 
