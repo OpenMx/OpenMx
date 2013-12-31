@@ -2,6 +2,8 @@
 # R --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 # R -d gdb --vanilla --no-save -f models/failing/bock-aitkin-1981.R
 
+# WARNING: THIS MODEL IS WOEFULLY UNDER-IDENTIFIED
+
 #options(error = browser)
 require(OpenMx)
 require(rpf)

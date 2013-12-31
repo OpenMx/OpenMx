@@ -499,6 +499,22 @@ mxComputeStandardError <- function(free.set=NULL) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeConditionNumber",
+	 contains = "MxComputeOperation")
+
+setMethod("initialize", "MxComputeConditionNumber",
+	  function(.Object, free.set) {
+		  .Object@name <- 'compute'
+		  .Object@free.set <- free.set
+		  .Object
+	  })
+
+mxComputeConditionNumber <- function(free.set=NULL) {
+	new("MxComputeConditionNumber", free.set)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeSequence",
 	 contains = "MxComputeSteps")
 

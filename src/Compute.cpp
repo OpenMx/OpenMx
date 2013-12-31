@@ -38,6 +38,7 @@ void FitContext::init()
 	flavor = new int[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
+	hessCondNum = NA_REAL;
 	infoA = NULL;
 	infoB = NULL;
 	ihess = new double[numParam * numParam];
@@ -117,6 +118,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	if (d1 != dvars) error("Parent free parameter group is not a superset");
 
 	wanted = parent->wanted;
+	hessCondNum = parent->hessCondNum;
 
 	// pda(parent->est, 1, svars);
 	// pda(est, 1, dvars);
@@ -143,6 +145,7 @@ void FitContext::updateParent()
 	parent->fit = fit;
 	parent->mac = mac;
 	parent->caution = caution;
+	parent->hessCondNum = hessCondNum;
 
 	// rewrite using mapToParent TODO
 
@@ -727,6 +730,12 @@ class ComputeStandardError : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *out);
 };
 
+class ComputeConditionNumber : public omxCompute {
+	typedef omxCompute super;
+ public:
+        virtual void reportResults(FitContext *fc, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -742,6 +751,9 @@ static class omxCompute *newComputeEM()
 static class omxCompute *newComputeStandardError()
 { return new ComputeStandardError(); }
 
+static class omxCompute *newComputeConditionNumber()
+{ return new ComputeConditionNumber(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -755,7 +767,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
-	{"MxComputeStandardError", &newComputeStandardError}
+	{"MxComputeStandardError", &newComputeStandardError},
+	{"MxComputeConditionNumber", &newComputeConditionNumber}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1609,6 +1622,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
 		Matrix wmat(fc->ihess, numParams, numParams);
 		InvertSymmetricIndef(wmat, 'U');
 		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
+		fc->wanted |= FF_COMPUTE_IHESSIAN;
 	}
 
 	// This function calculates the standard errors from the Hessian matrix
@@ -1623,4 +1637,59 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
 		if (got <= 0) continue;
 		fc->stderrs[i] = scale * sqrt(got);
 	}
+}
+
+void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *out)
+{
+	if (isErrorRaised(globalState)) return;
+
+	int numParams = int(fc->varGroup->vars.size());
+
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) {
+		out->push_back(std::make_pair(mkChar("conditionNumber"), ScalarReal(NA_REAL)));
+		return;
+	}
+
+	if (!(fc->wanted & FF_COMPUTE_HESSIAN)) {
+		// Populate upper triangle
+		for(int i = 0; i < numParams; i++) {
+			for(int j = 0; j <= i; j++) {
+				fc->hess[i*numParams+j] = fc->ihess[i*numParams+j];
+			}
+		}
+
+		Matrix wmat(fc->hess, numParams, numParams);
+		InvertSymmetricIndef(wmat, 'U');
+		fc->fixHessianSymmetry(FF_COMPUTE_HESSIAN, true);
+		fc->wanted |= FF_COMPUTE_HESSIAN;
+	}
+
+	omxBuffer<double> hessWork(numParams * numParams);
+	memcpy(hessWork.data(), fc->hess, sizeof(double) * numParams * numParams);
+
+	char jobz = 'N';
+	char range = 'A';
+	char uplo = 'U';
+	double abstol = 0;
+	int m;
+	omxBuffer<double> w(numParams);
+	double optWork;
+	int lwork = -1;
+	omxBuffer<int> iwork(5 * numParams);
+	int info;
+	double realIgn = 0;
+	int intIgn = 0;
+	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 NULL, &numParams, &optWork, &lwork, iwork.data(), NULL, &info);
+
+	lwork = optWork;
+	omxBuffer<double> work(lwork);
+	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 NULL, &numParams, work.data(), &lwork, iwork.data(), NULL, &info);
+	if (info != 0) error("dsyevx %d", info);
+
+	double got = w[numParams-1] / w[0];
+	if (isfinite(got)) fc->hessCondNum = got;
 }

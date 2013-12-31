@@ -98,6 +98,7 @@ class FitContext {
 	//	double *denom;
 	double *grad;
 	double *hess;
+	double hessCondNum;
 	double *ihess;
 	double *stderrs;   // plural to distinguish from stdio's stderr
 	std::vector< matrixVectorProdTerm > hgProd;

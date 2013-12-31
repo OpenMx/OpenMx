@@ -380,11 +380,21 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		if (numFree) {
 			// move other global reporting here TODO
 
+			if (fc.wanted & FF_COMPUTE_IHESSIAN) {
+				SEXP Rihessian;
+				PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
+				memcpy(REAL(Rihessian), fc.ihess, sizeof(double) * numFree * numFree);
+				result.push_back(std::make_pair(mkChar("ihessian"), Rihessian));
+			}
 			if (fc.stderrs) {
 				SEXP stdErrors;
 				PROTECT(stdErrors = allocMatrix(REALSXP, numFree, 1));
 				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
 				result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
+			}
+			if (fc.wanted & FF_COMPUTE_HESSIAN && fc.stderrs) {
+				result.push_back(std::make_pair(mkChar("conditionNumber"),
+								ScalarReal(fc.hessCondNum)));
 			}
 		}
 	}
