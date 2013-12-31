@@ -374,6 +374,19 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	if (topCompute && !isErrorRaised(globalState)) {
 		topCompute->reportResults(&fc, &result);
 		optStatus = topCompute->getOptimizerStatus();
+
+		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
+
+		if (numFree) {
+			// move other global reporting here TODO
+
+			if (fc.stderrs) {
+				SEXP stdErrors;
+				PROTECT(stdErrors = allocMatrix(REALSXP, numFree, 1));
+				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
+				result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
+			}
+		}
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());

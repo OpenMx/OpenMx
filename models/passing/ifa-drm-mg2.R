@@ -64,10 +64,8 @@ if (1) {
 		      mxComputeEM(paste(groups, 'expectation', sep='.'),
 		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
 		                  mxComputeOnce('fitfunction', fit=TRUE,
-		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))),
-		      mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich",
-                        free.set=paste(groups,'ItemParam',sep=".")),
-          mxComputeStandardError(free.set=paste(groups,'ItemParam',sep=".")))))
+		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))))
+
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
@@ -77,12 +75,6 @@ if (1) {
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
-
-  se <- c(0.035, 0.029, 0.032, 0.029, 0.028, 0.027, 0.019,  0.024, 0.033, 0.029, 0.019,
-          0.024, 0.029, 0.028, 0.014, 0.022,  0.03, 0.021, 0.023, 0.026, 0.012, 0.021,
-          0.042, 0.029, 0.099,  0.033, 0.03, 0.028, 0.026, 0.026, 0.038, 0.03, 0.019, 0.024,
-          0.03, 0.027, 0.027, 0.027, 0.025, 0.027)
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), se, .001)
 }
 
 if (0) {

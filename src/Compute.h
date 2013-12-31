@@ -99,6 +99,7 @@ class FitContext {
 	double *grad;
 	double *hess;
 	double *ihess;
+	double *stderrs;   // plural to distinguish from stdio's stderr
 	std::vector< matrixVectorProdTerm > hgProd;
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
@@ -112,6 +113,7 @@ class FitContext {
 	void init();
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
+	void allocStderrs();
 	void fixHessianSymmetry(int want, bool force);
 	void fixHessianSymmetry(int want) { fixHessianSymmetry(want, false); }
 	void copyParamToModel(omxState* os, double *at);

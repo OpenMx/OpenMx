@@ -39,9 +39,22 @@ void FitContext::init()
 	infoA = NULL;
 	infoB = NULL;
 	ihess = new double[numParam * numParam];
+	stderrs = NULL;
 	changedEstimates = false;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
+}
+
+void FitContext::allocStderrs()
+{
+	if (stderrs) return;
+
+	size_t numParam = varGroup->vars.size();
+	stderrs = new double[numParam];
+
+	for (size_t px=0; px < numParam; ++px) {
+		stderrs[px] = NA_REAL;
+	}
 }
 
 FitContext::FitContext(std::vector<double> &startingValues)
@@ -155,6 +168,12 @@ void FitContext::updateParent()
 		if (wanted & FF_COMPUTE_PARAMFLAVOR) {
 			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 				parent->flavor[mapToParent[s1]] = flavor[s1];
+			}
+		}
+		if (stderrs) {
+			parent->allocStderrs();
+			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
+				parent->stderrs[mapToParent[s1]] = stderrs[s1];
 			}
 		}
 	}
@@ -410,6 +429,7 @@ void FitContext::postInfo()
 				hess[d1 * numParam + d2] = 0;
 			}
 		}
+		wanted |= FF_COMPUTE_IHESSIAN;
 		break;}
 	case INFO_METHOD_MEAT:
 		for (size_t d1=0; d1 < numParam; ++d1) {
@@ -418,6 +438,7 @@ void FitContext::postInfo()
 				hess[cell] = infoB[cell];
 			}
 		}
+		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	case INFO_METHOD_BREAD:
 		for (size_t d1=0; d1 < numParam; ++d1) {
@@ -426,6 +447,7 @@ void FitContext::postInfo()
 				hess[cell] = infoA[cell];
 			}
 		}
+		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	default:
 		error("Unknown information matrix estimation method %d", infoMethod);
@@ -439,6 +461,7 @@ FitContext::~FitContext()
 	if (grad) delete [] grad;
 	if (hess) delete [] hess;
 	if (ihess) delete [] ihess;
+	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
 }
@@ -673,7 +696,6 @@ class ComputeEM : public omxCompute {
 	std::vector<double*> estHistory;
 	FitContext *recentFC;  //nice if can use std::unique_ptr
 	std::vector<double> optimum;
-	std::vector<double> stdError;
 	double bestFit;
  	static const double MIDDLE_START = 0.21072103131565256273; // -log(.9)*2 constexpr
 	static const double MIDDLE_END = 0.0020010006671670687271; // -log(.999)*2
@@ -1108,7 +1130,7 @@ void ComputeEM::compute(FitContext *fc)
 			semConverged = true;
 			for (int v1=0; v1 < freeVarsEM; ++v1) {
 				double got = (emfc->est[v1] - optimum[emfc->mapToParent[v1]]) / denom;
-				if (fabs(got - rij[base + v1]) >= semTolerance) semConverged = false;
+				if (v1==0 || fabs(got - rij[base + v1]) >= semTolerance) semConverged = false;
 				rij[base + v1] = got;
 			}
 			//pda(rij.data() + base, 1, freeVarsEM);
@@ -1160,15 +1182,15 @@ void ComputeEM::compute(FitContext *fc)
 		return;
 	}
 
+	for (int v1=0; v1 < freeVarsEM; ++v1) {
+		for (int v2=0; v2 <= v1; ++v2) {
+			fc->ihess[recentFC->mapToParent[v1] * freeVars + recentFC->mapToParent[v2]] =
+				ihess[v1 * freeVarsEM + v2];
+		}
+	}
+
 	fc->wanted |= FF_COMPUTE_IHESSIAN;
 	//pda(ihess, freeVarsEM, freeVarsEM);
-
-	// rewrite in terms of ComputeStandardError TODO
-	stdError.resize(freeVars);
-	for (int v1=0; v1 < freeVarsEM; ++v1) {
-		int cell = v1 * freeVarsEM + v1;
-		stdError[ recentFC->mapToParent[v1] ] = sqrt(ihess[cell]);
-	}	
 
 	delete [] ihess;
 }
@@ -1181,19 +1203,11 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *out)
 	size_t numFree = fc->varGroup->vars.size();
 	if (!numFree) return;
 
-	if (optimum.size() == numFree) {
+	if (optimum.size() == numFree) { // move to glue TODO
 		SEXP Rvec;
 		PROTECT(Rvec = allocVector(REALSXP, numFree));
 		memcpy(REAL(Rvec), optimum.data(), sizeof(double)*numFree);
 		out->push_back(std::make_pair(mkChar("estimate"), Rvec));
-	}
-
-	if (stdError.size() == numFree) {
-		// make conditional TODO
-		SEXP Rvec;
-		PROTECT(Rvec = allocVector(REALSXP, numFree));
-		memcpy(REAL(Rvec), stdError.data(), sizeof(double)*numFree);
-		out->push_back(std::make_pair(mkChar("standardErrors"), Rvec));
 	}
 }
 
@@ -1436,11 +1450,13 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
 {
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO | FF_COMPUTE_IHESSIAN))) {
-		error("Hessian not available?");
-	}
+	if (isErrorRaised(globalState)) return;
 
 	int numParams = int(fc->varGroup->vars.size());
+
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) {
+		return;
+	}
 
 	if (!(fc->wanted & FF_COMPUTE_IHESSIAN)) {
 		// Populate upper triangle
@@ -1461,12 +1477,10 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
 	// We report the fit in -2LL units instead of -LL so we need to adjust here.
 	const double scale = sqrt(2); // constexpr
 
-	SEXP stdErrors;
-	PROTECT(stdErrors = allocMatrix(REALSXP, numParams, 1));
-	double* stdErr = REAL(stdErrors);
+	fc->allocStderrs();
 	for(int i = 0; i < numParams; i++) {
-		stdErr[i] = scale * sqrt(fc->ihess[i * numParams + i]);
+		double got = fc->ihess[i * numParams + i];
+		if (got <= 0) continue;
+		fc->stderrs[i] = scale * sqrt(got);
 	}
-
-	out->push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 }
