@@ -727,7 +727,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		return 0;
 	} else {
-		error("Confused");
+		error("%s: Select EM or regular mode before computing %d", oo->matrix->name, want);
 	}
 }
 

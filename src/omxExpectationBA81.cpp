@@ -29,6 +29,7 @@ int rpf_numModels;
 
 void pda(const double *ar, int rows, int cols)
 {
+	if (rows == 0 || cols == 0) return;
 	std::string buf;
 	for (int rx=0; rx < rows; rx++) {   // column major order
 		for (int cx=0; cx < cols; cx++) {
@@ -41,6 +42,7 @@ void pda(const double *ar, int rows, int cols)
 
 void pia(const int *ar, int rows, int cols)
 {
+	if (rows == 0 || cols == 0) return;
 	std::string buf;
 	for (int rx=0; rx < rows; rx++) {   // column major order
 		for (int cx=0; cx < cols; cx++) {
