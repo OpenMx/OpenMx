@@ -688,18 +688,26 @@ class ComputeEM : public omxCompute {
 	int mstepIter;
 	int totalMstepIter;
 	double tolerance;
+	double semTolerance;
 	int verbose;
 	bool useRamsay;
 	bool information;
 	std::vector<Ramsay1975*> ramsay;
 	std::vector<double*> estHistory;
+	std::vector<int> paramHistLen;
 	FitContext *recentFC;  //nice if can use std::unique_ptr
 	std::vector<double> optimum;
 	double bestFit;
- 	static const double MIDDLE_START = 0.21072103131565256273; // -log(.9)*2 constexpr
-	static const double MIDDLE_END = 0.0020010006671670687271; // -log(.999)*2
+ 	static const double MIDDLE_START;
+	static const double MIDDLE_END;
+	static const size_t minHistLength;
+	size_t histLen;
 
 	void setExpectationContext(const char *context);
+	void probeEM(FitContext *fc, int vx, size_t cx, double *rij);
+	bool checkConvergence(omxBuffer<double> &rijWork, int h1, int h2,
+			      std::vector<bool> *semConverged, omxBuffer<double> *diffWork,
+			      omxBuffer<double> *rij);
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -708,6 +716,10 @@ class ComputeEM : public omxCompute {
 	virtual double getOptimizerStatus();
 	virtual ~ComputeEM();
 };
+
+const double ComputeEM::MIDDLE_START = 0.21072103131565256273; // -log(.9)*2 constexpr
+const double ComputeEM::MIDDLE_END = 0.0020010006671670687271; // -log(.999)*2
+const size_t ComputeEM::minHistLength = 40;
 
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
@@ -973,6 +985,8 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
+
+	semTolerance = sqrt(tolerance);  // override needed?
 }
 
 void ComputeEM::setExpectationContext(const char *context)
@@ -982,6 +996,85 @@ void ComputeEM::setExpectationContext(const char *context)
 		if (verbose >= 4) mxLog("ComputeEM: expectation[%lu] %s context %s", wx, expectation->name, context);
 		omxExpectationCompute(expectation, context);
 	}
+}
+
+void ComputeEM::probeEM(FitContext *fc, int vx, size_t hx, double *rij)
+{
+	const int freeVarsEM = (int) fit1->varGroup->vars.size();
+	const size_t freeVars = fc->varGroup->vars.size();
+	bool pseudoHist = paramHistLen[vx] <= int(hx);
+	const int base = vx * freeVarsEM;
+
+	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
+	FitContext *emfc = new FitContext(fc, fit1->varGroup);
+
+	double popt = optimum[emfc->mapToParent[vx]];
+	double starting;
+	if (pseudoHist) {
+		size_t phx = hx - paramHistLen[vx];
+		double sign = phx%2? -1 : 1;
+		double smallest = 0;
+		double range = 0;
+		if (paramHistLen[vx] >= 2) {
+			smallest = fabs(estHistory[paramHistLen[vx]-1][vx] - popt);
+			range = 10 * (fabs(estHistory[0][vx] - popt) - smallest);
+		}
+		if (smallest < tolerance) smallest = tolerance;
+		if (range < 5 * semTolerance) range = 5 * semTolerance;
+		//mxLog("%d smallest %f range %f", vx, smallest, range);
+		starting = popt + sign * ((phx+1) * range / (histLen - paramHistLen[vx] + 1) + smallest);
+	} else {
+		starting = estHistory[hx][vx];
+	}
+
+	double denom = starting - popt;
+	if (verbose >= 2) mxLog("ComputeEM: probing param %d from %shistory %ld/%ld offset %.6f",
+				vx, pseudoHist? "pseudo-":"", hx, histLen, denom);
+
+	emfc->est[vx] = starting;
+	emfc->copyParamToModel(globalState);
+	fit1->compute(emfc);
+
+	for (int v1=0; v1 < freeVarsEM; ++v1) {
+		double got = (emfc->est[v1] - optimum[emfc->mapToParent[v1]]) / denom;
+		rij[base + v1] = got;
+	}
+	//pda(rij.data() + base, 1, freeVarsEM);
+	delete emfc;
+}
+
+bool ComputeEM::checkConvergence(omxBuffer<double> &rijWork, int h1, int h2,
+				 std::vector<bool> *semConverged, omxBuffer<double> *diffWork,
+				 omxBuffer<double> *rij)
+{
+	size_t freeVarsEM = semConverged->size();
+	double *rij1 = rijWork.data() + h1 * freeVarsEM * freeVarsEM;
+	double *rij2 = rijWork.data() + h2 * freeVarsEM * freeVarsEM;
+	size_t good = 0;
+	for (size_t v1=0; v1 < freeVarsEM; ++v1) {
+		if ((*semConverged)[v1]) { ++good; continue; }
+		const int base = v1 * freeVarsEM;
+		bool match = true;
+		double diff = 0;
+		for (size_t v2=0; v2 < freeVarsEM; ++v2) {
+			double diff1 = fabs(rij1[base + v2] - rij2[base + v2]);
+			if (diff1 > semTolerance) match = false;
+			diff += diff1;
+		}
+		(*diffWork)[v1 * histLen + h1] = diff / freeVarsEM; // TODO normalization unnecessary
+		if (match) {
+			if (verbose >= 2) {
+				pda(diffWork->data() + v1 * histLen, 1, h1);
+				mxLog("ComputeEM: param %lu converged", v1);
+			}
+			(*semConverged)[v1] = true;
+			for (size_t v2=0; v2 < freeVarsEM; ++v2) {
+				(*rij)[base + v2] = (rij1[base + v2] + rij2[base + v2]) / 2;
+			}
+			++good;
+		}
+	}
+	return good == freeVarsEM;
 }
 
 void ComputeEM::compute(FitContext *fc)
@@ -994,6 +1087,7 @@ void ComputeEM::compute(FitContext *fc)
 	const size_t freeVars = fc->varGroup->vars.size();
 	const int freeVarsEM = (int) fit1->varGroup->vars.size();
 	bool in_middle = false;
+	histLen = 0;
 
 	OMXZERO(fc->flavor, freeVars);
 
@@ -1091,51 +1185,79 @@ void ComputeEM::compute(FitContext *fc)
 
 	if (!converged || !information) return;
 
-	if (estHistory.size() < 2) {
-		if (verbose >= 1) mxLog("ComputeEM: history too short to estimate SEs; try increasing EM tolerance");
-		return;
-	}
+	if (verbose >= 1) mxLog("ComputeEM: semTolerance=%f", semTolerance);
 
 	// what about latent distribution parameters? TODO
 
 	recentFC->fixHessianSymmetry(FF_COMPUTE_IHESSIAN);
 	double *ihess = recentFC->take(FF_COMPUTE_IHESSIAN);
 
-	double semTolerance = sqrt(tolerance);
 	optimum.resize(freeVars);
 	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
+	paramHistLen.assign(freeVarsEM, 0);
+
+	for (int v1=0; v1 < freeVarsEM; ++v1) {
+		for (size_t hx = 0; hx < estHistory.size(); ++hx) {
+			if (fabs(optimum[v1] - estHistory[hx][v1]) < tolerance) break; // TODO good threshold?
+			if (hx > 0 && fabs(estHistory[hx-1][v1] - estHistory[hx][v1]) < tolerance) {
+				// This parameter converged earlier than the others. We will
+				// get a match if we compare the change at 2 offsets that are
+				// too close together, but that doesn't tell us whether the
+				// change estimate is accurate.
+				if (hx == 1) paramHistLen[v1] = 0;
+				break;
+			}
+			paramHistLen[v1] += 1;
+		}
+	}
+
+	histLen = std::max(estHistory.size(), minHistLength);
 	omxBuffer<double> rij(freeVarsEM * freeVarsEM);
+	omxBuffer<double> rijWork(freeVarsEM * freeVarsEM * histLen);
+	omxBuffer<double> diffWork(histLen * freeVarsEM);
+	OMXZERO(diffWork.data(), histLen * freeVarsEM); // TODO remove
+	std::vector<bool> semConverged(freeVarsEM);
 	setExpectationContext("EM");
 
-	// could parallelize by variable instead of at lower level, not sure which is better TODO
-	for (int vx=0; vx < freeVarsEM && !isErrorRaised(globalState); ++vx) {
-		int base = vx * freeVarsEM;
-		bool semConverged;
-		for (size_t cx = 0; cx < estHistory.size(); ++cx) {
-			if (verbose >= 2) mxLog("ComputeEM: probing param %d from history %ld/%ld",
-						vx, cx, estHistory.size());
-
-			memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-			FitContext *emfc = new FitContext(fc, fit1->varGroup);
-			emfc->est[vx] = estHistory[cx][vx];
-			emfc->copyParamToModel(globalState);
-			fit1->compute(emfc);
-
-			double denom = estHistory[cx][vx] - optimum[emfc->mapToParent[vx]];
-			if (verbose >= 1 && fabs(denom) < 1e-5) {
-				mxLog("ComputeEM: param %d history %ld denom=%f < 1e-5 (this is bad)", vx, cx, denom);
+	for (size_t cx = 0; cx < 2; ++cx) {
+		double *rij1 = rijWork.data() + cx * freeVarsEM * freeVarsEM;
+		for (int vx=0; vx < freeVarsEM && !isErrorRaised(globalState); ++vx) {
+			probeEM(fc, vx, cx, rij1);
+		}
+	}
+	if (!checkConvergence(rijWork, 0, 1, &semConverged, &diffWork, &rij)) {
+		for (size_t cx = 2; cx < histLen; ++cx) {
+			double *rij1 = rijWork.data() + cx * freeVarsEM * freeVarsEM;
+			for (int vx=0; vx < freeVarsEM && !isErrorRaised(globalState); ++vx) {
+				if (semConverged[vx]) continue;
+				probeEM(fc, vx, cx, rij1);
 			}
+			if (checkConvergence(rijWork, cx-1, cx, &semConverged, &diffWork, &rij)) break;
+		}
+	}
+	for (int v1=0; v1 < freeVarsEM; ++v1) {
+		if (semConverged[v1]) continue;
+		const int base = v1 * freeVarsEM;
 
-			semConverged = true;
-			for (int v1=0; v1 < freeVarsEM; ++v1) {
-				double got = (emfc->est[v1] - optimum[emfc->mapToParent[v1]]) / denom;
-				if (v1==0 || fabs(got - rij[base + v1]) >= semTolerance) semConverged = false;
-				rij[base + v1] = got;
+		double minDiff = 1 * freeVarsEM;
+		int bestPair = -1;
+		for (size_t hx = 0; hx < histLen-1; ++hx) {
+			double trial = diffWork[v1 * histLen + hx];
+			if (minDiff > trial) {
+				minDiff = trial;
+				bestPair = hx;
 			}
-			//pda(rij.data() + base, 1, freeVarsEM);
-			if (verbose >= 3) mxLog("rij[%d]=%f", vx, rij[base + vx]); // useful?
-			delete emfc;
-			if ((cx > 0 && semConverged) || isErrorRaised(globalState)) break;
+		}
+		if (verbose >= 2) {
+			pda(diffWork.data() + v1 * histLen, 1, histLen-1);
+			mxLog("ComputeEM: param %d failed to converge; min diff %f at %d/%d",
+			      v1, minDiff, bestPair, bestPair+1);
+		}
+
+		for (int v2=0; v2 < freeVarsEM; ++v2) {
+			double *rij1 = rijWork.data() + bestPair * freeVarsEM * freeVarsEM;
+			double *rij2 = rijWork.data() + (bestPair+1) * freeVarsEM * freeVarsEM;
+			rij[base + v2] = (rij1[base + v2] + rij2[base + v2]) / 2;
 		}
 	}
 
@@ -1171,14 +1293,33 @@ void ComputeEM::compute(FitContext *fc)
 	//pda(ihess, freeVarsEM, freeVarsEM);
 
 	// ihess = ihess %*% rij^{-1}
-	omxBuffer<int> ipiv(freeVarsEM);
-	int info;
-	F77_CALL(dgesv)(&freeVarsEM, &freeVarsEM, rij.data(), &freeVarsEM,  // dsysv? TODO
-			ipiv.data(), ihess, &freeVarsEM, &info);
-	if (info < 0) error("dgesv %d", info);
-	if (info > 0) {
-		omxRaiseErrorf(globalState, "EM map is not positive definite %d", info);
-		return;
+	if (0) {
+		omxBuffer<int> ipiv(freeVarsEM);
+		int info;
+		F77_CALL(dgesv)(&freeVarsEM, &freeVarsEM, rij.data(), &freeVarsEM,
+				ipiv.data(), ihess, &freeVarsEM, &info);
+		if (info < 0) error("dgesv %d", info);
+		if (info > 0) {
+			if (verbose >= 1) mxLog("ComputeEM: EM map is not positive definite %d", info);
+			return;
+		}
+	} else {
+		char uplo = 'U';
+		omxBuffer<int> ipiv(freeVarsEM);
+		int info;
+		double worksize;
+		int lwork = -1;
+		F77_CALL(dsysv)(&uplo, &freeVarsEM, &freeVarsEM, rij.data(), &freeVarsEM,
+				ipiv.data(), ihess, &freeVarsEM, &worksize, &lwork, &info);
+		lwork = worksize;
+		omxBuffer<double> work(lwork);
+		F77_CALL(dsysv)(&uplo, &freeVarsEM, &freeVarsEM, rij.data(), &freeVarsEM,
+				ipiv.data(), ihess, &freeVarsEM, work.data(), &lwork, &info);
+		if (info < 0) error("dsysv %d", info);
+		if (info > 0) {
+			if (verbose >= 1) mxLog("ComputeEM: EM map is exactly singular %d", info);
+			return;
+		}
 	}
 
 	for (int v1=0; v1 < freeVarsEM; ++v1) {
