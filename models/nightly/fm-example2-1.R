@@ -34,13 +34,24 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
                                 ItemSpec=m2.spec,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
-              mxComputeEM('expectation',
-			  mxComputeNewtonRaphson(free.set='ItemParam'),
-			  mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))))
+	      mxComputeSequence(steps=list(
+				    mxComputeEM('expectation',
+				                mxComputeNewtonRaphson(free.set='ItemParam'),
+				                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
+				                information=TRUE),  #, verbose=2L, semDebug=TRUE
+				    mxComputeStandardError(),
+				    mxComputeConditionNumber())))
 
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
-omxCheckCloseEnough(m2@fitfunction@result, 33408.05, .01)
+omxCheckCloseEnough(m2@output$minimum, 33408.05, .01)
+omxCheckCloseEnough(m2@output$conditionNumber, -3.6, 1)  # indefinite!
+
+#cat(deparse(round(c(m2@output$standardErrors),3)))
+se <- c(0.101, 0.067, 0.168, 0.156, 0.088, 0.062, 0.104, 0.074, 0.088,
+        0.063, 0.147, 0.118, 0.328, 0.336, 0.109, 0.085, 0.263, 0.235,
+        0.156, 0.133, 0.09, 0.063, 0.098, 0.066)
+omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
 print(m2@output$backendTime)

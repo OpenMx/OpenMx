@@ -357,7 +357,11 @@ setClass(Class = "MxComputeEM",
 	     tolerance = "numeric",
 	     verbose = "integer",
 	     ramsay="logical",
-	     information="logical"))
+	     information="logical",
+	     semMethod="numeric",
+	     semDebug="logical",
+	     noiseTarget="numeric",
+	     noiseTolerance="numeric"))
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id) {
@@ -409,7 +413,8 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, what, mstep.fit, fit, maxIter, tolerance, verbose, ramsay, information) {
+	  function(.Object, what, mstep.fit, fit, maxIter, tolerance,
+		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug, semMethod) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@mstep.fit <- mstep.fit
@@ -419,13 +424,19 @@ setMethod("initialize", "MxComputeEM",
 		  .Object@verbose <- verbose
 		  .Object@ramsay <- ramsay
 		  .Object@information <- information
+		  .Object@noiseTarget <- noiseTarget
+		  .Object@noiseTolerance <- noiseTolerance
+		  .Object@semDebug <- semDebug
+		  .Object@semMethod <- semMethod
 		  .Object
 	  })
 
 mxComputeEM <- function(expectation, mstep.fit, fit, maxIter=500L, tolerance=1e-4,
-			verbose=0L, ramsay=TRUE, information=FALSE) {
+			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=1, noiseTolerance=5,
+			semDebug=FALSE, semMethod=1.0) {
 	new("MxComputeEM", what=expectation, mstep.fit, fit, maxIter=maxIter,
-		tolerance=tolerance, verbose, ramsay, information)
+	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
+	    noiseTolerance, semDebug, semMethod)
 }
 
 displayMxComputeEM <- function(opt) {

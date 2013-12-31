@@ -695,28 +695,27 @@ class ComputeEM : public omxCompute {
 	int verbose;
 	bool useRamsay;
 	bool information;
+	double *semMethod;
+	int semMethodLen;
+	bool semDebug;
 	std::vector<Ramsay1975*> ramsay;
+	double noiseTarget;
+	double noiseTolerance;
 	std::vector<double*> estHistory;
 	std::vector<double> probeOffset;
 	std::vector<double> diffWork;
-	std::vector<double> convergeWork;
 	std::vector<int> paramHistLen;
 	FitContext *recentFC;  //nice if can use std::unique_ptr
 	std::vector<double> optimum;
 	double bestFit;
  	static const double MIDDLE_START;
 	static const double MIDDLE_END;
-	static const size_t minHistLength;
-	size_t histLen;
+	size_t maxHistLen;
 	int semProbeCount;
 
 	void setExpectationContext(const char *context);
-	void probeEM(FitContext *fc, int vx, size_t cx, double *rij);
-	bool checkConvergence(omxBuffer<double> &rijWork, int h1, int h2,
-			      std::vector<bool> *semConverged,
-			      std::vector<double> *diffWork,
-			      std::vector<double> *convergeWork,
-			      omxBuffer<double> *rij);
+	void probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
+	void recordDiff(int v1, std::vector<double> &rijWork, double *stdDiff, bool *mengOK);
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -728,7 +727,6 @@ class ComputeEM : public omxCompute {
 
 const double ComputeEM::MIDDLE_START = 0.21072103131565256273; // -log(.9)*2 constexpr
 const double ComputeEM::MIDDLE_END = 0.0020010006671670687271; // -log(.999)*2
-const size_t ComputeEM::minHistLength = 50;
 
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
@@ -976,12 +974,27 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("information")));
 	information = asLogical(slotValue);
 
+	PROTECT(slotValue = GET_SLOT(rObj, install("semMethod")));
+	semMethod = REAL(slotValue);
+	semMethodLen = length(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("semDebug")));
+	semDebug = asLogical(slotValue);
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("ramsay")));
 	useRamsay = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
 	tolerance = REAL(slotValue)[0];
 	if (tolerance <= 0) error("tolerance must be positive");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("noiseTarget")));
+	noiseTarget = REAL(slotValue)[0];
+	if (noiseTarget <= 0) error("noiseTarget must be positive");
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("noiseTolerance")));
+	noiseTolerance = REAL(slotValue)[0];
+	if (noiseTolerance <= 0) error("noiseTolerance must be positive");
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
 	for (int wx=0; wx < length(slotValue); ++wx) {
@@ -1017,92 +1030,58 @@ void ComputeEM::setExpectationContext(const char *context)
 	}
 }
 
-void ComputeEM::probeEM(FitContext *fc, int vx, size_t hx, double *rij)
+void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork)
 {
 	const int freeVarsEM = (int) fit1->varGroup->vars.size();
 	const size_t freeVars = fc->varGroup->vars.size();
-	bool pseudoHist = paramHistLen[vx] <= int(hx);
-	const int base = vx * freeVarsEM;
-
+	const int base = paramHistLen[vx] * freeVarsEM;
+	probeOffset[vx * maxHistLen + paramHistLen[vx]] = offset;
+	paramHistLen[vx] += 1;
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
 	FitContext *emfc = new FitContext(fc, fit1->varGroup);
 
 	double popt = optimum[emfc->mapToParent[vx]];
-	double starting;
-	if (pseudoHist) {
-		size_t phx = hx - paramHistLen[vx];
-		double sign = phx%2? -1 : 1;
-		double smallest = 0;
-		double range = 0;
-		if (paramHistLen[vx] >= 2) {
-			smallest = fabs(estHistory[paramHistLen[vx]-1][vx] - popt);
-			range = 10 * (fabs(estHistory[0][vx] - popt) - smallest);
-		}
-		if (smallest < tolerance) smallest = tolerance;
-		if (range < 5 * semTolerance) range = 5 * semTolerance;
-		//mxLog("%d smallest %f range %f", vx, smallest, range);
-		starting = popt + sign * ((phx+1) * range / (histLen - paramHistLen[vx] + 1) + smallest);
-	} else {
-		starting = popt + probeOffset[vx * histLen + hx];
-	}
+	double starting = popt + offset;
 
-	double denom = starting - popt;
-	if (verbose >= 2) mxLog("ComputeEM: probing param %d from %shistory %ld/%ld offset %.6f",
-				vx, pseudoHist? "pseudo-":"", hx, histLen, denom);
+	if (verbose >= 3) mxLog("ComputeEM: probe %d of param %d offset %.6f",
+				paramHistLen[vx], vx, offset);
 
 	emfc->est[vx] = starting;
 	emfc->copyParamToModel(globalState);
 	fit1->compute(emfc);
 
 	for (int v1=0; v1 < freeVarsEM; ++v1) {
-		double got = (emfc->est[v1] - optimum[emfc->mapToParent[v1]]) / denom;
-		rij[base + v1] = got;
+		double got = (emfc->est[v1] - optimum[emfc->mapToParent[v1]]) / offset;
+		(*rijWork)[base + v1] = got;
 	}
 	//pda(rij.data() + base, 1, freeVarsEM);
 	delete emfc;
 	++semProbeCount;
 }
 
-bool ComputeEM::checkConvergence(omxBuffer<double> &rijWork, int h1, int h2,
-				 std::vector<bool> *semConverged,
-				 std::vector<double> *diffWork,
-				 std::vector<double> *convergeWork,
-				 omxBuffer<double> *rij)
+void ComputeEM::recordDiff(int v1, std::vector<double> &rijWork,
+			   double *stdDiff, bool *mengOK)
 {
-	size_t freeVarsEM = semConverged->size();
-	double *rij1 = rijWork.data() + h1 * freeVarsEM * freeVarsEM;
-	double *rij2 = rijWork.data() + h2 * freeVarsEM * freeVarsEM;
-	size_t good = 0;
-	for (size_t v1=0; v1 < freeVarsEM; ++v1) {
-		if ((*semConverged)[v1]) { ++good; continue; }
-		const int base = v1 * freeVarsEM;
-		bool match = true;
-		double diff = 0;
-		for (size_t v2=0; v2 < freeVarsEM; ++v2) {
-			double diff1 = fabs(rij1[base + v2] - rij2[base + v2]);
-			if (diff1 > semTolerance) {
-				match = false;
-			}
-			diff += diff1;
-		}
-		double dist = fabs(probeOffset[v1 * histLen + h1] - probeOffset[v1 * histLen + h2]);
-		if (dist < tolerance) dist = tolerance;  // should never happen
-		(*diffWork)[v1 * histLen + h1] = diff / (freeVarsEM * dist); // TODO normalization unnecessary
-		if (match) (*convergeWork)[v1 * histLen + h1] = 1;
-		match = false;
-		if (match) {
-			if (verbose >= 2) {
-				pda(diffWork->data() + v1 * histLen, 1, h1);
-				mxLog("ComputeEM: param %lu converged", v1);
-			}
-			(*semConverged)[v1] = true;
-			for (size_t v2=0; v2 < freeVarsEM; ++v2) {
-				(*rij)[base + v2] = (rij1[base + v2] + rij2[base + v2]) / 2;
-			}
-			++good;
-		}
+	const int freeVarsEM = (int) fit1->varGroup->vars.size();
+	int h1 = paramHistLen[v1]-2;
+	int h2 = paramHistLen[v1]-1;
+	double *rij1 = rijWork.data() + h1 * freeVarsEM;
+	double *rij2 = rijWork.data() + h2 * freeVarsEM;
+	double diff = 0;
+	*mengOK = true;
+	for (int v2=0; v2 < freeVarsEM; ++v2) {
+		double diff1 = fabs(rij1[v2] - rij2[v2]);
+		if (diff1 >= semTolerance) *mengOK = false;
+		diff += diff1;
 	}
-	return good == freeVarsEM;
+	double p1 = probeOffset[v1 * maxHistLen + h1];
+	double p2 = probeOffset[v1 * maxHistLen + h2];
+	double dist = fabs(p1 - p2);
+	if (dist < tolerance/4) error("SEM: invalid probe offset distance %.9f", dist);
+	*stdDiff = diff / (freeVarsEM * dist);
+	diffWork[v1 * maxHistLen + h1] = *stdDiff;
+	if (verbose >= 2) mxLog("ComputeEM: (%f,%f) width %f mengOK %d diff %f stdDiff %f",
+				p1, p2, dist, *mengOK, diff, *stdDiff);
 }
 
 void ComputeEM::compute(FitContext *fc)
@@ -1115,7 +1094,7 @@ void ComputeEM::compute(FitContext *fc)
 	const size_t freeVars = fc->varGroup->vars.size();
 	const int freeVarsEM = (int) fit1->varGroup->vars.size();
 	bool in_middle = false;
-	histLen = 0;
+	maxHistLen = 0;
 	semProbeCount = 0;
 
 	OMXZERO(fc->flavor, freeVars);
@@ -1201,10 +1180,12 @@ void ComputeEM::compute(FitContext *fc)
 						mstepIter, fc->fit);
 		}
 
-		if (in_middle && change > MIDDLE_END) estHistory.push_back(recentFC->take(FF_COMPUTE_ESTIMATE));
 		prevFit = fc->fit;
 		converged = mac < tolerance;
 		if (isErrorRaised(globalState) || ++iter > maxIter || converged) break;
+
+		// && change > MIDDLE_END
+		if (in_middle) estHistory.push_back(recentFC->take(FF_COMPUTE_ESTIMATE));
 	}
 
 	fc->wanted = FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE;
@@ -1214,7 +1195,8 @@ void ComputeEM::compute(FitContext *fc)
 
 	if (!converged || !information) return;
 
-	if (verbose >= 1) mxLog("ComputeEM: semTolerance=%f", semTolerance);
+	if (verbose >= 1) mxLog("ComputeEM: tolerance=%f semTolerance=%f noiseTarget=%f",
+				tolerance, semTolerance, noiseTarget);
 
 	// what about latent distribution parameters? TODO
 
@@ -1224,85 +1206,93 @@ void ComputeEM::compute(FitContext *fc)
 	optimum.resize(freeVars);
 	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
 
-	histLen = estHistory.size() + 2 * minHistLength;
-	probeOffset.resize(histLen * freeVarsEM);
+	if (semMethodLen == 0 || (semMethodLen==1 && semMethod[0] == 1)) {
+		maxHistLen = 4;
+	} else if (semMethodLen==1 && semMethod[0] == 0) {
+		maxHistLen = estHistory.size();
+	} else {
+		maxHistLen = semMethodLen;
+	}
+
+	probeOffset.resize(maxHistLen * freeVarsEM);
+	diffWork.resize(maxHistLen * freeVarsEM);
 	paramHistLen.assign(freeVarsEM, 0);
 
-	for (int v1=0; v1 < freeVarsEM; ++v1) {
-		int pbase = v1 * histLen;
-		for (size_t hx = 0; hx < estHistory.size(); ++hx) {
-			double offset = estHistory[hx][v1] - optimum[v1];
-			if (fabs(offset) < tolerance) break; // TODO good threshold?
-			if (hx > 0 && fabs(estHistory[hx-1][v1] - estHistory[hx][v1]) < tolerance) {
-				// This parameter converged earlier than the others. We will usually
-				// get a match if we compare the change at 2 offsets that are
-				// too close together, but that doesn't tell us whether the
-				// change estimate is accurate.
-				if (hx == 1) paramHistLen[v1] = 0;
-				break;
-			}
-			probeOffset[pbase + hx] = offset;
-			paramHistLen[v1] += 1;
-		}
-
-		double sign = 1;
-		if (estHistory.size()) sign = (optimum[v1] < estHistory[0][v1])? 1 : -1;
-
-		for (size_t hx=0; hx < minHistLength; ++hx) {
-			int px = pbase + hx + paramHistLen[v1];
-			probeOffset[px] = sign * ((hx+1) * 2 * semTolerance / (minHistLength + 1) + tolerance);
-		}
-		paramHistLen[v1] += minHistLength;
-	}
-
 	omxBuffer<double> rij(freeVarsEM * freeVarsEM);
-	omxBuffer<double> rijWork(freeVarsEM * freeVarsEM * histLen);
-	diffWork.resize(histLen * freeVarsEM);
-	convergeWork.resize(histLen * freeVarsEM);
-	std::vector<bool> semConverged(freeVarsEM);
 	setExpectationContext("EM");
 
-	for (size_t cx = 0; cx < 2; ++cx) {
-		double *rij1 = rijWork.data() + cx * freeVarsEM * freeVarsEM;
-		for (int vx=0; vx < freeVarsEM && !isErrorRaised(globalState); ++vx) {
-			probeEM(fc, vx, cx, rij1);
-		}
-	}
-	if (!checkConvergence(rijWork, 0, 1, &semConverged, &diffWork, &convergeWork, &rij)) {
-		for (size_t cx = 2; cx < histLen; ++cx) {
-			double *rij1 = rijWork.data() + cx * freeVarsEM * freeVarsEM;
-			for (int vx=0; vx < freeVarsEM && !isErrorRaised(globalState); ++vx) {
-				if (semConverged[vx] || int(cx) >= paramHistLen[vx]) continue;
-				probeEM(fc, vx, cx, rij1);
-			}
-			if (checkConvergence(rijWork, cx-1, cx, &semConverged, &diffWork, &convergeWork, &rij)) break;
-		}
-	}
 	for (int v1=0; v1 < freeVarsEM; ++v1) {
-		if (semConverged[v1]) continue;
-		const int base = v1 * freeVarsEM;
+		std::vector<double> rijWork(freeVarsEM * maxHistLen);
+		int pick = 0;
+		if (semMethodLen == 0 || (semMethodLen==1 && semMethod[0] == 1)) {
+			const double stepSize = tolerance;
 
-		double minDiff = 1 * freeVarsEM;
-		int bestPair = -1;
-		for (size_t hx = 0; hx < histLen-1; ++hx) {
-			if (!convergeWork[v1 * histLen + hx]) continue;
-			double trial = diffWork[v1 * histLen + hx];
-			if (minDiff > trial) {
-				minDiff = trial;
-				bestPair = hx;
+			double offset1 = tolerance * 400;
+			double sign = 1;
+			if (estHistory.size()) {
+				int hpick = 0;
+				double popt = optimum[recentFC->mapToParent[v1]];
+				sign = (popt < estHistory[hpick][v1])? 1 : -1;
+				offset1 = fabs(estHistory[hpick][v1] - popt);
+				if (offset1 < 10 * tolerance) offset1 = 10 * tolerance;
+			}
+
+			probeEM(fc, v1, sign * offset1, &rijWork);
+			double offset2 = offset1 + stepSize;
+			probeEM(fc, v1, sign * offset2, &rijWork);
+			double diff;
+			bool mengOK;
+			recordDiff(v1, rijWork, &diff, &mengOK);
+			double midOffset = (offset1 + offset2) / 2;
+
+			if (!(noiseTarget/noiseTolerance < diff && diff < noiseTarget*noiseTolerance)) {
+				double coef = diff * midOffset * midOffset;
+				offset1 = sqrt(coef/(noiseTarget * 1.05));
+				probeEM(fc, v1, sign * offset1, &rijWork);
+				if (semDebug) {
+					offset2 = offset1 + stepSize;
+					probeEM(fc, v1, sign * offset2, &rijWork);
+					recordDiff(v1, rijWork, &diff, &mengOK);
+				}
+				pick = 2;
+			}
+		} else if (semMethodLen==1 && semMethod[0] == 0) {
+			if (!estHistory.size()) {
+				if (verbose >= 1) mxLog("ComputeEM: no history available;"
+							" Tian, Cai, Thissen, Xin (2013) SEM requires convergence history");
+				return;
+			}
+			for (size_t hx=0; hx < estHistory.size(); ++hx) {
+				if (hx && fabs(estHistory[hx-1][v1] - estHistory[hx][v1]) < tolerance) break;
+				double popt = optimum[recentFC->mapToParent[v1]];
+				double offset1 = estHistory[hx][v1] - popt;
+				probeEM(fc, v1, offset1, &rijWork);
+				if (hx == 0) continue;
+				pick = hx;
+				double diff;
+				bool mengOK;
+				recordDiff(v1, rijWork, &diff, &mengOK);
+				if (mengOK) break;
+			}
+		} else {
+			double sign = 1;
+			if (estHistory.size()) {
+				int hpick = 0;
+				double popt = optimum[recentFC->mapToParent[v1]];
+				sign = (popt < estHistory[hpick][v1])? 1 : -1;
+			}
+			for (int hx=0; hx < semMethodLen; ++hx) {
+				probeEM(fc, v1, sign * semMethod[hx], &rijWork);
+				if (hx == 0) continue;
+				double diff;
+				bool mengOK;
+				recordDiff(v1, rijWork, &diff, &mengOK);
 			}
 		}
-		if (verbose >= 2) {
-			pda(diffWork.data() + v1 * histLen, 1, histLen-1);
-			mxLog("ComputeEM: param %d failed to converge; min diff %f at %d/%d",
-			      v1, minDiff, bestPair, bestPair+1);
-		}
 
-		for (int v2=0; v2 < freeVarsEM; ++v2) {
-			double *rij1 = rijWork.data() + bestPair * freeVarsEM * freeVarsEM;
-			double *rij2 = rijWork.data() + (bestPair+1) * freeVarsEM * freeVarsEM;
-			rij[base + v2] = (rij1[base + v2] + rij2[base + v2]) / 2;
-		}
+		memcpy(rij.data() + v1 * freeVarsEM, rijWork.data() + pick*freeVarsEM, sizeof(double) * freeVarsEM);
+		if (verbose >= 2) mxLog("ComputeEM: param %d converged in %d probes",
+					v1, paramHistLen[v1]);
 	}
 
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
@@ -1361,7 +1351,7 @@ void ComputeEM::compute(FitContext *fc)
 				ipiv.data(), ihess, &freeVarsEM, work.data(), &lwork, &info);
 		if (info < 0) error("dsysv %d", info);
 		if (info > 0) {
-			if (verbose >= 1) mxLog("ComputeEM: EM map is exactly singular %d", info);
+			if (verbose >= 1) mxLog("ComputeEM: Hessian from EM map is exactly singular %d", info);
 			return;
 		}
 	}
@@ -1399,28 +1389,23 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *out)
 		out->push_back(std::make_pair(mkChar("estimate"), Rvec));
 	}
 
-	if (semProbeCount) { // add debug option to output this info TODO
+	if (semDebug) {
 		const int freeVarsEM = (int) fit1->varGroup->vars.size();
 
 		SEXP Rpo;
-		PROTECT(Rpo = allocMatrix(REALSXP, histLen, freeVarsEM));
-		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * histLen * freeVarsEM);
+		PROTECT(Rpo = allocMatrix(REALSXP, maxHistLen, freeVarsEM));
+		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVarsEM);
 		out->push_back(std::make_pair(mkChar("probeOffset"), Rpo));
 
 		SEXP Rdiff;
-		PROTECT(Rdiff = allocMatrix(REALSXP, histLen, freeVarsEM));
-		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * histLen * freeVarsEM);
+		PROTECT(Rdiff = allocMatrix(REALSXP, maxHistLen, freeVarsEM));
+		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVarsEM);
 		out->push_back(std::make_pair(mkChar("semDiff"), Rdiff));
 
 		SEXP Rphl;
 		PROTECT(Rphl = allocVector(INTSXP, freeVarsEM));
 		memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVarsEM);
 		out->push_back(std::make_pair(mkChar("paramHistLen"), Rphl));
-
-		SEXP Rcon;
-		PROTECT(Rcon = allocMatrix(REALSXP, histLen, freeVarsEM));
-		memcpy(REAL(Rcon), convergeWork.data(), sizeof(double) * histLen * freeVarsEM);
-		out->push_back(std::make_pair(mkChar("semConverge"), Rcon));
 	}
 }
 
