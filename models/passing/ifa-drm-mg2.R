@@ -65,7 +65,6 @@ if (1) {
 		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
 		                  mxComputeOnce('fitfunction', fit=TRUE,
 		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))))
-
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   

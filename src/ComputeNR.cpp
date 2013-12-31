@@ -127,6 +127,7 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 	} while (++retries < maxRetries * 1.5);
 
 	if (info > 0) {
+		// or just set stress to something high and return? TODO
 		omxRaiseErrorf(globalState, "Hessian is not even close to positive definite (order %d)", info);
 		return;
 	}

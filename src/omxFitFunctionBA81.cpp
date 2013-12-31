@@ -387,11 +387,11 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
 {}
 
 // writes to upper triangle of full matrix
-static void addSymOuterProd(const double *vec, const int len, double *out)
+static void addSymOuterProd(const double weight, const double *vec, const int len, double *out)
 {
 	for (int d1=0; d1 < len; ++d1) {
 		for (int d2=0; d2 <= d1; ++d2) {
-			out[d1 * len + d2] += vec[d1] * vec[d2];
+			out[d1 * len + d2] += weight * vec[d1] * vec[d2];
 		}
 	}
 }
@@ -425,8 +425,8 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
 		const double *wherePrep = estate->wherePrep.data();
 		std::vector<double> thrGrad(numThreads * numParam);
-		std::vector<double> thrBread1(numThreads * numParam * numParam);
-		std::vector<double> thrBread2(numThreads * numParam * numParam);
+		std::vector<double> thrBreadG(numThreads * numParam * numParam);
+		std::vector<double> thrBreadH(numThreads * numParam * numParam);
 		std::vector<double> thrMeat(numThreads * numParam * numParam);
 
 #pragma omp parallel for num_threads(numThreads)
@@ -436,10 +436,9 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 			omxBuffer<double> deriv0(thrDerivSize);
 			omxBuffer<double> expected(totalOutcomes); // can use maxOutcomes instead TODO
 			double *grad = thrGrad.data() + thrId * numParam;
-			double *bread1 = thrBread1.data() + thrId * numParam * numParam; //a
-			double *bread2 = thrBread2.data() + thrId * numParam * numParam; //a
+			double *breadG = thrBreadG.data() + thrId * numParam * numParam; //a
+			double *breadH = thrBreadH.data() + thrId * numParam * numParam; //a
 			double *meat = thrMeat.data() + thrId * numParam * numParam;   //b
-			omxBuffer<double> gradBuf(numParam);
 			std::vector<double> patGrad(numParam);
 
 			ba81LikelihoodSlow2(estate, px, lxk);
@@ -453,12 +452,12 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 
 			// if (!validPatternLik(state, patternLik1))  complain
 
-			double weight = numIdentical[px] / patternLik[px];
+			double weight = 1 / patternLik[px];
 			for (long qx=0; qx < totalQuadPoints; qx++) {
 				double tmp = lxk[qx] * weight;
 
 				OMXZERO(deriv0.data(), thrDerivSize);
-				OMXZERO(gradBuf.data(), numParam);
+				std::vector<double> gradBuf(numParam);
 				int gradOffset = 0;
 
 				for (size_t ix=0; ix < numItems; ++ix) {
@@ -468,7 +467,7 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 
 					const int iOutcomes = estate->itemOutcomes[ix];
 					OMXZERO(expected.data(), iOutcomes);
-					expected[pick] = tmp;
+					expected[pick] = 1;
 
 					const double *spec = estate->itemSpec[ix];
 					double *iparam = omxMatrixColumn(itemParam, ix);
@@ -486,10 +485,10 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 					}
 				}
 
-				addSymOuterProd(gradBuf.data(), numParam, bread1);
+				addSymOuterProd(tmp * numIdentical[px], gradBuf.data(), numParam, breadG);
 
 				for (size_t par=0; par < numParam; ++par) {
-					patGrad[par] += gradBuf[par];
+					patGrad[par] += gradBuf[par] * tmp;
 				}
 				
 				for (int ox=0; ox < thrDerivSize; ox++) {
@@ -499,34 +498,34 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 						// OK
 					} else {
 						int Hto = to - numParam;
-						bread2[Hto] -= deriv0[ox];
+						breadH[Hto] += deriv0[ox] * tmp * numIdentical[px];
 					}
 				}
 			}
 			for (size_t par=0; par < numParam; ++par) {
 				grad[par] += patGrad[par];
 			}
-			addSymOuterProd(patGrad.data(), numParam, meat);
+			addSymOuterProd(numIdentical[px], patGrad.data(), numParam, meat);
 		}
 
 		// if want & GRADIENT, TODO
 		for (int tx=0; tx < numThreads; ++tx) {
 			double *grad = thrGrad.data() + tx * numParam;
 			for (size_t px=0; px < numParam; ++px) {
-				fc->grad[px] += 2 * grad[px];
+				fc->grad[px] += 2 * grad[px] * numIdentical[px];
 			}
 		}
 		// only need upper triangle TODO
 		for (int tx=1; tx < numThreads; ++tx) {
-			double *th = thrBread1.data() + tx * numParam * numParam;
+			double *th = thrBreadG.data() + tx * numParam * numParam;
 			for (size_t en=0; en < numParam * numParam; ++en) {
-				thrBread1[en] += th[en];
+				thrBreadG[en] += th[en];
 			}
 		}
 		for (int tx=1; tx < numThreads; ++tx) {
-			double *th = thrBread2.data() + tx * numParam * numParam;
+			double *th = thrBreadH.data() + tx * numParam * numParam;
 			for (size_t en=0; en < numParam * numParam; ++en) {
-				thrBread2[en] += th[en];
+				thrBreadH[en] += th[en];
 			}
 		}
 		for (int tx=1; tx < numThreads; ++tx) {
@@ -535,14 +534,14 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 				thrMeat[en] += th[en];
 			}
 		}
-		//pda(thrBread1.data(), numParam, numParam);
-		//pda(thrBread2.data(), numParam, numParam);
+		//pda(thrBreadG.data(), numParam, numParam);
+		//pda(thrBreadH.data(), numParam, numParam);
 		//pda(thrMeat.data(), numParam, numParam);
 		if (fc->infoA) {
 			for (size_t d1=0; d1 < numParam; ++d1) {
 				for (size_t d2=0; d2 < numParam; ++d2) {
 					int cell = d1 * numParam + d2;
-					fc->infoA[cell] += thrMeat[cell] - (thrBread1[cell] + thrBread2[cell]);
+					fc->infoA[cell] -= thrMeat[cell] - (thrBreadG[cell] + thrBreadH[cell]);
 				}
 			}
 		}
@@ -554,7 +553,7 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 				}
 			}
 		}
-		fc->sampleSize += data->rows;
+		fc->sampleSize += data->rows; // remove? TODO
 	} else {
 		const long totalPrimaryPoints = estate->totalPrimaryPoints;
 		const long specificPoints = estate->quadGridSize;

@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+#include <algorithm>
+
 #include "omxDefines.h"
 #include "Compute.h"
 #include "omxState.h"
@@ -28,7 +30,7 @@ void FitContext::init()
 {
 	size_t numParam = varGroup->vars.size();
 	wanted = 0;
-	sampleSize = 0;
+	sampleSize = 0;  // remove? TODO
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : 0;
 	caution = parent? parent->caution : 0;
@@ -271,7 +273,7 @@ void FitContext::fixHessianSymmetry(int want, bool force)
 {
 	size_t numParam = varGroup->vars.size();
 
-	if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_INFO)) {
+	if (want & (FF_COMPUTE_HESSIAN)) {
 		_fixSymmetry("Hessian/information", hess, numParam, force);
 	}
 
@@ -419,34 +421,32 @@ void FitContext::postInfo()
 		_fixSymmetry("InfoB", infoB, numParam, false);
 		Matrix bmat(infoB, numParam, numParam);
 		Matrix wmat(work.data(), numParam, numParam);
-		Matrix hmat(hess, numParam, numParam);
+		Matrix hmat(ihess, numParam, numParam);
 		// DTRMM can do it without extra workspace TODO
-		SymMatrixMultiply('L', 'U', sampleSize, 0, amat, bmat, wmat);
-		SymMatrixMultiply('R', 'U', sampleSize, 0, amat, wmat, hmat);
-		// make FitContext::fixHessianSymmetry happy, remove TODO
-		for (size_t d1=0; d1 < numParam; ++d1) {
-			for (size_t d2=d1+1; d2 < numParam; ++d2) {
-				hess[d1 * numParam + d2] = 0;
-			}
-		}
+		SymMatrixMultiply('L', 'U', 1, 0, amat, bmat, wmat);
+		SymMatrixMultiply('R', 'U', 1, 0, amat, wmat, hmat);
 		wanted |= FF_COMPUTE_IHESSIAN;
 		break;}
 	case INFO_METHOD_MEAT:
+		// copy upper triangle only TODO
 		for (size_t d1=0; d1 < numParam; ++d1) {
 			for (size_t d2=0; d2 < numParam; ++d2) {
 				int cell = d1 * numParam + d2;
 				hess[cell] = infoB[cell];
 			}
 		}
+		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
 		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	case INFO_METHOD_BREAD:
+		// copy upper triangle only TODO
 		for (size_t d1=0; d1 < numParam; ++d1) {
 			for (size_t d2=0; d2 < numParam; ++d2) {
 				int cell = d1 * numParam + d2;
 				hess[cell] = infoA[cell];
 			}
 		}
+		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
 		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	default:
