@@ -238,11 +238,12 @@ void ComputeNR::compute(FitContext *fc)
 		      tolerance, maxIter, ramsay.size(), fc->hgProd.size());
 	}
 	while (1) {
+		++iter;
 		if (verbose >= 2) {
 			const char *pname = "none";
 			if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
 			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %s, flavor %d)",
-			      iter+1, maxIter, maxAdjSigned, pname, maxAdjFlavor);
+			      iter, maxIter, maxAdjSigned, pname, maxAdjFlavor);
 		}
 
 		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
@@ -395,7 +396,7 @@ void ComputeNR::compute(FitContext *fc)
 
 		R_CheckUserInterrupt();
 
-		if (converged || ++iter >= maxIter) break;
+		if (converged || iter >= maxIter) break;
 	}
 
 	fc->caution = getMaxCaution();
