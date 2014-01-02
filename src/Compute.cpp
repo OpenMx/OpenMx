@@ -1608,25 +1608,11 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {
-		if (gradient) {
-			SEXP Rgradient;
-			PROTECT(Rgradient = allocVector(REALSXP, numFree));
-			memcpy(REAL(Rgradient), fc->grad, sizeof(double) * numFree);
-			out->push_back(std::make_pair(mkChar("gradient"), Rgradient));
-		}
-
-		if (hessian || infoMat) {
+		if (hessian) {
 			SEXP Rhessian;
 			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
 			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
 			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
-		}
-
-		if (ihessian) {
-			SEXP Rihessian;
-			PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Rihessian), fc->ihess, sizeof(double) * numFree * numFree);
-			out->push_back(std::make_pair(mkChar("ihessian"), Rihessian));
 		}
 
 		if (hgprod) {

@@ -140,6 +140,8 @@ void omxComputeGD::compute(FitContext *fc)
         omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
     }
     
+	fc->wanted |= FF_COMPUTE_GRADIENT;
+
 	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
     /*printf("fc->hess in computeGD\n");
     printf("%2f", fc->hess[0]); putchar('\n');
@@ -159,14 +161,11 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 */
 	size_t numFree = varGroup->vars.size();
     
-	SEXP gradient, hessian;
-	PROTECT(gradient = allocVector(REALSXP, numFree));
+	SEXP hessian;
 	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
     
-	memcpy(REAL(gradient), fc->grad, sizeof(double) * numFree);
 	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
     
-	out->push_back(std::make_pair(mkChar("gradient"), gradient));
 	out->push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
     
 	if (intervals && intervalCodes) {
