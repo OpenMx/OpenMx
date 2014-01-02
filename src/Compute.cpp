@@ -1378,11 +1378,8 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 	collectResultsHelper(fc, clist, lcr, out);
 }
 
-void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
-	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(bestFit)));
-	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(bestFit)));
-
 	slots->push_back(std::make_pair(mkChar("semProbeCount"),
 					ScalarInteger(semProbeCount)));
 
@@ -1609,9 +1606,6 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	omxPopulateFitFunction(algebra, out);
 
-	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
-	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
-
 	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {
 		if (gradient) {
@@ -1641,7 +1635,7 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	}
 }
 
-void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	if (isErrorRaised(globalState)) return;
 
@@ -1679,14 +1673,13 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	}
 }
 
-void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	if (isErrorRaised(globalState)) return;
 
 	int numParams = int(fc->varGroup->vars.size());
 
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) {
-		out->push_back(std::make_pair(mkChar("conditionNumber"), ScalarReal(NA_REAL)));
 		return;
 	}
 

@@ -111,7 +111,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	}
 
 	off->computeFun(off, want, fc);
-	if (fc) fc->wanted = want;
+	if (fc) fc->wanted |= want;
 
 	omxMarkClean(off->matrix);
 }

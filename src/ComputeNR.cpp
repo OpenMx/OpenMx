@@ -444,11 +444,6 @@ void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	omxPopulateFitFunction(fitMatrix, out);
 
-	size_t numFree = varGroup->vars.size();
-
-	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
-	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
-
 	SEXP iterations;
 
 	// SEXP code;
