@@ -246,7 +246,10 @@ setClass(Class = "MxComputeNewtonRaphson",
 	   maxIter = "integer",
 	   tolerance = "numeric",
 	   verbose = "integer",
-	   carefully = "logical"))
+	   carefully = "logical",
+	     #output
+	     iterations = "integer",
+	     inform = "integer"))
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {

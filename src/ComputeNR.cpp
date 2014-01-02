@@ -444,14 +444,6 @@ void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	omxPopulateFitFunction(fitMatrix, out);
 
-	SEXP iterations;
-
-	// SEXP code;
-	// PROTECT(code = NEW_NUMERIC(1));
-	// REAL(code)[0] = inform;
-	// out->push_back(std::make_pair(mkChar("nr.code"), code));
-
-	PROTECT(iterations = NEW_NUMERIC(1));
-	REAL(iterations)[0] = iter;
-	out->push_back(std::make_pair(mkChar("nr.iterations"), iterations));
+	slots->push_back(std::make_pair(mkChar("inform"), ScalarInteger(inform)));
+	slots->push_back(std::make_pair(mkChar("iterations"), ScalarInteger(iter)));
 }
