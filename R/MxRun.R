@@ -70,6 +70,7 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
+	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L)
 	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
@@ -120,32 +121,27 @@ runHelper <- function(model, frontendStart,
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
 	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
 	
-	compute <- NULL
-	computes <- list()
 	if (!is.null(model@fitfunction) && is.null(model@compute)) {
 		# horrible hack, sorry
-		fitNum <- match(flatModel@fitfunction@name, names(flatModel@fitfunctions)) - 1L + numAlgebras
+		compute <- NULL
+		fitNum <- paste(model@name, 'fitfunction', sep=".")
 		if (!useOptimizer || numParam == 0) {
-			computes <- list(mxComputeOnce(what=fitNum, fit=TRUE))
+			compute <- mxComputeOnce(what=fitNum, fit=TRUE)
 		} else {
 			if (options[["Calculate Hessian"]] == "No") {
-				computes <- list(mxComputeGradientDescent(type="Quasi-Newton",
-									  fitfunction=fitNum))
+				compute <- mxComputeGradientDescent(type="Quasi-Newton",
+								    fitfunction=fitNum)
 			} else {
 				steps <- list(mxComputeGradientDescent(fitfunction=fitNum, type="Quasi-Newton"),
 					      mxComputeEstimatedHessian(fitfunction=fitNum))
 				if (options[["Standard Errors"]] == "Yes") {
 					steps <- c(steps, mxComputeStandardError())
 				}
-				computes <- list(mxComputeSequence(steps))
+				compute <- mxComputeSequence(steps)
 			}
 		}
-		flatModel@computes <- computes		
-		compute <- 0L
-	} else {
-		if (!is.null(flatModel@compute)) {
-			compute <- imxLocateIndex(flatModel, flatModel@compute@name, flatModel@name)
-		}
+		compute <- assignId(compute, 1L)
+		flatModel@compute <- compute
 	}
 
 	computes <- convertComputes(flatModel, model)
@@ -153,7 +149,7 @@ runHelper <- function(model, frontendStart,
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if (onlyFrontend) return(model)
-	output <- .Call(backend, compute,
+	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
 			data, intervalList, communication, options, PACKAGE = "OpenMx")
@@ -162,6 +158,7 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- updateModelExpectations(model, flatModel, output$expectations)
+	model@compute <-updateModelCompute(model, output$computes)
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model <- resetDataSortingFlags(model)

@@ -93,7 +93,7 @@ imxFreezeModel <- function(model) {
 ##' @param model model
 ##' @param namespace namespace
 imxFlattenModel <- function(model, namespace) {
-	flatModel <- new("MxFlatModel", model, list(), list(), list(), list())
+	flatModel <- new("MxFlatModel", model, list(), list(), list())
 	name <- model@name
 	flatModel@fitfunction <- safeQualifyNames(model@fitfunction, name, namespace)
 	flatModel@expectation <- safeQualifyNames(model@expectation, name, namespace)
@@ -107,8 +107,7 @@ imxFlattenModel <- function(model, namespace) {
 	flatModel@datasets <- collectDatasets(model)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
-	computes <- assignComputeId(collectComputes(model, namespace))
-	flatModel@computes <- computes
+	flatModel@compute <- safeQualifyNames(model@compute, model@name, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
 }
@@ -191,21 +190,6 @@ collectFitFunctions <- function(model, namespace, defaultData) {
 	return(fitfunctions)
 }
 
-assignComputeId <- function(computes) {
-	id <- 1L
-	if (length(computes)) for (cx in 1:length(computes)) {
-		computes[[cx]] <- assignId(computes[[cx]], id)
-		id <- computes[[cx]]@id + 1L
-	}
-	computes
-}
-
-collectComputes <- function(model, namespace) {
-	computes <- collectComputesHelper(model, namespace)
-	names(computes) <- imxExtractNames(computes)
-	computes
-}
-
 collectExpectations <- function(model, namespace, defaultData) {
 	expectations <- collectExpectationsHelper(model, namespace, defaultData)
 	if (length(expectations) == 0) return(list())
@@ -269,20 +253,6 @@ collectFitFunctionsHelper <- function(model, namespace, defaultData) {
 		retval <- append(retval, submodel_fitfunctions)
 	}
 	return(retval)	
-}
-
-collectComputesHelper <- function(model, namespace) {
-	compute <- safeQualifyNames(model@compute, model@name, namespace)
-
-	retval <- list()
-	if (!is.null(compute)) retval <- append(retval, compute)
-
-	if (length(model@submodels) > 0) {
-		submodel_opts <- lapply(model@submodels, collectComputesHelper, namespace)
-		submodel_opts <- unlist(submodel_opts, recursive = FALSE, use.names = FALSE)
-		retval <- append(retval, submodel_opts)
-	}
-	retval
 }
 
 ##' Are submodels dependence?

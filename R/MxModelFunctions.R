@@ -63,19 +63,16 @@ parameterDependencyList <- function(pList, flatModel, dependencies) {
 }
 
 buildFreeVarGroupList <- function(flatModel) {
-	result <- list()
-	for (step in flatModel@computes) {
-		got <- getFreeVarGroup(step)
-		if (length(got)) result <- append(result, got)
-	}
-	if (length(result)) {
-		members <- unlist(result[seq(2,length(result),2)])
+	if (is.null(flatModel@compute)) return()
+	got <- getFreeVarGroup(flatModel@compute)
+	if (length(got)) {
+		members <- unlist(got[seq(2,length(got),2)])
 		recog <- match(members, names(flatModel@matrices))
 		if (any(is.na(recog))) {
 			stop(paste("free.set component", omxQuotes(members[is.na(recog)]), "not found"))
 		}
 	}
-	result
+	got
 }
 
 generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
@@ -290,16 +287,13 @@ imxLocateIndex <- function(model, name, referant) {
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)
 	eNames <- names(model@expectations)
-	oNames <- names(model@computes)
 	dNames <- names(model@datasets)		
 	matrixNumber <- match(name, mNames)
 	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
 	expectationNumber <- match(name, eNames)
-	computeNumber <- match(name, oNames)
 	if (is.na(matrixNumber) && is.na(algebraNumber) 
-		&& is.na(dataNumber) && is.na(expectationNumber) &&
-	    is.na(computeNumber)) {
+		&& is.na(dataNumber) && is.na(expectationNumber)) {
 		msg <- paste("The reference", omxQuotes(name),
 			"does not exist.  It is used by the named entity",
 			omxQuotes(referant),".")
@@ -310,8 +304,6 @@ imxLocateIndex <- function(model, name, referant) {
 		return(dataNumber - 1L)
 	} else if (!is.na(expectationNumber)) {
 		return(expectationNumber - 1L)
-	} else if (!is.na(computeNumber)) {
-		return(computeNumber - 1L)
 	} else {
 		return(algebraNumber - 1L)
 	}

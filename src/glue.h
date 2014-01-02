@@ -24,8 +24,8 @@
 #include "omxOpenmpWrap.h"
 
 /* Functions for Export */
-SEXP omxBackend(SEXP fitfunction, SEXP startVals, SEXP constraints,
-		SEXP matList, SEXP algList, SEXP expList, SEXP computeList,
+SEXP omxBackend(SEXP constraints, SEXP matList,
+		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options);
 
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);

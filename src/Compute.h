@@ -135,14 +135,21 @@ class FitContext {
 	static void setRFitFunction(omxFitFunction *rff);
 };
 
+typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
+
 class omxCompute {
+	int computeId;
+ protected:
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *glob) {};
+	void collectResultsHelper(FitContext *fc, std::vector< omxCompute* > &clist,
+				  LocalComputeResult *lcr, MxRList *out);
  public:
 	FreeVarGroup *varGroup;
 	omxCompute();
         virtual void initFromFrontend(SEXP rObj);
         virtual omxFitFunction *getFitFunction() { return NULL; }
         virtual void compute(FitContext *fc) {};
-        virtual void reportResults(FitContext *fc, MxRList *out) = 0;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute();
 };

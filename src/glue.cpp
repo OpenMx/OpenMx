@@ -45,7 +45,7 @@ static SEXP has_NPSOL()
 { return ScalarLogical(HAS_NPSOL); }
 
 static R_CallMethodDef callMethods[] = {
-	{"backend", (DL_FUNC) omxBackend, 11},
+	{"backend", (DL_FUNC) omxBackend, 10},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
@@ -231,7 +231,7 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		UNPROTECT(1); // optionNames
 }
 
-SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
+SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
@@ -315,12 +315,8 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 		omxMarkDirty(globalState->algebraList[index]);
 	}
 
-	// maybe require a Compute object? TODO
 	omxCompute *topCompute = NULL;
-	if (!isNull(computeIndex)) {
-		int ox = INTEGER(computeIndex)[0];
-		topCompute = Global->computeList[ox];
-	}
+	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
 	/* Process Matrix and Algebra Population Function */
 	/*
@@ -372,8 +368,21 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 
 	double optStatus = NA_REAL;
 	if (topCompute && !isErrorRaised(globalState)) {
-		topCompute->reportResults(&fc, &result);
+		LocalComputeResult cResult;
+		topCompute->collectResults(&fc, &cResult, &result);
 		optStatus = topCompute->getOptimizerStatus();
+
+		if (cResult.size()) {
+			SEXP computes;
+			PROTECT(computes = NEW_LIST(cResult.size() * 2));
+			for (size_t cx=0; cx < cResult.size(); ++cx) {
+				std::pair<int, MxRList*> c1 = cResult[cx];
+				SET_VECTOR_ELT(computes, cx*2, ScalarInteger(c1.first));
+				SET_VECTOR_ELT(computes, cx*2+1, asR(c1.second));
+				delete c1.second;
+			}
+			result.push_back(std::make_pair(mkChar("computes"), computes));
+		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
 
@@ -423,12 +432,12 @@ SEXP omxBackend2(SEXP computeIndex, SEXP constraints, SEXP matList,
 	return asR(&result);
 }
 
-SEXP omxBackend(SEXP computeIndex, SEXP constraints, SEXP matList,
+SEXP omxBackend(SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
 {
 	try {
-		return omxBackend2(computeIndex, constraints, matList,
+		return omxBackend2(constraints, matList,
 				   varList, algList, expectList, computeList,
 				   data, intervalList, checkpointList, options);
 	} catch( std::exception& __ex__ ) {

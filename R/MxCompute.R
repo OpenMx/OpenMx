@@ -26,6 +26,11 @@ setGeneric("convertForBackend",
 		return(standardGeneric("convertForBackend"))
 	})
 
+setGeneric("updateFromBackend",
+	function(.Object, computes) {
+		return(standardGeneric("updateFromBackend"))
+	})
+
 setGeneric("assignId",
 	function(.Object, id) {
 		return(standardGeneric("assignId"))
@@ -45,6 +50,20 @@ setGeneric("getFreeVarGroup",
 setMethod("getFreeVarGroup", signature("MxBaseCompute"),
 	function(.Object) {
 		list()
+	})
+
+setMethod("updateFromBackend", signature("MxBaseCompute"),
+	function(.Object, computes) {
+		if (length(computes)) {
+			mystuff <- which(.Object@id == computes[seq(1,length(computes),2)])
+			if (length(mystuff)) {
+				got <- computes[[2 * mystuff]]
+				for (sl in names(got)) {
+					slot(.Object, sl) <- got[[sl]]
+				}
+			}
+		}
+		.Object
 	})
 
 #----------------------------------------------------
@@ -95,7 +114,7 @@ setClass(Class = "MxComputeOnce",
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		for (sl in c('what')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
@@ -104,7 +123,7 @@ setMethod("qualifyNames", signature("MxComputeOnce"),
 
 setMethod("convertForBackend", signature("MxComputeOnce"),
 	function(.Object, flatModel, model) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		name <- .Object@name
 		if (any(!is.integer(.Object@what))) {
 			expNum <- match(.Object@what, names(flatModel@expectations))
@@ -172,7 +191,7 @@ setClass(Class = "MxComputeGradientDescent",
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		for (sl in c('fitfunction')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
@@ -181,7 +200,7 @@ setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 
 setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	function(.Object, flatModel, model) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
 			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
@@ -231,7 +250,7 @@ setClass(Class = "MxComputeNewtonRaphson",
 
 setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		for (sl in c('fitfunction')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
@@ -240,7 +259,7 @@ setMethod("qualifyNames", signature("MxComputeNewtonRaphson"),
 
 setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	function(.Object, flatModel, model) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
 			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
@@ -309,6 +328,13 @@ setMethod("convertForBackend", signature("MxComputeSteps"),
 		.Object
 	})
 
+setMethod("updateFromBackend", signature("MxComputeSteps"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		.Object@steps <- lapply(.Object@steps, function (c) updateFromBackend(c, computes))
+		.Object
+	})
+
 #----------------------------------------------------
 
 setClass(Class = "MxComputeIterate",
@@ -361,7 +387,12 @@ setClass(Class = "MxComputeEM",
 	     semMethod="numeric",
 	     semDebug="logical",
 	     noiseTarget="numeric",
-	     noiseTolerance="numeric"))
+	     noiseTolerance="numeric",
+	     #output
+	     semProbeCount="integer",
+	     probeOffset="matrix",
+	     semDiff="matrix",
+	     paramHistLen="integer"))
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id) {
@@ -373,7 +404,7 @@ setMethod("assignId", signature("MxComputeEM"),
 
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
-		result <- callNextMethod();
+		result <- callNextMethod()
 		for (step in c(.Object@mstep.fit, .Object@fit)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
@@ -383,7 +414,7 @@ setMethod("getFreeVarGroup", signature("MxComputeEM"),
 
 setMethod("qualifyNames", signature("MxComputeEM"),
 	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		for (sl in c('what')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
@@ -395,7 +426,7 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 
 setMethod("convertForBackend", signature("MxComputeEM"),
 	function(.Object, flatModel, model) {
-		.Object <- callNextMethod();
+		.Object <- callNextMethod()
 		name <- .Object@name
 		if (any(!is.integer(.Object@what))) {
 			expNum <- match(.Object@what, names(flatModel@expectations))
@@ -409,6 +440,14 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 		for (sl in c('mstep.fit', 'fit')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeEM"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		.Object@mstep.fit <- updateFromBackend(.Object@mstep.fit, computes)
+		.Object@fit <- updateFromBackend(.Object@fit, computes)
 		.Object
 	})
 
@@ -576,8 +615,11 @@ setMethod("show",  "MxComputeGradientDescent",
 	  function(object) { callNextMethod(); displayMxComputeGradientDescent(object) })
 
 convertComputes <- function(flatModel, model) {
-	retval <- lapply(flatModel@computes, function(opt) {
-		convertForBackend(opt, flatModel, model)
-	})
-	retval
+	if (is.null(flatModel@compute)) return()
+	convertForBackend(flatModel@compute, flatModel, model)
+}
+
+updateModelCompute <- function(model, computes) {
+	if (is.null(model@compute)) return()
+	updateFromBackend(model@compute, computes)
 }

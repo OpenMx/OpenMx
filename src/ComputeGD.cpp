@@ -41,7 +41,7 @@ public:
 	omxComputeGD();
 	virtual void initFromFrontend(SEXP rObj);
 	virtual void compute(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 };
 
@@ -148,7 +148,7 @@ void omxComputeGD::compute(FitContext *fc)
     */
 }
 
-void omxComputeGD::reportResults(FitContext *fc, MxRList *out)
+void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
     

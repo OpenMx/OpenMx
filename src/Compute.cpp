@@ -63,7 +63,7 @@ void FitContext::allocStderrs()
 FitContext::FitContext(std::vector<double> &startingValues)
 {
 	parent = NULL;
-	varGroup = Global->freeGroup[0];
+	varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 	init();
 
 	size_t numParam = varGroup->vars.size();
@@ -606,6 +606,31 @@ omxCompute::omxCompute()
 	varGroup = NULL;
 }
 
+void omxCompute::collectResultsHelper(FitContext *fc, std::vector< omxCompute* > &clist,
+				      LocalComputeResult *lcr, MxRList *out)
+{
+	for (std::vector< omxCompute* >::iterator it = clist.begin(); it != clist.end(); ++it) {
+		omxCompute *c1 = *it;
+		FitContext *context = fc;
+		if (fc->varGroup != c1->varGroup) {
+			context = new FitContext(fc, c1->varGroup);
+		}
+		c1->collectResults(context, lcr, out);
+		if (context != fc) context->updateParentAndFree();
+	}
+}
+
+void omxCompute::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	MxRList *slots = new MxRList();
+        reportResults(fc, slots, out);
+	if (slots->size()) {
+		lcr->push_back(std::make_pair(computeId, slots));
+	} else {
+		delete slots;
+	}
+}
+
 omxCompute::~omxCompute()
 {}
 
@@ -614,40 +639,61 @@ void omxCompute::initFromFrontend(SEXP rObj)
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
 	if (length(slotValue) == 1) {
-		int id = INTEGER(slotValue)[0];
-		varGroup = Global->findVarGroup(id);
+		computeId = INTEGER(slotValue)[0];
+		varGroup = Global->findVarGroup(computeId);
 	}
 
 	if (!varGroup) {
 		if (!R_has_slot(rObj, install("free.set"))) {
-			varGroup = Global->freeGroup[0];
+			varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 		} else {
 			PROTECT(slotValue = GET_SLOT(rObj, install("free.set")));
 			if (length(slotValue) != 0) {
 				// it's a free.set with no free variables
-				varGroup = Global->findVarGroup(-1);
+				varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 			} else {
-				varGroup = Global->freeGroup[0];
+				varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 			}
 		}
 	}
 }
 
-class omxComputeSequence : public omxCompute {
+class ComputeContainer : public omxCompute {
 	typedef omxCompute super;
+protected:
 	std::vector< omxCompute* > clist;
+public:
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual double getOptimizerStatus();
+};
+
+void ComputeContainer::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
+double ComputeContainer::getOptimizerStatus()
+{
+	// for backward compatibility, not indended to work generally
+	for (size_t cx=0; cx < clist.size(); ++cx) {
+		double got = clist[cx]->getOptimizerStatus();
+		if (got != NA_REAL) return got;
+	}
+	return NA_REAL;
+}
+
+class omxComputeSequence : public ComputeContainer {
+	typedef ComputeContainer super;
 
  public:
-        virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *out);
-	virtual double getOptimizerStatus();
 	virtual ~omxComputeSequence();
 };
 
-class omxComputeIterate : public omxCompute {
-	typedef omxCompute super;
-	std::vector< omxCompute* > clist;
+class omxComputeIterate : public ComputeContainer {
+	typedef ComputeContainer super;
 	int maxIter;
 	double tolerance;
 	int verbose;
@@ -655,8 +701,6 @@ class omxComputeIterate : public omxCompute {
  public:
         virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *out);
-	virtual double getOptimizerStatus();
 	virtual ~omxComputeIterate();
 };
 
@@ -679,7 +723,7 @@ class omxComputeOnce : public omxCompute {
         virtual void initFromFrontend(SEXP rObj);
         virtual omxFitFunction *getFitFunction();
         virtual void compute(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
 class ComputeEM : public omxCompute {
@@ -720,7 +764,8 @@ class ComputeEM : public omxCompute {
  public:
         virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus();
 	virtual ~ComputeEM();
 };
@@ -731,13 +776,13 @@ const double ComputeEM::MIDDLE_END = 0.0020010006671670687271; // -log(.999)*2
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
  public:
-        virtual void reportResults(FitContext *fc, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
 class ComputeConditionNumber : public omxCompute {
 	typedef omxCompute super;
  public:
-        virtual void reportResults(FitContext *fc, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
 static class omxCompute *newComputeSequence()
@@ -823,31 +868,6 @@ void omxComputeSequence::compute(FitContext *fc)
 	}
 }
 
-void omxComputeSequence::reportResults(FitContext *fc, MxRList *out)
-{
-	// put this stuff in a new list?
-	// merge with Iterate TODO
-	for (size_t cx=0; cx < clist.size(); ++cx) {
-		FitContext *context = fc;
-		if (fc->varGroup != clist[cx]->varGroup) {
-			context = new FitContext(fc, clist[cx]->varGroup);
-		}
-		clist[cx]->reportResults(context, out);
-		if (context != fc) context->updateParentAndFree();
-		if (isErrorRaised(globalState)) break;
-	}
-}
-
-double omxComputeSequence::getOptimizerStatus()
-{
-	// for backward compatibility, not indended to work generally
-	for (size_t cx=0; cx < clist.size(); ++cx) {
-		double got = clist[cx]->getOptimizerStatus();
-		if (got != NA_REAL) return got;
-	}
-	return NA_REAL;
-}
-
 omxComputeSequence::~omxComputeSequence()
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
@@ -927,29 +947,6 @@ void omxComputeIterate::compute(FitContext *fc)
 		}
 		if (isErrorRaised(globalState) || ++iter > maxIter || mac < tolerance) break;
 	}
-}
-
-void omxComputeIterate::reportResults(FitContext *fc, MxRList *out)
-{
-	for (size_t cx=0; cx < clist.size(); ++cx) {
-		FitContext *context = fc;
-		if (fc->varGroup != clist[cx]->varGroup) {
-			context = new FitContext(fc, clist[cx]->varGroup);
-		}
-		clist[cx]->reportResults(context, out);
-		if (context != fc) context->updateParentAndFree();
-		if (isErrorRaised(globalState)) break;
-	}
-}
-
-double omxComputeIterate::getOptimizerStatus()
-{
-	// for backward compatibility, not indended to work generally
-	for (size_t cx=0; cx < clist.size(); ++cx) {
-		double got = clist[cx]->getOptimizerStatus();
-		if (got != NA_REAL) return got;
-	}
-	return NA_REAL;
 }
 
 omxComputeIterate::~omxComputeIterate()
@@ -1370,14 +1367,24 @@ void ComputeEM::compute(FitContext *fc)
 	delete [] ihess;
 }
 
-void ComputeEM::reportResults(FitContext *fc, MxRList *out)
+void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+
+	std::vector< omxCompute* > clist(2);
+	clist[0] = fit1;
+	clist[1] = fit2;
+
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
+void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(bestFit)));
 	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(bestFit)));
 
-	// probably should report as an object attribute? TODO
-	out->push_back(std::make_pair(mkChar("semProbeCount"),
-				      ScalarInteger(semProbeCount)));
+	slots->push_back(std::make_pair(mkChar("semProbeCount"),
+					ScalarInteger(semProbeCount)));
 
 	size_t numFree = fc->varGroup->vars.size();
 	if (!numFree) return;
@@ -1395,17 +1402,17 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *out)
 		SEXP Rpo;
 		PROTECT(Rpo = allocMatrix(REALSXP, maxHistLen, freeVarsEM));
 		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVarsEM);
-		out->push_back(std::make_pair(mkChar("probeOffset"), Rpo));
+		slots->push_back(std::make_pair(mkChar("probeOffset"), Rpo));
 
 		SEXP Rdiff;
 		PROTECT(Rdiff = allocMatrix(REALSXP, maxHistLen, freeVarsEM));
 		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVarsEM);
-		out->push_back(std::make_pair(mkChar("semDiff"), Rdiff));
+		slots->push_back(std::make_pair(mkChar("semDiff"), Rdiff));
 
 		SEXP Rphl;
 		PROTECT(Rphl = allocVector(INTSXP, freeVarsEM));
 		memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVarsEM);
-		out->push_back(std::make_pair(mkChar("paramHistLen"), Rphl));
+		slots->push_back(std::make_pair(mkChar("paramHistLen"), Rphl));
 	}
 }
 
@@ -1601,7 +1608,7 @@ void omxComputeOnce::compute(FitContext *fc)
 	}
 }
 
-void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
+void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (algebras.size()==0 || algebras[0]->fitFunction == NULL) return;
 
@@ -1646,7 +1653,7 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *out)
 	}
 }
 
-void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
+void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (isErrorRaised(globalState)) return;
 
@@ -1684,7 +1691,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *out)
 	}
 }
 
-void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *out)
+void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (isErrorRaised(globalState)) return;
 

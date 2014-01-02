@@ -41,7 +41,7 @@ public:
 	virtual void initFromFrontend(SEXP rObj);
 	virtual omxFitFunction *getFitFunction();
 	virtual void compute(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 };
 
@@ -436,7 +436,7 @@ void ComputeNR::compute(FitContext *fc)
 	fc->iterations = iter;
 }
 
-void ComputeNR::reportResults(FitContext *fc, MxRList *out)
+void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (Global->numIntervals) {
 		warning("Confidence intervals are not implemented for Newton-Raphson");

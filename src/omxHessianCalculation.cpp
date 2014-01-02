@@ -70,7 +70,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 	omxComputeEstimatedHessian();
         virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
 struct hess_struct {
@@ -343,7 +343,7 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 	omxFreeChildStates(globalState);
 }
 
-void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *result)
+void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
 	SEXP calculatedHessian;
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));

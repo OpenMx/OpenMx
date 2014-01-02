@@ -170,17 +170,15 @@ void omxCompleteMxExpectationEntities() {
 	}
 }
 
-void omxProcessMxComputeEntities(SEXP computeList)
+void omxProcessMxComputeEntities(SEXP rObj)
 {
-	SEXP rObj, s4class;
+	if (isNull(rObj)) return;
 
-	for(int index = 0; index < length(computeList); index++) {
-		PROTECT(rObj = VECTOR_ELT(computeList, index));
-		PROTECT(s4class = STRING_ELT(getAttrib(rObj, install("class")), 0));
-		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
-		compute->initFromFrontend(rObj);
-		Global->computeList.push_back(compute);
-	}
+	SEXP s4class;
+	PROTECT(s4class = STRING_ELT(getAttrib(rObj, install("class")), 0));
+	omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
+	compute->initFromFrontend(rObj);
+	Global->computeList.push_back(compute);
 }
 
 void omxInitialMatrixAlgebraCompute() {
