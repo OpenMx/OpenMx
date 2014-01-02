@@ -446,13 +446,8 @@ void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	size_t numFree = varGroup->vars.size();
 
-	SEXP estimate;
-	PROTECT(estimate = allocVector(REALSXP, numFree));
-	memcpy(REAL(estimate), fc->est, sizeof(double) * numFree);
-
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
-	out->push_back(std::make_pair(mkChar("estimate"), estimate));
 
 	SEXP iterations;
 

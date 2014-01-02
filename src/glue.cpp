@@ -389,6 +389,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		if (numFree) {
 			// move other global reporting here TODO
 
+			SEXP estimate;
+			PROTECT(estimate = allocVector(REALSXP, numFree));
+			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
+			result.push_back(std::make_pair(mkChar("estimate"), estimate));
+
 			if (fc.wanted & FF_COMPUTE_IHESSIAN) {
 				SEXP Rihessian;
 				PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));

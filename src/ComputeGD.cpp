@@ -159,18 +159,16 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 */
 	size_t numFree = varGroup->vars.size();
     
-	SEXP estimate, gradient, hessian;
-	PROTECT(estimate = allocVector(REALSXP, numFree));
+	SEXP gradient, hessian;
 	PROTECT(gradient = allocVector(REALSXP, numFree));
 	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
     
-	memcpy(REAL(estimate), fc->est, sizeof(double) * numFree);
 	memcpy(REAL(gradient), fc->grad, sizeof(double) * numFree);
 	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
     
 	out->push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc->fit)));
 	out->push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc->fit)));
-	out->push_back(std::make_pair(mkChar("estimate"), estimate));
+
 	out->push_back(std::make_pair(mkChar("gradient"), gradient));
 	out->push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
     

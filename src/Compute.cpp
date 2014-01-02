@@ -1389,13 +1389,6 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	size_t numFree = fc->varGroup->vars.size();
 	if (!numFree) return;
 
-	if (optimum.size() == numFree) { // move to glue TODO
-		SEXP Rvec;
-		PROTECT(Rvec = allocVector(REALSXP, numFree));
-		memcpy(REAL(Rvec), optimum.data(), sizeof(double)*numFree);
-		out->push_back(std::make_pair(mkChar("estimate"), Rvec));
-	}
-
 	if (semDebug) {
 		const int freeVarsEM = (int) fit1->varGroup->vars.size();
 
@@ -1621,11 +1614,6 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	size_t numFree = fc->varGroup->vars.size();
 	if (numFree) {
-		SEXP estimate;
-		PROTECT(estimate = allocVector(REALSXP, numFree));
-		memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
-		out->push_back(std::make_pair(mkChar("estimate"), estimate));
-
 		if (gradient) {
 			SEXP Rgradient;
 			PROTECT(Rgradient = allocVector(REALSXP, numFree));
