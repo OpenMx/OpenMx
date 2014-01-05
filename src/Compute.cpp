@@ -1648,14 +1648,11 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	// This function calculates the standard errors from the Hessian matrix
 	// sqrt(diag(solve(hessian)))
 
-	// We report the fit in -2LL units instead of -LL so we need to adjust here.
-	const double scale = sqrt(2); // constexpr
-
 	fc->allocStderrs();
 	for(int i = 0; i < numParams; i++) {
 		double got = fc->ihess[i * numParams + i];
 		if (got <= 0) continue;
-		fc->stderrs[i] = scale * sqrt(got);
+		fc->stderrs[i] = sqrt(got);
 	}
 }
 
