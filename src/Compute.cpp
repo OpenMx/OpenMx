@@ -1603,22 +1603,7 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	if (algebras.size()==0 || algebras[0]->fitFunction == NULL) return;
 
 	omxMatrix *algebra = algebras[0];
-
 	omxPopulateFitFunction(algebra, out);
-
-	size_t numFree = fc->varGroup->vars.size();
-	if (numFree) {
-		if (hessian) {
-			SEXP Rhessian;
-			PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Rhessian), fc->hess, sizeof(double) * numFree * numFree);
-			out->push_back(std::make_pair(mkChar("hessian"), Rhessian));
-		}
-
-		if (hgprod) {
-			// TODO
-		}
-	}
 }
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)

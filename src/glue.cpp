@@ -404,7 +404,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				memcpy(REAL(Rgradient), fc.grad, sizeof(double) * numFree);
 				result.push_back(std::make_pair(mkChar("gradient"), Rgradient));
 			}
-
+			if (fc.wanted & FF_COMPUTE_HESSIAN) {
+				SEXP Rhessian;
+				PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
+				memcpy(REAL(Rhessian), fc.hess, sizeof(double) * numFree * numFree);
+				result.push_back(std::make_pair(mkChar("hessian"), Rhessian));
+			}
 			if (fc.wanted & FF_COMPUTE_IHESSIAN) {
 				SEXP Rihessian;
 				PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
