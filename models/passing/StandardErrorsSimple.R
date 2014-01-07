@@ -35,7 +35,7 @@ factorModel <- mxModel("test SE", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
       mxPath(from=manifests, arrows=2, values=.1), # variance
-      mxPath(from="one", to=manifests, values=0, free=FALSE),
+      mxPath(from="one", to=manifests),
       mxData(known, type="raw")
 )
 factorModel <- mxOption(factorModel, "Standard Errors", "Fnord")
@@ -45,4 +45,4 @@ factorModel <- mxOption(factorModel, "Standard Errors", "Yes")
 fit <- mxRun(factorModel)
 test.summary <- summary(mxRun(factorModel, suppressWarnings=TRUE))
 
-omxCheckCloseEnough(test.summary$parameters$Std.Error[[1]], stdErr(known$test), 0.01)
+omxCheckCloseEnough(test.summary$parameters$Std.Error[[2]], stdErr(known$test), 0.001)

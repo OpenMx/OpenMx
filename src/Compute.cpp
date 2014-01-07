@@ -1608,6 +1608,8 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
+	fc->allocStderrs();
+
 	if (isErrorRaised(globalState)) return;
 
 	int numParams = int(fc->varGroup->vars.size());
@@ -1631,13 +1633,15 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	}
 
 	// This function calculates the standard errors from the Hessian matrix
-	// sqrt(diag(solve(hessian)))
+	// sqrt(2 * diag(solve(hessian)))
 
-	fc->allocStderrs();
+	// Fit is in -2LL units instead of -LL so we need to adjust here.
+	const double scale = sqrt(2); // constexpr
+
 	for(int i = 0; i < numParams; i++) {
 		double got = fc->ihess[i * numParams + i];
 		if (got <= 0) continue;
-		fc->stderrs[i] = sqrt(got);
+		fc->stderrs[i] = scale * sqrt(got);
 	}
 }
 
