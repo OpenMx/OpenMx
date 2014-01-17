@@ -1015,6 +1015,22 @@ int InvertSymmetricIndef(Matrix mat, const char uplo)
 	return info;
 }
 
+void MeanSymmetric(Matrix mat)
+{
+	if (mat.rows != mat.cols) error("Not conformable");
+	const int len = mat.rows;
+
+	for (int v1=1; v1 < len; ++v1) {
+		for (int v2=0; v2 < v1; ++v2) {
+			int c1 = v1 * len + v2;
+			int c2 = v2 * len + v1;
+			double mean = (mat.t[c1] + mat.t[c2])/2;
+			mat.t[c1] = mean;
+			mat.t[c2] = mean;
+		}
+	}
+}
+
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
 		       Matrix amat, Matrix bmat, Matrix cmat)
 {
@@ -1033,6 +1049,33 @@ void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
 	F77_CALL(dsymm)(&side, &uplo, &cmat.rows, &cmat.cols,
 			&alpha, amat.t, &lda, bmat.t, &bmat.rows,
 			&beta, cmat.t, &cmat.rows);
+}
+
+int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
+{
+	if (mat1.rows != mat1.cols ||
+	    mat2.rows != mat2.cols ||
+	    mat1.rows != mat2.rows) error("Not conformable");
+	const int dim = mat1.rows;
+
+	omxBuffer<double> pad(dim * dim);
+	memcpy(pad.data(), mat1.t, sizeof(double) * dim * dim);
+
+	if (identity) {
+		for (int rx=0; rx < dim; rx++) {
+			for (int cx=0; cx < dim; cx++) {
+				mat2.t[rx * dim + cx] = rx==cx? 1 : 0;
+			}
+		}
+	}
+  
+	std::vector<int> ipiv(dim);
+	int info;
+	F77_CALL(dgesv)(&dim, &dim, pad.data(), &dim, ipiv.data(), mat2.t, &dim, &info);
+	if (info < 0) {
+		error("Arg %d is invalid", -info);
+	}
+	return info;
 }
 
 int MatrixInvert1(Matrix result)

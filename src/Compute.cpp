@@ -427,7 +427,6 @@ void FitContext::postInfo()
 		Matrix bmat(infoB, numParam, numParam);
 		Matrix wmat(work.data(), numParam, numParam);
 		Matrix hmat(ihess, numParam, numParam);
-		// DTRMM can do it without extra workspace TODO
 		SymMatrixMultiply('L', 'U', 1, 0, amat, bmat, wmat);
 		SymMatrixMultiply('R', 'U', 1, 0, amat, wmat, hmat);
 		wanted |= FF_COMPUTE_IHESSIAN;

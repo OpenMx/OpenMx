@@ -5,6 +5,9 @@
 #include <R_ext/Lapack.h>
 #include <vector>
 
+#include "omxBuffer.h"
+#include "matrix.h"
+
 static const int ERROR_LEN = 80;
 
 static double
@@ -15,24 +18,11 @@ _mahalanobis(char *err, int dim, double *loc, double *center, double *origCov)
 		cloc[dx] = loc[dx] - center[dx];
 	}
 
-	std::vector<double> cov(dim * dim);
-	memcpy(cov.data(), origCov, sizeof(double) * dim * dim);
-
-	std::vector<double> icov(dim * dim);
-	for (int rx=0; rx < dim; rx++) {
-		for (int cx=0; cx < dim; cx++) {
-			icov[rx * dim + cx] = rx==cx? 1 : 0;
-		}
-	}
-  
-	std::vector<int> ipiv(dim);
-	int info;
-	F77_CALL(dgesv)(&dim, &dim, cov.data(), &dim, ipiv.data(), icov.data(), &dim, &info);
-	if (info < 0) {
-		snprintf(err, ERROR_LEN, "Arg %d is invalid", -info);
-		return nan("error");
-	}
-	if (info > 0) {
+	Matrix covMat(origCov, dim, dim);
+	omxBuffer<double> icov(dim * dim);
+	Matrix icovMat(icov.data(), dim, dim);
+	int info = MatrixSolve(covMat, icovMat, true); // can optimize for symmetry TODO
+	if (info) {
 		snprintf(err, ERROR_LEN, "Sigma is singular and cannot be inverted");
 		return nan("error");
 	}
