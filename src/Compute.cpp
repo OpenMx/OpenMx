@@ -38,7 +38,8 @@ void FitContext::init()
 	flavor = new int[numParam];
 	grad = new double[numParam];
 	hess = new double[numParam * numParam];
-	hessCondNum = NA_REAL;
+	infoDefinite = NA_LOGICAL;
+	infoCondNum = NA_REAL;
 	infoA = NULL;
 	infoB = NULL;
 	ihess = new double[numParam * numParam];
@@ -118,7 +119,8 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	if (d1 != dvars) error("Parent free parameter group is not a superset");
 
 	wanted = parent->wanted;
-	hessCondNum = parent->hessCondNum;
+	infoDefinite = parent->infoDefinite;
+	infoCondNum = parent->infoCondNum;
 
 	// pda(parent->est, 1, svars);
 	// pda(est, 1, dvars);
@@ -145,7 +147,8 @@ void FitContext::updateParent()
 	parent->fit = fit;
 	parent->mac = mac;
 	parent->caution = caution;
-	parent->hessCondNum = hessCondNum;
+	parent->infoDefinite = infoDefinite;
+	parent->infoCondNum = infoCondNum;
 
 	// rewrite using mapToParent TODO
 
@@ -779,7 +782,7 @@ class ComputeStandardError : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
-class ComputeConditionNumber : public omxCompute {
+class ComputeHessianQuality : public omxCompute {
 	typedef omxCompute super;
  public:
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -800,8 +803,8 @@ static class omxCompute *newComputeEM()
 static class omxCompute *newComputeStandardError()
 { return new ComputeStandardError(); }
 
-static class omxCompute *newComputeConditionNumber()
-{ return new ComputeConditionNumber(); }
+static class omxCompute *newComputeHessianQuality()
+{ return new ComputeHessianQuality(); }
 
 struct omxComputeTableEntry {
         char name[32];
@@ -817,7 +820,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
 	{"MxComputeStandardError", &newComputeStandardError},
-	{"MxComputeConditionNumber", &newComputeConditionNumber}
+	{"MxComputeHessianQuality", &newComputeHessianQuality}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1645,32 +1648,36 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	}
 }
 
-void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+/*
+Date: Fri, 3 Jan 2014 14:02:34 -0600
+From: Michael Hunter <mhunter@ou.edu>
+
+Determining positive definiteness of matrix is typically done by
+trying the Cholesky decomposition.  If it fails, the matrix is not
+positive definite; if it passes, the matrix is.  The benefit of the
+Cholesky is that it's much faster and easier to compute than a set of
+eigenvalues.
+
+The BLAS/LAPACK routine DTRCO quickly computes a good approximation to the
+reciprocal condition number of a triangular matrix.  Hand it the Cholesky
+(a triangular matrix) the rest is history.  I don't think we need the
+exact condition number as long as it's just for finding very
+ill-conditioned problems.  For the solution to a linear system of
+equations, if you really care about the difference in precision between
+1e-14 and 1e-11, then the exact condition number is needed.  Otherwise, the
+approximation is faster and equally useful.
+*/
+void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
-	if (isErrorRaised(globalState)) return;
+	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
+
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
 	int numParams = int(fc->varGroup->vars.size());
 
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) {
-		return;
-	}
-
-	if (!(fc->wanted & FF_COMPUTE_HESSIAN)) {
-		// Populate upper triangle
-		for(int i = 0; i < numParams; i++) {
-			for(int j = 0; j <= i; j++) {
-				fc->hess[i*numParams+j] = fc->ihess[i*numParams+j];
-			}
-		}
-
-		Matrix wmat(fc->hess, numParams, numParams);
-		InvertSymmetricIndef(wmat, 'U');
-		fc->fixHessianSymmetry(FF_COMPUTE_HESSIAN, true);
-		fc->wanted |= FF_COMPUTE_HESSIAN;
-	}
-
+	double *mat = (fc->wanted & FF_COMPUTE_IHESSIAN)? fc->ihess : fc->hess;
 	omxBuffer<double> hessWork(numParams * numParams);
-	memcpy(hessWork.data(), fc->hess, sizeof(double) * numParams * numParams);
+	memcpy(hessWork.data(), mat, sizeof(double) * numParams * numParams);
 
 	char jobz = 'N';
 	char range = 'A';
@@ -1695,6 +1702,21 @@ void ComputeConditionNumber::reportResults(FitContext *fc, MxRList *slots, MxRLi
 			 NULL, &numParams, work.data(), &lwork, iwork.data(), NULL, &info);
 	if (info != 0) error("dsyevx %d", info);
 
-	double got = w[numParams-1] / w[0];
-	if (isfinite(got)) fc->hessCondNum = got;
+	bool definite = true;
+	bool neg = w[0] < 0;
+	for (int px=1; px < numParams; ++px) {
+		if ((w[px] < 0) ^ neg) {
+			definite = false;
+			break;
+		}
+	}
+
+	fc->infoDefinite = definite;
+
+	if (definite) {
+		double ev[2] = { fabs(w[0]), fabs(w[numParams-1]) };
+		if (ev[0] < ev[1]) std::swap(ev[0], ev[1]);
+		double got = ev[0] / ev[1];
+		if (isfinite(got)) fc->infoCondNum = got;
+	}
 }

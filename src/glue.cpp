@@ -422,9 +422,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
 				result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
 			}
-			if (fc.wanted & FF_COMPUTE_HESSIAN && fc.stderrs) {
+			if (fc.wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+				result.push_back(std::make_pair(mkChar("infoDefinite"),
+								ScalarLogical(fc.infoDefinite)));
 				result.push_back(std::make_pair(mkChar("conditionNumber"),
-								ScalarReal(fc.hessCondNum)));
+								ScalarReal(fc.infoCondNum)));
 			}
 		}
 	}

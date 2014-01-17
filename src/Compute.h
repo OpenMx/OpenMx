@@ -99,8 +99,9 @@ class FitContext {
 	//	double *denom;
 	double *grad;
 	double *hess;
-	double hessCondNum;
 	double *ihess;
+	int infoDefinite;
+	double infoCondNum;
 	double *stderrs;   // plural to distinguish from stdio's stderr
 	std::vector< matrixVectorProdTerm > hgProd;
 	enum ComputeInfoMethod infoMethod;

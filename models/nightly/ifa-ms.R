@@ -70,7 +70,7 @@ plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
                                       mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))),
                           mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                                      mxComputeStandardError(),
-			      mxComputeConditionNumber()))
+			      mxComputeHessianQuality()))
 
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
@@ -81,6 +81,8 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               plan)
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
+omxCheckTrue(m2@output$infoDefinite)
+omxCheckCloseEnough(m2@output$conditionNumber, 61029, 1)
 omxCheckCloseEnough(m2@output$minimum, 50661.377, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
@@ -97,7 +99,6 @@ se <- c(0.026, 0.112, 0.112, 0.106, 0.12, 0.102, 0.103, 0.107, 0.092,  0.151, 0.
         0.494, 0.421, 0.555, 0.459, 0.465, 0.519,  0.53, 0.623, 0.57, 0.551, 0.482, 0.485,
         0.562, 0.662, 0.589,  0.602, 0.939, 1.542, 0.928, 1.103, 2.065, 3.458, 1.145, 1.18,  2.686, 3.788)
 omxCheckCloseEnough(c(m2@output$standardErrors), se, .001)
-omxCheckCloseEnough(m2@output$conditionNumber, 61029, 1)
 
 if (0) {
   library(mirt)

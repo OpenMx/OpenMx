@@ -58,7 +58,7 @@ plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
 			      mxComputeOnce('fitfunction', fit=TRUE,
 					    free.set=c("mean","cov"))),
 			      mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
-			      mxComputeConditionNumber(),
+			      mxComputeHessianQuality(),
 			      mxComputeStandardError()))
 
 m2 <- mxModel(m2,
@@ -83,6 +83,7 @@ omxCheckCloseEnough(scores[1:5,2], c(0.43522, 0.44211, 0.4686, 0.43515, 0.3842),
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 1*scores[,2])/500, .714, .01)
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 2*scores[,2])/500, .95, .01)
 
+omxCheckTrue(m2@output$infoDefinite)
 omxCheckCloseEnough(c(m2@output$conditionNumber), 658.58, 1)
 
 se <- c(0.213, 0.16, 0.162, 0.367, 0.228, 0.168, 0.199, 0.153, 0.158,  0.138, 0.26,

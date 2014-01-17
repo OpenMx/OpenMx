@@ -552,18 +552,18 @@ mxComputeStandardError <- function(free.set=NULL) {
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeConditionNumber",
+setClass(Class = "MxComputeHessianQuality",
 	 contains = "MxComputeOperation")
 
-setMethod("initialize", "MxComputeConditionNumber",
+setMethod("initialize", "MxComputeHessianQuality",
 	  function(.Object, free.set) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object
 	  })
 
-mxComputeConditionNumber <- function(free.set=NULL) {
-	new("MxComputeConditionNumber", free.set)
+mxComputeHessianQuality <- function(free.set=NULL) {
+	new("MxComputeHessianQuality", free.set)
 }
 
 #----------------------------------------------------

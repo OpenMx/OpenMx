@@ -40,12 +40,21 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 				                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
 				                information=TRUE),  #, verbose=2L, semDebug=TRUE
 				    mxComputeStandardError(),
-				    mxComputeConditionNumber())))
+				    mxComputeHessianQuality())))
 
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2@output$minimum, 33408.05, .01)
-omxCheckCloseEnough(m2@output$conditionNumber, -3.6, 1)  # indefinite!
+omxCheckTrue(!m2@output$infoDefinite)  # something screwed up TODO
+
+m3 <- mxModel(m2,
+              mxComputeSequence(steps=list(
+                mxComputeOnce('expectation', context=""),
+                mxComputeEstimatedHessian(parallel=FALSE, iterations=2L),
+                mxComputeHessianQuality())))
+m3 <- mxRun(m3, silent=TRUE)
+omxCheckTrue(m3@output$infoDefinite)
+omxCheckCloseEnough(m3@output$conditionNumber, 51, 1)
 
 #cat(deparse(round(c(m2@output$standardErrors),3)))
 se <- c(0.101, 0.067, 0.168, 0.156, 0.088, 0.062, 0.104, 0.074, 0.088,
