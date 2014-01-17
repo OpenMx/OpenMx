@@ -952,7 +952,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->design);
 	omxFreeAllMatrixData(state->latentMeanOut);
 	omxFreeAllMatrixData(state->latentCovOut);
-	omxFreeAllMatrixData(state->customPrior);
 	omxFreeAllMatrixData(state->itemParam);
 	Free(state->numIdentical);
 	Free(state->rowMap);
@@ -1017,7 +1016,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;
-	state->customPrior = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
 	state->quadGridSize = 0;
@@ -1092,9 +1090,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->rowMap = Realloc(NULL, numUnique, int);
 	state->numIdentical = Realloc(NULL, numUnique, int);
 
-	state->customPrior =
-		omxNewMatrixFromSlot(rObj, globalState, "CustomPrior");
-	
 	int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
 		error("Data has %d columns for %d items", data->cols, numItems);

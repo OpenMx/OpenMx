@@ -67,7 +67,6 @@ struct BA81Expect {
 	std::vector<double> speQarea;         // quadGridSize * numSpecific
 
 	// estimation related
-	omxMatrix *customPrior;
 	omxMatrix *itemParam;
 	double *EitemParam;
 	double *patternLik;                   // numUnique

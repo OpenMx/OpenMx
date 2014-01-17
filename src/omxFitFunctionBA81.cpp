@@ -240,7 +240,6 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	omxMatrix *customPrior = estate->customPrior;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->itemSpec;
         std::vector<int> &cumItemOutcomes = estate->cumItemOutcomes;
@@ -251,24 +250,13 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (estate->verbose) mxLog("%s: em.fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
-	double ll = 0;
-	if (customPrior) {
-		omxRecompute(customPrior);
-		ll = customPrior->data[0];
-		// need deriv adjustment TODO
-	}
-
-	if (!isfinite(ll)) {
-		omxPrint(itemParam, "item param");
-		error("Bayesian prior returned %g; do you need to add a lbound/ubound?", ll);
-	}
-
 	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
 	double *wherePrep = estate->wherePrep.data();
 
+	double ll = 0;
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
 	for (size_t ix=0; ix < numItems; ix++) {
 		const int thrId = omx_absolute_thread_num();
