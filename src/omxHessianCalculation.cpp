@@ -51,6 +51,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 	double stepSize;
 	int numIter;
 	bool parallel;
+	int totalProbeCount;
 
 	FitContext *fitContext;
 	omxMatrix *fitMat;
@@ -74,6 +75,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 };
 
 struct hess_struct {
+	int probeCount;
 	double* freeParams;
 	double* Haprox;
 	double* Gaprox;
@@ -122,6 +124,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 		
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
+		++hess_work->probeCount;
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -131,6 +134,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
+		++hess_work->probeCount;
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -176,6 +180,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
+		++hess_work->probeCount;
 		omxRecompute(fitMatrix);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -186,6 +191,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
+		++hess_work->probeCount;
 		omxRecompute(fitMatrix);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
@@ -326,16 +332,21 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 
 	if(OMX_DEBUG) {mxLog("Hessian Computation complete.");}
 
+	totalProbeCount = 0;
+
 	if (numChildren < 2) {
+		totalProbeCount = hess_work->probeCount;
 		Free(hess_work->Haprox);
 		Free(hess_work->Gaprox);
 		Free(hess_work->freeParams);
 	    Free(hess_work);
 	} else {
 		for(int i = 0; i < numChildren; i++) {
-			Free((hess_work + i)->Haprox);
-			Free((hess_work + i)->Gaprox);
-			Free((hess_work + i)->freeParams);
+			struct hess_struct *hw = hess_work + i;
+			totalProbeCount += hw->probeCount;
+			Free(hw->Haprox);
+			Free(hw->Gaprox);
+			Free(hw->freeParams);
 		}
 		Free(hess_work);
 	}
@@ -350,6 +361,10 @@ void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *slots, M
 	memcpy(REAL(calculatedHessian), fc->hess, sizeof(double) * numParams * numParams);
 
 	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
+
+	MxRList out;
+	out.push_back(std::make_pair(mkChar("probeCount"), ScalarInteger(totalProbeCount)));
+	slots->push_back(std::make_pair(mkChar("output"), out.asR()));
 }
 
 omxCompute *newComputeEstimatedHessian()
