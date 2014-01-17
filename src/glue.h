@@ -51,6 +51,11 @@ class omxManageProtectInsanity {
 	}
 };
 
+class MxRList : public std::vector< std::pair<SEXP, SEXP> > {
+ public:
+	SEXP asR();
+};
+
 void string_to_try_error( const std::string& str) __attribute__ ((noreturn));
 
 void exception_to_try_error( const std::exception& ex ) __attribute__ ((noreturn));

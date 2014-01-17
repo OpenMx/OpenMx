@@ -86,16 +86,16 @@ void exception_to_try_error( const std::exception& ex )
 	string_to_try_error(ex.what());
 }
 
-SEXP asR(MxRList *out)
+SEXP MxRList::asR()
 {
-	// detect duplicate keys TODO
+	// detect duplicate keys? TODO
 	SEXP names, ans;
-	int len = out->size();
+	int len = size();
 	PROTECT(names = allocVector(STRSXP, len));
 	PROTECT(ans = allocVector(VECSXP, len));
 	for (int lx=0; lx < len; ++lx) {
-		SET_STRING_ELT(names, lx, (*out)[lx].first);
-		SET_VECTOR_ELT(ans,   lx, (*out)[lx].second);
+		SET_STRING_ELT(names, lx, (*this)[lx].first);
+		SET_VECTOR_ELT(ans,   lx, (*this)[lx].second);
 	}
 	namesgets(ans, names);
 	return ans;
@@ -378,7 +378,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			for (size_t cx=0; cx < cResult.size(); ++cx) {
 				std::pair<int, MxRList*> c1 = cResult[cx];
 				SET_VECTOR_ELT(computes, cx*2, ScalarInteger(c1.first));
-				SET_VECTOR_ELT(computes, cx*2+1, asR(c1.second));
+				SET_VECTOR_ELT(computes, cx*2+1, c1.second->asR());
 				delete c1.second;
 			}
 			result.push_back(std::make_pair(mkChar("computes"), computes));
@@ -443,14 +443,14 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		backwardCompatStatus.push_back(std::make_pair(mkChar("statusMsg"), msg));
 	}
 
-	result.push_back(std::make_pair(mkChar("status"), asR(&backwardCompatStatus)));
+	result.push_back(std::make_pair(mkChar("status"), backwardCompatStatus.asR()));
 	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
 
 	omxFreeState(globalState);
 	delete Global;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	return asR(&result);
+	return result.asR();
 }
 
 SEXP omxBackend(SEXP constraints, SEXP matList,

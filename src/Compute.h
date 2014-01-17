@@ -21,6 +21,7 @@
 #include <Rinternals.h>
 
 #include "types.h"
+#include "glue.h"
 
 // See R/MxRunHelperFunctions.R npsolMessages
 enum ComputeInform {
