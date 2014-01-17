@@ -117,6 +117,7 @@ class FitContext {
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void allocStderrs();
+	bool invertHessian();
 	void fixHessianSymmetry(int want, bool force);
 	void fixHessianSymmetry(int want) { fixHessianSymmetry(want, false); }
 	void copyParamToModel(omxState* os, double *at);

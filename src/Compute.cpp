@@ -459,6 +459,27 @@ void FitContext::postInfo()
 	}
 }
 
+bool FitContext::invertHessian()
+{
+	if (wanted & FF_COMPUTE_IHESSIAN) return TRUE;
+	if (!(wanted & FF_COMPUTE_HESSIAN)) return FALSE;
+
+	int numParams = int(varGroup->vars.size());
+
+	// Populate upper triangle
+	for(int i = 0; i < numParams; i++) {
+		for(int j = 0; j <= i; j++) {
+			ihess[i*numParams+j] = hess[i*numParams+j];
+		}
+	}
+
+	Matrix wmat(ihess, numParams, numParams);
+	InvertSymmetricIndef(wmat, 'U');
+	fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
+	wanted |= FF_COMPUTE_IHESSIAN;
+	return TRUE;
+}
+
 FitContext::~FitContext()
 {
 	if (est) delete [] est;
@@ -1611,29 +1632,11 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
-	fc->allocStderrs();
+	fc->allocStderrs();  // at least report NAs
 
-	if (isErrorRaised(globalState)) return;
+	if (!fc->invertHessian()) return;
 
 	int numParams = int(fc->varGroup->vars.size());
-
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) {
-		return;
-	}
-
-	if (!(fc->wanted & FF_COMPUTE_IHESSIAN)) {
-		// Populate upper triangle
-		for(int i = 0; i < numParams; i++) {
-			for(int j = 0; j <= i; j++) {
-				fc->ihess[i*numParams+j] = fc->hess[i*numParams+j];
-			}
-		}
-
-		Matrix wmat(fc->ihess, numParams, numParams);
-		InvertSymmetricIndef(wmat, 'U');
-		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
-		fc->wanted |= FF_COMPUTE_IHESSIAN;
-	}
 
 	// This function calculates the standard errors from the Hessian matrix
 	// sqrt(2 * diag(solve(hessian)))
