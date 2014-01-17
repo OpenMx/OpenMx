@@ -384,7 +384,7 @@ static void addSymOuterProd(const double weight, const double *vec, const int le
 	}
 }
 
-static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
+static bool approxInfo(omxFitFunction *oo, FitContext *fc)
 {
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
@@ -412,7 +412,6 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
 		const double *wherePrep = estate->wherePrep.data();
-		std::vector<double> thrGrad(numThreads * numParam);
 		std::vector<double> thrBreadG(numThreads * numParam * numParam);
 		std::vector<double> thrBreadH(numThreads * numParam * numParam);
 		std::vector<double> thrMeat(numThreads * numParam * numParam);
@@ -423,7 +422,6 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			omxBuffer<double> deriv0(thrDerivSize);
 			omxBuffer<double> expected(totalOutcomes); // can use maxOutcomes instead TODO
-			double *grad = thrGrad.data() + thrId * numParam;
 			double *breadG = thrBreadG.data() + thrId * numParam * numParam; //a
 			double *breadH = thrBreadH.data() + thrId * numParam * numParam; //a
 			double *meat = thrMeat.data() + thrId * numParam * numParam;   //b
@@ -490,19 +488,9 @@ static bool approxInfo(omxFitFunction *oo, FitContext *fc, int want)
 					}
 				}
 			}
-			for (size_t par=0; par < numParam; ++par) {
-				grad[par] += patGrad[par];
-			}
 			addSymOuterProd(numIdentical[px], patGrad.data(), numParam, meat);
 		}
 
-		// if want & GRADIENT, TODO
-		for (int tx=0; tx < numThreads; ++tx) {
-			double *grad = thrGrad.data() + tx * numParam;
-			for (size_t px=0; px < numParam; ++px) {
-				fc->grad[px] += 2 * grad[px] * numIdentical[px];
-			}
-		}
 		// only need upper triangle TODO
 		for (int tx=1; tx < numThreads; ++tx) {
 			double *th = thrBreadG.data() + tx * numParam * numParam;
@@ -663,7 +651,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			return 0;
 		}
 
-		if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_INFO)) {
+		if (want & FF_COMPUTE_INFO) {
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
 
@@ -671,7 +659,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				omxRaiseErrorf(globalState, "Cannot approximate latent parameter gradients");
 			} else {
 				ba81SetupQuadrature(oo->expectation);
-				if (!approxInfo(oo, fc, want)) {
+				if (!approxInfo(oo, fc)) {
 					return INFINITY;
 				}
 			}
