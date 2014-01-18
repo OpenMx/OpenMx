@@ -16,6 +16,8 @@
 setClass(Class = "MxBaseCompute", 
 	 representation = representation(
 	   id = "integer",
+	     output = "list",
+	     debug = "list",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
