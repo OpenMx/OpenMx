@@ -117,6 +117,7 @@ npsolOptions <- list(
 	"Line search tolerance" = "0.3",
 	"Derivative level" = "0",
 	"Hessian" = "Yes",
+# below are not npsol options
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",
@@ -142,7 +143,8 @@ otherOptions <- list(
 	"RAM Inverse Optimization" = "Yes",
 	"RAM Max Depth" = NA,
 	"UsePPML" = "No",
-	"Allow Unlabeled" = FALSE
+	"Allow Unlabeled" = FALSE,
+    "loglikelihoodScale" = -2.0
 )
 
 generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
@@ -204,7 +206,6 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 # Convert the keys and values into strings
 combineDefaultOptions <- function(input) {
 	options <- getOption('mxOptions')
-	options <- options[names(options) %in% names(npsolOptions)]
 	temp <- input[names(input) %in% names(npsolOptions)]
 	temp[["Major iterations"]] <- NULL
 	if (length(temp) > 0) {

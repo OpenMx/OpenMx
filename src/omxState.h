@@ -145,6 +145,7 @@ class omxGlobal {
 	int numThreads;
 	int analyticGradients;
 	int numChildren;
+	double llScale;
 
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
@@ -154,6 +155,8 @@ class omxGlobal {
 
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
+
+	omxGlobal();
 	~omxGlobal();
 };
 

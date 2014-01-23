@@ -619,21 +619,52 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
  
 void omxSetNPSOLOpts(SEXP options)
 {
-		char optionCharArray[250] = "";			// For setting options
-		int numOptions = length(options);
-		SEXP optionNames;
-		PROTECT(optionNames = GET_NAMES(options));
+	static const char *whitelist[] = {
+		"Central Difference Interval",
+		"Crash Tolerance",
+		"Derivative level",
+		"Difference interval",
+		"Feasibility tolerance",
+		"Function precision",
+		"Hessian",
+		"Infinite bound size",
+		"Infinite step size",
+		"Iteration limit",
+		"Iters",
+		"Line search tolerance",
+		"Major iteration limit",
+		"Major iterations",
+		"Print level",
+		"Print file",
+		"Minor iteration limit",
+		"Minor print level",
+		"Nolist",
+		"Optimality tolerance",
+		"Step limit",
+		"Summary file",
+		"Verify level",
+		0
+	};
+
+	const int opBufLen = 250;
+	char optionCharArray[opBufLen];
+	int numOptions = length(options);
+	SEXP optionNames;
+	PROTECT(optionNames = GET_NAMES(options));
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
-			if (matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
-			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
-			} else {
-				sprintf(optionCharArray, "%s %s", nextOptionName, nextOptionValue);
-				F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-				if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
+			bool ok=false;
+			for (int wx=0; whitelist[wx]; ++wx) {
+				if (matchCaseInsensitive(nextOptionName, whitelist[wx])) {
+					ok=true;
+					break;
+				}
 			}
+			if (!ok) continue;
+			snprintf(optionCharArray, opBufLen, "%s %s", nextOptionName, nextOptionValue);
+			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+			if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
 		}
 		UNPROTECT(1); // optionNames
 }

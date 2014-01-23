@@ -125,6 +125,15 @@ void FreeVarGroup::log()
 	mxLogBig(str);
 }
 
+omxGlobal::omxGlobal()
+{
+	ciMaxIterations = 5;
+	numThreads = 1;
+	analyticGradients = 0;
+	numChildren = 0;
+	llScale = -2.0;
+}
+
 /* Initialize and Destroy */
 	void omxInitState(omxState* state) {
 		state->stale = FALSE;

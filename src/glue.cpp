@@ -204,6 +204,7 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 	*out = newVal;
 }
 
+// TODO: make member of omxGlobal class
 static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		     int *analyticGradients)
 {
@@ -218,6 +219,8 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				if (newvalue > 0) *ciMaxIterations = newvalue;
 			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
+			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
+				Global->llScale = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
 				if (*numThreads < 1) {
@@ -252,10 +255,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxInitState(globalState);
 	if(OMX_DEBUG) { mxLog("Created state object at %p.", globalState);}
 
-	Global->ciMaxIterations = 5;
-	Global->numThreads = 1;
-	Global->analyticGradients = 0;
-	Global->numChildren = 0;
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
 #if HAS_NPSOL
