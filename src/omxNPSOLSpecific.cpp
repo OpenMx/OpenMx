@@ -405,6 +405,9 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 }
  
  
+// Mostly duplicated code in omxCSOLNPConfidenceIntervals
+// needs to be refactored so there is only 1 copy of CI
+// code that can use whatever optimizer is provided.
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
 {
 	int ciMaxIterations = Global->ciMaxIterations;
