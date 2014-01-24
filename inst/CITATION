@@ -1,0 +1,45 @@
+citHeader("To cite package 'OpenMx' in publications use:")
+     
+desc <- packageDescription("OpenMx")
+year <- substring(desc$Date, 1, 4)
+revision <- sub("\\..?$", "", sub("-.*", "", desc$Version))
+vers <- paste("R package version", revision)
+authors <- eval(parse(text=desc[["Authors@R"]]))
+     
+citEntry(entry="article",
+	title = paste("OpenMx: An Open Source Extended",
+		"Structural Equation Modeling Framework"),
+              author = c(person(c("Steven", "M."), "Boker"),
+                 person(c("Michael", "C."), "Neale"),
+                 person(c("Hermine", "H."), "Maes"),
+                 person(c("Michael", "J."), "Wilde"),
+                 person("Michael", "Spiegel"),
+                 person(c("Timothy", "R."), "Brick"),
+                 person("Jeffrey", "Spies"),
+                 person("Ryne", "Estabrook"),
+                 person("Sarah", "Kenny"),
+                 person(c("Timothy", "C."), "Bates"),
+                 person("Paras", "Mehta"),
+                 person("John", "Fox")),
+              journal = "Psychometrika",
+              publisher = "Psychometric Society",
+              year = "2011",
+              volume = "76",
+              number = "2",
+              pages = "306-317",
+              textVersion = paste("Steven M. Boker, Michael C. Neale,",
+              	"Hermine H. Maes, Michael J. Wilde, Michael Spiegel,",
+              	"Timothy R. Brick, Jeffrey Spies, Ryne Estabrook,",
+              	"Sarah Kenny, Timothy C. Bates, Paras Mehta, and John Fox.",
+              	"(2011) OpenMx: An Open Source Extended",
+		"Structural Equation Modeling Framework. Psychometrika."),
+              note = "Article available at www.springerlink.com/content/dg37445107026711")
+
+citEntry(entry="manual",
+	title = paste("OpenMx", revision, "User Guide"),
+    year = year,
+    author = authors,
+    textVersion = paste(paste(paste(authors[1:length(authors) - 1], collapse = ", "), 
+                        paste(authors[[length(authors)]], ".", sep=''), sep = " and "),
+                        paste("(", year, ")", sep =""),
+                        "OpenMx", revision, "User Guide."))

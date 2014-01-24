@@ -1,0 +1,208 @@
+#
+#   Copyright 2007-2012 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+namespaceSearch <- function(model, name) {
+	if (is.na(name) || is.null(name) || identical(name, "")) {
+		return(NULL)
+	}
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
+	if (length(components) == 1) {
+		path <- namespaceFindPath(model, name)
+		if (is.null(path)) {
+			return(namespaceLocalSearch(model, name))
+		} else {
+			return(namespaceGetModel(model, path))
+		}
+	} else {
+		path <- namespaceFindPath(model, components[[1]])
+		if (is.null(path)) {
+			return(NULL)
+		} else {
+			submodel <- namespaceGetModel(model, path)
+			return(namespaceLocalSearch(submodel, components[[2]]))			
+		}
+	}
+}
+
+namespaceFindPath <- function(model, modelname) {
+	parentname <- model@name
+	if (parentname == modelname) {
+		return(modelname)
+	} else if (length(model@submodels) == 0) {
+		return(NULL)
+	} else if (modelname %in% names(model@submodels)) {
+		return(c(parentname, modelname))
+	} else {
+		candidates <- lapply(model@submodels, namespaceFindPath, modelname)
+		filter <- !(sapply(candidates, is.null))
+		ncand <- which(filter)
+		ncandlen <- length(ncand)
+		if (ncandlen == 0) {
+			return(NULL)
+		} else if (ncandlen == 1) {
+			return(c(parentname, candidates[[ncand]]))
+		} else {
+			msg <- paste("There are two models with the name",
+				omxQuotes(modelname), "found in the model",
+				omxQuotes(parentname))
+			stop(msg, call. = FALSE)
+		}
+	}
+}
+
+namespaceGetModel <- function(model, path) {
+	pathlen <- length(path)
+	if (pathlen == 0) {
+		stop("An internal error has occured in namespaceSearch")
+	} else if (pathlen == 1) {
+		return(model)
+	} else if (pathlen == 2) {
+		return(model@submodels[[path[[2]]]])
+	} else {
+		remainder <- path[3:pathlen]
+		return(namespaceGetModel(model@submodels[[path[[2]]]], remainder))
+	}
+}
+
+
+#
+# Check for a named entity within the local model
+#
+namespaceLocalSearch <- function(model, name) {
+	if (name == model@name) {
+		return(model)
+	} else if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@search)) {
+		return(imxReservedNames[[name]]@search(model))
+	}
+	first <- model@matrices[[name]]
+	second <- model@algebras[[name]]
+	third <- model@submodels[[name]]
+	fourth <- model@constraints[[name]]
+	if (!is.null(model@objective) && name == model@objective@name) {
+		return(model@objective)
+	} else if (!is.null(model@data) && name == model@data@name) {
+		return(model@data)
+	} else if (!is.null(first)) {
+		return(first)
+	} else if (!is.null(second)) {
+		return(second)
+	} else if (!is.null(third)) {
+		return(third)
+	} else if (!is.null(fourth)) {
+		return(fourth)
+	}
+	return(NULL)
+}
+
+namespaceSearchReplace <- function(model, name, value) {
+	if (is.na(name) || identical(name, "")) {
+		return(model)
+	}
+	if (!is.null(value) && !(isS4(value) && ("name" %in% slotNames(value)))) {
+		stop(paste("Right-hand side of assignment",
+		"operator has illegal value", omxQuotes(value)), call. = FALSE)
+	}
+	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
+	if (length(components) == 1) {
+		path <- namespaceFindPath(model, name)
+		if (is.null(path)) {
+			return(localNamespaceSearchReplace(model, name, value))
+		} else {
+			return(namespaceSearchReplaceHelper(model, name, value, path))
+		}
+	} else {
+		path <- namespaceFindPath(model, components[[1]])
+		if (is.null(path)) {
+			msg <- paste("Could not find the submodel", omxQuotes(components[[1]]),
+				"in the interior of model", omxQuotes(model@name))
+			stop(msg, call. = FALSE)
+		} else {
+			return(namespaceSearchReplaceHelper(model, components[[2]], value, path))
+		}
+	}
+}
+
+
+namespaceSearchReplaceHelper <- function(model, name, value, path) {
+	pathlen <- length(path)
+	if (pathlen == 0) {
+		stop("An internal error has occured in namespaceSearchReplace")
+	} else if (pathlen == 1) {
+		return(localNamespaceSearchReplace(model, name, value))
+	}
+	subname <- path[[2]]
+	if (pathlen == 2) {
+		submodel <- model@submodels[[subname]]
+		submodel <- localNamespaceSearchReplace(submodel, name, value)
+		model@submodels[[subname]] <- submodel
+		return(model)
+	} else {
+		remainder <- path[3:pathlen]
+		model@submodels[[subname]] <- namespaceSearchReplaceHelper(
+			model@submodels[[subname]], name, value, remainder)
+		return(model)
+	}
+}
+
+localNamespaceSearchReplace <- function(model, name, value) {
+	if (name == model@name) {
+		if (!(is.null(value) || is(value, "MxModel"))) {
+			stop(paste("Replacement for model", omxQuotes(name),
+				"is neither NULL nor MxModel object"), call. = FALSE)
+		}
+		if (!is.null(value)) {
+			value@name <- name
+		}
+		return(value)
+	} else if (name %in% names(imxReservedNames) && 
+		!is.null(imxReservedNames[[name]]@replace)) {
+		return(imxReservedNames[[name]]@replace(model, value))
+	}
+	current <- namespaceLocalSearch(model, name)
+	if (is.null(current) && is.null(value)) {
+		return(model)
+	}
+	if(!is.null(current) && !is.null(value) && 
+			!imxSameType(current, value)) {
+		stop(paste("There already exists an object", 
+				omxQuotes(name), 
+				"in this model of different type"), call. = FALSE)
+	}
+	if(!is.null(value)) {
+		value@name <- name
+		test <- value
+	} else {
+		test <- current
+	}
+	if (is(test,"MxMatrix")) {
+		model@matrices[[name]] <- value
+	} else if (is(test,"MxAlgebra")) {
+		model@algebras[[name]] <- value
+	} else if (is(test,"MxModel")) {
+		model@submodels[[name]] <- value	
+	} else if (is(test,"MxObjective")) {
+		model@objective <- value
+	} else if (is(test,"MxData")) {
+		model@data <- value
+	} else if (is(test,"MxConstraint")) {
+		model@constraints[[name]] <- value
+	} else {
+		stop(paste(test, "is of unknown value for replacement using name",
+			name, "in model", model@name), call. = FALSE)
+	}
+	return(model)
+}
+

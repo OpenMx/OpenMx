@@ -1,0 +1,16 @@
+	OpenMx Statistical Modeling
+	Copyright 2007-2012 The OpenMx Project.
+	http://www.openmx-project.org/
+	
+	This project was initially funded by the Interdisciplinary Program of the
+	National Institutes of Health Roadmap Initiative, Grant 1R21DA024304-01.
+	(http://nihroadmap.nih.gov/interdisciplinary/fundedresearch.asp)
+	
+	This project is based on the Mx statistical package (http://www.vcu.edu/mx/) authored
+	by Michael Neale of Virginia Commonwealth University.
+
+	Portions of this software were developed at the University of Virginia's
+	Human Dynamics laboratory. (http://faculty.virginia.edu/humandynamicslab/)
+	
+	Multiprocessing and Grid-enabled features are provided by Swift (formerly
+	VDL), from the University of Chicago. (http://www.ci.uchicago.edu/swift/)

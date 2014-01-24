@@ -1,0 +1,60 @@
+SimpleRegression_PathRaw	Simple regression using path-centric specification and raw data
+SimpleRegression_PathCov	Simple regression using path-centric specification and covariance data
+SimpleRegression_MatrixRaw	Simple regression using matrix (RAM) specification and raw data
+SimpleRegression_MatrixCov	Simple regression using matrix (RAM) specification and covariance data
+MultipleRegression_PathRaw	Multiple regression using path-centric specification and raw data
+MultipleRegression_PathCov	Multiple regression using path-centric specification and covariance data
+MultipleRegression_MatrixRaw	Multiple regression using matrix (RAM) specification and raw data
+MultipleRegression_MatrixCov	Multiple regression using matrix (RAM) specification and covariance data
+MultivariateRegression_PathRaw	Multivariate regression using path-centric specification and raw data
+MultivariateRegression_PathCov	Multivariate regression using path-centric specification and covariance data
+MultivariateRegression_MatrixRaw	Multivariate regression using matrix (RAM) specification and raw data
+MultivariateRegression_MatrixCov	Multivariate regression using matrix (RAM) specification and covariance data
+OneFactorMatrixDemo  One factor model from the matrix-style demo on the front page of the website.
+OneFactorPathDemo  One factor model from the path-style demo on the front page of the website.
+OneFactorModel_PathRaw	Common factor model using path-centric specification and raw data
+OneFactorModel_LikelihoodVector	Common factor model using path-centric specification and likelihood vector
+OneFactorModel_PathCov	Common factor model using path-centric specification and covariance data
+OneFactorModel_MatrixRaw	Common factor model using matrix (RAM) specification and raw data
+OneFactorModel_MatrixCov	Common factor model using matrix (RAM) specification and covariance data
+TwoFactorModel_PathRaw	Two factor model using path-centric specification and raw data
+TwoFactorModel_PathCov	Two factor model using path-centric specification and covariance data
+TwoFactorModel_MatrixRaw	Two factor model using matrix (RAM) specification and raw data
+TwoFactorModel_MatrixCov	Two factor model using matrix (RAM) specification and covariance data
+LatentGrowthCurveModel_PathRaw	Latent growth curve model using path-centric specification and raw data
+LatentGrowthCurveModel_MatrixRaw	Latent growth curve model using matrix (RAM) specification and raw data
+UnivariateSaturated_PathCov	Univariate saturated model using path-centric specification and covariance data
+UnivariateSaturated_PathRaw	Univariate saturated model using path-centric specification and raw data
+UnivariateSaturated_MatrixCov	Univariate saturated model using matrix specification and covariance data
+UnivariateSaturated_MatrixRaw	Univariate saturated model using matrix specification and raw data
+UnivariateSaturated	Univariate saturated model using path-centric/matrix specification and covariance/raw data
+UnivariateTwinAnalysis From fitting saturated models to testing model assumptions to fitting the ACE model and a submodel
+BivariateSaturated_PathCov	Bivariate saturated model using path-centric specification and covariance data
+BivariateSaturated_PathRaw	Bivariate saturated model using path-centric specification and raw data
+BivariateSaturated_MatrixCov	Bivariate saturated model using matrix specification and covariance data
+BivariateSaturated_MatrixRaw	Bivariate saturated model using matrix specification and raw data
+BivariateSaturated_MatrixCovCholesky	Bivariate saturated model using matrix specification and covariance data with Cholesky
+BivariateSaturated_MatrixRawCholesky	Bivariate saturated model using matrix specification and raw data with Cholesky
+BivariateSaturated	Bivariate saturated model using path-centric/matrix specification and covariance/raw data
+BivariateCorrelation	Bivariate saturated model testing significance of correlation using matrix specification and raw data
+BivariateHeterogeneity_PathRaw	Bivariate hetero/homogeneity model using path-centric specification and raw data
+BivariateHeterogeneity_MatrixRaw	Bivariate hetero/homogeneity model using matrix specification and raw data
+DefinitionMeans_PathRaw	Definition variable model for mean differences using path-centric specification and raw data
+DefinitionMeans_MatrixRaw	Definition variable model for mean differences using matrix specification and raw data
+UnivariateTwinAnalysis_PathRaw	Univariate ACE model using path-centric specification and raw data
+UnivariateTwinAnalysis_MatrixRaw	Univariate ACE model using matrix specification and raw data
+MatrixAlgebra	Basic matrix algebra operations
+OneFactorModelDemo	One factor matrix model demo from front page of website
+BootstrapParallel	Bootstrap model with independent submodels
+OneLocusLikelihood	One Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
+TwoLocusLikelihood	Two Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
+SimpleCheckpoint	Saving optimizer state to a file
+GrowthMixtureModel_MatrixRaw	Growth mixture model using matrix (RAM) specification and raw data
+GrowthMixtureModel_PathRaw	Growth mixture model using path specification and raw data
+GrowthMixtureModelRandomStarts	Random starting value generation for growth mixture model
+OneFactorOrdinal_MatrixRaw	One factor model using matrix specification for ordinal data
+OneFactorOrdinal01_MatrixRaw	One factor model using matrix specification for ordinal data (alternative specification)
+RowObjectiveFIMLBivariateSaturated	Implementing Full Information Maximum Likelihood using the MxRowObjective function
+RowObjectiveSimpleExamples	Basic examples of using the row-wise objective function (MxRowObjective)
+RObjectiveLISRELFactorRegression	Implementing LISREL style model specification with the MxRObjective function
+

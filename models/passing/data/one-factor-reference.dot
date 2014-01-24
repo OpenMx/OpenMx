@@ -1,0 +1,24 @@
+digraph "One Factor" {
+	 node [style=filled, fontname="Arial", fontsize=16];
+ 	 /* Manifest Variables */
+ 	 { rank = max; x1; x2; x3; x4; x5 }
+	 x1 [shape=square, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x2 [shape=square, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x3 [shape=square, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x4 [shape=square, fillcolor="#a9fab1", height=0.5, width=0.5];
+	 x5 [shape=square, fillcolor="#a9fab1", height=0.5, width=0.5];
+/* Latent Variables */
+	 G1 [shape=circle, fillcolor="#f4fd78"];
+/* Paths */
+	 G1 -> x1[dir=forward];
+	 G1 -> x2[dir=forward];
+	 G1 -> x3[dir=forward];
+	 G1 -> x4[dir=forward];
+	 G1 -> x5[dir=forward];
+	 x1 -> x1[dir=both, headport=s, tailport=s];
+	 x2 -> x2[dir=both, headport=s, tailport=s];
+	 x3 -> x3[dir=both, headport=s, tailport=s];
+	 x4 -> x4[dir=both, headport=s, tailport=s];
+	 x5 -> x5[dir=both, headport=s, tailport=s];
+	 G1 -> G1[dir=both, headport=n, tailport=n];
+}

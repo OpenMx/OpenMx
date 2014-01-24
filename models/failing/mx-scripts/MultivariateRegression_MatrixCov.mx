@@ -1,0 +1,55 @@
+#NGroups 1 
+#define latent 0
+#define infile 4
+#define meas 4
+#define m 4
+Title Multiple Regression
+Data NObservations=100 NInput=infile
+CMatrix
+    0.808
+   -0.110  1.116
+    0.089  0.539  0.933
+    0.361  0.289  0.312 0.836
+Means 2.582 0.054 2.574 4.061
+Labels w x y z
+
+ Begin Matrices; 
+  A Full m m        ! RAM specification matrices
+  S Symm m m        ! 
+  F Full meas m     ! 
+  I Iden m m        ! Identity Matrix
+  M Full 1 m        ! Means matrix
+ End Matrices; 
+
+ Specify A
+  0,1,0,2
+  0,0,0,0
+  0,3,0,4
+  0,0,0,0
+ Matrix A
+  0,1,0,1
+  0,0,0,0
+  0,1,0,1
+  0,0,0,0
+ Specify S
+  5
+  0,  6
+  0,  0, 7
+  0, 13, 0, 8
+ Matrix S
+  1
+  0,  1
+  0,  0, 1
+  0, .5, 0,  1
+ Matrix F
+  1 0 0 0
+  0 1 0 0
+  0 0 1 0
+  0 0 0 1
+ Specify M
+    9 10 11 12 
+
+ Covariance F & ((I-A)~ & S) ;  ! RAM formula
+ Means F * (I-A)~ * M';         ! Means
+ Options Rsiduals
+End

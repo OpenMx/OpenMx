@@ -1,0 +1,82 @@
+{
+   R_gzopen suppression
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:R_gzopen
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_applyClosure
+   fun:Rf_eval
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   obj:/usr/lib/R/lib/libR.so
+}
+{
+   R_uncompress suppression
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:uncompress
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_findFun
+   fun:Rf_eval
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+}
+{
+   wcslen suppression
+   Memcheck:Cond
+   fun:wcslen
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_applyClosure
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_applyClosure
+   obj:/usr/lib/R/lib/libR.so
+}
+{
+   getpwuid suppression
+   Memcheck:Leak
+   fun:malloc
+   fun:nss_parse_service_list
+   fun:__nss_database_lookup
+   obj:*
+   fun:getpwuid_r@@GLIBC_2.2.5
+   fun:getpwuid
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_applyClosure
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+}
+{
+   getgrgid suppression
+   Memcheck:Leak
+   fun:malloc
+   fun:nss_parse_service_list
+   fun:__nss_database_lookup
+   obj:*
+   fun:getgrgid_r@@GLIBC_2.2.5
+   fun:getgrgid
+   obj:/usr/lib/R/lib/libR.so
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+   fun:Rf_applyClosure
+   obj:/usr/lib/R/lib/libR.so
+   fun:Rf_eval
+}
+
+

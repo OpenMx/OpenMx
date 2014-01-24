@@ -1,0 +1,565 @@
+Release 1.4 (January 24, 2014)
+==============================
+* Compatibility with R v3.0.x and with 64-bit Windows and Mac OS X
+
+Release 1.3.2-2555 (June 18, 2013)
+==================================
+* updated tests to account for problems with MASS data generation
+
+Release 1.3.2-2301 (December 9, 2012)
+=====================================
+* detect non-conformable arrays for elementwise division in the front-end
+* fix crash in Hessian calculation when no objective function is specified
+* throw an error if standard errors are enabled and Hessian calculation is disabled
+* bug fix in multiple-iteration upper confidence interval estimation
+* support for 32-bit and 64-bit gcc4.7 on linux
+
+Release 1.3.1-2179 (October 17, 2012)
+=====================================
+* bug fix in mxRun() where a model with grandchildren submodels can
+  have its internal state corrupted
+
+Release 1.3.0-2168 (September 17, 2012)
+=======================================
+* added mxOption() for "Analytic Gradients" with possible values "Yes"/"No"
+* added 'cache' and 'cacheBack' arguments to mxEval()
+* added omxLocateParameters() function (see ?omxLocateParameters)
+* type='RAM' allowing 'manifestVars' argument to appear in a different order
+  than in the observed covariance matrix.
+* the configuration mxRun(model, checkpoint = TRUE) writes a line
+  in the checkpoint file at the conclusion of model optimization.
+* added "Always Checkpoint" to mxOptions() with values "Yes" or "No"
+* header for the checkpoint file will identify anonymous 
+  free parameters with the string modelName.matrixName[row,col]
+* omxGetParameters() and omxSetParameters() support anonymous
+  free parameters
+* implemented cov2cor in the OpenMx backend
+* mxOption "Major iterations" accepts either a value or a function
+* now tracking the MxAlgebra and MxMatrix objects that need to be updated
+  when populating free parameters or updating definition variables.
+* performance improvements in mxModel() when building RAM models
+* performance improvements in mxRun() frontend for large matrices
+* rewrite on the processing of objective functions in the frontend
+* added R functions omxCbind(), omxRbind(), and omxTranspose()
+* added 'fetch' argument to omxGetParameters()
+
+Release 1.2.5-2156 (September 5, 2012)
+======================================
+* bugfix to omxRAMtoML() when input model has covariance data
+* fixing memory leak in cleaning up algebras when optimization is complete
+* fixing memory leak in omxImaginaryEigenvalues()
+* fixed a bug that manifests in confidence intervals with definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1505)
+* fixed a bug in the identification of NA definition variables
+  (see http://openmx.psyc.virginia.edu/thread/1521)
+
+Release 1.2.4-2063 (May 22, 2012)
+=================================
+* added argument "name" to omxSetParameters()
+* error checking for 0-length arguments to mxPath()
+* fixing several memory leaks
+
+Release 1.2.3-2011 (April 10, 2012)
+===================================
+* bugfix when (I-A)^-1 speedup is disabled
+* bugfix in mxAlgebra() detection of missing operator or function
+* bugfix in joint FIML when: 1) there are no definition variables, 
+  2) the first (sorted) row with a new number of ordinal variables, and 
+  3) has all continuous variables missing
+
+Release 1.2.2-1986 (March 22, 2012)
+===================================
+* setting default value for mxOption("UsePPML") to "No" until
+  the feature is adequately tested. Added test enforcing default
+  value to test suite.
+
+Release 1.2.1-1979 (March 21, 2012)
+===================================
+* bug fix for interaction of matrix transpose and square bracket substitutions
+* renaming mxLISRELObjective() to imxLISRELObjective(), LISREL objective function is not yet implementated.
+* improved error messages when a free parameter has multiple lbounds/ubounds
+* improved error messages when passing strings into mxModel()
+* improved error messages in mxEval()
+
+Release 1.2.0-1926 (February 04, 2012)
+======================================
+* new interface such that 'objective@info$expMean', 'objective@info$expCov'
+  and 'objective@info$likelihoods' are available in FIML or RAM objective functions.
+* bug fix for omxSetParameters with lbound or ubound of NA.
+* catching unknown matrix operator or function in mxAlgebra() or mxConstraint() declaration
+* deprecated 'all' argument from mxPath function and replaced it with 'connect' argument. Also updated demos that used 'all' argument and documentation.
+* removed 'excludeself' argument from mxPath() function
+* added deprecation warning for argument 'all' = TRUE in mxPath()
+* added support for OpenMP in hessian calculation
+* added support for OpenMP in continuous FIML objective function
+* added support for OpenMP in ordinal FIML objective function
+* added support for OpenMP in joint ordinal/continuous FIML objective function
+* added more descriptive error message to mxOption()
+* serializing the sum operation on likelihoods - floating point addition is not associative
+
+Release  1.1.2-1818 (October 24, 2011)
+======================================
+* fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+* fixed bug in independence model likelihood calculation for ML objective
+* included support for gcc 4.5 and 4.6 under 32-bit x86
+
+Release  1.1.1-1784 (September 11, 2011)
+========================================
+* fixed several bugs in joint ordinal-continuous integration
+* fixed several typos in User Guide
+
+Release  1.1.0-1764 (August 22, 2011)
+=====================================
+* Joint and Ordinal documentation included and up to date.
+* added deprecation warning for argument 'all'=TRUE in mxPath()
+* added omxSelectRowsAndCols, omxSelectRows and omxSelectCols documentation
+* fixed model flattening to keep track of confidence intervals in submodels
+* added error checking for dimnames on MxMatrix and MxAlgebra objects
+* reformated comments and heading style for all demos
+* fixed segmentation fault on backend error condition
+* turn off jiggling of free parameters with starting values of 0.0 when useOptimizer=FALSE
+* allow non-RAM objective functions in RAM model
+* change model type names to 'default' and 'RAM'
+* no longer explicitly transforming RAM + raw data models into FIML models
+* fixed bug in MxMatrix indexing operator
+* added argument 'threshnames' to mxFIMLObjective() and mxRAMObjective()
+* renaming majority of omx* functions to imx* functions. See http://openmx.psyc.virginia.edu/thread/761
+* added error checking to mxOption() function
+* added "Optimality tolerance" to mxOption() selection
+* added 'lbound' and 'ubound' columns to summary() output of free parameters
+* added asterisks to the 'lbound' and 'ubound' columns when feasibility tolerance is met
+* added "omxNot" function to the set of available mxAlgebra() function
+* added "omxSelectRows", "omxSelectCols", and "omxSelectRowsAndCols" as mxAlgebra operators()
+* added "mean" function to the set of available mxAlgebra() functions
+* added slots "expCov" and "expMean" to the MxRAMObjective function
+* added useOptimizer option to mxRun.
+* added error checking in frontend and backend for non-positive-definite observed covariance matrices
+* added "omxGreaterThan", "omxLessThan", "omxApproxEquals", "omxAnd", and "omxOr" operators to the set of mxAlgebra() operators
+* error checking for model[[1]] or model[[TRUE]]
+* error checking in the front-end whether more than 20 ordinal columns are present in a data set
+* improved performance in the front-end in mxModel() for adding paths to RAM models
+* print name of algebra when operator has too few or too many arguments
+* added mxErrorPool() function and R documentation.
+* added Apache license information to all R documentation files.
+* new implementation of mxEval().
+* new argument 'defvar.row' to mxEval().  See ?mxEval.
+* handling definition variables for (I - A) ^ - 1 speedup
+* handling square bracket labels for (I - A) ^ - 1 speedup
+* added argument 'free' to omxGetParameters.  See ?omxGetParameters.
+* added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
+* eliminated warnings for confidence interval optimization codes
+* added "..." argument to mxRObjectiveFunction()
+* fix memory leak in RAM objective function
+* removed dependency to MBESS library in R documentation
+* added more descriptive error message when thresholds are not sorted
+* incorporated NaN unsafe matrix-matrix multiplication (dgemm) from R <= 2.11.1
+* incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
+* return NA in mxVersion() if "OpenMx" cannot be found
+* fix infinite loop in objective function transformations
+* added initialization to load OpenMx on swift workers
+* implemented omxParallelCI() to calculate confidence intervals in parallel
+* only calculating CIs for upper triangle of symmetric matrices
+* cleanup appearance of transient MxMatrix objects in error messages
+* fix bug with very large number of omxUntitledName() objects
+* added optional argument CPUS=n to "make test" target
+* change snowfall interface to use sfClusterApplyLB()
+* storing raw data in row-major order, and copying contiguous data rows
+* fix bug in mxModel() when using remove = TRUE
+
+Release 1.0.7-1706 (July 6, 2011)
+=================================
+* error checking in front-end for non-positive-definite observed covariance matrices
+* fix bug in MxMatrix indexing operator
+* added deprecation warning for argument 'all'=TRUE in mxPath()
+
+Release 1.0.6-1581 (March 10, 2011)
+===================================
+* Bug fix corner case in sorting data with definition variables
+
+Release 1.0.5-1575 (March 8, 2011)
+==================================
+* added error checking in ML objective to match expected covariance and observed covariance matrices
+* updated BootstrapParallel.R demo to use mxData() instead of model@data
+* added the dataset from the Psychometrika article (www.springerlink.com/content/dg37445107026711)
+
+Release 1.0.4-1540 (January 16, 2011)
+=====================================
+* added initialization to load OpenMx on swift workers
+* only calculating CIs for upper triangle on symmetric matrices
+* fix bug with very large number of omxUntitledName() objects
+* incorporated NaN unsafe matrix-vector multiplication (dgemv) from R <= 2.11.1
+* fix bug in mxModel() when using remove = TRUE
+* Added intervals to MxModel class documentation
+
+Release 1.0.3-1505 (November 10, 2010)
+======================================
+* return NA in mxVersion() if "OpenMx" cannot be found
+* eliminate infinite loop in objective function transformations
+
+Release 1.0.2-1497 (November 5, 2010)
+=====================================
+* missing <errno.h> include 
+* fix memory leak in RAM objective function
+* incorporated NaN unsafe matrix-matrix multiplication (dgemm) from R <= 2.11.1
+
+Release 1.0.1-1464 (October 8, 2010)
+====================================
+* bugfix for mxEval() and MxData objects
+* handling definition variables for (I - A) ^ - 1 speedup
+* handling square bracket labels for (I - A) ^ - 1 speedup
+* added argument 'free' to omxGetParameters.  See ?omxGetParameters.
+* added argument 'strict' to omxSetParameters.  See ?omxSetParameters.
+* eliminated warnings for confidence interval optimization codes
+
+Release 1.0.0-1448 (September 30, 2010)
+=======================================
+* added missing entries to demo 00INDEX file
+
+Release 0.9.2-1446 (September 26, 2010)
+=======================================
+* added growth mixture models to user guide
+* added initial Swift hook in omxLapply() - currenly activated only for mxRun calls
+* fixed a bug in mxRename() when encountering symbol of missingness
+* bugfix for crash when '*' is used instead of '%*%'
+* feature removal: square brackets in MxMatrix labels now accept only literal values
+* bugfix for definition variables used in mxRowObjective (which is still experimental)
+* bugfix for (I - A) ^ -1 speedup with FIML optimization
+
+Release 0.9.1-1421 (September 12, 2010)
+=======================================
+* fixed a bug in -2 LL calculation in RAM models with definition variables and raw data
+
+Release 0.9.0-1417 (September 10, 2010)
+=======================================
+* improved error messages for non 1 x n means vectors in FIML and ML
+* fixed a performance bug that was forcing too many recalculations of the covariance matrix in FIML optimizations.
+* defualt behavior is to disable standard error calculations when model contains nonlinear constraints
+* improved error messages for NA values in definition variables
+* added error message when expected covariance dimnames and threshold dimnames do not contain the same elements.
+* fixed a bug when mxRename() encounters a numeric or character literal.
+* new chapters added to OpenMx user guide.
+* fixed a bug in -2 log likelihood calculation with missing data
+
+Release 0.5.2-1376 (August 29, 2010)
+====================================
+* improved error messages when identical label is applied to free and fixed parameters
+* added 'onlyFrontend' optional argument to mxRun() function.  See ?mxRun.
+* disabling cbind() and rbind() transformations as they are broken.
+
+Release 0.5.1-1366 (August 22, 2010)
+====================================
+* added error detection when multiple names are specified in mxMatrix(), mxAlgebra(), etc.
+* removed 'digits' argument from mxCompare.  Target behavior of argument was unclear.  See ?mxCompare
+* more informative error messages for 'dimnames' argument of objective functions
+* more informative error messages when constraints have wrong dimensions
+* improved error detected for 'nrow' and 'ncol' arguments of mxMatrix() function
+* fixed a bug in ordinal FIML objective functions with non-used continuous data
+
+Release 0.5.0-1353 (August 08, 2010)
+====================================
+* calculating cycle length of RAM objective functions
+* bugfix: preserve rownames when converting data.frame columns to numeric values
+* 'nrow' and 'ncol' arguments now supercede matrix dimensions in mxMatrix()
+* add boolean argument 'vector' to mxRAMObjective() for returning the vector of likelihoods
+* added demo(OneFactorModel_LikelihoodVector) as example of 'vector=TRUE' in RAM model
+* cbind() and rbind() inside MxAlgebra expressions with all arguments as MxMatrix objects are themselves transformed into MxMatrix objects
+* bugfix with square bracket substitution
+* finishing implementing sorting of raw data in mxFIMLObjective()
+* added 'RAM Optimization' and 'RAM Max Depth' to model options.  See ?mxOption
+* added support for linux x86_64 with gcc 4.1.x
+
+Release 0.4.1-1320 (June 12, 2010)
+==================================
+* confidence interval optimizations now jitter if they can't get started
+* added error checking for dimensions of expected means in ML + FIML objectives
+* check for missing observed means when using (optional) expected means in ML
+* added citation("OpenMx") information
+
+Release 0.4.0-1313 (June 09, 2010)
+==================================
+* fixed bug in calculation of confidence intervals around non-objective values
+* checking for partial square bracket references on input
+* fixed error reporting for non-positive-definite covariances in FIML
+* implemented initial sorting-based speedup for FIML objectives
+* added 'No Sort Data' to mxOptions()
+* eliminated getOption('mxOptimizerOptions') and getOption('mxCheckpointOptions') 
+* added getOption('mxOptions')
+* error messages for illegal names provide function call information
+* added 'estimates' column to confidence intervals in summary() of model
+* fixed bug so checkpointing will work in R 2.9.x series
+* fixed bug so mxRename() works on confidence interval specification
+* renaming 'estimates' column of confidence interval summary output to 'estimate'
+
+Release 0.3.3-1264 (May 24, 2010)
+=================================
+* confidence interval frontend was requesting nonexistent matrices
+* omxNewMatrixFromMxMatrix() assumed input was always integer vector S-expression
+* confidence intervals mislabeling free parameter names
+
+Release 0.3.2-1263 (May 22, 2010)
+=================================
+* added 'newlabels' argument to omxSetParameters() function
+* now throwing errors to the user when detected from the backend in mxRun()
+* checkpointing mechanism implemented - mxRun(model, checkpoint = TRUE)
+* never computing confidence intervals for matrix cells where free = FALSE (all bets are off on algebras)
+* added mxOption(model, "CI Max Iterations", value) 
+* added documentation for mxRestore() function
+* default expected means vectors are no longer generated
+
+Release 0.3.1-1246 (May 09, 2010)
+=================================
+
+* new arguments to mxRun() for checkpointing and socket communication (doesn't work yet)
+* throw an error if FIML objective has thresholds but observed data is not a data.frame object.
+* bugfix for R version 2.11.0 is detecting as.symbol("") character as missing function parameter
+* mxFactor() function accepts data.frame objects
+* added mxCI() function to calculate likelihood-based confidence intervals
+* mxCompare() shows model information for base models
+* added flag all=[TRUE|FALSE] to mxCompare() function
+* 'SaturatedLikelihood' argument to summary() function will accept MxModel object
+
+Release 0.3.0-1217 (Apr 20, 2010)
+=================================
+
+new features
+------------
+* implemented new ordinal data interface http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
+* added mxFactor() function (see ?mxFactor for help)
+* added R documentation for rvectorize() and cvectorize()
+* implemented eigenvalues and eigenvectors
+* added 'numObs', 'numStats' arguments to mxAlgebraObjective()
+* added 'numObs', 'numStats' arguments to summary()
+
+changes to interface
+--------------------
+* mxConstraint("A", "=", "B") is now written as mxConstraint(A == B)
+* renaming 'cov' argument to 'covariance' in omxMnor()
+* renaming 'lbounds' argument to 'lbound' in omxMnor()
+* renaming 'ubounds' argument to 'ubound' in omxMnor()
+* renaming 'cov' argument to 'covariance' in omxAllInt()
+* argument 'silent = TRUE' to mxRun() will no longer suppress warnings
+* argument 'suppressWarnings = TRUE' to mxRun() will suppress warnings
+
+bug fixes
+---------
+* added error checking for mxBounds() with undefined parameter names
+* improving error messages in mxMatrix() function
+* fixed aliasing bug in mxAlgebra() with external variables and constant values
+
+internal
+--------
+* added directory to repository for nightly tests ("make nightly")
+* performance improvement to namespace conversion
+* changing MxPath data structure from a list to an S4 object
+* new signature for omxSetParameters(model, labels, free, values, lbound, ubound, indep)
+* checked in implementation of mergesort
+* changed mxCompare() signature to mxCompare(base, comparison, digits = 3)
+
+
+Release 0.2.10-1172 (Mar 14, 2010)
+==================================
+* bugfix for assigning default data name when default data does not exist
+* bugfix for sharing/unsharing data to a three-level hierarchy
+* bugfix for error reporting in bad matrix access, uncalculated std. errors, and poor omxAllint thresholds
+* implemented rvectorize, cvectorize algebra functions: vectorize by row, and vectorize by column
+* not allowing the following forbidden characters in names or labels: "+-!~?:\*/^%<>=&|$"
+* added timestamp to summary() output
+* reimplemented summary() function to handle unused data rows, and independent submodels
+* reimplemented names(model), model$foo, and model$foo <- value to return all components of a model tree
+* started work on an "OpenMx style guide" section to the User Guide.
+* fix documentation + demo errors brought to our attention by dbishop
+
+Release 0.2.9-1147 (Mar 04, 2010)
+=================================
+* bugfix for ordinal FIML with columns that are not threshold columns
+* bugfix for detection of algebraic cycles when multiple objective functions are present
+* test cases included for standard error calculation
+* enabled standard error calculation by default
+
+Release 0.2.8-1133 (Mar 02, 2010)
+=================================
+* bugfix for memory leak behavior in kronecker product calculation
+* implemented kronecker exponentiation operator %^%.
+* actually updating means calculations in ordinal FIML models
+* removing standard errors from summary() until they are computed correctly
+
+Release 0.2.7-1125 (Feb 28, 2010)
+=================================
+* added 'unsafe' argument to mxRun function.  See ?mxRun for more information.
+* bugfix for filtering definition variable assignment to current data source.
+* bugfix for using data.frame with integer type columns that are not factors.
+
+Release 0.2.6-1114 (Feb 23, 2010)
+=================================
+* implemented omxAllInt, use ?omxAllInt for R help on this function
+* implemented omxMnor, use ?omxMnor for R help on this function
+* added option to calculate Hessian after optimization.  See ?mxOption for R help.
+* added option to calculate standard errors after optimization.  See ?mxOption for R help.
+* added R documentation for vech, vechs, vec2diag, and diag2vec
+* performance improvements for independent submodels
+* added 'silent=FALSE' argument to mxRun() function
+* added R documentation for omxApply(), omxSapply(), and omxLapply()
+* wrote mxRename() and added R documentation for function
+* added 'indep' argument to summary() to ignore independent submodels (see ?summary)
+* added 'independentTime' to summary() output. Wall clock time for independent submodels.
+* added 'wallTime' and 'cpuTime' to summary() output. Total wall clock time and total cpu time.
+* implemented ':' operator for MxAlgebra expressions. 1:5 returns the vector [1,2,3,4,5]
+* implemented subranges for '[' operator in MxAlgebra expressions. foo[1:5,] is valid inside algebra.
+* added omxGetParameters, omxSetParameters, omxAssignFirstParameters.  Use ? for documentation.
+* renamed all objective function generic functions from omxObj* to genericObj*
+* enumerated OpenMx and NPSOL options in ?mxOption documentation
+* implemented foo[x,y] and foo[x,y] <- z for MxMatrix objects
+
+
+Release 0.2.5-1050 (Jan 22, 2010)
+=================================
+* added 'mxVersion' slot to output of summary() function.
+* added documentation of summary() function.
+* set default function precision for ordinal FIML evaluation to "1e-9"
+* not throwing an error on mxMatrix('Full', 3, 3, labels = c(NA, NA, NA))
+* applying identical error checking to single thresholds matrix and single thresholds algebra
+* implemented generic method names() for MxModel objects.
+* implemented vec2diag() and diag2vec() matrix algebra functions.
+
+Release 0.2.4-1038 (Jan 15, 2010)
+=================================
+* definition variables can now be used inside algebra expressions
+* definition variables inside of MxMatrices will populate to the 1st row before conformability checking. In plain english: you do not need to specify the starting values for definition variables.
+* the square-bracket operator when used in MxMatrix labels is no longer restricted to constants for the row and column.  The row and column arguments will accept any term that evaluates to a scalar value or a (1 x 1) matrix.
+* summary() on a model returns a S3 object.  Behaves like summary() in stats package.
+* eliminated UnusualLabels.R test case.  Too many problems with windows versus OS X versus linux.
+* implemented vech() and vechs() functions: half-vectorization and strict half-vectorization
+* fixed bug in ordinal FIML when # of data columns > # of thresholds
+* added 'frontendTime' and 'backendTime' values to summary() output. They store the elapsed time of a model in the R front-end and C back-end, respectively.
+* created a name space for the OpenMx library. Only mx**() and omx**() functions should be exported to the user, plus several miscellaneous matrix functions and S4 generic functions.
+* corrected 'observedStatistics' output of summary() to exclude definition variables
+* corrected 'observedStatistics' output of summary() count the number of equality constraints
+
+Release 0.2.3-1006 (Dec 04, 2009)
+=================================
+* added 'vector' argument to mxFIMLObjective() function. Specifies whether to return the likelihood vector (if TRUE) or the sum of log likelihoods (if FALSE). Default value is FALSE.
+* renamed omxCheckEquals() to omxCheckIdentical(). omxCheckIdentical() call "identical" so that NAs can be compared.
+* added checking of column names of F and M matrices in RAM objective functions.
+* added 'dimnames' argument to mxRAMObjective() function. Populates the column names of F and M matrices.
+* added square bracket operator to MxAlgebra expressions.  A[x,y] or A[,y] or A[x,] or A[,] are valid.
+* square bracket operator supports row and column string arguments.
+* mxModel(remove=TRUE) accepts both character names or S4 named entities.
+* added support for x86_64 on OS X 10.6 (snow leopard)
+* fixed support for x86_64 on Ubuntu 9.10 (gcc 4.4)
+* throw error message when inserting a named entity into a model with an identical name
+* added Anthony William Fairbank Edwards "Likelihood" (1972; 1984) A, B, O blood group example to online documentation
+
+Release 0.2.2-951 (Oct 29, 2009)
+================================
+* omxGraphviz() either prints to stdout or to a filename
+* updated omxGraphviz() to draw an arrow if (value != 0 || free == TRUE || !is.na(label))
+* omxGraphviz() returns a character string invisibly
+* error checking for bogus definition variables
+* summary() uses matrix dimnames by default, use options('mxShowDimnames'=FALSE) to disable
+* added support for gcc 4.4 (Ubuntu 9.10) on x86 and x86_64 architectures
+* created R documention for omxGraphviz() function
+* generalized dependency specification for objective functions (omxObjDependencies)
+* fixed cross-reference links in User Guide
+
+Release 0.2.1-922 (Oct 10, 2009)
+================================
+* checked observed data for dimnames on ML objective functions
+* using dimnames= argument to mxMLObjective() and mxFIMLObjective()
+  propagates to MxMatrix objects on output.
+* bug fix for error message where model name is incorrect
+* updated user guide in response to feedback from beta testers
+* incremented version number to 0.2.1-922 to sync demos and user guide
+
+Release 0.2.0-905 (Oct 06, 2009)
+================================
+* several of the twin model demo examples have been recoded.
+* fixed bug with non-floating point matrices.
+* more error checking for mxPath().
+* tools/mxAlgebraParser.py will convert Mx 1.0 algebra expressions (Python PLY library is required).
+* renamed "parameter estimate" column to "Estimate" and "error estimate" to "Std.Error" in summary().
+* added 'dimnames' argument to mxFIMLObjective() and mxMLObjective().
+* error checking for RAM models with non-RAM objective functions.
+
+Release 0.1.5-851 (Sep 25, 2009)
+================================
+* improved error messages on unknown identifier in a model (beta tester issue)
+* fixed bug in mxMatrix() when values argument is matrix and byrow=TRUE
+* implemented square-bracket substitution for MxMatrix labels
+* fixed a bug in computation of omxFIMLObjective within an algebra when definition variables are used
+* significant alterations to back-end debugging flags
+* tweaked memory handling in back-end matrix copying
+* added support for x86_64 linux with gcc 4.2 and 4.3
+
+Release 0.1.4-827 (Sep 18, 2009)
+================================
+* added checking and type coercion to arguments of mxPath() function (a beta tester alerted us to this)
+* moved matrices into submodels in UnivariateTwinAnalysis_MatrixRaw demo
+* added Beginners Guide to online documentation
+* mxRun() issues an error when the back-end reports a negative status code
+* named entities and free or fixed parameter names cannot be numeric values
+* constant literals are allowed inside mxAlgebra() statements, e.g. mxAlgebra(1 + 2 + 3)
+* constant literals can be of the form 1.234E+56 or 1.234e+56.
+* type checking added to mxMatrix arguments (prompted by a forum post)
+* mxPath() issues an error if any of the arguments are longer than the number of paths to be generated
+* data frames are now accepted at the back-end
+* FIML ordinal objective function is now working. Still a bit slow and inelegant, but working
+* FIML ordinal now accepts algebras and matrices. dimnames of columns must match data elements
+* implemented free parameter and fixed parameter substitution in mxAlgebra statements
+* implemented global variable substitution in mxAlgebra statements
+* turned off matrix and algebra substitution until a new proposal is decided
+* snow and snowfall are no longer required packages
+* added cycle detection to algebra expressions
+* mxEval() with compute = TRUE will assign dimnames to algebras
+* added dimnames checking of algebras in the front-end before optimization is called
+* added 'make rproftest' target to makefile
+
+Release 0.1.3-776 (Aug 28, 2009)
+================================
+* mxEvaluate() was renamed to mxEval() after input from beta testers on the forums.
+* new function mxVersion that prints out the current version number (beta tester request).
+* When printing OpenMx objects, the @ sign is used where it is needed if you would want to print part of the object (beta tester request).
+* now supports PPC macs.
+* implemented AIC, BIC and RMSEA calculations.
+* mxMatrix documentation now talks about lower triangular matrices (beta tester request).
+* fixed bugs in a number of demo scripts.
+* added chi-square and p-value patch from beta tester Michael Scharkow.
+* added comments to demo scripts.
+* fixed a bug in the quadratic operator  (a beta tester alerted us to this).
+* means vectors are now always 1xn matrices (beta tester request).
+* added an option "compute" to mxEval() to precompute matrix expressions without going to the optimizer.
+* Matrix algebra conformability is now tested in R at the beginning of each mxRun().
+* named entities (i.e. mxMatrices, mxAlgebras, etc.) can no longer have the same name as the label of a free parameter.  (This seems obscure, but you will like what we do with it in the next version!)
+* can use options(mxByrow=TRUE) in the R global options if you always read your matrices in with the byrow=TRUE argument.  Saves some typing.  (beta tester request)
+* fixed the standard error estimates summary.
+* added mxVersion() function to return the version number (as a string).
+
+Release 0.1.2-708 (Aug 14, 2009)
+================================
+* Added R help documentation for omxCheckCloseEnough(), omxCheckWithinPercentError(), 
+	omxCheckTrue(), omxCheckEquals(), and omxCheckSetEquals()
+
+* (mxMatrix) Fixed a bug in construction of symmetric matrixes.
+    - now supports lower, standardized, and subdiagonal matrices.
+
+Release 0.1 (Aug 03, 2009)
+==========================
+* (mxEvaluate) mxEvaluate translates MxMatrix references, MxAlgebra references,  MxObjectiveFunction references, and label references.
+
+* (mxOptions) added 'reset' argument to mxOptions()
+
+* (mxPath) renamed 'start' argument of mxPath() to 'values'
+    - renamed 'name' argument of mxPath() to 'labels'
+    - renamed 'boundMin' argument of mxPath() to 'lbound'
+    - renamed 'boundMax' argument of mxPath() to 'ubound'
+    - eliminated 'ciLower' argument of mxPath()
+    - eliminated 'ciUpper' argument of mxPath()
+    - eliminated 'description' argument of mxPath()
+
+* (dimnames) implemented dimnames(x) for MxMatrix objects
+    - implemented dimnames(x) <- value for MxMatrix objects
+    - implemented dimnames(x) for MxAlgebra objects
+    - implemented dimnames(x) <- value for MxAlgebra objects
+
+* (mxMatrix) added 'dimnames' argument to mxMatrix()
+
+* (mxData) renamed 'vector' argument of mxData() to 'means'

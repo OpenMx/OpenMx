@@ -1,0 +1,77 @@
+#NGroups 1 
+#define latent 2
+#define meas 6
+#define m 8
+Title Two-Factor Model
+Data NObservations=500 NInput=meas 
+CMatrix
+ 0.997
+ 0.642 1.025
+ 0.611 0.608 0.984
+ 0.342 0.273 0.286 0.993
+ 0.299 0.282 0.287 0.472 0.978
+ 0.337 0.287 0.264 0.467 0.507 1.059
+Means 2.988 3.011 2.986 2.955 2.956 2.967
+
+! Calculation
+ Begin Matrices; 
+  A Full 8 8        ! RAM specification matrices
+  S Symm 8 8        ! 
+  F Full meas 8     ! 
+  I Iden m m        ! Identity Matrix
+  M Full 1 m        ! Means matrix
+ End Matrices; 
+
+ Matrix A
+  0 0 0 0 0 0 1 0
+  0 0 0 0 0 0 1 0
+  0 0 0 0 0 0 1 0
+  0 0 0 0 0 0 0 1
+  0 0 0 0 0 0 0 1
+  0 0 0 0 0 0 0 1
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+ Specify A
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1 0
+  0 0 0 0 0 0 2 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 3
+  0 0 0 0 0 0 0 4
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  Matrix S
+   1
+   0 1 
+   0 0 1 
+   0 0 0 1 
+   0 0 0 0 1 
+   0 0 0 0 0 1
+   0 0 0 0 0 0  1 
+   0 0 0 0 0 0 .5  1
+   
+  Specify S
+   5
+   0 6
+   0 0 7
+   0 0 0 8
+   0 0 0 0 9
+   0 0 0 0 0 10
+   0 0 0 0 0 0 11
+   0 0 0 0 0 0 19 12
+ Matrix F
+  1 0 0 0 0 0 0 0 
+  0 1 0 0 0 0 0 0 
+  0 0 1 0 0 0 0 0 
+  0 0 0 1 0 0 0 0 
+  0 0 0 0 1 0 0 0 
+  0 0 0 0 0 1 0 0
+ Specify M
+    13 14 15 16 17 18 0 0
+ Matrix M
+    1 1 1 1 1 1 0 0
+
+ Covariance F & ((I-A)~ & S) ;      ! RAM formula
+ Means F * (I-A)~ * M';             ! Means
+ Options RS
+End
