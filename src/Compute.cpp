@@ -409,10 +409,23 @@ void FitContext::preInfo()
 {
 	size_t numParam = varGroup->vars.size();
 	size_t npsq = numParam * numParam;
+
 	if (!infoA) infoA = new double[npsq];
 	if (!infoB) infoB = new double[npsq];
-	OMXZERO(infoA, npsq);
-	OMXZERO(infoB, npsq);
+
+	switch (infoMethod) {
+	case INFO_METHOD_SANDWICH:
+	case INFO_METHOD_MEAT:
+		OMXZERO(infoB, npsq);
+	case INFO_METHOD_BREAD:
+		OMXZERO(infoA, npsq);
+		break;
+	case INFO_METHOD_HESSIAN:
+		OMXZERO(hess, npsq);
+		break;
+	default:
+		error("Unknown information matrix estimation method %d", infoMethod);
+	}
 }
 
 void FitContext::postInfo()
@@ -448,6 +461,18 @@ void FitContext::postInfo()
 			for (size_t d2=0; d2 < numParam; ++d2) {
 				int cell = d1 * numParam + d2;
 				hess[cell] = infoA[cell];
+			}
+		}
+		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
+		wanted |= FF_COMPUTE_HESSIAN;
+		break;
+	case INFO_METHOD_HESSIAN:
+		if (Global->llScale > 0) {
+			for (size_t d1=0; d1 < numParam; ++d1) {
+				for (size_t d2=0; d2 <= d1; ++d2) {
+					int cell = d1 * numParam + d2;
+					hess[cell] = -hess[cell];
+				}
 			}
 		}
 		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
@@ -1452,6 +1477,23 @@ ComputeEM::~ComputeEM()
 	if (recentFC) delete recentFC;
 }
 
+enum ComputeInfoMethod omxCompute::stringToInfoMethod(const char *iMethod)
+{
+	enum ComputeInfoMethod infoMethod;
+	if (strcmp(iMethod, "sandwich")==0) {
+		infoMethod = INFO_METHOD_SANDWICH;
+	} else if (strcmp(iMethod, "meat")==0) {
+		infoMethod = INFO_METHOD_MEAT;
+	} else if (strcmp(iMethod, "bread")==0) {
+		infoMethod = INFO_METHOD_BREAD;
+	} else if (strcmp(iMethod, "hessian")==0) {
+		infoMethod = INFO_METHOD_HESSIAN;
+	} else {
+		error("Unknown information matrix estimation method '%s'", iMethod);
+	}
+	return infoMethod;
+}
+
 void omxComputeOnce::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
@@ -1517,15 +1559,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			iMethod = CHAR(elem);
 		}
 
-		if (strcmp(iMethod, "sandwich")==0) {
-			infoMethod = INFO_METHOD_SANDWICH;
-		} else if (strcmp(iMethod, "meat")==0) {
-			infoMethod = INFO_METHOD_MEAT;
-		} else if (strcmp(iMethod, "bread")==0) {
-			infoMethod = INFO_METHOD_BREAD;
-		} else {
-			error("Unknown information matrix estimation method '%s'", iMethod);
-		}
+		infoMethod = stringToInfoMethod(iMethod);
 	}
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("ihessian")));
@@ -1637,7 +1671,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 
 	int numParams = int(fc->varGroup->vars.size());
 
-	const double scale = Global->llScale;
+	const double scale = fabs(Global->llScale);
 
 	// This function calculates the standard errors from the Hessian matrix
 	// sqrt(scale * diag(solve(hessian)))
@@ -1645,7 +1679,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	for(int i = 0; i < numParams; i++) {
 		double got = fc->ihess[i * numParams + i];
 		if (got <= 0) continue;
-		fc->stderrs[i] = sqrt(-scale * got);
+		fc->stderrs[i] = sqrt(scale * got);
 	}
 }
 

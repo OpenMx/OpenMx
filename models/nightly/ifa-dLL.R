@@ -4,6 +4,8 @@ library(rpf)
 library(numDeriv)
 #options(error = utils::recover)
 
+mxOption(NULL, 'loglikelihoodScale', -1)
+
 unpackHession <- function(deriv, np) {
   hess <- matrix(NA, nrow=np, ncol=np)
   dx <- np+1

@@ -116,6 +116,24 @@ if (1) {
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel.fit <- mxRun(cModel)
     omxCheckCloseEnough(cModel.fit@fitfunction@result, correct.LL, 1e-4)
+  
+  i1 <- mxModel(cModel,
+                mxComputeSequence(steps=list(
+                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
+                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                  mxComputeStandardError(),
+                  mxComputeHessianQuality())))
+  i1 <- mxRun(i1)
+  
+#  cat(deparse(round(i1@output$standardErrors,3)))
+  se <- c(0.085, 0.109, 0.078, 0.131, 0.199, 0.098, 0.148,  0.183, 0.104, 0.165,
+          0.134, 0.123, 0.109, 0.149, 0.095, 0.13,  0.123, 0.097, 0.186, 0.23,
+          0.124, 0.125, 0.25, 0.138, 0.135,  0.169, 0.101, 0.199, 0.188, 0.127,
+          0.084, 0.122, 0.078, 0.146,  0.232, 0.14, 0.104, 0.17, 0.128, 0.174, 0.093,
+          0.432, 0.254,  0.324, 0.175, 0.242, 0.125, 0.146, 0.265, 0.1, 0.141, 0.201,
+          0.101, 0.189, 0.192, 0.13)
+  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
+  omxCheckCloseEnough(i1@output$conditionNumber, 199, 1) 
 }
 
 omxIFAComputePlan <- function(groups) {

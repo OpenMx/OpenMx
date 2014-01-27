@@ -52,6 +52,7 @@ enum ComputeInform {
 };
 
 enum ComputeInfoMethod {
+	INFO_METHOD_HESSIAN,
 	INFO_METHOD_SANDWICH,
 	INFO_METHOD_BREAD,
 	INFO_METHOD_MEAT
@@ -146,6 +147,7 @@ class omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *glob) {};
 	void collectResultsHelper(FitContext *fc, std::vector< omxCompute* > &clist,
 				  LocalComputeResult *lcr, MxRList *out);
+	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
  public:
 	FreeVarGroup *varGroup;
 	omxCompute();

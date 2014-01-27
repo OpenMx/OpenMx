@@ -67,10 +67,10 @@ m1 <- mxModel(m1,
                 mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE, hessian=TRUE)
               )))
 m1 <- mxRun(m1)
-omxCheckCloseEnough(m1@fitfunction@result, 11850.68, .01)
-omxCheckCloseEnough(fivenum(m1@output$gradient), c(-369.32879, -14.47296, 13.1165, 50.07066, 323.04627 ), .01)
+omxCheckCloseEnough(m1@fitfunction@result, 2*11850.68, .01)
+omxCheckCloseEnough(fivenum(m1@output$gradient), 2*c(-369.32879, -14.47296, 13.1165, 50.07066, 323.04627 ), .01)
 omxCheckCloseEnough(fivenum(m1@output$hessian[m1@output$hessian != 0]),
-                    c(-53.666201, -7.6857353, -6.0121325, 89.8735155, 192.6600613 ), 1e-4)
+                    2*c(-53.666201, -7.6857353, -6.0121325, 89.8735155, 192.6600613 ), 1e-4)
 
 m1 <- mxModel(m1,
               mxData(observed=data, type="raw"),

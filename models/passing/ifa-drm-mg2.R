@@ -1,6 +1,7 @@
 library(OpenMx)
 library(rpf)
 
+mxOption(NULL, 'loglikelihoodScale', -2)  # default
 set.seed(9)
 
 numItems <- 20
@@ -74,6 +75,35 @@ if (1) {
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
+  
+  mxOption(NULL, 'loglikelihoodScale', 1)
+  i1 <- mxModel(grpModel,
+                mxComputeSequence(steps=list(
+                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
+                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                  mxComputeStandardError(),
+                  mxComputeHessianQuality())))
+  i1 <- mxRun(i1)
+  
+  #cat(deparse(round(i1@output$standardErrors,3)))
+  se <- c(0.071, 0.078, 0.076, 0.079, 0.097, 0.099, 0.132,  0.117, 0.075,
+          0.077, 0.135, 0.121, 0.081, 0.083, 0.215, 0.169,  0.111, 0.141,
+          0.121, 0.113, 0.213, 0.159, 0.074, 0.082, 0.077,  0.139, 0.084,
+          0.087, 0.095, 0.09, 0.064, 0.07, 0.135, 0.115,  0.091, 0.095, 0.097,
+          0.098, 0.096, 0.093, 0.12, 0.512, 0.072,  0.057)
+  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
+  omxCheckCloseEnough(i1@output$conditionNumber, 281, 1)
+
+  mxOption(NULL, 'loglikelihoodScale', -2)
+  i1 <- mxModel(grpModel,
+                mxComputeSequence(steps=list(
+                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
+                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                  mxComputeStandardError(),
+                  mxComputeHessianQuality())))
+  i1 <- mxRun(i1)
+  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
+  omxCheckCloseEnough(i1@output$conditionNumber, 281, 1)
 }
 
 if (0) {

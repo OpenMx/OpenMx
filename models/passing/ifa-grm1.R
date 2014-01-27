@@ -46,12 +46,12 @@ testDeriv <- mxModel(m2,
 				 mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE, hessian=TRUE, ihessian=TRUE)
 				 )))
 testDeriv <- mxRun(testDeriv)
-omxCheckCloseEnough(testDeriv@fitfunction@result, 9399.954, .01)
+omxCheckCloseEnough(testDeriv@fitfunction@result, 2*9399.954, .01)
 omxCheckCloseEnough(fivenum(testDeriv@output$gradient),
-                    c(-14424.48407, -62.52714, -2.51876, 71.87544, 14651.19963), .01)
+                    2*c(-14424.48407, -62.52714, -2.51876, 71.87544, 14651.19963), .01)
 omxCheckCloseEnough(fivenum(testDeriv@output$hessian[testDeriv@output$hessian != 0]),
-                    c(-1038404.94356, -20.82415, 0.06734, 53.01333, 1038503.00369 ), .01)
-omxCheckCloseEnough(solve(testDeriv@output$hessian), testDeriv@output$ihessian, 1e-2)
+                    2*c(-1038404.94356, -20.82415, 0.06734, 53.01333, 1038503.00369 ), .01)
+omxCheckCloseEnough(max(abs(solve(testDeriv@output$hessian) - testDeriv@output$ihessian)), 0, .001)
 
 plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
 			      mxComputeNewtonRaphson(free.set='itemParam'),
@@ -86,10 +86,12 @@ omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 2*scores[,2])/500, .95, .01)
 omxCheckTrue(m2@output$infoDefinite)
 omxCheckCloseEnough(c(m2@output$conditionNumber), 658.58, 1)
 
-se <- c(0.213, 0.16, 0.162, 0.367, 0.228, 0.168, 0.199, 0.153, 0.158,  0.138, 0.26,
-        0.236, 0.225, 0.184, 0.194, 0.217, 0.177, 0.157,  0.304, 0.149, 0.157, 0.208,
-        0.174, 0.168, 0.178, 0.26, 0.188,  0.187, 0.187, 0.203, 0.206, 0.172, 0.21,
-        0.167, 0.168, 0.17,  0.172, 0.213, 0.229, 0.182, 0.162, 0.147, 0.152, 0.196, 0.144,
-        0.145, 0.149, 0.154, 0.162, 0.191, 0.229, 0.162)
+#cat(deparse(round(m2@output$standardErrors,3)))
+
+se <- c(0.152, 0.114, 0.115, 0.261, 0.163, 0.121, 0.142,  0.109, 0.113, 0.098,
+        0.185, 0.168, 0.161, 0.132, 0.139, 0.154,  0.126, 0.113, 0.215, 0.107,
+        0.111, 0.149, 0.124, 0.12, 0.127,  0.186, 0.135, 0.134, 0.134, 0.145,
+        0.147, 0.125, 0.15, 0.12,  0.12, 0.122, 0.123, 0.152, 0.164, 0.129, 0.117,
+        0.104, 0.109,  0.139, 0.103, 0.104, 0.106, 0.109, 0.116, 0.135, 0.163, 0.115 )
   
 omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
