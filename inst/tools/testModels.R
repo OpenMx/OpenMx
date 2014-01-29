@@ -61,7 +61,8 @@ errorRecover <- function(script, index) {
 	sink(type = 'output')
 	cat(paste("Running model", index, "of",
 		length(files), script, "...\n"))
-	sink(null, type = 'output')	
+	sink(null, type = 'output')
+	mxOption(NULL, 'loglikelihoodScale', -2)
 	start <- Sys.time()
 	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
