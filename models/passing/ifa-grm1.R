@@ -95,3 +95,20 @@ se <- c(0.152, 0.114, 0.115, 0.261, 0.163, 0.121, 0.142,  0.109, 0.113, 0.098,
         0.104, 0.109,  0.139, 0.103, 0.104, 0.106, 0.109, 0.116, 0.135, 0.163, 0.115 )
   
 omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
+
+i2 <- mxModel(m2,
+              mxComputeSequence(steps=list(
+                mxComputeOnce('expectation'),
+                mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich"),
+                mxComputeStandardError(),
+                mxComputeHessianQuality())))
+i2 <- mxRun(i2, silent=TRUE)
+
+omxCheckCloseEnough(i2@output$conditionNumber, 662, 1)
+#cat(deparse(round(i2@output$standardErrors,3)))
+swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
+          0.169, 0.165, 0.154, 0.128, 0.13, 0.148, 0.121,  0.119, 0.199, 0.102,
+          0.106, 0.144, 0.117, 0.115, 0.122, 0.177,  0.132, 0.13, 0.129, 0.136,
+          0.141, 0.134, 0.145, 0.116, 0.112,  0.116, 0.116, 0.151, 0.162, 0.124,
+          0.115, 0.097, 0.104, 0.125,  0.098, 0.099, 0.104, 0.107, 0.111, 0.139, 0.156, 0.11)
+omxCheckCloseEnough(c(i2@output$standardErrors), swse, .001)

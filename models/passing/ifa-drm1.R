@@ -95,7 +95,7 @@ i1 <- mxModel(m2,
                 mxComputeOnce('fitfunction', information=TRUE, info.method="hessian"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
-i1 <- mxRun(i1)
+i1 <- mxRun(i1, silent=TRUE)
 
 #cat(deparse(round(i1@output$standardErrors,3)))
 se <- c(0.11, 0.102, 0.141, 0.131, 0.109, 0.097, 0.118, 0.099,  0.095, 0.092, 0.124,
@@ -108,10 +108,10 @@ i1 <- mxModel(m2,
                 mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
-i1 <- mxRun(i1)
+i1 <- mxRun(i1, silent=TRUE)
 se <- c(0.166, 0.111, 0.253, 0.17, 0.171, 0.104, 0.199, 0.11,  0.138, 0.095,
         0.195, 0.128, 0.158, 0.102, 0.192, 0.123, 0.149,  0.099, 0.153, 0.114)
-omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
+omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)
 em.meat <- i1@output$hessian
 
 i1 <- mxModel(m2,
@@ -120,5 +120,19 @@ i1 <- mxModel(m2,
                 mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
-i1 <- mxRun(i1)
+i1 <- mxRun(i1, silent=TRUE)
 omxCheckCloseEnough(max(abs(i1@output$hessian - em.meat)), 0, .01)
+
+i2 <- mxModel(m2,
+              mxComputeSequence(steps=list(
+                mxComputeOnce('expectation'),
+                mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich"),
+                mxComputeStandardError(),
+                mxComputeHessianQuality())))
+i2 <- mxRun(i2, silent=TRUE)
+
+omxCheckCloseEnough(i2@output$conditionNumber, 11, .1)
+#cat(deparse(round(i2@output$standardErrors,3)))
+swse <- c(0.161, 0.109, 0.238, 0.161, 0.166, 0.104, 0.194,  0.109, 0.131,
+          0.094, 0.213, 0.13, 0.167, 0.101, 0.188, 0.12,  0.157, 0.098, 0.157, 0.113)
+omxCheckCloseEnough(c(i2@output$standardErrors), swse, .001)
