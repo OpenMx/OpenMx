@@ -7,6 +7,8 @@ library(rpf)
 library(OpenMx)
 library(numDeriv)
 
+mxOption(NULL, 'loglikelihoodScale', -1)
+
 sample.size <- 1000
 numItems <- 5
 spec <- list()
