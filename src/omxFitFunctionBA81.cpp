@@ -445,9 +445,10 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 				double sqrtTmp = sqrt(tmp);
 
 				std::vector<double> gradBuf(numParam);
-				int gradOffset = 0;
+				int gradOffset = -state->paramPerItem[0];
 
 				for (size_t ix=0; ix < numItems; ++ix) {
+					gradOffset += state->paramPerItem[ix];
 					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 					if (pick == NA_INTEGER) continue;
 					pick -= 1;
@@ -464,12 +465,11 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 					(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
 					for (int par = 0; par < state->paramPerItem[ix]; ++par) {
-						int to = state->itemGradMap[gradOffset];
+						int to = state->itemGradMap[gradOffset + par];
 						if (to >= 0) {
 							gradBuf[to] -= itemDeriv[par] * sqrtTmp;
 							patGrad[to] -= itemDeriv[par] * tmp;
 						}
-						++gradOffset;
 					}
 					int derivBase = ix * state->itemDerivPadSize;
 					for (int ox=0; ox < state->itemDerivPadSize; ox++) {
@@ -515,47 +515,49 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 				for (long sx=0; sx < specificPoints; sx++) {
-					std::vector<double> gradBuf(numParam);
-					int gradOffset = 0;
-					for (size_t ix=0; ix < numItems; ++ix) {
-						int Sgroup = estate->Sgroup[ix];
+					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+						std::vector<double> gradBuf(numParam);
+						int gradOffset = -state->paramPerItem[0];
 						double lxk1 = lxk[qloc + Sgroup];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 / patternLik1;
 						double sqrtTmp = sqrt(tmp);
+						for (size_t ix=0; ix < numItems; ++ix) {
+							gradOffset += state->paramPerItem[ix];
+							if (estate->Sgroup[ix] != Sgroup) continue;
+							int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+							if (pick == NA_INTEGER) continue;
+							OMXZERO(expected.data(), estate->itemOutcomes[ix]);
+							expected[pick-1] = 1;
+							const double *spec = estate->itemSpec[ix];
+							double *iparam = omxMatrixColumn(itemParam, ix);
+							const int id = spec[RPF_ISpecID];
+							OMXZERO(itemDeriv.data(), state->itemDerivPadSize);
+							(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
+									      expected.data(), itemDeriv.data());
+							(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
-						int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-						if (pick == NA_INTEGER) continue;
-						OMXZERO(expected.data(), estate->itemOutcomes[ix]);
-						expected[pick-1] = 1;
-						const double *spec = estate->itemSpec[ix];
-						double *iparam = omxMatrixColumn(itemParam, ix);
-						const int id = spec[RPF_ISpecID];
-						OMXZERO(itemDeriv.data(), state->itemDerivPadSize);
-						(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
-								      expected.data(), itemDeriv.data());
-						(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
-
-						for (int par = 0; par < state->paramPerItem[ix]; ++par) {
-							int to = state->itemGradMap[gradOffset];
-							if (to >= 0) {
-								gradBuf[to] -= itemDeriv[par] * sqrtTmp;
-								patGrad[to] -= itemDeriv[par] * tmp;
+							for (int par = 0; par < state->paramPerItem[ix]; ++par) {
+								int to = state->itemGradMap[gradOffset + par];
+								if (to >= 0) {
+									gradBuf[to] -= itemDeriv[par] * sqrtTmp;
+									patGrad[to] -= itemDeriv[par] * tmp;
+								}
 							}
-							++gradOffset;
-						}
-						int derivBase = ix * state->itemDerivPadSize;
-						for (int ox=0; ox < state->itemDerivPadSize; ox++) {
-							int to = state->paramMap[derivBase + ox];
-							if (to >= int(numParam)) {
-								int Hto = to - numParam;
-								breadH[Hto] += abScale * itemDeriv[ox] * tmp * numIdentical[px];
+							int derivBase = ix * state->itemDerivPadSize;
+							for (int ox=0; ox < state->itemDerivPadSize; ox++) {
+								int to = state->paramMap[derivBase + ox];
+								if (to >= int(numParam)) {
+									int Hto = to - numParam;
+									breadH[Hto] += (abScale * itemDeriv[ox] *
+											tmp * numIdentical[px]);
+								}
 							}
 						}
+						addSymOuterProd(abScale * numIdentical[px], gradBuf.data(), numParam, breadG);
 					}
 					qloc += numSpecific;
 					++qx;
-					addSymOuterProd(abScale * numIdentical[px], gradBuf.data(), numParam, breadG);
 				}
 			}
 			addSymOuterProd(abScale * numIdentical[px], patGrad.data(), numParam, meat);
