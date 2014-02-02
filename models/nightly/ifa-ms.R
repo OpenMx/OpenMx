@@ -67,10 +67,7 @@ if (1) {
 
 plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
                                       mxComputeNewtonRaphson(free.set='ItemParam'),
-                                      mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))),
-                          mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
-                                     mxComputeStandardError(),
-			      mxComputeHessianQuality()))
+                                      mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")))))
 
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
@@ -81,8 +78,6 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               plan)
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
-omxCheckTrue(m2@output$infoDefinite)
-omxCheckCloseEnough(m2@output$conditionNumber, 61029, 1)
 omxCheckCloseEnough(m2@output$minimum, 50661.377, .01)
 
 #print(m2@matrices$ItemParam@values - fmfit)
@@ -90,17 +85,26 @@ print(m2@output$backendTime)
 
 n <- apply(!is.na(m2.data), 2, sum)
 
-#cat(deparse(round(c(m2@output$standardErrors), 3)))
-se <- c(0.018, 0.079, 0.079, 0.075, 0.085, 0.072, 0.073, 0.076, 0.065,
-        0.107, 0.073, 0.079, 0.075, 0.082, 0.088, 0.091, 0.07, 0.086,
-        0.078, 0.085, 0.08, 0.069, 0.077, 0.093, 0.082, 0.069, 0.072,
-        0.085, 0.083, 0.074, 0.068, 0.084, 0.094, 0.099, 0.092, 0.114,
-        0.122, 0.111, 0.097, 0.123, 0.149, 0.329, 0.269, 0.205, 0.203,
-        0.257, 0.291, 0.298, 0.252, 0.239, 0.276, 0.344, 0.28, 0.298, 
-        0.335, 0.31, 0.318, 0.349, 0.297, 0.393, 0.325, 0.329, 0.367, 
-        0.375, 0.441, 0.403, 0.39, 0.341, 0.343, 0.397, 0.468, 0.416, 
-        0.425, 0.664, 1.09, 0.656, 0.78, 1.46, 2.445, 0.809, 0.834, 1.899,  2.678)
-omxCheckCloseEnough(c(m2@output$standardErrors), se, .001)
+i1 <- mxModel(m2,
+              mxComputeSequence(steps=list(
+                mxComputeOnce('expectation'),
+                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                mxComputeStandardError(),
+                mxComputeHessianQuality())))
+i1 <- mxRun(i1, silent=TRUE)
+
+omxCheckTrue(i1@output$infoDefinite)
+omxCheckCloseEnough(i1@output$conditionNumber, 3644, 1)  # matches flexmirt
+
+#cat(deparse(round(c(i1@output$standardErrors), 3)))
+se <- c(0.019, 0.1, 0.123, 0.121, 0.119, 0.237, 0.246, 0.33, 0.417,  0.386, 0.281,
+        0.24, 0.108, 0.086, 0.072, 0.076, 0.221, 0.265,  0.138, 0.068, 0.085, 0.275,
+        0.267, 0.263, 0.196, 0.359, 0.237,  0.208, 0.203, 0.227, 0.191, 0.199, 0.225,
+        0.21, 0.215, 0.232,  0.235, 0.184, 0.179, 0.218, 0.254, 0.437, 0.26, 0.201, 0.194,
+        0.07, 0.083, 0.101, 0.089, 0.079, 0.096, 0.649, 0.549, 0.507,  0.421, 0.106, 0.102,
+        0.084, 0.093, 0.125, 0.124, 0.112, 0.127,  0.088, 0.089, 0.087, 0.109, 0.633, 0.704,
+        0.61, 0.415, 0.089,  0.089, 0.09, 0.112, 0.083, 0.092, 0.115, 0.17, 0.095, 0.11, 0.16,  0.192)
+omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)  # matches flexmirt
 
 if (0) {
   library(mirt)

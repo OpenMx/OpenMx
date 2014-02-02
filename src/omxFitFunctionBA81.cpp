@@ -445,10 +445,10 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 				double sqrtTmp = sqrt(tmp);
 
 				std::vector<double> gradBuf(numParam);
-				int gradOffset = -state->paramPerItem[0];
+				int gradOffset = 0;
 
 				for (size_t ix=0; ix < numItems; ++ix) {
-					gradOffset += state->paramPerItem[ix];
+					if (ix) gradOffset += state->paramPerItem[ix-1];
 					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 					if (pick == NA_INTEGER) continue;
 					pick -= 1;
@@ -513,17 +513,19 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			}
 			patternLik[px] = patternLik1;
 
+			// WARNING: I didn't work out the math. I just coded this the way
+			// it seems to make sense.
 			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 				for (long sx=0; sx < specificPoints; sx++) {
 					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
 						std::vector<double> gradBuf(numParam);
-						int gradOffset = -state->paramPerItem[0];
+						int gradOffset = 0;
 						double lxk1 = lxk[qloc + Sgroup];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1 / patternLik1;
 						double sqrtTmp = sqrt(tmp);
 						for (size_t ix=0; ix < numItems; ++ix) {
-							gradOffset += state->paramPerItem[ix];
+							if (ix) gradOffset += state->paramPerItem[ix-1];
 							if (estate->Sgroup[ix] != Sgroup) continue;
 							int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
 							if (pick == NA_INTEGER) continue;
