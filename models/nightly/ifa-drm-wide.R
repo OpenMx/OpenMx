@@ -40,9 +40,9 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxComputeOnce('expectation', context='EM')
               )
 m2 <- mxRun(m2)
-omxCheckCloseEnough(fivenum(m2@expectation@patternLikelihood),
+omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
                     c(-712.0873, -701.8445, -664.7972, -596.581, -225.9732), .01)
-omxCheckCloseEnough(sum(m2@expectation@em.expected), 512000, .1)
+omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 512000, .1)
 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),

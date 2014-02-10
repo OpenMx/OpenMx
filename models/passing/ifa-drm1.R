@@ -35,14 +35,14 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
 m2 <- mxRun(m2)
-omxCheckCloseEnough(sum(m2@expectation@patternLikelihood), -2032.9, .1)
-omxCheckCloseEnough(fivenum(m2@expectation@patternLikelihood),
+omxCheckCloseEnough(sum(m2@expectation@debug$patternLikelihood), -2032.9, .1)
+omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
                     c(-7.5454472, -7.3950031, -7.3950031, -6.9391761, -3.5411989), .001)
-omxCheckCloseEnough(sum(m2@expectation@em.expected), 5000, .01)
-omxCheckCloseEnough(fivenum(m2@expectation@em.expected),
+omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 5000, .01)
+omxCheckCloseEnough(fivenum(m2@expectation@debug$em.expected),
                     c(0, 5.86e-05, 0.0687802, 7.1582354, 74.1583248), .01)
 
-em.ex <- array(c(m2@expectation@em.expected), dim=c(2,31,20))
+em.ex <- array(c(m2@expectation@debug$em.expected), dim=c(2,31,20))
 em.tbl <- rbind(apply(em.ex[1,,], 2, sum)[1:numItems],
                 apply(em.ex[2,,], 2, sum)[1:numItems])
 omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table), em.tbl, .01)
@@ -82,7 +82,7 @@ omxCheckCloseEnough(m2@fitfunction@result, 6216.272, .01)
 got <- cor(c(m2@matrices$itemParam@values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
-scores <- m2@expectation@scores.out
+scores <- m2@expectation@output$scores
 omxCheckCloseEnough(scores[1:5,1], c(0.6783773, 0.2848123, -0.3438632, -0.1026575, -1.0820213), .001)
 omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804, 0.6796952), 1e-4)
 omxCheckCloseEnough(scores[,1], as.vector(ability), 3.5*max(scores[,2]))

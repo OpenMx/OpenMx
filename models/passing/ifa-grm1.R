@@ -33,11 +33,11 @@ m2 <- mxModel(model="grm1", ip.mat, m.mat, cov.mat,
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
 middle <- mxRun(m2)
-omxCheckCloseEnough(sum(middle@expectation@patternLikelihood), -9742.31, .1)
-omxCheckCloseEnough(fivenum(middle@expectation@patternLikelihood),
+omxCheckCloseEnough(sum(middle@expectation@debug$patternLikelihood), -9742.31, .1)
+omxCheckCloseEnough(fivenum(middle@expectation@debug$patternLikelihood),
                     c(-34.98313, -22.50933, -19.59691, -16.79153, -6.51683), .001)
-omxCheckCloseEnough(sum(middle@expectation@em.expected), 7000, .01)
-omxCheckCloseEnough(fivenum(middle@expectation@em.expected),
+omxCheckCloseEnough(sum(middle@expectation@debug$em.expected), 7000, .01)
+omxCheckCloseEnough(fivenum(middle@expectation@debug$em.expected),
                     c(0, 0, 0.00451, 1.61901, 80.99209), .01)
 
 testDeriv <- mxModel(m2,
@@ -77,7 +77,7 @@ omxCheckCloseEnough(m2@fitfunction@result, 13969.747, .01)
 got <- cor(c(m2@matrices$itemParam@values[ip.mat@free]),
            c(correct.mat[ip.mat@free]))
 omxCheckCloseEnough(got, .993, .01)
-scores <- m2@expectation@scores.out
+scores <- m2@expectation@output$scores
 omxCheckCloseEnough(scores[1:5,1], c(0.81609, 0.74994, -0.83515, 0.79766, 0.16879), .001)
 omxCheckCloseEnough(scores[1:5,2], c(0.43522, 0.44211, 0.4686, 0.43515, 0.3842), .001)
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 1*scores[,2])/500, .714, .01)

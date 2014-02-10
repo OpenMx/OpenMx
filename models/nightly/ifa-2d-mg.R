@@ -103,11 +103,11 @@ if (1) {
   colnames(fm.sco) <- c("group", "row", "s1", "s2", "se1", "se2", paste("cov",1:3,sep=""))
   
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,-1:-2]),
-                      cModel.eap@submodels$g1@expectation@scores.out, 1e-3)
+                      cModel.eap@submodels$g1@expectation@output$scores, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,-1:-2]),
-                      cModel.eap@submodels$g2@expectation@scores.out, 1e-3)
+                      cModel.eap@submodels$g2@expectation@output$scores, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,-1:-2]),
-                      cModel.eap@submodels$g3@expectation@scores.out, 1e-3)
+                      cModel.eap@submodels$g3@expectation@output$scores, 1e-3)
 
   cModel <- mxModel(cModel,
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),

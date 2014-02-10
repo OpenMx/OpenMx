@@ -23,16 +23,18 @@ setClass(Class = "MxExpectationBA81",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
 	   scores = "character",
-	   scores.out = "matrix",
 	   mean = "MxCharOrNumber",
 	   cov = "MxCharOrNumber",
-	   empirical.mean = "numeric",
-	   empirical.cov = "matrix",
-	   patternLikelihood = "numeric",
-	   em.expected = "numeric",
+#          empirical.mean = "numeric",     # to debug
+#          empirical.cov = "matrix",       # to debug
+#	   scores.out = "matrix",          # to output
+#	   patternLikelihood = "numeric",  # to debug
+#	   em.expected = "numeric",        # to debug
 	   dims = "character",
 	   numStats = "numeric",
-	   verbose = "logical"),
+	   verbose = "logical",
+	     output = "list",
+	     debug = "list"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
@@ -50,7 +52,6 @@ setMethod("initialize", "MxExpectationBA81",
             .Object@data <- as.integer(NA)
 	    .Object@mean <- mean
 	    .Object@cov <- cov
-	    .Object@scores.out <- matrix()
 	    .Object@verbose <- verbose
             return(.Object)
           }

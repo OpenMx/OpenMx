@@ -844,15 +844,6 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	int maxAbilities = state->maxAbilities;
 
-	SEXP Rmean, Rcov;
-	PROTECT(Rmean = allocVector(REALSXP, maxAbilities));
-	memcpy(REAL(Rmean), state->ElatentMean.data(), maxAbilities * sizeof(double));
-
-	PROTECT(Rcov = allocMatrix(REALSXP, maxAbilities, maxAbilities));
-	memcpy(REAL(Rcov), state->ElatentCov.data(), maxAbilities * maxAbilities * sizeof(double));
-
-	setAttrib(robj, install("empirical.mean"), Rmean);
-	setAttrib(robj, install("empirical.cov"), Rcov);
 	setAttrib(robj, install("numStats"), ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
 
 	if (state->type == EXPECTATION_AUGMENTED) {
@@ -873,8 +864,21 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		PROTECT(Rexpected = allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
 		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
 
-		setAttrib(robj, install("patternLikelihood"), Rlik);
-		setAttrib(robj, install("em.expected"), Rexpected);
+		MxRList dbg;
+		dbg.push_back(std::make_pair(mkChar("patternLikelihood"), Rlik));
+		dbg.push_back(std::make_pair(mkChar("em.expected"), Rexpected));
+
+		SEXP Rmean, Rcov;
+		PROTECT(Rmean = allocVector(REALSXP, maxAbilities));
+		memcpy(REAL(Rmean), state->ElatentMean.data(), maxAbilities * sizeof(double));
+
+		PROTECT(Rcov = allocMatrix(REALSXP, maxAbilities, maxAbilities));
+		memcpy(REAL(Rcov), state->ElatentCov.data(), maxAbilities * maxAbilities * sizeof(double));
+
+		dbg.push_back(std::make_pair(mkChar("mean"), Rmean));
+		dbg.push_back(std::make_pair(mkChar("cov"), Rcov));
+
+		setAttrib(robj, install("debug"), dbg.asR());
 	}
 
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
@@ -941,7 +945,9 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		}
 	}
 
-	setAttrib(robj, install("scores.out"), Rscores);
+	MxRList out;
+	out.push_back(std::make_pair(mkChar("scores"), Rscores));
+	setAttrib(robj, install("output"), out.asR());
 }
 
 static void ba81Destroy(omxExpectation *oo) {

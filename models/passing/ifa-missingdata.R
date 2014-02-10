@@ -71,11 +71,11 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', context='EM'))
   m2 <- mxRun(m2)
-  omxCheckCloseEnough(fivenum(m2@expectation@patternLikelihood),
+  omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
                       c(-6.20509, -4.8708, -3.63479, -2.5941, -1.00029), .01)
-  omxCheckCloseEnough(match(fivenum(m2@expectation@patternLikelihood), m2@expectation@patternLikelihood),
+  omxCheckCloseEnough(match(fivenum(m2@expectation@debug$patternLikelihood), m2@expectation@debug$patternLikelihood),
                       c(238L, 71L, 21L, 6L, 2L))
-  omxCheckCloseEnough(sum(m2@expectation@em.expected), 1667, .1)
+  omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 1667, .1)
 }
 
 plan <- mxComputeEM('expectation',

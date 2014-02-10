@@ -60,11 +60,11 @@ m1 <- mxModel(model="bifactor",
 	      mxComputeOnce('expectation', context='EM'))
 m1 <- mxRun(m1)
 
-omxCheckCloseEnough(sum(m1@expectation@patternLikelihood), -12629.4, .1)
-omxCheckCloseEnough(fivenum(m1@expectation@patternLikelihood),
+omxCheckCloseEnough(sum(m1@expectation@debug$patternLikelihood), -12629.4, .1)
+omxCheckCloseEnough(fivenum(m1@expectation@debug$patternLikelihood),
                     c(-15.7575854, -14.9684791, -14.0992631, -12.3467773, -3.5902924 ), 1e-4)
-omxCheckCloseEnough(sum(m1@expectation@em.expected), 20000, 1)
-omxCheckCloseEnough(fivenum(m1@expectation@em.expected),
+omxCheckCloseEnough(sum(m1@expectation@debug$em.expected), 20000, 1)
+omxCheckCloseEnough(fivenum(m1@expectation@debug$em.expected),
                     c(0, 0, 1.8e-06, 0.0034365, 43.2895967), 1e-4)
 
 m1 <- mxModel(m1,
@@ -96,7 +96,7 @@ m1 <- mxRun(m1, silent=TRUE)
 omxCheckCloseEnough(m1@output$minimum, 20859.87, .01)
 got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
 omxCheckCloseEnough(got, .977, .01)
-scores <- m1@expectation@scores.out
+scores <- m1@expectation@output$scores
 omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)
 omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
 omxCheckCloseEnough(cor(c(scores[,3]), c(theta[3,])), .679, .01)
