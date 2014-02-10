@@ -78,7 +78,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	ind = fill(11, 1, (double) 0.0);
 	DEBUG = debugToggle;
 	EMPTY = -999999.0;
-    int maxit_trace;
+    int maxit_trace = 0;
 	
 	ineqLBLength = solIneqLB.cols;
 	ineqUBLength = solIneqUB.cols;
