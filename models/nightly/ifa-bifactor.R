@@ -51,11 +51,8 @@ cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
 m1 <- mxModel(model="bifactor",
           ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(mean="mean", cov="cov",
-	     ItemSpec=items,
-	     design=design,
-	     ItemParam="ItemParam",
-	    qpoints=29),
+          mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+			    ItemSpec=items, design=design, ItemParam="ItemParam", qpoints=29),
 	      mxFitFunctionML(),
 	      mxComputeOnce('expectation', context='EM'))
 m1 <- mxRun(m1)

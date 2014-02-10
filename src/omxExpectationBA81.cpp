@@ -846,7 +846,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	setAttrib(robj, install("numStats"), ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
 
-	if (state->type == EXPECTATION_AUGMENTED) {
+	if (state->debugInternal) {
 		const double LogLargest = state->LogLargestDouble;
 		int numUnique = state->numUnique;
 		int totalOutcomes = state->totalOutcomes;
@@ -1244,6 +1244,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	PROTECT(tmp = GET_SLOT(rObj, install("verbose")));
 	state->verbose = asLogical(tmp);
+
+	PROTECT(tmp = GET_SLOT(rObj, install("debugInternal")));
+	state->debugInternal = asLogical(tmp);
 
 	PROTECT(tmp = GET_SLOT(rObj, install("qpoints")));
 	state->targetQpoints = asReal(tmp);

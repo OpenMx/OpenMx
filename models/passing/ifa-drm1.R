@@ -29,7 +29,7 @@ cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 
 m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(
+              mxExpectationBA81(debugInternal=TRUE,
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov", qpoints=31),
               mxFitFunctionML(),

@@ -65,9 +65,8 @@ if (1) {
 if (1) {
   m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items,
-                                  ItemParam="itemParam"),
+                mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+                                  ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', context='EM'))
   m2 <- mxRun(m2)
