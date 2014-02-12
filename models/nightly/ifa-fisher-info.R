@@ -35,16 +35,15 @@ compute.gradient <- function(v) {
   m1 <- mxModel(model="latent",
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=pat, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=spec,
-                                  ItemParam="ItemParam"),
+                mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+                                  ItemSpec=spec, ItemParam="ItemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation', context="EM"),
                   mxComputeOnce('fitfunction', gradient=TRUE))))
   m1.fit <- mxRun(m1, silent=TRUE)
   
-  ref <- m1.fit@expectation@patternLikelihood
+  ref <- m1.fit@expectation@debug$patternLikelihood
   
   # The gradient is computed in log likelihood units
   # but we need probability units. In log likelihood units,
