@@ -26,6 +26,7 @@
 # Revision History
 # Thu Dec 06 18:59:04 Central Standard Time 2012 -- Michael Hunter Checked in file to models/failing
 # Thu 14 Feb 2013 15:52:57 Central Standard Time -- Michael Hunter realized the model actually worked.
+# Thu 13 Feb 2014 15:06:58 Central Standard Time -- Michael Hunter removed mxConstraint and used parameter equal to result of mxAlgebra instead.
 # 
 
 
@@ -118,9 +119,8 @@ Astart[1,1] <- .66 #put starting value within bounds!
 
 smod <- mxModel(
 	name='State Space Example',
-	mxMatrix(name='A', values=Astart, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'd', 'b'), ubound=c(-.6, rep(NA, 8))),
+	mxMatrix(name='A', values=Astart, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'csym[1,1]', 'b'), ubound=c(-.6, rep(NA, 8))),
 	mxAlgebra(name='csym', -c),
-	mxConstraint(name='ccon', d == csym),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
 	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx))),
 	mxMatrix(name='D', values=0, nrow=ydim, ncol=udim, free=FALSE),
@@ -148,7 +148,7 @@ srun <- mxRun(smod)
 
 #ssmEnd-ssmBegin
 #dlmEnd-dlmBegin
-# OpenMx is 24.6 times faster then dlm
+# OpenMx is 24.6 times faster than dlm
 
 # Check likelihoods of initial parameters
 # -2LL
