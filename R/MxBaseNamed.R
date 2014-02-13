@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClass(Class = "BaseNamed",
+setClass(Class = "MxBaseNamed", 
 	 representation = representation(
 	   name = "character",
 	   "VIRTUAL"))

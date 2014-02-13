@@ -24,7 +24,7 @@ setClass(Class = "MxBaseExpectation",
 	   submodels = "MxOptionalCharOrNumber", # filled in during flattening
 	   container = "MxOptionalCharOrNumber", # filled in during flattening
 	   "VIRTUAL"),
-	 contains = "BaseNamed")
+	 contains = "MxBaseNamed")
 
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
 
