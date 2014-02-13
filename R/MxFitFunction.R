@@ -23,7 +23,7 @@ setClass(Class = "MxBaseFitFunction",
 		dependencies = "integer",
 		expectation = "integer",
 		result = "matrix", "VIRTUAL"),
-	 contains = "MxBaseNamed")
+	 contains = "BaseNamed")
 
 setClassUnion("MxFitFunction", c("NULL", "MxBaseFitFunction"))
 

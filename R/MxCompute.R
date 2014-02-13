@@ -13,15 +13,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClass(Class = "MxBaseCompute", 
+setClass(Class = "BaseCompute",
 	 representation = representation(
 	   id = "integer",
 	     output = "list",
 	     debug = "list",
 	   "VIRTUAL"),
-	 contains = "MxBaseNamed")
+	 contains = "BaseNamed")
 
-setClassUnion("MxCompute", c("NULL", "MxBaseCompute"))
+setClassUnion("Compute", c("NULL", "BaseCompute"))
 
 setGeneric("convertForBackend",
 	function(.Object, flatModel, model) {
@@ -38,7 +38,7 @@ setGeneric("assignId",
 		return(standardGeneric("assignId"))
 	})
 
-setMethod("assignId", signature("MxBaseCompute"),
+setMethod("assignId", signature("BaseCompute"),
 	function(.Object, id) {
 		.Object@id <- id
 		.Object
@@ -49,12 +49,12 @@ setGeneric("getFreeVarGroup",
 		return(standardGeneric("getFreeVarGroup"))
 	})
 
-setMethod("getFreeVarGroup", signature("MxBaseCompute"),
+setMethod("getFreeVarGroup", signature("BaseCompute"),
 	function(.Object) {
 		list()
 	})
 
-setMethod("updateFromBackend", signature("MxBaseCompute"),
+setMethod("updateFromBackend", signature("BaseCompute"),
 	function(.Object, computes) {
 		if (length(computes)) {
 			mystuff <- which(.Object@id == computes[seq(1,length(computes),2)])
@@ -70,19 +70,19 @@ setMethod("updateFromBackend", signature("MxBaseCompute"),
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeOperation",
-	 contains = "MxBaseCompute",
+setClass(Class = "ComputeOperation",
+	 contains = "BaseCompute",
 	 representation = representation(
 	   free.set = "MxOptionalChar"))
 
-setMethod("qualifyNames", signature("MxComputeOperation"),
+setMethod("qualifyNames", signature("ComputeOperation"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@free.set <- imxConvertIdentifier(.Object@free.set, modelname, namespace)
 		.Object
 	})
 
-setMethod("getFreeVarGroup", signature("MxComputeOperation"),
+setMethod("getFreeVarGroup", signature("ComputeOperation"),
 	function(.Object) {
 		if (length(.Object@free.set)) {
 			list(.Object@id, .Object@free.set)
@@ -91,7 +91,7 @@ setMethod("getFreeVarGroup", signature("MxComputeOperation"),
 		}
 	})
 
-setMethod("convertForBackend", signature("MxComputeOperation"),
+setMethod("convertForBackend", signature("ComputeOperation"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		.Object
@@ -100,7 +100,7 @@ setMethod("convertForBackend", signature("MxComputeOperation"),
 #----------------------------------------------------
 
 setClass(Class = "MxComputeOnce",
-	 contains = "MxComputeOperation",
+	 contains = "ComputeOperation",
 	 representation = representation(
 	   what = "MxCharOrNumber",
 	   verbose = "integer",
@@ -223,7 +223,7 @@ mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 #----------------------------------------------------
 
 setClass(Class = "MxComputeGradientDescent",
-	 contains = "MxComputeOperation",
+	 contains = "ComputeOperation",
 	 representation = representation(
 	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
@@ -281,7 +281,7 @@ mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
 #----------------------------------------------------
 
 setClass(Class = "MxComputeNewtonRaphson",
-	 contains = "MxComputeOperation",
+	 contains = "ComputeOperation",
 	 representation = representation(
 	   fitfunction = "MxCharOrNumber",
 	   maxIter = "integer",
@@ -332,12 +332,12 @@ mxComputeNewtonRaphson <- function(type, free.set=NULL,   # remove type arg TODO
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeSteps",
-	 contains = "MxBaseCompute",
+setClass(Class = "ComputeSteps",
+	 contains = "BaseCompute",
 	 representation = representation(
 	   steps = "list"))
 
-setMethod("getFreeVarGroup", signature("MxComputeSteps"),
+setMethod("getFreeVarGroup", signature("ComputeSteps"),
 	function(.Object) {
 		result <- list()
 		for (step in .Object@steps) {
@@ -347,7 +347,7 @@ setMethod("getFreeVarGroup", signature("MxComputeSteps"),
 		result
 	})
 
-setMethod("assignId", signature("MxComputeSteps"),
+setMethod("assignId", signature("ComputeSteps"),
 	function(.Object, id) {
 		steps <- .Object@steps
 		for (sx in 1:length(steps)) {
@@ -359,20 +359,20 @@ setMethod("assignId", signature("MxComputeSteps"),
 		.Object
 	})
 
-setMethod("qualifyNames", signature("MxComputeSteps"),
+setMethod("qualifyNames", signature("ComputeSteps"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@steps <- lapply(.Object@steps, function (c) qualifyNames(c, modelname, namespace))
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxComputeSteps"),
+setMethod("convertForBackend", signature("ComputeSteps"),
 	function(.Object, flatModel, model) {
 		.Object@steps <- lapply(.Object@steps, function (c) convertForBackend(c, flatModel, model))
 		.Object
 	})
 
-setMethod("updateFromBackend", signature("MxComputeSteps"),
+setMethod("updateFromBackend", signature("ComputeSteps"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
 		.Object@steps <- lapply(.Object@steps, function (c) updateFromBackend(c, computes))
@@ -382,7 +382,7 @@ setMethod("updateFromBackend", signature("MxComputeSteps"),
 #----------------------------------------------------
 
 setClass(Class = "MxComputeIterate",
-	 contains = "MxComputeSteps",
+	 contains = "ComputeSteps",
 	 representation = representation(
 	   maxIter = "integer",
 	   tolerance = "numeric",
@@ -428,11 +428,11 @@ setMethod("show",  "MxComputeIterate", function(object) displayMxComputeIterate(
 #----------------------------------------------------
 
 setClass(Class = "MxComputeEM",
-	 contains = "MxComputeOperation",
+	 contains = "ComputeOperation",
 	 representation = representation(
 	     what = "MxCharOrNumber",
-	     mstep.fit = "MxCompute",
-	     fit = "MxCompute",
+	     mstep.fit = "Compute",
+	     fit = "Compute",
 	     maxIter = "integer",
 	     tolerance = "numeric",
 	     verbose = "integer",
@@ -545,7 +545,7 @@ setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
 #----------------------------------------------------
 
 setClass(Class = "MxComputeEstimatedHessian",
-	 contains = "MxComputeOperation",
+	 contains = "ComputeOperation",
 	 representation = representation(
 	   fitfunction = "MxCharOrNumber",
 	     parallel = "logical",
@@ -616,7 +616,7 @@ mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction',
 #----------------------------------------------------
 
 setClass(Class = "MxComputeStandardError",
-	 contains = "MxComputeOperation")
+	 contains = "ComputeOperation")
 
 setMethod("initialize", "MxComputeStandardError",
 	  function(.Object, free.set) {
@@ -638,7 +638,7 @@ mxComputeStandardError <- function(free.set=NULL) {
 #----------------------------------------------------
 
 setClass(Class = "MxComputeHessianQuality",
-	 contains = "MxComputeOperation")
+	 contains = "ComputeOperation")
 
 setMethod("initialize", "MxComputeHessianQuality",
 	  function(.Object, free.set) {
@@ -667,7 +667,7 @@ mxComputeHessianQuality <- function(free.set=NULL) {
 #----------------------------------------------------
 
 setClass(Class = "MxComputeSequence",
-	 contains = "MxComputeSteps")
+	 contains = "ComputeSteps")
 
 setMethod("initialize", "MxComputeSequence",
 	  function(.Object, steps) {
@@ -698,15 +698,15 @@ setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequenc
 
 #----------------------------------------------------
 
-displayMxComputeOperation <- function(opt) {
+displayComputeOperation <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
 	cat("@id :", opt@id, '\n')
 	cat("@free.set :", omxQuotes(opt@free.set), '\n')
 	invisible(opt)
 }
 
-setMethod("print", "MxComputeOperation", function(x, ...) displayMxComputeOperation(x))
-setMethod("show",  "MxComputeOperation", function(object) displayMxComputeOperation(object))
+setMethod("print", "ComputeOperation", function(x, ...) displayComputeOperation(x))
+setMethod("show",  "ComputeOperation", function(object) displayComputeOperation(object))
 
 displayMxComputeGradientDescent <- function(opt) {
 	cat("@type :", omxQuotes(opt@type), '\n')
