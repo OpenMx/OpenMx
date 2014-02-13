@@ -15,6 +15,7 @@
 
 
 ##' @name MxFlatModel
+##' @title MxFlatModel
 ##'
 ##' This is an internal class and should not be used.
 ##'

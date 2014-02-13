@@ -115,7 +115,16 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/MxOptionalChar-class.Rd \
 	man/MxOptionalCharOrNumber-class.Rd \
 	man/MxOptionalLogical-class.Rd \
-	man/MxOptionalMatrix-class.Rd
+	man/MxOptionalMatrix-class.Rd \
+	man/MxOptionalNumeric-class.Rd \
+	man/mxComputeOnce.Rd \
+	man/mxComputeIterate.Rd \
+	man/mxComputeSequence.Rd \
+	man/MxLISRELModel-class.Rd \
+	man/MxRAMModel-class.Rd \
+	man/mxComputeEstimatedHessian.Rd \
+	man/mxComputeHessianQuality.Rd \
+	man/mxComputeStandardError.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)

@@ -35,7 +35,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, fixed = FALSE)
    list can be named, and the list names will be used as names for the
    dimensions.}
    \item{fixed}{If TRUE, this algebra will not be recomputed
-     automatically when things it depends on change. \link{MxComputeOnce}
+     automatically when things it depends on change. \link{mxComputeOnce}
      can be used to force it to recompute.}
 }
 

@@ -33,7 +33,7 @@ Depends:
     MASS
 Suggests:
     snowfall,
-    roxygen2,
+    roxygen2 (>= 3.1),
     mvtnorm,
     rpf (>= 0.13),
     numDeriv

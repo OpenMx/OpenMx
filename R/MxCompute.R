@@ -172,7 +172,46 @@ setMethod("initialize", "MxComputeOnce",
 		  .Object
 	  })
 
-# default info.method="sandwich" ? TODO
+##' Compute something once
+##'
+##' The information matrix is only valid when parameters are at the
+##' maximum likelihood estimate. The information matrix is returned in
+##' model@output$hessian. You cannot request both the information
+##' matrix and the Hessian. The information matrix is invarient to the
+##' sign of the log likelihood scale whereas the Hessian is not.
+##'
+##' Some models are optimized for a sparse Hessian. Therefore, it can
+##' be much more efficient to compute the inverse Hessian in
+##' comparison to computing the Hessian and then inverting it.
+##' 
+##' @param what what to compute (a vector of expectation or algebra names)
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param context set the context for expectations
+##' @param maxAbsChange compute the maximum absolute change metric
+##' @param fit compute the fit statistic (often in log likelihood units)
+##' @param gradient compute the analytic gradient
+##' @param hessian compute the analytic Hessian
+##' @param information compute the analytic information matrix
+##' @param info.method which analytic method to use to compute the information
+##' matrix (one of "hessian", "sandwich", "bread", and "meat")
+##' @param ihessian compute the analytic inverse Hessian
+##' @param hgprod not implemented
+##' @param verbose the level of debugging output
+##' @aliases
+##' MxComputeOnce-class
+##' @examples
+##' data(demoOneFactor)
+##' factorModel <- mxModel(name ="One Factor",
+##'   mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="A"),
+##'     mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+##'     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
+##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
+##'     mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
+##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
+##'     mxComputeOnce('fitfunction', fit=TRUE))
+##' factorModelFit <- mxRun(factorModel)
+##' factorModelFit@output$Minus2LogLikelihood  # 972.15
+
 mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
 			  hessian=FALSE, information=FALSE, info.method=NULL,
@@ -359,6 +398,16 @@ setMethod("initialize", "MxComputeIterate",
 		  .Object
 	  })
 
+##' Repeatedly invoke a series of compute objects until change is less than tolerance
+##'
+##' One step (typically the last) must compute the fit or maxAbsChange.
+##'
+##' @param steps a list of compute objects
+##' @param maxIter the maximum number of iterations
+##' @param tolerance iterates until change is less than tolerance
+##' @param verbose level of debugging output
+##' @aliases
+##' MxComputeIterate-class
 mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=0L) {
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
 }
@@ -531,6 +580,34 @@ setMethod("initialize", "MxComputeEstimatedHessian",
 		  .Object
 	  })
 
+##' Numerically estimate Hessian using Richardson extrapolation
+##'
+##' For N free parameters, Richardson extrapolation requires
+##' (iterations * (N^2 + N)) function evaluations.
+##' 
+##' The implementation is closely based on the numDeriv R package.
+##' 
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
+##' @param parallel whether to evaluate the fitfunction in parallel (defaults to TRUE)
+##' @param stepSize starting set size (defaults to 0.0001)
+##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
+##' @aliases
+##' MxComputeEstimatedHessian-class
+##' @examples
+##' data(demoOneFactor)
+##' factorModel <- mxModel(name ="One Factor",
+##'   mxMatrix(type="Full", nrow=5, ncol=1, free=FALSE, values=0.2, name="A"),
+##'     mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+##'     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
+##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
+##'   mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
+##'   mxFitFunctionML(),
+##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
+##'     mxComputeEstimatedHessian())
+##' factorModelFit <- mxRun(factorModel)
+##' factorModelFit@output$hessian
+
 mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L) {
 	new("MxComputeEstimatedHessian", free.set, fitfunction, parallel, stepSize, iterations)
@@ -548,6 +625,12 @@ setMethod("initialize", "MxComputeStandardError",
 		  .Object
 	  })
 
+##' Compute standard errors given the Hessian or inverse Hessian
+##'
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @aliases
+##' MxComputeStandardError-class
+
 mxComputeStandardError <- function(free.set=NULL) {
 	new("MxComputeStandardError", free.set)
 }
@@ -563,6 +646,19 @@ setMethod("initialize", "MxComputeHessianQuality",
 		  .Object@free.set <- free.set
 		  .Object
 	  })
+
+##' Compute the quality of the Hessian
+##'
+##' Tests whether the Hessian is positive definite
+##' (model@output$infoDefinite) and, if so, computes the condition
+##' number (model@output$conditionNumber). See Luenberger & Ye (2008)
+##' Second Order Test (p. 190) and Condition Number (p. 239).
+##' 
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @aliases
+##' MxComputeHessianQuality-class
+##' @references
+##' Luenberger, D. G. & Ye, Y. (2008). Linear and nonlinear programming. Springer.
 
 mxComputeHessianQuality <- function(free.set=NULL) {
 	new("MxComputeHessianQuality", free.set)
@@ -580,6 +676,11 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object
 	  })
 
+##' Invoke a series of compute objects in sequence
+##'
+##' @param steps a list of compute objects
+##' @aliases
+##' MxComputeSequence-class
 mxComputeSequence <- function(steps) {
 	new("MxComputeSequence", steps=steps)
 }
