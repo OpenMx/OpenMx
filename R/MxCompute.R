@@ -267,9 +267,44 @@ setMethod("initialize", "MxComputeGradientDescent",
 ##' linked with OpenMx. Otherwise FALSE.
 imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
-mxComputeGradientDescent <- function(type=NULL, free.set=NULL, useGradient=NULL,
+##' Optimize parameters using a gradient descent optimizer
+##'
+##' This optimizer does not require analytic derivatives of the fit
+##' function. The open-source version of OpenMx only offers 1 choice,
+##' CSOLNP (based on Ye, 1988).  The proprietary version of OpenMx
+##' offers the choice of two optimizers, CSOLNP and NPSOL.
+##'
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param useGradient whether to use the analytic gradient (if available)
+##' @param engine specific NPSOL or CSOLNP
+##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
+##' @param verbose level of debugging output
+##' @aliases
+##' MxComputeGradientDescent-class
+##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
+##' quadratic, and linearly constrained convex programming.}
+##' (Unpublished doctoral dissertation.) Stanford University, CA.
+##' @examples
+##' data(demoOneFactor)
+##' factorModel <- mxModel(name ="One Factor",
+##'   mxMatrix(type="Full", nrow=5, ncol=1, free=FALSE, values=0.2, name="A"),
+##'     mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+##'     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
+##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
+##'   mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
+##'   mxFitFunctionML(),
+##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
+##'      mxComputeSequence(steps=list(
+##'      mxComputeGradientDescent(),
+##'      mxComputeEstimatedHessian(),
+##'      mxComputeStandardError(),
+##'      mxComputeHessianQuality()
+##'     )))
+##' factorModelFit <- mxRun(factorModel)
+##' factorModelFit@output$conditionNumber # 29.5
+
+mxComputeGradientDescent <- function(free.set=NULL, useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
-# What to do with 'type'?
 
 	if (missing(engine)) {
 		engine <- options()$mxOptions[["Default optimizer"]]
@@ -323,10 +358,32 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 		  .Object
 	  })
 
-mxComputeNewtonRaphson <- function(type, free.set=NULL,   # remove type arg TODO
-				   fitfunction='fitfunction', maxIter = 100L, tolerance=1e-7,
-				   verbose=0L, carefully=FALSE) {
+##' Optimize parameters using the Newton-Raphson algorithm
+##'
+##' This optimizer requires analytic 1st and 2nd derivatives of the
+##' fit function. Ramsay (1975) is used to speed convergence. Ramsay
+##' can be differentially applied to different groups of parameters.
+##' Comprehensive diagnostics are available by increasing the verbose
+##' level. The carefully option should not be needed if the
+##' derivatives are well behaved.
+##'
+##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
+##' @param maxIter maximum number of iterations
+##' @param tolerance optimization is considered converged when maximum absolute change in parameters is less than tolerance
+##' @param verbose level of debugging output
+##' @param carefully whether to compute the fit statistic and enforce monotonicity (defaults to FALSE)
+##' @aliases
+##' MxComputeNewtonRaphson-class
+##' @references
+##' Luenberger, D. G. & Ye, Y. (2008). \emph{Linear and nonlinear programming.} Springer.
+##' 
+##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
+##' \emph{Psychometrika, 40}(3), 337-360.
 
+mxComputeNewtonRaphson <- function(free.set=NULL, fitfunction='fitfunction', maxIter = 100L,
+				   tolerance=1e-7, verbose=0L, carefully=FALSE)
+{
 	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose, carefully)
 }
 

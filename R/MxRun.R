@@ -129,10 +129,9 @@ runHelper <- function(model, frontendStart,
 			compute <- mxComputeOnce(what=fitNum, fit=TRUE)
 		} else {
 			if (options[["Calculate Hessian"]] == "No") {
-				compute <- mxComputeGradientDescent(type="Quasi-Newton",
-								    fitfunction=fitNum)
+				compute <- mxComputeGradientDescent(fitfunction=fitNum)
 			} else {
-				steps <- list(mxComputeGradientDescent(fitfunction=fitNum, type="Quasi-Newton"),
+				steps <- list(mxComputeGradientDescent(fitfunction=fitNum),
 					      mxComputeEstimatedHessian(fitfunction=fitNum))
 				if (options[["Standard Errors"]] == "Yes") {
 					steps <- c(steps, mxComputeStandardError())
