@@ -132,7 +132,7 @@ runHelper <- function(model, frontendStart,
 				compute <- mxComputeGradientDescent(fitfunction=fitNum)
 			} else {
 				steps <- list(mxComputeGradientDescent(fitfunction=fitNum),
-					      mxComputeEstimatedHessian(fitfunction=fitNum))
+					      mxComputeNumericDeriv(fitfunction=fitNum))
 				if (options[["Standard Errors"]] == "Yes") {
 					steps <- c(steps, mxComputeStandardError())
 				}

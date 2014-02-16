@@ -296,7 +296,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'      mxComputeSequence(steps=list(
 ##'      mxComputeGradientDescent(),
-##'      mxComputeEstimatedHessian(),
+##'      mxComputeNumericDeriv(),
 ##'      mxComputeStandardError(),
 ##'      mxComputeHessianQuality()
 ##'     )))
@@ -601,7 +601,7 @@ setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeEstimatedHessian",
+setClass(Class = "MxComputeNumericDeriv",
 	 contains = "ComputeOperation",
 	 representation = representation(
 	   fitfunction = "MxCharOrNumber",
@@ -609,14 +609,14 @@ setClass(Class = "MxComputeEstimatedHessian",
 	     stepSize = "numeric",
 	     iterations = "integer"))
 
-setMethod("qualifyNames", signature("MxComputeEstimatedHessian"),
+setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod();
 		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
+setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod();
 		name <- .Object@name
@@ -626,7 +626,7 @@ setMethod("convertForBackend", signature("MxComputeEstimatedHessian"),
 		.Object
 	})
 
-setMethod("initialize", "MxComputeEstimatedHessian",
+setMethod("initialize", "MxComputeNumericDeriv",
 	  function(.Object, free.set, fit, parallel, stepSize, iterations) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
@@ -650,7 +650,7 @@ setMethod("initialize", "MxComputeEstimatedHessian",
 ##' @param stepSize starting set size (defaults to 0.0001)
 ##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
 ##' @aliases
-##' MxComputeEstimatedHessian-class
+##' MxComputeNumericDeriv-class
 ##' @examples
 ##' data(demoOneFactor)
 ##' factorModel <- mxModel(name ="One Factor",
@@ -661,13 +661,13 @@ setMethod("initialize", "MxComputeEstimatedHessian",
 ##'   mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
 ##'   mxFitFunctionML(),
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
-##'     mxComputeEstimatedHessian())
+##'     mxComputeNumericDeriv())
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$hessian
 
-mxComputeEstimatedHessian <- function(free.set=NULL, fitfunction='fitfunction',
+mxComputeNumericDeriv <- function(free.set=NULL, fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L) {
-	new("MxComputeEstimatedHessian", free.set, fitfunction, parallel, stepSize, iterations)
+	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations)
 }
 
 #----------------------------------------------------

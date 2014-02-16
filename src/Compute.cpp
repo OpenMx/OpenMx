@@ -857,7 +857,7 @@ struct omxComputeTableEntry {
 };
 
 static const struct omxComputeTableEntry omxComputeTable[] = {
-        {"MxComputeEstimatedHessian", &newComputeEstimatedHessian},
+        {"MxComputeNumericDeriv", &newComputeNumericDeriv},
         {"MxComputeGradientDescent", &newComputeGradientDescent},
 	{"MxComputeSequence", &newComputeSequence },
 	{"MxComputeIterate", &newComputeIterate },

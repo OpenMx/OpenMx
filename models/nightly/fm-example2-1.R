@@ -71,7 +71,7 @@ omxCheckCloseEnough(max(abs(m3@output$hessian - m4@output$hessian)), 0, 1e-12)
 m5 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation', context=""),
-                mxComputeEstimatedHessian(parallel=FALSE, iterations=2L),
+                mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 m5 <- mxRun(m5, silent=TRUE)

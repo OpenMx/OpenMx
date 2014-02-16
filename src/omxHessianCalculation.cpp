@@ -46,7 +46,7 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
-class omxComputeEstimatedHessian : public omxCompute {
+class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;
 	double stepSize;
 	int numIter;
@@ -68,7 +68,7 @@ class omxComputeEstimatedHessian : public omxCompute {
 	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
 
  public:
-	omxComputeEstimatedHessian();
+	omxComputeNumericDeriv();
         virtual void initFromFrontend(SEXP rObj);
         virtual void compute(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -82,7 +82,7 @@ struct hess_struct {
 	omxMatrix* fitMatrix;
 };
 
-void omxComputeEstimatedHessian::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
+void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
 {
 	double *freeParams = (double*) Calloc(numParams, double);
 
@@ -103,7 +103,7 @@ void omxComputeEstimatedHessian::omxPopulateHessianWork(struct hess_struct *hess
   @params gradient       shared write-only variable
   @params hessian        shared write-only variable
  */
-void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
+void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
 {
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 	static const double eps = 1E-4;	// Kept here for access purposes.
@@ -160,7 +160,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOnDiagonal(int i, struct hess
 
 }
 
-void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
+void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
 {
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
     static const double eps = 1E-4; // Kept here for access purposes.
@@ -219,7 +219,7 @@ void omxComputeEstimatedHessian::omxEstimateHessianOffDiagonal(int i, int l, str
 
 }
 
-void omxComputeEstimatedHessian::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
+void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
 {
 	int i,j;
 
@@ -261,17 +261,17 @@ void omxComputeEstimatedHessian::doHessianCalculation(int numChildren, struct he
 	Free(offDiags);
 }
 
-void omxComputeEstimatedHessian::init()
+void omxComputeNumericDeriv::init()
 {
 	optima = NULL;
 }
 
-omxComputeEstimatedHessian::omxComputeEstimatedHessian()
+omxComputeNumericDeriv::omxComputeNumericDeriv()
 {
 	init();
 }
 
-void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
+void omxComputeNumericDeriv::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
 
@@ -292,7 +292,7 @@ void omxComputeEstimatedHessian::initFromFrontend(SEXP rObj)
 	if (stepSize <= 0) error("stepSize must be positive");
 }
 
-void omxComputeEstimatedHessian::compute(FitContext *fc)
+void omxComputeNumericDeriv::compute(FitContext *fc)
 {
 	fitContext = fc;
 	numParams = int(fc->varGroup->vars.size());
@@ -354,7 +354,7 @@ void omxComputeEstimatedHessian::compute(FitContext *fc)
 	omxFreeChildStates(globalState);
 }
 
-void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
+void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
 	SEXP calculatedHessian;
 	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
@@ -367,12 +367,12 @@ void omxComputeEstimatedHessian::reportResults(FitContext *fc, MxRList *slots, M
 	slots->push_back(std::make_pair(mkChar("output"), out.asR()));
 }
 
-omxCompute *newComputeEstimatedHessian()
+omxCompute *newComputeNumericDeriv()
 {
 	if (globalState->numConstraints != 0) {
 		error("Cannot compute estimated Hessian with constraints (%d constraints found)",
 		      globalState->numConstraints);
 	}
-	return new omxComputeEstimatedHessian;
+	return new omxComputeNumericDeriv;
 }
 

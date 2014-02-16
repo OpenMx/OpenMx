@@ -187,7 +187,7 @@ public:
 class omxCompute *omxNewCompute(omxState* os, const char *type);
 
 class omxCompute *newComputeGradientDescent();
-class omxCompute *newComputeEstimatedHessian();
+class omxCompute *newComputeNumericDeriv();
 class omxCompute *newComputeNewtonRaphson();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
