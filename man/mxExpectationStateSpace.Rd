@@ -40,9 +40,9 @@ mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P
    \item{R}{A character string indicating the name of the 'R' matrix.}
    \item{x0}{A character string indicating the name of the 'x0' matrix.}
    \item{P0}{A character string indicating the name of the 'P0' matrix.}
-   \item{dimnames}{An optional character vector to be assigned to the column names of the 'F' and 'M' matrices.}   
-   \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
-   \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
+   \item{dimnames}{An optional character vector to be assigned to the row names of the 'C' matrix.}
+   \item{thresholds}{Not Yet Implemented. An optional character string indicating the name of the thresholds matrix.}
+   \item{threshnames}{Not Yet Implemented. An optional character vector to be assigned to the column names of the thresholds matrix.}
 }
 
 \details{
@@ -72,7 +72,7 @@ The state and output equations, together with some minimal assumptions and the K
 
 The expected means vector of row \eqn{t+1} is
 
-\deqn{\hat{y}_{t+1} = C x_t + D u_t}{yhat[t+1] = C x[t] + D u[t]}
+\deqn{\hat{y}_{t+1} = C x_{t+1} + D u_{t+1}}{yhat[t+1] = C x[t+1] + D u[t+1]}
 
 The 'dimnames' arguments takes an optional character vector.  % TODO: Decide how dimnames are handled.
 %If this argument is not a single NA, then this vector be assigned to be the row names of the 'C' matrix and optionally to the '?' matrix, if the '?' matrix exists.
@@ -141,7 +141,8 @@ ssModel <- mxModel(name="State Space Manual Example",
 )
 ssRun <- mxRun(ssModel)
 summary(ssRun)
-# Note the Autoregressive parameter (A matrix) is near zero
-#  as it should be for the independent rows of data here.
+# Note the freely estimated Autoregressive parameter (A matrix)
+#  is near zero as it should be for the independent rows of data
+#  from the factor model.
 
 }
