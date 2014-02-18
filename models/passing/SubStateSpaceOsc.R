@@ -128,7 +128,8 @@ smod <- mxModel(
 	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE),
 	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
-	imxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P'),
+	mxMatrix("Zero", udim, 1, name="u"),
+	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x='x', P='P', u='u'),
 	mxFitFunctionML()
 )
 

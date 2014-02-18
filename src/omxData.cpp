@@ -290,7 +290,7 @@ omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
 		om = omxInitMatrix(om, numRows, numRows, TRUE, od->currentState);
 	}
 	if(OMX_DEBUG) {mxLog("Acov Data created at %p (%p).  Returning.", om, om->data);}
-	omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
+	omxCopyMatrix(om, od->acovMat);//omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
 	return om;
 }
 

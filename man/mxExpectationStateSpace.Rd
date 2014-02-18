@@ -26,7 +26,7 @@ This function creates a new MxExpectationStateSpace object.
 }
 
 \usage{
-mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P0", 
+mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P0", u="u",
                         dimnames = NA, thresholds = NA, threshnames = dimnames)
 }
 
@@ -40,6 +40,7 @@ mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P
    \item{R}{A character string indicating the name of the 'R' matrix.}
    \item{x0}{A character string indicating the name of the 'x0' matrix.}
    \item{P0}{A character string indicating the name of the 'P0' matrix.}
+   \item{u}{A character string indicating the name of the 'u' matrix.}
    \item{dimnames}{An optional character vector to be assigned to the row names of the 'C' matrix.}
    \item{thresholds}{Not Yet Implemented. An optional character string indicating the name of the thresholds matrix.}
    \item{threshnames}{Not Yet Implemented. An optional character vector to be assigned to the column names of the thresholds matrix.}
@@ -77,7 +78,7 @@ The expected means vector of row \eqn{t+1} is
 The 'dimnames' arguments takes an optional character vector.  % TODO: Decide how dimnames are handled.
 %If this argument is not a single NA, then this vector be assigned to be the row names of the 'C' matrix and optionally to the '?' matrix, if the '?' matrix exists.
 
-The 'A' argument refers to the \eqn{A} matrix in the State Space approach. This matrix consists of time regressive coefficients from the latent variable in column \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t+1}.  Entries in the diagonal are autoregressive coefficient.  Entries in the off-diagonal are cross-lagged regressive coefficients.  If the \eqn{A} and \eqn{B} matrices are zero matrices, then the state space model reduces to a factor analysis.  The \eqn{A} matrix is sometimes called the state-transition model.
+The 'A' argument refers to the \eqn{A} matrix in the State Space approach. This matrix consists of time regressive coefficients from the latent variable in column \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t+1}.  Entries in the diagonal are autoregressive coefficients.  Entries in the off-diagonal are cross-lagged regressive coefficients.  If the \eqn{A} and \eqn{B} matrices are zero matrices, then the state space model reduces to a factor analysis.  The \eqn{A} matrix is sometimes called the state-transition model.
 
 The 'B' argument refers to the \eqn{B} matrix in the State Space approach. This matrix consists of time regressive coefficients from the input (manifest covariate) variable \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t+1}.  The \eqn{B} matrix is sometimes called the control-input model. 
 
@@ -92,6 +93,8 @@ The 'R' argument refers to the \eqn{R} matrix in the State Space approach. This 
 The 'x0' argument refers to the \eqn{x_0}{x[0]} matrix in the State Space approach. This matrix consists of the column vector of the initial values for the latent variables. The state space expectation uses the \eqn{x_0}{x[0]} matrix as the starting point to recursively estimate the latent variables' values at each time.  These starting values can be difficult to pick, however, for sufficiently long time series they often do not greatly impact the estimation.
 
 The 'P0' argument refers to the \eqn{P_0}{P[0]} matrix in the State Space approach. This matrix consists of the initial values of the covariances of the error in the initial latent variable estimates given in \eqn{x_0}{x[0]}. That is, the \eqn{P_0}{P[0]} matrix gives the covariance of \eqn{x_0 - xtrue_0}{x[0] - xtrue[0]} where \eqn{xtrue_0}{xtrue[0]} is the vector of true initial values.  \eqn{P_0}{P[0]} is a measure of the accuracy of the intial latent state estimates. The Kalman filter uses this initial covariance to recursively generated a new covariance for each time point based on the previous time point.  The Kalman filter updates this covariance so that it is as small as possible (minimum trace). Similar to the \eqn{x_0}{x[0]} matrix, these starting values are often difficult to choose.
+
+The 'u' argument refers to the \eqn{u}{u} matrix in the State Space approach. This matrix consists of the inputs or manifest covariates of the state space expectation.  The \eqn{u}{u} matrix must be a column vector with the same number of rows as the \eqn{B} and \eqn{D} matrices have columns.  If no inputs are desired, \eqn{u} can be a zero matrix.  If time-varying inputs are desired, then they should be included as columns in the \link{MxData} object and referred to in the labels of the \eqn{u} matrix as definition variables.  There is an example of this below.
 
 
 The \link{MxMatrix} objects included as arguments may be of any type, but should have the properties described above. The mxExpectationStateSpace will not return an error for incorrect specification, but incorrect specification will likely lead to estimation problems or errors in the \link{mxRun} function.
@@ -121,7 +124,6 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \examples{
    
 # Create and fit a model using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
-
 require(OpenMx)
 data(demoOneFactor)
 nvar <- ncol(demoOneFactor)
@@ -135,8 +137,9 @@ ssModel <- mxModel(name="State Space Manual Example",
 	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
 	mxMatrix("Zero", 1, 1, name="x0"),
 	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+	mxMatrix("Zero", 1, 1, name="u"),
 	mxData(observed=demoOneFactor, type="raw"),
-	imxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
+	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
 	mxFitFunctionML()
 )
 ssRun <- mxRun(ssModel)
@@ -144,5 +147,34 @@ summary(ssRun)
 # Note the freely estimated Autoregressive parameter (A matrix)
 #  is near zero as it should be for the independent rows of data
 #  from the factor model.
+
+# Create and fit a model with INPUTS using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
+require(OpenMx)
+data(demoOneFactor)
+nvar <- ncol(demoOneFactor)
+varnames <- colnames(demoOneFactor)
+#demoOneFactorInputs <- cbind(demoOneFactor, V1=rep(1, nrow(demoOneFactor)))
+demoOneFactorInputs <- cbind(demoOneFactor, V1=rnorm(nrow(demoOneFactor)))
+ssModel <- mxModel(name="State Space Inputs Manual Example",
+	mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
+	mxMatrix("Full", 1, 1, TRUE, values=1, name="B"),
+	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
+	mxMatrix("Zero", nvar, 1, name="D"),
+	mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
+	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
+	mxMatrix("Zero", 1, 1, name="x0"),
+	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+	mxMatrix("Full", 1, 1, FALSE, labels="data.V1", name="u"),
+	mxData(observed=demoOneFactorInputs, type="raw"),
+	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", u="u"),
+	mxFitFunctionML()
+)
+ssRun <- mxRun(ssModel)
+summary(ssRun)
+# Note the freely estimated Autoregressive parameter (A matrix)
+#  and the freely estimated Control-Input parameter (B matrix)
+#  are both near zero as they should be for the independent rows of data
+#  from the factor model that does not have inputs, covariates,
+#  or exogenous variables.
 
 }

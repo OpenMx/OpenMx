@@ -152,8 +152,8 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	PROTECT(weightExt = allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
 	for(int row = 0; row < weightInt->rows; row++)
 		for(int col = 0; col < weightInt->cols; col++)
-			REAL(weightExt)[col * weightInt->rows + row] =
-				omxMatrixElement(weightInt, row, col);
+			REAL(weightExt)[col * weightInt->rows + row] = weightInt->data[col * weightInt->rows + row];
+				//omxMatrixElement(weightInt, row, col);
 	
 	
 	if(0) {  /* TODO fix for new internal API
@@ -254,7 +254,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		    return;	        
 	    }
 	}
-
+/*
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
 	    if(newObj->expectedThresholds != NULL) {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
@@ -266,7 +266,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		    return;	        
 	    }
 	}
-
+*/
     /* Error check weight matrix size */
     int ncol = newObj->observedCov->cols;
     vectorSize = (ncol * (ncol + 1) ) / 2;

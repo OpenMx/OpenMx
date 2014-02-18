@@ -349,6 +349,10 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	if(OMX_DEBUG) { mxLog("Processing initial P."); }
 	SSMexp->P0 = omxNewMatrixFromSlot(rObj, currentState, "P0");
 	
+	if(OMX_DEBUG) { mxLog("Processing u."); }
+	SSMexp->u = omxNewMatrixFromSlot(rObj, currentState, "u");
+
+	
 	
 	/* Initialize the place holder matrices used in calculations */
 	nx = SSMexp->C->cols;
@@ -375,7 +379,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->det = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
 	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
-	SSMexp->u = 	omxInitMatrix(NULL, nu, 1, TRUE, currentState);
 	SSMexp->z = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
 	SSMexp->K = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState); // Actually the tranpose of the Kalman gain
 	SSMexp->S = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);

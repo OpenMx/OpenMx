@@ -41,6 +41,7 @@ setClass(Class = "MxExpectationStateSpace",
 		R = "MxCharOrNumber",
 		x0 = "MxCharOrNumber",
 		P0 = "MxCharOrNumber",
+		u = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		definitionVars = "list",
@@ -54,7 +55,7 @@ setClass(Class = "MxExpectationStateSpace",
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationStateSpace",
-	function(.Object, A, B, C, D, Q, R, x0, P0, dims, thresholds, threshnames,
+	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -65,6 +66,7 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@R <- R
 		.Object@x0 <- x0
 		.Object@P0 <- P0
+		.Object@u <- u
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
@@ -106,6 +108,7 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 		.Object@R <- imxConvertIdentifier(.Object@R, modelname, namespace)
 		.Object@x0 <- imxConvertIdentifier(.Object@x0, modelname, namespace)
 		.Object@P0 <- imxConvertIdentifier(.Object@P0, modelname, namespace)
+		.Object@u <- imxConvertIdentifier(.Object@u, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
 		return(.Object)
@@ -113,7 +116,18 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 )
 
 
+
+
 #--------------------------------------------------------------------
+
+checkSSMNotMissing <- function(matrixobj, matrixname, modelname){
+	if(is.null(matrixobj)){
+		msg <- paste("The", matrixname, "matrix of model",
+			modelname, "is missing.")
+		stop(msg, call. = FALSE)
+	}
+}
+
 # TODO: Add lots of error checking.
 setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"), 
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
@@ -127,9 +141,10 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		rMatrix <- .Object@R
 		xMatrix <- .Object@x0
 		pMatrix <- .Object@P0
+		uMatrix <- .Object@u
 		data <- .Object@data
 		if(is.na(data)) {
-			msg <- paste("The SSM expectation function",
+			msg <- paste("The state space expectation function",
 				"does not have a dataset associated with it in model",
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
@@ -144,7 +159,13 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		.Object@R <- imxLocateIndex(flatModel, rMatrix, name)
 		.Object@x0 <- imxLocateIndex(flatModel, xMatrix, name)
 		.Object@P0 <- imxLocateIndex(flatModel, pMatrix, name)
+		.Object@u <- imxLocateIndex(flatModel, uMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
+		#
+		# Check the data has row and column names as appropriate
+		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "State Space")
+		#
+		# Change *Matrix from the string name of the matrix to the object
 		aMatrix <- flatModel[[aMatrix]]
 		bMatrix <- flatModel[[bMatrix]]
 		cMatrix <- flatModel[[cMatrix]]
@@ -153,6 +174,59 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		rMatrix <- flatModel[[rMatrix]]
 		xMatrix <- flatModel[[xMatrix]]
 		pMatrix <- flatModel[[pMatrix]]
+		uMatrix <- flatModel[[uMatrix]]
+		#
+		# Check for missing matrices or combinations of matrices
+		checkSSMNotMissing(cMatrix, 'C', omxQuotes(modelname))
+		# Check C for dimnames
+		if (is.null(dimnames(cMatrix))) {
+			msg <- paste("The C matrix of model",
+				omxQuotes(modelname), "does not contain dimnames")
+			stop(msg, call. = FALSE)
+		}
+		if (is.null(dimnames(cMatrix)[[2]])) {
+			msg <- paste("The C matrix of model",
+				omxQuotes(modelname), "does not contain colnames")
+			stop(msg, call. = FALSE)
+		}
+		checkSSMNotMissing(aMatrix, 'A', omxQuotes(modelname))
+		checkSSMNotMissing(qMatrix, 'Q', omxQuotes(modelname))
+		checkSSMNotMissing(rMatrix, 'R', omxQuotes(modelname))
+		checkSSMNotMissing(xMatrix, 'x0', omxQuotes(modelname))
+		checkSSMNotMissing(pMatrix, 'P0', omxQuotes(modelname))
+		#
+		# If any of B, D, u are not missing, then
+		#  1.  All of B, D, u must not be missing
+		#  2.  colnames of B and D must match rownames of u?
+		#  3.  ncol(B)==ncol(D)==nrow(u)
+		#  4.  ncol(u)==1
+		#  5.  nrow(B)==nrow(A), nrow(D)==nrow(C)
+		if(!is.null(bMatrix) || !is.null(dMatrix) || !is.null(uMatrix)){
+			# 1.
+			checkSSMNotMissing(bMatrix, 'B', omxQuotes(modelname))
+			checkSSMNotMissing(dMatrix, 'D', omxQuotes(modelname))
+			checkSSMNotMissing(uMatrix, 'u', omxQuotes(modelname))
+			# 2.
+			# 3.
+			if( ncol(bMatrix) != ncol(dMatrix) ){
+				msg <- paste("The B and D matrices of model",
+				omxQuotes(modelname), "do not have the same number of columns")
+			stop(msg, call. = FALSE)
+			}
+			if( ncol(bMatrix) != nrow(uMatrix) ){
+				msg <- paste("The number of columns of the B matrix",
+				"does not match the number of rows of u matrix in model",
+				omxQuotes(modelname))
+			stop(msg, call. = FALSE)
+			}
+			# 4.
+			if( ncol(uMatrix) != 1 ){
+				msg <- paste("The u matrix of model",
+				omxQuotes(modelname), "is not a column vector (Nx1 matrix).")
+			stop(msg, call. = FALSE)
+			}
+		}
+		
 		translatedNames <- c(dimnames(cMatrix)[[1]])
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
@@ -180,7 +254,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 # **DONE**
 setMethod("genericExpDependencies", signature("MxExpectationStateSpace"),
 	function(.Object, dependencies) {
-		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R, .Object@x0, .Object@P0, .Object@thresholds)
+		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R, .Object@x0, .Object@P0, .Object@u, .Object@thresholds)
 		sources <- sources[!is.na(sources)]
 		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		return(dependencies)
@@ -200,6 +274,7 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 		.Object@R <- renameReference(.Object@R, oldname, newname)
 		.Object@x0 <- renameReference(.Object@x0, oldname, newname)
 		.Object@P0 <- renameReference(.Object@P0, oldname, newname)
+		.Object@u <- renameReference(.Object@u, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
 		return(.Object)
@@ -248,7 +323,7 @@ checkSSMargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-imxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, dimnames = NA, thresholds = NA, threshnames = dimnames){
+mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames){
 	A <- checkSSMargument(A, "A")
 	B <- checkSSMargument(B, "B")
 	C <- checkSSMargument(C, "C")
@@ -257,6 +332,7 @@ imxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, dimnames = NA, th
 	R <- checkSSMargument(R, "R")
 	x0 <- checkSSMargument(x0, "x0")
 	P0 <- checkSSMargument(P0, "P0")
+	u <- checkSSMargument(u, "u")
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (single.na(threshnames)) threshnames <- as.character(NA)
@@ -281,7 +357,7 @@ imxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, dimnames = NA, th
 	if (length(threshnames) > 1 && any(is.na(threshnames))) {
 		stop("NA values are not allowed for 'threshnames' vector")
 	}
-	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, dimnames, thresholds, threshnames))
+	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames))
 }
 
 
@@ -297,6 +373,7 @@ displayMxExpectationStateSpace <- function(expectation) {
 	cat("@R :", omxQuotes(expectation@R), '\n')
 	cat("@x0 :", omxQuotes(expectation@x0), '\n')
 	cat("@P0 :", omxQuotes(expectation@P0), '\n')
+	cat("@u :", omxQuotes(expectation@u), '\n')
 	if (single.na(expectation@dims)) {
 		cat("@dims : NA \n")
 	} else {

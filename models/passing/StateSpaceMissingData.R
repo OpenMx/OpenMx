@@ -21,13 +21,13 @@
 #  I compare an SSM with no missing data to one with a little mcar missing data.
 #            an SSM as a factor model to a LISREL factor model with no missing data.
 #            an SSM as a factor model to a LISREL factor model with mcar missing data.
-# TODO: Add dimnames and variable re-ordering
 #--------------------------------------------------------------------
 
 
 #--------------------------------------------------------------------
 # Revision History
 # Tue Sep 24 12:37:20 Central Daylight Time 2013 -- Michael Hunter created file
+# Mon 17 Feb 2014 18:57:17 Central Standard Time -- Michael Hunter added dimnames and variable re-ordering
 
 
 
@@ -52,14 +52,15 @@ demoOneFactorMiss[missmat] <- NA
 ssModel <- mxModel(name="State Space Manual Example",
 	mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
 	mxMatrix("Zero", 1, 1, name="B"),
-	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
+	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")), #Note: dimnames map rows of C matrix to columns of data!
 	mxMatrix("Zero", nvar, 1, name="D"),
 	mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
 	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
 	mxMatrix("Zero", 1, 1, name="x0"),
 	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
-	mxData(observed=demoOneFactor, type="raw"),
-	imxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
+	mxMatrix("Zero", 1, 1, name="u"),
+	mxData(observed=demoOneFactor[,sample(size=5, x=names(demoOneFactor), replace=FALSE)], type="raw"),
+	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
 	mxFitFunctionML()
 )
 ssRun <- mxRun(ssModel)
@@ -76,6 +77,13 @@ ssMissParam <- summary(ssMissRun)$parameters[, c(5, 6)]
 
 # Check if missing data estimates are close to complete data ones
 omxCheckCloseEnough(ssNoMissParam, ssMissParam, epsilon=0.01)
+
+# Note: Even though the data columns are in different orders
+#  the parameter estimates are the same because the dimnames of C
+#  effectively re-arrange the columns of the data.
+head(ssRun@data@observed)
+head(ssMissRun@data@observed)
+
 
 
 #------------------------------------------------------------------------------
