@@ -139,6 +139,10 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 {
 	int mdim = 0;
 	for (int dx=0; dx < dim; ++dx) if (mask[dx]) mdim += 1;
+	if (mdim == 0) {
+		*stress = 0;
+		return;
+	}
 
 	std::vector<double> hess(mdim * mdim, 0.0);
 	for (int d1=0, px=0, m1=-1; d1 < dim; ++d1) {
