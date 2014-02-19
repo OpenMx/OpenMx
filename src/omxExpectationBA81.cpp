@@ -718,11 +718,6 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		}
 	}
 
-	const size_t numItems = state->itemSpec.size();
-	omxData *data = state->data;
-	const int *rowMap = state->rowMap;
-	omxMatrix *design = state->design;
-
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
 		if (!validPatternLik(state, denom)) {
@@ -733,17 +728,6 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 				(*cov)[px * covEntries + cx] = NA_REAL;
 			}
 			continue;
-		}
-		std::vector<bool> hasScore(maxAbilities);
-		for (size_t ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
-			if (pick == NA_INTEGER) continue;
-			const double *spec = state->itemSpec[ix];
-			int dims = spec[RPF_ISpecDims];
-			for (int dx=0; dx < dims; dx++) {
-				int ability = (int)omxMatrixElement(design, dx, ix) - 1;
-				hasScore[ability] = true;
-			}
 		}
 		for (int ax=0; ax < maxAbilities; ax++) {
 			(*mean)[px * maxAbilities + ax] /= denom;
@@ -767,12 +751,6 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			int sdim = primaryDims + sx;
 			double ma1 = (*mean)[px * maxAbilities + sdim];
 			(*cov)[px * covEntries + triangleLoc0(sdim)] -= ma1 * ma1;
-		}
-		for (int ax=0; ax < maxAbilities; ++ax) {
-			if (hasScore[ax]) continue;
-			(*mean)[px * maxAbilities + ax] = NA_REAL;
-			(*cov)[px * covEntries + triangleLoc0(ax)] = NA_REAL;
-			// maybe clear covariances also TODO
 		}
         }
 }
@@ -1096,7 +1074,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->rowMap = Realloc(NULL, numUnique, int);
 	state->numIdentical = Realloc(NULL, numUnique, int);
 
-	int numItems = state->itemParam->cols;
+	const int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
 		error("Data has %d columns for %d items", data->cols, numItems);
 	}
@@ -1148,13 +1126,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		omxRaiseErrorf(currentState, "ItemSpec must contain %d item model specifications",
 			       data->cols);
 		return;
-	}
-
-	for (int rx=0, ux=0; rx < data->rows; ux++) {
-		int dups = omxDataNumIdenticalRows(state->data, rx);
-		state->numIdentical[ux] = dups;
-		state->rowMap[ux] = rx;
-		rx += dups;
 	}
 
 	if (state->design == NULL) {
@@ -1230,6 +1201,43 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
+	}
+
+	// Rows with no information about an ability will obtain the
+	// prior distribution as an ability estimate. This will
+	// throw off multigroup latent distribution estimates.
+	for (int rx=0, ux=0; rx < data->rows; ux++) {
+		int dups = omxDataNumIdenticalRows(state->data, rx);
+		state->numIdentical[ux] = dups;
+		state->rowMap[ux] = rx;
+
+		std::vector<bool> hasScore(state->maxAbilities);
+		for (int ix=0; ix < numItems; ix++) {
+			int pick = omxIntDataElementUnsafe(data, rx, ix);
+			if (pick == NA_INTEGER) continue;
+			const double *spec = state->itemSpec[ix];
+			int dims = spec[RPF_ISpecDims];
+			int dr = 0;
+			for (int dx=0; dx < dims; dx++) {
+				int ability = (int)omxMatrixElement(state->design, dr + dx, ix);
+				while (ability == NA_INTEGER) {
+					++dr;
+					ability = (int)omxMatrixElement(state->design, dr + dx, ix);
+				}
+				// assume factor loadings are the first item parameters
+				if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;
+				hasScore[ability - 1] = true;
+			}
+		}
+		for (int ax=0; ax < state->maxAbilities; ++ax) {
+			if (!hasScore[ax]) {
+				int dest = omxDataIndex(data, ux);
+				omxRaiseErrorf(currentState,
+					       "Data row %d has no information about ability %d", 1+dest, 1+ax);
+				return;
+			}
+		}
+		rx += dups;
 	}
 
 	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {
