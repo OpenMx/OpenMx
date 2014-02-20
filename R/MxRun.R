@@ -126,7 +126,7 @@ runHelper <- function(model, frontendStart,
 		compute <- NULL
 		fitNum <- paste(model@name, 'fitfunction', sep=".")
 		if (!useOptimizer || numParam == 0) {
-			compute <- mxComputeOnce(what=fitNum, fit=TRUE)
+			compute <- mxComputeOnce(what=fitNum, fit=TRUE, .is.bestfit=TRUE)
 		} else {
 			if (options[["Calculate Hessian"]] == "No") {
 				compute <- mxComputeGradientDescent(fitfunction=fitNum)

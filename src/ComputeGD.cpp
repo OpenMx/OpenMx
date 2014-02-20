@@ -140,7 +140,7 @@ void omxComputeGD::compute(FitContext *fc)
         omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
     }
     
-	fc->wanted |= FF_COMPUTE_GRADIENT;
+	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_BESTFIT;
 
 	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
     /*printf("fc->hess in computeGD\n");

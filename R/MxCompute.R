@@ -112,7 +112,8 @@ setClass(Class = "MxComputeOnce",
 	     information = "logical",
 	     info.method = "MxOptionalChar",
 	   ihessian = "logical",
-	   hgprod = "logical"))
+	   hgprod = "logical",
+	     .is.bestfit="logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
@@ -155,7 +156,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient,
-		   hessian, information, info.method, ihessian, hgprod, verbose) {
+		   hessian, information, info.method, ihessian, hgprod, verbose, .is.bestfit) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@verbose = verbose
@@ -169,6 +170,7 @@ setMethod("initialize", "MxComputeOnce",
 		  .Object@info.method <- info.method
 		  .Object@ihessian <- ihessian
 		  .Object@hgprod <- hgprod
+		  .Object@.is.bestfit <- .is.bestfit
 		  .Object
 	  })
 
@@ -197,6 +199,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' @param ihessian compute the analytic inverse Hessian
 ##' @param hgprod not implemented
 ##' @param verbose the level of debugging output
+##' @param .is.bestfit do not use; for backward compatibility
 ##' @aliases
 ##' MxComputeOnce-class
 ##' @examples
@@ -210,14 +213,14 @@ setMethod("initialize", "MxComputeOnce",
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'     mxComputeOnce('fitfunction', fit=TRUE))
 ##' factorModelFit <- mxRun(factorModel)
-##' factorModelFit@output$Minus2LogLikelihood  # 972.15
+##' factorModelFit@output$fit  # 972.15
 
 mxComputeOnce <- function(what, free.set=NULL, context=character(0),
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
 			  hessian=FALSE, information=FALSE, info.method=NULL,
-			  ihessian=FALSE, hgprod=FALSE, verbose=0L) {
+			  ihessian=FALSE, hgprod=FALSE, verbose=0L, .is.bestfit=FALSE) {
 	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient,
-	    hessian, information, info.method, ihessian, hgprod, verbose)
+	    hessian, information, info.method, ihessian, hgprod, verbose, .is.bestfit)
 }
 
 #----------------------------------------------------

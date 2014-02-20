@@ -766,6 +766,7 @@ class omxComputeOnce : public omxCompute {
 	bool infoMat;
 	enum ComputeInfoMethod infoMethod;
 	bool hgprod;
+	bool isBestFit; // for backward compatibility
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -1233,7 +1234,8 @@ void ComputeEM::compute(FitContext *fc)
 		if (in_middle) estHistory.push_back(recentFC->take(FF_COMPUTE_ESTIMATE));
 	}
 
-	fc->wanted = FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE;
+	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
+	fc->wanted = wanted;
 	bestFit = fc->fit;
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
 				iter, maxIter,totalMstepIter, bestFit);
@@ -1409,7 +1411,7 @@ void ComputeEM::compute(FitContext *fc)
 	}
 	if (verbose >= 1) mxLog("ComputeEM: %d probes used to estimate Hessian", semProbeCount);
 
-	fc->wanted |= FF_COMPUTE_IHESSIAN;
+	fc->wanted = wanted | FF_COMPUTE_IHESSIAN;
 	//pda(ihess, freeVarsEM, freeVarsEM);
 
 	delete [] ihess;
@@ -1537,6 +1539,9 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("fit")));
 	fit = asLogical(slotValue);
 
+	PROTECT(slotValue = GET_SLOT(rObj, install(".is.bestfit")));
+	isBestFit = asLogical(slotValue);
+
 	PROTECT(slotValue = GET_SLOT(rObj, install("gradient")));
 	gradient = asLogical(slotValue);
 
@@ -1601,6 +1606,7 @@ void omxComputeOnce::compute(FitContext *fc)
 		}
 		if (fit) {
 			want |= FF_COMPUTE_FIT;
+			if (isBestFit) want |= FF_COMPUTE_BESTFIT;
 			fc->fit = 0;
 		}
 		if (gradient) {

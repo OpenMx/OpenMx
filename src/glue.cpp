@@ -384,8 +384,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		}
 
 		if (fc.wanted & FF_COMPUTE_FIT) {
-			result.push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc.fit)));
+			result.push_back(std::make_pair(mkChar("fit"), ScalarReal(fc.fit)));
 			result.push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc.fit)));
+		}
+		if (fc.wanted & FF_COMPUTE_BESTFIT) {
+			result.push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc.fit)));
 		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();

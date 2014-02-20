@@ -409,6 +409,7 @@ void ComputeNR::compute(FitContext *fc)
 
 	if (converged) {
 		fc->inform = INFORM_CONVERGED_OPTIMUM;
+		fc->wanted |= FF_COMPUTE_BESTFIT;
 		if (verbose >= 1) {
 			mxLog("Newton-Raphson converged in %d cycles (max change %.12f, max caution %.4f)",
 			      iter, maxAdj, fc->caution);

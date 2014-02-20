@@ -117,7 +117,7 @@ if (1) {
 				    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'omit'
   cModel.fit <- mxRun(cModel)
-  omxCheckCloseEnough(cModel.fit@output$minimum, correct.LL, .01)
+  omxCheckCloseEnough(cModel.fit@output$fit, correct.LL, .01)
 }
 
 if (1) {
