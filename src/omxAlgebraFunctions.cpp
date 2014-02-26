@@ -108,6 +108,17 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
+static bool isElemConformable(const char *op, omxMatrix *mat1, omxMatrix *mat2)
+{
+	if (mat1->cols == mat2->cols && mat1->rows == mat2->rows) return true;
+
+	omxRaiseErrorf(mat1->currentState,
+		       "Non-conformable matrices in %s; rows %d != %d or cols %d != %d",
+		       op, mat1->rows, mat2->rows, mat1->cols, mat2->cols);
+
+	return false;
+}
+
 void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
@@ -150,13 +161,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	if(first->cols != second->cols || first->rows != second->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in Element Powering.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-		return;
-	}
+	if (!isElemConformable("element power", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -190,14 +195,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	/* Conformability Check! */
-	if(first->cols != second->cols || first->rows != second->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in Element Multiplication.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-		return;
-	}
+	if (!isElemConformable("element multiplication", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -328,14 +326,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	/* Conformability Check! */
-	if(first->cols != second->cols || first->rows != second->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in Element Division.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-		return;
-	}
+	if (!isElemConformable("element divide", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -392,17 +383,11 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 }
 
 void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result){
-		if (OMX_DEBUG_ALGEBRA) {mxLog("ALGEBRA: Binary Or.");}
-	        omxMatrix* first = matList[0];
-		    omxMatrix* second = matList[1];
+	if (OMX_DEBUG_ALGEBRA) {mxLog("ALGEBRA: Binary Or.");}
+	omxMatrix* first = matList[0];
+	omxMatrix* second = matList[1];
 
-		if(first->cols != second->cols || first->rows != second->rows) {
-	        	char *errstr = (char*) calloc(250, sizeof(char));
-	        	sprintf(errstr, "Non-conformable matrices in Binary Or.");
-	        	omxRaiseError(result->currentState, -1, errstr);
-	        	free(errstr);
-	        	return;
-		}
+	if (!isElemConformable("binary or", first, second)) return;
 
 		int rows = first->rows;
 		int cols = first->cols;
@@ -446,13 +431,7 @@ void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
 	        omxMatrix* first = matList[0];
 		    omxMatrix* second = matList[1];
 
-		if(first->cols != second->cols || first->rows != second->rows) {
-	        	char *errstr = (char*) calloc(250, sizeof(char));
-	        	sprintf(errstr, "Non-conformable matrices in Binary And.");
-	        	omxRaiseError(result->currentState, -1, errstr);
-	        	free(errstr);
-				return;
-		}
+	if (!isElemConformable("binary and", first, second)) return;
 
 		int rows = first->rows;
 		int cols = first->cols;
@@ -496,13 +475,7 @@ void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
 	        omxMatrix* first = matList[0];
 		    omxMatrix* second = matList[1];
 
-		if(first->cols != second->cols || first->rows != second->rows) {
-	        	char *errstr = (char*) calloc(250, sizeof(char));
-	        	sprintf(errstr, "Non-conformable matrices in Binary Less Than.");
-	        	omxRaiseError(result->currentState, -1, errstr);
-	        	free(errstr);
-				return;
-		}
+	if (!isElemConformable("binary less than", first, second)) return;
 
 		int rows = first->rows;
 		int cols = first->cols;
@@ -549,13 +522,7 @@ void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
         omxMatrix* first = matList[0];
 	    omxMatrix* second = matList[1];
 
-	if(first->cols != second->cols || first->rows != second->rows) {
-        	char *errstr = (char*) calloc(250, sizeof(char));
-        	sprintf(errstr, "Non-conformable matrices in Binary Greater Than.");
-        	omxRaiseError(result->currentState, -1, errstr);
-        	free(errstr);
-			return;
-	}
+	if (!isElemConformable("binary greater than", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -604,14 +571,8 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
 	    omxMatrix* second = matList[1];
 		omxMatrix* epsilon = matList[2]; 
 		
-	if(first->cols != second->cols  || first->rows != second->rows || 
-	   first->cols != epsilon->cols || first->rows != epsilon->rows) {
-        	char *errstr = (char*) calloc(250, sizeof(char));
-        	sprintf(errstr, "Non-conformable matrices in Binary Approx Equals.");
-        	omxRaiseError(result->currentState, -1, errstr);
-        	free(errstr);
-			return;
-	}
+	if (!isElemConformable("binary approx equals", first, second)) return;
+	if (!isElemConformable("binary approx equals", first, epsilon)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -670,14 +631,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	/* Conformability Check! */
-	if(first->cols != second->cols || first->rows != second->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in Matrix Addition.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-		return;
-	}
+	if (!isElemConformable("matrix add", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -848,13 +802,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	if(first->cols != second->cols || first->rows != second->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices in Matrix Subtract.");
-		omxRaiseError(result->currentState, -1, errstr);
-		free(errstr);
-		return;
-	}
+	if (!isElemConformable("matrix subtract", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
