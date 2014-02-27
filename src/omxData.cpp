@@ -665,7 +665,8 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 }
 
 
-void omxPrintData(omxData *od, const char *header) {
+void omxPrintData(omxData *od, const char *header, int maxRows)
+{
 	if (!header) header = "Default data";
 
 	if (!od) {
@@ -678,6 +679,9 @@ void omxPrintData(omxData *od, const char *header) {
 			       od->rows, od->cols);
 	buf += string_snprintf("Row consists of %d numeric, %d ordered factor:", od->numNumeric, od->numFactor);
 
+        int upto = od->numObs;
+        if (maxRows >= 0 && maxRows < upto) upto = maxRows;
+
 	if (od->location) {
 		for(int j = 0; j < od->cols; j++) {
 			int loc = od->location[j];
@@ -689,7 +693,7 @@ void omxPrintData(omxData *od, const char *header) {
 		}
 		buf += "\n";
 
-		for (int vx=0; vx < od->numObs; vx++) {
+		for (int vx=0; vx < upto; vx++) {
 			for (int j = 0; j < od->cols; j++) {
 				int loc = od->location[j];
 				if (loc < 0) {
@@ -714,7 +718,7 @@ void omxPrintData(omxData *od, const char *header) {
 
 	if (od->identicalRows) {
 		buf += "DUPS\trow\tmissing\tdefvars\n";
-		for(int j = 0; j < od->rows; j++) {
+		for(int j = 0; j < upto; j++) {
 			buf += string_snprintf("%d\t%d\t%d\t%d\n", j, od->identicalRows[j],
 					       od->identicalMissingness[j], od->identicalDefs[j]);
 		}
@@ -723,5 +727,10 @@ void omxPrintData(omxData *od, const char *header) {
 
 	if (od->dataMat) omxPrintMatrix(od->dataMat, "dataMat");
 	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
+}
+
+void omxPrintData(omxData *od, const char *header)
+{
+        omxPrintData(od, header, -1);
 }
 

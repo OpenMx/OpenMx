@@ -131,6 +131,7 @@ void resetDefinitionVariables(double *oldDefs, int numDefs);
 
 /* Function wrappers that switch based on inclusion of algebras */
 
+void omxPrintData(omxData *od, const char *header, int maxRows);
 void omxPrintData(omxData *od, const char *header);
 
 #endif /* _OMXDATA_H_ */

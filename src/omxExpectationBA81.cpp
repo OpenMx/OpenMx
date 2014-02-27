@@ -1062,6 +1062,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (omxDataNumFactor(data) != data->cols) {
 		// verify they are ordered factors TODO
 		omxRaiseErrorf(currentState, "%s: all columns must be factors", oo->name);
+		omxPrintData(data, "data", 5);
 		return;
 	}
 
