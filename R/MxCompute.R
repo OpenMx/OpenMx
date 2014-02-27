@@ -215,7 +215,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$fit  # 972.15
 
-mxComputeOnce <- function(what, free.set=NULL, context=character(0),
+mxComputeOnce <- function(what, free.set=NULL, context="observed",
 			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
 			  hessian=FALSE, information=FALSE, info.method=NULL,
 			  ihessian=FALSE, hgprod=FALSE, verbose=0L, .is.bestfit=FALSE) {
@@ -491,8 +491,8 @@ setClass(Class = "MxComputeEM",
 	 contains = "ComputeOperation",
 	 representation = representation(
 	     what = "MxCharOrNumber",
-	     mstep.fit = "MxCompute",
-	     fit = "MxCompute",
+	     completed.fit = "MxCompute",
+	     observed.fit = "MxCompute",
 	     maxIter = "integer",
 	     tolerance = "numeric",
 	     verbose = "integer",
@@ -509,8 +509,8 @@ setClass(Class = "MxComputeEM",
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id) {
-		.Object@mstep.fit <- assignId(.Object@mstep.fit, id)
-		.Object@fit <- assignId(.Object@fit, id + 1L)
+		.Object@completed.fit <- assignId(.Object@completed.fit, id)
+		.Object@observed.fit <- assignId(.Object@observed.fit, id + 1L)
 		.Object@id <- id + 2L
 		.Object
 	})
@@ -518,7 +518,7 @@ setMethod("assignId", signature("MxComputeEM"),
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
 		result <- callNextMethod()
-		for (step in c(.Object@mstep.fit, .Object@fit)) {
+		for (step in c(.Object@completed.fit, .Object@observed.fit)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
 		}
@@ -531,7 +531,7 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 		for (sl in c('what')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
-		for (sl in c('mstep.fit', 'fit')) {
+		for (sl in c('completed.fit', 'observed.fit')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
@@ -550,7 +550,7 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 			.Object@what <- expNum - 1L
 		}
 		if (length(.Object@what) == 0) warning("MxComputeEM with nothing will have no effect")
-		for (sl in c('mstep.fit', 'fit')) {
+		for (sl in c('completed.fit', 'observed.fit')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		.Object
@@ -559,19 +559,19 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 setMethod("updateFromBackend", signature("MxComputeEM"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
-		.Object@mstep.fit <- updateFromBackend(.Object@mstep.fit, computes)
-		.Object@fit <- updateFromBackend(.Object@fit, computes)
+		.Object@completed.fit <- updateFromBackend(.Object@completed.fit, computes)
+		.Object@observed.fit <- updateFromBackend(.Object@observed.fit, computes)
 		.Object
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, what, mstep.fit, fit, maxIter, tolerance,
+	  function(.Object, what, completed.fit, observed.fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
 		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
-		  .Object@mstep.fit <- mstep.fit
-		  .Object@fit <- fit
+		  .Object@completed.fit <- completed.fit
+		  .Object@observed.fit <- observed.fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
@@ -588,12 +588,12 @@ setMethod("initialize", "MxComputeEM",
 		  .Object
 	  })
 
-mxComputeEM <- function(expectation, mstep.fit, fit, maxIter=500L, tolerance=1e-4,
+mxComputeEM <- function(expectation, completed.fit, observed.fit, maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-3), noiseTolerance=exp(1.5),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
 			semForcePD=TRUE) {
 	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
-	new("MxComputeEM", what=expectation, mstep.fit, fit, maxIter=maxIter,
+	new("MxComputeEM", what=expectation, completed.fit, observed.fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
 	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD)
 }

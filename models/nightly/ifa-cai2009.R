@@ -89,7 +89,7 @@ if (1) {
     rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
   
   cModel <- mxModel(model="cModel", g1,g2,
-                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'))
+                    mxComputeOnce(paste(groups, 'expectation', sep='.')))
 #  cModel <- mxOption(cModel, "Number of Threads", 1)
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
   cModel.eap <- mxRun(cModel)

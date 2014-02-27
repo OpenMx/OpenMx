@@ -66,7 +66,7 @@ m3 <- mxRun(m3, silent=TRUE)
 
 m5 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context=""),
+                mxComputeOnce('expectation'),
                 mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
@@ -79,7 +79,7 @@ if (0) {
     ip.mat@values[,] <- pt
     m6 <-mxModel(m2, ip.mat,
                  mxComputeSequence(steps=list(
-                   mxComputeOnce('expectation', context=""),
+                   mxComputeOnce('expectation'),
                    mxComputeOnce('fitfunction', fit=TRUE))))
     m6 <- mxRun(m6, silent=TRUE)
     fit <- m6@output$minimum

@@ -763,7 +763,7 @@ ba81compute(omxExpectation *oo, const char *context)
 	if (context) {
 		if (strcmp(context, "EM")==0) {
 			state->type = EXPECTATION_AUGMENTED;
-		} else if (context[0] == 0) {
+		} else if (strcmp(context, "observed")==0) {
 			state->type = EXPECTATION_OBSERVED;
 		} else {
 			omxRaiseErrorf(globalState, "Unknown context '%s'", context);

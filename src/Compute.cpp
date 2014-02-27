@@ -1162,12 +1162,12 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		expectations.push_back(expectation);
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("mstep.fit")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("completed.fit")));
 	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("fit")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("observed.fit")));
 	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
 	fit2 = omxNewCompute(globalState, CHAR(s4class));
 	fit2->initFromFrontend(slotValue);
@@ -1206,7 +1206,7 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 
 	const size_t extraVars = fit2->varGroup->vars.size();
 	if (extraVars) {
-		setExpectationContext("");
+		setExpectationContext("observed");
 		if (0) {
 			// do we need to completely optimize the latent parameter?
 			int iter = 0;
@@ -1310,7 +1310,7 @@ void ComputeEM::compute(FitContext *fc)
 			fc1->updateParentAndFree();
 		}
 
-		setExpectationContext("");
+		setExpectationContext("observed");
 		{
 			FitContext *context = fc;
 			if (fc->varGroup != fit2->varGroup) {
@@ -1700,7 +1700,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
 
-	context = "";
+	context = "observed";
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
 	if (length(slotValue) == 0) {

@@ -94,7 +94,7 @@ if (1) {
   g3@matrices$cov@values <- fm$G3$cov
   
   cModel <- mxModel(model="cModel", g1,g2,g3,
-                    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'))
+                    mxComputeOnce(paste(groups, 'expectation', sep='.')))
   for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
   cModel.eap <- mxRun(cModel)
   
