@@ -312,7 +312,7 @@ mxComputeGradientDescent <- function(free.set=NULL, ..., useGradient=NULL,
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxComputeOnce does not accept values for the '...' argument")
+		stop("mxComputeGradientDescent does not accept values for the '...' argument")
 	}
 	if (missing(engine)) {
 		engine <- options()$mxOptions[["Default optimizer"]]
@@ -395,7 +395,7 @@ mxComputeNewtonRaphson <- function(free.set=NULL, ..., fitfunction='fitfunction'
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxComputeOnce does not accept values for the '...' argument")
+		stop("mxComputeNewtonRaphson does not accept values for the '...' argument")
 	}
 
 	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose, carefully)
@@ -483,7 +483,7 @@ setMethod("initialize", "MxComputeIterate",
 mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxComputeOnce does not accept values for the '...' argument")
+		stop("mxComputeIterate does not accept values for the '...' argument")
 	}
 
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
@@ -697,7 +697,7 @@ mxComputeNumericDeriv <- function(free.set=NULL, ..., fitfunction='fitfunction',
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxComputeOnce does not accept values for the '...' argument")
+		stop("mxComputeNumericDeriv does not accept values for the '...' argument")
 	}
 
 	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations)
