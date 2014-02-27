@@ -278,6 +278,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' offers the choice of two optimizers, CSOLNP and NPSOL.
 ##'
 ##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param engine specific NPSOL or CSOLNP
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
@@ -306,9 +307,13 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$conditionNumber # 29.5
 
-mxComputeGradientDescent <- function(free.set=NULL, useGradient=NULL,
+mxComputeGradientDescent <- function(free.set=NULL, ..., useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
 
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeOnce does not accept values for the '...' argument")
+	}
 	if (missing(engine)) {
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
@@ -371,6 +376,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' derivatives are well behaved.
 ##'
 ##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param maxIter maximum number of iterations
 ##' @param tolerance optimization is considered converged when maximum absolute change in parameters is less than tolerance
@@ -384,9 +390,14 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40}(3), 337-360.
 
-mxComputeNewtonRaphson <- function(free.set=NULL, fitfunction='fitfunction', maxIter = 100L,
+mxComputeNewtonRaphson <- function(free.set=NULL, ..., fitfunction='fitfunction', maxIter = 100L,
 				   tolerance=1e-7, verbose=0L, carefully=FALSE)
 {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeOnce does not accept values for the '...' argument")
+	}
+
 	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose, carefully)
 }
 
@@ -463,12 +474,18 @@ setMethod("initialize", "MxComputeIterate",
 ##' One step (typically the last) must compute the fit or maxAbsChange.
 ##'
 ##' @param steps a list of compute objects
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param maxIter the maximum number of iterations
 ##' @param tolerance iterates until change is less than tolerance
 ##' @param verbose level of debugging output
 ##' @aliases
 ##' MxComputeIterate-class
-mxComputeIterate <- function(steps, maxIter=500L, tolerance=1e-4, verbose=0L) {
+mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeOnce does not accept values for the '...' argument")
+	}
+
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose)
 }
 
@@ -654,6 +671,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' The implementation is closely based on the numDeriv R package.
 ##' 
 ##' @param free.set names of matrices containing free variables (defaults to all free variables)
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param parallel whether to evaluate the fitfunction in parallel (defaults to TRUE)
 ##' @param stepSize starting set size (defaults to 0.0001)
@@ -674,8 +692,14 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$hessian
 
-mxComputeNumericDeriv <- function(free.set=NULL, fitfunction='fitfunction',
-				      parallel=TRUE, stepSize=0.0001, iterations=4L) {
+mxComputeNumericDeriv <- function(free.set=NULL, ..., fitfunction='fitfunction',
+				      parallel=TRUE, stepSize=0.0001, iterations=4L)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeOnce does not accept values for the '...' argument")
+	}
+
 	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations)
 }
 
